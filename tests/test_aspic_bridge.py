@@ -63,6 +63,7 @@ from propstore.aspic_bridge import (
     csaf_to_projection,
     build_aspic_projection,
 )
+from propstore.core.literal_keys import claim_key
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import (
     StructuredArgument,
@@ -218,7 +219,7 @@ class TestClaimsToLiterals:
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
         for claim in claims:
-            assert claim["id"] in literals, (
+            assert claim_key(claim["id"]) in literals, (
                 f"Claim {claim['id']} has no literal"
             )
 
@@ -237,8 +238,8 @@ class TestClaimsToLiterals:
         """Each literal's atom equals its claim_id."""
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
-        for claim_id, lit in literals.items():
-            assert lit.atom.predicate == claim_id
+        for key, lit in literals.items():
+            assert lit.atom.predicate == key.claim_id
             assert lit.negated is False
 
     @given(claim_graph())
@@ -326,11 +327,11 @@ class TestJustificationsToRules:
         ]
         # Each inference justification should have a matching rule
         for j in inference_justs:
-            expected_antes = tuple(literals[pid] for pid in j.premise_claim_ids)
+            expected_antes = tuple(literals[claim_key(pid)] for pid in j.premise_claim_ids)
             matching = [
                 r for r in all_rules
                 if set(r.antecedents) == set(expected_antes)
-                and r.consequent == literals[j.conclusion_claim_id]
+                and r.consequent == literals[claim_key(j.conclusion_claim_id)]
             ]
             assert len(matching) >= 1, (
                 f"No rule found for justification {j.justification_id}"
@@ -356,8 +357,8 @@ class TestStancesToContrariness:
         cfn = stances_to_contrariness(stances, literals, defeasible)
         for stance in stances:
             if stance["stance_type"] in ("rebuts", "contradicts"):
-                src = literals[stance["claim_id"]]
-                tgt = literals[stance["target_claim_id"]]
+                tgt = literals[claim_key(stance["target_claim_id"])]
+                src = literals[claim_key(stance["claim_id"])]
                 assert cfn.is_contradictory(src, tgt), (
                     f"{stance['stance_type']} {src}->{tgt} not contradictory"
                 )
@@ -378,8 +379,8 @@ class TestStancesToContrariness:
         cfn = stances_to_contrariness(stances, literals, defeasible)
         for stance in stances:
             if stance["stance_type"] == "supersedes":
-                src = literals[stance["claim_id"]]
-                tgt = literals[stance["target_claim_id"]]
+                tgt = literals[claim_key(stance["target_claim_id"])]
+                src = literals[claim_key(stance["claim_id"])]
                 assert cfn.is_contrary(src, tgt) or cfn.is_contradictory(src, tgt), (
                     f"supersedes {src}->{tgt} not in contrariness"
                 )
@@ -459,7 +460,7 @@ class TestStancesToContrariness:
             defeasible,
         )
 
-        attacker = literals["attacker"]
+        attacker = literals[claim_key("attacker")]
         rule_a = Literal(atom=GroundAtom("supports:support_a->target"), negated=False)
         rule_b = Literal(atom=GroundAtom("supports:support_b->target"), negated=False)
 
@@ -538,7 +539,7 @@ class TestStancesToContrariness:
             defeasible,
         )
 
-        attacker = literals["attacker"]
+        attacker = literals[claim_key("attacker")]
         rule_a = Literal(atom=GroundAtom("supports:support_a->target"), negated=False)
 
         assert cfn.is_contrary(attacker, rule_a)
@@ -572,7 +573,7 @@ class TestClaimsToKb:
         literals = claims_to_literals(claims)
         kb = claims_to_kb(claims, justifications, literals)
         for claim in claims:
-            lit = literals[claim["id"]]
+            lit = literals[claim_key(claim["id"])]
             if claim.get("premise_kind") == "necessary":
                 assert lit in kb.axioms, (
                     f"Necessary claim {claim['id']} not in K_n"
@@ -586,7 +587,7 @@ class TestClaimsToKb:
         literals = claims_to_literals(claims)
         kb = claims_to_kb(claims, justifications, literals)
         for claim in claims:
-            lit = literals[claim["id"]]
+            lit = literals[claim_key(claim["id"])]
             if claim.get("premise_kind", "ordinary") == "ordinary":
                 assert lit in kb.premises, (
                     f"Ordinary claim {claim['id']} not in K_p"
@@ -679,7 +680,7 @@ class TestBuildBridgeCsaf:
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         literals = claims_to_literals(claims)
         for claim in claims:
-            lit = literals[claim["id"]]
+            lit = literals[claim_key(claim["id"])]
             assert lit in csaf.system.language, (
                 f"Claim {claim['id']} literal not in CSAF language"
             )

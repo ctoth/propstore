@@ -385,7 +385,7 @@ def test_query_claim_threads_grounded_rules() -> None:
     goal-directed argument construction backward-chains from a
     literal to premises; the rule set it chains over must include
     the ground defeasible rules from the bundle. 1.8b wires the
-    bundle through so ``query_claim('flies(tweety)', ..., bundle=b)``
+    bundle through so ``query_claim(GroundAtom('flies', ('tweety',)), ..., bundle=b)``
     can reach ``bird(tweety)`` via the ground instance of
     ``flies(X) -< bird(X)``.
     """
@@ -422,7 +422,7 @@ def test_tweety_end_to_end_via_query_claim() -> None:
            ``definitely`` section contains ``{'bird': {('tweety',)}}``
            and whose ``defeasibly`` section contains
            ``{'flies': {('tweety',)}}``.
-        4. ``query_claim('flies(tweety)', active_claims=[],
+        4. ``query_claim(GroundAtom('flies', ('tweety',)), active_claims=[],
            justifications=[], stances=[], bundle=bundle)`` returns a
            ``ClaimQueryResult`` with exactly one argument supporting
            the queried literal.
@@ -462,12 +462,8 @@ def test_tweety_end_to_end_via_query_claim() -> None:
         "flies", frozenset()
     )
 
-    # The query literal key matches ``repr(GroundAtom('flies',
-    # ('tweety',)))`` -> ``"flies(tweety)"``. See
-    # ``propstore/aspic_bridge.py:_literal_for_atom`` for the
-    # canonical keying rule.
     result = query_claim(
-        "flies(tweety)",
+        GroundAtom("flies", ("tweety",)),
         active_claims=[],
         justifications=[],
         stances=[],
@@ -492,6 +488,7 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     # n(r) must be unique per ground instance. The grounder bridge now
     # encodes the substitution structurally after ``<rule_id>#`` so
     # delimiter characters inside constants cannot collide.
+    assert argument.rule.name is not None
     assert argument.rule.name.startswith('r_flies_bird#{"X":')
     assert '"type":"str"' in argument.rule.name
     assert '"value":"tweety"' in argument.rule.name
@@ -518,7 +515,7 @@ def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
           (facts are preserved).
         - ``defeasibly`` contains no entry for ``flies``.
 
-    Expected query result: ``query_claim('flies(tweety)', ...,
+    Expected query result: ``query_claim(GroundAtom('flies', ('tweety',)), ...,
     bundle=bundle)`` raises ``KeyError`` because the goal literal is
     absent from the extended literal map when no rule introduces it.
 
@@ -553,7 +550,7 @@ def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
     _unused = GroundAtom  # silence unused-import in red state
     with pytest.raises(KeyError, match="flies\\(tweety\\)"):
         query_claim(
-            "flies(tweety)",
+            GroundAtom("flies", ("tweety",)),
             active_claims=[],
             justifications=[],
             stances=[],
