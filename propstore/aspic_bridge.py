@@ -22,10 +22,14 @@ should normally enter through `propstore.structured_projection`.
 
 from __future__ import annotations
 
+import json
 import statistics
+from ast import literal_eval
 from dataclasses import dataclass
 from collections.abc import Iterator, Sequence
 from typing import Any
+
+from gunray.parser import split_top_level
 
 from propstore.aspic import Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -287,6 +291,50 @@ def _apply_substitution(
     return GroundAtom(predicate=atom.predicate, arguments=tuple(args))
 
 
+def _typed_scalar_key(value: Scalar) -> dict[str, Scalar | str]:
+    if isinstance(value, bool):
+        return {"type": "bool", "value": value}
+    if isinstance(value, int):
+        return {"type": "int", "value": value}
+    if isinstance(value, float):
+        return {"type": "float", "value": value}
+    return {"type": "str", "value": value}
+
+
+def _ground_literal_key(ground_atom: GroundAtom, negated: bool) -> str:
+    return json.dumps(
+        {
+            "kind": "ground_literal",
+            "predicate": ground_atom.predicate,
+            "arguments": [_typed_scalar_key(arg) for arg in ground_atom.arguments],
+            "negated": negated,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def _parse_ground_scalar_surface(text: str) -> Scalar:
+    stripped = text.strip()
+    if stripped.startswith('"') and stripped.endswith('"'):
+        parsed = literal_eval(stripped)
+        if not isinstance(parsed, str):
+            raise ValueError(f"Expected quoted string scalar, got {text!r}")
+        return parsed
+    if stripped == "true":
+        return True
+    if stripped == "false":
+        return False
+    try:
+        return int(stripped)
+    except ValueError:
+        pass
+    try:
+        return float(stripped)
+    except ValueError:
+        return stripped
+
+
 def _literal_for_atom(
     ground_atom: GroundAtom,
     negated: bool,
@@ -294,16 +342,13 @@ def _literal_for_atom(
 ) -> Literal:
     """Fetch or create the canonical Literal for a GroundAtom.
 
-    The canonical dict key is ``repr(ground_atom)`` — nullary atoms
-    collapse to their bare predicate string (which matches the T1
-    claim-id keying at line 114 of this module), structured atoms
-    render as ``predicate(arg1, arg2, ...)``. Modgil & Prakken 2018
-    Def 1 (p.8): the logical language L must contain every literal
-    appearing in any rule, so we extend ``literals`` in place for
-    new atoms.
+    Grounded literals use a typed internal key that includes predicate,
+    typed arguments, and polarity. This keeps the grounded-literal
+    namespace disjoint from T1 claim ids and prevents positive/negative
+    occurrences of the same atom from aliasing.
     """
 
-    key = repr(ground_atom)
+    key = _ground_literal_key(ground_atom, negated)
     if key in literals:
         return literals[key]
     lit = Literal(atom=ground_atom, negated=negated)
@@ -471,8 +516,11 @@ def _parse_ground_atom_key(key: str) -> GroundAtom:
     inner = key[open_idx + 1 : -1]
     if not inner.strip():
         return GroundAtom(predicate=predicate, arguments=())
-    parts = [p.strip() for p in inner.split(",")]
-    return GroundAtom(predicate=predicate, arguments=tuple(parts))
+    parts = split_top_level(inner)
+    return GroundAtom(
+        predicate=predicate,
+        arguments=tuple(_parse_ground_scalar_surface(part) for part in parts),
+    )
 
 
 def _ground_facts_to_axioms(
@@ -1050,8 +1098,21 @@ def query_claim(
     strict_rules = strict_rules | ground_strict
     defeasible_rules = defeasible_rules | ground_defeasible
 
+    parsed_ground_atom: GroundAtom | None = None
+    try:
+        parsed_ground_atom = _parse_ground_atom_key(claim_id)
+    except Exception:
+        parsed_ground_atom = None
+    ground_claim_key = (
+        None
+        if parsed_ground_atom is None
+        else _ground_literal_key(parsed_ground_atom, False)
+    )
+
     if claim_id in lits:
         goal = lits[claim_id]
+    elif ground_claim_key is not None and ground_claim_key in lits:
+        goal = lits[ground_claim_key]
     else:
         # The goal literal did not come through T1 (no authored claim
         # with this id) nor T2.5 (no ground rule antecedent/consequent
@@ -1063,7 +1124,11 @@ def query_claim(
         # than raising — consistent with Modgil & Prakken 2018 Def 10
         # (grounded extension) vacuity: an undefeated argument set is
         # empty precisely when no argument reaches the goal.
-        parsed_atom = _parse_ground_atom_key(claim_id)
+        parsed_atom = (
+            parsed_ground_atom
+            if parsed_ground_atom is not None
+            else _parse_ground_atom_key(claim_id)
+        )
         goal = Literal(atom=parsed_atom, negated=False)
         return ClaimQueryResult(
             claim_id=claim_id,
