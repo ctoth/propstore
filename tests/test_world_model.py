@@ -2312,6 +2312,79 @@ class TestSemanticCorePhase4Activation:
 
         assert bound_a._active_graph == bound_b._active_graph
 
+    def test_irrelevant_claim_injection_preserves_target_semantics(self, world):
+        bound = world.bind(task="speech")
+
+        baseline_active_ids = tuple(sorted(_runtime_claim_ids(bound.active_claims(CONCEPT1_ID))))
+        baseline_value = bound.value_of(CONCEPT1_ID)
+        baseline_resolution = resolve(
+            bound,
+            CONCEPT1_ID,
+            ResolutionStrategy.SAMPLE_SIZE,
+        )
+
+        hypo = HypotheticalWorld(
+            bound,
+            add=[
+                SyntheticClaim(
+                    id="synth_irrelevant",
+                    concept_id=CONCEPT4_ID,
+                    value="breathy",
+                    conditions=["task == 'speech'"],
+                )
+            ],
+        )
+
+        assert tuple(sorted(_runtime_claim_ids(hypo.active_claims(CONCEPT1_ID)))) == baseline_active_ids
+        assert hypo.value_of(CONCEPT1_ID).status == baseline_value.status
+        assert tuple(sorted(_runtime_claim_ids(hypo.value_of(CONCEPT1_ID).claims))) == tuple(
+            sorted(_runtime_claim_ids(baseline_value.claims))
+        )
+
+        hypo_resolution = resolve(
+            hypo,
+            CONCEPT1_ID,
+            ResolutionStrategy.SAMPLE_SIZE,
+        )
+        assert hypo_resolution.status == baseline_resolution.status
+        assert hypo_resolution.winning_claim_id == baseline_resolution.winning_claim_id
+
+    def test_hypothetical_conflicts_are_addition_order_invariant(self, world):
+        bound = world.bind(task="speech")
+        remove_ids = _runtime_claim_ids(bound.active_claims(CONCEPT2_ID))
+        synth_a = SyntheticClaim(
+            id="synth_conflict_a",
+            concept_id=CONCEPT2_ID,
+            value=701.0,
+            conditions=["task == 'speech'"],
+        )
+        synth_b = SyntheticClaim(
+            id="synth_conflict_b",
+            concept_id=CONCEPT2_ID,
+            value=915.0,
+            conditions=["task == 'speech'"],
+        )
+
+        forward = HypotheticalWorld(bound, remove=remove_ids, add=[synth_a, synth_b])
+        reverse = HypotheticalWorld(bound, remove=remove_ids, add=[synth_b, synth_a])
+
+        forward_pairs = {
+            _conflict_pair(conflict)
+            for conflict in forward.recompute_conflicts()
+            if "synth_conflict_" in str(conflict.claim_a_id)
+            or "synth_conflict_" in str(conflict.claim_b_id)
+        }
+        reverse_pairs = {
+            _conflict_pair(conflict)
+            for conflict in reverse.recompute_conflicts()
+            if "synth_conflict_" in str(conflict.claim_a_id)
+            or "synth_conflict_" in str(conflict.claim_b_id)
+        }
+
+        assert forward_pairs == reverse_pairs == {
+            frozenset({"synth_conflict_a", "synth_conflict_b"})
+        }
+
 
 # ── RED tests: Float comparison bugs (audit findings F5.2, F5.3) ────
 
@@ -2464,6 +2537,35 @@ class TestWorldModelSidecarPath:
         conn.close()
 
         with pytest.raises(ValueError, match="Unsupported sidecar schema version"):
+            WorldModel(sidecar_path=db_path)
+
+    @pytest.mark.parametrize(
+        ("mutation", "message"),
+        [
+            ("missing_meta_row", "missing metadata row"),
+            ("missing_table", "missing table"),
+            ("missing_column", "missing column"),
+        ],
+    )
+    def test_worldmodel_rejects_boundary_schema_breakage(self, tmp_path, mutation, message):
+        db_path = tmp_path / f"{mutation}.sqlite"
+        conn = sqlite3.connect(db_path)
+        create_world_model_schema(conn)
+
+        if mutation == "missing_meta_row":
+            conn.execute("DELETE FROM meta WHERE key = 'sidecar'")
+        elif mutation == "missing_table":
+            conn.execute("DROP TABLE relation_edge")
+        elif mutation == "missing_column":
+            conn.execute("DROP TABLE alias")
+            conn.execute("CREATE TABLE alias (concept_id TEXT NOT NULL)")
+        else:
+            raise AssertionError(f"Unhandled mutation: {mutation}")
+
+        conn.commit()
+        conn.close()
+
+        with pytest.raises(ValueError, match="Unsupported sidecar schema"):
             WorldModel(sidecar_path=db_path)
 
     def test_worldmodel_importable_without_cli(self):
@@ -2697,4 +2799,3 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         assert result.acceptance_probs is not None
         assert result.acceptance_probs["claim_a"] > result.acceptance_probs["synth_b"]
         assert result.acceptance_probs["synth_b"] < 1.0
-

@@ -187,11 +187,11 @@ must end in an explicit terminal state rather than drifting.
 
 | Phase | Summary | Status | Evidence | Notes |
 |---|---|---|---|---|
-| 0 | coverage + markers baseline | in_progress | `logs/test-runs/phase0-coverage-baseline-20260413-131121.log`; `logs/test-runs/phase0-coverage-baseline-rerun-20260413-132057.log` | tooling landed; full-suite coverage is currently too slow under instrumentation and needs a pragmatic baseline strategy |
+| 0 | coverage + markers baseline | completed | `logs/test-runs/phase0-coverage-baseline-xdist-plain-20260413-134049.xml`; `logs/test-runs/phase0-inventory-report-20260413-141300.txt` | markers and `pytest-cov` landed; usable XML/HTML coverage artifacts and inventory summary now exist even though `xdist` remained noisy at the tail of one later rerun |
 | 1 | low-signal triage ledger | completed | `logs/test-runs/phase2-cutover-consolidation-rerun-20260413-135057.log` | initial suspect tranche classified below |
 | 2 | cutover/wiring consolidation | completed | `logs/test-runs/phase2-cutover-consolidation-rerun-20260413-135057.log` | duplicate ASPIC CLI acceptance removed; cutover-only delegation block removed |
 | 3 | semantic replacement contracts | completed | `logs/test-runs/phase2-cutover-consolidation-rerun-20260413-135057.log` | obsolete projection assumption replaced; worldline tests moved from negative path assertions to kept behavior contracts |
-| 4A | world_model property tranche | pending | | |
+| 4A | world_model property tranche | completed | `logs/test-runs/phase4a-world-model-20260413-141918.log` | added irrelevant-claim invariance, overlay conflict-order invariance, and stronger sidecar schema hard-failure coverage |
 | 4B | git_backend/repo tranche | pending | | |
 | 4C | cli/source_cli tranche | pending | | |
 | 4D | atms/worldline cli tranche | pending | | |
