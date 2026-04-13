@@ -5,8 +5,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar
 
-import yaml
-
+from propstore.artifacts import (
+    SOURCE_CLAIMS_FAMILY,
+    SOURCE_CONCEPTS_FAMILY,
+    SOURCE_DOCUMENT_FAMILY,
+    SOURCE_FINALIZE_REPORT_FAMILY,
+    SOURCE_JUSTIFICATIONS_FAMILY,
+    SOURCE_STANCES_FAMILY,
+    SourceRef,
+    normalize_source_slug,
+    source_branch_name,
+)
 from propstore.cli.repository import Repository
 from propstore.document_schema import decode_document_bytes
 from propstore.repo.branch import branch_head, create_branch
@@ -30,16 +39,6 @@ TDocument = TypeVar("TDocument")
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def normalize_source_slug(name: str) -> str:
-    cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in name.strip())
-    cleaned = cleaned.strip("._-")
-    return cleaned or "source"
-
-
-def source_branch_name(name: str) -> str:
-    return f"source/{normalize_source_slug(name)}"
 
 
 def source_tag_uri(repo: Repository, name: str) -> str:
@@ -97,20 +96,6 @@ def load_document_from_branch(
         return None
 
 
-def write_document(
-    repo: Repository,
-    *,
-    branch: str,
-    relpath: str,
-    document: object,
-    message: str,
-) -> str:
-    if not hasattr(document, "to_payload"):
-        raise TypeError(f"{relpath} document must define to_payload()")
-    payload = yaml.safe_dump(document.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8")
-    return repo.git.commit_batch(adds={relpath: payload}, deletes=[], message=message, branch=branch)
-
-
 def commit_source_file(
     repo: Repository,
     name: str,
@@ -149,11 +134,10 @@ def init_source_branch(
         origin_value=origin_value,
         content_file=content_file,
     )
-    write_document(
-        repo,
-        branch=branch,
-        relpath="source.yaml",
-        document=source_doc,
+    repo.artifacts.save(
+        SOURCE_DOCUMENT_FAMILY,
+        SourceRef(name),
+        source_doc,
         message=f"Initialize source {normalize_source_slug(name)}",
     )
     return branch
@@ -193,40 +177,29 @@ def load_source_metadata(repo: Repository, name: str) -> dict[str, object] | Non
     return json.loads(raw)
 
 
-def load_source_document(repo: Repository, name: str) -> dict[str, Any]:
+def load_source_document(repo: Repository, name: str) -> SourceDocument:
     branch = source_branch_name(name)
-    document = load_document_from_branch(repo, branch, "source.yaml", SourceDocument)
+    document = repo.artifacts.load(SOURCE_DOCUMENT_FAMILY, SourceRef(name))
     if document is None:
         raise ValueError(f"Source branch {branch!r} does not exist")
     return document
 
 
 def load_source_concepts_document(repo: Repository, name: str) -> SourceConceptsDocument | None:
-    return load_document_from_branch(repo, source_branch_name(name), "concepts.yaml", SourceConceptsDocument)
+    return repo.artifacts.load(SOURCE_CONCEPTS_FAMILY, SourceRef(name))
 
 
 def load_source_claims_document(repo: Repository, name: str) -> SourceClaimsDocument | None:
-    return load_document_from_branch(repo, source_branch_name(name), "claims.yaml", SourceClaimsDocument)
+    return repo.artifacts.load(SOURCE_CLAIMS_FAMILY, SourceRef(name))
 
 
 def load_source_justifications_document(repo: Repository, name: str) -> SourceJustificationsDocument | None:
-    return load_document_from_branch(
-        repo,
-        source_branch_name(name),
-        "justifications.yaml",
-        SourceJustificationsDocument,
-    )
+    return repo.artifacts.load(SOURCE_JUSTIFICATIONS_FAMILY, SourceRef(name))
 
 
 def load_source_stances_document(repo: Repository, name: str) -> SourceStancesDocument | None:
-    return load_document_from_branch(repo, source_branch_name(name), "stances.yaml", SourceStancesDocument)
+    return repo.artifacts.load(SOURCE_STANCES_FAMILY, SourceRef(name))
 
 
 def load_source_finalize_report(repo: Repository, name: str) -> SourceFinalizeReportDocument | None:
-    slug = normalize_source_slug(name)
-    return load_document_from_branch(
-        repo,
-        source_branch_name(name),
-        f"merge/finalize/{slug}.yaml",
-        SourceFinalizeReportDocument,
-    )
+    return repo.artifacts.load(SOURCE_FINALIZE_REPORT_FAMILY, SourceRef(name))

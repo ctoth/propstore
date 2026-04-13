@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-import yaml
-
 from propstore.artifact_codes import attach_source_artifact_codes
+from propstore.artifacts import (
+    SOURCE_CLAIMS_FAMILY,
+    SOURCE_DOCUMENT_FAMILY,
+    SOURCE_FINALIZE_REPORT_FAMILY,
+    SOURCE_JUSTIFICATIONS_FAMILY,
+    SOURCE_STANCES_FAMILY,
+    SourceRef,
+)
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value
 from propstore.source_calibration import derive_source_trust
@@ -18,7 +24,12 @@ from .common import (
     source_branch_name,
     source_tag_uri,
 )
-from propstore.source_documents import SourceFinalizeReportDocument
+from propstore.source_documents import (
+    SourceClaimsDocument,
+    SourceFinalizeReportDocument,
+    SourceJustificationsDocument,
+    SourceStancesDocument,
+)
 from .registry import preview_source_parameterization_group_merges
 
 
@@ -73,7 +84,11 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
     derived_from = list(source_doc.trust.derived_from)
     covered = bool(derived_from)
     artifact_code_status = "incomplete"
-    adds: dict[str, bytes] = {}
+    transaction = repo.artifacts.transact(
+        message=f"Finalize {normalize_source_slug(source_name)}",
+        branch=source_branch_name(source_name),
+    )
+    ref = SourceRef(source_name)
     if not claim_errors and not justification_errors and not stance_errors:
         updated_source, updated_claims, updated_justifications, updated_stances = attach_source_artifact_codes(
             source_doc.to_payload(),
@@ -81,17 +96,45 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
             None if justifications_doc is None else justifications_doc.to_payload(),
             None if stances_doc is None else stances_doc.to_payload(),
         )
-        adds["source.yaml"] = yaml.safe_dump(updated_source, sort_keys=False, allow_unicode=True).encode("utf-8")
+        transaction.save(
+            SOURCE_DOCUMENT_FAMILY,
+            ref,
+            convert_document_value(
+                updated_source,
+                type(source_doc),
+                source=f"{source_branch_name(source_name)}:source.yaml",
+            ),
+        )
         if updated_claims.get("claims"):
-            adds["claims.yaml"] = yaml.safe_dump(updated_claims, sort_keys=False, allow_unicode=True).encode("utf-8")
+            transaction.save(
+                SOURCE_CLAIMS_FAMILY,
+                ref,
+                convert_document_value(
+                    updated_claims,
+                    SourceClaimsDocument,
+                    source=f"{source_branch_name(source_name)}:claims.yaml",
+                ),
+            )
         if updated_justifications.get("justifications"):
-            adds["justifications.yaml"] = yaml.safe_dump(
-                updated_justifications,
-                sort_keys=False,
-                allow_unicode=True,
-            ).encode("utf-8")
+            transaction.save(
+                SOURCE_JUSTIFICATIONS_FAMILY,
+                ref,
+                convert_document_value(
+                    updated_justifications,
+                    SourceJustificationsDocument,
+                    source=f"{source_branch_name(source_name)}:justifications.yaml",
+                ),
+            )
         if updated_stances.get("stances"):
-            adds["stances.yaml"] = yaml.safe_dump(updated_stances, sort_keys=False, allow_unicode=True).encode("utf-8")
+            transaction.save(
+                SOURCE_STANCES_FAMILY,
+                ref,
+                convert_document_value(
+                    updated_stances,
+                    SourceStancesDocument,
+                    source=f"{source_branch_name(source_name)}:stances.yaml",
+                ),
+            )
         artifact_code_status = "complete"
 
     report = convert_document_value(
@@ -114,15 +157,5 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
         SourceFinalizeReportDocument,
         source=f"{source_branch_name(source_name)}:merge/finalize",
     )
-    slug = normalize_source_slug(source_name)
-    adds[f"merge/finalize/{slug}.yaml"] = yaml.safe_dump(
-        report.to_payload(),
-        sort_keys=False,
-        allow_unicode=True,
-    ).encode("utf-8")
-    return repo.git.commit_batch(
-        adds=adds,
-        deletes=[],
-        message=f"Finalize {slug}",
-        branch=source_branch_name(source_name),
-    )
+    transaction.save(SOURCE_FINALIZE_REPORT_FAMILY, ref, report)
+    return transaction.commit()

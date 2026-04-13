@@ -112,6 +112,12 @@ class Repository:
 
         return WorldModel(self)
 
+    @cached_property
+    def artifacts(self):
+        from propstore.artifacts import ArtifactStore
+
+        return ArtifactStore(self)
+
     def close(self) -> None:
         store = self.__dict__.get("store")
         if store is not None:
