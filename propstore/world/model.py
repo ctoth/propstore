@@ -25,6 +25,7 @@ from propstore.core.row_types import (
     RelationshipRow,
     StanceRow,
 )
+from propstore.knowledge_path import FilesystemKnowledgePath, KnowledgePath
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 
 if TYPE_CHECKING:
@@ -198,6 +199,13 @@ class WorldModel(ArtifactStore):
             )
         self._conn = sqlite3.connect(resolved)
         self._conn.row_factory = sqlite3.Row
+        knowledge_root = FilesystemKnowledgePath.from_filesystem_path(
+            resolved.parent.parent
+        )
+        if repo is not None and hasattr(repo, "tree"):
+            knowledge_root = repo.tree()
+        self._knowledge_root = knowledge_root
+        self._grounding_bundle_cache = None
         self._solver: Z3ConditionSolver | None = None
         self._registry: dict[str, ConceptInfo] | None = None
         self._context_hierarchy: ContextHierarchy | None = None
@@ -216,7 +224,17 @@ class WorldModel(ArtifactStore):
     def close(self) -> None:
         self._compiled_graph_cache = None
         self._active_graph_cache.clear()
+        self._grounding_bundle_cache = None
         self._conn.close()
+
+    def grounding_bundle(self):
+        """Return the grounded-rule bundle for this world model's knowledge root."""
+
+        if self._grounding_bundle_cache is None:
+            from propstore.grounding.loading import build_grounded_bundle
+
+            self._grounding_bundle_cache = build_grounded_bundle(self._knowledge_root)
+        return self._grounding_bundle_cache
 
     def _validate_schema(self) -> None:
         if not self._has_table("meta"):
