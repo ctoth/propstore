@@ -1,7 +1,7 @@
 # Review V2 Remediation Plan
 
 Date: 2026-04-12
-Status: executable
+Status: complete
 
 This plan covers the findings in `review-v2.md` after validation against the
 current repo state and the editable local `gunray` dependency.
@@ -118,7 +118,7 @@ Latest tranche-1 phase-close validation:
 | 20 | closure faithfulness unproven | yes | yes | gunray/dcs | gunray:`7173fe3`; dcs:`795f2a7` | kept-fixed | red: `datalog-conformance-suite/logs/test-runs/issue20-proof-red-dcs-20260412-232505.log`; semantic-red: `gunray/logs/test-runs/issue20-gunray-rerun3-20260412-233024.log`; focused-green: `gunray/logs/test-runs/issue20-gunray-rerun6-20260412-233602.log`; broader: `gunray/logs/test-runs/issue20-gunray-broader-20260412-233633.log`; fixed by packaging the exact reduced Morris closure oracle in `datalog-conformance-suite`, proving Gunray against it with Morris corpus + Hypothesis differentials, and replacing least-closure shortcuts with exact model-search entailment |
 | 21 | simplified specificity/defeat semantics | yes | yes | gunray | gunray:`28e0821` | kept-fixed | red: `gunray/logs/test-runs/issue21-proof-red-20260412-233843.log`; green: `gunray/logs/test-runs/issue21-rerun2-20260412-233942.log`; broader: `gunray/logs/test-runs/issue21-broader-20260412-233950.log`; resolved by making the reduced contract explicit in `README.md` and `gunray/defeasible.py` with Simari 1992 citations, rather than falsely implying full DeLP/ASPIC-style argument-structure specificity and dialectical defeat |
 | 22 | incomplete negative-status coverage | yes | yes | gunray | gunray:`5078df5` | kept-fixed | red: `gunray/logs/test-runs/issue22-proof-red-20260412-234124.log`; green: `gunray/logs/test-runs/issue22-green-20260412-234211.log`; broader: `gunray/logs/test-runs/issue22-broader-20260412-234218.log`; fixed by generating unsupported head candidates from partial body bindings plus the current constant universe so negative sections classify natural grounded queries even when no fully supported rule instance exists |
-| 23 | ASPIC edge-case deviations | no | no | propstore |  | pending |  |
+| 23 | ASPIC edge-case deviations | yes | yes | propstore | propstore:`c17e557` | kept-fixed | red: `logs/test-runs/issue23-proof-red-20260412-234652.log`; green: `logs/test-runs/issue23-green-rerun-20260412-234833.log`; broader: `logs/test-runs/issue23-broader-rerun-20260412-235050.log`; fixed by restoring Modgil & Prakken 2018 Def. 19 (p.21) empty-target lifting and removing the self-attack shortcut so preference-dependent defeats still compare attacker A against the targeted sub-argument B' per Def. 9 (p.12) |
 
 ## Validation Basis
 
