@@ -227,6 +227,57 @@ class TestAttackerInclusion:
         conclusions = {conc(a) for a in result}
         assert neg_p in conclusions  # attacker found
 
+    def test_attacker_expansion_reaches_reinstatement_depth_three(self):
+        """Attacker closure must continue until attack relevance is closed.
+
+        Goal: ``p``.
+        Attacker: ``q => ~p``.
+        Counter-attacker: ``r => ~q``.
+        Counter-counter-attacker: ``s => ~r``.
+
+        The focused result must include ``~r``; a hardcoded two-pass
+        expansion stops too early and misses it.
+        """
+
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
+        neg_p = Literal(GroundAtom("p"), negated=True)
+        neg_q = Literal(GroundAtom("q"), negated=True)
+        neg_r = Literal(GroundAtom("r"), negated=True)
+        s = Literal(GroundAtom("s"))
+        rules = [
+            Rule(
+                antecedents=(q,),
+                consequent=neg_p,
+                kind="defeasible",
+                name="r_attack_p",
+            ),
+            Rule(
+                antecedents=(Literal(GroundAtom("r")),),
+                consequent=neg_q,
+                kind="defeasible",
+                name="r_attack_q",
+            ),
+            Rule(
+                antecedents=(s,),
+                consequent=neg_r,
+                kind="defeasible",
+                name="r_attack_r",
+            ),
+        ]
+        system, _ = _make_system(["p", "q", "r", "s"], defeasible_rules=rules)
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({p, q, Literal(GroundAtom("r")), s}),
+        )
+
+        result = build_arguments_for(system, kb, p, include_attackers=True)
+        conclusions = {conc(a) for a in result}
+
+        assert neg_p in conclusions
+        assert neg_q in conclusions
+        assert neg_r in conclusions
+
 
 # ── Test: depth limiting ───────────────────────────────────────────
 

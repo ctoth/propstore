@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from propstore.aspic import GroundAtom
+from propstore.aspic import conc
 from propstore.aspic_bridge import (
     _canonical_substitution_key,
     _literal_for_atom,
@@ -180,6 +181,30 @@ def test_query_claim_does_not_misclassify_supporting_subarguments_as_against() -
 
     assert result.arguments_for
     assert result.arguments_against == frozenset()
+
+
+def test_query_claim_arguments_against_excludes_counter_attackers() -> None:
+    claims = [_make_claim("p"), _make_claim("q"), _make_claim("r")]
+    justifications = [
+        _make_justification("reported:p", "p", rule_kind="reported_claim"),
+        _make_justification("reported:q", "q", rule_kind="reported_claim"),
+        _make_justification("reported:r", "r", rule_kind="reported_claim"),
+    ]
+    stances = [
+        {"claim_id": "q", "target_claim_id": "p", "stance_type": "rebuts"},
+        {"claim_id": "r", "target_claim_id": "q", "stance_type": "rebuts"},
+    ]
+
+    result = query_claim(
+        "p",
+        active_claims=claims,
+        justifications=justifications,
+        stances=stances,
+        bundle=GroundedRulesBundle.empty(),
+    )
+
+    against_conclusions = {conc(arg) for arg in result.arguments_against}
+    assert against_conclusions == {claims_to_literals(claims)["q"]}
 
 
 def test_build_bridge_csaf_populates_framework_attacks() -> None:
