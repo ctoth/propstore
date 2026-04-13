@@ -753,3 +753,42 @@ def test_translate_negative_body_raises_not_implemented() -> None:
 
     with pytest.raises(NotImplementedError):
         translate_to_theory([rule_file], (), _bird_registry())
+
+
+def test_translate_string_constant_round_trips_control_characters() -> None:
+    """String constants with control characters must stay parseable.
+
+    The translator emits Gunray surface syntax, so a string constant with
+    embedded newline/tab characters must be encoded as a valid string literal,
+    not injected verbatim into the output surface.
+    """
+
+    from gunray.parser import parse_atom_text
+    from gunray.types import Constant
+
+    from propstore.grounding.translator import translate_to_theory
+
+    constant_value = "line1\nline2\tquoted"
+    rule = _build_rule_document(
+        rule_id="control_chars",
+        kind="defeasible",
+        head=_build_atom("label", [_build_term_const(constant_value)]),
+        body=(),
+    )
+    rule_file = _build_rule_file([rule])
+    registry = _build_registry(
+        [
+            _build_predicate_document(
+                predicate_id="label",
+                arity=1,
+                arg_types=("Concept",),
+                derived_from=None,
+            )
+        ]
+    )
+
+    theory = translate_to_theory([rule_file], (), registry)
+
+    assert theory.defeasible_rules[0].head == 'label("line1\\nline2\\tquoted")'
+    parsed_head = parse_atom_text(theory.defeasible_rules[0].head)
+    assert parsed_head.terms == (Constant(value=constant_value),)

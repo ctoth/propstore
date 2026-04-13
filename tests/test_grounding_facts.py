@@ -721,3 +721,34 @@ def test_extract_facts_mixed_derived_from_only_emits_supported() -> None:
 
     atoms = extract_facts([concept], registry)
     assert atoms == (GroundAtom("bird", ("tweety",)),)
+
+
+def test_extract_facts_rejects_non_unary_concept_relation_predicate() -> None:
+    """``concept.relation`` facts must respect the declared predicate arity.
+
+    The current extractor materialises a single source-concept constant for
+    each matching relation edge. If a predicate declaration claims the same
+    ``derived_from`` surface but an arity other than 1, the extractor must fail
+    loudly instead of emitting a wrong-shaped ground atom.
+    """
+
+    from propstore.grounding.facts import extract_facts
+    from propstore.grounding.predicates import PredicateArityMismatchError
+
+    concept = _build_loaded_concept(
+        "tweety",
+        [_build_concept_relationship("is_a", "Bird")],
+    )
+    registry = _build_registry(
+        [
+            _build_predicate_document(
+                predicate_id="bird_pair",
+                arity=2,
+                arg_types=("Concept", "Concept"),
+                derived_from="concept.relation:is_a:Bird",
+            )
+        ]
+    )
+
+    with pytest.raises(PredicateArityMismatchError):
+        extract_facts([concept], registry)
