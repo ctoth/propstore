@@ -89,10 +89,10 @@ terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 | 5 | grounded literal aliasing by repr | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
 | 6 | `_parse_ground_atom_key()` not invertible | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
 | 7 | goal-directed attacker incompleteness | no | no | propstore |  | pending |  |
-| 8 | `arguments_against` misclassification | no | no | propstore |  | pending |  |
-| 9 | CSAF framework drops `attacks` | no | no | propstore |  | pending |  |
-| 10 | preferred backend threading | no | no | propstore |  | pending |  |
-| 11 | empty-premise rules dropped | no | no | propstore |  | pending |  |
+| 8 | `arguments_against` misclassification | yes | no | propstore | pending | pending | focused chain proof did not reproduce; needs stronger reproducer before resolution |
+| 9 | CSAF framework drops `attacks` | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
+| 10 | preferred backend threading | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
+| 11 | empty-premise rules dropped | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
 | 12 | fact extraction ignores arity | no | no | propstore |  | pending |  |
 | 13 | incomplete string escaping | no | no | propstore |  | pending |  |
 | 14 | grounded-rule naming collision risk | no | no | propstore |  | pending |  |
