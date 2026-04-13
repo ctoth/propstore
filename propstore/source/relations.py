@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
-
+from propstore.artifacts import (
+    SOURCE_JUSTIFICATIONS_FAMILY,
+    SOURCE_STANCES_FAMILY,
+    SourceRef,
+)
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value, decode_document_path
 
 from .claims import load_source_claim_index
 from .common import (
-    commit_source_file,
     load_source_justifications_document,
     load_source_stances_document,
     normalize_source_slug,
@@ -102,11 +104,10 @@ def commit_source_justifications_batch(
         raw,
         local_to_artifact=local_to_artifact,
     )
-    return commit_source_file(
-        repo,
-        source_name,
-        relpath="justifications.yaml",
-        content=yaml.safe_dump(normalized.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8"),
+    return repo.artifacts.save(
+        SOURCE_JUSTIFICATIONS_FAMILY,
+        SourceRef(source_name),
+        normalized,
         message=f"Write justifications for {normalize_source_slug(source_name)}",
     )
 
@@ -168,11 +169,10 @@ def commit_source_stances_batch(
         raw,
         local_to_artifact=local_to_artifact,
     )
-    return commit_source_file(
-        repo,
-        source_name,
-        relpath="stances.yaml",
-        content=yaml.safe_dump(normalized.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8"),
+    return repo.artifacts.save(
+        SOURCE_STANCES_FAMILY,
+        SourceRef(source_name),
+        normalized,
         message=f"Write stances for {normalize_source_slug(source_name)}",
     )
 
@@ -210,11 +210,10 @@ def commit_source_justification_proposal(
         local_to_artifact=local_to_artifact,
     )
 
-    commit_source_file(
-        repo,
-        source_name,
-        relpath="justifications.yaml",
-        content=yaml.safe_dump(normalized.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8"),
+    repo.artifacts.save(
+        SOURCE_JUSTIFICATIONS_FAMILY,
+        SourceRef(source_name),
+        normalized,
         message=f"Propose justification for {normalize_source_slug(source_name)}",
     )
 
@@ -262,11 +261,10 @@ def commit_source_stance_proposal(
         local_to_artifact=local_to_artifact,
     )
 
-    commit_source_file(
-        repo,
-        source_name,
-        relpath="stances.yaml",
-        content=yaml.safe_dump(normalized.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8"),
+    repo.artifacts.save(
+        SOURCE_STANCES_FAMILY,
+        SourceRef(source_name),
+        normalized,
         message=f"Propose stance for {normalize_source_slug(source_name)}",
     )
 

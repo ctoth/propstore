@@ -4,8 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-import yaml
-
+from propstore.artifacts import SOURCE_CLAIMS_FAMILY, SourceRef
 from propstore.claim_documents import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.source_documents import SourceProvenanceDocument
 from propstore.cli.repository import Repository
@@ -17,7 +16,6 @@ from propstore.identity import (
 )
 
 from .common import (
-    commit_source_file,
     load_source_claims_document,
     load_source_concepts_document,
     load_source_document,
@@ -210,11 +208,10 @@ def commit_source_claims_batch(
         source_uri=source_doc.id or source_tag_uri(repo, source_name),
         source_namespace=normalize_source_slug(source_name),
     )
-    return commit_source_file(
-        repo,
-        source_name,
-        relpath="claims.yaml",
-        content=yaml.safe_dump(normalized.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8"),
+    return repo.artifacts.save(
+        SOURCE_CLAIMS_FAMILY,
+        SourceRef(source_name),
+        normalized,
         message=f"Write claims for {normalize_source_slug(source_name)}",
     )
 
@@ -290,11 +287,10 @@ def commit_source_claim_proposal(
         source_namespace=normalize_source_slug(source_name),
     )
 
-    commit_source_file(
-        repo,
-        source_name,
-        relpath="claims.yaml",
-        content=yaml.safe_dump(normalized.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8"),
+    repo.artifacts.save(
+        SOURCE_CLAIMS_FAMILY,
+        SourceRef(source_name),
+        normalized,
         message=f"Propose claim for {normalize_source_slug(source_name)}",
     )
 

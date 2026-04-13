@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
-
+from propstore.artifacts import SOURCE_CONCEPTS_FAMILY, SourceRef
 from propstore.cli.repository import Repository
 from propstore.document_schema import decode_document_path
 
-from .common import load_source_concepts_document, source_branch_name
+from .common import load_source_concepts_document
 from propstore.source_documents import (
     SourceConceptEntryDocument,
     SourceConceptFormParametersDocument,
@@ -78,14 +77,13 @@ def normalize_source_concepts_document(
 
 
 def commit_source_concepts_batch(repo: Repository, source_name: str, concepts_file: Path) -> str:
-    branch = source_branch_name(source_name)
     loaded = decode_document_path(concepts_file, SourceConceptsDocument)
     normalized = normalize_source_concepts_document(repo, loaded)
-    return repo.git.commit_batch(
-        adds={"concepts.yaml": yaml.safe_dump(normalized.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8")},
-        deletes=[],
+    return repo.artifacts.save(
+        SOURCE_CONCEPTS_FAMILY,
+        SourceRef(source_name),
+        normalized,
         message=f"Write concepts for {source_name}",
-        branch=branch,
     )
 
 
@@ -99,7 +97,6 @@ def commit_source_concept_proposal(
     form_parameters: SourceConceptFormParametersDocument | None = None,
 ) -> SourceConceptEntryDocument:
     validate_form_name(form, repo)
-    branch = source_branch_name(source_name)
     existing = load_source_concepts_document(repo, source_name) or SourceConceptsDocument(concepts=())
     concepts = [entry for entry in existing.concepts if entry.local_name != local_name]
     entry = SourceConceptEntryDocument(
@@ -111,11 +108,11 @@ def commit_source_concept_proposal(
     )
     concepts.append(entry)
     doc = normalize_source_concepts_document(repo, SourceConceptsDocument(concepts=tuple(concepts)))
-    repo.git.commit_batch(
-        adds={"concepts.yaml": yaml.safe_dump(doc.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8")},
-        deletes=[],
+    repo.artifacts.save(
+        SOURCE_CONCEPTS_FAMILY,
+        SourceRef(source_name),
+        doc,
         message=f"Propose concepts for {source_name}",
-        branch=branch,
     )
     for normalized_entry in doc.concepts:
         if normalized_entry.local_name == local_name:
