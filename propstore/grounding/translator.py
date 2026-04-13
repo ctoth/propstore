@@ -104,6 +104,9 @@ def translate_to_theory(
       ``NotImplementedError`` (Garcia & Simari 2004 §3 admits both in
       a DeLP program, but Phase 1 defers them so gunray's
       ``strict_rules`` and ``defeaters`` slots stay empty).
+    - Strong negation on any translated head/body atom raises
+      ``NotImplementedError``. Silently erasing ``AtomDocument.negated``
+      would change rule meaning.
     - Rules with a non-empty ``negative_body`` raise
       ``NotImplementedError`` (Garcia & Simari 2004 §6.1, p.29-31:
       default negation has distinct semantics from positive body
@@ -226,10 +229,10 @@ def _stringify_atom(atom: AtomDocument) -> str:
     Garcia & Simari 2004 §3 fixes the same shape at the DeLP language
     level).
 
-    Phase 1 does NOT render strong negation (``AtomDocument.negated``)
-    — no Phase 1 test exercises it and the gunray parser's ``~``
-    handling is itself partial. A later chunk will layer that in once
-    contrariness routing is defined.
+    Phase 1 refuses strong negation loudly. The surrounding translator
+    already raises on other deferred semantics (`negative_body`,
+    strict rules, defeaters); strong negation must follow the same
+    boundary discipline instead of being silently erased.
 
     Args:
         atom: The propstore atom to stringify.
@@ -237,6 +240,11 @@ def _stringify_atom(atom: AtomDocument) -> str:
     Returns:
         A surface-syntax string that ``parse_atom_text`` round-trips.
     """
+
+    if atom.negated:
+        raise NotImplementedError(
+            "Strong negation is deferred to Phase 4"
+        )
 
     if not atom.terms:
         # Arity-0 atom: ``parse_atom_text`` parses a bare identifier
