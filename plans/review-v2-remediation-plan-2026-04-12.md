@@ -84,7 +84,7 @@ terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 |---|---|---|---|---|---|---|---|
 | 1 | quoted string scalar collapse | yes | yes | gunray/dcs | gunray:`00844b0`; dcs:`9d4c7a9` | kept-fixed | red: `gunray/logs/test-runs/issue1-proof-red-pypath-20260412-220526.log`; green: `gunray/logs/test-runs/issues1-2-green-20260412-220723.log` |
 | 2 | arithmetic associativity | yes | yes | gunray/dcs | gunray:`00844b0`; dcs:`9d4c7a9` | kept-fixed | red: `gunray/logs/test-runs/issue2-proof-red-20260412-220649.log`; green: `gunray/logs/test-runs/issues1-2-green-20260412-220723.log` |
-| 3 | unsafe negation acceptance | no | no | gunray |  | pending |  |
+| 3 | unsafe negation acceptance | yes | yes | gunray/dcs | gunray:`8de56a7`; dcs:`78e0b0b` | kept-fixed | red: `gunray/logs/test-runs/issue3-proof-red-20260412-221109.log`; green: `gunray/logs/test-runs/issue3-green-20260412-221126.log` |
 | 4 | strong negation dropped at boundary | no | no | propstore |  | pending | existing strong-negation plan overlap |
 | 5 | grounded literal aliasing by repr | no | no | propstore |  | pending |  |
 | 6 | `_parse_ground_atom_key()` not invertible | no | no | propstore |  | pending |  |
