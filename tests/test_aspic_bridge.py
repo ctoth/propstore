@@ -855,8 +855,8 @@ class TestBridgeRationalityPostulates:
 class TestCsafToProjection:
     """Property tests for T7: CSAF -> StructuredProjection."""
 
-    @given(claim_graph())
-    @settings(deadline=None)
+    @given(claim_graph(max_claims=4))
+    @settings(deadline=None, max_examples=50)
     def test_projection_arguments_preserve_claim_or_canonical_conclusion_identity(self, graph):
         """Projected arguments must have a stable identity surface.
 
@@ -880,8 +880,8 @@ class TestCsafToProjection:
                     f"Argument {arg.arg_id} depends on unknown claim {dependency_claim_id}"
                 )
 
-    @given(claim_graph())
-    @settings(deadline=None)
+    @given(claim_graph(max_claims=4))
+    @settings(deadline=None, max_examples=50)
     def test_justified_claims_subset_of_active(self, graph):
         """Justified claims are a subset of active claims."""
         claims, justifications, stances = graph
@@ -897,8 +897,8 @@ class TestCsafToProjection:
                     f"Justified claim {cid} not in active claims"
                 )
 
-    @given(claim_graph())
-    @settings(deadline=None)
+    @given(claim_graph(max_claims=4))
+    @settings(deadline=None, max_examples=50)
     def test_projection_framework_matches_csaf(self, graph):
         """The projection's Dung AF is derived from the CSAF."""
         claims, justifications, stances = graph

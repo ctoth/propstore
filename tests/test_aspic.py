@@ -1356,6 +1356,11 @@ class TestAttackProperties:
         kb = data.draw(knowledge_base(L, R_s, R_d))
         arguments = build_arguments(system, kb)
         attacks = compute_attacks(arguments, system)
+        reverse_rebut_targets = {
+            (conc(atk2.attacker), id(atk2.target_sub))
+            for atk2 in attacks
+            if atk2.kind == "rebutting"
+        }
 
         for atk in attacks:
             if atk.kind != "rebutting":
@@ -1371,14 +1376,9 @@ class TestAttackProperties:
             tr_b = top_rule(atk.target_sub)
             if tr_b is None or tr_b.kind != "defeasible":
                 continue
-            # There must exist a reverse rebutting attack from the same
-            # contradictory defeasible conclusion back onto A.
-            reverse_exists = any(
-                atk2.kind == "rebutting"
-                and conc(atk2.attacker) == conc_b_prime
-                and atk2.target_sub == atk.attacker
-                for atk2 in attacks
-            )
+            # Index by target_sub identity to avoid quadratic deep-argument
+            # equality checks across large Hypothesis-generated attack sets.
+            reverse_exists = (conc_b_prime, id(atk.attacker)) in reverse_rebut_targets
             assert reverse_exists, (
                 f"Rebutting attack from defeasible {conc_a} on defeasible "
                 f"{conc_b_prime} is contradictory-symmetric, but no reverse "
