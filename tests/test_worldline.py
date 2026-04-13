@@ -2161,3 +2161,79 @@ class TestWorldlineCLIFlags:
         assert "Input atom: claim:synthetic" in result.output
         assert "Rejected atoms: claim:legacy" in result.output
 
+    def test_run_show_and_list_share_materialized_worldline_surface(self, tmp_path, monkeypatch):
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_list, worldline_run, worldline_show
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        class _FakeWorldModel:
+            def __init__(self, repo):
+                self.repo = repo
+
+            def close(self):
+                return None
+
+        def fake_run_worldline(definition, world):
+            from propstore.worldline import WorldlineResult
+
+            return WorldlineResult(
+                computed="2026-03-29T00:00:00Z",
+                content_hash="abc123",
+                values={
+                    "concept1": {
+                        "status": "determined",
+                        "value": 1.0,
+                        "source": "claim",
+                        "winning_claim_id": "claim:one",
+                    }
+                },
+                steps=[
+                    {
+                        "concept": "concept1",
+                        "value": 1.0,
+                        "source": "claim",
+                        "claim_id": "claim:one",
+                    }
+                ],
+                dependencies={"claims": ["claim:one"], "stances": [], "contexts": []},
+            )
+
+        monkeypatch.setattr("propstore.cli.worldline_cmds.WorldModel", _FakeWorldModel, raising=False)
+        monkeypatch.setattr("propstore.world.WorldModel", _FakeWorldModel)
+        monkeypatch.setattr("propstore.worldline.run_worldline", fake_run_worldline)
+        fake_repo = _FakeWorldlineRepo(wl_dir)
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = fake_repo
+
+        fake_cli.add_command(worldline_run, "run")
+        fake_cli.add_command(worldline_show, "show")
+        fake_cli.add_command(worldline_list, "list")
+
+        runner = CliRunner()
+        run_result = runner.invoke(fake_cli, ["run", "shared-surface", "--target", "concept1"])
+        assert run_result.exit_code == 0, run_result.output
+        assert "Worldline 'shared-surface' materialized (1 targets)" in run_result.output
+        assert "concept1: 1.0 (determined, claim)" in run_result.output
+
+        written = yaml.safe_load((wl_dir / "shared-surface.yaml").read_text(encoding="utf-8"))
+        assert written["results"]["values"]["concept1"]["status"] == "determined"
+        assert written["results"]["values"]["concept1"]["value"] == 1.0
+        assert written["results"]["dependencies"]["claims"] == ["claim:one"]
+
+        show_result = runner.invoke(fake_cli, ["show", "shared-surface"])
+        assert show_result.exit_code == 0, show_result.output
+        assert "concept1: 1.0 (determined, claim)" in show_result.output
+        assert "Dependencies: claim:one" in show_result.output
+
+        list_result = runner.invoke(fake_cli, ["list"])
+        assert list_result.exit_code == 0, list_result.output
+        assert "shared-surface: materialized" in list_result.output
+
