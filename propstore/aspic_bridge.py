@@ -54,6 +54,7 @@ from propstore.aspic import (
     conc,
     prem,
     sub,
+    _contraries_of,
     top_rule,
     transposition_closure,
 )
@@ -1174,7 +1175,10 @@ def query_claim(
 
     # Partition into for/against
     args_for = frozenset(a for a in arguments if conc(a) == goal)
-    args_against = frozenset(a for a in arguments if conc(a) != goal)
+    against_literals = _contraries_of(goal, system.contrariness, system.language)
+    args_against = frozenset(
+        a for a in arguments if conc(a) in against_literals
+    )
 
     return ClaimQueryResult(
         claim_id=claim_id,

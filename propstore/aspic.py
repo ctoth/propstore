@@ -838,53 +838,41 @@ def build_arguments_for(
     if not include_attackers:
         return goal_args
 
-    # Build arguments for contraries of goal to enable attack discovery.
-    # Also recurse into contraries of conclusions appearing in
-    # sub-arguments, so that undermining and undercutting attacks
-    # can be found too.
+    # Build arguments for contraries of every attack-relevant literal
+    # until the focused set reaches a fixed point. This keeps
+    # reinstatement chains of arbitrary depth rather than stopping
+    # after a hardcoded two passes.
     all_relevant: set[Argument] = set(goal_args)
+    pending_literals: list[Literal] = []
+    seen_target_literals: set[Literal] = set()
 
-    # Collect all literals that appear as conclusions in goal arguments
-    target_literals: set[Literal] = set()
-    for arg in goal_args:
-        for s in sub(arg):
-            target_literals.add(conc(s))
-            # For undercutting: if s has a defeasible top rule with a name,
-            # we need arguments concluding the contrary of Literal(name, False)
-            tr = top_rule(s)
-            if tr is not None and tr.kind == "defeasible" and tr.name is not None:
-                name_lit = Literal(GroundAtom(tr.name), False)
-                target_literals.add(name_lit)
+    def _enqueue_attack_targets(arguments: frozenset[Argument] | set[Argument]) -> None:
+        for arg in arguments:
+            for s in sub(arg):
+                lit = conc(s)
+                if lit not in seen_target_literals:
+                    seen_target_literals.add(lit)
+                    pending_literals.append(lit)
+                tr = top_rule(s)
+                if tr is not None and tr.kind == "defeasible" and tr.name is not None:
+                    name_lit = Literal(GroundAtom(tr.name), False)
+                    if name_lit not in seen_target_literals:
+                        seen_target_literals.add(name_lit)
+                        pending_literals.append(name_lit)
 
-    # Build attacker arguments for each target literal's contraries
-    attacker_targets: set[Literal] = set()
-    for lit in target_literals:
+    _enqueue_attack_targets(goal_args)
+
+    while pending_literals:
+        lit = pending_literals.pop()
         for contrary_lit in _contraries_of(
             lit, system.contrariness, system.language
         ):
-            attacker_targets.add(contrary_lit)
-
-    for atk_target in attacker_targets:
-        attacker_args = _build_backward(atk_target, 0)
-        all_relevant.update(attacker_args)
-
-    # Second pass: also find attackers of the attacker arguments
-    # (for reinstatement / counter-attack computation)
-    second_pass_targets: set[Literal] = set()
-    for arg in all_relevant - goal_args:
-        for s in sub(arg):
-            second_pass_targets.add(conc(s))
-            tr = top_rule(s)
-            if tr is not None and tr.kind == "defeasible" and tr.name is not None:
-                name_lit = Literal(GroundAtom(tr.name), False)
-                second_pass_targets.add(name_lit)
-
-    for lit in second_pass_targets:
-        for contrary_lit in _contraries_of(
-            lit, system.contrariness, system.language
-        ):
-            counter_args = _build_backward(contrary_lit, 0)
-            all_relevant.update(counter_args)
+            attacker_args = _build_backward(contrary_lit, 0)
+            new_args = attacker_args - all_relevant
+            if not new_args:
+                continue
+            all_relevant.update(new_args)
+            _enqueue_attack_targets(new_args)
 
     return frozenset(all_relevant)
 

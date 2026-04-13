@@ -85,11 +85,11 @@ terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 | 1 | quoted string scalar collapse | yes | yes | gunray/dcs | gunray:`00844b0`; dcs:`9d4c7a9` | kept-fixed | red: `gunray/logs/test-runs/issue1-proof-red-pypath-20260412-220526.log`; green: `gunray/logs/test-runs/issues1-2-green-20260412-220723.log` |
 | 2 | arithmetic associativity | yes | yes | gunray/dcs | gunray:`00844b0`; dcs:`9d4c7a9` | kept-fixed | red: `gunray/logs/test-runs/issue2-proof-red-20260412-220649.log`; green: `gunray/logs/test-runs/issues1-2-green-20260412-220723.log` |
 | 3 | unsafe negation acceptance | yes | yes | gunray/dcs | gunray:`8de56a7`; dcs:`78e0b0b` | kept-fixed | red: `gunray/logs/test-runs/issue3-proof-red-20260412-221109.log`; green: `gunray/logs/test-runs/issue3-green-20260412-221126.log` |
-| 4 | strong negation dropped at boundary | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues4-26-proof-red-20260412-223141.log`; green: `logs/test-runs/issues4-26-green-20260412-223200.log`; resolved by loud Phase-1 refusal instead of silent erasure |
+| 4 | strong negation dropped at boundary | yes | yes | propstore | propstore:`426f151` | kept-fixed | red: `logs/test-runs/issues4-26-proof-red-20260412-223141.log`; green: `logs/test-runs/issues4-26-green-20260412-223200.log`; resolved by loud Phase-1 refusal instead of silent erasure |
 | 5 | grounded literal aliasing by repr | yes | yes | propstore | propstore:`103b613` | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
 | 6 | `_parse_ground_atom_key()` not invertible | yes | yes | propstore | propstore:`103b613` | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
-| 7 | goal-directed attacker incompleteness | no | no | propstore |  | pending |  |
-| 8 | `arguments_against` misclassification | yes | no | propstore | pending | pending | focused chain proof did not reproduce; needs stronger reproducer before resolution |
+| 7 | goal-directed attacker incompleteness | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues7-8-proof-red-20260412-223410.log`; green: `logs/test-runs/issues7-8-green-rerun-20260412-223527.log` |
+| 8 | `arguments_against` misclassification | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues7-8-proof-red-20260412-223410.log`; green: `logs/test-runs/issues7-8-green-rerun-20260412-223527.log`; stronger rebuttal-chain proof reproduced the bug |
 | 9 | CSAF framework drops `attacks` | yes | yes | propstore | propstore:`5e3eedb` | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
 | 10 | preferred backend threading | yes | yes | propstore | propstore:`5e3eedb` | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
 | 11 | empty-premise rules dropped | yes | yes | propstore | propstore:`5e3eedb` | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
@@ -99,7 +99,7 @@ terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 | 15 | authored undercut ids mismatch grounded ids | yes | yes | propstore | propstore:`7da8a43` | kept-fixed | red: `logs/test-runs/issues14-15-25-proof-red-20260412-222845.log`; green: `logs/test-runs/issues14-15-25-green-rerun-20260412-222946.log` |
 | 24 | mixed claim-id and ground-atom namespace | yes | yes | propstore | propstore:`103b613` | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
 | 25 | query API contract mismatch | yes | yes | propstore | propstore:`7da8a43` | kept-fixed | red: `logs/test-runs/issues14-15-25-proof-red-20260412-222845.log`; green: `logs/test-runs/issues14-15-25-green-rerun-20260412-222946.log` |
-| 26 | inconsistent deferred-feature handling | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues4-26-proof-red-20260412-223141.log`; green: `logs/test-runs/issues4-26-green-20260412-223200.log`; strong negation now fails loudly like other deferred features |
+| 26 | inconsistent deferred-feature handling | yes | yes | propstore | propstore:`426f151` | kept-fixed | red: `logs/test-runs/issues4-26-proof-red-20260412-223141.log`; green: `logs/test-runs/issues4-26-green-20260412-223200.log`; strong negation now fails loudly like other deferred features |
 
 ### Semantic audit tranche
 
