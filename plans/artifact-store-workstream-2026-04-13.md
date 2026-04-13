@@ -574,6 +574,134 @@ The output counts should shrink toward:
 - store-owned artifact writes only
 - resolver-owned reference-map logic only
 
+## Baseline And Projection
+
+Measured on 2026-04-13 after the first source-singleton cutover.
+
+### Baseline counts
+
+- production `yaml` importers in `propstore/`: `17`
+- non-foundation git write callsites
+  - `rg -n "commit_batch\\(|commit_files\\(" propstore | rg -v "propstore\\\\artifacts\\\\|propstore\\\\repo\\\\git_backend.py"`
+  - current count: `19`
+- decode callsites outside `document_schema.py` and `artifacts/codecs.py`:
+  - current count: `18`
+- ad hoc source/reference-map sites
+  - `rg -n "local_to_artifact|logical_to_artifact|primary_logical_to_artifact" propstore | rg -v "propstore\\\\identity.py|propstore\\\\repo\\\\merge_classifier.py"`
+  - current count: `47`
+
+### End-state target for this workstream
+
+This workstream should be able to reduce those surfaces to:
+
+- production `yaml` importers: `5`
+- non-foundation git write callsites: `1`
+- decode callsites outside `document_schema.py` and `artifacts/codecs.py`: `12`
+- ad hoc source/reference-map sites: `12`
+
+### Why those targets are realistic
+
+#### `yaml` importers: `17 -> 5`
+
+The planned removals are:
+
+- [cli/form.py](/C:/Users/Q/code/propstore/propstore/cli/form.py)
+- [cli/context.py](/C:/Users/Q/code/propstore/propstore/cli/context.py)
+- [cli/concept.py](/C:/Users/Q/code/propstore/propstore/cli/concept.py)
+- [cli/worldline_cmds.py](/C:/Users/Q/code/propstore/propstore/cli/worldline_cmds.py)
+- [cli/repository.py](/C:/Users/Q/code/propstore/propstore/cli/repository.py)
+- [proposals.py](/C:/Users/Q/code/propstore/propstore/proposals.py)
+- [repo/merge_commit.py](/C:/Users/Q/code/propstore/propstore/repo/merge_commit.py)
+- [repo/repo_import.py](/C:/Users/Q/code/propstore/propstore/repo/repo_import.py)
+- [source/promote.py](/C:/Users/Q/code/propstore/propstore/source/promote.py)
+- [source/alignment.py](/C:/Users/Q/code/propstore/propstore/source/alignment.py)
+- [worldline/definition.py](/C:/Users/Q/code/propstore/propstore/worldline/definition.py)
+- [data_utils.py](/C:/Users/Q/code/propstore/propstore/data_utils.py)
+
+The expected remaining `yaml` importers are output-oriented CLI surfaces:
+
+- [cli/__init__.py](/C:/Users/Q/code/propstore/propstore/cli/__init__.py)
+- [cli/compiler_cmds.py](/C:/Users/Q/code/propstore/propstore/cli/compiler_cmds.py)
+- [cli/merge_cmds.py](/C:/Users/Q/code/propstore/propstore/cli/merge_cmds.py)
+- [cli/repo_import_cmd.py](/C:/Users/Q/code/propstore/propstore/cli/repo_import_cmd.py)
+- [cli/verify.py](/C:/Users/Q/code/propstore/propstore/cli/verify.py)
+
+That is why the target is `5`, not `0`.
+
+#### non-foundation git write callsites: `19 -> 1`
+
+The current `19` remaining callsites outside `artifacts/` and `repo/git_backend.py`
+are concentrated in:
+
+- canonical artifact CLI mutations
+- worldline persistence
+- proposal persistence
+- repo import / merge materialization
+- source promotion and alignment
+- one raw-byte helper in [source/common.py](/C:/Users/Q/code/propstore/propstore/source/common.py)
+
+The target is to eliminate all of them except the raw-byte helper:
+
+- keep: [source/common.py](/C:/Users/Q/code/propstore/propstore/source/common.py)
+  - `commit_source_file(...)` for `notes.md` and `metadata.json`
+
+If we later decide to add a raw-file family, this could become `0`, but the
+honest target for the current workstream is `1`.
+
+#### decode callsites outside the shared decode layer: `18 -> 12`
+
+Not every decode site is artifact-store debt. Some are true external-ingress or
+filesystem-ingress boundaries that should remain explicit.
+
+The callsites likely removable in this workstream are:
+
+- [source/common.py](/C:/Users/Q/code/propstore/propstore/source/common.py)
+- [source/alignment.py](/C:/Users/Q/code/propstore/propstore/source/alignment.py)
+- [worldline/definition.py](/C:/Users/Q/code/propstore/propstore/worldline/definition.py)
+- [repo/git_backend.py](/C:/Users/Q/code/propstore/propstore/repo/git_backend.py)
+- [cli/helpers.py](/C:/Users/Q/code/propstore/propstore/cli/helpers.py)
+- one repo-import/path-specific scan path if absorbed into artifact indexes
+
+The callsites expected to remain are true import or filesystem boundaries such
+as:
+
+- `source add-* --batch` file ingestion
+- form loading
+- sidecar/file-based analysis helpers
+- artifact-code verification over arbitrary trees
+
+That is why the realistic target is `12`, not `0`.
+
+#### ad hoc source/reference-map sites: `47 -> 12`
+
+The current `47` sites are mostly spread across:
+
+- [source/claims.py](/C:/Users/Q/code/propstore/propstore/source/claims.py)
+- [source/relations.py](/C:/Users/Q/code/propstore/propstore/source/relations.py)
+- [source/finalize.py](/C:/Users/Q/code/propstore/propstore/source/finalize.py)
+- [source/promote.py](/C:/Users/Q/code/propstore/propstore/source/promote.py)
+- [repo/repo_import.py](/C:/Users/Q/code/propstore/propstore/repo/repo_import.py)
+
+The target `12` assumes:
+
+- one resolver module
+- one index module
+- small family-specific adapter seams
+
+It does not assume those concepts disappear entirely. It assumes they stop being
+copy-pasted across workflows.
+
+### Expected net cleanup
+
+If the workstream lands as designed, we should remove approximately:
+
+- `12` production `yaml` importers
+- `18` non-foundation git write callsites
+- `6` repo-artifact decode callsites
+- `35` ad hoc source/reference-map sites
+
+That is the practical cleanup budget this design should cash out.
+
 ## Test Matrix
 
 Shared suites:
