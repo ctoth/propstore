@@ -134,6 +134,11 @@ def extract_facts(
             # all three as legitimate kinds).
             continue
 
+        # Phase 1 concept-relation materialisation yields exactly one
+        # source-side constant per matched edge. Reject declarations
+        # whose arity disagrees instead of emitting a wrong-shaped atom.
+        registry.validate_atom(predicate.id, 1)
+
         spec_relation = spec.relation
         spec_target = spec.target
         # parse_derived_from guarantees both are non-empty strings for

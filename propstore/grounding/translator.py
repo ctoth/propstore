@@ -64,6 +64,7 @@ Theoretical sources:
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 
 from gunray import schema as gunray_schema
@@ -299,8 +300,6 @@ def _stringify_term(term: TermDocument) -> str:
         return "true" if value else "false"
     if isinstance(value, (int, float)):
         return repr(value)
-    # ``str`` branch. Emit a JSON-style double-quoted literal so
-    # ``gunray.parser._parse_scalar`` round-trips it via
-    # ``ast.literal_eval``.
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{escaped}"'
+    # ``str`` branch. Use JSON string encoding so control characters
+    # such as newlines round-trip as valid Gunray surface literals.
+    return json.dumps(value)
