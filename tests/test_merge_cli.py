@@ -4,11 +4,14 @@ from __future__ import annotations
 from copy import deepcopy
 
 import yaml
+import pytest
 from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
 from propstore.repo.branch import create_branch
+from propstore.repo.merge_classifier import build_merge_framework
+from propstore.repo.merge_report import summarize_merge_framework
 from tests.conftest import normalize_claims_payload
 
 
@@ -118,6 +121,60 @@ def test_merge_inspect_cli_surfaces_query_summary(tmp_path):
         "test_paper:claim1": sorted(payload["arguments"]),
     }
     assert len(payload["argument_details"]) == 2
+
+
+@pytest.mark.parametrize("semantics", ["grounded", "preferred"])
+def test_merge_inspect_cli_matches_report_helper_output(tmp_path, semantics):
+    repo = Repository.init(tmp_path / "knowledge")
+    git = repo.git
+    assert git is not None
+
+    base_sha = git.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        "seed",
+    )
+    branch_name = "paper/differential"
+    create_branch(git, branch_name, source_commit=base_sha)
+    git.commit_files(
+        {
+            "claims/shared.yaml": _claim_yaml(
+                [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])]
+            )
+        },
+        "left",
+    )
+    git.commit_files(
+        {
+            "claims/shared.yaml": _claim_yaml(
+                [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])]
+            )
+        },
+        "right",
+        branch=branch_name,
+    )
+
+    expected = summarize_merge_framework(
+        build_merge_framework(git, "master", branch_name),
+        semantics=semantics,
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "merge",
+            "inspect",
+            "master",
+            branch_name,
+            "--semantics",
+            semantics,
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert yaml.safe_load(result.output) == expected
 
 
 def test_merge_commit_cli_surfaces_storage_commit_metadata(tmp_path):
@@ -280,3 +337,57 @@ def test_merge_commit_cli_reports_semantic_candidate_count(tmp_path):
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
     assert payload["semantic_candidate_count"] == 1
+
+
+def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
+    repo = Repository.init(tmp_path / "knowledge")
+    git = repo.git
+    assert git is not None
+
+    base_sha = git.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        "seed",
+    )
+    branch_name = "paper/storage"
+    create_branch(git, branch_name, source_commit=base_sha)
+    git.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        "left",
+    )
+    git.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        "right",
+        branch=branch_name,
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "merge", "commit", "master", branch_name],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = yaml.safe_load(result.output)
+    commit_sha = payload["commit_sha"]
+    assert git.head_sha() == commit_sha
+
+    merged_claims = yaml.safe_load(
+        (git.tree(commit=commit_sha) / "claims" / "merged.yaml").read_text()
+    )
+    manifest = yaml.safe_load(
+        (git.tree(commit=commit_sha) / "merge" / "manifest.yaml").read_text()
+    )
+
+    assert payload["claims_path"] == "claims/merged.yaml"
+    assert payload["manifest_path"] == "merge/manifest.yaml"
+    assert manifest["merge"]["branch_a"] == "master"
+    assert manifest["merge"]["branch_b"] == branch_name
+    materialized_count = sum(
+        1
+        for argument in manifest["merge"]["arguments"]
+        if argument["materialized"]
+    )
+    assert len(merged_claims["claims"]) == materialized_count
+    assert payload["semantic_candidate_count"] == len(
+        manifest["merge"].get("semantic_candidate_details", [])
+    )
