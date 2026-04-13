@@ -196,7 +196,7 @@ must end in an explicit terminal state rather than drifting.
 | 4C | cli/source_cli tranche | completed | `logs/test-runs/phase4c-cli-source-cli-20260413-143732.log` | replaced a survival-style observation proposal smoke test with a full source init/finalize/promote/build/verify flow and hardened source form fixtures for real authored-flow execution |
 | 4D | atms/worldline cli tranche | completed | `logs/test-runs/phase4d-atms-worldline-cli-20260413-144222.log` | added a worldline run/show/list cross-command consistency contract on persisted materializations |
 | 5 | typed builders + fixture refactor | completed | `logs/test-runs/phase5-builders-refactor-20260413-145145.log` | introduced named source semantic builders and rewrote core source relation tests to use them instead of anonymous inline payload dicts |
-| 6 | minimally mocked e2e ratchet | pending | | |
+| 6 | minimally mocked e2e ratchet | completed | `logs/test-runs/phase6-e2e-ratchet-20260413-144336.log` | added a real authored source->build->verify->worldline flow and a real worldline create/run->log history flow, both without monkeypatching core product paths |
 | 7 | structural guardrails | pending | | |
 
 ### Suspect Surface Ledger

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 from click.testing import CliRunner
 
@@ -367,6 +368,97 @@ def _seed_forms(repo, form_names):
     )
 
 
+def _prepare_promoted_parameter_source(
+    runner: CliRunner,
+    repo: Repository,
+    tmp_path: Path,
+) -> str:
+    content_file = tmp_path / "paper.pdf"
+    content_file.write_bytes(b"%PDF-demo\n")
+    _seed_forms(repo, ["scalar"])
+
+    init_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            "demo",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "file",
+            "--origin-value",
+            "paper.pdf",
+            "--content-file",
+            str(content_file),
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+
+    propose_concept = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "boiling_point",
+            "--definition",
+            "Temperature at which water boils.",
+            "--form",
+            "scalar",
+        ],
+    )
+    assert propose_concept.exit_code == 0, propose_concept.output
+
+    propose_claim = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-claim",
+            "demo",
+            "--id",
+            "param1",
+            "--type",
+            "parameter",
+            "--concept",
+            "boiling_point",
+            "--value",
+            "100.0",
+            "--unit",
+            "celsius",
+            "--page",
+            "5",
+        ],
+    )
+    assert propose_claim.exit_code == 0, propose_claim.output
+
+    finalize_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "finalize", "demo"],
+    )
+    assert finalize_result.exit_code == 0, finalize_result.output
+
+    promote_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "promote", "demo"],
+    )
+    assert promote_result.exit_code == 0, promote_result.output
+
+    papers_dir = repo.root.parent / "papers" / "demo"
+    papers_dir.mkdir(parents=True, exist_ok=True)
+    (papers_dir / "paper.pdf").write_bytes(content_file.read_bytes())
+
+    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
+    return claims_doc["claims"][0]["artifact_id"]
+
+
 def test_propose_concept_reports_linked_status(tmp_path: Path) -> None:
     """When a proposed concept matches one on master, CLI should print 'Linked'."""
     repo = Repository.init(tmp_path / "knowledge")
@@ -674,3 +766,74 @@ def test_add_concepts_batch_rejects_invalid_form(tmp_path: Path) -> None:
     assert "Unknown form" in result.output
     assert "bogus_form" in result.output
     assert "structural" in result.output
+
+
+@pytest.mark.e2e
+def test_source_authoring_build_verify_and_worldline_flow(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    claim_id = _prepare_promoted_parameter_source(runner, repo, tmp_path)
+
+    build_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "build", "--force"],
+    )
+    assert build_result.exit_code == 0, build_result.output
+    assert repo.sidecar_path.exists()
+
+    verify_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "verify", "tree", claim_id],
+    )
+    assert verify_result.exit_code == 0, verify_result.output
+    verify_report = yaml.safe_load(verify_result.output)
+    assert verify_report["status"] == "ok"
+    assert verify_report["origin_verification"]["status"] == "matched"
+
+    create_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "worldline",
+            "create",
+            "boiling_worldline",
+            "--target",
+            "boiling_point",
+        ],
+    )
+    assert create_result.exit_code == 0, create_result.output
+
+    rebuild_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "build", "--force"],
+    )
+    assert rebuild_result.exit_code == 0, rebuild_result.output
+
+    run_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "worldline", "run", "boiling_worldline"],
+    )
+    assert run_result.exit_code == 0, run_result.output
+    assert "boiling_point" in run_result.output
+    assert "100.0" in run_result.output
+
+    show_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "worldline", "show", "boiling_worldline"],
+    )
+    assert show_result.exit_code == 0, show_result.output
+    assert "boiling_worldline" in show_result.output
+    assert "boiling_point" in show_result.output
+
+    list_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "worldline", "list"],
+    )
+    assert list_result.exit_code == 0, list_result.output
+    assert "boiling_worldline" in list_result.output
+
+    worldline_doc = yaml.safe_load(repo.git.read_file("worldlines/boiling_worldline.yaml"))
+    value_record = worldline_doc["results"]["values"]["boiling_point"]
+    assert value_record["status"] == "determined"
+    assert value_record["value"] == 100.0
