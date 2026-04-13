@@ -192,7 +192,7 @@ must end in an explicit terminal state rather than drifting.
 | 2 | cutover/wiring consolidation | completed | `logs/test-runs/phase2-cutover-consolidation-rerun-20260413-135057.log` | duplicate ASPIC CLI acceptance removed; cutover-only delegation block removed |
 | 3 | semantic replacement contracts | completed | `logs/test-runs/phase2-cutover-consolidation-rerun-20260413-135057.log` | obsolete projection assumption replaced; worldline tests moved from negative path assertions to kept behavior contracts |
 | 4A | world_model property tranche | completed | `logs/test-runs/phase4a-world-model-20260413-141918.log` | added irrelevant-claim invariance, overlay conflict-order invariance, and stronger sidecar schema hard-failure coverage |
-| 4B | git_backend/repo tranche | pending | | |
+| 4B | git_backend/repo tranche | completed | `logs/test-runs/phase4b-git-backend-20260413-143128.log` | added CLI-vs-report differential coverage and fixed merge-commit materialization so the advertised `claims/merged.yaml` path always exists |
 | 4C | cli/source_cli tranche | pending | | |
 | 4D | atms/worldline cli tranche | pending | | |
 | 5 | typed builders + fixture refactor | pending | | |

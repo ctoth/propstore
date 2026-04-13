@@ -63,26 +63,28 @@ def create_merge_commit(
         if artifact_counts[argument.artifact_id] == 1
     ]
 
+    doc = {
+        "source": {
+            "paper": "merged",
+            "extraction_model": "merge",
+            "extraction_date": time.strftime("%Y-%m-%d"),
+        },
+        "claims": merged_claims,
+    }
+    claim_paths = [path for path in merged_entries if path.startswith("claims/")]
+    for path in claim_paths:
+        del merged_entries[path]
+
     if merged_claims:
-        doc = {
-            "source": {
-                "paper": "merged",
-                "extraction_model": "merge",
-                "extraction_date": time.strftime("%Y-%m-%d"),
-            },
-            "claims": merged_claims,
-        }
         content = yaml.dump(doc, sort_keys=False).encode("utf-8")
         blob = Blob.from_string(content)
         kr._repo.object_store.add_object(blob)
-        claim_paths = [path for path in merged_entries if path.startswith("claims/")]
-        for path in claim_paths:
-            del merged_entries[path]
         merged_entries["claims/merged.yaml"] = blob.id
     else:
-        claim_paths = [path for path in merged_entries if path.startswith("claims/")]
-        for path in claim_paths:
-            del merged_entries[path]
+        content = yaml.dump(doc, sort_keys=False).encode("utf-8")
+        blob = Blob.from_string(content)
+        kr._repo.object_store.add_object(blob)
+        merged_entries["claims/merged.yaml"] = blob.id
 
     manifest = {
         "merge": {
