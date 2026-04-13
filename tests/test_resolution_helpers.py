@@ -9,6 +9,7 @@ from hypothesis import strategies as st
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from propstore.dung import ArgumentationFramework
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.resolution import (
     _resolve_claim_graph_argumentation,
     _resolve_structured_argumentation,
@@ -31,6 +32,9 @@ def _active_claim(claim_id: str, *, concept_id: str = "concept1", value: float =
 class _World:
     def has_table(self, name: str) -> bool:
         return name == "relation_edge"
+
+    def grounding_bundle(self) -> GroundedRulesBundle:
+        return GroundedRulesBundle.empty()
 
 
 class _View:

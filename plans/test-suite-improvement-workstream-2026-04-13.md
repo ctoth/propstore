@@ -1,7 +1,7 @@
 # Test Suite Improvement Workstream
 
 Date: 2026-04-13
-Status: proposed
+Status: completed
 
 ## Goal
 
@@ -197,7 +197,7 @@ must end in an explicit terminal state rather than drifting.
 | 4D | atms/worldline cli tranche | completed | `logs/test-runs/phase4d-atms-worldline-cli-20260413-144222.log` | added a worldline run/show/list cross-command consistency contract on persisted materializations |
 | 5 | typed builders + fixture refactor | completed | `logs/test-runs/phase5-builders-refactor-20260413-145145.log` | introduced named source semantic builders and rewrote core source relation tests to use them instead of anonymous inline payload dicts |
 | 6 | minimally mocked e2e ratchet | completed | `logs/test-runs/phase6-e2e-ratchet-20260413-144336.log` | added a real authored source->build->verify->worldline flow and a real worldline create/run->log history flow, both without monkeypatching core product paths |
-| 7 | structural guardrails | pending | | |
+| 7 | structural guardrails | completed | `logs/test-runs/phase7-guardrails-20260413-151512.log` | split the log/history CLI surface into its own test file, added suite guidance plus a migration-test inventory script, and closed on a green full-suite run (`2420 passed`) |
 
 ### Suspect Surface Ledger
 
