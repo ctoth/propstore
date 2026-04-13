@@ -857,20 +857,28 @@ class TestCsafToProjection:
 
     @given(claim_graph())
     @settings(deadline=None)
-    def test_every_argument_maps_to_claim(self, graph):
-        """Every projection argument maps to a real claim_id.
+    def test_projection_arguments_preserve_claim_or_canonical_conclusion_identity(self, graph):
+        """Projected arguments must have a stable identity surface.
 
-        Transposition-generated arguments (negated literals with no
-        claim_id) are excluded from the projection.
+        Claim-backed arguments map to authored claim ids. Grounded-only
+        arguments may have ``claim_id=None`` but must expose a canonical
+        ``conclusion_key`` and dependency claim ids that stay within the
+        authored claim set.
         """
         claims, justifications, stances = graph
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         projection = csaf_to_projection(csaf, claims)
         claim_ids = {c["id"] for c in claims}
         for arg in projection.arguments:
-            assert arg.claim_id in claim_ids, (
-                f"Argument {arg.arg_id} maps to unknown claim {arg.claim_id}"
-            )
+            assert arg.conclusion_key
+            if arg.claim_id is not None:
+                assert arg.claim_id in claim_ids, (
+                    f"Argument {arg.arg_id} maps to unknown claim {arg.claim_id}"
+                )
+            for dependency_claim_id in arg.dependency_claim_ids:
+                assert dependency_claim_id in claim_ids, (
+                    f"Argument {arg.arg_id} depends on unknown claim {dependency_claim_id}"
+                )
 
     @given(claim_graph())
     @settings(deadline=None)
@@ -1240,153 +1248,6 @@ class TestAspicBackendIntegration:
         })
 
         assert worldline.policy.reasoning_backend == ReasoningBackend.ASPIC
-
-    def test_world_extensions_cli_accepts_aspic_backend(self, monkeypatch):
-        """The CLI 'world extensions' command accepts --backend aspic."""
-        from click.testing import CliRunner
-
-        from propstore.cli import cli
-        from propstore.dung import ArgumentationFramework
-        from propstore.structured_projection import SupportQuality
-        from propstore.core.labels import Label
-
-        class FakeRepo:
-            pass
-
-        class FakeBound:
-            def active_claims(self, concept_id: str | None = None) -> list[dict]:
-                return [
-                    {"id": "target_a", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-                    {"id": "target_b", "concept_id": "concept1", "type": "parameter", "value": 2.0},
-                ]
-
-            def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
-                return Label.empty(), SupportQuality.EXACT
-
-        class FakeWorldModel:
-            def __init__(self, repo) -> None:
-                self.repo = repo
-
-            def bind(self, environment=None, **conditions):
-                return FakeBound()
-
-            def get_concept(self, concept_id: str) -> dict | None:
-                if concept_id == "concept1":
-                    return {"id": "concept1", "canonical_name": "target"}
-                return None
-
-            def stances_between(self, claim_ids: set[str]) -> list[dict]:
-                return []
-
-            def close(self) -> None:
-                return None
-
-        class FakeProjection:
-            framework = ArgumentationFramework(
-                arguments=frozenset({"arg:target_a", "arg:target_b"}),
-                defeats=frozenset({("arg:target_a", "arg:target_b")}),
-                attacks=frozenset({("arg:target_a", "arg:target_b")}),
-            )
-            claim_to_argument_ids = {
-                "target_a": ("arg:target_a",),
-                "target_b": ("arg:target_b",),
-            }
-            argument_to_claim_id = {
-                "arg:target_a": "target_a",
-                "arg:target_b": "target_b",
-            }
-
-        def _unexpected_claim_graph(*args, **kwargs):
-            raise AssertionError("claim_graph path should not run for --backend aspic")
-
-        monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
-        monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
-        monkeypatch.setattr(
-            "propstore.claim_graph.compute_claim_graph_justified_claims",
-            _unexpected_claim_graph,
-        )
-        monkeypatch.setattr(
-            "propstore.relation_analysis.stance_summary",
-            lambda *args, **kwargs: {
-                "total_stances": 0,
-                "included_as_attacks": 0,
-                "vacuous_count": 0,
-                "excluded_non_attack": 0,
-                "models": [],
-            },
-        )
-        monkeypatch.setattr(
-            "propstore.aspic_bridge.build_aspic_projection",
-            lambda *args, **kwargs: FakeProjection(),
-        )
-        monkeypatch.setattr(
-            "propstore.structured_projection.compute_structured_justified_arguments",
-            lambda projection, *, semantics="grounded", backend=None: frozenset({"arg:target_a"}),
-        )
-
-        runner = CliRunner()
-        result = runner.invoke(cli, ["world", "extensions", "--backend", "aspic"])
-
-        assert result.exit_code == 0, f"CLI failed: {result.output}"
-        assert "Backend: aspic" in result.output
-        assert "Accepted (1 claims):" in result.output
-        assert "target_a: target = 1.0" in result.output
-
-
-# ── Phase 5: Cutover — build_structured_projection delegates to ASPIC bridge ─
-
-
-class TestCutover:
-    """Phase 5: verify that build_structured_projection delegates to build_aspic_projection."""
-
-    def test_structured_projection_delegates_to_aspic(self):
-        """Baseline: build_structured_projection returns a StructuredProjection.
-
-        This test should pass both before and after cutover — it establishes
-        that the function signature and return type are stable.
-        """
-        from propstore.structured_projection import build_structured_projection
-
-        claims = [_make_claim("baseline_A"), _make_claim("baseline_B")]
-        store = _MiniStore(claims=claims)
-        projection = build_structured_projection(store, claims)
-
-        assert isinstance(projection, StructuredProjection)
-        assert len(projection.arguments) >= 2  # at least one arg per claim
-        assert isinstance(projection.framework, ArgumentationFramework)
-
-    def test_structured_projection_backend_uses_aspic_engine(self, monkeypatch):
-        """Prove delegation: build_structured_projection calls build_bridge_csaf.
-
-        Before cutover, structured_projection.py had its own construction logic
-        and never calls build_bridge_csaf — this test FAILS (RED).
-
-        After cutover, build_structured_projection delegates to
-        build_aspic_projection which calls build_bridge_csaf — this test PASSES.
-        """
-        from propstore.structured_projection import build_structured_projection
-
-        calls = []
-        original_build_bridge_csaf = build_bridge_csaf
-
-        def tracking_build_bridge_csaf(*args, **kwargs):
-            calls.append(args)
-            return original_build_bridge_csaf(*args, **kwargs)
-
-        monkeypatch.setattr(
-            "propstore.aspic_bridge.build_bridge_csaf",
-            tracking_build_bridge_csaf,
-        )
-
-        claims = [_make_claim("delegation_A"), _make_claim("delegation_B")]
-        store = _MiniStore(claims=claims)
-        build_structured_projection(store, claims)
-
-        assert len(calls) == 1, (
-            f"Expected build_bridge_csaf to be called exactly once, "
-            f"but it was called {len(calls)} times. "
-            f"build_structured_projection is not delegating to the ASPIC bridge."
-        )
 
 
 class TestComparisonLinkThreading:

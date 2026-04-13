@@ -16,11 +16,8 @@ dependencies = [
     "bridgman @ git+https://github.com/ctoth/bridgman",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
-    "gunray",
+    "gunray @ git+https://github.com/ctoth/gunray",
 ]
-
-[tool.uv.sources]
-gunray = { path = "../gunray", editable = true }
 
 [project.optional-dependencies]
 embeddings = [
@@ -61,10 +58,19 @@ strict = [
 # Hypothesis profiles: HYPOTHESIS_PROFILE=overnight for thorough runs (see tests/conftest.py)
 timeout = 300
 timeout_method = "thread"
+markers = [
+    "unit: focused unit-level contract tests",
+    "property: property-based or metamorphic tests",
+    "differential: differential or oracle-comparison tests",
+    "e2e: minimally mocked end-to-end workflow tests",
+    "migration: temporary migration or cutover protection tests",
+    "slow: intentionally slow tests or suites",
+]
 
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "pytest-cov>=6.0",
     "pytest-xdist>=3.8.0",
     "pytest-timeout>=2.3",
     "hypothesis>=6.0",
