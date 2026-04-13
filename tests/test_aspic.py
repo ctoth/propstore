@@ -30,7 +30,7 @@ from propstore.aspic import (
     PremiseArg, StrictArg, DefeasibleArg, Argument, Attack,
     KnowledgeBase, ArgumentationSystem, PreferenceConfig,
     build_arguments, compute_attacks, compute_defeats,
-    _set_strictly_less,
+    _set_strictly_less, _strictly_weaker, _is_preference_independent_attack,
     conc, prem, sub, top_rule,
     def_rules, last_def_rules, prem_p, is_firm, is_strict,
     CSAF, is_c_consistent, strict_closure,
@@ -1691,12 +1691,14 @@ class TestDefeatProperties:
 
     @given(data=st.data())
     @settings(deadline=None)
-    def test_empty_ordering_all_attacks_defeat(self, data):
-        """With empty rule_order and premise_order, every attack succeeds as defeat.
+    def test_empty_ordering_still_respects_definition_19_edge_cases(self, data):
+        """Empty base orders do not erase Definition 19's empty-set lifting.
 
-        Modgil & Prakken 2018, Def 9 (p.12): rebutting/undermining succeed
-        when the attacker is NOT strictly weaker. With no preference ordering,
-        no argument is strictly weaker than any other, so all attacks succeed.
+        Modgil & Prakken 2018, Def 19 (p.21) still makes a non-empty defeasible
+        set strictly less than an empty target set, even when the underlying
+        order relations themselves are empty. So defeats with empty preferences
+        are exactly the preference-independent attacks plus the attacks whose
+        attacker is not strictly weaker than the targeted sub-argument.
         """
         L, cfn = data.draw(logical_language())
         R_s = data.draw(strict_rules(L, cfn))
@@ -1713,17 +1715,15 @@ class TestDefeatProperties:
         )
         defeats = compute_defeats(attacks, arguments, system, kb, empty_pref)
 
-        attack_triples = {
-            (atk.attacker, atk.target, atk.target_sub)
+        expected_defeats = {
+            atk
             for atk in attacks
+            if _is_preference_independent_attack(atk, system)
+            or not _strictly_weaker(atk.attacker, atk.target_sub, empty_pref, kb)
         }
-        defeat_triples = {
-            (d.attacker, d.target, d.target_sub)
-            for d in defeats
-        }
-        assert attack_triples == defeat_triples, (
-            f"With empty preferences, defeats should equal attacks. "
-            f"Missing: {attack_triples - defeat_triples}"
+        assert defeats == expected_defeats, (
+            f"With empty preferences, defeats should still follow Def 9/19. "
+            f"Missing: {expected_defeats - defeats}; extra: {defeats - expected_defeats}"
         )
 
     @given(data=st.data())
@@ -1767,8 +1767,9 @@ class TestDefeatProperties:
         inducing ordering is irreflexive (Def 22, p.22), no argument
         can be strictly weaker than itself.
 
-        Consequence: if A attacks itself, the attack always succeeds
-        (A is not strictly weaker than A).
+        Def 9 (p.12) compares the attacker against the targeted
+        sub-argument B', not automatically against itself. So even a
+        self-attack only succeeds when A is not strictly weaker than B'.
         """
         L, cfn = data.draw(logical_language())
         R_s = data.draw(strict_rules(L, cfn))
@@ -1787,15 +1788,16 @@ class TestDefeatProperties:
         )
         defeats = compute_defeats(attacks, arguments, system, kb, pref_last)
 
-        # Every self-attack must succeed as a self-defeat
+        # Def 9 (p.12): self-attack does not bypass the A vs B' preference check.
         for atk in attacks:
             if atk.attacker == atk.target:
-                assert any(
-                    d.attacker == atk.attacker and d.target == atk.target
-                    for d in defeats
-                ), (
-                    f"Self-attack {atk} should succeed as defeat under "
-                    f"last-link (irreflexivity: A not < A)"
+                expected = _is_preference_independent_attack(atk, system) or (
+                    not _strictly_weaker(atk.attacker, atk.target_sub, pref_last, kb)
+                )
+                actual = atk in defeats
+                assert actual == expected, (
+                    f"Self-attack {atk} should follow Def 9 against target_sub "
+                    f"{atk.target_sub}: expected defeat={expected}, got {actual}"
                 )
 
     @given(data=st.data())
@@ -1824,15 +1826,18 @@ class TestDefeatProperties:
         )
         defeats = compute_defeats(attacks, arguments, system, kb, pref_weakest)
 
-        # Every self-attack must succeed as a self-defeat
+        # Def 9 (p.12): self-attack does not bypass the A vs B' preference check.
         for atk in attacks:
             if atk.attacker == atk.target:
-                assert any(
-                    d.attacker == atk.attacker and d.target == atk.target
-                    for d in defeats
-                ), (
-                    f"Self-attack {atk} should succeed as defeat under "
-                    f"weakest-link (irreflexivity: A not < A)"
+                expected = _is_preference_independent_attack(atk, system) or (
+                    not _strictly_weaker(
+                        atk.attacker, atk.target_sub, pref_weakest, kb
+                    )
+                )
+                actual = atk in defeats
+                assert actual == expected, (
+                    f"Self-attack {atk} should follow Def 9 against target_sub "
+                    f"{atk.target_sub}: expected defeat={expected}, got {actual}"
                 )
 
     @given(data=st.data())
@@ -1936,6 +1941,80 @@ class TestDefeatConcrete:
             frozenset({(1, 3), (1, 4)}),
             "elitist",
         )
+
+    def test_definition_19_treats_nonempty_set_as_below_empty_set(self):
+        """Definition 19 (p.21) explicitly gives Gamma <_s empty when Gamma != empty."""
+        base_order = frozenset({("weak", "strong")})
+
+        assert _set_strictly_less(
+            frozenset({"weak"}),
+            frozenset(),
+            base_order,
+            "elitist",
+        )
+        assert _set_strictly_less(
+            frozenset({"weak"}),
+            frozenset(),
+            base_order,
+            "democratic",
+        )
+
+    def test_self_undermining_defeat_still_checks_target_sub_preference(self):
+        """Self-undermining does not automatically become a defeat.
+
+        Modgil & Prakken 2018, Def 9 (p.12), compares attacker A against the
+        targeted sub-argument B'. Under Defs 19-20 (p.21), a defeasible
+        argument can be strictly weaker than its own premise sub-argument when
+        its last defeasible rule set is non-empty and the target sub-argument's
+        last defeasible rule set is empty.
+        """
+        p = Literal(GroundAtom("p"))
+        not_p = p.contrary
+
+        L = frozenset({p, not_p})
+        cfn = ContrarinessFn(contradictories=frozenset({(p, not_p)}))
+
+        rule_self_attack = Rule(
+            antecedents=(p,),
+            consequent=not_p,
+            kind="defeasible",
+            name="d_self_attack",
+        )
+
+        system = ArgumentationSystem(
+            language=L,
+            contrariness=cfn,
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset({rule_self_attack}),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({p}),
+        )
+
+        premise_arg = PremiseArg(premise=p, is_axiom=False)
+        attacker = DefeasibleArg(sub_args=(premise_arg,), rule=rule_self_attack)
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        self_undermining = Attack(
+            attacker=attacker,
+            target=attacker,
+            target_sub=premise_arg,
+            kind="undermining",
+        )
+        assert self_undermining in attacks
+
+        pref = PreferenceConfig(
+            rule_order=frozenset({(rule_self_attack, p)}),
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="last",
+        )
+
+        assert _strictly_weaker(attacker, premise_arg, pref, kb)
+
+        defeats = compute_defeats(attacks, arguments, system, kb, pref)
+        assert self_undermining not in defeats
 
     def test_stronger_rebutter_defeats(self):
         """Two defeasible arguments for contradictory conclusions.

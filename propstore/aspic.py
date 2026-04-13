@@ -1051,15 +1051,14 @@ def _set_strictly_less(
     Returns:
         True if gamma <_s gamma_prime.
     """
-    # Def 19 (p.21): empty set is never strictly less than anything.
-    # When gamma_prime is empty with non-empty gamma, the elitist
-    # formula "forall Y in gamma'" is vacuously true, but this would
-    # make every non-empty set weaker than the empty set, which is
-    # wrong: an argument with defeasible components is not weaker
-    # than one with none just because the "none" set is empty.
-    # Both sets must be non-empty for a meaningful comparison.
-    if not gamma or not gamma_prime:
+    # Modgil & Prakken 2018, Def. 19 (p.21) gives two explicit edge cases:
+    # empty Gamma is never strictly less than anything, while non-empty Gamma
+    # is strictly less than empty Gamma'. Defs. 20-21 rely on that lifting when
+    # comparing defeasible arguments against firm/strict target sub-arguments.
+    if not gamma:
         return False
+    if not gamma_prime:
+        return True
 
     if comparison == "elitist":
         # Def 19 (p.21), Elitist: Gamma <_Eli Gamma' iff
@@ -1204,19 +1203,10 @@ def compute_defeats(
             # Undercutting and directional-contrary attacks always succeed
             # (Modgil & Prakken 2018, Def 9, p.12).
             defeat_keys.add(key)
-        elif atk.attacker == atk.target:
-            # Self-attacks always succeed as defeats. An argument that
-            # attacks itself is already self-conflicted; the preference
-            # comparison A vs B' (where B' is a sub-argument of A = B)
-            # is moot because A cannot be in any admissible extension
-            # with itself regardless. This follows from irreflexivity of
-            # the argument ordering (Def 22, p.22): A ⊁ A, and by
-            # extension no argument can be "defeated by itself" in a
-            # way that preferences could prevent.
-            defeat_keys.add(key)
         else:
-            # Rebutting or undermining: defeat iff attacker is NOT
-            # strictly weaker than the targeted sub-argument (Def 9, p.12)
+            # Rebutting or undermining: defeat iff attacker is NOT strictly
+            # weaker than the targeted sub-argument B' (Def. 9, p.12), even
+            # when the attacker also happens to equal the whole target.
             if not _strictly_weaker(atk.attacker, atk.target_sub, pref, kb):
                 defeat_keys.add(key)
 
