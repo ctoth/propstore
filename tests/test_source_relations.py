@@ -16,6 +16,14 @@ from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
 from propstore.cli.repository import Repository
 from propstore.source import parameterization_group_merge_preview
+from tests.builders import (
+    SourceClaimSpec,
+    SourceJustificationSpec,
+    SourceStanceSpec,
+    source_claims_document,
+    source_justifications_document,
+    source_stances_document,
+)
 from tests.conftest import normalize_concept_payloads
 
 
@@ -95,19 +103,18 @@ def test_source_add_claim_rejects_unknown_concept_reference(tmp_path: Path) -> N
     claims_file = tmp_path / "claims.yaml"
     claims_file.write_text(
         yaml.safe_dump(
-            {
-                "source": {"paper": "demo"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "parameter",
-                        "concept": "claims_identical",
-                        "value": 1.0,
-                        "unit": "probability",
-                        "provenance": {"page": 1},
-                    }
-                ],
-            },
+            source_claims_document(
+                [
+                    SourceClaimSpec(
+                        local_id="claim1",
+                        claim_type="parameter",
+                        concept="claims_identical",
+                        value=1.0,
+                        unit="probability",
+                        page=1,
+                    )
+                ]
+            ),
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -156,25 +163,24 @@ def test_source_add_justification_batch_rewrites_local_claim_ids(tmp_path: Path)
     claims_file = tmp_path / "claims.yaml"
     claims_file.write_text(
         yaml.safe_dump(
-            {
-                "source": {"paper": "demo"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "observation",
-                        "statement": "A first claim.",
-                        "concepts": ["claims_identical"],
-                        "provenance": {"page": 1},
-                    },
-                    {
-                        "id": "claim2",
-                        "type": "observation",
-                        "statement": "A second claim.",
-                        "concepts": ["claims_identical"],
-                        "provenance": {"page": 2},
-                    },
-                ],
-            },
+            source_claims_document(
+                [
+                    SourceClaimSpec(
+                        local_id="claim1",
+                        claim_type="observation",
+                        statement="A first claim.",
+                        concepts=("claims_identical",),
+                        page=1,
+                    ),
+                    SourceClaimSpec(
+                        local_id="claim2",
+                        claim_type="observation",
+                        statement="A second claim.",
+                        concepts=("claims_identical",),
+                        page=2,
+                    ),
+                ]
+            ),
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -196,18 +202,17 @@ def test_source_add_justification_batch_rewrites_local_claim_ids(tmp_path: Path)
     justifications_file = tmp_path / "justifications.yaml"
     justifications_file.write_text(
         yaml.safe_dump(
-            {
-                "source": {"paper": "demo"},
-                "justifications": [
-                    {
-                        "id": "just1",
-                        "conclusion": "claim2",
-                        "premises": ["claim1"],
-                        "rule_kind": "empirical_support",
-                        "provenance": {"page": 3},
-                    }
-                ],
-            },
+            source_justifications_document(
+                [
+                    SourceJustificationSpec(
+                        local_id="just1",
+                        conclusion="claim2",
+                        premises=("claim1",),
+                        rule_kind="empirical_support",
+                        page=3,
+                    )
+                ]
+            ),
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -265,25 +270,24 @@ def test_source_add_stance_batch_rewrites_local_targets_and_preserves_cross_sour
     claims_file = tmp_path / "claims.yaml"
     claims_file.write_text(
         yaml.safe_dump(
-            {
-                "source": {"paper": "demo"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "observation",
-                        "statement": "A first claim.",
-                        "concepts": ["claims_identical"],
-                        "provenance": {"page": 1},
-                    },
-                    {
-                        "id": "claim2",
-                        "type": "observation",
-                        "statement": "A second claim.",
-                        "concepts": ["claims_identical"],
-                        "provenance": {"page": 2},
-                    },
-                ],
-            },
+            source_claims_document(
+                [
+                    SourceClaimSpec(
+                        local_id="claim1",
+                        claim_type="observation",
+                        statement="A first claim.",
+                        concepts=("claims_identical",),
+                        page=1,
+                    ),
+                    SourceClaimSpec(
+                        local_id="claim2",
+                        claim_type="observation",
+                        statement="A second claim.",
+                        concepts=("claims_identical",),
+                        page=2,
+                    ),
+                ]
+            ),
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -305,23 +309,22 @@ def test_source_add_stance_batch_rewrites_local_targets_and_preserves_cross_sour
     stances_file = tmp_path / "stances.yaml"
     stances_file.write_text(
         yaml.safe_dump(
-            {
-                "source": {"paper": "demo"},
-                "stances": [
-                    {
-                        "source_claim": "claim1",
-                        "type": "supports",
-                        "target": "claim2",
-                        "note": "Local support edge.",
-                    },
-                    {
-                        "source_claim": "claim2",
-                        "type": "rebuts",
-                        "target": "other_source:claim9",
-                        "note": "Cross-source disagreement.",
-                    },
-                ],
-            },
+            source_stances_document(
+                [
+                    SourceStanceSpec(
+                        source_claim="claim1",
+                        target="claim2",
+                        stance_type="supports",
+                        note="Local support edge.",
+                    ),
+                    SourceStanceSpec(
+                        source_claim="claim2",
+                        target="other_source:claim9",
+                        stance_type="rebuts",
+                        note="Cross-source disagreement.",
+                    ),
+                ]
+            ),
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -875,26 +878,25 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
     claims_file = tmp_path / "claims.yaml"
     claims_file.write_text(
         yaml.safe_dump(
-            {
-                "source": {"paper": "demo"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "parameter",
-                        "concept": "claims_identical",
-                        "value": 1.0,
-                        "unit": "probability",
-                        "provenance": {"page": 1},
-                    },
-                    {
-                        "id": "claim2",
-                        "type": "observation",
-                        "statement": "A second claim.",
-                        "concepts": ["claims_identical"],
-                        "provenance": {"page": 2},
-                    },
-                ],
-            },
+            source_claims_document(
+                [
+                    SourceClaimSpec(
+                        local_id="claim1",
+                        claim_type="parameter",
+                        concept="claims_identical",
+                        value=1.0,
+                        unit="probability",
+                        page=1,
+                    ),
+                    SourceClaimSpec(
+                        local_id="claim2",
+                        claim_type="observation",
+                        statement="A second claim.",
+                        concepts=("claims_identical",),
+                        page=2,
+                    ),
+                ]
+            ),
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -916,18 +918,17 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
     justifications_file = tmp_path / "justifications.yaml"
     justifications_file.write_text(
         yaml.safe_dump(
-            {
-                "source": {"paper": "demo"},
-                "justifications": [
-                    {
-                        "id": "just1",
-                        "conclusion": "claim2",
-                        "premises": ["claim1"],
-                        "rule_kind": "empirical_support",
-                        "provenance": {"page": 3},
-                    }
-                ],
-            },
+            source_justifications_document(
+                [
+                    SourceJustificationSpec(
+                        local_id="just1",
+                        conclusion="claim2",
+                        premises=("claim1",),
+                        rule_kind="empirical_support",
+                        page=3,
+                    )
+                ]
+            ),
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -949,17 +950,16 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
     stances_file = tmp_path / "stances.yaml"
     stances_file.write_text(
         yaml.safe_dump(
-            {
-                "source": {"paper": "demo"},
-                "stances": [
-                    {
-                        "source_claim": "claim1",
-                        "type": "supports",
-                        "target": "claim2",
-                        "note": "Local support edge.",
-                    }
-                ],
-            },
+            source_stances_document(
+                [
+                    SourceStanceSpec(
+                        source_claim="claim1",
+                        target="claim2",
+                        stance_type="supports",
+                        note="Local support edge.",
+                    )
+                ]
+            ),
             sort_keys=False,
         ),
         encoding="utf-8",
