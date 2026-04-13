@@ -251,7 +251,7 @@ def preferred_extensions(
         from propstore.dung_z3 import z3_preferred_extensions
 
         return z3_preferred_extensions(framework)
-    completes = complete_extensions(framework)
+    completes = complete_extensions(framework, backend=backend)
     maximal: list[frozenset[str]] = []
     for ext in completes:
         if not any(ext < other for other in completes):

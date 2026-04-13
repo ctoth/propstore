@@ -156,7 +156,9 @@ def justifications_to_rules(
         if j.rule_kind == "reported_claim":
             continue
         if not j.premise_claim_ids:
-            continue
+            raise ValueError(
+                f"empty-premise justification {j.justification_id!r} must be rejected or represented explicitly"
+            )
         # Skip if any premise or conclusion not in literals
         if j.conclusion_claim_id not in literals:
             continue
@@ -980,6 +982,11 @@ def build_bridge_csaf(
     framework = ArgumentationFramework(
         arguments=af_arguments,
         defeats=af_defeats,
+        attacks=frozenset(
+            (arg_to_id[atk.attacker], arg_to_id[atk.target])
+            for atk in attacks
+            if atk.attacker in arg_to_id and atk.target in arg_to_id
+        ),
     )
 
     return CSAF(
