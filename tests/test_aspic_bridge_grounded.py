@@ -598,11 +598,11 @@ def test_output_literals_include_grounded_atoms() -> None:
     used as an antecedent or consequent in the emitted rules.
     Canonicalisation note (per the prompt): two GroundAtoms that are
     structurally equal map to the same literal dict entry, keyed by
-    ``repr(GroundAtom)``.
+    the bridge's typed structural literal key.
     """
 
     from propstore.aspic import GroundAtom
-    from propstore.aspic_bridge import grounded_rules_to_rules
+    from propstore.aspic_bridge import _ground_literal_key, grounded_rules_to_rules
 
     rule = _rule_doc(
         "rule:birds-fly",
@@ -617,18 +617,21 @@ def test_output_literals_include_grounded_atoms() -> None:
     )
     _strict, defeasible, out_literals = grounded_rules_to_rules(bundle, {})
     # Every literal appearing in an emitted rule must be reachable
-    # from the returned literals dict by its GroundAtom repr key.
+    # from the returned literals dict by its canonical structured key.
     for rule_obj in defeasible:
-        conseq_key = repr(rule_obj.consequent.atom)
+        conseq_key = _ground_literal_key(
+            rule_obj.consequent.atom, rule_obj.consequent.negated
+        )
         assert conseq_key in out_literals
         assert out_literals[conseq_key].atom == rule_obj.consequent.atom
         for ante in rule_obj.antecedents:
-            ante_key = repr(ante.atom)
+            ante_key = _ground_literal_key(ante.atom, ante.negated)
             assert ante_key in out_literals
             assert out_literals[ante_key].atom == ante.atom
-    # Sanity: the specific expected atoms are keyed under their reprs.
-    assert repr(GroundAtom("flies", ("tweety",))) in out_literals
-    assert repr(GroundAtom("bird", ("tweety",))) in out_literals
+    # Sanity: the specific expected atoms are keyed under the canonical
+    # structural ground-literal key.
+    assert _ground_literal_key(GroundAtom("flies", ("tweety",)), False) in out_literals
+    assert _ground_literal_key(GroundAtom("bird", ("tweety",)), False) in out_literals
 
 
 def test_existing_claim_literals_preserved() -> None:
@@ -642,7 +645,7 @@ def test_existing_claim_literals_preserved() -> None:
     """
 
     from propstore.aspic import GroundAtom, Literal
-    from propstore.aspic_bridge import grounded_rules_to_rules
+    from propstore.aspic_bridge import _ground_literal_key, grounded_rules_to_rules
 
     rule = _rule_doc(
         "rule:birds-fly",
@@ -666,8 +669,8 @@ def test_existing_claim_literals_preserved() -> None:
         assert cid in out_literals
         assert out_literals[cid] == lit
     # And the grounded atoms are added alongside, not in place of.
-    assert repr(GroundAtom("flies", ("tweety",))) in out_literals
-    assert repr(GroundAtom("bird", ("tweety",))) in out_literals
+    assert _ground_literal_key(GroundAtom("flies", ("tweety",)), False) in out_literals
+    assert _ground_literal_key(GroundAtom("bird", ("tweety",)), False) in out_literals
 
 
 # ---------------------------------------------------------------------------
