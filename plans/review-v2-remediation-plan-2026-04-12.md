@@ -86,8 +86,8 @@ terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 | 2 | arithmetic associativity | yes | yes | gunray/dcs | gunray:`00844b0`; dcs:`9d4c7a9` | kept-fixed | red: `gunray/logs/test-runs/issue2-proof-red-20260412-220649.log`; green: `gunray/logs/test-runs/issues1-2-green-20260412-220723.log` |
 | 3 | unsafe negation acceptance | yes | yes | gunray/dcs | gunray:`8de56a7`; dcs:`78e0b0b` | kept-fixed | red: `gunray/logs/test-runs/issue3-proof-red-20260412-221109.log`; green: `gunray/logs/test-runs/issue3-green-20260412-221126.log` |
 | 4 | strong negation dropped at boundary | no | no | propstore |  | pending | existing strong-negation plan overlap |
-| 5 | grounded literal aliasing by repr | no | no | propstore |  | pending |  |
-| 6 | `_parse_ground_atom_key()` not invertible | no | no | propstore |  | pending |  |
+| 5 | grounded literal aliasing by repr | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
+| 6 | `_parse_ground_atom_key()` not invertible | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
 | 7 | goal-directed attacker incompleteness | no | no | propstore |  | pending |  |
 | 8 | `arguments_against` misclassification | no | no | propstore |  | pending |  |
 | 9 | CSAF framework drops `attacks` | no | no | propstore |  | pending |  |
@@ -97,7 +97,7 @@ terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 | 13 | incomplete string escaping | no | no | propstore |  | pending |  |
 | 14 | grounded-rule naming collision risk | no | no | propstore |  | pending |  |
 | 15 | authored undercut ids mismatch grounded ids | no | no | propstore |  | pending |  |
-| 24 | mixed claim-id and ground-atom namespace | no | no | propstore |  | pending |  |
+| 24 | mixed claim-id and ground-atom namespace | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
 | 25 | query API contract mismatch | no | no | propstore |  | pending |  |
 | 26 | inconsistent deferred-feature handling | no | no | propstore/gunray |  | pending |  |
 
