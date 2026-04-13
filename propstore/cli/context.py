@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 import click
-import yaml
 
+from propstore.artifacts import CONTEXT_FAMILY, ContextRef
+from propstore.artifacts.codecs import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository
+from propstore.document_schema import convert_document_value
+from propstore.context_types import ContextDocument
 from propstore.validate_contexts import load_contexts
 
 
@@ -64,12 +66,25 @@ def add(
 
     if dry_run:
         click.echo(f"Would create {filepath}")
-        click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
+        document = convert_document_value(
+            data,
+            ContextDocument,
+            source=f"dry-run:contexts/{name}.yaml",
+        )
+        click.echo(encode_document(document).decode("utf-8"))
         return
 
-    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-    rel_path = filepath.relative_to(repo.root).as_posix()
-    git.commit_files({rel_path: yaml_bytes}, f"Add context: {name}")
+    document = convert_document_value(
+        data,
+        ContextDocument,
+        source=f"contexts/{name}.yaml",
+    )
+    repo.artifacts.save(
+        CONTEXT_FAMILY,
+        ContextRef(name),
+        document,
+        message=f"Add context: {name}",
+    )
     git.sync_worktree()
 
     click.echo(f"Created {filepath}")

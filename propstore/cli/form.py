@@ -5,12 +5,14 @@ import json
 import sys
 
 import click
-import yaml
 
+from propstore.artifacts import FORM_FAMILY, FormRef
+from propstore.artifacts.codecs import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository
-from propstore.document_schema import DocumentSchemaError
+from propstore.document_schema import DocumentSchemaError, convert_document_value
 from propstore.form_utils import load_all_forms_path, load_form_definition, load_form_path, validate_form_files
+from propstore.form_utils import FormDocument
 from propstore.core.concepts import load_concepts
 
 
@@ -229,13 +231,25 @@ def add(
 
     if dry_run:
         click.echo(f"Would create {path}")
-        click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
+        document = convert_document_value(
+            data,
+            FormDocument,
+            source=f"dry-run:forms/{name}.yaml",
+        )
+        click.echo(encode_document(document).decode("utf-8"))
         return
 
-    yaml_bytes = yaml.dump(
-        data, default_flow_style=False, sort_keys=False, allow_unicode=True
-    ).encode("utf-8")
-    git.commit_files({f"forms/{name}.yaml": yaml_bytes}, f"Add form: {name}")
+    document = convert_document_value(
+        data,
+        FormDocument,
+        source=f"forms/{name}.yaml",
+    )
+    repo.artifacts.save(
+        FORM_FAMILY,
+        FormRef(name),
+        document,
+        message=f"Add form: {name}",
+    )
     git.sync_worktree()
     click.echo(f"Created {path}")
 
@@ -279,7 +293,11 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
             click.echo(f"  ({len(referencing)} concept(s) still reference this form)")
         return
 
-    git.commit_deletes([f"forms/{name}.yaml"], f"Remove form: {name}")
+    repo.artifacts.delete(
+        FORM_FAMILY,
+        FormRef(name),
+        message=f"Remove form: {name}",
+    )
     git.sync_worktree()
     click.echo(f"Removed {path}")
     if referencing:

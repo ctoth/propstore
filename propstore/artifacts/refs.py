@@ -20,3 +20,13 @@ def source_finalize_relpath(name: str) -> str:
 @dataclass(frozen=True)
 class SourceRef:
     name: str
+
+
+@dataclass(frozen=True)
+class ContextRef:
+    name: str
+
+
+@dataclass(frozen=True)
+class FormRef:
+    name: str

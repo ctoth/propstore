@@ -2,8 +2,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.refs import SourceRef, source_branch_name, source_finalize_relpath
+from propstore.artifacts.refs import (
+    ContextRef,
+    FormRef,
+    SourceRef,
+    source_branch_name,
+    source_finalize_relpath,
+)
 from propstore.artifacts.types import ArtifactFamily, ResolvedArtifact
+from propstore.context_types import ContextDocument
+from propstore.form_utils import FormDocument
 from propstore.source_documents import (
     SourceClaimsDocument,
     SourceConceptsDocument,
@@ -22,6 +30,26 @@ def _source_artifact(repo: Repository, ref: SourceRef, relpath: str) -> Resolved
     return ResolvedArtifact(
         branch=source_branch_name(ref.name),
         relpath=relpath,
+    )
+
+
+def _default_branch(repo: Repository) -> str:
+    if repo.git is None:
+        raise ValueError("artifact operations require a git-backed repository")
+    return repo.git.current_branch_name() or repo.git.primary_branch_name()
+
+
+def _context_artifact(repo: Repository, ref: ContextRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_default_branch(repo),
+        relpath=f"contexts/{ref.name}.yaml",
+    )
+
+
+def _form_artifact(repo: Repository, ref: FormRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_default_branch(repo),
+        relpath=f"forms/{ref.name}.yaml",
     )
 
 
@@ -59,4 +87,16 @@ SOURCE_FINALIZE_REPORT_FAMILY = ArtifactFamily[SourceRef, SourceFinalizeReportDo
     name="source_finalize_report",
     doc_type=SourceFinalizeReportDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, source_finalize_relpath(ref.name)),
+)
+
+CONTEXT_FAMILY = ArtifactFamily[ContextRef, ContextDocument](
+    name="context",
+    doc_type=ContextDocument,
+    resolve_ref=_context_artifact,
+)
+
+FORM_FAMILY = ArtifactFamily[FormRef, FormDocument](
+    name="form",
+    doc_type=FormDocument,
+    resolve_ref=_form_artifact,
 )
