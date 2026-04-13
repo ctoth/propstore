@@ -6,8 +6,8 @@ import sys
 from typing import Any
 
 import click
-import yaml
 
+from propstore.artifacts import WORLDLINE_FAMILY, WorldlineRef
 from propstore.cli.repository import Repository
 from propstore.document_schema import DocumentSchemaError
 from propstore.world.types import (
@@ -33,31 +33,13 @@ def _parse_kv_args(args: tuple[str, ...]) -> dict[str, Any]:
 def worldline(obj: dict) -> None:
     """Materialized query artifacts — traced paths through the knowledge space."""
 
-
-def _worldlines_tree(repo: Repository):
-    return repo.tree() / "worldlines"
-
-
-def _worldline_relpath(name: str) -> str:
-    return f"worldlines/{name}.yaml"
-
-
 def _load_worldline_definition(repo: Repository, name: str):
     from propstore.worldline import WorldlineDefinition
 
-    path = _worldlines_tree(repo) / f"{name}.yaml"
-    if not path.exists():
+    document = repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name))
+    if document is None:
         raise FileNotFoundError(name)
-    return WorldlineDefinition.from_file(path)
-
-
-def _dump_worldline_yaml_bytes(worldline) -> bytes:
-    return yaml.dump(
-        worldline.to_dict(),
-        default_flow_style=False,
-        allow_unicode=True,
-        sort_keys=False,
-    ).encode("utf-8")
+    return WorldlineDefinition.from_document(document)
 
 
 def _build_policy_dict(
@@ -258,8 +240,7 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
         raise click.ClickException("worldline mutations require a git-backed repository")
     wl_dir = repo.worldlines_dir
     path = wl_dir / f"{name}.yaml"
-    semantic_path = _worldlines_tree(repo) / f"{name}.yaml"
-    if semantic_path.exists():
+    if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is not None:
         click.echo(f"ERROR: Worldline '{name}' already exists at {path}", err=True)
         sys.exit(1)
 
@@ -308,9 +289,11 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
 
     wl = WorldlineDefinition.from_dict(definition)
 
-    git.commit_files(
-        {_worldline_relpath(name): _dump_worldline_yaml_bytes(wl)},
-        f"Create worldline: {name}",
+    repo.artifacts.save(
+        WORLDLINE_FAMILY,
+        WorldlineRef(name),
+        wl.to_document(),
+        message=f"Create worldline: {name}",
     )
     git.sync_worktree()
 
@@ -355,10 +338,9 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
         raise click.ClickException("worldline mutations require a git-backed repository")
     wl_dir = repo.worldlines_dir
     path = wl_dir / f"{name}.yaml"
-    semantic_path = _worldlines_tree(repo) / f"{name}.yaml"
 
     # If file exists, load it; otherwise create from CLI args
-    if semantic_path.exists():
+    if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is not None:
         wl = _load_worldline_definition(repo, name)
     else:
         if not targets:
@@ -420,9 +402,11 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
     wl.results = result
     wm.close()
 
-    git.commit_files(
-        {_worldline_relpath(name): _dump_worldline_yaml_bytes(wl)},
-        f"Materialize worldline: {name}",
+    repo.artifacts.save(
+        WORLDLINE_FAMILY,
+        WorldlineRef(name),
+        wl.to_document(),
+        message=f"Materialize worldline: {name}",
     )
     git.sync_worktree()
 
@@ -444,8 +428,6 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
 @click.pass_obj
 def worldline_show(obj: dict, name: str, check: bool) -> None:
     """Show a worldline's results."""
-    from propstore.worldline import WorldlineDefinition
-
     repo: Repository = obj["repo"]
     try:
         wl = _load_worldline_definition(repo, name)
@@ -563,34 +545,24 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
 @click.pass_obj
 def worldline_list(obj: dict) -> None:
     """List all worldlines."""
-    from propstore.worldline import WorldlineDefinition
-
     repo: Repository = obj["repo"]
-    wl_tree = _worldlines_tree(repo)
-    if not wl_tree.exists():
-        click.echo("No worldlines directory.")
-        return
-
-    files = sorted(
-        (entry for entry in wl_tree.iterdir() if entry.is_file() and entry.suffix == ".yaml"),
-        key=lambda entry: entry.name,
-    )
-    if not files:
+    refs = repo.artifacts.list(WORLDLINE_FAMILY)
+    if not refs:
         click.echo("No worldlines.")
         return
 
-    for f in files:
+    for ref in refs:
         try:
-            wl = WorldlineDefinition.from_file(f)
+            wl = _load_worldline_definition(repo, ref.name)
             status = "materialized" if wl.results else "pending"
             targets = ", ".join(wl.targets[:3])
             if len(wl.targets) > 3:
                 targets += f" (+{len(wl.targets) - 3})"
             click.echo(f"  {wl.id}: {status} → {targets}")
         except DocumentSchemaError as e:
-            click.echo(f"  {f.stem}: ERROR — {e}")
+            click.echo(f"  {ref.name}: ERROR — {e}")
         except Exception as e:
-            click.echo(f"  {f.stem}: ERROR — {e}")
+            click.echo(f"  {ref.name}: ERROR — {e}")
 
 
 @worldline.command("diff")
@@ -599,8 +571,6 @@ def worldline_list(obj: dict) -> None:
 @click.pass_obj
 def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
     """Compare two worldlines side by side."""
-    from propstore.worldline import WorldlineDefinition
-
     repo: Repository = obj["repo"]
     try:
         wl_a = _load_worldline_definition(repo, name_a)
@@ -685,10 +655,13 @@ def worldline_delete(obj: dict, name: str) -> None:
     if git is None:
         raise click.ClickException("worldline mutations require a git-backed repository")
     path = repo.worldlines_dir / f"{name}.yaml"
-    semantic_path = _worldlines_tree(repo) / f"{name}.yaml"
-    if not semantic_path.exists():
+    if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is None:
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)
-    git.commit_deletes([_worldline_relpath(name)], f"Delete worldline: {name}")
+    repo.artifacts.delete(
+        WORLDLINE_FAMILY,
+        WorldlineRef(name),
+        message=f"Delete worldline: {name}",
+    )
     git.sync_worktree()
     click.echo(f"Deleted worldline '{name}'")

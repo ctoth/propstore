@@ -17,6 +17,10 @@ def source_finalize_relpath(name: str) -> str:
     return f"merge/finalize/{normalize_source_slug(name)}.yaml"
 
 
+def worldline_relpath(name: str) -> str:
+    return f"worldlines/{name}.yaml"
+
+
 @dataclass(frozen=True)
 class SourceRef:
     name: str
@@ -29,4 +33,9 @@ class ContextRef:
 
 @dataclass(frozen=True)
 class FormRef:
+    name: str
+
+
+@dataclass(frozen=True)
+class WorldlineRef:
     name: str
