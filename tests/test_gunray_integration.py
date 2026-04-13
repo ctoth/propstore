@@ -487,9 +487,12 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     assert isinstance(argument, DefeasibleArg)
 
     # Modgil & Prakken 2018 Def 2 (p.8): the defeasible-rule name
-    # n(r) must be unique per ground instance. The grounder bridge
-    # encodes the substitution as ``<rule_id>#X=tweety``.
-    assert "X=tweety" in argument.rule.name
+    # n(r) must be unique per ground instance. The grounder bridge now
+    # encodes the substitution structurally after ``<rule_id>#`` so
+    # delimiter characters inside constants cannot collide.
+    assert argument.rule.name.startswith('r_flies_bird#{"X":')
+    assert '"type":"str"' in argument.rule.name
+    assert '"value":"tweety"' in argument.rule.name
 
     # No attackers in this world: ``arguments_against`` is empty.
     assert result.arguments_against == frozenset()

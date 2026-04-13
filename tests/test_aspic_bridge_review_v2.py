@@ -4,12 +4,15 @@ import pytest
 
 from propstore.aspic import GroundAtom
 from propstore.aspic_bridge import (
+    _canonical_substitution_key,
     _literal_for_atom,
     _parse_ground_atom_key,
     build_bridge_csaf,
     claims_to_literals,
+    grounded_rules_to_rules,
     justifications_to_rules,
     query_claim,
+    stances_to_contrariness,
 )
 from propstore.core.justifications import CanonicalJustification
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -38,6 +41,85 @@ def _make_justification(
         premise_claim_ids=premise_claim_ids,
         rule_kind=rule_kind,
         rule_strength=rule_strength,
+    )
+
+
+def _make_var(name: str):
+    from propstore.rule_documents import TermDocument
+
+    return TermDocument(kind="var", name=name, value=None)
+
+
+def _make_atom(predicate: str, terms=()):
+    from propstore.rule_documents import AtomDocument
+
+    return AtomDocument(predicate=predicate, terms=tuple(terms), negated=False)
+
+
+def _make_rule_document(
+    rule_id: str,
+    head,
+    body=(),
+):
+    from propstore.rule_documents import RuleDocument
+
+    return RuleDocument(
+        id=rule_id,
+        kind="defeasible",
+        head=head,
+        body=tuple(body),
+        negative_body=(),
+    )
+
+
+def _make_rule_file(rules):
+    from propstore.loaded import LoadedDocument
+    from propstore.rule_documents import (
+        LoadedRuleFile,
+        RuleSourceDocument,
+        RulesFileDocument,
+    )
+
+    loaded = LoadedDocument(
+        filename="generated.yaml",
+        source_path=None,
+        knowledge_root=None,
+        document=RulesFileDocument(
+            source=RuleSourceDocument(paper="review_v2"),
+            rules=tuple(rules),
+        ),
+    )
+    return LoadedRuleFile.from_loaded_document(loaded)
+
+
+def _make_grounded_bundle(rules=(), *, definitely=None, defeasibly=None):
+    from types import MappingProxyType
+
+    def _freeze(section):
+        if section is None:
+            return MappingProxyType({})
+        return MappingProxyType(
+            {
+                predicate: frozenset(rows)
+                for predicate, rows in section.items()
+            }
+        )
+
+    return GroundedRulesBundle(
+        source_rules=(
+            ()
+            if not rules
+            else (_make_rule_file(rules),)
+        ),
+        source_facts=(),
+        sections=MappingProxyType(
+            {
+                "definitely": _freeze(definitely),
+                "defeasibly": _freeze(defeasibly),
+                "not_defeasibly": MappingProxyType({}),
+                "undecided": MappingProxyType({}),
+            }
+        ),
     )
 
 
@@ -71,6 +153,13 @@ def test_parse_ground_atom_key_round_trips_quoted_strings_and_numeric_scalars() 
     parsed = _parse_ground_atom_key('p("a,b", 1, true, "1")')
 
     assert parsed == GroundAtom("p", ("a,b", 1, True, "1"))
+
+
+def test_canonical_substitution_key_distinguishes_delimiter_collisions() -> None:
+    left = _canonical_substitution_key({"X": "a,Y=b", "Y": "c"})
+    right = _canonical_substitution_key({"X": "a", "Y": "b,Y=c"})
+
+    assert left != right
 
 
 def test_query_claim_does_not_misclassify_supporting_subarguments_as_against() -> None:
@@ -128,3 +217,57 @@ def test_justifications_to_rules_rejects_empty_premise_non_reported_rule() -> No
 
     with pytest.raises(ValueError, match="empty-premise"):
         justifications_to_rules(justifications, literals)
+
+
+def test_undercut_target_justification_id_matches_grounded_rule_base_id() -> None:
+    literals = {
+        "attacker": _literal_for_atom(GroundAtom("attacker", ()), False, {}),
+    }
+    literals["target"] = _literal_for_atom(
+        GroundAtom("flies", ("tweety",)),
+        False,
+        literals,
+    )
+    bundle = _make_grounded_bundle(
+        rules=(
+            _make_rule_document(
+                "r1",
+                _make_atom("flies", (_make_var("X"),)),
+                (_make_atom("bird", (_make_var("X"),)),),
+            ),
+        ),
+        definitely={"bird": {("tweety",)}},
+    )
+    _strict, defeasible, literals = grounded_rules_to_rules(bundle, literals)
+
+    cfn = stances_to_contrariness(
+        [
+            {
+                "claim_id": "attacker",
+                "target_claim_id": "target",
+                "stance_type": "undercuts",
+                "target_justification_id": "r1",
+            }
+        ],
+        literals,
+        defeasible,
+    )
+
+    grounded_rule = next(iter(defeasible))
+    grounded_rule_lit = _literal_for_atom(
+        GroundAtom(grounded_rule.name or "", ()),
+        False,
+        {},
+    )
+    assert cfn.is_contrary(literals["attacker"], grounded_rule_lit)
+
+
+def test_query_claim_raises_keyerror_for_unknown_goal() -> None:
+    with pytest.raises(KeyError, match="missing_goal"):
+        query_claim(
+            "missing_goal",
+            active_claims=[_make_claim("known")],
+            justifications=[],
+            stances=[],
+            bundle=GroundedRulesBundle.empty(),
+        )
