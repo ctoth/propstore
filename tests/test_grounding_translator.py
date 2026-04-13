@@ -755,6 +755,49 @@ def test_translate_negative_body_raises_not_implemented() -> None:
         translate_to_theory([rule_file], (), _bird_registry())
 
 
+def test_translate_strongly_negated_head_raises_not_implemented() -> None:
+    """Phase-1 translator must refuse strong negation loudly.
+
+    Strong negation is a different semantic channel from plain positive
+    literals. Silently dropping it changes the rule meaning, so Phase 1 must
+    reject it just as it rejects `negative_body`, strict rules, and defeaters.
+    """
+
+    from propstore.grounding.translator import translate_to_theory
+
+    head = _build_atom("flies", [_build_term_var("X")])
+    head.negated = True
+    rule = _build_rule_document(
+        rule_id="strong_neg_head",
+        kind="defeasible",
+        head=head,
+        body=(_build_atom("bird", [_build_term_var("X")]),),
+    )
+    rule_file = _build_rule_file([rule])
+
+    with pytest.raises(NotImplementedError, match="Strong negation"):
+        translate_to_theory([rule_file], (), _bird_registry())
+
+
+def test_translate_strongly_negated_body_atom_raises_not_implemented() -> None:
+    """Phase-1 translator must not silently erase strong-negated body atoms."""
+
+    from propstore.grounding.translator import translate_to_theory
+
+    body_atom = _build_atom("bird", [_build_term_var("X")])
+    body_atom.negated = True
+    rule = _build_rule_document(
+        rule_id="strong_neg_body",
+        kind="defeasible",
+        head=_build_atom("flies", [_build_term_var("X")]),
+        body=(body_atom,),
+    )
+    rule_file = _build_rule_file([rule])
+
+    with pytest.raises(NotImplementedError, match="Strong negation"):
+        translate_to_theory([rule_file], (), _bird_registry())
+
+
 def test_translate_string_constant_round_trips_control_characters() -> None:
     """String constants with control characters must stay parseable.
 
