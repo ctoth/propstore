@@ -8,7 +8,11 @@ import pytest
 
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
 from propstore.repo import KnowledgeRepo
-from tests.conftest import make_concept_identity, normalize_concept_payloads
+from tests.conftest import (
+    make_concept_identity,
+    normalize_claims_payload,
+    normalize_concept_payloads,
+)
 
 
 def _concept_payload(
@@ -1460,6 +1464,104 @@ def test_log_missing_branch_errors(tmp_path):
     assert "Branch not found: agent/missing" in result.output
 
 
+@pytest.mark.e2e
+def test_log_yaml_reports_worldline_materialization_history(tmp_path):
+    """A real build/create/run flow should surface stable operations in git history."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    assert git is not None
+
+    concept = _concept_payload(
+        "concept1",
+        "log_temperature",
+        domain="testing",
+        form="scalar",
+        status="accepted",
+        definition="A temperature used for end-to-end history coverage.",
+    )
+    claims_doc = normalize_claims_payload(
+        {
+            "source": {"paper": "log-demo"},
+            "claims": [
+                {
+                    "id": "temp_claim",
+                    "type": "parameter",
+                    "concept": concept["artifact_id"],
+                    "value": 42.0,
+                    "unit": "celsius",
+                    "provenance": {"paper": "log-demo", "page": 1},
+                }
+            ],
+        }
+    )
+    git.commit_files(
+        {
+            "forms/scalar.yaml": yaml.safe_dump(
+                {"name": "scalar", "dimensionless": True},
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8"),
+            "concepts/log_temperature.yaml": yaml.safe_dump(
+                concept,
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8"),
+            "claims/log_temperature.yaml": yaml.safe_dump(
+                claims_doc,
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8"),
+        },
+        "Seed worldline inputs",
+    )
+    git.sync_worktree()
+
+    runner = CliRunner()
+    build_result = runner.invoke(cli, ["-C", str(root), "build", "--force"])
+    assert build_result.exit_code == 0, build_result.output
+
+    create_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "worldline",
+            "create",
+            "log_worldline",
+            "--target",
+            "log_temperature",
+        ],
+    )
+    assert create_result.exit_code == 0, create_result.output
+
+    rebuild_result = runner.invoke(cli, ["-C", str(root), "build", "--force"])
+    assert rebuild_result.exit_code == 0, rebuild_result.output
+
+    run_result = runner.invoke(
+        cli,
+        ["-C", str(root), "worldline", "run", "log_worldline"],
+    )
+    assert run_result.exit_code == 0, run_result.output
+
+    result = runner.invoke(
+        cli,
+        ["-C", str(root), "log", "-n", "2", "--format", "yaml"],
+    )
+    assert result.exit_code == 0, result.output
+    payload = yaml.safe_load(result.output)
+    assert payload["branch"] == "master"
+    assert [entry["operation"] for entry in payload["entries"]] == [
+        "worldline.materialize",
+        "worldline.create",
+    ]
+    assert all(entry["branch"] == "master" for entry in payload["entries"])
+
+
 def test_repository_find_rejects_non_git_knowledge_dir(tmp_path):
     """Repository.find() rejects plain knowledge directories after the git-only cutover."""
     from propstore.cli.repository import Repository, RepositoryNotFound
@@ -1936,4 +2038,3 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
     )
     assert finalize_report["status"] == "ready"
     assert finalize_report["artifact_code_status"] == "complete"
-
