@@ -8,6 +8,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
+from propstore.sidecar.build import build_sidecar
 
 
 def _init_source(runner: CliRunner, repo: Repository, name: str = "demo"):
@@ -27,9 +28,15 @@ def _init_source(runner: CliRunner, repo: Repository, name: str = "demo"):
 def _seed_forms(repo: Repository, form_names: list[str]) -> None:
     """Commit minimal form YAML files to master so form validation passes."""
     adds = {}
+    dimensionless_forms = {"structural", "category", "scalar"}
     for form_name in form_names:
         adds[f"forms/{form_name}.yaml"] = yaml.safe_dump(
-            {"name": form_name}, sort_keys=False, allow_unicode=True,
+            {
+                "name": form_name,
+                "dimensionless": form_name in dimensionless_forms,
+            },
+            sort_keys=False,
+            allow_unicode=True,
         ).encode("utf-8")
     repo.git.commit_batch(
         adds=adds, deletes=[], message="Seed forms", branch="master",
@@ -55,12 +62,31 @@ def _add_concepts(runner: CliRunner, repo: Repository, name: str, concepts: list
 
 
 def test_propose_claim_observation(tmp_path: Path) -> None:
-    """propose-claim with observation type should assign artifact_id."""
+    """Observation proposals should survive finalize, promote, build, and verify."""
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
+    content_file = tmp_path / "paper.pdf"
+    content_file.write_bytes(b"%PDF-demo\n")
     _seed_forms(repo, ["structural"])
 
-    init_result = _init_source(runner, repo)
+    init_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            "demo",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "file",
+            "--origin-value",
+            "paper.pdf",
+            "--content-file",
+            str(content_file),
+        ],
+    )
     assert init_result.exit_code == 0, init_result.output
 
     _add_concepts(runner, repo, "demo", [
@@ -80,9 +106,44 @@ def test_propose_claim_observation(tmp_path: Path) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    assert "claim1" in result.output
-    assert "observation" in result.output
-    assert "artifact" in result.output.lower() or "ps:claim:" in result.output
+    finalize_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "finalize", "demo"],
+    )
+    assert finalize_result.exit_code == 0, finalize_result.output
+
+    promote_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "promote", "demo"],
+    )
+    assert promote_result.exit_code == 0, promote_result.output
+
+    source_tip = repo.git.branch_sha("source/demo")
+    assert source_tip is not None
+    source_claims = yaml.safe_load(repo.git.read_file("claims.yaml", commit=source_tip))
+    source_claim = source_claims["claims"][0]
+    assert source_claim["source_local_id"] == "claim1"
+
+    promoted_claims = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
+    promoted_claim = promoted_claims["claims"][0]
+    claim_id = promoted_claim["artifact_id"]
+    assert promoted_claim["artifact_id"] == source_claim["artifact_id"]
+    assert promoted_claim["statement"] == "Water boils at 100C."
+
+    build_sidecar(repo.tree(), repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    papers_dir = repo.root.parent / "papers" / "demo"
+    papers_dir.mkdir(parents=True, exist_ok=True)
+    (papers_dir / "paper.pdf").write_bytes(content_file.read_bytes())
+
+    verify_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "verify", "tree", claim_id],
+    )
+    assert verify_result.exit_code == 0, verify_result.output
+    report = yaml.safe_load(verify_result.output)
+    assert report["status"] == "ok"
+    assert report["claim"]["status"] == "ok"
+    assert report["origin_verification"]["status"] == "matched"
 
 
 def test_propose_claim_parameter(tmp_path: Path) -> None:
