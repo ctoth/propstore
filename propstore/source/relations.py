@@ -9,8 +9,9 @@ from propstore.artifacts import (
 )
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value, decode_document_path
+from propstore.reference_resolution import ClaimReferenceIndex
 
-from .claims import load_source_claim_index
+from .claims import load_source_claim_reference_index
 from .common import (
     load_source_justifications_document,
     load_source_stances_document,
@@ -25,44 +26,25 @@ from propstore.source_documents import (
     SourceStanceEntryDocument,
     SourceStancesDocument,
 )
-
-
-def resolve_local_claim_reference(reference: object, local_to_artifact: dict[str, str]) -> str:
-    if not isinstance(reference, str) or not reference:
-        raise ValueError("claim reference must be a non-empty string")
-    if reference.startswith("ps:claim:"):
-        return reference
-    artifact_id = local_to_artifact.get(reference)
-    if artifact_id is None:
-        raise ValueError(f"unresolved local claim reference: {reference}")
-    return artifact_id
-
-
 def normalize_source_justifications_payload(
     data: SourceJustificationsDocument,
     *,
-    local_to_artifact: dict[str, str],
+    claim_index: ClaimReferenceIndex,
 ) -> SourceJustificationsDocument:
     normalized_justifications: list[SourceJustificationDocument] = []
     for index, justification in enumerate(data.justifications, start=1):
         if justification.conclusion is None:
             raise ValueError("justification conclusion must be a non-empty string")
         normalized = justification.to_payload()
-        normalized["conclusion"] = resolve_local_claim_reference(
-            justification.conclusion,
-            local_to_artifact,
-        )
+        normalized["conclusion"] = claim_index.resolve_local(justification.conclusion)
         normalized["premises"] = [
-            resolve_local_claim_reference(premise, local_to_artifact)
+            claim_index.resolve_local(premise)
             for premise in justification.premises
         ]
         attack_target = justification.attack_target
         if attack_target is not None and attack_target.target_claim is not None:
             updated_target = attack_target.to_payload()
-            updated_target["target_claim"] = resolve_local_claim_reference(
-                attack_target.target_claim,
-                local_to_artifact,
-            )
+            updated_target["target_claim"] = claim_index.resolve_local(attack_target.target_claim)
             normalized["attack_target"] = updated_target
         normalized_justifications.append(
             convert_document_value(
@@ -88,7 +70,7 @@ def commit_source_justifications_batch(
 ) -> str:
     from datetime import datetime
 
-    local_to_artifact, _logical_to_artifact, _artifact_ids = load_source_claim_index(repo, source_name)
+    claim_index = load_source_claim_reference_index(repo, source_name)
     raw = decode_document_path(justifications_file, SourceJustificationsDocument)
     if reader is not None:
         raw = SourceJustificationsDocument(
@@ -102,7 +84,7 @@ def commit_source_justifications_batch(
         )
     normalized = normalize_source_justifications_payload(
         raw,
-        local_to_artifact=local_to_artifact,
+        claim_index=claim_index,
     )
     return repo.artifacts.save(
         SOURCE_JUSTIFICATIONS_FAMILY,
@@ -115,20 +97,15 @@ def commit_source_justifications_batch(
 def normalize_source_stances_payload(
     data: SourceStancesDocument,
     *,
-    local_to_artifact: dict[str, str],
+    claim_index: ClaimReferenceIndex,
 ) -> SourceStancesDocument:
     normalized_stances: list[SourceStanceEntryDocument] = []
     for index, stance in enumerate(data.stances, start=1):
         if stance.source_claim is None:
             raise ValueError("stance source_claim must be a non-empty string")
         normalized = stance.to_payload()
-        normalized["source_claim"] = resolve_local_claim_reference(
-            stance.source_claim,
-            local_to_artifact,
-        )
-        target = stance.target
-        if isinstance(target, str) and target in local_to_artifact:
-            normalized["target"] = local_to_artifact[target]
+        normalized["source_claim"] = claim_index.resolve_local(stance.source_claim)
+        normalized["target"] = claim_index.rewrite_local_target(stance.target)
         normalized_stances.append(
             convert_document_value(
                 normalized,
@@ -153,7 +130,7 @@ def commit_source_stances_batch(
 ) -> str:
     from datetime import datetime
 
-    local_to_artifact, _logical_to_artifact, _artifact_ids = load_source_claim_index(repo, source_name)
+    claim_index = load_source_claim_reference_index(repo, source_name)
     raw = decode_document_path(stances_file, SourceStancesDocument)
     if reader is not None:
         raw = SourceStancesDocument(
@@ -167,7 +144,7 @@ def commit_source_stances_batch(
         )
     normalized = normalize_source_stances_payload(
         raw,
-        local_to_artifact=local_to_artifact,
+        claim_index=claim_index,
     )
     return repo.artifacts.save(
         SOURCE_STANCES_FAMILY,
@@ -188,7 +165,7 @@ def commit_source_justification_proposal(
     page: int | None = None,
 ) -> SourceJustificationDocument:
     branch = source_branch_name(source_name)
-    local_to_artifact, _logical, _artifacts = load_source_claim_index(repo, source_name)
+    claim_index = load_source_claim_reference_index(repo, source_name)
     existing = load_source_justifications_document(repo, source_name) or SourceJustificationsDocument(justifications=())
     justifications = [entry for entry in existing.justifications if entry.id != just_id]
 
@@ -207,7 +184,7 @@ def commit_source_justification_proposal(
     justifications.append(justification)
     normalized = normalize_source_justifications_payload(
         SourceJustificationsDocument(source=existing.source, justifications=tuple(justifications)),
-        local_to_artifact=local_to_artifact,
+        claim_index=claim_index,
     )
 
     repo.artifacts.save(
@@ -234,7 +211,7 @@ def commit_source_stance_proposal(
     note: str | None = None,
 ) -> SourceStanceEntryDocument:
     branch = source_branch_name(source_name)
-    local_to_artifact, _logical, _artifacts = load_source_claim_index(repo, source_name)
+    claim_index = load_source_claim_reference_index(repo, source_name)
     existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(stances=())
     stances = list(existing.stances)
 
@@ -258,7 +235,7 @@ def commit_source_stance_proposal(
     stances.append(stance)
     normalized = normalize_source_stances_payload(
         SourceStancesDocument(source=existing.source, stances=tuple(stances)),
-        local_to_artifact=local_to_artifact,
+        claim_index=claim_index,
     )
 
     repo.artifacts.save(

@@ -22,10 +22,14 @@ from propstore.cli.repository import Repository
 from propstore.core.concepts import ConceptDocument
 from propstore.document_schema import convert_document_value
 from propstore.identity import compute_claim_version_id, compute_concept_version_id, derive_concept_artifact_id
+from propstore.reference_resolution import ClaimReferenceResolver
 from propstore.source_documents import SourceDocument, SourceJustificationsDocument
 from propstore.stance_documents import StanceFileDocument
 
-from .claims import load_primary_branch_claim_index, load_source_claim_index
+from .claims import (
+    load_primary_branch_claim_reference_index,
+    load_source_claim_reference_index,
+)
 from .common import (
     load_source_claims_document,
     load_source_concepts_document,
@@ -196,8 +200,10 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
         formatted = ", ".join(sorted(unresolved_concepts))
         raise ValueError(f"Cannot promote source {source_name!r}; unresolved concept mappings: {formatted}")
 
-    local_to_artifact, logical_to_artifact, _local_artifact_ids = load_source_claim_index(repo, source_name)
-    primary_logical_to_artifact, primary_artifact_ids = load_primary_branch_claim_index(repo)
+    resolver = ClaimReferenceResolver(
+        source=load_source_claim_reference_index(repo, source_name),
+        primary=load_primary_branch_claim_reference_index(repo),
+    )
 
     promoted_stance_documents: dict[str, StanceFileDocument] = {}
     promoted_stances: list[dict[str, Any]] = []
@@ -205,17 +211,7 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
         source_claim = stance.source_claim
         if not isinstance(source_claim, str) or not source_claim:
             raise ValueError("stance source_claim must be normalized before promotion")
-        target = stance.target
-        if not isinstance(target, str) or not target:
-            raise ValueError("stance target must be a non-empty string")
-        if target in local_to_artifact:
-            target = local_to_artifact[target]
-        elif target in logical_to_artifact:
-            target = logical_to_artifact[target]
-        elif target in primary_logical_to_artifact:
-            target = primary_logical_to_artifact[target]
-        elif target not in primary_artifact_ids and not target.startswith("ps:claim:"):
-            raise ValueError(f"Unresolved promoted stance target: {target}")
+        target = resolver.resolve_promoted_target(stance.target)
         normalized = stance.to_payload()
         normalized["target"] = target
         promoted_stances.append(normalized)

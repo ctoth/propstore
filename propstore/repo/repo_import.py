@@ -17,6 +17,7 @@ from propstore.identity import (
     normalize_logical_value,
     rewrite_stance_file_payload,
 )
+from propstore.reference_resolution import ImportedClaimHandleIndex
 from propstore.repo.branch import branch_head, create_branch
 
 if TYPE_CHECKING:
@@ -297,7 +298,7 @@ def _normalize_import_writes(
             )
         )
 
-    local_to_artifact: dict[str, str | None] = {}
+    local_handle_index = ImportedClaimHandleIndex()
     claim_paths = [path for path in sorted(writes) if path.startswith("claims/")]
     for path in claim_paths:
         payload, local_map = normalize_claim_file_payload(
@@ -307,42 +308,31 @@ def _normalize_import_writes(
         payload = _rewrite_claim_concept_refs(payload, concept_ref_map=concept_ref_map)
         normalized[path] = _encode_yaml(payload)
         for local_id, artifact_id in local_map.items():
-            previous = local_to_artifact.get(local_id)
-            if previous is None and local_id in local_to_artifact:
-                continue
-            if previous is not None and previous != artifact_id:
-                local_to_artifact[local_id] = None
+            if local_handle_index.record(local_id, artifact_id):
                 warnings.append(
                     f"ambiguous imported claim handle {local_id!r}; stance files must use artifact IDs"
                 )
-                continue
-            local_to_artifact[local_id] = artifact_id
 
     stance_paths = [path for path in sorted(writes) if path.startswith("stances/")]
     for path in stance_paths:
         payload = _decode_yaml(writes[path], path=path)
-        source_claim = payload.get("source_claim")
-        if isinstance(source_claim, str) and source_claim in local_to_artifact and local_to_artifact[source_claim] is None:
-            raise ValueError(
-                f"Imported stance file {path!r} references ambiguous source_claim {source_claim!r}"
-            )
+        local_handle_index.require_unambiguous(
+            payload.get("source_claim"),
+            path=path,
+            role="source_claim",
+        )
         stances = payload.get("stances")
         if isinstance(stances, list):
             for stance in stances:
                 if not isinstance(stance, dict):
                     continue
-                target = stance.get("target")
-                if isinstance(target, str) and target in local_to_artifact and local_to_artifact[target] is None:
-                    raise ValueError(
-                        f"Imported stance file {path!r} references ambiguous target {target!r}"
-                    )
-        resolved_map = {
-            local_id: artifact_id
-            for local_id, artifact_id in local_to_artifact.items()
-            if artifact_id is not None
-        }
+                local_handle_index.require_unambiguous(
+                    stance.get("target"),
+                    path=path,
+                    role="target",
+                )
         normalized[path] = _encode_yaml(
-            rewrite_stance_file_payload(payload, local_to_artifact=resolved_map)
+            rewrite_stance_file_payload(payload, local_to_artifact=local_handle_index.resolved_map())
         )
 
     return normalized, warnings
