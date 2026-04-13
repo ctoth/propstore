@@ -4,11 +4,26 @@ import copy
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from propstore.artifact_codes import attach_source_artifact_codes
+from propstore.artifacts import (
+    CANONICAL_SOURCE_FAMILY,
+    CLAIMS_FILE_FAMILY,
+    CONCEPT_FILE_FAMILY,
+    JUSTIFICATIONS_FILE_FAMILY,
+    STANCE_FILE_FAMILY,
+    CanonicalSourceRef,
+    ClaimsFileRef,
+    ConceptFileRef,
+    JustificationsFileRef,
+    StanceFileRef,
+)
+from propstore.claim_documents import ClaimsFileDocument
 from propstore.cli.repository import Repository
+from propstore.core.concepts import ConceptDocument
+from propstore.document_schema import convert_document_value
 from propstore.identity import compute_claim_version_id, compute_concept_version_id, derive_concept_artifact_id
+from propstore.source_documents import SourceDocument, SourceJustificationsDocument
+from propstore.stance_documents import StanceFileDocument
 
 from .claims import load_primary_branch_claim_index, load_source_claim_index
 from .common import (
@@ -60,11 +75,14 @@ def rewrite_claim_concept_refs(
     return normalized
 
 
-def resolve_source_concept_promotions(repo: Repository, source_name: str) -> tuple[dict[str, str], dict[str, bytes]]:
+def resolve_source_concept_promotions(
+    repo: Repository,
+    source_name: str,
+) -> tuple[dict[str, str], dict[str, ConceptDocument]]:
     concepts_doc = load_source_concepts_document(repo, source_name)
     concepts_by_artifact, handle_to_artifact = load_primary_branch_concepts(repo)
     mapping: dict[str, str] = {}
-    concept_adds: dict[str, bytes] = {}
+    concept_documents: dict[str, ConceptDocument] = {}
     new_concepts: list[tuple[object, str, str]] = []
     seen_new_artifacts: dict[str, str] = {}
 
@@ -144,13 +162,13 @@ def resolve_source_concept_promotions(repo: Repository, source_name: str) -> tup
         if parameterization_relationships:
             concept_doc["parameterization_relationships"] = parameterization_relationships
         concept_doc["version_id"] = compute_concept_version_id(concept_doc)
-        concept_adds[f"concepts/{slug}.yaml"] = yaml.safe_dump(
+        concept_documents[slug] = convert_document_value(
             concept_doc,
-            sort_keys=False,
-            allow_unicode=True,
-        ).encode("utf-8")
+            ConceptDocument,
+            source=f"concepts/{slug}.yaml",
+        )
 
-    return mapping, concept_adds
+    return mapping, concept_documents
 
 
 def load_finalize_report(repo: Repository, source_name: str):
@@ -167,7 +185,7 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
     claims_doc = load_source_claims_document(repo, source_name)
     justifications_doc = load_source_justifications_document(repo, source_name)
     stances_doc = load_source_stances_document(repo, source_name)
-    concept_map, promoted_concept_files = resolve_source_concept_promotions(repo, source_name)
+    concept_map, promoted_concept_documents = resolve_source_concept_promotions(repo, source_name)
     unresolved_concepts: set[str] = set()
 
     promoted_claims = [
@@ -181,7 +199,7 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
     local_to_artifact, logical_to_artifact, _local_artifact_ids = load_source_claim_index(repo, source_name)
     primary_logical_to_artifact, primary_artifact_ids = load_primary_branch_claim_index(repo)
 
-    promoted_stance_files: dict[str, bytes] = {}
+    promoted_stance_documents: dict[str, StanceFileDocument] = {}
     promoted_stances: list[dict[str, Any]] = []
     for stance in (() if stances_doc is None else stances_doc.stances):
         source_claim = stance.source_claim
@@ -245,39 +263,65 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
             stances_by_source.setdefault(source_claim, []).append(stance)
 
     for source_claim, entries in stances_by_source.items():
-        file_name = source_claim.replace(":", "__") + ".yaml"
-        payload = {
-            "source_claim": source_claim,
-            "stances": entries,
-        }
-        promoted_stance_files[f"stances/{file_name}"] = yaml.safe_dump(
-            payload,
-            sort_keys=False,
-            allow_unicode=True,
-        ).encode("utf-8")
+        promoted_stance_documents[source_claim] = convert_document_value(
+            {
+                "source_claim": source_claim,
+                "stances": entries,
+            },
+            StanceFileDocument,
+            source=f"stances/{source_claim.replace(':', '__')}.yaml",
+        )
 
-    adds = {
-        f"sources/{slug}.yaml": yaml.safe_dump(promoted_source_doc, sort_keys=False, allow_unicode=True).encode("utf-8"),
-        f"claims/{slug}.yaml": yaml.safe_dump(promoted_claims_doc, sort_keys=False, allow_unicode=True).encode(
-            "utf-8"
-        ),
-    }
-    adds.update(promoted_concept_files)
+    promoted_source_document = convert_document_value(
+        promoted_source_doc,
+        SourceDocument,
+        source=f"sources/{slug}.yaml",
+    )
+    promoted_claims_document = convert_document_value(
+        promoted_claims_doc,
+        ClaimsFileDocument,
+        source=f"claims/{slug}.yaml",
+    )
 
-    if promoted_justifications_doc.get("justifications"):
-        adds[f"justifications/{slug}.yaml"] = yaml.safe_dump(
-            promoted_justifications_doc,
-            sort_keys=False,
-            allow_unicode=True,
-        ).encode("utf-8")
-    adds.update(promoted_stance_files)
-
-    sha = repo.git.commit_batch(
-        adds=adds,
-        deletes=[],
+    transaction = repo.artifacts.transact(
         message=f"Promote source {slug}",
         branch=repo.git.primary_branch_name(),
     )
+    transaction.save(
+        CANONICAL_SOURCE_FAMILY,
+        CanonicalSourceRef(slug),
+        promoted_source_document,
+    )
+    transaction.save(
+        CLAIMS_FILE_FAMILY,
+        ClaimsFileRef(slug),
+        promoted_claims_document,
+    )
+    for concept_slug, concept_document in promoted_concept_documents.items():
+        transaction.save(
+            CONCEPT_FILE_FAMILY,
+            ConceptFileRef(concept_slug),
+            concept_document,
+        )
+    if promoted_justifications_doc.get("justifications"):
+        promoted_justifications_document = convert_document_value(
+            promoted_justifications_doc,
+            SourceJustificationsDocument,
+            source=f"justifications/{slug}.yaml",
+        )
+        transaction.save(
+            JUSTIFICATIONS_FILE_FAMILY,
+            JustificationsFileRef(slug),
+            promoted_justifications_document,
+        )
+    for source_claim, stance_document in promoted_stance_documents.items():
+        transaction.save(
+            STANCE_FILE_FAMILY,
+            StanceFileRef(source_claim),
+            stance_document,
+        )
+
+    sha = transaction.commit()
     repo.git.sync_worktree()
     return sha
 

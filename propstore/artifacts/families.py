@@ -3,16 +3,30 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from propstore.artifacts.refs import (
+    CanonicalSourceRef,
+    ClaimsFileRef,
+    ConceptAlignmentRef,
+    ConceptFileRef,
     ContextRef,
     FormRef,
+    JustificationsFileRef,
     SourceRef,
+    StanceFileRef,
     WorldlineRef,
+    canonical_source_relpath,
+    claims_file_relpath,
+    concept_alignment_relpath,
+    concept_file_relpath,
     source_branch_name,
     source_finalize_relpath,
+    stance_file_relpath,
     worldline_relpath,
+    justifications_file_relpath,
 )
 from propstore.artifacts.types import ArtifactFamily, ResolvedArtifact
+from propstore.claim_documents import ClaimsFileDocument
 from propstore.context_types import ContextDocument
+from propstore.core.concepts import ConceptDocument
 from propstore.form_utils import FormDocument
 from propstore.repo.branch import branch_head
 from propstore.source_documents import (
@@ -23,6 +37,8 @@ from propstore.source_documents import (
     SourceJustificationsDocument,
     SourceStancesDocument,
 )
+from propstore.source_alignment_documents import ConceptAlignmentArtifactDocument
+from propstore.stance_documents import StanceFileDocument
 from propstore.worldline.definition import WorldlineDefinitionDocument
 
 if TYPE_CHECKING:
@@ -50,6 +66,12 @@ def _context_artifact(repo: Repository, ref: ContextRef) -> ResolvedArtifact:
     )
 
 
+def _primary_branch(repo: Repository) -> str:
+    if repo.git is None:
+        raise ValueError("artifact operations require a git-backed repository")
+    return repo.git.primary_branch_name()
+
+
 def _form_artifact(repo: Repository, ref: FormRef) -> ResolvedArtifact:
     return ResolvedArtifact(
         branch=_default_branch(repo),
@@ -61,6 +83,48 @@ def _worldline_artifact(repo: Repository, ref: WorldlineRef) -> ResolvedArtifact
     return ResolvedArtifact(
         branch=_default_branch(repo),
         relpath=worldline_relpath(ref.name),
+    )
+
+
+def _canonical_source_artifact(repo: Repository, ref: CanonicalSourceRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_primary_branch(repo),
+        relpath=canonical_source_relpath(ref.name),
+    )
+
+
+def _claims_file_artifact(repo: Repository, ref: ClaimsFileRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_primary_branch(repo),
+        relpath=claims_file_relpath(ref.name),
+    )
+
+
+def _concept_file_artifact(repo: Repository, ref: ConceptFileRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_primary_branch(repo),
+        relpath=concept_file_relpath(ref.name),
+    )
+
+
+def _justifications_file_artifact(repo: Repository, ref: JustificationsFileRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_primary_branch(repo),
+        relpath=justifications_file_relpath(ref.name),
+    )
+
+
+def _stance_file_artifact(repo: Repository, ref: StanceFileRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_primary_branch(repo),
+        relpath=stance_file_relpath(ref.source_claim),
+    )
+
+
+def _concept_alignment_artifact(repo: Repository, ref: ConceptAlignmentRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch="proposal/concepts",
+        relpath=concept_alignment_relpath(ref.slug),
     )
 
 
@@ -138,6 +202,42 @@ FORM_FAMILY = ArtifactFamily[FormRef, FormDocument](
     name="form",
     doc_type=FormDocument,
     resolve_ref=_form_artifact,
+)
+
+CANONICAL_SOURCE_FAMILY = ArtifactFamily[CanonicalSourceRef, SourceDocument](
+    name="canonical_source",
+    doc_type=SourceDocument,
+    resolve_ref=_canonical_source_artifact,
+)
+
+CLAIMS_FILE_FAMILY = ArtifactFamily[ClaimsFileRef, ClaimsFileDocument](
+    name="claims_file",
+    doc_type=ClaimsFileDocument,
+    resolve_ref=_claims_file_artifact,
+)
+
+CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
+    name="concept_file",
+    doc_type=ConceptDocument,
+    resolve_ref=_concept_file_artifact,
+)
+
+JUSTIFICATIONS_FILE_FAMILY = ArtifactFamily[JustificationsFileRef, SourceJustificationsDocument](
+    name="justifications_file",
+    doc_type=SourceJustificationsDocument,
+    resolve_ref=_justifications_file_artifact,
+)
+
+STANCE_FILE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
+    name="stance_file",
+    doc_type=StanceFileDocument,
+    resolve_ref=_stance_file_artifact,
+)
+
+CONCEPT_ALIGNMENT_FAMILY = ArtifactFamily[ConceptAlignmentRef, ConceptAlignmentArtifactDocument](
+    name="concept_alignment",
+    doc_type=ConceptAlignmentArtifactDocument,
+    resolve_ref=_concept_alignment_artifact,
 )
 
 WORLDLINE_FAMILY = ArtifactFamily[WorldlineRef, WorldlineDefinitionDocument](

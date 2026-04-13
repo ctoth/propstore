@@ -5,10 +5,15 @@ from collections import Counter
 from itertools import product
 from typing import Any
 
-import yaml
-
+from propstore.artifacts import (
+    CONCEPT_ALIGNMENT_FAMILY,
+    CONCEPT_FILE_FAMILY,
+    ConceptAlignmentRef,
+    ConceptFileRef,
+)
 from propstore.cli.repository import Repository
-from propstore.document_schema import decode_document_bytes
+from propstore.core.concepts import ConceptDocument
+from propstore.document_schema import convert_document_value
 from propstore.identity import compute_concept_version_id, derive_concept_artifact_id
 from propstore.repo.branch import branch_head, create_branch
 from propstore.repo.merge_framework import PartialArgumentationFramework
@@ -172,17 +177,11 @@ def align_sources(
     if branch_head(repo.git, CONCEPT_PROPOSAL_BRANCH) is None:
         create_branch(repo.git, CONCEPT_PROPOSAL_BRANCH)
     slug = artifact.id.split(":", 1)[1]
-    repo.git.commit_batch(
-        adds={
-            f"merge/concepts/{slug}.yaml": yaml.safe_dump(
-                artifact.to_payload(),
-                sort_keys=False,
-                allow_unicode=True,
-            ).encode("utf-8")
-        },
-        deletes=[],
+    repo.artifacts.save(
+        CONCEPT_ALIGNMENT_FAMILY,
+        ConceptAlignmentRef(slug),
+        artifact,
         message=f"Align concepts for {slug}",
-        branch=CONCEPT_PROPOSAL_BRANCH,
     )
     return artifact
 
@@ -192,17 +191,12 @@ def load_alignment_artifact(
     cluster_id: str,
 ) -> tuple[str, ConceptAlignmentArtifactDocument]:
     slug = cluster_id.split(":", 1)[1] if ":" in cluster_id else cluster_id
-    tip = branch_head(repo.git, CONCEPT_PROPOSAL_BRANCH)
-    if tip is None:
+    artifact = repo.artifacts.load(
+        CONCEPT_ALIGNMENT_FAMILY,
+        ConceptAlignmentRef(slug),
+    )
+    if artifact is None:
         raise FileNotFoundError(cluster_id)
-    try:
-        artifact = decode_document_bytes(
-            repo.git.read_file(f"merge/concepts/{slug}.yaml", commit=tip),
-            ConceptAlignmentArtifactDocument,
-            source=f"{CONCEPT_PROPOSAL_BRANCH}:merge/concepts/{slug}.yaml",
-        )
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(cluster_id) from exc
     return slug, artifact
 
 
@@ -213,17 +207,11 @@ def save_alignment_artifact(
     *,
     message: str,
 ) -> str:
-    return repo.git.commit_batch(
-        adds={
-            f"merge/concepts/{slug}.yaml": yaml.safe_dump(
-                artifact.to_payload(),
-                sort_keys=False,
-                allow_unicode=True,
-            ).encode("utf-8")
-        },
-        deletes=[],
+    return repo.artifacts.save(
+        CONCEPT_ALIGNMENT_FAMILY,
+        ConceptAlignmentRef(slug),
+        artifact,
         message=message,
-        branch=CONCEPT_PROPOSAL_BRANCH,
     )
 
 
@@ -278,11 +266,16 @@ def promote_alignment(
         ],
     }
     concept_doc["version_id"] = compute_concept_version_id(concept_doc)
-    repo.git.commit_batch(
-        adds={f"concepts/{local_handle}.yaml": yaml.safe_dump(concept_doc, sort_keys=False, allow_unicode=True).encode("utf-8")},
-        deletes=[],
+    document = convert_document_value(
+        concept_doc,
+        ConceptDocument,
+        source=f"concepts/{local_handle}.yaml",
+    )
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ConceptFileRef(local_handle),
+        document,
         message=f"Promote concept alignment {cluster_id}",
-        branch=repo.git.primary_branch_name(),
     )
     repo.git.sync_worktree()
     updated = copy.deepcopy(artifact)
