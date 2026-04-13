@@ -544,6 +544,80 @@ class TestTranspositionClosure:
         result = transposition_closure(frozenset(), L, cfn)
         assert result == frozenset(), f"Expected empty set, got {result}"
 
+    def test_transposition_closure_does_not_erase_unrelated_rules_on_singleton_inconsistency(self):
+        """Transposition closure must not wipe out unrelated strict rules.
+
+        Prakken 2010, Defs 5.1-5.3 (pp. 141-142; local page image
+        ``papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-012.png``)
+        defines closure under transposition purely as the least fixpoint under
+        adding transpositions. It does not say to delete the whole strict theory
+        when one singleton closure is inconsistent.
+        """
+
+        p = Literal(GroundAtom("p"))
+        not_p = Literal(GroundAtom("p"), negated=True)
+        q = Literal(GroundAtom("q"))
+        not_q = Literal(GroundAtom("q"), negated=True)
+        r = Literal(GroundAtom("r"))
+        not_r = Literal(GroundAtom("r"), negated=True)
+        s = Literal(GroundAtom("s"))
+        not_s = Literal(GroundAtom("s"), negated=True)
+        language = frozenset({p, not_p, q, not_q, r, not_r, s, not_s})
+        cfn = ContrarinessFn(
+            contradictories=frozenset({
+                (p, not_p),
+                (q, not_q),
+                (r, not_r),
+                (s, not_s),
+            })
+        )
+        unrelated = Rule(antecedents=(r,), consequent=s, kind="strict")
+        rules = frozenset(
+            {
+                Rule(antecedents=(not_p,), consequent=q, kind="strict"),
+                Rule(antecedents=(q,), consequent=p, kind="strict"),
+                unrelated,
+            }
+        )
+
+        closed = transposition_closure(rules, language, cfn)
+
+        assert unrelated in closed
+        assert closed != frozenset()
+
+    def test_transposition_closure_uses_explicit_contradictories_from_contrariness(self):
+        """Transposition must follow the supplied contradictory relation.
+
+        Prakken 2010, Def. 5.1 (p. 141; local page image
+        ``papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-012.png``)
+        defines transposition with the argumentation system's ``-`` operator.
+        If ``-`` is represented by ``ContrarinessFn``, the implementation must
+        use that relation instead of hard-coding ``Literal.contrary``.
+        """
+
+        p = Literal(GroundAtom("p"))
+        not_p = Literal(GroundAtom("p"), negated=True)
+        q = Literal(GroundAtom("q"))
+        not_q = Literal(GroundAtom("q"), negated=True)
+        r = Literal(GroundAtom("r"))
+        not_r = Literal(GroundAtom("r"), negated=True)
+        s = Literal(GroundAtom("s"))
+        not_s = Literal(GroundAtom("s"), negated=True)
+        language = frozenset({p, not_p, q, not_q, r, not_r, s, not_s})
+        cfn = ContrarinessFn(
+            contradictories=frozenset({
+                (p, q),
+                (not_p, not_q),
+                (r, s),
+                (not_r, not_s),
+            })
+        )
+        original = Rule(antecedents=(p,), consequent=r, kind="strict")
+
+        closed = transposition_closure(frozenset({original}), language, cfn)
+
+        assert Rule(antecedents=(s,), consequent=q, kind="strict") in closed
+
 
 class TestRuleConcrete:
     """Hand-constructed examples for verifying rule and transposition properties."""
@@ -939,6 +1013,12 @@ class TestArgumentConstructionProperties:
         system = ArgumentationSystem(L, cfn, R_s, R_d)
         kb = data.draw(knowledge_base(L, R_s, R_d))
         assume(len(kb.axioms) > 0)
+        # Prakken 2010, Thm. 6.10 (p. 145; local page image
+        # ``papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png``)
+        # requires consistent Cl_Rs(K_n) for the rationality guarantees. Once
+        # transposition_closure stops erasing inconsistent strict theories, this
+        # property must restrict itself to that well-defined fragment.
+        assume(is_c_consistent(kb.axioms, R_s, cfn))
         arguments = build_arguments(system, kb)
         assert any(
             is_firm(a) and is_strict(a) for a in arguments

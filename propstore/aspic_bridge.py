@@ -609,7 +609,19 @@ def stances_to_contrariness(
     Returns:
         ContrarinessFn with contradictory and contrary pairs.
     """
-    contradictory_pairs: set[tuple[Literal, Literal]] = set()
+    # Prakken 2010, Def. 5.1 (p. 141; local page image
+    # ``papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-012.png``)
+    # defines transposition over the system's ``-`` operator. The bridge must
+    # therefore publish the base contradictory pairs for every claim / ground
+    # literal, not only attack stances layered on top of them.
+    contradictory_pairs: set[tuple[Literal, Literal]] = {
+        (lit, lit.contrary) for lit in literals.values()
+    }
+    for rule in defeasible_rules:
+        if rule.name is None:
+            continue
+        rule_lit = Literal(atom=GroundAtom(rule.name), negated=False)
+        contradictory_pairs.add((rule_lit, rule_lit.contrary))
     contrary_pairs: set[tuple[Literal, Literal]] = set()
 
     for stance_input in stances:
