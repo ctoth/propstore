@@ -6,6 +6,8 @@ from propstore.artifacts import (
     SOURCE_DOCUMENT_FAMILY,
     SOURCE_FINALIZE_REPORT_FAMILY,
     SourceRef,
+    WORLDLINE_FAMILY,
+    WorldlineRef,
 )
 from propstore.cli.repository import Repository
 from propstore.repo.branch import create_branch
@@ -14,6 +16,7 @@ from propstore.source_documents import (
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
 )
+from propstore.worldline import WorldlineDefinition
 
 
 def test_artifact_store_roundtrips_source_document(tmp_path: Path) -> None:
@@ -81,3 +84,31 @@ def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -
     loaded_report = repo.artifacts.require(SOURCE_FINALIZE_REPORT_FAMILY, SourceRef("demo"))
     assert loaded_source.to_payload() == source_doc.to_payload()
     assert loaded_report.to_payload() == report.to_payload()
+
+
+def test_artifact_store_roundtrips_and_lists_worldlines(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+
+    definition = WorldlineDefinition.from_dict({
+        "id": "demo_worldline",
+        "name": "Demo worldline",
+        "targets": ["force", "mass"],
+        "inputs": {
+            "bindings": {"location": "earth"},
+            "overrides": {"mass": 10.0},
+        },
+    })
+
+    commit_sha = repo.artifacts.save(
+        WORLDLINE_FAMILY,
+        WorldlineRef("demo_worldline"),
+        definition.to_document(),
+        message="Write worldline",
+    )
+
+    assert commit_sha
+    loaded = repo.artifacts.require(WORLDLINE_FAMILY, WorldlineRef("demo_worldline"))
+    listed = repo.artifacts.list(WORLDLINE_FAMILY)
+
+    assert WorldlineDefinition.from_document(loaded) == definition
+    assert listed == [WorldlineRef("demo_worldline")]

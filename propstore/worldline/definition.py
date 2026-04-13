@@ -7,9 +7,12 @@ from pathlib import Path
 from typing import Any
 
 import msgspec
-import yaml
 
-from propstore.document_schema import DocumentStruct, decode_document_path
+from propstore.document_schema import (
+    DocumentStruct,
+    convert_document_value,
+    decode_document_path,
+)
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.world.types import Environment, RenderPolicy
 from propstore.worldline.result_types import (
@@ -470,16 +473,16 @@ class WorldlineDefinition:
             data["results"] = self.results.to_dict()
         return data
 
+    def to_document(self) -> WorldlineDefinitionDocument:
+        return convert_document_value(
+            self.to_dict(),
+            WorldlineDefinitionDocument,
+            source=f"worldline:{self.id}",
+        )
+
     def to_file(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as handle:
-            yaml.dump(
-                self.to_dict(),
-                handle,
-                default_flow_style=False,
-                allow_unicode=True,
-                sort_keys=False,
-            )
+        path.write_bytes(msgspec.yaml.encode(self.to_document()))
 
     def is_stale(self, world: Any) -> bool:
         if self.results is None:

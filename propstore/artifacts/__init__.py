@@ -7,14 +7,17 @@ from propstore.artifacts.families import (
     SOURCE_FINALIZE_REPORT_FAMILY,
     SOURCE_JUSTIFICATIONS_FAMILY,
     SOURCE_STANCES_FAMILY,
+    WORLDLINE_FAMILY,
 )
 from propstore.artifacts.refs import (
     ContextRef,
     FormRef,
     SourceRef,
+    WorldlineRef,
     normalize_source_slug,
     source_branch_name,
     source_finalize_relpath,
+    worldline_relpath,
 )
 from propstore.artifacts.store import ArtifactStore
 from propstore.artifacts.transaction import ArtifactTransaction
@@ -36,8 +39,11 @@ __all__ = [
     "SOURCE_FINALIZE_REPORT_FAMILY",
     "SOURCE_JUSTIFICATIONS_FAMILY",
     "SOURCE_STANCES_FAMILY",
+    "WORLDLINE_FAMILY",
     "SourceRef",
+    "WorldlineRef",
     "normalize_source_slug",
     "source_branch_name",
     "source_finalize_relpath",
+    "worldline_relpath",
 ]

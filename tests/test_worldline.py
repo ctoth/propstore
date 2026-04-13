@@ -50,8 +50,14 @@ class _FakeWorldlineRepo:
     def worldlines_dir(self) -> Path:
         return self._root / "worldlines"
 
-    def tree(self):
-        return GitKnowledgePath(self.git)
+    @property
+    def artifacts(self):
+        from propstore.artifacts import ArtifactStore
+
+        return ArtifactStore(self)
+
+    def tree(self, commit: str | None = None):
+        return GitKnowledgePath(self.git, commit=commit)
 
 
 @pytest.fixture
