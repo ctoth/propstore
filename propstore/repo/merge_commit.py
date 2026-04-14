@@ -9,17 +9,16 @@ from dulwich.objects import Blob, Commit
 
 from propstore.artifacts.families import CLAIMS_FILE_FAMILY, MERGE_MANIFEST_FAMILY
 from propstore.artifacts.refs import ClaimsFileRef, MergeManifestRef
-from propstore.repo.branch import branch_head
 from propstore.repo.git_backend import _DEFAULT_AUTHOR, _ref_set
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_report import semantic_candidate_details
 
 if TYPE_CHECKING:
-    from propstore.repo.git_backend import KnowledgeRepo
+    from propstore.repo.snapshot import RepoSnapshot
 
 
 def create_merge_commit(
-    kr: KnowledgeRepo,
+    snapshot: RepoSnapshot,
     branch_a: str,
     branch_b: str,
     message: str = "",
@@ -29,13 +28,14 @@ def create_merge_commit(
     """Create a two-parent merge commit from the formal merge object."""
     from propstore.artifacts.store import ArtifactStore
 
+    kr = snapshot.git
     artifacts = ArtifactStore.for_git(kr)
     if target_branch is None:
-        target_branch = kr.primary_branch_name()
-    merge = build_merge_framework(kr, branch_a, branch_b)
+        target_branch = snapshot.primary_branch_name()
+    merge = build_merge_framework(snapshot, branch_a, branch_b)
 
-    left_sha = branch_head(kr, branch_a)
-    right_sha = branch_head(kr, branch_b)
+    left_sha = snapshot.branch_head(branch_a)
+    right_sha = snapshot.branch_head(branch_b)
     if left_sha is None:
         raise ValueError(f"Branch {branch_a!r} does not exist")
     if right_sha is None:

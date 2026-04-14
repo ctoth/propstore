@@ -463,7 +463,7 @@ def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_
                     "domain": "speech",
                     "status": "accepted",
                     "definition": "Concept A",
-                    "relationships": [{"type": "related_to", "target": "concept_b"}],
+                    "relationships": [{"type": "related", "target": "concept_b"}],
                     "parameterization_relationships": [
                         {
                             "inputs": ["concept_b"],
@@ -502,7 +502,7 @@ def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_
     assert "id" not in concept_a
     assert concept_a["logical_ids"][0] == {"namespace": "speech", "value": "concept_a"}
     assert concept_a["version_id"].startswith("sha256:")
-    assert concept_a["relationships"] == [{"type": "related_to", "target": concept_b_id}]
+    assert concept_a["relationships"] == [{"type": "related", "target": concept_b_id}]
     assert concept_a["parameterization_relationships"][0]["inputs"] == [concept_b_id]
 
 

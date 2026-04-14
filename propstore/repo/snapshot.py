@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, TypeVar
 
 from propstore.document_schema import decode_document_bytes
@@ -28,6 +29,10 @@ class SnapshotFile:
 
 
 class RepoSnapshot:
+    @classmethod
+    def for_git(cls, git: object) -> RepoSnapshot:
+        return cls(SimpleNamespace(git=git, tree=lambda commit=None: git.tree(commit=commit)))
+
     def __init__(self, repo: Repository) -> None:
         self._repo = repo
 

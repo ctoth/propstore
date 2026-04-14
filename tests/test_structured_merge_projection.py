@@ -9,6 +9,7 @@ from hypothesis import strategies as st
 
 from propstore.repo import KnowledgeRepo
 from propstore.repo.branch import create_branch
+from propstore.repo.snapshot import RepoSnapshot
 from propstore.repo.structured_merge import (
     build_branch_structured_summary,
     build_structured_merge_candidates,
@@ -51,6 +52,10 @@ def _obs_claim(cid: str, statement: str) -> dict:
     }
 
 
+def _snapshot(kr: KnowledgeRepo) -> RepoSnapshot:
+    return RepoSnapshot.for_git(kr)
+
+
 def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     kr.commit_files(
@@ -67,7 +72,7 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
         "seed structured branch",
     )
 
-    summary = build_branch_structured_summary(kr, "master")
+    summary = build_branch_structured_summary(_snapshot(kr), "master")
 
     assert summary.claim_ids == (_artifact_id("claim_a"), _artifact_id("claim_b"))
     assert summary.claim_provenance[_artifact_id("claim_a")]["paper"] == "test_paper"
@@ -115,9 +120,9 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
     kr.commit_files(adds, "left structured")
     kr.commit_files(adds, "right structured", branch=branch_name)
 
-    summary = build_branch_structured_summary(kr, "master")
-    branch_summary = build_branch_structured_summary(kr, branch_name)
-    candidates = build_structured_merge_candidates(kr, "master", branch_name, operator="sum")
+    summary = build_branch_structured_summary(_snapshot(kr), "master")
+    branch_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
+    candidates = build_structured_merge_candidates(_snapshot(kr), "master", branch_name, operator="sum")
 
     assert summary.content_signature == branch_summary.content_signature
     assert candidates == [summary.projection.framework]
@@ -139,8 +144,8 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
         "seed structured branch",
     )
 
-    left = build_branch_structured_summary(kr, "master")
-    right = build_branch_structured_summary(kr, "master")
+    left = build_branch_structured_summary(_snapshot(kr), "master")
+    right = build_branch_structured_summary(_snapshot(kr), "master")
 
     assert left.claim_ids == right.claim_ids
     assert left.claim_provenance == right.claim_provenance
@@ -177,7 +182,7 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
         branch=branch_name,
     )
 
-    summary = build_branch_structured_summary(kr, "master")
+    summary = build_branch_structured_summary(_snapshot(kr), "master")
 
     assert summary.claim_ids == (_artifact_id("claim_a"),)
     assert set(summary.projection.argument_to_claim_id.values()) == {_artifact_id("claim_a")}
@@ -196,7 +201,7 @@ def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_
         "seed structured branch",
     )
 
-    summary = build_branch_structured_summary(kr, "master")
+    summary = build_branch_structured_summary(_snapshot(kr), "master")
 
     assert summary.relation_surface["attack"] == "preserved_via_projection"
     assert summary.relation_surface["non_attack"] == "not_preserved_in_summary"
@@ -256,8 +261,8 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
         branch=branch_name,
     )
 
-    left_summary = build_branch_structured_summary(kr, "master")
-    right_summary = build_branch_structured_summary(kr, branch_name)
+    left_summary = build_branch_structured_summary(_snapshot(kr), "master")
+    right_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
 
     assert left_summary.claim_ids == right_summary.claim_ids
     assert left_summary.claim_provenance == right_summary.claim_provenance
@@ -316,8 +321,8 @@ def test_branch_structured_summary_is_order_invariant(
         branch=branch_name,
     )
 
-    left_summary = build_branch_structured_summary(kr, "master")
-    right_summary = build_branch_structured_summary(kr, branch_name)
+    left_summary = build_branch_structured_summary(_snapshot(kr), "master")
+    right_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
 
     assert left_summary.claim_ids == right_summary.claim_ids
     assert left_summary.claim_provenance == right_summary.claim_provenance

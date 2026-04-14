@@ -13,6 +13,7 @@ from propstore.repo import KnowledgeRepo
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_commit import create_merge_commit
+from propstore.repo.snapshot import RepoSnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
 
 
@@ -110,6 +111,10 @@ def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_
     return yaml.dump(normalized, sort_keys=False).encode()
 
 
+def _snapshot(kr: KnowledgeRepo) -> RepoSnapshot:
+    return RepoSnapshot.for_git(kr)
+
+
 def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
@@ -119,7 +124,7 @@ def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
     branch_name = "paper/test"
     create_branch(kr, branch_name, source_commit=base_sha)
 
-    merge = build_merge_framework(kr, "master", branch_name)
+    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
 
     assert len(merge.arguments) == 1
     assert merge.arguments[0].claim_id == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
@@ -142,7 +147,7 @@ def test_syntax_independence_claim_order(tmp_path):
         "reorder",
     )
 
-    merge = build_merge_framework(kr, "master", branch_name)
+    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
     emitted = {argument.claim_id for argument in merge.arguments}
     assert emitted == {
         make_claim_identity("claimA", namespace="test_paper")["artifact_id"],
@@ -166,7 +171,7 @@ def test_syntax_independence_filename(tmp_path):
         message="rename file",
     )
 
-    merge = build_merge_framework(kr, "master", branch_name)
+    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
     assert len(merge.arguments) == 1
     assert merge.arguments[0].claim_id == make_claim_identity("claimA", namespace="test_paper")["artifact_id"]
 
@@ -189,7 +194,7 @@ def test_merge_commit_has_two_parents(tmp_path):
         branch=branch_name,
     )
 
-    merge_sha = create_merge_commit(kr, "master", branch_name)
+    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
     commit_obj = kr._repo[merge_sha.encode()]
     assert len(commit_obj.parents) == 2
 
@@ -212,7 +217,7 @@ def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
         branch=branch_name,
     )
 
-    merge_sha = create_merge_commit(kr, "master", branch_name)
+    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
     from propstore.claim_documents import load_claim_files
 
@@ -244,7 +249,7 @@ def test_merge_commit_valid_claims(tmp_path):
         branch=branch_name,
     )
 
-    merge_sha = create_merge_commit(kr, "master", branch_name)
+    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
     from propstore.claim_documents import load_claim_files
     from propstore.compiler.passes import validate_claims
@@ -275,8 +280,8 @@ def test_conflict_merge_is_deterministic(tmp_path):
         branch=branch_name,
     )
 
-    merge_sha_a = create_merge_commit(kr, "master", branch_name, target_branch="merge_a")
-    merge_sha_b = create_merge_commit(kr, "master", branch_name, target_branch="merge_b")
+    merge_sha_a = create_merge_commit(_snapshot(kr), "master", branch_name, target_branch="merge_a")
+    merge_sha_b = create_merge_commit(_snapshot(kr), "master", branch_name, target_branch="merge_b")
 
     commit_a = kr._repo[merge_sha_a.encode()]
     commit_b = kr._repo[merge_sha_b.encode()]
@@ -307,7 +312,7 @@ def test_same_logical_id_different_artifacts_merge_as_conflicting_alternatives(t
         branch=branch_name,
     )
 
-    merge = build_merge_framework(kr, "master", branch_name)
+    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
 
     assert len(merge.arguments) == 2
     assert {argument.canonical_claim_id for argument in merge.arguments} == {"shared_paper:claim1"}
@@ -333,13 +338,13 @@ def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
         branch=branch_name,
     )
 
-    merge = build_merge_framework(kr, "master", branch_name)
+    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
     expected_origins = {
         argument.claim_id: list(argument.branch_origins)
         for argument in merge.arguments
     }
 
-    merge_sha = create_merge_commit(kr, "master", branch_name)
+    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
     manifest_path = kr.tree(commit=merge_sha) / "merge" / "manifest.yaml"
     manifest = yaml.safe_load(manifest_path.read_text())
@@ -387,7 +392,7 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
     if right_payload:
         kr.commit_files(right_payload, "right additions", branch=branch_name)
 
-    merge_sha = create_merge_commit(kr, "master", branch_name)
+    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     merged_artifact_ids = {
         claim["artifact_id"]
