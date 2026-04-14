@@ -8,8 +8,11 @@ from propstore.artifact_codes import attach_source_artifact_codes
 from propstore.artifacts import (
     CANONICAL_SOURCE_FAMILY,
     CLAIMS_FILE_FAMILY,
+    ClaimReferenceResolver,
     CONCEPT_FILE_FAMILY,
     JUSTIFICATIONS_FILE_FAMILY,
+    load_primary_branch_claim_reference_index,
+    load_source_claim_reference_index,
     STANCE_FILE_FAMILY,
     CanonicalSourceRef,
     ClaimsFileRef,
@@ -22,14 +25,9 @@ from propstore.cli.repository import Repository
 from propstore.core.concepts import ConceptDocument
 from propstore.document_schema import convert_document_value
 from propstore.identity import compute_claim_version_id, compute_concept_version_id, derive_concept_artifact_id
-from propstore.reference_resolution import ClaimReferenceResolver
 from propstore.source_documents import SourceDocument, SourceJustificationsDocument
 from propstore.stance_documents import StanceFileDocument
 
-from .claims import (
-    load_primary_branch_claim_reference_index,
-    load_source_claim_reference_index,
-)
 from .common import (
     load_source_claims_document,
     load_source_concepts_document,

@@ -14,7 +14,6 @@ from propstore.identity import (
     derive_claim_artifact_id,
     normalize_logical_value,
 )
-from propstore.reference_resolution import ClaimReferenceIndex
 
 from .common import (
     load_source_claims_document,
@@ -133,58 +132,6 @@ def normalize_source_claims_payload(
             produced_by=data.produced_by,
         ),
         local_to_canonical,
-    )
-
-
-def load_source_claim_reference_index(repo: Repository, source_name: str) -> ClaimReferenceIndex:
-    local_to_artifact: dict[str, str] = {}
-    logical_to_artifact: dict[str, str] = {}
-    artifact_ids: set[str] = set()
-    claims_doc = load_source_claims_document(repo, source_name)
-    if claims_doc is None:
-        return ClaimReferenceIndex()
-    for claim in claims_doc.claims:
-        artifact_id = claim.artifact_id
-        if artifact_id is None:
-            continue
-        artifact_ids.add(artifact_id)
-        local_id = claim.source_local_id
-        if local_id:
-            local_to_artifact[local_id] = artifact_id
-        for logical_id in claim.logical_ids:
-            logical_to_artifact[logical_id.formatted] = artifact_id
-    return ClaimReferenceIndex(
-        local_to_artifact=local_to_artifact,
-        logical_to_artifact=logical_to_artifact,
-        artifact_ids=artifact_ids,
-    )
-
-
-def load_primary_branch_claim_reference_index(repo: Repository) -> ClaimReferenceIndex:
-    from propstore.claim_documents import load_claim_files
-
-    primary_tip = repo.git.branch_sha(repo.git.primary_branch_name())
-    if primary_tip is None:
-        return ClaimReferenceIndex()
-
-    tree = repo.tree(commit=primary_tip)
-    claims_root = tree / "claims"
-    if not claims_root.exists():
-        return ClaimReferenceIndex()
-
-    logical_to_artifact: dict[str, str] = {}
-    artifact_ids: set[str] = set()
-    for claim_file in load_claim_files(claims_root):
-        for claim in claim_file.claims:
-            artifact_id = claim.artifact_id
-            if not isinstance(artifact_id, str) or not artifact_id:
-                continue
-            artifact_ids.add(artifact_id)
-            for logical_id in claim.logical_ids:
-                logical_to_artifact[logical_id.formatted] = artifact_id
-    return ClaimReferenceIndex(
-        logical_to_artifact=logical_to_artifact,
-        artifact_ids=artifact_ids,
     )
 
 

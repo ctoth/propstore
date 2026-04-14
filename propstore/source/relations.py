@@ -3,15 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.artifacts import (
+    ClaimReferenceIndex,
     SOURCE_JUSTIFICATIONS_FAMILY,
     SOURCE_STANCES_FAMILY,
+    load_source_claim_reference_index,
     SourceRef,
 )
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value, decode_document_path
-from propstore.reference_resolution import ClaimReferenceIndex
 
-from .claims import load_source_claim_reference_index
 from .common import (
     load_source_justifications_document,
     load_source_stances_document,

@@ -31,7 +31,6 @@ from propstore.claim_documents import ClaimsFileDocument
 from propstore.context_types import ContextDocument
 from propstore.core.concepts import ConceptDocument
 from propstore.form_utils import FormDocument
-from propstore.repo.branch import branch_head
 from propstore.source_documents import (
     SourceClaimsDocument,
     SourceConceptsDocument,
@@ -147,6 +146,8 @@ def _list_yaml_refs_in_directory(
     subdir: str,
     ref_type: type[WorldlineRef],
 ) -> list[WorldlineRef]:
+    from propstore.repo.branch import branch_head
+
     target_commit = commit
     if repo.git is not None and target_commit is None:
         target_branch = branch or _default_branch(repo)
@@ -172,6 +173,8 @@ def _list_stance_refs_in_directory(
     branch: str | None,
     commit: str | None,
 ) -> list[StanceFileRef]:
+    from propstore.repo.branch import branch_head
+
     target_commit = commit
     if repo.git is not None and target_commit is None:
         target_branch = branch or _primary_branch(repo)
@@ -273,6 +276,13 @@ CLAIMS_FILE_FAMILY = ArtifactFamily[ClaimsFileRef, ClaimsFileDocument](
     name="claims_file",
     doc_type=ClaimsFileDocument,
     resolve_ref=_claims_file_artifact,
+    list_refs=lambda repo, branch, commit: _list_yaml_refs_in_directory(
+        repo,
+        branch,
+        commit,
+        subdir="claims",
+        ref_type=ClaimsFileRef,
+    ),
     ref_from_path=lambda path: _yaml_path_ref(path, subdir="claims", ref_type=ClaimsFileRef),
     ref_from_loaded=lambda loaded: _ref_from_loaded_source_path(
         loaded,
@@ -285,6 +295,13 @@ CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
     name="concept_file",
     doc_type=ConceptDocument,
     resolve_ref=_concept_file_artifact,
+    list_refs=lambda repo, branch, commit: _list_yaml_refs_in_directory(
+        repo,
+        branch,
+        commit,
+        subdir="concepts",
+        ref_type=ConceptFileRef,
+    ),
     ref_from_path=lambda path: _yaml_path_ref(path, subdir="concepts", ref_type=ConceptFileRef),
     ref_from_loaded=lambda loaded: _ref_from_loaded_source_path(
         loaded,

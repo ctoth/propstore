@@ -1,3 +1,9 @@
+from propstore.artifacts.indexes import (
+    ClaimReferenceIndex,
+    build_source_claim_reference_index,
+    load_primary_branch_claim_reference_index,
+    load_source_claim_reference_index,
+)
 from propstore.artifacts.families import (
     CANONICAL_SOURCE_FAMILY,
     CLAIMS_FILE_FAMILY,
@@ -16,6 +22,7 @@ from propstore.artifacts.families import (
     STANCE_FILE_FAMILY,
     WORLDLINE_FAMILY,
 )
+from propstore.artifacts.resolution import ClaimReferenceResolver, ImportedClaimHandleIndex
 from propstore.artifacts.refs import (
     CanonicalSourceRef,
     ClaimsFileRef,
@@ -51,12 +58,15 @@ __all__ = [
     "ArtifactTransaction",
     "CANONICAL_SOURCE_FAMILY",
     "CLAIMS_FILE_FAMILY",
+    "ClaimReferenceIndex",
+    "ClaimReferenceResolver",
     "CONCEPT_ALIGNMENT_FAMILY",
     "CONCEPT_FILE_FAMILY",
     "CONTEXT_FAMILY",
     "FORM_FAMILY",
     "PROPOSAL_STANCE_FAMILY",
     "JUSTIFICATIONS_FILE_FAMILY",
+    "ImportedClaimHandleIndex",
     "STANCE_FILE_FAMILY",
     "CanonicalSourceRef",
     "ClaimsFileRef",
@@ -82,6 +92,9 @@ __all__ = [
     "concept_alignment_relpath",
     "concept_file_relpath",
     "justifications_file_relpath",
+    "build_source_claim_reference_index",
+    "load_primary_branch_claim_reference_index",
+    "load_source_claim_reference_index",
     "normalize_source_slug",
     "source_branch_name",
     "source_finalize_relpath",
