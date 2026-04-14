@@ -4,14 +4,17 @@ from __future__ import annotations
 from functools import cached_property
 from pathlib import Path
 
-import yaml
-
+from propstore.document_schema import DocumentStruct, decode_document_bytes
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath, KnowledgePath
 from propstore.uri import DEFAULT_URI_AUTHORITY
 
 
 class RepositoryNotFound(Exception):
     """Raised when no knowledge/ directory can be found."""
+
+
+class RepositoryConfigDocument(DocumentStruct):
+    uri_authority: str | None = None
 
 
 class Repository:
@@ -76,8 +79,15 @@ class Repository:
     def config(self) -> dict:
         if not self.config_path.exists():
             return {}
-        loaded = yaml.safe_load(self.config_path.read_text(encoding="utf-8"))
-        return loaded if isinstance(loaded, dict) else {}
+        loaded = decode_document_bytes(
+            self.config_path.read_bytes(),
+            RepositoryConfigDocument,
+            source=str(self.config_path),
+        )
+        config: dict[str, str] = {}
+        if loaded.uri_authority is not None:
+            config["uri_authority"] = loaded.uri_authority
+        return config
 
     @property
     def uri_authority(self) -> str:
