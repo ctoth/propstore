@@ -23,6 +23,7 @@ from propstore.cel_checker import (
     build_cel_registry,
     check_cel_expression,
 )
+from propstore.artifacts.identity import normalize_claim_file_payload
 from propstore.core.concepts import LoadedConcept
 from propstore.diagnostics import SemanticDiagnostic, ValidationResult
 from propstore.form_utils import (
@@ -37,7 +38,6 @@ from propstore.identity import (
     LOGICAL_VALUE_RE,
     compute_claim_version_id,
     format_logical_id,
-    normalize_claim_file_payload,
 )
 from propstore.resources import load_resource_json
 from propstore.stances import VALID_STANCE_TYPES

@@ -143,16 +143,16 @@ def _canonical_claim_groups(
         if left_root != right_root:
             parent[right_root] = left_root
 
-    logical_to_artifacts: dict[str, set[str]] = {}
+    artifact_ids_by_logical_id: dict[str, set[str]] = {}
     all_artifacts: set[str] = set()
     for index in indexes:
         for artifact_id, claim in index.items():
             all_artifacts.add(artifact_id)
             parent.setdefault(artifact_id, artifact_id)
             for logical_id in claim.logical_ids:
-                logical_to_artifacts.setdefault(logical_id, set()).add(artifact_id)
+                artifact_ids_by_logical_id.setdefault(logical_id, set()).add(artifact_id)
 
-    for artifact_ids in logical_to_artifacts.values():
+    for artifact_ids in artifact_ids_by_logical_id.values():
         ordered = sorted(artifact_ids)
         if not ordered:
             continue
