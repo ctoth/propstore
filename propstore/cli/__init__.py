@@ -341,6 +341,7 @@ def checkout_cmd(ctx, commit):
 @click.pass_context
 def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
     """Promote committed stance proposals into source-of-truth storage."""
+    from propstore.artifacts import PROPOSAL_STANCE_FAMILY, STANCE_FILE_FAMILY, StanceFileRef
     from propstore.proposals import STANCE_PROPOSAL_BRANCH, stance_proposal_filename
 
     repo: "Repository" = ctx.obj["repo"]
@@ -354,45 +355,44 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
         click.echo(f"No {STANCE_PROPOSAL_BRANCH} branch found. Nothing to promote.")
         return
 
-    available_names = git.list_dir("stances", commit=proposal_tip)
+    available_refs = repo.artifacts.list(PROPOSAL_STANCE_FAMILY, branch=STANCE_PROPOSAL_BRANCH, commit=proposal_tip)
+    available_by_name = {
+        stance_proposal_filename(ref.source_claim): ref
+        for ref in available_refs
+    }
     if path is not None:
         requested_name = Path(path).name
         if not requested_name.endswith(".yaml"):
             requested_name = stance_proposal_filename(requested_name)
-        sources = [requested_name]
+        selected_refs = [available_by_name[requested_name]] if requested_name in available_by_name else []
     else:
-        sources = sorted(name for name in available_names if name.endswith(".yaml"))
+        selected_refs = [available_by_name[name] for name in sorted(available_by_name)]
 
-    if not sources:
+    if not selected_refs:
         click.echo(f"No stance proposal files found on {STANCE_PROPOSAL_BRANCH}.")
         return
 
     # Show what will be moved
-    existing_names = set(available_names)
-    selected_names = [name for name in sources if name in existing_names]
-    if not selected_names:
-        click.echo("No matching proposal files found to promote.")
-        return
-    for name in selected_names:
+    for ref in selected_refs:
+        name = stance_proposal_filename(ref.source_claim)
         click.echo(f"  {STANCE_PROPOSAL_BRANCH}:stances/{name} -> {target_stances / name}")
 
     if not yes:
         click.confirm("Promote these files?", abort=True)
 
-    moved = 0
-    adds = {}
-    for name in selected_names:
-        rel = f"stances/{name}"
-        adds[rel] = git.read_file(rel, commit=proposal_tip)
-    moved = len(adds)
+    moved = len(selected_refs)
     if moved > 0:
-        for name in selected_names:
-            click.echo(f"  Promoted: {name}")
-        git.commit_batch(
-            adds=adds,
-            deletes=[],
+        transaction = repo.artifacts.transact(
             message=f"Promote {moved} stance proposal file(s) from {STANCE_PROPOSAL_BRANCH}",
         )
+        for ref in selected_refs:
+            transaction.save(
+                STANCE_FILE_FAMILY,
+                StanceFileRef(ref.source_claim),
+                repo.artifacts.require(PROPOSAL_STANCE_FAMILY, ref, commit=proposal_tip),
+            )
+            click.echo(f"  Promoted: {stance_proposal_filename(ref.source_claim)}")
+        transaction.commit()
         git.sync_worktree()
 
     click.echo(f"\n{moved} file(s) promoted.")

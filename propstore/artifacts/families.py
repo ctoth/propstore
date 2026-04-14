@@ -13,12 +13,14 @@ from propstore.artifacts.refs import (
     JustificationsFileRef,
     SourceRef,
     StanceFileRef,
+    STANCE_PROPOSAL_BRANCH,
     WorldlineRef,
     canonical_source_relpath,
     claims_file_relpath,
     concept_alignment_relpath,
     concept_file_relpath,
     source_branch_name,
+    source_claim_from_stance_path,
     source_finalize_relpath,
     stance_file_relpath,
     worldline_relpath,
@@ -122,6 +124,14 @@ def _stance_file_artifact(repo: Repository, ref: StanceFileRef) -> ResolvedArtif
     )
 
 
+def _proposal_stance_artifact(repo: Repository, ref: StanceFileRef) -> ResolvedArtifact:
+    del repo
+    return ResolvedArtifact(
+        branch=STANCE_PROPOSAL_BRANCH,
+        relpath=stance_file_relpath(ref.source_claim),
+    )
+
+
 def _concept_alignment_artifact(repo: Repository, ref: ConceptAlignmentRef) -> ResolvedArtifact:
     return ResolvedArtifact(
         branch="proposal/concepts",
@@ -154,6 +164,31 @@ def _list_yaml_refs_in_directory(
         if not entry.is_file() or entry.suffix != ".yaml":
             continue
         refs.append(ref_type(entry.stem))
+    return refs
+
+
+def _list_stance_refs_in_directory(
+    repo: Repository,
+    branch: str | None,
+    commit: str | None,
+) -> list[StanceFileRef]:
+    target_commit = commit
+    if repo.git is not None and target_commit is None:
+        target_branch = branch or _primary_branch(repo)
+        target_commit = branch_head(repo.git, target_branch)
+        if target_commit is None:
+            return []
+
+    tree = repo.tree(commit=target_commit)
+    directory = tree / "stances"
+    if not directory.exists():
+        return []
+
+    refs: list[StanceFileRef] = []
+    for entry in directory.iterdir():
+        if not entry.is_file() or entry.suffix != ".yaml":
+            continue
+        refs.append(StanceFileRef(source_claim_from_stance_path(entry.name)))
     return refs
 
 
@@ -266,6 +301,20 @@ STANCE_FILE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
     name="stance_file",
     doc_type=StanceFileDocument,
     resolve_ref=_stance_file_artifact,
+    ref_from_path=lambda path: StanceFileRef(source_claim_from_stance_path(path)),
+    list_refs=_list_stance_refs_in_directory,
+)
+
+PROPOSAL_STANCE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
+    name="proposal_stance_file",
+    doc_type=StanceFileDocument,
+    resolve_ref=_proposal_stance_artifact,
+    ref_from_path=lambda path: StanceFileRef(source_claim_from_stance_path(path)),
+    list_refs=lambda repo, branch, commit: _list_stance_refs_in_directory(
+        repo,
+        STANCE_PROPOSAL_BRANCH if branch is None else branch,
+        commit,
+    ),
 )
 
 CONCEPT_ALIGNMENT_FAMILY = ArtifactFamily[ConceptAlignmentRef, ConceptAlignmentArtifactDocument](

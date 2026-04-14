@@ -1120,7 +1120,7 @@ def test_promote_commits(tmp_path):
 
     git = repo.git
     commit_stance_proposals(
-        git,
+        repo,
         {
             "claim_a": [{
                 "target": "claim_b",
@@ -1159,7 +1159,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
 
     git = repo.git
     commit_stance_proposals(
-        git,
+        repo,
         {
             "claim_a": [{
                 "target": "claim_b",
