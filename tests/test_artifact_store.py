@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from propstore.artifacts import (
+    CLAIMS_FILE_FAMILY,
+    CONCEPT_FILE_FAMILY,
     SOURCE_DOCUMENT_FAMILY,
     SOURCE_FINALIZE_REPORT_FAMILY,
     SourceRef,
     WORLDLINE_FAMILY,
+    ClaimsFileRef,
+    ConceptFileRef,
     WorldlineRef,
 )
 from propstore.cli.repository import Repository
@@ -112,3 +117,69 @@ def test_artifact_store_roundtrips_and_lists_worldlines(tmp_path: Path) -> None:
 
     assert WorldlineDefinition.from_document(loaded) == definition
     assert listed == [WorldlineRef("demo_worldline")]
+
+
+def test_artifact_store_renders_typed_documents(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    create_branch(repo.git, source_branch_name("demo"))
+
+    source_doc = initial_source_document(
+        repo,
+        "demo",
+        kind="academic_paper",
+        origin_type="manual",
+        origin_value="demo",
+    )
+
+    rendered = repo.artifacts.render(source_doc)
+
+    assert "kind: academic_paper" in rendered
+    assert "metadata:" in rendered
+    assert "name: demo" in rendered
+
+
+def test_artifact_store_moves_worldlines_atomically(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    definition = WorldlineDefinition.from_dict({
+        "id": "demo_worldline",
+        "name": "Demo worldline",
+        "targets": ["force"],
+    })
+    document = definition.to_document()
+
+    repo.artifacts.save(
+        WORLDLINE_FAMILY,
+        WorldlineRef("demo_worldline"),
+        document,
+        message="Seed worldline",
+    )
+
+    commit_sha = repo.artifacts.move(
+        WORLDLINE_FAMILY,
+        WorldlineRef("demo_worldline"),
+        WorldlineRef("renamed_worldline"),
+        document,
+        message="Rename worldline",
+    )
+
+    assert commit_sha
+    assert repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef("demo_worldline")) is None
+    renamed = repo.artifacts.require_handle(WORLDLINE_FAMILY, WorldlineRef("renamed_worldline"))
+    assert renamed.resolved.relpath == "worldlines/renamed_worldline.yaml"
+    assert WorldlineDefinition.from_document(renamed.document) == definition
+
+
+def test_artifact_store_derives_refs_from_paths_and_loaded_objects(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+
+    concept_ref = repo.artifacts.ref_from_path(CONCEPT_FILE_FAMILY, "concepts/demo.yaml")
+    claims_ref = repo.artifacts.ref_from_path(CLAIMS_FILE_FAMILY, Path("claims/paper.yaml"))
+
+    assert concept_ref == ConceptFileRef("demo")
+    assert claims_ref == ClaimsFileRef("paper")
+
+    loaded_concept = SimpleNamespace(source_path=repo.tree() / "concepts" / "demo.yaml")
+    loaded_claims = SimpleNamespace(source_path=repo.tree() / "claims" / "paper.yaml")
+
+    assert repo.artifacts.ref_from_loaded(CONCEPT_FILE_FAMILY, loaded_concept) == ConceptFileRef("demo")
+    assert repo.artifacts.ref_from_loaded(CLAIMS_FILE_FAMILY, loaded_claims) == ClaimsFileRef("paper")

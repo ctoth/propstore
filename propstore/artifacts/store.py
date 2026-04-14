@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.codecs import decode_document, encode_document
+from propstore.artifacts.codecs import convert_document, decode_document, encode_document, render_document
 from propstore.artifacts.transaction import ArtifactTransaction, normalized_path
-from propstore.artifacts.types import ArtifactContext, ArtifactFamily, TDoc, TRef
+from propstore.artifacts.types import ArtifactContext, ArtifactFamily, ArtifactHandle, ResolvedArtifact, TDoc, TRef
 from propstore.repo.branch import branch_head
 
 if TYPE_CHECKING:
@@ -19,6 +20,48 @@ class ArtifactStore:
     def repo(self) -> Repository:
         return self._repo
 
+    def resolve(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        ref: TRef,
+        *,
+        commit: str | None = None,
+    ) -> ResolvedArtifact:
+        resolved = family.resolve_ref(self._repo, ref)
+        if commit is None:
+            return resolved
+        return ResolvedArtifact(branch=resolved.branch, relpath=resolved.relpath, commit=commit)
+
+    def ref_from_path(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        path: str | Path,
+    ) -> TRef:
+        if family.ref_from_path is None:
+            raise TypeError(f"{family.name} does not support path-derived refs")
+        return family.ref_from_path(path)
+
+    def ref_from_loaded(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        loaded: object,
+    ) -> TRef:
+        if family.ref_from_loaded is None:
+            raise TypeError(f"{family.name} does not support loaded-object refs")
+        return family.ref_from_loaded(loaded)
+
+    def coerce(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        payload: object,
+        *,
+        source: str,
+    ) -> TDoc:
+        return convert_document(payload, family.doc_type, source=source)
+
+    def render(self, document: object) -> str:
+        return render_document(document)
+
     def load(
         self,
         family: ArtifactFamily[TRef, TDoc],
@@ -28,7 +71,7 @@ class ArtifactStore:
     ) -> TDoc | None:
         if self._repo.git is None:
             raise ValueError("artifact operations require a git-backed repository")
-        resolved = family.resolve_ref(self._repo, ref)
+        resolved = self.resolve(family, ref, commit=commit)
         target_commit = commit or resolved.commit
         if target_commit is None:
             target_commit = branch_head(self._repo.git, resolved.branch)
@@ -44,6 +87,36 @@ class ArtifactStore:
             source=f"{resolved.branch}:{normalized_path(resolved.relpath)}",
         )
 
+    def handle(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        ref: TRef,
+        *,
+        commit: str | None = None,
+    ) -> ArtifactHandle[TRef, TDoc] | None:
+        document = self.load(family, ref, commit=commit)
+        if document is None:
+            return None
+        return ArtifactHandle(
+            family=family,
+            ref=ref,
+            resolved=self.resolve(family, ref, commit=commit),
+            document=document,
+        )
+
+    def require_handle(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        ref: TRef,
+        *,
+        commit: str | None = None,
+    ) -> ArtifactHandle[TRef, TDoc]:
+        handle = self.handle(family, ref, commit=commit)
+        if handle is None:
+            resolved = self.resolve(family, ref, commit=commit)
+            raise FileNotFoundError(f"{family.name}: {resolved.branch}:{normalized_path(resolved.relpath)}")
+        return handle
+
     def require(
         self,
         family: ArtifactFamily[TRef, TDoc],
@@ -51,11 +124,7 @@ class ArtifactStore:
         *,
         commit: str | None = None,
     ) -> TDoc:
-        loaded = self.load(family, ref, commit=commit)
-        if loaded is None:
-            resolved = family.resolve_ref(self._repo, ref)
-            raise FileNotFoundError(f"{family.name}: {resolved.branch}:{normalized_path(resolved.relpath)}")
-        return loaded
+        return self.require_handle(family, ref, commit=commit).document
 
     def save(
         self,
@@ -68,7 +137,7 @@ class ArtifactStore:
     ) -> str:
         if self._repo.git is None:
             raise ValueError("artifact operations require a git-backed repository")
-        resolved = family.resolve_ref(self._repo, ref)
+        resolved = self.resolve(family, ref)
         target_branch = branch or resolved.branch
         context = ArtifactContext(
             repo=self._repo,
@@ -88,6 +157,20 @@ class ArtifactStore:
             branch=target_branch,
         )
 
+    def move(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        old_ref: TRef,
+        new_ref: TRef,
+        doc: TDoc,
+        *,
+        message: str,
+        branch: str | None = None,
+    ) -> str:
+        transaction = self.transact(message=message, branch=branch)
+        transaction.move(family, old_ref, new_ref, doc)
+        return transaction.commit()
+
     def delete(
         self,
         family: ArtifactFamily[TRef, object],
@@ -98,7 +181,7 @@ class ArtifactStore:
     ) -> str:
         if self._repo.git is None:
             raise ValueError("artifact operations require a git-backed repository")
-        resolved = family.resolve_ref(self._repo, ref)
+        resolved = self.resolve(family, ref)
         target_branch = branch or resolved.branch
         return self._repo.git.commit_batch(
             adds={},

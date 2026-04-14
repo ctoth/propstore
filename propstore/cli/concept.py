@@ -8,9 +8,9 @@ from datetime import date
 from pathlib import Path
 
 import click
-import yaml
 
 from propstore.claim_documents import LoadedClaimFile
+from propstore.artifacts import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY, ClaimsFileRef, ConceptFileRef
 from propstore.source import (
     align_sources,
     decide_alignment,
@@ -157,6 +157,26 @@ def _require_repo_tree_path(
     label: str,
 ) -> Path:
     return repo.root / Path(_require_repo_relative_source_path(source_path, label=label))
+
+
+def _artifact_source(repo: Repository, family, ref) -> str:
+    return repo.artifacts.resolve(family, ref).relpath
+
+
+def _concept_ref(repo: Repository, concept_entry: LoadedConcept) -> ConceptFileRef:
+    return repo.artifacts.ref_from_loaded(CONCEPT_FILE_FAMILY, concept_entry)
+
+
+def _claims_ref(repo: Repository, claim_file: LoadedClaimFile) -> ClaimsFileRef:
+    return repo.artifacts.ref_from_loaded(CLAIMS_FILE_FAMILY, claim_file)
+
+
+def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> object:
+    return repo.artifacts.coerce(CONCEPT_FILE_FAMILY, data, source=_artifact_source(repo, CONCEPT_FILE_FAMILY, ref))
+
+
+def _claims_document(repo: Repository, ref: ClaimsFileRef, data: dict) -> object:
+    return repo.artifacts.coerce(CLAIMS_FILE_FAMILY, data, source=_artifact_source(repo, CLAIMS_FILE_FAMILY, ref))
 
 
 def _concept_local_handle(data: dict, *, fallback: str | None = None) -> str:
@@ -426,10 +446,12 @@ def add(
         sys.exit(EXIT_ERROR)
 
     data = _normalize_concept_data(data, local_handle=cid)
+    ref = ConceptFileRef(name)
+    document = _concept_document(repo, ref, data)
 
     if dry_run:
         click.echo(f"Would create {filepath}")
-        click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
+        click.echo(repo.artifacts.render(document))
         return
 
     concepts = load_concepts(_concepts_tree(repo))
@@ -452,9 +474,12 @@ def add(
     for w in result.warnings:
         click.echo(f"WARNING: {w}", err=True)
 
-    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-    rel_path = f"concepts/{name}.yaml"
-    git.commit_files({rel_path: yaml_bytes}, f"Add concept: {name} ({_concept_display_handle(data)})")
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ref,
+        document,
+        message=f"Add concept: {name} ({_concept_display_handle(data)})",
+    )
     git.sync_worktree()
     click.echo(f"Created {filepath} with logical ID {_concept_display_handle(data)}")
 
@@ -503,13 +528,14 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
     data["aliases"] = aliases
     data["last_modified"] = str(date.today())
     data = _normalize_concept_data(data)
-
-    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-    rel_path = _require_repo_relative_source_path(
-        concept_entry.source_path,
-        label=f"concept '{concept_entry.filename}'",
+    ref = _concept_ref(repo, concept_entry)
+    document = _concept_document(repo, ref, data)
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ref,
+        document,
+        message=f"Add alias '{name}' to {_concept_display_handle(data)}",
     )
-    git.commit_files({rel_path: yaml_bytes}, f"Add alias '{name}' to {_concept_display_handle(data)}")
     git.sync_worktree()
 
     click.echo(f"Added alias '{name}' to {_concept_display_handle(data)} ({filepath.stem})")
@@ -537,6 +563,8 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
+    old_ref = _concept_ref(repo, concept_entry)
+    new_ref = ConceptFileRef(name)
 
     filepath = _require_repo_tree_path(
         concept_entry.source_path,
@@ -560,38 +588,38 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         return
 
     loaded_concepts = load_concepts(repo.tree() / "concepts")
-    updated_concepts = []
-    changed_concept_paths: set[Path] = set()
+    updated_concepts: list[tuple[ConceptFileRef, ConceptFileRef, LoadedConcept]] = []
+    changed_concept_refs: set[ConceptFileRef] = set()
     for concept_record in loaded_concepts:
-        concept_path = _require_repo_tree_path(
-            concept_record.source_path,
-            repo,
-            label=f"concept '{concept_record.filename}'",
-        )
+        concept_ref = _concept_ref(repo, concept_record)
         concept_data = deepcopy(concept_record.data)
         local_handle = _concept_local_handle(concept_record.data, fallback=concept_record.filename)
-        if concept_path == filepath:
+        updated_ref = concept_ref
+        if concept_ref == old_ref:
             concept_data["canonical_name"] = name
             concept_data["last_modified"] = str(date.today())
-            changed_concept_paths.add(concept_path)
+            updated_ref = new_ref
+            changed_concept_refs.add(concept_ref)
         if _rewrite_concept_conditions(concept_data, old_name, name):
-            changed_concept_paths.add(concept_path)
+            changed_concept_refs.add(concept_ref)
         concept_data = _normalize_concept_data(concept_data, local_handle=local_handle)
         source_path = concept_record.source_path
         if source_path is None:
             raise click.ClickException(f"concept '{concept_record.filename}' does not have a source path")
-        updated_concepts.append(
+        updated_concepts.append((
+            concept_ref,
+            updated_ref,
             LoadedConcept(
-                filename=name if concept_path == filepath else concept_record.filename,
-                source_path=(source_path.parent / f"{name}.yaml") if concept_path == filepath else source_path,
+                filename=name if updated_ref == new_ref else concept_record.filename,
+                source_path=(source_path.parent / f"{name}.yaml") if updated_ref == new_ref else source_path,
                 knowledge_root=concept_record.knowledge_root,
                 record=parse_concept_record(concept_data),
-            )
-        )
+            ),
+        ))
 
     claims_root = repo.tree() / "claims"
     concept_validation = validate_concepts(
-        updated_concepts,
+        [entry for _, _, entry in updated_concepts],
         claims_dir=claims_root if claims_root.exists() else None,
         forms_dir=repo.tree() / "forms",
     )
@@ -601,82 +629,71 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         click.echo("Rename validation failed. No changes written.", err=True)
         sys.exit(EXIT_VALIDATION)
     claim_files = load_claim_files(claims_root) if claims_root.exists() else []
-    updated_claim_files = []
-    changed_claim_paths: set[Path] = set()
+    updated_claim_files: list[tuple[ClaimsFileRef, LoadedClaimFile]] = []
+    changed_claim_refs: set[ClaimsFileRef] = set()
     if claim_files:
         for claim_file in claim_files:
-            claim_path = _require_repo_tree_path(
-                claim_file.source_path,
-                repo,
-                label=f"claim file '{claim_file.filename}'",
-            )
+            claim_ref = _claims_ref(repo, claim_file)
             claim_data = deepcopy(claim_file.data)
             if _rewrite_claim_conditions(claim_data, old_name, name):
-                changed_claim_paths.add(claim_path)
+                changed_claim_refs.add(claim_ref)
                 claim_data, _ = normalize_claim_file_payload(claim_data)
             source_path = claim_file.source_path
             if source_path is None:
                 raise click.ClickException(f"claim file '{claim_file.filename}' does not have a source path")
-            updated_claim_files.append(
+            updated_claim_files.append((
+                claim_ref,
                 LoadedClaimFile.from_payload(
                     filename=claim_file.filename,
                     source_path=source_path,
                     knowledge_root=claim_file.knowledge_root,
                     data=claim_data,
-                )
-            )
+                ),
+            ))
         concept_registry = _build_concept_registry(
-            updated_concepts,
+            [entry for _, _, entry in updated_concepts],
             forms_root=repo.tree() / "forms",
         )
-        claim_validation = validate_claims(updated_claim_files, concept_registry)
+        claim_validation = validate_claims([entry for _, entry in updated_claim_files], concept_registry)
         if not claim_validation.ok:
             for e in claim_validation.errors:
                 click.echo(f"ERROR: {e}", err=True)
             click.echo("Rename validation failed. No changes written.", err=True)
             sys.exit(EXIT_VALIDATION)
 
-    adds: dict[str | Path, bytes] = {}
-    for concept_record in updated_concepts:
-        target_rel = _require_repo_relative_source_path(
-            concept_record.source_path,
-            label=f"concept '{concept_record.filename}'",
-        )
-        target_path = repo.root / Path(target_rel)
-        if target_path == new_path or target_path in changed_concept_paths:
-            yaml_bytes = yaml.dump(
-                concept_record.data, default_flow_style=False,
-                sort_keys=False, allow_unicode=True,
-            ).encode("utf-8")
-            adds[target_rel] = yaml_bytes
+    transaction = repo.artifacts.transact(message=f"Rename concept: {old_name} -> {name}")
+    for original_ref, updated_ref, updated_concept in updated_concepts:
+        if original_ref == old_ref:
+            transaction.move(
+                CONCEPT_FILE_FAMILY,
+                old_ref,
+                new_ref,
+                _concept_document(repo, updated_ref, updated_concept.data),
+            )
+            continue
+        if original_ref in changed_concept_refs:
+            transaction.save(
+                CONCEPT_FILE_FAMILY,
+                updated_ref,
+                _concept_document(repo, updated_ref, updated_concept.data),
+            )
 
-    for claim_file in updated_claim_files:
-        claim_rel = _require_repo_relative_source_path(
-            claim_file.source_path,
-            label=f"claim file '{claim_file.filename}'",
+    for claim_ref, updated_claim_file in updated_claim_files:
+        if claim_ref not in changed_claim_refs:
+            continue
+        transaction.save(
+            CLAIMS_FILE_FAMILY,
+            claim_ref,
+            _claims_document(repo, claim_ref, updated_claim_file.data),
         )
-        claim_path = repo.root / Path(claim_rel)
-        if claim_path in changed_claim_paths:
-            yaml_bytes = yaml.dump(
-                claim_file.data, default_flow_style=False,
-                sort_keys=False, allow_unicode=True,
-            ).encode("utf-8")
-            adds[claim_rel] = yaml_bytes
 
-    old_rel = _require_repo_relative_source_path(
-        concept_entry.source_path,
-        label=f"concept '{concept_entry.filename}'",
-    )
-    git.commit_batch(
-        adds=adds,
-        deletes=[old_rel],
-        message=f"Rename concept: {old_name} -> {name}",
-    )
+    transaction.commit()
     git.sync_worktree()
 
     click.echo(f"{old_name} -> {name}")
     click.echo(f"  {filepath} -> {new_path}")
-    click.echo(f"  Logical ID: {_concept_display_handle(updated_concepts[0].data) if updated_concepts else name}")
+    renamed_entry = next((entry for _, updated_ref, entry in updated_concepts if updated_ref == new_ref), None)
+    click.echo(f"  Logical ID: {_concept_display_handle(renamed_entry.data) if renamed_entry is not None else name}")
 
 
 # ── concept deprecate ────────────────────────────────────────────────
@@ -725,15 +742,12 @@ def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> No
     data["replaced_by"] = replacement_artifact_id
     data["last_modified"] = str(date.today())
     data = _normalize_concept_data(data)
-
-    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-    rel_path = _require_repo_relative_source_path(
-        concept_entry.source_path,
-        label=f"concept '{concept_entry.filename}'",
-    )
-    git.commit_files(
-        {rel_path: yaml_bytes},
-        f"Deprecate {_concept_display_handle(data)}, replaced by {_concept_display_handle(replacement_data)}",
+    ref = _concept_ref(repo, concept_entry)
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ref,
+        _concept_document(repo, ref, data),
+        message=f"Deprecate {_concept_display_handle(data)}, replaced by {_concept_display_handle(replacement_data)}",
     )
     git.sync_worktree()
 
@@ -834,12 +848,13 @@ def link(
     for w in validation.warnings:
         click.echo(f"WARNING: {w}", err=True)
 
-    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-    rel_path = _require_repo_relative_source_path(
-        concept_entry.source_path,
-        label=f"concept '{concept_entry.filename}'",
+    ref = _concept_ref(repo, concept_entry)
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ref,
+        _concept_document(repo, ref, data),
+        message=f"Link {_concept_display_handle(data)} {rel_type} {_concept_display_handle(target_entry.data)}",
     )
-    git.commit_files({rel_path: yaml_bytes}, f"Link {_concept_display_handle(data)} {rel_type} {_concept_display_handle(target_entry.data)}")
     git.sync_worktree()
 
     click.echo(f"Added {rel_type} -> {_concept_display_handle(target_entry.data)} on {_concept_display_handle(data)} ({filepath.stem})")
@@ -952,13 +967,13 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
     data["form_parameters"] = fp
     data["last_modified"] = str(date.today())
     data = _normalize_concept_data(data)
-
-    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-    rel_path = _require_repo_relative_source_path(
-        concept_entry.source_path,
-        label=f"concept '{concept_entry.filename}'",
+    ref = _concept_ref(repo, concept_entry)
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ref,
+        _concept_document(repo, ref, data),
+        message=f"Add value '{value}' to {concept_name}",
     )
-    git.commit_files({rel_path: yaml_bytes}, f"Add value '{value}' to {concept_name}")
     git.sync_worktree()
     click.echo(f"Added '{value}' to {concept_name} — values: {', '.join(values)}")
 
@@ -1014,28 +1029,14 @@ def show(obj: dict, concept_id_or_name: str) -> None:
         except FileNotFoundError:
             click.echo(f"ERROR: Concept alignment '{concept_id_or_name}' not found", err=True)
             sys.exit(EXIT_ERROR)
-        click.echo(
-            yaml.dump(
-                artifact.to_payload(),
-                default_flow_style=False,
-                sort_keys=False,
-                allow_unicode=True,
-            ).rstrip()
-        )
+        click.echo(repo.artifacts.render(artifact))
         return
     concept_entry = _find_concept_entry(repo, concept_id_or_name)
     if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id_or_name}' not found", err=True)
         sys.exit(EXIT_ERROR)
-
-    click.echo(
-        yaml.dump(
-            concept_entry.data,
-            default_flow_style=False,
-            sort_keys=False,
-            allow_unicode=True,
-        ).rstrip()
-    )
+    ref = _concept_ref(repo, concept_entry)
+    click.echo(repo.artifacts.render(_concept_document(repo, ref, concept_entry.data)))
 
 
 @concept.command("align")
