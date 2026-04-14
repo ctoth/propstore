@@ -9,8 +9,11 @@ from propstore.world.types import (
     ATMSConceptRelevanceReport,
     ATMSConceptRelevanceState,
     ATMSConceptStabilityReport,
+    ATMSNodeExplanation,
+    ATMSNodeStatus,
     ValueStatus,
 )
+from propstore.core.labels import SupportQuality
 
 
 def test_atms_concept_status_annotations_use_value_status() -> None:
@@ -23,3 +26,10 @@ def test_atms_concept_status_annotations_use_value_status() -> None:
     assert get_type_hints(ATMSConceptInterventionPlan)["result_status"] is ValueStatus
     assert get_type_hints(BoundWorld.concept_interventions)["target_value_status"] is ValueStatus
     assert get_type_hints(BoundWorld.concept_next_queryables)["target_value_status"] is ValueStatus
+
+
+def test_atms_node_status_annotations_use_enums() -> None:
+    assert get_type_hints(ATMSNodeExplanation)["status"] is ATMSNodeStatus
+    assert get_type_hints(ATMSNodeExplanation)["support_quality"] is SupportQuality
+    assert get_type_hints(BoundWorld.claim_interventions)["target_status"] is ATMSNodeStatus
+    assert get_type_hints(BoundWorld.claim_next_queryables)["target_status"] is ATMSNodeStatus

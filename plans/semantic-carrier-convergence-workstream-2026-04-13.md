@@ -727,3 +727,43 @@ Proof:
 Rerank after Slice 13:
 
 - the next highest-value target is ATMS node-status/support-quality convergence on the remaining live report surfaces: `BoundWorld.claim_interventions()` / `claim_next_queryables()` still accept bare string node statuses at their internal boundary, and `ATMSNodeExplanation.status` / `support_quality` still expose closed semantic vocabularies as plain strings instead of `ATMSNodeStatus` / `SupportQuality`
+
+### Slice 14: ATMS Node Status Boundary And Explanation Enums
+
+Status: completed
+
+Changes landed in this slice:
+
+- changed `ATMSNodeExplanation.status` and `support_quality` to carry `ATMSNodeStatus` and `SupportQuality` instead of plain strings
+- changed `ATMSEngine._explain_node()` to preserve node-status/support-quality enums until serialization edges instead of projecting strings immediately
+- changed `BoundWorld.claim_interventions()` / `claim_next_queryables()` and the corresponding ATMS engine claim-side planning APIs to require `ATMSNodeStatus` instead of bare strings
+- moved raw claim-target status parsing back to the CLI boundary for ATMS claim intervention and next-query commands
+
+Proof:
+
+- focused suite: `logs/test-runs/semantic-carrier-slice14-focused-20260413-234227.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice14-broader-20260413-234227.log`
+
+Rerank after Slice 14:
+
+- the next highest-value target remains the runtime value-status family itself: `ValueStatus` objects are already carried by `ValueResult` / `DerivedResult` / `ResolvedResult`, but `bound.py`, `resolution.py`, and `value_resolver.py` still branch on raw status strings like `\"determined\"`, `\"resolved\"`, and `\"conflicted\"`
+
+### Slice 15: Runtime ValueStatus Literal Convergence
+
+Status: completed
+
+Changes landed in this slice:
+
+- changed `value_resolver.py` to branch on `ValueStatus` members instead of raw status strings for value collection and parameterization derivation
+- changed `resolution.py` to use `ValueStatus` members for the main resolved-value decision path instead of string comparisons
+- changed `bound.py` value/derived/resolved label attachment helpers and `is_determined()` to use `ValueStatus` members instead of raw strings
+- kept the user-facing string projection only at reporting/serialization edges, not in runtime branching logic
+
+Proof:
+
+- focused suite: `logs/test-runs/semantic-carrier-slice15-focused-20260413-234518.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice15-broader-20260413-234518.log`
+
+Rerank after Slice 15:
+
+- the next highest-value target is reasoning-backend and remaining ATMS runtime-kind convergence on the live runtime path: `BoundWorld` still compares `_reasoning_backend()` to raw `"atms"` strings despite `ReasoningBackend` already existing, and ATMS node/report `kind` values are still finite semantic strings carried without an enum

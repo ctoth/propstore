@@ -75,7 +75,7 @@ def collect_known_values(
     for cid in variable_concepts:
         normalized_cid = to_concept_id(cid)
         vr = value_of(normalized_cid)
-        if vr.status == "determined" and vr.claims:
+        if vr.status is ValueStatus.DETERMINED and vr.claims:
             val = _active_claim_value(vr.claims[0])
             if val is not None:
                 try:
@@ -139,11 +139,11 @@ class ActiveClaimResolver:
                 override_values=override_values,
                 derivation_stack=_derivation_stack,
             )
-            if candidate.status == "derived":
+            if candidate.status is ValueStatus.DERIVED:
                 return candidate
-            if candidate.status == "conflicted":
+            if candidate.status is ValueStatus.CONFLICTED:
                 saw_conflicted_candidate = True
-            elif candidate.status == "underspecified":
+            elif candidate.status is ValueStatus.UNDERSPECIFIED:
                 saw_underspecified_candidate = True
 
         if not saw_compatible_candidate:
@@ -258,14 +258,14 @@ class ActiveClaimResolver:
                 continue
 
             value_result = self._value_of(input_id)
-            if value_result.status == "determined":
+            if value_result.status is ValueStatus.DETERMINED:
                 value = _active_claim_value(value_result.claims[0]) if value_result.claims else None
                 if value is None:
                     return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
                 input_values[input_id] = float(value)
                 continue
 
-            if value_result.status == "conflicted":
+            if value_result.status is ValueStatus.CONFLICTED:
                 return DerivedResult(concept_id=concept_id, status=ValueStatus.CONFLICTED)
 
             if input_id in derivation_stack:
@@ -281,10 +281,10 @@ class ActiveClaimResolver:
             finally:
                 derivation_stack.discard(input_id)
 
-            if derived.status == "derived" and derived.value is not None:
+            if derived.status is ValueStatus.DERIVED and derived.value is not None:
                 input_values[input_id] = float(derived.value)
                 continue
-            if derived.status == "conflicted":
+            if derived.status is ValueStatus.CONFLICTED:
                 return DerivedResult(concept_id=concept_id, status=ValueStatus.CONFLICTED)
             return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
