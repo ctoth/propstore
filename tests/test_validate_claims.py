@@ -618,10 +618,8 @@ class TestStanceGraphIntegrity:
         ])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert not result.ok
-        assert any("contradicts" in e and "stance" in e.lower() for e in result.errors)
+        with pytest.raises(DocumentSchemaError, match="contradicts"):
+            load_claim_files(claims_dir)
 
     def test_inline_target_justification_id_must_be_string(self, claims_dir):
         data = make_claim_file_data([

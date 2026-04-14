@@ -427,7 +427,7 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
             "stances/claim_a.yaml": yaml.safe_dump(
                 {
                     "source_claim": "claim_a",
-                    "stances": [{"target": "claim_b", "type": "contradicts"}],
+                    "stances": [{"target": "claim_b", "type": "rebuts"}],
                 },
                 sort_keys=False,
             ).encode(),
@@ -444,7 +444,7 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
     claim_a_id = make_claim_identity("claim_a", namespace="repo-b")["artifact_id"]
     claim_b_id = make_claim_identity("claim_b", namespace="repo-b")["artifact_id"]
     assert imported_stances["source_claim"] == claim_a_id
-    assert imported_stances["stances"] == [{"target": claim_b_id, "type": "contradicts"}]
+    assert imported_stances["stances"] == [{"target": claim_b_id, "type": "rebuts"}]
 
 
 def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_path):

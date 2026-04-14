@@ -14,9 +14,11 @@ from propstore.claim_documents import (
     VariableBindingDocument,
 )
 from propstore.core.algorithm_stage import AlgorithmStage
+from propstore.core.claim_types import ClaimType
 from propstore.core.exactness_types import Exactness
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.document_schema import DocumentStruct
+from propstore.stances import StanceType
 
 
 class SourceOriginDocument(DocumentStruct):
@@ -230,7 +232,7 @@ class SourceClaimDocument(DocumentStruct):
     artifact_id: str | None = None
     logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
     version_id: str | None = None
-    type: str | None = None
+    type: ClaimType | None = None
     provenance: SourceProvenanceDocument | None = None
     id: str | None = None
     body: str | None = None
@@ -272,7 +274,7 @@ class SourceClaimDocument(DocumentStruct):
         if self.version_id is not None:
             payload["version_id"] = self.version_id
         if self.type is not None:
-            payload["type"] = self.type
+            payload["type"] = self.type.value
         if self.provenance is not None:
             payload["provenance"] = self.provenance.to_payload()
         if self.id is not None:
@@ -462,7 +464,7 @@ class SourceJustificationsDocument(DocumentStruct):
 class SourceStanceEntryDocument(DocumentStruct):
     source_claim: str | None = None
     target: str | None = None
-    type: str | None = None
+    type: StanceType | None = None
     strength: str | None = None
     note: str | None = None
     conditions_differ: str | None = None
@@ -477,7 +479,7 @@ class SourceStanceEntryDocument(DocumentStruct):
         if self.target is not None:
             payload["target"] = self.target
         if self.type is not None:
-            payload["type"] = self.type
+            payload["type"] = self.type.value
         if self.strength is not None:
             payload["strength"] = self.strength
         if self.note is not None:

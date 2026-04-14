@@ -7,12 +7,14 @@ from pathlib import Path
 import click
 
 from propstore.cli.repository import Repository
+from propstore.core.claim_types import coerce_claim_type
 from propstore.core.source_types import (
     coerce_source_kind,
     coerce_source_origin_type,
 )
 from propstore.provenance import stamp_file
 from propstore.source_documents import SourceConceptFormParametersDocument
+from propstore.stances import coerce_stance_type
 from propstore.source import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
@@ -173,11 +175,14 @@ def propose_claim(
 ) -> None:
     repo: Repository = obj["repo"]
     try:
+        typed_claim_type = coerce_claim_type(claim_type)
+        if typed_claim_type is None:
+            raise ValueError("claim type is required")
         entry = commit_source_claim_proposal(
             repo,
             name,
             claim_id=claim_id,
-            claim_type=claim_type,
+            claim_type=typed_claim_type,
             statement=statement,
             concept=concept,
             value=value,
@@ -187,7 +192,9 @@ def propose_claim(
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     artifact_id = "" if entry.artifact_id is None else entry.artifact_id
-    click.echo(f"Proposed claim '{claim_id}' (type: {claim_type}, artifact: {artifact_id})")
+    click.echo(
+        f"Proposed claim '{claim_id}' (type: {typed_claim_type.value}, artifact: {artifact_id})"
+    )
 
 
 @source.command("propose-justification")
@@ -245,18 +252,21 @@ def propose_stance(
 ) -> None:
     repo: Repository = obj["repo"]
     try:
+        typed_stance_type = coerce_stance_type(stance_type)
+        if typed_stance_type is None:
+            raise ValueError("stance type is required")
         entry = commit_source_stance_proposal(
             repo,
             name,
             source_claim=source_claim,
             target=target,
-            stance_type=stance_type,
+            stance_type=typed_stance_type,
             strength=strength,
             note=note,
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Proposed stance: '{source_claim}' {stance_type} '{target}'")
+    click.echo(f"Proposed stance: '{source_claim}' {typed_stance_type.value} '{target}'")
 
 
 @source.command("add-concepts")

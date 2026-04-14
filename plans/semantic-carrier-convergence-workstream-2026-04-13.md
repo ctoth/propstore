@@ -683,3 +683,26 @@ Proof:
 Rerank after Slice 11:
 
 - the next highest-value target is claim/stance document enum convergence on the authored canonical path: `ClaimDocument.type`, `SourceClaimDocument.type`, and `StanceDocument.type` are still closed semantic vocabularies carried as bare strings even though the runtime path already has canonical `ClaimType` and `StanceType` enums
+
+### Slice 12: Claim And Stance Document Enums
+
+Status: completed
+
+Changes landed in this slice:
+
+- changed `ClaimDocument.type`, `SourceClaimDocument.type`, `StanceDocument.type`, `StanceEntryDocument.type`, and `SourceStanceEntryDocument.type` to carry canonical `ClaimType` / `StanceType` enums instead of bare semantic strings
+- updated source CLI and proposal entrypoints to coerce claim/stance enum values at the authored boundary instead of forwarding raw strings into the source subsystem
+- extended `ClaimType` to include the already-authored closed vocabulary members `mechanism`, `comparison`, and `limitation`
+- removed the temporary `contradicts -> rebuts` compatibility alias so obsolete authored stance values now fail at the document boundary instead of silently normalizing
+- updated repo-import and structured-merge authored-fixture surfaces to use canonical `rebuts` values, keeping raw string serialization only at YAML payload edges
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice12-red-20260413-231125.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice12-green-redtest-20260413-231434.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice12-focused5-20260413-232612.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice12-broader2-20260413-232612.log`
+
+Rerank after Slice 12:
+
+- the next highest-value target is world/ATMS value-status convergence on the live runtime path: `ValueStatus` already exists, but `ATMSConceptFutureStatusEntry.status`, `ATMSConceptStabilityReport.current_status`, `ATMSConceptRelevanceState.status`, `ATMSConceptRelevanceReport.current_status`, `ATMSConceptInterventionPlan.current_status/target_status/result_status`, `ATMSNodeExplanation.status`, and related `bound.py` / `atms.py` APIs still carry the same closed runtime vocabulary as bare strings

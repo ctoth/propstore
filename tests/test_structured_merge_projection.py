@@ -66,7 +66,7 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
             ]),
             "stances/claim_a.yaml": _stance_yaml(
                 _artifact_id("claim_a"),
-                [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
+                [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
             ),
         },
         "seed structured branch",
@@ -114,7 +114,7 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
         ]),
         "stances/claim_a.yaml": _stance_yaml(
             _artifact_id("claim_a"),
-            [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
+            [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
         ),
     }
     kr.commit_files(adds, "left structured")
@@ -138,7 +138,7 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
             ]),
             "stances/claim_a.yaml": _stance_yaml(
                 _artifact_id("claim_a"),
-                [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
+                [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
             ),
         },
         "seed structured branch",
@@ -175,7 +175,7 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
             ]),
             "stances/claim_a.yaml": _stance_yaml(
                 _artifact_id("claim_a"),
-                [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
+                [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
             ),
         },
         "right",
@@ -233,9 +233,9 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
         _obs_claim("claim_a", "A"),
         _obs_claim("claim_b", "B"),
     ]
-    in_scope_stances = [{"target": "claim_b", "type": "contradicts"}]
+    in_scope_stances = [{"target": "claim_b", "type": "rebuts"}]
     extra_stances = [
-        {"target": target, "type": "contradicts"}
+        {"target": target, "type": "rebuts"}
         for target in extra_targets
     ]
 
@@ -244,7 +244,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
             "claims/claims.yaml": _claim_yaml(base_claims),
             "stances/claim_a.yaml": _stance_yaml(
                 _artifact_id("claim_a"),
-                [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
+                [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
             ),
         },
         "left",
@@ -254,7 +254,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
             "claims/claims.yaml": _claim_yaml(base_claims),
             "stances/claim_a.yaml": _stance_yaml(
                 _artifact_id("claim_a"),
-                [{"target": _artifact_id("claim_b"), "type": "contradicts"}] + extra_stances,
+                [{"target": _artifact_id("claim_b"), "type": "rebuts"}] + extra_stances,
             ),
         },
         "right",
@@ -292,14 +292,14 @@ def test_branch_structured_summary_is_order_invariant(
         "claim_b": _obs_claim("claim_b", "B"),
         "claim_c": _obs_claim("claim_c", "C"),
     }
-    stances = [{"target": target, "type": "contradicts"} for target in stance_order]
+    stances = [{"target": target, "type": "rebuts"} for target in stance_order]
 
     kr.commit_files(
         {
             "claims/claims.yaml": _claim_yaml([claims_by_id[claim_id] for claim_id in claim_order]),
             "stances/claim_a.yaml": _stance_yaml(
                 _artifact_id("claim_a"),
-                [{"target": _artifact_id(target), "type": "contradicts"} for target in stance_order],
+                [{"target": _artifact_id(target), "type": "rebuts"} for target in stance_order],
             ),
         },
         "left",
@@ -312,8 +312,8 @@ def test_branch_structured_summary_is_order_invariant(
             "stances/claim_a.yaml": _stance_yaml(
                 _artifact_id("claim_a"),
                 [
-                    {"target": _artifact_id("claim_c"), "type": "contradicts"},
-                    {"target": _artifact_id("claim_b"), "type": "contradicts"},
+                    {"target": _artifact_id("claim_c"), "type": "rebuts"},
+                    {"target": _artifact_id("claim_b"), "type": "rebuts"},
                 ],
             ),
         },

@@ -11,6 +11,7 @@ from propstore.artifacts import (
 )
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value, decode_document_path
+from propstore.stances import StanceType, coerce_stance_type
 
 from .common import (
     load_source_justifications_document,
@@ -206,7 +207,7 @@ def commit_source_stance_proposal(
     *,
     source_claim: str,
     target: str,
-    stance_type: str,
+    stance_type: StanceType,
     strength: str | None = None,
     note: str | None = None,
 ) -> SourceStanceEntryDocument:
@@ -214,6 +215,8 @@ def commit_source_stance_proposal(
     claim_index = load_source_claim_reference_index(repo, source_name)
     existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(stances=())
     stances = list(existing.stances)
+    stance_type = coerce_stance_type(stance_type)
+    assert stance_type is not None
 
     stance = SourceStanceEntryDocument(
         source_claim=source_claim,
