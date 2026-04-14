@@ -45,7 +45,22 @@ Each type-specific detector follows the same pattern:
 
 **Measurement claims** are grouped by `(target_concept, measure)` tuple. An additional `PHI_NODE` path exists: claims with different `listener_population` values are classified as regime splits regardless of other conditions.
 
-**Equation claims** are grouped by equation signature -- the dependent concept plus sorted independent concepts. Comparison uses SymPy canonical form (`canonicalize_equation()`) to detect algebraically equivalent expressions.
+**Equation claims** are grouped by equation signature -- the dependent concept plus sorted independent concepts. Comparison now uses a strict parser-owned algebra subset and deterministic normalization from `lhs - rhs`, rather than handing raw strings to SymPy parsing.
+
+Supported comparison surface:
+
+- arithmetic operators `+`, `-`, `*`, `/`, `^`
+- named symbols declared in the claim's `variables`
+- unary `+` / `-`
+- parentheses
+- exactly one `=`
+- allowlisted functions: `log`, `ln`, `exp`, `sqrt`
+
+Unsupported equation surfaces are not silently treated as compatible. When an
+equation falls outside that subset -- for example boolean formulas, quantified
+forms, piecewise definitions, inequalities, chained equalities, or raw SymPy
+syntax such as `Eq(...)` -- normalization returns an explicit typed failure and
+the equation detector logs a warning before skipping that pair.
 
 **Algorithm claims** are grouped by concept ID. Comparison uses `ast_compare()` from the `ast_equiv` package, which produces a similarity score and tier. Equivalent claims at tier <= 2 are treated as compatible.
 

@@ -129,7 +129,7 @@ Output includes: `Tier`, `Equivalent`, `Similarity`, and `Details`.
 
 ## Design Notes
 
-- **Equation comparison is a separate subsystem.** Equations use SymPy canonicalization (`equation_comparison.py`); algorithms use AST-based comparison (`ast-equiv`). They share no code.
+- **Equation comparison is a separate subsystem.** Equations use a grammar-driven safe parser plus deterministic SymPy normalization on our own AST (`equation_comparison.py` and `equation_parser.py`); algorithms use AST-based comparison (`ast-equiv`). They share no code.
 - **Tier 4 is deliberately conservative.** Similarity alone cannot prove equivalence. The score is useful for triage — high similarity with non-equivalence suggests the algorithms are worth investigating manually.
 - **Error tolerance over strictness.** Unparseable algorithm bodies are logged and skipped, not fatal. This keeps the build pipeline resilient against malformed claims from early-stage extraction.
 
