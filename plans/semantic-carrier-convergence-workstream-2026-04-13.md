@@ -659,3 +659,27 @@ Proof:
 Rerank after Slice 10:
 
 - the next highest-value target is algorithm-stage convergence on the canonical/runtime path: algorithm claims still carry `stage` as a bare semantic string across claim documents, row types, sidecar storage, and compiler/CLI reporting
+
+### Slice 11: Algorithm Stage NewType
+
+Status: completed
+
+Changes landed in this slice:
+
+- added branded `AlgorithmStage` newtype plus coercion for algorithm-claim stage semantics
+- changed `ClaimDocument`, `SourceClaimDocument`, and `ClaimRow` to carry `AlgorithmStage` instead of a bare string on the canonical/runtime algorithm path
+- kept `ClaimsFileDocument.stage` as the distinct file-envelope draft marker and verified that the two stage meanings remain split instead of being conflated
+- changed sidecar algorithm storage helpers to normalize typed algorithm stages before row assembly
+- changed the compiler `world algorithms` command to stay on typed claim rows internally and to coerce the `--stage` filter at the CLI boundary
+- kept raw string serialization only at YAML/SQLite payload edges
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice11-red-20260413-230319.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice11-green-redtest-20260413-230509.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice11-focused-20260413-230518.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice11-broader-20260413-230642.log`
+
+Rerank after Slice 11:
+
+- the next highest-value target is claim/stance document enum convergence on the authored canonical path: `ClaimDocument.type`, `SourceClaimDocument.type`, and `StanceDocument.type` are still closed semantic vocabularies carried as bare strings even though the runtime path already has canonical `ClaimType` and `StanceType` enums

@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Sequence
 from ast_equiv import canonical_dump
 
 from propstore.claim_documents import LoadedClaimFile
+from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
+from propstore.core.claim_types import ClaimType
 from propstore.form_utils import FormDefinition, normalize_to_si
 from propstore.identity import (
     compute_claim_version_id,
@@ -446,11 +448,11 @@ def resolve_equation_sympy(
 
 def resolve_algorithm_storage(
     claim: dict,
-) -> tuple[str | None, str | None, str | None, str | None]:
-    if claim.get("type") != "algorithm":
+) -> tuple[str | None, str | None, str | None, AlgorithmStage | None]:
+    if claim.get("type") != ClaimType.ALGORITHM.value:
         return None, None, None, None
     body = claim.get("body")
-    stage = claim.get("stage")
+    stage = coerce_algorithm_stage(claim.get("stage"))
     raw_vars = claim.get("variables")
     if raw_vars not in (None, []) and not isinstance(raw_vars, list):
         raise ValueError("algorithm claim variables must be a list of variable bindings")

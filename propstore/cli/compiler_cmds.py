@@ -621,20 +621,21 @@ def world_explain(obj: dict, claim_id: str) -> None:
 @click.pass_obj
 def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
     """List algorithm claims in the world model."""
+    from propstore.core.algorithm_stage import coerce_algorithm_stage
+    from propstore.core.claim_types import ClaimType
+    from propstore.core.row_types import coerce_claim_row
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
-        # Fetch all algorithm claims
-        from propstore.core.row_types import coerce_claim_row
+        all_claims = [coerce_claim_row(claim) for claim in wm.claims_for(None)]
+        algos = [claim for claim in all_claims if claim.claim_type is ClaimType.ALGORITHM]
 
-        all_claims = [coerce_claim_row(claim).to_dict() for claim in wm.claims_for(None)]
-        algos = [c for c in all_claims if c.get("type") == "algorithm"]
-
-    if stage:
-        algos = [c for c in algos if c.get("stage") == stage]
+    stage_filter = coerce_algorithm_stage(stage) if stage is not None else None
+    if stage_filter is not None:
+        algos = [claim for claim in algos if claim.stage == stage_filter]
     if concept:
-        algos = [c for c in algos if c.get("concept_id") == concept]
+        algos = [claim for claim in algos if str(claim.concept_id or "") == concept]
 
     if not algos:
         click.echo("No algorithm claims found.")
@@ -644,11 +645,11 @@ def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
     # Table header
     click.echo(f"{'ID':<20} {'Name':<30} {'Stage':<15} {'Concept(s)'}")
     click.echo("-" * 80)
-    for a in algos:
-        aid = a.get("id", "?")
-        name = a.get("name") or a.get("body", "")[:25] or "?"
-        a_stage = a.get("stage") or "-"
-        a_concept = a.get("concept_id") or "-"
+    for claim in algos:
+        aid = str(claim.claim_id)
+        name = claim.name or (claim.body or "")[:25] or "?"
+        a_stage = str(claim.stage) if claim.stage is not None else "-"
+        a_concept = str(claim.concept_id) if claim.concept_id is not None else "-"
         click.echo(f"{aid:<20} {name:<30} {a_stage:<15} {a_concept}")
 
     click.echo(f"\n{len(algos)} algorithm claim(s).")
