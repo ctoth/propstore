@@ -2,33 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
-@dataclass(frozen=True)
-class ClaimReferenceIndex:
-    local_to_artifact: dict[str, str] = field(default_factory=dict)
-    logical_to_artifact: dict[str, str] = field(default_factory=dict)
-    artifact_ids: set[str] = field(default_factory=set)
-
-    def resolve_local(self, reference: object) -> str:
-        if not isinstance(reference, str) or not reference:
-            raise ValueError("claim reference must be a non-empty string")
-        if reference.startswith("ps:claim:"):
-            return reference
-        artifact_id = self.local_to_artifact.get(reference)
-        if artifact_id is None:
-            raise ValueError(f"unresolved local claim reference: {reference}")
-        return artifact_id
-
-    def rewrite_local_target(self, reference: object) -> object:
-        if not isinstance(reference, str) or not reference:
-            return reference
-        return self.local_to_artifact.get(reference, reference)
-
-    def has_artifact(self, reference: object) -> bool:
-        return isinstance(reference, str) and reference in self.artifact_ids
-
-    def has_logical(self, reference: object) -> bool:
-        return isinstance(reference, str) and reference in self.logical_to_artifact
+from propstore.artifacts.indexes import ClaimReferenceIndex
 
 
 @dataclass(frozen=True)

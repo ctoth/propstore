@@ -7,11 +7,13 @@ from .alignment import (
     promote_alignment,
     save_alignment_artifact,
 )
+from propstore.artifacts import (
+    load_primary_branch_claim_reference_index,
+    load_source_claim_reference_index,
+)
 from .claims import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
-    load_primary_branch_claim_reference_index,
-    load_source_claim_reference_index,
     normalize_source_claims_payload,
 )
 from .common import (

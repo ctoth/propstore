@@ -17,7 +17,7 @@ from propstore.identity import (
     normalize_logical_value,
     rewrite_stance_file_payload,
 )
-from propstore.reference_resolution import ImportedClaimHandleIndex
+from propstore.artifacts.resolution import ImportedClaimHandleIndex
 from propstore.repo.branch import branch_head, create_branch
 
 if TYPE_CHECKING:

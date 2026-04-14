@@ -2,22 +2,20 @@ from __future__ import annotations
 
 from propstore.artifact_codes import attach_source_artifact_codes
 from propstore.artifacts import (
+    ClaimReferenceResolver,
     SOURCE_CLAIMS_FAMILY,
     SOURCE_DOCUMENT_FAMILY,
     SOURCE_FINALIZE_REPORT_FAMILY,
     SOURCE_JUSTIFICATIONS_FAMILY,
+    load_primary_branch_claim_reference_index,
+    load_source_claim_reference_index,
     SOURCE_STANCES_FAMILY,
     SourceRef,
 )
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value
-from propstore.reference_resolution import ClaimReferenceResolver
 from propstore.source_calibration import derive_source_trust
 
-from .claims import (
-    load_primary_branch_claim_reference_index,
-    load_source_claim_reference_index,
-)
 from .common import (
     load_source_claims_document,
     load_source_concepts_document,
