@@ -340,13 +340,14 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         # Group PHI_NODEs by concept for compact display;
         # count them separately from real conflicts.
         from collections import defaultdict
+        from propstore.conflict_detector import ConflictClass
         phi_groups: dict[str, set[str]] = defaultdict(set)
         phi_node_count = 0
         real_conflict_count = 0
         for c in conflicts:
             wc = c.warning_class
-            if wc in ("PHI_NODE", "CONTEXT_PHI_NODE"):
-                key = f"{wc}: {c.concept_id}"
+            if wc in (ConflictClass.PHI_NODE, ConflictClass.CONTEXT_PHI_NODE):
+                key = f"{wc.value}: {c.concept_id}"
                 phi_groups[key].add(str(c.claim_a_id))
                 phi_groups[key].add(str(c.claim_b_id))
                 phi_node_count += 1
@@ -2207,6 +2208,6 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
                 click.echo(f"Found {len(conflicts)} conflict(s):")
                 for c in conflicts:
                     click.echo(
-                        f"  {c.concept_id}: {c.warning_class or '?'} "
+                        f"  {c.concept_id}: {c.warning_class.value if c.warning_class else '?'} "
                         f"({c.claim_a_id} vs {c.claim_b_id})"
                     )

@@ -131,7 +131,7 @@ def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[ConflictRow]
             concept_id=record.concept_id,
             claim_a_id=record.claim_a_id,
             claim_b_id=record.claim_b_id,
-            warning_class=record.warning_class.value,
+            warning_class=record.warning_class,
             attributes={
                 "conditions_a": record.conditions_a,
                 "conditions_b": record.conditions_b,

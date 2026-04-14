@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.claim_values import (
     ClaimProvenance,
@@ -656,11 +657,13 @@ class ConflictRow:
     claim_a_id: ClaimId
     claim_b_id: ClaimId
     concept_id: ConceptId | None = None
-    warning_class: str | None = None
-    conflict_class: str | None = None
+    warning_class: ConflictClass | None = None
+    conflict_class: ConflictClass | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "warning_class", coerce_conflict_class(self.warning_class))
+        object.__setattr__(self, "conflict_class", coerce_conflict_class(self.conflict_class))
         object.__setattr__(self, "attributes", dict(self.attributes))
 
     def to_dict(self) -> dict[str, Any]:
@@ -671,9 +674,9 @@ class ConflictRow:
         if self.concept_id is not None:
             data["concept_id"] = self.concept_id
         if self.warning_class is not None:
-            data["warning_class"] = self.warning_class
+            data["warning_class"] = self.warning_class.value
         if self.conflict_class is not None:
-            data["conflict_class"] = self.conflict_class
+            data["conflict_class"] = self.conflict_class.value
         data.update(self.attributes)
         return data
 
@@ -693,8 +696,8 @@ class ConflictRow:
                 if row_map.get("concept_id") is None
                 else to_concept_id(row_map["concept_id"])
             ),
-            warning_class=None if row_map.get("warning_class") is None else str(row_map["warning_class"]),
-            conflict_class=None if row_map.get("conflict_class") is None else str(row_map["conflict_class"]),
+            warning_class=coerce_conflict_class(row_map.get("warning_class")),
+            conflict_class=coerce_conflict_class(row_map.get("conflict_class")),
             attributes=attributes,
         )
 

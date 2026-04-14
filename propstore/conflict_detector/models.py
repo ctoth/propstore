@@ -129,6 +129,14 @@ class ConflictClass(Enum):
     CONTEXT_PHI_NODE = "CONTEXT_PHI_NODE"
 
 
+def coerce_conflict_class(value: object | None) -> ConflictClass | None:
+    if value is None:
+        return None
+    if isinstance(value, ConflictClass):
+        return value
+    return ConflictClass(str(value))
+
+
 @dataclass
 class ConflictRecord:
     concept_id: str

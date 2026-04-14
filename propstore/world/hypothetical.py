@@ -7,6 +7,7 @@ from dataclasses import dataclass, replace
 from collections.abc import Sequence
 from typing import Any, Mapping
 
+from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.environment import (
     ArtifactStore,
@@ -65,7 +66,14 @@ def _conflict_witness_from_row(row: ConflictRow) -> ConflictWitness:
     return ConflictWitness(
         left_claim_id=conflict.claim_a_id,
         right_claim_id=conflict.claim_b_id,
-        kind=str(conflict.warning_class or conflict.conflict_class or "conflict"),
+        kind=(
+            warning_class.value
+            if isinstance(
+                warning_class := (conflict.warning_class or conflict.conflict_class),
+                ConflictClass,
+            )
+            else str(warning_class or "conflict")
+        ),
         details=tuple(
             entry
             for entry in (
