@@ -505,7 +505,7 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
 
             if stances:
                 commit_sha, relpaths = commit_stance_proposals(
-                    repo.git,
+                    repo,
                     {claim_id: stances},
                     model,
                 )
@@ -529,7 +529,7 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
             stances_by_claim = result.get("stances_by_claim", {})
             if stances_by_claim:
                 commit_sha, relpaths = commit_stance_proposals(
-                    repo.git,
+                    repo,
                     stances_by_claim,
                     model,
                 )

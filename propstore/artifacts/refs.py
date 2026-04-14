@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+
+
+STANCE_PROPOSAL_BRANCH = "proposal/stances"
 
 
 def normalize_source_slug(name: str) -> str:
@@ -39,6 +43,14 @@ def justifications_file_relpath(name: str) -> str:
 
 def stance_file_relpath(source_claim: str) -> str:
     return f"stances/{source_claim.replace(':', '__')}.yaml"
+
+
+def source_claim_from_stance_path(path: str | Path) -> str:
+    normalized = str(path).replace("\\", "/")
+    filename = Path(normalized).name
+    if not filename.endswith(".yaml"):
+        raise ValueError(f"expected stance yaml path, got {normalized!r}")
+    return filename.removesuffix(".yaml").replace("__", ":")
 
 
 def concept_alignment_relpath(slug: str) -> str:
