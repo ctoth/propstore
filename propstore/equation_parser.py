@@ -308,15 +308,20 @@ def _parse_expression(
 
 def _precedence(expression: EquationExpr) -> int:
     if isinstance(expression, BinaryExpr):
-        if expression.operator in {"+", "-"}:
-            return 1
-        if expression.operator in {"*", "/"}:
-            return 2
-        if expression.operator == "^":
-            return 3
+        return _binary_operator_precedence(expression.operator)
     if isinstance(expression, UnaryExpr):
         return 4
     return 5
+
+
+def _binary_operator_precedence(operator: str) -> int:
+    if operator in {"+", "-"}:
+        return 1
+    if operator in {"*", "/"}:
+        return 2
+    if operator == "^":
+        return 3
+    raise ValueError(f"unsupported binary operator: {operator}")
 
 
 def _render_expression(expression: EquationExpr, parent_precedence: int) -> str:
@@ -332,9 +337,61 @@ def _render_expression(expression: EquationExpr, parent_precedence: int) -> str:
         return f"({text})" if _precedence(expression) < parent_precedence else text
     if isinstance(expression, BinaryExpr):
         precedence = _precedence(expression)
-        left = _render_expression(expression.left, precedence)
-        right_parent = precedence + (1 if expression.operator == "^" else 0)
-        right = _render_expression(expression.right, right_parent)
+        left = _render_binary_child(
+            expression.left,
+            parent_operator=expression.operator,
+            right_side=False,
+        )
+        right = _render_binary_child(
+            expression.right,
+            parent_operator=expression.operator,
+            right_side=True,
+        )
         text = f"{left} {expression.operator} {right}"
         return f"({text})" if precedence < parent_precedence else text
     raise TypeError(f"unsupported node: {expression!r}")
+
+
+def _render_binary_child(
+    expression: EquationExpr,
+    *,
+    parent_operator: str,
+    right_side: bool,
+) -> str:
+    text = _render_expression(expression, 0)
+    child_precedence = _precedence(expression)
+    parent_precedence = _binary_operator_precedence(parent_operator)
+    if child_precedence < parent_precedence:
+        return f"({text})"
+    if _needs_same_precedence_parentheses(
+        parent_operator=parent_operator,
+        expression=expression,
+        right_side=right_side,
+    ):
+        return f"({text})"
+    return text
+
+
+def _needs_same_precedence_parentheses(
+    *,
+    parent_operator: str,
+    expression: EquationExpr,
+    right_side: bool,
+) -> bool:
+    if not isinstance(expression, BinaryExpr):
+        return False
+    if _precedence(expression) != _binary_operator_precedence(parent_operator):
+        return False
+    if not right_side:
+        return parent_operator == "^"
+    if parent_operator == "+":
+        return False
+    if parent_operator == "-":
+        return True
+    if parent_operator == "*":
+        return expression.operator != "*"
+    if parent_operator == "/":
+        return True
+    if parent_operator == "^":
+        return False
+    return False
