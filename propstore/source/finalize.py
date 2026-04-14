@@ -26,7 +26,7 @@ from .common import (
     source_branch_name,
     source_tag_uri,
 )
-from propstore.source_documents import (
+from propstore.artifacts.documents.sources import (
     SourceClaimsDocument,
     SourceFinalizeReportDocument,
     SourceJustificationsDocument,

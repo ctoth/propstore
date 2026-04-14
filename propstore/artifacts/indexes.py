@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from propstore.claim_documents import ClaimLogicalIdDocument
-from propstore.source_documents import SourceClaimsDocument
+from propstore.artifacts.documents.sources import SourceClaimsDocument
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository

@@ -21,7 +21,7 @@ from propstore.cli.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
-from propstore.source_documents import (
+from propstore.artifacts.documents.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,
     SourceDocument,

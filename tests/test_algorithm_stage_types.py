@@ -7,7 +7,7 @@ import yaml
 from propstore.claim_documents import ClaimDocument, ClaimsFileDocument, load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage, to_algorithm_stage
 from propstore.core.row_types import ClaimRow
-from propstore.source_documents import SourceClaimDocument
+from propstore.artifacts.documents.sources import SourceClaimDocument
 
 
 def test_algorithm_stage_annotations_cover_runtime_path() -> None:

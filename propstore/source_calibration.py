@@ -5,7 +5,7 @@ from __future__ import annotations
 from propstore.cli.repository import Repository
 from propstore.artifacts.schema import convert_document_value
 from propstore.source.common import load_source_metadata, normalize_source_slug
-from propstore.source_documents import SourceDocument
+from propstore.artifacts.documents.sources import SourceDocument
 
 
 def _source_bindings(

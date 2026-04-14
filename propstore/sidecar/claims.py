@@ -20,7 +20,7 @@ from propstore.sidecar.claim_utils import (
     prepare_claim_insert_row,
     resolve_claim_reference,
 )
-from propstore.source_documents import SourceJustificationsDocument
+from propstore.artifacts.documents.sources import SourceJustificationsDocument
 from propstore.stance_documents import StanceFileDocument
 from propstore.stances import VALID_STANCE_TYPES
 

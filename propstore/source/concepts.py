@@ -7,7 +7,7 @@ from propstore.cli.repository import Repository
 from propstore.artifacts.schema import decode_document_path
 
 from .common import load_source_concepts_document
-from propstore.source_documents import (
+from propstore.artifacts.documents.sources import (
     SourceConceptEntryDocument,
     SourceConceptFormParametersDocument,
     SourceConceptRegistryMatchDocument,

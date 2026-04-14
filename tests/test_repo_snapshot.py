@@ -6,7 +6,7 @@ from propstore.artifacts import SOURCE_DOCUMENT_FAMILY, SourceRef
 from propstore.cli.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document, source_branch_name
-from propstore.source_documents import SourceDocument
+from propstore.artifacts.documents.sources import SourceDocument
 
 
 def test_snapshot_can_read_typed_document_from_branch(tmp_path: Path) -> None:

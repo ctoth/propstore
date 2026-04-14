@@ -27,7 +27,7 @@ from propstore.source_alignment_documents import (
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 
 from .common import load_document_from_branch, load_source_document
-from propstore.source_documents import SourceConceptsDocument
+from propstore.artifacts.documents.sources import SourceConceptsDocument
 
 
 CONCEPT_PROPOSAL_BRANCH = "proposal/concepts"

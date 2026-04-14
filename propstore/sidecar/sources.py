@@ -7,7 +7,7 @@ import sqlite3
 
 from propstore.artifacts.schema import decode_document_path
 from propstore.knowledge_path import KnowledgePath
-from propstore.source_documents import SourceDocument
+from propstore.artifacts.documents.sources import SourceDocument
 
 
 def populate_sources(conn: sqlite3.Connection, knowledge_root: KnowledgePath) -> None:
