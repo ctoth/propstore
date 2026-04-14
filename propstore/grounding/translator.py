@@ -104,9 +104,8 @@ def translate_to_theory(
       ``NotImplementedError`` (Garcia & Simari 2004 §3 admits both in
       a DeLP program, but Phase 1 defers them so gunray's
       ``strict_rules`` and ``defeaters`` slots stay empty).
-    - Strong negation on any translated head/body atom raises
-      ``NotImplementedError``. Silently erasing ``AtomDocument.negated``
-      would change rule meaning.
+    - Strong negation on translated head/body atoms is emitted via the
+      gunray surface prefix ``~`` (for example ``~flies(X)``).
     - Rules with a non-empty ``negative_body`` raise
       ``NotImplementedError`` (Garcia & Simari 2004 §6.1, p.29-31:
       default negation has distinct semantics from positive body
@@ -229,10 +228,11 @@ def _stringify_atom(atom: AtomDocument) -> str:
     Garcia & Simari 2004 §3 fixes the same shape at the DeLP language
     level).
 
-    Phase 1 refuses strong negation loudly. The surrounding translator
-    already raises on other deferred semantics (`negative_body`,
-    strict rules, defeaters); strong negation must follow the same
-    boundary discipline instead of being silently erased.
+    Strong negation is emitted using gunray's literal prefix surface.
+    Gunray models strong-negated atoms as ordinary atom texts whose
+    predicate token begins with ``~`` (for example ``~p`` or
+    ``~flies(X)``), so the propstore-side structured polarity bit is
+    rendered directly into that surface syntax.
 
     Args:
         atom: The propstore atom to stringify.
@@ -241,20 +241,17 @@ def _stringify_atom(atom: AtomDocument) -> str:
         A surface-syntax string that ``parse_atom_text`` round-trips.
     """
 
-    if atom.negated:
-        raise NotImplementedError(
-            "Strong negation is deferred to Phase 4"
-        )
+    predicate = f"~{atom.predicate}" if atom.negated else atom.predicate
 
     if not atom.terms:
         # Arity-0 atom: ``parse_atom_text`` parses a bare identifier
         # as ``Atom(predicate=<id>, terms=())``. Emitting ``p()``
         # instead would raise because the parser requires non-empty
         # inner content between the parens.
-        return atom.predicate
+        return predicate
 
     rendered_terms = [_stringify_term(term) for term in atom.terms]
-    return f"{atom.predicate}({', '.join(rendered_terms)})"
+    return f"{predicate}({', '.join(rendered_terms)})"
 
 
 def _stringify_term(term: TermDocument) -> str:

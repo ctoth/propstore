@@ -197,6 +197,22 @@ def justifications_to_rules(
 
 # ── T2.5: grounded rules -> rules ────────────────────────────────
 
+_GroundFactKey = tuple[str, bool]
+
+
+def _split_section_predicate(predicate_id: str) -> _GroundFactKey:
+    """Decode a bundle section key into ``(predicate, negated)``.
+
+    Gunray serializes strong negation into the predicate token itself
+    (for example ``"~fly"``). The ASPIC bridge models polarity on the
+    ``Literal`` instead, so section rows must be normalized before they
+    participate in grounding or KB injection.
+    """
+
+    if predicate_id.startswith("~"):
+        return predicate_id.removeprefix("~"), True
+    return predicate_id, False
+
 
 def _try_match(
     atom: AtomDocument,
@@ -238,7 +254,7 @@ def _try_match(
 
 def _enumerate_substitutions(
     body_atoms: tuple[AtomDocument, ...],
-    facts: dict[str, set[tuple[Scalar, ...]]],
+    facts: dict[_GroundFactKey, set[tuple[Scalar, ...]]],
 ) -> Iterator[dict[str, Scalar]]:
     """Yield every consistent substitution σ grounding all body atoms.
 
@@ -254,7 +270,7 @@ def _enumerate_substitutions(
     for atom in body_atoms:
         next_subs: list[dict[str, Scalar]] = []
         for sigma in partial_subs:
-            for fact_args in facts.get(atom.predicate, set()):
+            for fact_args in facts.get((atom.predicate, atom.negated), set()):
                 extended = _try_match(atom, fact_args, sigma)
                 if extended is not None:
                     next_subs.append(extended)
@@ -408,11 +424,11 @@ def grounded_rules_to_rules(
     # sections. Diller, Borg, Bex 2025 §3 Def 7 (p.3) treats the fact
     # base as a flat finite set of ground atoms; the per-section split
     # is gunray's four-valued answer record, not a rule-level concern.
-    facts: dict[str, set[tuple[Scalar, ...]]] = {}
+    facts: dict[_GroundFactKey, set[tuple[Scalar, ...]]] = {}
     for section_name in ("definitely", "defeasibly"):
         section = bundle.sections.get(section_name, {})
         for predicate_id, rows in section.items():
-            bucket = facts.setdefault(predicate_id, set())
+            bucket = facts.setdefault(_split_section_predicate(predicate_id), set())
             for row in rows:
                 bucket.add(row)
 
@@ -505,9 +521,10 @@ def _ground_facts_to_axioms(
     axioms: set[Literal] = set(kb.axioms)
     definitely = bundle.sections.get("definitely", {})
     for predicate_id, rows in definitely.items():
+        predicate, negated = _split_section_predicate(predicate_id)
         for row in rows:
-            ground = GroundAtom(predicate=predicate_id, arguments=tuple(row))
-            lit = _literal_for_atom(ground, False, literals)
+            ground = GroundAtom(predicate=predicate, arguments=tuple(row))
+            lit = _literal_for_atom(ground, negated, literals)
             axioms.add(lit)
 
     return KnowledgeBase(axioms=frozenset(axioms), premises=kb.premises)
@@ -1163,6 +1180,20 @@ def query_claim(
 # ── T7: CSAF -> StructuredProjection ─────────────────────────────
 
 
+def _projection_conclusion_key(literal: Literal) -> str:
+    """Return a stable string identity for a projected conclusion literal."""
+
+    return json.dumps(
+        {
+            "predicate": literal.atom.predicate,
+            "arguments": [_typed_scalar_key(value) for value in literal.atom.arguments],
+            "negated": literal.negated,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
 def csaf_to_projection(
     csaf: CSAF,
     active_claims: Sequence[ActiveClaimInput],
@@ -1172,9 +1203,10 @@ def csaf_to_projection(
     """Map a CSAF to a StructuredProjection for backward compatibility.
 
     T7 (proposals/aspic-bridge-spec.md): maps ASPIC+ Argument objects
-    back to StructuredArgument instances. Transposition-generated
-    arguments (negated literals with no corresponding claim) are
-    excluded from the projection.
+    back to StructuredArgument instances over the full argument set.
+    Claim-backed arguments keep their claim linkage; grounded-only
+    arguments project with ``claim_id=None`` and a canonical
+    ``conclusion_key``.
 
     Args:
         csaf: A complete CSAF from T6.
@@ -1198,13 +1230,10 @@ def csaf_to_projection(
 
     for arg in csaf.arguments:
         conclusion = conc(arg)
-        # Skip transposition artifacts — negated literals or atoms not in claims
-        if conclusion.negated or conclusion.atom.predicate not in claim_id_set:
-            continue
 
         arg_id = csaf.arg_to_id[arg]
-        cid = conclusion.atom.predicate
-        claim = claim_by_id[cid]
+        cid = conclusion.atom.predicate if conclusion.atom.predicate in claim_id_set and not conclusion.negated else None
+        claim = None if cid is None else claim_by_id[cid]
 
         # Determine top_rule_kind
         tr = top_rule(arg)
@@ -1230,32 +1259,47 @@ def csaf_to_projection(
             if s != arg and s in csaf.arg_to_id
         )
 
-        # Strength: scalar average of claim_strength vector
-        vec = claim_strength(claim)
-        strength = statistics.mean(vec) if vec else 0.0
+        # Strength: claim-backed arguments use claim strength; grounded-only
+        # arguments do not have claim metadata yet.
+        if claim is None:
+            strength = 0.0
+        else:
+            vec = claim_strength(claim)
+            strength = statistics.mean(vec) if vec else 0.0
 
         # Justification ID
         if isinstance(arg, PremiseArg):
-            just_id = f"reported:{cid}"
+            just_id = (
+                f"reported:{cid}" if cid is not None
+                else f"premise:{_projection_conclusion_key(conclusion)}"
+            )
         elif tr is not None and tr.name is not None:
             just_id = tr.name
         else:
-            just_id = f"reported:{cid}"
+            just_id = (
+                f"reported:{cid}" if cid is not None
+                else f"premise:{_projection_conclusion_key(conclusion)}"
+            )
 
-        # Dependency claim IDs (all premise atoms)
-        dependency_claim_ids = tuple(p.atom.predicate for p in prem(arg))
+        # Dependency claim IDs track only authored claims.
+        dependency_claim_ids = tuple(
+            p.atom.predicate for p in prem(arg) if p.atom.predicate in claim_id_set
+        )
 
-        # Apply support_metadata if provided, else compute defaults from claim
-        if cid in metadata:
+        # Apply support_metadata if provided, else compute defaults from claim.
+        if cid is not None and cid in metadata:
             label, support_quality = metadata[cid]
-        else:
+        elif claim is not None:
             label, support_quality = _default_support_metadata(claim)
+        else:
+            label, support_quality = None, SupportQuality.EXACT
 
         sa = StructuredArgument(
             arg_id=arg_id,
+            conclusion_key=_projection_conclusion_key(conclusion),
             claim_id=cid,
             conclusion_concept_id=(
-                None if claim.concept_id is None else str(claim.concept_id)
+                None if claim is None or claim.concept_id is None else str(claim.concept_id)
             ),
             premise_claim_ids=premise_claim_ids,
             label=label,
@@ -1269,8 +1313,9 @@ def csaf_to_projection(
         )
         projected_args.append(sa)
         projected_arg_ids.add(arg_id)
-        claim_to_args.setdefault(cid, []).append(arg_id)
-        arg_to_claim[arg_id] = cid
+        if cid is not None:
+            claim_to_args.setdefault(cid, []).append(arg_id)
+            arg_to_claim[arg_id] = cid
 
     # Filter framework to only projected arguments
     proj_defeats = frozenset(

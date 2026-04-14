@@ -8,6 +8,7 @@ from propstore.aspic_bridge import (
     _canonical_substitution_key,
     _literal_for_atom,
     build_bridge_csaf,
+    csaf_to_projection,
     claims_to_literals,
     grounded_rules_to_rules,
     justifications_to_rules,
@@ -51,10 +52,10 @@ def _make_var(name: str):
     return TermDocument(kind="var", name=name, value=None)
 
 
-def _make_atom(predicate: str, terms=()):
+def _make_atom(predicate: str, terms=(), *, negated: bool = False):
     from propstore.rule_documents import AtomDocument
 
-    return AtomDocument(predicate=predicate, terms=tuple(terms), negated=False)
+    return AtomDocument(predicate=predicate, terms=tuple(terms), negated=negated)
 
 
 def _make_rule_document(
@@ -178,6 +179,60 @@ def test_query_claim_accepts_ground_atom_goal_without_string_recovery() -> None:
     assert result.arguments_for
 
 
+def test_query_claim_treats_strongly_negated_fact_as_argument_against_ground_goal() -> None:
+    bundle = _make_grounded_bundle(
+        rules=(
+            _make_rule_document(
+                "r1",
+                _make_atom("fly", (_make_var("X"),)),
+                (_make_atom("bird", (_make_var("X"),)),),
+            ),
+        ),
+        definitely={
+            "bird": {("tweety",)},
+            "~fly": {("tweety",)},
+        },
+    )
+
+    result = query_claim(
+        GroundAtom("fly", ("tweety",)),
+        active_claims=[],
+        justifications=[],
+        stances=[],
+        bundle=bundle,
+    )
+
+    assert result.arguments_for
+    against_conclusions = {conc(arg) for arg in result.arguments_against}
+    assert Literal(atom=GroundAtom("fly", ("tweety",)), negated=True) in against_conclusions
+
+
+def test_query_claim_matches_strongly_negated_body_atoms_from_bundle_sections() -> None:
+    bundle = _make_grounded_bundle(
+        rules=(
+            _make_rule_document(
+                "r1",
+                _make_atom("blocked", (_make_var("X"),)),
+                (_make_atom("fly", (_make_var("X"),), negated=True),),
+            ),
+        ),
+        definitely={
+            "~fly": {("tweety",)},
+        },
+    )
+
+    result = query_claim(
+        GroundAtom("blocked", ("tweety",)),
+        active_claims=[],
+        justifications=[],
+        stances=[],
+        bundle=bundle,
+    )
+
+    conclusions_for = {conc(arg) for arg in result.arguments_for}
+    assert Literal(atom=GroundAtom("blocked", ("tweety",)), negated=False) in conclusions_for
+
+
 def test_canonical_substitution_key_distinguishes_delimiter_collisions() -> None:
     left = _canonical_substitution_key({"X": "a,Y=b", "Y": "c"})
     right = _canonical_substitution_key({"X": "a", "Y": "b,Y=c"})
@@ -248,6 +303,39 @@ def test_build_bridge_csaf_populates_framework_attacks() -> None:
 
     assert csaf.attacks
     assert csaf.framework.attacks is not None
+
+
+def test_csaf_to_projection_keeps_grounded_arguments_and_subarguments() -> None:
+    bundle = _make_grounded_bundle(
+        rules=(
+            _make_rule_document(
+                "r1",
+                _make_atom("fly", (_make_var("X"),)),
+                (_make_atom("bird", (_make_var("X"),)),),
+            ),
+        ),
+        definitely={"bird": {("tweety",)}},
+    )
+
+    csaf = build_bridge_csaf(
+        [],
+        [],
+        [],
+        bundle=bundle,
+    )
+    projection = csaf_to_projection(csaf, [])
+
+    assert projection.arguments
+    assert projection.claim_to_argument_ids == {}
+    assert projection.argument_to_claim_id == {}
+
+    projected_ids = {argument.arg_id for argument in projection.arguments}
+    assert projection.framework.arguments == frozenset(projected_ids)
+    assert any(argument.claim_id is None for argument in projection.arguments)
+    assert any("\"predicate\":\"fly\"" in argument.conclusion_key for argument in projection.arguments)
+    assert any("\"predicate\":\"bird\"" in argument.conclusion_key for argument in projection.arguments)
+    for argument in projection.arguments:
+        assert set(argument.subargument_ids) <= projected_ids
 
 
 def test_stances_to_contrariness_includes_classical_claim_contradictories() -> None:

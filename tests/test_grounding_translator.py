@@ -755,13 +755,10 @@ def test_translate_negative_body_raises_not_implemented() -> None:
         translate_to_theory([rule_file], (), _bird_registry())
 
 
-def test_translate_strongly_negated_head_raises_not_implemented() -> None:
-    """Phase-1 translator must refuse strong negation loudly.
+def test_translate_strongly_negated_head_preserves_surface_negation() -> None:
+    """Strong-negated heads must round-trip as ``~predicate(...)`` text."""
 
-    Strong negation is a different semantic channel from plain positive
-    literals. Silently dropping it changes the rule meaning, so Phase 1 must
-    reject it just as it rejects `negative_body`, strict rules, and defeaters.
-    """
+    from gunray.parser import parse_atom_text
 
     from propstore.grounding.translator import translate_to_theory
 
@@ -775,12 +772,16 @@ def test_translate_strongly_negated_head_raises_not_implemented() -> None:
     )
     rule_file = _build_rule_file([rule])
 
-    with pytest.raises(NotImplementedError, match="Strong negation"):
-        translate_to_theory([rule_file], (), _bird_registry())
+    theory = translate_to_theory([rule_file], (), _bird_registry())
+
+    assert theory.defeasible_rules[0].head == "~flies(X)"
+    assert parse_atom_text(theory.defeasible_rules[0].head).predicate == "~flies"
 
 
-def test_translate_strongly_negated_body_atom_raises_not_implemented() -> None:
-    """Phase-1 translator must not silently erase strong-negated body atoms."""
+def test_translate_strongly_negated_body_atom_preserves_surface_negation() -> None:
+    """Strong-negated body atoms must round-trip as ``~predicate(...)`` text."""
+
+    from gunray.parser import parse_atom_text
 
     from propstore.grounding.translator import translate_to_theory
 
@@ -794,8 +795,10 @@ def test_translate_strongly_negated_body_atom_raises_not_implemented() -> None:
     )
     rule_file = _build_rule_file([rule])
 
-    with pytest.raises(NotImplementedError, match="Strong negation"):
-        translate_to_theory([rule_file], (), _bird_registry())
+    theory = translate_to_theory([rule_file], (), _bird_registry())
+
+    assert theory.defeasible_rules[0].body == ["~bird(X)"]
+    assert parse_atom_text(theory.defeasible_rules[0].body[0]).predicate == "~bird"
 
 
 def test_translate_string_constant_round_trips_control_characters() -> None:
