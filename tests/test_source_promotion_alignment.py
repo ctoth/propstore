@@ -20,6 +20,7 @@ from propstore.artifacts import (
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value
 from propstore.identity import derive_concept_artifact_id
+from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source import (
     CONCEPT_PROPOSAL_BRANCH,
     align_sources,
@@ -46,8 +47,8 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
     source_doc = initial_source_document(
         repo,
         source_name,
-        kind="academic_paper",
-        origin_type="manual",
+        kind=SourceKind.ACADEMIC_PAPER,
+        origin_type=SourceOriginType.MANUAL,
         origin_value=source_name,
     )
     repo.artifacts.save(

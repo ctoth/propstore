@@ -4,6 +4,7 @@ from pathlib import Path
 
 from propstore.artifacts import SOURCE_DOCUMENT_FAMILY, SourceRef
 from propstore.cli.repository import Repository
+from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document, source_branch_name
 from propstore.source_documents import SourceDocument
 
@@ -17,8 +18,8 @@ def test_snapshot_can_read_typed_document_from_branch(tmp_path: Path) -> None:
     source_doc = initial_source_document(
         repo,
         source_name,
-        kind="academic_paper",
-        origin_type="manual",
+        kind=SourceKind.ACADEMIC_PAPER,
+        origin_type=SourceOriginType.MANUAL,
         origin_value=source_name,
     )
     repo.artifacts.save(
@@ -42,8 +43,8 @@ def test_snapshot_lists_directory_entries_with_relpaths(tmp_path: Path) -> None:
     source_doc = initial_source_document(
         repo,
         source_name,
-        kind="academic_paper",
-        origin_type="manual",
+        kind=SourceKind.ACADEMIC_PAPER,
+        origin_type=SourceOriginType.MANUAL,
         origin_value=source_name,
     )
     repo.artifacts.save(

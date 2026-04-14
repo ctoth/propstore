@@ -590,3 +590,26 @@ Proof:
 Rerank after Slice 7:
 
 - the next highest-value target is source identity semantics on the live canonical/runtime path: `ClaimSource.kind` and `SourceOrigin.origin_type` are still closed semantic vocabularies carried as bare strings across source documents, nested row values, world-model projections, and source CLI entrypoints
+
+### Slice 8: Source Kind And Origin Type Enums
+
+Status: completed
+
+Changes landed in this slice:
+
+- added canonical `SourceKind` and `SourceOriginType` enums plus coercion helpers
+- changed `SourceDocument` and `SourceOriginDocument` to carry enum values instead of bare strings
+- changed nested runtime source values `ClaimSource.kind` and `SourceOrigin.origin_type` to preserve typed source semantics after row hydration
+- updated the source CLI init boundary to coerce raw option values immediately and reject unsupported source kinds/origin types at the boundary
+- kept string serialization only at document payload and SQLite boundary edges
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice8-red-20260413-223611.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice8-green-redtest3-20260413-223949.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice8-focused-20260413-224004.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice8-broader-20260413-224100.log`
+
+Rerank after Slice 8:
+
+- the next highest-value target is the compiled relation-edge surface on the live runtime/store path: `RelationEdge.relation_type` is still a bare semantic string even though concept-link relations and claim stances now have canonical enums on either side of that shared graph layer

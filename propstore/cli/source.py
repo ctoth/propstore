@@ -7,6 +7,10 @@ from pathlib import Path
 import click
 
 from propstore.cli.repository import Repository
+from propstore.core.source_types import (
+    coerce_source_kind,
+    coerce_source_origin_type,
+)
 from propstore.provenance import stamp_file
 from propstore.source_documents import SourceConceptFormParametersDocument
 from propstore.source import (
@@ -58,11 +62,16 @@ def source_init(
     content_file: Path | None,
 ) -> None:
     repo: Repository = obj["repo"]
+    try:
+        source_kind = coerce_source_kind(kind_name)
+        source_origin_type = coerce_source_origin_type(origin_type)
+    except (TypeError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
     branch = init_source_branch(
         repo,
         name,
-        kind=kind_name,
-        origin_type=origin_type,
+        kind=source_kind,
+        origin_type=source_origin_type,
         origin_value=origin_value,
         content_file=content_file,
     )

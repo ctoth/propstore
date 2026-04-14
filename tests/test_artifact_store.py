@@ -15,6 +15,7 @@ from propstore.artifacts import (
     WorldlineRef,
 )
 from propstore.cli.repository import Repository
+from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.repo.branch import create_branch
 from propstore.source.common import initial_source_document, source_branch_name
 from propstore.source_documents import (
@@ -31,8 +32,8 @@ def test_artifact_store_roundtrips_source_document(tmp_path: Path) -> None:
     source_doc = initial_source_document(
         repo,
         "demo",
-        kind="academic_paper",
-        origin_type="manual",
+        kind=SourceKind.ACADEMIC_PAPER,
+        origin_type=SourceOriginType.MANUAL,
         origin_value="demo",
     )
 
@@ -46,6 +47,8 @@ def test_artifact_store_roundtrips_source_document(tmp_path: Path) -> None:
     assert commit_sha
     loaded = repo.artifacts.require(SOURCE_DOCUMENT_FAMILY, SourceRef("demo"))
     assert loaded.to_payload() == source_doc.to_payload()
+    assert loaded.kind is SourceKind.ACADEMIC_PAPER
+    assert loaded.origin.type is SourceOriginType.MANUAL
 
 
 def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -> None:
@@ -55,8 +58,8 @@ def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -
     source_doc = initial_source_document(
         repo,
         "demo",
-        kind="academic_paper",
-        origin_type="manual",
+        kind=SourceKind.ACADEMIC_PAPER,
+        origin_type=SourceOriginType.MANUAL,
         origin_value="demo",
     )
     report = SourceFinalizeReportDocument(
@@ -126,8 +129,8 @@ def test_artifact_store_renders_typed_documents(tmp_path: Path) -> None:
     source_doc = initial_source_document(
         repo,
         "demo",
-        kind="academic_paper",
-        origin_type="manual",
+        kind=SourceKind.ACADEMIC_PAPER,
+        origin_type=SourceOriginType.MANUAL,
         origin_value="demo",
     )
 

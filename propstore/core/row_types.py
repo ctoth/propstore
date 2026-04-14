@@ -570,11 +570,17 @@ class ClaimRow:
             "source_slug": None if self.source is None else self.source.slug,
             "source_paper": source_paper,
             "source_id": None if self.source is None else self.source.source_id,
-            "source_kind": None if self.source is None else self.source.kind,
+            "source_kind": (
+                None
+                if self.source is None or self.source.kind is None
+                else self.source.kind.value
+            ),
             "source_origin_type": (
                 None
-                if self.source is None or self.source.origin is None
-                else self.source.origin.origin_type
+                if self.source is None
+                or self.source.origin is None
+                or self.source.origin.origin_type is None
+                else self.source.origin.origin_type.value
             ),
             "source_origin_value": (
                 None

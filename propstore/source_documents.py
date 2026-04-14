@@ -14,18 +14,19 @@ from propstore.claim_documents import (
     VariableBindingDocument,
 )
 from propstore.core.exactness_types import Exactness
+from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.document_schema import DocumentStruct
 
 
 class SourceOriginDocument(DocumentStruct):
-    type: str
+    type: SourceOriginType
     value: str
     retrieved: str | None = None
     content_ref: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
-            "type": self.type,
+            "type": self.type.value,
             "value": self.value,
         }
         if self.retrieved is not None:
@@ -75,7 +76,7 @@ class SourceMetadataDocument(DocumentStruct):
 
 class SourceDocument(DocumentStruct):
     id: str
-    kind: str
+    kind: SourceKind
     origin: SourceOriginDocument
     trust: SourceTrustDocument
     metadata: SourceMetadataDocument | None = None
@@ -84,7 +85,7 @@ class SourceDocument(DocumentStruct):
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "id": self.id,
-            "kind": self.kind,
+            "kind": self.kind.value,
             "origin": self.origin.to_payload(),
             "trust": self.trust.to_payload(),
         }

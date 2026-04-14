@@ -18,6 +18,7 @@ from propstore.artifacts import (
 )
 from propstore.artifacts.families import SOURCE_METADATA_FAMILY, SOURCE_NOTES_FAMILY
 from propstore.cli.repository import Repository
+from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
 from propstore.source_documents import (
@@ -48,8 +49,8 @@ def initial_source_document(
     repo: Repository,
     name: str,
     *,
-    kind: str,
-    origin_type: str,
+    kind: SourceKind,
+    origin_type: SourceOriginType,
     origin_value: str,
     content_file: Path | None = None,
 ) -> SourceDocument:
@@ -89,8 +90,8 @@ def init_source_branch(
     repo: Repository,
     name: str,
     *,
-    kind: str,
-    origin_type: str,
+    kind: SourceKind,
+    origin_type: SourceOriginType,
     origin_value: str,
     content_file: Path | None = None,
 ) -> str:
