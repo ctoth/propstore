@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.artifact_documents.worldlines import (
+from propstore.artifacts.documents.worldlines import (
     WorldlineDefinitionDocument,
     WorldlineInputsDocument,
     WorldlinePolicyDocument,

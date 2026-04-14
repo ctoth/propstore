@@ -12,7 +12,7 @@ from propstore.artifacts import (
     ConceptFileRef,
     normalize_canonical_concept_payload,
 )
-from propstore.artifact_documents.concepts import ConceptDocument
+from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.cli.repository import Repository
 from propstore.artifacts.schema import convert_document_value
 from propstore.repo.merge_framework import PartialArgumentationFramework

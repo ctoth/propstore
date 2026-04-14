@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from propstore.artifact_documents.concepts import (
+from propstore.artifacts.documents.concepts import (
     ConceptAliasDocument,
     ConceptDocument,
     ConceptFormParametersDocument,
