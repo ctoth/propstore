@@ -7,6 +7,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.claim_types import ClaimType
 from propstore.core.id_types import ClaimId, ConceptId, ContextId, LogicalId, to_concept_id
 from propstore.core.row_types import ClaimRow, ClaimRowInput, coerce_claim_row
 
@@ -128,7 +129,7 @@ class ActiveClaim:
         return self.row.artifact_id
 
     @property
-    def claim_type(self) -> str | None:
+    def claim_type(self) -> ClaimType | None:
         return self.row.claim_type
 
     @property
@@ -219,11 +220,15 @@ class ActiveClaim:
 
     def to_source_claim_payload(self) -> dict[str, Any]:
         source = self.to_dict()
-        if self.claim_type == "parameter" and self.concept_id is not None:
+        if self.claim_type is ClaimType.PARAMETER and self.concept_id is not None:
             source["concept"] = str(self.concept_id)
-        if self.claim_type == "measurement" and self.concept_id is not None and self.target_concept is None:
+        if (
+            self.claim_type is ClaimType.MEASUREMENT
+            and self.concept_id is not None
+            and self.target_concept is None
+        ):
             source["target_concept"] = str(self.concept_id)
-        if self.claim_type == "algorithm" and self.concept_id is not None:
+        if self.claim_type is ClaimType.ALGORITHM and self.concept_id is not None:
             source["concept"] = str(self.concept_id)
         return source
 

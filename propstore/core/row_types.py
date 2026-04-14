@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.claim_values import (
     ClaimProvenance,
     ClaimSource,
@@ -176,7 +177,7 @@ class RelationshipRow:
 class ClaimRow:
     claim_id: ClaimId
     artifact_id: str
-    claim_type: str | None = None
+    claim_type: ClaimType | None = None
     concept_id: ConceptId | None = None
     target_concept: ConceptId | None = None
     logical_ids: tuple[LogicalId, ...] = field(default_factory=tuple)
@@ -215,6 +216,8 @@ class ClaimRow:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "attributes", dict(self.attributes))
+        if self.claim_type is not None:
+            object.__setattr__(self, "claim_type", coerce_claim_type(self.claim_type))
 
     @classmethod
     def from_mapping(cls, row_map: Mapping[str, Any]) -> ClaimRow:
@@ -396,7 +399,7 @@ class ClaimRow:
             claim_type=(
                 None
                 if row_map.get("type", row_map.get("claim_type")) is None
-                else str(row_map.get("type", row_map.get("claim_type")))
+                else coerce_claim_type(row_map.get("type", row_map.get("claim_type")))
             ),
             concept_id=(
                 None if row_map.get("concept_id") is None else to_concept_id(row_map["concept_id"])

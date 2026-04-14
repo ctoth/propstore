@@ -15,6 +15,7 @@ import sqlite3
 import pytest
 import yaml
 
+from propstore.core.claim_types import ClaimType
 from propstore.core.row_types import (
     ConflictRowInput,
     StanceRowInput,
@@ -564,7 +565,7 @@ class TestUnboundQueries:
     def test_get_claim(self, world):
         c = world.get_claim(_claim_artifact("test_paper_alpha", "claim1"))
         assert c is not None
-        assert c.claim_type == "parameter"
+        assert c.claim_type is ClaimType.PARAMETER
         assert c.concept_id == CONCEPT1_ID
 
     def test_get_claim_missing(self, world):
@@ -639,6 +640,7 @@ class TestUnboundQueries:
             _claim_artifact("test_paper_beta", "claim9"),
             _claim_artifact("test_paper_gamma", "claim15"),
         }
+        assert all(claim.claim_type is ClaimType.PARAMETER for claim in claims)
 
     def test_claims_for_missing(self, world):
         assert world.claims_for("nonexistent") == []

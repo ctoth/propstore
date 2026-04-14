@@ -9,6 +9,7 @@ from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, runtime_checkable
 
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
+from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.environment import ArtifactStore, Environment  # noqa: F401
 from propstore.core.id_types import (
     AssumptionId,
@@ -708,12 +709,13 @@ class ICMergeResult:
 class SyntheticClaim:
     id: str
     concept_id: ConceptId
-    type: str = "parameter"
+    type: ClaimType = ClaimType.PARAMETER
     value: float | str | None = None
     conditions: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
+        self.type = coerce_claim_type(self.type) or ClaimType.PARAMETER
         self.conditions = list(self.conditions)
 
 

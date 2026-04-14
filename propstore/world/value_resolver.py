@@ -11,6 +11,7 @@ from typing import Any, Callable
 
 from ast_equiv import compare as ast_compare
 
+from propstore.core.claim_types import ClaimType
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.row_types import ParameterizationRow
@@ -22,7 +23,7 @@ from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 class _ActiveClaimView:
     claim: ActiveClaim
     claim_id: str | None
-    claim_type: str | None
+    claim_type: ClaimType | None
     value: float | str | None
     body: str | None
 
@@ -165,8 +166,8 @@ class ActiveClaimResolver:
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
         active_views = tuple(_active_claim_view(claim) for claim in active_claims)
-        algo_claims = [claim for claim in active_views if claim.claim_type == "algorithm"]
-        value_claims = [claim for claim in active_views if claim.claim_type != "algorithm"]
+        algo_claims = [claim for claim in active_views if claim.claim_type is ClaimType.ALGORITHM]
+        value_claims = [claim for claim in active_views if claim.claim_type is not ClaimType.ALGORITHM]
 
         if value_claims and algo_claims:
             direct_values = {
