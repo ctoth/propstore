@@ -106,10 +106,8 @@ def _classify_log_operation(message: str, parents: list[str]) -> str:
     return "commit"
 
 
-def _load_merge_summary(git, sha: str) -> dict[str, object] | None:
-    from propstore.artifacts.store import ArtifactStore
-
-    manifest = ArtifactStore.for_git(git).load(
+def _load_merge_summary(repo: Repository, sha: str) -> dict[str, object] | None:
+    manifest = repo.artifacts.load(
         MERGE_MANIFEST_FAMILY,
         MergeManifestRef(),
         commit=sha,
@@ -128,7 +126,7 @@ def _load_merge_summary(git, sha: str) -> dict[str, object] | None:
     }
 
 
-def _build_log_record(git, entry: dict[str, object], *, branch: str, show_files: bool) -> dict[str, object]:
+def _build_log_record(repo: Repository, entry: dict[str, object], *, branch: str, show_files: bool) -> dict[str, object]:
     message = str(entry["message"])
     parents = [str(parent) for parent in entry.get("parents", [])]
     operation = _classify_log_operation(message, parents)
@@ -141,11 +139,11 @@ def _build_log_record(git, entry: dict[str, object], *, branch: str, show_files:
         "parents": parents,
     }
     if operation == "merge.commit":
-        merge_summary = _load_merge_summary(git, record["sha"])
+        merge_summary = _load_merge_summary(repo, record["sha"])
         if merge_summary is not None:
             record["merge"] = merge_summary
     if show_files:
-        info = git.show_commit(record["sha"])
+        info = repo.snapshot.show_commit(record["sha"])
         record["added"] = list(info.get("added", []))
         record["modified"] = list(info.get("modified", []))
         record["deleted"] = list(info.get("deleted", []))
@@ -208,19 +206,17 @@ def _render_text_log(records: list[dict[str, object]], *, show_files: bool) -> N
 def log_cmd(ctx, count, branch_name, show_files, output_format):
     """Show knowledge repository history."""
     repo = ctx.obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("log requires a git-backed repository")
+    snapshot = repo.snapshot
     if branch_name is None:
-        branch_name = git.current_branch_name() or git.primary_branch_name()
-    if git.branch_sha(branch_name) is None:
+        branch_name = snapshot.current_branch_name() or snapshot.primary_branch_name()
+    if snapshot.branch_head(branch_name) is None:
         raise click.ClickException(f"Branch not found: {branch_name}")
-    entries = git.log(max_count=count, branch=branch_name)
+    entries = snapshot.log(max_count=count, branch=branch_name)
     if not entries:
         click.echo("No history yet.")
         return
     records = [
-        _build_log_record(git, entry, branch=branch_name, show_files=show_files)
+        _build_log_record(repo, entry, branch=branch_name, show_files=show_files)
         for entry in entries
     ]
     if output_format == "yaml":
@@ -241,10 +237,7 @@ def log_cmd(ctx, count, branch_name, show_files, output_format):
 def diff_cmd(ctx, commit):
     """Show files changed in COMMIT vs its parent (defaults to HEAD)."""
     repo = ctx.obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("diff requires a git-backed repository")
-    result = git.diff_commits(commit1=commit)
+    result = repo.snapshot.diff(commit1=commit)
     any_changes = False
     for path in result.get("added", []):
         click.echo(f"  Added: {path}")
@@ -267,11 +260,8 @@ def diff_cmd(ctx, commit):
 def show_cmd(ctx, commit):
     """Show details of a specific commit."""
     repo = ctx.obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("show requires a git-backed repository")
     try:
-        info = git.show_commit(commit)
+        info = repo.snapshot.show_commit(commit)
     except KeyError:
         click.echo(f"Commit not found: {commit}")
         return
@@ -305,18 +295,15 @@ def checkout_cmd(ctx, commit):
     from propstore.sidecar.build import build_sidecar
 
     repo = ctx.obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("checkout requires a git-backed repository")
 
     # Verify commit exists
     try:
-        git.show_commit(commit)
+        repo.snapshot.show_commit(commit)
     except KeyError:
         click.echo(f"Commit not found: {commit}")
         return
 
-    tree = repo.tree(commit=commit)
+    tree = repo.snapshot.tree(commit=commit)
     if not (tree / "concepts").exists():
         click.echo("No concepts found at that commit.")
         return
@@ -345,11 +332,8 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
 
     repo: "Repository" = ctx.obj["repo"]
     target_stances = repo.stances_dir
-    git = repo.git
-    if git is None:
-        raise click.ClickException("promote requires a git-backed repository")
 
-    proposal_tip = git.branch_sha(STANCE_PROPOSAL_BRANCH)
+    proposal_tip = repo.snapshot.branch_head(STANCE_PROPOSAL_BRANCH)
     if proposal_tip is None:
         click.echo(f"No {STANCE_PROPOSAL_BRANCH} branch found. Nothing to promote.")
         return
@@ -391,6 +375,6 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
                     repo.artifacts.require(PROPOSAL_STANCE_FAMILY, ref, commit=proposal_tip),
                 )
                 click.echo(f"  Promoted: {stance_proposal_filename(ref.source_claim)}")
-        git.sync_worktree()
+        repo.snapshot.sync_worktree()
 
     click.echo(f"\n{moved} file(s) promoted.")

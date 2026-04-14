@@ -36,9 +36,6 @@ def add(
 ) -> None:
     """Add a new context to the registry."""
     repo: Repository = obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("context mutations require a git-backed repository")
     contexts_dir = repo.contexts_dir
     contexts_tree = repo.tree() / "contexts"
 
@@ -85,7 +82,7 @@ def add(
         document,
         message=f"Add context: {name}",
     )
-    git.sync_worktree()
+    repo.snapshot.sync_worktree()
 
     click.echo(f"Created {filepath}")
 

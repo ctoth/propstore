@@ -215,9 +215,8 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     from propstore.claim_documents import load_claim_files
 
     repo: Repository = obj["repo"]
-    git = repo.git
-    hash_key = None if git is None else git.head_sha()
-    tree = repo.tree(commit=hash_key) if hash_key is not None else repo.tree()
+    hash_key = repo.snapshot.head_sha()
+    tree = repo.snapshot.tree(commit=hash_key)
 
     concepts_root = tree / "concepts"
     if not concepts_root.exists():

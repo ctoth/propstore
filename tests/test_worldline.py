@@ -57,6 +57,12 @@ class _FakeWorldlineRepo:
 
         return ArtifactStore(self)
 
+    @property
+    def snapshot(self):
+        from propstore.repo.snapshot import RepoSnapshot
+
+        return RepoSnapshot(self)
+
     def tree(self, commit: str | None = None):
         return GitKnowledgePath(self.git, commit=commit)
 

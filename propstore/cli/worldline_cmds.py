@@ -235,9 +235,6 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     from propstore.worldline import WorldlineDefinition
 
     repo: Repository = obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("worldline mutations require a git-backed repository")
     resolved = repo.artifacts.resolve(WORLDLINE_FAMILY, WorldlineRef(name))
     if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is not None:
         click.echo(
@@ -297,7 +294,7 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
         wl.to_document(),
         message=f"Create worldline: {name}",
     )
-    git.sync_worktree()
+    repo.snapshot.sync_worktree()
 
     click.echo(f"Created worldline '{name}' at {resolved.relpath}")
 
@@ -335,9 +332,6 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
     from propstore.worldline import WorldlineDefinition, run_worldline
 
     repo: Repository = obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("worldline mutations require a git-backed repository")
 
     # If file exists, load it; otherwise create from CLI args
     if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is not None:
@@ -408,7 +402,7 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
         wl.to_document(),
         message=f"Materialize worldline: {name}",
     )
-    git.sync_worktree()
+    repo.snapshot.sync_worktree()
 
     click.echo(f"Worldline '{name}' materialized ({len(result.values)} targets)")
     for target, val in result.values.items():
@@ -651,9 +645,6 @@ def worldline_refresh(obj: dict, name: str) -> None:
 def worldline_delete(obj: dict, name: str) -> None:
     """Delete a worldline."""
     repo: Repository = obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("worldline mutations require a git-backed repository")
     if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is None:
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)
@@ -662,5 +653,5 @@ def worldline_delete(obj: dict, name: str) -> None:
         WorldlineRef(name),
         message=f"Delete worldline: {name}",
     )
-    git.sync_worktree()
+    repo.snapshot.sync_worktree()
     click.echo(f"Deleted worldline '{name}'")

@@ -131,10 +131,12 @@ def _rewrite_claim_conditions(claim_file_data: dict, old_name: str, new_name: st
     return changed
 
 
-def _require_git(repo: Repository):
-    if repo.git is None:
-        raise click.ClickException("concept mutations require a git-backed repository")
-    return repo.git
+def _require_snapshot(repo: Repository):
+    try:
+        repo.snapshot.head_sha()
+    except ValueError as exc:
+        raise click.ClickException("concept mutations require a git-backed repository") from exc
+    return repo.snapshot
 
 
 def _concepts_tree(repo: Repository) -> KnowledgePath:
@@ -309,7 +311,7 @@ def add(
 ) -> None:
     """Add a new concept to the registry."""
     repo: Repository = obj["repo"]
-    git = _require_git(repo)
+    snapshot = _require_snapshot(repo)
     # Prompt for missing fields
     if definition is None:
         definition = click.prompt("Definition")
@@ -328,7 +330,7 @@ def add(
         click.echo(f"ERROR: Concept file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
-    cid = f"concept{git.next_concept_id()}"
+    cid = f"concept{snapshot.next_concept_id()}"
 
     data = {
         "canonical_name": name,
@@ -393,7 +395,7 @@ def add(
         document,
         message=f"Add concept: {name} ({_concept_display_handle(data)})",
     )
-    git.sync_worktree()
+    snapshot.sync_worktree()
     click.echo(f"Created {filepath} with logical ID {_concept_display_handle(data)}")
 
 
@@ -409,7 +411,7 @@ def add(
 def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, dry_run: bool) -> None:
     """Add an alias to a concept."""
     repo: Repository = obj["repo"]
-    git = _require_git(repo)
+    snapshot = _require_snapshot(repo)
     concept_entry = _find_concept_entry(repo, concept_id)
     if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
@@ -448,7 +450,7 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
         document,
         message=f"Add alias '{name}' to {_concept_display_handle(data)}",
     )
-    git.sync_worktree()
+    snapshot.sync_worktree()
 
     click.echo(f"Added alias '{name}' to {_concept_display_handle(data)} ({filepath.stem})")
 
@@ -470,7 +472,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     fails. The commit is a batch that adds the new file and deletes the old.
     """
     repo: Repository = obj["repo"]
-    git = _require_git(repo)
+    snapshot = _require_snapshot(repo)
     concept_entry = _find_concept_entry(repo, concept_id)
     if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
@@ -588,7 +590,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 claim_ref,
                 _claims_document(repo, claim_ref, updated_claim_file.data),
             )
-    git.sync_worktree()
+    snapshot.sync_worktree()
 
     click.echo(f"{old_name} -> {name}")
     click.echo(f"  {filepath} -> {new_path}")
@@ -606,7 +608,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
 def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> None:
     """Deprecate a concept with a replacement."""
     repo: Repository = obj["repo"]
-    git = _require_git(repo)
+    snapshot = _require_snapshot(repo)
     concept_entry = _find_concept_entry(repo, concept_id)
     if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
@@ -645,7 +647,7 @@ def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> No
         _concept_document(repo, ref, data),
         message=f"Deprecate {_concept_display_handle(data)}, replaced by {_concept_display_handle(replacement_data)}",
     )
-    git.sync_worktree()
+    snapshot.sync_worktree()
 
     click.echo(f"Deprecated {_concept_display_handle(data)} ({filepath.stem}), replaced by {_concept_display_handle(replacement_data)}")
 
@@ -673,7 +675,7 @@ def link(
 ) -> None:
     """Add a relationship between concepts."""
     repo: Repository = obj["repo"]
-    git = _require_git(repo)
+    snapshot = _require_snapshot(repo)
     concept_entry = _find_concept_entry(repo, source_id)
     if concept_entry is None:
         click.echo(f"ERROR: Source concept '{source_id}' not found", err=True)
@@ -751,7 +753,7 @@ def link(
         _concept_document(repo, ref, data),
         message=f"Link {_concept_display_handle(data)} {rel_type} {_concept_display_handle(target_entry.data)}",
     )
-    git.sync_worktree()
+    snapshot.sync_worktree()
 
     click.echo(f"Added {rel_type} -> {_concept_display_handle(target_entry.data)} on {_concept_display_handle(data)} ({filepath.stem})")
 
@@ -826,7 +828,7 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
 def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
     """Add a value to a category concept's value set."""
     repo: Repository = obj["repo"]
-    git = _require_git(repo)
+    snapshot = _require_snapshot(repo)
     concept_entry = _find_concept_entry(repo, concept_name)
     if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_name}' not found", err=True)
@@ -866,7 +868,7 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
         _concept_document(repo, ref, data),
         message=f"Add value '{value}' to {concept_name}",
     )
-    git.sync_worktree()
+    snapshot.sync_worktree()
     click.echo(f"Added '{value}' to {concept_name} — values: {', '.join(values)}")
 
 
