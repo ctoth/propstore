@@ -2793,7 +2793,14 @@ class _Phase6HypotheticalStore:
         return name == "relation_edge"
 
     def all_concepts(self) -> list[dict]:
-        return [{"id": "concept_x", "canonical_name": "concept_x"}]
+        return [
+            {
+                "id": "concept_x",
+                "canonical_name": "concept_x",
+                "form": "quantity",
+                "kind_type": "quantity",
+            }
+        ]
 
 
 def _phase6_bound_world(policy: RenderPolicy) -> BoundWorld:

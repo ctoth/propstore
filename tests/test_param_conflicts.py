@@ -6,12 +6,15 @@ import warnings
 
 from propstore.conflict_detector.models import ConflictClass, ConflictClaim
 from propstore.form_utils import FormDefinition, UnitConversion
-from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
+from propstore.conflict_detector import (
+    detect_conflicts as _detect_conflicts,
+    detect_transitive_conflicts,
+)
 from propstore.conflict_detector.parameterization_conflicts import (
     _detect_parameterization_conflicts,
 )
 from propstore.loaded import LoadedEntry
-from tests.conftest import make_concept_identity
+from tests.conftest import make_cel_registry, make_concept_identity
 
 from propstore.cel_checker import KindType
 
@@ -54,6 +57,15 @@ def _claim(payload: dict) -> ConflictClaim:
     claim = ConflictClaim.from_payload(payload)
     assert claim is not None
     return claim
+
+
+def detect_conflicts(claim_files, registry, context_hierarchy=None):
+    return _detect_conflicts(
+        claim_files,
+        registry,
+        make_cel_registry(registry),
+        context_hierarchy=context_hierarchy,
+    )
 
 
 def test_detect_param_conflicts_handles_equality_parameterizations_without_warning():

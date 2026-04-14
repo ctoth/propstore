@@ -231,7 +231,10 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
     """Detect and report claim conflicts."""
     from propstore.conflict_detector import ConflictClass, detect_conflicts
     from propstore.claim_files import load_claim_files
-    from propstore.compiler.context import build_concept_registry
+    from propstore.compiler.context import (
+        build_compilation_context_from_repo,
+        concept_registry_for_context,
+    )
 
     repo: Repository = obj["repo"]
     claims_root = repo.tree() / "claims"
@@ -249,8 +252,9 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
         click.echo("No claim files found.")
         return
 
-    registry = build_concept_registry(repo)
-    records = detect_conflicts(files, registry)
+    context = build_compilation_context_from_repo(repo, claim_files=list(files))
+    registry = concept_registry_for_context(context)
+    records = detect_conflicts(files, registry, context.cel_registry)
 
     # Filter
     if concept:

@@ -245,6 +245,7 @@ def populate_conflicts(
     conn: sqlite3.Connection,
     claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict,
+    cel_registry: dict,
     context_hierarchy=None,
 ) -> None:
     from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
@@ -252,6 +253,7 @@ def populate_conflicts(
     records = detect_conflicts(
         claim_files,
         concept_registry,
+        cel_registry,
         context_hierarchy=context_hierarchy,
     )
     transitive_records = detect_transitive_conflicts(

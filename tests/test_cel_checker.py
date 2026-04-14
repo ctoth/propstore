@@ -5,6 +5,8 @@ errors/warnings. Tests are organized by the type rule from the compiler
 contract they exercise.
 """
 
+import importlib
+
 import pytest
 from hypothesis import given, assume, settings
 from hypothesis import strategies as st
@@ -16,11 +18,17 @@ from propstore.cel_checker import (
     KindType,
     TernaryNode,
     UnaryOpNode,
-    build_cel_registry,
     check_cel_expression,
     parse_cel,
     tokenize,
 )
+from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES
+from propstore.cel_registry import (
+    build_canonical_cel_registry,
+    build_store_cel_registry,
+)
+from propstore.core.concepts import ConceptRecord, parse_concept_record
+from propstore.core.row_types import ConceptRow
 
 
 # ── Fixtures: concept registries ─────────────────────────────────────
@@ -496,75 +504,123 @@ def test_closed_category_undeclared_literals_are_hard_errors(val):
 
 
 class TestBuildCelRegistry:
-    """Tests for the consolidated build_cel_registry function."""
+    """Tests for typed CEL registry projection."""
 
-    def test_mapping_input_quantity(self):
-        concept_payloads = [
-            {
-                "artifact_id": "concept1",
-                "canonical_name": "temperature",
-                "form": "quantity",
-            }
-        ]
-        result = build_cel_registry(concept_payloads)
+    @staticmethod
+    def _record(
+        artifact_id: str,
+        canonical_name: str,
+        *,
+        form: str,
+        form_parameters: dict | None = None,
+    ) -> ConceptRecord:
+        payload = {
+            "artifact_id": artifact_id,
+            "canonical_name": canonical_name,
+            "status": "accepted",
+            "definition": f"Definition of {canonical_name}.",
+            "form": form,
+            "logical_ids": [{"namespace": "speech", "value": canonical_name}],
+            "version_id": "sha256:" + ("0" * 64),
+        }
+        if form_parameters is not None:
+            payload["form_parameters"] = form_parameters
+        return parse_concept_record(payload)
+
+    def test_canonical_input_quantity(self):
+        result = build_canonical_cel_registry([
+            self._record("ps:concept:temperature", "temperature", form="frequency"),
+        ])
         assert "temperature" in result
         info = result["temperature"]
-        assert info.id == "concept1"
+        assert info.id == "ps:concept:temperature"
         assert info.kind == KindType.QUANTITY
         assert info.category_values == []
 
-    def test_mapping_input_category(self):
-        concept_payloads = [
-            {
-                "artifact_id": "concept2",
-                "canonical_name": "color",
-                "form": "category",
-                "form_parameters": {
+    def test_canonical_input_category(self):
+        result = build_canonical_cel_registry([
+            self._record(
+                "ps:concept:color",
+                "color",
+                form="category",
+                form_parameters={
                     "values": ["red", "green", "blue"],
                     "extensible": False,
                 },
-            }
-        ]
-        result = build_cel_registry(concept_payloads)
+            )
+        ])
         assert "color" in result
         info = result["color"]
         assert info.kind == KindType.CATEGORY
         assert info.category_values == ["red", "green", "blue"]
         assert info.category_extensible is False
 
-    def test_skips_missing_name(self):
-        result = build_cel_registry([
-            {"artifact_id": "concept3", "form": "quantity"},
-        ])
-        assert len(result) == 0
+    def test_requires_typed_canonical_records(self):
+        with pytest.raises(TypeError):
+            build_canonical_cel_registry([
+                {"artifact_id": "ps:concept:x", "canonical_name": "x"},
+            ])
 
-    def test_skips_missing_form(self):
-        result = build_cel_registry([
-            {"artifact_id": "concept4", "canonical_name": "pressure"},
-        ])
-        assert len(result) == 0
+    def test_duplicate_canonical_name_is_error(self):
+        with pytest.raises(ValueError, match="duplicate canonical_name"):
+            build_canonical_cel_registry([
+                self._record("ps:concept:task-a", "task", form="category"),
+                self._record("ps:concept:task-b", "task", form="category"),
+            ])
+
+    def test_empty_canonical_name_on_canonical_record_is_error(self):
+        record = ConceptRecord(
+            artifact_id="ps:concept:oops",
+            canonical_name="",
+            status="accepted",
+            definition="Definition.",
+            form="frequency",
+            logical_ids=(),
+            version_id="sha256:" + ("1" * 64),
+        )
+        with pytest.raises(ValueError, match="canonical_name"):
+            build_canonical_cel_registry([record])
 
     def test_category_extensible_defaults_true(self):
-        result = build_cel_registry([
-            {
-                "artifact_id": "concept5",
-                "canonical_name": "status",
-                "form": "category",
-                "form_parameters": {"values": ["active"]},
-            }
+        result = build_canonical_cel_registry([
+            self._record(
+                "ps:concept:status",
+                "status",
+                form="category",
+                form_parameters={"values": ["active"]},
+            )
         ])
         assert result["status"].category_extensible is True
+
+    def test_store_projection_requires_typed_rows(self):
+        with pytest.raises(TypeError):
+            build_store_cel_registry([{"id": "ps:concept:x", "canonical_name": "x"}])
+
+    def test_store_projection_rejects_missing_kind(self):
+        row = ConceptRow(
+            concept_id="ps:concept:temperature",
+            canonical_name="temperature",
+            kind_type=None,
+            form=None,
+        )
+        with pytest.raises(ValueError, match="valid kind_type or form"):
+            build_store_cel_registry([row])
+
+    def test_standard_synthetic_names_are_not_checker_owned(self):
+        checker_module = importlib.import_module("propstore.cel_checker")
+        assert not hasattr(checker_module, "STANDARD_SYNTHETIC_BINDING_NAMES")
+        assert "source" in STANDARD_SYNTHETIC_BINDING_NAMES
 
 
 def test_category_from_cli_round_trip():
     """Category concept created with values -> CEL checker validates against those values."""
-    registry = build_cel_registry([
-        {
-            "artifact_id": "concept1",
-            "canonical_name": "dataset",
-            "form": "category",
-            "form_parameters": {"values": ["ActivityNet", "YouCook2"], "extensible": False},
-        }
+    registry = build_canonical_cel_registry([
+        TestBuildCelRegistry._record(
+            "ps:concept:dataset",
+            "dataset",
+            form="category",
+            form_parameters={"values": ["ActivityNet", "YouCook2"], "extensible": False},
+        )
     ])
     # Valid value -> no errors
     errors = check_cel_expression("dataset == 'ActivityNet'", registry)

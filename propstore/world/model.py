@@ -12,9 +12,9 @@ from typing import TYPE_CHECKING, Any
 from propstore.cel_checker import (
     ConceptInfo,
     KindType,
-    build_cel_registry,
     with_standard_synthetic_bindings,
 )
+from propstore.cel_registry import build_store_cel_registry
 from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.store_results import (
@@ -307,16 +307,18 @@ class WorldModel(ArtifactStore):
             "SELECT id, canonical_name, kind_type, form_parameters FROM concept"
         ).fetchall()
         normalized_rows = [
-            {
-                "id": row["id"],
-                "canonical_name": row["canonical_name"],
-                "kind_type": row["kind_type"],
-                "form_parameters": row["form_parameters"],
-            }
+            ConceptRow.from_mapping(
+                {
+                    "id": row["id"],
+                    "canonical_name": row["canonical_name"],
+                    "kind_type": row["kind_type"],
+                    "form_parameters": row["form_parameters"],
+                }
+            )
             for row in rows
         ]
         registry = with_standard_synthetic_bindings(
-            build_cel_registry(normalized_rows)
+            build_store_cel_registry(normalized_rows)
         )
         self._registry = registry
         return registry

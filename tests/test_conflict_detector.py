@@ -15,11 +15,11 @@ from hypothesis import given, strategies as st, settings
 
 from propstore.conflict_detector import (
     ConflictClass,
-    detect_conflicts,
+    detect_conflicts as _detect_conflicts,
 )
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.loaded import LoadedEntry
-from tests.conftest import make_concept_identity, make_concept_registry
+from tests.conftest import make_cel_registry, make_concept_identity, make_concept_registry
 
 
 # ── Test helpers ─────────────────────────────────────────────────────
@@ -58,6 +58,15 @@ def make_claim_file(claims, filename="test_paper"):
     )
 
 
+def detect_conflicts(claim_files, registry, context_hierarchy=None):
+    return _detect_conflicts(
+        claim_files,
+        registry,
+        make_cel_registry(registry),
+        context_hierarchy=context_hierarchy,
+    )
+
+
 # ── Conflict classification ─────────────────────────────────────────
 
 
@@ -84,6 +93,22 @@ class TestConflictClassification:
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
         assert len(records) == 0
+
+
+class TestConflictRegistryProjection:
+    def test_conflicting_alias_entries_raise(self):
+        registry = make_concept_registry()
+        base = next(
+            dict(value)
+            for value in registry.values()
+            if value.get("canonical_name") == "fundamental_frequency"
+        )
+        conflicting = dict(base)
+        conflicting["canonical_name"] = "different_name"
+        registry["concept1_alias_conflict"] = conflicting
+
+        with pytest.raises(ValueError, match="conflicting concept registry entries"):
+            detect_conflicts([], registry)
 
     def test_conflict_same_conditions_different_values(self):
         """Same concept, same conditions, different values -> CONFLICT."""

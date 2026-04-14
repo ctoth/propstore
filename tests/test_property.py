@@ -16,10 +16,11 @@ from propstore.cel_checker import (
 )
 from propstore.conflict_detector import (
     ConflictClass,
-    detect_conflicts,
+    detect_conflicts as _detect_conflicts,
 )
 from propstore.loaded import LoadedEntry
 from pathlib import Path
+from tests.conftest import make_cel_registry, make_concept_registry
 
 
 # ── CEL tokenizer property tests ─────────────────────────────────────
@@ -30,6 +31,15 @@ _VALID_OP = st.sampled_from(["==", "!=", ">", "<", ">=", "<="])
 _VALID_INT = st.integers(min_value=0, max_value=9999)
 _VALID_FLOAT = st.floats(min_value=0.1, max_value=9999.0, allow_nan=False, allow_infinity=False)
 _VALID_STRING_LIT = st.from_regex(r"[a-z][a-z_]{0,10}", fullmatch=True)
+
+
+def detect_conflicts(claim_files, registry, context_hierarchy=None):
+    return _detect_conflicts(
+        claim_files,
+        registry,
+        make_cel_registry(registry),
+        context_hierarchy=context_hierarchy,
+    )
 
 
 @given(name=_VALID_IDENT, op=_VALID_OP, val=_VALID_INT)

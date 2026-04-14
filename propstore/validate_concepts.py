@@ -18,11 +18,8 @@ from typing import TYPE_CHECKING
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, dims_of_expr, DimensionalError
 
-from propstore.cel_checker import (
-    KindType,
-    build_cel_registry,
-    check_cel_expression,
-)
+from propstore.cel_checker import ConceptInfo, KindType, check_cel_expression
+from propstore.cel_registry import build_canonical_cel_registry
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
@@ -144,7 +141,7 @@ def validate_concepts(
     result = ValidationResult()
     id_to_concept: dict[str, LoadedConcept] = {}
     seen_logical_ids: dict[str, str] = {}
-    cel_registry = build_cel_registry(concept.record.to_payload() for concept in concepts)
+    cel_registry: dict[str, ConceptInfo] | None = None
 
     def _forms_dir(c: LoadedConcept) -> KnowledgePath:
         if forms_dir is not None:
@@ -279,9 +276,17 @@ def validate_concepts(
                 result.errors.append(
                     f"{c.filename}: deprecated concept must have 'replaced_by'")
 
-    # ── Cross-concept checks (need all concepts loaded) ─────────
-
     all_ids = set(id_to_concept.keys())
+    try:
+        cel_registry = build_canonical_cel_registry(
+            concept.record
+            for concept in concepts
+            if str(concept.record.artifact_id) in all_ids
+        )
+    except ValueError as exc:
+        result.errors.append(f"CEL registry error: {exc}")
+
+    # ── Cross-concept checks (need all concepts loaded) ─────────
 
     for c in concepts:
         data = c.record.to_payload()
@@ -322,13 +327,14 @@ def validate_concepts(
                     f"{c.filename}: contested_definition relationship to '{target}' must have a note")
 
             # CEL conditions in relationships
-            for cel_expr in rel.get("conditions", []) or []:
-                cel_errors = check_cel_expression(cel_expr, cel_registry)
-                for ce in cel_errors:
-                    if ce.is_warning:
-                        result.warnings.append(f"{c.filename}: CEL warning: {ce.message}")
-                    else:
-                        result.errors.append(f"{c.filename}: CEL error: {ce.message}")
+            if cel_registry is not None:
+                for cel_expr in rel.get("conditions", []) or []:
+                    cel_errors = check_cel_expression(cel_expr, cel_registry)
+                    for ce in cel_errors:
+                        if ce.is_warning:
+                            result.warnings.append(f"{c.filename}: CEL warning: {ce.message}")
+                        else:
+                            result.errors.append(f"{c.filename}: CEL error: {ce.message}")
 
         # ── Parameterization inputs ─────────────────────────────
         for param in data.get("parameterization_relationships", []) or []:
@@ -450,13 +456,14 @@ def validate_concepts(
                         f"must have conditions")
 
             # CEL conditions in parameterizations
-            for cel_expr in param.get("conditions", []) or []:
-                cel_errors = check_cel_expression(cel_expr, cel_registry)
-                for ce in cel_errors:
-                    if ce.is_warning:
-                        result.warnings.append(f"{c.filename}: CEL warning: {ce.message}")
-                    else:
-                        result.errors.append(f"{c.filename}: CEL error: {ce.message}")
+            if cel_registry is not None:
+                for cel_expr in param.get("conditions", []) or []:
+                    cel_errors = check_cel_expression(cel_expr, cel_registry)
+                    for ce in cel_errors:
+                        if ce.is_warning:
+                            result.warnings.append(f"{c.filename}: CEL warning: {ce.message}")
+                        else:
+                            result.errors.append(f"{c.filename}: CEL error: {ce.message}")
 
             # canonical_claim must reference an existing claim
             canonical_claim = param.get("canonical_claim")

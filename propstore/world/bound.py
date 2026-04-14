@@ -7,6 +7,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+from propstore.cel_checker import ConceptInfo
+from propstore.cel_registry import build_store_cel_registry
 from propstore.core.activation import is_active_claim_active
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.claim_types import ClaimType
@@ -70,10 +72,12 @@ class _ContextHierarchyLoader(Protocol):
     def _load_context_hierarchy(self) -> ContextHierarchy | None: ...
 
 
-def _concept_registry_for_store(world) -> dict[str, dict]:
+def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, ConceptInfo]]:
     registry: dict[str, dict] = {}
+    rows = []
     for concept_input in world.all_concepts():
         concept = coerce_concept_row(concept_input)
+        rows.append(concept)
         cdata = concept.to_dict()
         cid = str(concept.concept_id)
         if concept.form_parameters is not None:
@@ -100,7 +104,7 @@ def _concept_registry_for_store(world) -> dict[str, dict]:
                     ),
                 })
         registry[cid] = cdata
-    return registry
+    return registry, build_store_cel_registry(rows)
 
 
 def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[ConflictRow]:
@@ -117,7 +121,7 @@ def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[ConflictRow]
         source_path=None,
         data={"claims": [claim.to_source_claim_payload() for claim in claims]},
     )
-    concept_registry = _concept_registry_for_store(world)
+    concept_registry, cel_registry = _conflict_inputs_for_store(world)
     context_hierarchy = (
         world._load_context_hierarchy()
         if isinstance(world, _ContextHierarchyLoader)
@@ -126,6 +130,7 @@ def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[ConflictRow]
     records = detect_conflicts(
         [synthetic],
         concept_registry,
+        cel_registry,
         context_hierarchy=context_hierarchy,
     )
     return [

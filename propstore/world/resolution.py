@@ -14,9 +14,9 @@ from dataclasses import dataclass
 
 from propstore.cel_checker import (
     ConceptInfo,
-    build_cel_registry,
     scope_cel_registry,
 )
+from propstore.cel_registry import build_store_cel_registry
 from propstore.core.active_claims import (
     ActiveClaim,
     coerce_active_claims,
@@ -291,12 +291,12 @@ def _cel_registry_for_concepts(
     world: ArtifactStore,
     concept_ids: Sequence[str],
 ) -> dict[str, ConceptInfo]:
-    records = [
-        coerce_concept_row(concept).to_dict()
+    rows = [
+        coerce_concept_row(concept)
         for concept_id in concept_ids
         if (concept := world.get_concept(concept_id)) is not None
     ]
-    registry = build_cel_registry(records)
+    registry = build_store_cel_registry(rows)
     return scope_cel_registry(registry, concept_ids)
 
 

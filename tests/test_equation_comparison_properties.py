@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.conflict_detector import detect_conflicts
+from propstore.conflict_detector import detect_conflicts as _detect_conflicts
 from propstore.conflict_detector.models import ConflictClaimVariable
 from propstore.conflict_detector.models import ConflictClaim
 from propstore.equation_comparison import (
@@ -28,7 +28,7 @@ from propstore.equation_parser import (
     render_equation,
 )
 from propstore.loaded import LoadedEntry
-from tests.conftest import make_concept_registry
+from tests.conftest import make_cel_registry, make_concept_registry
 
 
 _BASE_VARIABLES = (
@@ -36,6 +36,15 @@ _BASE_VARIABLES = (
     ConflictClaimVariable(concept_id="concept1", symbol="y", role="independent"),
     ConflictClaimVariable(concept_id="concept3", symbol="z", role="independent"),
 )
+
+
+def detect_conflicts(claim_files, registry, context_hierarchy=None):
+    return _detect_conflicts(
+        claim_files,
+        registry,
+        make_cel_registry(registry),
+        context_hierarchy=context_hierarchy,
+    )
 
 
 def _make_claim(
