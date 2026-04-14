@@ -10,14 +10,11 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from itertools import product
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from propstore.repo.merge_claims import MergeClaim
-from propstore.repo.branch import branch_head, merge_base
 from propstore.repo.merge_framework import PartialArgumentationFramework
-
-if TYPE_CHECKING:
-    from propstore.repo.git_backend import KnowledgeRepo
+from propstore.repo.snapshot import RepoSnapshot
 
 
 class _DiffKind(Enum):
@@ -287,20 +284,20 @@ def _emit_argument(
 
 
 def build_merge_framework(
-    kr: KnowledgeRepo,
+    snapshot: RepoSnapshot,
     branch_a: str,
     branch_b: str,
 ) -> RepoMergeFramework:
     """Build the direct repository merge object for two branches."""
     from propstore.claim_documents import load_claim_files
 
-    base_sha = merge_base(kr, branch_a, branch_b)
-    left_sha = branch_head(kr, branch_a)
-    right_sha = branch_head(kr, branch_b)
+    base_sha = snapshot.merge_base(branch_a, branch_b)
+    left_sha = snapshot.branch_head(branch_a)
+    right_sha = snapshot.branch_head(branch_b)
 
-    base_claims_root = kr.tree(commit=base_sha) / "claims"
-    left_claims_root = kr.tree(commit=left_sha) / "claims"
-    right_claims_root = kr.tree(commit=right_sha) / "claims"
+    base_claims_root = snapshot.tree(commit=base_sha) / "claims"
+    left_claims_root = snapshot.tree(commit=left_sha) / "claims"
+    right_claims_root = snapshot.tree(commit=right_sha) / "claims"
 
     base_idx = _index_claims(load_claim_files(base_claims_root))
     left_idx = _index_claims(load_claim_files(left_claims_root))

@@ -13,6 +13,7 @@ from propstore.document_schema import decode_document_path
 from propstore.dung import ArgumentationFramework
 from propstore.knowledge_path import KnowledgePath
 from propstore.repo.merge_claims import MergeClaim
+from propstore.repo.snapshot import RepoSnapshot
 from propstore.stance_documents import StanceFileDocument
 from propstore.structured_projection import StructuredProjection, build_structured_projection
 
@@ -243,10 +244,8 @@ def _file_stance_rows(stances_root: KnowledgePath) -> list[StanceRow]:
     return rows
 
 
-def build_branch_structured_summary(kr, branch: str) -> BranchStructuredSummary:
-    from propstore.repo.branch import branch_head
-
-    tree = kr.tree(commit=branch_head(kr, branch))
+def build_branch_structured_summary(snapshot: RepoSnapshot, branch: str) -> BranchStructuredSummary:
+    tree = snapshot.tree(commit=snapshot.branch_head(branch))
     active_claims = _load_branch_claims(tree / "claims")
     raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(tree / "stances")
     stance_rows = _canonical_stance_rows(active_claims, raw_stance_rows)
@@ -274,7 +273,7 @@ def build_branch_structured_summary(kr, branch: str) -> BranchStructuredSummary:
 
 
 def build_structured_merge_candidates(
-    kr,
+    snapshot: RepoSnapshot,
     branch_a: str,
     branch_b: str,
     *,
@@ -287,8 +286,8 @@ def build_structured_merge_candidates(
     )
 
     summaries = {
-        branch_a: build_branch_structured_summary(kr, branch_a),
-        branch_b: build_branch_structured_summary(kr, branch_b),
+        branch_a: build_branch_structured_summary(snapshot, branch_a),
+        branch_b: build_branch_structured_summary(snapshot, branch_b),
     }
     profile = {
         branch: summary.projection.framework

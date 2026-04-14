@@ -9,6 +9,7 @@ from propstore.repo import KnowledgeRepo
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_commit import create_merge_commit
+from propstore.repo.snapshot import RepoSnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
 
 
@@ -87,6 +88,10 @@ def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_
     return yaml.dump(normalized, sort_keys=False).encode()
 
 
+def _snapshot(kr: KnowledgeRepo) -> RepoSnapshot:
+    return RepoSnapshot.for_git(kr)
+
+
 def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
@@ -106,7 +111,7 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
         branch=branch_name,
     )
 
-    merge = build_merge_framework(kr, "master", branch_name)
+    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
 
     assert len(merge.arguments) == 2
     claim_ids = {argument.claim_id for argument in merge.arguments}
@@ -147,7 +152,7 @@ def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
         branch=branch_name,
     )
 
-    merge = build_merge_framework(kr, "master", branch_name)
+    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
 
     assert len(merge.arguments) == 2
     claim_ids = {argument.claim_id for argument in merge.arguments}
@@ -175,7 +180,7 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
         branch=branch_name,
     )
 
-    merge = build_merge_framework(kr, "master", branch_name)
+    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
 
     assert len(merge.arguments) == 1
     emitted = merge.arguments[0]
@@ -205,7 +210,7 @@ def test_create_merge_commit_keeps_divergent_same_artifact_versions_out_of_mater
         branch=branch_name,
     )
 
-    merge_sha = create_merge_commit(kr, "master", branch_name)
+    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
     from propstore.claim_documents import load_claim_files
 
@@ -268,7 +273,7 @@ def test_create_merge_commit_records_semantic_candidates_in_manifest(tmp_path):
         branch=branch_name,
     )
 
-    merge_sha = create_merge_commit(kr, "master", branch_name)
+    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
     manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
 
     assert manifest["merge"]["semantic_candidates"] == [

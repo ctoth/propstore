@@ -12,6 +12,7 @@ from propstore.cli.repository import Repository
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_report import summarize_merge_framework
+from propstore.repo.snapshot import RepoSnapshot
 from tests.conftest import normalize_claims_payload
 
 
@@ -69,6 +70,10 @@ def _param_claim(
     if conditions:
         claim["conditions"] = conditions
     return claim
+
+
+def _snapshot(repo: Repository) -> RepoSnapshot:
+    return repo.snapshot
 
 
 def test_merge_inspect_cli_surfaces_query_summary(tmp_path):
@@ -154,7 +159,7 @@ def test_merge_inspect_cli_matches_report_helper_output(tmp_path, semantics):
     )
 
     expected = summarize_merge_framework(
-        build_merge_framework(git, "master", branch_name),
+        build_merge_framework(_snapshot(repo), "master", branch_name),
         semantics=semantics,
     )
 

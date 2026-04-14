@@ -8,6 +8,7 @@ from propstore.repo import KnowledgeRepo
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_report import summarize_merge_framework
+from propstore.repo.snapshot import RepoSnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
 
 
@@ -66,6 +67,10 @@ def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_
     return yaml.dump(normalized, sort_keys=False).encode()
 
 
+def _snapshot(kr: KnowledgeRepo) -> RepoSnapshot:
+    return RepoSnapshot.for_git(kr)
+
+
 def test_merge_report_surfaces_conflict_query_state(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
@@ -85,7 +90,7 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
     )
 
     report = summarize_merge_framework(
-        build_merge_framework(kr, "master", branch_name),
+        build_merge_framework(_snapshot(kr), "master", branch_name),
         semantics="grounded",
     )
 
@@ -144,7 +149,7 @@ def test_merge_report_surfaces_ignorance_query_state(tmp_path):
     )
 
     report = summarize_merge_framework(
-        build_merge_framework(kr, "master", branch_name),
+        build_merge_framework(_snapshot(kr), "master", branch_name),
         semantics="grounded",
     )
 
@@ -208,7 +213,7 @@ def test_merge_report_surfaces_semantic_candidates_without_forced_fusion(tmp_pat
     )
 
     report = summarize_merge_framework(
-        build_merge_framework(kr, "master", branch_name),
+        build_merge_framework(_snapshot(kr), "master", branch_name),
         semantics="grounded",
     )
 
