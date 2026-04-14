@@ -51,15 +51,7 @@ from typing import cast
 
 import gunray
 from gunray.adapter import GunrayEvaluator
-from gunray.parser import ground_atom as gunray_ground_atom
-from gunray.parser import parse_defeasible_rule
 from gunray.schema import DefeasibleModel, DefeasibleSections, Policy
-from gunray.types import Constant as GunrayConstant
-from gunray.types import DefeasibleRule as GunrayDefeasibleRule
-from gunray.types import GroundAtom as GunrayGroundAtom
-from gunray.types import GroundDefeasibleRule
-from gunray.types import Variable as GunrayVariable
-from gunray.types import Wildcard as GunrayWildcard
 
 from propstore.aspic import GroundAtom, Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -82,9 +74,20 @@ _FOUR_SECTIONS: tuple[str, ...] = (
 
 
 @dataclass(frozen=True, slots=True)
+class _GunrayArgumentRuleRef:
+    rule_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class _GunrayGroundAtomView:
+    predicate: str
+    arguments: tuple[Scalar, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class _GunrayArgumentFallback:
-    conclusion: GunrayGroundAtom
-    rules: tuple[GroundDefeasibleRule, ...] = ()
+    conclusion: _GunrayGroundAtomView
+    rules: tuple[_GunrayArgumentRuleRef, ...] = ()
 
 
 def _ensure_gunray_argument_surface() -> type[_GunrayArgumentFallback] | type[object]:
@@ -274,25 +277,20 @@ def _fallback_build_arguments(
     theory,
     normalized_sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]],
 ) -> frozenset[_GunrayArgumentFallback]:
-    groundable_rules = _groundable_rules_by_head_predicate(theory)
+    head_rule_ids = _rule_ids_by_head_predicate(theory)
     arguments: set[_GunrayArgumentFallback] = set()
     for section_name in ("definitely", "defeasibly"):
         for predicate, rows in normalized_sections.get(section_name, {}).items():
-            matching_rules = groundable_rules.get(predicate, ())
+            matching_rule_ids = head_rule_ids.get(predicate, ())
+            rule_sets = (
+                tuple((_GunrayArgumentRuleRef(rule_id),) for rule_id in matching_rule_ids)
+                if matching_rule_ids
+                else ((),)
+            )
             for row in rows:
-                conclusion = GunrayGroundAtom(
+                conclusion = _GunrayGroundAtomView(
                     predicate=predicate,
                     arguments=tuple(row),
-                )
-                grounded_rules = tuple(
-                    rule
-                    for parsed_rule in matching_rules
-                    if (rule := _ground_rule_from_conclusion(parsed_rule, conclusion)) is not None
-                )
-                rule_sets = (
-                    tuple((grounded_rule,) for grounded_rule in grounded_rules)
-                    if grounded_rules
-                    else ((),)
                 )
                 for rule_refs in rule_sets:
                     arguments.add(
@@ -304,58 +302,29 @@ def _fallback_build_arguments(
     return frozenset(arguments)
 
 
-def _groundable_rules_by_head_predicate(theory) -> dict[str, tuple[GunrayDefeasibleRule, ...]]:
-    rules_by_predicate: dict[str, list[GunrayDefeasibleRule]] = {}
-    for kind, rules in (
-        ("strict", getattr(theory, "strict_rules", ())),
-        ("defeasible", getattr(theory, "defeasible_rules", ())),
-        ("defeater", getattr(theory, "defeaters", ())),
+def _rule_ids_by_head_predicate(theory) -> dict[str, tuple[str, ...]]:
+    rule_ids: dict[str, set[str]] = {}
+    for rule in (
+        *getattr(theory, "strict_rules", ()),
+        *getattr(theory, "defeasible_rules", ()),
+        *getattr(theory, "defeaters", ()),
     ):
-        for rule in rules:
-            parsed_rule = parse_defeasible_rule(rule, kind=kind)
-            rules_by_predicate.setdefault(parsed_rule.head.predicate, []).append(parsed_rule)
+        predicate = _predicate_name(getattr(rule, "head", ""))
+        rule_id = getattr(rule, "id", None)
+        if not isinstance(predicate, str) or not predicate:
+            continue
+        if not isinstance(rule_id, str) or not rule_id:
+            continue
+        rule_ids.setdefault(predicate, set()).add(rule_id)
     return {
-        predicate: tuple(sorted(items, key=lambda item: (item.rule_id, item.kind)))
-        for predicate, items in rules_by_predicate.items()
+        predicate: tuple(sorted(ids))
+        for predicate, ids in rule_ids.items()
     }
 
 
-def _ground_rule_from_conclusion(
-    rule: GunrayDefeasibleRule,
-    conclusion: GunrayGroundAtom,
-) -> GroundDefeasibleRule | None:
-    binding = _head_binding(rule.head, conclusion)
-    if binding is None:
-        return None
-    return GroundDefeasibleRule(
-        rule_id=rule.rule_id,
-        kind=rule.kind,
-        head=gunray_ground_atom(rule.head, binding),
-        body=tuple(gunray_ground_atom(atom, binding) for atom in rule.body),
-    )
-
-
-def _head_binding(head, conclusion: GunrayGroundAtom) -> dict[str, Scalar] | None:
-    if head.predicate != conclusion.predicate:
-        return None
-    if len(head.terms) != len(conclusion.arguments):
-        return None
-    binding: dict[str, Scalar] = {}
-    for term, argument in zip(head.terms, conclusion.arguments, strict=True):
-        if isinstance(term, GunrayVariable):
-            bound = binding.get(term.name)
-            if bound is not None and bound != argument:
-                return None
-            binding[term.name] = argument
-            continue
-        if isinstance(term, GunrayConstant):
-            if term.value != argument:
-                return None
-            continue
-        if isinstance(term, GunrayWildcard):
-            continue
-        return None
-    return binding
+def _predicate_name(atom_text: str) -> str:
+    head = atom_text.split("(", 1)[0]
+    return head.strip()
 
 
 def _normalise_sections(
