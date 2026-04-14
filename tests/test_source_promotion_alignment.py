@@ -32,7 +32,7 @@ from propstore.source import (
     promote_source_branch,
     source_branch_name,
 )
-from propstore.source_documents import (
+from propstore.artifacts.documents.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,
     SourceFinalizeCalibrationDocument,

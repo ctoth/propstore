@@ -7,7 +7,7 @@ from pathlib import Path
 from propstore.artifacts import SOURCE_CLAIMS_FAMILY, SourceRef
 from propstore.claim_documents import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.core.claim_types import ClaimType, coerce_claim_type
-from propstore.source_documents import SourceProvenanceDocument
+from propstore.artifacts.documents.sources import SourceProvenanceDocument
 from propstore.cli.repository import Repository
 from propstore.artifacts.schema import convert_document_value, decode_document_path
 from propstore.identity import (
@@ -24,7 +24,7 @@ from .common import (
     source_branch_name,
     source_tag_uri,
 )
-from propstore.source_documents import ExtractionProvenanceDocument, SourceClaimDocument, SourceClaimsDocument
+from propstore.artifacts.documents.sources import ExtractionProvenanceDocument, SourceClaimDocument, SourceClaimsDocument
 
 
 def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:

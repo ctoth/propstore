@@ -36,7 +36,7 @@ from propstore.artifacts.refs import (
 from propstore.artifacts.types import ArtifactFamily, ResolvedArtifact
 from propstore.claim_documents import ClaimsFileDocument
 from propstore.context_types import ContextDocument
-from propstore.source_documents import (
+from propstore.artifacts.documents.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,
     SourceDocument,

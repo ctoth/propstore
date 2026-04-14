@@ -316,3 +316,9 @@ If any answer is still "it depends", this workstream is not done.
   - Updated production and test imports directly to
     `propstore.artifacts.documents`.
   - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase2 tests/test_artifact_store.py tests/test_artifact_identity_policy.py tests/test_artifact_reference_resolver.py tests/test_source_promotion_alignment.py tests/test_validator.py tests/test_validate_claims.py tests/test_document_schema.py tests/test_worldline.py::TestWorldlineDefinition`
+- 2026-04-14: Phase 3 source slice completed.
+  - Moved `propstore/source_documents.py` to
+    `propstore/artifacts/documents/sources.py`.
+  - Updated all direct imports to the new path.
+  - Deleted the old top-level module in the same slice.
+  - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase3-sources tests/test_source_claims.py tests/test_source_promotion_alignment.py tests/test_artifact_store.py tests/test_artifact_reference_resolver.py tests/test_repo_snapshot.py tests/test_algorithm_stage_types.py tests/test_claim_and_stance_document_enums.py`

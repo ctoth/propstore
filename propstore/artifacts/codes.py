@@ -13,7 +13,7 @@ from propstore.core.labels import Label
 from propstore.artifacts.schema import decode_document_path
 from propstore.identity import canonicalize_claim_for_version
 from propstore.knowledge_path import KnowledgePath
-from propstore.source_documents import (
+from propstore.artifacts.documents.sources import (
     SourceDocument,
     SourceJustificationsDocument,
 )

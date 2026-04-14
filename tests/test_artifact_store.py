@@ -18,7 +18,7 @@ from propstore.cli.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.repo.branch import create_branch
 from propstore.source.common import initial_source_document, source_branch_name
-from propstore.source_documents import (
+from propstore.artifacts.documents.sources import (
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
 )

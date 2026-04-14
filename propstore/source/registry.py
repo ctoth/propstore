@@ -8,7 +8,7 @@ from propstore.cli.repository import Repository
 from propstore.parameterization_groups import build_groups
 
 from .common import normalize_source_slug
-from propstore.source_documents import SourceConceptsDocument
+from propstore.artifacts.documents.sources import SourceConceptsDocument
 
 
 def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:

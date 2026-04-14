@@ -19,7 +19,7 @@ from .common import (
     normalize_source_slug,
     source_branch_name,
 )
-from propstore.source_documents import (
+from propstore.artifacts.documents.sources import (
     ExtractionProvenanceDocument,
     SourceJustificationDocument,
     SourceJustificationsDocument,

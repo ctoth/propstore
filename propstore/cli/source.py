@@ -13,7 +13,7 @@ from propstore.core.source_types import (
     coerce_source_origin_type,
 )
 from propstore.provenance import stamp_file
-from propstore.source_documents import SourceConceptFormParametersDocument
+from propstore.artifacts.documents.sources import SourceConceptFormParametersDocument
 from propstore.stances import coerce_stance_type
 from propstore.source import (
     commit_source_claim_proposal,
