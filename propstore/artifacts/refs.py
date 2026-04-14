@@ -57,6 +57,10 @@ def concept_alignment_relpath(slug: str) -> str:
     return f"merge/concepts/{slug}.yaml"
 
 
+def merge_manifest_relpath() -> str:
+    return "merge/manifest.yaml"
+
+
 @dataclass(frozen=True)
 class SourceRef:
     name: str
@@ -105,3 +109,8 @@ class StanceFileRef:
 @dataclass(frozen=True)
 class ConceptAlignmentRef:
     slug: str
+
+
+@dataclass(frozen=True)
+class MergeManifestRef:
+    pass
