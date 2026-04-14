@@ -125,13 +125,16 @@ def ground(
             itself validate against it.
         policy: Ambiguity-resolution policy threaded through to
             ``GunrayEvaluator.evaluate``. Garcia & Simari 2004 §4
-            (p.25) discusses blocking versus propagating ambiguity
-            regimes. Defaults to ``Policy.BLOCKING`` to match gunray's
-            own default. Phase 1 theories cannot diverge between
-            ``BLOCKING`` and ``PROPAGATING`` because the translator
-            does not yet emit conflict pairs, but the keyword is still
-            threaded through so callers can opt into the richer
-            regimes once Phase 2 lands.
+            (p.25) discusses ambiguity regimes for the four-valued
+            answer system. Defaults to ``Policy.BLOCKING`` to match
+            gunray's own default; post-Block-2 (see gunray
+            ``notes/policy_propagating_fate.md``) only ``BLOCKING`` is
+            supported on the dialectical-tree path — argument
+            preference is resolved via ``GeneralizedSpecificity``
+            (Simari & Loui 1992 Lemma 2.4) regardless of the policy
+            value. The keyword is still threaded through so callers
+            can opt into closure-style policies (rational, lexicographic,
+            relevant) once propstore surfaces them.
 
     Returns:
         A ``GroundedRulesBundle`` whose ``sections`` mapping always
