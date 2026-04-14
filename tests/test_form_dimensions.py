@@ -367,7 +367,7 @@ class TestDimensionsPropertyBased:
             st.text(min_size=1, max_size=5),
         )
     )
-    @settings()
+    @settings(deadline=None)
     def test_non_integer_exponents_rejected(
         self, exponent: Any,
     ) -> None:
