@@ -11,7 +11,7 @@ from pathlib import Path
 
 import click
 
-from propstore.artifact_documents.concepts import ConceptIdScanDocument
+from propstore.artifacts.documents.concepts import ConceptIdScanDocument
 from propstore.artifacts.schema import decode_document_path
 
 

@@ -24,7 +24,7 @@ def _prune_none(value: object) -> object:
 
 
 def document_to_payload(document: object) -> object:
-    from propstore.artifact_documents.concepts import ConceptDocument
+    from propstore.artifacts.documents.concepts import ConceptDocument
     from propstore.core.concepts import concept_document_to_payload
 
     if isinstance(document, ConceptDocument):

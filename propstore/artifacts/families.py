@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from propstore.artifact_documents.concepts import ConceptDocument
-from propstore.artifact_documents.forms import FormDocument
-from propstore.artifact_documents.worldlines import WorldlineDefinitionDocument
+from propstore.artifacts.documents.concepts import ConceptDocument
+from propstore.artifacts.documents.forms import FormDocument
+from propstore.artifacts.documents.worldlines import WorldlineDefinitionDocument
 from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.artifacts.refs import (
     CanonicalSourceRef,

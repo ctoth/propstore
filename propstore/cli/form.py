@@ -7,7 +7,7 @@ import sys
 import click
 
 from propstore.artifacts import FORM_FAMILY, FormRef
-from propstore.artifact_documents.forms import FormDocument
+from propstore.artifacts.documents.forms import FormDocument
 from propstore.artifacts.codecs import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository

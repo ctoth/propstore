@@ -23,7 +23,7 @@ from propstore.cel_checker import (
     build_cel_registry_from_concepts,
     check_cel_expression,
 )
-from propstore.artifact_documents.concepts import ConceptDocument
+from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.form_utils import kind_type_from_form_name, load_form_path

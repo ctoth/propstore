@@ -310,3 +310,9 @@ If any answer is still "it depends", this workstream is not done.
     export surface so `propstore.artifacts.schema` does not create a package
     import cycle through `families.py`.
   - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase1-green tests/test_document_schema.py tests/test_worldline.py::TestWorldlineDefinition tests/test_source_claims.py tests/test_validate_claims.py tests/test_validator.py tests/test_source_promotion_alignment.py tests/test_claim_and_stance_document_enums.py tests/test_build_sidecar.py`
+- 2026-04-14: Phase 2 completed.
+  - Moved `propstore/artifact_documents/` to
+    `propstore/artifacts/documents/`.
+  - Updated production and test imports directly to
+    `propstore.artifacts.documents`.
+  - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase2 tests/test_artifact_store.py tests/test_artifact_identity_policy.py tests/test_artifact_reference_resolver.py tests/test_source_promotion_alignment.py tests/test_validator.py tests/test_validate_claims.py tests/test_document_schema.py tests/test_worldline.py::TestWorldlineDefinition`

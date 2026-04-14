@@ -11,7 +11,7 @@ from typing import Any
 
 import pint
 
-from propstore.artifact_documents.forms import (
+from propstore.artifacts.documents.forms import (
     FormAlternativeDocument,
     FormDocument,
     FormExtraUnitDocument,
