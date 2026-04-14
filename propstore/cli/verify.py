@@ -5,7 +5,7 @@ from __future__ import annotations
 import click
 import yaml
 
-from propstore.artifact_codes import verify_claim_tree
+from propstore.artifacts.codes import verify_claim_tree
 from propstore.cli.repository import Repository
 
 
