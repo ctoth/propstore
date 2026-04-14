@@ -661,33 +661,31 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             click.echo("Rename validation failed. No changes written.", err=True)
             sys.exit(EXIT_VALIDATION)
 
-    transaction = repo.artifacts.transact(message=f"Rename concept: {old_name} -> {name}")
-    for original_ref, updated_ref, updated_concept in updated_concepts:
-        if original_ref == old_ref:
-            transaction.move(
-                CONCEPT_FILE_FAMILY,
-                old_ref,
-                new_ref,
-                _concept_document(repo, updated_ref, updated_concept.data),
-            )
-            continue
-        if original_ref in changed_concept_refs:
+    with repo.artifacts.transact(message=f"Rename concept: {old_name} -> {name}") as transaction:
+        for original_ref, updated_ref, updated_concept in updated_concepts:
+            if original_ref == old_ref:
+                transaction.move(
+                    CONCEPT_FILE_FAMILY,
+                    old_ref,
+                    new_ref,
+                    _concept_document(repo, updated_ref, updated_concept.data),
+                )
+                continue
+            if original_ref in changed_concept_refs:
+                transaction.save(
+                    CONCEPT_FILE_FAMILY,
+                    updated_ref,
+                    _concept_document(repo, updated_ref, updated_concept.data),
+                )
+
+        for claim_ref, updated_claim_file in updated_claim_files:
+            if claim_ref not in changed_claim_refs:
+                continue
             transaction.save(
-                CONCEPT_FILE_FAMILY,
-                updated_ref,
-                _concept_document(repo, updated_ref, updated_concept.data),
+                CLAIMS_FILE_FAMILY,
+                claim_ref,
+                _claims_document(repo, claim_ref, updated_claim_file.data),
             )
-
-    for claim_ref, updated_claim_file in updated_claim_files:
-        if claim_ref not in changed_claim_refs:
-            continue
-        transaction.save(
-            CLAIMS_FILE_FAMILY,
-            claim_ref,
-            _claims_document(repo, claim_ref, updated_claim_file.data),
-        )
-
-    transaction.commit()
     git.sync_worktree()
 
     click.echo(f"{old_name} -> {name}")

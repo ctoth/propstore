@@ -279,45 +279,46 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
         source=f"claims/{slug}.yaml",
     )
 
-    transaction = repo.artifacts.transact(
+    with repo.artifacts.transact(
         message=f"Promote source {slug}",
         branch=repo.git.primary_branch_name(),
-    )
-    transaction.save(
-        CANONICAL_SOURCE_FAMILY,
-        CanonicalSourceRef(slug),
-        promoted_source_document,
-    )
-    transaction.save(
-        CLAIMS_FILE_FAMILY,
-        ClaimsFileRef(slug),
-        promoted_claims_document,
-    )
-    for concept_slug, concept_document in promoted_concept_documents.items():
+    ) as transaction:
         transaction.save(
-            CONCEPT_FILE_FAMILY,
-            ConceptFileRef(concept_slug),
-            concept_document,
-        )
-    if promoted_justifications_doc.get("justifications"):
-        promoted_justifications_document = convert_document_value(
-            promoted_justifications_doc,
-            SourceJustificationsDocument,
-            source=f"justifications/{slug}.yaml",
+            CANONICAL_SOURCE_FAMILY,
+            CanonicalSourceRef(slug),
+            promoted_source_document,
         )
         transaction.save(
-            JUSTIFICATIONS_FILE_FAMILY,
-            JustificationsFileRef(slug),
-            promoted_justifications_document,
+            CLAIMS_FILE_FAMILY,
+            ClaimsFileRef(slug),
+            promoted_claims_document,
         )
-    for source_claim, stance_document in promoted_stance_documents.items():
-        transaction.save(
-            STANCE_FILE_FAMILY,
-            StanceFileRef(source_claim),
-            stance_document,
-        )
-
-    sha = transaction.commit()
+        for concept_slug, concept_document in promoted_concept_documents.items():
+            transaction.save(
+                CONCEPT_FILE_FAMILY,
+                ConceptFileRef(concept_slug),
+                concept_document,
+            )
+        if promoted_justifications_doc.get("justifications"):
+            promoted_justifications_document = convert_document_value(
+                promoted_justifications_doc,
+                SourceJustificationsDocument,
+                source=f"justifications/{slug}.yaml",
+            )
+            transaction.save(
+                JUSTIFICATIONS_FILE_FAMILY,
+                JustificationsFileRef(slug),
+                promoted_justifications_document,
+            )
+        for source_claim, stance_document in promoted_stance_documents.items():
+            transaction.save(
+                STANCE_FILE_FAMILY,
+                StanceFileRef(source_claim),
+                stance_document,
+            )
+    sha = transaction.commit_sha
+    if sha is None:
+        raise ValueError("source promotion transaction did not produce a commit")
     repo.git.sync_worktree()
     return sha
 

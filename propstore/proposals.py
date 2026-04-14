@@ -57,22 +57,24 @@ def commit_stance_proposals(
     if not stances_by_claim:
         raise ValueError("stances_by_claim must not be empty")
 
-    transaction = repo.artifacts.transact(
+    with repo.artifacts.transact(
         message=(
             f"Record {len(stances_by_claim)} stance proposal file(s)"
             if len(stances_by_claim) != 1
             else f"Record stance proposal for {next(iter(stances_by_claim))}"
         ),
         branch=branch,
-    )
-    relpaths: list[str] = []
-    for source_claim_id, stances in sorted(stances_by_claim.items()):
-        ref = StanceFileRef(source_claim_id)
-        transaction.save(
-            PROPOSAL_STANCE_FAMILY,
-            ref,
-            build_stance_document(source_claim_id, stances, model_name, repo=repo),
-        )
-        relpaths.append(repo.artifacts.resolve(PROPOSAL_STANCE_FAMILY, ref).relpath)
-    sha = transaction.commit()
+    ) as transaction:
+        relpaths: list[str] = []
+        for source_claim_id, stances in sorted(stances_by_claim.items()):
+            ref = StanceFileRef(source_claim_id)
+            transaction.save(
+                PROPOSAL_STANCE_FAMILY,
+                ref,
+                build_stance_document(source_claim_id, stances, model_name, repo=repo),
+            )
+            relpaths.append(repo.artifacts.resolve(PROPOSAL_STANCE_FAMILY, ref).relpath)
+    sha = transaction.commit_sha
+    if sha is None:
+        raise ValueError("stance proposal transaction did not produce a commit")
     return sha, sorted(relpaths)

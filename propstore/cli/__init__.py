@@ -382,17 +382,16 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
 
     moved = len(selected_refs)
     if moved > 0:
-        transaction = repo.artifacts.transact(
+        with repo.artifacts.transact(
             message=f"Promote {moved} stance proposal file(s) from {STANCE_PROPOSAL_BRANCH}",
-        )
-        for ref in selected_refs:
-            transaction.save(
-                STANCE_FILE_FAMILY,
-                StanceFileRef(ref.source_claim),
-                repo.artifacts.require(PROPOSAL_STANCE_FAMILY, ref, commit=proposal_tip),
-            )
-            click.echo(f"  Promoted: {stance_proposal_filename(ref.source_claim)}")
-        transaction.commit()
+        ) as transaction:
+            for ref in selected_refs:
+                transaction.save(
+                    STANCE_FILE_FAMILY,
+                    StanceFileRef(ref.source_claim),
+                    repo.artifacts.require(PROPOSAL_STANCE_FAMILY, ref, commit=proposal_tip),
+                )
+                click.echo(f"  Promoted: {stance_proposal_filename(ref.source_claim)}")
         git.sync_worktree()
 
     click.echo(f"\n{moved} file(s) promoted.")
