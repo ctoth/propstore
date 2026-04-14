@@ -283,7 +283,7 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
 
     with repo.artifacts.transact(
         message=f"Promote source {slug}",
-        branch=repo.git.primary_branch_name(),
+        branch=repo.snapshot.primary_branch_name(),
     ) as transaction:
         transaction.save(
             CANONICAL_SOURCE_FAMILY,
@@ -321,7 +321,7 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
     sha = transaction.commit_sha
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
-    repo.git.sync_worktree()
+    repo.snapshot.sync_worktree()
     return sha
 
 
@@ -332,7 +332,7 @@ def sync_source_branch(
     output_dir: Path | None = None,
 ) -> Path:
     branch = source_branch_name(source_name)
-    tip = repo.git.branch_sha(branch)
+    tip = repo.snapshot.branch_head(branch)
     if tip is None:
         raise ValueError(f"Source branch {branch!r} does not exist")
 
@@ -343,15 +343,14 @@ def sync_source_branch(
     destination.mkdir(parents=True, exist_ok=True)
 
     def copy_tree(relpath: str = "") -> None:
-        for child_name, is_dir in repo.git.list_dir_entries(relpath, commit=tip):
-            child_relpath = f"{relpath}/{child_name}" if relpath else child_name
-            target = destination / Path(*child_relpath.split("/"))
-            if is_dir:
+        for entry in repo.snapshot.list_dir_entries(relpath, commit=tip):
+            target = destination / Path(*entry.relpath.split("/"))
+            if entry.is_dir:
                 target.mkdir(parents=True, exist_ok=True)
-                copy_tree(child_relpath)
+                copy_tree(entry.relpath)
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(repo.git.read_file(child_relpath, commit=tip))
+            target.write_bytes(repo.snapshot.read_bytes(entry.relpath, commit=tip))
 
     copy_tree("")
     return destination
