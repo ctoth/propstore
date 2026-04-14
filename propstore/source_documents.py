@@ -13,6 +13,7 @@ from propstore.claim_documents import (
     StanceDocument,
     VariableBindingDocument,
 )
+from propstore.core.exactness_types import Exactness
 from propstore.document_schema import DocumentStruct
 
 
@@ -145,7 +146,7 @@ class SourceParameterizationRelationshipDocument(DocumentStruct):
     inputs: tuple[str, ...]
     formula: str | None = None
     sympy: str | None = None
-    exactness: str | None = None
+    exactness: Exactness | None = None
     source: str | None = None
     bidirectional: bool | None = None
     conditions: tuple[str, ...] = ()
@@ -160,7 +161,7 @@ class SourceParameterizationRelationshipDocument(DocumentStruct):
         if self.sympy is not None:
             payload["sympy"] = self.sympy
         if self.exactness is not None:
-            payload["exactness"] = self.exactness
+            payload["exactness"] = self.exactness.value
         if self.source is not None:
             payload["source"] = self.source
         if self.bidirectional is not None:

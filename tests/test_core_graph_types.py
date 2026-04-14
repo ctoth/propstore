@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from propstore.core.exactness_types import Exactness
 from propstore.world import Environment
 from propstore.core.labels import Label
 
@@ -118,6 +119,18 @@ def test_compiled_world_graph_normalizes_order_and_supporting_records() -> None:
     assert graph_a == graph_b
     assert tuple(node.claim_id for node in graph_a.claims) == ("claim_a", "claim_b")
     assert tuple(sorted(graph_a.claims)) == graph_a.claims
+
+
+def test_parameterization_edge_coerces_exactness_to_enum() -> None:
+    from propstore.core.graph_types import ParameterizationEdge
+
+    edge = ParameterizationEdge(
+        output_concept_id="concept3",
+        input_concept_ids=("concept1", "concept2"),
+        exactness="exact",
+    )
+
+    assert edge.exactness is Exactness.EXACT
 
 
 def test_provenance_record_normalizes_known_fields_and_extras() -> None:

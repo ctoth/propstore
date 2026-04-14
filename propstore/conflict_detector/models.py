@@ -134,7 +134,11 @@ def coerce_conflict_class(value: object | None) -> ConflictClass | None:
         return None
     if isinstance(value, ConflictClass):
         return value
-    return ConflictClass(str(value))
+    raw_value = str(value)
+    try:
+        return ConflictClass(raw_value)
+    except ValueError:
+        return ConflictClass(raw_value.upper())
 
 
 @dataclass

@@ -15,6 +15,7 @@ from propstore.artifact_documents.concepts import (
     ParameterizationRelationshipDocument,
 )
 from propstore.document_schema import load_document, to_document_builtins
+from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (
     compute_concept_version_id,
@@ -77,11 +78,14 @@ class ParameterizationSpec:
     inputs: tuple[ConceptId, ...]
     formula: str | None = None
     sympy: str | None = None
-    exactness: str | None = None
+    exactness: Exactness | None = None
     conditions: tuple[str, ...] = ()
     source: str | None = None
     bidirectional: bool | None = None
     canonical_claim: ClaimId | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "exactness", coerce_exactness(self.exactness))
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -92,7 +96,7 @@ class ParameterizationSpec:
         if self.sympy is not None:
             payload["sympy"] = self.sympy
         if self.exactness is not None:
-            payload["exactness"] = self.exactness
+            payload["exactness"] = self.exactness.value
         if self.conditions:
             payload["conditions"] = list(self.conditions)
         if self.source is not None:

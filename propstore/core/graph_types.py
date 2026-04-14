@@ -8,6 +8,7 @@ from typing import Any
 
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.environment import Environment
+from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import (
     to_assumption_ids,
     ClaimId,
@@ -259,11 +260,12 @@ class ParameterizationEdge:
     input_concept_ids: tuple[ConceptId, ...]
     formula: str | None = None
     sympy: str | None = None
-    exactness: str | None = None
+    exactness: Exactness | None = None
     conditions: tuple[str, ...] = ()
     provenance: ProvenanceRecord | None = None
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "exactness", coerce_exactness(self.exactness))
         object.__setattr__(self, "input_concept_ids", tuple(self.input_concept_ids))
         object.__setattr__(self, "conditions", tuple(self.conditions))
 
@@ -277,7 +279,7 @@ class ParameterizationEdge:
         if self.sympy is not None:
             data["sympy"] = self.sympy
         if self.exactness is not None:
-            data["exactness"] = self.exactness
+            data["exactness"] = self.exactness.value
         if self.conditions:
             data["conditions"] = list(self.conditions)
         if self.provenance is not None:
@@ -292,7 +294,7 @@ class ParameterizationEdge:
             input_concept_ids=to_concept_ids(data.get("input_concept_ids") or ()),
             formula=(None if data.get("formula") is None else str(data["formula"])),
             sympy=(None if data.get("sympy") is None else str(data["sympy"])),
-            exactness=(None if data.get("exactness") is None else str(data["exactness"])),
+            exactness=coerce_exactness(data.get("exactness")),
             conditions=tuple(str(item) for item in data.get("conditions") or ()),
             provenance=(
                 None
