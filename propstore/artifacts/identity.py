@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import Any
 
 from propstore.identity import (
+    derive_claim_artifact_id,
     compute_claim_version_id,
     compute_concept_version_id,
     derive_concept_artifact_id,
@@ -11,6 +12,91 @@ from propstore.identity import (
     normalize_identity_namespace,
     normalize_logical_value,
 )
+
+
+def normalize_claim_file_payload(
+    data: dict[str, Any],
+    *,
+    default_namespace: str | None = None,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    normalized_data = dict(data)
+    source = normalized_data.get("source")
+    raw_namespace = (
+        source.get("paper")
+        if isinstance(source, dict) and isinstance(source.get("paper"), str)
+        else (default_namespace or "source")
+    )
+    namespace = normalize_identity_namespace(raw_namespace)
+
+    raw_claims = list(normalized_data.get("claims", []))
+    local_handle_map: dict[str, str] = {}
+    normalized_claims: list[Any] = []
+    for index, claim in enumerate(raw_claims, start=1):
+        if not isinstance(claim, dict):
+            normalized_claims.append(claim)
+            continue
+
+        normalized = dict(claim)
+        raw_id = normalized.pop("id", None)
+        artifact_id = normalized.get("artifact_id")
+        logical_ids = normalized.get("logical_ids")
+
+        if not isinstance(logical_ids, list) or not logical_ids:
+            logical_value = normalize_logical_value(str(raw_id or f"claim{index}"))
+            normalized["logical_ids"] = [{"namespace": namespace, "value": logical_value}]
+        else:
+            cleaned_logical_ids: list[dict[str, str]] = []
+            for entry in logical_ids:
+                if not isinstance(entry, dict):
+                    continue
+                entry_namespace = entry.get("namespace")
+                entry_value = entry.get("value")
+                if not isinstance(entry_namespace, str) or not isinstance(entry_value, str):
+                    continue
+                cleaned_logical_ids.append(
+                    {
+                        "namespace": normalize_identity_namespace(entry_namespace),
+                        "value": normalize_logical_value(entry_value),
+                    }
+                )
+            if not cleaned_logical_ids:
+                logical_value = normalize_logical_value(str(raw_id or f"claim{index}"))
+                cleaned_logical_ids = [{"namespace": namespace, "value": logical_value}]
+            normalized["logical_ids"] = cleaned_logical_ids
+
+        primary_entry = normalized["logical_ids"][0]
+        primary_namespace = str(primary_entry["namespace"])
+        primary_value = str(primary_entry["value"])
+        if not isinstance(artifact_id, str) or not artifact_id:
+            artifact_id = derive_claim_artifact_id(primary_namespace, primary_value)
+            normalized["artifact_id"] = artifact_id
+
+        if isinstance(raw_id, str) and raw_id:
+            local_handle_map[raw_id] = artifact_id
+        local_handle_map[primary_value] = artifact_id
+        normalized_claims.append(normalized)
+
+    for index, normalized in enumerate(normalized_claims):
+        if not isinstance(normalized, dict):
+            continue
+        stances = normalized.get("stances")
+        if isinstance(stances, list):
+            rewritten_stances = []
+            for stance in stances:
+                if not isinstance(stance, dict):
+                    rewritten_stances.append(stance)
+                    continue
+                rewritten = dict(stance)
+                target = rewritten.get("target")
+                if isinstance(target, str) and target in local_handle_map:
+                    rewritten["target"] = local_handle_map[target]
+                rewritten_stances.append(rewritten)
+            normalized["stances"] = rewritten_stances
+        normalized["version_id"] = compute_claim_version_id(normalized)
+        normalized_claims[index] = normalized
+
+    normalized_data["claims"] = normalized_claims
+    return normalized_data, local_handle_map
 
 
 def normalize_canonical_claim_payload(

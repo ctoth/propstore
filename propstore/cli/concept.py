@@ -17,6 +17,7 @@ from propstore.artifacts import (
     ConceptFileRef,
     normalize_canonical_concept_payload,
 )
+from propstore.artifacts.identity import normalize_claim_file_payload
 from propstore.source import (
     align_sources,
     decide_alignment,
@@ -29,7 +30,6 @@ from propstore.cli.helpers import (
 )
 from propstore.identity import (
     format_logical_id,
-    normalize_claim_file_payload,
     primary_logical_id,
 )
 from propstore.core.concepts import LoadedConcept, parse_concept_record

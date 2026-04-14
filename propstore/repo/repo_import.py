@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Any
 
 import msgspec
 
-from propstore.identity import normalize_claim_file_payload
 from propstore.artifacts.resolution import ImportedClaimHandleIndex
 from propstore.artifacts.identity import (
     concept_reference_keys,
+    normalize_claim_file_payload,
     normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
 )
