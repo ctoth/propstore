@@ -33,6 +33,7 @@ from propstore.core.store_results import (
 )
 from propstore.sidecar.build import build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
+from propstore.stances import StanceType
 from tests.conftest import create_world_model_schema, make_claim_identity
 from propstore.world import (
     ArtifactStore,
@@ -932,7 +933,7 @@ class TestExplain:
         assert len(chain) >= 1
         first = coerce_stance_row(chain[0])
         assert first.target_claim_id == _claim_artifact("test_paper_alpha", "claim1")
-        assert first.stance_type == "rebuts"
+        assert first.stance_type is StanceType.REBUTS
 
     def test_explain_no_stances(self, world):
         chain = world.explain(_claim_artifact("test_paper_alpha", "claim1"))

@@ -536,3 +536,33 @@ Proof:
 Rerank after Slice 5:
 
 - the next highest-value target is relation/stance type convergence on the live runtime path: `StanceRow.stance_type`, `RelationshipRow.relation_type`, and the compiled graph relation layer still carry a closed semantic vocabulary as bare strings even though `propstore/core/relation_types.py` already centralizes the allowed categories
+
+### Slice 6: Stance Type Runtime Enum
+
+Status: completed
+
+Changes landed in this slice:
+
+- added canonical `StanceType` enum and stance-type coercion in `propstore/stances.py`
+- changed `StanceRow.stance_type` to carry `StanceType` instead of a bare string
+- changed probabilistic relation provenance to preserve typed stance types instead of stringly provenance
+- preserved the current ASPIC bridge raw-input synonym `contradicts -> rebuts` at the stance coercion boundary so the existing bridge surface still round-trips
+
+Proof:
+
+- targeted green: `logs/test-runs/semantic-carrier-slice6-targeted3-20260413-222005.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice6-focused-20260413-222021.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice6-broader-green-20260413-222358.log`
+
+Additional regression evidence:
+
+- adapter-family failure isolated and fixed: `logs/test-runs/semantic-carrier-slice6-aspic-fail-20260413-222237.log`
+- post-fix focused adapter check: `logs/test-runs/semantic-carrier-slice6-aspic-fix-20260413-222303.log`
+- broader adapter-family run surfaced two unrelated failures outside the touched files:
+  - `tests/test_aspic_bridge.py::TestCsafToProjection::test_projection_arguments_preserve_claim_or_canonical_conclusion_identity`
+  - `tests/test_structured_projection.py::test_world_extensions_cli_accepts_aspic_backend`
+  proof log: `logs/test-runs/semantic-carrier-slice6-broader2-20260413-222314.log`
+
+Rerank after Slice 6:
+
+- the next highest-value target is concept-relationship type convergence on the canonical/runtime path: `RelationshipRow.relation_type` is still a closed semantic vocabulary carried as a bare string, and `build_compiled_world_graph()` still projects those concept-link types into generic relation-edge strings

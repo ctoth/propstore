@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from propstore.opinion import Opinion
+from propstore.stances import StanceType, coerce_stance_type
 
 RelationKind = Literal["attack", "support", "direct_defeat", "derived_defeat"]
 
@@ -32,8 +33,11 @@ class RelationProvenance:
     """Stable provenance for a probabilistic relation."""
 
     source_table: str | None = None
-    stance_type: str | None = None
+    stance_type: StanceType | None = None
     row_identity: tuple[tuple[str, str], ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "stance_type", coerce_stance_type(self.stance_type))
 
 
 @dataclass(frozen=True)
