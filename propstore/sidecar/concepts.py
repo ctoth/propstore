@@ -193,7 +193,7 @@ def populate_concepts(
                 content_hash,
                 seq,
                 record.canonical_name,
-                record.status,
+                record.status.value,
                 record.domain,
                 record.definition,
                 form_definition.kind.value

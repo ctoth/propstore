@@ -7,6 +7,7 @@ import pytest
 import yaml
 
 from propstore.core.concept_relationship_types import ConceptRelationshipType
+from propstore.core.concept_status import ConceptStatus
 from propstore.core.graph_relation_types import GraphRelationType
 from propstore.sidecar.build import build_sidecar
 from propstore.identity import derive_concept_artifact_id
@@ -207,6 +208,16 @@ def test_world_relationship_rows_use_concept_relationship_enum(graph_build_world
     assert any(
         relationship.relation_type is ConceptRelationshipType.BROADER
         for relationship in relationships
+    )
+
+
+def test_world_concept_rows_use_concept_status_enum(graph_build_world) -> None:
+    concepts = graph_build_world.all_concepts()
+
+    assert concepts
+    assert any(
+        concept.status is ConceptStatus.ACCEPTED
+        for concept in concepts
     )
 
 

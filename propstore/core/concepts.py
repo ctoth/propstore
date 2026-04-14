@@ -14,6 +14,7 @@ from propstore.artifact_documents.concepts import (
     ConceptRelationshipDocument,
     ParameterizationRelationshipDocument,
 )
+from propstore.core.concept_status import ConceptStatus, coerce_concept_status
 from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     coerce_concept_relationship_type,
@@ -123,7 +124,7 @@ class ParameterizationSpec:
 class ConceptRecord:
     artifact_id: ConceptId
     canonical_name: str
-    status: str
+    status: ConceptStatus
     definition: str
     form: str
     logical_ids: tuple[LogicalId, ...]
@@ -139,6 +140,9 @@ class ConceptRecord:
     created_date: str | None = None
     last_modified: str | None = None
     notes: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", coerce_concept_status(self.status))
 
     @property
     def primary_logical_id(self) -> str | None:
@@ -170,7 +174,7 @@ class ConceptRecord:
         payload: dict[str, Any] = {
             "artifact_id": str(self.artifact_id),
             "canonical_name": self.canonical_name,
-            "status": self.status,
+            "status": self.status.value,
             "definition": self.definition,
             "form": self.form,
             "logical_ids": [logical_id.to_payload() for logical_id in self.logical_ids],
@@ -406,7 +410,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
     return ConceptRecord(
         artifact_id=to_concept_id(artifact_id),
         canonical_name=canonical_name,
-        status=status,
+        status=coerce_concept_status(status),
         definition=definition,
         form=form,
         logical_ids=tuple(logical_ids),
@@ -432,7 +436,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
 def concept_document_to_payload(data: ConceptDocument) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "canonical_name": data.canonical_name,
-        "status": data.status,
+        "status": data.status.value,
         "definition": data.definition,
         "form": data.form,
     }

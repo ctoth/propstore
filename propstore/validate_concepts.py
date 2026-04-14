@@ -24,6 +24,7 @@ from propstore.cel_checker import (
     check_cel_expression,
 )
 from propstore.artifact_documents.concepts import ConceptDocument
+from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.form_utils import kind_type_from_form_name, load_form_path
 from propstore.identity import (
@@ -272,7 +273,7 @@ def validate_concepts(
             )
 
         # ── Deprecated concepts must have replaced_by ───────────
-        if status == "deprecated":
+        if status == ConceptStatus.DEPRECATED.value:
             replaced_by = data.get("replaced_by")
             if not replaced_by:
                 result.errors.append(
@@ -288,7 +289,7 @@ def validate_concepts(
         status = data.get("status")
 
         # ── replaced_by target exists and isn't deprecated ──────
-        if status == "deprecated":
+        if status == ConceptStatus.DEPRECATED.value:
             replaced_by = data.get("replaced_by")
             if replaced_by:
                 if replaced_by not in all_ids:
@@ -296,7 +297,7 @@ def validate_concepts(
                         f"{c.filename}: replaced_by target '{replaced_by}' not found in registry")
                 else:
                     target = id_to_concept[replaced_by]
-                    if target.record.status == "deprecated":
+                    if target.record.status is ConceptStatus.DEPRECATED:
                         result.errors.append(
                             f"{c.filename}: replaced_by target '{replaced_by}' is itself deprecated")
 
@@ -477,7 +478,7 @@ def validate_concepts(
 
     # ── Circular deprecation chains ─────────────────────────────
     for c in concepts:
-        if c.record.status != "deprecated":
+        if c.record.status is not ConceptStatus.DEPRECATED:
             continue
         visited = set()
         current_id = str(c.record.artifact_id)
@@ -490,7 +491,7 @@ def validate_concepts(
             current_concept = id_to_concept.get(current_id)
             if not current_concept:
                 break
-            if current_concept.record.status != "deprecated":
+            if current_concept.record.status is not ConceptStatus.DEPRECATED:
                 break
             current_id = (
                 None
