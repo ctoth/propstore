@@ -25,7 +25,7 @@ from propstore.artifacts import (
 from propstore.artifact_documents.concepts import ConceptDocument
 from propstore.claim_documents import ClaimsFileDocument
 from propstore.cli.repository import Repository
-from propstore.document_schema import convert_document_value
+from propstore.artifacts.schema import convert_document_value
 from propstore.source_documents import SourceDocument, SourceJustificationsDocument
 from propstore.stance_documents import StanceFileDocument
 

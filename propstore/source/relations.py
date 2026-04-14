@@ -10,7 +10,7 @@ from propstore.artifacts import (
     SourceRef,
 )
 from propstore.cli.repository import Repository
-from propstore.document_schema import convert_document_value, decode_document_path
+from propstore.artifacts.schema import convert_document_value, decode_document_path
 from propstore.stances import StanceType, coerce_stance_type
 
 from .common import (

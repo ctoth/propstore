@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from propstore.core.concepts import load_concepts
-from propstore.document_schema import load_document
+from propstore.artifacts.schema import load_document
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import extract_facts
 from propstore.grounding.grounder import ground

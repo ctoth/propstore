@@ -11,7 +11,7 @@ import yaml
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
-from propstore.document_schema import DocumentSchemaError
+from propstore.artifacts.schema import DocumentSchemaError
 from propstore.sidecar.build import _content_hash, build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from tests.conftest import (

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from propstore.claim_documents import ResolutionDocument
-from propstore.document_schema import DocumentStruct
+from propstore.artifacts.schema import DocumentStruct
 from propstore.stances import StanceType
 
 

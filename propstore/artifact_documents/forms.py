@@ -4,7 +4,7 @@ from typing import Any
 
 import msgspec
 
-from propstore.document_schema import DocumentStruct
+from propstore.artifacts.schema import DocumentStruct
 
 
 class FormAlternativeDocument(DocumentStruct):

@@ -4,7 +4,7 @@ from typing import get_type_hints
 
 from propstore.claim_documents import ClaimDocument, StanceDocument
 from propstore.core.claim_types import ClaimType
-from propstore.document_schema import convert_document_value
+from propstore.artifacts.schema import convert_document_value
 from propstore.source_documents import SourceClaimDocument, SourceStanceEntryDocument
 from propstore.stance_documents import StanceEntryDocument
 from propstore.stances import StanceType

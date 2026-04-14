@@ -14,7 +14,7 @@ import click
 
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.cli.repository import Repository
-from propstore.document_schema import DocumentSchemaError
+from propstore.artifacts.schema import DocumentSchemaError
 from propstore.knowledge_path import coerce_knowledge_path
 
 

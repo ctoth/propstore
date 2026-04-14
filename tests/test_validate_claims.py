@@ -16,7 +16,7 @@ import pytest
 import yaml
 
 from propstore.identity import derive_concept_artifact_id
-from propstore.document_schema import DocumentSchemaError
+from propstore.artifacts.schema import DocumentSchemaError
 from propstore.loaded import LoadedEntry
 from propstore.claim_documents import load_claim_files
 from propstore.identity import parse_claim_id

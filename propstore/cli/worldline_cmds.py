@@ -9,7 +9,7 @@ import click
 
 from propstore.artifacts import WORLDLINE_FAMILY, WorldlineRef
 from propstore.cli.repository import Repository
-from propstore.document_schema import DocumentSchemaError
+from propstore.artifacts.schema import DocumentSchemaError
 from propstore.world.types import (
     ReasoningBackend,
     cli_argumentation_semantics_values,

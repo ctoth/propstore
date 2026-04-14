@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
-from propstore.document_schema import convert_document_value, decode_document_path
+from propstore.artifacts.schema import convert_document_value, decode_document_path
 from propstore.source import normalize_source_claims_payload
 from propstore.source_documents import SourceClaimsDocument
 

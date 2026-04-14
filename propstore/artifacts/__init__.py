@@ -1,62 +1,6 @@
-from propstore.artifacts.identity import (
-    concept_reference_keys,
-    normalize_canonical_claim_payload,
-    normalize_canonical_concept_payload,
-)
-from propstore.artifacts.indexes import (
-    ClaimReferenceIndex,
-    build_source_claim_reference_index,
-    load_primary_branch_claim_reference_index,
-    load_source_claim_reference_index,
-)
-from propstore.artifacts.families import (
-    CANONICAL_SOURCE_FAMILY,
-    CLAIMS_FILE_FAMILY,
-    CONCEPT_ALIGNMENT_FAMILY,
-    CONCEPT_FILE_FAMILY,
-    CONTEXT_FAMILY,
-    FORM_FAMILY,
-    PROPOSAL_STANCE_FAMILY,
-    JUSTIFICATIONS_FILE_FAMILY,
-    MERGE_MANIFEST_FAMILY,
-    SOURCE_CLAIMS_FAMILY,
-    SOURCE_CONCEPTS_FAMILY,
-    SOURCE_DOCUMENT_FAMILY,
-    SOURCE_FINALIZE_REPORT_FAMILY,
-    SOURCE_JUSTIFICATIONS_FAMILY,
-    SOURCE_STANCES_FAMILY,
-    STANCE_FILE_FAMILY,
-    WORLDLINE_FAMILY,
-)
-from propstore.artifacts.resolution import ClaimReferenceResolver, ImportedClaimHandleIndex
-from propstore.artifacts.refs import (
-    CanonicalSourceRef,
-    ClaimsFileRef,
-    ConceptAlignmentRef,
-    ConceptFileRef,
-    ContextRef,
-    FormRef,
-    JustificationsFileRef,
-    MergeManifestRef,
-    SourceRef,
-    StanceFileRef,
-    STANCE_PROPOSAL_BRANCH,
-    WorldlineRef,
-    canonical_source_relpath,
-    claims_file_relpath,
-    concept_alignment_relpath,
-    concept_file_relpath,
-    justifications_file_relpath,
-    merge_manifest_relpath,
-    normalize_source_slug,
-    source_branch_name,
-    source_finalize_relpath,
-    stance_file_relpath,
-    worldline_relpath,
-)
-from propstore.artifacts.store import ArtifactStore
-from propstore.artifacts.transaction import ArtifactTransaction
-from propstore.artifacts.types import ArtifactContext, ArtifactFamily, ArtifactHandle, ResolvedArtifact
+from __future__ import annotations
+
+from importlib import import_module
 
 __all__ = [
     "ArtifactContext",
@@ -115,3 +59,76 @@ __all__ = [
     "stance_file_relpath",
     "worldline_relpath",
 ]
+
+_EXPORTS = {
+    "ArtifactContext": ("propstore.artifacts.types", "ArtifactContext"),
+    "ArtifactFamily": ("propstore.artifacts.types", "ArtifactFamily"),
+    "ArtifactHandle": ("propstore.artifacts.types", "ArtifactHandle"),
+    "ResolvedArtifact": ("propstore.artifacts.types", "ResolvedArtifact"),
+    "ArtifactStore": ("propstore.artifacts.store", "ArtifactStore"),
+    "ArtifactTransaction": ("propstore.artifacts.transaction", "ArtifactTransaction"),
+    "CANONICAL_SOURCE_FAMILY": ("propstore.artifacts.families", "CANONICAL_SOURCE_FAMILY"),
+    "CLAIMS_FILE_FAMILY": ("propstore.artifacts.families", "CLAIMS_FILE_FAMILY"),
+    "CONCEPT_ALIGNMENT_FAMILY": ("propstore.artifacts.families", "CONCEPT_ALIGNMENT_FAMILY"),
+    "CONCEPT_FILE_FAMILY": ("propstore.artifacts.families", "CONCEPT_FILE_FAMILY"),
+    "CONTEXT_FAMILY": ("propstore.artifacts.families", "CONTEXT_FAMILY"),
+    "FORM_FAMILY": ("propstore.artifacts.families", "FORM_FAMILY"),
+    "PROPOSAL_STANCE_FAMILY": ("propstore.artifacts.families", "PROPOSAL_STANCE_FAMILY"),
+    "JUSTIFICATIONS_FILE_FAMILY": ("propstore.artifacts.families", "JUSTIFICATIONS_FILE_FAMILY"),
+    "MERGE_MANIFEST_FAMILY": ("propstore.artifacts.families", "MERGE_MANIFEST_FAMILY"),
+    "SOURCE_CLAIMS_FAMILY": ("propstore.artifacts.families", "SOURCE_CLAIMS_FAMILY"),
+    "SOURCE_CONCEPTS_FAMILY": ("propstore.artifacts.families", "SOURCE_CONCEPTS_FAMILY"),
+    "SOURCE_DOCUMENT_FAMILY": ("propstore.artifacts.families", "SOURCE_DOCUMENT_FAMILY"),
+    "SOURCE_FINALIZE_REPORT_FAMILY": ("propstore.artifacts.families", "SOURCE_FINALIZE_REPORT_FAMILY"),
+    "SOURCE_JUSTIFICATIONS_FAMILY": ("propstore.artifacts.families", "SOURCE_JUSTIFICATIONS_FAMILY"),
+    "SOURCE_STANCES_FAMILY": ("propstore.artifacts.families", "SOURCE_STANCES_FAMILY"),
+    "STANCE_FILE_FAMILY": ("propstore.artifacts.families", "STANCE_FILE_FAMILY"),
+    "WORLDLINE_FAMILY": ("propstore.artifacts.families", "WORLDLINE_FAMILY"),
+    "ClaimReferenceIndex": ("propstore.artifacts.indexes", "ClaimReferenceIndex"),
+    "build_source_claim_reference_index": ("propstore.artifacts.indexes", "build_source_claim_reference_index"),
+    "load_primary_branch_claim_reference_index": ("propstore.artifacts.indexes", "load_primary_branch_claim_reference_index"),
+    "load_source_claim_reference_index": ("propstore.artifacts.indexes", "load_source_claim_reference_index"),
+    "ClaimReferenceResolver": ("propstore.artifacts.resolution", "ClaimReferenceResolver"),
+    "ImportedClaimHandleIndex": ("propstore.artifacts.resolution", "ImportedClaimHandleIndex"),
+    "CanonicalSourceRef": ("propstore.artifacts.refs", "CanonicalSourceRef"),
+    "ClaimsFileRef": ("propstore.artifacts.refs", "ClaimsFileRef"),
+    "ConceptAlignmentRef": ("propstore.artifacts.refs", "ConceptAlignmentRef"),
+    "ConceptFileRef": ("propstore.artifacts.refs", "ConceptFileRef"),
+    "ContextRef": ("propstore.artifacts.refs", "ContextRef"),
+    "FormRef": ("propstore.artifacts.refs", "FormRef"),
+    "JustificationsFileRef": ("propstore.artifacts.refs", "JustificationsFileRef"),
+    "MergeManifestRef": ("propstore.artifacts.refs", "MergeManifestRef"),
+    "SourceRef": ("propstore.artifacts.refs", "SourceRef"),
+    "StanceFileRef": ("propstore.artifacts.refs", "StanceFileRef"),
+    "STANCE_PROPOSAL_BRANCH": ("propstore.artifacts.refs", "STANCE_PROPOSAL_BRANCH"),
+    "WorldlineRef": ("propstore.artifacts.refs", "WorldlineRef"),
+    "canonical_source_relpath": ("propstore.artifacts.refs", "canonical_source_relpath"),
+    "claims_file_relpath": ("propstore.artifacts.refs", "claims_file_relpath"),
+    "concept_alignment_relpath": ("propstore.artifacts.refs", "concept_alignment_relpath"),
+    "concept_file_relpath": ("propstore.artifacts.refs", "concept_file_relpath"),
+    "justifications_file_relpath": ("propstore.artifacts.refs", "justifications_file_relpath"),
+    "merge_manifest_relpath": ("propstore.artifacts.refs", "merge_manifest_relpath"),
+    "normalize_source_slug": ("propstore.artifacts.refs", "normalize_source_slug"),
+    "source_branch_name": ("propstore.artifacts.refs", "source_branch_name"),
+    "source_finalize_relpath": ("propstore.artifacts.refs", "source_finalize_relpath"),
+    "stance_file_relpath": ("propstore.artifacts.refs", "stance_file_relpath"),
+    "worldline_relpath": ("propstore.artifacts.refs", "worldline_relpath"),
+    "concept_reference_keys": ("propstore.artifacts.identity", "concept_reference_keys"),
+    "normalize_canonical_claim_payload": ("propstore.artifacts.identity", "normalize_canonical_claim_payload"),
+    "normalize_canonical_concept_payload": ("propstore.artifacts.identity", "normalize_canonical_concept_payload"),
+}
+
+
+def __getattr__(name: str) -> object:
+    try:
+        module_name, attr_name = _EXPORTS[name]
+    except KeyError as exc:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
+    module = import_module(module_name)
+    value = getattr(module, attr_name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))

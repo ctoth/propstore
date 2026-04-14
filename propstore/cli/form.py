@@ -11,7 +11,7 @@ from propstore.artifact_documents.forms import FormDocument
 from propstore.artifacts.codecs import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository
-from propstore.document_schema import DocumentSchemaError, convert_document_value
+from propstore.artifacts.schema import DocumentSchemaError, convert_document_value
 from propstore.form_utils import load_all_forms_path, load_form_definition, load_form_path, validate_form_files
 from propstore.core.concepts import load_concepts
 

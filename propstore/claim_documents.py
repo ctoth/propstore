@@ -8,7 +8,7 @@ from collections.abc import Mapping
 
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
-from propstore.document_schema import (
+from propstore.artifacts.schema import (
     DocumentStruct,
     convert_document_value,
     load_document,
