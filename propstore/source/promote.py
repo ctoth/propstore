@@ -12,6 +12,7 @@ from propstore.artifacts import (
     CONCEPT_FILE_FAMILY,
     JUSTIFICATIONS_FILE_FAMILY,
     load_primary_branch_claim_reference_index,
+    normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
     load_source_claim_reference_index,
     STANCE_FILE_FAMILY,
@@ -25,7 +26,6 @@ from propstore.claim_documents import ClaimsFileDocument
 from propstore.cli.repository import Repository
 from propstore.core.concepts import ConceptDocument
 from propstore.document_schema import convert_document_value
-from propstore.identity import compute_claim_version_id
 from propstore.source_documents import SourceDocument, SourceJustificationsDocument
 from propstore.stance_documents import StanceFileDocument
 
@@ -74,8 +74,7 @@ def rewrite_claim_concept_refs(
         for parameter in normalized["parameters"]:
             if isinstance(parameter, dict):
                 parameter["concept"] = resolve(parameter.get("concept"))
-    normalized["version_id"] = compute_claim_version_id(normalized)
-    return normalized
+    return normalize_canonical_claim_payload(normalized)
 
 
 def resolve_source_concept_promotions(
@@ -241,17 +240,16 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
         else slug
     )
 
-    source_only_fields = {"id", "source_local_id", "artifact_code"}
     for claim in promoted_claims:
         if isinstance(claim, dict):
-            for field in source_only_fields:
-                claim.pop(field, None)
             provenance = claim.get("provenance")
             if isinstance(provenance, dict) and not isinstance(provenance.get("paper"), str):
                 updated_provenance = dict(provenance)
                 updated_provenance["paper"] = promoted_source_paper
                 claim["provenance"] = updated_provenance
-            claim["version_id"] = compute_claim_version_id(claim)
+            normalized_claim = normalize_canonical_claim_payload(claim, strip_source_local=True)
+            claim.clear()
+            claim.update(normalized_claim)
     promoted_claims_doc["claims"] = promoted_claims
 
     stances_by_source: dict[str, list[dict[str, Any]]] = {}

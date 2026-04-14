@@ -4,12 +4,26 @@ from copy import deepcopy
 from typing import Any
 
 from propstore.identity import (
+    compute_claim_version_id,
     compute_concept_version_id,
     derive_concept_artifact_id,
     format_logical_id,
     normalize_identity_namespace,
     normalize_logical_value,
 )
+
+
+def normalize_canonical_claim_payload(
+    data: dict[str, Any],
+    *,
+    strip_source_local: bool = False,
+) -> dict[str, Any]:
+    normalized = deepcopy(data)
+    if strip_source_local:
+        for field in ("id", "source_local_id", "artifact_code"):
+            normalized.pop(field, None)
+    normalized["version_id"] = compute_claim_version_id(normalized)
+    return normalized
 
 
 def normalize_canonical_concept_payload(
