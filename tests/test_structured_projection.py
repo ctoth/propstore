@@ -899,6 +899,81 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
     )
 
     assert result.values["target"].value == 1.0
+    assert result.values["target"].status == "resolved"
+    assert result.values["target"].source == "resolved"
+    assert result.argumentation is not None
+    assert result.argumentation.backend == "aspic"
+    assert result.argumentation.justified == ("external_c", "target_a")
+
+
+def test_structured_worldline_argumentation_capture_ignores_unmapped_arguments(monkeypatch) -> None:
+    class StructuredWorld(_ProjectionStore):
+        def bind(self, environment=None, *, policy=None, **conditions):
+            bindings = dict(environment.bindings) if environment is not None else dict(conditions)
+            return _make_bound(self, bindings=bindings)
+
+        def resolve_concept(self, name: str) -> str | None:
+            return "concept1" if name == "target" else None
+
+        def get_concept(self, concept_id: str) -> dict | None:
+            if concept_id == "concept1":
+                return {"id": "concept1", "canonical_name": "target"}
+            return None
+
+    world = StructuredWorld(
+        claims=[
+            {
+                "id": "target_a",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 1.0,
+                "conditions_cel": json.dumps(["task == 'speech'"]),
+            },
+            {
+                "id": "target_b",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 2.0,
+                "conditions_cel": json.dumps(["task == 'speech'"]),
+            },
+            {
+                "id": "external_c",
+                "concept_id": "concept2",
+                "type": "observation",
+                "statement": "External evidence defeats target_b.",
+                "conditions_cel": json.dumps(["task == 'speech'"]),
+            },
+        ],
+        stances=[
+            {"claim_id": "target_b", "target_claim_id": "target_a", "stance_type": "supersedes"},
+            {"claim_id": "external_c", "target_claim_id": "target_b", "stance_type": "supersedes"},
+        ],
+    )
+
+    monkeypatch.setattr(
+        "propstore.structured_projection.compute_structured_justified_arguments",
+        lambda projection, *, semantics="grounded", backend=None: frozenset(
+            {
+                "arg_1",
+                *projection.claim_to_argument_ids["external_c"],
+                *projection.claim_to_argument_ids["target_a"],
+            }
+        ),
+    )
+
+    result = run_worldline(
+        WorldlineDefinition.from_dict({
+            "id": "structured_argumentation_capture_unmapped",
+            "targets": ["target"],
+            "inputs": {"bindings": {"task": "speech"}},
+            "policy": {
+                "strategy": "argumentation",
+                "reasoning_backend": "aspic",
+            },
+        }),
+        world,
+    )
+
     assert result.argumentation is not None
     assert result.argumentation.backend == "aspic"
     assert result.argumentation.justified == ("external_c", "target_a")
@@ -989,6 +1064,88 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
     assert "Backend: aspic" in result.output
     assert "Accepted (1 claims):" in result.output
     assert "target_a: target = 1.0" in result.output
+
+
+def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> None:
+    class FakeRepo:
+        pass
+
+    class FakeBound:
+        def active_claims(self, concept_id: str | None = None) -> list[dict]:
+            return [
+                {"id": "target_a", "concept_id": "concept1", "type": "parameter", "value": 1.0},
+                {"id": "target_b", "concept_id": "concept1", "type": "parameter", "value": 2.0},
+            ]
+
+        def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
+            return Label.empty(), SupportQuality.EXACT
+
+    class FakeWorldModel:
+        def __init__(self, repo) -> None:
+            self.repo = repo
+
+        def bind(self, environment=None, **conditions):
+            return FakeBound()
+
+        def get_concept(self, concept_id: str) -> dict | None:
+            if concept_id == "concept1":
+                return {"id": "concept1", "canonical_name": "target"}
+            return None
+
+        def stances_between(self, claim_ids: set[str]) -> list[dict]:
+            return []
+
+        def grounding_bundle(self):
+            return _EMPTY_BUNDLE
+
+        def close(self) -> None:
+            return None
+
+    class FakeProjection:
+        framework = ArgumentationFramework(
+            arguments=frozenset({"arg:target_a", "arg:target_b", "arg_1"}),
+            defeats=frozenset({("arg:target_a", "arg:target_b")}),
+            attacks=frozenset({("arg:target_a", "arg:target_b")}),
+        )
+        claim_to_argument_ids = {
+            "target_a": ("arg:target_a",),
+            "target_b": ("arg:target_b",),
+        }
+        argument_to_claim_id = {
+            "arg:target_a": "target_a",
+            "arg:target_b": "target_b",
+        }
+
+    monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
+    monkeypatch.setattr(
+        "propstore.relation_analysis.stance_summary",
+        lambda *args, **kwargs: {
+            "total_stances": 0,
+            "included_as_attacks": 0,
+            "vacuous_count": 0,
+            "excluded_non_attack": 0,
+            "models": [],
+        },
+    )
+    monkeypatch.setattr(
+        "propstore.structured_projection.build_structured_projection",
+        lambda *args, **kwargs: FakeProjection(),
+    )
+    monkeypatch.setattr(
+        "propstore.structured_projection.compute_structured_justified_arguments",
+        lambda projection, *, semantics="grounded", backend=None: frozenset(
+            {"arg_1", "arg:target_a"}
+        ),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["world", "extensions", "--backend", "aspic"])
+
+    assert result.exit_code == 0
+    assert "Accepted (1 claims):" in result.output
+    assert "target_a: target = 1.0" in result.output
+    assert "target_b: target = 2.0" in result.output
 
 
 def test_world_extensions_cli_rejects_structured_projection_backend_name() -> None:

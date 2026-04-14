@@ -1885,7 +1885,11 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         if semantics == "grounded":
             if backend == ReasoningBackend.ASPIC:
                 assert isinstance(result, frozenset)
-                justified_claims = {arg_to_claim[arg_id] for arg_id in result}
+                justified_claims = {
+                    claim_id
+                    for arg_id in result
+                    if (claim_id := arg_to_claim.get(arg_id)) is not None
+                }
             else:
                 assert isinstance(result, frozenset)
                 justified_claims = set(result)
@@ -1920,7 +1924,11 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             click.echo(f"Extensions ({len(result)}):")
             for i, ext in enumerate(result):
                 ext_claims = (
-                    {arg_to_claim[arg_id] for arg_id in ext}
+                    {
+                        claim_id
+                        for arg_id in ext
+                        if (claim_id := arg_to_claim.get(arg_id)) is not None
+                    }
                     if backend == ReasoningBackend.ASPIC
                     else set(ext)
                 )

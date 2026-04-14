@@ -55,7 +55,11 @@ def load_rule_files(rules_root: KnowledgePath | None) -> list[LoadedRuleFile]:
     ]
 
 
-def build_grounded_bundle(knowledge_root: KnowledgePath) -> GroundedRulesBundle:
+def build_grounded_bundle(
+    knowledge_root: KnowledgePath,
+    *,
+    return_arguments: bool = False,
+) -> GroundedRulesBundle:
     """Build the grounding bundle for one knowledge root.
 
     The explicit rule-free case is: both ``predicates/`` and ``rules/`` are
@@ -85,4 +89,9 @@ def build_grounded_bundle(knowledge_root: KnowledgePath) -> GroundedRulesBundle:
     rule_files: Sequence[LoadedRuleFile] = load_rule_files(rules_root) if has_rules else ()
     concepts = load_concepts(knowledge_root / "concepts")
     facts = extract_facts(concepts, registry)
-    return ground(rule_files, facts, registry)
+    return ground(
+        rule_files,
+        facts,
+        registry,
+        return_arguments=return_arguments,
+    )

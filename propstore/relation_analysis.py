@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from propstore.core.relation_types import NON_ATTACK_TYPES
+from propstore.core.row_types import coerce_stance_row
 from propstore.world.types import ArtifactStore
 
 
@@ -30,22 +31,24 @@ def stance_summary(
     models: set[str] = set()
     uncertainties: list[float] = []
 
-    for row in rows:
+    for row_input in rows:
+        row = coerce_stance_row(row_input)
         total += 1
-        stype = row["stance_type"]
-        model = row.get("resolution_model")
-        opinion_u = row.get("opinion_uncertainty")
+        stype = row.stance_type
+        model = row.attributes.get("resolution_model")
+        opinion_u = row.attributes.get("opinion_uncertainty")
 
         if stype in NON_ATTACK_TYPES:
             excluded_non_attack += 1
             continue
 
         included += 1
-        if model:
+        if isinstance(model, str) and model:
             models.add(model)
-        if opinion_u is not None:
-            uncertainties.append(opinion_u)
-            if opinion_u > 0.99:
+        if isinstance(opinion_u, int | float):
+            opinion_value = float(opinion_u)
+            uncertainties.append(opinion_value)
+            if opinion_value > 0.99:
                 vacuous_count += 1
 
     result: dict = {

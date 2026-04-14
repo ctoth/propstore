@@ -186,6 +186,26 @@ def test_sync_worktree_removes_deleted(tmp_path):
     assert not (root / "a.yaml").exists()
 
 
+def test_sync_worktree_preserves_ignored_sidecar_artifacts(tmp_path):
+    root = tmp_path / "knowledge"
+    kr = KnowledgeRepo.init(root)
+    kr.commit_files({"concepts/foo.yaml": b"id: concept1\ncanonical_name: foo\n"}, "add foo")
+    kr.sync_worktree()
+
+    sidecar_path = root / "sidecar" / "propstore.sqlite"
+    hash_path = root / "sidecar" / "propstore.hash"
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    sidecar_path.write_bytes(b"sqlite-bytes")
+    hash_path.write_text("hash", encoding="utf-8")
+
+    kr.sync_worktree()
+
+    assert sidecar_path.exists()
+    assert sidecar_path.read_bytes() == b"sqlite-bytes"
+    assert hash_path.exists()
+    assert hash_path.read_text(encoding="utf-8") == "hash"
+
+
 # ── log ─────────────────────────────────────────────────────────────
 
 

@@ -141,6 +141,10 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
 
     Garcia & Simari 2004 §3 fixes the canonical example tokens
     (``is_a:Bird``, ``bird``) the parser must round-trip without loss.
+    The ``target`` segment for ``concept.relation`` is the canonical
+    concept identifier used by propstore relationships, so it may
+    legitimately contain additional ``:`` separators (for example
+    ``ps:concept:...`` artifact ids).
 
     The parser is strict: the empty string, missing separators, extra
     separators, empty segments, and unknown prefixes all raise
@@ -176,7 +180,9 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
 
     if prefix == "concept.relation":
         # Shape: concept.relation:<relation>:<target>
-        # Exactly one further colon, no empty segments.
+        # The target segment may itself contain ':' because propstore
+        # canonical concept identifiers are artifact ids such as
+        # ``ps:concept:...``.
         if ":" not in remainder:
             raise DerivedFromParseError(
                 f"concept.relation spec missing target: {spec!r}"
@@ -189,12 +195,6 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
         if target == "":
             raise DerivedFromParseError(
                 f"concept.relation spec has empty target: {spec!r}"
-            )
-        # Reject extra colons in the target segment so authoring typos
-        # like 'concept.relation:is_a:Bird:extra' do not silently parse.
-        if ":" in target:
-            raise DerivedFromParseError(
-                f"concept.relation spec has extra ':' in target: {spec!r}"
             )
         return DerivedFromSpec(
             kind="concept_relation",

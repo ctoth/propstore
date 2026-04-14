@@ -70,6 +70,7 @@ def run_worldline(
         query_world=bound,
         world=world,
         override_values=override_concept_ids,
+        resolved_values={},
         policy=policy,
     )
 

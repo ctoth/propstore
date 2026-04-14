@@ -374,6 +374,24 @@ def test_parse_derived_from_concept_relation() -> None:
     assert spec.target == "Bird"
 
 
+def test_parse_derived_from_concept_relation_artifact_target() -> None:
+    """Artifact-id targets with embedded ``:`` parse intact.
+
+    Propstore concept relationships use canonical artifact ids as
+    targets, so the ``concept.relation`` target segment must round-trip
+    values such as ``ps:concept:...`` without truncation.
+    """
+
+    from propstore.grounding.predicates import parse_derived_from  # noqa: E402
+
+    spec = parse_derived_from(
+        "concept.relation:related:ps:concept:45fa8536a97bc81d"
+    )
+    assert spec.kind == "concept_relation"
+    assert spec.relation == "related"
+    assert spec.target == "ps:concept:45fa8536a97bc81d"
+
+
 def test_parse_derived_from_claim_attribute() -> None:
     """Parse ``'claim.attribute:is_bird'`` into a typed spec.
 
@@ -422,7 +440,7 @@ def test_parse_derived_from_unknown_kind_raises() -> None:
 
 
 def test_parse_derived_from_malformed_raises() -> None:
-    """Missing separators, extra colons, and empty segments raise.
+    """Missing separators and empty segments raise.
 
     Diller et al. 2025 §3 demands a fixed grammar for the
     ``derived_from`` DSL; loose decoding would let typos pass and
