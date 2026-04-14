@@ -366,3 +366,16 @@ If any answer is still "it depends", this workstream is not done.
     `ConceptRelationshipType('is_a')`) before the predicate-file split is
     implicated, so it was excluded from the kept verification set for this
     slice.
+- 2026-04-14: Phase 4 contexts slice completed.
+  - Moved the authored context schema from `propstore/context_types.py` to
+    `propstore/artifacts/documents/contexts.py`.
+  - Kept `propstore/context_types.py` as the runtime context-record/loading
+    module, importing the schema from the artifact boundary instead of
+    defining it locally.
+  - Updated artifact-family, CLI, and validation imports to point at the
+    extracted schema module.
+  - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase4-contexts-green tests/test_contexts.py tests/test_git_backend.py::test_load_contexts_from_git_tree tests/test_git_backend.py::test_context_add_creates_commit tests/test_git_backend.py::test_context_add_uses_committed_head_for_inheritance_checks tests/test_git_backend.py::test_context_list_reads_git_head_not_worktree`
+  - Note: the broader `tests/test_git_backend.py` file still contains an
+    unrelated failing seed-forms case
+    (`test_init_does_not_materialize_seed_forms_before_git_commit_succeeds`),
+    so only the context-relevant git-backed cases were kept for this slice.
