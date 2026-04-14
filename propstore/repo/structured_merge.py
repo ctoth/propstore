@@ -77,8 +77,10 @@ def _stance_row_from_mapping(
 
 
 class _BranchSnapshotStore:
-    def __init__(self, stance_rows: list[StanceRow]) -> None:
+    def __init__(self, knowledge_root: KnowledgePath, stance_rows: list[StanceRow]) -> None:
+        self._knowledge_root = knowledge_root
         self._stance_rows = list(stance_rows)
+        self._grounding_bundle = None
 
     def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
         return [
@@ -89,6 +91,13 @@ class _BranchSnapshotStore:
 
     def has_table(self, name: str) -> bool:
         return name == "relation_edge"
+
+    def grounding_bundle(self):
+        if self._grounding_bundle is None:
+            from propstore.grounding.loading import build_grounded_bundle
+
+            self._grounding_bundle = build_grounded_bundle(self._knowledge_root)
+        return self._grounding_bundle
 
 
 def _empty_projection() -> StructuredProjection:
@@ -253,9 +262,11 @@ def build_branch_structured_summary(snapshot: RepoSnapshot, branch: str) -> Bran
     claim_provenance = _summary_claim_provenance(active_claims)
     content_signature = _summary_content_signature(active_claims, stance_rows)
     if active_claims:
+        snapshot_store = _BranchSnapshotStore(tree, stance_rows)
         projection = build_structured_projection(
-            _BranchSnapshotStore(stance_rows),
+            snapshot_store,
             [claim.to_payload(include_id_alias=True) for claim in active_claims],
+            bundle=snapshot_store.grounding_bundle(),
         )
     else:
         projection = _empty_projection()

@@ -546,9 +546,14 @@ def _resolve_structured_argumentation(
             claim_id = _claim_id(claim)
             support_metadata[claim_id] = view.claim_support(claim)
 
+    grounding_bundle = getattr(world, "grounding_bundle", None)
+    if not callable(grounding_bundle):
+        return None, "ASPIC backend requires a grounded bundle-capable store"
+
     projection = build_structured_projection(
         world,
         active_claim_rows,
+        bundle=grounding_bundle(),
         support_metadata=support_metadata,
         comparison=comparison,
         link=link,

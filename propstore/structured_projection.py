@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.environment import StanceStore
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.dung import (
     ArgumentationFramework,
     grounded_extension,
@@ -31,7 +32,8 @@ from propstore.world.types import (
 @dataclass(frozen=True)
 class StructuredArgument:
     arg_id: str
-    claim_id: str
+    conclusion_key: str
+    claim_id: str | None
     conclusion_concept_id: str | None
     premise_claim_ids: tuple[str, ...]
     label: Label | None
@@ -56,6 +58,7 @@ def build_structured_projection(
     store: StanceStore,
     active_claims: list[ActiveClaimInput],
     *,
+    bundle: GroundedRulesBundle,
     support_metadata: SupportMetadata | None = None,
     comparison: str = "elitist",
     link: str = "last",
@@ -65,21 +68,16 @@ def build_structured_projection(
 
     Delegates to the ASPIC+ bridge for full recursive argument construction.
 
-    Phase-1 call sites that enter through this wrapper do not exercise
-    the grounded-rules pipeline (T2.5 is empty), so we pass
-    ``GroundedRulesBundle.empty()`` here. Callers that need real
-    grounding should call ``build_aspic_projection`` directly with
-    their own bundle. Diller, Borg, Bex 2025 §3 Def 7 (p.3): the
-    empty fact base is a legal Datalog program and its bundle is
-    well defined — this is the identity element, not a shim.
+    The caller must supply the grounded bundle explicitly. Grounding is part of
+    the theory identity, so this wrapper no longer fabricates
+    ``GroundedRulesBundle.empty()`` internally.
     """
     from propstore.aspic_bridge import build_aspic_projection
-    from propstore.grounding.bundle import GroundedRulesBundle
 
     return build_aspic_projection(
         store,
         coerce_active_claims(active_claims),
-        bundle=GroundedRulesBundle.empty(),
+        bundle=bundle,
         support_metadata=support_metadata,
         comparison=comparison,
         link=link,
