@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from propstore.artifacts.codecs import encode_document
-from propstore.artifacts.types import ArtifactFamily, ArtifactContext, TDoc, TRef
+from propstore.artifacts.types import ArtifactFamily, ArtifactContext, ResolvedArtifact, TDoc, TRef
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
@@ -20,18 +20,8 @@ class ArtifactTransaction:
     _deletes: set[str] = field(default_factory=set)
 
     def save(self, family: ArtifactFamily[TRef, TDoc], ref: TRef, doc: TDoc) -> None:
-        resolved = family.resolve_ref(self.repo, ref)
-        branch = self.branch or resolved.branch
-        if self.branch is None:
-            self.branch = branch
-        elif branch != self.branch:
-            raise ValueError(f"Transaction branch mismatch: expected {self.branch!r}, got {branch!r}")
-        context = ArtifactContext(
-            repo=self.repo,
-            ref=ref,
-            branch=branch,
-            relpath=resolved.relpath,
-        )
+        branch, resolved = self._resolved_target(family, ref)
+        context = ArtifactContext(repo=self.repo, ref=ref, branch=branch, relpath=resolved.relpath)
         normalized = doc
         if family.normalize_for_write is not None:
             normalized = family.normalize_for_write(context, normalized, self)
@@ -42,15 +32,24 @@ class ArtifactTransaction:
         self._deletes.discard(relpath)
 
     def delete(self, family: ArtifactFamily[TRef, object], ref: TRef) -> None:
-        resolved = family.resolve_ref(self.repo, ref)
-        branch = self.branch or resolved.branch
-        if self.branch is None:
-            self.branch = branch
-        elif branch != self.branch:
-            raise ValueError(f"Transaction branch mismatch: expected {self.branch!r}, got {branch!r}")
+        _, resolved = self._resolved_target(family, ref)
         relpath = normalized_path(resolved.relpath)
         self._deletes.add(relpath)
         self._adds.pop(relpath, None)
+
+    def move(self, family: ArtifactFamily[TRef, TDoc], old_ref: TRef, new_ref: TRef, doc: TDoc) -> None:
+        self.save(family, new_ref, doc)
+        old_branch, old_resolved = self._resolved_target(family, old_ref)
+        new_branch, _ = self._resolved_target(family, new_ref)
+        if old_branch != new_branch:
+            raise ValueError(
+                f"Transaction branch mismatch for move: expected {new_branch!r}, got {old_branch!r}"
+            )
+        old_relpath = normalized_path(old_resolved.relpath)
+        new_relpath = normalized_path(family.resolve_ref(self.repo, new_ref).relpath)
+        if old_relpath != new_relpath:
+            self._deletes.add(old_relpath)
+            self._adds.pop(old_relpath, None)
 
     def commit(self) -> str:
         if self.repo.git is None:
@@ -63,6 +62,19 @@ class ArtifactTransaction:
             message=self.message,
             branch=self.branch,
         )
+
+    def _resolved_target(
+        self,
+        family: ArtifactFamily[TRef, object],
+        ref: TRef,
+    ) -> tuple[str, ResolvedArtifact]:
+        resolved = family.resolve_ref(self.repo, ref)
+        branch = self.branch or resolved.branch
+        if self.branch is None:
+            self.branch = branch
+        elif branch != self.branch:
+            raise ValueError(f"Transaction branch mismatch: expected {self.branch!r}, got {branch!r}")
+        return branch, resolved
 
 
 def normalized_path(path: str | Path) -> str:

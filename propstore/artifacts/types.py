@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, TypeVar
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import msgspec
 
@@ -29,6 +30,14 @@ class ArtifactContext(Generic[TRef]):
 
 
 @dataclass(frozen=True)
+class ArtifactHandle(Generic[TRef, TDoc]):
+    family: ArtifactFamily[TRef, TDoc]
+    ref: TRef
+    resolved: ResolvedArtifact
+    document: TDoc
+
+
+@dataclass(frozen=True)
 class ArtifactFamily(Generic[TRef, TDoc]):
     name: str
     doc_type: type[TDoc]
@@ -36,4 +45,6 @@ class ArtifactFamily(Generic[TRef, TDoc]):
     normalize_for_write: Callable[[ArtifactContext[TRef], TDoc, object], TDoc] | None = None
     validate_for_write: Callable[[ArtifactContext[TRef], TDoc, object], None] | None = None
     list_refs: Callable[[Repository, str | None, str | None], list[TRef]] | None = None
+    ref_from_path: Callable[[str | Path], TRef] | None = None
+    ref_from_loaded: Callable[[Any], TRef] | None = None
     scan_type: type[msgspec.Struct] | None = None

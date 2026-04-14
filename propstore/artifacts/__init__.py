@@ -39,11 +39,12 @@ from propstore.artifacts.refs import (
 )
 from propstore.artifacts.store import ArtifactStore
 from propstore.artifacts.transaction import ArtifactTransaction
-from propstore.artifacts.types import ArtifactContext, ArtifactFamily, ResolvedArtifact
+from propstore.artifacts.types import ArtifactContext, ArtifactFamily, ArtifactHandle, ResolvedArtifact
 
 __all__ = [
     "ArtifactContext",
     "ArtifactFamily",
+    "ArtifactHandle",
     "ArtifactStore",
     "ArtifactTransaction",
     "CANONICAL_SOURCE_FAMILY",

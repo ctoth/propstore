@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from propstore.artifacts.refs import (
@@ -156,6 +157,27 @@ def _list_yaml_refs_in_directory(
     return refs
 
 
+def _yaml_path_ref(path: str | Path, *, subdir: str, ref_type: type[WorldlineRef]) -> WorldlineRef:
+    normalized = str(path).replace("\\", "/")
+    prefix = f"{subdir}/"
+    if not normalized.startswith(prefix) or not normalized.endswith(".yaml"):
+        raise ValueError(f"expected {prefix}*.yaml path, got {normalized!r}")
+    return ref_type(Path(normalized).stem)
+
+
+def _ref_from_loaded_source_path(
+    loaded: object,
+    *,
+    subdir: str,
+    ref_type: type[WorldlineRef],
+) -> WorldlineRef:
+    source_path = getattr(loaded, "source_path", None)
+    if source_path is None:
+        raise ValueError(f"loaded artifact does not have a source_path for {subdir}")
+    rendered = source_path.as_posix() if hasattr(source_path, "as_posix") else str(source_path)
+    return _yaml_path_ref(rendered, subdir=subdir, ref_type=ref_type)
+
+
 SOURCE_DOCUMENT_FAMILY = ArtifactFamily[SourceRef, SourceDocument](
     name="source_document",
     doc_type=SourceDocument,
@@ -214,12 +236,24 @@ CLAIMS_FILE_FAMILY = ArtifactFamily[ClaimsFileRef, ClaimsFileDocument](
     name="claims_file",
     doc_type=ClaimsFileDocument,
     resolve_ref=_claims_file_artifact,
+    ref_from_path=lambda path: _yaml_path_ref(path, subdir="claims", ref_type=ClaimsFileRef),
+    ref_from_loaded=lambda loaded: _ref_from_loaded_source_path(
+        loaded,
+        subdir="claims",
+        ref_type=ClaimsFileRef,
+    ),
 )
 
 CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
     name="concept_file",
     doc_type=ConceptDocument,
     resolve_ref=_concept_file_artifact,
+    ref_from_path=lambda path: _yaml_path_ref(path, subdir="concepts", ref_type=ConceptFileRef),
+    ref_from_loaded=lambda loaded: _ref_from_loaded_source_path(
+        loaded,
+        subdir="concepts",
+        ref_type=ConceptFileRef,
+    ),
 )
 
 JUSTIFICATIONS_FILE_FAMILY = ArtifactFamily[JustificationsFileRef, SourceJustificationsDocument](
@@ -244,6 +278,7 @@ WORLDLINE_FAMILY = ArtifactFamily[WorldlineRef, WorldlineDefinitionDocument](
     name="worldline",
     doc_type=WorldlineDefinitionDocument,
     resolve_ref=_worldline_artifact,
+    ref_from_path=lambda path: _yaml_path_ref(path, subdir="worldlines", ref_type=WorldlineRef),
     list_refs=lambda repo, branch, commit: _list_yaml_refs_in_directory(
         repo,
         branch,
