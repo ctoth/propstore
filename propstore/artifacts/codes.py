@@ -17,7 +17,7 @@ from propstore.artifacts.documents.sources import (
     SourceDocument,
     SourceJustificationsDocument,
 )
-from propstore.stance_documents import StanceFileDocument
+from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.uri import ni_uri_for_file
 
 if TYPE_CHECKING:

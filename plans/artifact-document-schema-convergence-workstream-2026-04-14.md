@@ -322,3 +322,9 @@ If any answer is still "it depends", this workstream is not done.
   - Updated all direct imports to the new path.
   - Deleted the old top-level module in the same slice.
   - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase3-sources tests/test_source_claims.py tests/test_source_promotion_alignment.py tests/test_artifact_store.py tests/test_artifact_reference_resolver.py tests/test_repo_snapshot.py tests/test_algorithm_stage_types.py tests/test_claim_and_stance_document_enums.py`
+- 2026-04-14: Phase 3 stances slice completed.
+  - Moved `propstore/stance_documents.py` to
+    `propstore/artifacts/documents/stances.py`.
+  - Updated all direct imports to the new path.
+  - Deleted the old top-level module in the same slice.
+  - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase3-stances tests/test_source_promotion_alignment.py tests/test_source_relations.py tests/test_claim_and_stance_document_enums.py tests/test_artifact_store.py tests/test_structured_merge_projection.py`

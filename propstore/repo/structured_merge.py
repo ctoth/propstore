@@ -14,7 +14,7 @@ from propstore.dung import ArgumentationFramework
 from propstore.knowledge_path import KnowledgePath
 from propstore.repo.merge_claims import MergeClaim
 from propstore.repo.snapshot import RepoSnapshot
-from propstore.stance_documents import StanceFileDocument
+from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.structured_projection import StructuredProjection, build_structured_projection
 
 
