@@ -3,8 +3,8 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from propstore.artifacts import normalize_canonical_concept_payload
 from propstore.cli.repository import Repository
-from propstore.identity import derive_concept_artifact_id
 from propstore.parameterization_groups import build_groups
 
 from .common import normalize_source_slug
@@ -100,7 +100,10 @@ def projected_source_concepts(
                     break
         handle_seed = str(entry.proposed_name or entry.local_name or "concept")
         if artifact_id is None:
-            artifact_id = derive_concept_artifact_id("propstore", normalize_source_slug(handle_seed))
+            artifact_id = normalize_canonical_concept_payload(
+                {"canonical_name": handle_seed},
+                local_handle=normalize_source_slug(handle_seed),
+            )["artifact_id"]
 
         projected_entry = {
             "artifact_id": artifact_id,
@@ -127,7 +130,10 @@ def projected_source_concepts(
                     continue
                 artifact_id = local_handle_to_artifact.get(input_ref) or primary_handle_to_artifact.get(input_ref)
                 if artifact_id is None:
-                    artifact_id = derive_concept_artifact_id("propstore", normalize_source_slug(input_ref))
+                    artifact_id = normalize_canonical_concept_payload(
+                        {"canonical_name": input_ref},
+                        local_handle=normalize_source_slug(input_ref),
+                    )["artifact_id"]
                 inputs.append(artifact_id)
             resolved["inputs"] = inputs
             params.append(resolved)

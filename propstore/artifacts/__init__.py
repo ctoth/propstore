@@ -1,3 +1,4 @@
+from propstore.artifacts.identity import concept_reference_keys, normalize_canonical_concept_payload
 from propstore.artifacts.indexes import (
     ClaimReferenceIndex,
     build_source_claim_reference_index,
@@ -91,10 +92,12 @@ __all__ = [
     "claims_file_relpath",
     "concept_alignment_relpath",
     "concept_file_relpath",
+    "concept_reference_keys",
     "justifications_file_relpath",
     "build_source_claim_reference_index",
     "load_primary_branch_claim_reference_index",
     "load_source_claim_reference_index",
+    "normalize_canonical_concept_payload",
     "normalize_source_slug",
     "source_branch_name",
     "source_finalize_relpath",

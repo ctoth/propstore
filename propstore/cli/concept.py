@@ -10,7 +10,13 @@ from pathlib import Path
 import click
 
 from propstore.claim_documents import LoadedClaimFile
-from propstore.artifacts import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY, ClaimsFileRef, ConceptFileRef
+from propstore.artifacts import (
+    CLAIMS_FILE_FAMILY,
+    CONCEPT_FILE_FAMILY,
+    ClaimsFileRef,
+    ConceptFileRef,
+    normalize_canonical_concept_payload,
+)
 from propstore.source import (
     align_sources,
     decide_alignment,
@@ -22,12 +28,8 @@ from propstore.cli.helpers import (
     EXIT_VALIDATION,
 )
 from propstore.identity import (
-    compute_concept_version_id,
-    derive_concept_artifact_id,
     format_logical_id,
-    normalize_identity_namespace,
     normalize_claim_file_payload,
-    normalize_logical_value,
     primary_logical_id,
 )
 from propstore.core.concepts import LoadedConcept, parse_concept_record
@@ -179,61 +181,6 @@ def _claims_document(repo: Repository, ref: ClaimsFileRef, data: dict) -> object
     return repo.artifacts.coerce(CLAIMS_FILE_FAMILY, data, source=_artifact_source(repo, CLAIMS_FILE_FAMILY, ref))
 
 
-def _concept_local_handle(data: dict, *, fallback: str | None = None) -> str:
-    logical_ids = data.get("logical_ids")
-    if isinstance(logical_ids, list):
-        for entry in logical_ids:
-            if not isinstance(entry, dict):
-                continue
-            namespace = entry.get("namespace")
-            value = entry.get("value")
-            if namespace == "propstore" and isinstance(value, str) and value:
-                return normalize_logical_value(value)
-    raw_id = data.get("id")
-    if isinstance(raw_id, str) and raw_id:
-        return normalize_logical_value(raw_id)
-    return normalize_logical_value(fallback or data.get("canonical_name") or "concept")
-
-
-def _concept_logical_ids(
-    *,
-    domain: str,
-    canonical_name: str,
-    local_handle: str,
-    existing: object = None,
-) -> list[dict[str, str]]:
-    primary = {
-        "namespace": normalize_identity_namespace(domain or "propstore"),
-        "value": normalize_logical_value(canonical_name),
-    }
-    logical_ids = [primary]
-    seen = {format_logical_id(primary)}
-    if isinstance(existing, list):
-        for entry in existing:
-            if not isinstance(entry, dict):
-                continue
-            namespace = entry.get("namespace")
-            value = entry.get("value")
-            if not isinstance(namespace, str) or not isinstance(value, str):
-                continue
-            normalized = {
-                "namespace": normalize_identity_namespace(namespace),
-                "value": normalize_logical_value(value),
-            }
-            formatted = format_logical_id(normalized)
-            if formatted is None or formatted in seen:
-                continue
-            if normalized["namespace"] == primary["namespace"]:
-                continue
-            logical_ids.append(normalized)
-            seen.add(formatted)
-    propstore_entry = {"namespace": "propstore", "value": normalize_logical_value(local_handle)}
-    formatted_propstore = format_logical_id(propstore_entry)
-    if formatted_propstore is not None and formatted_propstore not in seen:
-        logical_ids.append(propstore_entry)
-    return logical_ids
-
-
 def _normalize_concept_data(
     data: dict,
     *,
@@ -241,29 +188,12 @@ def _normalize_concept_data(
     domain: str | None = None,
     local_handle: str | None = None,
 ) -> dict:
-    normalized = deepcopy(data)
-    raw_id = normalized.pop("id", None)
-    effective_name = canonical_name or normalized.get("canonical_name")
-    if not isinstance(effective_name, str) or not effective_name:
-        effective_name = str(raw_id or local_handle or "concept")
-    normalized["canonical_name"] = effective_name
-    effective_domain = domain or normalized.get("domain") or "propstore"
-    normalized["domain"] = effective_domain
-    propstore_handle = normalize_logical_value(
-        local_handle or _concept_local_handle(normalized, fallback=str(raw_id or effective_name))
+    return normalize_canonical_concept_payload(
+        deepcopy(data),
+        canonical_name=canonical_name,
+        domain=domain,
+        local_handle=local_handle,
     )
-    artifact_id = normalized.get("artifact_id")
-    if not isinstance(artifact_id, str) or not artifact_id:
-        artifact_id = derive_concept_artifact_id("propstore", propstore_handle)
-    normalized["artifact_id"] = artifact_id
-    normalized["logical_ids"] = _concept_logical_ids(
-        domain=str(effective_domain),
-        canonical_name=str(effective_name),
-        local_handle=propstore_handle,
-        existing=normalized.get("logical_ids"),
-    )
-    normalized["version_id"] = compute_concept_version_id(normalized)
-    return normalized
 
 
 def _concept_display_handle(data: dict) -> str:
@@ -593,7 +523,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     for concept_record in loaded_concepts:
         concept_ref = _concept_ref(repo, concept_record)
         concept_data = deepcopy(concept_record.data)
-        local_handle = _concept_local_handle(concept_record.data, fallback=concept_record.filename)
+        local_handle = concept_record.filename
         updated_ref = concept_ref
         if concept_ref == old_ref:
             concept_data["canonical_name"] = name

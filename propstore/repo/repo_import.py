@@ -9,15 +9,11 @@ import msgspec
 
 from propstore.identity import (
     compute_claim_version_id,
-    compute_concept_version_id,
-    derive_concept_artifact_id,
-    format_logical_id,
     normalize_claim_file_payload,
-    normalize_identity_namespace,
-    normalize_logical_value,
     rewrite_stance_file_payload,
 )
 from propstore.artifacts.resolution import ImportedClaimHandleIndex
+from propstore.artifacts.identity import concept_reference_keys, normalize_canonical_concept_payload
 from propstore.repo.branch import branch_head, create_branch
 
 if TYPE_CHECKING:
@@ -162,47 +158,15 @@ def _normalize_concept_payload(
     *,
     default_domain: str,
 ) -> tuple[dict[str, Any], set[str]]:
-    normalized = dict(data)
-    raw_id = normalized.pop("id", None)
-    canonical_name = normalized.get("canonical_name")
-    effective_name = (
-        canonical_name
-        if isinstance(canonical_name, str) and canonical_name
-        else str(raw_id or "concept")
+    raw_id = data.get("id")
+    normalized = normalize_canonical_concept_payload(
+        dict(data),
+        default_domain=str(default_domain or "propstore"),
     )
-    normalized["canonical_name"] = effective_name
-    effective_domain = str(normalized.get("domain") or default_domain or "propstore")
-    normalized["domain"] = effective_domain
-
-    propstore_handle = normalize_logical_value(str(raw_id or effective_name))
-    artifact_id = normalized.get("artifact_id")
-    if not isinstance(artifact_id, str) or not artifact_id:
-        artifact_id = derive_concept_artifact_id("propstore", propstore_handle)
-    normalized["artifact_id"] = artifact_id
-
-    primary_namespace = normalize_identity_namespace(effective_domain)
-    primary_value = normalize_logical_value(str(effective_name))
-    logical_ids: list[dict[str, str]] = [{"namespace": primary_namespace, "value": primary_value}]
-    if primary_namespace != "propstore" or propstore_handle != primary_value:
-        logical_ids.append({"namespace": "propstore", "value": propstore_handle})
-    normalized["logical_ids"] = logical_ids
-    normalized["version_id"] = compute_concept_version_id(normalized)
-
-    reference_keys = {artifact_id, primary_value, effective_name, propstore_handle}
-    if isinstance(raw_id, str) and raw_id:
-        reference_keys.add(raw_id)
-    for entry in logical_ids:
-        formatted = format_logical_id(entry)
-        if formatted:
-            reference_keys.add(formatted)
-    for alias in normalized.get("aliases", []) or []:
-        if not isinstance(alias, dict):
-            continue
-        alias_name = alias.get("name")
-        if isinstance(alias_name, str) and alias_name:
-            reference_keys.add(alias_name)
-
-    return normalized, reference_keys
+    return normalized, concept_reference_keys(
+        normalized,
+        raw_id=raw_id if isinstance(raw_id, str) else None,
+    )
 
 
 def _rewrite_concept_reference(value: Any, concept_ref_map: dict[str, str]) -> Any:
@@ -252,8 +216,7 @@ def _rewrite_concept_payload_refs(
             updated_parameterizations.append(param_copy)
         rewritten["parameterization_relationships"] = updated_parameterizations
 
-    rewritten["version_id"] = compute_concept_version_id(rewritten)
-    return rewritten
+    return normalize_canonical_concept_payload(rewritten)
 
 
 def _rewrite_claim_concept_refs(
