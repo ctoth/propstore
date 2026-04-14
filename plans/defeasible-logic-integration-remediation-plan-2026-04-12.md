@@ -1,5 +1,8 @@
 # Defeasible Logic Integration Remediation Plan
 
+Superseded on 2026-04-14 by
+`plans/defeasible-reasoning-workstream-2026-04-14.md`.
+
 Date: 2026-04-12
 Updated: 2026-04-13
 

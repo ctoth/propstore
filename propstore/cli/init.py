@@ -47,8 +47,9 @@ def init(obj: dict, directory: str) -> None:
     """Initialize a new propstore project directory.
 
     Creates the standard knowledge tree (concepts/, claims/, contexts/,
-    forms/, justifications/, sidecar/, sources/, stances/, worldlines/)
-    as a git-backed repository, and seeds the packaged default forms.
+    forms/, justifications/, predicates/, rules/, sidecar/, sources/,
+    stances/, worldlines/) as a git-backed repository, and seeds the
+    packaged default forms.
     If no DIRECTORY argument is given, creates a ``knowledge/`` directory
     in the current working directory.
     """
@@ -79,6 +80,12 @@ def init(obj: dict, directory: str) -> None:
     click.echo(f"Initialized propstore project at {root}/")
     click.echo(f"  {root / 'concepts/'}")
     click.echo(f"  {root / 'claims/'}")
+    click.echo(f"  {root / 'contexts/'}")
     click.echo(f"  {root / 'forms/'}")
+    click.echo(f"  {root / 'justifications/'}")
+    click.echo(f"  {root / 'predicates/'}")
+    click.echo(f"  {root / 'rules/'}")
     click.echo(f"  {root / 'sidecar/'}")
+    click.echo(f"  {root / 'sources/'}")
     click.echo(f"  {root / 'stances/'}")
+    click.echo(f"  {root / 'worldlines/'}")
