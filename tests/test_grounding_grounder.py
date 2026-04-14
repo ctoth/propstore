@@ -176,7 +176,7 @@ def _build_predicate_document(
     declaration time.
     """
 
-    from propstore.predicate_documents import PredicateDocument
+    from propstore.artifacts.documents.predicates import PredicateDocument
 
     return PredicateDocument(
         id=predicate_id,
@@ -197,10 +197,8 @@ def _build_registry(predicates):
 
     from propstore.grounding.predicates import PredicateRegistry
     from propstore.loaded import LoadedDocument
-    from propstore.predicate_documents import (
-        LoadedPredicateFile,
-        PredicatesFileDocument,
-    )
+    from propstore.artifacts.documents.predicates import PredicatesFileDocument
+    from propstore.predicate_files import LoadedPredicateFile
 
     file_doc = PredicatesFileDocument(predicates=tuple(predicates))
     loaded = LoadedDocument(

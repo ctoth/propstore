@@ -1,10 +1,10 @@
 """Property tests for PredicateDocument / PredicatesFileDocument YAML schema.
 
 These tests describe the contract for the typed predicate-declaration
-documents that will live in `propstore/predicate_documents.py`. The module
-does not yet exist — imports are deferred into strategy and test bodies so
-pytest can collect this file cleanly while every test fails at run time
-with ``ModuleNotFoundError``.
+documents that live in
+`propstore/artifacts/documents/predicates.py`. Imports are deferred into
+strategy and test bodies so the file still parses if the schema module
+is unavailable at import time.
 
 Theoretical sources:
     Diller, M. et al. (2025). Grounding Rule-Based Argumentation Using
@@ -21,7 +21,8 @@ Theoretical sources:
       0-ary predicates as propositional facts, and ground literals built
       from the Herbrand base.
 
-DocumentStruct conventions mirrored from `propstore/rule_documents.py`
+DocumentStruct conventions mirrored from
+`propstore/artifacts/documents/rules.py`
 and `propstore/claim_documents.py`:
     - ``msgspec.Struct`` with ``kw_only=True, forbid_unknown_fields=True``.
     - List-valued fields use ``tuple[T, ...] = ()`` for immutability.
@@ -42,7 +43,7 @@ from hypothesis import strategies as st
 #
 # Strategies live in this file per the chunk constraint: no conftest.py,
 # no shared helper module. Every strategy closes over deferred imports so
-# the file parses without `propstore.predicate_documents`.
+# the file parses without `propstore.artifacts.documents.predicates`.
 
 
 _PREDICATE_ID_HEAD = st.sampled_from(
@@ -109,7 +110,7 @@ def predicate_documents() -> st.SearchStrategy:
     ``claim.condition:...``); ``description`` is a free-text annotation.
     """
 
-    from propstore.predicate_documents import PredicateDocument  # noqa: E402
+    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
 
     @st.composite
     def _build(draw: st.DrawFn) -> "PredicateDocument":
@@ -150,7 +151,7 @@ def predicates_file_documents() -> st.SearchStrategy:
     way to anchor authoring intent across re-encoding.
     """
 
-    from propstore.predicate_documents import PredicatesFileDocument  # noqa: E402
+    from propstore.artifacts.documents.predicates import PredicatesFileDocument  # noqa: E402
 
     return st.builds(
         PredicatesFileDocument,
@@ -171,7 +172,7 @@ def test_predicate_document_yaml_round_trip(doc) -> None:
     Datalog grounder can rely on the declarations across pipeline runs).
     """
 
-    from propstore.predicate_documents import PredicateDocument  # noqa: E402
+    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=PredicateDocument, strict=True)
@@ -188,7 +189,7 @@ def test_predicates_file_document_yaml_round_trip(doc) -> None:
     must re-encode to a payload that decodes back to an equal document.
     """
 
-    from propstore.predicate_documents import PredicatesFileDocument  # noqa: E402
+    from propstore.artifacts.documents.predicates import PredicatesFileDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=PredicatesFileDocument, strict=True)
@@ -235,7 +236,7 @@ def test_predicate_document_unknown_field_rejected() -> None:
     silently dropping mystery fields would let typos pass.
     """
 
-    from propstore.predicate_documents import PredicateDocument  # noqa: E402
+    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
 
     yaml_with_extra = b"""
 id: bird
@@ -256,7 +257,7 @@ def test_predicate_document_example_birds() -> None:
     PredicateDocument surface from drifting silently.
     """
 
-    from propstore.predicate_documents import PredicateDocument  # noqa: E402
+    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
 
     yaml_text = b"""
 id: bird
@@ -283,7 +284,7 @@ def test_predicate_document_nullary() -> None:
     Datalog programs.
     """
 
-    from propstore.predicate_documents import PredicateDocument  # noqa: E402
+    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
 
     yaml_text = b"""
 id: raining
@@ -307,7 +308,7 @@ def test_predicate_document_omits_optional_fields() -> None:
     documentation are layered on top.
     """
 
-    from propstore.predicate_documents import PredicateDocument  # noqa: E402
+    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
 
     yaml_text = b"""
 id: flies
@@ -323,18 +324,18 @@ def test_loaded_predicate_file_from_loaded_document() -> None:
     """LoadedPredicateFile wraps ``LoadedDocument[PredicatesFileDocument]``.
 
     Mirrors the ``LoadedRuleFile.from_loaded_document`` pattern from
-    ``propstore/rule_documents.py``: build a ``LoadedDocument`` directly,
+    ``propstore/rule_files.py``: build a ``LoadedDocument`` directly,
     wrap it via the classmethod, and confirm metadata propagates plus
     the ``.predicates`` accessor returns the inner tuple unchanged. The
     Garcia & Simari 2004 §3 ``bird/1`` predicate is the payload.
     """
 
     from propstore.loaded import LoadedDocument
-    from propstore.predicate_documents import (  # noqa: E402
-        LoadedPredicateFile,
+    from propstore.artifacts.documents.predicates import (  # noqa: E402
         PredicateDocument,
         PredicatesFileDocument,
     )
+    from propstore.predicate_files import LoadedPredicateFile  # noqa: E402
 
     predicate = PredicateDocument(
         id="bird",
@@ -368,7 +369,7 @@ def test_predicates_file_document_preserves_order(file_doc) -> None:
     silently scramble.
     """
 
-    from propstore.predicate_documents import PredicatesFileDocument  # noqa: E402
+    from propstore.artifacts.documents.predicates import PredicatesFileDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(file_doc)
     decoded = msgspec.yaml.decode(encoded, type=PredicatesFileDocument, strict=True)

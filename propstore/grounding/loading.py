@@ -5,14 +5,15 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from propstore.core.concepts import load_concepts
+from propstore.artifacts.documents.predicates import PredicatesFileDocument
+from propstore.artifacts.documents.rules import RulesFileDocument
 from propstore.artifacts.schema import load_document
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import extract_facts
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.knowledge_path import KnowledgePath
-from propstore.predicate_documents import LoadedPredicateFile, PredicatesFileDocument
-from propstore.artifacts.documents.rules import RulesFileDocument
+from propstore.predicate_files import LoadedPredicateFile
 from propstore.rule_files import LoadedRuleFile
 
 
