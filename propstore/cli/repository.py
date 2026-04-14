@@ -183,6 +183,8 @@ class Repository:
             root / "contexts",
             root / "forms",
             root / "justifications",
+            root / "predicates",
+            root / "rules",
             root / "sidecar",
             root / "sources",
             root / "stances",

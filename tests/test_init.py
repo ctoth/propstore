@@ -66,6 +66,8 @@ class TestInit:
         assert (root / "concepts").is_dir()
         assert (root / "concepts" / ".counters").is_dir()
         assert (root / "claims").is_dir()
+        assert (root / "predicates").is_dir()
+        assert (root / "rules").is_dir()
         assert (root / "sidecar").is_dir()
 
     def test_creates_at_custom_path(self, empty_workspace: Path) -> None:
@@ -78,6 +80,8 @@ class TestInit:
         assert (root / "concepts").is_dir()
         assert (root / "concepts" / ".counters").is_dir()
         assert (root / "claims").is_dir()
+        assert (root / "predicates").is_dir()
+        assert (root / "rules").is_dir()
         assert (root / "sidecar").is_dir()
 
     def test_already_initialized(self, empty_workspace: Path) -> None:
@@ -136,7 +140,7 @@ class TestInit:
             )
 
     def test_directory_structure_complete(self, empty_workspace: Path) -> None:
-        """init should create concepts/, claims/, forms/, sidecar/, and .counters/."""
+        """init should create the full reasoning-capable knowledge tree."""
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
@@ -145,8 +149,15 @@ class TestInit:
         assert (root / "concepts").is_dir()
         assert (root / "concepts" / ".counters").is_dir()
         assert (root / "claims").is_dir()
+        assert (root / "contexts").is_dir()
         assert (root / "forms").is_dir()
+        assert (root / "justifications").is_dir()
+        assert (root / "predicates").is_dir()
+        assert (root / "rules").is_dir()
         assert (root / "sidecar").is_dir()
+        assert (root / "sources").is_dir()
+        assert (root / "stances").is_dir()
+        assert (root / "worldlines").is_dir()
 
     def test_schema_dir_not_required(self, empty_workspace: Path) -> None:
         """init should not create a schema/ directory (schema is separate)."""
