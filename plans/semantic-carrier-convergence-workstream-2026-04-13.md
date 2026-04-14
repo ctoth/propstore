@@ -469,3 +469,25 @@ Full-suite note:
 Rerank after Slice 2:
 
 - Slice 3 is now the next highest-value target: world/runtime semantic string convergence for claim type, relation type, stance type, warning/conflict class, exactness, and source kind/origin type
+
+### Slice 3: Claim Type Runtime Enum
+
+Status: completed
+
+Changes landed in this slice:
+
+- added a canonical `ClaimType` `StrEnum`
+- changed `ClaimRow`, `ActiveClaim`, `ClaimNode`, and `SyntheticClaim` to carry `ClaimType` instead of a bare semantic string
+- changed live runtime branching in `ActiveClaim`, `BoundWorld`, and `ActiveClaimResolver` to use enum members instead of string literals
+- changed graph build to materialize `ClaimNode.claim_type` as the enum and keep string serialization only at payload edges
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice3-red-20260413-203742.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice3-green-redtest-20260413-204022.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice3-focused-20260413-204047.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice3-broader-20260413-204234.log`
+
+Rerank after Slice 3:
+
+- the next highest-value target is now conflict classification on the runtime/store path: `ConflictRow.warning_class` / `conflict_class` should converge on the existing `ConflictClass` enum instead of remaining bare strings

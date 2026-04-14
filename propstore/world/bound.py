@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.activation import is_active_claim_active
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
+from propstore.core.claim_types import ClaimType
 from propstore.core.environment import ArtifactStore, ConceptCatalogStore
 from propstore.core.id_types import ConceptId, to_context_id
 from propstore.core.row_types import (
@@ -311,7 +312,7 @@ class BoundWorld(BeliefSpace):
     def algorithm_for(self, concept_id: str) -> list[ActiveClaim]:
         """Return all active algorithm claims relevant to the given concept."""
         active = self.active_claims(concept_id)
-        return [c for c in active if c.claim_type == "algorithm"]
+        return [c for c in active if c.claim_type is ClaimType.ALGORITHM]
 
     def _concept_symbol_candidates(self, concept_id: ConceptId | str) -> list[str]:
         candidates: list[str] = []

@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.environment import Environment
 from propstore.core.id_types import (
     to_assumption_ids,
@@ -164,13 +165,14 @@ class ProvenanceRecord:
 class ClaimNode:
     claim_id: ClaimId
     concept_id: ConceptId
-    claim_type: str
+    claim_type: ClaimType
     scalar_value: float | str | None = None
     provenance: ProvenanceRecord | None = None
     label: Label | None = field(default=None, compare=False)
     attributes: tuple[tuple[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "claim_type", coerce_claim_type(self.claim_type))
         object.__setattr__(self, "attributes", _normalize_pairs(self.attributes))
 
     def to_dict(self) -> dict[str, Any]:
@@ -195,7 +197,7 @@ class ClaimNode:
         return cls(
             claim_id=to_claim_id(data["claim_id"]),
             concept_id=to_concept_id(data["concept_id"]),
-            claim_type=str(data["claim_type"]),
+            claim_type=coerce_claim_type(data["claim_type"]),
             scalar_value=data.get("scalar_value"),
             provenance=(
                 None

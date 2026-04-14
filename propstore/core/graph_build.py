@@ -6,6 +6,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from propstore.core.claim_types import ClaimType
 from propstore.core.environment import (
     ClaimCatalogStore,
     ClaimStanceInventoryStore,
@@ -254,7 +255,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                 ClaimNode(
                     claim_id=to_claim_id(claim_display_ids[str(row.claim_id)]),
                     concept_id=to_concept_id(str(row.concept_id or row.target_concept or "")),
-                    claim_type=str(row.claim_type or "unknown"),
+                    claim_type=(row.claim_type or ClaimType.UNKNOWN),
                     scalar_value=row.value,
                     provenance=_row_provenance(
                         row,
