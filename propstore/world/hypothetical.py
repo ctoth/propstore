@@ -26,6 +26,12 @@ from propstore.core.graph_types import (
     ConflictWitness,
     GraphDelta,
 )
+from propstore.core.store_results import (
+    ArtifactStoreStats,
+    ClaimSimilarityHit,
+    ConceptSearchHit,
+    ConceptSimilarityHit,
+)
 from propstore.core.row_types import (
     ClaimRow,
     ClaimRowInput,
@@ -288,41 +294,39 @@ class _GraphOverlayStore:
     def concept_ids_for_group(self, group_id: int) -> set[str]:
         return set(self._base.concept_ids_for_group(group_id))
 
-    def search(self, query: str) -> list[dict]:
-        return [dict(row) for row in self._base.search(query)]
+    def search(self, query: str) -> list[ConceptSearchHit]:
+        return list(self._base.search(query))
 
     def similar_claims(
         self,
         claim_id: str,
         model_name: str | None = None,
         top_k: int = 10,
-    ) -> list[dict]:
-        return [
-            dict(row)
-            for row in self._base.similar_claims(
+    ) -> list[ClaimSimilarityHit]:
+        return list(
+            self._base.similar_claims(
                 claim_id,
                 model_name=model_name,
                 top_k=top_k,
             )
-        ]
+        )
 
     def similar_concepts(
         self,
         concept_id: str,
         model_name: str | None = None,
         top_k: int = 10,
-    ) -> list[dict]:
-        return [
-            dict(row)
-            for row in self._base.similar_concepts(
+    ) -> list[ConceptSimilarityHit]:
+        return list(
+            self._base.similar_concepts(
                 concept_id,
                 model_name=model_name,
                 top_k=top_k,
             )
-        ]
+        )
 
-    def stats(self) -> dict:
-        return dict(self._base.stats())
+    def stats(self) -> ArtifactStoreStats:
+        return self._base.stats()
 
     def parameterizations_for(self, concept_id: str):
         return list(self._base.parameterizations_for(concept_id))

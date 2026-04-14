@@ -17,6 +17,12 @@ from propstore.cel_checker import (
 )
 from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.labels import compile_environment_assumptions
+from propstore.core.store_results import (
+    ArtifactStoreStats,
+    ClaimSimilarityHit,
+    ConceptSearchHit,
+    ConceptSimilarityHit,
+)
 from propstore.core.row_types import (
     ClaimRow,
     ConceptRow,
@@ -730,19 +736,19 @@ class WorldModel(ArtifactStore):
         ).fetchall()
         return {row["concept_id"] for row in rows}
 
-    def search(self, query: str) -> list[dict]:
+    def search(self, query: str) -> list[ConceptSearchHit]:
         rows = self._conn.execute(
             "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH ?",
             (query,),
         ).fetchall()
-        return [dict(r) for r in rows]
+        return [ConceptSearchHit.from_mapping(dict(row)) for row in rows]
 
     def similar_claims(
         self,
         claim_id: str,
         model_name: str | None = None,
         top_k: int = 10,
-    ) -> list[dict]:
+    ) -> list[ClaimSimilarityHit]:
         """Find claims similar to the given claim by embedding distance.
 
         Requires sqlite-vec extension and pre-computed embeddings.
@@ -757,14 +763,17 @@ class WorldModel(ArtifactStore):
             model_name = models[0]["model_name"]
 
         assert model_name is not None  # narrowed above
-        return find_similar(self._conn, claim_id, model_name, top_k=top_k)
+        return [
+            ClaimSimilarityHit.from_mapping(result)
+            for result in find_similar(self._conn, claim_id, model_name, top_k=top_k)
+        ]
 
     def similar_concepts(
         self,
         concept_id: str,
         model_name: str | None = None,
         top_k: int = 10,
-    ) -> list[dict]:
+    ) -> list[ConceptSimilarityHit]:
         """Find concepts similar to the given concept by embedding distance.
 
         Requires sqlite-vec extension and pre-computed embeddings.
@@ -779,7 +788,10 @@ class WorldModel(ArtifactStore):
             model_name = models[0]["model_name"]
 
         assert model_name is not None  # narrowed above
-        return find_similar_concepts(self._conn, concept_id, model_name, top_k=top_k)
+        return [
+            ConceptSimilarityHit.from_mapping(result)
+            for result in find_similar_concepts(self._conn, concept_id, model_name, top_k=top_k)
+        ]
 
     def _has_table(self, name: str) -> bool:
         if name in self._table_cache:
@@ -830,11 +842,15 @@ class WorldModel(ArtifactStore):
                 results.append(dict(row))
         return results
 
-    def stats(self) -> dict:
+    def stats(self) -> ArtifactStoreStats:
         concepts = self._conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0]
         claims = self._conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
         conflicts = self._conn.execute("SELECT COUNT(*) FROM conflict_witness").fetchone()[0]
-        return {"concepts": concepts, "claims": claims, "conflicts": conflicts}
+        return ArtifactStoreStats(
+            concepts=int(concepts),
+            claims=int(claims),
+            conflicts=int(conflicts),
+        )
 
     # ── Parameterization queries ─────────────────────────────────────
 

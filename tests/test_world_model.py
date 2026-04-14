@@ -23,6 +23,12 @@ from propstore.core.row_types import (
     coerce_conflict_row,
     coerce_stance_row,
 )
+from propstore.core.store_results import (
+    ArtifactStoreStats,
+    ClaimSimilarityHit,
+    ConceptSearchHit,
+    ConceptSimilarityHit,
+)
 from propstore.sidecar.build import build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from tests.conftest import create_world_model_schema, make_claim_identity
@@ -828,14 +834,91 @@ class TestUnboundQueries:
 
     def test_search(self, world):
         results = world.search("frequency")
-        ids = [r["concept_id"] for r in results]
+        assert results
+        assert all(isinstance(result, ConceptSearchHit) for result in results)
+        ids = [str(result.concept_id) for result in results]
         assert CONCEPT1_ID in ids
+
+    def test_similar_claims_returns_typed_hits(self, world, monkeypatch):
+        import propstore.embed as embed
+
+        monkeypatch.setattr(embed, "_load_vec_extension", lambda conn: None)
+        monkeypatch.setattr(
+            embed,
+            "get_registered_models",
+            lambda conn: [{"model_name": "test-model"}],
+        )
+        monkeypatch.setattr(
+            embed,
+            "find_similar",
+            lambda conn, claim_id, model_name, top_k=10: [
+                {
+                    "id": _claim_artifact("test_paper_alpha", "claim2"),
+                    "distance": 0.125,
+                    "auto_summary": "similar claim summary",
+                    "statement": "similar claim statement",
+                    "source_paper": "alpha",
+                    "concept_id": CONCEPT1_ID,
+                }
+            ],
+        )
+
+        results = world.similar_claims(_claim_artifact("test_paper_alpha", "claim1"))
+
+        assert results == [
+            ClaimSimilarityHit(
+                claim_id=_claim_artifact("test_paper_alpha", "claim2"),
+                distance=0.125,
+                auto_summary="similar claim summary",
+                statement="similar claim statement",
+                source_paper="alpha",
+                concept_id=CONCEPT1_ID,
+            )
+        ]
+
+    def test_similar_concepts_returns_typed_hits(self, world, monkeypatch):
+        import propstore.embed as embed
+
+        monkeypatch.setattr(embed, "_load_vec_extension", lambda conn: None)
+        monkeypatch.setattr(
+            embed,
+            "get_registered_models",
+            lambda conn: [{"model_name": "test-model"}],
+        )
+        monkeypatch.setattr(
+            embed,
+            "find_similar_concepts",
+            lambda conn, concept_id, model_name, top_k=10: [
+                {
+                    "id": CONCEPT2_ID,
+                    "distance": 0.25,
+                    "primary_logical_id": "propstore:concept2",
+                    "canonical_name": "Frequency Response",
+                    "definition": "Frequency-domain response",
+                }
+            ],
+        )
+
+        results = world.similar_concepts(CONCEPT1_ID)
+
+        assert results == [
+            ConceptSimilarityHit(
+                concept_id=CONCEPT2_ID,
+                distance=0.25,
+                primary_logical_id="propstore:concept2",
+                canonical_name="Frequency Response",
+                definition="Frequency-domain response",
+            )
+        ]
 
     def test_stats(self, world):
         s = world.stats()
-        assert s["concepts"] == 7
-        assert s["claims"] == 15
-        assert s["conflicts"] >= 1
+        assert s == ArtifactStoreStats(
+            concepts=7,
+            claims=15,
+            conflicts=s.conflicts,
+        )
+        assert s.conflicts >= 1
 
 
 # ── Explain (stance graph) ───────────────────────────────────────────
