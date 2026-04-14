@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import click
-import yaml
 
+from propstore.artifacts.codecs import render_yaml_value
 from propstore.artifacts.codes import verify_claim_tree
 from propstore.cli.repository import Repository
 
@@ -24,4 +24,4 @@ def verify_tree(obj: dict, claim_ref: str, commit: str | None) -> None:
         report = verify_claim_tree(repo, claim_ref, commit=commit)
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(yaml.safe_dump(report, sort_keys=False, allow_unicode=True))
+    click.echo(render_yaml_value(report))

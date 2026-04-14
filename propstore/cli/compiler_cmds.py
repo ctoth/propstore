@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import click
-import yaml
 
 from propstore.cli.helpers import EXIT_VALIDATION, open_world_model
 from propstore.cli.repository import Repository
@@ -1763,6 +1762,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             aspic_projection = build_structured_projection(
                 wm,
                 active,
+                bundle=wm.grounding_bundle(),
                 support_metadata=_support_metadata_for(bound, active),
                 comparison=set_comparison,
                 active_graph=_active_graph_for(bound),

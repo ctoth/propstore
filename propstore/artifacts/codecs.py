@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any, TypeVar
 
 import msgspec
@@ -41,6 +42,35 @@ def encode_document(document: object) -> bytes:
 
 def render_document(document: object) -> str:
     return encode_document(document).decode("utf-8").rstrip()
+
+
+def encode_yaml_value(value: object) -> bytes:
+    return msgspec.yaml.encode(value)
+
+
+def render_yaml_value(value: object) -> str:
+    return encode_yaml_value(value).decode("utf-8").rstrip()
+
+
+def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict[str, Any]]]:
+    results: list[tuple[str, Path, dict[str, Any]]] = []
+    for entry in sorted(directory.iterdir()):
+        if not entry.is_file() or entry.suffix != ".yaml":
+            continue
+        raw = entry.read_bytes()
+        if raw.strip():
+            decoded = msgspec.yaml.decode(raw)
+            if not isinstance(decoded, dict):
+                raise ValueError(f"{entry}: expected a YAML mapping")
+            data = decoded
+        else:
+            data = {}
+        results.append((entry.stem, entry, data if data else {}))
+    return results
+
+
+def write_yaml_file(path: Path, data: object) -> None:
+    path.write_bytes(encode_yaml_value(data))
 
 
 def convert_document(
