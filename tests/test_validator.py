@@ -17,6 +17,7 @@ Tests the compiler contract checks that JSON Schema can't express:
 import pytest
 import yaml
 
+from propstore.core.concept_status import ConceptStatus
 from propstore.document_schema import DocumentSchemaError
 from propstore.core.concepts import LoadedConcept, parse_concept_record
 from propstore.core.concepts import load_concepts
@@ -536,6 +537,7 @@ class TestWarnings:
         c = make_quantity_concept("concept1", "test_concept", status="proposed")
         write_concept(concept_dir, "test_concept.yaml", c)
         concepts = load_concepts(concept_dir)
+        assert concepts[0].record.status is ConceptStatus.PROPOSED
         result = validate_concepts(concepts)
         # Proposed concepts are valid, just a warning
         assert not result.errors

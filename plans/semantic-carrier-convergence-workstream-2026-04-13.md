@@ -636,3 +636,26 @@ Proof:
 Rerank after Slice 9:
 
 - the next highest-value target is concept-status convergence on the canonical/runtime path: concept documents and loaded concept rows still carry statuses like `accepted`, `proposed`, and `deprecated` as bare semantic strings
+
+### Slice 10: Concept Status Enum
+
+Status: completed
+
+Changes landed in this slice:
+
+- added canonical `ConceptStatus` enum and status coercion for the canonical concept path
+- changed `ConceptDocument`, `ConceptRecord`, and `ConceptRow` to carry `ConceptStatus` instead of bare strings
+- changed concept validation to compare deprecated/proposed semantics against enum members instead of raw literals
+- kept string serialization only at document payload and sidecar/storage edges
+- verified that validator, sidecar concept compilation, world-model readers, graph export, and downstream form/sensitivity readers still consume typed concept statuses cleanly
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice10-red-20260413-225245.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice10-green-redtest2-20260413-225419.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice10-focused-20260413-225434.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice10-broader-20260413-225519.log`
+
+Rerank after Slice 10:
+
+- the next highest-value target is algorithm-stage convergence on the canonical/runtime path: algorithm claims still carry `stage` as a bare semantic string across claim documents, row types, sidecar storage, and compiler/CLI reporting

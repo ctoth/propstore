@@ -9,6 +9,7 @@ from typing import Any
 
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
 from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.core.concept_status import ConceptStatus, coerce_concept_status
 from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     coerce_concept_relationship_type,
@@ -38,7 +39,7 @@ from propstore.core.id_types import (
 class ConceptRow:
     concept_id: ConceptId
     canonical_name: str
-    status: str | None = None
+    status: ConceptStatus | None = None
     definition: str | None = None
     kind_type: str | None = None
     form: str | None = None
@@ -49,6 +50,8 @@ class ConceptRow:
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        if self.status is not None:
+            object.__setattr__(self, "status", coerce_concept_status(self.status))
         object.__setattr__(self, "attributes", dict(self.attributes))
 
     @classmethod
@@ -73,7 +76,11 @@ class ConceptRow:
         return cls(
             concept_id=to_concept_id(row_map["id"]),
             canonical_name=str(row_map["canonical_name"]),
-            status=None if row_map.get("status") is None else str(row_map["status"]),
+            status=(
+                None
+                if row_map.get("status") is None
+                else coerce_concept_status(row_map["status"])
+            ),
             definition=None if row_map.get("definition") is None else str(row_map["definition"]),
             kind_type=None if row_map.get("kind_type") is None else str(row_map["kind_type"]),
             form=None if row_map.get("form") is None else str(row_map["form"]),
@@ -111,7 +118,7 @@ class ConceptRow:
             "canonical_name": self.canonical_name,
         }
         if self.status is not None:
-            data["status"] = self.status
+            data["status"] = self.status.value
         if self.definition is not None:
             data["definition"] = self.definition
         if self.kind_type is not None:
