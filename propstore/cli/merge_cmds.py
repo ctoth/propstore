@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import click
-import yaml
 
 from propstore.artifacts import (
     MERGE_MANIFEST_FAMILY,
@@ -10,6 +9,7 @@ from propstore.artifacts import (
     claims_file_relpath,
     merge_manifest_relpath,
 )
+from propstore.artifacts.codecs import render_yaml_value
 
 
 @click.group()
@@ -38,7 +38,7 @@ def merge_inspect(ctx: click.Context, branch_a: str, branch_b: str, semantics: s
 
     merge_framework = build_merge_framework(repo.git, branch_a, branch_b)
     summary = summarize_merge_framework(merge_framework, semantics=semantics)
-    click.echo(yaml.safe_dump(summary, sort_keys=False).rstrip())
+    click.echo(render_yaml_value(summary))
 
 
 @merge.command("commit")
@@ -84,4 +84,4 @@ def merge_commit_cmd(
         "commit_sha": commit_sha,
         "semantic_candidate_count": len(manifest.merge.semantic_candidate_details),
     }
-    click.echo(yaml.safe_dump(payload, sort_keys=False).rstrip())
+    click.echo(render_yaml_value(payload))

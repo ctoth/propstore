@@ -9,9 +9,9 @@ import re
 import sys
 
 import click
-import yaml
 
 from propstore.artifacts import MERGE_MANIFEST_FAMILY, MergeManifestRef
+from propstore.artifacts.codecs import render_yaml_value
 from propstore.cli.concept import concept
 from propstore.cli.context import context
 from propstore.cli.claim import claim
@@ -228,7 +228,7 @@ def log_cmd(ctx, count, branch_name, show_files, output_format):
             "branch": branch_name,
             "entries": records,
         }
-        click.echo(yaml.safe_dump(payload, sort_keys=False).rstrip())
+        click.echo(render_yaml_value(payload))
         return
     _render_text_log(records, show_files=show_files)
 
