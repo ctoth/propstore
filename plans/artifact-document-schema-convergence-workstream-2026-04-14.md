@@ -379,3 +379,12 @@ If any answer is still "it depends", this workstream is not done.
     unrelated failing seed-forms case
     (`test_init_does_not_materialize_seed_forms_before_git_commit_succeeds`),
     so only the context-relevant git-backed cases were kept for this slice.
+- 2026-04-14: Phase 4 claims slice completed.
+  - Moved claim-schema structs from `propstore/claim_documents.py` to
+    `propstore/artifacts/documents/claims.py`.
+  - Moved the non-schema loaded-file/coercion helpers to
+    `propstore/claim_files.py`.
+  - Updated claim/compiler/conflict/sidecar/repo/test imports to point either
+    at the schema module or the non-schema file-helper module.
+  - Deleted `propstore/claim_documents.py`.
+  - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase4-claims tests/test_algorithm_stage_types.py tests/test_artifact_reference_resolver.py tests/test_claim_and_stance_document_enums.py tests/test_claim_compiler.py tests/test_claim_notes.py tests/test_validate_claims.py tests/test_build_sidecar.py tests/test_graph_export.py tests/test_git_backend.py::test_load_claim_files_from_git_tree tests/test_merge_classifier.py tests/test_repo_merge_object.py tests/test_sensitivity.py tests/test_world_model.py`

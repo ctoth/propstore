@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from .models import ConflictClass, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.claim_documents import ClaimFileInput
+    from propstore.claim_files import ClaimFileInput
     from propstore.context_hierarchy import ContextHierarchy
     from propstore.form_utils import FormDefinition
 

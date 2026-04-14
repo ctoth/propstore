@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import replace
 
-from propstore.claim_documents import (
+from propstore.claim_files import (
     ClaimFileInput,
     claim_file_claim_payloads,
     claim_payload_source_paper,

@@ -9,10 +9,9 @@ from typing import Any, Mapping
 
 import jsonschema
 
-from propstore.claim_documents import (
-    ClaimDocument,
+from propstore.artifacts.documents.claims import ClaimDocument, ClaimsFileDocument
+from propstore.claim_files import (
     ClaimFileInput,
-    ClaimsFileDocument,
     LoadedClaimFile,
     coerce_loaded_claim_files,
 )

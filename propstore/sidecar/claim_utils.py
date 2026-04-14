@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Sequence
 
 from ast_equiv import canonical_dump
 
-from propstore.claim_documents import LoadedClaimFile
+from propstore.claim_files import LoadedClaimFile
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.claim_types import ClaimType
 from propstore.form_utils import FormDefinition, normalize_to_si

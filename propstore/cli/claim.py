@@ -122,7 +122,7 @@ def show(obj: dict, claim_id: str) -> None:
 @click.pass_obj
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
-    from propstore.claim_documents import load_claim_files
+    from propstore.claim_files import load_claim_files
     from propstore.compiler.context import build_concept_registry_from_paths
     from propstore.compiler.passes import validate_claims
 
@@ -230,7 +230,7 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
 def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None:
     """Detect and report claim conflicts."""
     from propstore.conflict_detector import ConflictClass, detect_conflicts
-    from propstore.claim_documents import load_claim_files
+    from propstore.claim_files import load_claim_files
     from propstore.compiler.context import build_concept_registry
 
     repo: Repository = obj["repo"]

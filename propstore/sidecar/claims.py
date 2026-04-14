@@ -7,7 +7,7 @@ import sqlite3
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_documents import LoadedClaimFile
+from propstore.claim_files import LoadedClaimFile
 from propstore.artifacts.schema import decode_document_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.sidecar.claim_utils import (

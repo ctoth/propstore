@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_documents import (
+from propstore.claim_files import (
     ClaimFileInput,
     LoadedClaimFile,
     claim_file_claim_payloads,

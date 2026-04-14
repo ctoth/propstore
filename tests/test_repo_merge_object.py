@@ -212,7 +212,7 @@ def test_create_merge_commit_keeps_divergent_same_artifact_versions_out_of_mater
 
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
-    from propstore.claim_documents import load_claim_files
+    from propstore.claim_files import load_claim_files
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
 

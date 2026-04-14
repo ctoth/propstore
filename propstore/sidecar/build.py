@@ -40,7 +40,7 @@ from propstore.sidecar.schema import (
 )
 from propstore.sidecar.sources import populate_sources
 from propstore.core.concepts import load_concepts
-from propstore.claim_documents import load_claim_files
+from propstore.claim_files import load_claim_files
 from propstore.compiler.context import build_authored_concept_registry
 
 if TYPE_CHECKING:

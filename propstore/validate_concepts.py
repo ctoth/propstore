@@ -48,7 +48,7 @@ VALID_RELATIONSHIP_TYPES = VALID_CONCEPT_RELATIONSHIP_TYPES
 
 def _load_all_claim_ids(claims_dir: KnowledgePath | None) -> set[str]:
     """Load all claim IDs from claim YAML files in the given directory."""
-    from propstore.claim_documents import load_claim_files
+    from propstore.claim_files import load_claim_files
 
     claim_ids: set[str] = set()
     for claim_file in load_claim_files(claims_dir):
