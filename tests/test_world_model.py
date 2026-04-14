@@ -16,6 +16,7 @@ import pytest
 import yaml
 
 from propstore.core.claim_types import ClaimType
+from propstore.conflict_detector import ConflictClass
 from propstore.core.row_types import (
     ConflictRowInput,
     StanceRowInput,
@@ -830,7 +831,7 @@ class TestUnboundQueries:
         conflicts = world.conflicts()
         assert len(conflicts) >= 1
         assert all(
-            coerce_conflict_row(conflict).warning_class is not None
+            isinstance(coerce_conflict_row(conflict).warning_class, ConflictClass)
             for conflict in conflicts
         )
 
@@ -1986,7 +1987,7 @@ class TestTransitiveConsistency:
         for c in synthetic_conflicts:
             assert str(c.claim_a_id)
             assert str(c.claim_b_id)
-            assert c.warning_class in {"CONFLICT", "OVERLAP"}
+            assert c.warning_class in {ConflictClass.CONFLICT, ConflictClass.OVERLAP}
             assert "value_a" in c.attributes
             assert "value_b" in c.attributes
 

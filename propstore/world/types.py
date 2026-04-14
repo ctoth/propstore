@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, runtime_checkable
 
+from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.environment import ArtifactStore, Environment  # noqa: F401
@@ -383,7 +384,7 @@ class ATMSNogoodProvenanceDetail(TypedDict):
     claim_a_id: str
     claim_b_id: str
     concept_id: str | None
-    warning_class: str | None
+    warning_class: ConflictClass | None
     environment_a: list[str]
     environment_b: list[str]
 

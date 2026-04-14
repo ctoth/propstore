@@ -6,6 +6,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from propstore.conflict_detector import ConflictClass
 from propstore.core.claim_types import ClaimType
 from propstore.core.environment import (
     ClaimCatalogStore,
@@ -378,7 +379,14 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                             else str(conflict.claim_b_id)
                         ),
                     ),
-                    kind=str(conflict.warning_class or conflict.conflict_class or "conflict"),
+                    kind=(
+                        warning_class.value
+                        if isinstance(
+                            warning_class := (conflict.warning_class or conflict.conflict_class),
+                            ConflictClass,
+                        )
+                        else str(warning_class or "conflict")
+                    ),
                     details=tuple(
                         entry
                         for entry in (

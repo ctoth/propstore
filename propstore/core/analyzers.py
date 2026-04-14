@@ -13,6 +13,7 @@ from propstore.bipolar import (
     s_preferred_extensions,
     stable_extensions as bipolar_stable_extensions,
 )
+from propstore.conflict_detector import ConflictClass
 from propstore.core.id_types import ClaimId, to_claim_id, to_claim_ids, to_concept_id
 from propstore.core.graph_types import (
     ActiveWorldGraph,
@@ -138,7 +139,9 @@ def _conflict_row_from_witness(conflict: ConflictWitness) -> dict:
     return {
         "claim_a_id": conflict.left_claim_id,
         "claim_b_id": conflict.right_claim_id,
-        "warning_class": str(warning_class),
+        "warning_class": (
+            warning_class.value if isinstance(warning_class, ConflictClass) else str(warning_class)
+        ),
         **details,
     }
 
@@ -194,7 +197,7 @@ def _conflict_witness_from_row(row: ConflictRowInput) -> ConflictWitness:
     return ConflictWitness(
         left_claim_id=to_claim_id(conflict.claim_a_id),
         right_claim_id=to_claim_id(conflict.claim_b_id),
-        kind=str(warning_class),
+        kind=warning_class.value if isinstance(warning_class, ConflictClass) else str(warning_class),
         details=details,
     )
 
@@ -307,8 +310,11 @@ def _collect_claim_graph_relations(
         claims_with_stances.add(stance["target_claim_id"])
 
     for conflict in conflicts:
-        warning_class = str(conflict.get("warning_class", ""))
-        if warning_class not in _REAL_CONFLICT_CLASSES:
+        warning_class = conflict.get("warning_class")
+        warning_class_name = (
+            warning_class.value if isinstance(warning_class, ConflictClass) else str(warning_class or "")
+        )
+        if warning_class_name not in _REAL_CONFLICT_CLASSES:
             continue
         left_id = conflict["claim_a_id"]
         right_id = conflict["claim_b_id"]

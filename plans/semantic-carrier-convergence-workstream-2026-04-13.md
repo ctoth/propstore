@@ -491,3 +491,25 @@ Proof:
 Rerank after Slice 3:
 
 - the next highest-value target is now conflict classification on the runtime/store path: `ConflictRow.warning_class` / `conflict_class` should converge on the existing `ConflictClass` enum instead of remaining bare strings
+
+### Slice 4: Conflict Class Runtime Enum
+
+Status: completed
+
+Changes landed in this slice:
+
+- changed `ConflictRow.warning_class` and `conflict_class` to carry `ConflictClass` instead of bare strings
+- added canonical coercion for conflict classes at the row boundary and kept string serialization only in `to_dict()` payload edges
+- changed world/runtime adapters to preserve typed conflict classes until they intentionally project back into generic graph payloads
+- changed CLI and ATMS-facing typed structures to treat conflict classes as enum values instead of anonymous strings
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice4-red-20260413-204926.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice4-green-redtest2-20260413-205548.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice4-focused-20260413-205600.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice4-broader-20260413-205752.log`
+
+Rerank after Slice 4:
+
+- the next highest-value target is parameterization exactness on the canonical/runtime path: `exactness` is still a closed semantic vocabulary carried as bare strings across concept documents, parameterization rows, graph edges, world-facing result objects, and conflict-walk filters
