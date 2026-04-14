@@ -1693,6 +1693,27 @@ class TestSympyExceptNarrowing:
         with pytest.raises(NameError, match="undefined_variable_bug"):
             validate_claims(files, registry)
 
+    def test_programming_error_in_unit_compatibility_check_propagates(
+        self,
+        claims_dir,
+        monkeypatch,
+    ):
+        """NameError inside pint unit translation must NOT be silently caught."""
+        claim = make_parameter_claim("claim1", "concept1", 440.0, "custom_unit")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_units.yaml", data)
+
+        import propstore.form_utils as form_utils
+
+        def _boom(*_args, **_kwargs):
+            raise NameError("unit_translation_bug")
+
+        monkeypatch.setattr(form_utils, "_pint_unit", _boom)
+
+        files = load_claim_files(claims_dir)
+        with pytest.raises(NameError, match="unit_translation_bug"):
+            validate_claims(files, make_concept_registry())
+
 
 # ── Wrong error label bug (7C) ──────────────────────────────────────
 

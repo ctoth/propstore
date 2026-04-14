@@ -6,6 +6,7 @@ import json
 import sqlite3
 
 from ast_equiv import canonical_dump
+from ast_equiv.canonicalizer import AlgorithmParseError
 
 from propstore.core.concepts import ConceptRecord, LoadedConcept
 from propstore.form_utils import (
@@ -66,26 +67,23 @@ def populate_form_algebra(
             sympy_str = parameterization.sympy
             operation = ""
             if sympy_str:
-                try:
-                    operation = rewrite_parameterization_symbols(
-                        sympy_str,
-                        symbol_aliases={
-                            concept_id: id_to_symbols.get(concept_id, ()),
-                            **{
-                                input_id: id_to_symbols.get(input_id, ())
-                                for input_id in inputs
-                            },
+                operation = rewrite_parameterization_symbols(
+                    sympy_str,
+                    symbol_aliases={
+                        concept_id: id_to_symbols.get(concept_id, ()),
+                        **{
+                            input_id: id_to_symbols.get(input_id, ())
+                            for input_id in inputs
                         },
-                        symbol_targets={
-                            concept_id: output_form,
-                            **{
-                                input_id: id_to_form[input_id]
-                                for input_id in inputs
-                            },
+                    },
+                    symbol_targets={
+                        concept_id: output_form,
+                        **{
+                            input_id: id_to_form[input_id]
+                            for input_id in inputs
                         },
-                    )
-                except Exception:
-                    operation = sympy_str
+                    },
+                )
             if not operation:
                 operation = parameterization.formula or ""
 
@@ -105,7 +103,7 @@ def populate_form_algebra(
 
             try:
                 canonical_operation = canonical_dump(operation, {})
-            except Exception:
+            except AlgorithmParseError:
                 canonical_operation = operation
             dedup_key = (output_form, tuple(sorted(input_forms)), canonical_operation)
             if dedup_key in seen:

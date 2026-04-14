@@ -42,9 +42,8 @@ def source() -> None:
 def _auto_finalize_source_branch(repo: Repository, name: str) -> None:
     try:
         finalize_source_branch(repo, name)
-    except Exception as exc:
-        click.echo(f"Finalize note: {exc}", err=True)
-        return
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
     click.echo(f"Auto-finalized {source_branch_name(name)}")
 
 

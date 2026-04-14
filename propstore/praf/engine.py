@@ -167,10 +167,7 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion:
         return discount(quality_opinion, omega_claim)
 
     if not isinstance(claim, dict):
-        try:
-            claim = coerce_claim_row(claim)
-        except Exception:
-            return Opinion.dogmatic_true()
+        claim = coerce_claim_row(claim)
         return p_arg_from_claim(claim)
 
     if not isinstance(claim, dict):

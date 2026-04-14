@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -278,6 +279,40 @@ def test_source_add_concepts_batch_preserves_inventory_fields(tmp_path: Path) ->
     assert stored["concepts"][0]["aliases"] == [{"name": "existing_alias"}]
     assert stored["concepts"][1]["status"] == "proposed"
     assert stored["concepts"][1]["parameterization_relationships"][0]["inputs"] == ["existing"]
+
+
+def test_source_add_concepts_auto_finalize_runtime_error_propagates(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    concepts_file = tmp_path / "concepts.yaml"
+    concepts_file.write_text("concepts: []\n", encoding="utf-8")
+
+    with (
+        patch("propstore.cli.source.commit_source_concepts_batch"),
+        patch(
+            "propstore.cli.source.finalize_source_branch",
+            side_effect=RuntimeError("auto finalize boom"),
+        ),
+    ):
+        result = runner.invoke(
+            cli,
+            [
+                "-C",
+                str(repo.root),
+                "source",
+                "add-concepts",
+                "demo",
+                "--batch",
+                str(concepts_file),
+            ],
+        )
+
+    assert result.exit_code != 0
+    assert isinstance(result.exception, RuntimeError)
+    assert "auto finalize boom" in str(result.exception)
 
 
 def test_source_sync_materializes_branch_to_papers_workspace(tmp_path: Path) -> None:

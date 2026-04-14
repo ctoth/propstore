@@ -16,6 +16,7 @@ from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.environment import Environment
 from propstore.core.labels import binding_condition_to_cel
+from propstore.z3_conditions import Z3TranslationError
 
 if TYPE_CHECKING:
     from propstore.context_hierarchy import ContextHierarchy
@@ -143,19 +144,15 @@ def is_claim_node_active(
 
     try:
         return not solver.are_disjoint(binding_conditions, claim_conditions)
-    except Exception as exc:
-        from propstore.z3_conditions import Z3TranslationError
-
-        if isinstance(exc, Z3TranslationError):
-            return not _retry_with_standard_bindings(
-                solver,
-                binding_conditions=binding_conditions,
-                claim_conditions=claim_conditions,
-            ).are_disjoint(
-                binding_conditions,
-                claim_conditions,
-            )
-        raise
+    except Z3TranslationError:
+        return not _retry_with_standard_bindings(
+            solver,
+            binding_conditions=binding_conditions,
+            claim_conditions=claim_conditions,
+        ).are_disjoint(
+            binding_conditions,
+            claim_conditions,
+        )
 
 
 def is_active_claim_active(
@@ -183,19 +180,15 @@ def is_active_claim_active(
 
     try:
         return not solver.are_disjoint(binding_conditions, claim_conditions)
-    except Exception as exc:
-        from propstore.z3_conditions import Z3TranslationError
-
-        if isinstance(exc, Z3TranslationError):
-            return not _retry_with_standard_bindings(
-                solver,
-                binding_conditions=binding_conditions,
-                claim_conditions=claim_conditions,
-            ).are_disjoint(
-                binding_conditions,
-                claim_conditions,
-            )
-        raise
+    except Z3TranslationError:
+        return not _retry_with_standard_bindings(
+            solver,
+            binding_conditions=binding_conditions,
+            claim_conditions=claim_conditions,
+        ).are_disjoint(
+            binding_conditions,
+            claim_conditions,
+        )
 
 
 def activate_compiled_world_graph(
