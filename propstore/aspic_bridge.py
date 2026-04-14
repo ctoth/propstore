@@ -28,8 +28,8 @@ from dataclasses import dataclass
 from collections.abc import Iterator, Sequence
 from typing import Any
 
-from gunray.disagreement import complement as gunray_complement
-from gunray.types import GroundAtom as GunrayGroundAtom
+from gunray.disagreement import complement as gunray_complement  # pyright: ignore[reportMissingTypeStubs]
+from gunray.types import GroundAtom as GunrayGroundAtom  # pyright: ignore[reportMissingTypeStubs]
 
 from propstore.aspic import Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
