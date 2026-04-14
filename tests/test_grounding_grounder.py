@@ -711,3 +711,43 @@ def test_ground_accepts_empty_rule_files_sequence() -> None:
     for name in _FOUR_SECTIONS:
         total = sum(len(rows) for rows in bundle.sections[name].values())
         assert total == 0
+
+
+# ── B3 argument-level surface ───────────────────────────────────────
+#
+# Block 3 of the gunray refactor exposes typed ``Argument`` objects
+# via ``gunray.build_arguments`` (Garcia & Simari 2004 §3 Def 3.6 and
+# Diller, Borg, Bex 2025 §4). Propstore's bundle carries those
+# argument objects when the grounder is asked for them, so downstream
+# consumers (claim graph, dialectical renderer) can work with typed
+# polarity instead of string-keyed sections.
+
+
+def test_bundle_has_arguments_field() -> None:
+    """``GroundedRulesBundle`` exposes an ``arguments`` tuple field.
+
+    Block 3 surface contract: every bundle carries a typed-argument
+    view alongside the four-section projection. Defaults to an empty
+    tuple so every existing caller that constructs a bundle with
+    only the three legacy fields still type-checks and runs.
+    """
+
+    from propstore.grounding.bundle import GroundedRulesBundle
+
+    bundle = GroundedRulesBundle.empty()
+    assert hasattr(bundle, "arguments")
+    assert bundle.arguments == ()
+
+
+def test_bundle_arguments_is_immutable_tuple() -> None:
+    """``GroundedRulesBundle.arguments`` is a tuple (not a list).
+
+    The bundle is a frozen dataclass; every field must be hashable
+    for ``hash(bundle)`` to work if a future consumer needs it. A
+    tuple is the natural fit for the ordered argument sequence.
+    """
+
+    from propstore.grounding.bundle import GroundedRulesBundle
+
+    bundle = GroundedRulesBundle.empty()
+    assert isinstance(bundle.arguments, tuple)
