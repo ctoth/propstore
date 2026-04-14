@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import time
 from collections import Counter
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
-import yaml
 from dulwich.objects import Blob, Commit
 
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY, MERGE_MANIFEST_FAMILY
+from propstore.artifacts.refs import ClaimsFileRef, MergeManifestRef
 from propstore.repo.branch import branch_head
 from propstore.repo.git_backend import _DEFAULT_AUTHOR, _ref_set
 from propstore.repo.merge_classifier import build_merge_framework
@@ -26,6 +28,9 @@ def create_merge_commit(
     target_branch: str | None = None,
 ) -> str:
     """Create a two-parent merge commit from the formal merge object."""
+    from propstore.artifacts.store import ArtifactStore
+
+    artifacts = ArtifactStore(SimpleNamespace(git=kr))
     if target_branch is None:
         target_branch = kr.primary_branch_name()
     merge = build_merge_framework(kr, branch_a, branch_b)
@@ -63,7 +68,7 @@ def create_merge_commit(
         if artifact_counts[argument.artifact_id] == 1
     ]
 
-    doc = {
+    claims_payload = {
         "source": {
             "paper": "merged",
             "extraction_model": "merge",
@@ -75,18 +80,13 @@ def create_merge_commit(
     for path in claim_paths:
         del merged_entries[path]
 
-    if merged_claims:
-        content = yaml.dump(doc, sort_keys=False).encode("utf-8")
-        blob = Blob.from_string(content)
-        kr._repo.object_store.add_object(blob)
-        merged_entries["claims/merged.yaml"] = blob.id
-    else:
-        content = yaml.dump(doc, sort_keys=False).encode("utf-8")
-        blob = Blob.from_string(content)
-        kr._repo.object_store.add_object(blob)
-        merged_entries["claims/merged.yaml"] = blob.id
+    claims_document = artifacts.coerce(
+        CLAIMS_FILE_FAMILY,
+        claims_payload,
+        source="claims/merged.yaml",
+    )
 
-    manifest = {
+    manifest_payload = {
         "merge": {
             "branch_a": branch_a,
             "branch_b": branch_b,
@@ -105,10 +105,29 @@ def create_merge_commit(
             "semantic_candidate_details": semantic_candidate_details(merge),
         }
     }
-    manifest_content = yaml.dump(manifest, sort_keys=False).encode("utf-8")
-    manifest_blob = Blob.from_string(manifest_content)
-    kr._repo.object_store.add_object(manifest_blob)
-    merged_entries["merge/manifest.yaml"] = manifest_blob.id
+    manifest_document = artifacts.coerce(
+        MERGE_MANIFEST_FAMILY,
+        manifest_payload,
+        source="merge/manifest.yaml",
+    )
+
+    prepared_claims = artifacts.prepare(
+        CLAIMS_FILE_FAMILY,
+        ClaimsFileRef("merged"),
+        claims_document,
+        branch=target_branch,
+    )
+    prepared_manifest = artifacts.prepare(
+        MERGE_MANIFEST_FAMILY,
+        MergeManifestRef(),
+        manifest_document,
+        branch=target_branch,
+    )
+
+    for prepared in (prepared_claims, prepared_manifest):
+        blob = Blob.from_string(prepared.content)
+        kr._repo.object_store.add_object(blob)
+        merged_entries[prepared.resolved.relpath] = blob.id
 
     store = kr._repo.object_store
     root_tree = kr._build_tree_from_flat(merged_entries, store)

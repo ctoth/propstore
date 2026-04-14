@@ -38,6 +38,16 @@ class ArtifactHandle(Generic[TRef, TDoc]):
 
 
 @dataclass(frozen=True)
+class PreparedArtifact(Generic[TRef, TDoc]):
+    family: ArtifactFamily[TRef, TDoc]
+    ref: TRef
+    resolved: ResolvedArtifact
+    branch: str
+    document: TDoc
+    content: bytes
+
+
+@dataclass(frozen=True)
 class ArtifactFamily(Generic[TRef, TDoc]):
     name: str
     doc_type: type[TDoc]

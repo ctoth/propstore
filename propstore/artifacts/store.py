@@ -5,7 +5,15 @@ from typing import TYPE_CHECKING
 
 from propstore.artifacts.codecs import convert_document, decode_document, document_to_payload, encode_document, render_document
 from propstore.artifacts.transaction import ArtifactTransaction, normalized_path
-from propstore.artifacts.types import ArtifactContext, ArtifactFamily, ArtifactHandle, ResolvedArtifact, TDoc, TRef
+from propstore.artifacts.types import (
+    ArtifactContext,
+    ArtifactFamily,
+    ArtifactHandle,
+    PreparedArtifact,
+    ResolvedArtifact,
+    TDoc,
+    TRef,
+)
 from propstore.repo.branch import branch_head
 
 if TYPE_CHECKING:
@@ -64,6 +72,36 @@ class ArtifactStore:
 
     def payload(self, document: object) -> object:
         return document_to_payload(document)
+
+    def prepare(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        ref: TRef,
+        doc: TDoc,
+        *,
+        branch: str | None = None,
+    ) -> PreparedArtifact[TRef, TDoc]:
+        resolved = self.resolve(family, ref)
+        target_branch = branch or resolved.branch
+        context = ArtifactContext(
+            repo=self._repo,
+            ref=ref,
+            branch=target_branch,
+            relpath=resolved.relpath,
+        )
+        normalized = doc
+        if family.normalize_for_write is not None:
+            normalized = family.normalize_for_write(context, normalized, self)
+        if family.validate_for_write is not None:
+            family.validate_for_write(context, normalized, self)
+        return PreparedArtifact(
+            family=family,
+            ref=ref,
+            resolved=resolved,
+            branch=target_branch,
+            document=normalized,
+            content=encode_document(normalized),
+        )
 
     def load(
         self,
@@ -140,24 +178,12 @@ class ArtifactStore:
     ) -> str:
         if self._repo.git is None:
             raise ValueError("artifact operations require a git-backed repository")
-        resolved = self.resolve(family, ref)
-        target_branch = branch or resolved.branch
-        context = ArtifactContext(
-            repo=self._repo,
-            ref=ref,
-            branch=target_branch,
-            relpath=resolved.relpath,
-        )
-        normalized = doc
-        if family.normalize_for_write is not None:
-            normalized = family.normalize_for_write(context, normalized, self)
-        if family.validate_for_write is not None:
-            family.validate_for_write(context, normalized, self)
+        prepared = self.prepare(family, ref, doc, branch=branch)
         return self._repo.git.commit_batch(
-            adds={normalized_path(resolved.relpath): encode_document(normalized)},
+            adds={normalized_path(prepared.resolved.relpath): prepared.content},
             deletes=[],
             message=message,
-            branch=target_branch,
+            branch=prepared.branch,
         )
 
     def move(

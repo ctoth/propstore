@@ -12,6 +12,7 @@ from propstore.artifacts.refs import (
     ContextRef,
     FormRef,
     JustificationsFileRef,
+    MergeManifestRef,
     SourceRef,
     StanceFileRef,
     STANCE_PROPOSAL_BRANCH,
@@ -24,6 +25,7 @@ from propstore.artifacts.refs import (
     source_claim_from_stance_path,
     source_finalize_relpath,
     stance_file_relpath,
+    merge_manifest_relpath,
     worldline_relpath,
     justifications_file_relpath,
 )
@@ -43,6 +45,7 @@ from propstore.source_documents import (
 from propstore.source_alignment_documents import ConceptAlignmentArtifactDocument
 from propstore.stance_documents import StanceFileDocument
 from propstore.worldline.definition import WorldlineDefinitionDocument
+from propstore.merge_documents import MergeManifestDocument
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
@@ -136,6 +139,14 @@ def _concept_alignment_artifact(repo: Repository, ref: ConceptAlignmentRef) -> R
     return ResolvedArtifact(
         branch="proposal/concepts",
         relpath=concept_alignment_relpath(ref.slug),
+    )
+
+
+def _merge_manifest_artifact(repo: Repository, ref: MergeManifestRef) -> ResolvedArtifact:
+    del ref
+    return ResolvedArtifact(
+        branch=_primary_branch(repo),
+        relpath=merge_manifest_relpath(),
     )
 
 
@@ -348,6 +359,12 @@ CONCEPT_ALIGNMENT_FAMILY = ArtifactFamily[ConceptAlignmentRef, ConceptAlignmentA
     name="concept_alignment",
     doc_type=ConceptAlignmentArtifactDocument,
     resolve_ref=_concept_alignment_artifact,
+)
+
+MERGE_MANIFEST_FAMILY = ArtifactFamily[MergeManifestRef, MergeManifestDocument](
+    name="merge_manifest",
+    doc_type=MergeManifestDocument,
+    resolve_ref=_merge_manifest_artifact,
 )
 
 WORLDLINE_FAMILY = ArtifactFamily[WorldlineRef, WorldlineDefinitionDocument](
