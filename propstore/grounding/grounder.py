@@ -45,7 +45,6 @@ Theoretical anchors:
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from types import MappingProxyType
 from typing import cast
 
@@ -71,31 +70,6 @@ _FOUR_SECTIONS: tuple[str, ...] = (
     "not_defeasibly",
     "undecided",
 )
-
-
-@dataclass(frozen=True, slots=True)
-class _GunrayArgumentRuleRef:
-    rule_id: str
-
-
-@dataclass(frozen=True, slots=True)
-class _GunrayGroundAtomView:
-    predicate: str
-    arguments: tuple[Scalar, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class _GunrayArgumentFallback:
-    conclusion: _GunrayGroundAtomView
-    rules: tuple[_GunrayArgumentRuleRef, ...] = ()
-
-
-def _ensure_gunray_argument_surface() -> type[_GunrayArgumentFallback] | type[object]:
-    argument_type = getattr(gunray, "Argument", None)
-    if isinstance(argument_type, type):
-        return argument_type
-    gunray.Argument = _GunrayArgumentFallback
-    return _GunrayArgumentFallback
 
 
 def ground(
@@ -164,17 +138,13 @@ def ground(
             can opt into closure-style policies (rational, lexicographic,
             relevant) once propstore surfaces them.
         return_arguments: When ``True``, populate
-            ``bundle.arguments`` with an ordered tuple of
-            ``gunray.Argument``-compatible objects. If the installed
-            gunray build exports ``build_arguments``, propstore uses
-            that directly. Otherwise propstore synthesizes a minimal,
-            deterministic argument view from the grounded sections and
-            theory heads so the typed bundle contract remains usable in
-            the current environment. Defaults to ``False`` for
-            backwards compatibility — existing callers pay no
-            argument-enumeration cost. Block 3 of the gunray refactor
-            exposes this typed view alongside the legacy section
-            projection; callers that operate on arguments
+            ``bundle.arguments`` with the full ordered tuple of
+            ``gunray.Argument`` objects produced by
+            ``gunray.build_arguments(theory)``. Defaults to ``False``
+            for backwards compatibility — existing callers pay no
+            argument-enumeration cost. Block 3 of the gunray
+            refactor exposes this typed view alongside the legacy
+            section projection; callers that operate on arguments
             (dialectical renderer, claim graph) opt in via this
             keyword. Garcia & Simari 2004 §3 Def 3.6 (argument as
             minimal consistent defeasible derivation) and Diller,
@@ -188,8 +158,8 @@ def ground(
         ``undecided``), whose ``source_rules`` is ``tuple(rule_files)``,
         and whose ``source_facts`` is ``facts``. When
         ``return_arguments=True``, ``arguments`` carries the
-        deterministically-sorted tuple of ``gunray.Argument``-
-        compatible objects; otherwise it is the empty tuple.
+        deterministically-sorted tuple of ``gunray.Argument``
+        objects; otherwise it is the empty tuple.
     """
 
     # Step 1: translate propstore documents into the gunray schema.
@@ -216,20 +186,16 @@ def ground(
 
     # Step 3b (opt-in): enumerate the argument view. Garcia & Simari
     # 2004 §3 Def 3.6 / Simari & Loui 1992 Def 2.2 — an argument is a
-    # minimal consistent defeasible derivation. Newer gunray builds may
-    # expose ``build_arguments`` directly; the current packaged build in
-    # this environment does not. Propstore therefore falls back to a
-    # deterministic, section-backed argument view when the upstream API
-    # is absent, keeping the typed bundle contract available without
-    # requiring a different installed gunray release.
+    # minimal consistent defeasible derivation. ``gunray.build_arguments``
+    # returns an unordered ``frozenset[Argument]``; we sort it by a
+    # deterministic key (rule id tuple, conclusion predicate,
+    # conclusion argument tuple) so repeated invocations with the same
+    # inputs yield byte-identical bundles — the Diller, Borg, Bex 2025
+    # §3 Definition 9 determinism contract at the argument-tuple
+    # granularity.
     sorted_arguments: tuple[gunray.Argument, ...] = ()
     if return_arguments:
-        _ensure_gunray_argument_surface()
-        build_arguments = getattr(gunray, "build_arguments", None)
-        if callable(build_arguments):
-            argument_set = build_arguments(theory)
-        else:
-            argument_set = _fallback_build_arguments(theory, normalized_sections)
+        argument_set = gunray.build_arguments(theory)
         sorted_arguments = tuple(
             sorted(
                 argument_set,
@@ -271,60 +237,6 @@ def _argument_sort_key(
     conclusion = argument.conclusion
     conclusion_args = tuple(str(arg) for arg in conclusion.arguments)
     return rule_ids, conclusion.predicate, conclusion_args
-
-
-def _fallback_build_arguments(
-    theory,
-    normalized_sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]],
-) -> frozenset[_GunrayArgumentFallback]:
-    head_rule_ids = _rule_ids_by_head_predicate(theory)
-    arguments: set[_GunrayArgumentFallback] = set()
-    for section_name in ("definitely", "defeasibly"):
-        for predicate, rows in normalized_sections.get(section_name, {}).items():
-            matching_rule_ids = head_rule_ids.get(predicate, ())
-            rule_sets = (
-                tuple((_GunrayArgumentRuleRef(rule_id),) for rule_id in matching_rule_ids)
-                if matching_rule_ids
-                else ((),)
-            )
-            for row in rows:
-                conclusion = _GunrayGroundAtomView(
-                    predicate=predicate,
-                    arguments=tuple(row),
-                )
-                for rule_refs in rule_sets:
-                    arguments.add(
-                        _GunrayArgumentFallback(
-                            conclusion=conclusion,
-                            rules=rule_refs,
-                        )
-                    )
-    return frozenset(arguments)
-
-
-def _rule_ids_by_head_predicate(theory) -> dict[str, tuple[str, ...]]:
-    rule_ids: dict[str, set[str]] = {}
-    for rule in (
-        *getattr(theory, "strict_rules", ()),
-        *getattr(theory, "defeasible_rules", ()),
-        *getattr(theory, "defeaters", ()),
-    ):
-        predicate = _predicate_name(getattr(rule, "head", ""))
-        rule_id = getattr(rule, "id", None)
-        if not isinstance(predicate, str) or not predicate:
-            continue
-        if not isinstance(rule_id, str) or not rule_id:
-            continue
-        rule_ids.setdefault(predicate, set()).add(rule_id)
-    return {
-        predicate: tuple(sorted(ids))
-        for predicate, ids in rule_ids.items()
-    }
-
-
-def _predicate_name(atom_text: str) -> str:
-    head = atom_text.split("(", 1)[0]
-    return head.strip()
 
 
 def _normalise_sections(
