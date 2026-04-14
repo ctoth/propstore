@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 from propstore.cel_checker import (
     ConceptInfo,
     KindType,
-    build_cel_registry_from_rows,
+    build_cel_registry,
     with_standard_synthetic_bindings,
 )
 from propstore.core.id_types import to_concept_id, to_context_id
@@ -316,7 +316,7 @@ class WorldModel(ArtifactStore):
             for row in rows
         ]
         registry = with_standard_synthetic_bindings(
-            build_cel_registry_from_rows(normalized_rows)
+            build_cel_registry(normalized_rows)
         )
         self._registry = registry
         return registry

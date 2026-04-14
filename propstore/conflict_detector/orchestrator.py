@@ -16,6 +16,7 @@ from propstore.cel_checker import (
     synthetic_category_concept,
     with_synthetic_concepts,
 )
+from propstore.core.concepts import parse_concept_record
 
 from .algorithms import detect_algorithm_conflicts
 from .collectors import _iter_conflict_claims
@@ -36,7 +37,7 @@ def detect_conflicts(
 ) -> list[ConflictRecord]:
     """Detect conflicts between claims binding to the same concept."""
     records: list[ConflictRecord] = []
-    cel_registry = build_cel_registry(concept_registry)
+    cel_registry = build_cel_registry(_cel_concept_payloads(concept_registry))
     # Inject a synthetic 'source' category so Z3 treats source conditions
     # as enum comparisons and recognizes different papers as disjoint.
     source_name_set: set[str] = set()
@@ -121,3 +122,26 @@ def _build_condition_solver(cel_registry):
     except ImportError:
         return None
     return Z3ConditionSolver(cel_registry)
+
+
+def _cel_concept_payloads(
+    concept_registry: dict[str, dict],
+) -> list[dict]:
+    seen_ids: set[str] = set()
+    payloads: list[dict] = []
+    for key, value in concept_registry.items():
+        if not isinstance(value, dict):
+            continue
+        candidate = dict(value)
+        if not candidate.get("artifact_id") and isinstance(key, str) and key:
+            candidate["artifact_id"] = key
+        try:
+            record = parse_concept_record(candidate)
+        except ValueError:
+            continue
+        artifact_id = str(record.artifact_id)
+        if artifact_id in seen_ids:
+            continue
+        seen_ids.add(artifact_id)
+        payloads.append(record.to_payload())
+    return payloads

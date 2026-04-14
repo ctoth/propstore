@@ -20,7 +20,6 @@ from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN
 from propstore.cel_checker import (
     ConceptInfo,
     KindType,
-    build_cel_registry,
     check_cel_expression,
 )
 from propstore.artifacts.identity import normalize_claim_file_payload
