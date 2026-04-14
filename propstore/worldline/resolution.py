@@ -7,7 +7,7 @@ from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import ArtifactStore, ParameterizationLookupStore
 from propstore.core.row_types import coerce_claim_row, coerce_concept_row
-from propstore.world.types import DerivedResult, RenderPolicy
+from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
 from propstore.worldline.result_types import WorldlineInputSource, WorldlineTargetValue
 from propstore.worldline.trace import ResolutionTrace
@@ -18,14 +18,23 @@ class ResolutionContext:
     query_world: WorldlineBoundView
     world: ArtifactStore
     override_values: dict[ConceptId, float | str]
+    resolved_values: dict[ConceptId, ResolvedResult]
     policy: RenderPolicy
 
     def numeric_overrides(self) -> dict[str, float | str | None]:
-        return {
+        numeric_values: dict[str, float | str | None] = {
             str(key): float(value)
             for key, value in self.override_values.items()
             if isinstance(value, (int, float))
         }
+        numeric_values.update(
+            {
+                str(key): float(result.value)
+                for key, result in self.resolved_values.items()
+                if isinstance(result.value, (int, float))
+            }
+        )
+        return numeric_values
 
 
 def concept_name(world: ArtifactStore, concept_id: ConceptId | str) -> str:
@@ -110,7 +119,7 @@ def pre_resolve_conflicts(
         if resolved.status != "resolved" or resolved.value is None:
             continue
 
-        context.override_values[normalized_cid] = resolved.value
+        context.resolved_values[normalized_cid] = resolved
         trace.record_claim_dependencies(resolved.claims)
         trace.record_step(
             concept=concept_name(context.world, normalized_cid),
@@ -132,6 +141,7 @@ def resolve_target(
 
     for resolver in (
         _resolve_override_target,
+        _resolve_preresolved_target,
         _resolve_claim_target,
         _resolve_conflict_target,
         _resolve_derived_target,
@@ -179,6 +189,7 @@ def trace_input_source(
         value_result = context.query_world.value_of(concept_id)
         for resolver in (
             _resolve_override_input,
+            _resolve_preresolved_input,
             _resolve_claim_input,
             _resolve_conflict_input,
             _resolve_derived_input,
@@ -206,6 +217,38 @@ def _resolve_override_target(
         value=context.override_values[concept_id],
         source="override",
     )
+
+
+def _resolved_worldline_target_value(
+    context: ResolutionContext,
+    resolved: ResolvedResult,
+) -> WorldlineTargetValue:
+    return WorldlineTargetValue(
+        status="resolved",
+        value=resolved.value,
+        source="resolved",
+        winning_claim_id=(
+            display_claim_id(context.world, resolved.winning_claim_id)
+            if resolved.winning_claim_id
+            else None
+        ),
+        strategy=resolved.strategy,
+        reason=resolved.reason,
+    )
+
+
+def _resolve_preresolved_target(
+    context: ResolutionContext,
+    concept_id: ConceptId,
+    target_name: str,
+    trace: ResolutionTrace,
+    value_result: Any,
+) -> WorldlineTargetValue | None:
+    del target_name, trace, value_result
+    resolved = context.resolved_values.get(concept_id)
+    if resolved is None or resolved.value is None:
+        return None
+    return _resolved_worldline_target_value(context, resolved)
 
 
 def _resolve_claim_target(
@@ -269,18 +312,7 @@ def _resolve_conflict_target(
         strategy=resolved.strategy,
         reason=resolved.reason,
     )
-    return WorldlineTargetValue(
-        status="resolved",
-        value=resolved.value,
-        source="resolved",
-        winning_claim_id=(
-            display_claim_id(context.world, resolved.winning_claim_id)
-            if resolved.winning_claim_id
-            else None
-        ),
-        strategy=resolved.strategy,
-        reason=resolved.reason,
-    )
+    return _resolved_worldline_target_value(context, resolved)
 
 
 def _resolve_derived_target(
@@ -438,6 +470,31 @@ def _resolve_override_input(
     return WorldlineInputSource(
         value=context.override_values[concept_id],
         source="override",
+    )
+
+
+def _resolve_preresolved_input(
+    context: ResolutionContext,
+    concept_id: ConceptId,
+    trace: ResolutionTrace,
+    seen: set[ConceptId],
+    value_result: Any,
+) -> WorldlineInputSource | None:
+    del trace, seen, value_result
+    resolved = context.resolved_values.get(concept_id)
+    if resolved is None or resolved.value is None:
+        return None
+    return WorldlineInputSource(
+        value=resolved.value,
+        source="resolved",
+        claim_id=(
+            display_claim_id(context.world, resolved.winning_claim_id)
+            or resolved.winning_claim_id
+            if resolved.winning_claim_id
+            else None
+        ),
+        strategy=resolved.strategy,
+        reason=resolved.reason,
     )
 
 

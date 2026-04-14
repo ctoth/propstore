@@ -175,8 +175,9 @@ def _capture_aspic(
         return None
 
     justified_claim_ids = {
-        to_claim_id(projection.argument_to_claim_id[arg_id])
+        to_claim_id(claim_id)
         for arg_id in justified_arguments
+        if (claim_id := projection.argument_to_claim_id.get(arg_id)) is not None
     }
     defeated = active_ids - justified_claim_ids
     return WorldlineArgumentationState(

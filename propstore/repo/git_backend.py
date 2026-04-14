@@ -47,6 +47,18 @@ def _normalize_path(path: str | Path) -> str:
     """Normalize a path to forward-slash posix form."""
     return str(path).replace("\\", "/")
 
+
+def _is_ignored_runtime_path(relpath: str) -> bool:
+    """Return True for ignored runtime artifacts that must survive sync."""
+
+    normalized = relpath.replace("\\", "/")
+    if normalized.startswith("sidecar/"):
+        return True
+    for suffix in (".sqlite", ".sqlite-wal", ".sqlite-shm", ".hash", ".provenance"):
+        if normalized.endswith(suffix):
+            return True
+    return False
+
 _GITIGNORE_CONTENT = """\
 sidecar/
 *.sqlite
@@ -359,6 +371,8 @@ class KnowledgeRepo:
                 continue
             rel = disk_file.relative_to(root).as_posix()
             if rel.startswith(".git"):
+                continue
+            if _is_ignored_runtime_path(rel):
                 continue
             if rel not in git_paths:
                 disk_file.unlink()
