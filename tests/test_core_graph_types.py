@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from propstore.core.exactness_types import Exactness
+from propstore.core.graph_relation_types import GraphRelationType
 from propstore.world import Environment
 from propstore.core.labels import Label
 
@@ -131,6 +132,18 @@ def test_parameterization_edge_coerces_exactness_to_enum() -> None:
     )
 
     assert edge.exactness is Exactness.EXACT
+
+
+def test_relation_edge_coerces_graph_relation_type_to_enum() -> None:
+    from propstore.core.graph_types import RelationEdge
+
+    edge = RelationEdge(
+        source_id="claim_a",
+        target_id="claim_b",
+        relation_type="rebuts",
+    )
+
+    assert edge.relation_type is GraphRelationType.REBUTS
 
 
 def test_provenance_record_normalizes_known_fields_and_extras() -> None:

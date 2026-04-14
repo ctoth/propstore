@@ -613,3 +613,26 @@ Proof:
 Rerank after Slice 8:
 
 - the next highest-value target is the compiled relation-edge surface on the live runtime/store path: `RelationEdge.relation_type` is still a bare semantic string even though concept-link relations and claim stances now have canonical enums on either side of that shared graph layer
+
+### Slice 9: Graph Relation Edge Enum
+
+Status: completed
+
+Changes landed in this slice:
+
+- added canonical `GraphRelationType` enum and relation-type coercion for the compiled graph layer
+- changed `RelationEdge.relation_type` to carry `GraphRelationType` instead of a bare string
+- changed the shared stance relation-category sets to derive from the graph enum rather than restating raw string literals
+- kept string serialization only at graph payload edges such as `RelationEdge.to_dict()`
+- verified that graph build and downstream analyzer/worldline consumers still round-trip typed relation edges coming from both concept-link rows and stance rows
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice9-red-20260413-224431.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice9-green-redtest-20260413-224623.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice9-focused-20260413-224650.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice9-broader-20260413-224801.log`
+
+Rerank after Slice 9:
+
+- the next highest-value target is concept-status convergence on the canonical/runtime path: concept documents and loaded concept rows still carry statuses like `accepted`, `proposed`, and `deprecated` as bare semantic strings

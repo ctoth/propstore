@@ -7,6 +7,7 @@ import pytest
 import yaml
 
 from propstore.core.concept_relationship_types import ConceptRelationshipType
+from propstore.core.graph_relation_types import GraphRelationType
 from propstore.sidecar.build import build_sidecar
 from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
@@ -176,13 +177,13 @@ def test_build_compiled_world_graph_preserves_sidecar_rows(graph_build_world) ->
     assert any(
         relation.provenance is not None
         and relation.provenance.source_table == "relationship"
-        and relation.relation_type == "broader"
+        and relation.relation_type is GraphRelationType.BROADER
         for relation in graph.relations
     )
     assert any(
         relation.provenance is not None
         and relation.provenance.source_table == "relation_edge"
-        and relation.relation_type == "rebuts"
+        and relation.relation_type is GraphRelationType.REBUTS
         for relation in graph.relations
     )
     assert graph.parameterizations == (
