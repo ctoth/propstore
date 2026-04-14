@@ -4,6 +4,13 @@ from __future__ import annotations
 import click
 import yaml
 
+from propstore.artifacts import (
+    MERGE_MANIFEST_FAMILY,
+    MergeManifestRef,
+    claims_file_relpath,
+    merge_manifest_relpath,
+)
+
 
 @click.group()
 def merge() -> None:
@@ -62,18 +69,19 @@ def merge_commit_cmd(
         message=message,
         target_branch=resolved_target_branch,
     )
-    manifest = yaml.safe_load(
-        (repo.git.tree(commit=commit_sha) / "merge" / "manifest.yaml").read_text()
+    manifest = repo.artifacts.require(
+        MERGE_MANIFEST_FAMILY,
+        MergeManifestRef(),
+        commit=commit_sha,
     )
-    semantic_candidate_details = manifest.get("merge", {}).get("semantic_candidate_details", [])
     payload = {
         "surface": "storage_merge_commit",
         "branch_a": branch_a,
         "branch_b": branch_b,
         "target_branch": resolved_target_branch,
-        "claims_path": "claims/merged.yaml",
-        "manifest_path": "merge/manifest.yaml",
+        "claims_path": claims_file_relpath("merged"),
+        "manifest_path": merge_manifest_relpath(),
         "commit_sha": commit_sha,
-        "semantic_candidate_count": len(semantic_candidate_details),
+        "semantic_candidate_count": len(manifest.merge.semantic_candidate_details),
     }
     click.echo(yaml.safe_dump(payload, sort_keys=False).rstrip())

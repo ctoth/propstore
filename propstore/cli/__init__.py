@@ -11,6 +11,7 @@ import sys
 import click
 import yaml
 
+from propstore.artifacts import MERGE_MANIFEST_FAMILY, MergeManifestRef
 from propstore.cli.concept import concept
 from propstore.cli.context import context
 from propstore.cli.claim import claim
@@ -106,26 +107,24 @@ def _classify_log_operation(message: str, parents: list[str]) -> str:
 
 
 def _load_merge_summary(git, sha: str) -> dict[str, object] | None:
-    try:
-        raw = git.read_file("merge/manifest.yaml", commit=sha)
-    except FileNotFoundError:
+    from propstore.artifacts.store import ArtifactStore
+
+    manifest = ArtifactStore.for_git(git).load(
+        MERGE_MANIFEST_FAMILY,
+        MergeManifestRef(),
+        commit=sha,
+    )
+    if manifest is None:
         return None
-    manifest = yaml.safe_load(raw)
-    if not isinstance(manifest, dict):
-        return None
-    merge = manifest.get("merge")
-    if not isinstance(merge, dict):
-        return None
-    arguments = merge.get("arguments", [])
-    semantic_candidates = merge.get("semantic_candidate_details", [])
-    argument_rows = [row for row in arguments if isinstance(row, dict)]
-    materialized_count = sum(1 for row in argument_rows if row.get("materialized") is True)
+    merge = manifest.merge
+    argument_rows = tuple(merge.arguments)
+    materialized_count = sum(1 for row in argument_rows if row.materialized)
     return {
-        "branch_a": str(merge.get("branch_a", "?")),
-        "branch_b": str(merge.get("branch_b", "?")),
+        "branch_a": merge.branch_a,
+        "branch_b": merge.branch_b,
         "argument_count": len(argument_rows),
         "materialized_argument_count": materialized_count,
-        "semantic_candidate_count": len(semantic_candidates) if isinstance(semantic_candidates, list) else 0,
+        "semantic_candidate_count": len(merge.semantic_candidate_details),
     }
 
 
