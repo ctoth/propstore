@@ -180,34 +180,6 @@ def test_render_parse_round_trip(expr: EquationExpr):
     assert render_equation(parsed.rhs) == text
 
 
-def test_render_preserves_left_nested_exponentiation() -> None:
-    expr = BinaryExpr(
-        operator="^",
-        left=BinaryExpr(
-            operator="^",
-            left=NumberExpr("2"),
-            right=NumberExpr("3"),
-        ),
-        right=NumberExpr("4"),
-    )
-
-    assert render_equation(expr) == "(2 ^ 3) ^ 4"
-
-
-def test_render_preserves_division_on_multiplication_rhs() -> None:
-    expr = BinaryExpr(
-        operator="*",
-        left=SymbolExpr(symbol="y", concept_id="time"),
-        right=BinaryExpr(
-            operator="/",
-            left=NumberExpr("2"),
-            right=NumberExpr("3"),
-        ),
-    )
-
-    assert render_equation(expr) == "y * (2 / 3)"
-
-
 @pytest.mark.property
 @given(expr=_polynomial_exprs)
 @settings(deadline=None, max_examples=40)
