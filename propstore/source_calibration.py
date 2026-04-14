@@ -14,7 +14,7 @@ def _source_bindings(
 ) -> dict[str, str | int | float | bool]:
     bindings: dict[str, str | int | float | bool] = {}
     if source_doc.kind:
-        bindings["source_kind"] = source_doc.kind
+        bindings["source_kind"] = source_doc.kind.value
 
     if source_doc.metadata is not None:
         for key, value in source_doc.metadata.to_payload().items():
@@ -27,7 +27,7 @@ def _source_bindings(
                 bindings[key] = value
 
     if source_doc.origin.type:
-        bindings["origin_type"] = source_doc.origin.type
+        bindings["origin_type"] = source_doc.origin.type.value
     return bindings
 
 

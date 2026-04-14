@@ -8,6 +8,12 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.opinion import Opinion
+from propstore.core.source_types import (
+    SourceKind,
+    SourceOriginType,
+    coerce_source_kind,
+    coerce_source_origin_type,
+)
 
 
 def _maybe_str(value: object) -> str | None:
@@ -61,10 +67,18 @@ def _opinion_from_mapping(raw: object) -> Opinion | None:
 
 @dataclass(frozen=True)
 class SourceOrigin:
-    origin_type: str | None = None
+    origin_type: SourceOriginType | None = None
     value: str | None = None
     retrieved: str | None = None
     content_ref: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.origin_type is not None:
+            object.__setattr__(
+                self,
+                "origin_type",
+                coerce_source_origin_type(self.origin_type),
+            )
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any] | None) -> SourceOrigin | None:
@@ -93,7 +107,7 @@ class SourceOrigin:
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
         if self.origin_type is not None:
-            data["type"] = self.origin_type
+            data["type"] = self.origin_type.value
         if self.value is not None:
             data["value"] = self.value
         if self.retrieved is not None:
@@ -156,10 +170,14 @@ class SourceTrust:
 @dataclass(frozen=True)
 class ClaimSource:
     source_id: str | None = None
-    kind: str | None = None
+    kind: SourceKind | None = None
     slug: str | None = None
     origin: SourceOrigin | None = None
     trust: SourceTrust | None = None
+
+    def __post_init__(self) -> None:
+        if self.kind is not None:
+            object.__setattr__(self, "kind", coerce_source_kind(self.kind))
 
     @classmethod
     def from_mapping(
@@ -204,7 +222,7 @@ class ClaimSource:
         if self.source_id is not None:
             data["id"] = self.source_id
         if self.kind is not None:
-            data["kind"] = self.kind
+            data["kind"] = self.kind.value
         if self.origin is not None and not self.origin.is_empty:
             data["origin"] = self.origin.to_dict()
         if self.trust is not None and not self.trust.is_empty:

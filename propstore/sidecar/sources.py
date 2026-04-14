@@ -28,8 +28,8 @@ def populate_sources(conn: sqlite3.Connection, knowledge_root: KnowledgePath) ->
             (
                 entry.stem,
                 str(source_doc.id or entry.stem),
-                str(source_doc.kind or "source"),
-                origin.type,
+                source_doc.kind.value,
+                origin.type.value,
                 origin.value,
                 origin.retrieved,
                 origin.content_ref,

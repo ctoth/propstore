@@ -17,6 +17,7 @@ import yaml
 
 from propstore.core.claim_types import ClaimType
 from propstore.conflict_detector import ConflictClass
+from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.core.row_types import (
     ConflictRowInput,
     StanceRowInput,
@@ -619,6 +620,10 @@ class TestUnboundQueries:
         claim_data = claim.to_dict()
         assert claim.source_slug == "alpha_source"
         assert claim.source_paper == "Alpha Paper"
+        assert claim.source is not None
+        assert claim.source.kind is SourceKind.ACADEMIC_PAPER
+        assert claim.source.origin is not None
+        assert claim.source.origin.origin_type is SourceOriginType.DOI
         assert claim_data["source"]["id"] == "source-alpha"
         assert claim_data["source"]["origin"]["type"] == "doi"
         assert claim_data["source"]["origin"]["value"] == "10.1000/example"
