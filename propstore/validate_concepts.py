@@ -24,6 +24,7 @@ from propstore.cel_checker import (
     check_cel_expression,
 )
 from propstore.artifact_documents.concepts import ConceptDocument
+from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.form_utils import kind_type_from_form_name, load_form_path
 from propstore.identity import (
     CONCEPT_ARTIFACT_ID_RE,
@@ -41,10 +42,7 @@ if TYPE_CHECKING:
 
 
 
-VALID_RELATIONSHIP_TYPES = frozenset([
-    "broader", "narrower", "related", "component_of",
-    "derived_from", "contested_definition",
-])
+VALID_RELATIONSHIP_TYPES = VALID_CONCEPT_RELATIONSHIP_TYPES
 
 
 def _load_all_claim_ids(claims_dir: KnowledgePath | None) -> set[str]:

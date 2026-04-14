@@ -33,6 +33,7 @@ from propstore.identity import (
     primary_logical_id,
 )
 from propstore.core.concepts import LoadedConcept, parse_concept_record
+from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.form_utils import load_form_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.cli.repository import Repository
@@ -41,10 +42,7 @@ from propstore.validate_concepts import validate_concepts
 from propstore.claim_documents import load_claim_files
 from propstore.compiler.passes import validate_claims
 
-RELATIONSHIP_TYPES = (
-    "broader", "narrower", "related",
-    "component_of", "derived_from", "contested_definition",
-)
+RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
 
 
 @click.group()

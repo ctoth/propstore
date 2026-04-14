@@ -622,16 +622,14 @@ class TestCanonicalClaim:
 
 class TestRelationshipTypeValidation:
     def test_invalid_relationship_type_error(self, concept_dir):
-        """Relationship type 'derives' should produce validation error (must be 'derived_from')."""
+        """Relationship type 'derives' should fail strict schema decoding (must be 'derived_from')."""
         c1 = make_quantity_concept("concept1", "concept_a")
         c2 = make_quantity_concept("concept2", "concept_b",
                                    relationships=[{"type": "derives", "target": "concept1"}])
         write_concept(concept_dir, "concept_a.yaml", c1)
         write_concept(concept_dir, "concept_b.yaml", c2)
-        concepts = load_concepts(concept_dir)
-        result = validate_concepts(concepts)
-        assert any("relationship type" in e.lower() or "derives" in e.lower()
-                    for e in result.errors)
+        with pytest.raises(DocumentSchemaError, match="derives"):
+            load_concepts(concept_dir)
 
     def test_all_valid_relationship_types(self, concept_dir):
         """All valid RelationshipType values should validate without errors."""

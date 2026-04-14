@@ -6,6 +6,7 @@ import sqlite3
 import pytest
 import yaml
 
+from propstore.core.concept_relationship_types import ConceptRelationshipType
 from propstore.sidecar.build import build_sidecar
 from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
@@ -196,6 +197,16 @@ def test_build_compiled_world_graph_preserves_sidecar_rows(graph_build_world) ->
         "claim_force_a",
         "claim_force_b",
     }
+
+
+def test_world_relationship_rows_use_concept_relationship_enum(graph_build_world) -> None:
+    relationships = graph_build_world.all_relationships()
+
+    assert relationships
+    assert any(
+        relationship.relation_type is ConceptRelationshipType.BROADER
+        for relationship in relationships
+    )
 
 
 def test_build_compiled_world_graph_is_row_order_independent(graph_build_world) -> None:
