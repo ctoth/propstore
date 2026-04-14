@@ -1,132 +1,111 @@
-"""Red-phase tests for equation_comparison parse_expr safety.
-
-Audit finding C4: ``parse_expr`` at equation_comparison.py:76,90 accepts
-arbitrary input with no transformation restrictions.  ``parse_expr`` can
-execute arbitrary Python code if a malicious string is passed.
-
-These tests verify that injection attempts are either rejected (raise)
-or neutralised (return None).  The tests may or may not fail depending
-on how SymPy handles the specific payloads — the point is to document
-and pin the behaviour.
-"""
-
 from __future__ import annotations
 
-import pytest
-
-from propstore.equation_comparison import canonicalize_equation
-
-
-# ── helpers ──────────────────────────────────────────────────────────
-
-
-def _make_equation_claim(*, sympy: str | None = None, expression: str | None = None) -> dict:
-    """Build a minimal equation claim dict with one symbol."""
-    claim: dict = {
-        "variables": [
-            {"symbol": "x", "concept": "length", "role": "dependent"},
-            {"symbol": "y", "concept": "time", "role": "independent"},
-        ],
-    }
-    if sympy is not None:
-        claim["sympy"] = sympy
-    if expression is not None:
-        claim["expression"] = expression
-    return claim
+from propstore.conflict_detector.models import ConflictClaim, ConflictClaimVariable
+from propstore.equation_comparison import (
+    EquationFailure,
+    EquationFailureCode,
+    EquationNormalization,
+    canonicalize_equation,
+    equation_signature,
+)
 
 
-# ── Test 1: __import__ injection via sympy field ─────────────────────
-
-
-class TestParseExprSafety:
-    """C4 — equation_comparison.py uses parse_expr with no restrictions."""
-
-    def test_import_injection_via_sympy_field_is_blocked(self):
-        """Passing __import__('os') in the sympy field must not execute it.
-
-        Expected safe behaviour: raise an error OR return None.
-        Must NOT: silently execute the import and return a result.
-        """
-        claim = _make_equation_claim(
-            sympy="__import__('os').system('echo pwned')",
+def _make_equation_claim(
+    *,
+    expression: str | None = None,
+    sympy: str | None = None,
+    variables: tuple[ConflictClaimVariable, ...] | None = None,
+) -> ConflictClaim:
+    resolved_variables: tuple[ConflictClaimVariable, ...]
+    if variables is None:
+        resolved_variables = (
+            ConflictClaimVariable(concept_id="length", symbol="x", role="dependent"),
+            ConflictClaimVariable(concept_id="time", symbol="y", role="independent"),
         )
-        # If parse_expr is unrestricted, this could execute the import.
-        # We want either None (parse failure) or an exception — but
-        # crucially, the import must not succeed.
-        try:
-            result = canonicalize_equation(claim)
-        except Exception:
-            # Any exception is acceptable — it means the injection was
-            # caught rather than executed.
-            return
+    else:
+        resolved_variables = variables
+    return ConflictClaim(
+        claim_id="eq1",
+        claim_type="equation",
+        expression=expression,
+        sympy=sympy,
+        variables=resolved_variables,
+    )
 
-        # If we get here, parse_expr returned something without raising.
-        # That's only OK if it returned None (i.e., it didn't parse the
-        # malicious string as valid).
-        assert result is None, (
-            f"parse_expr returned a non-None result for an injection "
-            f"payload: {result!r} — this suggests the code was executed"
+
+class TestEquationSignature:
+    def test_signature_uses_typed_variables(self):
+        claim = _make_equation_claim()
+        assert equation_signature(claim) == ("length", ("time",))
+
+
+class TestCanonicalizeEquation:
+    def test_supported_equation_returns_typed_normalization(self):
+        result = canonicalize_equation(_make_equation_claim(expression="x = 2*y"))
+
+        assert isinstance(result, EquationNormalization)
+        assert result.canonical == "length - 2*time"
+
+    def test_missing_variables_is_explicit_failure(self):
+        result = canonicalize_equation(_make_equation_claim(expression="x = 2*y", variables=()))
+
+        assert result == EquationFailure(
+            code=EquationFailureCode.MISSING_VARIABLES,
+            detail="equation claim has no declared symbol bindings",
         )
 
-    def test_import_injection_via_expression_field_is_blocked(self):
-        """Passing __import__ in the expression field (lhs=rhs split path)."""
-        claim = _make_equation_claim(
-            expression="__import__('os').system('echo pwned') = 0",
-        )
-        try:
-            result = canonicalize_equation(claim)
-        except Exception:
-            return
+    def test_missing_equation_text_is_explicit_failure(self):
+        result = canonicalize_equation(_make_equation_claim(expression=None, sympy=None))
 
-        assert result is None, (
-            f"parse_expr returned a non-None result for an injection "
-            f"payload via expression field: {result!r}"
+        assert result == EquationFailure(
+            code=EquationFailureCode.MISSING_EQUATION_TEXT,
+            detail="equation claim has neither expression nor sympy text",
         )
 
-    def test_eval_injection_via_sympy_field(self):
-        """eval() call embedded in sympy field."""
-        claim = _make_equation_claim(
-            sympy="eval('1+1')",
-        )
-        try:
-            result = canonicalize_equation(claim)
-        except Exception:
-            return
+    def test_unknown_symbol_is_explicit_failure(self):
+        result = canonicalize_equation(_make_equation_claim(expression="x = 2*z"))
 
-        assert result is None, (
-            f"parse_expr returned a non-None result for eval() injection: {result!r}"
+        assert result == EquationFailure(
+            code=EquationFailureCode.UNKNOWN_SYMBOL,
+            detail="unknown symbol: z",
         )
 
-    def test_exec_injection_via_sympy_field(self):
-        """exec() call embedded in sympy field."""
-        claim = _make_equation_claim(
-            sympy="exec('import os')",
-        )
-        try:
-            result = canonicalize_equation(claim)
-        except Exception:
-            return
+    def test_double_equals_is_invalid_relation(self):
+        result = canonicalize_equation(_make_equation_claim(expression="x == 2*y"))
 
-        assert result is None, (
-            f"parse_expr returned a non-None result for exec() injection: {result!r}"
+        assert result == EquationFailure(
+            code=EquationFailureCode.INVALID_RELATION,
+            detail="equation must contain exactly one '=' and no other relation operators",
         )
 
-    def test_lambda_injection_via_sympy_field(self):
-        """Lambda expression in sympy field — should not produce a callable."""
-        claim = _make_equation_claim(
-            sympy="(lambda: __import__('os'))()",
-        )
-        try:
-            result = canonicalize_equation(claim)
-        except Exception:
-            return
+    def test_inequality_is_invalid_relation(self):
+        result = canonicalize_equation(_make_equation_claim(expression="x <= 2*y"))
 
-        assert result is None, (
-            f"parse_expr returned a non-None result for lambda injection: {result!r}"
+        assert result == EquationFailure(
+            code=EquationFailureCode.INVALID_RELATION,
+            detail="equation must contain exactly one '=' and no other relation operators",
         )
 
-    def test_normal_equation_still_works(self):
-        """Sanity check: a legitimate equation still canonicalises correctly."""
-        claim = _make_equation_claim(sympy="Eq(x, 2*y)")
-        result = canonicalize_equation(claim)
-        assert result is not None, "legitimate equation should canonicalize"
+    def test_chained_equality_is_invalid_relation(self):
+        result = canonicalize_equation(_make_equation_claim(expression="x = y = 2"))
+
+        assert result == EquationFailure(
+            code=EquationFailureCode.INVALID_RELATION,
+            detail="equation must contain exactly one '=' and no other relation operators",
+        )
+
+    def test_raw_sympy_eq_text_is_not_executable_input(self):
+        result = canonicalize_equation(_make_equation_claim(expression=None, sympy="Eq(x, 2*y)"))
+
+        assert result == EquationFailure(
+            code=EquationFailureCode.INVALID_RELATION,
+            detail="equation must contain exactly one '=' and no other relation operators",
+        )
+
+    def test_unsupported_function_surface_is_explicit(self):
+        result = canonicalize_equation(_make_equation_claim(expression="x = And(y, y)"))
+
+        assert result == EquationFailure(
+            code=EquationFailureCode.UNSUPPORTED_SURFACE,
+            detail="unsupported function: And",
+        )
