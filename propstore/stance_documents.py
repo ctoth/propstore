@@ -6,12 +6,13 @@ from typing import Any
 
 from propstore.claim_documents import ResolutionDocument
 from propstore.document_schema import DocumentStruct
+from propstore.stances import StanceType
 
 
 class StanceEntryDocument(DocumentStruct):
     source_claim: str | None = None
     target: str | None = None
-    type: str | None = None
+    type: StanceType | None = None
     strength: str | None = None
     note: str | None = None
     conditions_differ: str | None = None
@@ -26,7 +27,7 @@ class StanceEntryDocument(DocumentStruct):
         if self.target is not None:
             payload["target"] = self.target
         if self.type is not None:
-            payload["type"] = self.type
+            payload["type"] = self.type.value
         if self.strength is not None:
             payload["strength"] = self.strength
         if self.note is not None:

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from propstore.artifacts import SOURCE_CLAIMS_FAMILY, SourceRef
 from propstore.claim_documents import ClaimLogicalIdDocument, ClaimSourceDocument
+from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.source_documents import SourceProvenanceDocument
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value, decode_document_path
@@ -176,7 +177,7 @@ def commit_source_claim_proposal(
     source_name: str,
     *,
     claim_id: str,
-    claim_type: str,
+    claim_type: ClaimType,
     statement: str | None = None,
     concept: str | None = None,
     value: float | None = None,
@@ -209,7 +210,10 @@ def commit_source_claim_proposal(
         )
     claims = restored
 
-    claim_payload: dict[str, object] = {"id": claim_id, "type": claim_type}
+    claim_type = coerce_claim_type(claim_type)
+    assert claim_type is not None
+
+    claim_payload: dict[str, object] = {"id": claim_id, "type": claim_type.value}
     if statement is not None:
         claim_payload["statement"] = statement
     if concept is not None:

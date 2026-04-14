@@ -7,6 +7,7 @@ from typing import Any
 from collections.abc import Mapping
 
 from propstore.core.algorithm_stage import AlgorithmStage
+from propstore.core.claim_types import ClaimType
 from propstore.document_schema import (
     DocumentStruct,
     convert_document_value,
@@ -14,6 +15,7 @@ from propstore.document_schema import (
 )
 from propstore.knowledge_path import KnowledgePath
 from propstore.loaded import LoadedDocument, LoadedEntry
+from propstore.stances import StanceType
 
 
 def _source_label(filename: str, source_path: KnowledgePath | None) -> str:
@@ -181,7 +183,7 @@ class ResolutionDocument(DocumentStruct):
 
 
 class StanceDocument(DocumentStruct):
-    type: str
+    type: StanceType
     target: str
     conditions_differ: str | None = None
     note: str | None = None
@@ -191,7 +193,7 @@ class StanceDocument(DocumentStruct):
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
-            "type": self.type,
+            "type": self.type.value,
             "target": self.target,
         }
         if self.conditions_differ is not None:
@@ -212,7 +214,7 @@ class ClaimDocument(DocumentStruct):
     artifact_code: str | None = None
     logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
     version_id: str | None = None
-    type: str | None = None
+    type: ClaimType | None = None
     provenance: ProvenanceDocument | None = None
     id: str | None = None
     body: str | None = None
@@ -261,7 +263,7 @@ class ClaimDocument(DocumentStruct):
         if self.version_id is not None:
             payload["version_id"] = self.version_id
         if self.type is not None:
-            payload["type"] = self.type
+            payload["type"] = self.type.value
         if self.provenance is not None:
             payload["provenance"] = self.provenance.to_payload()
         if self.id is not None:

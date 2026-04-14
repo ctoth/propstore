@@ -15,6 +15,7 @@ from propstore.artifacts import (
 )
 from propstore.claim_documents import ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
 from propstore.cli.repository import Repository
+from propstore.core.claim_types import ClaimType
 from propstore.repo.branch import create_branch
 from propstore.source_documents import SourceClaimDocument, SourceClaimsDocument
 from propstore.source_documents import SourceProvenanceDocument
@@ -36,7 +37,7 @@ def test_load_source_claim_reference_index_reads_source_claim_artifacts(tmp_path
                     source_local_id="claim_a",
                     artifact_id="ps:claim:a",
                     logical_ids=(ClaimLogicalIdDocument(namespace="paper", value="claim_a"),),
-                    type="observation",
+                    type=ClaimType.OBSERVATION,
                     statement="A",
                     provenance=SourceProvenanceDocument(paper="paper", page=1),
                 ),
@@ -64,7 +65,7 @@ def test_load_primary_branch_claim_reference_index_reads_canonical_claim_files(t
                 SourceClaimDocument(
                     artifact_id="ps:claim:a",
                     logical_ids=(ClaimLogicalIdDocument(namespace="paper", value="claim_a"),),
-                    type="observation",
+                    type=ClaimType.OBSERVATION,
                     statement="A",
                     provenance=SourceProvenanceDocument(paper="paper", page=1),
                 ),
