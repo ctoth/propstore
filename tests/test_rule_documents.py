@@ -36,7 +36,7 @@ from hypothesis import strategies as st
 #
 # Strategies live in this file per the chunk 1.1a constraint: no
 # conftest.py, no shared helper module. Every strategy closes over
-# deferred imports so the file parses without `propstore.rule_documents`.
+# deferred imports so the file parses without `propstore.artifacts.documents.rules`.
 
 
 _VARIABLE_NAMES = st.sampled_from(["X", "Y", "Z", "W", "U", "V"])
@@ -60,7 +60,7 @@ def term_documents() -> st.SearchStrategy:
     constants. Constants here are the propstore `Scalar` union:
     ``str | int | float | bool`` (cf. ``propstore.aspic.Scalar``).
     """
-    from propstore.rule_documents import TermDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import TermDocument  # noqa: E402
 
     var_strategy = _VARIABLE_NAMES.map(
         lambda name: TermDocument(kind="var", name=name)
@@ -83,7 +83,7 @@ def atom_documents(
     The ``negated`` boolean captures strong negation; the ``terms`` tuple
     carries arity ≥ 0 term documents.
     """
-    from propstore.rule_documents import AtomDocument, TermDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import AtomDocument, TermDocument  # noqa: E402
 
     if variables is not None:
         var_term_strategy = variables.map(
@@ -115,7 +115,7 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
     body atoms over any subset of that pool, then building the head over
     the subset of variables actually used in the body.
     """
-    from propstore.rule_documents import AtomDocument, RuleDocument, TermDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import AtomDocument, RuleDocument, TermDocument  # noqa: E402
 
     @st.composite
     def _build(draw: st.DrawFn) -> RuleDocument:
@@ -184,7 +184,7 @@ def rules_file_documents() -> st.SearchStrategy:
     Mirrors the ClaimsFileDocument shape from `propstore/claim_documents.py`
     (line 333): a source block plus an ordered tuple of rule documents.
     """
-    from propstore.rule_documents import (  # noqa: E402
+    from propstore.artifacts.documents.rules import (  # noqa: E402
         RulesFileDocument,
         RuleSourceDocument,
     )
@@ -216,7 +216,7 @@ def test_rule_document_yaml_round_trip(doc) -> None:
     positive body, and default-negation body (Garcia & Simari 2004 §3,
     §6.1 p.29).
     """
-    from propstore.rule_documents import RuleDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import RuleDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=RuleDocument, strict=True)
@@ -233,7 +233,7 @@ def test_rules_file_document_yaml_round_trip(doc) -> None:
     file must be idempotent under strict decoding so authored YAML and
     re-encoded YAML agree structurally.
     """
-    from propstore.rule_documents import RulesFileDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import RulesFileDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=RulesFileDocument, strict=True)
@@ -280,7 +280,7 @@ def test_rule_document_unknown_kind_rejected() -> None:
     Any other kind string is an authoring error and must be rejected
     by strict msgspec decoding.
     """
-    from propstore.rule_documents import RuleDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import RuleDocument  # noqa: E402
 
     invalid_yaml = b"""
 id: rule:invalid
@@ -309,7 +309,7 @@ def test_rule_document_forbids_unknown_fields() -> None:
     A rule document carrying a mystery field is an authoring error and
     must be rejected by strict decoding.
     """
-    from propstore.rule_documents import RuleDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import RuleDocument  # noqa: E402
 
     yaml_with_extra = b"""
 id: rule:birds-fly
@@ -338,7 +338,7 @@ def test_rule_document_example_delp_birds_fly() -> None:
     (p.3-5). This test pins the YAML shape against a concrete parseable
     document so the authored-file surface does not drift.
     """
-    from propstore.rule_documents import RuleDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import RuleDocument  # noqa: E402
 
     yaml_text = b"""
 id: rule:birds-fly
@@ -373,7 +373,7 @@ def test_rule_document_example_delp_penguin_strict() -> None:
     ``kind: strict`` discriminator must parse and the atom shape must
     match the defeasible example above.
     """
-    from propstore.rule_documents import RuleDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import RuleDocument  # noqa: E402
 
     yaml_text = b"""
 id: rule:penguin-is-bird
@@ -404,7 +404,7 @@ def test_rule_document_example_delp_strong_negation_head() -> None:
     is the canonical rebutter to ``flies(X) -< bird(X)`` (Fig around §3).
     ``negated: true`` on the head atom must round-trip cleanly.
     """
-    from propstore.rule_documents import RuleDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import RuleDocument  # noqa: E402
 
     yaml_text = b"""
 id: rule:penguins-do-not-fly
@@ -437,7 +437,7 @@ def test_rules_file_document_preserves_rule_order(file_doc) -> None:
     in a rules file can carry implicit preference information that must
     not be scrambled by YAML encoding.
     """
-    from propstore.rule_documents import RulesFileDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import RulesFileDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(file_doc)
     decoded = msgspec.yaml.decode(encoded, type=RulesFileDocument, strict=True)
@@ -456,14 +456,14 @@ def test_loaded_rule_file_from_loaded_document() -> None:
       - ``.rules`` property returning the underlying tuple unchanged
     """
     from propstore.loaded import LoadedDocument
-    from propstore.rule_documents import (  # noqa: E402
+    from propstore.artifacts.documents.rules import (  # noqa: E402
         AtomDocument,
-        LoadedRuleFile,
         RuleDocument,
         RulesFileDocument,
         RuleSourceDocument,
         TermDocument,
     )
+    from propstore.rule_files import LoadedRuleFile
 
     rule = RuleDocument(
         id="rule:birds-fly",
@@ -506,7 +506,7 @@ def test_rule_document_fact_is_strict_rule_with_empty_body() -> None:
     body." The document schema must admit ``kind: strict`` together with
     ``body: []`` and round-trip it cleanly.
     """
-    from propstore.rule_documents import RuleDocument  # noqa: E402
+    from propstore.artifacts.documents.rules import RuleDocument  # noqa: E402
 
     yaml_text = b"""
 id: rule:tweety-is-a-bird

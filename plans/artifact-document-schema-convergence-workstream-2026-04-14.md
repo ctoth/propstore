@@ -340,3 +340,15 @@ If any answer is still "it depends", this workstream is not done.
   - Updated the artifact family import directly to the new path.
   - Deleted the old top-level module in the same slice.
   - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase3-merge tests/test_merge_cli.py tests/test_repo_merge_object.py tests/test_merge_classifier.py tests/test_log_cli.py tests/test_artifact_store.py`
+- 2026-04-14: Phase 4 rules slice completed.
+  - Moved rule-schema structs from `propstore/rule_documents.py` to
+    `propstore/artifacts/documents/rules.py`.
+  - Moved the non-schema loaded-file wrapper to `propstore/rule_files.py`.
+  - Updated rule/grounding/ASPIC imports to point either at the schema module
+    or the non-schema wrapper module.
+  - Deleted `propstore/rule_documents.py`.
+  - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase4-rules-green tests/test_rule_documents.py tests/test_grounding_translator.py tests/test_grounding_grounder.py tests/test_aspic_bridge_grounded.py tests/test_aspic_bridge_review_v2.py tests/test_defeasible_conformance_tranche.py`
+  - Note: `tests/test_gunray_integration.py` currently fails on a separate
+    concept-surface issue (`'active'` concept status / `'is_a'`
+    relationship-type values) before the rule-file path is exercised, so it
+    was excluded from the kept verification set for this slice.

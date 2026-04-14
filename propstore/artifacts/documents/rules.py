@@ -19,7 +19,6 @@ from __future__ import annotations
 from typing import Literal
 
 from propstore.artifacts.schema import DocumentStruct
-from propstore.loaded import LoadedDocument
 
 
 class TermDocument(DocumentStruct):
@@ -134,29 +133,3 @@ class RulesFileDocument(DocumentStruct):
 
     source: RuleSourceDocument
     rules: tuple[RuleDocument, ...] = ()
-
-
-class LoadedRuleFile(LoadedDocument[RulesFileDocument]):
-    """Typed rule-file envelope.
-
-    Mirrors ``LoadedClaimFile.from_loaded_document`` at
-    ``propstore/claim_documents.py`` line 374-383: a thin wrapper around
-    a ``LoadedDocument[RulesFileDocument]`` that re-exposes the inner
-    rule tuple through a ``.rules`` property.
-    """
-
-    @classmethod
-    def from_loaded_document(
-        cls,
-        document: LoadedDocument[RulesFileDocument],
-    ) -> LoadedRuleFile:
-        return cls(
-            filename=document.filename,
-            source_path=document.source_path,
-            knowledge_root=document.knowledge_root,
-            document=document.document,
-        )
-
-    @property
-    def rules(self) -> tuple[RuleDocument, ...]:
-        return self.document.rules

@@ -95,7 +95,7 @@ def _build_term_var(name: str):
     identifiers that the Herbrand grounding pass substitutes.
     """
 
-    from propstore.rule_documents import TermDocument
+    from propstore.artifacts.documents.rules import TermDocument
 
     return TermDocument(kind="var", name=name, value=None)
 
@@ -107,7 +107,7 @@ def _build_atom(predicate: str, terms):
     the gunray schema consumes after stringification.
     """
 
-    from propstore.rule_documents import AtomDocument
+    from propstore.artifacts.documents.rules import AtomDocument
 
     return AtomDocument(predicate=predicate, terms=tuple(terms), negated=False)
 
@@ -127,7 +127,7 @@ def _build_rule_document(
     translator defers the other two.
     """
 
-    from propstore.rule_documents import RuleDocument
+    from propstore.artifacts.documents.rules import RuleDocument
 
     return RuleDocument(
         id=rule_id,
@@ -147,11 +147,8 @@ def _build_rule_file(rules):
     """
 
     from propstore.loaded import LoadedDocument
-    from propstore.rule_documents import (
-        LoadedRuleFile,
-        RulesFileDocument,
-        RuleSourceDocument,
-    )
+    from propstore.artifacts.documents.rules import RulesFileDocument, RuleSourceDocument
+    from propstore.rule_files import LoadedRuleFile
 
     file_doc = RulesFileDocument(
         source=RuleSourceDocument(paper="test_paper"),

@@ -12,7 +12,8 @@ from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.knowledge_path import KnowledgePath
 from propstore.predicate_documents import LoadedPredicateFile, PredicatesFileDocument
-from propstore.rule_documents import LoadedRuleFile, RulesFileDocument
+from propstore.artifacts.documents.rules import RulesFileDocument
+from propstore.rule_files import LoadedRuleFile
 
 
 def load_predicate_files(predicates_root: KnowledgePath | None) -> list[LoadedPredicateFile]:

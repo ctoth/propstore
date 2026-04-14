@@ -42,7 +42,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 
 from propstore.aspic import GroundAtom, Scalar
-from propstore.rule_documents import LoadedRuleFile
+from propstore.rule_files import LoadedRuleFile
 
 
 def _build_empty_sections() -> Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]:
