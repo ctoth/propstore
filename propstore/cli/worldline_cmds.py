@@ -238,10 +238,12 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     git = repo.git
     if git is None:
         raise click.ClickException("worldline mutations require a git-backed repository")
-    wl_dir = repo.worldlines_dir
-    path = wl_dir / f"{name}.yaml"
+    resolved = repo.artifacts.resolve(WORLDLINE_FAMILY, WorldlineRef(name))
     if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is not None:
-        click.echo(f"ERROR: Worldline '{name}' already exists at {path}", err=True)
+        click.echo(
+            f"ERROR: Worldline '{name}' already exists at {resolved.relpath}",
+            err=True,
+        )
         sys.exit(1)
 
     bind_dict = _parse_kv_args(bindings)
@@ -297,7 +299,7 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     )
     git.sync_worktree()
 
-    click.echo(f"Created worldline '{name}' at {path}")
+    click.echo(f"Created worldline '{name}' at {resolved.relpath}")
 
 
 @worldline.command("run")
@@ -336,8 +338,6 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
     git = repo.git
     if git is None:
         raise click.ClickException("worldline mutations require a git-backed repository")
-    wl_dir = repo.worldlines_dir
-    path = wl_dir / f"{name}.yaml"
 
     # If file exists, load it; otherwise create from CLI args
     if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is not None:
@@ -654,7 +654,6 @@ def worldline_delete(obj: dict, name: str) -> None:
     git = repo.git
     if git is None:
         raise click.ClickException("worldline mutations require a git-backed repository")
-    path = repo.worldlines_dir / f"{name}.yaml"
     if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is None:
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)

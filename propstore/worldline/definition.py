@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 import msgspec
@@ -11,9 +10,7 @@ import msgspec
 from propstore.document_schema import (
     DocumentStruct,
     convert_document_value,
-    decode_document_path,
 )
-from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.world.types import Environment, RenderPolicy
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
@@ -442,14 +439,6 @@ class WorldlineDefinition:
             results=WorldlineResult.from_dict(data.get("results")),
         )
 
-    @classmethod
-    def from_file(cls, path: Path | KnowledgePath) -> WorldlineDefinition:
-        document = decode_document_path(
-            coerce_knowledge_path(path),
-            WorldlineDefinitionDocument,
-        )
-        return cls.from_document(document)
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"id": self.id}
         if self.name:
@@ -479,10 +468,6 @@ class WorldlineDefinition:
             WorldlineDefinitionDocument,
             source=f"worldline:{self.id}",
         )
-
-    def to_file(self, path: Path) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(msgspec.yaml.encode(self.to_document()))
 
     def is_stale(self, world: Any) -> bool:
         if self.results is None:

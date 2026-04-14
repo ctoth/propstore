@@ -16,6 +16,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.document_schema import decode_document_path
 from propstore.identity import derive_concept_artifact_id
 from propstore.sidecar.build import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
@@ -377,13 +378,17 @@ class TestWorldlineDefinition:
         assert isinstance(wl.policy, RenderPolicy)
 
     def test_worldline_definition_from_file(self, worldline_yaml_file):
-        """Can load a WorldlineDefinition from a YAML file."""
+        """Can load a WorldlineDefinition from a typed YAML document."""
         from propstore.worldline import WorldlineDefinition
-        wl = WorldlineDefinition.from_file(worldline_yaml_file)
+        from propstore.worldline.definition import WorldlineDefinitionDocument
+
+        document = decode_document_path(worldline_yaml_file, WorldlineDefinitionDocument)
+        wl = WorldlineDefinition.from_document(document)
         assert wl.id == "test_wl_1"
 
     def test_worldline_definition_from_file_rejects_unknown_fields(self, tmp_path):
         from propstore.worldline import WorldlineDefinition
+        from propstore.worldline.definition import WorldlineDefinitionDocument
 
         path = tmp_path / "worldlines" / "bad.yaml"
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -400,7 +405,8 @@ class TestWorldlineDefinition:
         )
 
         with pytest.raises(ValueError, match="mystery"):
-            WorldlineDefinition.from_file(path)
+            document = decode_document_path(path, WorldlineDefinitionDocument)
+            WorldlineDefinition.from_document(document)
 
     def test_worldline_definition_roundtrip(self, worldline_yaml_question):
         """Save → load → save produces equivalent data."""
