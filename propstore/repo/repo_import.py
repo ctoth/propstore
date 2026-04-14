@@ -5,8 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import msgspec
-
+from propstore.artifacts.codecs import decode_yaml_mapping
 from propstore.artifacts.resolution import ImportedClaimHandleIndex
 from propstore.artifacts.identity import (
     concept_reference_keys,
@@ -143,10 +142,7 @@ def _document_payload(document: object) -> object:
 
 
 def _decode_yaml(content: bytes, *, path: str) -> dict[str, Any]:
-    data = msgspec.yaml.decode(content) or {}
-    if not isinstance(data, dict):
-        raise ValueError(f"Imported semantic file {path!r} must decode to a mapping")
-    return data
+    return decode_yaml_mapping(content, source=path)
 
 
 def _claim_source_from_import_path(path: str) -> dict[str, str]:

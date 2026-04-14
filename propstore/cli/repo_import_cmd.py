@@ -5,8 +5,8 @@ from dataclasses import asdict
 from pathlib import Path
 
 import click
-import msgspec
 
+from propstore.artifacts.codecs import render_yaml_value
 from propstore.repo.repo_import import commit_repo_import, plan_repo_import
 
 
@@ -28,4 +28,4 @@ def import_repo_cmd(
 
     plan = plan_repo_import(repo, source_repo, target_branch=target_branch)
     result = commit_repo_import(repo, plan, message=message)
-    click.echo(msgspec.yaml.encode(asdict(result)).decode("utf-8").rstrip())
+    click.echo(render_yaml_value(asdict(result)))
