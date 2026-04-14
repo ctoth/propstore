@@ -5,8 +5,6 @@ import pytest
 from propstore.aspic import GroundAtom, Literal
 from propstore.aspic import conc
 from propstore.aspic_bridge import (
-    _canonical_substitution_key,
-    _literal_for_atom,
     build_bridge_csaf,
     csaf_to_projection,
     claims_to_literals,
@@ -14,6 +12,10 @@ from propstore.aspic_bridge import (
     justifications_to_rules,
     query_claim,
     stances_to_contrariness,
+)
+from propstore.aspic_bridge.grounding import (
+    _canonical_substitution_key,
+    _literal_for_atom,
 )
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey, claim_key
