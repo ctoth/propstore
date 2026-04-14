@@ -842,3 +842,47 @@ def test_ground_return_arguments_is_deterministic() -> None:
     first = ground([rule_file], facts, _bird_registry(), return_arguments=True)
     second = ground([rule_file], facts, _bird_registry(), return_arguments=True)
     assert first.arguments == second.arguments
+
+
+@given(
+    rule_files=st.deferred(defeasible_rule_file_batches),
+    facts=st.deferred(ground_atom_tuples),
+)
+@settings(
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much],
+    max_examples=200,
+)
+def test_hypothesis_ground_return_arguments_is_deterministic(
+    rule_files, facts
+) -> None:
+    """Property: ``ground(..., return_arguments=True)`` is a pure function.
+
+    Diller, Borg, Bex 2025 §3 Definition 9: the ground substitution
+    set is a deterministic function of program plus fact base. Block
+    3's argument view inherits that determinism: the tuple returned
+    by ``gunray.build_arguments`` is sorted via ``_argument_sort_key``
+    so two identical invocations must produce byte-identical
+    argument tuples across the full Hypothesis search space (small
+    randomly-generated theories with up to 3 defeasible rules and
+    up to 4 ground facts, 200 examples).
+
+    The property also pins:
+
+    - Every bundle's ``arguments`` field is a tuple (not a list).
+    - Every element is a ``gunray.Argument`` instance.
+    - Pairwise equality of two runs holds element-for-element.
+    """
+
+    import gunray
+
+    from propstore.grounding.grounder import ground
+
+    first = ground(rule_files, facts, _bird_registry(), return_arguments=True)
+    second = ground(rule_files, facts, _bird_registry(), return_arguments=True)
+
+    assert isinstance(first.arguments, tuple)
+    assert isinstance(second.arguments, tuple)
+    assert first.arguments == second.arguments
+    for arg in first.arguments:
+        assert isinstance(arg, gunray.Argument)
