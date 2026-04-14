@@ -21,7 +21,7 @@ from propstore.sidecar.claim_utils import (
     resolve_claim_reference,
 )
 from propstore.artifacts.documents.sources import SourceJustificationsDocument
-from propstore.stance_documents import StanceFileDocument
+from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.stances import VALID_STANCE_TYPES
 
 if TYPE_CHECKING:

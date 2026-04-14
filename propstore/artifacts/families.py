@@ -45,7 +45,7 @@ from propstore.artifacts.documents.sources import (
     SourceStancesDocument,
 )
 from propstore.source_alignment_documents import ConceptAlignmentArtifactDocument
-from propstore.stance_documents import StanceFileDocument
+from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.merge_documents import MergeManifestDocument
 
 if TYPE_CHECKING:
