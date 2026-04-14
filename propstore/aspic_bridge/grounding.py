@@ -1,0 +1,217 @@
+"""Grounded-rule translation and fact injection for the ASPIC bridge."""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Iterator
+
+from propstore.artifacts.documents.rules import AtomDocument
+from propstore.aspic import GroundAtom, KnowledgeBase, Literal, Rule, Scalar
+from propstore.core.literal_keys import LiteralKey, ground_key
+from propstore.grounding.bundle import GroundedRulesBundle
+
+_GroundFactKey = tuple[str, bool]
+
+
+def _gunray_complement(predicate: str) -> str:
+    """Mirror gunray's current ``~``-prefix complement encoding."""
+
+    if predicate.startswith("~"):
+        return predicate[1:]
+    return f"~{predicate}"
+
+
+def _decode_grounded_predicate(predicate_id: str) -> _GroundFactKey:
+    """Decode gunray's ``~``-prefixed predicate convention into typed polarity."""
+
+    toggled = _gunray_complement(predicate_id)
+    negated = len(toggled) < len(predicate_id)
+    positive = toggled if negated else predicate_id
+    return positive, negated
+
+
+def _try_match(
+    atom: AtomDocument,
+    fact_args: tuple[Scalar, ...],
+    sigma: dict[str, Scalar],
+) -> dict[str, Scalar] | None:
+    """Try to unify one rule-body atom against one grounded fact."""
+
+    if len(atom.terms) != len(fact_args):
+        return None
+    extended = dict(sigma)
+    for term, fact_arg in zip(atom.terms, fact_args):
+        if term.kind == "var":
+            name = term.name
+            if name is None:
+                return None
+            if name in extended:
+                if extended[name] != fact_arg:
+                    return None
+            else:
+                extended[name] = fact_arg
+        elif term.kind == "const":
+            if term.value != fact_arg:
+                return None
+        else:
+            return None
+    return extended
+
+
+def _enumerate_substitutions(
+    body_atoms: tuple[AtomDocument, ...],
+    facts: dict[_GroundFactKey, set[tuple[Scalar, ...]]],
+) -> Iterator[dict[str, Scalar]]:
+    """Yield every consistent substitution grounding all rule-body atoms."""
+
+    partial_subs: list[dict[str, Scalar]] = [{}]
+    for atom in body_atoms:
+        next_subs: list[dict[str, Scalar]] = []
+        for sigma in partial_subs:
+            for fact_args in facts.get((atom.predicate, atom.negated), set()):
+                extended = _try_match(atom, fact_args, sigma)
+                if extended is not None:
+                    next_subs.append(extended)
+        partial_subs = next_subs
+        if not partial_subs:
+            break
+    return iter(partial_subs)
+
+
+def _apply_substitution(
+    atom: AtomDocument,
+    sigma: dict[str, Scalar],
+) -> GroundAtom:
+    """Apply a grounding substitution to one schema atom."""
+
+    args: list[Scalar] = []
+    for term in atom.terms:
+        if term.kind == "var":
+            name = term.name
+            if name is None or name not in sigma:
+                raise ValueError(
+                    f"Unsafe rule: variable {name!r} in atom {atom.predicate!r} "
+                    "not bound by substitution"
+                )
+            args.append(sigma[name])
+        elif term.kind == "const":
+            if term.value is None:
+                raise ValueError(
+                    f"Constant term in atom {atom.predicate!r} has no value"
+                )
+            args.append(term.value)
+        else:
+            raise ValueError(
+                f"Unknown term kind {term.kind!r} in atom {atom.predicate!r}"
+            )
+    return GroundAtom(predicate=atom.predicate, arguments=tuple(args))
+
+
+def _typed_scalar_key(value: Scalar) -> dict[str, Scalar | str]:
+    if isinstance(value, bool):
+        return {"type": "bool", "value": value}
+    if isinstance(value, int):
+        return {"type": "int", "value": value}
+    if isinstance(value, float):
+        return {"type": "float", "value": value}
+    return {"type": "str", "value": value}
+
+
+def _literal_for_atom(
+    ground_atom: GroundAtom,
+    negated: bool,
+    literals: dict[LiteralKey, Literal],
+) -> Literal:
+    """Fetch or create the canonical literal for a grounded atom."""
+
+    key = ground_key(ground_atom, negated)
+    if key in literals:
+        return literals[key]
+    literal = Literal(atom=ground_atom, negated=negated)
+    literals[key] = literal
+    return literal
+
+
+def _canonical_substitution_key(sigma: dict[str, Scalar]) -> str:
+    """Render a substitution as a stable structured string."""
+
+    return json.dumps(
+        {name: _typed_scalar_key(sigma[name]) for name in sorted(sigma)},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def grounded_rules_to_rules(
+    bundle: GroundedRulesBundle,
+    literals: dict[LiteralKey, Literal],
+) -> tuple[frozenset[Rule], frozenset[Rule], dict[LiteralKey, Literal]]:
+    """Translate grounded gunray rules into ASPIC+ rules."""
+
+    facts: dict[_GroundFactKey, set[tuple[Scalar, ...]]] = {}
+    for section_name in ("definitely", "defeasibly"):
+        section = bundle.sections.get(section_name, {})
+        for predicate_id, rows in section.items():
+            bucket = facts.setdefault(_decode_grounded_predicate(predicate_id), set())
+            for row in rows:
+                bucket.add(row)
+
+    defeasible_rules: list[Rule] = []
+
+    for rule_file in bundle.source_rules:
+        for rule_doc in rule_file.document.rules:
+            if rule_doc.kind == "strict":
+                raise NotImplementedError("Strict rules deferred to Phase 4")
+            if rule_doc.kind == "defeater":
+                raise NotImplementedError("Defeater rules deferred to Phase 4")
+            if rule_doc.negative_body:
+                raise NotImplementedError("Negative body (NAF) deferred to Phase 4")
+
+            for sigma in _enumerate_substitutions(rule_doc.body, facts):
+                antecedent_literals: list[Literal] = []
+                for body_atom in rule_doc.body:
+                    ground = _apply_substitution(body_atom, sigma)
+                    antecedent_literals.append(
+                        _literal_for_atom(ground, body_atom.negated, literals)
+                    )
+
+                head_ground = _apply_substitution(rule_doc.head, sigma)
+                consequent = _literal_for_atom(
+                    head_ground,
+                    rule_doc.head.negated,
+                    literals,
+                )
+                rule_name = f"{rule_doc.id}#{_canonical_substitution_key(sigma)}"
+                defeasible_rules.append(
+                    Rule(
+                        antecedents=tuple(antecedent_literals),
+                        consequent=consequent,
+                        kind="defeasible",
+                        name=rule_name,
+                    )
+                )
+
+    return frozenset(), frozenset(defeasible_rules), literals
+
+
+def _ground_facts_to_axioms(
+    bundle: GroundedRulesBundle,
+    literals: dict[LiteralKey, Literal],
+    kb: KnowledgeBase,
+) -> KnowledgeBase:
+    """Inject bundle ``definitely`` facts into ``K_n``."""
+
+    axioms: set[Literal] = set(kb.axioms)
+    definitely = bundle.sections.get("definitely", {})
+    for predicate_id, rows in definitely.items():
+        predicate, negated = _decode_grounded_predicate(predicate_id)
+        for row in rows:
+            ground = GroundAtom(predicate=predicate, arguments=tuple(row))
+            axioms.add(_literal_for_atom(ground, negated, literals))
+
+    return KnowledgeBase(axioms=frozenset(axioms), premises=kb.premises)
+
+
+__all__ = [
+    "grounded_rules_to_rules",
+]
