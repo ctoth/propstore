@@ -89,78 +89,82 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
     derived_from = list(source_doc.trust.derived_from)
     covered = bool(derived_from)
     artifact_code_status = "incomplete"
-    transaction = repo.artifacts.transact(
+    with repo.artifacts.transact(
         message=f"Finalize {normalize_source_slug(source_name)}",
         branch=source_branch_name(source_name),
-    )
-    ref = SourceRef(source_name)
-    if not claim_errors and not justification_errors and not stance_errors:
-        updated_source, updated_claims, updated_justifications, updated_stances = attach_source_artifact_codes(
-            source_doc.to_payload(),
-            None if claims_doc is None else claims_doc.to_payload(),
-            None if justifications_doc is None else justifications_doc.to_payload(),
-            None if stances_doc is None else stances_doc.to_payload(),
-        )
-        transaction.save(
-            SOURCE_DOCUMENT_FAMILY,
-            ref,
-            convert_document_value(
-                updated_source,
-                type(source_doc),
-                source=f"{source_branch_name(source_name)}:source.yaml",
-            ),
-        )
-        if updated_claims.get("claims"):
+    ) as transaction:
+        ref = SourceRef(source_name)
+        if not claim_errors and not justification_errors and not stance_errors:
+            updated_source, updated_claims, updated_justifications, updated_stances = attach_source_artifact_codes(
+                source_doc.to_payload(),
+                None if claims_doc is None else claims_doc.to_payload(),
+                None if justifications_doc is None else justifications_doc.to_payload(),
+                None if stances_doc is None else stances_doc.to_payload(),
+            )
             transaction.save(
-                SOURCE_CLAIMS_FAMILY,
+                SOURCE_DOCUMENT_FAMILY,
                 ref,
                 convert_document_value(
-                    updated_claims,
-                    SourceClaimsDocument,
-                    source=f"{source_branch_name(source_name)}:claims.yaml",
+                    updated_source,
+                    type(source_doc),
+                    source=f"{source_branch_name(source_name)}:source.yaml",
                 ),
             )
-        if updated_justifications.get("justifications"):
-            transaction.save(
-                SOURCE_JUSTIFICATIONS_FAMILY,
-                ref,
-                convert_document_value(
-                    updated_justifications,
-                    SourceJustificationsDocument,
-                    source=f"{source_branch_name(source_name)}:justifications.yaml",
-                ),
-            )
-        if updated_stances.get("stances"):
-            transaction.save(
-                SOURCE_STANCES_FAMILY,
-                ref,
-                convert_document_value(
-                    updated_stances,
-                    SourceStancesDocument,
-                    source=f"{source_branch_name(source_name)}:stances.yaml",
-                ),
-            )
-        artifact_code_status = "complete"
+            if updated_claims.get("claims"):
+                transaction.save(
+                    SOURCE_CLAIMS_FAMILY,
+                    ref,
+                    convert_document_value(
+                        updated_claims,
+                        SourceClaimsDocument,
+                        source=f"{source_branch_name(source_name)}:claims.yaml",
+                    ),
+                )
+            if updated_justifications.get("justifications"):
+                transaction.save(
+                    SOURCE_JUSTIFICATIONS_FAMILY,
+                    ref,
+                    convert_document_value(
+                        updated_justifications,
+                        SourceJustificationsDocument,
+                        source=f"{source_branch_name(source_name)}:justifications.yaml",
+                    ),
+                )
+            if updated_stances.get("stances"):
+                transaction.save(
+                    SOURCE_STANCES_FAMILY,
+                    ref,
+                    convert_document_value(
+                        updated_stances,
+                        SourceStancesDocument,
+                        source=f"{source_branch_name(source_name)}:stances.yaml",
+                    ),
+                )
+            artifact_code_status = "complete"
 
-    report = convert_document_value(
-        {
-        "kind": "source_finalize_report",
-        "source": str(source_doc.id or source_tag_uri(repo, source_name)),
-        "status": "ready" if not claim_errors and not justification_errors and not stance_errors else "blocked",
-        "claim_reference_errors": sorted(claim_errors),
-        "justification_reference_errors": sorted(justification_errors),
-        "stance_reference_errors": sorted(stance_errors),
-        "concept_alignment_candidates": concept_alignment_candidates,
-        "parameterization_group_merges": parameterization_group_merges,
-        "artifact_code_status": artifact_code_status,
-        "calibration": {
-            "prior_base_rate_status": "covered" if covered else "fallback",
-            "source_quality_status": "vacuous",
-            "fallback_to_default_base_rate": not covered,
-        },
-        },
-        SourceFinalizeReportDocument,
-        source=f"{source_branch_name(source_name)}:merge/finalize",
-    )
-    transaction.save(SOURCE_FINALIZE_REPORT_FAMILY, ref, report)
-    return transaction.commit()
+        report = convert_document_value(
+            {
+                "kind": "source_finalize_report",
+                "source": str(source_doc.id or source_tag_uri(repo, source_name)),
+                "status": "ready"
+                if not claim_errors and not justification_errors and not stance_errors
+                else "blocked",
+                "claim_reference_errors": sorted(claim_errors),
+                "justification_reference_errors": sorted(justification_errors),
+                "stance_reference_errors": sorted(stance_errors),
+                "concept_alignment_candidates": concept_alignment_candidates,
+                "parameterization_group_merges": parameterization_group_merges,
+                "artifact_code_status": artifact_code_status,
+                "calibration": {
+                    "prior_base_rate_status": "covered" if covered else "fallback",
+                    "source_quality_status": "vacuous",
+                    "fallback_to_default_base_rate": not covered,
+                },
+            },
+            SourceFinalizeReportDocument,
+            source=f"{source_branch_name(source_name)}:merge/finalize",
+        )
+        transaction.save(SOURCE_FINALIZE_REPORT_FAMILY, ref, report)
+    if transaction.commit_sha is None:
+        raise ValueError("source finalize transaction did not produce a commit")
+    return transaction.commit_sha

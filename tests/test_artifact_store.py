@@ -76,14 +76,14 @@ def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -
         ),
     )
 
-    transaction = repo.artifacts.transact(
+    with repo.artifacts.transact(
         message="Write source artifacts",
         branch=source_branch_name("demo"),
-    )
-    transaction.save(SOURCE_DOCUMENT_FAMILY, SourceRef("demo"), source_doc)
-    transaction.save(SOURCE_FINALIZE_REPORT_FAMILY, SourceRef("demo"), report)
-    commit_sha = transaction.commit()
+    ) as transaction:
+        transaction.save(SOURCE_DOCUMENT_FAMILY, SourceRef("demo"), source_doc)
+        transaction.save(SOURCE_FINALIZE_REPORT_FAMILY, SourceRef("demo"), report)
 
+    commit_sha = transaction.commit_sha
     assert commit_sha
     loaded_source = repo.artifacts.require(SOURCE_DOCUMENT_FAMILY, SourceRef("demo"))
     loaded_report = repo.artifacts.require(SOURCE_FINALIZE_REPORT_FAMILY, SourceRef("demo"))

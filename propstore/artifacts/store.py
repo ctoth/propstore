@@ -167,9 +167,11 @@ class ArtifactStore:
         message: str,
         branch: str | None = None,
     ) -> str:
-        transaction = self.transact(message=message, branch=branch)
-        transaction.move(family, old_ref, new_ref, doc)
-        return transaction.commit()
+        with self.transact(message=message, branch=branch) as transaction:
+            transaction.move(family, old_ref, new_ref, doc)
+        if transaction.commit_sha is None:
+            raise ValueError("artifact move did not produce a commit")
+        return transaction.commit_sha
 
     def delete(
         self,

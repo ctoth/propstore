@@ -556,20 +556,22 @@ def commit_repo_import(
     if branch_head(git, plan.target_branch) is None and plan.target_branch != primary_branch:
         create_branch(git, plan.target_branch)
 
-    transaction = repo.artifacts.transact(
+    with repo.artifacts.transact(
         message=message or f"Import {plan.repo_name} at {plan.source_commit[:12]}",
         branch=plan.target_branch,
-    )
-    for planned_write in plan.writes.values():
-        transaction.save(
-            planned_write.family,
-            planned_write.ref,
-            planned_write.document,
-        )
-    for path in plan.deletes:
-        family = _family_for_semantic_path(path)
-        transaction.delete(family, repo.artifacts.ref_from_path(family, path))
-    commit_sha = transaction.commit()
+    ) as transaction:
+        for planned_write in plan.writes.values():
+            transaction.save(
+                planned_write.family,
+                planned_write.ref,
+                planned_write.document,
+            )
+        for path in plan.deletes:
+            family = _family_for_semantic_path(path)
+            transaction.delete(family, repo.artifacts.ref_from_path(family, path))
+    commit_sha = transaction.commit_sha
+    if commit_sha is None:
+        raise ValueError("repo import transaction did not produce a commit")
 
     should_sync = False
     if sync_worktree == "always":
