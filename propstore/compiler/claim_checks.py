@@ -816,35 +816,6 @@ def _validate_algorithm(
             filename=filename,
             artifact_id=cid,
         ))
-    elif isinstance(variables, dict):
-        declared_names: set[str] = set()
-        for var_name, var_concept in variables.items():
-            if isinstance(var_concept, str) and var_concept not in concept_registry and concept_registry:
-                diagnostics.append(SemanticDiagnostic(
-                    level="error",
-                    message=(
-                        f"algorithm claim '{cid}' variable references "
-                        f"nonexistent concept '{var_concept}'"
-                    ),
-                    filename=filename,
-                    artifact_id=cid,
-                ))
-            if isinstance(var_name, str) and var_name:
-                declared_names.add(var_name)
-
-        if body and tree is not None:
-            ast_names = extract_names(tree)
-            unbound = ast_names - KNOWN_BUILTINS - declared_names
-            for name in sorted(unbound):
-                diagnostics.append(SemanticDiagnostic(
-                    level="warning",
-                    message=(
-                        f"algorithm claim '{cid}' body references "
-                        f"name '{name}' not declared in variables"
-                    ),
-                    filename=filename,
-                    artifact_id=cid,
-                ))
     elif isinstance(variables, list):
         declared_names: set[str] = set()
         for var in variables:

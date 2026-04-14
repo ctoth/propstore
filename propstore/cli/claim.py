@@ -322,16 +322,15 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
         if not vj:
             return {}
         variables = _json.loads(vj)
+        if not isinstance(variables, list):
+            raise ValueError("algorithm variables must be stored as a list of bindings")
         result: dict[str, str] = {}
-        if isinstance(variables, list):
-            for var in variables:
-                if isinstance(var, dict):
-                    name = var.get("name") or var.get("symbol")
-                    concept = var.get("concept", "")
-                    if name:
-                        result[name] = concept
-        elif isinstance(variables, dict):
-            result.update(variables)
+        for var in variables:
+            if isinstance(var, dict):
+                name = var.get("name") or var.get("symbol")
+                concept = var.get("concept", "")
+                if name:
+                    result[name] = concept
         return result
 
     bindings_a = _parse_variables(claim_a)

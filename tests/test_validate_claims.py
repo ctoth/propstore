@@ -1383,6 +1383,18 @@ class TestValidateAlgorithm:
         result = validate_claims(files, make_concept_registry())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
+    def test_algorithm_mapping_variables_rejected_at_document_boundary(self, claims_dir):
+        claim = make_algorithm_claim(
+            "claim1",
+            VALID_ALGORITHM_BODY,
+            {"x": "concept1", "ps": "concept2"},
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        with pytest.raises(DocumentSchemaError, match="variables"):
+            load_claim_files(claims_dir)
+
     def test_algorithm_missing_body(self, claims_dir):
         claim = make_algorithm_claim(
             "claim1",

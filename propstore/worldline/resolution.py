@@ -1,6 +1,4 @@
 from __future__ import annotations
-
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -61,14 +59,6 @@ def claim_target_value(
     claim: ActiveClaim,
     claim_id: str | None,
 ) -> WorldlineTargetValue:
-    raw_variables: Any = None
-    variables_json = claim.variables_json
-    if variables_json:
-        try:
-            raw_variables = json.loads(variables_json)
-        except (TypeError, json.JSONDecodeError):
-            raw_variables = None
-
     return WorldlineTargetValue.from_mapping({
         "status": status,
         "source": source,
@@ -80,7 +70,7 @@ def claim_target_value(
         "body": claim.body,
         "name": claim.name,
         "canonical_ast": claim.canonical_ast,
-        "variables": raw_variables,
+        "variables": claim.variable_payload(),
     })
 
 

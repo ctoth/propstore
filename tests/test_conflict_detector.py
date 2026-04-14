@@ -1053,14 +1053,14 @@ class TestAlgorithmExceptionHandling:
                 "type": "algorithm",
                 "concept": "concept_algo",
                 "body": "x + 1",
-                "variables": {"x": "input"},
+                "variables": [{"name": "x", "concept": "input"}],
             },
             {
                 "id": "alg2",
                 "type": "algorithm",
                 "concept": "concept_algo",
                 "body": "x + 2",
-                "variables": {"x": "input"},
+                "variables": [{"name": "x", "concept": "input"}],
             },
         ])
         registry = {"concept_algo": ConceptInfo(
@@ -1087,14 +1087,14 @@ class TestAlgorithmExceptionHandling:
                 "type": "algorithm",
                 "concept": "concept_algo",
                 "body": "x + 1",
-                "variables": {"x": "input"},
+                "variables": [{"name": "x", "concept": "input"}],
             },
             {
                 "id": "alg2",
                 "type": "algorithm",
                 "concept": "concept_algo",
                 "body": "x + 2",
-                "variables": {"x": "input"},
+                "variables": [{"name": "x", "concept": "input"}],
             },
         ])
         registry = {"concept_algo": ConceptInfo(

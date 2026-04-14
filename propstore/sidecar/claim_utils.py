@@ -451,17 +451,18 @@ def resolve_algorithm_storage(
         return None, None, None, None
     body = claim.get("body")
     stage = claim.get("stage")
+    raw_vars = claim.get("variables")
+    if raw_vars not in (None, []) and not isinstance(raw_vars, list):
+        raise ValueError("algorithm claim variables must be a list of variable bindings")
     canonical_ast = None
     if body:
-        variables = claim.get("variables") or []
-        bindings = (
-            {v["name"]: v.get("concept", "") for v in variables if isinstance(v, dict) and v.get("name")}
-            if isinstance(variables, list)
-            else variables if isinstance(variables, dict)
-            else {}
-        )
+        variables = raw_vars or []
+        bindings = {
+            v["name"]: v.get("concept", "")
+            for v in variables
+            if isinstance(v, dict) and v.get("name")
+        }
         canonical_ast = canonical_dump(body, bindings)
-    raw_vars = claim.get("variables")
     variables_json = json.dumps(raw_vars) if raw_vars else None
     return body, canonical_ast, variables_json, stage
 

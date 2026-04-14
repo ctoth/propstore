@@ -256,7 +256,7 @@ class SourceClaimDocument(DocumentStruct):
     unit: str | None = None
     upper_bound: float | int | None = None
     value: float | int | None = None
-    variables: tuple[VariableBindingDocument, ...] | dict[str, str] = ()
+    variables: tuple[VariableBindingDocument, ...] = ()
     source_local_id: str | None = None
     artifact_code: str | None = None
 
@@ -327,10 +327,7 @@ class SourceClaimDocument(DocumentStruct):
         if self.value is not None:
             payload["value"] = self.value
         if self.variables:
-            if isinstance(self.variables, dict):
-                payload["variables"] = dict(self.variables)
-            else:
-                payload["variables"] = [variable.to_payload() for variable in self.variables]
+            payload["variables"] = [variable.to_payload() for variable in self.variables]
         if self.source_local_id is not None:
             payload["source_local_id"] = self.source_local_id
         if self.artifact_code is not None:

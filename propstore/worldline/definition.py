@@ -97,7 +97,7 @@ class WorldlineTargetValueDocument(DocumentStruct):
     body: str | None = None
     name: str | None = None
     canonical_ast: str | None = None
-    variables: tuple[WorldlineVariableRefDocument, ...] | dict[str, str] = ()
+    variables: tuple[WorldlineVariableRefDocument, ...] = ()
     formula: str | None = None
     strategy: str | None = None
     inputs_used: dict[str, WorldlineInputSourceDocument] = msgspec.field(default_factory=dict)
