@@ -6,9 +6,29 @@ the ownership of any particular claim-graph, ASPIC, or probabilistic module.
 
 from __future__ import annotations
 
-ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
-UNCONDITIONAL_ATTACK_TYPES = frozenset({"undercuts", "supersedes"})
-PREFERENCE_SENSITIVE_ATTACK_TYPES = frozenset({"rebuts", "undermines"})
-SUPPORT_TYPES = frozenset({"supports", "explains"})
-NON_ATTACK_TYPES = frozenset({"supports", "explains", "none"})
+from propstore.core.graph_relation_types import GraphRelationType
+
+ATTACK_TYPES = frozenset({
+    GraphRelationType.REBUTS,
+    GraphRelationType.UNDERCUTS,
+    GraphRelationType.UNDERMINES,
+    GraphRelationType.SUPERSEDES,
+})
+UNCONDITIONAL_ATTACK_TYPES = frozenset({
+    GraphRelationType.UNDERCUTS,
+    GraphRelationType.SUPERSEDES,
+})
+PREFERENCE_SENSITIVE_ATTACK_TYPES = frozenset({
+    GraphRelationType.REBUTS,
+    GraphRelationType.UNDERMINES,
+})
+SUPPORT_TYPES = frozenset({
+    GraphRelationType.SUPPORTS,
+    GraphRelationType.EXPLAINS,
+})
+NON_ATTACK_TYPES = frozenset({
+    GraphRelationType.SUPPORTS,
+    GraphRelationType.EXPLAINS,
+    GraphRelationType.NONE,
+})
 GRAPH_RELATION_TYPES = ATTACK_TYPES | SUPPORT_TYPES

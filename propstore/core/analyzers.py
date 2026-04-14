@@ -174,7 +174,7 @@ def _relation_edge_from_row(row: StanceRowInput) -> RelationEdge:
     return RelationEdge(
         source_id=str(stance.claim_id),
         target_id=str(stance.target_claim_id),
-        relation_type=str(stance.stance_type),
+        relation_type=stance.stance_type,
         provenance=ProvenanceRecord(
             source_table="relation_edge",
             source_id=(

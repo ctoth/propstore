@@ -9,6 +9,10 @@ from typing import Any
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.environment import Environment
 from propstore.core.exactness_types import Exactness, coerce_exactness
+from propstore.core.graph_relation_types import (
+    GraphRelationType,
+    coerce_graph_relation_type,
+)
 from propstore.core.id_types import (
     to_assumption_ids,
     ClaimId,
@@ -214,12 +218,17 @@ class ClaimNode:
 class RelationEdge:
     source_id: str
     target_id: str
-    relation_type: str
+    relation_type: GraphRelationType
     provenance: ProvenanceRecord | None = None
     derived_from: tuple[tuple[str, str], ...] = ()
     attributes: tuple[tuple[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "relation_type",
+            coerce_graph_relation_type(self.relation_type),
+        )
         object.__setattr__(self, "derived_from", tuple(sorted(self.derived_from)))
         object.__setattr__(self, "attributes", _normalize_pairs(self.attributes))
 
@@ -227,7 +236,7 @@ class RelationEdge:
         data: dict[str, Any] = {
             "source_id": self.source_id,
             "target_id": self.target_id,
-            "relation_type": self.relation_type,
+            "relation_type": self.relation_type.value,
         }
         if self.provenance is not None:
             data["provenance"] = self.provenance.to_dict()
@@ -243,7 +252,7 @@ class RelationEdge:
         return cls(
             source_id=str(data["source_id"]),
             target_id=str(data["target_id"]),
-            relation_type=str(data["relation_type"]),
+            relation_type=coerce_graph_relation_type(data["relation_type"]),
             provenance=(
                 None
                 if provenance_data is None
