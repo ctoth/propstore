@@ -513,6 +513,16 @@ Each slice must:
 - delete the old production path in the same change
 - stop widening if the boundary starts leaking path/render mechanics back upward
 
+For `repo_import`, the import boundary must be typed as soon as each family is
+normalized. In particular:
+
+- imported claim files must synthesize missing `source` from the imported file
+  path stem, not from the repo name
+- `repo_name` remains the fallback identity namespace only
+- `RepoImportPlan` should carry typed planned writes, not raw YAML bytes
+- family-specific import normalizers should return typed documents rather than
+  leave `dict` payloads in the semantic pipeline
+
 ### Phase 4: Identity cutover
 
 Modify:

@@ -12,7 +12,12 @@ from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
-from tests.conftest import make_claim_identity, make_concept_identity, normalize_claims_payload
+from tests.conftest import (
+    attach_claim_version_id,
+    make_claim_identity,
+    make_concept_identity,
+    normalize_claims_payload,
+)
 
 
 SEMANTIC_DIRS = (
@@ -39,11 +44,11 @@ def _raw_claim_yaml(local_id: str) -> bytes:
     return yaml.safe_dump({"claims": [{"id": local_id}]}, sort_keys=False).encode()
 
 
-def _expected_imported_claim_yaml(local_id: str, *, namespace: str) -> dict:
-    return normalize_claims_payload(
-        {"claims": [{"id": local_id}]},
-        default_namespace=namespace,
-    )
+def _expected_imported_claim_yaml(local_id: str, *, namespace: str, source_paper: str = "source") -> dict:
+    return {
+        "source": {"paper": source_paper},
+        "claims": [attach_claim_version_id(make_claim_identity(local_id, namespace=namespace))],
+    }
 
 
 @settings(
@@ -226,7 +231,7 @@ def test_plan_repo_import_uses_committed_head_snapshot(tmp_path):
     plan = plan_repo_import(destination, source.root.parent)
 
     assert plan.source_commit == source_git.head_sha()
-    assert yaml.safe_load(plan.writes["claims/source.yaml"]) == _expected_imported_claim_yaml(
+    assert plan.writes["claims/source.yaml"].document.to_payload() == _expected_imported_claim_yaml(
         "committed",
         namespace="repo-b",
     )
@@ -337,7 +342,10 @@ def test_commit_repo_import_does_not_mutate_master_unless_targeted(tmp_path):
     assert destination_git.head_sha() == master_before
     with pytest.raises(FileNotFoundError):
         destination_git.read_file("claims/source.yaml", commit=master_before)
-    assert destination_git.read_file("claims/source.yaml", commit=result.commit_sha) == b"claims: []\n"
+    assert yaml.safe_load(destination_git.read_file("claims/source.yaml", commit=result.commit_sha)) == {
+        "source": {"paper": "source"},
+        "claims": [],
+    }
 
 
 def test_commit_repo_import_auto_syncs_master_but_not_other_branches(tmp_path):

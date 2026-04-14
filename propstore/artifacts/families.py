@@ -253,12 +253,14 @@ CONTEXT_FAMILY = ArtifactFamily[ContextRef, ContextDocument](
     name="context",
     doc_type=ContextDocument,
     resolve_ref=_context_artifact,
+    ref_from_path=lambda path: _yaml_path_ref(path, subdir="contexts", ref_type=ContextRef),
 )
 
 FORM_FAMILY = ArtifactFamily[FormRef, FormDocument](
     name="form",
     doc_type=FormDocument,
     resolve_ref=_form_artifact,
+    ref_from_path=lambda path: _yaml_path_ref(path, subdir="forms", ref_type=FormRef),
 )
 
 CANONICAL_SOURCE_FAMILY = ArtifactFamily[CanonicalSourceRef, SourceDocument](
