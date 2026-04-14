@@ -828,88 +828,12 @@ class TestCCF:
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
 
-# ── CCF Definition 5 tests (van der Heijden 2018) ───────────────────
-
-
-class TestCCFDefinition5:
-    """CCF matches van der Heijden 2018 Definition 5 three-phase process."""
-
-    def test_all_dogmatic_agreeing(self):
-        """Two identical dogmatic opinions should fuse to the same opinion."""
-        a = Opinion.dogmatic_true(0.5)
-        result = ccf(a, a)
-        assert result.b == pytest.approx(1.0, abs=1e-6)
-        assert result.d == pytest.approx(0.0, abs=1e-6)
-        assert result.u == pytest.approx(0.0, abs=1e-6)
-
-    def test_all_dogmatic_disagreeing(self):
-        """CCF of dogmatic_true and dogmatic_false: consensus at midpoint.
-
-        Consensus: min(1,0)=0 for b, min(0,1)=0 for d
-        Residuals: (1,0) and (0,1), average = (0.5, 0.5)
-        Combined: b=0.5, d=0.5, u=0
-        """
-        a = Opinion.dogmatic_true(0.5)
-        b = Opinion.dogmatic_false(0.5)
-        result = ccf(a, b)
-        assert result.b == pytest.approx(0.5, abs=1e-6)
-        assert result.d == pytest.approx(0.5, abs=1e-6)
-        assert result.u == pytest.approx(0.0, abs=1e-6)
-
-    def test_all_dogmatic_three_sources(self):
-        """Three dogmatic: two true, one false.
-
-        Consensus b: min(1,1,0)=0; consensus d: min(0,0,1)=0
-        Residual b: [1,1,0], mean=2/3; residual d: [0,0,1], mean=1/3
-        Combined: b=2/3, d=1/3, u=0
-        """
-        dt = Opinion.dogmatic_true(0.5)
-        df = Opinion.dogmatic_false(0.5)
-        result = ccf(dt, dt, df)
-        assert result.b == pytest.approx(2.0 / 3.0, abs=1e-6)
-        assert result.d == pytest.approx(1.0 / 3.0, abs=1e-6)
-        assert result.u == pytest.approx(0.0, abs=1e-6)
-
-    def test_mixed_dogmatic_nondogmatic(self):
-        """Mixed case: CCF should NOT just average WBF result with dogmatic.
-
-        Dogmatic: b=1, d=0, u=0
-        Uncertain: b=0.4, d=0.2, u=0.4
-
-        Consensus b: min(1, 0.4) = 0.4; consensus d: min(0, 0.2) = 0.0
-        Residual b: [0.6, 0.0], mean=0.3; residual d: [0.0, 0.2], mean=0.1
-        Raw: b=0.7, d=0.1, u_avg=mean(0, 0.4)=0.2
-        Sum=1.0, no normalization needed.
-        """
-        dogmatic = Opinion.dogmatic_true(0.5)
-        uncertain = Opinion(0.4, 0.2, 0.4, 0.5)
-        result = ccf(dogmatic, uncertain)
-        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
-        assert result.b == pytest.approx(0.7, abs=1e-6)
-        assert result.d == pytest.approx(0.1, abs=1e-6)
-        assert result.u == pytest.approx(0.2, abs=1e-6)
-
-    def test_three_sources_mixed(self):
-        """Three sources: two dogmatic, one uncertain."""
-        d1 = Opinion.dogmatic_true(0.5)
-        d2 = Opinion.dogmatic_false(0.5)
-        u1 = Opinion(0.3, 0.3, 0.4, 0.5)
-        result = ccf(d1, d2, u1)
-        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
-
-    def test_nondogmatic_delegates_to_wbf(self):
-        """Two non-dogmatic opinions: CCF delegates to WBF.
-
-        WBF weights by certainty (1/u_i), producing the same result as
-        consensus_pair for N=2.
-        """
-        a = Opinion(0.6, 0.1, 0.3, 0.5)
-        b = Opinion(0.2, 0.5, 0.3, 0.5)
-        result = ccf(a, b)
-        expected = wbf(a, b)
-        assert result.b == pytest.approx(expected.b, abs=1e-6)
-        assert result.d == pytest.approx(expected.d, abs=1e-6)
-        assert result.u == pytest.approx(expected.u, abs=1e-6)
+# ── CCF Definition 5: old simplified tests deleted (review-2026-04-14) ──
+#
+# TestCCFDefinition5 was removed because its expected values encoded the
+# pre-fix simplification, not the paper. TestCCFDefinition5Real (below)
+# is the replacement: Table I verification plus four hand-derived worked
+# examples that match Def 5 exactly.
 
 
 class TestCCFProperties:
@@ -960,20 +884,11 @@ class TestCCFProperties:
         assert result.d >= -1e-9
         assert result.u >= -1e-9
 
-    @given(a=valid_opinions(min_uncertainty=0.05), b=valid_opinions(min_uncertainty=0.05))
-    @settings(deadline=None)
-    def test_ccf_nondogmatic_matches_wbf(self, a, b):
-        """For non-dogmatic inputs, CCF delegates to WBF exactly.
-
-        The expectation-between-inputs property does NOT hold for WBF-based
-        CCF because WBF concentrates evidence (reduces u), shifting E toward
-        b/(b+d). This is correct evidence-accumulation behavior.
-        """
-        result_ccf = ccf(a, b)
-        result_wbf = wbf(a, b)
-        assert abs(result_ccf.b - result_wbf.b) < 1e-9
-        assert abs(result_ccf.d - result_wbf.d) < 1e-9
-        assert abs(result_ccf.u - result_wbf.u) < 1e-9
+    # `test_ccf_nondogmatic_matches_wbf` was deleted — it encoded
+    # propstore's old "delegate to WBF for non-dogmatic" heuristic,
+    # which contradicts van der Heijden 2018 (CCF and WBF are distinct
+    # operators even on non-dogmatic inputs; Table I shows different
+    # columns).
 
 
 # ── Fuse dispatcher tests ───────────────────────────────────────────
@@ -1086,53 +1001,30 @@ class TestWBFAdditionalProperties:
 
 
 class TestCCFAdditionalProperties:
-    """CCF properties identified as missing in audit-2026-03-28."""
+    """CCF properties identified as missing in audit-2026-03-28.
 
-    @given(
-        a=valid_opinions(),
-        b=valid_opinions(),
-        c=valid_opinions(),
-    )
-    @settings(deadline=None)
-    def test_ccf_associativity(self, a, b, c):
-        """CCF(CCF(a, b), c) ≈ CCF(a, CCF(b, c)).
-
-        Non-dogmatic CCF delegates to WBF which is associative via
-        consensus_pair folding. Dogmatic CCF uses min+average which is
-        associative by construction (min and mean are both associative).
-        """
-        ab_c = ccf(ccf(a, b), c)
-        a_bc = ccf(a, ccf(b, c))
-        assert abs(ab_c.b - a_bc.b) < 1e-6, (
-            f"CCF not associative — b: {ab_c.b} vs {a_bc.b}, "
-            f"delta={abs(ab_c.b - a_bc.b)}"
-        )
-        assert abs(ab_c.d - a_bc.d) < 1e-6, (
-            f"CCF not associative — d: {ab_c.d} vs {a_bc.d}, "
-            f"delta={abs(ab_c.d - a_bc.d)}"
-        )
-        assert abs(ab_c.u - a_bc.u) < 1e-6, (
-            f"CCF not associative — u: {ab_c.u} vs {a_bc.u}, "
-            f"delta={abs(ab_c.u - a_bc.u)}"
-        )
+    ``test_ccf_associativity`` was deleted: CCF is NOT associative in
+    general (van der Heijden 2018, §I, explicitly notes this). The
+    direct N-source call form ``ccf(a, b, c)`` is order-invariant
+    (see ``TestCCFDefinition5Real.test_commutativity_three``), but
+    pairwise folding ``ccf(ccf(a, b), c)`` is not equivalent.
+    """
 
     @given(a=valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
-    def test_ccf_self_fusion_preserves_bd_ratio(self, a):
-        """CCF(a, a) preserves b:d ratio (inherited from WBF for non-dogmatic).
+    def test_ccf_self_fusion_is_idempotent(self, a):
+        """``ccf(a, a) == a`` for every opinion.
 
-        WBF concentrates evidence (reduces u), so expectation E = b + a*u
-        shifts toward b/(b+d). This is correct evidence-accumulation behavior.
-        The b:d ratio IS preserved, matching WBF's self-fusion property.
+        Self-fusion triggers the ``b^comp_sum ≈ 0`` edge case in Def 5
+        (all residuals are zero when sources are identical). propstore
+        handles it by putting the residual missing mass directly into
+        ``u``, which makes self-fusion idempotent.
         """
         assume(a.b + a.d > 1e-6)  # skip near-vacuous
         result = ccf(a, a)
-        if a.b > 1e-9 and a.d > 1e-9:
-            orig_ratio = a.b / a.d
-            result_ratio = result.b / result.d
-            assert abs(orig_ratio - result_ratio) < 1e-4, (
-                f"b:d ratio changed: {orig_ratio} -> {result_ratio}"
-            )
+        assert result.b == pytest.approx(a.b, abs=1e-9)
+        assert result.d == pytest.approx(a.d, abs=1e-9)
+        assert result.u == pytest.approx(a.u, abs=1e-9)
 
     @given(a=valid_opinions())
     @settings(deadline=None)
@@ -1204,6 +1096,206 @@ class TestDiscountProperties:
         assert abs(result.b - source.b) < 1e-9
         assert abs(result.d - source.d) < 1e-9
         assert abs(result.u - source.u) < 1e-9
+
+
+class TestCCFDefinition5Real:
+    """CCF matches van der Heijden 2018 Definition 5 literally.
+
+    Ground-truth regression tests against Table I of the paper plus four
+    hand-derived worked examples. The old propstore implementation was a
+    simplification that produced fractional-belief "fake consensus" for
+    dogmatic disagreement (e.g. ``ccf(dt, df) → (0.5, 0.5, 0)``). Per Def
+    5, disagreement gets converted into uncertainty via the ``b^comp(X)``
+    disagreement term, so the correct answer is vacuous.
+    """
+
+    def test_table_I_three_source(self):
+        """Paper Table I (p. 7): three sources, a=0.5 shared, CCF column.
+
+        Inputs:
+          A1: b=0.10, d=0.30, u=0.60
+          A2: b=0.40, d=0.20, u=0.40
+          A3: b=0.70, d=0.10, u=0.20
+
+        Paper-published CCF output (rounded):
+          b=0.629, d=0.182, u=0.189
+        """
+        a1 = Opinion(0.10, 0.30, 0.60, 0.5)
+        a2 = Opinion(0.40, 0.20, 0.40, 0.5)
+        a3 = Opinion(0.70, 0.10, 0.20, 0.5)
+        r = ccf(a1, a2, a3)
+        assert r.b == pytest.approx(0.629, abs=5e-4)
+        assert r.d == pytest.approx(0.182, abs=5e-4)
+        assert r.u == pytest.approx(0.189, abs=5e-4)
+        assert r.a == pytest.approx(0.5, abs=1e-9)
+
+    def test_dogmatic_total_disagreement_is_vacuous(self):
+        """CCF(dogmatic_true, dogmatic_false) → vacuous.
+
+        Both sources have b^cons = 0; all residual mass flows into
+        b^comp(X) = 1 (the disagreement term), which then becomes
+        uncertainty after normalization. This is the correct Def 5
+        semantic and the entire point of the reviewer's Issue 2:
+        disagreement converts to ignorance, not fractional belief.
+        """
+        a = Opinion.dogmatic_true(0.5)
+        b = Opinion.dogmatic_false(0.5)
+        r = ccf(a, b)
+        assert r.b == pytest.approx(0.0, abs=1e-9)
+        assert r.d == pytest.approx(0.0, abs=1e-9)
+        assert r.u == pytest.approx(1.0, abs=1e-9)
+
+    def test_dogmatic_majority_still_vacuous(self):
+        """Two-true + one-false also goes vacuous under Def 5.
+
+        CCF is NOT a voting operator — it doesn't preserve
+        majority-count information. The paper (§III.C / Remark 4):
+        "generates vague belief from conflicting belief on singleton
+        values." For binomial, "vague belief" IS uncertainty.
+        Callers who want voting semantics should use WBF or plain
+        averaging, not CCF.
+        """
+        dt = Opinion.dogmatic_true(0.5)
+        df = Opinion.dogmatic_false(0.5)
+        r = ccf(dt, dt, df)
+        assert r.b == pytest.approx(0.0, abs=1e-9)
+        assert r.d == pytest.approx(0.0, abs=1e-9)
+        assert r.u == pytest.approx(1.0, abs=1e-9)
+
+    def test_dogmatic_agreement_preserves_dogmatic(self):
+        """CCF(dt, dt) = dt — b^comp_sum = 0 edge case.
+
+        When all residuals are zero (full agreement on all singletons),
+        there is no compromise mass to distribute. The paper's Def 5
+        is not explicit about this degenerate case (Remark 4 assumes
+        ``b^comp_sum > 0``). propstore handles it by putting residual
+        missing mass directly into u, which makes self-fusion
+        idempotent for every input.
+        """
+        dt = Opinion.dogmatic_true(0.5)
+        r = ccf(dt, dt)
+        assert r.b == pytest.approx(1.0, abs=1e-9)
+        assert r.d == pytest.approx(0.0, abs=1e-9)
+        assert r.u == pytest.approx(0.0, abs=1e-9)
+
+    def test_dogmatic_plus_uncertain(self):
+        """CCF((1,0,0), (0.4,0.2,0.4)) = (0.8, 0, 0.2).
+
+        Hand-derived:
+          b^cons(x)=min(1,0.4)=0.4, b^cons(¬x)=0, b^cons_sum=0.4
+          r_A=(0.6, 0), r_B=(0, 0.2); u^pre=0
+          b^comp(x)  = 0.6·0.4 + 0·0 + 0.6·0   = 0.24
+          b^comp(¬x) = 0·0.4   + 0.2·0 + 0·0.2 = 0
+          b^comp(X)  = (0.6)(0.2) − 0·0 − 0·0.2 = 0.12
+          b^comp_sum = 0.36
+          η = (1 − 0.4 − 0) / 0.36 = 5/3
+          u^fused    = 0 + (5/3)·0.12 = 0.2
+          b^fused(x) = 0.4 + (5/3)·0.24 = 0.8
+          b^fused(¬x)= 0
+        """
+        a = Opinion.dogmatic_true(0.5)
+        b = Opinion(0.4, 0.2, 0.4, 0.5)
+        r = ccf(a, b)
+        assert r.b == pytest.approx(0.8, abs=1e-9)
+        assert r.d == pytest.approx(0.0, abs=1e-9)
+        assert r.u == pytest.approx(0.2, abs=1e-9)
+
+    def test_nondogmatic_partial_disagreement(self):
+        """CCF((0.6,0.2,0.2), (0.2,0.6,0.2)) = (0.34, 0.34, 0.32).
+
+        Disagreement boosts u from 0.2 → 0.32 by converting the
+        cross-residual mass into uncertainty. This is the non-dogmatic
+        analogue of the dogmatic vacuous-disagreement case.
+
+        Hand-derived:
+          b^cons(x)=0.2, b^cons(¬x)=0.2, b^cons_sum=0.4
+          r_A=(0.4, 0), r_B=(0, 0.4); u^pre=0.04
+          b^comp(x) = 0.4·0.2 + 0·0.2 + 0.4·0 = 0.08
+          b^comp(¬x)= 0·0.2 + 0.4·0.2 + 0·0.4 = 0.08
+          b^comp(X) = (0.4)(0.4) − 0·0 − 0·0.4 = 0.16
+          b^comp_sum= 0.32
+          η = (1 − 0.4 − 0.04) / 0.32 = 1.75
+          u^fused   = 0.04 + 1.75·0.16 = 0.32
+          b^fused(x)= 0.2 + 1.75·0.08 = 0.34
+        """
+        a = Opinion(0.6, 0.2, 0.2, 0.5)
+        b = Opinion(0.2, 0.6, 0.2, 0.5)
+        r = ccf(a, b)
+        assert r.b == pytest.approx(0.34, abs=1e-9)
+        assert r.d == pytest.approx(0.34, abs=1e-9)
+        assert r.u == pytest.approx(0.32, abs=1e-9)
+
+    def test_self_fusion_is_idempotent(self):
+        """CCF(a, a) == a for any opinion — b^comp_sum = 0 handling."""
+        for op in [
+            Opinion(0.3, 0.2, 0.5, 0.5),
+            Opinion(0.1, 0.8, 0.1, 0.3),
+            Opinion.vacuous(0.5),
+            Opinion.dogmatic_true(0.7),
+            Opinion.dogmatic_false(0.2),
+        ]:
+            r = ccf(op, op)
+            assert r.b == pytest.approx(op.b, abs=1e-9), f"b differs for {op}"
+            assert r.d == pytest.approx(op.d, abs=1e-9), f"d differs for {op}"
+            assert r.u == pytest.approx(op.u, abs=1e-9), f"u differs for {op}"
+
+    def test_vacuous_identity(self):
+        """CCF(a, vacuous) preserves a's b,d,u up to u^pre scaling.
+
+        Unlike WBF (which treats vacuous as identity), CCF's
+        multiplication by u^pre = u_a · 1 = u_a leaves the u component
+        unchanged for the a=vacuous case. For a non-vacuous, CCF
+        produces a valid opinion but not strictly identical to a —
+        this test only checks that vacuous fusion doesn't corrupt
+        sum invariants or produce nonsense.
+        """
+        a = Opinion(0.3, 0.3, 0.4, 0.5)
+        vac = Opinion.vacuous(0.5)
+        r = ccf(a, vac)
+        assert abs(r.b + r.d + r.u - 1.0) < 1e-9
+        # Residuals from a flow through; vacuous contributes nothing
+        # meaningful beyond its u=1.
+
+    @given(a=valid_opinions(), b=valid_opinions())
+    @settings(deadline=None)
+    def test_sum_invariant_property(self, a, b):
+        """CCF always produces valid opinions (Remark 4)."""
+        r = ccf(a, b)
+        assert abs(r.b + r.d + r.u - 1.0) < 1e-9
+        assert r.b >= -1e-9
+        assert r.d >= -1e-9
+        assert r.u >= -1e-9
+
+    @given(a=valid_opinions(), b=valid_opinions())
+    @settings(deadline=None)
+    def test_commutativity_binary(self, a, b):
+        """CCF(a, b) == CCF(b, a) — formulas are symmetric in actors."""
+        r1 = ccf(a, b)
+        r2 = ccf(b, a)
+        assert abs(r1.b - r2.b) < 1e-9
+        assert abs(r1.d - r2.d) < 1e-9
+        assert abs(r1.u - r2.u) < 1e-9
+
+    @given(a=valid_opinions(), b=valid_opinions(), c=valid_opinions())
+    @settings(deadline=None)
+    def test_commutativity_three(self, a, b, c):
+        """CCF is multi-source-symmetric (order-independent across actors).
+
+        Distinct from associativity — CCF is NOT associative in general
+        (the paper's Section I notes this), so ``ccf(ccf(a, b), c)`` is
+        not the same as ``ccf(a, ccf(b, c))``. But a direct N-source
+        call is invariant under permutation of its arguments because
+        Def 5's sums and products are symmetric in A.
+        """
+        r_abc = ccf(a, b, c)
+        r_bca = ccf(b, c, a)
+        r_cab = ccf(c, a, b)
+        assert abs(r_abc.b - r_bca.b) < 1e-9
+        assert abs(r_abc.b - r_cab.b) < 1e-9
+        assert abs(r_abc.d - r_bca.d) < 1e-9
+        assert abs(r_abc.d - r_cab.d) < 1e-9
+        assert abs(r_abc.u - r_bca.u) < 1e-9
+        assert abs(r_abc.u - r_cab.u) < 1e-9
 
 
 # ── Review fixes (review-2026-04-14) ───────────────────────────────
@@ -1459,84 +1551,14 @@ class TestConsensusPairNearVacuous:
         assert 0.1 - 1e-9 <= r.a <= 0.9 + 1e-9
 
 
-class TestCCFAveragePreservesUncertainty:
-    """``_ccf_average`` must preserve the averaged uncertainty semantics
-    (review-2026-04-14 Issue 2).
-
-    For a binomial frame, van der Heijden 2018 Definition 5 reduces to
-    plain arithmetic averaging over all source components. The old code
-    decomposed into ``consensus + compromise`` and then divided by
-    ``raw_b + raw_d + raw_u``. That division is algebraically a no-op
-    (the averages always sum to 1), but the ``u`` component being
-    rescaled alongside ``b`` and ``d`` signals the wrong intent:
-    uncertainty is a residual, not just another mass component.
-
-    These tests lock in the contract ``fused.u == avg(u_i)`` exactly.
-    """
-
-    def test_all_dogmatic_agreeing(self):
-        """All sources dogmatic-true → averaged u is 0."""
-        ops = [Opinion.dogmatic_true(0.5) for _ in range(4)]
-        from propstore.opinion import _ccf_average
-        r = _ccf_average(ops)
-        assert r.u == 0.0
-        assert r.b == pytest.approx(1.0, abs=1e-9)
-        assert r.d == 0.0
-
-    def test_mixed_dogmatic_and_nondogmatic(self):
-        """Reviewer's scenario: dogmatic + WBF result.
-
-        Fused u must equal the arithmetic mean of source u values.
-        """
-        from propstore.opinion import _ccf_average
-        sources = [
-            Opinion.dogmatic_true(0.5),      # u = 0
-            Opinion.dogmatic_false(0.5),     # u = 0
-            Opinion(0.3, 0.3, 0.4, 0.5),     # u = 0.4
-        ]
-        r = _ccf_average(sources)
-        expected_u = (0.0 + 0.0 + 0.4) / 3
-        assert r.u == pytest.approx(expected_u, abs=1e-9)
-        expected_b = (1.0 + 0.0 + 0.3) / 3
-        expected_d = (0.0 + 1.0 + 0.3) / 3
-        assert r.b == pytest.approx(expected_b, abs=1e-9)
-        assert r.d == pytest.approx(expected_d, abs=1e-9)
-
-    def test_all_nondogmatic(self):
-        """_ccf_average on all non-dogmatic sources (allowed path)."""
-        from propstore.opinion import _ccf_average
-        sources = [
-            Opinion(0.2, 0.3, 0.5, 0.5),
-            Opinion(0.4, 0.1, 0.5, 0.5),
-            Opinion(0.1, 0.2, 0.7, 0.5),
-        ]
-        r = _ccf_average(sources)
-        expected_u = (0.5 + 0.5 + 0.7) / 3
-        assert r.u == pytest.approx(expected_u, abs=1e-9)
-
-    def test_single_opinion_pass_through(self):
-        """_ccf_average([op]) returns op unchanged."""
-        from propstore.opinion import _ccf_average
-        op = Opinion(0.2, 0.3, 0.5, 0.5)
-        r = _ccf_average([op])
-        assert r == op
-
-    @given(
-        opinions=st.lists(valid_opinions(min_uncertainty=0.0), min_size=2, max_size=5),
-    )
-    @settings(deadline=None, max_examples=100)
-    def test_property_u_equals_average(self, opinions):
-        """For any list of ≥2 opinions, fused u == mean(u_i) within _TOL."""
-        from propstore.opinion import _ccf_average
-        r = _ccf_average(opinions)
-        expected_u = sum(op.u for op in opinions) / len(opinions)
-        assert r.u == pytest.approx(expected_u, abs=1e-9), (
-            f"u mismatch: {r.u} vs {expected_u}"
-        )
-        expected_b = sum(op.b for op in opinions) / len(opinions)
-        expected_d = sum(op.d for op in opinions) / len(opinions)
-        assert r.b == pytest.approx(expected_b, abs=1e-9)
-        assert r.d == pytest.approx(expected_d, abs=1e-9)
+# TestCCFAveragePreservesUncertainty was removed. It was added in my
+# first review-fix pass and it locked in the claim ``fused.u ==
+# mean(u_i)``, which is the PROPSTORE SIMPLIFICATION of Def 5, not Def
+# 5 itself. The real Def 5 (see TestCCFDefinition5Real) produces a
+# very different ``u`` because the ``b^comp(X)`` disagreement term
+# converts residual disagreement mass into uncertainty via η, which
+# is the opposite of arithmetic averaging. Keeping the old tests
+# would prevent any correct Def 5 implementation from shipping.
 
 
 class TestOpinionRepr:
