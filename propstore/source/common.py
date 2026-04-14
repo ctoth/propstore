@@ -16,6 +16,7 @@ from propstore.artifacts import (
     normalize_source_slug,
     source_branch_name,
 )
+from propstore.artifacts.families import SOURCE_METADATA_FAMILY, SOURCE_NOTES_FAMILY
 from propstore.cli.repository import Repository
 from propstore.document_schema import decode_document_bytes
 from propstore.repo.branch import branch_head, create_branch
@@ -96,22 +97,6 @@ def load_document_from_branch(
         return None
 
 
-def commit_source_file(
-    repo: Repository,
-    name: str,
-    *,
-    relpath: str,
-    content: bytes,
-    message: str,
-) -> str:
-    if repo.git is None:
-        raise ValueError("source operations require a git-backed repository")
-    branch = source_branch_name(name)
-    if branch_head(repo.git, branch) is None:
-        raise ValueError(f"Source branch {branch!r} does not exist")
-    return repo.git.commit_batch(adds={relpath: content}, deletes=[], message=message, branch=branch)
-
-
 def init_source_branch(
     repo: Repository,
     name: str,
@@ -144,37 +129,26 @@ def init_source_branch(
 
 
 def commit_source_notes(repo: Repository, name: str, notes_file: Path) -> str:
-    return commit_source_file(
-        repo,
-        name,
-        relpath="notes.md",
-        content=notes_file.read_bytes(),
+    return repo.artifacts.save(
+        SOURCE_NOTES_FAMILY,
+        SourceRef(name),
+        notes_file.read_text(encoding="utf-8"),
         message=f"Write notes for {normalize_source_slug(name)}",
     )
 
 
 def commit_source_metadata(repo: Repository, name: str, metadata_file: Path) -> str:
     loaded = json.loads(metadata_file.read_text(encoding="utf-8"))
-    payload = json.dumps(loaded, indent=2, ensure_ascii=False).encode("utf-8")
-    return commit_source_file(
-        repo,
-        name,
-        relpath="metadata.json",
-        content=payload,
+    return repo.artifacts.save(
+        SOURCE_METADATA_FAMILY,
+        SourceRef(name),
+        loaded,
         message=f"Write metadata for {normalize_source_slug(name)}",
     )
 
 
 def load_source_metadata(repo: Repository, name: str) -> dict[str, object] | None:
-    branch = source_branch_name(name)
-    tip = branch_head(repo.git, branch)
-    if tip is None:
-        return None
-    try:
-        raw = repo.git.read_file("metadata.json", commit=tip)
-    except FileNotFoundError:
-        return None
-    return json.loads(raw)
+    return repo.artifacts.load(SOURCE_METADATA_FAMILY, SourceRef(name))
 
 
 def load_source_document(repo: Repository, name: str) -> SourceDocument:

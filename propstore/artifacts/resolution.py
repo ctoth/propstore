@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from propstore.artifacts.indexes import ClaimReferenceIndex
 
@@ -56,9 +57,38 @@ class ImportedClaimHandleIndex:
                 f"Imported stance file {path!r} references ambiguous {role} {reference!r}"
             )
 
-    def resolved_map(self) -> dict[str, str]:
-        return {
-            local_id: artifact_id
-            for local_id, artifact_id in self._local_to_artifact.items()
-            if artifact_id is not None
-        }
+    def resolve(self, reference: object, *, path: str, role: str) -> object:
+        self.require_unambiguous(reference, path=path, role=role)
+        if not isinstance(reference, str):
+            return reference
+        resolved = self._local_to_artifact.get(reference)
+        if resolved is None:
+            return reference
+        return resolved
+
+    def rewrite_stance_payload(self, payload: dict[str, Any], *, path: str) -> dict[str, Any]:
+        rewritten = dict(payload)
+        rewritten["source_claim"] = self.resolve(
+            rewritten.get("source_claim"),
+            path=path,
+            role="source_claim",
+        )
+
+        raw_stances = rewritten.get("stances")
+        if not isinstance(raw_stances, list):
+            return rewritten
+
+        updated_stances: list[Any] = []
+        for stance in raw_stances:
+            if not isinstance(stance, dict):
+                updated_stances.append(stance)
+                continue
+            rewritten_stance = dict(stance)
+            rewritten_stance["target"] = self.resolve(
+                rewritten_stance.get("target"),
+                path=path,
+                role="target",
+            )
+            updated_stances.append(rewritten_stance)
+        rewritten["stances"] = updated_stances
+        return rewritten

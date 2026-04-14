@@ -52,6 +52,11 @@ class ArtifactFamily(Generic[TRef, TDoc]):
     name: str
     doc_type: type[TDoc]
     resolve_ref: Callable[[Repository, TRef], ResolvedArtifact]
+    coerce_payload: Callable[[object, str], TDoc] | None = None
+    decode_bytes: Callable[[bytes, str], TDoc] | None = None
+    encode_document: Callable[[TDoc], bytes] | None = None
+    render_document: Callable[[TDoc], str] | None = None
+    document_payload: Callable[[TDoc], object] | None = None
     normalize_for_write: Callable[[ArtifactContext[TRef], TDoc, object], TDoc] | None = None
     validate_for_write: Callable[[ArtifactContext[TRef], TDoc, object], None] | None = None
     list_refs: Callable[[Repository, str | None, str | None], list[TRef]] | None = None
