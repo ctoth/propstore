@@ -56,14 +56,11 @@ def init(obj: dict, directory: str) -> None:
 
     form_documents = _seed_form_documents(repo)
 
-    git = repo.git
-    if git is None:
-        raise click.ClickException("init requires a git-backed repository")
     if form_documents:
         with repo.artifacts.transact(message="Seed default forms") as transaction:
             for ref, document in form_documents:
                 transaction.save(FORM_FAMILY, ref, document)
-        git.sync_worktree()
+        repo.snapshot.sync_worktree()
 
     click.echo(f"Initialized propstore project at {root}/")
     click.echo(f"  {root / 'concepts/'}")

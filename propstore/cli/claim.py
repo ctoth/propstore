@@ -483,7 +483,9 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
     from propstore.embed import _load_vec_extension
 
     repo = obj["repo"]
-    if repo.git is None:
+    try:
+        repo.snapshot.head_sha()
+    except ValueError:
         click.echo("Error: claim relate requires a git-backed repository.", err=True)
         raise SystemExit(1)
     sidecar = repo.sidecar_path

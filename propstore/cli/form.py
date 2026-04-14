@@ -182,9 +182,6 @@ def add(
 ) -> None:
     """Add a new form definition."""
     repo: Repository = obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("form mutations require a git-backed repository")
     fdir = repo.forms_dir
     path = fdir / f"{name}.yaml"
     if (repo.tree() / "forms" / f"{name}.yaml").exists():
@@ -250,7 +247,7 @@ def add(
         document,
         message=f"Add form: {name}",
     )
-    git.sync_worktree()
+    repo.snapshot.sync_worktree()
     click.echo(f"Created {path}")
 
 
@@ -264,9 +261,6 @@ def add(
 def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
     """Remove a form definition."""
     repo: Repository = obj["repo"]
-    git = repo.git
-    if git is None:
-        raise click.ClickException("form mutations require a git-backed repository")
     forms_tree = repo.tree() / "forms"
     path = repo.forms_dir / f"{name}.yaml"
     semantic_path = forms_tree / f"{name}.yaml"
@@ -298,7 +292,7 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
         FormRef(name),
         message=f"Remove form: {name}",
     )
-    git.sync_worktree()
+    repo.snapshot.sync_worktree()
     click.echo(f"Removed {path}")
     if referencing:
         click.echo(f"  WARNING: {len(referencing)} concept(s) still reference this form")
