@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.artifact_codes import attach_source_artifact_codes
+from propstore.artifacts.codes import attach_source_artifact_codes
 from propstore.artifacts import (
     ClaimReferenceResolver,
     SOURCE_CLAIMS_FAMILY,

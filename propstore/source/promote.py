@@ -4,7 +4,7 @@ import copy
 from pathlib import Path
 from typing import Any
 
-from propstore.artifact_codes import attach_source_artifact_codes
+from propstore.artifacts.codes import attach_source_artifact_codes
 from propstore.artifacts import (
     CANONICAL_SOURCE_FAMILY,
     CLAIMS_FILE_FAMILY,

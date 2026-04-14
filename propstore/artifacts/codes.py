@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import copy
-import json
 import hashlib
+import json
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from propstore.document_schema import decode_document_path
 from propstore.core.labels import Label
+from propstore.document_schema import decode_document_path
 from propstore.identity import canonicalize_claim_for_version
 from propstore.knowledge_path import KnowledgePath
 from propstore.source_documents import (
