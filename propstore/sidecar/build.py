@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import sqlite3
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -180,8 +179,6 @@ def build_sidecar(
                 )
         except ImportError:
             pass
-        except Exception as exc:
-            logging.warning("Embedding snapshot failed: %s", exc)
         finally:
             if snapshot_conn is not None:
                 snapshot_conn.close()

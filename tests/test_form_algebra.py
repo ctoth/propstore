@@ -191,6 +191,42 @@ def bad_dims_sidecar(bad_dims_project):
     return sidecar
 
 
+class TestFormAlgebraExceptionVisibility:
+    def test_rewrite_parameterization_symbols_runtime_error_propagates(
+        self,
+        physics_project,
+        monkeypatch,
+    ):
+        knowledge = physics_project / "knowledge"
+        sidecar = knowledge / "sidecar" / "propstore.sqlite"
+        sidecar.parent.mkdir(parents=True, exist_ok=True)
+
+        def _boom(*_args, **_kwargs):
+            raise RuntimeError("rewrite boom")
+
+        monkeypatch.setattr("propstore.sidecar.concepts.rewrite_parameterization_symbols", _boom)
+
+        with pytest.raises(RuntimeError, match="rewrite boom"):
+            build_sidecar(knowledge, sidecar, force=True)
+
+    def test_canonical_dump_runtime_error_propagates(
+        self,
+        physics_project,
+        monkeypatch,
+    ):
+        knowledge = physics_project / "knowledge"
+        sidecar = knowledge / "sidecar" / "propstore.sqlite"
+        sidecar.parent.mkdir(parents=True, exist_ok=True)
+
+        def _boom(*_args, **_kwargs):
+            raise RuntimeError("canonical boom")
+
+        monkeypatch.setattr("propstore.sidecar.concepts.canonical_dump", _boom)
+
+        with pytest.raises(RuntimeError, match="canonical boom"):
+            build_sidecar(knowledge, sidecar, force=True)
+
+
 # ── Step 1: dims_signature() ────────────────────────────────────────
 
 

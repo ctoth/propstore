@@ -15,6 +15,7 @@ from typing import Any
 from propstore.repo.merge_claims import MergeClaim
 from propstore.repo.merge_framework import PartialArgumentationFramework
 from propstore.repo.snapshot import RepoSnapshot
+from propstore.z3_conditions import Z3TranslationError
 
 
 class _DiffKind(Enum):
@@ -225,14 +226,11 @@ def _classify_pair(
 
     try:
         records = detect_conflicts([left_file, right_file], concept_registry={}, cel_registry={})
-    except Exception as exc:
-        from propstore.z3_conditions import Z3TranslationError
-
-        if isinstance(exc, Z3TranslationError):
-            left_conditions = sorted(left_claim.document.conditions)
-            right_conditions = sorted(right_claim.document.conditions)
-            if left_conditions != right_conditions:
-                return _DiffKind.PHI_NODE
+    except Z3TranslationError:
+        left_conditions = sorted(left_claim.document.conditions)
+        right_conditions = sorted(right_claim.document.conditions)
+        if left_conditions != right_conditions:
+            return _DiffKind.PHI_NODE
         raise
 
     for record in records:

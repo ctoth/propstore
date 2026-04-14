@@ -507,12 +507,18 @@ def _validate_unit_against_form(
         if unit not in form_def.allowed_units:
             # Before rejecting, try pint dimensional compatibility.
             try:
-                from propstore.form_utils import ureg, _pint_unit
-                src = ureg.Quantity(1, _pint_unit(unit))
-                src.to(_pint_unit(form_def.unit_symbol))
+                from propstore import form_utils
+
+                src = form_utils.ureg.Quantity(1, form_utils._pint_unit(unit))
+                src.to(form_utils._pint_unit(form_def.unit_symbol))
                 # Dimensionally compatible — accept it
                 return
-            except Exception:
+            except (
+                form_utils.pint.UndefinedUnitError,
+                form_utils.pint.DimensionalityError,
+                TypeError,
+                ValueError,
+            ):
                 pass
             diagnostics.append(SemanticDiagnostic(
                 level="error",

@@ -401,6 +401,41 @@ class TestCalibrationCountsInfrastructure:
         )
         conn.close()
 
+    def test_load_calibration_counts_missing_table_returns_none(self):
+        """A missing calibration_counts table means absent data, not a hard error."""
+        from propstore.calibrate import load_calibration_counts
+
+        conn = sqlite3.connect(":memory:")
+        result = load_calibration_counts(conn)
+        assert result is None
+        conn.close()
+
+    def test_load_calibration_counts_corruption_error_propagates(self):
+        """Non-schema OperationalErrors must surface."""
+        from propstore.calibrate import load_calibration_counts
+
+        real_conn = sqlite3.connect(":memory:")
+        real_conn.execute(
+            """
+            CREATE TABLE calibration_counts (
+                pass_number INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                correct_count INTEGER NOT NULL,
+                total_count INTEGER NOT NULL,
+                PRIMARY KEY (pass_number, category)
+            )
+            """
+        )
+
+        class _FailingConnection:
+            def execute(self, *_args, **_kwargs):
+                raise sqlite3.OperationalError("database disk image is malformed")
+
+        with pytest.raises(sqlite3.OperationalError, match="database disk image is malformed"):
+            load_calibration_counts(_FailingConnection())
+
+        real_conn.close()
+
 
 # ---------------------------------------------------------------------------
 # Red-phase tests: corpus opinion b+d+u=1 property (Phase 1, Sub-task 1b)

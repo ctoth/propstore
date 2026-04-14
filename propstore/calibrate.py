@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import bisect
 import math
+import sqlite3
 from dataclasses import dataclass
 
 from propstore.opinion import Opinion, from_evidence, from_probability
@@ -228,7 +229,9 @@ def load_calibration_counts(conn) -> dict[tuple[int, str], tuple[int, int]] | No
             "SELECT pass_number, category, correct_count, total_count "
             "FROM calibration_counts"
         ).fetchall()
-    except Exception:
+    except sqlite3.OperationalError as exc:
+        if "no such table" not in str(exc).lower():
+            raise
         return None
     if not rows:
         return None

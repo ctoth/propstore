@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 from click.testing import CliRunner
@@ -211,6 +212,18 @@ def test_verify_tree_reports_claim_mismatch(tmp_path: Path) -> None:
     report = yaml.safe_load(result.output)
     assert report["status"] == "mismatch"
     assert report["claim"]["status"] == "mismatch"
+
+
+def test_verify_tree_atms_failure_propagates(tmp_path: Path) -> None:
+    repo, claim_id = _prepare_promoted_source(tmp_path)
+    runner = CliRunner()
+
+    with patch("propstore.world.WorldModel.bind", side_effect=RuntimeError("atms boom")):
+        result = runner.invoke(cli, ["-C", str(repo.root), "verify", "tree", claim_id])
+
+    assert result.exit_code != 0
+    assert isinstance(result.exception, RuntimeError)
+    assert "atms boom" in str(result.exception)
 
 
 @given(order=st.permutations([0, 1]))

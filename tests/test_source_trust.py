@@ -76,6 +76,11 @@ def test_p_arg_from_claim_accepts_typed_claim_rows() -> None:
     assert p_arg_from_claim(claim) == expected
 
 
+def test_p_arg_from_claim_invalid_typed_input_propagates() -> None:
+    with pytest.raises((TypeError, AttributeError)):
+        p_arg_from_claim(object())
+
+
 def test_p_arg_from_claim_ignores_sample_size_without_calibration_payload() -> None:
     opinion = p_arg_from_claim({"sample_size": 50})
     assert opinion == Opinion.dogmatic_true()

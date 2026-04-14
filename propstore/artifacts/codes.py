@@ -361,18 +361,15 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
 
     atms_label = None
     if repo.sidecar_path.exists():
-        try:
-            from propstore.world import WorldModel
-            from propstore.world.types import Environment
+        from propstore.world import WorldModel
+        from propstore.world.types import Environment
 
-            wm = WorldModel(repo)
-            try:
-                bound = wm.bind(Environment())
-                atms_label = _serialize_label(bound.atms_engine().claim_label(claim_id))
-            finally:
-                wm.close()
-        except Exception:
-            atms_label = None
+        wm = WorldModel(repo)
+        try:
+            bound = wm.bind(Environment())
+            atms_label = _serialize_label(bound.atms_engine().claim_label(claim_id))
+        finally:
+            wm.close()
 
     source_slug = claim_to_source_slug[claim_id]
     origin_verification = _verify_origin(repo, source_slug, sources_by_slug.get(source_slug, {}))

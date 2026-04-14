@@ -1,8 +1,6 @@
 """Tests that RuntimeError propagates through narrowed exception handlers (Group 3).
 
 Each test mocks the failing call to raise RuntimeError and verifies it is NOT caught.
-For Location 1 (build_sidecar embedding snapshot), the broad catch is intentional —
-test verifies the catch works AND logs a warning.
 """
 
 from unittest.mock import patch, MagicMock
@@ -10,16 +8,13 @@ import pytest
 
 
 class TestBuildSidecarEmbeddingSnapshot:
-    """Location 1: build_sidecar.py:250 — embedding snapshot failure.
+    """Location 1: build_sidecar.py — embedding snapshot failure."""
 
-    This is intentionally broad: embedding snapshot is optional graceful degradation.
-    Test verifies the broad catch works and logs.
-    """
-
-    def test_embedding_snapshot_exception_caught_and_logged(self, tmp_path):
-        """Any exception during embedding snapshot should be caught and logged."""
+    def test_embedding_snapshot_runtime_error_propagates(self, tmp_path):
+        """RuntimeError during snapshot extraction must abort the rebuild."""
         import sqlite3
-        import logging
+
+        from propstore.sidecar.build import build_sidecar
 
         # Create a minimal sidecar db so snapshot path exists
         sidecar = tmp_path / "sidecar.db"
@@ -27,40 +22,22 @@ class TestBuildSidecarEmbeddingSnapshot:
         conn.execute("CREATE TABLE t (x)")
         conn.close()
 
+        knowledge = tmp_path / "knowledge"
+        (knowledge / "claims").mkdir(parents=True)
+        (knowledge / "concepts").mkdir()
+        (knowledge / "concepts" / ".counters").mkdir()
+        (knowledge / "forms").mkdir()
+        (knowledge / "concepts" / ".counters" / "propstore.next").write_text("1")
+
         mock_extract = MagicMock(side_effect=RuntimeError("snapshot boom"))
         mock_load_vec = MagicMock()
 
-        # Patch the module-level so the local import picks them up
-        import propstore.embed
-        original_extract = getattr(propstore.embed, "extract_embeddings", None)
-        original_load = getattr(propstore.embed, "_load_vec_extension", None)
-        propstore.embed.extract_embeddings = mock_extract
-        propstore.embed._load_vec_extension = mock_load_vec
-
-        try:
-            # Simulate the try/except block from build_sidecar.py:236-252
-            _embedding_snapshot = None
-            try:
-                _load_vec_extension = mock_load_vec
-                extract_embeddings = mock_extract
-                _snap_conn = sqlite3.connect(sidecar)
-                _snap_conn.row_factory = sqlite3.Row
-                _load_vec_extension(_snap_conn)
-                _embedding_snapshot = extract_embeddings(_snap_conn)
-                _snap_conn.close()
-            except ImportError:
-                pass
-            except Exception as exc:
-                logging.warning("Embedding snapshot failed: %s", exc)
-
-            # Verify the broad catch caught it and snapshot is still None
-            assert _embedding_snapshot is None
-            mock_extract.assert_called_once()
-        finally:
-            if original_extract is not None:
-                propstore.embed.extract_embeddings = original_extract
-            if original_load is not None:
-                propstore.embed._load_vec_extension = original_load
+        with (
+            patch("propstore.embed.extract_embeddings", mock_extract),
+            patch("propstore.embed._load_vec_extension", mock_load_vec),
+        ):
+            with pytest.raises(RuntimeError, match="snapshot boom"):
+                build_sidecar(knowledge, sidecar, force=True)
 
 
 class TestCliHelpersYamlParsing:
