@@ -371,8 +371,8 @@ class ATMSNodeExplanation(TypedDict):
     node_id: str
     claim_id: str | None
     kind: str
-    status: str
-    support_quality: str
+    status: ATMSNodeStatus
+    support_quality: SupportQuality
     label: list[list[str]] | None
     essential_support: list[str] | None
     reason: str

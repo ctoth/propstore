@@ -621,7 +621,7 @@ def test_atms_explain_node_returns_real_justification_chains() -> None:
     derived = bound.derived_value("concept3")
     explanation = engine.explain_node(engine._derived_node_id("concept3", derived.value))
 
-    assert explanation["status"] == "IN"
+    assert explanation["status"] == ATMSNodeStatus.IN
     assert explanation["traces"]
     assert any(
         trace["informant"] == "parameterization:0"
@@ -794,7 +794,7 @@ def test_phase8_graph_runtime_replays_future_status_and_interventions_without_bo
 
     future_statuses = runtime_engine.claim_future_statuses("claim_future", queryables, limit=8)
     relevance = runtime_engine.claim_relevance("claim_future", queryables, limit=8)
-    plans = runtime_engine.claim_interventions("claim_future", queryables, "IN", limit=8)
+    plans = runtime_engine.claim_interventions("claim_future", queryables, ATMSNodeStatus.IN, limit=8)
 
     assert future_statuses["could_become_in"] is True
     assert [entry["queryable_cels"] for entry in future_statuses["futures"]] == [["y == 2"]]
@@ -1328,8 +1328,8 @@ def test_atms_claim_interventions_and_next_queries_are_minimal() -> None:
         QueryableAssumption.from_cel("y == 2"),
     ]
 
-    plans = bound.claim_interventions("claim_future", queryables, "IN", limit=8)
-    suggestions = bound.claim_next_queryables("claim_future", queryables, "IN", limit=8)
+    plans = bound.claim_interventions("claim_future", queryables, ATMSNodeStatus.IN, limit=8)
+    suggestions = bound.claim_next_queryables("claim_future", queryables, ATMSNodeStatus.IN, limit=8)
     current_assumption_ids = {
         assumption.cel: assumption.assumption_id
         for assumption in bound._environment.assumptions
@@ -1377,7 +1377,7 @@ def test_atms_claim_interventions_to_out_require_consistent_nogood_pruned_future
     queryables = [QueryableAssumption.from_cel("y == 2")]
 
     future_out = bound.atms_engine().could_become_out("claim:claim_future", queryables, limit=8)
-    plans = bound.claim_interventions("claim_future", queryables, "OUT", limit=8)
+    plans = bound.claim_interventions("claim_future", queryables, ATMSNodeStatus.OUT, limit=8)
 
     assert [future["queryable_cels"] for future in future_out] == [["y == 2"]]
     assert future_out[0]["out_kind"] == ATMSOutKind.NOGOOD_PRUNED
@@ -1427,12 +1427,12 @@ def test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_li
     )
     bound = _make_bound(store)
 
-    assert bound.claim_interventions("claim_future", ["z == 3"], "IN", limit=8) == []
-    assert bound.claim_interventions("claim_future", ["a == 1", "b == 2"], "IN", limit=1) == []
+    assert bound.claim_interventions("claim_future", ["z == 3"], ATMSNodeStatus.IN, limit=8) == []
+    assert bound.claim_interventions("claim_future", ["a == 1", "b == 2"], ATMSNodeStatus.IN, limit=1) == []
     assert [plan["queryable_cels"] for plan in bound.claim_interventions(
         "claim_future",
         ["b == 2", "a == 1"],
-        "IN",
+        ATMSNodeStatus.IN,
         limit=8,
     )] == [["a == 1", "b == 2"]]
 

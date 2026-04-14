@@ -793,10 +793,10 @@ def resolve(
     typed_concept_id = to_concept_id(concept_id)
     vr = view.value_of(concept_id)
 
-    if vr.status == "no_claims":
+    if vr.status is ValueStatus.NO_CLAIMS:
         return ResolvedResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
-    if vr.status == "determined":
+    if vr.status is ValueStatus.DETERMINED:
         determined_claim = (
             _resolution_claim_view(vr.claims[0])
             if vr.claims
@@ -808,7 +808,7 @@ def resolve(
             value=value, claims=vr.claims,
         )
 
-    if vr.status != "conflicted":
+    if vr.status is not ValueStatus.CONFLICTED:
         return ResolvedResult(
             concept_id=typed_concept_id, status=vr.status, claims=vr.claims,
         )

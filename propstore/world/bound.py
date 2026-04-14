@@ -38,6 +38,7 @@ from propstore.world.types import (
     ATMSConceptStabilityReport,
     ATMSLabelVerificationReport,
     ATMSNodeExplanation,
+    ATMSNodeStatus,
     ATMSNogoodDetail,
     ATMSFutureStatusReport,
     ATMSInspection,
@@ -425,7 +426,7 @@ class BoundWorld(BeliefSpace):
             policy=effective_policy,
             world=self._store,
         )
-        if result.status == "resolved" and result.winning_claim_id and hasattr(self._store, "resolve_claim"):
+        if result.status is ValueStatus.RESOLVED and result.winning_claim_id and hasattr(self._store, "resolve_claim"):
             resolved_winner_id = self._store.resolve_claim(result.winning_claim_id) or result.winning_claim_id
             result = replace(result, winning_claim_id=resolved_winner_id)
         if self._reasoning_backend() == "atms":
@@ -692,7 +693,7 @@ class BoundWorld(BeliefSpace):
         self,
         claim_id: str,
         queryables: Sequence[QueryableInput],
-        target_status: str,
+        target_status: ATMSNodeStatus,
         limit: int = 8,
         max_plans: int | None = None,
     ) -> list[ATMSNodeInterventionPlan]:
@@ -728,7 +729,7 @@ class BoundWorld(BeliefSpace):
         self,
         claim_id: str,
         queryables: Sequence[QueryableInput],
-        target_status: str,
+        target_status: ATMSNodeStatus,
         limit: int = 8,
         max_suggestions: int | None = None,
     ) -> list[ATMSNextQuerySuggestion]:
@@ -848,7 +849,7 @@ class BoundWorld(BeliefSpace):
         return None, self._support_quality(claim)
 
     def is_determined(self, concept_id: str) -> bool:
-        return self.value_of(concept_id).status == "determined"
+        return self.value_of(concept_id).status is ValueStatus.DETERMINED
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
         """Return active conflicts, revalidated against the current belief space."""
@@ -906,7 +907,7 @@ class BoundWorld(BeliefSpace):
         return result
 
     def _attach_value_label(self, result: ValueResult) -> ValueResult:
-        if result.status != "determined" or not result.claims:
+        if result.status is not ValueStatus.DETERMINED or not result.claims:
             return result
 
         claim_labels: list[Label] = []
@@ -933,7 +934,7 @@ class BoundWorld(BeliefSpace):
         return normalized
 
     def _attach_atms_value_label(self, result: ValueResult) -> ValueResult:
-        if result.status != "determined" or not result.claims:
+        if result.status is not ValueStatus.DETERMINED or not result.claims:
             return result
 
         engine = self.atms_engine()
@@ -952,7 +953,7 @@ class BoundWorld(BeliefSpace):
         *,
         override_values: Mapping[str, float | str | None] | None,
     ) -> DerivedResult:
-        if result.status != "derived":
+        if result.status is not ValueStatus.DERIVED:
             return result
 
         input_labels: list[Label] = []
@@ -968,7 +969,7 @@ class BoundWorld(BeliefSpace):
         return replace(result, label=combine_labels(*input_labels))
 
     def _attach_atms_derived_label(self, result: DerivedResult) -> DerivedResult:
-        if result.status != "derived" or result.value is None:
+        if result.status is not ValueStatus.DERIVED or result.value is None:
             return result
 
         label = self.atms_engine().derived_label(result.concept_id, result.value)
@@ -981,10 +982,10 @@ class BoundWorld(BeliefSpace):
         concept_id: str,
         result: ResolvedResult,
     ) -> ResolvedResult:
-        if result.status == "determined":
+        if result.status is ValueStatus.DETERMINED:
             return replace(result, label=self.value_of(concept_id).label)
 
-        if result.status != "resolved" or not result.winning_claim_id:
+        if result.status is not ValueStatus.RESOLVED or not result.winning_claim_id:
             return result
 
         resolved_winner_id = (
@@ -1009,10 +1010,10 @@ class BoundWorld(BeliefSpace):
         concept_id: str,
         result: ResolvedResult,
     ) -> ResolvedResult:
-        if result.status == "determined":
+        if result.status is ValueStatus.DETERMINED:
             return replace(result, label=self.value_of(concept_id).label)
 
-        if result.status != "resolved" or not result.winning_claim_id:
+        if result.status is not ValueStatus.RESOLVED or not result.winning_claim_id:
             return result
 
         resolved_winner_id = (
@@ -1036,7 +1037,7 @@ class BoundWorld(BeliefSpace):
             return None
 
         value_result = self.value_of(concept_id)
-        if value_result.status == "determined":
+        if value_result.status is ValueStatus.DETERMINED:
             return value_result.label
 
         if concept_id in seen:
@@ -1047,7 +1048,7 @@ class BoundWorld(BeliefSpace):
             derived = self.derived_value(concept_id, override_values=override_values)
         finally:
             seen.discard(concept_id)
-        if derived.status == "derived":
+        if derived.status is ValueStatus.DERIVED:
             return derived.label
         return None
 

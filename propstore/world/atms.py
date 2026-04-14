@@ -830,24 +830,25 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        target_status: ATMSNodeStatus | str,
+        target_status: ATMSNodeStatus,
         *,
         limit: int = 8,
         max_plans: int | None = None,
     ) -> list[ATMSNodeInterventionPlan]:
         """Return minimal additive plans that reach the requested ATMS node status."""
-        normalized_target = self._coerce_node_target_status(target_status)
+        if target_status not in {ATMSNodeStatus.IN, ATMSNodeStatus.OUT}:
+            raise ValueError("target_status must be IN or OUT for bounded ATMS interventions")
         current = self.node_status(node_id)
         candidates = [
             future
             for future in self.node_future_statuses(node_id, queryables, limit=limit)["futures"]
-            if future["consistent"] and self._future_reaches_node_target(future, normalized_target)
+            if future["consistent"] and self._future_reaches_node_target(future, target_status)
         ]
         plans = [
             self._node_intervention_plan(
                 node_id,
                 current=current,
-                target_status=normalized_target,
+                target_status=target_status,
                 future=future,
             )
             for future in self._minimal_future_entries(candidates)
@@ -860,7 +861,7 @@ class ATMSEngine:
         self,
         claim_id: str,
         queryables: Sequence[QueryableAssumption],
-        target_status: ATMSNodeStatus | str,
+        target_status: ATMSNodeStatus,
         *,
         limit: int = 8,
         max_plans: int | None = None,
@@ -910,7 +911,7 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        target_status: ATMSNodeStatus | str,
+        target_status: ATMSNodeStatus,
         *,
         limit: int = 8,
         max_suggestions: int | None = None,
@@ -927,7 +928,7 @@ class ATMSEngine:
         self,
         claim_id: str,
         queryables: Sequence[QueryableAssumption],
-        target_status: ATMSNodeStatus | str,
+        target_status: ATMSNodeStatus,
         *,
         limit: int = 8,
         max_suggestions: int | None = None,
@@ -1897,16 +1898,6 @@ class ATMSEngine:
         return minimal
 
     @staticmethod
-    def _coerce_node_target_status(target_status: ATMSNodeStatus | str) -> ATMSNodeStatus:
-        if isinstance(target_status, ATMSNodeStatus):
-            normalized = target_status
-        else:
-            normalized = ATMSNodeStatus(str(target_status))
-        if normalized not in {ATMSNodeStatus.IN, ATMSNodeStatus.OUT}:
-            raise ValueError("target_status must be IN or OUT for bounded ATMS interventions")
-        return normalized
-
-    @staticmethod
     def _coerce_concept_target_status(target_status: ValueStatus) -> ValueStatus:
         normalized = coerce_value_status(target_status)
         assert normalized is not None
@@ -2120,8 +2111,8 @@ class ATMSEngine:
             "node_id": node_id,
             "claim_id": inspection.claim_id,
             "kind": node.kind,
-            "status": inspection.status.value,
-            "support_quality": inspection.support_quality.value,
+            "status": inspection.status,
+            "support_quality": inspection.support_quality,
             "label": self._serialize_label(inspection.label),
             "essential_support": self._serialize_environment_key(inspection.essential_support),
             "reason": inspection.reason,

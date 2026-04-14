@@ -24,7 +24,7 @@ from propstore.document_schema import DocumentSchemaError
 from propstore.identity import (
     primary_logical_id,
 )
-from propstore.world.types import ValueStatus, coerce_value_status
+from propstore.world.types import ATMSNodeStatus, ValueStatus, coerce_value_status
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
@@ -1429,7 +1429,17 @@ def world_atms_interventions(
 
     claim = wm.get_claim(target)
     if claim is not None:
-        plans = bound.claim_interventions(target, parsed_queryables, target_status, limit=limit)
+        try:
+            typed_target_status = ATMSNodeStatus(target_status)
+        except ValueError as exc:
+            wm.close()
+            raise click.ClickException(str(exc)) from exc
+        plans = bound.claim_interventions(
+            target,
+            parsed_queryables,
+            typed_target_status,
+            limit=limit,
+        )
         for plan in plans:
             status_val = _format_status_value(plan["result_status"])
             click.echo(
@@ -1439,7 +1449,11 @@ def world_atms_interventions(
         return
 
     resolved = _resolve_world_target(wm, target)
-    typed_target_status = coerce_value_status(target_status)
+    try:
+        typed_target_status = coerce_value_status(target_status)
+    except ValueError as exc:
+        wm.close()
+        raise click.ClickException(str(exc)) from exc
     if typed_target_status is None:
         wm.close()
         raise click.ClickException("target status is required")
@@ -1485,7 +1499,17 @@ def world_atms_next_query(
 
     claim = wm.get_claim(target)
     if claim is not None:
-        suggestions = bound.claim_next_queryables(target, parsed_queryables, target_status, limit=limit)
+        try:
+            typed_target_status = ATMSNodeStatus(target_status)
+        except ValueError as exc:
+            wm.close()
+            raise click.ClickException(str(exc)) from exc
+        suggestions = bound.claim_next_queryables(
+            target,
+            parsed_queryables,
+            typed_target_status,
+            limit=limit,
+        )
         for suggestion in suggestions:
             click.echo(
                 f"  {suggestion['queryable_cel']}: "
@@ -1496,7 +1520,11 @@ def world_atms_next_query(
         return
 
     resolved = _resolve_world_target(wm, target)
-    typed_target_status = coerce_value_status(target_status)
+    try:
+        typed_target_status = coerce_value_status(target_status)
+    except ValueError as exc:
+        wm.close()
+        raise click.ClickException(str(exc)) from exc
     if typed_target_status is None:
         wm.close()
         raise click.ClickException("target status is required")
