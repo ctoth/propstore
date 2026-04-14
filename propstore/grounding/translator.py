@@ -27,11 +27,6 @@ Theoretical sources:
       NOT ground rules itself — grounding is gunray's job at evaluation
       time. Rule heads and bodies therefore keep their variables intact
       in the stringified output.
-    - Section 4: stratified negation is an extension layered over the
-      base Datalog surface. Phase 1 refuses to silently strip a
-      non-empty ``negative_body`` channel because doing so would change
-      the rule's semantics; it raises ``NotImplementedError`` instead.
-
     Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic Programming:
     An Argumentative Approach. TPLP 4(1-2), 95-138.
     - Section 3 (p.3-4): a DeLP program is a pair ``(Facts, Rules)``
@@ -54,12 +49,9 @@ Theoretical sources:
       emits schema rules that are still quantified — gunray performs
       the substitution.
     - Section 4 (Defs 4.1-4.2, p.16): defeaters are a distinct
-      rule-like object from strict and defeasible rules. Phase 1 defers
-      them to a later chunk; ``kind == "defeater"`` raises
-      ``NotImplementedError`` so the deferral is explicit, not silent.
-    - Section 6.1 (p.29-31): default negation travels in a separate
-      body channel. Phase 1 refuses to translate rules with a non-empty
-      ``negative_body`` so the Phase-1 output is semantically exact.
+      rule-like object from strict and defeasible rules, so the
+      translator preserves authored kind information into the matching
+      gunray schema slot.
 """
 
 from __future__ import annotations
@@ -97,22 +89,17 @@ def translate_to_theory(
     ``PredicateFacts`` shape that ``gunray.schema.DefeasibleTheory``
     stores.
 
-    Phase 1 scope — pinned by
+    Supported authored rule kinds — pinned by
     ``tests/test_grounding_translator.py``:
 
-    - Only ``kind == "defeasible"`` rules are translated. Rules with
-      ``kind == "strict"`` or ``kind == "defeater"`` raise
-      ``NotImplementedError`` (Garcia & Simari 2004 §3 admits both in
-      a DeLP program, but Phase 1 defers them so gunray's
-      ``strict_rules`` and ``defeaters`` slots stay empty).
+    - ``kind == "strict"`` rules populate ``strict_rules``.
+    - ``kind == "defeasible"`` rules populate ``defeasible_rules``.
+    - ``kind == "defeater"`` rules populate ``defeaters``.
     - Strong negation on translated head/body atoms is emitted via the
       gunray surface prefix ``~`` (for example ``~flies(X)``).
-    - Rules with a non-empty ``negative_body`` raise
-      ``NotImplementedError`` (Garcia & Simari 2004 §6.1, p.29-31:
-      default negation has distinct semantics from positive body
-      literals; silently dropping it would change the rule's meaning).
-    - ``strict_rules``, ``defeaters``, ``superiority``, and
-      ``conflicts`` are always empty on the output theory.
+    - ``superiority`` and ``conflicts`` are always empty on the output
+      theory; Propstore's authored rule files do not expose those
+      relations yet.
     - The ``registry`` parameter is threaded through for future
       validation (Diller, Borg, Bex 2025 §4 requires arity discipline
       at the grounder boundary), but Phase 1 performs no additional
@@ -139,51 +126,24 @@ def translate_to_theory(
         Phase-2+ slots.
 
     Raises:
-        NotImplementedError: when a rule's ``kind`` is ``"strict"`` or
-            ``"defeater"``, or when its ``negative_body`` is non-empty.
     """
 
+    strict_rules: list[gunray_schema.Rule] = []
     defeasible_rules: list[gunray_schema.Rule] = []
+    defeaters: list[gunray_schema.Rule] = []
     for rule_file in rule_files:
         for rule_doc in rule_file.rules:
-            if rule_doc.kind == "strict":
-                # Garcia & Simari 2004 §3: strict rules are part of a
-                # DeLP program but have distinct (indefeasible)
-                # semantics; they belong in gunray's ``strict_rules``
-                # slot. Phase 1 does not populate that slot.
-                raise NotImplementedError(
-                    f"Strict rules are deferred to Phase 4 "
-                    f"(rule {rule_doc.id!r})"
-                )
-            if rule_doc.kind == "defeater":
-                # Garcia & Simari 2004 §4 Defs 4.1-4.2: defeaters are a
-                # distinct rule-like object from defeasible rules.
-                # Phase 1 does not populate gunray's ``defeaters`` slot.
-                raise NotImplementedError(
-                    f"Defeater rules are deferred to Phase 4 "
-                    f"(rule {rule_doc.id!r})"
-                )
-            if rule_doc.negative_body:
-                # Garcia & Simari 2004 §6.1 (p.29-31): default negation
-                # has distinct semantics from positive body literals;
-                # Diller, Borg, Bex 2025 §4 treats stratified negation
-                # as an extension over the base Datalog surface.
-                raise NotImplementedError(
-                    f"Default negation (negative_body) is deferred to "
-                    f"Phase 4 (rule {rule_doc.id!r})"
-                )
-
-            # Stringify the head and each body atom into gunray's
-            # surface syntax. Diller, Borg, Bex 2025 §3 Definition 9
-            # makes the ground-substitution pass gunray's job, so the
-            # stringified form keeps variables intact.
-            defeasible_rules.append(
-                gunray_schema.Rule(
-                    id=rule_doc.id,
-                    head=_stringify_atom(rule_doc.head),
-                    body=[_stringify_atom(atom) for atom in rule_doc.body],
-                )
+            schema_rule = gunray_schema.Rule(
+                id=rule_doc.id,
+                head=_stringify_atom(rule_doc.head),
+                body=[_stringify_atom(atom) for atom in rule_doc.body],
             )
+            if rule_doc.kind == "strict":
+                strict_rules.append(schema_rule)
+            elif rule_doc.kind == "defeasible":
+                defeasible_rules.append(schema_rule)
+            else:
+                defeaters.append(schema_rule)
 
     # Group facts by predicate id. Diller, Borg, Bex 2025 §3
     # Definition 7 shape: ``PredicateFacts`` maps each predicate id to
@@ -210,9 +170,9 @@ def translate_to_theory(
     # / ``tuple(row)`` before asserting membership.
     return gunray_schema.DefeasibleTheory(
         facts=grouped_facts,
-        strict_rules=[],
+        strict_rules=strict_rules,
         defeasible_rules=defeasible_rules,
-        defeaters=[],
+        defeaters=defeaters,
         superiority=[],
         conflicts=[],
     )

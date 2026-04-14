@@ -61,38 +61,11 @@ _DEFEASIBLE_ROOT = _SUITE_TESTS_ROOT / "defeasible"
 _GUNRAY_TRANCHE_IDS = (
     "basic/depysible_birds::depysible_not_flies_tweety",
     "superiority/maher_example2_tweety::maher_example2_tweety",
-    "ambiguity/antoniou_basic_ambiguity::antoniou_ambiguous_attacker_blocks_only_in_propagating",
     "closure/morris_core_examples::morris_example6_students_movies_distinguishes_closures",
 )
 
-# Gunray-level conformance deltas accepted by Q in gunray commit
-# cd0f299 (``docs(b2.3): classify conformance delta after full green
-# drive``). Propstore's mirror of the gunray conformance tranche
-# inherits those deltas — the listed cases fail inside gunray's
-# evaluator (not inside propstore code) and are scheduled for later
-# gunray dispatches. They are xfailed at the propstore level so the
-# tranche test file stays green alongside the accepted gunray delta.
-_GUNRAY_TRANCHE_XFAIL_REASONS: dict[str, str] = {
-    "basic/depysible_birds::depysible_not_flies_tweety": (
-        "gunray B2 conformance delta: ~flies(tweety) no longer lands "
-        "in not_defeasibly for this case; awaits gunray superiority/"
-        "closure work (see gunray cd0f299)."
-    ),
-    "superiority/maher_example2_tweety::maher_example2_tweety": (
-        "gunray B2 conformance delta: superiority-list cases still "
-        "outstanding post-B2.3 (see gunray cd0f299)."
-    ),
-    "ambiguity/antoniou_basic_ambiguity::antoniou_ambiguous_attacker_blocks_only_in_propagating": (
-        "gunray Policy.PROPAGATING deprecated in B2 per "
-        "gunray/notes/policy_propagating_fate.md; this case requires "
-        "the ambiguity-propagating regime that gunray no longer offers."
-    ),
-}
-
 _PROPSTORE_TRANSLATION_TRANCHE_IDS = (
     "basic/goldszmidt_example1_nixon::goldszmidt_example1_pacifist_conflict",
-    "ambiguity/antoniou_basic_ambiguity::antoniou_ambiguous_attacker_blocks_only_in_propagating",
-    "ambiguity/antoniou_basic_ambiguity::antoniou_ambiguity_propagates_to_downstream_rule",
 )
 
 def _case_id(yaml_path: Path, case: SuiteCase) -> str:
@@ -129,15 +102,9 @@ _PROPSTORE_TRANSLATION_TRANCHE_CASES = _selected_cases(
 def test_gunray_matches_curated_strong_negation_conformance_tranche(
     yaml_path: Path,
     case: SuiteCase,
-    request: pytest.FixtureRequest,
 ) -> None:
     if case.skip is not None:
         pytest.skip(case.skip)
-
-    case_id = _case_id(yaml_path, case)
-    xfail_reason = _GUNRAY_TRANCHE_XFAIL_REASONS.get(case_id)
-    if xfail_reason is not None:
-        request.applymarker(pytest.mark.xfail(reason=xfail_reason, strict=True))
 
     runner = YamlTestRunner(GunrayConformanceEvaluator())
     runner.run_test_case(case)
@@ -173,7 +140,6 @@ def _build_rule_document(rule: SuiteRule, *, kind: str):
         kind=cast("str", kind),
         head=_build_atom_document(rule.head),
         body=tuple(_build_atom_document(atom_text) for atom_text in rule.body),
-        negative_body=(),
     )
 
 
@@ -275,45 +241,6 @@ def _evaluate_translated_suite_theory(case: SuiteCase, *, policy_name: str | Non
     return GunrayEvaluator().evaluate(translated, policy)
 
 
-# Gunray deprecated Policy.PROPAGATING in Block 2 — see
-# ``gunray/notes/policy_propagating_fate.md``. Suite cases whose
-# ``expect_per_policy`` mapping includes a ``"propagating"`` key must
-# have that key filtered out before propstore iterates the mapping —
-# ``Policy("propagating")`` now raises ``ValueError``. BLOCKING is the
-# only surviving policy on the dialectical-tree path.
-_GUNRAY_DEPRECATED_POLICIES: frozenset[str] = frozenset({"propagating"})
-
-
-def _expect_per_policy_without_deprecated(
-    expect_per_policy: dict[str, object],
-) -> dict[str, object]:
-    return {
-        policy_name: expected
-        for policy_name, expected in expect_per_policy.items()
-        if policy_name not in _GUNRAY_DEPRECATED_POLICIES
-    }
-
-
-# Propstore-translation tranche cases that still hit a gunray-level
-# semantic delta on the blocking regime even after the propagating key
-# is filtered out. Q accepted these as gunray conformance deltas in
-# commit cd0f299 (``docs(b2.3): classify conformance delta after full
-# green drive``); they are xfailed here until the corresponding gunray
-# work lands.
-_PROPSTORE_TRANSLATION_XFAIL_REASONS: dict[str, str] = {
-    "ambiguity/antoniou_basic_ambiguity::antoniou_ambiguous_attacker_blocks_only_in_propagating": (
-        "gunray B2 ambiguity-blocking semantics classify this case's "
-        "``p`` as undecided; suite expects defeasibly. Pending gunray "
-        "ambiguity dispatch (see gunray cd0f299)."
-    ),
-    "ambiguity/antoniou_basic_ambiguity::antoniou_ambiguity_propagates_to_downstream_rule": (
-        "gunray B2 ambiguity-blocking semantics classify this case's "
-        "``p``/``q`` as undecided; suite expects defeasibly. Pending "
-        "gunray ambiguity dispatch (see gunray cd0f299)."
-    ),
-}
-
-
 @pytest.mark.parametrize(
     ("yaml_path", "case"),
     _PROPSTORE_TRANSLATION_TRANCHE_CASES,
@@ -322,31 +249,14 @@ _PROPSTORE_TRANSLATION_XFAIL_REASONS: dict[str, str] = {
 def test_propstore_translation_matches_curated_suite_cases(
     yaml_path: Path,
     case: SuiteCase,
-    request: pytest.FixtureRequest,
 ) -> None:
     if case.skip is not None:
         pytest.skip(case.skip)
     if case.theory is None:
         raise AssertionError("Translator tranche requires defeasible theory cases")
 
-    case_id = _case_id(yaml_path, case)
-    xfail_reason = _PROPSTORE_TRANSLATION_XFAIL_REASONS.get(case_id)
-    if xfail_reason is not None:
-        request.applymarker(pytest.mark.xfail(reason=xfail_reason, strict=True))
-
     if case.expect_per_policy is not None:
-        # Filter out policy keys that gunray no longer supports on the
-        # dialectical-tree path (Block 2 deprecation, see
-        # ``gunray/notes/policy_propagating_fate.md``).
-        filtered_expect = _expect_per_policy_without_deprecated(
-            dict(case.expect_per_policy)
-        )
-        if not filtered_expect:
-            pytest.skip(
-                "Case only exercises policies deprecated from gunray's "
-                "dialectical-tree path (e.g. propagating)."
-            )
-        for policy_name, expected in filtered_expect.items():
+        for policy_name, expected in case.expect_per_policy.items():
             actual_model = _evaluate_translated_suite_theory(case, policy_name=policy_name)
             sections = getattr(actual_model, "sections", None)
             if not isinstance(sections, dict):

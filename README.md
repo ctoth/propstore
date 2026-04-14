@@ -92,6 +92,40 @@ Additional argumentation infrastructure:
 - The ATMS backend is not itself full AGM revision or a full de Kleer runtime manager
 - This repo includes engine code plus evolving local knowledge fixtures; it should not be presented as a turnkey corpus demo
 
+## Reasoning Demo
+
+The reasoning demo is a git-backed repo materialized from checked-in source code,
+not a literal nested git repo checked into this repository. The source of truth is
+`propstore.demo.reasoning_demo.materialize_reasoning_demo`, exposed as:
+
+```powershell
+uv run python scripts/materialize_reasoning_demo.py .tmp-reasoning-demo/knowledge --force
+```
+
+That command creates a small repo with:
+
+- grounded `bird(tweety)` authoring via `predicates/` + `rules/`
+- claim-level conflict on `flight_score`
+- a defeating stance so the ASPIC path has a real attack/override story
+
+CLI path:
+
+```powershell
+uv run pks -C .tmp-reasoning-demo/knowledge build
+uv run pks -C .tmp-reasoning-demo/knowledge grounding status
+uv run pks -C .tmp-reasoning-demo/knowledge grounding show
+uv run pks -C .tmp-reasoning-demo/knowledge grounding query flies(tweety)
+uv run pks -C .tmp-reasoning-demo/knowledge grounding arguments
+uv run pks -C .tmp-reasoning-demo/knowledge world extensions --backend aspic
+uv run pks -C .tmp-reasoning-demo/knowledge worldline run demo --target flight_score --strategy argumentation --reasoning-backend aspic
+uv run pks -C .tmp-reasoning-demo/knowledge worldline show demo
+```
+
+What each layer is doing:
+
+- gunray computes the grounded predicates, grounded rule instances, grounded arguments, and the four defeasible sections
+- propstore consumes that grounded bundle and projects it into claim-level ASPIC arguments, defeats, extensions, and worldline output
+
 ## What This Can Actually Do
 
 Compile a knowledge repo into a sidecar:

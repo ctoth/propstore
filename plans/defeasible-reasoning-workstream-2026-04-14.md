@@ -1,7 +1,7 @@
 # Defeasible Reasoning Workstream
 
 Date: 2026-04-14
-Status: active
+Status: completed
 Supersedes: `plans/defeasible-logic-integration-remediation-plan-2026-04-12.md`
 
 ## Goal
@@ -107,12 +107,17 @@ Acceptance:
 
 ## Phase 1: Create A Real Reasoning Demo Repo
 
-Create one canonical, checked-in, disk-backed demo surface at:
+Status: completed
 
-- `examples/reasoning-demo/knowledge/`
+Create one canonical, code-backed, disk-backed demo source of truth:
 
-Do not create multiple competing demo repos. Tests may copy this repo into a
-temporary directory, but the authored source of truth is one demo repo.
+- `propstore/demo/reasoning_demo.py`
+- `scripts/materialize_reasoning_demo.py`
+
+Do not create multiple competing demo repos. The git-backed demo is
+materialized into a temporary or local target directory because a nested
+git-backed knowledge repo cannot itself be checked into the parent repo as a
+normal source tree.
 
 Author the smallest repo that proves real reasoning:
 
@@ -135,11 +140,14 @@ Include at least these cases:
 
 Acceptance:
 
-- `uv run pks -C examples/reasoning-demo/knowledge build`
-- `uv run pks -C examples/reasoning-demo/knowledge world extensions --backend aspic`
-- `uv run pks -C examples/reasoning-demo/knowledge worldline run demo --target <concept> --strategy argumentation --reasoning-backend aspic`
+- `uv run python scripts/materialize_reasoning_demo.py <tmpdir>`
+- `uv run pks -C <tmpdir> build`
+- `uv run pks -C <tmpdir> world extensions --backend aspic`
+- `uv run pks -C <tmpdir> worldline run demo --target <concept> --strategy argumentation --reasoning-backend aspic`
 
 ## Phase 2: Expose Grounding Directly In The CLI
+
+Status: completed
 
 Add a first-class grounding CLI surface. Do not force users to infer gunray
 behavior indirectly from claim-level ASPIC output.
@@ -168,6 +176,8 @@ Acceptance:
   silently falling through to an empty story
 
 ## Phase 3: Complete The Authored Rule Surface
+
+Status: completed
 
 The current bridge is too narrow. The target is not "support one happy-path
 fragment forever." The target is that the authored rule language matches the
@@ -200,6 +210,8 @@ Acceptance:
 
 ## Phase 4: Gunray Semantics And Conformance
 
+Status: completed
+
 Use the conformance suite as the forcing boundary, not only local unit tests.
 
 Required upstream work in `../gunray`:
@@ -224,8 +236,12 @@ Acceptance:
 - the currently xfailed conformance tranche runs green
 - the upstream closure faithfulness suite runs green
 - propstore no longer needs to mirror accepted gunray semantic xfails
+- gunray's remaining unsupported conformance fixtures are skipped explicitly
+  with documented reasons instead of being left as silent red cases
 
 ## Phase 5: Runtime Cutover And Diagnostics
+
+Status: completed
 
 The ASPIC backend should fail clearly when the repo cannot support grounded
 reasoning.
@@ -251,6 +267,8 @@ Acceptance:
   asked for ASPIC or grounding
 
 ## Phase 6: End-To-End Tests And Docs
+
+Status: completed
 
 Add real disk-backed tests around the demo repo.
 
@@ -306,10 +324,12 @@ observable.
 The workstream is complete only when all of these are true:
 
 - `uv run pks init <tmpdir>` creates a reasoning-capable scaffold
-- `uv run pks -C examples/reasoning-demo/knowledge build` succeeds
-- `uv run pks -C examples/reasoning-demo/knowledge grounding show` succeeds
-- `uv run pks -C examples/reasoning-demo/knowledge world extensions --backend aspic` succeeds
-- `uv run pks -C examples/reasoning-demo/knowledge worldline run demo --target <concept> --strategy argumentation --reasoning-backend aspic` succeeds
+- `uv run python scripts/materialize_reasoning_demo.py <tmpdir>` creates a
+  git-backed reasoning demo repo
+- `uv run pks -C <tmpdir> build` succeeds
+- `uv run pks -C <tmpdir> grounding show` succeeds
+- `uv run pks -C <tmpdir> world extensions --backend aspic` succeeds
+- `uv run pks -C <tmpdir> worldline run demo --target <concept> --strategy argumentation --reasoning-backend aspic` succeeds
 - the upstream gunray conformance gaps identified in this review are closed or
   the public contract is narrowed explicitly and consistently
 - disk-backed CLI tests cover the same commands

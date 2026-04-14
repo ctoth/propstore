@@ -110,7 +110,7 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
     """Strategy producing safe-by-construction RuleDocument instances.
 
     Garcia & Simari 2004 §3.3 (p.8) safety: every variable appearing in
-    the head must also appear somewhere in the body (positive or negative).
+    the head must also appear somewhere in the body.
     We guarantee this by first drawing a shared variable pool, building
     body atoms over any subset of that pool, then building the head over
     the subset of variables actually used in the body.
@@ -130,22 +130,14 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
                 max_size=max_body_size,
             )
         )
-        negative_body = draw(
-            st.lists(
-                atom_documents(variables=body_var_strategy, max_arity=3),
-                min_size=0,
-                max_size=max_body_size,
-            )
-        )
-
-        # Collect the variables actually appearing in body ∪ negative_body.
+        # Collect the variables actually appearing in the body.
         used: set[str] = set()
-        for atom in (*body, *negative_body):
+        for atom in body:
             for term in atom.terms:
                 if term.kind == "var" and term.name is not None:
                     used.add(term.name)
 
-        # Head variables must come from vars ACTUALLY used in body/negative_body.
+        # Head variables must come from vars ACTUALLY used in the body.
         # If no body atom introduces a variable (all zero-arity or all-const),
         # the head must be ground — no variables available to bind.
         if used:
@@ -172,7 +164,6 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
             kind=kind,
             head=head,
             body=tuple(body),
-            negative_body=tuple(negative_body),
         )
 
     return _build()
@@ -246,7 +237,7 @@ def test_rule_document_safety_body_covers_head_variables(doc) -> None:
     """DeLP safety invariant (Garcia & Simari 2004 §3.3, p.8).
 
     Every variable appearing in the head of a rule must also appear
-    somewhere in the positive or negative body, so that grounding via
+    somewhere in the body, so that grounding via
     the Herbrand base (§3.1, p.4) can resolve it. Rules produced by
     ``rule_documents()`` are safe by construction; this test pins that
     property in place so the strategy or the document type cannot
@@ -259,10 +250,6 @@ def test_rule_document_safety_body_covers_head_variables(doc) -> None:
     }
     body_vars: set[str] = set()
     for atom in doc.body:
-        for term in atom.terms:
-            if term.kind == "var" and term.name is not None:
-                body_vars.add(term.name)
-    for atom in doc.negative_body:
         for term in atom.terms:
             if term.kind == "var" and term.name is not None:
                 body_vars.add(term.name)
@@ -295,7 +282,6 @@ body:
     terms:
       - {kind: var, name: X}
     negated: false
-negative_body: []
 """
     with pytest.raises(msgspec.ValidationError):
         msgspec.yaml.decode(invalid_yaml, type=RuleDocument, strict=True)
@@ -324,7 +310,6 @@ body:
     terms:
       - {kind: var, name: X}
     negated: false
-negative_body: []
 mystery_field: hello
 """
     with pytest.raises(msgspec.ValidationError):
@@ -353,7 +338,6 @@ body:
     terms:
       - {kind: var, name: X}
     negated: false
-negative_body: []
 """
     doc = msgspec.yaml.decode(yaml_text, type=RuleDocument, strict=True)
     assert doc.id == "rule:birds-fly"
@@ -388,7 +372,6 @@ body:
     terms:
       - {kind: var, name: X}
     negated: false
-negative_body: []
 """
     doc = msgspec.yaml.decode(yaml_text, type=RuleDocument, strict=True)
     assert doc.kind == "strict"
@@ -419,7 +402,6 @@ body:
     terms:
       - {kind: var, name: X}
     negated: false
-negative_body: []
 """
     doc = msgspec.yaml.decode(yaml_text, type=RuleDocument, strict=True)
     assert doc.head.negated is True
@@ -480,7 +462,6 @@ def test_loaded_rule_file_from_loaded_document() -> None:
                 negated=False,
             ),
         ),
-        negative_body=(),
     )
     file_doc = RulesFileDocument(
         source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
@@ -517,7 +498,6 @@ head:
     - {kind: const, value: tweety}
   negated: false
 body: []
-negative_body: []
 """
     doc = msgspec.yaml.decode(yaml_text, type=RuleDocument, strict=True)
     assert doc.kind == "strict"

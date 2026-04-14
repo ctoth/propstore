@@ -37,12 +37,11 @@ Target output format (verified by runtime inspection of
     that surface syntax while preserving predicate, argument order,
     and variable/constant discrimination.
 
-Phase 1 scope (per the chunk prompt):
+Supported surface:
 
-- Only ``kind == "defeasible"`` rules. Strict and defeater rules in
-  the input raise ``NotImplementedError``.
-- No ``negative_body`` support. Non-empty ``negative_body`` raises
-  ``NotImplementedError``.
+- ``kind == "strict"`` populates ``strict_rules``.
+- ``kind == "defeasible"`` populates ``defeasible_rules``.
+- ``kind == "defeater"`` populates ``defeaters``.
 - No superiority pairs (empty list in output). Phase 2.
 - No cross-predicate conflicts (empty list in output). Phase 2.
 - ``arity == 1`` predicates are what concept-relation derivations
@@ -142,7 +141,6 @@ def _build_rule_document(
     kind: str,
     head,
     body=(),
-    negative_body=(),
 ):
     """Build a ``RuleDocument``.
 
@@ -158,7 +156,6 @@ def _build_rule_document(
         kind=kind,  # type: ignore[arg-type]
         head=head,
         body=tuple(body),
-        negative_body=tuple(negative_body),
     )
 
 
@@ -325,7 +322,6 @@ def defeasible_rule_file_sequences() -> st.SearchStrategy:
                     kind=base_rule.kind,
                     head=base_rule.head,
                     body=base_rule.body,
-                    negative_body=base_rule.negative_body,
                 )
             )
         # Split rules across 1..len files to exercise multi-file input.
@@ -404,7 +400,7 @@ def test_translate_preserves_fact_count(rule_files, facts) -> None:
 )
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_translate_preserves_rule_count(rule_files, facts) -> None:
-    """Every defeasible RuleDocument appears as exactly one schema rule.
+    """Every authored RuleDocument appears as exactly one schema rule.
 
     Note: schema rules are still quantified — grounding happens when
     gunray evaluates the theory. This test pins the 1-to-1 shape
@@ -418,10 +414,12 @@ def test_translate_preserves_rule_count(rule_files, facts) -> None:
     theory = translate_to_theory(rule_files, facts, _bird_registry())
 
     input_rule_count = sum(len(file.rules) for file in rule_files)
-    assert len(theory.defeasible_rules) == input_rule_count
-    # Phase 1 defers strict/defeater/superiority/conflicts entirely.
-    assert theory.strict_rules == []
-    assert theory.defeaters == []
+    total_output_rules = (
+        len(theory.strict_rules)
+        + len(theory.defeasible_rules)
+        + len(theory.defeaters)
+    )
+    assert total_output_rules == input_rule_count
     assert theory.superiority == []
     assert theory.conflicts == []
 
@@ -447,11 +445,15 @@ def test_translate_rule_head_predicate_preserved(rule_files, facts) -> None:
 
     theory = translate_to_theory(rule_files, facts, _bird_registry())
 
-    # Flatten input rules preserving order for index alignment.
+    schema_rules = [
+        *theory.strict_rules,
+        *theory.defeasible_rules,
+        *theory.defeaters,
+    ]
     input_rules = [rule for file in rule_files for rule in file.rules]
 
-    assert len(theory.defeasible_rules) == len(input_rules)
-    for schema_rule, rule_doc in zip(theory.defeasible_rules, input_rules):
+    assert len(schema_rules) == len(input_rules)
+    for schema_rule, rule_doc in zip(schema_rules, input_rules):
         parsed_head = parse_atom_text(schema_rule.head)
         assert parsed_head.predicate == rule_doc.head.predicate
 
@@ -477,9 +479,14 @@ def test_translate_rule_body_predicates_preserved(rule_files, facts) -> None:
 
     theory = translate_to_theory(rule_files, facts, _bird_registry())
 
+    schema_rules = [
+        *theory.strict_rules,
+        *theory.defeasible_rules,
+        *theory.defeaters,
+    ]
     input_rules = [rule for file in rule_files for rule in file.rules]
 
-    for schema_rule, rule_doc in zip(theory.defeasible_rules, input_rules):
+    for schema_rule, rule_doc in zip(schema_rules, input_rules):
         parsed_body_predicates = [
             parse_atom_text(item).predicate for item in schema_rule.body
         ]
@@ -493,21 +500,11 @@ def test_translate_rule_body_predicates_preserved(rule_files, facts) -> None:
         min_size=1,
         max_size=8,
     ),
-    bad_kind=st.sampled_from(["strict", "defeater"]),
+    kind=st.sampled_from(["strict", "defeasible", "defeater"]),
 )
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_translate_rule_kind_defeasible_phase1(rule_id, bad_kind) -> None:
-    """Phase 1 translates only ``kind: defeasible`` rules.
-
-    Strict and defeater rules in the input raise
-    ``NotImplementedError`` (explicit deferral, not silent skip —
-    silent skips hide bugs). Garcia & Simari 2004 §3: a DeLP program
-    admits strict AND defeasible rules, and gunray's
-    ``DefeasibleEvaluator`` handles both via its
-    ``strict_rules``/``defeaters`` lists; we defer strict and
-    defeaters to Phase 4 to stay within the MVP scope the chunk
-    prompt fixes.
-    """
+def test_translate_rule_kind_routes_to_matching_schema_slot(rule_id, kind) -> None:
+    """Each authored rule kind lands in the matching gunray schema slot."""
 
     from propstore.grounding.translator import translate_to_theory
 
@@ -515,14 +512,16 @@ def test_translate_rule_kind_defeasible_phase1(rule_id, bad_kind) -> None:
     body = _build_atom("bird", [_build_term_var("X")])
     rule = _build_rule_document(
         rule_id=rule_id,
-        kind=bad_kind,
+        kind=kind,
         head=head,
         body=(body,),
     )
     rule_file = _build_rule_file([rule])
+    theory = translate_to_theory([rule_file], (), _bird_registry())
 
-    with pytest.raises(NotImplementedError):
-        translate_to_theory([rule_file], (), _bird_registry())
+    assert len(theory.strict_rules) == (1 if kind == "strict" else 0)
+    assert len(theory.defeasible_rules) == (1 if kind == "defeasible" else 0)
+    assert len(theory.defeaters) == (1 if kind == "defeater" else 0)
 
 
 @given(
@@ -672,15 +671,8 @@ def test_translate_multiple_facts_same_predicate() -> None:
     assert bird_rows == {("tweety",), ("opus",)}
 
 
-def test_translate_strict_rule_raises_not_implemented() -> None:
-    """Phase 1 deferral. A ``kind=strict`` RuleDocument in input raises
-    ``NotImplementedError``.
-
-    Garcia & Simari 2004 §3 admits strict rules in a DeLP program,
-    but the chunk prompt defers them to Phase 4 so gunray's
-    ``strict_rules`` slot stays empty on the translator's output in
-    Phase 1.
-    """
+def test_translate_strict_rule_populates_strict_rules() -> None:
+    """A ``kind=strict`` RuleDocument populates ``strict_rules``."""
 
     from propstore.grounding.translator import translate_to_theory
 
@@ -692,20 +684,14 @@ def test_translate_strict_rule_raises_not_implemented() -> None:
     )
     rule_file = _build_rule_file([rule])
 
-    with pytest.raises(NotImplementedError):
-        translate_to_theory([rule_file], (), _bird_registry())
+    theory = translate_to_theory([rule_file], (), _bird_registry())
+    assert [rule.id for rule in theory.strict_rules] == ["strict_bird"]
+    assert theory.defeasible_rules == []
+    assert theory.defeaters == []
 
 
-def test_translate_defeater_rule_raises_not_implemented() -> None:
-    """Phase 1 deferral. A ``kind=defeater`` RuleDocument raises
-    ``NotImplementedError``.
-
-    Garcia & Simari 2004 §4 (Defs 4.1-4.2): defeaters are a distinct
-    rule-like object that only blocks other rules; gunray's schema
-    carries them in a ``defeaters`` list separate from
-    ``defeasible_rules``. Phase 1 defers them so the translator's
-    output has an empty ``defeaters`` slot.
-    """
+def test_translate_defeater_rule_populates_defeaters() -> None:
+    """A ``kind=defeater`` RuleDocument populates ``defeaters``."""
 
     from propstore.grounding.translator import translate_to_theory
 
@@ -717,37 +703,10 @@ def test_translate_defeater_rule_raises_not_implemented() -> None:
     )
     rule_file = _build_rule_file([rule])
 
-    with pytest.raises(NotImplementedError):
-        translate_to_theory([rule_file], (), _bird_registry())
-
-
-def test_translate_negative_body_raises_not_implemented() -> None:
-    """Phase 1 deferral. A RuleDocument with non-empty ``negative_body``
-    raises ``NotImplementedError``.
-
-    Garcia & Simari 2004 §6.1 (p.29-31): default negation lives in a
-    separate body channel from positive literals. Diller, Borg, Bex
-    2025 §4 treats stratified negation as an extension over the base
-    Datalog surface. Phase 1 of the translator refuses to silently
-    strip a non-empty ``negative_body`` because doing so would change
-    the rule's semantics — an explicit ``NotImplementedError`` is the
-    honest signal that Phase 4 work is required.
-    """
-
-    from propstore.grounding.translator import translate_to_theory
-
-    neg_body_atom = _build_atom("penguin", [_build_term_var("X")])
-    rule = _build_rule_document(
-        rule_id="default_neg",
-        kind="defeasible",
-        head=_build_atom("flies", [_build_term_var("X")]),
-        body=(_build_atom("bird", [_build_term_var("X")]),),
-        negative_body=(neg_body_atom,),
-    )
-    rule_file = _build_rule_file([rule])
-
-    with pytest.raises(NotImplementedError):
-        translate_to_theory([rule_file], (), _bird_registry())
+    theory = translate_to_theory([rule_file], (), _bird_registry())
+    assert [rule.id for rule in theory.defeaters] == ["defeater_penguin"]
+    assert theory.strict_rules == []
+    assert theory.defeasible_rules == []
 
 
 def test_translate_strongly_negated_head_preserves_surface_negation() -> None:

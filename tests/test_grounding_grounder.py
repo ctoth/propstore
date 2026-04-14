@@ -117,14 +117,12 @@ def _build_rule_document(
     kind: str,
     head,
     body=(),
-    negative_body=(),
 ):
     """Build a ``RuleDocument``.
 
     Garcia & Simari 2004 §3: DeLP rules partition into strict
     (``<-``), defeasible (``-<``), and defeater rules. Phase 1 of the
-    grounder only consumes ``kind == "defeasible"`` rules because the
-    translator defers the other two.
+    grounder consumes authored strict, defeasible, and defeater rules.
     """
 
     from propstore.artifacts.documents.rules import RuleDocument
@@ -134,7 +132,6 @@ def _build_rule_document(
         kind=kind,  # type: ignore[arg-type]
         head=head,
         body=tuple(body),
-        negative_body=tuple(negative_body),
     )
 
 

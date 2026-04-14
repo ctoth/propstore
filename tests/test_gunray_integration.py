@@ -224,8 +224,7 @@ def _build_defeasible_rule(rule_id: str, head, body):
     """Build a defeasible ``RuleDocument`` (``head -< body``).
 
     Garcia & Simari 2004 §3 (p.3): defeasible rules carry the DeLP
-    ``-<`` arrow. Phase 1 of the grounder and the bridge only process
-    defeasible rules with an empty ``negative_body``.
+    ``-<`` arrow.
     """
 
     from propstore.artifacts.documents.rules import RuleDocument
@@ -235,7 +234,6 @@ def _build_defeasible_rule(rule_id: str, head, body):
         kind="defeasible",
         head=head,
         body=tuple(body),
-        negative_body=(),
     )
 
 

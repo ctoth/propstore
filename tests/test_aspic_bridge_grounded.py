@@ -20,7 +20,7 @@ Target signature per prompts/gunray-chunk-1-7a-bridge-tests.md::
         bundle: GroundedRulesBundle,
         literals: dict[LiteralKey, Literal],
     ) -> tuple[
-        frozenset[Rule],            # strict rules — empty in Phase 1
+        frozenset[Rule],            # strict rules
         frozenset[Rule],            # defeasible rules
         dict[LiteralKey, Literal],  # extended literals dict
     ]:
@@ -125,7 +125,7 @@ def _atom(predicate: str, terms=()):
     return AtomDocument(predicate=predicate, terms=tuple(terms), negated=False)
 
 
-def _rule_doc(rule_id: str, kind: str, head, body=(), negative_body=()):
+def _rule_doc(rule_id: str, kind: str, head, body=()):
     """Build a ``RuleDocument``.
 
     Garcia & Simari 2004 §3 (p.3) partitions rule-like objects into
@@ -141,7 +141,6 @@ def _rule_doc(rule_id: str, kind: str, head, body=(), negative_body=()):
         kind=kind,  # type: ignore[arg-type]
         head=head,
         body=tuple(body),
-        negative_body=tuple(negative_body),
     )
 
 
@@ -676,20 +675,14 @@ def test_existing_claim_literals_preserved() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 1 deferrals — strict, defeater, and negative_body must raise.
+# Strict and defeater support.
 # ---------------------------------------------------------------------------
 
 
-def test_strict_rule_in_bundle_raises_not_implemented() -> None:
-    """A ``kind='strict'`` RuleDocument raises ``NotImplementedError``.
+def test_strict_rule_in_bundle_populates_strict_rules() -> None:
+    """A ``kind='strict'`` RuleDocument becomes a strict ASPIC+ rule."""
 
-    Modgil & Prakken 2018, Def 2 (p.8): strict rules are well-defined
-    and disjoint from defeasible rules, but per the prompt they are
-    deferred to Phase 4. T2.5 must refuse to silently translate them
-    so no partial-strict-rule-set state can ever reach the
-    argumentation layer.
-    """
-
+    from propstore.aspic import GroundAtom, Literal
     from propstore.aspic_bridge import grounded_rules_to_rules
 
     rule = _rule_doc(
@@ -703,63 +696,57 @@ def test_strict_rule_in_bundle_raises_not_implemented() -> None:
         definitely={"bird": frozenset([("tweety",)])},
         defeasibly={},
     )
-    with pytest.raises(NotImplementedError):
-        grounded_rules_to_rules(bundle, {})
+    strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
+    assert len(strict) == 1
+    emitted = next(iter(strict))
+    assert emitted.kind == "strict"
+    assert emitted.name is None
+    assert emitted.consequent.atom == GroundAtom("flies", ("tweety",))
+    assert emitted.antecedents == (
+        Literal(atom=GroundAtom("bird", ("tweety",)), negated=False),
+    )
+    assert defeasible == frozenset()
 
 
-def test_defeater_rule_in_bundle_raises_not_implemented() -> None:
-    """A ``kind='defeater'`` RuleDocument raises ``NotImplementedError``.
+def test_defeater_rule_in_bundle_emits_undercutter_rule() -> None:
+    """A defeater grounds to a negated rule-name literal that undercuts."""
 
-    Garcia & Simari 2004 §4 (Defs 4.1-4.2, p.16): proper and blocking
-    defeaters are the third rule-like object in the DeLP language.
-    Per the prompt, defeater translation is out of scope for Phase 1
-    of T2.5 and must be rejected loudly.
-    """
-
+    from propstore.aspic import GroundAtom, Literal
     from propstore.aspic_bridge import grounded_rules_to_rules
+    from propstore.core.literal_keys import ground_key
 
+    defeater_head = _atom("flies", (_var("X"),))
+    defeater_head.negated = True
     rule = _rule_doc(
         "rule:penguins-block-flight",
         "defeater",
-        _atom("flies", (_var("X"),)),
+        defeater_head,
         body=(_atom("penguin", (_var("X"),)),),
     )
-    bundle = _bundle(
-        rules=(rule,),
-        definitely={"penguin": frozenset([("opus",)])},
-        defeasibly={},
-    )
-    with pytest.raises(NotImplementedError):
-        grounded_rules_to_rules(bundle, {})
-
-
-def test_negative_body_raises_not_implemented() -> None:
-    """A rule with a non-empty ``negative_body`` raises ``NotImplementedError``.
-
-    Garcia & Simari 2004 §6.1 (pp.29-31): default negation in rule
-    bodies is a separate channel with its own semantics, not a
-    syntactic contrary-of-positive flip. Phase 1 of T2.5 refuses to
-    translate it because the grounding-to-ASPIC+ story for default
-    negation needs Diller, Borg, Bex 2025 §4's closed-world step,
-    which is deferred to a later chunk.
-    """
-
-    from propstore.aspic_bridge import grounded_rules_to_rules
-
-    rule = _rule_doc(
+    target_rule = _rule_doc(
         "rule:birds-fly",
         "defeasible",
         _atom("flies", (_var("X"),)),
         body=(_atom("bird", (_var("X"),)),),
-        negative_body=(_atom("penguin", (_var("X"),)),),
     )
     bundle = _bundle(
-        rules=(rule,),
+        rules=(target_rule, rule),
         definitely={
-            "bird": frozenset([("tweety",)]),
-            "penguin": frozenset(),
+            "bird": frozenset([("opus",)]),
+            "penguin": frozenset([("opus",)]),
         },
         defeasibly={},
     )
-    with pytest.raises(NotImplementedError):
-        grounded_rules_to_rules(bundle, {})
+    _strict, defeasible, out = grounded_rules_to_rules(bundle, {})
+    emitted = {rule.name: rule for rule in defeasible if rule.name is not None}
+    target_name = next(name for name in emitted if name.startswith("rule:birds-fly#"))
+    defeater_name = next(name for name in emitted if name.startswith("rule:penguins-block-flight#"))
+    assert emitted[target_name].consequent == Literal(
+        atom=GroundAtom("flies", ("opus",)),
+        negated=False,
+    )
+    assert emitted[defeater_name].consequent == Literal(
+        atom=GroundAtom(target_name),
+        negated=True,
+    )
+    assert out[ground_key(GroundAtom(target_name), True)] == emitted[defeater_name].consequent
