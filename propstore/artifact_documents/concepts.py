@@ -4,6 +4,7 @@ from typing import Any
 
 import msgspec
 
+from propstore.core.exactness_types import Exactness
 from propstore.document_schema import DocumentStruct
 
 
@@ -37,7 +38,7 @@ class ConceptFormParametersDocument(DocumentStruct):
 class ParameterizationRelationshipDocument(DocumentStruct):
     inputs: tuple[str, ...]
     formula: str | None = None
-    exactness: str | None = None
+    exactness: Exactness | None = None
     source: str | None = None
     bidirectional: bool | None = None
     sympy: str | None = None

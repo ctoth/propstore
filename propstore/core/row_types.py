@@ -9,6 +9,7 @@ from typing import Any
 
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
 from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.claim_values import (
     ClaimProvenance,
     ClaimSource,
@@ -708,11 +709,12 @@ class ParameterizationRow:
     concept_ids: str
     formula: str | None = None
     sympy: str | None = None
-    exactness: str | None = None
+    exactness: Exactness | None = None
     conditions_cel: str | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "exactness", coerce_exactness(self.exactness))
         object.__setattr__(self, "attributes", dict(self.attributes))
 
     def to_dict(self) -> dict[str, Any]:
@@ -725,7 +727,7 @@ class ParameterizationRow:
         if self.sympy is not None:
             data["sympy"] = self.sympy
         if self.exactness is not None:
-            data["exactness"] = self.exactness
+            data["exactness"] = self.exactness.value
         if self.conditions_cel is not None:
             data["conditions_cel"] = self.conditions_cel
         data.update(self.attributes)
@@ -752,7 +754,7 @@ class ParameterizationRow:
             concept_ids=str(row_map["concept_ids"]),
             formula=None if row_map.get("formula") is None else str(row_map["formula"]),
             sympy=None if row_map.get("sympy") is None else str(row_map["sympy"]),
-            exactness=None if row_map.get("exactness") is None else str(row_map["exactness"]),
+            exactness=coerce_exactness(row_map.get("exactness")),
             conditions_cel=(
                 None
                 if row_map.get("conditions_cel") is None

@@ -513,3 +513,26 @@ Proof:
 Rerank after Slice 4:
 
 - the next highest-value target is parameterization exactness on the canonical/runtime path: `exactness` is still a closed semantic vocabulary carried as bare strings across concept documents, parameterization rows, graph edges, world-facing result objects, and conflict-walk filters
+
+### Slice 5: Parameterization Exactness Enum
+
+Status: completed
+
+Changes landed in this slice:
+
+- added a canonical `Exactness` `StrEnum` for parameterization semantics
+- changed parameterization document, concept, row, graph, and derived-result types to carry `Exactness` instead of bare strings
+- kept string serialization only at payload edges such as `to_payload()` / `to_dict()`
+- tightened parameterization runtime coercion so exactness normalizes immediately when a typed object is constructed
+- hardened `ConflictClass` coercion to accept lowercase fallback values surfaced by the broader ATMS regression gate
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice5-red-20260413-210231.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice5-green-redtest2-20260413-210437.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice5-focused2-20260413-210701.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice5-broader-20260413-210844.log`
+
+Rerank after Slice 5:
+
+- the next highest-value target is relation/stance type convergence on the live runtime path: `StanceRow.stance_type`, `RelationshipRow.relation_type`, and the compiled graph relation layer still carry a closed semantic vocabulary as bare strings even though `propstore/core/relation_types.py` already centralizes the allowed categories

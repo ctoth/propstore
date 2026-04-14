@@ -12,6 +12,7 @@ from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.environment import ArtifactStore, Environment  # noqa: F401
+from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import (
     AssumptionId,
     ClaimId,
@@ -76,11 +77,12 @@ class DerivedResult:
     value: float | None = None
     formula: str | None = None
     input_values: dict[ConceptId, float] = field(default_factory=dict)
-    exactness: str | None = None
+    exactness: Exactness | None = None
     label: Label | None = None
 
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
+        self.exactness = coerce_exactness(self.exactness)
         self.input_values = {
             to_concept_id(concept_id): float(value)
             for concept_id, value in self.input_values.items()
