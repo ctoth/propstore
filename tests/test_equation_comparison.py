@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from propstore.conflict_detector.models import ConflictClaim, ConflictClaimVariable
+import propstore.equation_comparison as equation_comparison
 from propstore.equation_comparison import (
+    EquationComparisonStatus,
     EquationFailure,
     EquationFailureCode,
     EquationNormalization,
     canonicalize_equation,
+    compare_equation_claims,
     equation_signature,
+    structural_signature,
 )
 
 
@@ -109,3 +113,62 @@ class TestCanonicalizeEquation:
             code=EquationFailureCode.UNSUPPORTED_SURFACE,
             detail="unsupported function: And",
         )
+
+
+class TestEquationComparison:
+    def test_equivalent_equations_return_typed_comparison(self):
+        comparison = compare_equation_claims(
+            _make_equation_claim(expression="x = y + y"),
+            _make_equation_claim(expression="x = 2*y"),
+        )
+
+        assert comparison.status == EquationComparisonStatus.EQUIVALENT
+
+    def test_failed_normalization_returns_incomparable_comparison(self):
+        comparison = compare_equation_claims(
+            _make_equation_claim(expression="x = 2*y"),
+            _make_equation_claim(expression="x == 2*y"),
+        )
+
+        assert comparison.status == EquationComparisonStatus.INCOMPARABLE
+        assert isinstance(comparison.right, EquationFailure)
+
+    def test_structural_signature_is_alpha_invariant(self):
+        base = _make_equation_claim(expression="x = y + y")
+        renamed = _make_equation_claim(
+            expression="a = b + b",
+            variables=(
+                ConflictClaimVariable(concept_id="length", symbol="a", role="dependent"),
+                ConflictClaimVariable(concept_id="time", symbol="b", role="independent"),
+            ),
+        )
+
+        assert structural_signature(base) == structural_signature(renamed)
+
+    def test_normalization_cache_reuses_same_equation_key(self):
+        equation_comparison._normalize_equation_text.cache_clear()
+
+        claim = _make_equation_claim(expression="x = 2*y")
+        first = canonicalize_equation(claim)
+        second = canonicalize_equation(claim)
+
+        assert isinstance(first, EquationNormalization)
+        assert second == first
+        assert equation_comparison._normalize_equation_text.cache_info().hits >= 1
+
+    def test_sympy_is_lazy_loaded(self):
+        original_sympy = equation_comparison._sympy
+        equation_comparison._sympy = None
+        equation_comparison._normalize_equation_text.cache_clear()
+        assert equation_comparison._sympy is None
+
+        loaded_sympy = None
+        try:
+            result = equation_comparison.canonicalize_equation(_make_equation_claim(expression="x = 2*y"))
+            loaded_sympy = equation_comparison._sympy
+        finally:
+            equation_comparison._normalize_equation_text.cache_clear()
+            equation_comparison._sympy = original_sympy
+
+        assert isinstance(result, EquationNormalization)
+        assert loaded_sympy is not None

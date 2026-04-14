@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import StrEnum
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
@@ -31,6 +32,19 @@ class EquationNormalization:
     canonical: str
     source_text: str
     structural_signature: str
+
+
+class EquationComparisonStatus(StrEnum):
+    EQUIVALENT = "equivalent"
+    DIFFERENT = "different"
+    INCOMPARABLE = "incomparable"
+
+
+@dataclass(frozen=True)
+class EquationComparison:
+    status: EquationComparisonStatus
+    left: EquationNormalization | EquationFailure
+    right: EquationNormalization | EquationFailure
 
 
 _sympy = None
@@ -80,6 +94,23 @@ def structural_signature(claim: ConflictClaim) -> str | EquationFailure:
     if isinstance(normalization, EquationFailure):
         return normalization
     return normalization.structural_signature
+
+
+def compare_equation_claims(claim_a: ConflictClaim, claim_b: ConflictClaim) -> EquationComparison:
+    left = canonicalize_equation(claim_a)
+    right = canonicalize_equation(claim_b)
+    if isinstance(left, EquationFailure) or isinstance(right, EquationFailure):
+        return EquationComparison(
+            status=EquationComparisonStatus.INCOMPARABLE,
+            left=left,
+            right=right,
+        )
+    status = (
+        EquationComparisonStatus.EQUIVALENT
+        if left.canonical == right.canonical
+        else EquationComparisonStatus.DIFFERENT
+    )
+    return EquationComparison(status=status, left=left, right=right)
 
 
 def _claim_bindings(
@@ -212,10 +243,13 @@ def _get_sympy():
 
 
 __all__ = [
+    "EquationComparison",
+    "EquationComparisonStatus",
     "EquationFailure",
     "EquationFailureCode",
     "EquationNormalization",
     "canonicalize_equation",
+    "compare_equation_claims",
     "equation_signature",
     "structural_signature",
 ]
