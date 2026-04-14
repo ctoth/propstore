@@ -53,6 +53,7 @@ from propstore.world.types import (
     RenderPolicy,
     ResolutionStrategy,
     ResolvedResult,
+    ValueStatus,
     ValueResult,
     coerce_queryable_assumptions,
 )
@@ -709,7 +710,7 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         queryables: Sequence[QueryableInput],
-        target_value_status: str,
+        target_value_status: ValueStatus,
         limit: int = 8,
         max_plans: int | None = None,
     ) -> list[ATMSConceptInterventionPlan]:
@@ -745,7 +746,7 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         queryables: Sequence[QueryableInput],
-        target_value_status: str,
+        target_value_status: ValueStatus,
         limit: int = 8,
         max_suggestions: int | None = None,
     ) -> list[ATMSNextQuerySuggestion]:

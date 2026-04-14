@@ -24,6 +24,7 @@ from propstore.document_schema import DocumentSchemaError
 from propstore.identity import (
     primary_logical_id,
 )
+from propstore.world.types import ValueStatus, coerce_value_status
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
@@ -1438,7 +1439,16 @@ def world_atms_interventions(
         return
 
     resolved = _resolve_world_target(wm, target)
-    plans = bound.concept_interventions(resolved, parsed_queryables, target_status, limit=limit)
+    typed_target_status = coerce_value_status(target_status)
+    if typed_target_status is None:
+        wm.close()
+        raise click.ClickException("target status is required")
+    plans = bound.concept_interventions(
+        resolved,
+        parsed_queryables,
+        typed_target_status,
+        limit=limit,
+    )
     for plan in plans:
         status_val = _format_status_value(plan["result_status"])
         click.echo(
@@ -1486,7 +1496,16 @@ def world_atms_next_query(
         return
 
     resolved = _resolve_world_target(wm, target)
-    suggestions = bound.concept_next_queryables(resolved, parsed_queryables, target_status, limit=limit)
+    typed_target_status = coerce_value_status(target_status)
+    if typed_target_status is None:
+        wm.close()
+        raise click.ClickException("target status is required")
+    suggestions = bound.concept_next_queryables(
+        resolved,
+        parsed_queryables,
+        typed_target_status,
+        limit=limit,
+    )
     for suggestion in suggestions:
         click.echo(
             f"  {suggestion['queryable_cel']}: "

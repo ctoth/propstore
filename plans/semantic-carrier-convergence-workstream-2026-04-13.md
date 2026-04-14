@@ -706,3 +706,24 @@ Proof:
 Rerank after Slice 12:
 
 - the next highest-value target is world/ATMS value-status convergence on the live runtime path: `ValueStatus` already exists, but `ATMSConceptFutureStatusEntry.status`, `ATMSConceptStabilityReport.current_status`, `ATMSConceptRelevanceState.status`, `ATMSConceptRelevanceReport.current_status`, `ATMSConceptInterventionPlan.current_status/target_status/result_status`, `ATMSNodeExplanation.status`, and related `bound.py` / `atms.py` APIs still carry the same closed runtime vocabulary as bare strings
+
+### Slice 13: ATMS Concept Value Status Convergence
+
+Status: completed
+
+Changes landed in this slice:
+
+- added canonical `coerce_value_status()` alongside `ValueStatus` and used it to normalize concept-target status requests instead of forwarding raw strings through the ATMS concept path
+- changed `ATMSConceptFutureStatusEntry`, `ATMSConceptStabilityReport`, `ATMSConceptRelevanceState`, `ATMSConceptRelevanceReport`, and `ATMSConceptInterventionPlan` to carry `ValueStatus` instead of bare strings
+- changed the ATMS runtime protocol and concept intervention/relevance/stability helpers to preserve `ValueStatus` end-to-end on concept-facing reports and plans
+- changed `BoundWorld.concept_interventions()` / `concept_next_queryables()` to require `ValueStatus`, moving raw-string parsing for concept targets back to the CLI boundary
+- updated ATMS serialization helpers to emit `.value` only at payload edges for concept status fields
+
+Proof:
+
+- focused suite: `logs/test-runs/semantic-carrier-slice13-focused-20260413-233609.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice13-broader-20260413-233609.log`
+
+Rerank after Slice 13:
+
+- the next highest-value target is ATMS node-status/support-quality convergence on the remaining live report surfaces: `BoundWorld.claim_interventions()` / `claim_next_queryables()` still accept bare string node statuses at their internal boundary, and `ATMSNodeExplanation.status` / `support_quality` still expose closed semantic vocabularies as plain strings instead of `ATMSNodeStatus` / `SupportQuality`
