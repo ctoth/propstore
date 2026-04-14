@@ -23,6 +23,7 @@ from propstore.cel_checker import (
     build_cel_registry_from_concepts,
     check_cel_expression,
 )
+from propstore.artifact_documents.concepts import ConceptDocument
 from propstore.form_utils import kind_type_from_form_name, load_form_path
 from propstore.identity import (
     CONCEPT_ARTIFACT_ID_RE,
@@ -32,12 +33,7 @@ from propstore.identity import (
     compute_concept_version_id,
     format_logical_id,
 )
-from propstore.core.concepts import (
-    ConceptDocument,
-    LoadedConcept,
-    load_concepts,
-    normalize_loaded_concepts,
-)
+from propstore.core.concepts import LoadedConcept, load_concepts, normalize_loaded_concepts
 from propstore.diagnostics import ValidationResult
 
 if TYPE_CHECKING:

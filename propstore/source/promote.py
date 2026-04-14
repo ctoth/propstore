@@ -22,9 +22,9 @@ from propstore.artifacts import (
     JustificationsFileRef,
     StanceFileRef,
 )
+from propstore.artifact_documents.concepts import ConceptDocument
 from propstore.claim_documents import ClaimsFileDocument
 from propstore.cli.repository import Repository
-from propstore.core.concepts import ConceptDocument
 from propstore.document_schema import convert_document_value
 from propstore.source_documents import SourceDocument, SourceJustificationsDocument
 from propstore.stance_documents import StanceFileDocument

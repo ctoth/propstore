@@ -5,9 +5,16 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-import msgspec
-
-from propstore.document_schema import DocumentStruct, load_document
+from propstore.artifact_documents.concepts import (
+    ConceptAliasDocument,
+    ConceptDocument,
+    ConceptFormParametersDocument,
+    ConceptIdScanDocument,
+    ConceptLogicalIdDocument,
+    ConceptRelationshipDocument,
+    ParameterizationRelationshipDocument,
+)
+from propstore.document_schema import load_document, to_document_builtins
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (
     compute_concept_version_id,
@@ -24,96 +31,11 @@ def _string_list(value: object) -> tuple[str, ...]:
         return ()
     return tuple(item for item in value if isinstance(item, str) and item)
 
-
-def _yaml_builtin(value: object) -> object:
-    if isinstance(value, msgspec.Struct):
-        return _yaml_builtin(msgspec.to_builtins(value))
-    if isinstance(value, Mapping):
-        return {
-            key: _yaml_builtin(item)
-            for key, item in value.items()
-        }
-    if isinstance(value, tuple):
-        return [_yaml_builtin(item) for item in value]
-    if isinstance(value, list):
-        return [_yaml_builtin(item) for item in value]
-    return value
-
-
 def _mapping_to_builtin_dict(value: object) -> dict[str, Any] | None:
-    builtins_value = _yaml_builtin(value)
+    builtins_value = to_document_builtins(value)
     if not isinstance(builtins_value, dict):
         return None
     return builtins_value
-
-
-class ConceptLogicalIdDocument(DocumentStruct):
-    namespace: str
-    value: str
-
-
-class ConceptAliasDocument(DocumentStruct):
-    name: str
-    source: str | None = None
-    note: str | None = None
-
-
-class ConceptRelationshipDocument(DocumentStruct):
-    type: str
-    target: str
-    source: str | None = None
-    conditions: tuple[str, ...] = ()
-    note: str | None = None
-
-
-class ConceptFormParametersDocument(DocumentStruct):
-    construction: str | None = None
-    extensible: bool | None = None
-    note: str | None = None
-    reference: str | None = None
-    values: tuple[str, ...] | None = None
-
-
-class ParameterizationRelationshipDocument(DocumentStruct):
-    inputs: tuple[str, ...]
-    formula: str | None = None
-    exactness: str | None = None
-    source: str | None = None
-    bidirectional: bool | None = None
-    sympy: str | None = None
-    conditions: tuple[str, ...] = ()
-    note: str | None = None
-    canonical_claim: str | None = None
-    fit_statistics: str | None = None
-
-
-class ConceptDocument(DocumentStruct):
-    canonical_name: str
-    status: str
-    definition: str
-    form: str
-    artifact_id: str | None = None
-    logical_ids: tuple[ConceptLogicalIdDocument, ...] = ()
-    version_id: str | None = None
-    aliases: tuple[ConceptAliasDocument, ...] = ()
-    created_date: str | None = None
-    definition_source: str | None = None
-    domain: str | None = None
-    form_parameters: ConceptFormParametersDocument | None = None
-    last_modified: str | None = None
-    notes: str | None = None
-    parameterization_relationships: tuple[ParameterizationRelationshipDocument, ...] = ()
-    range: tuple[float, float] | None = None
-    relationships: tuple[ConceptRelationshipDocument, ...] = ()
-    replaced_by: str | None = None
-
-
-class ConceptIdScanDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=False):
-    """Partial concept projection for ID scans over repo-controlled files."""
-
-    id: str | None = None
-    artifact_id: str | None = None
-    logical_ids: tuple[ConceptLogicalIdDocument, ...] = ()
 
 
 @dataclass(frozen=True)
