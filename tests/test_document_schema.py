@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.document_schema import (
+from propstore.artifacts.schema import (
     DocumentSchemaError,
     DocumentStruct,
     decode_document_bytes,

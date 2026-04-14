@@ -9,7 +9,7 @@ from typing import Any
 
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.core.row_types import StanceRow
-from propstore.document_schema import decode_document_path
+from propstore.artifacts.schema import decode_document_path
 from propstore.dung import ArgumentationFramework
 from propstore.knowledge_path import KnowledgePath
 from propstore.repo.merge_claims import MergeClaim

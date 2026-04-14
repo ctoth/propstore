@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from propstore.document_schema import DocumentStruct
+from propstore.artifacts.schema import DocumentStruct
 from propstore.core.id_types import ContextId, to_context_id
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.loaded import LoadedDocument, LoadedEntry

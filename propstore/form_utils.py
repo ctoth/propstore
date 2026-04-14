@@ -17,7 +17,7 @@ from propstore.artifact_documents.forms import (
     FormExtraUnitDocument,
 )
 from propstore.cel_checker import KindType
-from propstore.document_schema import DocumentSchemaError, decode_document_path
+from propstore.artifacts.schema import DocumentSchemaError, decode_document_path
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.diagnostics import ValidationResult
 from propstore.resources import load_resource_json

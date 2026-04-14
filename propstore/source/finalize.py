@@ -13,7 +13,7 @@ from propstore.artifacts import (
     SourceRef,
 )
 from propstore.cli.repository import Repository
-from propstore.document_schema import convert_document_value
+from propstore.artifacts.schema import convert_document_value
 from propstore.source_calibration import derive_source_trust
 
 from .common import (

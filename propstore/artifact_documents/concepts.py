@@ -7,7 +7,7 @@ import msgspec
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import ConceptRelationshipType
 from propstore.core.exactness_types import Exactness
-from propstore.document_schema import DocumentStruct
+from propstore.artifacts.schema import DocumentStruct
 
 
 class ConceptLogicalIdDocument(DocumentStruct):

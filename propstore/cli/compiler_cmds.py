@@ -20,7 +20,7 @@ import click
 
 from propstore.cli.helpers import EXIT_VALIDATION, open_world_model
 from propstore.cli.repository import Repository
-from propstore.document_schema import DocumentSchemaError
+from propstore.artifacts.schema import DocumentSchemaError
 from propstore.identity import (
     primary_logical_id,
 )

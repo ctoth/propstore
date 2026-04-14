@@ -21,7 +21,7 @@ from dulwich.objects import Blob, Tree, Commit
 from dulwich.repo import BaseRepo, MemoryRepo, Repo
 
 from propstore.artifact_documents.concepts import ConceptIdScanDocument
-from propstore.document_schema import decode_document_bytes
+from propstore.artifacts.schema import decode_document_bytes
 
 _CONCEPT_ID_RE = re.compile(r"^concept(\d+)$")
 

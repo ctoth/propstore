@@ -18,7 +18,7 @@ from propstore.artifacts import (
     SourceRef,
 )
 from propstore.cli.repository import Repository
-from propstore.document_schema import convert_document_value
+from propstore.artifacts.schema import convert_document_value
 from propstore.identity import derive_concept_artifact_id
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source import (

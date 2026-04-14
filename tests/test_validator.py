@@ -18,7 +18,7 @@ import pytest
 import yaml
 
 from propstore.core.concept_status import ConceptStatus
-from propstore.document_schema import DocumentSchemaError
+from propstore.artifacts.schema import DocumentSchemaError
 from propstore.core.concepts import LoadedConcept, parse_concept_record
 from propstore.core.concepts import load_concepts
 from propstore.validate_concepts import validate_concepts

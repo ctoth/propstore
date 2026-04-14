@@ -43,7 +43,7 @@ from propstore.compiler.ir import (
     SemanticClaimFile,
     SemanticStance,
 )
-from propstore.document_schema import load_document
+from propstore.artifacts.schema import load_document
 from propstore.identity import (
     CLAIM_ARTIFACT_ID_RE,
     CLAIM_VERSION_ID_RE,

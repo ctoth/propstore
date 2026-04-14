@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from propstore.document_schema import DocumentStruct
+from propstore.artifacts.schema import DocumentStruct
 from propstore.loaded import LoadedDocument
 
 

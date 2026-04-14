@@ -19,7 +19,7 @@ from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     coerce_concept_relationship_type,
 )
-from propstore.document_schema import load_document, to_document_builtins
+from propstore.artifacts.schema import load_document, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (

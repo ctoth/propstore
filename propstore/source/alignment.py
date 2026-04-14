@@ -14,7 +14,7 @@ from propstore.artifacts import (
 )
 from propstore.artifact_documents.concepts import ConceptDocument
 from propstore.cli.repository import Repository
-from propstore.document_schema import convert_document_value
+from propstore.artifacts.schema import convert_document_value
 from propstore.repo.merge_framework import PartialArgumentationFramework
 from propstore.repo.paf_queries import credulously_accepted_arguments, skeptically_accepted_arguments
 from propstore.source_alignment_documents import (

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from propstore.document_schema import decode_document_path
+from propstore.artifacts.schema import decode_document_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.source_documents import SourceDocument
 

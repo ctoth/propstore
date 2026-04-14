@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, TypeVar
 
-from propstore.document_schema import decode_document_bytes
+from propstore.artifacts.schema import decode_document_bytes
 from propstore.repo.branch import BranchInfo, branch_head, create_branch, delete_branch, list_branches, merge_base
 
 if TYPE_CHECKING:
