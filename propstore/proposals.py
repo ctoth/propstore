@@ -9,7 +9,10 @@ from collections.abc import Mapping
 from datetime import date
 from typing import TYPE_CHECKING
 
+from propstore.artifacts.codecs import encode_document
 from propstore.artifacts import PROPOSAL_STANCE_FAMILY, STANCE_PROPOSAL_BRANCH, StanceFileRef
+from propstore.document_schema import convert_document_value
+from propstore.stance_documents import StanceFileDocument
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
@@ -30,20 +33,23 @@ def build_stance_document(
     source_claim_id: str,
     stances: list[dict],
     model_name: str,
-    *,
-    repo: Repository,
-):
+    ) -> StanceFileDocument:
     """Build the persisted typed payload for a stance proposal."""
-    return repo.artifacts.coerce(
-        PROPOSAL_STANCE_FAMILY,
+    return convert_document_value(
         {
             "source_claim": source_claim_id,
             "classification_model": model_name,
             "classification_date": str(date.today()),
             "stances": stances,
         },
+        StanceFileDocument,
         source=stance_proposal_relpath(source_claim_id),
     )
+
+
+def dump_yaml_bytes(document: object) -> bytes:
+    """Serialize a typed proposal document to YAML bytes."""
+    return encode_document(document)
 
 
 def commit_stance_proposals(
@@ -71,7 +77,7 @@ def commit_stance_proposals(
             transaction.save(
                 PROPOSAL_STANCE_FAMILY,
                 ref,
-                build_stance_document(source_claim_id, stances, model_name, repo=repo),
+                build_stance_document(source_claim_id, stances, model_name),
             )
             relpaths.append(repo.artifacts.resolve(PROPOSAL_STANCE_FAMILY, ref).relpath)
     sha = transaction.commit_sha

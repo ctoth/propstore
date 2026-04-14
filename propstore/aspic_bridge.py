@@ -89,6 +89,22 @@ def _claim_attr(claim: ActiveClaim, key: str) -> Any:
     return getattr(claim, key, claim.attributes.get(key))
 
 
+def _coerce_bridge_stance_row(row: StanceRowInput) -> StanceRow:
+    """Coerce a bridge stance row, accepting bridge-local `contradicts`.
+
+    The authored stance vocabulary intentionally rejects ``contradicts`` and
+    uses ``rebuts`` as the canonical attack label. The ASPIC bridge spec and
+    tests still admit ``contradicts`` as a rebuttal synonym, so normalize it at
+    the bridge boundary instead of widening the shared authored enum surface.
+    """
+    if isinstance(row, StanceRow):
+        return row
+    row_map = dict(row)
+    if row_map.get("stance_type") == "contradicts":
+        row_map["stance_type"] = "rebuts"
+    return coerce_stance_row(row_map)
+
+
 def _default_support_metadata(claim: ActiveClaim) -> tuple[Label | None, SupportQuality]:
     """Compute default (label, support_quality) for a claim.
 
@@ -597,7 +613,7 @@ def stances_to_contrariness(
     contrary_pairs: set[tuple[Literal, Literal]] = set()
 
     for stance_input in stances:
-        stance = coerce_stance_row(stance_input)
+        stance = _coerce_bridge_stance_row(stance_input)
         src_id = stance.claim_id
         tgt_id = stance.target_claim_id
         stype = stance.stance_type

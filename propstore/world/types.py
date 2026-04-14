@@ -75,6 +75,7 @@ class ValueResult:
 
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
+        self.status = coerce_value_status(self.status)
         self.claims = coerce_active_claims(self.claims)
 
 
@@ -90,6 +91,7 @@ class DerivedResult:
 
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
+        self.status = coerce_value_status(self.status)
         self.exactness = coerce_exactness(self.exactness)
         self.input_values = {
             to_concept_id(concept_id): float(value)
@@ -574,6 +576,7 @@ class ResolvedResult:
 
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
+        self.status = coerce_value_status(self.status)
         self.claims = coerce_active_claims(self.claims)
 
 

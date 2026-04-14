@@ -337,6 +337,9 @@ def _resolve_chain_target(
     value_result: Any,
 ) -> WorldlineTargetValue | None:
     del value_result
+    chain_query = getattr(context.world, "chain_query", None)
+    if not callable(chain_query):
+        return None
     strategy_enum = context.policy.strategy if context.policy.strategy is not None else None
     chain_bindings = (
         dict(context.query_world._bindings)
@@ -344,7 +347,7 @@ def _resolve_chain_target(
         else {}
     )
     try:
-        chain_result = context.world.chain_query(
+        chain_result = chain_query(
             concept_id,
             strategy=strategy_enum,
             **chain_bindings,

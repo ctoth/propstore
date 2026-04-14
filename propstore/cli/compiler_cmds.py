@@ -1806,11 +1806,17 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                 build_structured_projection,
                 compute_structured_justified_arguments,
             )
+            from propstore.grounding.bundle import GroundedRulesBundle
+
+            grounding_bundle = GroundedRulesBundle.empty()
+            bundle_getter = getattr(wm, "grounding_bundle", None)
+            if callable(bundle_getter):
+                grounding_bundle = bundle_getter()
 
             aspic_projection = build_structured_projection(
                 wm,
                 active,
-                bundle=wm.grounding_bundle(),
+                bundle=grounding_bundle,
                 support_metadata=_support_metadata_for(bound, active),
                 comparison=set_comparison,
                 active_graph=_active_graph_for(bound),
