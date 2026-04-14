@@ -23,6 +23,10 @@ def _prune_none(value: object) -> object:
 
 
 def document_to_payload(document: object) -> object:
+    from propstore.core.concepts import ConceptDocument, concept_document_to_payload
+
+    if isinstance(document, ConceptDocument):
+        return _prune_none(concept_document_to_payload(document))
     to_payload = getattr(document, "to_payload", None)
     if callable(to_payload):
         return _prune_none(to_payload())

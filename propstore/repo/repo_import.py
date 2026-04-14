@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import yaml
+import msgspec
 
 from propstore.identity import (
     compute_claim_version_id,
@@ -42,7 +42,7 @@ class RepoImportPlan:
     source_commit: str
     target_branch: str
     repo_name: str
-    writes: dict[str, bytes]
+    writes: dict[str, "PlannedArtifactWrite"]
     deletes: list[str]
     touched_paths: list[str]
     sync_worktree_default: bool
@@ -61,6 +61,16 @@ class RepoImportResult:
     touched_paths: list[str]
     deleted_paths: list[str]
     worktree_synced: bool
+
+
+@dataclass(frozen=True)
+class PlannedArtifactWrite:
+    """Typed artifact write planned during repository import."""
+
+    family: object
+    ref: object
+    document: object
+    relpath: str
 
 
 def _infer_repo_name(repo: Repository) -> str:
@@ -88,15 +98,63 @@ def _iter_semantic_paths(repo: Repository, *, commit: str) -> dict[str, bytes]:
     }
 
 
+def _family_for_semantic_path(path: str):
+    from propstore.artifacts.families import (
+        CLAIMS_FILE_FAMILY,
+        CONCEPT_FILE_FAMILY,
+        CONTEXT_FAMILY,
+        FORM_FAMILY,
+        STANCE_FILE_FAMILY,
+        WORLDLINE_FAMILY,
+    )
+
+    root = path.split("/", 1)[0]
+    if root == "claims":
+        return CLAIMS_FILE_FAMILY
+    if root == "concepts":
+        return CONCEPT_FILE_FAMILY
+    if root == "contexts":
+        return CONTEXT_FAMILY
+    if root == "forms":
+        return FORM_FAMILY
+    if root == "stances":
+        return STANCE_FILE_FAMILY
+    if root == "worldlines":
+        return WORLDLINE_FAMILY
+    raise ValueError(f"Unsupported semantic import path {path!r}")
+
+
+def _planned_write(
+    store,
+    path: str,
+    payload: object,
+) -> PlannedArtifactWrite:
+    family = _family_for_semantic_path(path)
+    ref = store.ref_from_path(family, path)
+    document = store.coerce(family, payload, source=path)
+    return PlannedArtifactWrite(
+        family=family,
+        ref=ref,
+        document=document,
+        relpath=store.resolve(family, ref).relpath,
+    )
+
+
+def _document_payload(document: object) -> object:
+    from propstore.artifacts.codecs import document_to_payload
+
+    return document_to_payload(document)
+
+
 def _decode_yaml(content: bytes, *, path: str) -> dict[str, Any]:
-    data = yaml.safe_load(content) or {}
+    data = msgspec.yaml.decode(content) or {}
     if not isinstance(data, dict):
         raise ValueError(f"Imported semantic file {path!r} must decode to a mapping")
     return data
 
 
-def _encode_yaml(data: dict[str, Any]) -> bytes:
-    return yaml.safe_dump(data, sort_keys=False).encode("utf-8")
+def _claim_source_from_import_path(path: str) -> dict[str, str]:
+    return {"paper": Path(path).stem}
 
 
 def _normalize_concept_payload(
@@ -269,44 +327,137 @@ def _rewrite_claim_concept_refs(
     return rewritten
 
 
+def _normalize_imported_concept_write(
+    store,
+    path: str,
+    *,
+    payload: dict[str, Any],
+    repo_name: str,
+) -> tuple[PlannedArtifactWrite, set[str]]:
+    seeded_payload = dict(payload)
+    raw_id = seeded_payload.get("id")
+    canonical_name = seeded_payload.get("canonical_name")
+    effective_name = (
+        canonical_name
+        if isinstance(canonical_name, str) and canonical_name
+        else str(raw_id or Path(path).stem or "concept")
+    )
+    if not isinstance(seeded_payload.get("canonical_name"), str) or not seeded_payload.get("canonical_name"):
+        seeded_payload["canonical_name"] = effective_name
+    if not isinstance(seeded_payload.get("status"), str) or not seeded_payload.get("status"):
+        seeded_payload["status"] = "accepted"
+    if not isinstance(seeded_payload.get("definition"), str) or not seeded_payload.get("definition"):
+        seeded_payload["definition"] = effective_name
+    if not isinstance(seeded_payload.get("form"), str) or not seeded_payload.get("form"):
+        seeded_payload["form"] = "structural"
+
+    normalized_payload, reference_keys = _normalize_concept_payload(
+        seeded_payload,
+        default_domain=repo_name,
+    )
+    return _planned_write(store, path, normalized_payload), reference_keys
+
+
+def _normalize_imported_claim_write(
+    store,
+    path: str,
+    *,
+    payload: dict[str, Any],
+    repo_name: str,
+    concept_ref_map: dict[str, str],
+) -> tuple[PlannedArtifactWrite, dict[str, str]]:
+    seeded_payload = dict(payload)
+    source = seeded_payload.get("source")
+    has_source = isinstance(source, dict) and isinstance(source.get("paper"), str) and bool(source.get("paper"))
+
+    normalized_payload, local_map = normalize_claim_file_payload(
+        seeded_payload if has_source else payload,
+        default_namespace=repo_name,
+    )
+    if not has_source:
+        normalized_payload["source"] = _claim_source_from_import_path(path)
+    rewritten_payload = _rewrite_claim_concept_refs(
+        normalized_payload,
+        concept_ref_map=concept_ref_map,
+    )
+    return _planned_write(store, path, rewritten_payload), local_map
+
+
+def _normalize_imported_stance_write(
+    store,
+    path: str,
+    *,
+    payload: dict[str, Any],
+    local_handle_index: ImportedClaimHandleIndex,
+) -> PlannedArtifactWrite:
+    local_handle_index.require_unambiguous(
+        payload.get("source_claim"),
+        path=path,
+        role="source_claim",
+    )
+    stances = payload.get("stances")
+    if isinstance(stances, list):
+        for stance in stances:
+            if not isinstance(stance, dict):
+                continue
+            local_handle_index.require_unambiguous(
+                stance.get("target"),
+                path=path,
+                role="target",
+            )
+    rewritten_payload = rewrite_stance_file_payload(
+        payload,
+        local_to_artifact=local_handle_index.resolved_map(),
+    )
+    return _planned_write(store, path, rewritten_payload)
+
+
 def _normalize_import_writes(
+    store: ArtifactStore,
     writes: dict[str, bytes],
     *,
     repo_name: str,
-) -> tuple[dict[str, bytes], list[str]]:
-    normalized = dict(writes)
+) -> tuple[dict[str, PlannedArtifactWrite], list[str]]:
+    normalized: dict[str, PlannedArtifactWrite] = {}
     warnings: list[str] = []
     concept_ref_map: dict[str, str] = {}
 
     concept_paths = [path for path in sorted(writes) if path.startswith("concepts/")]
-    normalized_concepts: dict[str, dict[str, Any]] = {}
+    normalized_concepts: dict[str, PlannedArtifactWrite] = {}
     for path in concept_paths:
-        payload, reference_keys = _normalize_concept_payload(
-            _decode_yaml(writes[path], path=path),
-            default_domain=repo_name,
+        concept_write, reference_keys = _normalize_imported_concept_write(
+            store,
+            path,
+            payload=_decode_yaml(writes[path], path=path),
+            repo_name=repo_name,
         )
-        normalized_concepts[path] = payload
-        artifact_id = payload["artifact_id"]
+        normalized_concepts[path] = concept_write
+        artifact_id = concept_write.document.artifact_id
+        if not isinstance(artifact_id, str) or not artifact_id:
+            raise ValueError(f"Imported concept {path!r} is missing artifact_id after normalization")
         for reference_key in reference_keys:
             concept_ref_map[str(reference_key)] = artifact_id
 
     for path in concept_paths:
-        normalized[path] = _encode_yaml(
+        normalized[path] = _planned_write(
+            store,
+            path,
             _rewrite_concept_payload_refs(
-                normalized_concepts[path],
+                _document_payload(normalized_concepts[path].document),
                 concept_ref_map=concept_ref_map,
-            )
+            ),
         )
 
     local_handle_index = ImportedClaimHandleIndex()
     claim_paths = [path for path in sorted(writes) if path.startswith("claims/")]
     for path in claim_paths:
-        payload, local_map = normalize_claim_file_payload(
-            _decode_yaml(writes[path], path=path),
-            default_namespace=repo_name,
+        normalized[path], local_map = _normalize_imported_claim_write(
+            store,
+            path,
+            payload=_decode_yaml(writes[path], path=path),
+            repo_name=repo_name,
+            concept_ref_map=concept_ref_map,
         )
-        payload = _rewrite_claim_concept_refs(payload, concept_ref_map=concept_ref_map)
-        normalized[path] = _encode_yaml(payload)
         for local_id, artifact_id in local_map.items():
             if local_handle_index.record(local_id, artifact_id):
                 warnings.append(
@@ -315,25 +466,20 @@ def _normalize_import_writes(
 
     stance_paths = [path for path in sorted(writes) if path.startswith("stances/")]
     for path in stance_paths:
-        payload = _decode_yaml(writes[path], path=path)
-        local_handle_index.require_unambiguous(
-            payload.get("source_claim"),
-            path=path,
-            role="source_claim",
+        normalized[path] = _normalize_imported_stance_write(
+            store,
+            path,
+            payload=_decode_yaml(writes[path], path=path),
+            local_handle_index=local_handle_index,
         )
-        stances = payload.get("stances")
-        if isinstance(stances, list):
-            for stance in stances:
-                if not isinstance(stance, dict):
-                    continue
-                local_handle_index.require_unambiguous(
-                    stance.get("target"),
-                    path=path,
-                    role="target",
-                )
-        normalized[path] = _encode_yaml(
-            rewrite_stance_file_payload(payload, local_to_artifact=local_handle_index.resolved_map())
-        )
+
+    passthrough_paths = [
+        path
+        for path in sorted(writes)
+        if path.split("/", 1)[0] in {"contexts", "forms", "worldlines"}
+    ]
+    for path in passthrough_paths:
+        normalized[path] = _planned_write(store, path, _decode_yaml(writes[path], path=path))
 
     return normalized, warnings
 
@@ -365,6 +511,7 @@ def plan_repo_import(
     repo_name = _infer_repo_name(source_repo)
     selected_branch = target_branch or f"import/{repo_name}"
     writes, warnings = _normalize_import_writes(
+        destination_repo.artifacts,
         _iter_semantic_paths(source_repo, commit=source_commit),
         repo_name=repo_name,
     )
@@ -409,12 +556,20 @@ def commit_repo_import(
     if branch_head(git, plan.target_branch) is None and plan.target_branch != primary_branch:
         create_branch(git, plan.target_branch)
 
-    commit_sha = git.commit_batch(
-        adds=plan.writes,
-        deletes=plan.deletes,
+    transaction = repo.artifacts.transact(
         message=message or f"Import {plan.repo_name} at {plan.source_commit[:12]}",
         branch=plan.target_branch,
     )
+    for planned_write in plan.writes.values():
+        transaction.save(
+            planned_write.family,
+            planned_write.ref,
+            planned_write.document,
+        )
+    for path in plan.deletes:
+        family = _family_for_semantic_path(path)
+        transaction.delete(family, repo.artifacts.ref_from_path(family, path))
+    commit_sha = transaction.commit()
 
     should_sync = False
     if sync_worktree == "always":
