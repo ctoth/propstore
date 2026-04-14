@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any
 
 from propstore.core.id_types import ClaimId, ConceptId, ContextId, LogicalId, to_concept_id
 from propstore.core.row_types import ClaimRow, ClaimRowInput, coerce_claim_row
@@ -38,9 +38,6 @@ class ActiveClaimVariable:
         return data
 
 
-VariableEncoding = Literal["list", "mapping"] | None
-
-
 def _parse_conditions(raw: object) -> tuple[str, ...]:
     if raw is None or raw == "":
         return ()
@@ -59,25 +56,17 @@ def _parse_conditions(raw: object) -> tuple[str, ...]:
 
 def _parse_variables(
     raw: object,
-) -> tuple[tuple[ActiveClaimVariable, ...], VariableEncoding]:
+) -> tuple[ActiveClaimVariable, ...]:
     if raw is None or raw == "":
-        return (), None
+        return ()
     loaded = raw
     if isinstance(raw, str):
         try:
             loaded = json.loads(raw)
         except json.JSONDecodeError:
-            return (), None
+            return ()
     if isinstance(loaded, Mapping):
-        variables = tuple(
-            ActiveClaimVariable(
-                name=str(name),
-                concept_id=(None if concept is None else to_concept_id(concept)),
-            )
-            for name, concept in loaded.items()
-            if isinstance(name, str) and name and isinstance(concept, str) and concept
-        )
-        return variables, "mapping"
+        raise ValueError("algorithm claim variables must be a list of variable bindings")
     if isinstance(loaded, list):
         variables: list[ActiveClaimVariable] = []
         for entry in loaded:
@@ -97,8 +86,8 @@ def _parse_variables(
                     },
                 )
             )
-        return tuple(variables), "list"
-    return (), None
+        return tuple(variables)
+    return ()
 
 
 @dataclass(frozen=True)
@@ -106,7 +95,6 @@ class ActiveClaim:
     row: ClaimRow
     conditions: tuple[str, ...] = field(default_factory=tuple)
     variables: tuple[ActiveClaimVariable, ...] = field(default_factory=tuple)
-    variable_encoding: VariableEncoding = None
     branch: str | None = None
 
     def __post_init__(self) -> None:
@@ -115,13 +103,12 @@ class ActiveClaim:
 
     @classmethod
     def from_claim_row(cls, row: ClaimRow) -> ActiveClaim:
-        variables, variable_encoding = _parse_variables(row.variables_json)
+        variables = _parse_variables(row.variables_json)
         branch = row.attributes.get("branch")
         return cls(
             row=row,
             conditions=_parse_conditions(row.conditions_cel),
             variables=variables,
-            variable_encoding=variable_encoding,
             branch=(None if branch is None else str(branch)),
         )
 
@@ -215,16 +202,9 @@ class ActiveClaim:
             if variable.concept_id is not None
         )
 
-    def variable_payload(self) -> list[dict[str, Any]] | dict[str, str] | None:
+    def variable_payload(self) -> list[dict[str, Any]] | None:
         if not self.variables:
             return None
-        if self.variable_encoding == "mapping":
-            payload: dict[str, str] = {}
-            for variable in self.variables:
-                if variable.name is None or variable.concept_id is None:
-                    continue
-                payload[variable.name] = str(variable.concept_id)
-            return payload
         return [variable.to_payload() for variable in self.variables]
 
     def to_dict(self) -> dict[str, Any]:

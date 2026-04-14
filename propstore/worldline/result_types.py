@@ -103,21 +103,17 @@ class WorldlineInputSource:
 
 def _coerce_variable_refs(
     raw_variables: Any,
-) -> tuple[tuple[WorldlineVariableRef, ...], str | None]:
+) -> tuple[WorldlineVariableRef, ...]:
     if isinstance(raw_variables, Sequence) and not isinstance(raw_variables, (str, bytes)):
         refs = tuple(
             WorldlineVariableRef.from_mapping(item)
             for item in raw_variables
             if isinstance(item, Mapping)
         )
-        return refs, "list"
+        return refs
     if isinstance(raw_variables, Mapping):
-        refs = tuple(
-            WorldlineVariableRef(name=str(key), value=str(value))
-            for key, value in raw_variables.items()
-        )
-        return refs, "mapping"
-    return (), None
+        raise ValueError("worldline variables must be a list of variable bindings")
+    return ()
 
 
 @dataclass(frozen=True)
@@ -135,7 +131,6 @@ class WorldlineTargetValue:
     name: str | None = None
     canonical_ast: str | None = None
     variables: tuple[WorldlineVariableRef, ...] = ()
-    variable_encoding: str | None = None
     formula: str | None = None
     strategy: str | None = None
     inputs_used: Mapping[str, WorldlineInputSource] = field(default_factory=dict)
@@ -146,7 +141,7 @@ class WorldlineTargetValue:
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> WorldlineTargetValue:
-        variables, variable_encoding = _coerce_variable_refs(data.get("variables"))
+        variables = _coerce_variable_refs(data.get("variables"))
         raw_inputs = data.get("inputs_used")
         inputs_used = (
             {
@@ -177,7 +172,6 @@ class WorldlineTargetValue:
                 None if data.get("canonical_ast") is None else str(data.get("canonical_ast"))
             ),
             variables=variables,
-            variable_encoding=variable_encoding,
             formula=None if data.get("formula") is None else str(data.get("formula")),
             strategy=None if data.get("strategy") is None else str(data.get("strategy")),
             inputs_used=inputs_used,
@@ -208,15 +202,7 @@ class WorldlineTargetValue:
         if self.canonical_ast is not None:
             data["canonical_ast"] = self.canonical_ast
         if self.variables:
-            if self.variable_encoding == "mapping":
-                variable_map: dict[str, str] = {}
-                for variable in self.variables:
-                    if variable.name is None or variable.value is None:
-                        continue
-                    variable_map[variable.name] = variable.value
-                data["variables"] = variable_map
-            else:
-                data["variables"] = [variable.to_dict() for variable in self.variables]
+            data["variables"] = [variable.to_dict() for variable in self.variables]
         if self.formula is not None:
             data["formula"] = self.formula
         if self.strategy is not None:

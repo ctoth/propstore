@@ -241,7 +241,7 @@ class ClaimDocument(DocumentStruct):
     unit: str | None = None
     upper_bound: float | int | None = None
     value: float | int | None = None
-    variables: tuple[VariableBindingDocument, ...] | dict[str, str] = ()
+    variables: tuple[VariableBindingDocument, ...] = ()
 
     @property
     def primary_logical_id(self) -> str | None:
@@ -323,10 +323,7 @@ class ClaimDocument(DocumentStruct):
         if self.value is not None:
             payload["value"] = self.value
         if self.variables:
-            if isinstance(self.variables, dict):
-                payload["variables"] = dict(self.variables)
-            else:
-                payload["variables"] = [variable.to_payload() for variable in self.variables]
+            payload["variables"] = [variable.to_payload() for variable in self.variables]
         return payload
 
 

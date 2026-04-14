@@ -229,19 +229,13 @@
                     ]
                 },
                 "variables": {
-                    "description": "Variable bindings mapping symbols to concept IDs. Required for equation claims.\n",
+                    "description": "Variable bindings as explicit binding objects. Required for equation and algorithm claims.\n",
                     "anyOf": [
                         {
                             "items": {
                                 "$ref": "#/$defs/VariableBinding"
                             },
                             "type": "array"
-                        },
-                        {
-                            "additionalProperties": {
-                                "type": "string"
-                            },
-                            "type": "object"
                         },
                         {
                             "type": "null"

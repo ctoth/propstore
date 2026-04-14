@@ -1497,7 +1497,7 @@ def algorithm_claim_files(concept_dir):
                 "type": "algorithm",
                 "body": "def compute(x):\n    return x * 2\n",
                 "stage": "excitation",
-                "variables": {"x": "input_signal"},
+                "variables": [{"name": "x", "concept": "input_signal"}],
                 "provenance": {"paper": "algo_test_paper", "page": 3},
             },
         ],
@@ -1969,4 +1969,3 @@ class TestClaimValueSI:
         assert row["upper_bound"] == 0.3, "raw upper_bound preserved"
         assert row["lower_bound_si"] == pytest.approx(100.0), "lower_bound_si = 0.1 * 1000"
         assert row["upper_bound_si"] == pytest.approx(300.0), "upper_bound_si = 0.3 * 1000"
-
