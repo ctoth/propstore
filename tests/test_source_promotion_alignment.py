@@ -20,7 +20,6 @@ from propstore.artifacts import (
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value
 from propstore.identity import derive_concept_artifact_id
-from propstore.repo.branch import create_branch
 from propstore.source import (
     CONCEPT_PROPOSAL_BRANCH,
     align_sources,
@@ -42,7 +41,7 @@ from propstore.source_documents import (
 
 def _save_source(repo: Repository, source_name: str, concepts_payload: dict, claims_payload: dict | None = None) -> None:
     branch = source_branch_name(source_name)
-    create_branch(repo.git, branch)
+    repo.snapshot.ensure_branch(branch)
 
     source_doc = initial_source_document(
         repo,
@@ -116,7 +115,7 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
 
 def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    create_branch(repo.git, CONCEPT_PROPOSAL_BRANCH)
+    repo.snapshot.ensure_branch(CONCEPT_PROPOSAL_BRANCH)
 
     _save_source(
         repo,

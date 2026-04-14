@@ -15,7 +15,6 @@ from propstore.artifacts import (
 from propstore.artifact_documents.concepts import ConceptDocument
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value
-from propstore.repo.branch import branch_head, create_branch
 from propstore.repo.merge_framework import PartialArgumentationFramework
 from propstore.repo.paf_queries import credulously_accepted_arguments, skeptically_accepted_arguments
 from propstore.source_alignment_documents import (
@@ -174,8 +173,7 @@ def align_sources(
                 }
             )
     artifact = build_alignment_artifact(proposals, authority=repo.uri_authority)
-    if branch_head(repo.git, CONCEPT_PROPOSAL_BRANCH) is None:
-        create_branch(repo.git, CONCEPT_PROPOSAL_BRANCH)
+    repo.snapshot.ensure_branch(CONCEPT_PROPOSAL_BRANCH)
     slug = artifact.id.split(":", 1)[1]
     repo.artifacts.save(
         CONCEPT_ALIGNMENT_FAMILY,
@@ -274,7 +272,7 @@ def promote_alignment(
         document,
         message=f"Promote concept alignment {cluster_id}",
     )
-    repo.git.sync_worktree()
+    repo.snapshot.sync_worktree()
     updated = copy.deepcopy(artifact)
     updated.decision = AlignmentDecisionDocument(
         status="promoted",

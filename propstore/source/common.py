@@ -18,8 +18,6 @@ from propstore.artifacts import (
 )
 from propstore.artifacts.families import SOURCE_METADATA_FAMILY, SOURCE_NOTES_FAMILY
 from propstore.cli.repository import Repository
-from propstore.document_schema import decode_document_bytes
-from propstore.repo.branch import branch_head, create_branch
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
 from propstore.source_documents import (
@@ -84,17 +82,7 @@ def load_document_from_branch(
     relpath: str,
     document_type: type[TDocument],
 ) -> TDocument | None:
-    tip = branch_head(repo.git, branch)
-    if tip is None:
-        return None
-    try:
-        return decode_document_bytes(
-            repo.git.read_file(relpath, commit=tip),
-            document_type,
-            source=f"{branch}:{relpath}",
-        )
-    except FileNotFoundError:
-        return None
+    return repo.snapshot.read_document(relpath, document_type, branch=branch)
 
 
 def init_source_branch(
@@ -106,11 +94,8 @@ def init_source_branch(
     origin_value: str,
     content_file: Path | None = None,
 ) -> str:
-    if repo.git is None:
-        raise ValueError("source operations require a git-backed repository")
     branch = source_branch_name(name)
-    if branch_head(repo.git, branch) is None:
-        create_branch(repo.git, branch)
+    repo.snapshot.ensure_branch(branch)
     source_doc = initial_source_document(
         repo,
         name,

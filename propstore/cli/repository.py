@@ -128,6 +128,12 @@ class Repository:
 
         return ArtifactStore(self)
 
+    @cached_property
+    def snapshot(self):
+        from propstore.repo.snapshot import RepoSnapshot
+
+        return RepoSnapshot(self)
+
     def close(self) -> None:
         store = self.__dict__.get("store")
         if store is not None:
