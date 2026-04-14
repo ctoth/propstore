@@ -21,6 +21,12 @@ class SnapshotDirEntry:
     is_dir: bool
 
 
+@dataclass(frozen=True)
+class SnapshotFile:
+    relpath: str
+    content: bytes
+
+
 class RepoSnapshot:
     def __init__(self, repo: Repository) -> None:
         self._repo = repo
@@ -105,6 +111,35 @@ class RepoSnapshot:
             relpath = f"{prefix}/{name}" if prefix else name
             entries.append(SnapshotDirEntry(name=name, relpath=relpath, is_dir=is_dir))
         return entries
+
+    def files(
+        self,
+        *,
+        commit: str,
+        roots: tuple[str, ...] | None = None,
+    ) -> list[SnapshotFile]:
+        tree = self.tree(commit=commit)
+        files: list[SnapshotFile] = []
+
+        def collect(node) -> None:
+            if node.is_file():
+                files.append(SnapshotFile(relpath=node.as_posix(), content=node.read_bytes()))
+                return
+            if not node.is_dir():
+                return
+            for child in node.iterdir():
+                collect(child)
+
+        if roots is None:
+            collect(tree)
+        else:
+            for root_name in roots:
+                root = tree / root_name
+                if root.exists():
+                    collect(root)
+
+        files.sort(key=lambda snapshot_file: snapshot_file.relpath)
+        return files
 
     def sync_worktree(self) -> None:
         self.git.sync_worktree()

@@ -13,7 +13,6 @@ from propstore.artifacts.identity import (
     normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
 )
-from propstore.repo.branch import branch_head, create_branch
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
@@ -76,20 +75,12 @@ def _infer_repo_name(repo: Repository) -> str:
 
 
 def _iter_semantic_paths(repo: Repository, *, commit: str) -> dict[str, bytes]:
-    git = repo.git
-    if git is None:
-        raise ValueError("Repository must be git-backed")
-
-    tree = git._get_tree(commit)
-    if tree is None:
-        return {}
-
-    flattened: dict[str, bytes] = {}
-    git._flatten_tree(tree, "", flattened)
     return {
-        path: git.read_file(path, commit=commit)
-        for path in sorted(flattened)
-        if path.split("/", 1)[0] in SEMANTIC_ROOT_DIRS
+        snapshot_file.relpath: snapshot_file.content
+        for snapshot_file in repo.snapshot.files(
+            commit=commit,
+            roots=SEMANTIC_ROOT_DIRS,
+        )
     }
 
 
@@ -436,21 +427,16 @@ def plan_repo_import(
     """Plan a committed-snapshot import from a source repo into a destination repo."""
     from propstore.cli.repository import Repository, RepositoryNotFound
 
-    if destination_repo.git is None:
-        raise ValueError("Destination repository must be git-backed")
-
     try:
         source_repo = Repository.find(source_repo_path.resolve())
     except RepositoryNotFound as exc:
         raise ValueError("Source repository must be git-backed") from exc
-    if source_repo.git is None:
-        raise ValueError("Source repository must be git-backed")
 
-    source_commit = source_repo.git.head_sha()
+    source_commit = source_repo.snapshot.head_sha()
     if source_commit is None:
         raise ValueError("Source repository has no committed HEAD")
 
-    primary_branch = destination_repo.git.primary_branch_name()
+    primary_branch = destination_repo.snapshot.primary_branch_name()
     repo_name = _infer_repo_name(source_repo)
     selected_branch = target_branch or f"import/{repo_name}"
     writes, warnings = _normalize_import_writes(
@@ -460,7 +446,7 @@ def plan_repo_import(
     )
 
     existing_paths: set[str] = set()
-    existing_branch_sha = branch_head(destination_repo.git, selected_branch)
+    existing_branch_sha = destination_repo.snapshot.branch_head(selected_branch)
     if existing_branch_sha is not None:
         existing_paths = set(_iter_semantic_paths(destination_repo, commit=existing_branch_sha))
     deletes = sorted(existing_paths - set(writes))
@@ -488,16 +474,12 @@ def commit_repo_import(
 ) -> RepoImportResult:
     """Commit a planned import onto the destination repository."""
 
-    git = repo.git
-    if git is None:
-        raise ValueError("Destination repository must be git-backed")
-
     if sync_worktree not in {"auto", "always", "never"}:
         raise ValueError("sync_worktree must be one of: auto, always, never")
 
-    primary_branch = git.primary_branch_name()
-    if branch_head(git, plan.target_branch) is None and plan.target_branch != primary_branch:
-        create_branch(git, plan.target_branch)
+    primary_branch = repo.snapshot.primary_branch_name()
+    if repo.snapshot.branch_head(plan.target_branch) is None and plan.target_branch != primary_branch:
+        repo.snapshot.ensure_branch(plan.target_branch)
 
     with repo.artifacts.transact(
         message=message or f"Import {plan.repo_name} at {plan.source_commit[:12]}",
@@ -527,7 +509,7 @@ def commit_repo_import(
         should_sync = plan.sync_worktree_default
 
     if should_sync:
-        git.sync_worktree()
+        repo.snapshot.sync_worktree()
 
     return RepoImportResult(
         surface="repo_import_commit",
