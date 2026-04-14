@@ -8,6 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import (
     StructuredProjection,
     SupportQuality,
@@ -21,6 +22,8 @@ from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world.resolution import resolve
 from propstore.world.types import Environment, ReasoningBackend, ResolutionStrategy
 from propstore.worldline import WorldlineDefinition, run_worldline
+
+_EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
 class _ExactMatchSolver:
@@ -95,6 +98,9 @@ class _ProjectionStore:
 
     def get_claim(self, claim_id: str) -> dict | None:
         return next((claim for claim in self._claims if claim["id"] == claim_id), None)
+
+    def grounding_bundle(self):
+        return _EMPTY_BUNDLE
 
 
 def _make_bound(
@@ -203,6 +209,7 @@ def test_structured_projection_uses_stable_argument_ids_and_exact_labels() -> No
     projection = build_structured_projection(
         store,
         active,
+        bundle=_EMPTY_BUNDLE,
         support_metadata=_support_metadata(bound, active),
     )
 
@@ -232,6 +239,7 @@ def test_structured_projection_keeps_semantic_overlap_unlabeled() -> None:
     projection = build_structured_projection(
         store,
         active,
+        bundle=_EMPTY_BUNDLE,
         support_metadata=_support_metadata(bound, active),
     )
 
@@ -263,6 +271,7 @@ def test_structured_projection_does_not_treat_context_scope_as_unconditional() -
     projection = build_structured_projection(
         store,
         active,
+        bundle=_EMPTY_BUNDLE,
         support_metadata=_support_metadata(bound, active),
     )
 
@@ -283,7 +292,11 @@ def test_structured_projection_support_induces_additional_defeat_path() -> None:
         ],
     )
 
-    projection = build_structured_projection(store, store.claims_for(None))
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
 
     # Find the supporter's base argument ID (bridge uses sequential IDs)
     supporter_arg_ids = set(projection.claim_to_argument_ids.get("claim_supporter", ()))
@@ -318,7 +331,11 @@ def test_structured_projection_builds_real_premises_and_subargument_graphs() -> 
         ],
     )
 
-    projection = build_structured_projection(store, store.claims_for(None))
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
     by_claim = {}
     for argument in projection.arguments:
         by_claim.setdefault(argument.claim_id, []).append(argument)
@@ -357,7 +374,11 @@ def test_structured_projection_undermines_target_premise_dependent_arguments_not
         ],
     )
 
-    projection = build_structured_projection(store, store.claims_for(None))
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
     attacker_args = projection.claim_to_argument_ids["claim_attacker"]
     # Find base args for claim_target (reported_claim / base_claim)
     target_base_args = [
@@ -399,7 +420,11 @@ def test_structured_projection_undercuts_target_inference_rules_not_base_claims(
         ],
     )
 
-    projection = build_structured_projection(store, store.claims_for(None))
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
     attacker_args = projection.claim_to_argument_ids["claim_attacker"]
     # Find base args for claim_target (reported_claim / base_claim)
     target_base_args = [
@@ -448,7 +473,11 @@ def test_undercut_does_not_bleed_across_alternative_justifications_for_same_clai
         ],
     )
 
-    projection = build_structured_projection(store, store.claims_for(None))
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
     attacker_args = projection.claim_to_argument_ids["claim_attacker"]
     target_support_a_args = [
         argument.arg_id
@@ -513,6 +542,7 @@ def test_named_undercut_property_only_defeats_the_selected_rule_arguments(
     projection = build_structured_projection(
         _ProjectionStore(claims=claims, stances=stances),
         claims,
+        bundle=_EMPTY_BUNDLE,
     )
     attacker_args = projection.claim_to_argument_ids["claim_attacker"]
 
@@ -532,7 +562,11 @@ def test_structured_projection_defaults_unconditional_claim_to_exact_empty_label
         ]
     )
 
-    projection = build_structured_projection(store, store.claims_for(None))
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
 
     assert projection.arguments[0].label == Label.empty()
     assert projection.arguments[0].support_quality == SupportQuality.EXACT
@@ -570,6 +604,7 @@ def test_build_structured_projection_threads_link_to_aspic_bridge(monkeypatch) -
     build_structured_projection(
         store,
         store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
         comparison="democratic",
         link="weakest",
     )
@@ -620,6 +655,7 @@ def test_build_structured_projection_property_threads_selected_preference_config
         build_structured_projection(
             store,
             store.claims_for(None),
+            bundle=_EMPTY_BUNDLE,
             comparison=comparison,
             link=link,
         )
@@ -896,6 +932,9 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
 
         def stances_between(self, claim_ids: set[str]) -> list[dict]:
             return []
+
+        def grounding_bundle(self):
+            return _EMPTY_BUNDLE
 
         def close(self) -> None:
             return None

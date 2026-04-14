@@ -4,6 +4,7 @@ import pytest
 
 from propstore.praf import build_praf
 from propstore.dung import ArgumentationFramework
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.opinion import Opinion
 from propstore.praf import (
     ProbabilisticAF,
@@ -11,6 +12,8 @@ from propstore.praf import (
     summarize_defeat_relations,
 )
 from propstore.structured_projection import build_structured_projection
+
+_EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
 class _MiniStore:
@@ -164,7 +167,11 @@ def test_structured_projection_keeps_vacuous_attack_edges() -> None:
         ],
     )
 
-    projection = build_structured_projection(store, store.claims_for(None))
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
 
     # Look up argument IDs by claim (bridge uses sequential IDs, not arg:claim_id)
     claim_a_args = projection.claim_to_argument_ids["claim_a"]

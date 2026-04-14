@@ -5,9 +5,12 @@ import json
 from pathlib import Path
 
 from propstore.claim_graph import build_argumentation_framework
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import SupportQuality, build_structured_projection
 from tests.test_revision_bound_world import _operator_bound
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
+
+_EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
 def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims() -> None:
@@ -53,6 +56,7 @@ def test_project_epistemic_state_builds_structured_inputs_with_exact_support_met
     projection = build_structured_projection(
         view.store,
         list(view.active_claims),
+        bundle=_EMPTY_BUNDLE,
         support_metadata=dict(view.support_metadata),
     )
     argument = next(arg for arg in projection.arguments if arg.claim_id == "claim_exact")

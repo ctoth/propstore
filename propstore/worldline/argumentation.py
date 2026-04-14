@@ -153,9 +153,14 @@ def _capture_aspic(
         for claim in active:
             support_metadata[str(claim.claim_id)] = bound.claim_support(claim)
 
+    grounding_bundle = getattr(world, "grounding_bundle", None)
+    if not callable(grounding_bundle):
+        return None
+
     projection = build_structured_projection(
         world,
         active,
+        bundle=grounding_bundle(),
         support_metadata=support_metadata,
         comparison=policy.comparison,
         link=policy.link,
