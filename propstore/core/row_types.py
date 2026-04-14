@@ -16,6 +16,7 @@ from propstore.core.claim_values import (
     SourceOrigin,
     SourceTrust,
 )
+from propstore.stances import StanceType, coerce_stance_type
 from propstore.core.id_types import (
     ClaimId,
     ConceptId,
@@ -614,11 +615,12 @@ class ClaimRow:
 class StanceRow:
     claim_id: ClaimId
     target_claim_id: ClaimId
-    stance_type: str
+    stance_type: StanceType
     target_justification_id: JustificationId | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "stance_type", coerce_stance_type(self.stance_type))
         object.__setattr__(self, "attributes", dict(self.attributes))
 
     @classmethod
@@ -632,7 +634,7 @@ class StanceRow:
         return cls(
             claim_id=to_claim_id(row_map["claim_id"]),
             target_claim_id=to_claim_id(row_map["target_claim_id"]),
-            stance_type=str(row_map["stance_type"]),
+            stance_type=coerce_stance_type(row_map["stance_type"]),
             target_justification_id=(
                 None
                 if row_map.get("target_justification_id") is None
@@ -645,7 +647,7 @@ class StanceRow:
         data: dict[str, Any] = {
             "claim_id": self.claim_id,
             "target_claim_id": self.target_claim_id,
-            "stance_type": self.stance_type,
+            "stance_type": self.stance_type.value,
         }
         if self.target_justification_id is not None:
             data["target_justification_id"] = self.target_justification_id

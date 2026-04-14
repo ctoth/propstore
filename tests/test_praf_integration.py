@@ -10,6 +10,7 @@ import pytest
 
 from propstore.dung import ArgumentationFramework
 from propstore.opinion import Opinion
+from propstore.stances import StanceType
 
 
 # ---------------------------------------------------------------------------
@@ -434,7 +435,7 @@ def test_build_praf_deterministic():
     assert attack_relation.kind == "attack"
     assert attack_relation.edge == ("c1", "c2")
     assert attack_relation.provenance is not None
-    assert attack_relation.provenance.stance_type == "rebuts"
+    assert attack_relation.provenance.stance_type is StanceType.REBUTS
     assert len(praf.direct_defeat_relations) == 1
     assert praf.direct_defeat_relations[0].edge == ("c1", "c2")
 
