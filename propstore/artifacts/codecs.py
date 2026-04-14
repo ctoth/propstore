@@ -52,6 +52,20 @@ def render_yaml_value(value: object) -> str:
     return encode_yaml_value(value).decode("utf-8").rstrip()
 
 
+def decode_yaml_value(payload: bytes, *, source: str) -> object:
+    try:
+        return msgspec.yaml.decode(payload)
+    except msgspec.DecodeError as exc:
+        raise ValueError(f"{source}: invalid YAML payload") from exc
+
+
+def decode_yaml_mapping(payload: bytes, *, source: str) -> dict[str, Any]:
+    decoded = decode_yaml_value(payload, source=source) or {}
+    if not isinstance(decoded, dict):
+        raise ValueError(f"{source}: expected a YAML mapping")
+    return decoded
+
+
 def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict[str, Any]]]:
     results: list[tuple[str, Path, dict[str, Any]]] = []
     for entry in sorted(directory.iterdir()):
@@ -59,10 +73,7 @@ def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict[str, Any]]]:
             continue
         raw = entry.read_bytes()
         if raw.strip():
-            decoded = msgspec.yaml.decode(raw)
-            if not isinstance(decoded, dict):
-                raise ValueError(f"{entry}: expected a YAML mapping")
-            data = decoded
+            data = decode_yaml_mapping(raw, source=str(entry))
         else:
             data = {}
         results.append((entry.stem, entry, data if data else {}))

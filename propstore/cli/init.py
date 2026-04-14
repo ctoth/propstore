@@ -4,8 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-import msgspec
 
+from propstore.artifacts.codecs import decode_yaml_mapping
 from propstore.artifacts import FORM_FAMILY, FormRef
 from propstore.cli.repository import Repository
 
@@ -19,7 +19,7 @@ def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, object]]:
             f"init requires packaged form resources at {package_forms_dir}"
         )
     for form_path in sorted(package_forms_dir.glob("*.yaml")):
-        payload = msgspec.yaml.decode(form_path.read_bytes())
+        payload = decode_yaml_mapping(form_path.read_bytes(), source=str(form_path))
         form_documents.append(
             (
                 FormRef(form_path.stem),
