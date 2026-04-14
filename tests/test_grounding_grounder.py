@@ -617,25 +617,21 @@ def test_grounder_multiple_facts_same_predicate_all_grounded() -> None:
 def test_grounder_policy_is_configurable() -> None:
     """``ground(..., policy=...)`` threads the policy through to gunray.
 
-    Garcia & Simari 2004 §4 (p.25) discusses ambiguity resolution —
-    blocking versus propagating — in the four-valued answer system.
-    Diller, Borg, Bex 2025 §3 invokes gunray's evaluator over the
-    ground model, and gunray's ``GunrayEvaluator.evaluate`` accepts
-    a ``Policy`` enum argument (``BLOCKING`` is the default). The
-    grounder must accept a ``policy`` keyword and thread it through
-    so callers can switch between ambiguity regimes.
+    Garcia & Simari 2004 §4 (p.25) discusses ambiguity resolution in
+    the four-valued answer system. Diller, Borg, Bex 2025 §3 invokes
+    gunray's evaluator over the ground model, and gunray's
+    ``GunrayEvaluator.evaluate`` accepts a ``Policy`` enum argument
+    (``BLOCKING`` is the default). The grounder must accept a
+    ``policy`` keyword and thread it through so callers can switch
+    regimes.
 
-    Phase 1 cannot construct a theory where the two policies
-    actually diverge because the translator does not yet emit
-    ``DefeasibleTheory.conflicts`` pairs (see chunk 1.4b report and
-    translator docstring: strong negation / contrariness routing is
-    deferred). Without a conflict pair nothing can oppose a
-    supporting rule, so every atom is unambiguously proved in both
-    regimes. This test therefore pins the narrower contract:
-    calling with ``Policy.PROPAGATING`` returns a valid four-
-    sectioned bundle that still preserves the canonical birds-fly
-    derivation. A stronger differential test belongs to a later
-    chunk once conflict pairs are translatable.
+    Post-Block-2 (gunray notes/policy_propagating_fate.md) only
+    ``Policy.BLOCKING`` remains on the dialectical-tree path;
+    ``Policy.PROPAGATING`` was deprecated. This test therefore pins
+    the narrower contract: calling with an explicit
+    ``Policy.BLOCKING`` returns the same four-sectioned bundle as
+    the default invocation, and both populate the canonical
+    birds-fly derivation.
     """
 
     from gunray.schema import Policy
@@ -652,20 +648,20 @@ def test_grounder_policy_is_configurable() -> None:
     rule_file = _build_rule_file([rule])
     facts = (GroundAtom("bird", ("tweety",)),)
 
-    bundle_propagating = ground(
-        [rule_file], facts, _bird_registry(), policy=Policy.PROPAGATING
+    bundle_blocking = ground(
+        [rule_file], facts, _bird_registry(), policy=Policy.BLOCKING
     )
-    assert set(bundle_propagating.sections.keys()) == set(_FOUR_SECTIONS)
+    assert set(bundle_blocking.sections.keys()) == set(_FOUR_SECTIONS)
     flies_rows = {
         tuple(row)
-        for row in bundle_propagating.sections["defeasibly"].get(
+        for row in bundle_blocking.sections["defeasibly"].get(
             "flies", frozenset()
         )
     }
     assert ("tweety",) in flies_rows
 
-    # Default policy (BLOCKING) also works and both runs populate
-    # the canonical defeasibly-provable row.
+    # Default policy (BLOCKING) also works; both runs populate the
+    # canonical defeasibly-provable row.
     bundle_default = ground([rule_file], facts, _bird_registry())
     default_flies_rows = {
         tuple(row)
