@@ -38,11 +38,15 @@ Theoretical anchors:
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from propstore.aspic import GroundAtom, Scalar
 from propstore.rule_files import LoadedRuleFile
+
+if TYPE_CHECKING:
+    from gunray import Argument
 
 
 def _build_empty_sections() -> Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]:
@@ -91,11 +95,23 @@ class GroundedRulesBundle:
             always present, even when empty — the grounder re-normalises
             gunray's output (which drops empty sections) so the
             non-commitment discipline is preserved.
+        arguments: Ordered tuple of ``gunray.Argument`` objects as
+            produced by ``gunray.build_arguments`` (Garcia & Simari
+            2004 §3 Def 3.6 — an argument is a minimal, consistent
+            defeasible derivation). Populated only when the grounder
+            is called with ``return_arguments=True``; defaults to the
+            empty tuple so every call site that constructs a bundle
+            with only the three legacy fields still type-checks and
+            runs. Diller, Borg, Bex 2025 §4 uses argument objects as
+            the atomic unit of the dialectical-tree procedure; Block
+            3 of the gunray refactor exposes this typed view
+            alongside the legacy section projection.
     """
 
     source_rules: tuple[LoadedRuleFile, ...]
     source_facts: tuple[GroundAtom, ...]
     sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]
+    arguments: tuple["Argument", ...] = field(default_factory=tuple)
 
     @classmethod
     def empty(cls) -> "GroundedRulesBundle":
