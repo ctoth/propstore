@@ -8,7 +8,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.claim_files import LoadedClaimFile
-from propstore.cel_checker import ConceptInfo, build_cel_registry_from_concepts
+from propstore.cel_checker import ConceptInfo, build_cel_registry
 from propstore.core.concepts import (
     ConceptRecord,
     LoadedConcept,
@@ -108,7 +108,9 @@ def _build_context_from_concepts(
             if claim_files is None
             else _build_claim_lookup(claim_files)
         ),
-        cel_registry=_freeze_mapping(build_cel_registry_from_concepts(concepts)),
+        cel_registry=_freeze_mapping(
+            build_cel_registry(concept.record.to_payload() for concept in concepts)
+        ),
     )
 
 
@@ -212,7 +214,7 @@ def compilation_context_from_concept_registry(
             else _build_claim_lookup(claim_files)
         ),
         cel_registry=_freeze_mapping(
-            build_cel_registry_from_concepts(concepts_by_id.values())
+            build_cel_registry(record.to_payload() for record in concepts_by_id.values())
         ),
     )
 

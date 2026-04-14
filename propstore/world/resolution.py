@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from propstore.cel_checker import (
     ConceptInfo,
-    build_cel_registry_from_records,
+    build_cel_registry,
     scope_cel_registry,
 )
 from propstore.core.active_claims import (
@@ -296,7 +296,7 @@ def _cel_registry_for_concepts(
         for concept_id in concept_ids
         if (concept := world.get_concept(concept_id)) is not None
     ]
-    registry = build_cel_registry_from_records(records)
+    registry = build_cel_registry(records)
     return scope_cel_registry(registry, concept_ids)
 
 

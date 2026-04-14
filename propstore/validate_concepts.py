@@ -20,7 +20,7 @@ from bridgman import verify_expr, dims_of_expr, DimensionalError
 
 from propstore.cel_checker import (
     KindType,
-    build_cel_registry_from_concepts,
+    build_cel_registry,
     check_cel_expression,
 )
 from propstore.artifacts.documents.concepts import ConceptDocument
@@ -144,7 +144,7 @@ def validate_concepts(
     result = ValidationResult()
     id_to_concept: dict[str, LoadedConcept] = {}
     seen_logical_ids: dict[str, str] = {}
-    cel_registry = build_cel_registry_from_concepts(concepts)
+    cel_registry = build_cel_registry(concept.record.to_payload() for concept in concepts)
 
     def _forms_dir(c: LoadedConcept) -> KnowledgePath:
         if forms_dir is not None:

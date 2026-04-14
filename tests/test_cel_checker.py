@@ -17,12 +17,10 @@ from propstore.cel_checker import (
     TernaryNode,
     UnaryOpNode,
     build_cel_registry,
-    build_cel_registry_from_loaded,
     check_cel_expression,
     parse_cel,
     tokenize,
 )
-from propstore.loaded import LoadedEntry
 
 
 # ── Fixtures: concept registries ─────────────────────────────────────
@@ -192,6 +190,16 @@ class TestQuantityTypeChecking:
     def test_quantity_equality_numeric_ok(self, registry):
         errors = check_cel_expression("fundamental_frequency == 220", registry)
         assert not any(not e.is_warning for e in errors)
+
+    def test_quantity_compared_to_category_concept_errors(self, registry):
+        errors = check_cel_expression("fundamental_frequency == task", registry)
+        hard_errors = [e for e in errors if not e.is_warning]
+        assert len(hard_errors) >= 1
+        assert any(
+            "cannot compare quantity concept 'fundamental_frequency' to category concept 'task'"
+            in e.message.lower()
+            for e in hard_errors
+        )
 
 
 # ── Type checker: category concepts ──────────────────────────────────
@@ -490,23 +498,25 @@ def test_closed_category_undeclared_literals_are_hard_errors(val):
 class TestBuildCelRegistry:
     """Tests for the consolidated build_cel_registry function."""
 
-    def test_dict_input_quantity(self):
-        concept_registry = {
-            "concept1": {
+    def test_mapping_input_quantity(self):
+        concept_payloads = [
+            {
+                "artifact_id": "concept1",
                 "canonical_name": "temperature",
                 "form": "quantity",
             }
-        }
-        result = build_cel_registry(concept_registry)
+        ]
+        result = build_cel_registry(concept_payloads)
         assert "temperature" in result
         info = result["temperature"]
         assert info.id == "concept1"
         assert info.kind == KindType.QUANTITY
         assert info.category_values == []
 
-    def test_dict_input_category(self):
-        concept_registry = {
-            "concept2": {
+    def test_mapping_input_category(self):
+        concept_payloads = [
+            {
+                "artifact_id": "concept2",
                 "canonical_name": "color",
                 "form": "category",
                 "form_parameters": {
@@ -514,8 +524,8 @@ class TestBuildCelRegistry:
                     "extensible": False,
                 },
             }
-        }
-        result = build_cel_registry(concept_registry)
+        ]
+        result = build_cel_registry(concept_payloads)
         assert "color" in result
         info = result["color"]
         assert info.kind == KindType.CATEGORY
@@ -523,90 +533,39 @@ class TestBuildCelRegistry:
         assert info.category_extensible is False
 
     def test_skips_missing_name(self):
-        concept_registry = {
-            "concept3": {"form": "quantity"},  # no canonical_name
-        }
-        result = build_cel_registry(concept_registry)
+        result = build_cel_registry([
+            {"artifact_id": "concept3", "form": "quantity"},
+        ])
         assert len(result) == 0
 
     def test_skips_missing_form(self):
-        concept_registry = {
-            "concept4": {"canonical_name": "pressure"},  # no form
-        }
-        result = build_cel_registry(concept_registry)
+        result = build_cel_registry([
+            {"artifact_id": "concept4", "canonical_name": "pressure"},
+        ])
         assert len(result) == 0
 
     def test_category_extensible_defaults_true(self):
-        concept_registry = {
-            "concept5": {
+        result = build_cel_registry([
+            {
+                "artifact_id": "concept5",
                 "canonical_name": "status",
                 "form": "category",
                 "form_parameters": {"values": ["active"]},
             }
-        }
-        result = build_cel_registry(concept_registry)
+        ])
         assert result["status"].category_extensible is True
-
-    def test_from_loaded_concepts(self):
-        from pathlib import Path
-
-        concepts = [
-            LoadedEntry(
-                filename="temperature",
-                source_path=Path("fake/temperature.yaml"),
-                data={
-                    "id": "concept1",
-                    "canonical_name": "temperature",
-                    "form": "quantity",
-                },
-            ),
-            LoadedEntry(
-                filename="color",
-                source_path=Path("fake/color.yaml"),
-                data={
-                    "id": "concept2",
-                    "canonical_name": "color",
-                    "form": "category",
-                    "form_parameters": {
-                        "values": ["red", "blue"],
-                        "extensible": False,
-                    },
-                },
-            ),
-        ]
-        result = build_cel_registry_from_loaded(concepts)
-        assert "temperature" in result
-        assert "color" in result
-        assert result["temperature"].kind == KindType.QUANTITY
-        assert result["color"].category_values == ["red", "blue"]
-
-    def test_from_loaded_derives_identity_from_canonical_name(self):
-        from pathlib import Path
-
-        concepts = [
-            LoadedEntry(
-                filename="mystery",
-                source_path=Path("fake/mystery.yaml"),
-                data={
-                    "canonical_name": "mystery",
-                    "form": "quantity",
-                },
-            ),
-        ]
-        result = build_cel_registry_from_loaded(concepts)
-        assert "mystery" in result
-        assert result["mystery"].id.startswith("ps:concept:")
 
 
 def test_category_from_cli_round_trip():
     """Category concept created with values -> CEL checker validates against those values."""
-    registry = build_cel_registry({
-        "concept1": {
+    registry = build_cel_registry([
+        {
+            "artifact_id": "concept1",
             "canonical_name": "dataset",
             "form": "category",
             "form_parameters": {"values": ["ActivityNet", "YouCook2"], "extensible": False},
         }
-    })
+    ])
     # Valid value -> no errors
     errors = check_cel_expression("dataset == 'ActivityNet'", registry)
     assert not any(not e.is_warning for e in errors)

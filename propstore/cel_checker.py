@@ -15,12 +15,7 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any
-
-from propstore.core.concepts import ConceptRecord, LoadedConcept
-
-if TYPE_CHECKING:
-    from propstore.loaded import LoadedEntry
+from typing import Any
 
 
 class KindType(Enum):
@@ -42,16 +37,17 @@ class ConceptInfo:
     category_extensible: bool = True
 
 
-def build_cel_registry(concept_registry: dict[str, dict]) -> dict[str, ConceptInfo]:
-    """Build a concept registry for CEL type-checking.
-
-    Accepts a dict mapping concept_id -> concept data dict.
-    Returns a dict mapping canonical_name -> ConceptInfo.
-
-    For the LoadedEntry list input shape, use
-    ``build_cel_registry_from_loaded()``.
-    """
-    return build_cel_registry_from_concept_map(concept_registry)
+def build_cel_registry(
+    records: Iterable[Mapping[str, Any]],
+) -> dict[str, ConceptInfo]:
+    """Build the canonical CEL registry from normalized concept payloads."""
+    registry: dict[str, ConceptInfo] = {}
+    for record in records:
+        info = _concept_info_from_mapping(record)
+        if info is None:
+            continue
+        registry[info.canonical_name] = info
+    return registry
 
 
 STANDARD_SYNTHETIC_BINDING_NAMES = (
@@ -63,39 +59,6 @@ STANDARD_SYNTHETIC_BINDING_NAMES = (
     "framework",
     "variant",
 )
-
-
-def build_cel_registry_from_loaded(concepts: list[LoadedEntry]) -> dict[str, ConceptInfo]:
-    """Build a CEL registry from a list of LoadedEntry objects.
-
-    Thin wrapper that converts LoadedEntry list into the dict shape
-    expected by ``build_cel_registry()``.
-    """
-    from propstore.core.concepts import normalize_concept_payload
-
-    return build_cel_registry_from_records(
-        normalize_concept_payload(c.data)
-        for c in concepts
-        if isinstance(c.data, Mapping)
-    )
-
-
-def concept_info_from_concept(record: ConceptRecord) -> ConceptInfo | None:
-    return concept_info_from_record(record.to_payload(), default_id=str(record.artifact_id))
-
-
-def build_cel_registry_from_concepts(
-    concepts: Iterable[LoadedConcept | ConceptRecord],
-) -> dict[str, ConceptInfo]:
-    registry: dict[str, ConceptInfo] = {}
-    for concept in concepts:
-        record = concept.record if isinstance(concept, LoadedConcept) else concept
-        info = concept_info_from_concept(record)
-        if info is None:
-            continue
-        registry[info.canonical_name] = info
-    return registry
-
 
 def _mapping_form_parameters(value: object) -> Mapping[str, Any]:
     if isinstance(value, Mapping):
@@ -124,17 +87,13 @@ def _kind_type_from_record(data: Mapping[str, Any]) -> KindType | None:
     return kind_type_from_form_name(data.get("form"))
 
 
-def concept_info_from_record(
-    data: Mapping[str, Any],
-    *,
-    default_id: str | None = None,
-) -> ConceptInfo | None:
-    """Build one ``ConceptInfo`` from any canonical concept-like payload."""
+def _concept_info_from_mapping(data: Mapping[str, Any]) -> ConceptInfo | None:
+    """Build one ``ConceptInfo`` from a caller-normalized concept payload."""
     canonical_name = data.get("canonical_name")
     if not isinstance(canonical_name, str) or not canonical_name:
         return None
 
-    concept_id = data.get("artifact_id") or data.get("id") or default_id
+    concept_id = data.get("artifact_id") or data.get("id")
     if not isinstance(concept_id, str) or not concept_id:
         return None
 
@@ -159,44 +118,6 @@ def concept_info_from_record(
         category_values=category_values,
         category_extensible=category_extensible,
     )
-
-
-def build_cel_registry_from_records(
-    records: Iterable[Mapping[str, Any]],
-) -> dict[str, ConceptInfo]:
-    """Build the canonical CEL registry from concept-like record payloads."""
-    registry: dict[str, ConceptInfo] = {}
-    for record in records:
-        info = concept_info_from_record(record)
-        if info is None:
-            continue
-        registry[info.canonical_name] = info
-    return registry
-
-
-def build_cel_registry_from_concept_map(
-    concept_registry: Mapping[str, Mapping[str, Any]],
-) -> dict[str, ConceptInfo]:
-    """Build a CEL registry from a concept lookup map with aliases or duplicates."""
-    seen_ids: set[str] = set()
-    registry: dict[str, ConceptInfo] = {}
-    for default_id, data in concept_registry.items():
-        concept_id = data.get("artifact_id") or data.get("id") or str(default_id)
-        if not isinstance(concept_id, str) or not concept_id or concept_id in seen_ids:
-            continue
-        seen_ids.add(concept_id)
-        info = concept_info_from_record(data, default_id=concept_id)
-        if info is None:
-            continue
-        registry[info.canonical_name] = info
-    return registry
-
-
-def build_cel_registry_from_rows(
-    rows: Iterable[Mapping[str, Any]],
-) -> dict[str, ConceptInfo]:
-    """Build a CEL registry from sidecar/store concept rows."""
-    return build_cel_registry_from_records(rows)
 
 
 def scope_cel_registry(
@@ -547,6 +468,17 @@ ORDERING_OPS = {"<", ">", "<=", ">="}
 EQUALITY_OPS = {"==", "!="}
 LOGICAL_OPS = {"&&", "||"}
 
+_DISALLOWED_KIND_USAGE: dict[str, dict[KindType, str]] = {
+    "arithmetic": {
+        KindType.CATEGORY: "Category concept '{name}' cannot appear in arithmetic",
+        KindType.BOOLEAN: "Boolean concept '{name}' cannot appear in arithmetic",
+    },
+    "ordering comparison": {
+        KindType.CATEGORY: "Category concept '{name}' cannot appear in ordering comparison",
+        KindType.BOOLEAN: "Boolean concept '{name}' cannot appear in ordering comparison",
+    },
+}
+
 
 def check_cel_expression(
     expr: str,
@@ -643,28 +575,42 @@ def _check_binary(node: BinaryOpNode, expr: str, registry: dict[str, ConceptInfo
         return ExprType.BOOLEAN
 
     if node.op in ARITHMETIC_OPS:
-        # Check that neither side is category or boolean concept used in arithmetic
-        _check_no_category_arithmetic(node.left, expr, registry, errors)
-        _check_no_category_arithmetic(node.right, expr, registry, errors)
-        _check_no_boolean_arithmetic(node.left, expr, registry, errors)
-        _check_no_boolean_arithmetic(node.right, expr, registry, errors)
+        _check_disallowed_kind_usage(
+            node.left, expr, registry, errors, operation_class="arithmetic"
+        )
+        _check_disallowed_kind_usage(
+            node.right, expr, registry, errors, operation_class="arithmetic"
+        )
         return ExprType.NUMERIC
 
     if node.op in ORDERING_OPS:
-        # Category and boolean concepts cannot be ordered
-        _check_no_category_ordering(node.left, expr, registry, errors)
-        _check_no_category_ordering(node.right, expr, registry, errors)
-        _check_no_boolean_ordering(node.left, expr, registry, errors)
-        _check_no_boolean_ordering(node.right, expr, registry, errors)
-        # Quantity compared to string literal → error
-        _check_type_mismatch(node.left, right_type, expr, registry, errors)
-        _check_type_mismatch(node.right, left_type, expr, registry, errors)
+        _check_disallowed_kind_usage(
+            node.left, expr, registry, errors, operation_class="ordering comparison"
+        )
+        _check_disallowed_kind_usage(
+            node.right, expr, registry, errors, operation_class="ordering comparison"
+        )
+        _check_comparison_type_mismatch(
+            node.left,
+            node.right,
+            left_type,
+            right_type,
+            expr,
+            registry,
+            errors,
+        )
         return ExprType.BOOLEAN
 
     if node.op in EQUALITY_OPS:
-        # Check type mismatches between concepts and literals
-        _check_type_mismatch(node.left, right_type, expr, registry, errors)
-        _check_type_mismatch(node.right, left_type, expr, registry, errors)
+        _check_comparison_type_mismatch(
+            node.left,
+            node.right,
+            left_type,
+            right_type,
+            expr,
+            registry,
+            errors,
+        )
         # Check category value sets
         _check_category_value(node.left, node.right, expr, registry, errors)
         _check_category_value(node.right, node.left, expr, registry, errors)
@@ -711,50 +657,110 @@ def _check_node(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], erro
     _resolve_type(node, expr, registry, errors)
 
 
-def _check_no_category_arithmetic(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+def _check_disallowed_kind_usage(
+    node: ASTNode,
+    expr: str,
+    registry: dict[str, ConceptInfo],
+    errors: list[CelError],
+    *,
+    operation_class: str,
+) -> None:
     if isinstance(node, NameNode):
         info = registry.get(node.name)
-        if info and info.kind == KindType.CATEGORY:
-            errors.append(CelError(expr, f"Category concept '{node.name}' cannot appear in arithmetic"))
+        message_template = (
+            None
+            if info is None
+            else _DISALLOWED_KIND_USAGE.get(operation_class, {}).get(info.kind)
+        )
+        if message_template is not None:
+            errors.append(CelError(expr, message_template.format(name=node.name)))
 
 
-def _check_no_boolean_arithmetic(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
-    if isinstance(node, NameNode):
-        info = registry.get(node.name)
-        if info and info.kind == KindType.BOOLEAN:
-            errors.append(CelError(expr, f"Boolean concept '{node.name}' cannot appear in arithmetic"))
-
-
-def _check_no_category_ordering(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
-    if isinstance(node, NameNode):
-        info = registry.get(node.name)
-        if info and info.kind == KindType.CATEGORY:
-            errors.append(CelError(expr, f"Category concept '{node.name}' cannot appear in ordering comparison"))
-
-
-def _check_no_boolean_ordering(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
-    if isinstance(node, NameNode):
-        info = registry.get(node.name)
-        if info and info.kind == KindType.BOOLEAN:
-            errors.append(CelError(expr, f"Boolean concept '{node.name}' cannot appear in ordering comparison"))
-
-
-def _check_type_mismatch(concept_node: ASTNode, other_type: ExprType, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
-    """Check that a concept isn't being compared to a mismatched literal type."""
-    if not isinstance(concept_node, NameNode):
+def _check_comparison_type_mismatch(
+    left: ASTNode,
+    right: ASTNode,
+    left_type: ExprType,
+    right_type: ExprType,
+    expr: str,
+    registry: dict[str, ConceptInfo],
+    errors: list[CelError],
+) -> None:
+    """Check that comparison operands are type-compatible."""
+    if left_type in {ExprType.UNKNOWN} or right_type in {ExprType.UNKNOWN}:
         return
+    if left_type == right_type:
+        return
+    if not isinstance(left, NameNode) and not isinstance(right, NameNode):
+        return
+
+    if _check_concept_literal_type_mismatch(
+        left,
+        right,
+        right_type,
+        expr,
+        registry,
+        errors,
+    ):
+        return
+    if _check_concept_literal_type_mismatch(
+        right,
+        left,
+        left_type,
+        expr,
+        registry,
+        errors,
+    ):
+        return
+
+    left_info = registry.get(left.name) if isinstance(left, NameNode) else None
+    right_info = registry.get(right.name) if isinstance(right, NameNode) else None
+    if left_info is not None and right_info is not None:
+        errors.append(
+            CelError(
+                expr,
+                "Cannot compare "
+                f"{left_info.kind.value} concept '{left.name}' "
+                f"to {right_info.kind.value} concept '{right.name}'",
+            )
+        )
+        return
+
+    errors.append(
+        CelError(
+            expr,
+            f"Type mismatch: cannot compare {left_type.value} to {right_type.value}",
+        )
+    )
+
+
+def _check_concept_literal_type_mismatch(
+    concept_node: ASTNode,
+    other_node: ASTNode,
+    other_type: ExprType,
+    expr: str,
+    registry: dict[str, ConceptInfo],
+    errors: list[CelError],
+) -> bool:
+    """Check that a concept isn't being compared to a mismatched literal type."""
+    if not isinstance(concept_node, NameNode) or not isinstance(other_node, LiteralNode):
+        return False
     info = registry.get(concept_node.name)
     if info is None:
-        return
+        return False
 
     if info.kind in (KindType.QUANTITY, KindType.TIMEPOINT) and other_type == ExprType.STRING:
         errors.append(CelError(expr, f"Quantity concept '{concept_node.name}' compared to string literal"))
-    elif info.kind == KindType.CATEGORY and other_type == ExprType.NUMERIC:
+        return True
+    if info.kind == KindType.CATEGORY and other_type == ExprType.NUMERIC:
         errors.append(CelError(expr, f"Category concept '{concept_node.name}' compared to numeric literal"))
-    elif info.kind == KindType.BOOLEAN and other_type == ExprType.STRING:
+        return True
+    if info.kind == KindType.BOOLEAN and other_type == ExprType.STRING:
         errors.append(CelError(expr, f"Boolean concept '{concept_node.name}' compared to string literal"))
-    elif info.kind == KindType.BOOLEAN and other_type == ExprType.NUMERIC:
+        return True
+    if info.kind == KindType.BOOLEAN and other_type == ExprType.NUMERIC:
         errors.append(CelError(expr, f"Boolean concept '{concept_node.name}' compared to numeric literal"))
+        return True
+    return False
 
 
 def _check_category_value(concept_node: ASTNode, value_node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
