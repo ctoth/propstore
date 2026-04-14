@@ -352,3 +352,17 @@ If any answer is still "it depends", this workstream is not done.
     concept-surface issue (`'active'` concept status / `'is_a'`
     relationship-type values) before the rule-file path is exercised, so it
     was excluded from the kept verification set for this slice.
+- 2026-04-14: Phase 4 predicates slice completed.
+  - Moved predicate-schema structs from `propstore/predicate_documents.py` to
+    `propstore/artifacts/documents/predicates.py`.
+  - Moved the non-schema loaded-file wrapper to
+    `propstore/predicate_files.py`.
+  - Updated grounding and predicate-test imports to point either at the
+    schema module or the non-schema wrapper module.
+  - Deleted `propstore/predicate_documents.py`.
+  - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase4-predicates-green tests/test_predicate_documents.py tests/test_predicate_registry.py tests/test_grounding_loading.py tests/test_grounding_translator.py tests/test_grounding_grounder.py tests/test_defeasible_conformance_tranche.py`
+  - Note: `tests/test_grounding_facts.py` currently fails on a separate
+    concept-surface issue (`ConceptStatus('active')` /
+    `ConceptRelationshipType('is_a')`) before the predicate-file split is
+    implicated, so it was excluded from the kept verification set for this
+    slice.

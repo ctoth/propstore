@@ -37,7 +37,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-from propstore.predicate_documents import LoadedPredicateFile, PredicateDocument
+from propstore.artifacts.documents.predicates import PredicateDocument
+from propstore.predicate_files import LoadedPredicateFile
 
 
 DerivedFromKind = Literal["concept_relation", "claim_attribute", "claim_condition"]

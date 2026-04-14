@@ -28,7 +28,8 @@ Theoretical sources:
       predicate id to arity; declared arity is what the Herbrand base
       ranges variables over.
 
-DocumentStruct conventions mirrored from ``propstore/rule_documents.py``
+DocumentStruct conventions mirrored from
+``propstore.artifacts.documents.rules``
 and ``propstore/claim_documents.py``: ``msgspec.Struct`` with
 ``kw_only=True, forbid_unknown_fields=True``, list-valued fields use
 ``tuple[T, ...] = ()``, and round-tripping through ``msgspec.yaml`` is
@@ -38,7 +39,6 @@ idempotent under strict decoding.
 from __future__ import annotations
 
 from propstore.artifacts.schema import DocumentStruct
-from propstore.loaded import LoadedDocument
 
 
 class PredicateDocument(DocumentStruct):
@@ -83,43 +83,14 @@ class PredicatesFileDocument(DocumentStruct):
     """Top-level envelope for an authored predicates YAML file.
 
     Mirrors the ``RulesFileDocument`` envelope shape from
-    ``propstore/rule_documents.py``: a flat ordered tuple of predicate
-    declarations. Order is preserved across YAML round-trip because
-    Diller, Borg, Bex 2025 §3 builds the Datalog schema in declaration
-    order — authored order is the only stable way to anchor authoring
-    intent across re-encoding.
+    ``propstore.artifacts.documents.rules``: a flat ordered tuple of
+    predicate declarations. Order is preserved across YAML round-trip
+    because Diller, Borg, Bex 2025 §3 builds the Datalog schema in
+    declaration order — authored order is the only stable way to anchor
+    authoring intent across re-encoding.
 
     Attributes:
         predicates: Ordered tuple of predicate declarations.
     """
 
     predicates: tuple[PredicateDocument, ...] = ()
-
-
-class LoadedPredicateFile(LoadedDocument[PredicatesFileDocument]):
-    """Typed predicates-file envelope.
-
-    Mirrors ``LoadedRuleFile.from_loaded_document`` from
-    ``propstore/rule_documents.py`` and ``LoadedClaimFile`` from
-    ``propstore/claim_documents.py``: a thin wrapper around a
-    ``LoadedDocument[PredicatesFileDocument]`` that re-exposes the inner
-    predicate tuple via a ``.predicates`` property. Diller et al. 2025
-    §3 keeps the per-file envelope distinct from the registry-level view
-    so the loader and the grounder can stay decoupled.
-    """
-
-    @classmethod
-    def from_loaded_document(
-        cls,
-        document: LoadedDocument[PredicatesFileDocument],
-    ) -> LoadedPredicateFile:
-        return cls(
-            filename=document.filename,
-            source_path=document.source_path,
-            knowledge_root=document.knowledge_root,
-            document=document.document,
-        )
-
-    @property
-    def predicates(self) -> tuple[PredicateDocument, ...]:
-        return self.document.predicates
