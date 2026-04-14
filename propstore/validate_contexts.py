@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from propstore.artifacts.documents.contexts import ContextDocument
+from propstore.artifacts.schema import load_document
 from propstore.context_types import (
-    ContextDocument,
     ContextInput,
     LoadedContext,
     coerce_loaded_contexts,
 )
-from propstore.artifacts.schema import load_document
 from propstore.diagnostics import ValidationResult
 
 from typing import TYPE_CHECKING

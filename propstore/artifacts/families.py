@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from propstore.artifacts.documents.concepts import ConceptDocument
+from propstore.artifacts.documents.contexts import ContextDocument
 from propstore.artifacts.documents.forms import FormDocument
 from propstore.artifacts.documents.worldlines import WorldlineDefinitionDocument
 from propstore.artifacts.identity import normalize_canonical_concept_payload
@@ -35,7 +36,6 @@ from propstore.artifacts.refs import (
 )
 from propstore.artifacts.types import ArtifactFamily, ResolvedArtifact
 from propstore.claim_documents import ClaimsFileDocument
-from propstore.context_types import ContextDocument
 from propstore.artifacts.documents.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,

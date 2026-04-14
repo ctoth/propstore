@@ -7,10 +7,10 @@ import click
 
 from propstore.artifacts import CONTEXT_FAMILY, ContextRef
 from propstore.artifacts.codecs import encode_document
+from propstore.artifacts.documents.contexts import ContextDocument
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository
 from propstore.artifacts.schema import convert_document_value
-from propstore.context_types import ContextDocument
 from propstore.validate_contexts import load_contexts
 
 
