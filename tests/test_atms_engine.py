@@ -24,6 +24,7 @@ from propstore.world.types import (
     ReasoningBackend,
     RenderPolicy,
     ResolutionStrategy,
+    ValueStatus,
 )
 from propstore.worldline import WorldlineDefinition, run_worldline
 
@@ -201,7 +202,7 @@ class _GraphOnlyATMSRuntime:
     def claim_support(self, claim_row: ActiveClaim) -> tuple[Label | None, SupportQuality]:
         return self._bound.claim_support(claim_row)
 
-    def concept_status(self, concept_id: str) -> str:
+    def concept_status(self, concept_id: str) -> ValueStatus:
         return self._bound.value_of(concept_id).status
 
     def replay(self, queryables: tuple[QueryableAssumption, ...]):
@@ -1266,7 +1267,7 @@ def test_atms_bounded_stability_and_relevance_are_honest_for_claims_and_concepts
 
     assert concept_stability["stable"] is False
     assert [witness["queryable_cels"] for witness in concept_stability["witnesses"]] == [["y == 2"]]
-    assert concept_stability["witnesses"][0]["status"] == "determined"
+    assert concept_stability["witnesses"][0]["status"] == ValueStatus.DETERMINED
     assert bound.concept_is_stable("concept2", queryables, limit=8) is False
     assert concept_relevance["relevant_queryables"] == ["y == 2"]
     assert bound.concept_relevant_queryables("concept2", queryables, limit=8) == ["y == 2"]
@@ -1398,12 +1399,17 @@ def test_atms_concept_interventions_use_replayed_value_statuses() -> None:
     )
     bound = _make_bound(store, bindings={"x": 1})
 
-    plans = bound.concept_interventions("concept2", ["y == 2"], "determined", limit=8)
-    suggestions = bound.concept_next_queryables("concept2", ["y == 2"], "determined", limit=8)
+    plans = bound.concept_interventions("concept2", ["y == 2"], ValueStatus.DETERMINED, limit=8)
+    suggestions = bound.concept_next_queryables(
+        "concept2",
+        ["y == 2"],
+        ValueStatus.DETERMINED,
+        limit=8,
+    )
 
     assert [plan["queryable_cels"] for plan in plans] == [["y == 2"]]
-    assert plans[0]["current_status"] == "no_claims"
-    assert plans[0]["result_status"] == "determined"
+    assert plans[0]["current_status"] == ValueStatus.NO_CLAIMS
+    assert plans[0]["result_status"] == ValueStatus.DETERMINED
     assert [entry["queryable_cel"] for entry in suggestions] == ["y == 2"]
 
 

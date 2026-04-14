@@ -58,6 +58,14 @@ class ValueStatus(StrEnum):
     RESOLVED = "resolved"
 
 
+def coerce_value_status(value: object | None) -> ValueStatus | None:
+    if value is None:
+        return None
+    if isinstance(value, ValueStatus):
+        return value
+    return ValueStatus(str(value))
+
+
 @dataclass
 class ValueResult:
     concept_id: ConceptId
@@ -198,7 +206,7 @@ class ATMSConceptFutureStatusEntry(TypedDict):
     queryable_cels: list[str]
     environment: list[AssumptionId]
     consistent: bool
-    status: str
+    status: ValueStatus
     supported_claim_ids: list[ClaimId]
 
 
@@ -236,7 +244,7 @@ class ATMSNodeStabilityReport(TypedDict):
 
 class ATMSConceptStabilityReport(TypedDict):
     concept_id: str
-    current_status: str
+    current_status: ValueStatus
     stable: bool
     limit: int
     future_count: int
@@ -258,7 +266,7 @@ class ATMSConceptRelevanceState(TypedDict):
     queryable_cels: list[str]
     environment: list[AssumptionId]
     consistent: bool
-    status: str
+    status: ValueStatus
 
 
 ATMSNodeWitnessPair = TypedDict(
@@ -294,7 +302,7 @@ class ATMSNodeRelevanceReport(TypedDict):
 
 class ATMSConceptRelevanceReport(TypedDict):
     concept_id: str
-    current_status: str
+    current_status: ValueStatus
     relevant_queryables: list[str]
     irrelevant_queryables: list[str]
     witness_pairs: dict[str, list[ATMSConceptWitnessPair]]
@@ -318,13 +326,13 @@ class ATMSNodeInterventionPlan(TypedDict):
 class ATMSConceptInterventionPlan(TypedDict):
     target: str
     concept_id: str
-    current_status: str
-    target_status: str
+    current_status: ValueStatus
+    target_status: ValueStatus
     queryable_ids: list[QueryableId]
     queryable_cels: list[str]
     environment: list[AssumptionId]
     consistent: bool
-    result_status: str
+    result_status: ValueStatus
     minimality_basis: str
 
 

@@ -86,7 +86,9 @@ from propstore.world.types import (
     ATMSWhyOutReport,
     Environment,
     QueryableAssumption,
+    ValueStatus,
     ValueResult,
+    coerce_value_status,
 )
 
 if TYPE_CHECKING:
@@ -118,7 +120,7 @@ class _ATMSRuntimeLike(Protocol):
     def claim_support(self) -> Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]: ...
 
     @property
-    def concept_status(self) -> Callable[[str], str]: ...
+    def concept_status(self) -> Callable[[str], ValueStatus]: ...
 
     @property
     def replay(self) -> Callable[[tuple[QueryableAssumption, ...]], "_ATMSRuntimeLike"]: ...
@@ -878,23 +880,24 @@ class ATMSEngine:
         self,
         concept_id: str,
         queryables: Sequence[QueryableAssumption],
-        target_value_status: str,
+        target_value_status: ValueStatus,
         *,
         limit: int = 8,
         max_plans: int | None = None,
     ) -> list[ATMSConceptInterventionPlan]:
         """Return minimal additive plans that reach the requested concept value status."""
         current_status = self._runtime.concept_status(concept_id)
+        normalized_target = self._coerce_concept_target_status(target_value_status)
         candidates = [
             future
             for future in self._concept_future_entries(concept_id, queryables, limit=limit)
-            if future["consistent"] and future["status"] == target_value_status
+            if future["consistent"] and future["status"] == normalized_target
         ]
         plans = [
             self._concept_intervention_plan(
                 concept_id,
                 current_status=current_status,
-                target_status=target_value_status,
+                target_status=normalized_target,
                 future=future,
             )
             for future in self._minimal_future_entries(candidates)
@@ -944,7 +947,7 @@ class ATMSEngine:
         self,
         concept_id: str,
         queryables: Sequence[QueryableAssumption],
-        target_value_status: str,
+        target_value_status: ValueStatus,
         *,
         limit: int = 8,
         max_suggestions: int | None = None,
@@ -1816,7 +1819,7 @@ class ATMSEngine:
     def _concept_relevance_from_states(
         self,
         states: dict[tuple[QueryableId, ...], ATMSConceptRelevanceState],
-        current_status: str,
+        current_status: ValueStatus,
     ) -> tuple[list[str], list[str], dict[str, list[ATMSConceptWitnessPair]]]:
         known_queryables = sorted({
             (queryable_id, queryable_cel)
@@ -1904,6 +1907,12 @@ class ATMSEngine:
         return normalized
 
     @staticmethod
+    def _coerce_concept_target_status(target_status: ValueStatus) -> ValueStatus:
+        normalized = coerce_value_status(target_status)
+        assert normalized is not None
+        return normalized
+
+    @staticmethod
     def _future_reaches_node_target(
         future: ATMSNodeFutureStatusEntry,
         target_status: ATMSNodeStatus,
@@ -1941,8 +1950,8 @@ class ATMSEngine:
         self,
         concept_id: str,
         *,
-        current_status: str,
-        target_status: str,
+        current_status: ValueStatus,
+        target_status: ValueStatus,
         future: ATMSConceptFutureStatusEntry,
     ) -> ATMSConceptInterventionPlan:
         return {
@@ -2214,7 +2223,11 @@ class ATMSEngine:
             "queryable_cels": list(future["queryable_cels"]),
             "environment": list(future["environment"]),
             "consistent": future["consistent"],
-            "status": future["status"].value if isinstance(future["status"], ATMSNodeStatus) else future["status"],
+            "status": (
+                future["status"].value
+                if isinstance(future["status"], (ATMSNodeStatus, ValueStatus))
+                else future["status"]
+            ),
         }
         if "out_kind" in future:
             result["out_kind"] = (
@@ -2243,7 +2256,7 @@ class ATMSEngine:
             "consistent": state["consistent"],
             "status": (
                 state["status"].value
-                if isinstance(state["status"], ATMSNodeStatus)
+                if isinstance(state["status"], (ATMSNodeStatus, ValueStatus))
                 else state["status"]
             ),
         }
@@ -2270,7 +2283,7 @@ class ATMSEngine:
             serialized["current"] = cls._serialize_inspection(report["current"])
         if "concept_id" in report:
             serialized["concept_id"] = report["concept_id"]
-            serialized["current_status"] = report["current_status"]
+            serialized["current_status"] = report["current_status"].value
         return serialized
 
     @classmethod
@@ -2301,7 +2314,7 @@ class ATMSEngine:
             serialized["current_status"] = report["current_status"].value
         if "concept_id" in report:
             serialized["concept_id"] = report["concept_id"]
-            serialized["current_status"] = report["current_status"]
+            serialized["current_status"] = report["current_status"].value
         return serialized
 
     @classmethod
@@ -2330,9 +2343,9 @@ class ATMSEngine:
             )
         if "concept_id" in plan:
             serialized["concept_id"] = plan["concept_id"]
-            serialized["current_status"] = plan["current_status"]
-            serialized["target_status"] = plan["target_status"]
-            serialized["result_status"] = plan["result_status"]
+            serialized["current_status"] = plan["current_status"].value
+            serialized["target_status"] = plan["target_status"].value
+            serialized["result_status"] = plan["result_status"].value
         return serialized
 
     @classmethod
