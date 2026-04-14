@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
+from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.concept_status import ConceptStatus, coerce_concept_status
 from propstore.core.concept_relationship_types import (
@@ -224,7 +225,7 @@ class ClaimRow:
     body: str | None = None
     canonical_ast: str | None = None
     variables_json: str | None = None
-    stage: str | None = None
+    stage: AlgorithmStage | None = None
     source: ClaimSource | None = None
     provenance: ClaimProvenance | None = None
     value_si: float | None = None
@@ -237,6 +238,8 @@ class ClaimRow:
         object.__setattr__(self, "attributes", dict(self.attributes))
         if self.claim_type is not None:
             object.__setattr__(self, "claim_type", coerce_claim_type(self.claim_type))
+        if self.stage is not None:
+            object.__setattr__(self, "stage", coerce_algorithm_stage(self.stage))
 
     @classmethod
     def from_mapping(cls, row_map: Mapping[str, Any]) -> ClaimRow:
@@ -483,7 +486,7 @@ class ClaimRow:
             variables_json=(
                 None if row_map.get("variables_json") is None else str(row_map["variables_json"])
             ),
-            stage=None if row_map.get("stage") is None else str(row_map["stage"]),
+            stage=coerce_algorithm_stage(row_map.get("stage")),
             source=source,
             provenance=provenance,
             value_si=None if row_map.get("value_si") is None else float(row_map["value_si"]),
@@ -573,7 +576,7 @@ class ClaimRow:
             "body": self.body,
             "canonical_ast": self.canonical_ast,
             "variables_json": self.variables_json,
-            "stage": self.stage,
+            "stage": None if self.stage is None else str(self.stage),
             "source_slug": None if self.source is None else self.source.slug,
             "source_paper": source_paper,
             "source_id": None if self.source is None else self.source.source_id,

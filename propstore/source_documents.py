@@ -13,6 +13,7 @@ from propstore.claim_documents import (
     StanceDocument,
     VariableBindingDocument,
 )
+from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.exactness_types import Exactness
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.document_schema import DocumentStruct
@@ -248,7 +249,7 @@ class SourceClaimDocument(DocumentStruct):
     notes: str | None = None
     parameters: tuple[ParameterBindingDocument, ...] = ()
     sample_size: int | None = None
-    stage: str | None = None
+    stage: AlgorithmStage | None = None
     stances: tuple[StanceDocument, ...] = ()
     statement: str | None = None
     sympy: str | None = None
@@ -309,7 +310,7 @@ class SourceClaimDocument(DocumentStruct):
         if self.sample_size is not None:
             payload["sample_size"] = self.sample_size
         if self.stage is not None:
-            payload["stage"] = self.stage
+            payload["stage"] = str(self.stage)
         if self.stances:
             payload["stances"] = [stance.to_payload() for stance in self.stances]
         if self.statement is not None:
