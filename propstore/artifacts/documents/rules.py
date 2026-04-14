@@ -1,9 +1,8 @@
 """Typed document models for DeLP-style rule YAML files.
 
 This module hosts the authored-file schema for Defeasible Logic Programming
-(DeLP) rules. Rules express either strict (``<-``) or defeasible (``-<``)
-implications, optionally adorned with default negation in the body and
-strong negation ``~`` on literal heads.
+(DeLP) rules. Rules express strict (``<-``), defeasible (``-<``), or
+defeater implications, with strong negation ``~`` on literal heads.
 
 Theoretical source:
     Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic Programming:
@@ -48,8 +47,7 @@ class AtomDocument(DocumentStruct):
     ``p`` is a predicate symbol and each ``t_i`` is a term. The ``negated``
     flag captures strong negation ``~`` as permitted by the DeLP language
     on both literal heads and literal bodies (Garcia & Simari 2004 §3
-    p.2, p.4). Default negation lives instead in the rule's separate
-    ``negative_body`` channel (§6.1 p.29-31).
+    p.2, p.4).
 
     Attributes:
         predicate: The predicate symbol name.
@@ -80,24 +78,17 @@ class RuleDocument(DocumentStruct):
     at load time — the authoring CLI is responsible for rejecting unsafe
     rules. The document type only needs to round-trip safe rules.
 
-    Default negation on bodies (Garcia & Simari 2004 §6.1 p.29-31)
-    travels in the separate ``negative_body`` channel so positive and
-    default-negated literals remain syntactically distinguishable after
-    a YAML round-trip.
-
     Attributes:
         id: A stable authoring identifier for the rule.
         kind: ``"strict"``, ``"defeasible"``, or ``"defeater"``.
         head: The head atom (may carry strong negation via ``negated``).
         body: Ordered positive-body atoms.
-        negative_body: Ordered default-negated body atoms (§6.1).
     """
 
     id: str
     kind: Literal["strict", "defeasible", "defeater"]
     head: AtomDocument
     body: tuple[AtomDocument, ...] = ()
-    negative_body: tuple[AtomDocument, ...] = ()
 
 
 class RuleSourceDocument(DocumentStruct):

@@ -72,7 +72,6 @@ def _make_rule_document(
         kind="defeasible",
         head=head,
         body=tuple(body),
-        negative_body=(),
     )
 
 

@@ -156,17 +156,12 @@ def grounded_rules_to_rules(
             for row in rows:
                 bucket.add(row)
 
+    strict_rules: list[Rule] = []
     defeasible_rules: list[Rule] = []
+    pending_defeaters: list[tuple[tuple[Literal, ...], Literal, str]] = []
 
     for rule_file in bundle.source_rules:
         for rule_doc in rule_file.document.rules:
-            if rule_doc.kind == "strict":
-                raise NotImplementedError("Strict rules deferred to Phase 4")
-            if rule_doc.kind == "defeater":
-                raise NotImplementedError("Defeater rules deferred to Phase 4")
-            if rule_doc.negative_body:
-                raise NotImplementedError("Negative body (NAF) deferred to Phase 4")
-
             for sigma in _enumerate_substitutions(rule_doc.body, facts):
                 antecedent_literals: list[Literal] = []
                 for body_atom in rule_doc.body:
@@ -182,16 +177,54 @@ def grounded_rules_to_rules(
                     literals,
                 )
                 rule_name = f"{rule_doc.id}#{_canonical_substitution_key(sigma)}"
-                defeasible_rules.append(
-                    Rule(
-                        antecedents=tuple(antecedent_literals),
-                        consequent=consequent,
-                        kind="defeasible",
-                        name=rule_name,
+                antecedents = tuple(antecedent_literals)
+                if rule_doc.kind == "strict":
+                    strict_rules.append(
+                        Rule(
+                            antecedents=antecedents,
+                            consequent=consequent,
+                            kind="strict",
+                            name=None,
+                        )
                     )
-                )
+                    continue
+                if rule_doc.kind == "defeasible":
+                    defeasible_rules.append(
+                        Rule(
+                            antecedents=antecedents,
+                            consequent=consequent,
+                            kind="defeasible",
+                            name=rule_name,
+                        )
+                    )
+                    continue
+                pending_defeaters.append((antecedents, consequent, rule_name))
 
-    return frozenset(), frozenset(defeasible_rules), literals
+    grounded_defeaters: list[Rule] = []
+    for antecedents, defeater_head, defeater_name in pending_defeaters:
+        opposing_rules = [
+            rule
+            for rule in defeasible_rules
+            if rule.name is not None and rule.consequent == defeater_head.contrary
+        ]
+        for target_rule in opposing_rules:
+            assert target_rule.name is not None
+            undercut_literal = _literal_for_atom(
+                GroundAtom(target_rule.name),
+                True,
+                literals,
+            )
+            grounded_defeaters.append(
+                Rule(
+                    antecedents=antecedents,
+                    consequent=undercut_literal,
+                    kind="defeasible",
+                    name=f"{defeater_name}->{target_rule.name}",
+                )
+            )
+
+    defeasible_rules.extend(grounded_defeaters)
+    return frozenset(strict_rules), frozenset(defeasible_rules), literals
 
 
 def _ground_facts_to_axioms(
