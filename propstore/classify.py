@@ -155,10 +155,10 @@ def _build_stance_dict(
         "embedding_model": embedding_model,
         "embedding_distance": embedding_distance,
         "confidence": confidence,
-        "opinion_belief": opinion.b if opinion else 0.0,
-        "opinion_disbelief": opinion.d if opinion else 0.0,
-        "opinion_uncertainty": opinion.u if opinion else 0.0,
-        "opinion_base_rate": opinion.a if opinion else 0.5,
+        "opinion_belief": opinion.b if opinion is not None else 0.0,
+        "opinion_disbelief": opinion.d if opinion is not None else 0.0,
+        "opinion_uncertainty": opinion.u if opinion is not None else 0.0,
+        "opinion_base_rate": opinion.a if opinion is not None else 0.5,
     }
 
     return {

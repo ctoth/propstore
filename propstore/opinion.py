@@ -16,6 +16,26 @@ W = 2
 
 _TOL = 1e-9
 
+# Clamp range for fused base rates (review-2026-04-14 Issue 4).
+#
+# Van der Heijden 2018, Definition 4, requires all sources share a
+# single base rate when fusing (the fused opinion inherits it
+# unchanged). propstore routinely fuses opinions produced by different
+# models/pipelines with distinct priors, so we instead compute a
+# confidence-weighted blend across sources and clamp the result to
+# this closed interval. Clamping avoids degenerate 0/1 priors which
+# would make ``maximize_uncertainty`` divide by zero and collapse the
+# ordering key (p.30 Def 16). The deviation is documented in
+# ``papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic``
+# and covered by ``TestWBFAdditionalProperties.test_base_rate_clamping``.
+_BASE_RATE_CLAMP = (0.01, 0.99)
+
+
+def _clamp_base_rate(a: float) -> float:
+    """Clamp a fused base rate to ``_BASE_RATE_CLAMP``."""
+    lo, hi = _BASE_RATE_CLAMP
+    return max(lo, min(hi, a))
+
 
 @dataclass(frozen=True)
 class Opinion:
@@ -95,34 +115,93 @@ class Opinion:
         """Negation: ~ω = Opinion(d, b, u, 1 - a)  (Jøsang Theorem 6, p.18)."""
         return Opinion(self.d, self.b, self.u, 1.0 - self.a)
 
-    def __and__(self, other: Opinion) -> Opinion:
-        """Conjunction (Jøsang Theorem 3, p.14) — independent frames."""
+    def conjunction(self, other: Opinion) -> Opinion:
+        """Subjective-logic conjunction (Jøsang 2001 Theorem 3, p.14).
+
+        Binomial (binary frame) conjunction of two opinions on
+        independent propositions. The base-rate formula ``a1 * a2``
+        assumes binary frames; generalizations to k-nomial frames
+        require the hyper-opinion machinery from van der Heijden 2018
+        and are not implemented here.
+
+        Prefer this explicit method over ``&`` in callers that might
+        otherwise be confused with Python's ``and`` keyword — ``op1
+        and op2`` short-circuits on truthiness and does NOT call
+        ``__and__`` (see ``__bool__``).
+        """
         b = self.b * other.b
         d = self.d + other.d - self.d * other.d
         u = self.b * other.u + self.u * other.b + self.u * other.u
         a = self.a * other.a
         return Opinion(b, d, u, a)
 
-    def __or__(self, other: Opinion) -> Opinion:
-        """Disjunction (Jøsang Theorem 4, p.14-15) — independent frames."""
+    def disjunction(self, other: Opinion) -> Opinion:
+        """Subjective-logic disjunction (Jøsang 2001 Theorem 4, p.14-15).
+
+        Binomial (binary frame) disjunction of two opinions on
+        independent propositions. The base-rate formula
+        ``a1 + a2 - a1*a2`` is the probabilistic OR of independent
+        events and is correct only for binary frames; non-binary
+        frames require the generalized fusion in van der Heijden 2018
+        and are not implemented here.
+
+        Prefer this explicit method over ``|`` in callers that might
+        otherwise be confused with Python's ``or`` keyword.
+        """
         b = self.b + other.b - self.b * other.b
         d = self.d * other.d
         u = self.d * other.u + self.u * other.d + self.u * other.u
         a = self.a + other.a - self.a * other.a
         return Opinion(b, d, u, a)
 
+    def __and__(self, other: Opinion) -> Opinion:
+        """Alias for :meth:`conjunction`."""
+        return self.conjunction(other)
+
+    def __or__(self, other: Opinion) -> Opinion:
+        """Alias for :meth:`disjunction`."""
+        return self.disjunction(other)
+
+    def __bool__(self) -> bool:
+        """Opinions are not truthy — always raises ``TypeError``.
+
+        Python's ``and``/``or`` keywords short-circuit on truthiness
+        and never dispatch to ``__and__``/``__or__`` (review-2026-04-14).
+        Without this guard, ``if op1 and op2`` silently produces a
+        truthy Opinion rather than the subjective-logic conjunction,
+        and ``if opinion`` is indistinguishable from ``if opinion is
+        not None``. Force callers to be explicit.
+        """
+        raise TypeError(
+            "Opinion is not truthy; use `op is None` / `op is not None` for "
+            "presence checks, `op.conjunction(other)` / `op & other` for "
+            "subjective-logic conjunction, or compare `op.expectation()` "
+            "for probability-like checks."
+        )
+
+    def _quantized(self) -> tuple[int, int, int, int]:
+        """Project (b, d, u, a) onto the shared ``_TOL`` grid.
+
+        Both ``__eq__`` and ``__hash__`` must use this single quantization
+        so the hash contract holds (review-2026-04-14): the older
+        tolerance-based ``__eq__`` paired with ``round(·, 8)`` hashing
+        could silently disagree on opinions straddling a rounding
+        boundary, corrupting dicts and sets.
+        """
+        return (
+            round(self.b / _TOL),
+            round(self.d / _TOL),
+            round(self.u / _TOL),
+            round(self.a / _TOL),
+        )
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Opinion):
             return NotImplemented
-        return (
-            abs(self.b - other.b) < _TOL
-            and abs(self.d - other.d) < _TOL
-            and abs(self.u - other.u) < _TOL
-            and abs(self.a - other.a) < _TOL
-        )
+        return self._quantized() == other._quantized()
 
     def __hash__(self) -> int:
-        return hash((round(self.b, 8), round(self.d, 8), round(self.u, 8), round(self.a, 8)))
+        return hash(self._quantized())
 
     # --- Ordering (Jøsang 2001 Def 10, p.9) ---
 
@@ -166,11 +245,17 @@ class Opinion:
           b + a*u = E (constant)
 
         u_max = min(E/a, (1-E)/(1-a))
+
+        Precondition: ``0 < a < 1`` (enforced in ``__post_init__``)
+        — the divisions by ``a`` and ``1 - a`` below depend on this
+        strict bound. Relaxing the constructor's check would require
+        an explicit guard here (review-2026-04-14 Issue 7).
         """
         e = self.expectation()
         a = self.a
 
-        # Upper bounds on u from b >= 0 and d >= 0
+        # Upper bounds on u from b >= 0 and d >= 0.
+        # Safe because __post_init__ enforces 0 < a < 1 strictly.
         u_from_b = e / a            # b = E - a*u >= 0
         u_from_d = (1.0 - e) / (1.0 - a)  # d = 1 - E - u*(1-a) >= 0
 
@@ -233,7 +318,15 @@ def from_probability(p: float, n: float, a: float = 0.5) -> Opinion:
 
 
 def consensus_pair(a_op: Opinion, b_op: Opinion) -> Opinion:
-    """Consensus of two opinions (Jøsang Theorem 7, p.25)."""
+    """Consensus of two opinions (Jøsang Theorem 7, p.25).
+
+    Base-rate fusion uses the cancellation-free form
+    ``a_b·u_a·v_b + a_a·u_b·v_a  /  u_a·v_b + u_b·v_a``
+    where ``v = 1 - u`` (review-2026-04-14 Issue 3). The obvious form
+    ``u_a + u_b - 2·u_a·u_b`` suffers catastrophic cancellation when
+    both ``u`` values approach 1, causing the fused base rate to
+    drift tens of ULPs away from the analytically exact answer.
+    """
     kappa = a_op.u + b_op.u - a_op.u * b_op.u
     if abs(kappa) < _TOL:
         raise ValueError("Cannot fuse two dogmatic opinions (κ ≈ 0)")
@@ -242,13 +335,18 @@ def consensus_pair(a_op: Opinion, b_op: Opinion) -> Opinion:
     d = (a_op.d * b_op.u + b_op.d * a_op.u) / kappa
     u = (a_op.u * b_op.u) / kappa
 
-    # Base rate fusion
-    denom_a = a_op.u + b_op.u - 2.0 * a_op.u * b_op.u
-    if abs(denom_a) < _TOL:
-        # Equal uncertainty — average the base rates
+    # Base rate fusion — confidence-weighted average, written in the
+    # cancellation-free v = 1 - u form so near-vacuous pairs stay stable.
+    v_a = 1.0 - a_op.u
+    v_b = 1.0 - b_op.u
+    denom_a = a_op.u * v_b + b_op.u * v_a
+    if denom_a < _TOL:
+        # Both sources are (near-)vacuous → zero confidence in either
+        # base rate. Fall back to a plain average; this is the
+        # degenerate limit of the confidence-weighted form.
         a = (a_op.a + b_op.a) / 2.0
     else:
-        a = (b_op.a * a_op.u + a_op.a * b_op.u - (a_op.a + b_op.a) * a_op.u * b_op.u) / denom_a
+        a = (b_op.a * a_op.u * v_b + a_op.a * b_op.u * v_a) / denom_a
 
     return Opinion(b, d, u, a)
 
@@ -264,7 +362,24 @@ def consensus(*opinions: Opinion) -> Opinion:
 
 
 def discount(trust: Opinion, source: Opinion) -> Opinion:
-    """Trust discounting (Jøsang Def 14, p.24)."""
+    """Trust discounting (Jøsang Def 14, p.24).
+
+    Jøsang's explicit form::
+
+        b = trust.b * source.b
+        d = trust.b * source.d
+        u = 1 - b - d
+          = 1 - trust.b * (source.b + source.d)
+          = 1 - trust.b * (1 - source.u)
+          = trust.d + trust.u + trust.b * source.u   (since
+                                                       trust.b + trust.d
+                                                       + trust.u = 1)
+
+    We write the expanded form directly so the identity is visible and
+    we don't have to reconstruct u from (1 - b - d) at runtime. The
+    derivation only holds because trust is a well-formed Opinion
+    (b + d + u = 1).
+    """
     b = trust.b * source.b
     d = trust.b * source.d
     u = trust.d + trust.u + trust.b * source.u
@@ -338,8 +453,9 @@ def wbf(*opinions: Opinion) -> Opinion:
             op.a * w for op, w in zip(opinions, weights)
         ) / total_weight
 
-    # Clamp base rate to valid range
-    a_fused = max(0.01, min(0.99, a_fused))
+    # Clamp to `_BASE_RATE_CLAMP` — see constant's comment for the
+    # deviation from van der Heijden 2018.
+    a_fused = _clamp_base_rate(a_fused)
 
     return Opinion(b_fused, d_fused, u_fused, a_fused)
 
@@ -377,46 +493,46 @@ def ccf(*opinions: Opinion) -> Opinion:
 
 
 def _ccf_average(opinions: list[Opinion]) -> Opinion:
-    """Three-phase min+average CCF for dogmatic (or near-dogmatic) opinions.
+    """Binomial reduction of CCF (van der Heijden 2018, Definition 5).
 
-    Used internally by ccf() when at least one opinion is dogmatic.
-    Phase 1: consensus extraction (min belief/disbelief).
-    Phase 2: compromise on residuals (average beyond consensus).
-    Phase 3: combine and normalize.
+    Used internally by ``ccf()`` when at least one opinion is dogmatic.
+
+    For a binomial frame, van der Heijden's three-phase algorithm
+    (consensus extraction → compromise → normalization) collapses to
+    plain arithmetic averaging of the four components:
+
+      b_fused = mean(b_i)
+      d_fused = mean(d_i)
+      u_fused = mean(u_i)
+      a_fused = mean(a_i)
+
+    Algebraic proof that the explicit three phases reduce to averaging:
+    consensus_b + mean(b_i − consensus_b) = mean(b_i); sym. for d. So
+    the original consensus/compromise decomposition is a no-op on
+    binary frames, and the (b_i + d_i + u_i = 1) invariant means the
+    sum-to-one normalization is redundant as well.
+
+    Review-2026-04-14 Issue 2: the old form's explicit normalization
+    suggested that ``u`` could be rescaled alongside ``b``/``d``,
+    conflating residual ignorance with belief mass. Writing it as
+    direct averaging makes the preserved-uncertainty contract obvious.
     """
     N = len(opinions)
     if N == 1:
         return opinions[0]
 
-    # Phase 1 — Consensus extraction: minimum belief/disbelief across sources.
-    consensus_b = min(op.b for op in opinions)
-    consensus_d = min(op.d for op in opinions)
+    b_fused = sum(op.b for op in opinions) / N
+    d_fused = sum(op.d for op in opinions) / N
+    u_fused = sum(op.u for op in opinions) / N
 
-    # Phase 2 — Compromise on residuals: average of what each source
-    # contributes beyond the consensus.
-    compromise_b = sum(op.b - consensus_b for op in opinions) / N
-    compromise_d = sum(op.d - consensus_d for op in opinions) / N
+    # Clamp tiny negative drift to zero before handing to the constructor.
+    b_fused = max(0.0, b_fused)
+    d_fused = max(0.0, d_fused)
+    u_fused = max(0.0, u_fused)
 
-    # Phase 3 — Combine and normalize.
-    raw_b = consensus_b + compromise_b
-    raw_d = consensus_d + compromise_d
-    # Uncertainty: average of source uncertainties (0 for dogmatic).
-    raw_u = sum(op.u for op in opinions) / N
-
-    raw_sum = raw_b + raw_d + raw_u
-    if raw_sum < _TOL:
-        # Degenerate case — return vacuous
-        a_fused = sum(op.a for op in opinions) / N
-        a_fused = max(0.01, min(0.99, a_fused))
-        return Opinion(0.0, 0.0, 1.0, a_fused)
-
-    # Normalize so b + d + u = 1
-    b_fused = max(0.0, raw_b / raw_sum)
-    d_fused = max(0.0, raw_d / raw_sum)
-    u_fused = max(0.0, raw_u / raw_sum)
-
-    a_fused = sum(op.a for op in opinions) / N
-    a_fused = max(0.01, min(0.99, a_fused))
+    # Base-rate fusion: see `_BASE_RATE_CLAMP` for the deviation from
+    # van der Heijden 2018 (which requires shared priors).
+    a_fused = _clamp_base_rate(sum(op.a for op in opinions) / N)
 
     return Opinion(b_fused, d_fused, u_fused, a_fused)
 
