@@ -28,6 +28,9 @@ from dataclasses import dataclass
 from collections.abc import Iterator, Sequence
 from typing import Any
 
+from gunray.disagreement import complement as gunray_complement
+from gunray.types import GroundAtom as GunrayGroundAtom
+
 from propstore.aspic import Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.artifacts.documents.rules import AtomDocument
@@ -200,18 +203,40 @@ def justifications_to_rules(
 _GroundFactKey = tuple[str, bool]
 
 
-def _split_section_predicate(predicate_id: str) -> _GroundFactKey:
-    """Decode a bundle section key into ``(predicate, negated)``.
+def _decode_grounded_predicate(predicate_id: str) -> _GroundFactKey:
+    """Decode a gunray section predicate key into ``(positive_predicate, negated)``.
 
-    Gunray serializes strong negation into the predicate token itself
-    (for example ``"~fly"``). The ASPIC bridge models polarity on the
-    ``Literal`` instead, so section rows must be normalized before they
+    Gunray serializes strong negation via a ``~`` prefix on the
+    predicate token; see ``gunray.disagreement.complement`` which
+    owns that encoding. The ASPIC bridge models polarity as a typed
+    bool on the ``Literal`` object instead, so section rows and
+    grounded axioms must be projected from gunray's predicate-string
+    convention onto propstore's typed convention before they
     participate in grounding or KB injection.
+
+    This helper routes the projection through a ``GroundAtom`` ->
+    ``complement`` round-trip so the ``~``-handling lives inside
+    gunray's own typed surface rather than as a raw string hack in
+    propstore. The round-trip is:
+
+    1. Build a gunray ``GroundAtom`` from the section key (arity
+       zero is fine — we only care about the predicate token).
+    2. Apply ``gunray.disagreement.complement`` to toggle the
+       polarity; the result's predicate is the positive form when
+       the input was negative and vice versa.
+    3. Detect polarity by comparing string lengths: a shorter
+       complement means the original carried the ``~`` prefix.
+
+    Garcia & Simari 2004 §3 (strong negation as a primitive relation
+    on literals) and Diller, Borg, Bex 2025 §3 Def 7 (ground atoms
+    keyed by predicate id) are the anchors.
     """
 
-    if predicate_id.startswith("~"):
-        return predicate_id.removeprefix("~"), True
-    return predicate_id, False
+    probe = GunrayGroundAtom(predicate=predicate_id, arguments=())
+    toggled = gunray_complement(probe)
+    negated = len(toggled.predicate) < len(probe.predicate)
+    positive = toggled.predicate if negated else probe.predicate
+    return positive, negated
 
 
 def _try_match(
@@ -428,7 +453,7 @@ def grounded_rules_to_rules(
     for section_name in ("definitely", "defeasibly"):
         section = bundle.sections.get(section_name, {})
         for predicate_id, rows in section.items():
-            bucket = facts.setdefault(_split_section_predicate(predicate_id), set())
+            bucket = facts.setdefault(_decode_grounded_predicate(predicate_id), set())
             for row in rows:
                 bucket.add(row)
 
@@ -521,7 +546,7 @@ def _ground_facts_to_axioms(
     axioms: set[Literal] = set(kb.axioms)
     definitely = bundle.sections.get("definitely", {})
     for predicate_id, rows in definitely.items():
-        predicate, negated = _split_section_predicate(predicate_id)
+        predicate, negated = _decode_grounded_predicate(predicate_id)
         for row in rows:
             ground = GroundAtom(predicate=predicate, arguments=tuple(row))
             lit = _literal_for_atom(ground, negated, literals)
