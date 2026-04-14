@@ -1,0 +1,94 @@
+# Exploration: `pks build` (Sidecar Build) Pipeline
+
+## Current Findings (as of checkpoint)
+
+### 1. CLI Entry Point: `pks build`
+- File: /c/Users/Q/code/propstore/propstore/cli/compiler_cmds.py
+- Function: build() at line 152
+- Signature: def build(obj: dict, output: str | None, force: bool) -> None
+- Docstring: "Validate everything, build sidecar, run conflict detection."
+
+### 2. Build Pipeline Steps (sequential)
+Step 0: Form schema validation
+Step 1: Concept validation
+Step 1b: Context validation
+Step 2: Claim validation (builds concept_registry here)
+Step 3: Sidecar build via build_sidecar()
+Step 4: Summary via WorldModel
+
+### 3. Core Sidecar Build (build.py:67)
+- Content hashing: _content_hash() hashes concepts/claims/contexts/forms/justifications/sources/stances YAML + schema
+- Caching: If hash matches existing .hash file, skip rebuild (unless force=True)
+- Concept registry: Dict mapping IDs->enriched concept data with _form_definition injected
+- Sidecar creation order:
+  1. Load & create tables (concepts, claims, forms, contexts, relationships, parameterizations)
+  2. Build concept FTS
+  3. Populate claims
+  4. **CONFLICT DETECTION** (calls detect_conflicts + detect_transitive_conflicts)
+  5. Build claim FTS
+  6. Populate stances & justifications
+
+### 4. Conflict Detection (conflict_detector/orchestrator.py:21-79)
+- detect_conflicts() builds CEL registry, injects synthetic "source" concept
+- Runs: parameter, measurement, equation, algorithm conflict detectors
+- Uses Z3ConditionSolver for condition solving
+- Stores results in conflict_witness table
+
+### 5. Data Structures
+Concept Registry: dict[str, dict] mapping IDs/canonical/logical/aliases -> enriched concept data
+Sidecar tables: concept, claim_core, claim_numeric/text/algorithm_payload, relationship, parameterization, parameterization_group, form_algebra, conflict_witness, justification, claim_stance, context hierarchy
+
+### 6. ASPIC+ Bridge & Claim Graph
+- aspic_bridge.py: T1-T7 translations from propstore to ASPIC+ (claims->literals, justifications->rules, stances->contrariness, etc)
+- claim_graph.py: Builds argumentation framework + computes justified claims via grounded/preferred/stable semantics
+- NOT called during pks build command
+- Used post-build by WorldModel & backends
+
+### 7. WorldModel (Post-Build)
+- File: world/model.py
+- Instantiated in build CLI to prove roundtrip
+- Provides: .stats(), .conflicts(), .close()
+
+### 8. Validation vs Build
+- Validation FIRST (Steps 0-2), build is AFTER validation succeeds
+- Validation is prerequisite: build fails fast if validation fails
+- Independent systems: validate.py vs sidecar/build.py
+- Build does NOT re-run validation
+
+## Todo: Still Need
+- Extension computation details
+- Claim graph construction (when built during WorldModel.stats())
+- conflict_witness table retrieval in .conflicts()
+- Form algebra construction (dimensions verification)
+- Context hierarchy usage in conflict detection
+- claim_utils population function details
+
+## Additional Checkpoint Findings
+
+### WorldModel Initialization & Lazy Loading
+- File: world/model.py
+- Constructor loads sidecar SQLite database
+- Validates schema version (currently v1)
+- Lazy loading pattern:
+  - _compiled_graph_cache: Lazily builds compiled graph
+  - _active_graph_cache: Caches active graphs by environment
+  - _solver: Lazily builds Z3ConditionSolver
+  - _registry: Lazily builds ConceptInfo registry from concept table
+
+### Registry Building in WorldModel._build_registry()
+- Queries: SELECT id, canonical_name, kind_type, form_parameters FROM concept
+- Maps concept names to ConceptInfo objects
+- Extracts category values & extensibility from form_parameters JSON
+- Kind mapping: category/boolean/structural/quantity
+
+### Schema Validation in WorldModel
+- Validates meta table exists with correct schema_version
+- Validates all required tables exist (source, concept, alias, parameterization, relation_edge, form, form_algebra, context, context_assumption, context_exclusion, claim_core, claim_numeric_payload, claim_text_payload, claim_algorithm_payload, claim_fts, justification, claim_stance, conflict_witness)
+- Validates required columns exist in each table
+
+### Still Need to Find
+- Where .stats() is defined
+- Where .conflicts() is defined
+- How claim_graph is built during WorldModel operations
+- Extension computation (where in build pipeline?)
+- Form algebra details (dimensions verification in populate_form_algebra)

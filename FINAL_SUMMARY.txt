@@ -1,0 +1,66 @@
+# Knowledge Repository Layer - Exploration Notes
+
+## Key Findings So Far
+
+### 1. Directory Structure (knowledge/)
+- `knowledge/concepts/` - YAML files for concept definitions, with `.counters/` subdirectory
+- `knowledge/claims/` - YAML files for claims 
+- `knowledge/contexts/` - YAML files for context definitions
+- `knowledge/forms/` - YAML files for form/unit definitions
+- `knowledge/stances/` - YAML files for stances (inter-claim relationships)
+- `knowledge/worldlines/` - Likely YAML files for worldlines
+- `knowledge/sidecar/` - SQLite database and hash file for compiled state
+
+### 2. Repository Class (cli/repository.py)
+**Location**: `/c/Users/Q/code/propstore/propstore/cli/repository.py`
+- `Repository` class handles all path resolution for knowledge/ directory
+- Properties: `concepts_dir`, `claims_dir`, `forms_dir`, `contexts_dir`, `stances_dir`, `worldlines_dir`, `sidecar_path`, `counters_dir`
+- `Repository.find()` walks up filesystem looking for `knowledge/` directory or direct concepts subdirectory
+- `Repository.init()` creates the full directory structure
+- `Repository.store` property creates/caches a `WorldModel` instance (the main abstraction for accessing knowledge)
+
+### 3. CLI Entry Points (cli/__init__.py)
+**Location**: `/c/Users/Q/code/propstore/propstore/cli/__init__.py`
+- Single entry point: `pks` CLI powered by Click
+- Subcommands: `concept`, `context`, `claim`, `form`, `validate`, `build`, `query`, `export-aliases`, `import-papers`, `init`, `world`, `worldline`, `promote`
+- Repository discovery happens early in `cli()` function - sets `ctx.obj["repo"]`
+
+### 4. Build Process (build_sidecar.py & compiler_cmds.py)
+
+**Location**: `/c/Users/Q/code/propstore/propstore/build_sidecar.py` and `/c/Users/Q/code/propstore/propstore/cli/compiler_cmds.py`
+
+**`pks build` flow**:
+1. Load concepts from concepts_dir
+2. Validate form schema files
+3. Validate all concepts
+4. Load and validate contexts (if contexts_dir exists)
+5. Load and validate claims (if claims_dir exists)
+6. Build SQLite sidecar with `build_sidecar()`
+7. Display summary stats via WorldModel
+
+**Content-Hash Addressing**:
+- `_content_hash()` function computes SHA256 of all semantic inputs (concepts, claims, contexts, forms, stances)
+- Hash stored in `.hash` file alongside sidecar.sqlite
+- If hash matches, rebuild skipped (unless --force)
+- Individual `_concept_content_hash()` and `_claim_content_hash()` functions for ID generation
+
+**Sidecar SQLite Tables Created**:
+- `concept` (id, content_hash, seq, canonical_name, status, domain, definition, kind_type, form, form_parameters, range_min, range_max, is_dimensionless, unit_symbol, created_date, last_modified)
+- `alias` (concept_id, alias_name, source)
+- `relationship` (source_id, type, target_id, conditions_cel, note)
+- `parameterization` (output_concept_id, concept_ids, formula, sympy, exactness)
+- Context tables (when contexts provided)
+- Claim tables (when claims provided): claim_core, claim_stance, claim_fts
+- FTS5 indexes for full-text search
+
+### 5. Next Steps to Explore
+
+Need to read:
+- WorldModel in `propstore/world/` - main store abstraction
+- LoadedConcept/LoadedClaimFile definitions in validate.py and validate_claims.py
+- Claim/Form serialization logic
+- Stance files structure
+- Individual CLI command implementations (concept.py, claim.py, etc.)
+
+## FULL FINDINGS
+
