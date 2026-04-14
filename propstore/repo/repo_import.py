@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING, Any
 
 import msgspec
 
-from propstore.identity import (
-    compute_claim_version_id,
-    normalize_claim_file_payload,
-    rewrite_stance_file_payload,
-)
+from propstore.identity import normalize_claim_file_payload, rewrite_stance_file_payload
 from propstore.artifacts.resolution import ImportedClaimHandleIndex
-from propstore.artifacts.identity import concept_reference_keys, normalize_canonical_concept_payload
+from propstore.artifacts.identity import (
+    concept_reference_keys,
+    normalize_canonical_claim_payload,
+    normalize_canonical_concept_payload,
+)
 from propstore.repo.branch import branch_head, create_branch
 
 if TYPE_CHECKING:
@@ -283,8 +283,7 @@ def _rewrite_claim_concept_refs(
                 updated_parameters.append(parameter_copy)
             claim_copy["parameters"] = updated_parameters
 
-        claim_copy["version_id"] = compute_claim_version_id(claim_copy)
-        updated_claims.append(claim_copy)
+        updated_claims.append(normalize_canonical_claim_payload(claim_copy))
 
     rewritten["claims"] = updated_claims
     return rewritten
