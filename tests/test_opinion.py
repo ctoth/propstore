@@ -1204,3 +1204,356 @@ class TestDiscountProperties:
         assert abs(result.b - source.b) < 1e-9
         assert abs(result.d - source.d) < 1e-9
         assert abs(result.u - source.u) < 1e-9
+
+
+# ── Review fixes (review-2026-04-14) ───────────────────────────────
+
+
+class TestHashEqConsistency:
+    """`__eq__` and `__hash__` must agree on the same quantization grid.
+
+    Regression test for the review-2026-04-14 hash contract violation:
+    the old implementation used tolerance-based equality but 8-decimal
+    rounding for hashing, so two opinions could be ``==`` yet produce
+    different hashes — a silent dict/set corruption bug.
+    """
+
+    def test_straddle_rounding_boundary(self):
+        """Values on opposite sides of an 8-decimal rounding boundary
+        but within ``_TOL`` of each other must hash identically.
+
+        b1 = 0.5 + 4.6e-9 rounds *down* to 0.5
+        b2 = 0.5 + 5.4e-9 rounds *up*   to 0.50000001
+        |b1 - b2| = 8e-10 < _TOL, so __eq__ returns True.
+        The old hash(round(·, 8)) impl produced different hashes here.
+        """
+        b1 = 0.5 + 4.6e-9
+        b2 = 0.5 + 5.4e-9
+        d = 0.3
+        o1 = Opinion(b1, d, 1.0 - b1 - d, 0.5)
+        o2 = Opinion(b2, d, 1.0 - b2 - d, 0.5)
+        # Precondition: they must actually be __eq__ (tol-based).
+        assert o1 == o2
+        # The bug: hashes differed.  Hash contract says a == b ⇒ hash(a) == hash(b).
+        assert hash(o1) == hash(o2)
+
+    def test_set_membership_respects_equality(self):
+        """If ``o1 == o2``, a set containing o1 must also contain o2."""
+        b1 = 0.5 + 4.6e-9
+        b2 = 0.5 + 5.4e-9
+        d = 0.3
+        o1 = Opinion(b1, d, 1.0 - b1 - d, 0.5)
+        o2 = Opinion(b2, d, 1.0 - b2 - d, 0.5)
+        assert o1 == o2
+        s = {o1}
+        assert o2 in s, "Hash contract violation: o1 == o2 but o2 not in {o1}"
+
+    def test_dict_lookup_respects_equality(self):
+        """Dict keyed on o1 must resolve lookups by o2 when o1 == o2."""
+        b1 = 0.5 + 4.6e-9
+        b2 = 0.5 + 5.4e-9
+        d = 0.3
+        o1 = Opinion(b1, d, 1.0 - b1 - d, 0.5)
+        o2 = Opinion(b2, d, 1.0 - b2 - d, 0.5)
+        d_map = {o1: "value"}
+        assert d_map[o2] == "value"
+
+    @given(valid_opinions())
+    @settings(deadline=None)
+    def test_identical_opinions_hash_equal(self, o):
+        """Trivial reflexivity: equal opinions hash equal."""
+        other = Opinion(o.b, o.d, o.u, o.a)
+        assert o == other
+        assert hash(o) == hash(other)
+
+    @given(valid_opinions())
+    @settings(deadline=None)
+    def test_tol_perturbation_preserves_hash(self, o):
+        """Perturbing any component by less than _TOL/4 must preserve
+        both equality and hash (property covers all quantization grid
+        points, not just the straddle example).
+        """
+        eps = _TOL / 4
+        # Perturb b upward and d downward to preserve sum constraint.
+        b2 = o.b + eps
+        d2 = o.d - eps
+        if b2 < 0 or b2 > 1 or d2 < 0 or d2 > 1:
+            return
+        other = Opinion(b2, d2, o.u, o.a)
+        assume(o == other)
+        assert hash(o) == hash(other), (
+            f"hash mismatch on tol-equal opinions: "
+            f"{o} vs {other}"
+        )
+
+
+class TestOpinionBool:
+    """``__bool__`` must raise ``TypeError`` to prevent the ``and``/``or`` trap.
+
+    Python's ``and``/``or`` keywords short-circuit on truthiness and do
+    NOT dispatch to ``__and__``/``__or__``.  A user writing
+    ``if op1 and op2`` would silently get a truthy Opinion back rather
+    than the subjective-logic conjunction.  Raising ``TypeError`` from
+    ``__bool__`` converts that landmine into a runtime error at the
+    call site.
+    """
+
+    def test_bool_on_vacuous_raises(self):
+        with pytest.raises(TypeError, match="not truthy|conjunction|expectation"):
+            bool(Opinion.vacuous())
+
+    def test_bool_on_dogmatic_true_raises(self):
+        with pytest.raises(TypeError):
+            bool(Opinion.dogmatic_true())
+
+    def test_bool_on_dogmatic_false_raises(self):
+        with pytest.raises(TypeError):
+            bool(Opinion.dogmatic_false())
+
+    def test_bool_on_arbitrary_raises(self):
+        with pytest.raises(TypeError):
+            bool(Opinion(0.3, 0.2, 0.5, 0.6))
+
+    def test_if_opinion_trap_raises(self):
+        """The classic trap: ``if opinion:`` must error loudly."""
+        op = Opinion(0.3, 0.2, 0.5, 0.6)
+        with pytest.raises(TypeError):
+            if op:
+                pass
+
+    def test_and_keyword_trap_raises(self):
+        """``opinion and opinion`` forces truthiness evaluation."""
+        op = Opinion(0.3, 0.2, 0.5, 0.6)
+        with pytest.raises(TypeError):
+            op and op
+
+    def test_is_none_check_still_works(self):
+        """Explicit ``is None`` / ``is not None`` must NOT trigger bool."""
+        op = Opinion(0.3, 0.2, 0.5, 0.6)
+        assert op is not None
+        assert not (op is None)  # `not (X is None)` does not call __bool__ on X
+
+    def test_conditional_expression_with_is_not_none(self):
+        """``x if op is not None else y`` is the correct idiom."""
+        op = Opinion(0.3, 0.2, 0.5, 0.6)
+        val = op.b if op is not None else 0.0
+        assert val == 0.3
+
+
+class TestExplicitConjunctionDisjunction:
+    """Explicit method names for subjective-logic conjunction/disjunction.
+
+    Provides keyword-safe alternatives to ``&``/``|`` so callers aren't
+    forced to rely on operator overloads (review-2026-04-14). The
+    operators remain as aliases with identical semantics.
+    """
+
+    def test_conjunction_equals_and_operator(self):
+        a = Opinion(0.6, 0.2, 0.2, 0.4)
+        b = Opinion(0.3, 0.5, 0.2, 0.7)
+        assert a.conjunction(b) == a & b
+
+    def test_disjunction_equals_or_operator(self):
+        a = Opinion(0.6, 0.2, 0.2, 0.4)
+        b = Opinion(0.3, 0.5, 0.2, 0.7)
+        assert a.disjunction(b) == a | b
+
+    def test_conjunction_commutative(self):
+        a = Opinion(0.6, 0.2, 0.2, 0.4)
+        b = Opinion(0.3, 0.5, 0.2, 0.7)
+        assert a.conjunction(b) == b.conjunction(a)
+
+    def test_disjunction_commutative(self):
+        a = Opinion(0.6, 0.2, 0.2, 0.4)
+        b = Opinion(0.3, 0.5, 0.2, 0.7)
+        assert a.disjunction(b) == b.disjunction(a)
+
+    def test_conjunction_with_vacuous_reduces_belief(self):
+        """ω ∧ vacuous should still satisfy b + d + u = 1."""
+        op = Opinion(0.6, 0.2, 0.2, 0.4)
+        result = op.conjunction(Opinion.vacuous())
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-9
+
+
+class TestConsensusPairNearVacuous:
+    """``consensus_pair`` must stay numerically sane near the vacuous
+    boundary (review-2026-04-14 Issue 3).
+
+    The base-rate denominator ``u_a + u_b - 2*u_a*u_b = u_a*v_b + u_b*v_a``
+    (where v = 1-u) shrinks as both sources approach u=1. The old guard
+    only caught ``|denom_a| < _TOL``, which is a strict-equality check.
+    The contract these tests enforce:
+
+    1. Two exactly-vacuous opinions with distinct base rates fall back
+       cleanly (no NaN/inf, no ValueError).
+    2. Near-vacuous opinions produce a base rate inside the convex hull
+       of the inputs.
+    3. The fused opinion is always a valid Opinion (construction
+       succeeds).
+    """
+
+    def test_both_exactly_vacuous_with_distinct_base_rates(self):
+        """Fallback path: two vacuous opinions fuse to a mid-range base rate."""
+        o1 = Opinion.vacuous(0.2)
+        o2 = Opinion.vacuous(0.8)
+        r = consensus_pair(o1, o2)
+        assert 0.0 < r.a < 1.0
+        assert 0.2 <= r.a <= 0.8
+        # b, d must remain zero (both inputs are b=d=0)
+        assert r.b == 0.0
+        assert r.d == 0.0
+        # u must be 1.0 — consensus of two vacuous is vacuous
+        assert r.u == pytest.approx(1.0, abs=1e-9)
+
+    def test_near_vacuous_same_u_distinct_base_rates(self):
+        """Equal near-vacuous uncertainties → roughly midpoint base rate."""
+        u = 1 - 1e-8
+        o1 = Opinion(0.0, 1 - u, u, 0.2)
+        o2 = Opinion(0.0, 1 - u, u, 0.8)
+        r = consensus_pair(o1, o2)
+        # With equal confidence weights, the fused base rate is the mean.
+        assert r.a == pytest.approx(0.5, abs=1e-6)
+        assert 0.2 <= r.a <= 0.8
+
+    def test_near_vacuous_asymmetric_u(self):
+        """Asymmetric near-vacuous: more confident source dominates."""
+        # o1 has smaller u → more certain → should pull a toward 0.2
+        o1 = Opinion(0.0, 1 - 0.999, 0.999, 0.2)
+        o2 = Opinion(0.0, 1 - 0.99999, 0.99999, 0.8)
+        r = consensus_pair(o1, o2)
+        # o1 is ~100x more confident, so fused a should be very close to 0.2
+        assert 0.2 <= r.a <= 0.8
+        assert r.a < 0.5, f"expected a < 0.5 (o1 dominates), got {r.a}"
+
+    @given(
+        a1=st.floats(min_value=0.01, max_value=0.99),
+        a2=st.floats(min_value=0.01, max_value=0.99),
+        v1=st.floats(min_value=1e-12, max_value=1e-4),
+        v2=st.floats(min_value=1e-12, max_value=1e-4),
+    )
+    @settings(deadline=None, max_examples=500)
+    def test_near_vacuous_property_base_rate_in_hull(self, a1, a2, v1, v2):
+        """For any near-vacuous pair, fused base rate ∈ [min(a1,a2), max(a1,a2)]."""
+        u1 = 1.0 - v1
+        u2 = 1.0 - v2
+        o1 = Opinion(0.0, v1, u1, a1)
+        o2 = Opinion(0.0, v2, u2, a2)
+        r = consensus_pair(o1, o2)
+        lo = min(a1, a2)
+        hi = max(a1, a2)
+        # Allow tiny float drift via 1e-9 margin.
+        assert lo - 1e-9 <= r.a <= hi + 1e-9, (
+            f"a={r.a} not in [{lo}, {hi}] for u=({u1}, {u2}), a=({a1}, {a2})"
+        )
+        # Fused opinion must be well-formed (constructor already ran).
+        assert 0.0 < r.a < 1.0
+        assert abs(r.b + r.d + r.u - 1.0) < 1e-9
+
+    def test_exactly_vacuous_one_side(self):
+        """One vacuous + one non-vacuous: base rate should come from non-vacuous."""
+        vac = Opinion.vacuous(0.1)
+        op = Opinion(0.3, 0.3, 0.4, 0.9)
+        r = consensus_pair(vac, op)
+        # Vacuous side has zero confidence, so non-vacuous dominates.
+        # Allow 1e-9 float drift around the convex hull.
+        assert 0.1 - 1e-9 <= r.a <= 0.9 + 1e-9
+
+
+class TestCCFAveragePreservesUncertainty:
+    """``_ccf_average`` must preserve the averaged uncertainty semantics
+    (review-2026-04-14 Issue 2).
+
+    For a binomial frame, van der Heijden 2018 Definition 5 reduces to
+    plain arithmetic averaging over all source components. The old code
+    decomposed into ``consensus + compromise`` and then divided by
+    ``raw_b + raw_d + raw_u``. That division is algebraically a no-op
+    (the averages always sum to 1), but the ``u`` component being
+    rescaled alongside ``b`` and ``d`` signals the wrong intent:
+    uncertainty is a residual, not just another mass component.
+
+    These tests lock in the contract ``fused.u == avg(u_i)`` exactly.
+    """
+
+    def test_all_dogmatic_agreeing(self):
+        """All sources dogmatic-true → averaged u is 0."""
+        ops = [Opinion.dogmatic_true(0.5) for _ in range(4)]
+        from propstore.opinion import _ccf_average
+        r = _ccf_average(ops)
+        assert r.u == 0.0
+        assert r.b == pytest.approx(1.0, abs=1e-9)
+        assert r.d == 0.0
+
+    def test_mixed_dogmatic_and_nondogmatic(self):
+        """Reviewer's scenario: dogmatic + WBF result.
+
+        Fused u must equal the arithmetic mean of source u values.
+        """
+        from propstore.opinion import _ccf_average
+        sources = [
+            Opinion.dogmatic_true(0.5),      # u = 0
+            Opinion.dogmatic_false(0.5),     # u = 0
+            Opinion(0.3, 0.3, 0.4, 0.5),     # u = 0.4
+        ]
+        r = _ccf_average(sources)
+        expected_u = (0.0 + 0.0 + 0.4) / 3
+        assert r.u == pytest.approx(expected_u, abs=1e-9)
+        expected_b = (1.0 + 0.0 + 0.3) / 3
+        expected_d = (0.0 + 1.0 + 0.3) / 3
+        assert r.b == pytest.approx(expected_b, abs=1e-9)
+        assert r.d == pytest.approx(expected_d, abs=1e-9)
+
+    def test_all_nondogmatic(self):
+        """_ccf_average on all non-dogmatic sources (allowed path)."""
+        from propstore.opinion import _ccf_average
+        sources = [
+            Opinion(0.2, 0.3, 0.5, 0.5),
+            Opinion(0.4, 0.1, 0.5, 0.5),
+            Opinion(0.1, 0.2, 0.7, 0.5),
+        ]
+        r = _ccf_average(sources)
+        expected_u = (0.5 + 0.5 + 0.7) / 3
+        assert r.u == pytest.approx(expected_u, abs=1e-9)
+
+    def test_single_opinion_pass_through(self):
+        """_ccf_average([op]) returns op unchanged."""
+        from propstore.opinion import _ccf_average
+        op = Opinion(0.2, 0.3, 0.5, 0.5)
+        r = _ccf_average([op])
+        assert r == op
+
+    @given(
+        opinions=st.lists(valid_opinions(min_uncertainty=0.0), min_size=2, max_size=5),
+    )
+    @settings(deadline=None, max_examples=100)
+    def test_property_u_equals_average(self, opinions):
+        """For any list of ≥2 opinions, fused u == mean(u_i) within _TOL."""
+        from propstore.opinion import _ccf_average
+        r = _ccf_average(opinions)
+        expected_u = sum(op.u for op in opinions) / len(opinions)
+        assert r.u == pytest.approx(expected_u, abs=1e-9), (
+            f"u mismatch: {r.u} vs {expected_u}"
+        )
+        expected_b = sum(op.b for op in opinions) / len(opinions)
+        expected_d = sum(op.d for op in opinions) / len(opinions)
+        assert r.b == pytest.approx(expected_b, abs=1e-9)
+        assert r.d == pytest.approx(expected_d, abs=1e-9)
+
+
+class TestOpinionRepr:
+    """The dataclass-generated repr must survive the custom ``__eq__`` /
+    ``__hash__`` overrides (review-2026-04-14 sanity check).
+    """
+
+    def test_repr_contains_all_fields(self):
+        op = Opinion(0.3, 0.2, 0.5, 0.6)
+        r = repr(op)
+        assert "b=" in r
+        assert "d=" in r
+        assert "u=" in r
+        assert "a=" in r
+
+    def test_repr_is_eval_able_shape(self):
+        """The auto-generated repr has the ``Opinion(...)`` shape."""
+        op = Opinion(0.3, 0.2, 0.5, 0.6)
+        assert repr(op).startswith("Opinion(")
+        assert repr(op).endswith(")")
