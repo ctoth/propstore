@@ -461,78 +461,152 @@ def wbf(*opinions: Opinion) -> Opinion:
 
 
 def ccf(*opinions: Opinion) -> Opinion:
-    """Cumulative & Compromise Fusion (van der Heijden 2018, Definition 5).
+    """Consensus & Compromise Fusion (van der Heijden 2018, Definition 5).
 
-    Handles the case where WBF cannot — dogmatic sources (u ≈ 0).
+    Multi-source fusion that handles both dogmatic and non-dogmatic
+    inputs uniformly via the three-phase consensus/compromise/normalize
+    algorithm. Disagreement between sources is converted into
+    uncertainty (not fractional belief) — two dogmatic sources that
+    completely disagree fuse to a vacuous opinion, reflecting that
+    propstore honestly does not know which source to trust.
 
-    Algorithm:
-    - If no dogmatic opinions: delegates to wbf() (which is associative).
-    - If all dogmatic: averages belief masses (min+average three-phase).
-    - If mixed: fuses non-dogmatic via wbf(), then averages with dogmatic
-      opinions using the three-phase min+average method.
+    CCF is NOT associative in general (§I of the paper) — use the
+    direct N-source call form ``ccf(a, b, c, ...)`` rather than
+    pairwise folding. The result IS symmetric in its arguments.
+
+    CCF is distinct from WBF: for non-dogmatic inputs both operators
+    are well-defined but produce different results (see Table I of
+    the paper). ``fuse(method="auto")`` prefers WBF for non-dogmatic
+    inputs and falls back to CCF on dogmatic ones; call ``ccf()``
+    directly when you want Def 5 semantics regardless of input.
     """
     if len(opinions) == 0:
         raise ValueError("Need at least one opinion")
     if len(opinions) == 1:
         return opinions[0]
-
-    dogmatic = [op for op in opinions if op.u < _TOL]
-    non_dogmatic = [op for op in opinions if op.u >= _TOL]
-
-    # Case 1: All non-dogmatic — delegate to WBF (correct & associative).
-    if not dogmatic:
-        return wbf(*non_dogmatic)
-
-    # Case 2: All dogmatic — three-phase min+average on belief masses.
-    if not non_dogmatic:
-        return _ccf_average(dogmatic)
-
-    # Case 3: Mixed — fuse non-dogmatic via WBF, then min+average with dogmatic.
-    wbf_result = wbf(*non_dogmatic)
-    return _ccf_average([*dogmatic, wbf_result])
+    return _ccf_binomial(list(opinions))
 
 
-def _ccf_average(opinions: list[Opinion]) -> Opinion:
-    """Binomial reduction of CCF (van der Heijden 2018, Definition 5).
+def _ccf_binomial(opinions: list[Opinion]) -> Opinion:
+    """Direct N-source binomial reduction of van der Heijden 2018 Def 5.
 
-    Used internally by ``ccf()`` when at least one opinion is dogmatic.
+    For a binomial frame ``X = {x, ¬x}`` with singleton focal elements
+    ``{x}``, ``{¬x}``, and whole-frame mass ``u``, the three-phase
+    algorithm specializes to the following closed-form expressions (the
+    multi-valued compromise terms 3 and 4 of Eq. 7 collapse because
+    ``{x} ∩ {¬x} = ∅`` and ``{x} ∪ {¬x} = X``, so most focal-element
+    combinations contribute zero):
 
-    For a binomial frame, van der Heijden's three-phase algorithm
-    (consensus extraction → compromise → normalization) collapses to
-    plain arithmetic averaging of the four components:
+    **Step 1 — Consensus (Eq. 6):**
+      ``b^cons(x) = min_i b_i``, ``b^cons(¬x) = min_i d_i``
+      ``r_i(x)    = b_i − b^cons(x)``, ``r_i(¬x) = d_i − b^cons(¬x)``
 
-      b_fused = mean(b_i)
-      d_fused = mean(d_i)
-      u_fused = mean(u_i)
-      a_fused = mean(a_i)
+    **Step 2 — Compromise (Eq. 7 reduced to binomial):**
+      ``b^comp(x)  = Σ_i r_i(x)·Π_{j≠i} u_j  +  Π_i r_i(x)``
+      ``b^comp(¬x) = Σ_i r_i(¬x)·Π_{j≠i} u_j +  Π_i r_i(¬x)``
+      ``b^comp(X)  = Π_i(r_i(x)+r_i(¬x)) − Π_i r_i(x) − Π_i r_i(¬x)``
+      ``u^pre      = Π_i u_i``
 
-    Algebraic proof that the explicit three phases reduce to averaging:
-    consensus_b + mean(b_i − consensus_b) = mean(b_i); sym. for d. So
-    the original consensus/compromise decomposition is a no-op on
-    binary frames, and the (b_i + d_i + u_i = 1) invariant means the
-    sum-to-one normalization is redundant as well.
+    The ``b^comp(X)`` term captures all cross-actor disagreement
+    (tuples where union=X and intersection=∅). It is the
+    inclusion-exclusion form of "total residual mass minus the
+    all-agreeing tuples."
 
-    Review-2026-04-14 Issue 2: the old form's explicit normalization
-    suggested that ``u`` could be rescaled alongside ``b``/``d``,
-    conflating residual ignorance with belief mass. Writing it as
-    direct averaging makes the preserved-uncertainty contract obvious.
+    **Step 3 — Normalization (Eqs. 10-12):**
+      ``η = (1 − b^cons_sum − u^pre) / b^comp_sum``
+      ``u^fused      = u^pre + η · b^comp(X)``     # disagreement → uncertainty
+      ``b^fused(x)   = b^cons(x) + η · b^comp(x)``
+      ``b^fused(¬x)  = b^cons(¬x) + η · b^comp(¬x)``
+
+    **Edge case — ``b^comp_sum ≈ 0``**: Remark 4 in the paper assumes
+    ``b^comp_sum > 0``. This assumption fails for self-fusion
+    (identical inputs → all residuals zero) and for full-agreement
+    fusion. We handle it by putting the residual missing mass
+    ``1 − b^cons_sum − u^pre`` directly into ``u``, which makes
+    self-fusion idempotent: ``ccf(op, op) == op`` for every ``op``.
+
+    **Base rate**: Def 5 takes ``a_X`` as a single shared input across
+    all actors — the paper treats base rate as a precondition, not a
+    fused field. propstore routinely fuses opinions with
+    calibration-derived ``a`` values that differ per source, so we
+    compute a confidence-weighted average of base rates (analogous to
+    WBF Case 1 in the paper) and clamp to ``_BASE_RATE_CLAMP``. This
+    is a propstore convention layered on top of Def 5, not part of
+    the paper's algorithm.
+
+    Verified against Table I of the paper: given the three-source
+    example A₁=(0.10, 0.30, 0.60), A₂=(0.40, 0.20, 0.40),
+    A₃=(0.70, 0.10, 0.20) with ``a=0.5``, this formula reproduces
+    the paper's CCF column ``(0.629, 0.182, 0.189)`` exactly.
     """
     N = len(opinions)
     if N == 1:
         return opinions[0]
 
-    b_fused = sum(op.b for op in opinions) / N
-    d_fused = sum(op.d for op in opinions) / N
-    u_fused = sum(op.u for op in opinions) / N
+    # --- Step 1: Consensus extraction ---
+    cons_b = min(op.b for op in opinions)
+    cons_d = min(op.d for op in opinions)
+    cons_sum = cons_b + cons_d
 
-    # Clamp tiny negative drift to zero before handing to the constructor.
+    # Residual masses per actor per focal element.
+    res_b = [op.b - cons_b for op in opinions]
+    res_d = [op.d - cons_d for op in opinions]
+
+    # --- Step 2: Compromise phase ---
+    # Product of all uncertainties (pre-uncertainty mass).
+    u_pre = math.prod(op.u for op in opinions)
+
+    # Term 1 of Eq. 7 (residue weighted by other actors' u) plus term
+    # 2 for x ∈ R(X) (joint commitment to the same singleton). For
+    # binomial singletons, terms 3 and 4 of Eq. 7 contribute zero
+    # when computing b^comp({x}) or b^comp({¬x}).
+    sum_b_res_weighted = sum(
+        res_b[i] * math.prod(opinions[j].u for j in range(N) if j != i)
+        for i in range(N)
+    )
+    sum_d_res_weighted = sum(
+        res_d[i] * math.prod(opinions[j].u for j in range(N) if j != i)
+        for i in range(N)
+    )
+    comp_b = sum_b_res_weighted + math.prod(res_b)
+    comp_d = sum_d_res_weighted + math.prod(res_d)
+
+    # b^comp(X) — disagreement term. Inclusion-exclusion form of
+    # "all residual-mass tuples minus the all-{x} and all-{¬x} tuples."
+    prod_res_total = math.prod(res_b[i] + res_d[i] for i in range(N))
+    comp_X = prod_res_total - math.prod(res_b) - math.prod(res_d)
+
+    comp_sum = comp_b + comp_d + comp_X
+
+    # --- Step 3: Normalization ---
+    # When comp_sum ≈ 0 (no compromise mass to distribute), put any
+    # residual missing mass directly into u. This handles self-fusion
+    # and full-agreement edge cases that Def 5 Remark 4 doesn't cover.
+    if comp_sum < _TOL:
+        b_fused = cons_b
+        d_fused = cons_d
+        u_fused = max(0.0, 1.0 - cons_sum)
+    else:
+        eta = (1.0 - cons_sum - u_pre) / comp_sum
+        u_fused = u_pre + eta * comp_X
+        b_fused = cons_b + eta * comp_b
+        d_fused = cons_d + eta * comp_d
+
+    # Clamp tiny float drift from the constructor.
     b_fused = max(0.0, b_fused)
     d_fused = max(0.0, d_fused)
     u_fused = max(0.0, u_fused)
 
-    # Base-rate fusion: see `_BASE_RATE_CLAMP` for the deviation from
-    # van der Heijden 2018 (which requires shared priors).
-    a_fused = _clamp_base_rate(sum(op.a for op in opinions) / N)
+    # Base-rate fusion: propstore convention (see docstring). Use
+    # confidence-weighted averaging across sources; fall back to
+    # plain averaging when all sources are fully vacuous.
+    weights = [1.0 - op.u for op in opinions]
+    total_weight = sum(weights)
+    if total_weight < _TOL:
+        a_fused = sum(op.a for op in opinions) / N
+    else:
+        a_fused = sum(op.a * w for op, w in zip(opinions, weights)) / total_weight
+    a_fused = _clamp_base_rate(a_fused)
 
     return Opinion(b_fused, d_fused, u_fused, a_fused)
 
