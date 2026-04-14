@@ -9,11 +9,15 @@ from pathlib import Path
 from collections.abc import Sequence
 from typing import Any
 
-import msgspec
 import pint
 
+from propstore.artifact_documents.forms import (
+    FormAlternativeDocument,
+    FormDocument,
+    FormExtraUnitDocument,
+)
 from propstore.cel_checker import KindType
-from propstore.document_schema import DocumentSchemaError, DocumentStruct, decode_document_path
+from propstore.document_schema import DocumentSchemaError, decode_document_path
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.diagnostics import ValidationResult
 from propstore.resources import load_resource_json
@@ -71,35 +75,6 @@ class FormDefinition:
     dimensions: dict[str, int] | None = None
     extra_units: tuple[ExtraUnitDefinition, ...] = ()
     conversions: dict[str, UnitConversion] = field(default_factory=dict)
-
-
-class FormAlternativeDocument(DocumentStruct):
-    unit: str
-    type: str
-    multiplier: float = 1.0
-    offset: float = 0.0
-    base: float = 10.0
-    divisor: float = 1.0
-    reference: float = 1.0
-
-
-class FormExtraUnitDocument(DocumentStruct):
-    symbol: str
-    dimensions: dict[str, int] = msgspec.field(default_factory=dict)
-
-
-class FormDocument(DocumentStruct):
-    name: str
-    dimensionless: bool
-    base: str | None = None
-    unit_symbol: str | None = None
-    qudt: str | None = None
-    parameters: dict[str, Any] = msgspec.field(default_factory=dict)
-    common_alternatives: tuple[FormAlternativeDocument, ...] = ()
-    kind: str | None = None
-    note: str | None = None
-    dimensions: dict[str, int] | None = None
-    extra_units: tuple[FormExtraUnitDocument, ...] = ()
 
 
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}

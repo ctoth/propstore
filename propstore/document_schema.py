@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Generic, TypeVar
 
@@ -24,6 +25,21 @@ class DocumentSchemaError(ValueError):
         super().__init__(f"{source}: {message}")
         self.source = source
         self.message = message
+
+
+def to_document_builtins(value: object) -> object:
+    if isinstance(value, msgspec.Struct):
+        return to_document_builtins(msgspec.to_builtins(value))
+    if isinstance(value, Mapping):
+        return {
+            key: to_document_builtins(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, tuple):
+        return [to_document_builtins(item) for item in value]
+    if isinstance(value, list):
+        return [to_document_builtins(item) for item in value]
+    return value
 
 
 def _source_label(path: KnowledgePath | Path) -> str:

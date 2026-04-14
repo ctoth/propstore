@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from propstore.artifact_documents.concepts import ConceptDocument
+from propstore.artifact_documents.forms import FormDocument
+from propstore.artifact_documents.worldlines import WorldlineDefinitionDocument
 from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.artifacts.refs import (
     CanonicalSourceRef,
@@ -33,8 +36,6 @@ from propstore.artifacts.refs import (
 from propstore.artifacts.types import ArtifactFamily, ResolvedArtifact
 from propstore.claim_documents import ClaimsFileDocument
 from propstore.context_types import ContextDocument
-from propstore.core.concepts import ConceptDocument
-from propstore.form_utils import FormDocument
 from propstore.source_documents import (
     SourceClaimsDocument,
     SourceConceptsDocument,
@@ -45,7 +46,6 @@ from propstore.source_documents import (
 )
 from propstore.source_alignment_documents import ConceptAlignmentArtifactDocument
 from propstore.stance_documents import StanceFileDocument
-from propstore.worldline.definition import WorldlineDefinitionDocument
 from propstore.merge_documents import MergeManifestDocument
 
 if TYPE_CHECKING:
