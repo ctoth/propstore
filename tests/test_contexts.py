@@ -19,6 +19,7 @@ from propstore.validate_contexts import (
 from propstore.value_comparison import DEFAULT_TOLERANCE
 from tests.conftest import (
     create_world_model_schema,
+    make_cel_registry,
     normalize_claims_payload,
     normalize_concept_payloads,
 )
@@ -42,6 +43,17 @@ def make_context(id, name, description="", **kwargs):
 
 def _runtime_claim_id_set(claims) -> set[str]:
     return {str(claim.claim_id) for claim in claims}
+
+
+def detect_conflicts(claim_files, registry, context_hierarchy=None):
+    from propstore.conflict_detector import detect_conflicts as _detect_conflicts
+
+    return _detect_conflicts(
+        claim_files,
+        registry,
+        make_cel_registry(registry),
+        context_hierarchy=context_hierarchy,
+    )
 
 
 def insert_claim_row(
@@ -926,8 +938,6 @@ class TestContextAwareConflicts:
 
     def test_detect_conflicts_unrelated_contexts_not_suppressed(self):
         """Unrelated-context claims go through normal condition analysis, not CONTEXT_PHI_NODE."""
-        from propstore.conflict_detector import detect_conflicts
-        
         cf = LoadedEntry(
             filename="test",
             source_path=Path("test.yaml"),
@@ -981,8 +991,6 @@ class TestContextAwareConflicts:
         value_b,
     ):
         """Unrelated contexts let condition analysis decide — never CONTEXT_PHI_NODE."""
-        from propstore.conflict_detector import detect_conflicts
-        
         assume(abs(value_a - value_b) > DEFAULT_TOLERANCE)
 
         cf = LoadedEntry(

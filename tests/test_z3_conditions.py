@@ -9,10 +9,10 @@ from hypothesis import strategies as st
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.conflict_detector import (
     ConflictClass,
-    detect_conflicts,
+    detect_conflicts as _detect_conflicts,
 )
 from propstore.loaded import LoadedEntry
-from tests.conftest import make_concept_registry
+from tests.conftest import make_cel_registry, make_concept_registry
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -36,6 +36,15 @@ def make_claim_file(claims, filename="test_paper"):
         filename=filename,
         source_path=Path(f"/fake/{filename}.yaml"),
         data={"source": {"paper": filename}, "claims": claims},
+    )
+
+
+def detect_conflicts(claim_files, registry, context_hierarchy=None):
+    return _detect_conflicts(
+        claim_files,
+        registry,
+        make_cel_registry(registry),
+        context_hierarchy=context_hierarchy,
     )
 
 

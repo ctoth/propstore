@@ -224,7 +224,7 @@ def _classify_pair(
     )
 
     try:
-        records = detect_conflicts([left_file, right_file], concept_registry={})
+        records = detect_conflicts([left_file, right_file], concept_registry={}, cel_registry={})
     except Exception as exc:
         from propstore.z3_conditions import Z3TranslationError
 

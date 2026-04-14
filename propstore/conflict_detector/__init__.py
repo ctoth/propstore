@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
+
+from propstore.cel_checker import ConceptInfo
 
 from .models import ConflictClass, ConflictRecord
 
@@ -16,6 +18,7 @@ if TYPE_CHECKING:
 def detect_conflicts(
     claim_files: Sequence[ClaimFileInput],
     concept_registry: dict[str, dict],
+    cel_registry: Mapping[str, ConceptInfo],
     context_hierarchy: ContextHierarchy | None = None,
 ) -> list[ConflictRecord]:
     from .orchestrator import detect_conflicts as _detect_conflicts
@@ -23,6 +26,7 @@ def detect_conflicts(
     return _detect_conflicts(
         claim_files,
         concept_registry,
+        cel_registry,
         context_hierarchy=context_hierarchy,
     )
 

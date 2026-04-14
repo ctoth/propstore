@@ -225,6 +225,7 @@ def build_sidecar(
                 conn,
                 normalized_claim_files,
                 concept_registry,
+                dict(compilation_context.cel_registry),
                 context_hierarchy=context_hierarchy,
             )
             build_claim_fts_index(conn, normalized_claim_files)

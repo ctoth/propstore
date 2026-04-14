@@ -10,12 +10,13 @@ We parse a sufficient subset rather than implementing full CEL.
 
 from __future__ import annotations
 
-import json
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES as _STANDARD_SYNTHETIC_BINDING_NAMES
 
 
 class KindType(Enum):
@@ -35,90 +36,6 @@ class ConceptInfo:
     # For category kinds: the valid value set
     category_values: list[str] = field(default_factory=list)
     category_extensible: bool = True
-
-
-def build_cel_registry(
-    records: Iterable[Mapping[str, Any]],
-) -> dict[str, ConceptInfo]:
-    """Build the canonical CEL registry from normalized concept payloads."""
-    registry: dict[str, ConceptInfo] = {}
-    for record in records:
-        info = _concept_info_from_mapping(record)
-        if info is None:
-            continue
-        registry[info.canonical_name] = info
-    return registry
-
-
-STANDARD_SYNTHETIC_BINDING_NAMES = (
-    "source",
-    "domain",
-    "source_kind",
-    "origin_type",
-    "name",
-    "framework",
-    "variant",
-)
-
-def _mapping_form_parameters(value: object) -> Mapping[str, Any]:
-    if isinstance(value, Mapping):
-        return value
-    if isinstance(value, str) and value:
-        try:
-            parsed = json.loads(value)
-        except json.JSONDecodeError:
-            return {}
-        if isinstance(parsed, Mapping):
-            return parsed
-    return {}
-
-
-def _kind_type_from_record(data: Mapping[str, Any]) -> KindType | None:
-    from propstore.form_utils import kind_type_from_form_name
-
-    raw_kind = data.get("kind_type")
-    if isinstance(raw_kind, KindType):
-        return raw_kind
-    if isinstance(raw_kind, str):
-        try:
-            return KindType(raw_kind)
-        except ValueError:
-            return kind_type_from_form_name(data.get("form"))
-    return kind_type_from_form_name(data.get("form"))
-
-
-def _concept_info_from_mapping(data: Mapping[str, Any]) -> ConceptInfo | None:
-    """Build one ``ConceptInfo`` from a caller-normalized concept payload."""
-    canonical_name = data.get("canonical_name")
-    if not isinstance(canonical_name, str) or not canonical_name:
-        return None
-
-    concept_id = data.get("artifact_id") or data.get("id")
-    if not isinstance(concept_id, str) or not concept_id:
-        return None
-
-    kind_type = _kind_type_from_record(data)
-    if kind_type is None:
-        return None
-
-    form_parameters = _mapping_form_parameters(data.get("form_parameters"))
-    raw_values = form_parameters.get("values")
-    category_values = [
-        value
-        for value in (raw_values if isinstance(raw_values, Sequence) and not isinstance(raw_values, str) else ())
-        if isinstance(value, str)
-    ]
-    raw_extensible = form_parameters.get("extensible")
-    category_extensible = True if raw_extensible is None else bool(raw_extensible)
-
-    return ConceptInfo(
-        id=concept_id,
-        canonical_name=canonical_name,
-        kind=kind_type,
-        category_values=category_values,
-        category_extensible=category_extensible,
-    )
-
 
 def scope_cel_registry(
     registry: Mapping[str, ConceptInfo],
@@ -172,7 +89,7 @@ def with_standard_synthetic_bindings(
             values=(),
             extensible=True,
         )
-        for canonical_name in STANDARD_SYNTHETIC_BINDING_NAMES
+        for canonical_name in _STANDARD_SYNTHETIC_BINDING_NAMES
         if canonical_name not in registry
     ]
     if not synthetic_concepts:

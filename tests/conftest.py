@@ -734,3 +734,10 @@ def make_concept_registry():
         if concept["canonical_name"] == "subglottal_pressure":
             registry["Ps"] = concept
     return registry
+
+
+def make_cel_registry(registry: dict[str, dict] | None = None) -> dict[str, object]:
+    from propstore.compiler.context import compilation_context_from_concept_registry
+
+    source_registry = make_concept_registry() if registry is None else registry
+    return dict(compilation_context_from_concept_registry(source_registry).cel_registry)

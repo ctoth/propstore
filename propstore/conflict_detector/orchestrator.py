@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
 
 from propstore.claim_files import (
@@ -12,11 +12,10 @@ from propstore.claim_files import (
     claim_file_default_source_paper,
 )
 from propstore.cel_checker import (
-    build_cel_registry,
+    ConceptInfo,
     synthetic_category_concept,
     with_synthetic_concepts,
 )
-from propstore.core.concepts import parse_concept_record
 
 from .algorithms import detect_algorithm_conflicts
 from .collectors import _iter_conflict_claims
@@ -33,11 +32,12 @@ if TYPE_CHECKING:
 def detect_conflicts(
     claim_files: Sequence[ClaimFileInput],
     concept_registry: dict[str, dict],
+    cel_registry: Mapping[str, ConceptInfo],
     context_hierarchy: ContextHierarchy | None = None,
 ) -> list[ConflictRecord]:
     """Detect conflicts between claims binding to the same concept."""
     records: list[ConflictRecord] = []
-    cel_registry = build_cel_registry(_cel_concept_payloads(concept_registry))
+    _validate_conflict_concept_registry(concept_registry)
     # Inject a synthetic 'source' category so Z3 treats source conditions
     # as enum comparisons and recognizes different papers as disjoint.
     source_name_set: set[str] = set()
@@ -124,24 +124,29 @@ def _build_condition_solver(cel_registry):
     return Z3ConditionSolver(cel_registry)
 
 
-def _cel_concept_payloads(
-    concept_registry: dict[str, dict],
-) -> list[dict]:
-    seen_ids: set[str] = set()
-    payloads: list[dict] = []
+def _validate_conflict_concept_registry(concept_registry: dict[str, dict]) -> None:
+    entries_by_id: dict[str, dict[str, object]] = {}
     for key, value in concept_registry.items():
         if not isinstance(value, dict):
+            raise TypeError(
+                "conflict detector CEL projection expects concept_registry values to be mappings"
+            )
+        concept_id = value.get("artifact_id", value.get("id"))
+        if not isinstance(concept_id, str) or not concept_id:
+            raise ValueError(
+                f"invalid concept registry entry for key '{key}': missing artifact_id/id"
+            )
+        normalized = {
+            str(field): field_value
+            for field, field_value in value.items()
+            if not str(field).startswith("_")
+        }
+        normalized.setdefault("artifact_id", concept_id)
+        existing = entries_by_id.get(concept_id)
+        if existing is not None:
+            if existing != normalized:
+                raise ValueError(
+                    f"conflicting concept registry entries for concept id '{concept_id}'"
+                )
             continue
-        candidate = dict(value)
-        if not candidate.get("artifact_id") and isinstance(key, str) and key:
-            candidate["artifact_id"] = key
-        try:
-            record = parse_concept_record(candidate)
-        except ValueError:
-            continue
-        artifact_id = str(record.artifact_id)
-        if artifact_id in seen_ids:
-            continue
-        seen_ids.add(artifact_id)
-        payloads.append(record.to_payload())
-    return payloads
+        entries_by_id[concept_id] = normalized
