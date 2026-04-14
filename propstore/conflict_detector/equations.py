@@ -6,7 +6,7 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_documents import ClaimFileInput
+from propstore.claim_files import ClaimFileInput
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.equation_comparison import EquationFailure, canonicalize_equation
 

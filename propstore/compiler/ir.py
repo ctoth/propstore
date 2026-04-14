@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.claim_documents import LoadedClaimFile
+from propstore.claim_files import LoadedClaimFile
 from propstore.diagnostics import SemanticDiagnostic, ValidationResult, diagnostics_to_validation_result
 
 

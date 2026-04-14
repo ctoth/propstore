@@ -10,7 +10,7 @@ from itertools import product
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_documents import ClaimFileInput
+from propstore.claim_files import ClaimFileInput
 from propstore.value_comparison import (
     DEFAULT_TOLERANCE,
     extract_interval as _extract_interval,

@@ -13,7 +13,7 @@ from propstore.artifacts import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
-from propstore.claim_documents import ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
+from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
 from propstore.cli.repository import Repository
 from propstore.core.claim_types import ClaimType
 from propstore.repo.branch import create_branch

@@ -7,7 +7,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Mapping
 
-from propstore.claim_documents import LoadedClaimFile
+from propstore.claim_files import LoadedClaimFile
 from propstore.cel_checker import ConceptInfo, build_cel_registry_from_concepts
 from propstore.core.concepts import (
     ConceptRecord,

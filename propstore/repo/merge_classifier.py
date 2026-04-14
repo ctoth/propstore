@@ -289,7 +289,7 @@ def build_merge_framework(
     branch_b: str,
 ) -> RepoMergeFramework:
     """Build the direct repository merge object for two branches."""
-    from propstore.claim_documents import load_claim_files
+    from propstore.claim_files import load_claim_files
 
     base_sha = snapshot.merge_base(branch_a, branch_b)
     left_sha = snapshot.branch_head(branch_a)

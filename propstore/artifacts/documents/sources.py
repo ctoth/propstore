@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from propstore.claim_documents import (
+from propstore.artifacts.documents.claims import (
     ClaimLogicalIdDocument,
     ClaimSourceDocument,
     FitStatisticsDocument,

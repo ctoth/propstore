@@ -779,7 +779,7 @@ def claim_files(concept_dir):
     (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
 
-    from propstore.claim_documents import load_claim_files
+    from propstore.claim_files import load_claim_files
     return load_claim_files(claims_dir)
 
 
@@ -1507,7 +1507,7 @@ def algorithm_claim_files(concept_dir):
         yaml.dump(algo_paper, default_flow_style=False)
     )
 
-    from propstore.claim_documents import load_claim_files
+    from propstore.claim_files import load_claim_files
     return load_claim_files(claims_dir)
 
 

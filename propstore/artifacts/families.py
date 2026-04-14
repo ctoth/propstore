@@ -35,7 +35,7 @@ from propstore.artifacts.refs import (
     justifications_file_relpath,
 )
 from propstore.artifacts.types import ArtifactFamily, ResolvedArtifact
-from propstore.claim_documents import ClaimsFileDocument
+from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,

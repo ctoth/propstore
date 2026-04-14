@@ -214,7 +214,7 @@ def _canonical_stance_rows(
 
 
 def _load_branch_claims(claims_root: KnowledgePath) -> list[MergeClaim]:
-    from propstore.claim_documents import load_claim_files
+    from propstore.claim_files import load_claim_files
 
     active_claims: list[MergeClaim] = []
     for claim_file in load_claim_files(claims_root):

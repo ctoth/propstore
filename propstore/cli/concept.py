@@ -9,7 +9,7 @@ from pathlib import Path
 
 import click
 
-from propstore.claim_documents import LoadedClaimFile
+from propstore.claim_files import LoadedClaimFile
 from propstore.artifacts import (
     CLAIMS_FILE_FAMILY,
     CONCEPT_FILE_FAMILY,
@@ -39,7 +39,7 @@ from propstore.knowledge_path import KnowledgePath
 from propstore.cli.repository import Repository
 from propstore.core.concepts import load_concepts
 from propstore.validate_concepts import validate_concepts
-from propstore.claim_documents import load_claim_files
+from propstore.claim_files import load_claim_files
 from propstore.compiler.passes import validate_claims
 
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import get_type_hints
 
-from propstore.claim_documents import ClaimDocument, StanceDocument
+from propstore.artifacts.documents.claims import ClaimDocument, StanceDocument
 from propstore.core.claim_types import ClaimType
 from propstore.artifacts.schema import convert_document_value
 from propstore.artifacts.documents.sources import SourceClaimDocument, SourceStanceEntryDocument
