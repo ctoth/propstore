@@ -201,7 +201,11 @@ class StrictArg:
             return True
         if not isinstance(other, StrictArg):
             return NotImplemented
-        return self.sub_args == other.sub_args and self.rule == other.rule
+        if self.rule != other.rule:
+            return False
+        if hash(self) != hash(other):
+            return False
+        return self.sub_args == other.sub_args
 
     def __hash__(self) -> int:
         if self._hash is None:
@@ -225,7 +229,11 @@ class DefeasibleArg:
             return True
         if not isinstance(other, DefeasibleArg):
             return NotImplemented
-        return self.sub_args == other.sub_args and self.rule == other.rule
+        if self.rule != other.rule:
+            return False
+        if hash(self) != hash(other):
+            return False
+        return self.sub_args == other.sub_args
 
     def __hash__(self) -> int:
         if self._hash is None:
@@ -590,6 +598,26 @@ def prem_p(a: Argument) -> frozenset[Literal]:
     return frozenset(premises)
 
 
+def _clear_argument_function_caches() -> None:
+    """Clear process-global memo tables before a fresh argument job.
+
+    These helpers cache results over immutable argument trees, which is useful
+    within one build/attack/defeat pipeline. Keeping them alive across many
+    unrelated Hypothesis-generated systems makes the process-wide caches grow
+    without bound and can slow later runs in the same test session.
+    """
+    conc.cache_clear()
+    prem.cache_clear()
+    sub.cache_clear()
+    all_concs.cache_clear()
+    top_rule.cache_clear()
+    def_rules.cache_clear()
+    last_def_rules.cache_clear()
+    prem_p.cache_clear()
+    _set_strictly_less.cache_clear()
+    _strictly_weaker.cache_clear()
+
+
 def is_firm(a: Argument) -> bool:
     """True if all premises are axioms (K_n). Prakken 2010, Def 3.8."""
     return len(prem_p(a)) == 0
@@ -653,6 +681,7 @@ def build_arguments(
     and arguments are deduplicated (frozen dataclasses are hashable).
     """
     import itertools
+    _clear_argument_function_caches()
 
     # Step 1: Seed with premise arguments
     all_args: set[Argument] = set()
@@ -683,6 +712,7 @@ def build_arguments(
 
     # Step 2-3: Iterate until fixpoint
     all_rules = list(system.strict_rules | system.defeasible_rules)
+    attempted_rule_combos: set[tuple[int, tuple[int, ...]]] = set()
     changed = True
     while changed:
         changed = False
@@ -701,6 +731,11 @@ def build_arguments(
 
             # Enumerate all combinations via Cartesian product
             for combo in itertools.product(*ante_arg_sets):
+                combo_signature = (id(rule), tuple(id(sub_arg) for sub_arg in combo))
+                if combo_signature in attempted_rule_combos:
+                    continue
+                attempted_rule_combos.add(combo_signature)
+
                 # Acyclicity: the rule's consequent must not already
                 # appear as a conclusion in any sub-argument tree.
                 # This prevents infinite nesting from rule cycles
@@ -795,6 +830,7 @@ def build_arguments_for(
         Frozenset of all c-consistent arguments relevant to the goal.
     """
     import itertools
+    _clear_argument_function_caches()
 
     all_rules = list(system.strict_rules | system.defeasible_rules)
 
@@ -1045,6 +1081,7 @@ def compute_attacks(
 # ── Defeat determination ──────────────────────────────────────────
 
 
+@functools.cache
 def _set_strictly_less(
     gamma: frozenset[PreferenceOrderedT],
     gamma_prime: frozenset[PreferenceOrderedT],
@@ -1103,6 +1140,7 @@ def _set_strictly_less(
         raise ValueError(f"Unknown comparison mode: {comparison}")
 
 
+@functools.cache
 def _strictly_weaker(
     a: Argument,
     b: Argument,

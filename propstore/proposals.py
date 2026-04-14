@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING
 
 from propstore.artifacts.codecs import encode_document
 from propstore.artifacts import PROPOSAL_STANCE_FAMILY, STANCE_PROPOSAL_BRANCH, StanceFileRef
-from propstore.document_schema import convert_document_value
-from propstore.stance_documents import StanceFileDocument
+from propstore.artifacts.documents.stances import StanceFileDocument
+from propstore.artifacts.schema import convert_document_value
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
