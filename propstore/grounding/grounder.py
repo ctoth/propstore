@@ -48,6 +48,7 @@ from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 from typing import cast
 
+import gunray
 from gunray.adapter import GunrayEvaluator
 from gunray.schema import DefeasibleModel, DefeasibleSections, Policy
 
@@ -77,6 +78,7 @@ def ground(
     registry: PredicateRegistry,
     *,
     policy: Policy = Policy.BLOCKING,
+    return_arguments: bool = False,
 ) -> GroundedRulesBundle:
     """Ground a propstore rule/fact bundle via gunray.
 
@@ -135,13 +137,29 @@ def ground(
             value. The keyword is still threaded through so callers
             can opt into closure-style policies (rational, lexicographic,
             relevant) once propstore surfaces them.
+        return_arguments: When ``True``, populate
+            ``bundle.arguments`` with the full ordered tuple of
+            ``gunray.Argument`` objects produced by
+            ``gunray.build_arguments(theory)``. Defaults to ``False``
+            for backwards compatibility — existing callers pay no
+            argument-enumeration cost. Block 3 of the gunray
+            refactor exposes this typed view alongside the legacy
+            section projection; callers that operate on arguments
+            (dialectical renderer, claim graph) opt in via this
+            keyword. Garcia & Simari 2004 §3 Def 3.6 (argument as
+            minimal consistent defeasible derivation) and Diller,
+            Borg, Bex 2025 §4 (arguments as the atomic unit of the
+            dialectical-tree procedure).
 
     Returns:
         A ``GroundedRulesBundle`` whose ``sections`` mapping always
         has all four gunray section keys
         (``definitely`` / ``defeasibly`` / ``not_defeasibly`` /
         ``undecided``), whose ``source_rules`` is ``tuple(rule_files)``,
-        and whose ``source_facts`` is ``facts``.
+        and whose ``source_facts`` is ``facts``. When
+        ``return_arguments=True``, ``arguments`` carries the
+        deterministically-sorted tuple of ``gunray.Argument``
+        objects; otherwise it is the empty tuple.
     """
 
     # Step 1: translate propstore documents into the gunray schema.
@@ -166,6 +184,25 @@ def ground(
     # ``_FOUR_SECTIONS`` order.
     normalized_sections = _normalise_sections(raw_model.sections)
 
+    # Step 3b (opt-in): enumerate the argument view. Garcia & Simari
+    # 2004 §3 Def 3.6 / Simari & Loui 1992 Def 2.2 — an argument is a
+    # minimal consistent defeasible derivation. ``gunray.build_arguments``
+    # returns an unordered ``frozenset[Argument]``; we sort it by a
+    # deterministic key (rule id tuple, conclusion predicate,
+    # conclusion argument tuple) so repeated invocations with the same
+    # inputs yield byte-identical bundles — the Diller, Borg, Bex 2025
+    # §3 Definition 9 determinism contract at the argument-tuple
+    # granularity.
+    sorted_arguments: tuple[gunray.Argument, ...] = ()
+    if return_arguments:
+        argument_set = gunray.build_arguments(theory)
+        sorted_arguments = tuple(
+            sorted(
+                argument_set,
+                key=_argument_sort_key,
+            )
+        )
+
     # Step 4: package into the immutable bundle. Diller, Borg, Bex
     # 2025 §3: the rule base and fact base travel with the model so
     # downstream consumers retain full provenance.
@@ -173,7 +210,33 @@ def ground(
         source_rules=tuple(rule_files),
         source_facts=facts,
         sections=normalized_sections,
+        arguments=sorted_arguments,
     )
+
+
+def _argument_sort_key(
+    argument: "gunray.Argument",
+) -> tuple[tuple[str, ...], str, tuple[str, ...]]:
+    """Deterministic sort key for ``gunray.Argument`` objects.
+
+    The key is a tuple of primitives so ``sorted`` is stable across
+    Python implementations and across gunray versions: the rule-id
+    tuple (sorted so set iteration order is irrelevant), the
+    conclusion predicate string, and the conclusion argument tuple
+    (rendered to strings because gunray's ``GroundAtom.arguments``
+    stores arbitrary scalar types).
+
+    Diller, Borg, Bex 2025 §3 Definition 9: the grounder must be a
+    deterministic function of its inputs. ``build_arguments`` returns
+    an unordered frozenset; this key projects it onto a total order
+    so the returned tuple is byte-identical for byte-identical
+    inputs.
+    """
+
+    rule_ids = tuple(sorted(rule.rule_id for rule in argument.rules))
+    conclusion = argument.conclusion
+    conclusion_args = tuple(str(arg) for arg in conclusion.arguments)
+    return rule_ids, conclusion.predicate, conclusion_args
 
 
 def _normalise_sections(
