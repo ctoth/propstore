@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 from propstore.artifacts.codecs import convert_document, decode_document, document_to_payload, encode_document, render_document
@@ -21,6 +22,10 @@ if TYPE_CHECKING:
 
 
 class ArtifactStore:
+    @classmethod
+    def for_git(cls, git: object) -> ArtifactStore:
+        return cls(SimpleNamespace(git=git))
+
     def __init__(self, repo: Repository) -> None:
         self._repo = repo
 

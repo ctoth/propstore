@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import time
 from collections import Counter
-from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 from dulwich.objects import Blob, Commit
@@ -30,7 +29,7 @@ def create_merge_commit(
     """Create a two-parent merge commit from the formal merge object."""
     from propstore.artifacts.store import ArtifactStore
 
-    artifacts = ArtifactStore(SimpleNamespace(git=kr))
+    artifacts = ArtifactStore.for_git(kr)
     if target_branch is None:
         target_branch = kr.primary_branch_name()
     merge = build_merge_framework(kr, branch_a, branch_b)
