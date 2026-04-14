@@ -99,8 +99,35 @@ proves a real need.
 - Identity policies own `logical_ids`, `artifact_id`, and `version_id`.
 - Reference resolution owns local/logical/canonical lookup.
 - Callers should ask for typed artifacts, not manipulate git/YAML directly.
+- Callers should not derive refs from repo paths or filenames for persisted artifacts.
+- Callers should not call artifact codecs directly for dry-run or display output.
+- Artifact moves and renames should be store-backed operations, not caller-built add/delete batches.
 - No dual old/new persistence paths in steady state.
 - No compatibility shims unless an external constraint explicitly requires one.
+
+## Plan Correction
+
+The first store cut landed a boundary that was still too low-level.
+
+It proved that typed load/save/delete and family specs are useful, but it also
+exposed the missing ownership:
+
+- callers were still deriving refs from source paths
+- callers were still rendering YAML for display
+- caller code still had to think about path-level rename mechanics
+- caller code was still converting loose payloads into typed artifact docs
+
+That is not the target architecture.
+
+The corrected target is:
+
+- the store owns repo-artifact path, branch, and commit addressing
+- the store owns artifact rendering for human display
+- the store and transaction layers own artifact moves and renames
+- family specs expose first-class helpers for locating refs from loaded domain objects
+- CLI code orchestrates typed operations and validation only
+
+Pause further family cutovers until that higher store boundary exists.
 
 ## Module Layout
 
@@ -139,9 +166,11 @@ Recommended responsibilities:
 
 - `store.py`
   - `ArtifactStore`
+  - typed artifact resolution and rendering
+  - typed artifact move/rename helpers
 
 - `transaction.py`
-  - atomic multi-artifact writes/deletes
+  - atomic multi-artifact writes/deletes/moves
 
 - `identity.py`
   - `ClaimIdentityPolicy`
@@ -206,6 +235,14 @@ class ArtifactContext(Generic[TRef]):
     ref: TRef
     branch: str
     relpath: str
+
+
+@dataclass(frozen=True)
+class ArtifactHandle(Generic[TRef, TDoc]):
+    family: ArtifactFamily[TRef, TDoc]
+    ref: TRef
+    resolved: ResolvedArtifact
+    document: TDoc
 ```
 
 ### Family declaration
@@ -218,6 +255,8 @@ class ArtifactFamily(Generic[TRef, TDoc]):
     resolve_ref: Callable[[Repository, TRef], ResolvedArtifact]
     normalize_for_write: Callable[[ArtifactContext[TRef], TDoc, "ArtifactStore"], TDoc] | None = None
     validate_for_write: Callable[[ArtifactContext[TRef], TDoc, "ArtifactStore"], None] | None = None
+    ref_from_path: Callable[[str], TRef] | None = None
+    ref_from_loaded: Callable[[object], TRef] | None = None
     scan_type: type[msgspec.Struct] | None = None
 ```
 
@@ -226,6 +265,14 @@ class ArtifactFamily(Generic[TRef, TDoc]):
 ```python
 class ArtifactStore:
     def __init__(self, repo: Repository) -> None: ...
+
+    def resolve(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        ref: TRef,
+        *,
+        commit: str | None = None,
+    ) -> ResolvedArtifact: ...
 
     def load(
         self,
@@ -243,6 +290,24 @@ class ArtifactStore:
         commit: str | None = None,
     ) -> TDoc: ...
 
+    def handle(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        ref: TRef,
+        *,
+        commit: str | None = None,
+    ) -> ArtifactHandle[TRef, TDoc] | None: ...
+
+    def require_handle(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        ref: TRef,
+        *,
+        commit: str | None = None,
+    ) -> ArtifactHandle[TRef, TDoc]: ...
+
+    def render(self, document: object) -> str: ...
+
     def save(
         self,
         family: ArtifactFamily[TRef, TDoc],
@@ -257,6 +322,17 @@ class ArtifactStore:
         self,
         family: ArtifactFamily[TRef, object],
         ref: TRef,
+        *,
+        message: str,
+        branch: str | None = None,
+    ) -> str: ...
+
+    def move(
+        self,
+        family: ArtifactFamily[TRef, TDoc],
+        old_ref: TRef,
+        new_ref: TRef,
+        doc: TDoc,
         *,
         message: str,
         branch: str | None = None,
@@ -284,6 +360,7 @@ class ArtifactStore:
 class ArtifactTransaction:
     def save(self, family: ArtifactFamily[TRef, TDoc], ref: TRef, doc: TDoc) -> None: ...
     def delete(self, family: ArtifactFamily[TRef, object], ref: TRef) -> None: ...
+    def move(self, family: ArtifactFamily[TRef, TDoc], old_ref: TRef, new_ref: TRef, doc: TDoc) -> None: ...
     def commit(self) -> str: ...
 ```
 
@@ -341,15 +418,24 @@ Phase 4 families:
 - canonical claims
   - `claims/{handle}.yaml` or claim file family as appropriate
 
-## Exact Workstream
+## Corrected Workstream
 
-### Phase 0: Freeze the target
+Current kept state in git:
+
+- source singleton artifact cutover
+- `context` and `form` cutover
+- worldline persistence cutover
+- alignment and promotion artifact cutover
+- typed claim reference resolution extraction
+
+Those reductions stay kept unless the raised store boundary proves one of them
+still leaks path/render mechanics upward enough to justify a focused repair.
+
+### Phase 0: Freeze the corrected target
 
 Add:
 
 - [plans/artifact-store-workstream-2026-04-13.md](/C:/Users/Q/code/propstore/plans/artifact-store-workstream-2026-04-13.md)
-
-No production changes yet.
 
 Output:
 
@@ -357,72 +443,77 @@ Output:
 - family list
 - grep-based completion criteria
 
-### Phase 1: Foundation
+### Phase 1: Raise the store boundary
 
 Add:
 
-- `propstore/artifacts/__init__.py`
-- `propstore/artifacts/codecs.py`
-- `propstore/artifacts/refs.py`
-- `propstore/artifacts/types.py`
-- `propstore/artifacts/families.py`
-- `propstore/artifacts/store.py`
-- `propstore/artifacts/transaction.py`
+- `ArtifactHandle`
+- store-level render support
+- store and transaction move support
+- family-level ref derivation helpers where needed
 
 Modify:
 
-- [document_schema.py](/C:/Users/Q/code/propstore/propstore/document_schema.py)
-  - keep strict decode boundary
-  - reuse from artifact codecs rather than duplicating error logic
+- [artifacts/store.py](/C:/Users/Q/code/propstore/propstore/artifacts/store.py)
+- [artifacts/transaction.py](/C:/Users/Q/code/propstore/propstore/artifacts/transaction.py)
+- [artifacts/families.py](/C:/Users/Q/code/propstore/propstore/artifacts/families.py)
+- [artifacts/types.py](/C:/Users/Q/code/propstore/propstore/artifacts/types.py)
+- [artifacts/codecs.py](/C:/Users/Q/code/propstore/propstore/artifacts/codecs.py)
 
 Tests to add:
 
-- `tests/test_artifact_store_roundtrip.py`
-- `tests/test_artifact_store_transactions.py`
+- store render tests
+- store move/rename tests
+- handle/ref-derivation tests
 
 Completion criteria:
 
-- store can load/save/delete a synthetic typed artifact family
-- transaction can atomically write multiple paths
-- no production caller is migrated yet
-- the foundation stays minimal until the first real family cutover
+- callers no longer need codec imports for dry-run or display output
+- callers no longer need to derive artifact refs from repo-relative paths
+- callers can rename or move artifacts without building raw add/delete batches
+- the boundary is high enough that the next family cutover removes helper code rather than relocating it
 
-### Phase 2: Source singleton artifact migration
-
-Add:
-
-- concrete source families in `propstore/artifacts/families.py`
+### Phase 2: Repair the in-flight concept cutover
 
 Modify:
 
-- [source/common.py](/C:/Users/Q/code/propstore/propstore/source/common.py)
-- [source/concepts.py](/C:/Users/Q/code/propstore/propstore/source/concepts.py)
-- [source/claims.py](/C:/Users/Q/code/propstore/propstore/source/claims.py)
-- [source/relations.py](/C:/Users/Q/code/propstore/propstore/source/relations.py)
-- [source/finalize.py](/C:/Users/Q/code/propstore/propstore/source/finalize.py)
+- [cli/concept.py](/C:/Users/Q/code/propstore/propstore/cli/concept.py)
 
 Delete from callers:
 
-- direct `yaml.safe_dump(...).encode("utf-8")`
-- direct `repo.git.commit_batch(...)` for these families
-- bespoke `load_source_*_document(...)` helpers as the primary path
+- direct artifact rendering through codec helpers
+- ref derivation from `source_path` or filenames where the family/store can own it
+- path-level rename batching for concept artifact mutations
 
 Tests to add/update:
 
-- `tests/test_source_artifact_store.py`
-- existing source CLI tests to assert behavior is unchanged
+- concept CLI mutation tests
+- artifact move/render tests exercised through concept commands
 
 Completion criteria:
 
-- all source singleton YAML writes go through `ArtifactStore`
-- source modules no longer import `yaml`
-- old source persistence paths for migrated families are deleted in the same slice
+- `cli/concept.py` does not import artifact codecs
+- `cli/concept.py` does not convert repo-relative paths into concept refs
+- `concept add`, `alias`, and `rename` use store and transaction APIs cleanly
+- the unfinished partial concept slice is either completed cleanly or fully reverted
 
-### Phase 3: Identity cutover
+### Phase 3: Continue exact family cutovers
 
-Add:
+Proceed one target family at a time only after Phase 2 is cleanly kept.
 
-- `propstore/artifacts/identity.py`
+Recommended order:
+
+1. canonical concept / claims CLI mutations
+2. repo import and merge materialization
+3. any remaining output-only CLI YAML surfaces
+
+Each slice must:
+
+- use the corrected high store boundary
+- delete the old production path in the same change
+- stop widening if the boundary starts leaking path/render mechanics back upward
+
+### Phase 4: Identity cutover
 
 Modify:
 
@@ -449,7 +540,7 @@ Completion criteria:
 - repeated normalization is stable
 - caller-local identity assembly is deleted as each policy-backed path lands
 
-### Phase 4: Reference-resolution cutover
+### Phase 5: Reference-resolution cutover
 
 Add:
 
@@ -479,20 +570,12 @@ Completion criteria:
 - ambiguity hard-fails with explicit errors
 - old per-module resolution maps are deleted rather than left behind as fallback
 
-### Phase 5: Worldline migration
-
-Add:
-
-- `WorldlineRef` family support
+### Phase 6: Audit completed worldline cutover
 
 Modify:
 
 - [worldline/definition.py](/C:/Users/Q/code/propstore/propstore/worldline/definition.py)
 - [cli/worldline_cmds.py](/C:/Users/Q/code/propstore/propstore/cli/worldline_cmds.py)
-
-Delete from callers:
-
-- handwritten worldline YAML save/load path
 
 Tests to add/update:
 
@@ -501,11 +584,11 @@ Tests to add/update:
 
 Completion criteria:
 
-- worldline persistence is store-backed
-- CLI worldline commands no longer import `yaml`
-- old worldline YAML persistence code is deleted in the same cutover
+- worldline persistence remains store-backed
+- worldline callers do not need codec imports or path-derived refs
+- no worldline rename/display path leaks remain after the raised-boundary audit
 
-### Phase 6: Alignment and promotion artifact migration
+### Phase 7: Audit completed alignment and promotion cutovers
 
 Modify:
 
@@ -517,8 +600,9 @@ Completion criteria:
 
 - alignment and promotion paths use family specs plus transactions
 - multi-file promotion writes are atomic through `ArtifactTransaction`
+- callers are not reconstructing refs or rendering YAML themselves
 
-### Phase 7: CLI cleanup
+### Phase 8: Remaining CLI cleanup
 
 Modify:
 
@@ -534,7 +618,7 @@ Goal:
 - CLI code should orchestrate store/policy/resolver calls
 - not manipulate repo/YAML directly
 
-### Phase 8: Optional runtime codec cleanup
+### Phase 9: Optional runtime codec cleanup
 
 Only do this if the prior phases expose a clear remaining win.
 
