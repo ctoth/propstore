@@ -4,6 +4,7 @@ from typing import Any
 
 import msgspec
 
+from propstore.core.concept_relationship_types import ConceptRelationshipType
 from propstore.core.exactness_types import Exactness
 from propstore.document_schema import DocumentStruct
 
@@ -20,7 +21,7 @@ class ConceptAliasDocument(DocumentStruct):
 
 
 class ConceptRelationshipDocument(DocumentStruct):
-    type: str
+    type: ConceptRelationshipType
     target: str
     source: str | None = None
     conditions: tuple[str, ...] = ()

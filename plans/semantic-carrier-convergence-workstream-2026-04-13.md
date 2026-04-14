@@ -566,3 +566,27 @@ Additional regression evidence:
 Rerank after Slice 6:
 
 - the next highest-value target is concept-relationship type convergence on the canonical/runtime path: `RelationshipRow.relation_type` is still a closed semantic vocabulary carried as a bare string, and `build_compiled_world_graph()` still projects those concept-link types into generic relation-edge strings
+
+### Slice 7: Concept Relationship Type Enum
+
+Status: completed
+
+Changes landed in this slice:
+
+- added canonical `ConceptRelationshipType` enum and relationship-type coercion for concept-link semantics
+- changed `ConceptRelationshipDocument`, `ConceptRelationship`, and `RelationshipRow` to carry `ConceptRelationshipType` instead of bare strings
+- kept string serialization only at payload edges such as `to_payload()` / `to_dict()`
+- changed validation and CLI relationship vocabularies to derive from the canonical enum-backed set instead of restating raw string literals
+- tightened the concept-document boundary so invalid relationship types now fail as `DocumentSchemaError` during strict decode rather than flowing deeper as stringly payloads
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice7-red-20260413-222657.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice7-green-redtest-20260413-222734.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice7-focused-20260413-222741.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice7-broader2-20260413-223107.log`
+- boundary follow-up: `logs/test-runs/semantic-carrier-slice7-green-validator-20260413-223107.log`
+
+Rerank after Slice 7:
+
+- the next highest-value target is source identity semantics on the live canonical/runtime path: `ClaimSource.kind` and `SourceOrigin.origin_type` are still closed semantic vocabularies carried as bare strings across source documents, nested row values, world-model projections, and source CLI entrypoints

@@ -14,6 +14,10 @@ from propstore.artifact_documents.concepts import (
     ConceptRelationshipDocument,
     ParameterizationRelationshipDocument,
 )
+from propstore.core.concept_relationship_types import (
+    ConceptRelationshipType,
+    coerce_concept_relationship_type,
+)
 from propstore.document_schema import load_document, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
@@ -56,14 +60,21 @@ class ConceptAlias:
 
 @dataclass(frozen=True)
 class ConceptRelationship:
-    relationship_type: str
+    relationship_type: ConceptRelationshipType
     target: ConceptId
     conditions: tuple[str, ...] = ()
     note: str | None = None
 
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "relationship_type",
+            coerce_concept_relationship_type(self.relationship_type),
+        )
+
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
-            "type": self.relationship_type,
+            "type": self.relationship_type.value,
             "target": str(self.target),
         }
         if self.conditions:

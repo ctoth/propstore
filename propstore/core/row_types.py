@@ -9,6 +9,10 @@ from typing import Any
 
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
 from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.core.concept_relationship_types import (
+    ConceptRelationshipType,
+    coerce_concept_relationship_type,
+)
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.claim_values import (
     ClaimProvenance,
@@ -132,12 +136,17 @@ class ConceptRow:
 class RelationshipRow:
     source_id: str
     target_id: str
-    relation_type: str
+    relation_type: ConceptRelationshipType
     conditions_cel: str | None = None
     note: str | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "relation_type",
+            coerce_concept_relationship_type(self.relation_type),
+        )
         object.__setattr__(self, "attributes", dict(self.attributes))
 
     @classmethod
@@ -154,7 +163,7 @@ class RelationshipRow:
         return cls(
             source_id=str(row_map["source_id"]),
             target_id=str(row_map["target_id"]),
-            relation_type=str(relation_type),
+            relation_type=coerce_concept_relationship_type(relation_type),
             conditions_cel=(
                 None if row_map.get("conditions_cel") is None else str(row_map["conditions_cel"])
             ),
@@ -166,7 +175,7 @@ class RelationshipRow:
         data: dict[str, Any] = {
             "source_id": self.source_id,
             "target_id": self.target_id,
-            "type": self.relation_type,
+            "type": self.relation_type.value,
         }
         if self.conditions_cel is not None:
             data["conditions_cel"] = self.conditions_cel
