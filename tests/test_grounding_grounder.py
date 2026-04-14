@@ -751,3 +751,94 @@ def test_bundle_arguments_is_immutable_tuple() -> None:
 
     bundle = GroundedRulesBundle.empty()
     assert isinstance(bundle.arguments, tuple)
+
+
+def test_ground_default_arguments_field_is_empty() -> None:
+    """``ground(...)`` without ``return_arguments`` returns an empty tuple.
+
+    Backwards compatibility: the default invocation of ``ground``
+    continues to return bundles whose ``arguments`` field is the
+    empty tuple. Block 3 opt-in is explicit — callers must set
+    ``return_arguments=True`` to incur the argument-enumeration cost.
+    """
+
+    from propstore.aspic import GroundAtom
+    from propstore.grounding.grounder import ground
+
+    rule = _build_rule_document(
+        rule_id="birds_fly",
+        kind="defeasible",
+        head=_build_atom("flies", [_build_term_var("X")]),
+        body=(_build_atom("bird", [_build_term_var("X")]),),
+    )
+    rule_file = _build_rule_file([rule])
+    facts = (GroundAtom("bird", ("tweety",)),)
+
+    bundle = ground([rule_file], facts, _bird_registry())
+    assert bundle.arguments == ()
+
+
+def test_ground_return_arguments_populates_tuple() -> None:
+    """``ground(..., return_arguments=True)`` fills ``bundle.arguments``.
+
+    Block 3 surface contract: when the caller opts in, the bundle
+    carries the full ``frozenset[Argument]`` produced by
+    ``gunray.build_arguments`` (Garcia & Simari 2004 §3 Def 3.6). For
+    the canonical birds-fly example with ``bird(tweety)`` as the
+    sole fact, gunray's argument builder must produce at least one
+    argument whose conclusion is ``flies(tweety)``.
+    """
+
+    import gunray
+
+    from propstore.aspic import GroundAtom
+    from propstore.grounding.grounder import ground
+
+    rule = _build_rule_document(
+        rule_id="birds_fly",
+        kind="defeasible",
+        head=_build_atom("flies", [_build_term_var("X")]),
+        body=(_build_atom("bird", [_build_term_var("X")]),),
+    )
+    rule_file = _build_rule_file([rule])
+    facts = (GroundAtom("bird", ("tweety",)),)
+
+    bundle = ground([rule_file], facts, _bird_registry(), return_arguments=True)
+    assert isinstance(bundle.arguments, tuple)
+    assert len(bundle.arguments) > 0
+    for arg in bundle.arguments:
+        assert isinstance(arg, gunray.Argument)
+    conclusions = {
+        (arg.conclusion.predicate, arg.conclusion.arguments)
+        for arg in bundle.arguments
+    }
+    assert ("flies", ("tweety",)) in conclusions
+
+
+def test_ground_return_arguments_is_deterministic() -> None:
+    """Two identical ``ground(..., return_arguments=True)`` calls agree.
+
+    Diller, Borg, Bex 2025 §3 Definition 9: the grounder must be a
+    deterministic function of its inputs. The argument ordering
+    produced by Block 3 is pinned by a stable sort key so the same
+    theory yields the same argument tuple across invocations.
+    """
+
+    from propstore.aspic import GroundAtom
+    from propstore.grounding.grounder import ground
+
+    rule = _build_rule_document(
+        rule_id="birds_fly",
+        kind="defeasible",
+        head=_build_atom("flies", [_build_term_var("X")]),
+        body=(_build_atom("bird", [_build_term_var("X")]),),
+    )
+    rule_file = _build_rule_file([rule])
+    facts = (
+        GroundAtom("bird", ("tweety",)),
+        GroundAtom("bird", ("opus",)),
+    )
+
+    first = ground([rule_file], facts, _bird_registry(), return_arguments=True)
+    second = ground([rule_file], facts, _bird_registry(), return_arguments=True)
+    assert first.arguments == second.arguments
