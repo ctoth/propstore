@@ -698,6 +698,38 @@ class TestEquationConflicts:
         assert len(records) == 1
         assert records[0].warning_class == ConflictClass.PHI_NODE
 
+    def test_unsupported_equation_surface_logs_diagnostic(self, caplog):
+        claims = [
+            _make_equation_claim(
+                "claim1",
+                "Ps = 1.00 + 0.88 * F0",
+                [
+                    {"symbol": "Ps", "concept": "concept2", "role": "dependent"},
+                    {"symbol": "F0", "concept": "concept1", "role": "independent"},
+                ],
+                conditions=["task == 'speech'"],
+            ),
+            _make_equation_claim(
+                "claim2",
+                "Ps = And(F0, F0)",
+                [
+                    {"symbol": "Ps", "concept": "concept2", "role": "dependent"},
+                    {"symbol": "F0", "concept": "concept1", "role": "independent"},
+                ],
+                conditions=["task == 'speech'"],
+            ),
+        ]
+        cf = make_claim_file(claims)
+
+        with caplog.at_level("WARNING"):
+            records = detect_conflicts([cf], make_concept_registry())
+
+        assert records == []
+        assert any(
+            "unsupported_surface" in record.message and "claim2" in record.message
+            for record in caplog.records
+        )
+
 
 # ── Algorithm claim conflict detection ────────────────────────────────
 

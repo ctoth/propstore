@@ -1,143 +1,221 @@
-"""Equation canonicalization and signature helpers.
-
-Extracted from conflict_detector.py — provides SymPy-based equation
-normalization for equivalence checking and canonical signature building
-for grouping equations by their variable structure.
-"""
+"""Typed equation normalization and structural comparison helpers."""
 
 from __future__ import annotations
 
-import re
-from typing import Any
+from dataclasses import dataclass
+from decimal import Decimal
+from functools import lru_cache
+from typing import TYPE_CHECKING
 
-# Reject equation strings that contain Python code-execution patterns.
-# This is defense-in-depth: parse_expr's local_dict alone does NOT
-# prevent __import__('os').system() from executing (the name resolves
-# via Python builtins, not the local_dict).
-_INJECTION_RE = re.compile(
-    r"__\w+__|(?<!\w)(?:import|eval|exec|compile|open|getattr|setattr|delattr)\s*\(",
-    re.IGNORECASE,
+from propstore.equation_parser import (
+    BinaryExpr,
+    EquationFailure,
+    EquationFailureCode,
+    EquationSymbolBinding,
+    EquationExpr,
+    FunctionExpr,
+    NumberExpr,
+    ParsedEquation,
+    SymbolExpr,
+    UnaryExpr,
+    parse_equation,
+    structural_signature as ast_structural_signature,
 )
 
-
-def _reject_injection(text: str) -> None:
-    """Raise ValueError if *text* contains code-execution patterns."""
-    if _INJECTION_RE.search(text):
-        raise ValueError(f"equation contains forbidden pattern: {text!r}")
+if TYPE_CHECKING:
+    from propstore.conflict_detector.models import ConflictClaim
 
 
-def equation_signature(claim: object) -> tuple[str, tuple[str, ...]] | None:
-    """Build a canonical signature for an equation claim for grouping.
+@dataclass(frozen=True)
+class EquationNormalization:
+    canonical: str
+    source_text: str
+    structural_signature: str
 
-    Returns (dependent_concept, (sorted independent concepts...)) or None
-    if the claim doesn't have the expected variable structure.
-    """
-    variables = _claim_field(claim, "variables")
-    if not isinstance(variables, (list, tuple)):
+
+_sympy = None
+
+
+def equation_signature(claim: ConflictClaim) -> tuple[str, tuple[str, ...]] | None:
+    """Build a concept-based grouping signature for typed equation claims."""
+    variables = claim.variables
+    if not variables:
         return None
 
-    dependent_concepts: list[str] = []
-    for var in variables:
-        if _variable_field(var, "role") == "dependent":
-            concept_id = _variable_field(var, "concept")
-            if isinstance(concept_id, str) and concept_id:
-                dependent_concepts.append(concept_id)
+    dependent_concepts = [
+        variable.concept_id
+        for variable in variables
+        if variable.role == "dependent" and variable.concept_id
+    ]
     if len(dependent_concepts) != 1:
         return None
 
     dependent_concept = dependent_concepts[0]
-    independent_list: list[str] = []
-    for var in variables:
-        concept_id = _variable_field(var, "concept")
-        if isinstance(concept_id, str) and concept_id and concept_id != dependent_concept:
-            independent_list.append(concept_id)
-    independents = sorted(independent_list)
-    return dependent_concept, tuple(independents)
+    independent_concepts = sorted(
+        variable.concept_id
+        for variable in variables
+        if variable.concept_id and variable.concept_id != dependent_concept
+    )
+    return dependent_concept, tuple(independent_concepts)
 
 
-def canonicalize_equation(claim: object) -> str | None:
-    """Canonicalize an equation claim using SymPy for equivalence checking.
+def canonicalize_equation(claim: ConflictClaim) -> EquationNormalization | EquationFailure:
+    """Normalize a typed equation claim onto a deterministic canonical form."""
+    bindings = _claim_bindings(claim)
+    if isinstance(bindings, EquationFailure):
+        return bindings
 
-    Returns a canonical string representation of the equation (as simplified
-    lhs - rhs), or None if parsing fails or SymPy is unavailable.
-    """
-    try:
-        from tokenize import TokenError
-
-        from sympy import Equality, SympifyError, Symbol, simplify
-        from sympy.parsing.sympy_parser import (
-            implicit_multiplication,
-            parse_expr,
-            standard_transformations,
+    source_text = _claim_source_text(claim)
+    if source_text is None:
+        return EquationFailure(
+            code=EquationFailureCode.MISSING_EQUATION_TEXT,
+            detail="equation claim has neither expression nor sympy text",
         )
-    except ImportError:
-        return None
 
-    variables = _claim_field(claim, "variables")
-    if not isinstance(variables, (list, tuple)):
-        return None
+    return _normalize_equation_text(source_text, bindings)
 
-    symbol_map = {}
-    for var in variables:
-        symbol = _variable_field(var, "symbol")
-        concept_id = _variable_field(var, "concept")
-        if isinstance(symbol, str) and symbol and isinstance(concept_id, str) and concept_id:
-            symbol_map[symbol] = Symbol(concept_id)
-    if not symbol_map:
-        return None
 
-    explicit_sympy = _claim_field(claim, "sympy")
-    if isinstance(explicit_sympy, str) and explicit_sympy.strip():
-        text = explicit_sympy.strip().replace("^", "**")
+def structural_signature(claim: ConflictClaim) -> str | EquationFailure:
+    normalization = canonicalize_equation(claim)
+    if isinstance(normalization, EquationFailure):
+        return normalization
+    return normalization.structural_signature
+
+
+def _claim_bindings(
+    claim: ConflictClaim,
+) -> tuple[EquationSymbolBinding, ...] | EquationFailure:
+    if not claim.variables:
+        return EquationFailure(
+            code=EquationFailureCode.MISSING_VARIABLES,
+            detail="equation claim has no declared symbol bindings",
+        )
+
+    bindings: list[EquationSymbolBinding] = []
+    seen_symbols: set[str] = set()
+    for variable in claim.variables:
+        symbol = variable.symbol
+        if not symbol:
+            continue
+        if symbol in seen_symbols:
+            return EquationFailure(
+                code=EquationFailureCode.PARSE_ERROR,
+                detail=f"duplicate symbol binding: {symbol}",
+            )
+        seen_symbols.add(symbol)
+        bindings.append(EquationSymbolBinding(
+            symbol=symbol,
+            concept_id=variable.concept_id,
+            role=variable.role,
+        ))
+    if not bindings:
+        return EquationFailure(
+            code=EquationFailureCode.MISSING_VARIABLES,
+            detail="equation claim has no declared symbol bindings",
+        )
+    return tuple(sorted(bindings, key=lambda binding: binding.symbol))
+
+
+def _claim_source_text(claim: ConflictClaim) -> str | None:
+    if isinstance(claim.expression, str) and claim.expression.strip():
+        return claim.expression.strip()
+    if isinstance(claim.sympy, str) and claim.sympy.strip():
+        return claim.sympy.strip()
+    return None
+
+
+@lru_cache(maxsize=4096)
+def _normalize_equation_text(
+    source_text: str,
+    bindings: tuple[EquationSymbolBinding, ...],
+) -> EquationNormalization | EquationFailure:
+    parsed = parse_equation(source_text, bindings)
+    if isinstance(parsed, EquationFailure):
+        return parsed
+    return _normalize_parsed_equation(parsed)
+
+
+def _normalize_parsed_equation(parsed: ParsedEquation) -> EquationNormalization | EquationFailure:
+    sympy = _get_sympy()
+    if sympy is None:
+        return EquationFailure(
+            code=EquationFailureCode.SYMPY_UNAVAILABLE,
+            detail="sympy is not available",
+        )
+    lhs = _expr_to_sympy(parsed.lhs, sympy)
+    rhs = _expr_to_sympy(parsed.rhs, sympy)
+    diff = sympy.cancel(sympy.expand(lhs - rhs))
+    structure = (
+        ast_structural_signature(parsed.lhs)
+        + " = "
+        + ast_structural_signature(parsed.rhs)
+    )
+    return EquationNormalization(
+        canonical=str(diff),
+        source_text=parsed.source_text,
+        structural_signature=structure,
+    )
+
+
+def _expr_to_sympy(expression: EquationExpr, sympy):
+    if isinstance(expression, NumberExpr):
+        return _sympy_number(expression.token, sympy)
+    if isinstance(expression, SymbolExpr):
+        return sympy.Symbol(expression.concept_id)
+    if isinstance(expression, UnaryExpr):
+        operand = _expr_to_sympy(expression.operand, sympy)
+        return operand if expression.operator == "+" else -operand
+    if isinstance(expression, BinaryExpr):
+        left = _expr_to_sympy(expression.left, sympy)
+        right = _expr_to_sympy(expression.right, sympy)
+        if expression.operator == "+":
+            return left + right
+        if expression.operator == "-":
+            return left - right
+        if expression.operator == "*":
+            return left * right
+        if expression.operator == "/":
+            return left / right
+        if expression.operator == "^":
+            return left**right
+        raise ValueError(f"unsupported operator: {expression.operator}")
+    if isinstance(expression, FunctionExpr):
+        argument = _expr_to_sympy(expression.arguments[0], sympy)
+        if expression.name in {"log", "ln"}:
+            return sympy.log(argument)
+        if expression.name == "exp":
+            return sympy.exp(argument)
+        if expression.name == "sqrt":
+            return sympy.sqrt(argument)
+        raise ValueError(f"unsupported function: {expression.name}")
+    raise TypeError(f"unsupported expression: {expression!r}")
+
+
+def _sympy_number(token: str, sympy):
+    if "." in token or "e" in token.lower():
+        return sympy.Rational(str(Decimal(token)))
+    return sympy.Integer(int(token))
+
+
+def _get_sympy():
+    global _sympy
+    if _sympy is None:
         try:
-            _reject_injection(text)
-            parsed = parse_expr(text, local_dict=symbol_map)
-            if isinstance(parsed, Equality):
-                lhs_val: Any = parsed.lhs
-                rhs_val: Any = parsed.rhs
-                return str(simplify(lhs_val - rhs_val))
-        except (SympifyError, SyntaxError, TypeError, ValueError):
-            pass
-
-    expression = _claim_field(claim, "expression")
-    if not isinstance(expression, str) or "=" not in expression:
+            import sympy as sympy_module
+        except ImportError:
+            _sympy = False
+            return None
+        _sympy = sympy_module
+    if _sympy is False:
         return None
-
-    _safe_transforms = standard_transformations + (implicit_multiplication,)
-
-    lhs_text, rhs_text = expression.replace("^", "**").split("=", 1)
-    try:
-        _reject_injection(lhs_text)
-        _reject_injection(rhs_text)
-        lhs = parse_expr(
-            lhs_text.strip(),
-            local_dict=symbol_map,
-            transformations=_safe_transforms,
-            evaluate=False,
-        )
-        rhs = parse_expr(
-            rhs_text.strip(),
-            local_dict=symbol_map,
-            transformations=_safe_transforms,
-            evaluate=False,
-        )
-    except (SympifyError, SyntaxError, TypeError, ValueError, AttributeError, TokenError):
-        return None
-    diff_expr: Any = lhs - rhs
-    return str(simplify(diff_expr))
+    return _sympy
 
 
-def _claim_field(claim: object, key: str) -> Any:
-    getter = getattr(claim, "get", None)
-    if callable(getter):
-        return getter(key)
-    return getattr(claim, key, None)
-
-
-def _variable_field(variable: object, key: str) -> Any:
-    getter = getattr(variable, "get", None)
-    if callable(getter):
-        return getter(key)
-    if key == "concept":
-        return getattr(variable, "concept_id", None)
-    return getattr(variable, key, None)
+__all__ = [
+    "EquationFailure",
+    "EquationFailureCode",
+    "EquationNormalization",
+    "canonicalize_equation",
+    "equation_signature",
+    "structural_signature",
+]
