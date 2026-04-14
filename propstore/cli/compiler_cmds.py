@@ -334,7 +334,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     try:
         wm = WorldModel(repo)
         s = wm.stats()
-        claim_count = s["claims"]
+        claim_count = s.claims
 
         conflicts = wm.conflicts()
         # Group PHI_NODEs by concept for compact display;
@@ -490,9 +490,9 @@ def world_status(obj: dict) -> None:
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         s = wm.stats()
-        click.echo(f"Concepts: {s['concepts']}")
-        click.echo(f"Claims:   {s['claims']}")
-        click.echo(f"Conflicts: {s['conflicts']}")
+        click.echo(f"Concepts: {s.concepts}")
+        click.echo(f"Claims:   {s.claims}")
+        click.echo(f"Conflicts: {s.conflicts}")
 
 
 @world.command("query")

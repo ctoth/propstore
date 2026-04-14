@@ -435,3 +435,37 @@ Proof:
 Rerank after Slice 1:
 
 - Slice 2 remains the next highest-value target: shared store/protocol result surfaces that still return raw semantic `dict` payloads
+
+### Slice 2: Typed Store Result Surfaces
+
+Status: completed
+
+Changes landed in this slice:
+
+- added explicit store result types for concept search hits, claim similarity hits, concept similarity hits, and store stats snapshots
+- changed `ArtifactStore.search`, `similar_claims`, `similar_concepts`, and `stats` to return those named result types instead of raw `dict`
+- changed `WorldModel` to convert SQLite/embed boundary payloads immediately into typed result objects
+- changed the hypothetical overlay store to preserve typed result objects instead of re-wrapping them as anonymous mappings
+- changed CLI world status/build summary callers to use the typed stats snapshot
+
+Proof:
+
+- red: `logs/test-runs/semantic-carrier-slice2-red-20260413-201156.log`
+- targeted green: `logs/test-runs/semantic-carrier-slice2-green-redtest-20260413-201500.log`
+- focused suite: `logs/test-runs/semantic-carrier-slice2-focused-20260413-201531.log`
+- broader suite: `logs/test-runs/semantic-carrier-slice2-broader-20260413-201716.log`
+
+Full-suite note:
+
+- `logs/test-runs/semantic-carrier-slice2-full-20260413-201744.log` timed out in `tests/test_aspic.py::TestAttackProperties::test_attack_kind_is_valid`
+- isolated rerun of that test passed: `logs/test-runs/semantic-carrier-slice2-full-failing-test-20260413-202324.log`
+- rerun full suite surfaced unrelated pre-existing failing tests outside the touched surface:
+  - `tests/test_aspic_bridge.py::TestCsafToProjection::test_projection_arguments_preserve_claim_or_canonical_conclusion_identity`
+  - `tests/test_git_backend.py::test_init_does_not_materialize_seed_forms_before_git_commit_succeeds`
+- isolated proof logs:
+  - `logs/test-runs/semantic-carrier-slice2-isolate-aspic-bridge-20260413-202724.log`
+  - `logs/test-runs/semantic-carrier-slice2-isolate-git-backend-20260413-202724.log`
+
+Rerank after Slice 2:
+
+- Slice 3 is now the next highest-value target: world/runtime semantic string convergence for claim type, relation type, stance type, warning/conflict class, exactness, and source kind/origin type

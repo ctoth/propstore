@@ -24,6 +24,12 @@ from propstore.core.labels import (
     Label,
     SupportQuality,
 )
+from propstore.core.store_results import (
+    ArtifactStoreStats,
+    ClaimSimilarityHit,
+    ConceptSearchHit,
+    ConceptSimilarityHit,
+)
 from propstore.core.row_types import ConflictRow, StanceRow
 
 if TYPE_CHECKING:
