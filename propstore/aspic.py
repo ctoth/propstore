@@ -13,7 +13,7 @@ References:
 from __future__ import annotations
 
 import functools
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, TypeAlias, TypeVar, Union
 
 if TYPE_CHECKING:
@@ -167,6 +167,7 @@ class PremiseArg:
     """Argument from a premise. Modgil & Prakken 2018, Def 5 clause 1."""
     premise: Literal
     is_axiom: bool  # True if in K_n, False if in K_p
+    _hash: int | None = field(default=None, init=False, repr=False, compare=False, hash=False)
 
     def __eq__(self, other: object) -> bool:
         if self is other:
@@ -179,7 +180,13 @@ class PremiseArg:
         )
 
     def __hash__(self) -> int:
-        return hash((PremiseArg, self.premise, self.is_axiom))
+        if self._hash is None:
+            object.__setattr__(
+                self,
+                "_hash",
+                hash((PremiseArg, self.premise, self.is_axiom)),
+            )
+        return self._hash
 
 
 @dataclass(frozen=True)
@@ -187,6 +194,7 @@ class StrictArg:
     """Argument via strict rule. Modgil & Prakken 2018, Def 5 clause 2."""
     sub_args: tuple[Argument, ...]
     rule: Rule  # must have kind == "strict"
+    _hash: int | None = field(default=None, init=False, repr=False, compare=False, hash=False)
 
     def __eq__(self, other: object) -> bool:
         if self is other:
@@ -196,7 +204,13 @@ class StrictArg:
         return self.sub_args == other.sub_args and self.rule == other.rule
 
     def __hash__(self) -> int:
-        return hash((StrictArg, self.sub_args, self.rule))
+        if self._hash is None:
+            object.__setattr__(
+                self,
+                "_hash",
+                hash((StrictArg, self.sub_args, self.rule)),
+            )
+        return self._hash
 
 
 @dataclass(frozen=True)
@@ -204,6 +218,7 @@ class DefeasibleArg:
     """Argument via defeasible rule. Modgil & Prakken 2018, Def 5 clause 3."""
     sub_args: tuple[Argument, ...]
     rule: Rule  # must have kind == "defeasible"
+    _hash: int | None = field(default=None, init=False, repr=False, compare=False, hash=False)
 
     def __eq__(self, other: object) -> bool:
         if self is other:
@@ -213,7 +228,13 @@ class DefeasibleArg:
         return self.sub_args == other.sub_args and self.rule == other.rule
 
     def __hash__(self) -> int:
-        return hash((DefeasibleArg, self.sub_args, self.rule))
+        if self._hash is None:
+            object.__setattr__(
+                self,
+                "_hash",
+                hash((DefeasibleArg, self.sub_args, self.rule)),
+            )
+        return self._hash
 
 
 Argument: TypeAlias = Union[PremiseArg, StrictArg, DefeasibleArg]

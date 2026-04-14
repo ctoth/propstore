@@ -417,8 +417,8 @@ class TestHypothesisDP:
 
     @given(af=random_small_af())
     # This path is explicitly exponential in the number of arguments; keep
-    # it smaller while the main DP-vs-brute-force property stays at 200.
-    @settings(deadline=None)
+    # it smaller than the main DP-vs-brute-force property.
+    @settings(deadline=None, max_examples=20)
     def test_labelling_enum_matches_brute_force(self, af: dict[str, Any]) -> None:
         """The explicit 3^n labelling enumeration must also match brute force."""
         args = af["args"]

@@ -29,6 +29,17 @@ def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, object]]:
     return form_documents
 
 
+def _render_seed_form_files(
+    repo: Repository,
+    form_documents: list[tuple[FormRef, object]],
+) -> dict[str, bytes]:
+    """Render typed seed forms to repo-relative YAML blobs for one commit."""
+    return {
+        repo.artifacts.resolve(FORM_FAMILY, ref).relpath: repo.artifacts.render(document, FORM_FAMILY).encode("utf-8")
+        for ref, document in form_documents
+    }
+
+
 @click.command()
 @click.argument("directory", default="knowledge")
 @click.pass_obj
@@ -57,9 +68,12 @@ def init(obj: dict, directory: str) -> None:
     form_documents = _seed_form_documents(repo)
 
     if form_documents:
-        with repo.artifacts.transact(message="Seed default forms") as transaction:
-            for ref, document in form_documents:
-                transaction.save(FORM_FAMILY, ref, document)
+        if repo.git is None:
+            raise click.ClickException("init requires a git-backed repository")
+        repo.git.commit_files(
+            _render_seed_form_files(repo, form_documents),
+            "Seed default forms",
+        )
         repo.snapshot.sync_worktree()
 
     click.echo(f"Initialized propstore project at {root}/")

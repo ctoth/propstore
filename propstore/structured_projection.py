@@ -20,6 +20,7 @@ from propstore.dung import (
     preferred_extensions,
     stable_extensions,
 )
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
 from propstore.world.types import (
     ArgumentationSemantics,
@@ -73,7 +74,6 @@ def build_structured_projection(
     ``GroundedRulesBundle.empty()`` internally.
     """
     from propstore.aspic_bridge import build_aspic_projection
-
     return build_aspic_projection(
         store,
         coerce_active_claims(active_claims),

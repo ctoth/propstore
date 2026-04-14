@@ -12,6 +12,9 @@ class ConceptRelationshipType(StrEnum):
     COMPONENT_OF = "component_of"
     DERIVED_FROM = "derived_from"
     CONTESTED_DEFINITION = "contested_definition"
+    IS_A = "is_a"
+    PART_OF = "part_of"
+    KIND_OF = "kind_of"
 
 
 VALID_CONCEPT_RELATIONSHIP_TYPES = frozenset(
