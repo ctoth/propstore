@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import msgspec
 
-from propstore.identity import normalize_claim_file_payload, rewrite_stance_file_payload
+from propstore.identity import normalize_claim_file_payload
 from propstore.artifacts.resolution import ImportedClaimHandleIndex
 from propstore.artifacts.identity import (
     concept_reference_keys,
@@ -352,26 +352,11 @@ def _normalize_imported_stance_write(
     payload: dict[str, Any],
     local_handle_index: ImportedClaimHandleIndex,
 ) -> PlannedArtifactWrite:
-    local_handle_index.require_unambiguous(
-        payload.get("source_claim"),
-        path=path,
-        role="source_claim",
+    return _planned_write(
+        store,
+        path,
+        local_handle_index.rewrite_stance_payload(payload, path=path),
     )
-    stances = payload.get("stances")
-    if isinstance(stances, list):
-        for stance in stances:
-            if not isinstance(stance, dict):
-                continue
-            local_handle_index.require_unambiguous(
-                stance.get("target"),
-                path=path,
-                role="target",
-            )
-    rewritten_payload = rewrite_stance_file_payload(
-        payload,
-        local_to_artifact=local_handle_index.resolved_map(),
-    )
-    return _planned_write(store, path, rewritten_payload)
 
 
 def _normalize_import_writes(

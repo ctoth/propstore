@@ -17,7 +17,6 @@ from .claims import (
     normalize_source_claims_payload,
 )
 from .common import (
-    commit_source_file,
     commit_source_metadata,
     commit_source_notes,
     init_source_branch,
@@ -60,7 +59,6 @@ __all__ = [
     "commit_source_claims_batch",
     "commit_source_concept_proposal",
     "commit_source_concepts_batch",
-    "commit_source_file",
     "commit_source_justification_proposal",
     "commit_source_justifications_batch",
     "commit_source_metadata",

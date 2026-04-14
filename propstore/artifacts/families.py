@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.artifacts.refs import (
@@ -57,6 +58,47 @@ def _source_artifact(repo: Repository, ref: SourceRef, relpath: str) -> Resolved
         branch=source_branch_name(ref.name),
         relpath=relpath,
     )
+
+
+def _coerce_text_document(payload: object, source: str) -> str:
+    if isinstance(payload, str):
+        return payload
+    raise TypeError(f"{source}: expected UTF-8 text payload")
+
+
+def _decode_text_document(payload: bytes, source: str) -> str:
+    try:
+        return payload.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"{source}: expected UTF-8 text payload") from exc
+
+
+def _encode_text_document(document: str) -> bytes:
+    return document.encode("utf-8")
+
+
+def _coerce_json_mapping(payload: object, source: str) -> dict[str, Any]:
+    if isinstance(payload, dict):
+        return payload
+    raise TypeError(f"{source}: expected JSON object payload")
+
+
+def _decode_json_mapping(payload: bytes, source: str) -> dict[str, Any]:
+    try:
+        decoded = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{source}: expected JSON object payload") from exc
+    if not isinstance(decoded, dict):
+        raise ValueError(f"{source}: expected JSON object payload")
+    return decoded
+
+
+def _encode_json_mapping(document: dict[str, Any]) -> bytes:
+    return json.dumps(document, indent=2, ensure_ascii=False).encode("utf-8")
+
+
+def _render_json_mapping(document: dict[str, Any]) -> str:
+    return _encode_json_mapping(document).decode("utf-8")
 
 
 def _default_branch(repo: Repository) -> str:
@@ -232,6 +274,28 @@ SOURCE_DOCUMENT_FAMILY = ArtifactFamily[SourceRef, SourceDocument](
     name="source_document",
     doc_type=SourceDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "source.yaml"),
+)
+
+SOURCE_NOTES_FAMILY = ArtifactFamily[SourceRef, str](
+    name="source_notes",
+    doc_type=str,
+    resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "notes.md"),
+    coerce_payload=_coerce_text_document,
+    decode_bytes=_decode_text_document,
+    encode_document=_encode_text_document,
+    render_document=lambda document: document,
+    document_payload=lambda document: document,
+)
+
+SOURCE_METADATA_FAMILY = ArtifactFamily[SourceRef, dict[str, Any]](
+    name="source_metadata",
+    doc_type=dict,
+    resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "metadata.json"),
+    coerce_payload=_coerce_json_mapping,
+    decode_bytes=_decode_json_mapping,
+    encode_document=_encode_json_mapping,
+    render_document=_render_json_mapping,
+    document_payload=lambda document: document,
 )
 
 SOURCE_CONCEPTS_FAMILY = ArtifactFamily[SourceRef, SourceConceptsDocument](

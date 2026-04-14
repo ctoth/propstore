@@ -70,12 +70,18 @@ class ArtifactStore:
         *,
         source: str,
     ) -> TDoc:
+        if family.coerce_payload is not None:
+            return family.coerce_payload(payload, source)
         return convert_document(payload, family.doc_type, source=source)
 
-    def render(self, document: object) -> str:
+    def render(self, document: object, family: ArtifactFamily[object, object] | None = None) -> str:
+        if family is not None and family.render_document is not None:
+            return family.render_document(document)
         return render_document(document)
 
-    def payload(self, document: object) -> object:
+    def payload(self, document: object, family: ArtifactFamily[object, object] | None = None) -> object:
+        if family is not None and family.document_payload is not None:
+            return family.document_payload(document)
         return document_to_payload(document)
 
     def prepare(
@@ -99,13 +105,14 @@ class ArtifactStore:
             normalized = family.normalize_for_write(context, normalized, self)
         if family.validate_for_write is not None:
             family.validate_for_write(context, normalized, self)
+        encoder = family.encode_document or encode_document
         return PreparedArtifact(
             family=family,
             ref=ref,
             resolved=resolved,
             branch=target_branch,
             document=normalized,
-            content=encode_document(normalized),
+            content=encoder(normalized),
         )
 
     def load(
@@ -127,11 +134,10 @@ class ArtifactStore:
             raw = self._repo.git.read_file(resolved.relpath, commit=target_commit)
         except FileNotFoundError:
             return None
-        return decode_document(
-            raw,
-            family.doc_type,
-            source=f"{resolved.branch}:{normalized_path(resolved.relpath)}",
-        )
+        source = f"{resolved.branch}:{normalized_path(resolved.relpath)}"
+        if family.decode_bytes is not None:
+            return family.decode_bytes(raw, source)
+        return decode_document(raw, family.doc_type, source=source)
 
     def handle(
         self,
