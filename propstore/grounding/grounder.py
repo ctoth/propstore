@@ -55,7 +55,7 @@ from propstore.aspic import GroundAtom, Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.grounding.translator import translate_to_theory
-from propstore.rule_documents import LoadedRuleFile
+from propstore.rule_files import LoadedRuleFile
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system
 # ``{YES, NO, UNDECIDED, UNKNOWN}`` maps onto gunray's four named

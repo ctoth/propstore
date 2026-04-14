@@ -47,13 +47,13 @@ def _make_justification(
 
 
 def _make_var(name: str):
-    from propstore.rule_documents import TermDocument
+    from propstore.artifacts.documents.rules import TermDocument
 
     return TermDocument(kind="var", name=name, value=None)
 
 
 def _make_atom(predicate: str, terms=(), *, negated: bool = False):
-    from propstore.rule_documents import AtomDocument
+    from propstore.artifacts.documents.rules import AtomDocument
 
     return AtomDocument(predicate=predicate, terms=tuple(terms), negated=negated)
 
@@ -63,7 +63,7 @@ def _make_rule_document(
     head,
     body=(),
 ):
-    from propstore.rule_documents import RuleDocument
+    from propstore.artifacts.documents.rules import RuleDocument
 
     return RuleDocument(
         id=rule_id,
@@ -76,11 +76,8 @@ def _make_rule_document(
 
 def _make_rule_file(rules):
     from propstore.loaded import LoadedDocument
-    from propstore.rule_documents import (
-        LoadedRuleFile,
-        RuleSourceDocument,
-        RulesFileDocument,
-    )
+    from propstore.artifacts.documents.rules import RuleSourceDocument, RulesFileDocument
+    from propstore.rule_files import LoadedRuleFile
 
     loaded = LoadedDocument(
         filename="generated.yaml",

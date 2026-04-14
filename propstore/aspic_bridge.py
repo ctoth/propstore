@@ -30,7 +30,7 @@ from typing import Any
 
 from propstore.aspic import Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.rule_documents import AtomDocument
+from propstore.artifacts.documents.rules import AtomDocument
 
 from propstore.aspic import (
     GroundAtom,

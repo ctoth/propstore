@@ -90,7 +90,7 @@ def test_gunray_matches_curated_strong_negation_conformance_tranche(
 
 
 def _build_term_document(term: Variable | Constant):
-    from propstore.rule_documents import TermDocument
+    from propstore.artifacts.documents.rules import TermDocument
 
     if isinstance(term, Variable):
         return TermDocument(kind="var", name=term.name, value=None)
@@ -100,7 +100,7 @@ def _build_term_document(term: Variable | Constant):
 
 
 def _build_atom_document(atom_text: str):
-    from propstore.rule_documents import AtomDocument
+    from propstore.artifacts.documents.rules import AtomDocument
 
     parsed = parse_atom_text(atom_text)
     negated = parsed.predicate.startswith("~")
@@ -113,7 +113,7 @@ def _build_atom_document(atom_text: str):
 
 
 def _build_rule_document(rule: SuiteRule, *, kind: str):
-    from propstore.rule_documents import RuleDocument
+    from propstore.artifacts.documents.rules import RuleDocument
 
     return RuleDocument(
         id=rule.id,
@@ -126,7 +126,8 @@ def _build_rule_document(rule: SuiteRule, *, kind: str):
 
 def _build_rule_file(theory: SuiteTheory):
     from propstore.loaded import LoadedDocument
-    from propstore.rule_documents import LoadedRuleFile, RulesFileDocument, RuleSourceDocument
+    from propstore.artifacts.documents.rules import RuleSourceDocument, RulesFileDocument
+    from propstore.rule_files import LoadedRuleFile
 
     rule_documents = [
         *(_build_rule_document(rule, kind="strict") for rule in theory.strict_rules),

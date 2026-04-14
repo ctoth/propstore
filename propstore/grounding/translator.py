@@ -73,7 +73,8 @@ from collections.abc import Iterable
 
 from propstore.aspic import GroundAtom
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.rule_documents import AtomDocument, LoadedRuleFile, TermDocument
+from propstore.artifacts.documents.rules import AtomDocument, TermDocument
+from propstore.rule_files import LoadedRuleFile
 
 # ``gunray.schema.Scalar`` and ``propstore.aspic.Scalar`` are both
 # ``str | int | float | bool``; use the gunray alias here because the
@@ -121,7 +122,7 @@ def translate_to_theory(
     Args:
         rule_files: Sequence of ``LoadedRuleFile`` envelopes — each
             carries an ordered tuple of ``RuleDocument`` values
-            (``propstore.rule_documents``). Rule order within a file is
+            (``propstore.artifacts.documents.rules``). Rule order within a file is
             preserved across the YAML round-trip because authored order
             can carry preference information downstream.
         facts: Tuple of ``GroundAtom`` values as produced by
