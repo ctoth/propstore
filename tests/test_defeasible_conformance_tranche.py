@@ -27,8 +27,32 @@ from datalog_conformance.schema import Rule as SuiteRule
 from datalog_conformance.schema import TestCase as SuiteCase
 from gunray.conformance_adapter import GunrayConformanceEvaluator
 from gunray.adapter import GunrayEvaluator
+from gunray.disagreement import complement as gunray_complement
 from gunray.parser import parse_atom_text
-from gunray.types import Constant, Variable
+from gunray.types import Constant, GroundAtom as GunrayGroundAtom, Variable
+
+
+def _decode_gunray_predicate_token(token: str) -> tuple[str, bool]:
+    """Decode a gunray-serialized predicate token into (positive, negated).
+
+    Gunray encodes strong negation via a ``~`` prefix on the
+    predicate name (see ``gunray.disagreement.complement``).
+    Propstore stores polarity as a typed bool on ``AtomDocument`` /
+    ``PredicateDocument``, so the tranche builders have to project
+    from gunray's convention onto propstore's typed convention.
+
+    This helper routes the projection through a ``GroundAtom`` ->
+    ``complement`` round-trip so the ``~``-handling lives inside
+    gunray's typed surface rather than as a raw string hack in the
+    test file. See ``propstore.aspic_bridge._decode_grounded_predicate``
+    for the mirror helper on the production code path.
+    """
+
+    probe = GunrayGroundAtom(predicate=token, arguments=())
+    toggled = gunray_complement(probe)
+    negated = len(toggled.predicate) < len(probe.predicate)
+    positive = toggled.predicate if negated else probe.predicate
+    return positive, negated
 
 
 _SUITE_TESTS_ROOT = _SUITE_SRC / "datalog_conformance" / "_tests"
@@ -133,8 +157,7 @@ def _build_atom_document(atom_text: str):
     from propstore.artifacts.documents.rules import AtomDocument
 
     parsed = parse_atom_text(atom_text)
-    negated = parsed.predicate.startswith("~")
-    predicate = parsed.predicate.removeprefix("~")
+    predicate, negated = _decode_gunray_predicate_token(parsed.predicate)
     return AtomDocument(
         predicate=predicate,
         terms=tuple(_build_term_document(term) for term in parsed.terms),
@@ -181,7 +204,8 @@ def _build_fact_atoms(theory: SuiteTheory):
 
     facts: list[GroundAtom] = []
     for predicate, rows in theory.facts.items():
-        if predicate.startswith("~"):
+        _, negated = _decode_gunray_predicate_token(predicate)
+        if negated:
             raise NotImplementedError(
                 "Translator tranche only covers suite cases whose facts stay within "
                 "the current positive-fact propstore surface"
@@ -202,16 +226,19 @@ def _build_registry(theory: SuiteTheory):
 
     arities: dict[str, int] = {}
     for predicate, rows in theory.facts.items():
-        if predicate.startswith("~"):
+        _, negated = _decode_gunray_predicate_token(predicate)
+        if negated:
             continue
         row_list = list(rows)
         arities[predicate] = len(row_list[0]) if row_list else 0
     for rule in (*theory.strict_rules, *theory.defeasible_rules, *theory.defeaters):
         head = parse_atom_text(rule.head)
-        arities[head.predicate.removeprefix("~")] = head.arity
+        head_positive, _ = _decode_gunray_predicate_token(head.predicate)
+        arities[head_positive] = head.arity
         for atom_text in rule.body:
             body_atom = parse_atom_text(atom_text)
-            arities[body_atom.predicate.removeprefix("~")] = body_atom.arity
+            body_positive, _ = _decode_gunray_predicate_token(body_atom.predicate)
+            arities[body_positive] = body_atom.arity
 
     loaded_document = LoadedDocument(
         filename="suite-derived-predicates.yaml",
