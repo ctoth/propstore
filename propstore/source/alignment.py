@@ -10,11 +10,11 @@ from propstore.artifacts import (
     CONCEPT_FILE_FAMILY,
     ConceptAlignmentRef,
     ConceptFileRef,
+    normalize_canonical_concept_payload,
 )
 from propstore.cli.repository import Repository
 from propstore.core.concepts import ConceptDocument
 from propstore.document_schema import convert_document_value
-from propstore.identity import compute_concept_version_id, derive_concept_artifact_id
 from propstore.repo.branch import branch_head, create_branch
 from propstore.repo.merge_framework import PartialArgumentationFramework
 from propstore.repo.paf_queries import credulously_accepted_arguments, skeptically_accepted_arguments
@@ -253,19 +253,16 @@ def promote_alignment(
 
     canonical_name = selected.proposed_name
     local_handle = alignment_slug(canonical_name)
-    concept_doc = {
-        "canonical_name": canonical_name,
-        "status": "accepted",
-        "definition": selected.definition,
-        "domain": "source",
-        "form": selected.form or "structural",
-        "artifact_id": derive_concept_artifact_id("propstore", local_handle),
-        "logical_ids": [
-            {"namespace": "source", "value": local_handle},
-            {"namespace": "propstore", "value": local_handle},
-        ],
-    }
-    concept_doc["version_id"] = compute_concept_version_id(concept_doc)
+    concept_doc = normalize_canonical_concept_payload(
+        {
+            "canonical_name": canonical_name,
+            "status": "accepted",
+            "definition": selected.definition,
+            "domain": "source",
+            "form": selected.form or "structural",
+        },
+        local_handle=local_handle,
+    )
     document = convert_document_value(
         concept_doc,
         ConceptDocument,

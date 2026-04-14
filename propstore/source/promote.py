@@ -12,6 +12,7 @@ from propstore.artifacts import (
     CONCEPT_FILE_FAMILY,
     JUSTIFICATIONS_FILE_FAMILY,
     load_primary_branch_claim_reference_index,
+    normalize_canonical_concept_payload,
     load_source_claim_reference_index,
     STANCE_FILE_FAMILY,
     CanonicalSourceRef,
@@ -24,7 +25,7 @@ from propstore.claim_documents import ClaimsFileDocument
 from propstore.cli.repository import Repository
 from propstore.core.concepts import ConceptDocument
 from propstore.document_schema import convert_document_value
-from propstore.identity import compute_claim_version_id, compute_concept_version_id, derive_concept_artifact_id
+from propstore.identity import compute_claim_version_id
 from propstore.source_documents import SourceDocument, SourceJustificationsDocument
 from propstore.stance_documents import StanceFileDocument
 
@@ -109,7 +110,17 @@ def resolve_source_concept_promotions(
 
         handle_seed = str(entry.proposed_name or entry.local_name or "concept").strip()
         slug = normalize_source_slug(handle_seed)
-        artifact_id = derive_concept_artifact_id("propstore", slug)
+        concept_payload = normalize_canonical_concept_payload(
+            {
+                "canonical_name": str(entry.proposed_name or entry.local_name or slug).strip(),
+                "status": "accepted",
+                "definition": str(entry.definition or "").strip(),
+                "domain": "source",
+                "form": str(entry.form or "structural").strip(),
+            },
+            local_handle=slug,
+        )
+        artifact_id = concept_payload["artifact_id"]
         existing = concepts_by_artifact.get(artifact_id)
         if existing is not None:
             raise ValueError(f"Cannot promote source {source_name!r}; ambiguous concept mappings: {handle_seed}")
@@ -151,11 +162,6 @@ def resolve_source_concept_promotions(
             "definition": str(raw_entry.definition or "").strip(),
             "domain": "source",
             "form": str(raw_entry.form or "structural").strip(),
-            "artifact_id": artifact_id,
-            "logical_ids": [
-                {"namespace": "source", "value": slug},
-                {"namespace": "propstore", "value": slug},
-            ],
         }
         if raw_entry.aliases:
             concept_doc["aliases"] = [alias.to_payload() for alias in raw_entry.aliases]
@@ -163,7 +169,7 @@ def resolve_source_concept_promotions(
             concept_doc["form_parameters"] = raw_entry.form_parameters.to_payload()
         if parameterization_relationships:
             concept_doc["parameterization_relationships"] = parameterization_relationships
-        concept_doc["version_id"] = compute_concept_version_id(concept_doc)
+        concept_doc = normalize_canonical_concept_payload(concept_doc, local_handle=slug)
         concept_documents[slug] = convert_document_value(
             concept_doc,
             ConceptDocument,

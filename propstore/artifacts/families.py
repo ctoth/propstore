@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.artifacts.refs import (
     CanonicalSourceRef,
     ClaimsFileRef,
@@ -295,6 +296,13 @@ CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
     name="concept_file",
     doc_type=ConceptDocument,
     resolve_ref=_concept_file_artifact,
+    normalize_for_write=lambda context, document, store: store.coerce(
+        CONCEPT_FILE_FAMILY,
+        normalize_canonical_concept_payload(
+            store.payload(document),
+        ),
+        source=f"{context.branch}:{context.relpath}",
+    ),
     list_refs=lambda repo, branch, commit: _list_yaml_refs_in_directory(
         repo,
         branch,

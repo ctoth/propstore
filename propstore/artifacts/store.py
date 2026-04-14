@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.codecs import convert_document, decode_document, encode_document, render_document
+from propstore.artifacts.codecs import convert_document, decode_document, document_to_payload, encode_document, render_document
 from propstore.artifacts.transaction import ArtifactTransaction, normalized_path
 from propstore.artifacts.types import ArtifactContext, ArtifactFamily, ArtifactHandle, ResolvedArtifact, TDoc, TRef
 from propstore.repo.branch import branch_head
@@ -61,6 +61,9 @@ class ArtifactStore:
 
     def render(self, document: object) -> str:
         return render_document(document)
+
+    def payload(self, document: object) -> object:
+        return document_to_payload(document)
 
     def load(
         self,

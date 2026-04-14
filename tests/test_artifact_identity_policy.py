@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+from propstore.artifacts import CONCEPT_FILE_FAMILY, ConceptFileRef, normalize_canonical_concept_payload
+from propstore.cli.repository import Repository
+from propstore.identity import derive_concept_artifact_id
+
+
+def test_normalize_canonical_concept_payload_preserves_propstore_handle_and_updates_primary_identity() -> None:
+    normalized = normalize_canonical_concept_payload(
+        {
+            "canonical_name": "vocal_task",
+            "domain": "speech",
+            "status": "accepted",
+            "definition": "A task produced with the vocal tract.",
+            "form": "structural",
+            "logical_ids": [{"namespace": "propstore", "value": "task"}],
+        },
+        local_handle="task",
+    )
+
+    assert normalized["artifact_id"] == derive_concept_artifact_id("propstore", "task")
+    assert normalized["logical_ids"][0] == {"namespace": "speech", "value": "vocal_task"}
+    assert {"namespace": "propstore", "value": "task"} in normalized["logical_ids"]
+    assert normalized["version_id"].startswith("sha256:")
+
+
+def test_concept_family_save_applies_identity_normalization_on_write(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    ref = ConceptFileRef("demo")
+    document = repo.artifacts.coerce(
+        CONCEPT_FILE_FAMILY,
+        {
+            "canonical_name": "demo",
+            "status": "accepted",
+            "definition": "Demo concept.",
+            "form": "structural",
+        },
+        source="concepts/demo.yaml",
+    )
+
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ref,
+        document,
+        message="Write demo concept",
+    )
+    loaded = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref)
+
+    assert loaded.artifact_id == derive_concept_artifact_id("propstore", "demo")
+    assert loaded.logical_ids[0].namespace == "propstore"
+    assert loaded.logical_ids[0].value == "demo"
+    assert isinstance(loaded.version_id, str) and loaded.version_id.startswith("sha256:")

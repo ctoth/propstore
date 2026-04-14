@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.codecs import encode_document
+from propstore.artifacts.codecs import convert_document, document_to_payload, encode_document
 from propstore.artifacts.types import ArtifactFamily, ArtifactContext, ResolvedArtifact, TDoc, TRef
 
 if TYPE_CHECKING:
@@ -23,6 +23,12 @@ class ArtifactTransaction:
     @property
     def commit_sha(self) -> str | None:
         return self._commit_sha
+
+    def coerce(self, family: ArtifactFamily[TRef, TDoc], payload: object, *, source: str) -> TDoc:
+        return convert_document(payload, family.doc_type, source=source)
+
+    def payload(self, document: object) -> object:
+        return document_to_payload(document)
 
     def __enter__(self) -> ArtifactTransaction:
         return self
