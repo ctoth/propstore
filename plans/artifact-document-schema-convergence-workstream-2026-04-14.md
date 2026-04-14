@@ -1,7 +1,7 @@
 # Artifact Document Schema Convergence Workstream
 
 Date: 2026-04-14
-Status: In progress
+Status: Completed
 
 ## Goal
 
@@ -388,3 +388,35 @@ If any answer is still "it depends", this workstream is not done.
     at the schema module or the non-schema file-helper module.
   - Deleted `propstore/claim_documents.py`.
   - Verification: `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase4-claims tests/test_algorithm_stage_types.py tests/test_artifact_reference_resolver.py tests/test_claim_and_stance_document_enums.py tests/test_claim_compiler.py tests/test_claim_notes.py tests/test_validate_claims.py tests/test_build_sidecar.py tests/test_graph_export.py tests/test_git_backend.py::test_load_claim_files_from_git_tree tests/test_merge_classifier.py tests/test_repo_merge_object.py tests/test_sensitivity.py tests/test_world_model.py`
+- 2026-04-14: Phase 5 completed.
+  - Verified that `propstore/artifacts/` no longer imports authored schema
+    types from old top-level schema modules.
+  - Verification:
+    `rg -n "from propstore\\.(claim_documents|context_types|predicate_documents|rule_documents|source_documents|stance_documents|merge_documents|source_alignment_documents|document_schema|artifact_documents)" propstore/artifacts`
+  - Result: zero matches.
+- 2026-04-14: Phase 6 completed.
+  - Verification:
+    `rg -n -F "from propstore.artifact_documents" propstore`
+  - Result: zero matches.
+  - Verification:
+    `rg -n -F "from propstore.document_schema" propstore`
+  - Result: zero matches.
+  - Verification:
+    `rg -n "class .*Document\\(" propstore`
+  - Result: authored artifact `*Document` class definitions now live under
+    `propstore/artifacts/documents/`. The only `*Document` classes outside
+    that package are non-artifact surfaces:
+    `propstore/cli/repository.py:RepositoryConfigDocument` and
+    `propstore/loaded.py:LoadedDocument`.
+  - Verification:
+    `rg -n "^import msgspec$|^from msgspec import" propstore`
+  - Result: `msgspec` imports remain only in artifact schema/boundary files:
+    `propstore/artifacts/schema.py`,
+    `propstore/artifacts/types.py`,
+    `propstore/artifacts/codecs.py`,
+    `propstore/artifacts/documents/concepts.py`,
+    `propstore/artifacts/documents/forms.py`,
+    `propstore/artifacts/documents/worldlines.py`.
+  - Broad convergence verification:
+    `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-schema-phase6-convergence tests/test_artifact_store.py tests/test_artifact_identity_policy.py tests/test_artifact_reference_resolver.py tests/test_source_promotion_alignment.py tests/test_merge_cli.py tests/test_contexts.py tests/test_validate_claims.py tests/test_build_sidecar.py tests/test_world_model.py tests/test_document_schema.py tests/test_validator.py tests/test_algorithm_stage_types.py tests/test_claim_compiler.py tests/test_worldline.py::TestWorldlineDefinition`
+  - Result: `473 passed in 81.69s (0:01:21)`.
