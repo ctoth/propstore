@@ -209,19 +209,18 @@ class ActiveClaimResolver:
                 return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active_claims)
 
             direct_value = next(iter(direct_values))
-            unevaluable_algorithm_present = False
-            parse_failed_present = False
+            unevaluable_parse_failed = False
+            unevaluable_benign = False
             for claim in algo_claims:
                 comparison = self._algorithm_matches_direct_value(
                     claim,
                     direct_value,
                 )
                 if comparison.parse_failed:
-                    parse_failed_present = True
-                    unevaluable_algorithm_present = True
+                    unevaluable_parse_failed = True
                     continue
                 if comparison.equivalent is None:
-                    unevaluable_algorithm_present = True
+                    unevaluable_benign = True
                     continue
                 if not comparison.equivalent:
                     return ValueResult(
@@ -229,16 +228,31 @@ class ActiveClaimResolver:
                         status=ValueStatus.CONFLICTED,
                         claims=active_claims,
                     )
-            if unevaluable_algorithm_present:
+            # No parseable algorithm disagreed. Classify the remaining
+            # unevaluable cases:
+            #   * parse-failed only       → abstention, consensus stands
+            #     (DETERMINED + ALGORITHM_UNPARSEABLE annotation).
+            #   * benign-inconclusive present → preserve existing
+            #     CONFLICTED semantics (benign inconclusive is out of scope
+            #     for the Commit 5 abstention rule).
+            #   * neither                 → clean DETERMINED.
+            if unevaluable_benign:
                 return ValueResult(
                     concept_id=typed_concept_id,
                     status=ValueStatus.CONFLICTED,
                     claims=active_claims,
                     reason=(
                         ValueResultReason.ALGORITHM_UNPARSEABLE
-                        if parse_failed_present
+                        if unevaluable_parse_failed
                         else None
                     ),
+                )
+            if unevaluable_parse_failed:
+                return ValueResult(
+                    concept_id=typed_concept_id,
+                    status=ValueStatus.DETERMINED,
+                    claims=active_claims,
+                    reason=ValueResultReason.ALGORITHM_UNPARSEABLE,
                 )
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.DETERMINED, claims=active_claims)
 
