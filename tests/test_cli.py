@@ -1357,6 +1357,68 @@ class TestWorldCommandsKeepConnectionOpen:
             assert expected in result.output
 
 
+class TestWorldFragilityInterventions:
+    def test_world_fragility_json_uses_interventions_key(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "world",
+                "fragility",
+                "--format",
+                "json",
+                "--skip-atms",
+                "--skip-discovery",
+                "--skip-conflict",
+                "--skip-grounding",
+                "--skip-bridge",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert '"interventions"' in result.output
+        assert '"interactions"' in result.output
+        assert '"analysis_scope"' in result.output
+        assert '"targets"' not in result.output
+
+    def test_world_fragility_text_uses_intervention_header(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "world",
+                "fragility",
+                "--skip-atms",
+                "--skip-discovery",
+                "--skip-conflict",
+                "--skip-grounding",
+                "--skip-bridge",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Intervention" in result.output
+        assert "Family" in result.output
+        assert "Target" not in result.output
+
+    def test_world_fragility_accepts_ranking_policy(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "world",
+                "fragility",
+                "--ranking-policy",
+                "pareto",
+                "--skip-atms",
+                "--skip-discovery",
+                "--skip-conflict",
+                "--skip-grounding",
+                "--skip-bridge",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "ranking=pareto" in result.output
+
+
 # ── form show — unit conversions ─────────────────────────────────────
 
 class TestFormShowConversions:
