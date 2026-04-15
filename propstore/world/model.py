@@ -220,6 +220,8 @@ class WorldModel(ArtifactStore):
         self._table_cache: dict[str, bool] = {}
         self._compiled_graph_cache = None
         self._active_graph_cache: dict[str, Any] = {}
+        self._claim_logical_id_index: dict[str, str] | None = None
+        self._concept_logical_id_index: dict[str, str] | None = None
         self._validate_schema()
 
     def __enter__(self) -> WorldModel:
@@ -513,6 +515,62 @@ class WorldModel(ArtifactStore):
         rows = self._claim_rows("WHERE core.id = ?", (resolved_claim_id,))
         return rows[0] if rows else None
 
+    def _build_logical_id_index(self, table: str) -> dict[str, str]:
+        """Return a ``name → artifact_id`` map for one of ``claim_core``/``concept``.
+
+        Both composite ``"namespace:value"`` keys AND bare ``"value"``
+        keys populate the same map so the cache covers every form the
+        pre-memoized fallback already supported. A single SELECT +
+        Python pass replaces per-miss full-table scans. WorldModel is
+        immutable per open sidecar (all rows live under a read-only
+        connection, cleared only by ``close()``), so the index is safe
+        to build once and reuse for the lifetime of the instance.
+        """
+
+        if table not in ("claim_core", "concept"):
+            raise ValueError(f"unsupported logical-id table: {table}")
+        index: dict[str, str] = {}
+        rows = self._conn.execute(
+            f"SELECT id, primary_logical_id, logical_ids_json FROM {table}"  # noqa: S608
+        ).fetchall()
+        for row in rows:
+            artifact_id = row["id"]
+            primary_logical_id = row["primary_logical_id"]
+            if isinstance(primary_logical_id, str) and primary_logical_id:
+                index.setdefault(primary_logical_id, artifact_id)
+            logical_ids_json = row["logical_ids_json"]
+            if not isinstance(logical_ids_json, str) or not logical_ids_json:
+                continue
+            try:
+                logical_ids = json.loads(logical_ids_json)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(logical_ids, list):
+                continue
+            for entry in logical_ids:
+                if not isinstance(entry, dict):
+                    continue
+                namespace = entry.get("namespace")
+                value = entry.get("value")
+                if isinstance(namespace, str) and isinstance(value, str):
+                    index.setdefault(f"{namespace}:{value}", artifact_id)
+                    index.setdefault(value, artifact_id)
+        return index
+
+    def _get_claim_logical_id_index(self) -> dict[str, str]:
+        if self._claim_logical_id_index is None:
+            self._claim_logical_id_index = self._build_logical_id_index(
+                "claim_core"
+            )
+        return self._claim_logical_id_index
+
+    def _get_concept_logical_id_index(self) -> dict[str, str]:
+        if self._concept_logical_id_index is None:
+            self._concept_logical_id_index = self._build_logical_id_index(
+                "concept"
+            )
+        return self._concept_logical_id_index
+
     def resolve_claim(self, name: str) -> str | None:
         """Resolve a claim by artifact ID or logical ID."""
         row = self._conn.execute(
@@ -529,28 +587,7 @@ class WorldModel(ArtifactStore):
         if row is not None:
             return row["id"]
 
-        rows = self._conn.execute(
-            "SELECT id, logical_ids_json FROM claim_core"
-        ).fetchall()
-        for row in rows:
-            logical_ids_json = row["logical_ids_json"]
-            if not isinstance(logical_ids_json, str) or not logical_ids_json:
-                continue
-            try:
-                logical_ids = json.loads(logical_ids_json)
-            except json.JSONDecodeError:
-                continue
-            if not isinstance(logical_ids, list):
-                continue
-            for entry in logical_ids:
-                if not isinstance(entry, dict):
-                    continue
-                namespace = entry.get("namespace")
-                value = entry.get("value")
-                if isinstance(namespace, str) and isinstance(value, str):
-                    if f"{namespace}:{value}" == name or value == name:
-                        return row["id"]
-        return None
+        return self._get_claim_logical_id_index().get(name)
 
     def resolve_alias(self, alias: str) -> str | None:
         row = self._conn.execute(
@@ -578,27 +615,9 @@ class WorldModel(ArtifactStore):
         if row is not None:
             return row["id"]
 
-        rows = self._conn.execute(
-            "SELECT id, logical_ids_json FROM concept"
-        ).fetchall()
-        for row in rows:
-            logical_ids_json = row["logical_ids_json"]
-            if not isinstance(logical_ids_json, str) or not logical_ids_json:
-                continue
-            try:
-                logical_ids = json.loads(logical_ids_json)
-            except json.JSONDecodeError:
-                continue
-            if not isinstance(logical_ids, list):
-                continue
-            for entry in logical_ids:
-                if not isinstance(entry, dict):
-                    continue
-                namespace = entry.get("namespace")
-                value = entry.get("value")
-                if isinstance(namespace, str) and isinstance(value, str):
-                    if f"{namespace}:{value}" == name or value == name:
-                        return row["id"]
+        cached = self._get_concept_logical_id_index().get(name)
+        if cached is not None:
+            return cached
 
         row = self._conn.execute(
             "SELECT id FROM concept WHERE canonical_name = ?",
