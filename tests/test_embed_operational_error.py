@@ -64,7 +64,8 @@ def _make_conn_with_schema():
             source_paper TEXT NOT NULL DEFAULT 'test',
             provenance_page INTEGER NOT NULL DEFAULT 1,
             provenance_json TEXT,
-            context_id TEXT
+            context_id TEXT,
+            branch TEXT
         );
         CREATE TABLE claim_numeric_payload (
             claim_id TEXT PRIMARY KEY,
@@ -103,7 +104,12 @@ def _make_conn_with_schema():
         );
     """)
     conn.execute(
-        "INSERT INTO claim_core VALUES ('c1', 'h1', 1, 'observation', NULL, NULL, 'test', 1, NULL, NULL)"
+        """
+        INSERT INTO claim_core (
+            id, content_hash, seq, type, concept_id, target_concept,
+            source_paper, provenance_page, provenance_json, context_id
+        ) VALUES ('c1', 'h1', 1, 'observation', NULL, NULL, 'test', 1, NULL, NULL)
+        """
     )
     conn.execute(
         "INSERT INTO claim_text_payload VALUES ('c1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'summary')"

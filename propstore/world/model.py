@@ -127,6 +127,7 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "provenance_page",
         "provenance_json",
         "context_id",
+        "branch",
     },
     "claim_numeric_payload": {
         "claim_id",
@@ -406,12 +407,7 @@ class WorldModel(ArtifactStore):
     # ── Unbound queries ──────────────────────────────────────────────
 
     def _claim_select_sql(self) -> str:
-        branch_sql = (
-            "core.branch"
-            if "branch" in self._table_columns("claim_core")
-            else "NULL AS branch"
-        )
-        return f"""
+        return """
             SELECT
                 core.id,
                 core.id AS artifact_id,
@@ -462,7 +458,7 @@ class WorldModel(ArtifactStore):
                 num.lower_bound_si,
                 num.upper_bound_si,
                 core.context_id,
-                {branch_sql}
+                core.branch
             FROM claim_core AS core
             LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
             LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id

@@ -243,7 +243,8 @@ class TestSidecarPopulatesOpinionColumns:
                 source_paper TEXT NOT NULL DEFAULT 'test',
                 provenance_page INTEGER NOT NULL DEFAULT 1,
                 provenance_json TEXT,
-                context_id TEXT
+                context_id TEXT,
+                branch TEXT
             );
             CREATE TABLE relation_edge (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -269,12 +270,24 @@ class TestSidecarPopulatesOpinionColumns:
             );
         """)
         conn.execute(
-            "INSERT INTO claim_core VALUES ('c1', 'test:c1', '[{\"namespace\": \"test\", \"value\": \"c1\"}]', "
-            "'sha256:c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)"
+            """
+            INSERT INTO claim_core (
+                id, primary_logical_id, logical_ids_json, version_id,
+                content_hash, seq, type, concept_id, target_concept,
+                source_paper, provenance_page, provenance_json, context_id
+            ) VALUES ('c1', 'test:c1', '[{"namespace": "test", "value": "c1"}]',
+                'sha256:c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)
+            """
         )
         conn.execute(
-            "INSERT INTO claim_core VALUES ('c2', 'test:c2', '[{\"namespace\": \"test\", \"value\": \"c2\"}]', "
-            "'sha256:c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)"
+            """
+            INSERT INTO claim_core (
+                id, primary_logical_id, logical_ids_json, version_id,
+                content_hash, seq, type, concept_id, target_concept,
+                source_paper, provenance_page, provenance_json, context_id
+            ) VALUES ('c2', 'test:c2', '[{"namespace": "test", "value": "c2"}]',
+                'sha256:c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)
+            """
         )
 
         stances_dir = tmp_path / "stances"
@@ -337,7 +350,8 @@ class TestSidecarHandlesOldFormatYaml:
                 source_paper TEXT NOT NULL DEFAULT 'test',
                 provenance_page INTEGER NOT NULL DEFAULT 1,
                 provenance_json TEXT,
-                context_id TEXT
+                context_id TEXT,
+                branch TEXT
             );
             CREATE TABLE relation_edge (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -363,12 +377,24 @@ class TestSidecarHandlesOldFormatYaml:
             );
         """)
         conn.execute(
-            "INSERT INTO claim_core VALUES ('c1', 'test:c1', '[{\"namespace\": \"test\", \"value\": \"c1\"}]', "
-            "'sha256:c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)"
+            """
+            INSERT INTO claim_core (
+                id, primary_logical_id, logical_ids_json, version_id,
+                content_hash, seq, type, concept_id, target_concept,
+                source_paper, provenance_page, provenance_json, context_id
+            ) VALUES ('c1', 'test:c1', '[{"namespace": "test", "value": "c1"}]',
+                'sha256:c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)
+            """
         )
         conn.execute(
-            "INSERT INTO claim_core VALUES ('c2', 'test:c2', '[{\"namespace\": \"test\", \"value\": \"c2\"}]', "
-            "'sha256:c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)"
+            """
+            INSERT INTO claim_core (
+                id, primary_logical_id, logical_ids_json, version_id,
+                content_hash, seq, type, concept_id, target_concept,
+                source_paper, provenance_page, provenance_json, context_id
+            ) VALUES ('c2', 'test:c2', '[{"namespace": "test", "value": "c2"}]',
+                'sha256:c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)
+            """
         )
 
         stances_dir = tmp_path / "stances"

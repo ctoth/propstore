@@ -81,7 +81,8 @@ class TestEmbedLitellmCall:
                     source_paper TEXT NOT NULL DEFAULT 'test',
                     provenance_page INTEGER NOT NULL DEFAULT 1,
                     provenance_json TEXT,
-                    context_id TEXT
+                    context_id TEXT,
+                    branch TEXT
                 );
                 CREATE TABLE claim_text_payload (
                     claim_id TEXT PRIMARY KEY,
@@ -99,7 +100,14 @@ class TestEmbedLitellmCall:
                     auto_summary TEXT
                 );
             """)
-            conn.execute("INSERT INTO claim_core VALUES ('c1', 'h1', 1, 'observation', NULL, NULL, 'test', 1, NULL, NULL)")
+            conn.execute(
+                """
+                INSERT INTO claim_core (
+                    id, content_hash, seq, type, concept_id, target_concept,
+                    source_paper, provenance_page, provenance_json, context_id
+                ) VALUES ('c1', 'h1', 1, 'observation', NULL, NULL, 'test', 1, NULL, NULL)
+                """
+            )
             conn.execute("INSERT INTO claim_text_payload VALUES ('c1', NULL, 'stmt', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'summary')")
             conn.execute("CREATE TABLE embedding_model (model_key TEXT, model_name TEXT, dimensions INTEGER, updated_at TEXT)")
             conn.execute("CREATE TABLE embedding_status (claim_id TEXT, model_key TEXT, content_hash TEXT)")
