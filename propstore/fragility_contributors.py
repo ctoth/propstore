@@ -6,9 +6,10 @@ import json
 import warnings
 from collections.abc import Mapping, Sequence
 
-from propstore.aspic_bridge.build import compile_bridge_context
+from propstore.aspic import conc, top_rule
+from propstore.aspic_bridge.build import build_bridge_csaf, compile_bridge_context
 from propstore.aspic_bridge.extract import _extract_justifications, _extract_stance_rows
-from propstore.aspic_bridge.grounding import grounded_rules_to_rules
+from propstore.aspic_bridge.grounding import _decode_grounded_predicate, grounded_rules_to_rules
 from propstore.core.row_types import coerce_parameterization_row
 from propstore.fragility_scoring import FragilityWarning, score_conflict, weighted_epistemic_score
 from propstore.fragility_types import (
@@ -333,11 +334,33 @@ _SECTION_FRAGILITY = {
 
 
 def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
+    _strict_rules, defeasible_rules, _literals = grounded_rules_to_rules(bundle, {})
+    dependency_counts: dict[tuple[str, bool, tuple[object, ...]], int] = {}
+    for rule in defeasible_rules:
+        if "->" in (rule.name or ""):
+            continue
+        for antecedent in rule.antecedents:
+            dependency_key = (
+                antecedent.atom.predicate,
+                antecedent.negated,
+                tuple(antecedent.atom.arguments),
+            )
+            dependency_counts[dependency_key] = dependency_counts.get(dependency_key, 0) + 1
+
     ranked: list[RankedIntervention] = []
     for section_name, section in sorted(bundle.sections.items()):
         for predicate_id, rows in sorted(section.items()):
+            predicate_name, negated = _decode_grounded_predicate(predicate_id)
             for row in sorted(rows):
                 row_key = _typed_row_key(row)
+                dependency_count = dependency_counts.get(
+                    (predicate_name, negated, tuple(row)),
+                    0,
+                )
+                local_fragility = min(
+                    1.0,
+                    _SECTION_FRAGILITY.get(section_name, 0.5) + (0.1 * min(dependency_count, 3)),
+                )
                 target = InterventionTarget(
                     intervention_id=f"ground_fact:{section_name}:{predicate_id}:{row_key}",
                     kind=InterventionKind.GROUND_FACT,
@@ -356,14 +379,15 @@ def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
                         row=tuple(row),
                     ),
                 )
-                local_fragility = _SECTION_FRAGILITY.get(section_name, 0.5)
                 ranked.append(
                     RankedIntervention(
                         target=target,
                         local_fragility=local_fragility,
                         roi=local_fragility / target.cost_tier,
                         ranking_policy=RankingPolicy.HEURISTIC_ROI,
-                        score_explanation=f"section heuristic for {section_name}",
+                        score_explanation=(
+                            f"section={section_name}; antecedent_dependency_count={dependency_count}"
+                        ),
                     )
                 )
     return tuple(ranked)
@@ -372,12 +396,23 @@ def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
 def collect_grounded_rule_interventions(bundle) -> tuple[RankedIntervention, ...]:
     strict_rules, defeasible_rules, _literals = grounded_rules_to_rules(bundle, {})
     del strict_rules
+    undercut_counts: dict[str, int] = {}
+    for rule in defeasible_rules:
+        if rule.name is None or "->" not in rule.name:
+            continue
+        _defeater, _separator, target_rule_name = rule.name.partition("->")
+        undercut_counts[target_rule_name] = undercut_counts.get(target_rule_name, 0) + 1
+
     ranked: list[RankedIntervention] = []
     for rule in sorted(defeasible_rules, key=lambda candidate: candidate.name or ""):
         if rule.name is None or "->" in rule.name:
             continue
         _base, _, substitution_key = rule.name.partition("#")
-        local_fragility = min(0.8, 0.4 + (0.1 * len(rule.antecedents)))
+        undercut_count = undercut_counts.get(rule.name, 0)
+        local_fragility = min(
+            1.0,
+            0.3 + (0.1 * len(rule.antecedents)) + (0.25 * min(undercut_count, 2)),
+        )
         head_literal = repr(rule.consequent)
         target = InterventionTarget(
             intervention_id=f"grounded_rule:{rule.name}",
@@ -403,7 +438,9 @@ def collect_grounded_rule_interventions(bundle) -> tuple[RankedIntervention, ...
                 local_fragility=local_fragility,
                 roi=local_fragility / target.cost_tier,
                 ranking_policy=RankingPolicy.HEURISTIC_ROI,
-                score_explanation=f"{len(rule.antecedents)} antecedents in grounded defeasible rule",
+                score_explanation=(
+                    f"antecedent_count={len(rule.antecedents)}; undercut_count={undercut_count}"
+                ),
             )
         )
     return tuple(ranked)
@@ -421,12 +458,34 @@ def collect_bridge_undercut_interventions(
         stance_rows,
         bundle=bundle,
     )
+    csaf = build_bridge_csaf(
+        active_claims,
+        justifications,
+        stance_rows,
+        bundle=bundle,
+    )
+    attack_counts: dict[str, int] = {}
+    defeat_counts: dict[str, int] = {}
+    for attack in csaf.attacks:
+        attacker_top = top_rule(attack.attacker)
+        if attacker_top is None or attacker_top.name is None or "->" not in attacker_top.name:
+            continue
+        attack_counts[attacker_top.name] = attack_counts.get(attacker_top.name, 0) + 1
+    for attacker, _target in csaf.defeats:
+        attacker_top = top_rule(attacker)
+        if attacker_top is None or attacker_top.name is None or "->" not in attacker_top.name:
+            continue
+        defeat_counts[attacker_top.name] = defeat_counts.get(attacker_top.name, 0) + 1
+
     ranked: list[RankedIntervention] = []
     for rule in sorted(compiled.system.defeasible_rules, key=lambda candidate: candidate.name or ""):
         if rule.name is None or "->" not in rule.name or not rule.consequent.negated:
             continue
         defeater_name, _, target_rule_name = rule.name.partition("->")
         undercut_literal_key = str(rule.consequent.atom.predicate)
+        attack_count = attack_counts.get(rule.name, 0)
+        defeat_count = defeat_counts.get(rule.name, 0)
+        local_fragility = min(1.0, 0.3 + (0.25 * min(attack_count, 2)) + (0.35 * min(defeat_count, 2)))
         target = InterventionTarget(
             intervention_id=f"bridge_undercut:{rule.name}",
             kind=InterventionKind.BRIDGE_UNDERCUT,
@@ -445,14 +504,13 @@ def collect_bridge_undercut_interventions(
                 undercut_literal_key=undercut_literal_key,
             ),
         )
-        local_fragility = 0.9
         ranked.append(
             RankedIntervention(
                 target=target,
                 local_fragility=local_fragility,
                 roi=local_fragility / target.cost_tier,
                 ranking_policy=RankingPolicy.HEURISTIC_ROI,
-                score_explanation="named undercut rule in compiled bridge",
+                score_explanation=f"attack_count={attack_count}; defeat_count={defeat_count}",
             )
         )
     return tuple(ranked)
