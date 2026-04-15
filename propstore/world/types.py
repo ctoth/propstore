@@ -57,6 +57,18 @@ class ValueStatus(StrEnum):
     RESOLVED = "resolved"
 
 
+class ValueResultReason(Enum):
+    """Typed annotation for *why* a ``ValueResult`` carries a non-trivial status.
+
+    Deliberately a plain ``Enum`` (not ``StrEnum``) so that comparisons are
+    identity-based and no string interop is possible. New variants may be
+    added as other structured failure classes arise; start intentionally
+    narrow.
+    """
+
+    ALGORITHM_UNPARSEABLE = "algorithm_unparseable"
+
+
 def coerce_value_status(value: object | None) -> ValueStatus | None:
     if value is None:
         return None
@@ -71,6 +83,7 @@ class ValueResult:
     status: ValueStatus
     claims: list[ActiveClaim] = field(default_factory=list)
     label: Label | None = None
+    reason: ValueResultReason | None = None
 
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
