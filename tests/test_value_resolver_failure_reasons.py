@@ -59,7 +59,14 @@ def _make_resolver(
 
 
 def test_unparseable_algorithm_records_failure_reason():
-    """Parse failure in _algorithm_matches_direct_value must tag reason."""
+    """Parse failure in _algorithm_matches_direct_value must tag reason.
+
+    Commit 5 update: when a direct-value consensus exists, an unparseable
+    algorithm abstains — the status is now DETERMINED (consensus stands),
+    and the ALGORITHM_UNPARSEABLE annotation survives as an abstention
+    marker. Only parseable-disagreeing algorithms flip the status to
+    CONFLICTED.
+    """
     resolver = _make_resolver()
     active = [
         {"id": "direct", "type": "parameter", "value": 10.0},
@@ -74,7 +81,7 @@ def test_unparseable_algorithm_records_failure_reason():
 
     result = resolver.value_of_from_active(active, "target")
 
-    assert result.status is ValueStatus.CONFLICTED
+    assert result.status is ValueStatus.DETERMINED
     assert result.reason is ValueResultReason.ALGORITHM_UNPARSEABLE
 
 
