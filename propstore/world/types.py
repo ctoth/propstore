@@ -51,7 +51,6 @@ class ValueStatus(StrEnum):
     CONFLICTED = "conflicted"
     NO_CLAIMS = "no_claims"
     NO_VALUES = "no_values"
-    UNDERDETERMINED = "underdetermined"
     DERIVED = "derived"
     NO_RELATIONSHIP = "no_relationship"
     UNDERSPECIFIED = "underspecified"
