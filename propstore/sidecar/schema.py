@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 from propstore.context_types import LoadedContext, coerce_loaded_contexts
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SIDECAR_META_KEY = "sidecar"
 
 

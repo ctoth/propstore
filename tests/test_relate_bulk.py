@@ -34,7 +34,8 @@ def conn():
         CREATE TABLE claim_core (
             id TEXT PRIMARY KEY,
             concept_id TEXT,
-            source_paper TEXT NOT NULL DEFAULT 'test'
+            source_paper TEXT NOT NULL DEFAULT 'test',
+            branch TEXT
         );
         CREATE TABLE claim_text_payload (
             claim_id TEXT PRIMARY KEY,
