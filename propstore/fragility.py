@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 
 from propstore.fragility_contributors import (
     build_bound_bridge_inputs,
@@ -49,8 +50,16 @@ def _apply_ranking_policy(
     interventions: Sequence[RankedIntervention],
     ranking_policy: RankingPolicy,
 ) -> tuple[RankedIntervention, ...]:
-    if ranking_policy is RankingPolicy.HEURISTIC_ROI:
+    def _retag(
+        ordered: Sequence[RankedIntervention],
+    ) -> tuple[RankedIntervention, ...]:
         return tuple(
+            replace(item, ranking_policy=ranking_policy)
+            for item in ordered
+        )
+
+    if ranking_policy is RankingPolicy.HEURISTIC_ROI:
+        return _retag(
             sorted(
                 interventions,
                 key=lambda ranked: (
@@ -62,7 +71,7 @@ def _apply_ranking_policy(
             )
         )
     if ranking_policy is RankingPolicy.FAMILY_LOCAL_ONLY:
-        return tuple(
+        return _retag(
             sorted(
                 interventions,
                 key=lambda ranked: (
@@ -91,7 +100,7 @@ def _apply_ranking_policy(
                     break
             if not dominated:
                 nondominated.append(candidate)
-        return tuple(
+        return _retag(
             sorted(
                 nondominated,
                 key=lambda ranked: (
