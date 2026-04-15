@@ -803,9 +803,9 @@ class TestDecisionCriterionProperties:
             assume(u >= 0.0)
             assume(u <= 1.0)
 
-            lower = apply_decision_criterion(b, d, u, a, None, "lower_bound")
-            pignistic = apply_decision_criterion(b, d, u, a, None, "pignistic")
-            upper = apply_decision_criterion(b, d, u, a, None, "upper_bound")
+            lower = apply_decision_criterion(b, d, u, a, None, "lower_bound").value
+            pignistic = apply_decision_criterion(b, d, u, a, None, "pignistic").value
+            upper = apply_decision_criterion(b, d, u, a, None, "upper_bound").value
 
             assert lower is not None
             assert pignistic is not None
