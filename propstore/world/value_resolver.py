@@ -9,14 +9,41 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from ast_equiv import compare as ast_compare
+from ast_equiv import AlgorithmParseError, compare as ast_compare
+from ast_equiv.sympy_bridge import AstToSympyError
 
 from propstore.core.claim_types import ClaimType
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.row_types import ParameterizationRow
 from propstore.propagation import rewrite_parameterization_symbols
-from propstore.world.types import DerivedResult, ValueResult, ValueStatus
+from propstore.world.types import (
+    DerivedResult,
+    ValueResult,
+    ValueResultReason,
+    ValueStatus,
+)
+
+
+@dataclass(frozen=True)
+class _AlgorithmComparison:
+    """Typed result of an ``ast_compare``-driven algorithm comparison.
+
+    ``equivalent`` is ``None`` when the comparison could not be decided for
+    a **benign** reason (empty body, missing bindings, non-constant direct
+    value, incomplete known values). ``parse_failed`` is ``True`` only when
+    ``ast_compare`` raised ``ValueError``/``SyntaxError``; benign inconclusive
+    cases leave it ``False``. The two fields are inspected independently by
+    the caller — a parse failure distinguishes "algorithm body could not be
+    parsed" from "algorithm evaluation is simply undecidable here".
+    """
+
+    equivalent: bool | None
+    parse_failed: bool = False
+
+
+_BENIGN_INCONCLUSIVE = _AlgorithmComparison(equivalent=None, parse_failed=False)
+_PARSE_FAILED = _AlgorithmComparison(equivalent=None, parse_failed=True)
 
 
 @dataclass(frozen=True)
@@ -183,18 +210,36 @@ class ActiveClaimResolver:
 
             direct_value = next(iter(direct_values))
             unevaluable_algorithm_present = False
+            parse_failed_present = False
             for claim in algo_claims:
-                matches_direct = self._algorithm_matches_direct_value(
+                comparison = self._algorithm_matches_direct_value(
                     claim,
                     direct_value,
                 )
-                if matches_direct is None:
+                if comparison.parse_failed:
+                    parse_failed_present = True
                     unevaluable_algorithm_present = True
                     continue
-                if not matches_direct:
-                    return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active_claims)
+                if comparison.equivalent is None:
+                    unevaluable_algorithm_present = True
+                    continue
+                if not comparison.equivalent:
+                    return ValueResult(
+                        concept_id=typed_concept_id,
+                        status=ValueStatus.CONFLICTED,
+                        claims=active_claims,
+                    )
             if unevaluable_algorithm_present:
-                return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active_claims)
+                return ValueResult(
+                    concept_id=typed_concept_id,
+                    status=ValueStatus.CONFLICTED,
+                    claims=active_claims,
+                    reason=(
+                        ValueResultReason.ALGORITHM_UNPARSEABLE
+                        if parse_failed_present
+                        else None
+                    ),
+                )
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.DETERMINED, claims=active_claims)
 
         if algo_claims and not value_claims:
@@ -214,7 +259,8 @@ class ActiveClaimResolver:
             all_var_concepts.discard(typed_concept_id)
 
             known_values = self._collect_known_values(tuple(all_var_concepts))
-            if self._all_algorithms_equivalent(algo_claims, known_values):
+            comparison = self._all_algorithms_equivalent(algo_claims, known_values)
+            if comparison.equivalent is True:
                 return ValueResult(
                     concept_id=typed_concept_id,
                     status=ValueStatus.DETERMINED,
@@ -224,6 +270,11 @@ class ActiveClaimResolver:
                 concept_id=typed_concept_id,
                 status=ValueStatus.CONFLICTED,
                 claims=[claim.claim for claim in algo_claims],
+                reason=(
+                    ValueResultReason.ALGORITHM_UNPARSEABLE
+                    if comparison.parse_failed
+                    else None
+                ),
             )
 
         values = {claim.value for claim in active_views if claim.value is not None}
@@ -405,23 +456,23 @@ class ActiveClaimResolver:
         self,
         claim: _ActiveClaimView,
         direct_value: float | str | None,
-    ) -> bool | None:
+    ) -> _AlgorithmComparison:
         body = claim.body
         if not body:
-            return None
+            return _BENIGN_INCONCLUSIVE
 
         bindings = self._extract_bindings(claim.claim)
         if not bindings:
-            return None
+            return _BENIGN_INCONCLUSIVE
 
         constant_body = _constant_algorithm_body(direct_value)
         if constant_body is None:
-            return None
+            return _BENIGN_INCONCLUSIVE
 
         concept_ids = [to_concept_id(concept_id) for concept_id in dict.fromkeys(bindings.values())]
         known_values = self._collect_known_values(concept_ids)
         if any(concept_id not in known_values for concept_id in concept_ids):
-            return None
+            return _BENIGN_INCONCLUSIVE
 
         try:
             result = ast_compare(
@@ -431,21 +482,21 @@ class ActiveClaimResolver:
                 {},
                 known_values={str(concept_id): value for concept_id, value in known_values.items()},
             )
-        except (ValueError, SyntaxError) as exc:
+        except (ValueError, SyntaxError, AlgorithmParseError, AstToSympyError) as exc:
             logging.warning(
                 "ast_compare failed for algorithm-vs-direct comparison %s: %s",
                 claim.claim_id,
                 exc,
             )
-            return None
+            return _PARSE_FAILED
 
-        return result.equivalent
+        return _AlgorithmComparison(equivalent=bool(result.equivalent))
 
     def _all_algorithms_equivalent(
         self,
         algo_claims: Sequence[_ActiveClaimView | ActiveClaimInput],
         known_values: Mapping[ConceptId, Any],
-    ) -> bool:
+    ) -> _AlgorithmComparison:
         normalized_claims = [
             claim if isinstance(claim, _ActiveClaimView) else _active_claim_view(claim)
             for claim in algo_claims
@@ -455,7 +506,10 @@ class ActiveClaimResolver:
                 body_a = normalized_claims[i].body or ""
                 body_b = normalized_claims[j].body or ""
                 if not body_a or not body_b:
-                    return False
+                    # Benign: cannot compare without bodies. Not a parse
+                    # failure — mirror previous behavior of signalling
+                    # non-equivalence to the caller.
+                    return _AlgorithmComparison(equivalent=False)
                 bindings_a = self._extract_bindings(normalized_claims[i].claim)
                 bindings_b = self._extract_bindings(normalized_claims[j].claim)
                 try:
@@ -470,12 +524,12 @@ class ActiveClaimResolver:
                             else None
                         ),
                     )
-                except (ValueError, SyntaxError) as exc:
+                except (ValueError, SyntaxError, AlgorithmParseError, AstToSympyError) as exc:
                     logging.warning("ast_compare failed in algorithm equivalence check: %s", exc)
-                    return False
+                    return _PARSE_FAILED
                 if not result.equivalent:
-                    return False
-        return True
+                    return _AlgorithmComparison(equivalent=False)
+        return _AlgorithmComparison(equivalent=True)
 
 
 def _constant_algorithm_body(value: float | str | None) -> str | None:
