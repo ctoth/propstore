@@ -990,6 +990,39 @@ class RenderPolicy:
         return data
 
 
+class DecisionValueSource(Enum):
+    """Provenance tag for the value returned by ``apply_decision_criterion``.
+
+    Per CLAUDE.md "Honest ignorance over fabricated confidence": a value
+    derived from a calibrated opinion tuple must be distinguishable from a
+    value that is merely the legacy ``confidence`` scalar passed through, and
+    both must be distinguishable from "no data at all".
+
+    This is a plain ``Enum`` (NOT ``StrEnum``, NOT ``Literal``) so that
+    callers must use identity comparisons (``source is OPINION``) rather
+    than string equality. Bare-string comparisons for structured tags are
+    forbidden by the project's strong-typing directive.
+    """
+
+    OPINION = "opinion"
+    CONFIDENCE_FALLBACK = "confidence_fallback"
+    NO_DATA = "no_data"
+
+
+@dataclass(frozen=True)
+class DecisionValue:
+    """Tagged return of ``apply_decision_criterion``.
+
+    Attributes:
+        value: The numeric decision value, or ``None`` when ``source`` is
+            ``DecisionValueSource.NO_DATA``.
+        source: Provenance tag describing how ``value`` was obtained.
+    """
+
+    value: float | None
+    source: DecisionValueSource
+
+
 def apply_decision_criterion(
     opinion_b: float | None,
     opinion_d: float | None,
@@ -998,7 +1031,7 @@ def apply_decision_criterion(
     confidence: float | None,
     criterion: str = "pignistic",
     pessimism_index: float = 0.5,
-) -> float | None:
+) -> DecisionValue:
     """Apply decision criterion to opinion data, falling back to raw confidence.
 
     Per Denoeux (2019, p.17-18): decision criteria determine how belief
@@ -1011,7 +1044,10 @@ def apply_decision_criterion(
         pessimism_index: α for Hurwicz criterion
 
     Returns:
-        Decision value, or None if no opinion or confidence available.
+        ``DecisionValue`` whose ``source`` distinguishes a calibrated
+        opinion result (``OPINION``) from a raw confidence passthrough
+        (``CONFIDENCE_FALLBACK``) or total absence of data (``NO_DATA``).
+        ``value`` is ``None`` only when ``source is DecisionValueSource.NO_DATA``.
     """
     # If opinion components are all present, compute from opinion
     if (
@@ -1022,23 +1058,29 @@ def apply_decision_criterion(
     ):
         if criterion == "pignistic":
             # Jøsang (2001, p.5, Def 6): E(ω) = b + a·u
-            return opinion_b + opinion_a * opinion_u
+            value = opinion_b + opinion_a * opinion_u
         elif criterion == "lower_bound":
             # Jøsang (2001, p.4): Bel(x) = b
-            return opinion_b
+            value = opinion_b
         elif criterion == "upper_bound":
             # Jøsang (2001, p.4): Pl(x) = 1 - d
-            return 1.0 - opinion_d
+            value = 1.0 - opinion_d
         elif criterion == "hurwicz":
             # Denoeux (2019, p.17): α·Bel + (1-α)·Pl
             bel = opinion_b
             pl = 1.0 - opinion_d
-            return pessimism_index * bel + (1.0 - pessimism_index) * pl
+            value = pessimism_index * bel + (1.0 - pessimism_index) * pl
         else:
             raise ValueError(f"Unknown decision criterion: {criterion!r}")
+        return DecisionValue(value=value, source=DecisionValueSource.OPINION)
 
-    # Fall back to raw confidence when opinion is missing (old data)
-    return confidence
+    # Fall back to raw confidence when opinion is missing (old data).
+    if confidence is not None:
+        return DecisionValue(
+            value=confidence,
+            source=DecisionValueSource.CONFIDENCE_FALLBACK,
+        )
+    return DecisionValue(value=None, source=DecisionValueSource.NO_DATA)
 
 
 SupportMetadata = Mapping[str, tuple[Label | None, SupportQuality]]

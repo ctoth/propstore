@@ -731,7 +731,7 @@ def _resolve_praf(
         decision_values: dict[str, float | None] = {}
         for cid in best_claims:
             claim = claim_lookup.get(cid)
-            decision_values[cid] = apply_decision_criterion(
+            dv = apply_decision_criterion(
                 None if claim is None else claim.opinion_belief,
                 None if claim is None else claim.opinion_disbelief,
                 None if claim is None else claim.opinion_uncertainty,
@@ -740,6 +740,13 @@ def _resolve_praf(
                 criterion=decision_criterion,
                 pessimism_index=pessimism_index,
             )
+            # Unpack the tagged DecisionValue for numeric tiebreaking. The
+            # provenance tag (.source) is intentionally discarded here:
+            # tiebreaker arithmetic does not care whether the value came
+            # from a calibrated opinion or a raw confidence fallback. If
+            # the source needs to surface in the resolution reason, that
+            # is a separate plumbing concern.
+            decision_values[cid] = dv.value
 
         # Filter to claims with non-None decision values
         scored = {cid: v for cid, v in decision_values.items() if v is not None}
