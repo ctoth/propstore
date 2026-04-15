@@ -118,6 +118,7 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "primary_logical_id",
         "logical_ids_json",
         "version_id",
+        "content_hash",
         "seq",
         "type",
         "concept_id",
@@ -127,6 +128,7 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "provenance_page",
         "provenance_json",
         "context_id",
+        "premise_kind",
         "branch",
     },
     "claim_numeric_payload": {
