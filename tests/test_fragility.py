@@ -289,6 +289,26 @@ class TestGroundFactInterventions:
         }
         assert all(item.target.kind is InterventionKind.GROUND_FACT for item in ranked)
 
+    def test_ground_fact_score_reflects_dependency_count(self) -> None:
+        rule = _rule_doc(
+            "rule:birds-fly",
+            "defeasible",
+            _atom("flies", (_var("X"),)),
+            body=(_atom("bird", (_var("X"),)),),
+        )
+        supporting_bundle = _bundle(
+            rules=(rule,),
+            definitely={"bird": frozenset({("tweety",)})},
+        )
+        unused_bundle = _bundle(
+            definitely={"bird": frozenset({("tweety",)})},
+        )
+        supporting = collect_ground_fact_interventions(supporting_bundle)[0]
+        unused = collect_ground_fact_interventions(unused_bundle)[0]
+        assert supporting.local_fragility > unused.local_fragility
+        assert "antecedent_dependency_count=1" in supporting.score_explanation
+        assert "antecedent_dependency_count=0" in unused.score_explanation
+
 
 class TestGroundedRuleInterventions:
     def test_rule_with_n_substitutions_emits_n_grounded_rule_ids(self) -> None:
@@ -308,6 +328,38 @@ class TestGroundedRuleInterventions:
         assert any("tweety" in intervention_id for intervention_id in ids)
         assert any("opus" in intervention_id for intervention_id in ids)
         assert all(item.target.kind is InterventionKind.GROUNDED_RULE for item in ranked)
+
+    def test_grounded_rule_score_increases_when_undercuttable(self) -> None:
+        target_rule = _rule_doc(
+            "rule:birds-fly",
+            "defeasible",
+            _atom("flies", (_var("X"),)),
+            body=(_atom("bird", (_var("X"),)),),
+        )
+        defeater_rule = _rule_doc(
+            "rule:broken-wing",
+            "defeater",
+            _atom("flies", (_var("X"),), negated=True),
+            body=(_atom("broken_wing", (_var("X"),)),),
+        )
+        defended_bundle = _bundle(
+            rules=(target_rule,),
+            definitely={"bird": frozenset({("tweety",)})},
+        )
+        undercut_bundle = _bundle(
+            rules=(target_rule, defeater_rule),
+            definitely={
+                "bird": frozenset({("tweety",)}),
+                "broken_wing": frozenset({("tweety",)}),
+            },
+        )
+        defended = collect_grounded_rule_interventions(defended_bundle)[0]
+        undercut = next(
+            item for item in collect_grounded_rule_interventions(undercut_bundle)
+            if item.target.payload.rule_name.startswith("rule:birds-fly#")
+        )
+        assert undercut.local_fragility > defended.local_fragility
+        assert "undercut_count=1" in undercut.score_explanation
 
 
 class TestBridgeUndercutInterventions:
@@ -340,6 +392,32 @@ class TestBridgeUndercutInterventions:
             item.target.intervention_id for item in second
         }
         assert all(item.target.kind is InterventionKind.BRIDGE_UNDERCUT for item in first)
+
+    def test_bridge_undercut_score_tracks_attack_and_defeat_counts(self) -> None:
+        target_rule = _rule_doc(
+            "rule:birds-fly",
+            "defeasible",
+            _atom("flies", (_var("X"),)),
+            body=(_atom("bird", (_var("X"),)),),
+        )
+        defeater_rule = _rule_doc(
+            "rule:broken-wing",
+            "defeater",
+            _atom("flies", (_var("X"),), negated=True),
+            body=(_atom("broken_wing", (_var("X"),)),),
+        )
+        bundle = _bundle(
+            rules=(target_rule, defeater_rule),
+            definitely={
+                "bird": frozenset({("tweety",)}),
+                "broken_wing": frozenset({("tweety",)}),
+            },
+        )
+        ranked = collect_bridge_undercut_interventions(bundle, (), [], ())
+        assert len(ranked) == 1
+        assert ranked[0].local_fragility > 0.3
+        assert "attack_count=" in ranked[0].score_explanation
+        assert "defeat_count=" in ranked[0].score_explanation
 
 
 class TestInteractions:
@@ -414,3 +492,133 @@ class TestRankFragility:
         from propstore.world.bound import BoundWorld
 
         assert hasattr(BoundWorld, "fragility")
+
+    def test_heuristic_roi_policy_sorts_by_roi(self) -> None:
+        from unittest.mock import patch
+
+        bound = MagicMock()
+        with patch("propstore.fragility.derive_scored_concepts", return_value=["c1"]), \
+             patch("propstore.fragility.collect_assumption_interventions", return_value=()), \
+             patch(
+                 "propstore.fragility.collect_missing_measurement_interventions",
+                 return_value=(
+                     RankedIntervention(
+                         target=InterventionTarget(
+                             intervention_id="missing_measurement:expensive",
+                             kind=InterventionKind.MISSING_MEASUREMENT,
+                             family=InterventionFamily.DISCOVERY,
+                             subject_id="expensive",
+                             description="expensive",
+                             cost_tier=3,
+                             provenance=InterventionProvenance(
+                                 family=InterventionFamily.DISCOVERY,
+                                 source_ids=("x",),
+                                 subject_concept_ids=("x",),
+                             ),
+                             payload=MissingMeasurementTarget(
+                                 concept_id="expensive",
+                                 discovered_from_parameterizations=("x",),
+                                 downstream_subjects=("x",),
+                             ),
+                         ),
+                         local_fragility=0.9,
+                         roi=0.3,
+                         ranking_policy=RankingPolicy.HEURISTIC_ROI,
+                         score_explanation="expensive",
+                     ),
+                     RankedIntervention(
+                         target=InterventionTarget(
+                             intervention_id="missing_measurement:cheap",
+                             kind=InterventionKind.MISSING_MEASUREMENT,
+                             family=InterventionFamily.DISCOVERY,
+                             subject_id="cheap",
+                             description="cheap",
+                             cost_tier=1,
+                             provenance=InterventionProvenance(
+                                 family=InterventionFamily.DISCOVERY,
+                                 source_ids=("y",),
+                                 subject_concept_ids=("y",),
+                             ),
+                             payload=MissingMeasurementTarget(
+                                 concept_id="cheap",
+                                 discovered_from_parameterizations=("y",),
+                                 downstream_subjects=("y",),
+                             ),
+                         ),
+                         local_fragility=0.6,
+                         roi=0.6,
+                         ranking_policy=RankingPolicy.HEURISTIC_ROI,
+                         score_explanation="cheap",
+                     ),
+                 ),
+             ), \
+             patch("propstore.fragility.collect_conflict_interventions", return_value=()), \
+             patch("propstore.fragility.collect_ground_fact_interventions", return_value=()), \
+             patch("propstore.fragility.collect_grounded_rule_interventions", return_value=()), \
+             patch("propstore.fragility.collect_bridge_undercut_interventions", return_value=()), \
+             patch("propstore.fragility.build_bound_bridge_inputs", return_value=((), [], [])):
+            report = rank_fragility(bound, ranking_policy=RankingPolicy.HEURISTIC_ROI)
+        assert [item.target.subject_id for item in report.interventions] == ["cheap", "expensive"]
+
+    def test_pareto_policy_drops_dominated_intervention(self) -> None:
+        from unittest.mock import patch
+
+        bound = MagicMock()
+        dominated = RankedIntervention(
+            target=InterventionTarget(
+                intervention_id="missing_measurement:dominated",
+                kind=InterventionKind.MISSING_MEASUREMENT,
+                family=InterventionFamily.DISCOVERY,
+                subject_id="dominated",
+                description="dominated",
+                cost_tier=3,
+                provenance=InterventionProvenance(
+                    family=InterventionFamily.DISCOVERY,
+                    source_ids=("d",),
+                    subject_concept_ids=("d",),
+                ),
+                payload=MissingMeasurementTarget(
+                    concept_id="dominated",
+                    discovered_from_parameterizations=("d",),
+                    downstream_subjects=("d",),
+                ),
+            ),
+            local_fragility=0.4,
+            roi=0.4 / 3.0,
+            ranking_policy=RankingPolicy.HEURISTIC_ROI,
+            score_explanation="dominated",
+        )
+        dominant = RankedIntervention(
+            target=InterventionTarget(
+                intervention_id="missing_measurement:dominant",
+                kind=InterventionKind.MISSING_MEASUREMENT,
+                family=InterventionFamily.DISCOVERY,
+                subject_id="dominant",
+                description="dominant",
+                cost_tier=2,
+                provenance=InterventionProvenance(
+                    family=InterventionFamily.DISCOVERY,
+                    source_ids=("x",),
+                    subject_concept_ids=("x",),
+                ),
+                payload=MissingMeasurementTarget(
+                    concept_id="dominant",
+                    discovered_from_parameterizations=("x",),
+                    downstream_subjects=("x",),
+                ),
+            ),
+            local_fragility=0.8,
+            roi=0.4,
+            ranking_policy=RankingPolicy.HEURISTIC_ROI,
+            score_explanation="dominant",
+        )
+        with patch("propstore.fragility.derive_scored_concepts", return_value=["c1"]), \
+             patch("propstore.fragility.collect_assumption_interventions", return_value=()), \
+             patch("propstore.fragility.collect_missing_measurement_interventions", return_value=(dominated, dominant)), \
+             patch("propstore.fragility.collect_conflict_interventions", return_value=()), \
+             patch("propstore.fragility.collect_ground_fact_interventions", return_value=()), \
+             patch("propstore.fragility.collect_grounded_rule_interventions", return_value=()), \
+             patch("propstore.fragility.collect_bridge_undercut_interventions", return_value=()), \
+             patch("propstore.fragility.build_bound_bridge_inputs", return_value=((), [], [])):
+            report = rank_fragility(bound, ranking_policy=RankingPolicy.PARETO)
+        assert [item.target.subject_id for item in report.interventions] == ["dominant"]
