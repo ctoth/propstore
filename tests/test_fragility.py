@@ -71,6 +71,73 @@ class TestInterventionModel:
         with pytest.raises(AttributeError):
             target.description = "mutate"  # type: ignore[misc]
 
+    def test_target_rejects_payload_that_does_not_match_kind(self) -> None:
+        with pytest.raises(TypeError, match="payload"):
+            InterventionTarget(
+                intervention_id="assumption:q1",
+                kind=InterventionKind.ASSUMPTION,
+                family=InterventionFamily.ATMS,
+                subject_id="c1",
+                description="Check x == 1",
+                cost_tier=1,
+                provenance=InterventionProvenance(
+                    family=InterventionFamily.ATMS,
+                    source_ids=("queryable:q1",),
+                    subject_concept_ids=("c1",),
+                ),
+                payload=MissingMeasurementTarget(
+                    concept_id="c1",
+                    discovered_from_parameterizations=("p1",),
+                    downstream_subjects=("c1",),
+                ),
+            )
+
+    def test_target_rejects_family_provenance_mismatch(self) -> None:
+        with pytest.raises(ValueError, match="provenance"):
+            InterventionTarget(
+                intervention_id="assumption:q1",
+                kind=InterventionKind.ASSUMPTION,
+                family=InterventionFamily.ATMS,
+                subject_id="c1",
+                description="Check x == 1",
+                cost_tier=1,
+                provenance=InterventionProvenance(
+                    family=InterventionFamily.DISCOVERY,
+                    source_ids=("queryable:q1",),
+                    subject_concept_ids=("c1",),
+                ),
+                payload=AssumptionTarget(
+                    queryable_id="queryable:q1",
+                    cel="x == 1",
+                    stabilizes_concepts=("c1",),
+                    witness_count=1,
+                    consistent_future_count=2,
+                ),
+            )
+
+    def test_target_rejects_non_positive_cost_tier(self) -> None:
+        with pytest.raises(ValueError, match="cost_tier"):
+            InterventionTarget(
+                intervention_id="assumption:q1",
+                kind=InterventionKind.ASSUMPTION,
+                family=InterventionFamily.ATMS,
+                subject_id="c1",
+                description="Check x == 1",
+                cost_tier=0,
+                provenance=InterventionProvenance(
+                    family=InterventionFamily.ATMS,
+                    source_ids=("queryable:q1",),
+                    subject_concept_ids=("c1",),
+                ),
+                payload=AssumptionTarget(
+                    queryable_id="queryable:q1",
+                    cel="x == 1",
+                    stabilizes_concepts=("c1",),
+                    witness_count=1,
+                    consistent_future_count=2,
+                ),
+            )
+
     def test_ranked_intervention_requires_explicit_policy(self) -> None:
         ranked = RankedIntervention(
             target=InterventionTarget(
@@ -97,6 +164,62 @@ class TestInterventionModel:
             score_explanation="heuristic",
         )
         assert ranked.ranking_policy is RankingPolicy.HEURISTIC_ROI
+
+    def test_ranked_intervention_rejects_fragility_out_of_bounds(self) -> None:
+        target = InterventionTarget(
+            intervention_id="missing_measurement:viscosity",
+            kind=InterventionKind.MISSING_MEASUREMENT,
+            family=InterventionFamily.DISCOVERY,
+            subject_id="viscosity",
+            description="Measure viscosity",
+            cost_tier=3,
+            provenance=InterventionProvenance(
+                family=InterventionFamily.DISCOVERY,
+                source_ids=("density",),
+                subject_concept_ids=("density",),
+            ),
+            payload=MissingMeasurementTarget(
+                concept_id="viscosity",
+                discovered_from_parameterizations=("density",),
+                downstream_subjects=("density",),
+            ),
+        )
+        with pytest.raises(ValueError, match="local_fragility"):
+            RankedIntervention(
+                target=target,
+                local_fragility=1.1,
+                roi=1.1 / 3.0,
+                ranking_policy=RankingPolicy.HEURISTIC_ROI,
+                score_explanation="heuristic",
+            )
+
+    def test_ranked_intervention_rejects_negative_roi(self) -> None:
+        target = InterventionTarget(
+            intervention_id="missing_measurement:viscosity",
+            kind=InterventionKind.MISSING_MEASUREMENT,
+            family=InterventionFamily.DISCOVERY,
+            subject_id="viscosity",
+            description="Measure viscosity",
+            cost_tier=3,
+            provenance=InterventionProvenance(
+                family=InterventionFamily.DISCOVERY,
+                source_ids=("density",),
+                subject_concept_ids=("density",),
+            ),
+            payload=MissingMeasurementTarget(
+                concept_id="viscosity",
+                discovered_from_parameterizations=("density",),
+                downstream_subjects=("density",),
+            ),
+        )
+        with pytest.raises(ValueError, match="roi"):
+            RankedIntervention(
+                target=target,
+                local_fragility=0.5,
+                roi=-0.1,
+                ranking_policy=RankingPolicy.HEURISTIC_ROI,
+                score_explanation="heuristic",
+            )
 
 
 class TestUtilityScores:
@@ -560,6 +683,105 @@ class TestRankFragility:
             report = rank_fragility(bound, ranking_policy=RankingPolicy.HEURISTIC_ROI)
         assert [item.target.subject_id for item in report.interventions] == ["cheap", "expensive"]
 
+    def test_family_local_only_relabels_items_and_sorts_within_family(self) -> None:
+        from unittest.mock import patch
+
+        bound = MagicMock()
+        atms_low = RankedIntervention(
+            target=InterventionTarget(
+                intervention_id="assumption:low",
+                kind=InterventionKind.ASSUMPTION,
+                family=InterventionFamily.ATMS,
+                subject_id="low",
+                description="low",
+                cost_tier=1,
+                provenance=InterventionProvenance(
+                    family=InterventionFamily.ATMS,
+                    source_ids=("a-low",),
+                    subject_concept_ids=("low",),
+                ),
+                payload=AssumptionTarget(
+                    queryable_id="a-low",
+                    cel="a_low == true",
+                    stabilizes_concepts=("low",),
+                    witness_count=1,
+                    consistent_future_count=2,
+                ),
+            ),
+            local_fragility=0.2,
+            roi=0.2,
+            ranking_policy=RankingPolicy.HEURISTIC_ROI,
+            score_explanation="atms low",
+        )
+        atms_high = RankedIntervention(
+            target=InterventionTarget(
+                intervention_id="assumption:high",
+                kind=InterventionKind.ASSUMPTION,
+                family=InterventionFamily.ATMS,
+                subject_id="high",
+                description="high",
+                cost_tier=1,
+                provenance=InterventionProvenance(
+                    family=InterventionFamily.ATMS,
+                    source_ids=("a-high",),
+                    subject_concept_ids=("high",),
+                ),
+                payload=AssumptionTarget(
+                    queryable_id="a-high",
+                    cel="a_high == true",
+                    stabilizes_concepts=("high",),
+                    witness_count=2,
+                    consistent_future_count=2,
+                ),
+            ),
+            local_fragility=0.9,
+            roi=0.9,
+            ranking_policy=RankingPolicy.HEURISTIC_ROI,
+            score_explanation="atms high",
+        )
+        discovery = RankedIntervention(
+            target=InterventionTarget(
+                intervention_id="missing_measurement:zeta",
+                kind=InterventionKind.MISSING_MEASUREMENT,
+                family=InterventionFamily.DISCOVERY,
+                subject_id="zeta",
+                description="zeta",
+                cost_tier=3,
+                provenance=InterventionProvenance(
+                    family=InterventionFamily.DISCOVERY,
+                    source_ids=("zeta",),
+                    subject_concept_ids=("zeta",),
+                ),
+                payload=MissingMeasurementTarget(
+                    concept_id="zeta",
+                    discovered_from_parameterizations=("zeta",),
+                    downstream_subjects=("zeta",),
+                ),
+            ),
+            local_fragility=0.8,
+            roi=0.8 / 3.0,
+            ranking_policy=RankingPolicy.HEURISTIC_ROI,
+            score_explanation="discovery",
+        )
+        with patch("propstore.fragility.derive_scored_concepts", return_value=["c1"]), \
+             patch("propstore.fragility.collect_assumption_interventions", return_value=(atms_low, atms_high)), \
+             patch("propstore.fragility.collect_missing_measurement_interventions", return_value=(discovery,)), \
+             patch("propstore.fragility.collect_conflict_interventions", return_value=()), \
+             patch("propstore.fragility.collect_ground_fact_interventions", return_value=()), \
+             patch("propstore.fragility.collect_grounded_rule_interventions", return_value=()), \
+             patch("propstore.fragility.collect_bridge_undercut_interventions", return_value=()), \
+             patch("propstore.fragility.build_bound_bridge_inputs", return_value=((), [], [])):
+            report = rank_fragility(bound, ranking_policy=RankingPolicy.FAMILY_LOCAL_ONLY)
+        assert [item.target.intervention_id for item in report.interventions] == [
+            "assumption:high",
+            "assumption:low",
+            "missing_measurement:zeta",
+        ]
+        assert all(
+            item.ranking_policy is RankingPolicy.FAMILY_LOCAL_ONLY
+            for item in report.interventions
+        )
+
     def test_pareto_policy_drops_dominated_intervention(self) -> None:
         from unittest.mock import patch
 
@@ -622,3 +844,4 @@ class TestRankFragility:
              patch("propstore.fragility.build_bound_bridge_inputs", return_value=((), [], [])):
             report = rank_fragility(bound, ranking_policy=RankingPolicy.PARETO)
         assert [item.target.subject_id for item in report.interventions] == ["dominant"]
+        assert report.interventions[0].ranking_policy is RankingPolicy.PARETO

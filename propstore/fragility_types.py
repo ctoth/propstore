@@ -108,6 +108,35 @@ class BridgeUndercutTarget:
     undercut_literal_key: str
 
 
+InterventionPayload = (
+    AssumptionTarget
+    | MissingMeasurementTarget
+    | ConflictTarget
+    | GroundFactTarget
+    | GroundedRuleTarget
+    | BridgeUndercutTarget
+)
+
+
+_KIND_TO_PAYLOAD_TYPE: dict[InterventionKind, type[InterventionPayload]] = {
+    InterventionKind.ASSUMPTION: AssumptionTarget,
+    InterventionKind.MISSING_MEASUREMENT: MissingMeasurementTarget,
+    InterventionKind.CONFLICT: ConflictTarget,
+    InterventionKind.GROUND_FACT: GroundFactTarget,
+    InterventionKind.GROUNDED_RULE: GroundedRuleTarget,
+    InterventionKind.BRIDGE_UNDERCUT: BridgeUndercutTarget,
+}
+
+_KIND_TO_FAMILY: dict[InterventionKind, InterventionFamily] = {
+    InterventionKind.ASSUMPTION: InterventionFamily.ATMS,
+    InterventionKind.MISSING_MEASUREMENT: InterventionFamily.DISCOVERY,
+    InterventionKind.CONFLICT: InterventionFamily.CONFLICT,
+    InterventionKind.GROUND_FACT: InterventionFamily.GROUNDING,
+    InterventionKind.GROUNDED_RULE: InterventionFamily.GROUNDING,
+    InterventionKind.BRIDGE_UNDERCUT: InterventionFamily.BRIDGE,
+}
+
+
 @dataclass(frozen=True)
 class InterventionTarget:
     intervention_id: str
@@ -117,7 +146,7 @@ class InterventionTarget:
     description: str
     cost_tier: int
     provenance: InterventionProvenance
-    payload: object
+    payload: InterventionPayload
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "kind", InterventionKind(self.kind))
@@ -126,6 +155,23 @@ class InterventionTarget:
         object.__setattr__(self, "intervention_id", str(self.intervention_id))
         object.__setattr__(self, "description", str(self.description))
         object.__setattr__(self, "cost_tier", int(self.cost_tier))
+        expected_family = _KIND_TO_FAMILY[self.kind]
+        if self.family is not expected_family:
+            raise ValueError(
+                f"Intervention kind {self.kind.value!r} requires family {expected_family.value!r}"
+            )
+        if self.provenance.family is not self.family:
+            raise ValueError(
+                "Intervention provenance family must match the target family"
+            )
+        if self.cost_tier <= 0:
+            raise ValueError("Intervention cost_tier must be a positive integer")
+        expected_payload_type = _KIND_TO_PAYLOAD_TYPE[self.kind]
+        if not isinstance(self.payload, expected_payload_type):
+            raise TypeError(
+                f"Intervention payload for kind {self.kind.value!r} must be "
+                f"{expected_payload_type.__name__}"
+            )
 
 
 @dataclass(frozen=True)
@@ -141,6 +187,10 @@ class RankedIntervention:
         object.__setattr__(self, "local_fragility", float(self.local_fragility))
         object.__setattr__(self, "roi", float(self.roi))
         object.__setattr__(self, "score_explanation", str(self.score_explanation))
+        if not 0.0 <= self.local_fragility <= 1.0:
+            raise ValueError("RankedIntervention local_fragility must be in [0, 1]")
+        if self.roi < 0.0:
+            raise ValueError("RankedIntervention roi must be non-negative")
 
 
 @dataclass(frozen=True)
