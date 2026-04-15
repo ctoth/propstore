@@ -8,6 +8,7 @@ hypothetical reasoning, parameter-space derivation, sensitivity/fragility
 analysis, graph export, and multi-hop conflict checking)."""
 from __future__ import annotations
 
+from dataclasses import asdict
 import json
 import sqlite3
 import sys
@@ -2120,18 +2121,24 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
 @click.argument("args", nargs=-1)
 @click.option("--concept", "concept_id", default=None, help="Focus on a single concept")
 @click.option("--top-k", "top_k", type=int, default=20, help="Number of results")
-@click.option("--combination", type=click.Choice(["top2", "mean", "max", "product"]), default="top2")
-@click.option("--skip-parametric", is_flag=True, default=False)
-@click.option("--skip-epistemic", is_flag=True, default=False)
+@click.option("--skip-atms", is_flag=True, default=False)
+@click.option("--skip-discovery", is_flag=True, default=False)
 @click.option("--skip-conflict", is_flag=True, default=False)
-@click.option("--sort-by", "sort_by", type=click.Choice(["fragility", "roi"]), default="fragility")
-@click.option("--discovery-tier", "discovery_tier", type=int, default=1, help="1=ATMS only, 2=also unknown concepts")
+@click.option("--skip-grounding", is_flag=True, default=False)
+@click.option("--skip-bridge", is_flag=True, default=False)
+@click.option(
+    "--ranking-policy",
+    "ranking_policy",
+    type=click.Choice(["heuristic_roi", "family_local_only", "pareto"]),
+    default="heuristic_roi",
+)
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
-                    top_k: int, combination: str, skip_parametric: bool,
-                    skip_epistemic: bool, skip_conflict: bool,
-                    sort_by: str, discovery_tier: int, fmt: str) -> None:
+                    top_k: int, skip_atms: bool,
+                    skip_discovery: bool, skip_conflict: bool,
+                    skip_grounding: bool, skip_bridge: bool,
+                    ranking_policy: str, fmt: str) -> None:
     """Rank epistemic targets by fragility — what to learn next."""
     from propstore.fragility import rank_fragility
 
@@ -2144,48 +2151,49 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
             bound,
             concept_id=concept_id,
             top_k=top_k,
-            include_parametric=not skip_parametric,
-            include_epistemic=not skip_epistemic,
+            include_atms=not skip_atms,
+            include_discovery=not skip_discovery,
             include_conflict=not skip_conflict,
-            combination=combination,
-            sort_by=sort_by,
-            discovery_tier=discovery_tier,
+            include_grounding=not skip_grounding,
+            include_bridge=not skip_bridge,
+            ranking_policy=ranking_policy,
         )
 
         if fmt == "json":
             result_dict = {
                 "world_fragility": report.world_fragility,
                 "analysis_scope": report.analysis_scope,
-                "targets": [
+                "interventions": [
                     {
-                        "target_id": t.target_id,
-                        "target_kind": t.target_kind,
-                        "description": t.description,
-                        "fragility": t.fragility,
-                        "parametric_score": t.parametric_score,
-                        "epistemic_score": t.epistemic_score,
-                        "conflict_score": t.conflict_score,
-                        "cost_tier": t.cost_tier,
-                        "epistemic_roi": t.epistemic_roi,
+                        "intervention_id": item.target.intervention_id,
+                        "kind": item.target.kind,
+                        "family": item.target.family,
+                        "subject_id": item.target.subject_id,
+                        "description": item.target.description,
+                        "cost_tier": item.target.cost_tier,
+                        "local_fragility": item.local_fragility,
+                        "roi": item.roi,
+                        "ranking_policy": item.ranking_policy,
+                        "score_explanation": item.score_explanation,
                     }
-                    for t in report.targets
+                    for item in report.interventions
                 ],
-                "interactions": [dict(i) for i in report.interactions],
+                "interactions": [asdict(i) for i in report.interactions],
             }
             click.echo(json.dumps(result_dict, indent=2))
         else:
-            click.echo(f"Fragility Analysis (top {top_k}, combination={combination}, sort={sort_by})")
+            click.echo(f"Fragility Analysis (top {top_k}, ranking={ranking_policy})")
             click.echo("=" * 60)
             click.echo("")
             click.echo(
-                f"{'Rank':>4}  {'Score':>5}  {'ROI':>5}  {'Cost':>4}  {'Kind':<12} {'Target'}"
+                f"{'Rank':>4}  {'Score':>5}  {'ROI':>5}  {'Cost':>4}  {'Family':<10} {'Kind':<20} {'Intervention'}"
             )
-            for i, t in enumerate(report.targets, 1):
-                roi = f"{t.epistemic_roi:.2f}" if t.epistemic_roi is not None else "  -  "
-                cost = str(t.cost_tier) if t.cost_tier is not None else "-"
+            for i, item in enumerate(report.interventions, 1):
+                roi = f"{item.roi:.2f}"
+                cost = str(item.target.cost_tier)
                 click.echo(
-                    f"{i:>4}  {t.fragility:>5.2f}  {roi:>5}  {cost:>4}  {t.target_kind:<12} "
-                    f"{t.target_id}"
+                    f"{i:>4}  {item.local_fragility:>5.2f}  {roi:>5}  {cost:>4}  "
+                    f"{item.target.family:<10} {item.target.kind:<20} {item.target.intervention_id}"
                 )
             click.echo("")
             click.echo(f"World fragility: {report.world_fragility:.2f}")
@@ -2195,10 +2203,10 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
                 click.echo("")
                 click.echo("Interactions:")
                 for inter in report.interactions:
-                    itype = inter.get("interaction_type", "unknown")
-                    a_id = inter.get("target_a_id", "?")
-                    b_id = inter.get("target_b_id", "?")
-                    concepts = inter.get("concepts_affected", [])
+                    itype = inter.interaction_type
+                    a_id = inter.intervention_a_id
+                    b_id = inter.intervention_b_id
+                    concepts = inter.subjects_affected
                     if itype == "synergistic":
                         desc = "synergistic (neither alone flips, both together flip)"
                     elif itype == "redundant":

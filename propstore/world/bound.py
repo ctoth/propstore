@@ -772,10 +772,12 @@ class BoundWorld(BeliefSpace):
         concept_id: str | None = None,
         queryables: list | None = None,
         top_k: int = 20,
-        include_parametric: bool = True,
-        include_epistemic: bool = True,
+        include_atms: bool = True,
+        include_discovery: bool = True,
         include_conflict: bool = True,
-        combination: str = "top2",
+        include_grounding: bool = True,
+        include_bridge: bool = True,
+        ranking_policy: str = "heuristic_roi",
         atms_limit: int = 8,
     ) -> "FragilityReport":
         """Rank epistemic targets by fragility — what to learn next."""
@@ -785,10 +787,12 @@ class BoundWorld(BeliefSpace):
             concept_id=concept_id,
             queryables=queryables,
             top_k=top_k,
-            include_parametric=include_parametric,
-            include_epistemic=include_epistemic,
+            include_atms=include_atms,
+            include_discovery=include_discovery,
             include_conflict=include_conflict,
-            combination=combination,
+            include_grounding=include_grounding,
+            include_bridge=include_bridge,
+            ranking_policy=ranking_policy,
             atms_limit=atms_limit,
         )
 
