@@ -408,7 +408,7 @@ def _resolve_ic_merge(
     world: ArtifactStore,
     policy: RenderPolicy | None = None,
 ) -> tuple[str | None, str | None]:
-    from propstore.repo.ic_merge import solve_ic_merge
+    from propstore.world.ic_merge import solve_ic_merge
 
     if world is None:
         return None, "ic_merge strategy requires an explicit artifact store"

@@ -38,7 +38,7 @@ from propstore.repo.repo_import import (
     commit_repo_import,
     plan_repo_import,
 )
-from propstore.repo.ic_merge import (
+from propstore.world.ic_merge import (
     ICMergeProblem,
     ICMergeResult,
     MergeOperator,
