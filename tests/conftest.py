@@ -423,6 +423,7 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             provenance_page INTEGER NOT NULL DEFAULT 1,
             provenance_json TEXT,
             context_id TEXT,
+            premise_kind TEXT NOT NULL DEFAULT 'ordinary',
             branch TEXT
         );
 
