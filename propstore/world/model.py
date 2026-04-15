@@ -48,6 +48,7 @@ from propstore.world.types import (
     RenderPolicy,
     ResolutionStrategy,
     ValueResult,
+    ValueStatus,
 )
 from propstore.z3_conditions import Z3ConditionSolver
 
@@ -1063,7 +1064,7 @@ class WorldModel(ArtifactStore):
 
                 # Try value_of first
                 vr = bound.value_of(cid)
-                if vr.status == "determined":
+                if vr.status is ValueStatus.DETERMINED:
                     value = vr.claims[0].value if vr.claims else None
                     if value is not None:
                         resolved_values[cid] = value
@@ -1073,9 +1074,9 @@ class WorldModel(ArtifactStore):
                         continue
 
                 # If conflicted and strategy given, try resolve
-                if vr.status == "conflicted" and strategy is not None:
+                if vr.status is ValueStatus.CONFLICTED and strategy is not None:
                     rr = bound.resolved_value(cid)
-                    if rr.status == "resolved" and rr.value is not None:
+                    if rr.status is ValueStatus.RESOLVED and rr.value is not None:
                         resolved_values[cid] = rr.value
                         steps.append(ChainStep(concept_id=cid, value=rr.value, source="resolved"))
                         visited.add(cid)
@@ -1083,12 +1084,12 @@ class WorldModel(ArtifactStore):
                         continue
 
                 # Track conflicted concepts that could not be resolved
-                if vr.status == "conflicted" and cid not in unresolved_conflicted:
+                if vr.status is ValueStatus.CONFLICTED and cid not in unresolved_conflicted:
                     unresolved_conflicted.append(cid)
 
                 # Try derived_value
                 dr = bound.derived_value(cid, override_values=resolved_values)
-                if dr.status == "derived" and dr.value is not None:
+                if dr.status is ValueStatus.DERIVED and dr.value is not None:
                     resolved_values[cid] = dr.value
                     steps.append(ChainStep(concept_id=cid, value=dr.value, source="derived"))
                     visited.add(cid)
@@ -1108,7 +1109,7 @@ class WorldModel(ArtifactStore):
         else:
             # Try one more time with all resolved values
             dr = bound.derived_value(target_concept_id, override_values=resolved_values)
-            if dr.status == "derived":
+            if dr.status is ValueStatus.DERIVED:
                 result = dr
             else:
                 result = bound.value_of(target_concept_id)
