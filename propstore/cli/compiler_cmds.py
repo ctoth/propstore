@@ -2139,7 +2139,7 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
                     skip_discovery: bool, skip_conflict: bool,
                     skip_grounding: bool, skip_bridge: bool,
                     ranking_policy: str, fmt: str) -> None:
-    """Rank epistemic targets by fragility — what to learn next."""
+    """Rank intervention targets by fragility — what to inspect next."""
     from propstore.fragility import rank_fragility
 
     repo: Repository = obj["repo"]

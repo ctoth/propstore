@@ -797,22 +797,22 @@ uv run pks world algorithms --stage preprocessing
 
 #### `pks world fragility [ARGS]...`
 
-Rank epistemic targets by fragility -- what to learn next.
+Rank intervention targets by fragility -- what to inspect next.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--concept` | TEXT | -- | Focus on a single concept |
-| `--top-k` | INTEGER | -- | Number of results |
-| `--combination` | `top2\|mean\|max\|product` | -- | Combination method |
-| `--skip-parametric` | FLAG | false | Skip parametric fragility |
-| `--skip-epistemic` | FLAG | false | Skip epistemic fragility |
-| `--skip-conflict` | FLAG | false | Skip conflict fragility |
-| `--sort-by` | `fragility\|roi` | -- | Sort order |
-| `--discovery-tier` | INTEGER | -- | 1=ATMS only, 2=also unknown concepts |
-| `--format` | `text\|json` | -- | Output format |
+| `--top-k` | INTEGER | 20 | Number of ranked interventions |
+| `--skip-atms` | FLAG | false | Skip ATMS assumption interventions |
+| `--skip-discovery` | FLAG | false | Skip missing-measurement interventions |
+| `--skip-conflict` | FLAG | false | Skip conflict interventions |
+| `--skip-grounding` | FLAG | false | Skip ground-fact and grounded-rule interventions |
+| `--skip-bridge` | FLAG | false | Skip bridge undercut interventions |
+| `--ranking-policy` | `heuristic_roi\|family_local_only\|pareto` | `heuristic_roi` | Ranking policy |
+| `--format` | `text\|json` | `text` | Output format |
 
 ```bash
-uv run pks world fragility --top-k 10 --sort-by roi
+uv run pks world fragility --ranking-policy pareto --skip-grounding
 ```
 
 ### Extensions

@@ -780,7 +780,7 @@ class BoundWorld(BeliefSpace):
         ranking_policy: str = "heuristic_roi",
         atms_limit: int = 8,
     ) -> "FragilityReport":
-        """Rank epistemic targets by fragility — what to learn next."""
+        """Rank intervention targets by fragility — what to inspect next."""
         from propstore.fragility import rank_fragility
         return rank_fragility(
             self,
