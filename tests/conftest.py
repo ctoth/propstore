@@ -504,6 +504,7 @@ def insert_claim(
     source_paper: str = "test",
     source_slug: str | None = None,
     provenance_page: int = 1,
+    seq: int = 0,
 ) -> None:
     logical_id = f"test:{claim_id}"
     version_id = f"sha256:{hashlib.sha256(claim_id.encode('utf-8')).hexdigest()}"
@@ -524,7 +525,7 @@ def insert_claim(
             claim_type,
             concept_id,
             target_concept,
-            None,
+            seq,
             resolved_source_slug,
             source_paper,
             provenance_page,
