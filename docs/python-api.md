@@ -174,7 +174,7 @@ bound = world.bind(task="speech", policy=policy)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `fragility` | `(*, concept_id?, queryables?, top_k?, ...) -> FragilityReport` | Rank epistemic targets by fragility. See [fragility.md](fragility.md). |
+| `fragility` | `(*, concept_id?, queryables?, top_k?, ...) -> FragilityReport` | Rank intervention targets by fragility. See [fragility.md](fragility.md). |
 
 ### Per-call overrides
 
