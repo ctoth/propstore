@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.cel_checker import ConceptInfo
@@ -72,6 +72,23 @@ class _ContextHierarchyLoader(Protocol):
     def _load_context_hierarchy(self) -> ContextHierarchy | None: ...
 
 
+@dataclass(frozen=True)
+class _ConflictInputs:
+    """Memoized concept + CEL registry used to revalidate conflicts at render time.
+
+    These inputs are invariant for the lifetime of a ``BoundWorld`` instance
+    because the underlying store is set once in ``__init__`` and never
+    rebound. The free function ``_conflict_inputs_for_store`` still returns a
+    bare tuple for backward compatibility with its existing call sites in
+    ``propstore.world.hypothetical`` (which operate on ``_GraphOverlayStore``
+    instances and intentionally rebuild per call); the dataclass wrapper is
+    introduced only at the ``BoundWorld`` caching layer.
+    """
+
+    concept_registry: dict[str, dict]
+    cel_registry: dict[str, ConceptInfo]
+
+
 def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, ConceptInfo]]:
     registry: dict[str, dict] = {}
     rows = []
@@ -107,7 +124,23 @@ def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, Concep
     return registry, build_store_cel_registry(rows)
 
 
-def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[ConflictRow]:
+def _recomputed_conflicts(
+    world,
+    claims: list[ActiveClaim],
+    *,
+    precomputed_inputs: _ConflictInputs | None = None,
+) -> list[ConflictRow]:
+    """Revalidate active conflicts against the live belief space.
+
+    ``precomputed_inputs`` is an optional typed cache payload carrying the
+    concept + CEL registry. When ``None`` (the default, used by overlay call
+    sites in ``propstore.world.hypothetical``), the registry is rebuilt from
+    ``world`` — this is the correct behavior for ``_GraphOverlayStore``,
+    because overlay instances must not share cache state with the base
+    ``BoundWorld._store``. ``BoundWorld.conflicts`` passes its own per-instance
+    cached inputs through to skip the rebuild.
+    """
+
     from propstore.conflict_detector import detect_conflicts
     from propstore.loaded import LoadedEntry
 
@@ -121,7 +154,11 @@ def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[ConflictRow]
         source_path=None,
         data={"claims": [claim.to_source_claim_payload() for claim in claims]},
     )
-    concept_registry, cel_registry = _conflict_inputs_for_store(world)
+    if precomputed_inputs is None:
+        concept_registry, cel_registry = _conflict_inputs_for_store(world)
+    else:
+        concept_registry = precomputed_inputs.concept_registry
+        cel_registry = precomputed_inputs.cel_registry
     context_hierarchy = (
         world._load_context_hierarchy()
         if isinstance(world, _ContextHierarchyLoader)
@@ -203,6 +240,14 @@ class BoundWorld(BeliefSpace):
         else:
             self._context_visible = None  # no context filtering
         self._conflicts_cache: dict[str | None, list[ConflictRow]] = {}
+        # Typed per-instance memo of the concept + CEL registry used to
+        # revalidate conflicts at render time. Built lazily on the first
+        # `.conflicts()` call that misses `_conflicts_cache`. Safe to memoize
+        # on the instance because `self._store` is set once in __init__ and
+        # never rebound. MUST NOT be shared across BoundWorld instances —
+        # HypotheticalWorld overlays construct their own BoundWorld over a
+        # _GraphOverlayStore and rely on getting a fresh cache.
+        self._conflict_inputs_cache: _ConflictInputs | None = None
         self._resolver = ActiveClaimResolver(
             parameterizations_for=lambda concept_id: [
                 coerce_parameterization_row(
@@ -860,6 +905,24 @@ class BoundWorld(BeliefSpace):
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status is ValueStatus.DETERMINED
 
+    def _get_or_build_conflict_inputs(self) -> _ConflictInputs:
+        """Return the cached concept + CEL registry, building it on first miss.
+
+        The registry iterates every concept in the store, so rebuilding it on
+        every `.conflicts()` call with a new concept id was O(|concepts|) of
+        wasted work. Memoized here because `self._store` is immutable for the
+        lifetime of the BoundWorld. Must NOT be called against an overlay
+        store — HypotheticalWorld overlays construct their own BoundWorld
+        and reach this helper through their own instance.
+        """
+        if self._conflict_inputs_cache is None:
+            concept_registry, cel_registry = _conflict_inputs_for_store(self._store)
+            self._conflict_inputs_cache = _ConflictInputs(
+                concept_registry=concept_registry,
+                cel_registry=cel_registry,
+            )
+        return self._conflict_inputs_cache
+
     def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
         """Return active conflicts, revalidated against the current belief space."""
         resolved_concept_id = (
@@ -885,7 +948,12 @@ class BoundWorld(BeliefSpace):
             (str(conflict.claim_a_id), str(conflict.claim_b_id), str(conflict.concept_id) if conflict.concept_id is not None else None)
             for conflict in result
         }
-        for conflict in _recomputed_conflicts(self._store, active_claims):
+        precomputed = self._get_or_build_conflict_inputs()
+        for conflict in _recomputed_conflicts(
+            self._store,
+            active_claims,
+            precomputed_inputs=precomputed,
+        ):
             concept_key = str(conflict.concept_id) if conflict.concept_id is not None else None
             key = (str(conflict.claim_a_id), str(conflict.claim_b_id), concept_key)
             reverse_key = (str(conflict.claim_b_id), str(conflict.claim_a_id), concept_key)
