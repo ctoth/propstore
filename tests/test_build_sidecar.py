@@ -436,6 +436,102 @@ class TestSchemaV3:
         raise AssertionError("build_status column not found")
 
 
+class TestDraftStageIngestion:
+    """Draft claims populate with stage='draft' (axis-1 finding 3.2).
+
+    Per ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``:
+    drafts no longer drop at the compiler boundary. The build writes every
+    claim, with ``claim_core.stage='draft'`` for drafts and ``stage`` NULL
+    (or ``'final'``) for non-drafts. Default render-policy filtering hides
+    drafts at render time (phase 4).
+    """
+
+    def test_draft_and_final_claims_both_populate(
+        self,
+        concept_dir,
+        knowledge_reader,
+        sidecar_path,
+    ):
+        claims_dir = concept_dir.parent / "claims"
+        claims_dir.mkdir(exist_ok=True)
+
+        final_payload = _normalize_claim_concept_refs(
+            {
+                "source": {"paper": "final_paper"},
+                "claims": [
+                    {
+                        "id": "final_a",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 150.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "final_paper", "page": 1},
+                    },
+                    {
+                        "id": "final_b",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 175.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "final_paper", "page": 2},
+                    },
+                ],
+            }
+        )
+        (claims_dir / "final_paper.yaml").write_text(
+            yaml.dump(final_payload, default_flow_style=False)
+        )
+
+        draft_payload = _normalize_claim_concept_refs(
+            {
+                "stage": "draft",
+                "source": {"paper": "draft_paper"},
+                "claims": [
+                    {
+                        "id": "draft_a",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 210.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "draft_paper", "page": 1},
+                    },
+                ],
+            }
+        )
+        (claims_dir / "draft_paper.yaml").write_text(
+            yaml.dump(draft_payload, default_flow_style=False)
+        )
+
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
+
+        conn = sqlite3.connect(sidecar_path)
+        try:
+            total = conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
+            assert total == 3, (
+                "M non-draft + K draft must produce M+K claim_core rows "
+                f"(got {total}, expected 3)"
+            )
+
+            drafts = conn.execute(
+                "SELECT COUNT(*) FROM claim_core WHERE stage = 'draft'"
+            ).fetchone()[0]
+            assert drafts == 1
+
+            finals = conn.execute(
+                "SELECT COUNT(*) FROM claim_core "
+                "WHERE stage IS NULL OR stage = 'final'"
+            ).fetchone()[0]
+            assert finals == 2
+
+            # Default-render-policy SQL predicate: non-draft rows only.
+            non_draft_via_policy = conn.execute(
+                "SELECT COUNT(*) FROM claim_core WHERE stage IS NOT 'draft'"
+            ).fetchone()[0]
+            assert non_draft_via_policy == 2
+        finally:
+            conn.close()
+
+
 # ── Concept table contents ───────────────────────────────────────────
 
 class TestConceptTable:
