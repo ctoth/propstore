@@ -296,7 +296,7 @@ def claim_files(concept_dir):
         yaml.dump(normalize_claims_payload(beta), default_flow_style=False)
     )
 
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import load_claim_files
     return load_claim_files(claims_dir)
 
 
@@ -539,4 +539,3 @@ class TestSensitivityConditionsRespected:
         bound = world.bind(task="singing")
         result = analyze_sensitivity(world, "concept5", bound)
         assert result is None
-

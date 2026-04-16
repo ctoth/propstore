@@ -7,7 +7,7 @@ import sqlite3
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_files import LoadedClaimFile
+from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_source_paper
 from propstore.artifacts.schema import decode_document_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.sidecar.claim_utils import (
@@ -181,7 +181,7 @@ def populate_authored_justifications_from_files(
 
 def populate_claims(
     conn: sqlite3.Connection,
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedClaimsFile],
     concept_registry: dict | None = None,
     *,
     form_registry: dict | None = None,
@@ -217,8 +217,8 @@ def populate_claims(
                 )
     else:
         for claim_file in claim_files:
-            source_paper = claim_file.source_paper or claim_file.filename
-            for claim in claim_file.claims:
+            source_paper = claim_file_source_paper(claim_file) or claim_file.filename
+            for claim in claim_file_claims(claim_file):
                 authored_claim = claim.to_payload()
                 claim_seq += 1
                 row = prepare_claim_insert_row(
@@ -243,7 +243,7 @@ def populate_claims(
 
 def populate_conflicts(
     conn: sqlite3.Connection,
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedClaimsFile],
     concept_registry: dict,
     cel_registry: dict,
     context_hierarchy=None,
@@ -283,10 +283,10 @@ def populate_conflicts(
         )
 
 
-def build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[LoadedClaimFile]) -> None:
+def build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[LoadedClaimsFile]) -> None:
     """Build the FTS5 index over claim statements, conditions, and expressions."""
     for claim_file in claim_files:
-        for claim in claim_file.claims:
+        for claim in claim_file_claims(claim_file):
             claim_id = claim.artifact_id
             if not isinstance(claim_id, str) or not claim_id:
                 continue

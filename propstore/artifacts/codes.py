@@ -137,7 +137,7 @@ def attach_source_artifact_codes(
 
 
 def _load_claim_index(tree: KnowledgePath) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import claim_file_claims, load_claim_files
 
     claims_root = tree / "claims"
     if not claims_root.exists():
@@ -147,7 +147,7 @@ def _load_claim_index(tree: KnowledgePath) -> tuple[dict[str, dict[str, Any]], d
     claim_to_source_slug: dict[str, str] = {}
     for claim_file in load_claim_files(claims_root):
         source_slug = claim_file.filename
-        for claim in claim_file.claims:
+        for claim in claim_file_claims(claim_file):
             claim_id = claim.artifact_id
             if isinstance(claim_id, str) and claim_id:
                 claims_by_id[claim_id] = copy.deepcopy(claim.to_payload())

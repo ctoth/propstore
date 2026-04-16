@@ -18,7 +18,7 @@ from propstore.repo.structured_merge import (
     build_branch_structured_summary,
     build_structured_merge_candidates,
 )
-from propstore.claim_documents import load_claim_files
+from propstore.claims import claim_file_payload, load_claim_files
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -46,7 +46,10 @@ def _copy_claim_file(repo: Repository, *, source_path: Path, target_name: str | 
 
 
 def _count_claims(claims_root: Path) -> int:
-    return sum(len(claim_file.data.get("claims", [])) for claim_file in load_claim_files(claims_root))
+    return sum(
+        len(claim_file_payload(claim_file).get("claims", []))
+        for claim_file in load_claim_files(claims_root)
+    )
 
 
 def _branch_claim_stats(repo: Repository, branch: str) -> dict[str, Any]:
@@ -58,7 +61,11 @@ def _branch_claim_stats(repo: Repository, branch: str) -> dict[str, Any]:
     raw_ids: list[str] = []
     per_file_counts: dict[str, int] = {}
     for claim_file in claim_files:
-        claims = [claim for claim in claim_file.data.get("claims", []) if isinstance(claim, dict)]
+        claims = [
+            claim
+            for claim in claim_file_payload(claim_file).get("claims", [])
+            if isinstance(claim, dict)
+        ]
         per_file_counts[claim_file.filename] = len(claims)
         for claim in claims:
             claim_id = claim.get("id")
@@ -86,7 +93,7 @@ def _merged_claim_ids(repo: Repository, merge_sha: str) -> list[str]:
     merged_docs = load_claim_files(merged_tree / "claims")
     ids: list[str] = []
     for claim_file in merged_docs:
-        for claim in claim_file.data.get("claims", []):
+        for claim in claim_file_payload(claim_file).get("claims", []):
             if isinstance(claim, dict) and isinstance(claim.get("id"), str):
                 ids.append(claim["id"])
     return ids

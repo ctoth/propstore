@@ -9,7 +9,12 @@ from pathlib import Path
 
 import click
 
-from propstore.claim_files import LoadedClaimFile
+from propstore.claims import (
+    LoadedClaimsFile,
+    claim_file_payload,
+    loaded_claim_file_from_payload,
+    load_claim_files,
+)
 from propstore.artifacts import (
     CLAIMS_FILE_FAMILY,
     CONCEPT_FILE_FAMILY,
@@ -39,7 +44,6 @@ from propstore.knowledge_path import KnowledgePath
 from propstore.cli.repository import Repository
 from propstore.core.concepts import load_concepts
 from propstore.validate_concepts import validate_concepts
-from propstore.claim_files import load_claim_files
 from propstore.compiler.passes import validate_claims
 
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
@@ -158,7 +162,7 @@ def _concept_ref(concept_entry: LoadedConcept) -> ConceptFileRef:
     return ConceptFileRef(concept_entry.filename)
 
 
-def _claims_ref(claim_file: LoadedClaimFile) -> ClaimsFileRef:
+def _claims_ref(claim_file: LoadedClaimsFile) -> ClaimsFileRef:
     return ClaimsFileRef(claim_file.filename)
 
 
@@ -536,18 +540,18 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         click.echo("Rename validation failed. No changes written.", err=True)
         sys.exit(EXIT_VALIDATION)
     claim_files = load_claim_files(claims_root) if claims_root.exists() else []
-    updated_claim_files: list[tuple[ClaimsFileRef, LoadedClaimFile]] = []
+    updated_claim_files: list[tuple[ClaimsFileRef, LoadedClaimsFile]] = []
     changed_claim_refs: set[ClaimsFileRef] = set()
     if claim_files:
         for claim_file in claim_files:
             claim_ref = _claims_ref(claim_file)
-            claim_data = deepcopy(claim_file.data)
+            claim_data = deepcopy(claim_file_payload(claim_file))
             if _rewrite_claim_conditions(claim_data, old_name, name):
                 changed_claim_refs.add(claim_ref)
                 claim_data, _ = normalize_claim_file_payload(claim_data)
             updated_claim_files.append((
                 claim_ref,
-                LoadedClaimFile.from_payload(
+                loaded_claim_file_from_payload(
                     filename=claim_file.filename,
                     source_path=_artifact_knowledge_path(repo, CLAIMS_FILE_FAMILY, claim_ref),
                     knowledge_root=claim_file.knowledge_root,
@@ -588,7 +592,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             transaction.save(
                 CLAIMS_FILE_FAMILY,
                 claim_ref,
-                _claims_document(repo, claim_ref, updated_claim_file.data),
+                _claims_document(repo, claim_ref, claim_file_payload(updated_claim_file)),
             )
     snapshot.sync_worktree()
 

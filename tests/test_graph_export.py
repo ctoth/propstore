@@ -293,7 +293,7 @@ def claim_files(concept_dir):
     (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
 
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import load_claim_files
     return load_claim_files(claims_dir)
 
 
@@ -468,4 +468,3 @@ class TestConflictedClaims:
             assert claim_node.metadata.get("status") == "conflicted", (
                 f"{claim_node.id} should be marked conflicted under speech"
             )
-
