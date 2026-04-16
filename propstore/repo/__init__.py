@@ -1,7 +1,7 @@
 """Repository layer for propstore.
 
-Re-exports the canonical git-backed storage surface plus merge primitives.
-For IC-merge, the assignment-level ``solve_ic_merge`` path is the public API.
+Re-exports the canonical git-backed storage surface plus repository merge
+primitives.
 """
 from propstore.repo.git_backend import KnowledgeRepo
 from propstore.repo.merge_classifier import (
@@ -38,13 +38,6 @@ from propstore.repo.repo_import import (
     commit_repo_import,
     plan_repo_import,
 )
-from propstore.world.ic_merge import (
-    ICMergeProblem,
-    ICMergeResult,
-    MergeOperator,
-    claim_distance,
-    solve_ic_merge,
-)
 
 __all__ = [
     "KnowledgeRepo",
@@ -70,9 +63,4 @@ __all__ = [
     "RepoImportResult",
     "plan_repo_import",
     "commit_repo_import",
-    "ICMergeProblem",
-    "ICMergeResult",
-    "MergeOperator",
-    "solve_ic_merge",
-    "claim_distance",
 ]

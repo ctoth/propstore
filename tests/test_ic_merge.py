@@ -15,7 +15,7 @@ from hypothesis import strategies as st
 
 from propstore.cel_checker import ConceptInfo, KindType
 import propstore.repo as repo_api
-from propstore.repo.ic_merge import (
+from propstore.world.ic_merge import (
     MergeOperator,
     _eval_cel_constraint_z3,
     assignment_satisfies_mu,
@@ -33,7 +33,7 @@ from propstore.world.types import (
     ResolutionStrategy,
 )
 
-ic_merge_module = importlib.import_module("propstore.repo.ic_merge")
+ic_merge_module = importlib.import_module("propstore.world.ic_merge")
 
 
 def _eval_cel_ast_oracle(node, bindings):
@@ -1389,8 +1389,13 @@ class TestRenderPolicyIntegration:
 
 
 class TestPublicApiHonesty:
-    def test_repo_public_api_exports_global_ic_merge_entrypoints(self):
-        assert repo_api.solve_ic_merge is solve_ic_merge
+    def test_repo_public_api_does_not_export_world_ic_merge_entrypoints(self):
+        assert not hasattr(repo_api, "solve_ic_merge")
+        assert "solve_ic_merge" not in repo_api.__all__
+        assert "claim_distance" not in repo_api.__all__
+        assert "MergeOperator" not in repo_api.__all__
+        assert "ICMergeProblem" not in repo_api.__all__
+        assert "ICMergeResult" not in repo_api.__all__
         assert "scalar_profile_problem" not in repo_api.__all__
         assert "sigma_merge" not in repo_api.__all__
         assert "max_merge" not in repo_api.__all__

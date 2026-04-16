@@ -933,6 +933,9 @@ class BoundWorld(BeliefSpace):
         if resolved_concept_id in self._conflicts_cache:
             return self._conflicts_cache[resolved_concept_id]
         active_claims = self.active_claims(resolved_concept_id)
+        if len(active_claims) < 2:
+            self._conflicts_cache[resolved_concept_id] = []
+            return []
         active_ids = {str(claim.claim_id) for claim in active_claims}
 
         result: list[ConflictRow] = []
@@ -948,6 +951,9 @@ class BoundWorld(BeliefSpace):
             (str(conflict.claim_a_id), str(conflict.claim_b_id), str(conflict.concept_id) if conflict.concept_id is not None else None)
             for conflict in result
         }
+        if not isinstance(self._store, ConceptCatalogStore):
+            self._conflicts_cache[resolved_concept_id] = result
+            return result
         precomputed = self._get_or_build_conflict_inputs()
         for conflict in _recomputed_conflicts(
             self._store,
