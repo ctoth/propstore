@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Sequence
 
 from ast_equiv import canonical_dump
 
-from propstore.claim_files import LoadedClaimFile
+from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_source_paper
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.claim_types import ClaimType
 from propstore.form_utils import FormDefinition, normalize_to_si
@@ -169,11 +169,11 @@ def claim_reference_map_from_conn(conn: sqlite3.Connection) -> dict[str, str]:
     return reference_map
 
 
-def collect_claim_reference_map(claim_files: Sequence[LoadedClaimFile]) -> dict[str, str]:
+def collect_claim_reference_map(claim_files: Sequence[LoadedClaimsFile]) -> dict[str, str]:
     claim_reference_map: dict[str, str] = {}
     for claim_file in claim_files:
-        source_paper = claim_file.source_paper or claim_file.filename
-        for claim in claim_file.claims:
+        source_paper = claim_file_source_paper(claim_file) or claim_file.filename
+        for claim in claim_file_claims(claim_file):
             claim_id = claim.artifact_id
             if not isinstance(claim_id, str) or not claim_id:
                 raw_id = claim.id

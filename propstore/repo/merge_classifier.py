@@ -16,6 +16,7 @@ from propstore.repo.merge_claims import MergeClaim
 from propstore.repo.merge_framework import PartialArgumentationFramework
 from propstore.repo.snapshot import RepoSnapshot
 from propstore.z3_conditions import Z3TranslationError
+from propstore.claims import claim_file_claims
 
 
 class _DiffKind(Enum):
@@ -113,7 +114,7 @@ def _claim_candidate_key(claim: MergeClaim) -> dict[str, Any]:
 def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
     index: dict[str, _IndexedClaim] = {}
     for claim_file in claim_files:
-        for claim in claim_file.claims:
+        for claim in claim_file_claims(claim_file):
             merge_claim = MergeClaim.from_document(claim)
             if merge_claim is None:
                 continue
@@ -277,7 +278,7 @@ def build_merge_framework(
     branch_b: str,
 ) -> RepoMergeFramework:
     """Build the direct repository merge object for two branches."""
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import load_claim_files
 
     base_sha = snapshot.merge_base(branch_a, branch_b)
     left_sha = snapshot.branch_head(branch_a)

@@ -108,7 +108,7 @@ def validate(obj: dict) -> None:
     from propstore.compiler.context import build_compilation_context_from_repo
     from propstore.core.concepts import load_concepts
     from propstore.validate_concepts import validate_concepts
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import load_claim_files
     from propstore.compiler.passes import validate_claims
 
 
@@ -214,7 +214,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     from propstore.sidecar.build import build_sidecar
     from propstore.core.concepts import load_concepts
     from propstore.validate_concepts import validate_concepts
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import load_claim_files
 
     repo: Repository = obj["repo"]
     hash_key = repo.snapshot.head_sha()
@@ -2240,7 +2240,7 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
         if transitive:
             from propstore.conflict_detector import detect_transitive_conflicts
             from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-            from propstore.claim_files import load_claim_files
+            from propstore.claims import load_claim_files
 
             claim_files = load_claim_files(repo.tree() / "claims")
             concept_registry: dict[str, dict] = {}

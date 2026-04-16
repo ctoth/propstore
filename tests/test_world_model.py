@@ -524,7 +524,7 @@ def claim_files(concept_dir):
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
     (claims_dir / "test_paper_gamma.yaml").write_text(yaml.dump(gamma, default_flow_style=False))
 
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import load_claim_files
     return load_claim_files(claims_dir)
 
 
@@ -1935,7 +1935,7 @@ class TestTransitiveConsistency:
         from propstore.conflict_detector import detect_transitive_conflicts
         from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
         from propstore.core.concepts import load_concepts
-        from propstore.claims import loaded_claim_file_from_payload
+        from propstore.claims import claim_file_payload, loaded_claim_file_from_payload
 
         concepts = load_concepts(concept_dir)
         concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
@@ -1943,7 +1943,7 @@ class TestTransitiveConsistency:
         # Create modified claim_files where claim11 has compatible value
         modified_files = []
         for cf in claim_files:
-            new_data = dict(cf.data)
+            new_data = claim_file_payload(cf)
             new_claims = []
             for claim in new_data.get("claims", []):
                 if claim.get("id") == "claim11":
@@ -2257,7 +2257,7 @@ def algo_claim_files(algo_concept_dir):
         yaml.dump(_normalize_claim_concept_refs(beta), default_flow_style=False)
     )
 
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import load_claim_files
     return load_claim_files(claims_dir)
 
 

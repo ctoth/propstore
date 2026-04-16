@@ -219,13 +219,13 @@ def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
 
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import claim_file_payload, load_claim_files
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     all_claim_ids = {
         claim["artifact_id"]
         for claim_file in claim_files
-        for claim in claim_file.data.get("claims", [])
+        for claim in claim_file_payload(claim_file).get("claims", [])
     }
     assert make_claim_identity("claimL", namespace="test_paper")["artifact_id"] in all_claim_ids
     assert make_claim_identity("claimR", namespace="test_paper")["artifact_id"] in all_claim_ids
@@ -251,7 +251,7 @@ def test_merge_commit_valid_claims(tmp_path):
 
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import load_claim_files
     from propstore.compiler.passes import validate_claims
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
@@ -376,7 +376,7 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
     left_ids: list[str],
     right_ids: list[str],
 ):
-    from propstore.claim_files import load_claim_files
+    from propstore.claims import claim_file_payload, load_claim_files
 
     assume(set(left_ids).isdisjoint(right_ids))
 
@@ -397,7 +397,7 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
     merged_artifact_ids = {
         claim["artifact_id"]
         for claim_file in claim_files
-        for claim in claim_file.data.get("claims", [])
+        for claim in claim_file_payload(claim_file).get("claims", [])
     }
     expected_artifact_ids = {
         make_claim_identity(claim_id, namespace="test_paper")["artifact_id"]
