@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.cel_checker import ConceptInfo
 from propstore.cel_registry import build_store_cel_registry
+from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.activation import is_active_claim_active
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.claim_types import ClaimType
@@ -228,7 +229,7 @@ class BoundWorld(BeliefSpace):
         self._atms_engine: ATMSEngine | None = None
         self._bindings = dict(environment.bindings)
         self._binding_conds = self._bindings_to_cel(self._bindings)
-        self._assumptions_by_cel: dict[str, list[AssumptionRef]] = {}
+        self._assumptions_by_cel: dict[CelExpr, list[AssumptionRef]] = {}
         for assumption in environment.assumptions:
             self._assumptions_by_cel.setdefault(assumption.cel, []).append(assumption)
         for assumption in environment.effective_assumptions:
@@ -289,7 +290,7 @@ class BoundWorld(BeliefSpace):
         return claim_id
 
     @staticmethod
-    def _bindings_to_cel(bindings: dict[str, Any]) -> list[str]:
+    def _bindings_to_cel(bindings: dict[str, Any]) -> list[CelExpr]:
         """Convert keyword bindings to CEL condition strings."""
         return [binding_condition_to_cel(key, value) for key, value in bindings.items()]
 
@@ -333,7 +334,12 @@ class BoundWorld(BeliefSpace):
         """Check if parameterization conditions are compatible with bindings."""
         if not conditions_cel:
             return True
-        conds = json.loads(conditions_cel)
+        loaded_conditions = json.loads(conditions_cel)
+        conds = to_cel_exprs(
+            loaded_conditions
+            if isinstance(loaded_conditions, list)
+            else (loaded_conditions,)
+        )
         if not conds:
             return True
         if not self._binding_conds:

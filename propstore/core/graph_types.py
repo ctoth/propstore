@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.environment import Environment
 from propstore.core.exactness_types import Exactness, coerce_exactness
@@ -270,13 +271,13 @@ class ParameterizationEdge:
     formula: str | None = None
     sympy: str | None = None
     exactness: Exactness | None = None
-    conditions: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
     provenance: ProvenanceRecord | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "exactness", coerce_exactness(self.exactness))
         object.__setattr__(self, "input_concept_ids", tuple(self.input_concept_ids))
-        object.__setattr__(self, "conditions", tuple(self.conditions))
+        object.__setattr__(self, "conditions", to_cel_exprs(self.conditions))
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -304,7 +305,7 @@ class ParameterizationEdge:
             formula=(None if data.get("formula") is None else str(data["formula"])),
             sympy=(None if data.get("sympy") is None else str(data["sympy"])),
             exactness=coerce_exactness(data.get("exactness")),
-            conditions=tuple(str(item) for item in data.get("conditions") or ()),
+            conditions=to_cel_exprs(str(item) for item in data.get("conditions") or ()),
             provenance=(
                 None
                 if provenance_data is None

@@ -13,6 +13,7 @@ from propstore.artifacts.documents.claims import (
     StanceDocument,
     VariableBindingDocument,
 )
+from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
 from propstore.core.exactness_types import Exactness
@@ -153,7 +154,7 @@ class SourceParameterizationRelationshipDocument(DocumentStruct):
     exactness: Exactness | None = None
     source: str | None = None
     bidirectional: bool | None = None
-    conditions: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
     note: str | None = None
     canonical_claim: str | None = None
     fit_statistics: str | None = None
@@ -238,7 +239,7 @@ class SourceClaimDocument(DocumentStruct):
     body: str | None = None
     concept: str | None = None
     concepts: tuple[str, ...] = ()
-    conditions: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
     context: str | None = None
     equations: tuple[str, ...] = ()
     expression: str | None = None

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.core.id_types import (
     AssumptionId,
     ContextId,
@@ -25,7 +26,10 @@ class AssumptionRef:
     assumption_id: AssumptionId
     kind: str
     source: str
-    cel: str
+    cel: CelExpr
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "cel", to_cel_expr(self.cel))
 
 
 @dataclass(frozen=True, order=True)
@@ -105,13 +109,13 @@ class Label:
         return cls((EnvironmentKey((assumption.assumption_id,)),))
 
 
-def binding_condition_to_cel(key: str, value: Any) -> str:
+def binding_condition_to_cel(key: str, value: Any) -> CelExpr:
     """Render a query binding into the CEL string used elsewhere in the world model."""
     if isinstance(value, str):
-        return f"{key} == '{value}'"
+        return to_cel_expr(f"{key} == '{value}'")
     if isinstance(value, bool):
-        return f"{key} == {'true' if value else 'false'}"
-    return f"{key} == {value}"
+        return to_cel_expr(f"{key} == {'true' if value else 'false'}")
+    return to_cel_expr(f"{key} == {value}")
 
 
 @dataclass(frozen=True)
@@ -146,9 +150,9 @@ class SupportQuality(Enum):
     MIXED = "mixed"
 
 
-def cel_to_binding(cel: str) -> tuple[str, Any] | None:
+def cel_to_binding(cel: str | CelExpr) -> tuple[str, Any] | None:
     """Reverse of binding_condition_to_cel: parse 'key == value' back to (key, value)."""
-    parts = cel.split(" == ", 1)
+    parts = str(cel).split(" == ", 1)
     if len(parts) != 2:
         return None
     key, raw = parts[0].strip(), parts[1].strip()
@@ -171,7 +175,7 @@ def cel_to_binding(cel: str) -> tuple[str, Any] | None:
 def compile_environment_assumptions(
     *,
     bindings: Mapping[str, Any],
-    effective_assumptions: Sequence[str] = (),
+    effective_assumptions: Sequence[str | CelExpr] = (),
     context_id: ContextId | str | None = None,
 ) -> tuple[AssumptionRef, ...]:
     """Compile bindings and inherited context assumptions into stable refs."""
@@ -191,13 +195,13 @@ def compile_environment_assumptions(
 
     normalized_context_id = None if context_id is None else to_context_id(context_id)
     context_source = normalized_context_id or "<context>"
-    for cel in sorted(dict.fromkeys(effective_assumptions)):
+    for cel in sorted(dict.fromkeys(to_cel_exprs(effective_assumptions))):
         compiled.append(
             AssumptionRef(
                 assumption_id=_stable_id("context", str(context_source), str(cel)),
                 kind="context",
                 source=str(context_source),
-                cel=str(cel),
+                cel=cel,
             )
         )
 

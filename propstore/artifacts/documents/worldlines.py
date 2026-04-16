@@ -5,19 +5,20 @@ from typing import Any
 import msgspec
 
 from propstore.artifacts.schema import DocumentStruct
+from propstore.cel_types import CelExpr
 
 
 class WorldlineAssumptionDocument(DocumentStruct):
     assumption_id: str
     kind: str
     source: str
-    cel: str
+    cel: CelExpr
 
 
 class WorldlineInputsDocument(DocumentStruct):
     bindings: dict[str, Any] = msgspec.field(default_factory=dict)
     context_id: str | None = None
-    effective_assumptions: tuple[str, ...] = ()
+    effective_assumptions: tuple[CelExpr, ...] = ()
     assumptions: tuple[WorldlineAssumptionDocument, ...] = ()
     overrides: dict[str, float | str] = msgspec.field(default_factory=dict)
 

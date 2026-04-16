@@ -5,6 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.artifacts.documents.concepts import (
     ConceptAliasDocument,
     ConceptDocument,
@@ -63,7 +64,7 @@ class ConceptAlias:
 class ConceptRelationship:
     relationship_type: ConceptRelationshipType
     target: ConceptId
-    conditions: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
     note: str | None = None
 
     def __post_init__(self) -> None:
@@ -72,6 +73,7 @@ class ConceptRelationship:
             "relationship_type",
             coerce_concept_relationship_type(self.relationship_type),
         )
+        object.__setattr__(self, "conditions", to_cel_exprs(self.conditions))
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -91,13 +93,14 @@ class ParameterizationSpec:
     formula: str | None = None
     sympy: str | None = None
     exactness: Exactness | None = None
-    conditions: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
     source: str | None = None
     bidirectional: bool | None = None
     canonical_claim: ClaimId | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "exactness", coerce_exactness(self.exactness))
+        object.__setattr__(self, "conditions", to_cel_exprs(self.conditions))
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {

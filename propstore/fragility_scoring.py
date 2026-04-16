@@ -8,6 +8,7 @@ from dataclasses import replace
 from itertools import combinations
 from typing import TYPE_CHECKING
 
+from propstore.cel_types import CelExpr
 from propstore.fragility_types import (
     AssumptionTarget,
     FragilityInteraction,
@@ -271,7 +272,7 @@ def detect_interactions(
 
 
 def _intervention_for_qcel(
-    qcel: str,
+    qcel: str | CelExpr,
     target_queryables: dict[str, QueryableAssumption],
 ) -> str | None:
     for intervention_id, queryable in target_queryables.items():

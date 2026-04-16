@@ -6,6 +6,8 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, cast
 
+from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
+
 
 @dataclass(frozen=True)
 class ConflictClaimVariable:
@@ -55,7 +57,7 @@ class ConflictClaim:
     listener_population: str | None = None
     source_paper: str | None = None
     context_id: str | None = None
-    conditions: tuple[str, ...] = field(default_factory=tuple)
+    conditions: tuple[CelExpr, ...] = field(default_factory=tuple)
     variables: tuple[ConflictClaimVariable, ...] = field(default_factory=tuple)
 
     @classmethod
@@ -75,9 +77,9 @@ class ConflictClaim:
                     parsed_variables.append(variable)
             variables = tuple(parsed_variables)
         raw_conditions: object = payload.get("conditions") or ()
-        conditions = ()
+        conditions: tuple[CelExpr, ...] = ()
         if isinstance(raw_conditions, list | tuple):
-            conditions = tuple(
+            conditions = to_cel_exprs(
                 str(item)
                 for item in cast(list[object] | tuple[object, ...], raw_conditions)
             )
@@ -117,7 +119,7 @@ class ConflictClaim:
         source_cond = f"source == '{self.source_paper}'"
         if source_cond in self.conditions:
             return self
-        return replace(self, conditions=tuple((*self.conditions, source_cond)))
+        return replace(self, conditions=tuple((*self.conditions, to_cel_expr(source_cond))))
 
 
 class ConflictClass(Enum):

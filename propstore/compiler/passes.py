@@ -10,7 +10,8 @@ from typing import Any, Mapping
 import jsonschema
 
 from propstore.artifacts.documents.claims import ClaimDocument
-from propstore.cel_checker import check_cel_expression
+from propstore.cel_checker import check_cel_expr
+from propstore.cel_types import CheckedCelExpr, checked_condition_set
 from propstore.claims import (
     LoadedClaimsFile,
     claim_file_claims,
@@ -463,34 +464,37 @@ def compile_claim_files(
 
             conditions = semantic_claim.resolved_claim.get("conditions")
             if conditions and isinstance(conditions, list):
+                checked_conditions: list[CheckedCelExpr] = []
                 for cel_expr in conditions:
                     if not isinstance(cel_expr, str):
                         continue
-                    cel_errors = check_cel_expression(
-                        cel_expr,
-                        dict(effective_context.cel_registry),
+                    try:
+                        checked = check_cel_expr(cel_expr, effective_context.cel_registry)
+                    except ValueError as exc:
+                        file_diagnostics.append(SemanticDiagnostic(
+                            level="error",
+                            message=f"claim '{cid}' CEL error: {exc}",
+                            filename=normalized_file.filename,
+                            artifact_id=cid,
+                        ))
+                        continue
+                    checked_conditions.append(checked)
+                    for warning in checked.warnings:
+                        file_diagnostics.append(SemanticDiagnostic(
+                            level="warning",
+                            message=(
+                                f"claim '{cid}' CEL warning: "
+                                f"{warning.message}"
+                            ),
+                            filename=normalized_file.filename,
+                            artifact_id=cid,
+                        ))
+                if checked_conditions:
+                    semantic_claim = replace(
+                        semantic_claim,
+                        checked_conditions=checked_condition_set(checked_conditions),
                     )
-                    for error in cel_errors:
-                        if error.is_warning:
-                            file_diagnostics.append(SemanticDiagnostic(
-                                level="warning",
-                                message=(
-                                    f"claim '{cid}' CEL warning: "
-                                    f"{error.message}"
-                                ),
-                                filename=normalized_file.filename,
-                                artifact_id=cid,
-                            ))
-                        else:
-                            file_diagnostics.append(SemanticDiagnostic(
-                                level="error",
-                                message=(
-                                    f"claim '{cid}' CEL error: "
-                                    f"{error.message}"
-                                ),
-                                filename=normalized_file.filename,
-                                artifact_id=cid,
-                            ))
+                    semantic_claims[-1] = semantic_claim
 
             if ctype == "parameter":
                 _validate_parameter(

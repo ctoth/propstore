@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.core.id_types import ContextId, to_assumption_id, to_context_id
 from propstore.core.labels import AssumptionRef
 from propstore.core.store_results import (
@@ -37,7 +38,7 @@ if TYPE_CHECKING:
 class Environment:
     bindings: Mapping[str, Any] = field(default_factory=dict)
     context_id: ContextId | None = None
-    effective_assumptions: tuple[str, ...] = field(default_factory=tuple)
+    effective_assumptions: tuple[CelExpr, ...] = field(default_factory=tuple)
     assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
@@ -45,7 +46,7 @@ class Environment:
         object.__setattr__(
             self,
             "effective_assumptions",
-            tuple(str(item) for item in self.effective_assumptions),
+            to_cel_exprs(self.effective_assumptions),
         )
         object.__setattr__(self, "assumptions", tuple(self.assumptions))
 
@@ -66,7 +67,7 @@ class Environment:
                         assumption_id=to_assumption_id(entry["assumption_id"]),
                         kind=str(entry["kind"]),
                         source=str(entry["source"]),
-                        cel=str(entry["cel"]),
+                        cel=to_cel_expr(entry["cel"]),
                     )
                 )
 
@@ -77,7 +78,7 @@ class Environment:
                 if data.get("context_id") is None
                 else to_context_id(data["context_id"])
             ),
-            effective_assumptions=tuple(str(item) for item in data.get("effective_assumptions") or ()),
+            effective_assumptions=to_cel_exprs(data.get("effective_assumptions") or ()),
             assumptions=tuple(assumptions),
         )
 

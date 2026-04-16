@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.cel_types import CheckedCelConditionSet
 from propstore.claims import LoadedClaimsFile
 from propstore.diagnostics import SemanticDiagnostic, ValidationResult, diagnostics_to_validation_result
 
@@ -45,6 +46,7 @@ class SemanticClaim:
     variable_refs: tuple[ResolvedReference, ...] = ()
     parameter_refs: tuple[ResolvedReference, ...] = ()
     stances: tuple[SemanticStance, ...] = ()
+    checked_conditions: CheckedCelConditionSet | None = None
 
 
 @dataclass(frozen=True)
