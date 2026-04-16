@@ -598,21 +598,21 @@ class TestBatchEquivalenceClasses:
 
 @z3_only
 class TestZ3Caching:
-    """Cache parsed and translated condition expressions across repeated queries."""
+    """Cache checked and translated condition expressions across repeated queries."""
 
-    def test_reuses_parsed_conditions_across_repeated_disjoint_queries(self, monkeypatch):
+    def test_reuses_checked_conditions_across_repeated_disjoint_queries(self, monkeypatch):
         import propstore.z3_conditions as z3_conditions_module
 
         registry = _make_cel_registry()
         solver = Z3ConditionSolver(registry)
-        real_parse = z3_conditions_module.parse_cel
-        parse_calls: list[str] = []
+        real_check = z3_conditions_module.check_cel_expr
+        check_calls: list[str] = []
 
-        def counting_parse(expr: str):
-            parse_calls.append(expr)
-            return real_parse(expr)
+        def counting_check(expr, registry):
+            check_calls.append(str(expr))
+            return real_check(expr, registry)
 
-        monkeypatch.setattr(z3_conditions_module, "parse_cel", counting_parse)
+        monkeypatch.setattr(z3_conditions_module, "check_cel_expr", counting_check)
 
         left = ["fundamental_frequency > 100", "task == 'speech'"]
         right = ["task == 'singing'"]
@@ -620,7 +620,7 @@ class TestZ3Caching:
         assert solver.are_disjoint(left, right)
         assert solver.are_disjoint(list(reversed(left)), right)
 
-        assert parse_calls == [
+        assert check_calls == [
             "fundamental_frequency > 100",
             "task == 'speech'",
             "task == 'singing'",
@@ -655,14 +655,14 @@ class TestZ3Caching:
 
         registry = _make_cel_registry()
         solver = Z3ConditionSolver(registry)
-        real_parse = z3_conditions_module.parse_cel
-        parse_calls: list[str] = []
+        real_check = z3_conditions_module.check_cel_expr
+        check_calls: list[str] = []
 
-        def counting_parse(expr: str):
-            parse_calls.append(expr)
-            return real_parse(expr)
+        def counting_check(expr, registry):
+            check_calls.append(str(expr))
+            return real_check(expr, registry)
 
-        monkeypatch.setattr(z3_conditions_module, "parse_cel", counting_parse)
+        monkeypatch.setattr(z3_conditions_module, "check_cel_expr", counting_check)
 
         left = ["fundamental_frequency > 100", "task == 'speech'"]
         right = ["fundamental_frequency > 200", "task == 'speech'"]
@@ -670,7 +670,7 @@ class TestZ3Caching:
         assert _classify_conditions(left, right, registry, solver=solver) == ConflictClass.OVERLAP
         assert _classify_conditions(list(reversed(left)), right, registry, solver=solver) == ConflictClass.OVERLAP
 
-        assert parse_calls == [
+        assert check_calls == [
             "fundamental_frequency > 100",
             "task == 'speech'",
             "fundamental_frequency > 200",
