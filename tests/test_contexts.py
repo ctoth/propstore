@@ -10,6 +10,9 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.context_types import LoadedContext
+from propstore.conflict_detector.collectors import conflict_claim_from_payload
+from propstore.conflict_detector.models import ConflictClaim
+from propstore.claims import loaded_claim_file_from_payload
 from propstore.loaded import LoadedEntry
 from propstore.context_hierarchy import ContextHierarchy
 from propstore.validate_contexts import (
@@ -45,11 +48,31 @@ def _runtime_claim_id_set(claims) -> set[str]:
     return {str(claim.claim_id) for claim in claims}
 
 
+def _conflict_claims_from_test_inputs(claim_files):
+    claims = []
+    for item in claim_files:
+        if isinstance(item, ConflictClaim):
+            claims.append(item)
+            continue
+        if not isinstance(item, LoadedEntry):
+            claims.extend(item)
+            continue
+        source = item.data.get("source")
+        source_paper = source.get("paper") if isinstance(source, dict) else item.filename
+        for payload in item.data.get("claims", []):
+            if not isinstance(payload, dict):
+                continue
+            claim = conflict_claim_from_payload(payload, source_paper=source_paper)
+            assert claim is not None
+            claims.append(claim)
+    return claims
+
+
 def detect_conflicts(claim_files, registry, context_hierarchy=None):
     from propstore.conflict_detector import detect_conflicts as _detect_conflicts
 
     return _detect_conflicts(
-        claim_files,
+        _conflict_claims_from_test_inputs(claim_files),
         registry,
         make_cel_registry(registry),
         context_hierarchy=context_hierarchy,
@@ -505,17 +528,21 @@ class TestClaimContextId:
         """Validation error if claim references nonexistent context."""
         from propstore.compiler.passes import validate_claims
 
-        claim_file = LoadedEntry("test", tmp_path / "test.yaml", normalize_claims_payload({
-            "source": {"paper": "test"},
-            "claims": [{
-                "id": "claim1",
-                "type": "observation",
-                "statement": "Test statement.",
-                "concepts": ["fundamental_frequency"],
-                "context": "ctx_nonexistent",
-                "provenance": {"paper": "test", "page": 1},
-            }],
-        }))
+        claim_file = loaded_claim_file_from_payload(
+            filename="test",
+            source_path=tmp_path / "test.yaml",
+            data=normalize_claims_payload({
+                "source": {"paper": "test"},
+                "claims": [{
+                    "id": "claim1",
+                    "type": "observation",
+                    "statement": "Test statement.",
+                    "concepts": ["fundamental_frequency"],
+                    "context": "ctx_nonexistent",
+                    "provenance": {"paper": "test", "page": 1},
+                }],
+            }),
+        )
         registry = {
             "fundamental_frequency": {
                 "id": "concept1", "canonical_name": "fundamental_frequency",
@@ -530,17 +557,21 @@ class TestClaimContextId:
         """No error when claim references an existing context."""
         from propstore.compiler.passes import validate_claims
 
-        claim_file = LoadedEntry("test", tmp_path / "test.yaml", normalize_claims_payload({
-            "source": {"paper": "test"},
-            "claims": [{
-                "id": "claim1",
-                "type": "observation",
-                "statement": "Test statement.",
-                "concepts": ["fundamental_frequency"],
-                "context": "ctx_atms",
-                "provenance": {"paper": "test", "page": 1},
-            }],
-        }))
+        claim_file = loaded_claim_file_from_payload(
+            filename="test",
+            source_path=tmp_path / "test.yaml",
+            data=normalize_claims_payload({
+                "source": {"paper": "test"},
+                "claims": [{
+                    "id": "claim1",
+                    "type": "observation",
+                    "statement": "Test statement.",
+                    "concepts": ["fundamental_frequency"],
+                    "context": "ctx_atms",
+                    "provenance": {"paper": "test", "page": 1},
+                }],
+            }),
+        )
         registry = {
             "fundamental_frequency": {
                 "id": "concept1", "canonical_name": "fundamental_frequency",
@@ -555,16 +586,20 @@ class TestClaimContextId:
         """A claim without context field validates fine."""
         from propstore.compiler.passes import validate_claims
 
-        claim_file = LoadedEntry("test", tmp_path / "test.yaml", normalize_claims_payload({
-            "source": {"paper": "test"},
-            "claims": [{
-                "id": "claim1",
-                "type": "observation",
-                "statement": "Test statement.",
-                "concepts": ["fundamental_frequency"],
-                "provenance": {"paper": "test", "page": 1},
-            }],
-        }))
+        claim_file = loaded_claim_file_from_payload(
+            filename="test",
+            source_path=tmp_path / "test.yaml",
+            data=normalize_claims_payload({
+                "source": {"paper": "test"},
+                "claims": [{
+                    "id": "claim1",
+                    "type": "observation",
+                    "statement": "Test statement.",
+                    "concepts": ["fundamental_frequency"],
+                    "provenance": {"paper": "test", "page": 1},
+                }],
+            }),
+        )
         registry = {
             "fundamental_frequency": {
                 "id": "concept1", "canonical_name": "fundamental_frequency",

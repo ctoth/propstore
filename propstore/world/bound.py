@@ -142,18 +142,22 @@ def _recomputed_conflicts(
     """
 
     from propstore.conflict_detector import detect_conflicts
-    from propstore.loaded import LoadedEntry
+    from propstore.conflict_detector.collectors import conflict_claim_from_payload
 
     if len(claims) < 2:
         return []
     if not isinstance(world, ConceptCatalogStore):
         return []
 
-    synthetic = LoadedEntry(
-        filename="<render>",
-        source_path=None,
-        data={"claims": [claim.to_source_claim_payload() for claim in claims]},
-    )
+    conflict_claims = [
+        conflict_claim
+        for active_claim in claims
+        if (
+            conflict_claim := conflict_claim_from_payload(
+                active_claim.to_source_claim_payload()
+            )
+        ) is not None
+    ]
     if precomputed_inputs is None:
         concept_registry, cel_registry = _conflict_inputs_for_store(world)
     else:
@@ -165,7 +169,7 @@ def _recomputed_conflicts(
         else None
     )
     records = detect_conflicts(
-        [synthetic],
+        conflict_claims,
         concept_registry,
         cel_registry,
         context_hierarchy=context_hierarchy,

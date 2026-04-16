@@ -6,7 +6,6 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_files import ClaimFileInput
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.equation_comparison import EquationFailure, canonicalize_equation
 
@@ -23,14 +22,14 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def detect_equation_conflicts(
-    claim_files: Sequence[ClaimFileInput],
+    claims: Sequence[ConflictClaim],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None = None,
     solver=None,
 ) -> list[ConflictRecord]:
     records: list[ConflictRecord] = []
-    by_signature = _collect_equation_claims(claim_files)
+    by_signature = _collect_equation_claims(claims)
 
     for (dependent_concept, _independent_concepts), claims in by_signature.items():
         if len(claims) < 2:

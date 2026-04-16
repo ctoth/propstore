@@ -5,12 +5,6 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_files import (
-    ClaimFileInput,
-    LoadedClaimFile,
-    claim_file_claim_payloads,
-    claim_file_default_source_paper,
-)
 from propstore.cel_checker import (
     ConceptInfo,
     synthetic_category_concept,
@@ -18,10 +12,9 @@ from propstore.cel_checker import (
 )
 
 from .algorithms import detect_algorithm_conflicts
-from .collectors import _iter_conflict_claims
 from .equations import detect_equation_conflicts
 from .measurements import detect_measurement_conflicts
-from .models import ConflictRecord
+from .models import ConflictClaim, ConflictRecord
 from .parameter_claims import detect_parameter_conflicts
 from .parameterization_conflicts import _detect_parameterization_conflicts
 
@@ -30,7 +23,7 @@ if TYPE_CHECKING:
 
 
 def detect_conflicts(
-    claim_files: Sequence[ClaimFileInput],
+    claims: Sequence[ConflictClaim],
     concept_registry: dict[str, dict],
     cel_registry: Mapping[str, ConceptInfo],
     context_hierarchy: ContextHierarchy | None = None,
@@ -41,11 +34,7 @@ def detect_conflicts(
     # Inject a synthetic 'source' category so Z3 treats source conditions
     # as enum comparisons and recognizes different papers as disjoint.
     source_name_set: set[str] = set()
-    for claim_file in claim_files:
-        default_source = claim_file_default_source_paper(claim_file)
-        if isinstance(default_source, str) and default_source:
-            source_name_set.add(default_source)
-    for claim in _iter_conflict_claims(claim_files):
+    for claim in claims:
         if claim.source_paper:
             source_name_set.add(claim.source_paper)
     source_names = sorted(source_name_set)
@@ -75,7 +64,7 @@ def detect_conflicts(
     condition_solver = _build_condition_solver(cel_registry)
 
     parameter_records, by_concept = detect_parameter_conflicts(
-        claim_files,
+        claims,
         cel_registry,
         context_hierarchy=context_hierarchy,
         solver=condition_solver,
@@ -83,7 +72,7 @@ def detect_conflicts(
     records.extend(parameter_records)
     records.extend(
         detect_measurement_conflicts(
-            claim_files,
+            claims,
             cel_registry,
             context_hierarchy=context_hierarchy,
             solver=condition_solver,
@@ -91,7 +80,7 @@ def detect_conflicts(
     )
     records.extend(
         detect_equation_conflicts(
-            claim_files,
+            claims,
             cel_registry,
             context_hierarchy=context_hierarchy,
             solver=condition_solver,
@@ -99,7 +88,7 @@ def detect_conflicts(
     )
     records.extend(
         detect_algorithm_conflicts(
-            claim_files,
+            claims,
             cel_registry,
             context_hierarchy=context_hierarchy,
             solver=condition_solver,
@@ -110,7 +99,7 @@ def detect_conflicts(
         records,
         by_concept,
         concept_registry,
-        claim_files,
+        claims,
         context_hierarchy=context_hierarchy,
     )
     return records

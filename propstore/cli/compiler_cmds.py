@@ -2239,6 +2239,7 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
         bindings, _ = _parse_bindings(args)
         if transitive:
             from propstore.conflict_detector import detect_transitive_conflicts
+            from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
             from propstore.claim_files import load_claim_files
 
             claim_files = load_claim_files(repo.tree() / "claims")
@@ -2259,7 +2260,10 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
                         })
                 concept_registry[cid] = cdata
 
-            records = detect_transitive_conflicts(claim_files, concept_registry)
+            records = detect_transitive_conflicts(
+                conflict_claims_from_claim_files(claim_files),
+                concept_registry,
+            )
             if not records:
                 click.echo("No transitive conflicts found.")
             else:

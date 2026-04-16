@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_files import ClaimFileInput
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.value_comparison import (
     value_str as _value_str,
@@ -22,14 +21,14 @@ if TYPE_CHECKING:
 
 
 def detect_measurement_conflicts(
-    claim_files: Sequence[ClaimFileInput],
+    claims: Sequence[ConflictClaim],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None = None,
     solver=None,
 ) -> list[ConflictRecord]:
     records: list[ConflictRecord] = []
-    by_measurement = _collect_measurement_claims(claim_files)
+    by_measurement = _collect_measurement_claims(claims)
 
     for (target_concept, _measure), claims in by_measurement.items():
         if len(claims) < 2:

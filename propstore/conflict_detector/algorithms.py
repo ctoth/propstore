@@ -7,7 +7,6 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from ast_equiv import compare as ast_compare
-from propstore.claim_files import ClaimFileInput
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 
 from .collectors import _collect_algorithm_claims
@@ -20,14 +19,14 @@ if TYPE_CHECKING:
 
 
 def detect_algorithm_conflicts(
-    claim_files: Sequence[ClaimFileInput],
+    claims: Sequence[ConflictClaim],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None = None,
     solver=None,
 ) -> list[ConflictRecord]:
     records: list[ConflictRecord] = []
-    by_concept = _collect_algorithm_claims(claim_files)
+    by_concept = _collect_algorithm_claims(claims)
 
     for concept_id, claims in by_concept.items():
         if len(claims) < 2:
