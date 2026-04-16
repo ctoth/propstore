@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 
 import propstore.world.bound as bound_module
+from propstore.world.bound import BoundWorld
 from tests.test_world_model import (
     CONCEPT1_ID,
     CONCEPT2_ID,
@@ -28,6 +29,27 @@ from tests.test_world_model import (
     repo,
     world,
 )
+
+
+class _NonCatalogConflictStore:
+    """Minimal store with claims/conflicts but no all_concepts method."""
+
+    def __init__(self, claims: list[dict], conflicts: list[dict] | None = None) -> None:
+        self._claims = claims
+        self._conflicts = [] if conflicts is None else conflicts
+
+    def claims_for(self, concept_id: str | None) -> list[dict]:
+        if concept_id is None:
+            return list(self._claims)
+        return [
+            claim
+            for claim in self._claims
+            if claim.get("concept_id") == concept_id
+            or claim.get("target_concept") == concept_id
+        ]
+
+    def conflicts(self) -> list[dict]:
+        return list(self._conflicts)
 
 
 class TestBoundConflictInputsCache:
@@ -106,3 +128,68 @@ class TestBoundConflictInputsCache:
         # Base cache still works after the overlay query.
         again = base.conflicts(CONCEPT1_ID)
         assert again is not None
+
+    def test_sparse_concept_does_not_build_conflict_inputs(self, monkeypatch):
+        """A concept with fewer than two active claims cannot produce a
+        recomputed pairwise conflict, so registry construction must stay
+        behind the cheap cardinality guard.
+        """
+        bound = BoundWorld(
+            _NonCatalogConflictStore([
+                {
+                    "id": "claim_a",
+                    "concept_id": "concept_sparse",
+                    "type": "parameter",
+                    "value": 1.0,
+                }
+            ])
+        )
+        builder = Mock(side_effect=AssertionError("conflict inputs should not build"))
+        monkeypatch.setattr(bound_module, "_conflict_inputs_for_store", builder)
+
+        assert bound.conflicts("concept_sparse") == []
+        assert builder.call_count == 0
+
+    def test_non_catalog_store_returns_existing_conflicts_without_recompute_inputs(
+        self,
+        monkeypatch,
+    ):
+        """Stores that are not ConceptCatalogStore cannot support
+        conflict-detector recomputation, but existing store conflicts still
+        pass through after active-claim filtering.
+        """
+        bound = BoundWorld(
+            _NonCatalogConflictStore(
+                [
+                    {
+                        "id": "claim_a",
+                        "concept_id": "concept_pair",
+                        "type": "parameter",
+                        "value": 1.0,
+                    },
+                    {
+                        "id": "claim_b",
+                        "concept_id": "concept_pair",
+                        "type": "parameter",
+                        "value": 2.0,
+                    },
+                ],
+                conflicts=[
+                    {
+                        "claim_a_id": "claim_a",
+                        "claim_b_id": "claim_b",
+                        "concept_id": "concept_pair",
+                        "warning_class": "CONFLICT",
+                    }
+                ],
+            )
+        )
+        builder = Mock(side_effect=AssertionError("conflict inputs should not build"))
+        monkeypatch.setattr(bound_module, "_conflict_inputs_for_store", builder)
+
+        conflicts = bound.conflicts("concept_pair")
+
+        assert len(conflicts) == 1
+        assert str(conflicts[0].claim_a_id) == "claim_a"
+        assert str(conflicts[0].claim_b_id) == "claim_b"
+        assert builder.call_count == 0
