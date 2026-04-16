@@ -115,7 +115,7 @@ def insert_claim_row(
         (claim_id, conditions_cel, None, None, None, None, None, None, None, None, None, None, None),
     )
     conn.execute(
-        "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, stage) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, algorithm_stage) VALUES (?, ?, ?, ?, ?)",
         (claim_id, None, None, None, None),
     )
 
@@ -684,7 +684,7 @@ class TestBoundWorldContext:
                 (claim_id, None, statement, None, None, None, None, None, None, None, None, None, None),
             )
             conn.execute(
-                "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, stage) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, algorithm_stage) VALUES (?, ?, ?, ?, ?)",
                 (claim_id, None, None, None, None),
             )
 
@@ -733,7 +733,7 @@ class TestBoundWorldContext:
                             txt.sympy_generated, txt.sympy_error, txt.name,
                             core.target_concept, txt.measure, txt.listener_population,
                             txt.methodology, txt.notes, txt.description, txt.auto_summary,
-                            alg.body, alg.canonical_ast, alg.variables_json, alg.stage,
+                            alg.body, alg.canonical_ast, alg.variables_json, alg.algorithm_stage,
                             core.source_paper, core.provenance_page, core.provenance_json,
                             num.value_si, num.lower_bound_si, num.upper_bound_si, core.context_id
                         FROM claim_core AS core

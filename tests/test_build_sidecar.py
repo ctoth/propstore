@@ -111,7 +111,7 @@ _CLAIM_SELECT_SQL = """
         alg.body,
         alg.canonical_ast,
         alg.variables_json,
-        alg.stage,
+        alg.algorithm_stage,
         core.source_paper,
         core.provenance_page,
         core.provenance_json,
@@ -1520,7 +1520,7 @@ def sidecar_with_algorithm(knowledge_reader, sidecar_path, algorithm_claim_files
 
 class TestAlgorithmClaim:
     def test_algorithm_claim_stored(self, sidecar_with_algorithm):
-        """Algorithm claim appears in sidecar with body, canonical_ast, stage."""
+        """Algorithm claim appears in sidecar with body, canonical_ast, algorithm_stage."""
         conn = sqlite3.connect(sidecar_with_algorithm)
         row = _fetch_claim(conn, "algo_claim1")
         assert row is not None
@@ -1528,7 +1528,7 @@ class TestAlgorithmClaim:
         assert row["body"] is not None
         assert "return x * 2" in row["body"]
         assert row["canonical_ast"] is not None
-        assert row["stage"] == "excitation"
+        assert row["algorithm_stage"] == "excitation"
         conn.close()
 
     def test_algorithm_canonical_ast_populated(self, sidecar_with_algorithm):

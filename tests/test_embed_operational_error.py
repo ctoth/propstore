@@ -100,7 +100,7 @@ def _make_conn_with_schema():
             body TEXT,
             canonical_ast TEXT,
             variables_json TEXT,
-            stage TEXT
+            algorithm_stage TEXT
         );
     """)
     conn.execute(

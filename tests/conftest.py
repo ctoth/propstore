@@ -239,7 +239,7 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
             body TEXT,
             canonical_ast TEXT,
             variables_json TEXT,
-            stage TEXT
+            algorithm_stage TEXT
         );
 
         CREATE TABLE relation_edge (
@@ -462,7 +462,7 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             body TEXT,
             canonical_ast TEXT,
             variables_json TEXT,
-            stage TEXT
+            algorithm_stage TEXT
         );
 
         CREATE TABLE conflict_witness (

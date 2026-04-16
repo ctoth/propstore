@@ -294,7 +294,7 @@ def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
     conn.execute(
         """
         INSERT INTO claim_algorithm_payload (
-            claim_id, body, canonical_ast, variables_json, stage
+            claim_id, body, canonical_ast, variables_json, algorithm_stage
         ) VALUES (?, ?, ?, ?, ?)
         """,
         (
@@ -302,7 +302,7 @@ def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
             row["body"],
             row["canonical_ast"],
             row["variables_json"],
-            row["stage"],
+            row["algorithm_stage"],
         ),
     )
 
@@ -452,7 +452,7 @@ def resolve_algorithm_storage(
     if claim.get("type") != ClaimType.ALGORITHM.value:
         return None, None, None, None
     body = claim.get("body")
-    stage = coerce_algorithm_stage(claim.get("stage"))
+    algorithm_stage = coerce_algorithm_stage(claim.get("stage"))
     raw_vars = claim.get("variables")
     if raw_vars not in (None, []) and not isinstance(raw_vars, list):
         raise ValueError("algorithm claim variables must be a list of variable bindings")
@@ -466,7 +466,7 @@ def resolve_algorithm_storage(
         }
         canonical_ast = canonical_dump(body, bindings)
     variables_json = json.dumps(raw_vars) if raw_vars else None
-    return body, canonical_ast, variables_json, stage
+    return body, canonical_ast, variables_json, algorithm_stage
 
 
 def extract_deferred_stance_rows(
@@ -576,7 +576,9 @@ def prepare_claim_insert_row(
         str(expression) if expression is not None else None,
         normalized_claim,
     )
-    body, canonical_ast, variables_json, stage = resolve_algorithm_storage(normalized_claim)
+    body, canonical_ast, variables_json, algorithm_stage = resolve_algorithm_storage(
+        normalized_claim
+    )
 
     value_si = typed_fields.value
     lower_bound_si = typed_fields.lower_bound
@@ -639,7 +641,7 @@ def prepare_claim_insert_row(
         "body": body,
         "canonical_ast": canonical_ast,
         "variables_json": variables_json,
-        "stage": stage,
+        "algorithm_stage": algorithm_stage,
         "source_slug": effective_source_paper,
         "source_paper": provenance.get("paper", effective_source_paper),
         "provenance_page": provenance.get("page", 0),

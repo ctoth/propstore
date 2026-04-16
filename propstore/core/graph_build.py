@@ -116,7 +116,7 @@ def _claim_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
         "body": row.body,
         "canonical_ast": row.canonical_ast,
         "variables_json": row.variables_json,
-        "stage": row.stage,
+        "stage": row.algorithm_stage,
         "value_si": row.value_si,
         "lower_bound_si": row.lower_bound_si,
         "upper_bound_si": row.upper_bound_si,

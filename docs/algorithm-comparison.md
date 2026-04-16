@@ -108,7 +108,7 @@ CREATE TABLE claim_algorithm_payload (
     body TEXT,
     canonical_ast TEXT,     -- ast_equiv.canonical_dump() output
     variables_json TEXT,
-    stage TEXT,
+    algorithm_stage TEXT,   -- algorithm sub-phase (e.g. "excitation"); distinct from claim_core.stage
     FOREIGN KEY (claim_id) REFERENCES claim_core(id)
 );
 ```
