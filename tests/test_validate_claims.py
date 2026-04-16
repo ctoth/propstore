@@ -705,7 +705,21 @@ class TestStanceGraphIntegrity:
 
 
 class TestDraftArtifactBoundary:
-    def test_draft_claim_file_rejected_from_final_validation(self, tmp_path):
+    def test_draft_claim_file_traverses_binding_with_info_diagnostic(self, tmp_path):
+        """Drafts populate through the compile path; diagnostic downgrades to info.
+
+        Per ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
+        axis-1 finding 3.2: the former build-time drop of draft files —
+        which replaced their claims with an empty tuple — becomes a
+        render-time policy filter. Draft claims traverse the same binding
+        path as final claims; the SemanticDiagnostic survives as
+        ``level='info'``, not ``level='error'``. ``validate_claims``
+        returns ``ok=True`` because an info diagnostic is not an error.
+
+        Inversion of the prior
+        ``test_draft_claim_file_rejected_from_final_validation`` assertion.
+        """
+
         draft_file = loaded_claim_file_from_payload(
             filename="draft_claims",
             source_path=tmp_path / "draft_claims.yaml",
@@ -725,11 +739,74 @@ class TestDraftArtifactBoundary:
         )
 
         result = validate_claims([draft_file], make_concept_registry())
-        assert not result.ok
-        assert any(
-            "draft artifacts are not accepted" in error.lower()
+        # A draft stage alone must not produce a validation error. Any
+        # residual error must not be the "draft artifacts are not accepted"
+        # message from the old build-time gate.
+        draft_gate_errors = [
+            error
             for error in result.errors
+            if "draft artifacts are not accepted" in error.lower()
+        ]
+        assert not draft_gate_errors, (
+            "draft-stage files must no longer produce the "
+            "'draft artifacts are not accepted' error; got: "
+            f"{draft_gate_errors!r}"
         )
+
+    def test_draft_claim_file_surfaces_in_compilation_bundle(self, tmp_path):
+        """Draft claim files emit their claims into the semantic bundle.
+
+        Property: with the gate removed, ``compile_claim_files`` binds
+        draft claims like any other file. The returned
+        ``SemanticClaimFile`` for a draft has non-empty ``claims`` (the
+        prior behavior replaced ``claims`` with ``tuple()``).
+        """
+
+        from propstore.compiler.passes import compile_claim_files
+        from propstore.compiler.context import compilation_context_from_concept_registry
+
+        draft_file = loaded_claim_file_from_payload(
+            filename="draft_claims",
+            source_path=tmp_path / "draft_claims.yaml",
+            data={
+                "stage": "draft",
+                "source": make_source(),
+                "claims": [
+                    {
+                        "id": "draft_claim_1",
+                        "type": "observation",
+                        "statement": "A draft observation",
+                        "concepts": [],
+                        "provenance": {"paper": "test_paper", "page": 0},
+                    }
+                ],
+            },
+        )
+        context = compilation_context_from_concept_registry(
+            make_concept_registry(),
+            claim_files=[draft_file],
+        )
+        bundle = compile_claim_files([draft_file], context)
+
+        assert len(bundle.semantic_files) == 1
+        draft_semantic_file = bundle.semantic_files[0]
+        assert len(draft_semantic_file.claims) == 1, (
+            "draft file must surface its claims into the semantic bundle "
+            "(was previously replaced with an empty tuple)"
+        )
+
+        # Any diagnostic emitted for draft stage must be at info level.
+        draft_stage_diagnostics = [
+            diagnostic
+            for diagnostic in bundle.diagnostics
+            if diagnostic.filename == "draft_claims"
+            and "draft" in diagnostic.message.lower()
+        ]
+        for diagnostic in draft_stage_diagnostics:
+            assert not diagnostic.is_error, (
+                f"draft-stage diagnostic must not be level='error'; got "
+                f"{diagnostic.level!r}: {diagnostic.message!r}"
+            )
 
     def test_model_missing_parameters_error(self, claims_dir):
         claim = {
