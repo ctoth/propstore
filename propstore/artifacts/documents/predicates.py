@@ -29,8 +29,8 @@ Theoretical sources:
       ranges variables over.
 
 DocumentStruct conventions mirrored from
-``propstore.artifacts.documents.rules``
-and ``propstore/claim_documents.py``: ``msgspec.Struct`` with
+``propstore.artifacts.documents.rules`` and
+``propstore.artifacts.documents.claims``: ``msgspec.Struct`` with
 ``kw_only=True, forbid_unknown_fields=True``, list-valued fields use
 ``tuple[T, ...] = ()``, and round-tripping through ``msgspec.yaml`` is
 idempotent under strict decoding.

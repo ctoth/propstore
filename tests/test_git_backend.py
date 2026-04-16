@@ -442,10 +442,10 @@ def test_load_claim_files_from_git_tree(tmp_path):
         "claims/test_claims.yaml": yaml.dump(claim_data).encode(),
     }, "add claims")
 
-    from propstore.claims import load_claim_files
+    from propstore.claims import claim_file_payload, load_claim_files
     claim_files = load_claim_files(kr.tree() / "claims")
     assert len(claim_files) == 1
-    assert claim_files[0].data["claims"][0]["id"] == "claim1"
+    assert claim_file_payload(claim_files[0])["claims"][0]["id"] == "claim1"
     assert isinstance(claim_files[0].source_path, GitKnowledgePath)
     assert claim_files[0].filename == "test_claims"
 

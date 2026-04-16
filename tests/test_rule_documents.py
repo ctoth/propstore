@@ -16,7 +16,7 @@ Theoretical source:
       of a rule must also appear in the body so grounding can resolve it.
     - Section 4 (p.16): Proper and blocking defeaters (Defs 4.1, 4.2).
 
-DocumentStruct conventions mirrored from `propstore/claim_documents.py`:
+DocumentStruct conventions mirrored from `propstore/artifacts/documents/claims.py`:
     - `msgspec.Struct` with `kw_only=True, forbid_unknown_fields=True`.
     - List-valued fields use `tuple[T, ...] = ()` for immutability.
     - Round-tripping through `msgspec.yaml.{encode,decode}` is idempotent
@@ -172,8 +172,9 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
 def rules_file_documents() -> st.SearchStrategy:
     """Strategy producing well-formed RulesFileDocument envelopes.
 
-    Mirrors the ClaimsFileDocument shape from `propstore/claim_documents.py`
-    (line 333): a source block plus an ordered tuple of rule documents.
+    Mirrors the ClaimsFileDocument shape from
+    `propstore/artifacts/documents/claims.py`: a source block plus an
+    ordered tuple of rule documents.
     """
     from propstore.artifacts.documents.rules import (  # noqa: E402
         RulesFileDocument,
@@ -202,7 +203,7 @@ def test_rule_document_yaml_round_trip(doc) -> None:
     """Encoding then decoding a RuleDocument must be idempotent.
 
     Basic round-trip property required by any msgspec document type
-    (pattern from `propstore/claim_documents.py`). This exercises the
+    (pattern from `propstore/artifacts/documents/claims.py`). This exercises the
     DeLP language shape end-to-end: kind discriminator, head atom,
     positive body, and default-negation body (Garcia & Simari 2004 §3,
     §6.1 p.29).
@@ -220,7 +221,7 @@ def test_rules_file_document_yaml_round_trip(doc) -> None:
     """Same round-trip property at the file-envelope level.
 
     The RulesFileDocument envelope parallels ClaimsFileDocument
-    (``propstore/claim_documents.py`` line 333). Round-tripping a whole
+    (``propstore/artifacts/documents/claims.py``). Round-tripping a whole
     file must be idempotent under strict decoding so authored YAML and
     re-encoded YAML agree structurally.
     """
@@ -429,8 +430,8 @@ def test_rules_file_document_preserves_rule_order(file_doc) -> None:
 def test_loaded_rule_file_from_loaded_document() -> None:
     """LoadedRuleFile wraps LoadedDocument[RulesFileDocument].
 
-    Mirrors the pattern at ``propstore/claim_documents.py`` line 374-383
-    (``LoadedClaimFile.from_loaded_document``). Constructing a
+    Mirrors the typed loaded-document wrapper pattern used by the document
+    loaders. Constructing a
     ``LoadedDocument[RulesFileDocument]`` manually and wrapping it via
     ``LoadedRuleFile.from_loaded_document`` must expose:
       - ``filename`` / ``source_path`` / ``knowledge_root`` metadata
