@@ -178,6 +178,59 @@ Exit criteria:
 - every production use has an assigned replacement strategy
 - no implementation changes unless they are direct stale-script fixes
 
+### Phase 1 Inventory - 2026-04-16
+
+Searches run:
+
+```powershell
+rg -n -F "propstore.claim_files" propstore tests scripts
+rg -n -F "LoadedClaimFile" propstore tests scripts
+rg -n -F "ClaimFileInput" propstore tests scripts
+rg -n -F "claim_file.data" propstore tests scripts
+rg -n -F "LoadedEntry(" propstore tests scripts
+rg -n -F "propstore.claim_documents" propstore tests scripts plans
+```
+
+Production hit classification:
+
+- typed document loading:
+  - `propstore.artifacts.codes`
+  - `propstore.cli.claim`
+  - `propstore.cli.compiler_cmds`
+  - `propstore.cli.concept`
+  - `propstore.repo.merge_classifier`
+  - `propstore.repo.structured_merge`
+  - `propstore.sidecar.build`
+  - `propstore.validate_concepts`
+- file metadata needed for diagnostics or artifact refs:
+  - `propstore.compiler.context`
+  - `propstore.compiler.ir`
+  - `propstore.compiler.passes`
+  - `propstore.sidecar.claims`
+  - `propstore.sidecar.claim_utils`
+  - `propstore.cli.concept`
+- raw payload bridge:
+  - `propstore.claim_files.LoadedClaimFile.data`
+  - `propstore.compiler.passes`
+  - `propstore.cli.concept`
+  - `scripts.mergeability_probe`
+- synthetic in-memory claim comparison:
+  - `propstore.repo.merge_classifier`
+  - `propstore.world.bound`
+- stale import/comment:
+  - `scripts.mergeability_probe`
+  - `scripts.validate_claims_only`
+
+Chosen next slice:
+
+- Use plain `LoadedDocument[ClaimsFileDocument]` as the claim input surface.
+  The remaining production callers need only `filename`, `source_path`,
+  `knowledge_root`, and `document`; the claim-specific subclass exists to
+  preserve compatibility properties and untyped payload coercion.
+- Add small typed helper functions where repeated claim semantics need naming
+  (`claims`, source paper, stage, payload conversion), without retaining `.data`
+  or `LoadedEntry` acceptance as semantic inputs.
+
 ## Phase 2: Introduce Explicit Claim Input Surface
 
 Goal: replace fake file envelopes and `LoadedEntry` claim inputs with a direct
