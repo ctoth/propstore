@@ -5,7 +5,7 @@ from typing import get_type_hints
 import yaml
 
 from propstore.artifacts.documents.claims import ClaimDocument, ClaimsFileDocument
-from propstore.claim_files import load_claim_files
+from propstore.claims import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage, to_algorithm_stage
 from propstore.core.row_types import ClaimRow
 from propstore.artifacts.documents.sources import SourceClaimDocument
@@ -55,5 +55,5 @@ def test_claim_file_stage_split_is_preserved(tmp_path) -> None:
 
     claim_file = load_claim_files(tmp_path)[0]
 
-    assert claim_file.stage == "draft"
-    assert claim_file.claims[0].stage == to_algorithm_stage("inference")
+    assert claim_file.document.stage == "draft"
+    assert claim_file.document.claims[0].stage == to_algorithm_stage("inference")

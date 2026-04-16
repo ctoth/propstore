@@ -9,13 +9,16 @@ from typing import Any, Mapping
 
 import jsonschema
 
-from propstore.artifacts.documents.claims import ClaimDocument, ClaimsFileDocument
-from propstore.claim_files import (
-    ClaimFileInput,
-    LoadedClaimFile,
-    coerce_loaded_claim_files,
-)
+from propstore.artifacts.documents.claims import ClaimDocument
 from propstore.cel_checker import check_cel_expression
+from propstore.claims import (
+    LoadedClaimsFile,
+    claim_file_claims,
+    claim_file_payload,
+    claim_file_source_paper,
+    claim_file_stage,
+    load_claim_file,
+)
 from propstore.compiler.claim_checks import (
     _coerce_schema_numeric_strings,
     _load_claim_schema,
@@ -42,7 +45,6 @@ from propstore.compiler.ir import (
     SemanticClaimFile,
     SemanticStance,
 )
-from propstore.artifacts.schema import load_document
 from propstore.identity import (
     CLAIM_ARTIFACT_ID_RE,
     CLAIM_VERSION_ID_RE,
@@ -104,12 +106,12 @@ def _resolve_concept_reference(
 def _claim_match_kind(
     raw_text: str,
     resolved_id: str,
-    normalized_claim_files: list[LoadedClaimFile],
+    normalized_claim_files: list[LoadedClaimsFile],
 ) -> tuple[str | None, str | None]:
     if raw_text == resolved_id:
         return "artifact_id", raw_text
     for claim_file in normalized_claim_files:
-        for claim in claim_file.claims:
+        for claim in claim_file_claims(claim_file):
             if claim.artifact_id != resolved_id:
                 continue
             for logical_id in claim.logical_ids:
@@ -124,7 +126,7 @@ def _claim_match_kind(
 def _resolve_claim_reference(
     claim_ref: object,
     claim_lookup: Mapping[str, tuple[str, ...]],
-    normalized_claim_files: list[LoadedClaimFile],
+    normalized_claim_files: list[LoadedClaimsFile],
 ) -> ResolvedReference | None:
     if not isinstance(claim_ref, str) or not claim_ref:
         return None
@@ -155,7 +157,7 @@ def _bind_claim(
     source_paper: str,
     context: CompilationContext,
     claim_lookup: Mapping[str, tuple[str, ...]],
-    normalized_claim_files: list[LoadedClaimFile],
+    normalized_claim_files: list[LoadedClaimsFile],
 ) -> SemanticClaim:
     authored_claim = claim.to_payload()
     resolved_claim = copy.deepcopy(authored_claim)
@@ -252,7 +254,7 @@ def _bind_claim(
 
 
 def compile_claim_files(
-    claim_files: list[LoadedClaimFile],
+    claim_files: list[LoadedClaimsFile],
     context: CompilationContext,
     *,
     context_ids: set[str] | None = None,
@@ -271,7 +273,7 @@ def compile_claim_files(
     seen_logical_ids: dict[str, str] = {}
     all_artifact_ids: set[str] = set()
     for claim_file in normalized_claim_files:
-        for claim in claim_file.claims:
+        for claim in claim_file_claims(claim_file):
             artifact_id = claim.artifact_id
             if isinstance(artifact_id, str) and artifact_id:
                 all_artifact_ids.add(artifact_id)
@@ -281,9 +283,9 @@ def compile_claim_files(
     for original_file, normalized_file in zip(claim_files, normalized_claim_files, strict=False):
         file_diagnostics: list[SemanticDiagnostic] = []
         semantic_claims: list[SemanticClaim] = []
-        data = normalized_file.data
+        data = claim_file_payload(normalized_file)
 
-        if normalized_file.stage == "draft":
+        if claim_file_stage(normalized_file) == "draft":
             file_diagnostics.append(
                 SemanticDiagnostic(
                     level="error",
@@ -317,9 +319,9 @@ def compile_claim_files(
                 )
             )
 
-        source_paper = normalized_file.source_paper
+        source_paper = claim_file_source_paper(normalized_file)
 
-        for claim in normalized_file.claims:
+        for claim in claim_file_claims(normalized_file):
             raw_id = claim.id
             artifact_id = claim.artifact_id
             if isinstance(raw_id, str) and raw_id and not artifact_id:
@@ -581,7 +583,7 @@ def compile_claim_files(
 
 
 def validate_claims(
-    claim_files: list[ClaimFileInput],
+    claim_files: list[LoadedClaimsFile],
     concept_registry: dict[str, dict] | CompilationContext,
     context_ids: set[str] | None = None,
 ) -> ValidationResult:
@@ -592,18 +594,17 @@ def validate_claims(
         concept_registry: legacy concept registry or compilation context
         context_ids: set of valid context IDs (if None, skip context validation)
     """
-    typed_claim_files = coerce_loaded_claim_files(claim_files)
     context = (
         concept_registry
         if isinstance(concept_registry, CompilationContext)
         else compilation_context_from_concept_registry(
             concept_registry,
-            claim_files=typed_claim_files,
+            claim_files=claim_files,
             context_ids=context_ids,
         )
     )
     bundle = compile_claim_files(
-        typed_claim_files,
+        claim_files,
         context,
         context_ids=context_ids,
     )
@@ -614,15 +615,6 @@ def validate_single_claim_file(
     filepath: Path,
     concept_registry: dict[str, dict],
 ) -> ValidationResult:
-    """Validate a single claims YAML file.
-
-    Loads the file, wraps it in a LoadedEntry, and runs
-    validate_claims on just that one file.
-    """
-    loaded = LoadedClaimFile.from_loaded_document(
-        load_document(
-            filepath,
-            ClaimsFileDocument,
-        )
-    )
+    """Validate a single typed claims YAML file."""
+    loaded = load_claim_file(filepath)
     return validate_claims([loaded], concept_registry)

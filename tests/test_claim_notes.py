@@ -15,7 +15,7 @@ from hypothesis import strategies as st
 
 from propstore.core.row_types import coerce_claim_row
 from propstore.sidecar.build import build_sidecar
-from propstore.claim_files import load_claim_files
+from propstore.claims import load_claim_files
 from propstore.compiler.passes import validate_claims
 from propstore.world import WorldModel
 from tests.conftest import (
@@ -351,4 +351,3 @@ class TestClaimNotesProperties:
                 )
             finally:
                 conn.close()
-
