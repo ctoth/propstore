@@ -357,6 +357,85 @@ class TestTableCreation:
         conn.close()
 
 
+class TestSchemaV3:
+    """Schema v3 additions for build-to-render gate removal.
+
+    Implements `reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md`
+    findings 3.1/3.2/3.3 — every claim flows into the sidecar with a per-row
+    lifecycle annotation, and a `build_diagnostics` table carries the
+    quarantine reasons that the render layer filters per policy.
+    """
+
+    def test_schema_version_is_three(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
+        conn = sqlite3.connect(sidecar_path)
+        row = conn.execute(
+            "SELECT schema_version FROM meta WHERE key='sidecar'"
+        ).fetchone()
+        conn.close()
+        assert row is not None
+        assert row[0] == 3
+
+    def test_build_diagnostics_table_exists(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
+        conn = sqlite3.connect(sidecar_path)
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name='build_diagnostics'"
+        )
+        assert cursor.fetchone() is not None
+        conn.close()
+
+    def test_build_diagnostics_columns(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
+        conn = sqlite3.connect(sidecar_path)
+        info = conn.execute("PRAGMA table_info(build_diagnostics)").fetchall()
+        conn.close()
+        column_names = {row[1] for row in info}
+        expected = {
+            "id",
+            "claim_id",
+            "source_kind",
+            "source_ref",
+            "diagnostic_kind",
+            "severity",
+            "blocking",
+            "message",
+            "file",
+            "detail_json",
+        }
+        assert expected <= column_names, (
+            f"build_diagnostics missing columns: {expected - column_names}"
+        )
+
+    def test_claim_core_lifecycle_columns_exist(
+        self, knowledge_reader, sidecar_path
+    ):
+        build_sidecar(knowledge_reader, sidecar_path)
+        conn = sqlite3.connect(sidecar_path)
+        info = conn.execute("PRAGMA table_info(claim_core)").fetchall()
+        conn.close()
+        column_names = {row[1] for row in info}
+        assert "build_status" in column_names
+        assert "stage" in column_names
+        assert "promotion_status" in column_names
+
+    def test_claim_core_build_status_default_is_ingested(
+        self, knowledge_reader, sidecar_path
+    ):
+        build_sidecar(knowledge_reader, sidecar_path)
+        conn = sqlite3.connect(sidecar_path)
+        info = conn.execute("PRAGMA table_info(claim_core)").fetchall()
+        conn.close()
+        # PRAGMA table_info row layout: cid, name, type, notnull, dflt_value, pk
+        for row in info:
+            if row[1] == "build_status":
+                assert row[3] == 1, "build_status should be NOT NULL"
+                assert row[4] is not None and "ingested" in str(row[4])
+                return
+        raise AssertionError("build_status column not found")
+
+
 # ── Concept table contents ───────────────────────────────────────────
 
 class TestConceptTable:
