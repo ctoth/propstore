@@ -149,8 +149,8 @@ class ConflictRecord:
     claim_a_id: str
     claim_b_id: str
     warning_class: ConflictClass
-    conditions_a: list[str]
-    conditions_b: list[str]
+    conditions_a: list[CelExpr]
+    conditions_b: list[CelExpr]
     value_a: str
     value_b: str
     derivation_chain: str | None = None
