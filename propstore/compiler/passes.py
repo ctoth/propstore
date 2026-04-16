@@ -286,25 +286,23 @@ def compile_claim_files(
         semantic_claims: list[SemanticClaim] = []
         data = claim_file_payload(normalized_file)
 
+        # Axis-1 finding 3.2 / ws-z-render-gates.md: draft files no longer
+        # drop from the semantic bundle. They traverse the normal binding
+        # path; the file-level draft marker rides through on
+        # ``claim_core.stage='draft'`` and render-policy filtering (phase 4)
+        # decides visibility. The informational diagnostic survives so
+        # callers that want to flag drafts can still see them.
         if claim_file_stage(normalized_file) == "draft":
             file_diagnostics.append(
                 SemanticDiagnostic(
-                    level="error",
+                    level="info",
                     filename=normalized_file.filename,
                     message=(
-                        "draft artifacts are not accepted in the final claim validation path"
+                        "claim file is marked stage='draft'; "
+                        "render policy hides drafts by default"
                     ),
                 )
             )
-            diagnostics.extend(file_diagnostics)
-            semantic_files.append(
-                SemanticClaimFile(
-                    loaded_entry=original_file,
-                    normalized_entry=normalized_file,
-                    claims=tuple(),
-                )
-            )
-            continue
 
         try:
             jsonschema.validate(

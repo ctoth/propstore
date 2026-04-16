@@ -772,13 +772,12 @@ class TestDraftArtifactBoundary:
                 "stage": "draft",
                 "source": make_source(),
                 "claims": [
-                    {
-                        "id": "draft_claim_1",
-                        "type": "observation",
-                        "statement": "A draft observation",
-                        "concepts": [],
-                        "provenance": {"paper": "test_paper", "page": 0},
-                    }
+                    make_observation_claim(
+                        "draft_claim_1",
+                        "A draft observation",
+                        [],
+                        page=0,
+                    )
                 ],
             },
         )
