@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from propstore.cel_types import CelExpr
+
 from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
@@ -41,8 +43,8 @@ def _append_context_classified_record(
     concept_id: str,
     claim_a_id: str,
     claim_b_id: str,
-    conditions_a: list[str],
-    conditions_b: list[str],
+    conditions_a: list[CelExpr],
+    conditions_b: list[CelExpr],
     value_a: str,
     value_b: str,
     context_a: str | None,
