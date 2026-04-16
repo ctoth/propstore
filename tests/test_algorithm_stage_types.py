@@ -14,7 +14,7 @@ from propstore.artifacts.documents.sources import SourceClaimDocument
 def test_algorithm_stage_annotations_cover_runtime_path() -> None:
     assert get_type_hints(ClaimDocument)["stage"] == AlgorithmStage | None
     assert get_type_hints(SourceClaimDocument)["stage"] == AlgorithmStage | None
-    assert get_type_hints(ClaimRow)["stage"] == AlgorithmStage | None
+    assert get_type_hints(ClaimRow)["algorithm_stage"] == AlgorithmStage | None
     assert get_type_hints(ClaimsFileDocument)["stage"] == str | None
 
 
@@ -23,11 +23,11 @@ def test_claim_row_coerces_algorithm_stage() -> None:
         {
             "id": "ps:claim:test",
             "artifact_id": "ps:claim:test",
-            "stage": "excitation",
+            "algorithm_stage": "excitation",
         }
     )
 
-    assert row.stage == to_algorithm_stage("excitation")
+    assert row.algorithm_stage == to_algorithm_stage("excitation")
 
 
 def test_claim_file_stage_split_is_preserved(tmp_path) -> None:

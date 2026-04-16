@@ -635,7 +635,7 @@ def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
 
     stage_filter = coerce_algorithm_stage(stage) if stage is not None else None
     if stage_filter is not None:
-        algos = [claim for claim in algos if claim.stage == stage_filter]
+        algos = [claim for claim in algos if claim.algorithm_stage == stage_filter]
     if concept:
         algos = [claim for claim in algos if str(claim.concept_id or "") == concept]
 
@@ -650,7 +650,9 @@ def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
     for claim in algos:
         aid = str(claim.claim_id)
         name = claim.name or (claim.body or "")[:25] or "?"
-        a_stage = str(claim.stage) if claim.stage is not None else "-"
+        a_stage = (
+            str(claim.algorithm_stage) if claim.algorithm_stage is not None else "-"
+        )
         a_concept = str(claim.concept_id) if claim.concept_id is not None else "-"
         click.echo(f"{aid:<20} {name:<30} {a_stage:<15} {a_concept}")
 

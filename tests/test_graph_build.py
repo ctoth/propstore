@@ -311,7 +311,7 @@ def test_world_model_compiled_graph_matches_normalized_storage_projection(
                     alg.body,
                     alg.canonical_ast,
                     alg.variables_json,
-                    alg.stage,
+                    alg.algorithm_stage,
                     core.source_slug,
                     core.source_paper,
                     core.provenance_page,

@@ -296,7 +296,7 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
             body TEXT,
             canonical_ast TEXT,
             variables_json TEXT,
-            stage TEXT,
+            algorithm_stage TEXT,
             FOREIGN KEY (claim_id) REFERENCES claim_core(id)
         );
 
@@ -343,6 +343,6 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX idx_claim_core_target ON claim_core(target_concept);
         CREATE INDEX idx_claim_core_type ON claim_core(type);
         CREATE INDEX idx_claim_core_primary_logical_id ON claim_core(primary_logical_id);
-        CREATE INDEX idx_claim_algorithm_stage ON claim_algorithm_payload(stage);
+        CREATE INDEX idx_claim_algorithm_stage ON claim_algorithm_payload(algorithm_stage);
         CREATE INDEX idx_conflict_witness_concept ON conflict_witness(concept_id);
     """)

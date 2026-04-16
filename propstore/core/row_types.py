@@ -225,7 +225,7 @@ class ClaimRow:
     body: str | None = None
     canonical_ast: str | None = None
     variables_json: str | None = None
-    stage: AlgorithmStage | None = None
+    algorithm_stage: AlgorithmStage | None = None
     source: ClaimSource | None = None
     provenance: ClaimProvenance | None = None
     value_si: float | None = None
@@ -238,8 +238,10 @@ class ClaimRow:
         object.__setattr__(self, "attributes", dict(self.attributes))
         if self.claim_type is not None:
             object.__setattr__(self, "claim_type", coerce_claim_type(self.claim_type))
-        if self.stage is not None:
-            object.__setattr__(self, "stage", coerce_algorithm_stage(self.stage))
+        if self.algorithm_stage is not None:
+            object.__setattr__(
+                self, "algorithm_stage", coerce_algorithm_stage(self.algorithm_stage)
+            )
 
     @classmethod
     def from_mapping(cls, row_map: Mapping[str, Any]) -> ClaimRow:
@@ -278,7 +280,7 @@ class ClaimRow:
             "body",
             "canonical_ast",
             "variables_json",
-            "stage",
+            "algorithm_stage",
             "source_slug",
             "source_quality_opinion",
             "source_paper",
@@ -486,7 +488,7 @@ class ClaimRow:
             variables_json=(
                 None if row_map.get("variables_json") is None else str(row_map["variables_json"])
             ),
-            stage=coerce_algorithm_stage(row_map.get("stage")),
+            algorithm_stage=coerce_algorithm_stage(row_map.get("algorithm_stage")),
             source=source,
             provenance=provenance,
             value_si=None if row_map.get("value_si") is None else float(row_map["value_si"]),
@@ -576,7 +578,9 @@ class ClaimRow:
             "body": self.body,
             "canonical_ast": self.canonical_ast,
             "variables_json": self.variables_json,
-            "stage": None if self.stage is None else str(self.stage),
+            "algorithm_stage": (
+                None if self.algorithm_stage is None else str(self.algorithm_stage)
+            ),
             "source_slug": None if self.source is None else self.source.slug,
             "source_paper": source_paper,
             "source_id": None if self.source is None else self.source.source_id,

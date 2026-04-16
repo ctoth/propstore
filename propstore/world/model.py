@@ -164,7 +164,7 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "body",
         "canonical_ast",
         "variables_json",
-        "stage",
+        "algorithm_stage",
     },
     "conflict_witness": {
         "concept_id",
@@ -442,7 +442,7 @@ class WorldModel(ArtifactStore):
                 alg.body,
                 alg.canonical_ast,
                 alg.variables_json,
-                alg.stage,
+                alg.algorithm_stage,
                 core.source_slug,
                 core.source_paper,
                 src.source_id AS source_id,

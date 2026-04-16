@@ -371,7 +371,7 @@ class TestUnboundGraph:
             "VALUES ('measurement1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)"
         )
         conn.execute(
-            "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, stage) "
+            "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, algorithm_stage) "
             "VALUES ('measurement1', NULL, NULL, NULL, NULL)"
         )
         conn.commit()
