@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, overload
 
 import msgspec
 
@@ -12,6 +13,7 @@ from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.loaded import LoadedDocument
 
 TDocument = TypeVar("TDocument")
+TLoaded = TypeVar("TLoaded")
 
 
 class DocumentStruct(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
@@ -107,3 +109,57 @@ def load_document(
         knowledge_root=root_path,
         document=decode_document_path(source_path, document_type),
     )
+
+
+@overload
+def load_document_dir(
+    directory: KnowledgePath | Path | None,
+    document_type: type[TDocument],
+) -> list[LoadedDocument[TDocument]]: ...
+
+
+@overload
+def load_document_dir(
+    directory: KnowledgePath | Path | None,
+    document_type: type[TDocument],
+    *,
+    wrapper: Callable[[LoadedDocument[TDocument]], TLoaded],
+) -> list[TLoaded]: ...
+
+
+def load_document_dir(
+    directory: KnowledgePath | Path | None,
+    document_type: type[TDocument],
+    *,
+    wrapper: Callable[[LoadedDocument[TDocument]], TLoaded] | None = None,
+) -> list[LoadedDocument[TDocument]] | list[TLoaded]:
+    """Load direct child YAML documents from a concrete knowledge-tree directory."""
+
+    if directory is None:
+        return []
+
+    documents_dir = coerce_knowledge_path(directory)
+    if not documents_dir.is_dir():
+        return []
+
+    knowledge_root = documents_dir.parent if documents_dir.name else documents_dir
+    entries = sorted(
+        (
+            entry
+            for entry in documents_dir.iterdir()
+            if entry.is_file() and entry.suffix == ".yaml"
+        ),
+        key=lambda entry: entry.as_posix(),
+    )
+    loaded = [
+        load_document(
+            entry,
+            document_type,
+            knowledge_root=knowledge_root,
+        )
+        for entry in entries
+    ]
+
+    if wrapper is None:
+        return loaded
+    return [wrapper(document) for document in loaded]
