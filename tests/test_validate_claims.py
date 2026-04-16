@@ -17,8 +17,7 @@ import yaml
 
 from propstore.identity import derive_concept_artifact_id
 from propstore.artifacts.schema import DocumentSchemaError
-from propstore.loaded import LoadedEntry
-from propstore.claim_files import load_claim_files
+from propstore.claims import loaded_claim_file_from_payload, load_claim_files
 from propstore.identity import parse_claim_id
 from propstore.compiler.passes import (
     validate_claims,
@@ -707,7 +706,7 @@ class TestStanceGraphIntegrity:
 
 class TestDraftArtifactBoundary:
     def test_draft_claim_file_rejected_from_final_validation(self, tmp_path):
-        draft_file = LoadedEntry(
+        draft_file = loaded_claim_file_from_payload(
             filename="draft_claims",
             source_path=tmp_path / "draft_claims.yaml",
             data={

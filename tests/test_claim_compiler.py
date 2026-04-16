@@ -9,7 +9,7 @@ from propstore.compiler.context import (
     compilation_context_from_concept_registry,
 )
 from propstore.compiler.passes import compile_claim_files
-from propstore.claim_files import load_claim_files
+from propstore.claims import load_claim_files
 from propstore.sidecar.claim_utils import prepare_claim_insert_row
 from tests.conftest import (
     make_concept_registry,
