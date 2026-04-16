@@ -1,4 +1,43 @@
-"""Sidecar schema and table helpers."""
+"""Sidecar schema and table helpers.
+
+Schema version 3 (current) extends the build-time schema with per-row
+lifecycle annotations and a quarantine surface so the render layer can
+filter on policy without losing data. This implements the build-to-render
+gate-removal workstream described in
+``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md`` —
+specifically the changes called out in axis-1 findings 3.1 (raw-id input
+quarantine), 3.2 (draft visibility), and 3.3 (partial source promotion).
+
+The discipline (``reviews/2026-04-16-code-review/workstreams/disciplines.md``
+rule 5: "Filter at render, not at build") is concrete here:
+
+- ``build_diagnostics`` carries per-row build-time diagnostic information
+  (kind, severity, blocking-vs-warning flag, optional structured payload).
+  Render-policy filtering at query time decides what to show.
+- ``claim_core.build_status`` annotates whether a claim row was
+  ingested cleanly (``'ingested'``) or admitted under a relaxed gate
+  with a quarantine diagnostic attached (``'blocked'``). The default
+  preserves "ingested" for all rows that the build wrote without issue.
+- ``claim_core.stage`` is the *file-level* lifecycle marker for the row
+  (e.g., ``'draft'`` or ``'final'``). It is distinct from
+  ``claim_algorithm_payload.algorithm_stage``, which records an
+  algorithm-internal sub-phase (e.g., ``'excitation'``). Drafts populate
+  normally; the render layer's default policy hides them.
+- ``claim_core.promotion_status`` records whether a source-branch claim
+  was promoted to the primary branch (``'promoted'``), held back due to
+  finalize errors (``'blocked'``), or is not part of a source-branch
+  promotion flow (``NULL``).
+
+These three columns are intentionally orthogonal — they index three
+independent lifecycle dimensions: ingestion success
+(``build_status``), file-level lifecycle (``stage``), and
+source-promotion status (``promotion_status``). A single row may carry
+any combination, and each is filtered independently by the render
+policy. Collapsing them into a single ``status`` field would force
+heuristic resolution at storage time, which violates the project's
+non-commitment-at-source design principle (``CLAUDE.md`` core design
+principle).
+"""
 
 from __future__ import annotations
 
@@ -238,6 +277,32 @@ def populate_contexts(
 
 
 def create_claim_tables(conn: sqlite3.Connection) -> None:
+    """Create the claim, payload, witness, and build-diagnostics tables.
+
+    Schema-v3 additions (per
+    ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
+    findings 3.1/3.2/3.3):
+
+    - ``claim_core.build_status`` — ``'ingested' | 'blocked'``; default
+      ``'ingested'``. Per finding 3.1: claims that ingested only because
+      a build-time gate was relaxed carry ``'blocked'`` plus a row in
+      ``build_diagnostics``.
+    - ``claim_core.stage`` — file-level lifecycle marker
+      (``'draft' | 'final' | NULL``). Per finding 3.2: drafts populate
+      normally; the render-policy default hides them.
+    - ``claim_core.promotion_status`` —
+      ``'promoted' | 'blocked' | NULL``. Per finding 3.3: tracks the
+      outcome of source-branch promotion, with ``'blocked'`` meaning the
+      claim stayed on its source branch because finalize had errors.
+    - ``build_diagnostics`` — quarantine surface. Each row attaches a
+      diagnostic to a claim (``claim_id``) or to a non-claim source
+      artifact (``source_kind``/``source_ref``); ``blocking=1`` indicates
+      the attached row was quarantined, ``blocking=0`` is informational.
+      The render layer joins ``build_diagnostics`` against
+      ``claim_core`` to surface "what's wrong with this row" under
+      opt-in policy flags.
+    """
+
     conn.executescript("""
         CREATE TABLE claim_core (
             id TEXT PRIMARY KEY,
