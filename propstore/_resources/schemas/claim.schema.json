@@ -713,7 +713,7 @@
             "type": "array"
         },
         "stage": {
-            "description": "Optional file-level processing stage marker used to reject draft claim files from the canonical validation path.",
+            "description": "Optional file-level processing stage marker used for render-policy filtering (drafts hidden by default).",
             "type": [
                 "string",
                 "null"

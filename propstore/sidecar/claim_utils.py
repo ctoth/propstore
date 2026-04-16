@@ -220,13 +220,24 @@ def resolve_claim_reference(
 
 
 def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
+    """Insert a fully-populated claim row into claim_core + payload tables.
+
+    Schema-v3 lifecycle columns (``build_status``, ``stage``,
+    ``promotion_status``) are written when present in ``row``; otherwise
+    they fall back to the schema defaults (``build_status='ingested'``;
+    ``stage``/``promotion_status`` NULL). See
+    ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
+    findings 3.1, 3.2, 3.3 for the render-layer semantics.
+    """
+
     conn.execute(
         """
         INSERT INTO claim_core (
             id, primary_logical_id, logical_ids_json, version_id, seq, type,
             concept_id, target_concept, source_slug, source_paper,
-            provenance_page, provenance_json, context_id, branch
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            provenance_page, provenance_json, context_id, branch,
+            build_status, stage, promotion_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             row["id"],
@@ -243,6 +254,9 @@ def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
             row["provenance_json"],
             row["context_id"],
             row.get("branch"),
+            row.get("build_status") or "ingested",
+            row.get("stage"),
+            row.get("promotion_status"),
         ),
     )
     conn.execute(

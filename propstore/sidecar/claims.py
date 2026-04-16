@@ -15,7 +15,12 @@ import sqlite3
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_source_paper
+from propstore.claims import (
+    LoadedClaimsFile,
+    claim_file_claims,
+    claim_file_source_paper,
+    claim_file_stage,
+)
 from propstore.artifacts.schema import decode_document_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.sidecar.claim_utils import (
@@ -277,7 +282,15 @@ def populate_claims(
     form_registry: dict | None = None,
     semantic_bundle: ClaimCompilationBundle | None = None,
 ) -> None:
-    """Populate normalized claim storage from authored claim files."""
+    """Populate normalized claim storage from authored claim files.
+
+    Schema-v3 behavior (``reviews/2026-04-16-code-review/workstreams/
+    ws-z-render-gates.md`` finding 3.2): the file-level ``stage`` marker
+    (e.g. ``'draft'``) is threaded from the claim-file document onto each
+    ``claim_core`` row. Drafts populate normally; render-policy filtering
+    (phase 4) decides visibility.
+    """
+
     claim_seq = 0
     deferred_stances: list[tuple] = []
     reference_source = (
@@ -286,8 +299,20 @@ def populate_claims(
         else list(claim_files)
     )
     claim_reference_map = collect_claim_reference_map(reference_source)
+    # Filename → file-level stage marker. Used to annotate ``claim_core.stage``
+    # on every row for the file (draft, final, or NULL). Consulted both on
+    # the semantic-bundle path (via ``SemanticClaim.filename``) and the
+    # raw-claim-file path (via ``claim_file.filename``).
+    file_stage_by_filename: dict[str, str | None] = {
+        claim_file.filename: claim_file_stage(claim_file)
+        for claim_file in reference_source
+    }
+
     if semantic_bundle is not None:
         for semantic_file in semantic_bundle.semantic_files:
+            file_stage = file_stage_by_filename.get(
+                semantic_file.normalized_entry.filename
+            )
             for semantic_claim in semantic_file.claims:
                 claim_seq += 1
                 row = prepare_claim_insert_row(
@@ -297,6 +322,8 @@ def populate_claims(
                     concept_registry=concept_registry,
                     form_registry=form_registry,
                 )
+                if file_stage is not None:
+                    row["stage"] = file_stage
                 insert_claim_row(conn, row)
                 deferred_stances.extend(
                     extract_deferred_stance_rows(
@@ -308,6 +335,7 @@ def populate_claims(
     else:
         for claim_file in claim_files:
             source_paper = claim_file_source_paper(claim_file) or claim_file.filename
+            file_stage = file_stage_by_filename.get(claim_file.filename)
             for claim in claim_file_claims(claim_file):
                 authored_claim = claim.to_payload()
                 claim_seq += 1
@@ -318,6 +346,8 @@ def populate_claims(
                     concept_registry=concept_registry,
                     form_registry=form_registry,
                 )
+                if file_stage is not None:
+                    row["stage"] = file_stage
                 insert_claim_row(conn, row)
                 deferred_stances.extend(
                     extract_deferred_stance_rows(
