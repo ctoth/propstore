@@ -1,7 +1,7 @@
 # Generic Typed Tree Loader And Claim File Convergence Workstream
 
 Date: 2026-04-16
-Status: active
+Status: active - execution paused at remaining-workstream spec checkpoint
 
 ## Goal
 
@@ -280,6 +280,142 @@ Exit criteria:
   or `LoadedEntry`
 - no `.data` access remains in compiler or validation production code
 
+## Remaining Workstream Execution Spec
+
+Status at pre-execution checkpoint:
+
+- Step 0 is implemented and committed.
+- Phase 1 inventory is implemented and committed.
+- Phase 2 compiler/validation cutover is implemented and committed.
+- The remaining work must start from the current committed surface, not from a
+  partially edited Phase 3.
+
+Canonical claim-document surface:
+
+- `propstore.claims` is the canonical typed claim-document boundary.
+- `LoadedClaimsFile` is a type alias for
+  `LoadedDocument[ClaimsFileDocument]`, not a claim-specific wrapper class.
+- `load_claim_file()` and `load_claim_files()` return typed loaded documents.
+- `loaded_claim_file_from_payload()` is allowed only at IO/update boundaries
+  where a payload has just been rendered or rewritten and must be immediately
+  revalidated as `ClaimsFileDocument`.
+- `claim_file_claims()`, `claim_file_source_paper()`, `claim_file_stage()`,
+  and `claim_file_payload()` are named typed access helpers. They are not
+  compatibility aliases for `.claims`, `.source_paper`, `.stage`, or `.data`.
+- No new production import may target `propstore.claim_files` or
+  `propstore.claim_documents`.
+
+Conflict detector target:
+
+- The conflict core should consume `Sequence[ConflictClaim]`, because
+  `ConflictClaim` is the exact record shape needed by parameter, measurement,
+  equation, algorithm, and parameterization conflict logic.
+- Typed YAML claim files should be converted at one explicit boundary helper,
+  for example `conflict_claims_from_claim_files(
+  Sequence[LoadedClaimsFile]) -> list[ConflictClaim]`.
+- That boundary helper must:
+  - iterate `claim_file.document.claims`;
+  - derive each claim payload from `ClaimDocument.to_payload()`;
+  - preserve file-level `document.source.paper` by writing it to
+    `ConflictClaim.source_paper` when the claim does not already carry a source;
+  - call `with_source_condition()` exactly once after source paper is set.
+- Runtime/synthetic comparisons should construct `ConflictClaim` records
+  directly from the already-available semantic payload. They should not create
+  fake YAML file envelopes.
+- `detect_conflicts()` and `detect_transitive_conflicts()` should accept
+  `Sequence[ConflictClaim]`. Callers that start with typed claim files must
+  call the boundary converter before invoking those functions.
+
+Sidecar target:
+
+- `propstore.sidecar.build` should load claims from `propstore.claims`.
+- `populate_claims()`, `populate_conflicts()`, `build_claim_fts_index()`, and
+  `collect_claim_reference_map()` should accept `Sequence[LoadedClaimsFile]`.
+- Non-semantic storage functions may still receive dict payloads where their
+  existing contract is "row materialization" or "artifact rendering", but the
+  source of those payloads must be `ClaimDocument.to_payload()` or
+  `SemanticClaim.resolved_claim`, not `LoadedClaimFile.data`.
+- `populate_conflicts()` should convert typed claim files to
+  `ConflictClaim` records once, pass those records to both direct and
+  transitive conflict detection, and not pass loaded files into the detector.
+- `build_claim_fts_index()` should iterate `claim_file.document.claims`.
+
+Merge and world runtime target:
+
+- `propstore.repo.merge_classifier._classify_pair()` should construct two
+  `ConflictClaim` records directly from `MergeClaim.to_payload()`, with the
+  comparison source paper set explicitly on each record before calling
+  `with_source_condition()`.
+- `propstore.repo.merge_classifier._index_claims()` and
+  `propstore.repo.structured_merge._load_branch_claims()` should load via
+  `propstore.claims.load_claim_files()` and iterate `claim_file.document.claims`.
+- `propstore.world.bound._recomputed_conflicts()` should convert each
+  `ActiveClaim.to_source_claim_payload()` directly into `ConflictClaim`. It
+  should not try to coerce active runtime rows through `ClaimsFileDocument`,
+  because active rows contain runtime/storage fields that are not authored
+  claim-file schema fields.
+
+CLI and artifact-code target:
+
+- `propstore.cli.claim` should import `load_claim_file(s)` from
+  `propstore.claims`.
+- `claim conflicts` should convert loaded claim files to `ConflictClaim`
+  records before calling the detector.
+- `propstore.cli.concept.rename` is an IO/update boundary: it may render
+  `claim_file.document.to_payload()`, rewrite CEL condition strings, normalize
+  the rewritten payload, and immediately reconvert with
+  `loaded_claim_file_from_payload()` before validation and artifact save.
+- `propstore.artifacts.codes`, `propstore.validate_concepts`, and claim-related
+  merge/verify paths should read typed claim documents and use
+  `ClaimDocument.to_payload()` only where a hash, rendered artifact, or storage
+  row explicitly requires a dict.
+
+Stale script/reference target:
+
+- `scripts/mergeability_probe.py` must either be updated to
+  `propstore.claims` and typed document access or deleted if it no longer has a
+  maintained caller.
+- `scripts/validate_claims_only.py` imports `propstore.claim_documents`; it must
+  either be updated to the typed claim/document APIs and current repository
+  constructor, or deleted if obsolete.
+- Stale comments in tests and authored document modules should be rewritten to
+  name `LoadedDocument[ClaimsFileDocument]` or `propstore.claims`, not
+  `LoadedClaimFile` or `propstore.claim_documents`.
+
+Phase ordering constraints:
+
+- Phase 3 owns only conflict-detector input shape and synthetic comparison
+  removal. Do not also do sidecar `.data` cleanup there except for the minimum
+  caller updates required by the changed detector API.
+- Phase 4 owns remaining typed claim-file consumers and payload mutation at
+  sidecar, merge, artifact, and CLI boundaries.
+- Phase 5 owns deletion of `propstore.claim_files` and stale
+  `propstore.claim_documents` references after all production imports have
+  moved.
+- Each phase must have a clean import-surface check for its owned surface before
+  commit. A passing targeted suite is not enough if the owned old surface still
+  has production hits.
+
+Design-review decisions:
+
+- Do not make the conflict core accept `ClaimsFileDocument` directly. Authored
+  claim files are only one source of conflict inputs; merge pair comparison and
+  render-time `ActiveClaim` revalidation are already semantic/runtime records,
+  not YAML files. Making the conflict core take claim-file documents would
+  force those paths back through artificial document envelopes.
+- Do not add a `ClaimDocument.source_paper` schema field as part of this
+  workstream. The current typed claim schema does not define that field. Source
+  defaults belong at either `ClaimsFileDocument.source.paper` or an explicit
+  `ConflictClaim.source_paper` value set by a boundary converter.
+- Do not force `ActiveClaim.to_source_claim_payload()` through
+  `ClaimsFileDocument`. Runtime active-claim rows can carry storage/runtime
+  fields that are not authored YAML schema fields. Convert them directly to
+  `ConflictClaim`.
+- Dict payloads remain allowed only at output or rendering boundaries:
+  artifact-code hashing, artifact rendering, SQLite row materialization, and
+  freshly rewritten payload revalidation. The semantic pipeline should carry
+  `LoadedClaimsFile`, `ClaimDocument`, `SemanticClaim`, or `ConflictClaim`.
+
 ## Phase 3: Conflict Detector Claim Input Cutover
 
 Goal: make conflict detection operate on explicit claim documents or claim
@@ -287,18 +423,41 @@ records instead of file-like envelopes.
 
 Tasks:
 
-1. Replace `ClaimFileInput` parameters in `propstore/conflict_detector/` with a
-   typed input that represents exactly what conflict detection needs.
-2. Preserve source-paper handling explicitly. If source defaults are needed,
-   carry them as a named field rather than by reading file-level YAML payloads.
-3. Replace synthetic `LoadedEntry` creation in:
+1. Add the typed conversion boundary from
+   `Sequence[LoadedClaimsFile]` to `list[ConflictClaim]`.
+2. Replace `ClaimFileInput` parameters in `propstore/conflict_detector/` with
+   `Sequence[ConflictClaim]`.
+3. Preserve source-paper handling explicitly by setting
+   `ConflictClaim.source_paper` before `with_source_condition()`.
+4. Update direct callers of `detect_conflicts()` and
+   `detect_transitive_conflicts()` to pass conflict records, not files.
+5. Replace synthetic `LoadedEntry` creation in:
 
    - `propstore.repo.merge_classifier`
    - `propstore.world.bound`
    - conflict detector tests
 
-4. Delete `claim_file_claim_payloads()`,
-   `claim_file_default_source_paper()`, and `claim_payload_source_paper()`.
+6. Delete `claim_file_claim_payloads()`,
+   `claim_file_default_source_paper()`, and `claim_payload_source_paper()` after
+   their last production caller is gone.
+7. Add or update tests that lock the new non-envelope behavior:
+
+   - typed claim files with distinct `ClaimsFileDocument.source.paper` values
+     seed source conditions correctly;
+   - merge pair comparison sets the same explicit comparison source on both
+     sides and preserves `_classify_pair()` behavior;
+   - render-time active-claim revalidation converts active rows directly to
+     `ConflictClaim` and preserves `_ConflictInputs` caching behavior.
+
+Additional Phase 3 surface checks:
+
+```powershell
+rg -n -F "ClaimFileInput" propstore/conflict_detector propstore/repo/merge_classifier.py propstore/world/bound.py tests/test_conflict_detector.py tests/test_param_conflicts.py tests/test_property.py tests/test_equation_comparison_properties.py tests/test_z3_conditions.py
+rg -n -F "LoadedEntry(" propstore/conflict_detector propstore/repo/merge_classifier.py propstore/world/bound.py tests/test_conflict_detector.py tests/test_param_conflicts.py tests/test_property.py tests/test_equation_comparison_properties.py tests/test_z3_conditions.py
+rg -n -F "claim_file_claim_payloads" propstore tests scripts
+rg -n -F "claim_file_default_source_paper" propstore tests scripts
+rg -n -F "claim_payload_source_paper" propstore tests scripts
+```
 
 Verification:
 
@@ -311,6 +470,7 @@ Exit criteria:
 - conflict detector production code has no `LoadedEntry` or claim-file envelope
   dependency
 - source-paper disjointness behavior is covered by tests
+- the additional Phase 3 surface checks have no production hits
 
 ## Phase 4: Sidecar, Merge, And Artifact Code Cutover
 
@@ -319,13 +479,41 @@ claim input surface.
 
 Tasks:
 
-1. Update `propstore.sidecar.build` and `propstore.sidecar.claims`.
-2. Update `propstore.sidecar.claim_utils`.
-3. Update `propstore.repo.structured_merge`.
-4. Update `propstore.artifacts.codes`.
-5. Update claim-related CLI commands.
+1. Update `propstore.sidecar.build` and `propstore.sidecar.claims` to import
+   `propstore.claims`, consume `LoadedClaimsFile`, and pass conflict records
+   to conflict detection.
+2. Update `propstore.sidecar.claim_utils` to use `LoadedClaimsFile` and
+   `claim_file.document.claims`.
+3. Update `propstore.repo.structured_merge` and any remaining merge code to
+   load typed claim documents from `propstore.claims`.
+4. Update `propstore.artifacts.codes` to load typed claim documents and render
+   payloads only at hash/artifact-code boundaries.
+5. Update claim-related CLI commands and `propstore.validate_concepts`.
 6. Replace raw `.data` payload mutation with typed payload conversion at IO
-   boundaries only.
+   boundaries only; the main known site is `propstore.cli.concept.rename`.
+7. Update tests in the Phase 4 verification suite to import `propstore.claims`
+   and use `.document` or typed helpers.
+8. Add or update tests that lock the remaining typed-boundary behavior:
+
+   - `populate_claims()` and `build_claim_fts_index()` consume
+     `LoadedClaimsFile` and continue producing the same sidecar rows;
+   - concept rename rewrites claim-file CEL conditions through a typed
+     document/payload revalidation boundary and does not depend on
+     `LoadedClaimFile.data`;
+   - artifact-code verification reads typed claim files and hashes
+     `ClaimDocument.to_payload()` output only at the hash boundary.
+
+Additional Phase 4 surface checks:
+
+```powershell
+rg -n -F "from propstore.claim_files" propstore tests scripts
+rg -n -F "LoadedClaimFile" propstore tests scripts
+rg -n -F "claim_file.data" propstore tests scripts
+rg -n -F ".claims" propstore/sidecar propstore/repo propstore/cli tests/test_build_sidecar.py tests/test_graph_export.py tests/test_repo_merge_object.py tests/test_merge_classifier.py tests/test_sensitivity.py tests/test_world_model.py
+```
+
+The `.claims` check is diagnostic only; hits are acceptable only when they are
+not loaded claim-file property access.
 
 Verification:
 
@@ -337,6 +525,8 @@ Exit criteria:
 
 - no production `.data` access remains for claim files
 - sidecar and merge tests pass
+- Phase 4 surface checks have no production hits for `propstore.claim_files`,
+  `LoadedClaimFile`, or claim-file `.data`
 
 ## Phase 5: Delete Obsolete Modules And Stale References
 
@@ -346,25 +536,34 @@ Tasks:
 
 1. Delete `propstore/claim_files.py`.
 2. Fix or delete scripts that import `propstore.claim_documents`.
-3. Update stale comments in:
+3. Update remaining tests to import `propstore.claims` or use local typed
+   helpers. Do not keep test-only imports from deleted modules unless the test
+   is explicitly asserting import failure.
+4. Update stale comments in:
 
    - `propstore/artifacts/documents/rules.py`
    - `propstore/artifacts/documents/predicates.py`
    - tests that reference `propstore/claim_documents.py`
 
-4. Run import-surface checks:
+5. Run import-surface checks:
 
    ```powershell
    rg -n -F "propstore.claim_files" propstore tests scripts plans
    rg -n -F "propstore.claim_documents" propstore tests scripts plans
    rg -n -F "LoadedClaimFile" propstore tests scripts
+   rg -n -F "LoadedClaimsFile.from" propstore tests scripts
    rg -n -F "ClaimFileInput" propstore tests scripts
    rg -n -F "claim_file.data" propstore tests scripts
+   rg -n -F "from_payload(" propstore/claims.py propstore tests scripts
    ```
+
+The `from_payload(` search is diagnostic. Hits are acceptable only for
+`loaded_claim_file_from_payload()` itself and deliberate IO/update boundaries
+that immediately revalidate a freshly rendered or rewritten payload.
 
 Exit criteria:
 
-- all five searches return zero production hits
+- all non-diagnostic searches return zero production hits
 - no compatibility module replaces the deleted module
 
 ## Phase 6: Full Verification
