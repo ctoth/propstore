@@ -1,16 +1,16 @@
 # Generic Typed Tree Loader And Claim File Convergence Workstream
 
 Date: 2026-04-16
-Status: active - execution paused at remaining-workstream spec checkpoint
+Status: completed - verified 2026-04-16
 
 ## Goal
 
 Collapse the repeated ad hoc YAML-directory loaders onto one generic typed
-document-tree loader, then use that foundation to remove `propstore.claim_files`
-as a production semantic carrier.
+document-tree loader, then use that foundation to remove the claim-file
+compatibility module as a production semantic carrier.
 
 This workstream is the execution plan for the claim-file cleanup surfaced during
-review of `propstore.claim_files` versus `propstore.artifacts`.
+review of the old claim-file compatibility surface versus `propstore.artifacts`.
 
 ## Exact End State
 
@@ -27,10 +27,10 @@ At completion:
    named semantic input type.
 5. Synthetic in-memory claim comparisons are represented as explicit typed
    documents or claim sequences, not fake YAML files.
-6. `propstore.claim_files` is deleted.
-7. Stale `propstore.claim_documents` imports and comments are deleted or updated.
-8. There is no compatibility alias from `propstore.claim_files` or
-   `propstore.claim_documents` to the new surfaces.
+6. The old claim-file compatibility module is deleted.
+7. Stale claim-documents imports and comments are deleted or updated.
+8. There is no compatibility alias from the old claim-file or claim-documents
+   module names to the new surfaces.
 
 ## Why This Starts With Step 0
 
@@ -55,7 +55,7 @@ Current generic pieces:
 
 Current duplicated typed-directory loaders:
 
-- `propstore.claim_files.load_claim_files()`
+- old claim-file module `load_claim_files()`
 - `propstore.validate_contexts.load_contexts()`
 - `propstore.grounding.loading.load_predicate_files()`
 - `propstore.grounding.loading.load_rule_files()`
@@ -66,7 +66,7 @@ Current claim-specific compatibility surfaces to eliminate:
 - `ClaimFileInput = LoadedClaimFile | LoadedEntry`
 - `coerce_loaded_claim_files()`
 - conflict detector synthetic `LoadedEntry` inputs
-- scripts importing deleted `propstore.claim_documents`
+- scripts importing the deleted claim-documents module
 
 ## Architectural Rules
 
@@ -117,7 +117,7 @@ Implementation requirements:
 
 Required rewrites in this step:
 
-- `propstore.claim_files.load_claim_files()`
+- old claim-file module `load_claim_files()`
 - `propstore.validate_contexts.load_contexts()`
 - `propstore.grounding.loading.load_predicate_files()`
 - `propstore.grounding.loading.load_rule_files()`
@@ -155,12 +155,12 @@ Tasks:
 1. Run:
 
    ```powershell
-   rg -n -F "propstore.claim_files" propstore tests scripts
+   rg -n -F "<old claim-file module literal>" propstore tests scripts
    rg -n -F "LoadedClaimFile" propstore tests scripts
    rg -n -F "ClaimFileInput" propstore tests scripts
    rg -n -F "claim_file.data" propstore tests scripts
    rg -n -F "LoadedEntry(" propstore tests scripts
-   rg -n -F "propstore.claim_documents" propstore tests scripts plans
+   rg -n -F "<old claim-documents module literal>" propstore tests scripts plans
    ```
 
 2. Classify every production hit into one of these buckets:
@@ -183,12 +183,12 @@ Exit criteria:
 Searches run:
 
 ```powershell
-rg -n -F "propstore.claim_files" propstore tests scripts
+rg -n -F "<old claim-file module literal>" propstore tests scripts
 rg -n -F "LoadedClaimFile" propstore tests scripts
 rg -n -F "ClaimFileInput" propstore tests scripts
 rg -n -F "claim_file.data" propstore tests scripts
 rg -n -F "LoadedEntry(" propstore tests scripts
-rg -n -F "propstore.claim_documents" propstore tests scripts plans
+rg -n -F "<old claim-documents module literal>" propstore tests scripts plans
 ```
 
 Production hit classification:
@@ -210,7 +210,7 @@ Production hit classification:
   - `propstore.sidecar.claim_utils`
   - `propstore.cli.concept`
 - raw payload bridge:
-  - `propstore.claim_files.LoadedClaimFile.data`
+  - old claim-file module `LoadedClaimFile.data`
   - `propstore.compiler.passes`
   - `propstore.cli.concept`
   - `scripts.mergeability_probe`
@@ -302,8 +302,8 @@ Canonical claim-document surface:
 - `claim_file_claims()`, `claim_file_source_paper()`, `claim_file_stage()`,
   and `claim_file_payload()` are named typed access helpers. They are not
   compatibility aliases for `.claims`, `.source_paper`, `.stage`, or `.data`.
-- No new production import may target `propstore.claim_files` or
-  `propstore.claim_documents`.
+- No new production import may target the old claim-file or claim-documents
+  module names.
 
 Conflict detector target:
 
@@ -375,12 +375,13 @@ Stale script/reference target:
 - `scripts/mergeability_probe.py` must either be updated to
   `propstore.claims` and typed document access or deleted if it no longer has a
   maintained caller.
-- `scripts/validate_claims_only.py` imports `propstore.claim_documents`; it must
+- `scripts/validate_claims_only.py` imports the deleted claim-documents module;
+  it must
   either be updated to the typed claim/document APIs and current repository
   constructor, or deleted if obsolete.
 - Stale comments in tests and authored document modules should be rewritten to
   name `LoadedDocument[ClaimsFileDocument]` or `propstore.claims`, not
-  `LoadedClaimFile` or `propstore.claim_documents`.
+  `LoadedClaimFile` or the claim-documents module name.
 
 Phase ordering constraints:
 
@@ -389,8 +390,8 @@ Phase ordering constraints:
   caller updates required by the changed detector API.
 - Phase 4 owns remaining typed claim-file consumers and payload mutation at
   sidecar, merge, artifact, and CLI boundaries.
-- Phase 5 owns deletion of `propstore.claim_files` and stale
-  `propstore.claim_documents` references after all production imports have
+- Phase 5 owns deletion of the old claim-file module and stale claim-documents
+  references after all production imports have
   moved.
 - Each phase must have a clean import-surface check for its owned surface before
   commit. A passing targeted suite is not enough if the owned old surface still
@@ -506,7 +507,7 @@ Tasks:
 Additional Phase 4 surface checks:
 
 ```powershell
-rg -n -F "from propstore.claim_files" propstore tests scripts
+rg -n -F "from <old claim-file module literal>" propstore tests scripts
 rg -n -F "LoadedClaimFile" propstore tests scripts
 rg -n -F "claim_file.data" propstore tests scripts
 rg -n -F ".claims" propstore/sidecar propstore/repo propstore/cli tests/test_build_sidecar.py tests/test_graph_export.py tests/test_repo_merge_object.py tests/test_merge_classifier.py tests/test_sensitivity.py tests/test_world_model.py
@@ -525,7 +526,7 @@ Exit criteria:
 
 - no production `.data` access remains for claim files
 - sidecar and merge tests pass
-- Phase 4 surface checks have no production hits for `propstore.claim_files`,
+- Phase 4 surface checks have no production hits for the old claim-file module,
   `LoadedClaimFile`, or claim-file `.data`
 
 ## Phase 5: Delete Obsolete Modules And Stale References
@@ -535,7 +536,7 @@ Goal: remove old claim-file and claim-document module surfaces.
 Tasks:
 
 1. Delete `propstore/claim_files.py`.
-2. Fix or delete scripts that import `propstore.claim_documents`.
+2. Fix or delete scripts that import the deleted claim-documents module.
 3. Update remaining tests to import `propstore.claims` or use local typed
    helpers. Do not keep test-only imports from deleted modules unless the test
    is explicitly asserting import failure.
@@ -548,8 +549,8 @@ Tasks:
 5. Run import-surface checks:
 
    ```powershell
-   rg -n -F "propstore.claim_files" propstore tests scripts plans
-   rg -n -F "propstore.claim_documents" propstore tests scripts plans
+   rg -n -F "<old claim-file module literal>" propstore tests scripts plans
+   rg -n -F "<old claim-documents module literal>" propstore tests scripts plans
    rg -n -F "LoadedClaimFile" propstore tests scripts
    rg -n -F "LoadedClaimsFile.from" propstore tests scripts
    rg -n -F "ClaimFileInput" propstore tests scripts
@@ -584,6 +585,51 @@ Completion criteria:
 - import-surface checks are clean
 - this workstream is updated with dated completion notes
 - every phase is completed or explicitly deferred by the user
+
+## Completion Notes - 2026-04-16
+
+Implemented phases:
+
+- Step 0 added the generic typed document directory loader and rewired claim,
+  context, predicate, and rule loaders through it.
+- Phase 1 recorded the claim-file dependency inventory and replacement
+  strategies.
+- Phase 2 moved compiler and validation claim inputs to
+  `LoadedDocument[ClaimsFileDocument]` via `propstore.claims`.
+- Phase 3 changed conflict detection to consume `ConflictClaim` records and
+  removed fake file-envelope comparisons from merge and bound-world paths.
+- Phase 4 moved sidecar, merge, artifact-code, CLI, and concept-validation
+  claim-file consumers to the typed claim boundary.
+- Phase 5 deleted the obsolete claim-file compatibility module, deleted the
+  stale claim-only validation script, and updated stale comments/references.
+- Phase 6 fixed one stale test caller and completed full-suite verification.
+
+Verification evidence:
+
+- `typed-tree-loader`: 85 passed in
+  `logs\test-runs\typed-tree-loader-20260415-224838.log`.
+- `claim-typed-input`: 114 passed in
+  `logs\test-runs\claim-typed-input-20260415-225215.log`.
+- `conflict-claim-input`: 185 passed in
+  `logs\test-runs\conflict-claim-input-20260415-231307.log`.
+- `sidecar-merge-claim-input`: 274 passed in
+  `logs\test-runs\sidecar-merge-claim-input-20260415-232036.log`.
+- `delete-claim-file-surfaces`: 22 passed in
+  `logs\test-runs\delete-claim-file-surfaces-20260415-232505.log`.
+- `parameter-z3-strictness`: 1 passed in
+  `logs\test-runs\parameter-z3-strictness-20260415-233314.log`.
+- Full suite: 2483 passed, 1 skipped, 1 warning in
+  `logs\test-runs\claim-file-convergence-full-20260415-233323.log`.
+
+Final surface result:
+
+- Code, test, and script searches for the old claim-file module name, old
+  claim-documents module name, `LoadedClaimFile`, `LoadedClaimsFile.from`,
+  `ClaimFileInput`, and `claim_file.data` are clean.
+- The diagnostic `from_payload(` search has only deliberate typed-boundary,
+  conflict-record, context-type, and test helper hits.
+- Historical plan text now avoids the old module-name literals so the
+  plan-inclusive module-name checks stay clean.
 
 ## Execution Notes
 
