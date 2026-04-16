@@ -1170,12 +1170,27 @@ class TestClaimStanceTable:
         assert "conflicting value" in row["note"]
         conn.close()
 
-    def test_raw_inline_stance_targets_are_rejected_at_compile_boundary(
+    def test_raw_inline_stance_targets_are_quarantined_not_rejected(
         self,
         concept_dir,
         knowledge_reader,
         sidecar_path,
     ):
+        """Raw-id-broken claims quarantine into sidecar instead of aborting build.
+
+        Per ws-z-render-gates.md axis-1 finding 3.1: a claim with a raw 'id'
+        input but no canonical identity fields must *not* abort the whole
+        sidecar build. The build proceeds; the offending claim lands as a
+        synthetic-id row with ``build_status='blocked'`` and a
+        ``build_diagnostics`` row records why. All other claims ingest
+        normally.
+
+        This test is the inversion of the prior
+        ``test_raw_inline_stance_targets_are_rejected_at_compile_boundary``:
+        the gate was a build-time abort; now it's a render-time policy
+        filter over quarantine rows.
+        """
+
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         (claims_dir / "raw_handles.yaml").write_text(
@@ -1206,8 +1221,131 @@ class TestClaimStanceTable:
             )
         )
 
-        with pytest.raises(ValueError, match="raw 'id' input"):
-            build_sidecar(knowledge_reader, sidecar_path, force=True)
+        # Build must succeed — no exception.
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
+
+        conn = sqlite3.connect(sidecar_path)
+        try:
+            # At least one blocked row exists with matching diagnostic.
+            blocked_rows = conn.execute(
+                "SELECT id, build_status, source_paper FROM claim_core "
+                "WHERE build_status = 'blocked'"
+            ).fetchall()
+            assert len(blocked_rows) >= 1, (
+                "expected at least one quarantined (build_status='blocked') claim_core row"
+            )
+
+            diagnostic_rows = conn.execute(
+                "SELECT claim_id, diagnostic_kind, blocking, severity, message, file "
+                "FROM build_diagnostics "
+                "WHERE diagnostic_kind = 'raw_id_input'"
+            ).fetchall()
+            assert len(diagnostic_rows) >= 1, (
+                "expected at least one build_diagnostics row with "
+                "diagnostic_kind='raw_id_input'"
+            )
+            for diag in diagnostic_rows:
+                claim_id, kind, blocking, severity, message, file_field = diag
+                assert blocking == 1
+                assert severity == "error"
+                assert "raw 'id' input" in message
+                assert file_field == "raw_handles"
+                # Each diagnostic references a quarantined claim row.
+                assert any(row[0] == claim_id for row in blocked_rows), (
+                    f"diagnostic claim_id {claim_id!r} does not match any blocked claim row"
+                )
+        finally:
+            conn.close()
+
+    def test_raw_id_claim_quarantine_preserves_other_claims(
+        self,
+        concept_dir,
+        knowledge_reader,
+        sidecar_path,
+    ):
+        """N valid + 1 raw-id-broken claim → N ingested + 1 blocked.
+
+        Property: a build with N well-formed claims and one raw-id-broken
+        claim produces N+1 claim_core rows; the broken row has
+        ``build_status='blocked'``; the N valid rows have
+        ``build_status='ingested'``. No data is lost.
+        """
+
+        claims_dir = concept_dir.parent / "claims"
+        claims_dir.mkdir(exist_ok=True)
+
+        # Two valid claims through the normalize helper (will get artifact_ids).
+        valid_payload = _normalize_claim_concept_refs(
+            {
+                "source": {"paper": "valid_only"},
+                "claims": [
+                    {
+                        "id": "valid_a",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 150.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "valid_only", "page": 1},
+                    },
+                    {
+                        "id": "valid_b",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 175.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "valid_only", "page": 2},
+                    },
+                ],
+            }
+        )
+        (claims_dir / "valid_only.yaml").write_text(
+            yaml.dump(valid_payload, default_flow_style=False)
+        )
+
+        # One raw-id-broken claim — no normalization, triggers raw 'id' diagnostic.
+        (claims_dir / "broken_claim.yaml").write_text(
+            yaml.dump(
+                {
+                    "source": {"paper": "broken_claim"},
+                    "claims": [
+                        {
+                            "id": "bad_claim",
+                            "type": "parameter",
+                            "concept": CONCEPT1_ID,
+                            "value": 300.0,
+                            "unit": "Hz",
+                            "provenance": {"paper": "broken_claim", "page": 1},
+                        },
+                    ],
+                },
+                default_flow_style=False,
+            )
+        )
+
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
+
+        conn = sqlite3.connect(sidecar_path)
+        try:
+            ingested = conn.execute(
+                "SELECT COUNT(*) FROM claim_core WHERE build_status = 'ingested'"
+            ).fetchone()[0]
+            blocked = conn.execute(
+                "SELECT COUNT(*) FROM claim_core WHERE build_status = 'blocked'"
+            ).fetchone()[0]
+            total = conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
+            assert ingested == 2, f"expected 2 ingested claims, got {ingested}"
+            assert blocked == 1, f"expected 1 blocked claim, got {blocked}"
+            assert total == 3
+
+            # The diagnostic records the synthetic-id provenance.
+            diag = conn.execute(
+                "SELECT detail_json FROM build_diagnostics "
+                "WHERE diagnostic_kind = 'raw_id_input'"
+            ).fetchone()
+            assert diag is not None
+            assert diag[0] is not None, "detail_json must record synthetic-id basis"
+        finally:
+            conn.close()
 
     def test_invalid_inline_stance_target_raises(self, concept_dir, knowledge_reader, sidecar_path):
         claims_dir = concept_dir.parent / "claims"
