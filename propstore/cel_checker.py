@@ -10,6 +10,8 @@ We parse a sufficient subset rather than implementing full CEL.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -17,6 +19,15 @@ from enum import Enum
 from typing import Any
 
 from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES as _STANDARD_SYNTHETIC_BINDING_NAMES
+from propstore.cel_types import (
+    CelExpr,
+    CelRegistryFingerprint,
+    CheckedCelConditionSet,
+    CheckedCelExpr,
+    ParsedCelExpr,
+    checked_condition_set,
+    to_cel_expr,
+)
 
 
 class KindType(Enum):
@@ -364,10 +375,15 @@ class Parser:
         raise ValueError(f"Unexpected token: {t.type} ({t.value!r}) at position {t.pos}")
 
 
-def parse_cel(expr: str) -> ASTNode:
-    tokens = tokenize(expr)
+def parse_cel(expr: str | CelExpr) -> ASTNode:
+    tokens = tokenize(str(expr))
     parser = Parser(tokens)
     return parser.parse()
+
+
+def parse_cel_expr(expr: str | CelExpr) -> ParsedCelExpr:
+    source = to_cel_expr(expr)
+    return ParsedCelExpr(source=source, ast=parse_cel(source))
 
 
 # ── Type Checker ─────────────────────────────────────────────────────
@@ -398,8 +414,8 @@ _DISALLOWED_KIND_USAGE: dict[str, dict[KindType, str]] = {
 
 
 def check_cel_expression(
-    expr: str,
-    registry: dict[str, ConceptInfo],
+    expr: str | CelExpr,
+    registry: Mapping[str, ConceptInfo],
 ) -> list[CelError]:
     """Type-check a CEL expression against the concept registry.
 
@@ -410,16 +426,77 @@ def check_cel_expression(
     Returns:
         List of errors/warnings. Empty list means the expression is valid.
     """
+    source = to_cel_expr(expr)
     errors: list[CelError] = []
 
     try:
-        ast = parse_cel(expr)
+        ast = parse_cel(source)
     except ValueError as e:
-        errors.append(CelError(expr, f"Parse error: {e}"))
+        errors.append(CelError(str(source), f"Parse error: {e}"))
         return errors
 
-    _check_node(ast, expr, registry, errors)
+    _check_node(ast, str(source), registry, errors)
     return errors
+
+
+def cel_registry_fingerprint(
+    registry: Mapping[str, ConceptInfo],
+) -> CelRegistryFingerprint:
+    """Return a deterministic fingerprint of CEL-relevant registry semantics."""
+    payload = [
+        {
+            "canonical_name": canonical_name,
+            "id": info.id,
+            "kind": info.kind.value,
+            "category_values": sorted(info.category_values),
+            "category_extensible": info.category_extensible,
+        }
+        for canonical_name, info in sorted(registry.items())
+    ]
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+    return CelRegistryFingerprint(f"sha256:{digest}")
+
+
+def check_cel_expr(
+    expr: str | CelExpr,
+    registry: Mapping[str, ConceptInfo],
+) -> CheckedCelExpr:
+    """Parse and type-check one CEL expression, returning a checked carrier."""
+    source = to_cel_expr(expr)
+    try:
+        ast = parse_cel(source)
+    except ValueError as exc:
+        raise ValueError(f"Parse error: {exc}") from exc
+    errors: list[CelError] = []
+    _check_node(ast, str(source), registry, errors)
+    hard_errors = [error for error in errors if not error.is_warning]
+    if hard_errors:
+        message = "; ".join(error.message for error in hard_errors)
+        raise ValueError(message)
+    return CheckedCelExpr._create(
+        source=source,
+        ast=ast,
+        registry_fingerprint=cel_registry_fingerprint(registry),
+        warnings=tuple(error for error in errors if error.is_warning),
+    )
+
+
+def check_cel_condition_set(
+    conditions: Sequence[str | CelExpr],
+    registry: Mapping[str, ConceptInfo],
+) -> CheckedCelConditionSet:
+    """Parse, type-check, deduplicate, and sort a conjunction of CEL conditions."""
+    checked = [
+        check_cel_expr(condition, registry)
+        for condition in conditions
+    ]
+    if not checked:
+        return CheckedCelConditionSet(
+            conditions=(),
+            registry_fingerprint=cel_registry_fingerprint(registry),
+        )
+    return checked_condition_set(checked)
 
 
 def _resolve_type(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> ExprType:
