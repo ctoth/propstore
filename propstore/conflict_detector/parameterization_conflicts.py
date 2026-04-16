@@ -10,7 +10,6 @@ from itertools import product
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_files import ClaimFileInput
 from propstore.value_comparison import (
     DEFAULT_TOLERANCE,
     extract_interval as _extract_interval,
@@ -406,12 +405,12 @@ def _detect_parameterization_conflicts(
     records: list[ConflictRecord],
     by_concept: dict[str, list[ConflictClaim]],
     concept_registry: dict[str, dict],
-    claim_files: Sequence[ClaimFileInput],
+    claims: Sequence[ConflictClaim],
     *,
     context_hierarchy: ContextHierarchy | None = None,
     forms: dict[str, FormDefinition] | None = None,
 ) -> None:
-    all_param_claims = by_concept or _collect_parameter_claims(claim_files)
+    all_param_claims = by_concept or _collect_parameter_claims(claims)
     seen_record_keys: set[tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]] = set()
 
     for concept_id, concept_data in _iter_unique_concepts(concept_registry):
@@ -484,7 +483,7 @@ def _state_key(state: DerivedConflictValue) -> tuple[str, str, tuple[str, ...], 
 
 
 def _detect_transitive_conflicts_for_claims(
-    claim_files: Sequence[ClaimFileInput],
+    claims: Sequence[ConflictClaim],
     concept_registry: dict[str, dict],
     by_concept: dict[str, list[ConflictClaim]],
     *,
@@ -597,15 +596,15 @@ def _detect_transitive_conflicts_for_claims(
 
 
 def detect_transitive_conflicts(
-    claim_files: Sequence[ClaimFileInput],
+    claims: Sequence[ConflictClaim],
     concept_registry: dict[str, dict],
     *,
     context_hierarchy: ContextHierarchy | None = None,
     forms: dict[str, FormDefinition] | None = None,
 ) -> list[ConflictRecord]:
-    by_concept = _collect_parameter_claims(claim_files)
+    by_concept = _collect_parameter_claims(claims)
     return _detect_transitive_conflicts_for_claims(
-        claim_files,
+        claims,
         concept_registry,
         by_concept,
         context_hierarchy=context_hierarchy,

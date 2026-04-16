@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_files import ClaimFileInput
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.value_comparison import (
     value_str as _value_str,
@@ -30,14 +29,14 @@ def _build_z3_solver(cel_registry: dict[str, ConceptInfo]):
 
 
 def detect_parameter_conflicts(
-    claim_files: Sequence[ClaimFileInput],
+    claims: Sequence[ConflictClaim],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None = None,
     solver=None,
 ) -> tuple[list[ConflictRecord], dict[str, list[ConflictClaim]]]:
     records: list[ConflictRecord] = []
-    by_concept = _collect_parameter_claims(claim_files)
+    by_concept = _collect_parameter_claims(claims)
     z3_solver = solver if solver is not None else _build_z3_solver(cel_registry)
 
     for concept_id, claims in by_concept.items():

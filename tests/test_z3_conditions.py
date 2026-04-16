@@ -11,7 +11,8 @@ from propstore.conflict_detector import (
     ConflictClass,
     detect_conflicts as _detect_conflicts,
 )
-from propstore.loaded import LoadedEntry
+from propstore.conflict_detector.collectors import conflict_claim_from_payload
+from propstore.conflict_detector.models import ConflictClaim
 from tests.conftest import make_cel_registry, make_concept_registry
 
 
@@ -31,17 +32,27 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", conditions=None):
 
 
 def make_claim_file(claims, filename="test_paper"):
-    from pathlib import Path
-    return LoadedEntry(
-        filename=filename,
-        source_path=Path(f"/fake/{filename}.yaml"),
-        data={"source": {"paper": filename}, "claims": claims},
-    )
+    records = []
+    for claim_payload in claims:
+        claim = conflict_claim_from_payload(claim_payload, source_paper=filename)
+        assert claim is not None
+        records.append(claim)
+    return records
+
+
+def flatten_claims(claims_or_files):
+    flattened = []
+    for item in claims_or_files:
+        if isinstance(item, ConflictClaim):
+            flattened.append(item)
+        else:
+            flattened.extend(item)
+    return flattened
 
 
 def detect_conflicts(claim_files, registry, context_hierarchy=None):
     return _detect_conflicts(
-        claim_files,
+        flatten_claims(claim_files),
         registry,
         make_cel_registry(registry),
         context_hierarchy=context_hierarchy,

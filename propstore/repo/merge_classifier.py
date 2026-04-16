@@ -187,7 +187,7 @@ def _classify_pair(
 ) -> _DiffKind:
     """Classify disagreement between two concrete claim alternatives."""
     from propstore.conflict_detector import ConflictClass, detect_conflicts
-    from propstore.loaded import LoadedEntry
+    from propstore.conflict_detector.collectors import conflict_claim_from_payload
 
     comparison_source = (
         left_claim.provenance_payload().get("paper")
@@ -199,33 +199,23 @@ def _classify_pair(
     if not isinstance(comparison_source, str) or not comparison_source:
         comparison_source = "merge_comparison"
 
-    left_file = LoadedEntry(
-        filename="_left",
-        source_path=None,
-        data={
-            "source": {
-                "paper": comparison_source,
-                "extraction_model": "merge",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": [left_claim.to_payload(include_branch_origin=False)],
-        },
+    left_conflict_claim = conflict_claim_from_payload(
+        left_claim.to_payload(include_branch_origin=False),
+        source_paper=comparison_source,
     )
-    right_file = LoadedEntry(
-        filename="_right",
-        source_path=None,
-        data={
-            "source": {
-                "paper": comparison_source,
-                "extraction_model": "merge",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": [right_claim.to_payload(include_branch_origin=False)],
-        },
+    right_conflict_claim = conflict_claim_from_payload(
+        right_claim.to_payload(include_branch_origin=False),
+        source_paper=comparison_source,
     )
+    if left_conflict_claim is None or right_conflict_claim is None:
+        return _DiffKind.COMPATIBLE
 
     try:
-        records = detect_conflicts([left_file, right_file], concept_registry={}, cel_registry={})
+        records = detect_conflicts(
+            [left_conflict_claim, right_conflict_claim],
+            concept_registry={},
+            cel_registry={},
+        )
     except Z3TranslationError:
         left_conditions = sorted(left_claim.document.conditions)
         right_conditions = sorted(right_claim.document.conditions)

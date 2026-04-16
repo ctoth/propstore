@@ -1844,11 +1844,15 @@ class TestTransitiveConsistency:
     def test_transitive_conflict_detected(self, world, claim_files, concept_dir):
         """Build sidecar with claim11, call detect_transitive_conflicts, verify PARAM_CONFLICT for concept5."""
         from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
         from propstore.core.concepts import load_concepts
 
         concepts = load_concepts(concept_dir)
         concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
-        records = detect_transitive_conflicts(claim_files, concept_registry)
+        records = detect_transitive_conflicts(
+            conflict_claims_from_claim_files(claim_files),
+            concept_registry,
+        )
 
         # concept7 = 2 * concept5, concept5 = concept6 * concept1
         # The chain: concept6(0.001) * concept1(200 or 250 or 350) -> concept5 -> concept7
@@ -1913,11 +1917,15 @@ class TestTransitiveConsistency:
     def test_transitive_conflict_has_chain(self, world, claim_files, concept_dir):
         """Verify derivation_chain field is populated when transitive conflicts exist."""
         from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
         from propstore.core.concepts import load_concepts
 
         concepts = load_concepts(concept_dir)
         concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
-        records = detect_transitive_conflicts(claim_files, concept_registry)
+        records = detect_transitive_conflicts(
+            conflict_claims_from_claim_files(claim_files),
+            concept_registry,
+        )
         for r in records:
             assert r.derivation_chain is not None
             assert len(r.derivation_chain) > 0
@@ -1925,8 +1933,9 @@ class TestTransitiveConsistency:
     def test_no_transitive_when_compatible(self, world, claim_files, concept_dir):
         """If claim11's value matches derived (e.g. 0.2), no conflict emitted."""
         from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
         from propstore.core.concepts import load_concepts
-        from propstore.loaded import LoadedEntry
+        from propstore.claims import loaded_claim_file_from_payload
 
         concepts = load_concepts(concept_dir)
         concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
@@ -1946,14 +1955,17 @@ class TestTransitiveConsistency:
                     new_claims.append(claim)
             new_data["claims"] = new_claims
             modified_files.append(
-                LoadedEntry(
+                loaded_claim_file_from_payload(
                     filename=cf.filename,
                     source_path=cf.source_path,
                     data=new_data,
                 )
             )
 
-        records = detect_transitive_conflicts(modified_files, concept_registry)
+        records = detect_transitive_conflicts(
+            conflict_claims_from_claim_files(modified_files),
+            concept_registry,
+        )
         # With compatible value, no transitive conflict for concept5
         concept5_records = [r for r in records if r.concept_id == "concept5"]
         assert len(concept5_records) == 0
@@ -1961,11 +1973,15 @@ class TestTransitiveConsistency:
     def test_transitive_respects_conditions(self, world, claim_files, concept_dir):
         """Conflict only under bindings where all claims are active."""
         from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
         from propstore.core.concepts import load_concepts
 
         concepts = load_concepts(concept_dir)
         concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
-        records = detect_transitive_conflicts(claim_files, concept_registry)
+        records = detect_transitive_conflicts(
+            conflict_claims_from_claim_files(claim_files),
+            concept_registry,
+        )
 
         # All conflicts should have conditions (since parameterizations have conditions)
         for r in records:

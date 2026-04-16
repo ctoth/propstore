@@ -17,8 +17,14 @@ from propstore.conflict_detector import (
     ConflictClass,
     detect_conflicts as _detect_conflicts,
 )
+from propstore.conflict_detector.collectors import (
+    conflict_claim_from_payload,
+    conflict_claims_from_claim_files,
+)
+from propstore.conflict_detector.models import ConflictClaim
+from propstore.claims import loaded_claim_file_from_payload
 from propstore.cel_checker import ConceptInfo, KindType
-from propstore.loaded import LoadedEntry
+from propstore.context_types import LoadedContext
 from tests.conftest import make_cel_registry, make_concept_identity, make_concept_registry
 
 
@@ -49,18 +55,32 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", conditions=None):
 
 
 def make_claim_file(claims, filename="test_paper"):
-    """Wrap claims in a LoadedEntry."""
-    from pathlib import Path
-    return LoadedEntry(
-        filename=filename,
-        source_path=Path(f"/fake/{filename}.yaml"),
-        data={"source": {"paper": filename}, "claims": claims},
-    )
+    """Build runtime conflict claims from claim payloads."""
+    records = []
+    for claim in claims:
+        record = conflict_claim_from_payload(claim, source_paper=filename)
+        assert record is not None
+        records.append(record)
+    return records
+
+
+def make_context(filename: str, data: dict) -> LoadedContext:
+    return LoadedContext.from_payload(filename=filename, source_path=None, data=data)
+
+
+def flatten_claims(claims_or_files):
+    flattened = []
+    for item in claims_or_files:
+        if isinstance(item, ConflictClaim):
+            flattened.append(item)
+        else:
+            flattened.extend(item)
+    return flattened
 
 
 def detect_conflicts(claim_files, registry, context_hierarchy=None):
     return _detect_conflicts(
-        claim_files,
+        flatten_claims(claim_files),
         registry,
         make_cel_registry(registry),
         context_hierarchy=context_hierarchy,
@@ -472,6 +492,33 @@ class TestRecordFields:
             filename="paper_b",
         )
         records = detect_conflicts([cf1, cf2], make_concept_registry())
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.PHI_NODE
+
+    def test_typed_claim_files_add_source_conditions_at_boundary(self):
+        """Typed claim files convert to runtime conflict claims with source conditions."""
+        file_a = loaded_claim_file_from_payload(
+            filename="paper_a",
+            source_path=None,
+            data={
+                "source": {"paper": "paper_a"},
+                "claims": [make_parameter_claim("claim1", "concept1", 200.0)],
+            },
+        )
+        file_b = loaded_claim_file_from_payload(
+            filename="paper_b",
+            source_path=None,
+            data={
+                "source": {"paper": "paper_b"},
+                "claims": [make_parameter_claim("claim2", "concept1", 350.0)],
+            },
+        )
+
+        claims = conflict_claims_from_claim_files([file_a, file_b])
+        assert claims[0].conditions == ("source == 'paper_a'",)
+        assert claims[1].conditions == ("source == 'paper_b'",)
+
+        records = detect_conflicts([claims], make_concept_registry())
         assert len(records) == 1
         assert records[0].warning_class == ConflictClass.PHI_NODE
 
@@ -1009,12 +1056,12 @@ class TestTransitiveContextSemantics:
         ]
         cf = make_claim_file(claims)
         hierarchy = ContextHierarchy([
-            LoadedEntry("root", None, {"id": "ctx_root", "name": "Root"}),
-            LoadedEntry("other", None, {"id": "ctx_other", "name": "Other"}),
+            make_context("root", {"id": "ctx_root", "name": "Root"}),
+            make_context("other", {"id": "ctx_other", "name": "Other"}),
         ])
 
         records = detect_transitive_conflicts(
-            [cf],
+            cf,
             registry,
             context_hierarchy=hierarchy,
         )
@@ -1043,8 +1090,8 @@ class TestTransitiveContextSemantics:
         ]
         cf = make_claim_file(claims)
         hierarchy = ContextHierarchy([
-            LoadedEntry("alpha", None, {"id": "ctx_alpha", "name": "Alpha"}),
-            LoadedEntry("beta", None, {"id": "ctx_beta", "name": "Beta"}),
+            make_context("alpha", {"id": "ctx_alpha", "name": "Alpha"}),
+            make_context("beta", {"id": "ctx_beta", "name": "Beta"}),
         ])
 
         records = detect_conflicts(
@@ -1096,7 +1143,7 @@ class TestAlgorithmExceptionHandling:
             "propstore.conflict_detector.algorithms.ast_compare",
             side_effect=ValueError("bad parse"),
         ):
-            records = detect_algorithm_conflicts([cf], registry)
+            records = detect_algorithm_conflicts(cf, registry)
 
         # Pair was skipped — no crash, no records from this pair
         assert isinstance(records, list)
@@ -1131,7 +1178,7 @@ class TestAlgorithmExceptionHandling:
             side_effect=RuntimeError("unexpected"),
         ):
             with pytest.raises(RuntimeError, match="unexpected"):
-                detect_algorithm_conflicts([cf], registry)
+                detect_algorithm_conflicts(cf, registry)
 
 
 class TestParameterZ3FailureHandling:
@@ -1159,7 +1206,7 @@ class TestParameterZ3FailureHandling:
             side_effect=Z3TranslationError("partition failed"),
         ):
             with pytest.raises(RuntimeError, match="Z3 partitioning failed during parameter conflict detection"):
-                detect_parameter_conflicts([cf], cel_registry, solver=solver)
+                detect_parameter_conflicts(cf, cel_registry, solver=solver)
 
     def test_z3_partition_unexpected_error_propagates(self):
         """RuntimeError in partition should propagate."""
@@ -1184,7 +1231,7 @@ class TestParameterZ3FailureHandling:
             side_effect=RuntimeError("unexpected"),
         ):
             with pytest.raises(RuntimeError, match="unexpected"):
-                detect_parameter_conflicts([cf], cel_registry, solver=solver)
+                detect_parameter_conflicts(cf, cel_registry, solver=solver)
 
     def test_z3_disjoint_unexpected_error_propagates(self):
         """RuntimeError in are_disjoint should propagate, not be swallowed."""
@@ -1213,4 +1260,4 @@ class TestParameterZ3FailureHandling:
             side_effect=RuntimeError("unexpected"),
         ):
             with pytest.raises(RuntimeError, match="unexpected"):
-                detect_parameter_conflicts([cf], cel_registry, solver=solver)
+                detect_parameter_conflicts(cf, cel_registry, solver=solver)

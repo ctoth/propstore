@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.conflict_detector import detect_conflicts as _detect_conflicts
+from propstore.conflict_detector.collectors import conflict_claim_from_payload
 from propstore.conflict_detector.models import ConflictClaimVariable
 from propstore.conflict_detector.models import ConflictClaim
 from propstore.equation_comparison import (
@@ -27,7 +26,6 @@ from propstore.equation_parser import (
     UnaryExpr,
     render_equation,
 )
-from propstore.loaded import LoadedEntry
 from tests.conftest import make_cel_registry, make_concept_registry
 
 
@@ -38,9 +36,19 @@ _BASE_VARIABLES = (
 )
 
 
+def _flatten_claims(claims_or_files):
+    flattened = []
+    for item in claims_or_files:
+        if isinstance(item, ConflictClaim):
+            flattened.append(item)
+        else:
+            flattened.extend(item)
+    return flattened
+
+
 def detect_conflicts(claim_files, registry, context_hierarchy=None):
     return _detect_conflicts(
-        claim_files,
+        _flatten_claims(claim_files),
         registry,
         make_cel_registry(registry),
         context_hierarchy=context_hierarchy,
@@ -70,12 +78,13 @@ def _make_claim(
     }
 
 
-def _make_claim_file(*claims: dict) -> LoadedEntry:
-    return LoadedEntry(
-        filename="equations",
-        source_path=Path("/fake/equations.yaml"),
-        data={"source": {"paper": "equations"}, "claims": list(claims)},
-    )
+def _make_claim_file(*claims: dict) -> list[ConflictClaim]:
+    records = []
+    for claim_payload in claims:
+        claim = conflict_claim_from_payload(claim_payload, source_paper="equations")
+        assert claim is not None
+        records.append(claim)
+    return records
 
 
 def _claim_from_expr(

@@ -249,15 +249,17 @@ def populate_conflicts(
     context_hierarchy=None,
 ) -> None:
     from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
+    from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 
+    conflict_claims = conflict_claims_from_claim_files(claim_files)
     records = detect_conflicts(
-        claim_files,
+        conflict_claims,
         concept_registry,
         cel_registry,
         context_hierarchy=context_hierarchy,
     )
     transitive_records = detect_transitive_conflicts(
-        claim_files,
+        conflict_claims,
         concept_registry,
         context_hierarchy=context_hierarchy,
     )

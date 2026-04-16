@@ -230,6 +230,7 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
 def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None:
     """Detect and report claim conflicts."""
     from propstore.conflict_detector import ConflictClass, detect_conflicts
+    from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
     from propstore.claim_files import load_claim_files
     from propstore.compiler.context import (
         build_compilation_context_from_repo,
@@ -254,7 +255,11 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
 
     context = build_compilation_context_from_repo(repo, claim_files=list(files))
     registry = concept_registry_for_context(context)
-    records = detect_conflicts(files, registry, context.cel_registry)
+    records = detect_conflicts(
+        conflict_claims_from_claim_files(files),
+        registry,
+        context.cel_registry,
+    )
 
     # Filter
     if concept:

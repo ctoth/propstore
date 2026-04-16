@@ -1,10 +1,10 @@
 """Regression tests for parameterization conflict detection."""
 
-from pathlib import Path
-
 import warnings
 
+from propstore.conflict_detector.collectors import conflict_claim_from_payload
 from propstore.conflict_detector.models import ConflictClass, ConflictClaim
+from propstore.context_types import LoadedContext
 from propstore.form_utils import FormDefinition, UnitConversion
 from propstore.conflict_detector import (
     detect_conflicts as _detect_conflicts,
@@ -13,7 +13,6 @@ from propstore.conflict_detector import (
 from propstore.conflict_detector.parameterization_conflicts import (
     _detect_parameterization_conflicts,
 )
-from propstore.loaded import LoadedEntry
 from tests.conftest import make_cel_registry, make_concept_identity
 
 from propstore.cel_checker import KindType
@@ -36,12 +35,8 @@ def _frequency_form() -> FormDefinition:
     )
 
 
-def _stub_claim_file() -> LoadedEntry:
-    return LoadedEntry(
-        filename="test",
-        source_path=Path("test.yaml"),
-        data={"source": {"paper": "test"}, "claims": []},
-    )
+def _stub_claim_file() -> list[ConflictClaim]:
+    return []
 
 
 def _concept(local_id: str, *, form: str) -> tuple[str, dict]:
@@ -59,9 +54,35 @@ def _claim(payload: dict) -> ConflictClaim:
     return claim
 
 
+def _claim_file(payloads: list[dict], filename: str = "test") -> list[ConflictClaim]:
+    claims = []
+    for payload in payloads:
+        normalized = dict(payload)
+        if "type" not in normalized and "concept" in normalized:
+            normalized["type"] = "parameter"
+        claim = conflict_claim_from_payload(normalized, source_paper=filename)
+        assert claim is not None
+        claims.append(claim)
+    return claims
+
+
+def _context(filename: str, data: dict) -> LoadedContext:
+    return LoadedContext.from_payload(filename=filename, source_path=None, data=data)
+
+
+def _flatten_claims(claims_or_files):
+    flattened = []
+    for item in claims_or_files:
+        if isinstance(item, ConflictClaim):
+            flattened.append(item)
+        else:
+            flattened.extend(item)
+    return flattened
+
+
 def detect_conflicts(claim_files, registry, context_hierarchy=None):
     return _detect_conflicts(
-        claim_files,
+        _flatten_claims(claim_files),
         registry,
         make_cel_registry(registry),
         context_hierarchy=context_hierarchy,
@@ -93,15 +114,9 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
             ],
         },
     }
-    claim_file = LoadedEntry(
-        filename="test",
-        source_path=Path("test.yaml"),
-        data={"source": {"paper": "test"}, "claims": []},
-    )
-
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        _detect_parameterization_conflicts(records, by_concept, concept_registry, [claim_file])
+        _detect_parameterization_conflicts(records, by_concept, concept_registry, [])
 
     param_warnings = [
         warning for warning in caught
@@ -144,7 +159,7 @@ def test_same_value_different_units_no_conflict():
     }
 
     _detect_parameterization_conflicts(
-        records, by_concept, concept_registry, [_stub_claim_file()], forms=forms
+        records, by_concept, concept_registry, _stub_claim_file(), forms=forms
     )
 
     # Both claims for freq_input are 200 Hz after normalization.
@@ -181,7 +196,7 @@ def test_different_value_different_units_conflict():
     }
 
     _detect_parameterization_conflicts(
-        records, by_concept, concept_registry, [_stub_claim_file()], forms=forms
+        records, by_concept, concept_registry, _stub_claim_file(), forms=forms
     )
 
     # 0.5 kHz → 500 Hz (normalized) → derived = 500/2 = 250, but claim_out = 100
@@ -230,22 +245,16 @@ def test_transitive_propagation_normalizes_units():
     # concept_b derived = 100 * 2 = 200
     # concept_c derived = 200 + 100 = 300
     # Direct claim for concept_c = 300 → should match (no conflict)
-    claim_data = {
-        "source": {"paper": "test"},
-        "claims": [
+    claim_file = _claim_file(
+        [
             {"id": "claim_a", "concept": concept_a_id, "value": 0.1, "unit": "kHz"},
             {"id": "claim_b_direct", "concept": concept_b_id, "value": 200.0},
             {"id": "claim_c_direct", "concept": concept_c_id, "value": 300.0},
-        ],
-    }
-    claim_file = LoadedEntry(
-        filename="test",
-        source_path=Path("test.yaml"),
-        data=claim_data,
+        ]
     )
 
     conflicts = detect_transitive_conflicts(
-        [claim_file], concept_registry, forms=forms
+        claim_file, concept_registry, forms=forms
     )
 
     # With correct SI normalization (0.1 kHz → 100 Hz), chain gives 300,
@@ -296,7 +305,7 @@ def test_single_hop_conflict_carries_derived_conditions():
         records,
         by_concept,
         concept_registry,
-        [_stub_claim_file()],
+        _stub_claim_file(),
     )
 
     assert len(records) == 1
@@ -309,30 +318,25 @@ def test_single_hop_conflict_respects_context_exclusion():
 
     concept_in_id, concept_in = _concept("concept_in", form="frequency")
     concept_out_id, concept_out = _concept("concept_out", form="frequency")
-    claim_file = LoadedEntry(
-        filename="test",
-        source_path=Path("test.yaml"),
-        data={
-            "source": {"paper": "test"},
-            "claims": [
-                {
-                    "id": "claim_in",
-                    "type": "parameter",
-                    "concept": concept_in_id,
-                    "value": 10.0,
-                    "conditions": ["task == 'speech'"],
-                    "context": "ctx_input",
-                },
-                {
-                    "id": "claim_out",
-                    "type": "parameter",
-                    "concept": concept_out_id,
-                    "value": 100.0,
-                    "conditions": ["task == 'speech'"],
-                    "context": "ctx_direct",
-                },
-            ],
-        },
+    claim_file = _claim_file(
+        [
+            {
+                "id": "claim_in",
+                "type": "parameter",
+                "concept": concept_in_id,
+                "value": 10.0,
+                "conditions": ["task == 'speech'"],
+                "context": "ctx_input",
+            },
+            {
+                "id": "claim_out",
+                "type": "parameter",
+                "concept": concept_out_id,
+                "value": 100.0,
+                "conditions": ["task == 'speech'"],
+                "context": "ctx_direct",
+            },
+        ],
     )
     concept_registry = {
         concept_in_id: concept_in,
@@ -348,10 +352,9 @@ def test_single_hop_conflict_respects_context_exclusion():
         },
     }
     hierarchy = ContextHierarchy([
-        LoadedEntry("input", None, {"id": "ctx_input", "name": "Input"}),
-        LoadedEntry(
+        _context("input", {"id": "ctx_input", "name": "Input"}),
+        _context(
             "direct",
-            None,
             {"id": "ctx_direct", "name": "Direct", "excludes": ["ctx_input"]},
         ),
     ])
@@ -393,33 +396,25 @@ def test_transitive_conflict_detection_is_order_independent():
             ],
         },
     }
-    first_order = LoadedEntry(
+    first_order = _claim_file(
+        [
+            {"id": "in_a", "type": "parameter", "concept": concept_in_id, "value": 10.0},
+            {"id": "in_b", "type": "parameter", "concept": concept_in_id, "value": 20.0},
+            {"id": "out_direct", "type": "parameter", "concept": concept_out_id, "value": 25.0},
+        ],
         filename="first",
-        source_path=Path("first.yaml"),
-        data={
-            "source": {"paper": "test"},
-            "claims": [
-                {"id": "in_a", "type": "parameter", "concept": concept_in_id, "value": 10.0},
-                {"id": "in_b", "type": "parameter", "concept": concept_in_id, "value": 20.0},
-                {"id": "out_direct", "type": "parameter", "concept": concept_out_id, "value": 25.0},
-            ],
-        },
     )
-    second_order = LoadedEntry(
+    second_order = _claim_file(
+        [
+            {"id": "in_b", "type": "parameter", "concept": concept_in_id, "value": 20.0},
+            {"id": "in_a", "type": "parameter", "concept": concept_in_id, "value": 10.0},
+            {"id": "out_direct", "type": "parameter", "concept": concept_out_id, "value": 25.0},
+        ],
         filename="second",
-        source_path=Path("second.yaml"),
-        data={
-            "source": {"paper": "test"},
-            "claims": [
-                {"id": "in_b", "type": "parameter", "concept": concept_in_id, "value": 20.0},
-                {"id": "in_a", "type": "parameter", "concept": concept_in_id, "value": 10.0},
-                {"id": "out_direct", "type": "parameter", "concept": concept_out_id, "value": 25.0},
-            ],
-        },
     )
 
-    first_records = detect_transitive_conflicts([first_order], concept_registry)
-    second_records = detect_transitive_conflicts([second_order], concept_registry)
+    first_records = detect_transitive_conflicts(first_order, concept_registry)
+    second_records = detect_transitive_conflicts(second_order, concept_registry)
 
     assert len(first_records) == 1
     assert len(second_records) == 1
