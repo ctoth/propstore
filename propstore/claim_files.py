@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from propstore.artifacts.documents.claims import ClaimDocument, ClaimsFileDocument
-from propstore.artifacts.schema import convert_document_value, load_document
+from propstore.artifacts.schema import convert_document_value, load_document_dir
 from propstore.knowledge_path import KnowledgePath
 from propstore.loaded import LoadedDocument, LoadedEntry
 
@@ -152,17 +152,8 @@ def claim_payload_source_paper(
 
 def load_claim_files(claims_dir: KnowledgePath | None) -> list[LoadedClaimFile]:
     """Load all claim YAML files from a claims subtree."""
-    if claims_dir is None or not claims_dir.is_dir():
-        return []
-    knowledge_root = claims_dir.parent if claims_dir.name else claims_dir
-    return [
-        LoadedClaimFile.from_loaded_document(
-            load_document(
-                entry,
-                ClaimsFileDocument,
-                knowledge_root=knowledge_root,
-            )
-        )
-        for entry in claims_dir.iterdir()
-        if entry.is_file() and entry.suffix == ".yaml"
-    ]
+    return load_document_dir(
+        claims_dir,
+        ClaimsFileDocument,
+        wrapper=LoadedClaimFile.from_loaded_document,
+    )
