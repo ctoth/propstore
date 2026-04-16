@@ -7,6 +7,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from propstore.core.active_claims import ActiveClaim
+from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.cel_checker import (
     synthetic_category_concept,
     with_standard_synthetic_bindings,
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     from propstore.z3_conditions import Z3ConditionSolver
 
 
-def _binding_conditions(environment: Environment) -> tuple[str, ...]:
+def _binding_conditions(environment: Environment) -> tuple[CelExpr, ...]:
     conditions = [
         binding_condition_to_cel(key, value)
         for key, value in sorted(environment.bindings.items())
@@ -31,7 +32,7 @@ def _binding_conditions(environment: Environment) -> tuple[str, ...]:
     for assumption in environment.effective_assumptions:
         if assumption not in conditions:
             conditions.append(assumption)
-    return tuple(conditions)
+    return to_cel_exprs(conditions)
 
 
 def _visible_contexts(
@@ -54,7 +55,7 @@ def _claim_context_id(claim: ClaimNode) -> str | None:
     return None if context_id is None else str(context_id)
 
 
-def _claim_conditions(claim: ClaimNode) -> tuple[str, ...]:
+def _claim_conditions(claim: ClaimNode) -> tuple[CelExpr, ...]:
     raw = _claim_attributes(claim).get("conditions_cel")
     if not raw:
         return ()
@@ -62,17 +63,17 @@ def _claim_conditions(claim: ClaimNode) -> tuple[str, ...]:
         loaded = json.loads(raw)
         if not loaded:
             return ()
-        return tuple(str(item) for item in loaded)
+        return to_cel_exprs(str(item) for item in loaded)
     if isinstance(raw, (list, tuple)):
-        return tuple(str(item) for item in raw)
-    return (str(raw),)
+        return to_cel_exprs(str(item) for item in raw)
+    return to_cel_exprs((str(raw),))
 
 
 _NAME_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _NON_BINDING_NAMES = frozenset({"true", "false", "in"})
 
 
-def _synthetic_names_from_conditions(*condition_groups: tuple[str, ...] | list[str]) -> list[str]:
+def _synthetic_names_from_conditions(*condition_groups: tuple[CelExpr, ...] | list[CelExpr]) -> list[str]:
     names: set[str] = set()
     for group in condition_groups:
         for condition in group:
@@ -85,8 +86,8 @@ def _synthetic_names_from_conditions(*condition_groups: tuple[str, ...] | list[s
 def _retry_with_standard_bindings(
     solver: Z3ConditionSolver,
     *,
-    binding_conditions: tuple[str, ...] | list[str],
-    claim_conditions: tuple[str, ...] | list[str],
+    binding_conditions: tuple[CelExpr, ...] | list[CelExpr],
+    claim_conditions: tuple[CelExpr, ...] | list[CelExpr],
 ) -> Z3ConditionSolver:
     try:
         base_registry = getattr(solver, "_registry")

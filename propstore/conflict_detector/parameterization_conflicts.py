@@ -10,6 +10,7 @@ from itertools import product
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
+from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.value_comparison import (
     DEFAULT_TOLERANCE,
     extract_interval as _extract_interval,
@@ -31,7 +32,7 @@ class DerivedConflictValue:
     concept_id: str
     value: float
     source_claim_ids: tuple[str, ...]
-    conditions: tuple[str, ...]
+    conditions: tuple[CelExpr, ...]
     context_id: str | None
     derivation_chain: str
     hop_count: int
@@ -181,14 +182,14 @@ def _merge_contexts_for_derivation(
     return max(candidates, key=lambda context_id: len(hierarchy.ancestors(context_id)))
 
 
-def _merge_conditions(*groups: Iterable[str]) -> tuple[str, ...]:
+def _merge_conditions(*groups: Iterable[CelExpr]) -> tuple[CelExpr, ...]:
     merged = {
-        condition
+        str(condition)
         for group in groups
         for condition in group
         if isinstance(condition, str) and condition
     }
-    return tuple(sorted(merged))
+    return to_cel_exprs(sorted(merged))
 
 
 def _direct_state_for_claim(
@@ -208,7 +209,7 @@ def _direct_state_for_claim(
         concept_id=concept_id,
         value=normalized,
         source_claim_ids=(claim.claim_id,),
-        conditions=tuple(sorted(claim.conditions)),
+        conditions=to_cel_exprs(sorted(claim.conditions)),
         context_id=_claim_context(claim),
         derivation_chain=f"{concept_id}={normalized}(claim:{claim.claim_id})",
         hop_count=0,
@@ -222,7 +223,7 @@ def _direct_states_for_concept(
     forms: dict[str, FormDefinition] | None,
 ) -> list[DerivedConflictValue]:
     states: list[DerivedConflictValue] = []
-    seen: set[tuple[str, str, tuple[str, ...], str | None]] = set()
+    seen: set[tuple[str, str, tuple[CelExpr, ...], str | None]] = set()
     for claim in claims:
         state = _direct_state_for_claim(concept_id, claim, concept_registry, forms)
         if state is None:
@@ -252,7 +253,7 @@ def _derive_state(
     concept_id: str,
     sympy_expr: str,
     input_states: Sequence[DerivedConflictValue],
-    edge_conditions: Sequence[str],
+    edge_conditions: Sequence[CelExpr],
     concept_registry: dict[str, dict],
     context_hierarchy: ContextHierarchy | None,
     *,
@@ -445,7 +446,7 @@ def _detect_parameterization_conflicts(
             if any(not states for states in input_state_lists):
                 continue
 
-            edge_conditions = tuple(sorted(str(condition) for condition in rel.get("conditions", []) or []))
+            edge_conditions = to_cel_exprs(sorted(str(condition) for condition in rel.get("conditions", []) or []))
             for input_states in product(*input_state_lists):
                 derived_state = _derive_state(
                     concept_id,
@@ -550,7 +551,7 @@ def _detect_transitive_conflicts_for_claims(
                     if any(input_id not in resolved for input_id in inputs):
                         continue
 
-                    edge_conditions = tuple(sorted(str(condition) for condition in edge.get("conditions", []) or []))
+                    edge_conditions = to_cel_exprs(sorted(str(condition) for condition in edge.get("conditions", []) or []))
                     ordered_input_states = [resolved[input_id] for input_id in inputs]
                     for input_states in product(*ordered_input_states):
                         derived_state = _derive_state(

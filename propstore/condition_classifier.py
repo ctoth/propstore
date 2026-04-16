@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from propstore.cel_types import CelExpr
 from propstore.cel_checker import ConceptInfo
 from propstore.conflict_detector.models import ConflictClass
 
@@ -12,8 +13,8 @@ if TYPE_CHECKING:
 
 
 def _try_z3_classify(
-    conditions_a: list[str],
-    conditions_b: list[str],
+    conditions_a: list[CelExpr],
+    conditions_b: list[CelExpr],
     cel_registry: dict[str, ConceptInfo] | None,
     solver: Z3ConditionSolver | None = None,
 ) -> ConflictClass:
@@ -36,8 +37,8 @@ def _try_z3_classify(
 
 
 def classify_conditions(
-    conditions_a: list[str],
-    conditions_b: list[str],
+    conditions_a: list[CelExpr],
+    conditions_b: list[CelExpr],
     cel_registry: dict[str, ConceptInfo] | None = None,
     *,
     solver: Z3ConditionSolver | None = None,

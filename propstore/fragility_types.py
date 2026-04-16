@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
+from propstore.cel_types import CelExpr, to_cel_expr
 from propstore.core.environment import ArtifactStore
 from propstore.world.types import (
     ATMSConceptStabilityReport,
@@ -67,10 +68,13 @@ class InterventionProvenance:
 @dataclass(frozen=True)
 class AssumptionTarget:
     queryable_id: str
-    cel: str
+    cel: CelExpr
     stabilizes_concepts: tuple[str, ...]
     witness_count: int
     consistent_future_count: int
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "cel", to_cel_expr(self.cel))
 
 
 @dataclass(frozen=True)

@@ -7,6 +7,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.claim_types import ClaimType
 from propstore.core.id_types import ClaimId, ConceptId, ContextId, LogicalId, to_concept_id
 from propstore.core.row_types import ClaimRow, ClaimRowInput, coerce_claim_row
@@ -39,20 +40,20 @@ class ActiveClaimVariable:
         return data
 
 
-def _parse_conditions(raw: object) -> tuple[str, ...]:
+def _parse_conditions(raw: object) -> tuple[CelExpr, ...]:
     if raw is None or raw == "":
         return ()
     if isinstance(raw, str):
         try:
             loaded = json.loads(raw)
         except json.JSONDecodeError:
-            return (raw,)
+            return to_cel_exprs((raw,))
         if isinstance(loaded, list):
-            return tuple(str(item) for item in loaded)
-        return (str(loaded),)
+            return to_cel_exprs(str(item) for item in loaded)
+        return to_cel_exprs((str(loaded),))
     if isinstance(raw, (list, tuple)):
-        return tuple(str(item) for item in raw)
-    return (str(raw),)
+        return to_cel_exprs(str(item) for item in raw)
+    return to_cel_exprs((str(raw),))
 
 
 def _parse_variables(
@@ -94,12 +95,12 @@ def _parse_variables(
 @dataclass(frozen=True)
 class ActiveClaim:
     row: ClaimRow
-    conditions: tuple[str, ...] = field(default_factory=tuple)
+    conditions: tuple[CelExpr, ...] = field(default_factory=tuple)
     variables: tuple[ActiveClaimVariable, ...] = field(default_factory=tuple)
     branch: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "conditions", tuple(str(item) for item in self.conditions))
+        object.__setattr__(self, "conditions", to_cel_exprs(self.conditions))
         object.__setattr__(self, "variables", tuple(self.variables))
 
     @classmethod

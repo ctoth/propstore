@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
+from propstore.cel_types import to_cel_expr
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.id_types import AssumptionId, ContextId, to_assumption_ids, to_context_id
 from propstore.core.labels import AssumptionRef, Label
@@ -23,9 +24,9 @@ def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> Assumpt
         raise ValueError("Assumption atom requires 'assumption_id' or 'id'")
     return AssumptionRef(
         assumption_id=str(assumption_id),
-        cel=None if payload.get("cel") is None else str(payload.get("cel")),
-        kind=None if payload.get("kind") is None else str(payload.get("kind")),
-        source=None if payload.get("source") is None else str(payload.get("source")),
+        cel=to_cel_expr(str(payload.get("cel") or "")),
+        kind=str(payload.get("kind") or ""),
+        source=str(payload.get("source") or ""),
     )
 
 

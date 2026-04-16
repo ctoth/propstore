@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, dims_of_expr, DimensionalError
 
-from propstore.cel_checker import ConceptInfo, KindType, check_cel_expression
+from propstore.cel_checker import ConceptInfo, KindType, check_cel_expr
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.core.concept_status import ConceptStatus
@@ -329,12 +329,13 @@ def validate_concepts(
             # CEL conditions in relationships
             if cel_registry is not None:
                 for cel_expr in rel.get("conditions", []) or []:
-                    cel_errors = check_cel_expression(cel_expr, cel_registry)
-                    for ce in cel_errors:
-                        if ce.is_warning:
-                            result.warnings.append(f"{c.filename}: CEL warning: {ce.message}")
-                        else:
-                            result.errors.append(f"{c.filename}: CEL error: {ce.message}")
+                    try:
+                        checked = check_cel_expr(cel_expr, cel_registry)
+                    except ValueError as exc:
+                        result.errors.append(f"{c.filename}: CEL error: {exc}")
+                        continue
+                    for warning in checked.warnings:
+                        result.warnings.append(f"{c.filename}: CEL warning: {warning.message}")
 
         # ── Parameterization inputs ─────────────────────────────
         for param in data.get("parameterization_relationships", []) or []:
@@ -458,12 +459,13 @@ def validate_concepts(
             # CEL conditions in parameterizations
             if cel_registry is not None:
                 for cel_expr in param.get("conditions", []) or []:
-                    cel_errors = check_cel_expression(cel_expr, cel_registry)
-                    for ce in cel_errors:
-                        if ce.is_warning:
-                            result.warnings.append(f"{c.filename}: CEL warning: {ce.message}")
-                        else:
-                            result.errors.append(f"{c.filename}: CEL error: {ce.message}")
+                    try:
+                        checked = check_cel_expr(cel_expr, cel_registry)
+                    except ValueError as exc:
+                        result.errors.append(f"{c.filename}: CEL error: {exc}")
+                        continue
+                    for warning in checked.warnings:
+                        result.warnings.append(f"{c.filename}: CEL warning: {warning.message}")
 
             # canonical_claim must reference an existing claim
             canonical_claim = param.get("canonical_claim")

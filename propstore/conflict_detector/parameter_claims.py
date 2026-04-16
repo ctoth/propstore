@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from propstore.cel_types import CelExpr
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.value_comparison import (
     value_str as _value_str,
@@ -93,7 +94,7 @@ def _detect_pairwise_parameter_conflicts(
     records: list[ConflictRecord],
     concept_id: str,
     claims: list[ConflictClaim],
-    all_conditions: list[list[str]],
+    all_conditions: list[list[CelExpr]],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None,
@@ -143,7 +144,7 @@ def _detect_equivalent_parameter_conflicts(
     records: list[ConflictRecord],
     concept_id: str,
     claims: list[ConflictClaim],
-    all_conditions: list[list[str]],
+    all_conditions: list[list[CelExpr]],
     eq_classes: list[list[int]],
     *,
     context_hierarchy: ContextHierarchy | None,
@@ -188,7 +189,7 @@ def _detect_cross_class_parameter_conflicts(
     records: list[ConflictRecord],
     concept_id: str,
     claims: list[ConflictClaim],
-    all_conditions: list[list[str]],
+    all_conditions: list[list[CelExpr]],
     eq_classes: list[list[int]],
     cel_registry: dict[str, ConceptInfo],
     z3_solver,

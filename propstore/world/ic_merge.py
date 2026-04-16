@@ -18,10 +18,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from propstore.cel_checker import (
-    CelError,
-    check_cel_expression,
+    check_cel_expr,
     scope_cel_registry,
 )
+from propstore.cel_types import CheckedCelExpr
 from propstore.world.types import (
     ICMergeProblem,
     ICMergeResult,
@@ -131,10 +131,6 @@ def _constraint_scope_values(
     }
 
 
-def _cel_errors_text(errors: list[CelError]) -> str:
-    return "; ".join(error.message for error in errors)
-
-
 def _scoped_cel_registry(constraint: IntegrityConstraint) -> dict[str, Any]:
     registry = constraint.metadata.get("registry")
     if not isinstance(registry, Mapping):
@@ -153,15 +149,15 @@ def _cel_bindings(
     return bindings
 
 
-def _validate_cel_constraint(constraint: IntegrityConstraint) -> dict[str, Any]:
+def _validate_cel_constraint(constraint: IntegrityConstraint) -> tuple[dict[str, Any], CheckedCelExpr]:
     if not constraint.cel:
         raise ValueError("CEL integrity constraint requires a non-empty cel expression")
     registry = _scoped_cel_registry(constraint)
-    errors = check_cel_expression(constraint.cel, registry)
-    hard_errors = [error for error in errors if not error.is_warning]
-    if hard_errors:
-        raise ValueError(_cel_errors_text(hard_errors))
-    return registry
+    try:
+        checked = check_cel_expr(constraint.cel, registry)
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
+    return registry, checked
 
 
 @dataclass(frozen=True)
@@ -175,26 +171,20 @@ def _eval_cel_constraint_z3(
     assignment: MergeAssignment,
     constraint: IntegrityConstraint,
 ) -> bool:
-    registry = _validate_cel_constraint(constraint)
+    registry, checked = _validate_cel_constraint(constraint)
     bindings = _cel_bindings(assignment, constraint, registry)
-    expr = constraint.cel
-    if expr is None:
-        raise ValueError("CEL integrity constraint requires a non-empty cel expression")
     try:
         from propstore.z3_conditions import Z3ConditionSolver
     except ImportError as exc:
         raise RuntimeError("Z3 is required for CEL IC-merge evaluation") from exc
     solver = Z3ConditionSolver(registry)
-    return solver.is_condition_satisfied(expr, bindings)
+    return solver.is_condition_satisfied(checked, bindings)
 
 
 def _compile_cel_constraint(
     constraint: IntegrityConstraint,
 ) -> _CompiledConstraint:
-    registry = _validate_cel_constraint(constraint)
-    expr = constraint.cel
-    if expr is None:
-        raise ValueError("CEL integrity constraint requires a non-empty cel expression")
+    registry, checked = _validate_cel_constraint(constraint)
     try:
         from propstore.z3_conditions import Z3ConditionSolver
     except ImportError as exc:
@@ -203,7 +193,7 @@ def _compile_cel_constraint(
 
     def _holds(assignment: MergeAssignment) -> bool:
         bindings = _cel_bindings(assignment, constraint, registry)
-        return solver.is_condition_satisfied(expr, bindings)
+        return solver.is_condition_satisfied(checked, bindings)
 
     return _CompiledConstraint(
         kind=constraint.kind,

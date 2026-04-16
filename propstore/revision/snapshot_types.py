@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.cel_types import to_cel_expr
 from propstore.core.labels import AssumptionRef, EnvironmentKey, Label
 from propstore.revision.explanation_types import (
     EntrenchmentReason,
@@ -62,7 +63,7 @@ def _assumption_ref_from_mapping(data: Mapping[str, Any]) -> AssumptionRef:
         assumption_id=str(data.get("assumption_id") or ""),
         kind=str(data.get("kind") or ""),
         source=str(data.get("source") or ""),
-        cel=str(data.get("cel") or ""),
+        cel=to_cel_expr(str(data.get("cel") or "")),
     )
 
 

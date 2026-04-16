@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, runtime_checkable
 
+from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.claim_types import ClaimType, coerce_claim_type
@@ -131,41 +132,43 @@ class QueryableAssumption:
     """Future/queryable assumption available only to bounded future analysis."""
 
     assumption_id: QueryableId
-    cel: str
+    cel: CelExpr
     kind: str = "queryable"
     source: str = "future"
 
     @classmethod
     def from_cel(
         cls,
-        cel: str,
+        cel: str | CelExpr,
         *,
         source: str = "future",
     ) -> QueryableAssumption:
-        digest = hashlib.sha1(f"queryable\0{source}\0{cel}".encode("utf-8")).hexdigest()[:12]
+        normalized_cel = to_cel_expr(cel)
+        digest = hashlib.sha1(f"queryable\0{source}\0{normalized_cel}".encode("utf-8")).hexdigest()[:12]
         return cls(
             assumption_id=to_queryable_id(f"queryable:{source}:{digest}"),
-            cel=cel,
+            cel=normalized_cel,
             source=source,
         )
 
 
-QueryableInput: TypeAlias = QueryableAssumption | str
+QueryableInput: TypeAlias = QueryableAssumption | str | CelExpr
 
 
-def normalize_queryable_cel(queryable: str) -> str:
-    if any(operator in queryable for operator in ("==", "!=", ">=", "<=", ">", "<")):
-        return queryable
-    if "=" in queryable:
-        key, _, value = queryable.partition("=")
-        return f"{key} == '{value}'"
-    return queryable
+def normalize_queryable_cel(queryable: str | CelExpr) -> CelExpr:
+    queryable_text = str(queryable)
+    if any(operator in queryable_text for operator in ("==", "!=", ">=", "<=", ">", "<")):
+        return to_cel_expr(queryable_text)
+    if "=" in queryable_text:
+        key, _, value = queryable_text.partition("=")
+        return to_cel_expr(f"{key} == '{value}'")
+    return to_cel_expr(queryable_text)
 
 
 def coerce_queryable_assumptions(
     queryables: Iterable[QueryableInput],
 ) -> tuple[QueryableAssumption, ...]:
-    normalized: dict[tuple[str, QueryableId], QueryableAssumption] = {}
+    normalized: dict[tuple[CelExpr, QueryableId], QueryableAssumption] = {}
     for queryable in queryables:
         candidate = (
             queryable
@@ -604,12 +607,14 @@ class IntegrityConstraint:
     kind: IntegrityConstraintKind
     concept_ids: tuple[str, ...]
     metadata: Mapping[str, Any] = field(default_factory=dict)
-    cel: str | None = None
+    cel: CelExpr | None = None
     description: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "concept_ids", tuple(self.concept_ids))
         object.__setattr__(self, "metadata", dict(self.metadata))
+        if self.cel is not None:
+            object.__setattr__(self, "cel", to_cel_expr(self.cel))
         if not self.concept_ids:
             raise ValueError("IntegrityConstraint requires at least one concept id")
         if len(set(self.concept_ids)) != len(self.concept_ids):
@@ -737,12 +742,12 @@ class SyntheticClaim:
     concept_id: ConceptId
     type: ClaimType = ClaimType.PARAMETER
     value: float | str | None = None
-    conditions: list[str] = field(default_factory=list)
+    conditions: list[CelExpr] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
         self.type = coerce_claim_type(self.type) or ClaimType.PARAMETER
-        self.conditions = list(self.conditions)
+        self.conditions = list(to_cel_exprs(self.conditions))
 
 
 @dataclass

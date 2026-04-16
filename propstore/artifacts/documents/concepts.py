@@ -4,6 +4,7 @@ from typing import Any
 
 import msgspec
 
+from propstore.cel_types import CelExpr
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import ConceptRelationshipType
 from propstore.core.exactness_types import Exactness
@@ -25,7 +26,7 @@ class ConceptRelationshipDocument(DocumentStruct):
     type: ConceptRelationshipType
     target: str
     source: str | None = None
-    conditions: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
     note: str | None = None
 
 
@@ -44,7 +45,7 @@ class ParameterizationRelationshipDocument(DocumentStruct):
     source: str | None = None
     bidirectional: bool | None = None
     sympy: str | None = None
-    conditions: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
     note: str | None = None
     canonical_claim: str | None = None
     fit_statistics: str | None = None

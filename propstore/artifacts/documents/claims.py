@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
 from propstore.artifacts.schema import DocumentStruct
@@ -206,7 +207,7 @@ class ClaimDocument(DocumentStruct):
     body: str | None = None
     concept: str | None = None
     concepts: tuple[str, ...] = ()
-    conditions: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
     confidence: float | int | None = None
     context: str | None = None
     equations: tuple[str, ...] = ()
