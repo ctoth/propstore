@@ -285,7 +285,7 @@ class Z3ConditionSolver:
         false_br = self._translate(node.false_branch)
         return z3.If(cond, true_br, false_br)
 
-    def _ensure_checked_condition(self, condition: str | CelExpr | CheckedCelExpr) -> CheckedCelExpr:
+    def _ensure_checked_condition(self, condition: CelExpr | CheckedCelExpr) -> CheckedCelExpr:
         if isinstance(condition, CheckedCelExpr):
             self._require_matching_fingerprint(condition.registry_fingerprint)
             return condition
@@ -301,7 +301,7 @@ class Z3ConditionSolver:
 
     def _ensure_condition_set(
         self,
-        conditions: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
     ) -> CheckedCelConditionSet:
         if isinstance(conditions, CheckedCelConditionSet):
             self._require_matching_fingerprint(conditions.registry_fingerprint)
@@ -320,7 +320,7 @@ class Z3ConditionSolver:
                 "Checked CEL expression was validated against a different CEL registry"
             )
 
-    def _condition_to_z3(self, condition: str | CelExpr | CheckedCelExpr) -> Any:
+    def _condition_to_z3(self, condition: CelExpr | CheckedCelExpr) -> Any:
         checked = self._ensure_checked_condition(condition)
         key = (str(checked.registry_fingerprint), str(checked.source))
         expr = self._condition_expr_cache.get(key)
@@ -337,7 +337,7 @@ class Z3ConditionSolver:
 
     def _conditions_to_z3(
         self,
-        conditions: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
     ) -> Any:
         """Translate a CEL condition set, conjuncting checked expressions."""
         condition_set = self._ensure_condition_set(conditions)
@@ -431,7 +431,7 @@ class Z3ConditionSolver:
 
     def is_condition_satisfied(
         self,
-        condition: str | CelExpr | CheckedCelExpr,
+        condition: CelExpr | CheckedCelExpr,
         bindings: Mapping[str, Any],
     ) -> bool:
         """Check whether one CEL condition holds under a concrete assignment."""
@@ -445,8 +445,8 @@ class Z3ConditionSolver:
 
     def are_disjoint(
         self,
-        conditions_a: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
-        conditions_b: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions_a: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions_b: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
     ) -> bool:
         """Check if two condition sets are disjoint (their conjunction is UNSAT).
 
@@ -464,8 +464,8 @@ class Z3ConditionSolver:
 
     def are_equivalent(
         self,
-        conditions_a: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
-        conditions_b: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions_a: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions_b: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
     ) -> bool:
         """Check if two condition sets are logically equivalent.
 
@@ -491,7 +491,7 @@ class Z3ConditionSolver:
     def partition_equivalence_classes(
         self,
         condition_sets: Sequence[
-            Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet
+            Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet
         ],
     ) -> list[list[int]]:
         """Partition condition sets into equivalence classes.
@@ -507,7 +507,7 @@ class Z3ConditionSolver:
             return []
 
         # Each class is represented by (representative_conditions, [indices])
-        representatives: list[Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet] = [
+        representatives: list[Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet] = [
             condition_sets[0]
         ]
         classes: list[list[int]] = [[0]]

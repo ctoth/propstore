@@ -1,7 +1,7 @@
 # CEL Typed Expression Workstream
 
 Date: 2026-04-16
-Status: proposed
+Status: completed
 Builds on completed CEL cleanup tracks:
 
 - `plans/cel-subsystem-unification-plan-2026-04-08.md`
@@ -11,6 +11,20 @@ Builds on completed CEL cleanup tracks:
 ## Goal
 
 Make CEL expressions explicit semantic carriers instead of anonymous strings.
+
+## Completion
+
+Implemented on 2026-04-16.
+
+Primary commits:
+
+- `2d1166c` - `refactor(cel): add typed expression carriers`
+- `d1f7c54` - `refactor(cel): cache checked z3 conditions`
+- `88a7ced` - `refactor(cel): carry branded expressions through runtime`
+
+Lifecycle documentation:
+
+- `docs/cel-typed-expressions.md`
 
 Target outcome:
 
