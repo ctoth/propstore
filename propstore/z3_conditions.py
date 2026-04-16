@@ -25,7 +25,15 @@ from propstore.cel_checker import (
     NameNode,
     TernaryNode,
     UnaryOpNode,
-    parse_cel,
+    cel_registry_fingerprint,
+    check_cel_condition_set,
+    check_cel_expr,
+)
+from propstore.cel_types import (
+    CelExpr,
+    CheckedCelConditionSet,
+    CheckedCelExpr,
+    checked_condition_set,
 )
 
 import z3
@@ -40,13 +48,14 @@ class Z3ConditionSolver:
 
     def __init__(self, registry: dict[str, ConceptInfo]) -> None:
         self._registry = registry
+        self._registry_fingerprint = cel_registry_fingerprint(registry)
         self._ctx = z3.Context()
         self._reals: dict[str, z3.ArithRef] = {}
         self._bools: dict[str, z3.BoolRef] = {}
         self._strings: dict[str, z3.SeqRef] = {}
-        self._ast_cache: dict[str, ASTNode] = {}
-        self._condition_expr_cache: dict[str, Any] = {}
-        self._condition_set_cache: dict[tuple[str, ...], Any] = {}
+        self._checked_cache: dict[str, CheckedCelExpr] = {}
+        self._condition_expr_cache: dict[tuple[str, str], Any] = {}
+        self._condition_set_cache: dict[tuple[str, tuple[str, ...]], Any] = {}
         # For categories: one EnumSort per concept, with a z3 const
         self._enum_sorts: dict[str, z3.DatatypeSortRef] = {}
         self._enum_consts: dict[str, z3.ExprRef] = {}
@@ -276,42 +285,76 @@ class Z3ConditionSolver:
         false_br = self._translate(node.false_branch)
         return z3.If(cond, true_br, false_br)
 
-    @staticmethod
-    def _normalize_conditions(conditions: Sequence[str]) -> tuple[str, ...]:
-        return tuple(sorted(conditions))
+    def _ensure_checked_condition(self, condition: str | CelExpr | CheckedCelExpr) -> CheckedCelExpr:
+        if isinstance(condition, CheckedCelExpr):
+            self._require_matching_fingerprint(condition.registry_fingerprint)
+            return condition
+        source = str(condition)
+        checked = self._checked_cache.get(source)
+        if checked is None:
+            try:
+                checked = check_cel_expr(CelExpr(source), self._registry)
+            except ValueError as exc:
+                raise Z3TranslationError(str(exc)) from exc
+            self._checked_cache[source] = checked
+        return checked
 
-    def _condition_ast(self, condition: str) -> ASTNode:
-        ast = self._ast_cache.get(condition)
-        if ast is None:
-            ast = parse_cel(condition)
-            self._ast_cache[condition] = ast
-        return ast
+    def _ensure_condition_set(
+        self,
+        conditions: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+    ) -> CheckedCelConditionSet:
+        if isinstance(conditions, CheckedCelConditionSet):
+            self._require_matching_fingerprint(conditions.registry_fingerprint)
+            return conditions
+        checked_conditions = tuple(
+            self._ensure_checked_condition(condition)
+            for condition in conditions
+        )
+        if not checked_conditions:
+            return check_cel_condition_set((), self._registry)
+        return checked_condition_set(checked_conditions)
 
-    def _condition_to_z3(self, condition: str) -> Any:
-        expr = self._condition_expr_cache.get(condition)
+    def _require_matching_fingerprint(self, fingerprint: str) -> None:
+        if fingerprint != self._registry_fingerprint:
+            raise Z3TranslationError(
+                "Checked CEL expression was validated against a different CEL registry"
+            )
+
+    def _condition_to_z3(self, condition: str | CelExpr | CheckedCelExpr) -> Any:
+        checked = self._ensure_checked_condition(condition)
+        key = (str(checked.registry_fingerprint), str(checked.source))
+        expr = self._condition_expr_cache.get(key)
         if expr is None:
             self._current_guards: list[Any] = []
-            translated = self._translate(self._condition_ast(condition))
+            translated = self._translate(checked.ast)
             # Conjunct any non-zero denominator guards collected during translation
             if self._current_guards:
                 expr = z3.And(translated, *self._current_guards)
             else:
                 expr = translated
-            self._condition_expr_cache[condition] = expr
+            self._condition_expr_cache[key] = expr
         return expr
 
-    def _conditions_to_z3(self, conditions: Sequence[str]) -> Any:
-        """Parse and translate a list of CEL condition strings, conjuncting them."""
-        normalized = self._normalize_conditions(conditions)
-        expr = self._condition_set_cache.get(normalized)
+    def _conditions_to_z3(
+        self,
+        conditions: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+    ) -> Any:
+        """Translate a CEL condition set, conjuncting checked expressions."""
+        condition_set = self._ensure_condition_set(conditions)
+        normalized = tuple(str(source) for source in condition_set.sources)
+        key = (str(condition_set.registry_fingerprint), normalized)
+        expr = self._condition_set_cache.get(key)
         if expr is not None:
             return expr
         if not normalized:
             expr = z3.BoolVal(True, self._ctx)
         else:
-            z3_exprs = [self._condition_to_z3(cond_str) for cond_str in normalized]
+            z3_exprs = [
+                self._condition_to_z3(condition)
+                for condition in condition_set.conditions
+            ]
             expr = z3_exprs[0] if len(z3_exprs) == 1 else z3.And(*z3_exprs)
-        self._condition_set_cache[normalized] = expr
+        self._condition_set_cache[key] = expr
         return expr
 
     def _binding_to_z3(self, name: str, value: Any) -> Any:
@@ -386,7 +429,11 @@ class Z3ConditionSolver:
         for constraint in self._temporal_ordering_constraints():
             solver.add(constraint)
 
-    def is_condition_satisfied(self, condition: str, bindings: Mapping[str, Any]) -> bool:
+    def is_condition_satisfied(
+        self,
+        condition: str | CelExpr | CheckedCelExpr,
+        bindings: Mapping[str, Any],
+    ) -> bool:
         """Check whether one CEL condition holds under a concrete assignment."""
         expr = self._condition_to_z3(condition)
         solver = z3.Solver(ctx=self._ctx)
@@ -396,7 +443,11 @@ class Z3ConditionSolver:
             solver.add(self._binding_to_z3(name, value))
         return solver.check() == z3.sat
 
-    def are_disjoint(self, conditions_a: Sequence[str], conditions_b: Sequence[str]) -> bool:
+    def are_disjoint(
+        self,
+        conditions_a: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions_b: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+    ) -> bool:
         """Check if two condition sets are disjoint (their conjunction is UNSAT).
 
         When TIMEPOINT interval pairs (e.g. valid_from/valid_until) are in the
@@ -411,7 +462,11 @@ class Z3ConditionSolver:
         self._add_temporal_constraints(solver)
         return solver.check() == z3.unsat
 
-    def are_equivalent(self, conditions_a: Sequence[str], conditions_b: Sequence[str]) -> bool:
+    def are_equivalent(
+        self,
+        conditions_a: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions_b: Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+    ) -> bool:
         """Check if two condition sets are logically equivalent.
 
         Both A∧¬B and B∧¬A must be UNSAT.
@@ -434,7 +489,10 @@ class Z3ConditionSolver:
         return s2.check() == z3.unsat
 
     def partition_equivalence_classes(
-        self, condition_sets: Sequence[Sequence[str]]
+        self,
+        condition_sets: Sequence[
+            Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet
+        ],
     ) -> list[list[int]]:
         """Partition condition sets into equivalence classes.
 
@@ -449,7 +507,9 @@ class Z3ConditionSolver:
             return []
 
         # Each class is represented by (representative_conditions, [indices])
-        representatives: list[Sequence[str]] = [condition_sets[0]]
+        representatives: list[Sequence[str | CelExpr | CheckedCelExpr] | CheckedCelConditionSet] = [
+            condition_sets[0]
+        ]
         classes: list[list[int]] = [[0]]
 
         for i in range(1, len(condition_sets)):
