@@ -94,7 +94,8 @@ class RuleDocument(DocumentStruct):
 class RuleSourceDocument(DocumentStruct):
     """Provenance block for a rules file.
 
-    Mirrors ``ClaimSourceDocument`` from ``propstore/claim_documents.py``
+    Mirrors ``ClaimSourceDocument`` from
+    ``propstore.artifacts.documents.claims``
     but scoped to the minimal fields the rule-authoring workflow needs
     today. Garcia & Simari 2004 rules are authored per-paper; the
     ``paper`` field anchors a rules file to the theory source it is
@@ -111,8 +112,9 @@ class RuleSourceDocument(DocumentStruct):
 class RulesFileDocument(DocumentStruct):
     """Top-level envelope for an authored DeLP rules YAML file.
 
-    Parallels ``ClaimsFileDocument`` (``propstore/claim_documents.py``
-    line 333): a ``source`` block plus an ordered tuple of rules. Order
+    Parallels ``ClaimsFileDocument`` from
+    ``propstore.artifacts.documents.claims``: a ``source`` block plus an
+    ordered tuple of rules. Order
     is preserved across YAML round-trip because authored order can carry
     implicit preference information relevant to structured-argumentation
     last-link comparisons (Modgil & Prakken 2018 Def 13).

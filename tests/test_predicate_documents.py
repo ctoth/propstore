@@ -23,7 +23,7 @@ Theoretical sources:
 
 DocumentStruct conventions mirrored from
 `propstore/artifacts/documents/rules.py`
-and `propstore/claim_documents.py`:
+and `propstore/artifacts/documents/claims.py`:
     - ``msgspec.Struct`` with ``kw_only=True, forbid_unknown_fields=True``.
     - List-valued fields use ``tuple[T, ...] = ()`` for immutability.
     - Round-tripping through ``msgspec.yaml.{encode,decode}`` is idempotent
