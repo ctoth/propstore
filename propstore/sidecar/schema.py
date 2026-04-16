@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 from propstore.context_types import LoadedContext, coerce_loaded_contexts
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SIDECAR_META_KEY = "sidecar"
 
 
@@ -256,6 +256,9 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
             context_id TEXT,
             premise_kind TEXT NOT NULL DEFAULT 'ordinary',
             branch TEXT,
+            build_status TEXT NOT NULL DEFAULT 'ingested',
+            stage TEXT,
+            promotion_status TEXT,
             FOREIGN KEY (context_id) REFERENCES context(id)
         );
 
@@ -332,6 +335,19 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
             PRIMARY KEY (pass_number, category)
         );
 
+        CREATE TABLE build_diagnostics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            claim_id TEXT,
+            source_kind TEXT NOT NULL,
+            source_ref TEXT,
+            diagnostic_kind TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            blocking INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            file TEXT,
+            detail_json TEXT
+        );
+
         CREATE VIRTUAL TABLE claim_fts USING fts5(
             claim_id UNINDEXED,
             statement,
@@ -343,6 +359,12 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX idx_claim_core_target ON claim_core(target_concept);
         CREATE INDEX idx_claim_core_type ON claim_core(type);
         CREATE INDEX idx_claim_core_primary_logical_id ON claim_core(primary_logical_id);
+        CREATE INDEX idx_claim_core_build_status ON claim_core(build_status);
+        CREATE INDEX idx_claim_core_stage ON claim_core(stage);
+        CREATE INDEX idx_claim_core_promotion_status ON claim_core(promotion_status);
         CREATE INDEX idx_claim_algorithm_stage ON claim_algorithm_payload(algorithm_stage);
         CREATE INDEX idx_conflict_witness_concept ON conflict_witness(concept_id);
+        CREATE INDEX idx_build_diagnostics_claim ON build_diagnostics(claim_id);
+        CREATE INDEX idx_build_diagnostics_kind ON build_diagnostics(diagnostic_kind);
+        CREATE INDEX idx_build_diagnostics_source ON build_diagnostics(source_kind, source_ref);
     """)
