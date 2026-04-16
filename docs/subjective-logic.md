@@ -49,7 +49,7 @@ All operators are implemented on the `Opinion` dataclass (`opinion.py`) with cit
 | Ordering | `w1 < w2` | Compare by `(E(w), -u, -a)` -- expectation first, then uncertainty descending, then base rate descending | Josang Def 10, p.9 |
 | Uncertainty maximization | `w.maximize_uncertainty()` | Maximize `u` while preserving `E(w)`: `u_max = min(E/a, (1-E)/(1-a))` | Josang Def 16, p.30 |
 | Weighted Belief Fusion | `wbf(w1, w2, ...)` | N-source generalization of consensus. Raises on dogmatic inputs. | van der Heijden 2018, Def 4 |
-| Cumulative & Compromise Fusion | `ccf(w1, w2, ...)` | Three-phase: consensus extraction, compromise on residuals, normalize. Handles dogmatic sources. | van der Heijden 2018, Def 5 |
+| Cumulative & Compromise Fusion | `ccf(w1, w2, ...)` | Three-phase: consensus extraction, compromise on residuals, normalize. Handles dogmatic sources. Disagreement is converted to uncertainty, so two dogmatic sources that disagree fuse to vacuous. Not associative. | van der Heijden 2018, Def 5 |
 
 The `fuse()` dispatcher (`opinion.py:401`) selects the fusion method: `"wbf"` forces WBF, `"ccf"` forces CCF, and `"auto"` (default) tries WBF first, falling back to CCF when any source is dogmatic.
 
