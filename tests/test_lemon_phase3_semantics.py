@@ -5,11 +5,13 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.core.lemon import (
+    AllenRelation,
     CausalAccount,
     CausalConnectionAssertion,
     CoreferenceQuery,
     DescriptionClaim,
     DescriptionKind,
+    DescriptionTemporalAnchor,
     GradedEntailment,
     LexicalSense,
     OntologyReference,
@@ -26,6 +28,7 @@ from propstore.core.lemon import (
     coerce_via_qualia,
     coreference_query,
     coreference_argument,
+    description_temporal_relation,
     predicted_subject_role,
     proto_agent_weight,
     purposive_chain,
@@ -315,6 +318,56 @@ def test_coreference_query_is_dung_argumentation_with_policy_dependent_clusters(
         frozenset({"ps:claim:first", "ps:claim:rival"}),
     }
     assert query.merge_arguments == (first_second, first_rival)
+
+
+@given(
+    start=st.floats(
+        allow_nan=False,
+        allow_infinity=False,
+        min_value=-1_000_000,
+        max_value=1_000_000,
+    ),
+    first_width=st.floats(
+        allow_nan=False,
+        allow_infinity=False,
+        min_value=1.0,
+        max_value=10_000.0,
+    ),
+    gap=st.floats(
+        allow_nan=False,
+        allow_infinity=False,
+        min_value=1.0,
+        max_value=10_000.0,
+    ),
+    second_width=st.floats(
+        allow_nan=False,
+        allow_infinity=False,
+        min_value=1.0,
+        max_value=10_000.0,
+    ),
+)
+@settings(deadline=None)
+def test_description_temporal_relations_reduce_to_timepoint_z3(
+    start: float,
+    first_width: float,
+    gap: float,
+    second_width: float,
+) -> None:
+    first = DescriptionTemporalAnchor(
+        claim_id="ps:claim:first",
+        valid_from=start,
+        valid_until=start + first_width,
+        provenance=_provenance("temporal-anchor"),
+    )
+    second = DescriptionTemporalAnchor(
+        claim_id="ps:claim:second",
+        valid_from=start + first_width + gap,
+        valid_until=start + first_width + gap + second_width,
+        provenance=_provenance("temporal-anchor"),
+    )
+
+    assert description_temporal_relation(first, second, AllenRelation.BEFORE)
+    assert not description_temporal_relation(first, second, AllenRelation.OVERLAPS)
 
 
 def test_causal_connection_transitivity_is_account_sensitive() -> None:
