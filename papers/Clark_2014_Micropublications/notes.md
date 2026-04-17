@@ -318,10 +318,10 @@ The model was implemented as an OWL ontology using Open Annotation and prototype
 ## Collection Cross-References
 
 ### Already in Collection
-- [[Dung_1995_AcceptabilityArguments]] — cited as [47] for foundational abstract argumentation framework; the micropublications model claims grounding in argumentation theory
-- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — cited as [49] for bipolar abstract argumentation systems; the SupportGraph/ChallengeGraph structure directly maps to Cayrol's support+defeat framework
-- [[Caminada_2006_IssueReinstatementArgumentation]] — cited as [63] for semi-stable semantics; referenced in context of argumentation-based evaluation
-- [[Groth_2010_AnatomyNanopublication]] — cited as [24] as the competing nanopublication model that Micropublications extends beyond
+- [Dung 1995, Acceptability of Arguments](../Dung_1995_AcceptabilityArguments/notes.md) — cited as [47] for foundational abstract argumentation framework; the micropublications model claims grounding in argumentation theory
+- [Cayrol 2005, Bipolar Argumentation](../Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation/notes.md) — cited as [49] for bipolar abstract argumentation systems; the SupportGraph/ChallengeGraph structure directly maps to Cayrol's support+defeat framework
+- [Caminada 2006, Issue Reinstatement](../Caminada_2006_IssueReinstatementArgumentation/notes.md) — cited as [63] for semi-stable semantics; referenced in context of argumentation-based evaluation
+- [Groth 2010, Anatomy of a Nanopublication](../Groth_2010_AnatomyNanopublication/notes.md) — cited as [24] as the competing nanopublication model that Micropublications extends beyond
 
 ### New Leads (Not Yet in Collection)
 - Verheij (2005/2009) — "Evaluating Arguments Based on Toulmin's Scheme" and "The Toulmin Argument Model in Artificial Intelligence" — the Toulmin-Verheij theoretical foundation for the micropublication argument structure
@@ -330,15 +330,15 @@ The model was implemented as an OWL ontology using Open Annotation and prototype
 - de Waard (2009) — "The HypER Approach for Representing Scientific Knowledge Claims" — alternative hypothesis/evidence representation
 
 ### Cited By (in Collection)
-- [[Wilkinson_2016_FAIRGuidingPrinciplesScientific]] — cites Clark 2014 in context of machine-readable scientific outputs
-- [[Groth_2010_AnatomyNanopublication]] — the nanopublication model that Micropublications compares against and extends
+- [Wilkinson 2016, FAIR Guiding Principles](../Wilkinson_2016_FAIRGuidingPrinciplesScientific/notes.md) — cites Clark 2014 in context of machine-readable scientific outputs
+- [Groth 2010, Anatomy of a Nanopublication](../Groth_2010_AnatomyNanopublication/notes.md) — the nanopublication model that Micropublications compares against and extends
 
 ### Conceptual Links (not citation-based)
-- [[Kuhn_2014_TrustyURIs]] — trusty URIs provide the immutable content-addressed identifier layer that micropublications need for reliable cross-publication linking
-- [[Kuhn_2015_DigitalArtifactsVerifiable]] — verifiable digital artifacts address the provenance and attribution requirements central to the micropublications model
-- [[Juty_2020_UniquePersistentResolvableIdentifiers]] — persistent identifiers for scientific objects directly serve the micropublication attribution and reference resolution needs
-- [[Modgil_2018_GeneralAccountArgumentationPreferences]] — ASPIC+ provides the formal structured argumentation framework that could formalize the micropublication SupportGraph/ChallengeGraph as proper arguments with preference orderings
-- [[Pollock_1987_DefeasibleReasoning]] — Pollock's rebutting vs undercutting defeat maps to the micropublication distinction between challenge (rebutting a claim) and undermining (attacking supporting evidence)
+- [Kuhn 2014, Trusty URIs](../Kuhn_2014_TrustyURIs/notes.md) — trusty URIs provide the immutable content-addressed identifier layer that micropublications need for reliable cross-publication linking
+- [Kuhn 2015, Verifiable Digital Artifacts](../Kuhn_2015_DigitalArtifactsVerifiable/notes.md) — verifiable digital artifacts address the provenance and attribution requirements central to the micropublications model
+- [Juty 2020, Persistent Identifiers](../Juty_2020_UniquePersistentResolvableIdentifiers/notes.md) — persistent identifiers for scientific objects directly serve the micropublication attribution and reference resolution needs
+- [Modgil and Prakken 2018, Argumentation and Preferences](../Modgil_2018_GeneralAccountArgumentationPreferences/notes.md) — ASPIC+ provides the formal structured argumentation framework that could formalize the micropublication SupportGraph/ChallengeGraph as proper arguments with preference orderings
+- [Pollock 1987, Defeasible Reasoning](../Pollock_1987_DefeasibleReasoning/notes.md) — Pollock's rebutting vs undercutting defeat maps to the micropublication distinction between challenge (rebutting a claim) and undermining (attacking supporting evidence)
 - [Ontological Promiscuity](../Hobbs_1985_OntologicalPromiscuity/notes.md) — **Strong.** Hobbs's separation of `Exist(e)` from `p'(e, x₁,…,xₙ)` is the logical-form analog of Clark's separation of a claim's propositional content from its evidence and attribution. Both refuse to collapse reference onto commitment. The micropublication "claim present without asserted truth" shape is exactly what Hobbs's reified-condition + optional-existence apparatus licenses at the formula level. Propstore's non-commitment principle has both a logical-form precursor (Hobbs) and a scientific-discourse precursor (Clark).
 
 ## Related Work Worth Reading
