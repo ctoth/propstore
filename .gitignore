@@ -8,7 +8,6 @@ sidecar/*.sqlite
 sidecar/*.hash
 *.log
 schema/generated/
-uv.lock
 prompts/
 reports/
 /notes.md
