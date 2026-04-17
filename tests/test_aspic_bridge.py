@@ -1008,6 +1008,11 @@ class TestBridgeConcrete:
 
         A survives because it is not attacked. The grounded extension
         is conservative: mutual defeat leaves both out.
+
+        Page-image grounding:
+        papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png
+        papers/Lehtonen_2024_PreferentialASPIC/pages/page_004.png
+        papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
         """
         claims = [
             _make_claim("A", confidence=0.5),
@@ -1259,6 +1264,10 @@ class TestComparisonLinkThreading:
 
         Bug: aspic_bridge.py hardcodes elitist/last in build_preference_config,
         ignoring the caller's requested comparison/link.
+
+        Lifting/link choices are semantic inputs, not bridge-local defaults:
+        papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png
+        papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
         """
         claims = [_make_claim("cmp_A"), _make_claim("cmp_B")]
         justifications = [

@@ -3,11 +3,18 @@
 Property-based tests verify formal properties from:
     Modgil, S. & Prakken, H. (2018). An abstract framework for
     argumentation with structured arguments. Def 9, Def 19.
+    Prakken (2010), page 16, local image:
+    papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png
+    Lehtonen (2024), pages 523-524, local images:
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_004.png
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
 
 Concrete tests verify known comparison outcomes.
 """
 
 from __future__ import annotations
+
+import pytest
 
 import propstore.preference as preference
 from hypothesis import given, settings, assume
@@ -35,7 +42,15 @@ _PROP_SETTINGS = settings(deadline=None)
 
 
 class TestStrictlyWeakerConcrete:
-    """Concrete examples for set comparison (Def 19)."""
+    """Concrete examples for set comparison (Def 19).
+
+    Grounding:
+    - Prakken (2010), page 16:
+      papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png
+    - Lehtonen (2024), pages 523-524:
+      papers/Lehtonen_2024_PreferentialASPIC/pages/page_004.png
+      papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
+    """
 
     def test_elitist_weaker(self):
         """Elitist: {1,5} < {3,4} because 1 < 3 and 1 < 4."""
@@ -122,7 +137,14 @@ class TestElitistEmptySetVacuousTruth:
 
 
 class TestDefeatHoldsConcrete:
-    """Concrete examples for defeat computation (Def 9)."""
+    """Concrete examples for defeat computation (Def 9).
+
+    Lehtonen (2024), pages 523-524, separates preference-independent
+    defeats from contradictory rebut and undermine cases controlled by
+    elitist/democratic lifting:
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_004.png
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
+    """
 
     def test_undercut_always_defeats(self):
         """Undercutting always succeeds regardless of strength."""
@@ -201,7 +223,19 @@ class TestClaimStrengthConcrete:
 
 
 class TestStrictlyWeakerProperties:
-    """Property tests for set comparison (Def 19)."""
+    """Property tests for set comparison (Def 19).
+
+    Prakken (2010), page 16, states the elitist set order used by
+    last-link:
+    papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png
+
+    Lehtonen (2024), pages 523-524, rephrases last-link defeat under
+    elitist and democratic lifting:
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_004.png
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
+    """
+
+    pytestmark = pytest.mark.property
 
     @given(_strength_sets)
     @_PROP_SETTINGS
@@ -226,15 +260,61 @@ class TestStrictlyWeakerProperties:
         d = strictly_weaker(a, b, "democratic")
         assert e == d
 
+    @given(
+        low=st.integers(min_value=0, max_value=100),
+        first_gap=st.integers(min_value=1, max_value=50),
+        second_gap=st.integers(min_value=1, max_value=50),
+    )
+    @_PROP_SETTINGS
+    def test_generated_elitist_democratic_divergence(self, low, first_gap, second_gap):
+        """Generated multi-element sets can force lifting divergence.
+
+        Let low < mid < high, A = {high, low}, and B = {mid, mid}.
+        Elitist lifting says A < B because low is below every member of B.
+        Democratic lifting says A is not < B because high is not below any
+        member of B.
+
+        Grounding:
+        papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png
+        papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
+        """
+        mid = low + first_gap
+        high = mid + second_gap
+        attacker = [float(high), float(low)]
+        target = [float(mid), float(mid)]
+
+        assert strictly_weaker(attacker, target, "elitist") is True
+        assert strictly_weaker(attacker, target, "democratic") is False
+
 
 class TestDefeatHoldsProperties:
-    """Property tests for defeat computation (Def 9)."""
+    """Property tests for defeat computation (Def 9).
+
+    Preference-independent undercuts and preference-dependent rebut or
+    undermine behavior follow the Lehtonen (2024) last-link rephrasing:
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_004.png
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
+    """
+
+    pytestmark = pytest.mark.property
 
     @given(_strength_sets, _strength_sets, _comparisons, _unconditional_attack_types)
     @_PROP_SETTINGS
     def test_unconditional_always_defeats(self, a, b, cmp, attack_type):
         """P3/P4: Undercutting and supersedes always produce defeat."""
         assert defeat_holds(attack_type, a, b, cmp) is True
+
+    @given(_strength_sets, _strength_sets)
+    @_PROP_SETTINGS
+    def test_undercut_is_preference_independent(self, a, b):
+        """Undercut defeat is independent of elitist/democratic lifting.
+
+        Lehtonen (2024), page 523, classifies undercutting as
+        preference-independent in the last-link rephrasing:
+        papers/Lehtonen_2024_PreferentialASPIC/pages/page_004.png
+        """
+        assert defeat_holds("undercuts", a, b, "elitist") is True
+        assert defeat_holds("undercuts", a, b, "democratic") is True
 
     @given(_strength_sets, _strength_sets, _comparisons, _preference_attack_types)
     @_PROP_SETTINGS
@@ -246,12 +326,19 @@ class TestDefeatHoldsProperties:
     @given(_strength_sets, _comparisons, _preference_attack_types)
     @_PROP_SETTINGS
     def test_equal_strength_succeeds(self, s, cmp, attack_type):
-        """P6: Equal-strength rebuttal/undermining succeeds."""
+        """P6: Equal-strength rebuttal/undermining succeeds.
+
+        Equal strengths are not strictly weaker, so contradictory rebut
+        and undermine attacks are not blocked by lifting:
+        papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
+        """
         assert defeat_holds(attack_type, s, s, cmp) is True
 
 
 class TestClaimStrengthProperties:
     """Property tests for claim_strength."""
+
+    pytestmark = pytest.mark.property
 
     @given(st.fixed_dictionaries({}, optional={
         "sample_size": st.integers(min_value=1, max_value=100000),
@@ -500,6 +587,8 @@ class TestClaimStrengthFixedLength:
 
 class TestClaimStrengthFixedLengthProperties:
     """Hypothesis property tests for fixed-length preference vectors."""
+
+    pytestmark = pytest.mark.property
 
     @given(st.fixed_dictionaries({}, optional={
         "sample_size": st.integers(min_value=1, max_value=100000),
