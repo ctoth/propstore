@@ -1,8 +1,11 @@
-Always run pytest through `scripts/run_logged_pytest.ps1`, which wraps `uv run pytest -vv` and tees the full output to a timestamped log file under `logs/test-runs/`.
+Always run pytest through the logged pytest wrappers, which wrap `uv run pytest -vv` and tee the full output to a timestamped log file under `logs/test-runs/`.
+Use `scripts/run_logged_pytest.ps1` from PowerShell and `scripts/run_logged_pytest.sh` from POSIX shells; both delegate to the portable implementation in `scripts/run_logged_pytest.py`.
 
 Canonical usage:
 - `powershell -File scripts/run_logged_pytest.ps1 tests/test_init.py`
 - `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-store tests/test_artifact_store.py tests/test_import_repo.py`
+- `sh ./scripts/run_logged_pytest.sh tests/test_init.py`
+- `sh ./scripts/run_logged_pytest.sh --label artifact-store tests/test_artifact_store.py tests/test_import_repo.py`
 
 In this project:
 - Prefer explicit domain objects over loose payloads.
