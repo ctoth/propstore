@@ -1,7 +1,7 @@
 # Paper-Grounded Test Suite Workstream
 
 Date: 2026-04-16
-Status: proposed
+Status: complete
 Builds on: `plans/test-suite-improvement-workstream-2026-04-13.md`
 
 ## Goal
@@ -104,7 +104,7 @@ path in the test docstring or adjacent comment.
 
 ## Phase 0: Baseline And Inventory
 
-Status: unchecked
+Status: complete
 
 Purpose: establish current state before deleting or replacing anything.
 
@@ -133,7 +133,7 @@ Acceptance criteria:
 
 ## Phase 1: Delete Pure Low-Signal Tests
 
-Status: unchecked
+Status: complete
 
 This phase deletes tests that have no meaningful replacement requirement because
 nearby tests already exercise the behavior.
@@ -221,7 +221,7 @@ Acceptance criteria:
 
 ## Phase 2: Replace Annotation And Wiring Tests With Behavior
 
-Status: unchecked
+Status: complete
 
 This phase removes tests that assert type annotations and replaces them with
 runtime behavior contracts that would fail if those annotations drifted in a
@@ -295,7 +295,7 @@ Acceptance criteria:
 
 ## Phase 3: URI Identity Properties
 
-Status: unchecked
+Status: complete
 
 Target:
 
@@ -338,7 +338,7 @@ Acceptance criteria:
 
 ## Phase 4: Dung Paper Properties And Backend Differential
 
-Status: unchecked
+Status: complete
 
 Grounding:
 
@@ -425,7 +425,7 @@ Acceptance criteria:
 
 ## Phase 5: Strong Equivalence Kernel Properties
 
-Status: unchecked
+Status: complete
 
 Grounding:
 
@@ -466,7 +466,7 @@ Acceptance criteria:
 
 ## Phase 6: ASPIC Transposition And Last-Link Properties
 
-Status: unchecked
+Status: complete
 
 Grounding:
 
@@ -546,7 +546,7 @@ Acceptance criteria:
 
 ## Phase 7: Subjective Logic Consolidation
 
-Status: unchecked
+Status: complete
 
 Grounding:
 
@@ -598,7 +598,7 @@ Acceptance criteria:
 
 ## Phase 8: Revision Postulate Properties
 
-Status: unchecked
+Status: complete
 
 Grounding:
 
@@ -639,7 +639,7 @@ Acceptance criteria:
 
 ## Phase 9: Defeasible Conformance Suite Decision
 
-Status: unchecked
+Status: complete
 
 Target:
 
@@ -766,17 +766,26 @@ Acceptance criteria:
 
 ## Phase 12: Full Verification And Closeout
 
-Status: unchecked
+Status: complete
+
+Progress:
+
+- 2026-04-16: Phase 12 started after commit `a3b9603`; running the full
+  suite through `scripts/run_logged_pytest.ps1`.
+- 2026-04-16: Full suite passed:
+  `logs/test-runs/paper-grounded-full-20260416-212404.log`.
+- 2026-04-16: Closeout report written:
+  `reports/paper-grounded-test-suite-workstream-closeout-2026-04-16.md`.
 
 Tasks:
 
-- [ ] Run the full suite:
+- [x] Run the full suite:
 
 ```powershell
 powershell -File scripts/run_logged_pytest.ps1 -Label paper-grounded-full
 ```
 
-- [ ] Write closeout report:
+- [x] Write closeout report:
 
 `reports/paper-grounded-test-suite-workstream-closeout-2026-04-16.md`
 
