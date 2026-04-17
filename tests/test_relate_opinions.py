@@ -122,12 +122,9 @@ class TestResolutionDictHasOpinionFields:
         result = results[0]  # forward stance
         res = result["resolution"]
         assert "confidence" in res
-        assert "opinion_belief" in res
-        assert "opinion_disbelief" in res
-        assert "opinion_uncertainty" in res
-        assert "opinion_base_rate" in res
-        for key in ("opinion_belief", "opinion_disbelief", "opinion_uncertainty", "opinion_base_rate"):
-            assert isinstance(res[key], float), f"{key} must be float"
+        assert set(res["opinion"]) == {"b", "d", "u", "a"}
+        for key in ("b", "d", "u", "a"):
+            assert isinstance(res["opinion"][key], float), f"opinion.{key} must be float"
 
 
 # ---------------------------------------------------------------------------
@@ -175,9 +172,9 @@ class TestConfidenceEqualsExpectation:
         results = asyncio.run(run())
         result = results[0]
         res = result["resolution"]
+        opinion = res["opinion"]
         op = Opinion(
-            res["opinion_belief"], res["opinion_disbelief"],
-            res["opinion_uncertainty"], res["opinion_base_rate"],
+            opinion["b"], opinion["d"], opinion["u"], opinion["a"],
         )
         assert res["confidence"] == pytest.approx(op.expectation())
 
@@ -202,20 +199,17 @@ class TestStanceYamlRoundTrip:
                 "embedding_model": None,
                 "embedding_distance": None,
                 "confidence": 0.7,
-                "opinion_belief": 0.0,
-                "opinion_disbelief": 0.0,
-                "opinion_uncertainty": 1.0,
-                "opinion_base_rate": 0.7,
+                "opinion": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.7},
             },
         }]
 
         data = yaml.safe_load(dump_yaml_bytes(build_stance_document("claim_a", stances, "test-model")))
 
         res = data["stances"][0]["resolution"]
-        assert res["opinion_belief"] == pytest.approx(0.0)
-        assert res["opinion_disbelief"] == pytest.approx(0.0)
-        assert res["opinion_uncertainty"] == pytest.approx(1.0)
-        assert res["opinion_base_rate"] == pytest.approx(0.7)
+        assert res["opinion"]["b"] == pytest.approx(0.0)
+        assert res["opinion"]["d"] == pytest.approx(0.0)
+        assert res["opinion"]["u"] == pytest.approx(1.0)
+        assert res["opinion"]["a"] == pytest.approx(0.7)
         assert res["confidence"] == pytest.approx(0.7)
 
 
@@ -305,10 +299,7 @@ class TestSidecarPopulatesOpinionColumns:
                     "method": "nli",
                     "model": "test",
                     "confidence": 0.7,
-                    "opinion_belief": 0.0,
-                    "opinion_disbelief": 0.0,
-                    "opinion_uncertainty": 1.0,
-                    "opinion_base_rate": 0.7,
+                    "opinion": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.7},
                 },
             }],
         }
@@ -606,7 +597,7 @@ class TestCorpusCalibReducesUncertainty:
 
         results = asyncio.run(run())
         result = results[0]
-        assert result["resolution"]["opinion_uncertainty"] < 1.0
+        assert result["resolution"]["opinion"]["u"] < 1.0
 
     def test_no_reference_distances_stays_vacuous(self):
         import asyncio
@@ -633,7 +624,7 @@ class TestCorpusCalibReducesUncertainty:
 
         results = asyncio.run(run())
         result = results[0]
-        assert result["resolution"]["opinion_uncertainty"] == pytest.approx(1.0)
+        assert result["resolution"]["opinion"]["u"] == pytest.approx(1.0)
 
     def test_corpus_and_categorical_fused_via_consensus(self):
         import asyncio
@@ -664,7 +655,7 @@ class TestCorpusCalibReducesUncertainty:
 
         results = asyncio.run(run())
         result = results[0]
-        u = result["resolution"]["opinion_uncertainty"]
+        u = result["resolution"]["opinion"]["u"]
 
         from propstore.calibrate import CorpusCalibrator, categorical_to_opinion
         corpus_op = CorpusCalibrator(reference_distances).to_opinion(0.3)

@@ -157,8 +157,7 @@ class TestClassifyReturnsBidirectional:
         for r in results:
             if r["type"] != "none":
                 res = r["resolution"]
-                for key in ("opinion_belief", "opinion_disbelief", "opinion_uncertainty", "opinion_base_rate"):
-                    assert key in res, f"Missing opinion key: {key}"
+                assert set(res["opinion"]) == {"b", "d", "u", "a"}
 
 
 # ---------------------------------------------------------------------------
@@ -388,10 +387,11 @@ class TestOpinionAlgebraInvariant:
             if r["type"] == "none":
                 continue
             res = r["resolution"]
-            b = res["opinion_belief"]
-            d = res["opinion_disbelief"]
-            u = res["opinion_uncertainty"]
-            a = res["opinion_base_rate"]
+            opinion = res["opinion"]
+            b = opinion["b"]
+            d = opinion["d"]
+            u = opinion["u"]
+            a = opinion["a"]
 
             # b + d + u == 1.0 (Josang 2001, Def 1)
             assert b + d + u == pytest.approx(1.0, abs=1e-9)
@@ -447,6 +447,6 @@ class TestCorpusCalibrationReducesUncertainty:
             ))
 
         # Forward stance (non-none) should have lower uncertainty with corpus data
-        u_with = results_with[0]["resolution"]["opinion_uncertainty"]
-        u_without = results_without[0]["resolution"]["opinion_uncertainty"]
+        u_with = results_with[0]["resolution"]["opinion"]["u"]
+        u_without = results_without[0]["resolution"]["opinion"]["u"]
         assert u_with <= u_without + 1e-9

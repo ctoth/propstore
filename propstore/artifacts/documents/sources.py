@@ -19,6 +19,7 @@ from propstore.core.claim_types import ClaimType
 from propstore.core.exactness_types import Exactness
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.artifacts.schema import DocumentStruct
+from propstore.provenance import ProvenanceStatus
 from propstore.stances import StanceType
 
 
@@ -41,6 +42,7 @@ class SourceOriginDocument(DocumentStruct):
 
 
 class SourceTrustQualityDocument(DocumentStruct):
+    status: ProvenanceStatus
     b: float | int
     d: float | int
     u: float | int
@@ -48,6 +50,7 @@ class SourceTrustQualityDocument(DocumentStruct):
 
     def to_payload(self) -> dict[str, Any]:
         return {
+            "status": self.status.value,
             "b": self.b,
             "d": self.d,
             "u": self.u,
@@ -56,12 +59,13 @@ class SourceTrustQualityDocument(DocumentStruct):
 
 
 class SourceTrustDocument(DocumentStruct):
+    status: ProvenanceStatus
     prior_base_rate: float | int | None = None
     quality: SourceTrustQualityDocument | None = None
     derived_from: tuple[str, ...] = ()
 
     def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {}
+        payload: dict[str, Any] = {"status": self.status.value}
         if self.prior_base_rate is not None:
             payload["prior_base_rate"] = self.prior_base_rate
         if self.quality is not None:

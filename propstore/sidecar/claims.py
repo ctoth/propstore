@@ -31,6 +31,7 @@ from propstore.sidecar.claim_utils import (
     insert_claim_row,
     insert_claim_stance_row,
     prepare_claim_insert_row,
+    resolution_opinion_columns,
     resolve_claim_reference,
 )
 from propstore.artifacts.documents.sources import SourceJustificationsDocument
@@ -91,6 +92,7 @@ def populate_stances_from_files(
                 stance_payload.get("resolution"),
                 f"stance file {filename} stance #{index}",
             )
+            opinion_columns = resolution_opinion_columns(resolution)
             conditions_differ = stance.conditions_differ
 
             insert_claim_stance_row(
@@ -109,10 +111,10 @@ def populate_stances_from_files(
                     resolution.get("embedding_distance"),
                     resolution.get("pass_number"),
                     resolution.get("confidence"),
-                    resolution.get("opinion_belief"),
-                    resolution.get("opinion_disbelief"),
-                    resolution.get("opinion_uncertainty"),
-                    resolution.get("opinion_base_rate"),
+                    opinion_columns[0],
+                    opinion_columns[1],
+                    opinion_columns[2],
+                    opinion_columns[3],
                 ),
             )
             count += 1

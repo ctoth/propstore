@@ -1,13 +1,20 @@
-"""Stamp extraction provenance onto pipeline artifacts.
+"""Provenance records and extraction-provenance stamping.
 
-Adds or updates a ``produced_by`` block recording which agent, skill, and
+The core provenance model follows the WS-A Phase 1 design:
+
+* Buneman, Khanna, and Tan's why/where split is represented by a witness
+  chain that keeps the justifying source artifact separate from the value
+  being justified.
+* Carroll et al.'s named graph discipline is represented by deterministic
+  JSON-LD payloads stored as Git notes on ``refs/notes/provenance``.
+
+The older ``stamp_file`` helper remains as the stated-method authoring branch:
+it adds or updates a ``produced_by`` block recording which agent, skill, and
 plugin version produced the file, plus a UTC timestamp.
 
 Supports two file types:
   - .md  -- writes into YAML frontmatter (creates frontmatter if absent)
   - .yaml / .yml -- writes as a top-level block
-
-Ported from research-papers-plugin stamp_provenance.py.
 """
 
 from __future__ import annotations
@@ -15,11 +22,226 @@ from __future__ import annotations
 import re
 import sys
 from datetime import datetime, timezone
+from enum import StrEnum
 from pathlib import Path
+from typing import Any
+
+import msgspec
+from dulwich.notes import Notes
+from dulwich.repo import BaseRepo
+
+from propstore.artifacts.schema import DocumentStruct
 
 
 def _utc_timestamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+PROVENANCE_NOTES_REF = b"refs/notes/provenance"
+
+_CONTEXT = {
+    "ps": "https://prop.store/ns#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "swp": "http://www.w3.org/2004/03/trix/swp-2/",
+}
+_ANONYMOUS_GRAPH_NAME = "urn:propstore:provenance:anonymous"
+
+_STATUS_RANK = {
+    "vacuous": 0,
+    "stated": 1,
+    "measured": 2,
+    "calibrated": 3,
+    "defaulted": 4,
+}
+
+
+class ProvenanceStatus(StrEnum):
+    """Status discriminator for probability-bearing values."""
+
+    MEASURED = "measured"
+    CALIBRATED = "calibrated"
+    STATED = "stated"
+    DEFAULTED = "defaulted"
+    VACUOUS = "vacuous"
+
+
+class ProvenanceWitness(DocumentStruct):
+    """One witness in a provenance chain.
+
+    ``source_artifact_code`` is the Buneman-style where pointer; ``method`` and
+    ``asserter`` are the Carroll/SWP-style warrant metadata.
+    """
+
+    asserter: str
+    timestamp: str
+    source_artifact_code: str
+    method: str
+
+    def to_payload(self) -> dict[str, str]:
+        return {
+            "asserter": self.asserter,
+            "timestamp": self.timestamp,
+            "source_artifact_code": self.source_artifact_code,
+            "method": self.method,
+        }
+
+
+class Provenance(DocumentStruct):
+    """A named-graph provenance record."""
+
+    status: ProvenanceStatus
+    witnesses: tuple[ProvenanceWitness, ...]
+    graph_name: str | None = None
+    derived_from: tuple[str, ...] = ()
+    operations: tuple[str, ...] = ()
+
+    def to_payload(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "status": self.status.value,
+            "witnesses": [witness.to_payload() for witness in self.witnesses],
+        }
+        if self.graph_name is not None:
+            payload["graph_name"] = self.graph_name
+        if self.derived_from:
+            payload["derived_from"] = list(self.derived_from)
+        if self.operations:
+            payload["operations"] = list(self.operations)
+        return payload
+
+
+class _NamedGraphDocument(DocumentStruct):
+    context: dict[str, str] = msgspec.field(name="@context")
+    id: str = msgspec.field(name="@id")
+    type: str = msgspec.field(name="@type")
+    provenance: Provenance
+
+
+def _sha_text(value: str) -> str:
+    return value if value.startswith("ni:///sha-1;") else f"ni:///sha-1;{value}"
+
+
+def _object_sha_bytes(object_sha: bytes | str) -> bytes:
+    if isinstance(object_sha, bytes):
+        return object_sha
+    return object_sha.encode("ascii")
+
+
+def _dedupe_preserve_order(values: list[str]) -> tuple[str, ...]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return tuple(result)
+
+
+def compose_provenance(*records: Provenance, operation: str) -> Provenance:
+    """Compose provenance for a derived value.
+
+    Buneman-style witness composition is set union with deterministic ordering.
+    The resulting status is the highest-ranked status present in the input
+    chain, making defaulted inputs visible after fusion instead of silently
+    laundering them into a measured/calibrated result.
+    """
+
+    if not records:
+        raise ValueError("compose_provenance requires at least one record")
+
+    status = max(records, key=lambda item: _STATUS_RANK[item.status.value]).status
+    witnesses: list[ProvenanceWitness] = []
+    witness_keys: set[tuple[str, str, str, str]] = set()
+    derived_from: list[str] = []
+    operations: list[str] = []
+
+    for record in records:
+        if record.graph_name is not None:
+            derived_from.append(record.graph_name)
+        derived_from.extend(record.derived_from)
+        operations.extend(record.operations)
+        for witness in record.witnesses:
+            key = (
+                witness.asserter,
+                witness.timestamp,
+                witness.source_artifact_code,
+                witness.method,
+            )
+            if key in witness_keys:
+                continue
+            witness_keys.add(key)
+            witnesses.append(witness)
+
+    operations.append(operation)
+    return Provenance(
+        status=status,
+        witnesses=tuple(witnesses),
+        derived_from=_dedupe_preserve_order(derived_from),
+        operations=_dedupe_preserve_order(operations),
+    )
+
+
+def encode_named_graph(provenance: Provenance) -> bytes:
+    """Serialize provenance as a deterministic JSON-LD named graph."""
+
+    graph_id = provenance.graph_name or _ANONYMOUS_GRAPH_NAME
+    document = _NamedGraphDocument(
+        context=_CONTEXT,
+        id=graph_id,
+        type="NamedGraph",
+        provenance=provenance,
+    )
+    return msgspec.json.encode(document)
+
+
+def decode_named_graph(payload: bytes) -> Provenance:
+    """Decode a JSON-LD named graph payload into a provenance record."""
+
+    document = msgspec.json.decode(payload, type=_NamedGraphDocument, strict=True)
+    if document.type != "NamedGraph":
+        raise ValueError(f"Unsupported provenance graph type: {document.type!r}")
+    provenance = document.provenance
+    if provenance.graph_name is None and document.id != _ANONYMOUS_GRAPH_NAME:
+        return Provenance(
+            status=provenance.status,
+            witnesses=provenance.witnesses,
+            graph_name=document.id,
+            derived_from=provenance.derived_from,
+            operations=provenance.operations,
+        )
+    return provenance
+
+
+def write_provenance_note(
+    repo: BaseRepo,
+    object_sha: bytes | str,
+    provenance: Provenance,
+) -> bytes:
+    """Attach a provenance named graph to a git object using git notes."""
+
+    notes = Notes(repo.object_store, repo.refs)
+    return notes.set_note(
+        _object_sha_bytes(object_sha),
+        encode_named_graph(provenance),
+        notes_ref=PROVENANCE_NOTES_REF,
+        message=b"Record provenance named graph",
+    )
+
+
+def read_provenance_note(
+    repo: BaseRepo,
+    object_sha: bytes | str,
+) -> Provenance | None:
+    """Read a provenance named graph from the provenance notes ref."""
+
+    notes = Notes(repo.object_store, repo.refs)
+    payload = notes.get_note(
+        _object_sha_bytes(object_sha),
+        notes_ref=PROVENANCE_NOTES_REF,
+    )
+    if payload is None:
+        return None
+    return decode_named_graph(payload)
 
 
 # ---------------------------------------------------------------------------
