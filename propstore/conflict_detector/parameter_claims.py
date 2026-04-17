@@ -196,7 +196,7 @@ def _detect_cross_class_parameter_conflicts(
     *,
     lifting_system: LiftingSystem | None,
 ) -> None:
-    from propstore.z3_conditions import Z3TranslationError
+    from propstore.z3_conditions import SolverSat, SolverUnknown, SolverUnsat, Z3TranslationError
     import z3
 
     for left_index in range(len(eq_classes)):
@@ -206,13 +206,17 @@ def _detect_cross_class_parameter_conflicts(
             rep_i = all_conditions[group_i[0]]
             rep_j = all_conditions[group_j[0]]
             try:
-                cross_class = (
-                    ConflictClass.PHI_NODE
-                    if z3_solver.are_disjoint(rep_i, rep_j)
-                    else ConflictClass.OVERLAP
-                )
+                disjointness = z3_solver.are_disjoint_result(rep_i, rep_j)
             except (Z3TranslationError, z3.Z3Exception) as exc:
                 raise RuntimeError("Z3 disjointness check failed during parameter conflict detection") from exc
+            if isinstance(disjointness, SolverUnknown):
+                cross_class = ConflictClass.UNKNOWN
+            elif isinstance(disjointness, SolverUnsat):
+                cross_class = ConflictClass.PHI_NODE
+            elif isinstance(disjointness, SolverSat):
+                cross_class = ConflictClass.OVERLAP
+            else:
+                raise TypeError(f"Unexpected solver result: {type(disjointness).__name__}")
 
             for idx_a in group_i:
                 for idx_b in group_j:

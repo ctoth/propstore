@@ -13,6 +13,8 @@ determines which type each concept gets.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 from propstore.cel_checker import (
@@ -39,16 +41,91 @@ from propstore.cel_types import (
 import z3
 
 
+DEFAULT_Z3_TIMEOUT_MS = 30_000
+"""Default Z3 budget for CEL queries.
+
+Thirty seconds is long enough for the small CEL expressions propstore emits
+while ensuring solver incompleteness reaches the caller as typed ignorance
+instead of an unbounded hang.
+"""
+
+
+class SolverUnknownReason(StrEnum):
+    TIMEOUT = "timeout"
+    INCOMPLETE = "incomplete"
+    OTHER = "other"
+
+
+@dataclass(frozen=True)
+class SolverSat:
+    model: object | None = None
+
+
+@dataclass(frozen=True)
+class SolverUnsat:
+    unsat_core: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class SolverUnknown:
+    reason: SolverUnknownReason
+    hint: str
+
+
+SolverResult = SolverSat | SolverUnsat | SolverUnknown
+
+
 class Z3TranslationError(Exception):
     """Raised when a CEL expression can't be translated to Z3."""
+
+
+class Z3UnknownError(Exception):
+    """Raised when a legacy two-valued caller receives a Z3 unknown result."""
+
+    def __init__(self, result: SolverUnknown) -> None:
+        self.result = result
+        super().__init__(f"Z3 returned UNKNOWN ({result.reason.value}): {result.hint}")
+
+
+def _unknown_reason(hint: str) -> SolverUnknownReason:
+    normalized = hint.lower()
+    if "timeout" in normalized or "canceled" in normalized:
+        return SolverUnknownReason.TIMEOUT
+    if "incomplete" in normalized or "unknown" in normalized:
+        return SolverUnknownReason.INCOMPLETE
+    return SolverUnknownReason.OTHER
+
+
+def solver_result_from_z3(solver: z3.Solver) -> SolverResult:
+    check_result = solver.check()
+    if check_result == z3.sat:
+        return SolverSat(solver.model())
+    if check_result == z3.unsat:
+        return SolverUnsat(tuple(str(entry) for entry in solver.unsat_core()))
+    hint = solver.reason_unknown() or "z3 returned unknown without a reason"
+    return SolverUnknown(_unknown_reason(hint), hint)
+
+
+def _require_decided(result: SolverResult) -> SolverSat | SolverUnsat:
+    if isinstance(result, SolverUnknown):
+        raise Z3UnknownError(result)
+    return result
 
 
 class Z3ConditionSolver:
     """Translates CEL conditions to Z3 and checks disjointness/equivalence."""
 
-    def __init__(self, registry: dict[str, ConceptInfo]) -> None:
+    def __init__(
+        self,
+        registry: dict[str, ConceptInfo],
+        *,
+        timeout_ms: int = DEFAULT_Z3_TIMEOUT_MS,
+    ) -> None:
         self._registry = registry
         self._registry_fingerprint = cel_registry_fingerprint(registry)
+        if timeout_ms <= 0:
+            raise ValueError("Z3 timeout must be a positive number of milliseconds")
+        self._timeout_ms = timeout_ms
         self._ctx = z3.Context()
         self._reals: dict[str, z3.ArithRef] = {}
         self._bools: dict[str, z3.BoolRef] = {}
@@ -61,6 +138,11 @@ class Z3ConditionSolver:
         self._enum_consts: dict[str, z3.ExprRef] = {}
         self._enum_values: dict[str, dict[str, z3.ExprRef]] = {}
         self._current_guards: list[Any] = []
+
+    def _new_solver(self) -> z3.Solver:
+        solver = z3.Solver(ctx=self._ctx)
+        solver.set(timeout=self._timeout_ms)
+        return solver
 
     def _get_real(self, name: str) -> z3.ArithRef:
         if name not in self._reals:
@@ -435,13 +517,24 @@ class Z3ConditionSolver:
         bindings: Mapping[str, Any],
     ) -> bool:
         """Check whether one CEL condition holds under a concrete assignment."""
+        result = _require_decided(
+            self.is_condition_satisfied_result(condition, bindings)
+        )
+        return isinstance(result, SolverSat)
+
+    def is_condition_satisfied_result(
+        self,
+        condition: CelExpr | CheckedCelExpr,
+        bindings: Mapping[str, Any],
+    ) -> SolverResult:
+        """Check whether one CEL condition holds under a concrete assignment."""
         expr = self._condition_to_z3(condition)
-        solver = z3.Solver(ctx=self._ctx)
+        solver = self._new_solver()
         solver.add(expr)
         self._add_temporal_constraints(solver)
         for name, value in bindings.items():
             solver.add(self._binding_to_z3(name, value))
-        return solver.check() == z3.sat
+        return solver_result_from_z3(solver)
 
     def are_disjoint(
         self,
@@ -454,13 +547,24 @@ class Z3ConditionSolver:
         registry, the solver automatically adds valid_from <= valid_until so
         that inverted intervals are treated as UNSAT.
         """
+        result = _require_decided(
+            self.are_disjoint_result(conditions_a, conditions_b)
+        )
+        return isinstance(result, SolverUnsat)
+
+    def are_disjoint_result(
+        self,
+        conditions_a: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions_b: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+    ) -> SolverResult:
+        """Return SAT/UNSAT/UNKNOWN for conjunction of two condition sets."""
         expr_a = self._conditions_to_z3(conditions_a)
         expr_b = self._conditions_to_z3(conditions_b)
-        solver = z3.Solver(ctx=self._ctx)
+        solver = self._new_solver()
         solver.add(expr_a)
         solver.add(expr_b)
         self._add_temporal_constraints(solver)
-        return solver.check() == z3.unsat
+        return solver_result_from_z3(solver)
 
     def are_equivalent(
         self,
@@ -471,22 +575,34 @@ class Z3ConditionSolver:
 
         Both A∧¬B and B∧¬A must be UNSAT.
         """
+        result = _require_decided(
+            self.are_equivalent_result(conditions_a, conditions_b)
+        )
+        return isinstance(result, SolverUnsat)
+
+    def are_equivalent_result(
+        self,
+        conditions_a: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+        conditions_b: Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet,
+    ) -> SolverResult:
+        """Return UNSAT iff two condition sets are logically equivalent."""
         expr_a = self._conditions_to_z3(conditions_a)
         expr_b = self._conditions_to_z3(conditions_b)
         # Check A ∧ ¬B is UNSAT
-        s1 = z3.Solver(ctx=self._ctx)
+        s1 = self._new_solver()
         s1.add(expr_a)
         s1.add(z3.Not(expr_b))
         self._add_temporal_constraints(s1)
-        if s1.check() != z3.unsat:
-            return False
+        left_result = solver_result_from_z3(s1)
+        if not isinstance(left_result, SolverUnsat):
+            return left_result
 
         # Check B ∧ ¬A is UNSAT
-        s2 = z3.Solver(ctx=self._ctx)
+        s2 = self._new_solver()
         s2.add(expr_b)
         s2.add(z3.Not(expr_a))
         self._add_temporal_constraints(s2)
-        return s2.check() == z3.unsat
+        return solver_result_from_z3(s2)
 
     def partition_equivalence_classes(
         self,

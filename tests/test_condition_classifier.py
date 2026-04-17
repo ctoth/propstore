@@ -63,7 +63,7 @@ class TestZ3ExceptionHandling:
         from propstore.z3_conditions import Z3TranslationError, Z3ConditionSolver
         registry = _make_registry()
         solver = Z3ConditionSolver(registry)
-        with patch.object(solver, 'are_equivalent', side_effect=Z3TranslationError("test")):
+        with patch.object(solver, 'are_equivalent_result', side_effect=Z3TranslationError("test")):
             with pytest.raises(Z3TranslationError, match="test"):
                 _try_z3_classify(["freq > 100"], ["freq > 200"], registry, solver=solver)
 
@@ -72,6 +72,6 @@ class TestZ3ExceptionHandling:
         from propstore.z3_conditions import Z3ConditionSolver
         registry = _make_registry()
         solver = Z3ConditionSolver(registry)
-        with patch.object(solver, 'are_equivalent', side_effect=RuntimeError("unexpected")):
+        with patch.object(solver, 'are_equivalent_result', side_effect=RuntimeError("unexpected")):
             with pytest.raises(RuntimeError, match="unexpected"):
                 _try_z3_classify(["freq > 100"], ["freq > 200"], registry, solver=solver)
