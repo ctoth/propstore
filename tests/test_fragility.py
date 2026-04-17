@@ -243,6 +243,80 @@ class TestUtilityScores:
         assert weighted_epistemic_score(witnesses, 4, current_in_extension=False) == pytest.approx(0.5)
         assert weighted_epistemic_score([{"future_idx": 0}], 4, current_in_extension=False) == pytest.approx(0.75)
 
+    def test_imps_rev_requires_explicit_probabilistic_inputs(self) -> None:
+        from propstore.dung import ArgumentationFramework
+        from propstore.fragility import imps_rev
+
+        framework = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+        )
+
+        with pytest.raises(TypeError):
+            imps_rev(framework, {}, {"A": 1.0, "B": 0.0}, ("A", "B"))
+
+    def test_imps_rev_uses_supplied_opinions_without_fabricating_certainty(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from propstore.dung import ArgumentationFramework
+        from propstore.fragility import imps_rev
+        from propstore.opinion import Opinion
+        from propstore.provenance import Provenance, ProvenanceStatus
+
+        framework = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+        )
+        provenance = Provenance(status=ProvenanceStatus.VACUOUS, witnesses=())
+        p_args = {
+            "A": Opinion.vacuous(provenance=provenance),
+            "B": Opinion.vacuous(provenance=provenance),
+        }
+        p_defeats = {("A", "B"): Opinion.vacuous(provenance=provenance)}
+        seen = []
+
+        def fake_dfquad(praf, supports, *, base_scores):
+            seen.append(praf)
+            return {"A": 1.0, "B": 0.25 if len(seen) == 1 else 0.75}
+
+        monkeypatch.setattr(
+            "propstore.praf.dfquad.compute_dfquad_strengths",
+            fake_dfquad,
+        )
+
+        score = imps_rev(
+            framework,
+            {},
+            {"A": 1.0, "B": 0.0},
+            ("A", "B"),
+            p_args=p_args,
+            p_defeats=p_defeats,
+        )
+
+        assert score == pytest.approx(0.5)
+        assert seen[0].p_args is p_args
+        assert seen[0].p_defeats is p_defeats
+        assert seen[1].p_args is p_args
+        assert seen[1].p_defeats == {}
+
+    def test_imps_rev_rejects_unprovenanced_opinions(self) -> None:
+        from propstore.dung import ArgumentationFramework
+        from propstore.fragility import imps_rev
+        from propstore.opinion import Opinion
+
+        framework = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+        )
+
+        with pytest.raises(ValueError, match="provenance-bearing"):
+            imps_rev(
+                framework,
+                {},
+                {"A": 1.0, "B": 0.0},
+                ("A", "B"),
+                p_args={"A": Opinion.vacuous(), "B": Opinion.vacuous()},
+                p_defeats={("A", "B"): Opinion.vacuous()},
+            )
+
 
 def _mock_bound_for_atms(queryable_order: list[str]) -> MagicMock:
     bound = MagicMock()
