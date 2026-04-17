@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 @dataclass(frozen=True)
-class TestFileStats:
+class InventoryFileStats:
     path: Path
     test_count: int
 
@@ -33,10 +33,10 @@ def _count_tests(path: Path) -> int:
     )
 
 
-def _collect_test_stats(tests_dir: Path) -> list[TestFileStats]:
-    stats: list[TestFileStats] = []
+def _collect_test_stats(tests_dir: Path) -> list[InventoryFileStats]:
+    stats: list[InventoryFileStats] = []
     for path in sorted(tests_dir.glob("test_*.py")):
-        stats.append(TestFileStats(path=path, test_count=_count_tests(path)))
+        stats.append(InventoryFileStats(path=path, test_count=_count_tests(path)))
     return stats
 
 
@@ -64,7 +64,10 @@ def _parse_coverage_xml(coverage_xml: Path, src_dir: Path) -> list[CoverageEntry
     return sorted(entries, key=lambda entry: (entry.line_rate, str(entry.path)))
 
 
-def _matching_test_files(module_path: Path, test_stats: list[TestFileStats]) -> list[TestFileStats]:
+def _matching_test_files(
+    module_path: Path,
+    test_stats: list[InventoryFileStats],
+) -> list[InventoryFileStats]:
     stem = module_path.stem
     prefix = f"test_{stem}"
     return [stats for stats in test_stats if stats.path.stem == prefix]
