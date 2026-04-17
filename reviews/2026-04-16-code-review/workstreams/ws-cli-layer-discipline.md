@@ -263,6 +263,18 @@ Status 2026-04-17: `pks world sensitivity` slice landed.
   - `logs/test-runs/cli-layer-world-sensitivity-20260417-172902.log` - 21 passed.
   - `uv run pyright propstore/sensitivity.py` - 0 errors.
 
+Status 2026-04-17: `pks world fragility` slice landed.
+
+- Added `FragilityRequest` and `query_fragility` to `propstore.fragility`,
+  next to the existing fragility ranking orchestrator.
+- Replaced CLI-owned world binding and fragility option plumbing with the
+  owner request. CLI now renders the existing text/JSON report only.
+- Added owner coverage for the all-families-skipped empty report, paired with
+  the existing fragility CLI output regressions.
+- Verification:
+  - `logs/test-runs/cli-layer-world-fragility-20260417-173131.log` - 25 passed.
+  - `uv run pyright propstore/fragility.py` - 0 errors.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.

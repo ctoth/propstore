@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import replace
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING
 
+from propstore.core.environment import Environment
+from propstore.core.id_types import to_context_id
 from propstore.fragility_contributors import (
     build_bound_bridge_inputs,
     collect_assumption_interventions,
@@ -45,6 +48,50 @@ from propstore.fragility_types import (
 )
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.types import QueryableAssumption
+
+if TYPE_CHECKING:
+    from propstore.world import WorldModel
+
+
+@dataclass(frozen=True)
+class FragilityRequest:
+    bindings: Mapping[str, str]
+    context_id: str | None = None
+    concept_id: str | None = None
+    top_k: int = 20
+    include_atms: bool = True
+    include_discovery: bool = True
+    include_conflict: bool = True
+    include_grounding: bool = True
+    include_bridge: bool = True
+    ranking_policy: RankingPolicy | str = RankingPolicy.HEURISTIC_ROI
+
+
+def query_fragility(
+    world: WorldModel,
+    request: FragilityRequest,
+) -> FragilityReport:
+    bound = world.bind(
+        Environment(
+            bindings=dict(request.bindings),
+            context_id=(
+                None
+                if request.context_id is None
+                else to_context_id(request.context_id)
+            ),
+        )
+    )
+    return rank_fragility(
+        bound,
+        concept_id=request.concept_id,
+        top_k=request.top_k,
+        include_atms=request.include_atms,
+        include_discovery=request.include_discovery,
+        include_conflict=request.include_conflict,
+        include_grounding=request.include_grounding,
+        include_bridge=request.include_bridge,
+        ranking_policy=RankingPolicy(request.ranking_policy),
+    )
 
 
 def _apply_ranking_policy(

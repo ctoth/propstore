@@ -13,6 +13,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.fragility import FragilityRequest, query_fragility
 from propstore.graph_export import GraphExportRequest, export_knowledge_graph
 from propstore.repository import Repository
 from propstore.sensitivity import SensitivityRequest, query_sensitivity
@@ -1622,6 +1623,28 @@ class TestWorldOwnerReports:
 
         assert report.concept_id == expected_concept_id
         assert report.result is None
+
+    def test_owner_fragility_reports_empty_when_all_families_skipped(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = query_fragility(
+                wm,
+                FragilityRequest(
+                    bindings={},
+                    include_atms=False,
+                    include_discovery=False,
+                    include_conflict=False,
+                    include_grounding=False,
+                    include_bridge=False,
+                ),
+            )
+
+        assert report.world_fragility == 0.0
+        assert report.analysis_scope == "all"
+        assert report.interventions == ()
 
 
 # ── world query/bind SI values ──────────────────────────────────────
