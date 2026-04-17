@@ -424,7 +424,10 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             provenance_json TEXT,
             context_id TEXT,
             premise_kind TEXT NOT NULL DEFAULT 'ordinary',
-            branch TEXT
+            branch TEXT,
+            build_status TEXT NOT NULL DEFAULT 'ingested',
+            stage TEXT,
+            promotion_status TEXT
         );
 
         CREATE TABLE claim_numeric_payload (
