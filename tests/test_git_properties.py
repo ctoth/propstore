@@ -15,7 +15,7 @@ from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, initialize
 
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
-from propstore.repo import GitStore
+from propstore.storage import GitStore
 
 # ── Strategies ──────────────────────────────────────────────────────
 

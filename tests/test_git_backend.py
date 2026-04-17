@@ -7,7 +7,7 @@ import yaml
 import pytest
 
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
-from propstore.repo import GitStore
+from propstore.storage import GitStore
 from tests.conftest import (
     make_concept_identity,
     normalize_concept_payloads,
@@ -1277,7 +1277,7 @@ def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(tmp_pat
     """Seed forms should not appear on disk if the git seed commit fails."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo import GitStore
+    from propstore.storage import GitStore
 
     original_commit_files = GitStore.commit_files
 

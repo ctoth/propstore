@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, BinaryIO, Iterator, Protocol, Self, TextIO
 
 if TYPE_CHECKING:
-    from propstore.repo.git_backend import GitStore
+    from propstore.storage.git_backend import GitStore
 
 
 class KnowledgePath(Protocol):

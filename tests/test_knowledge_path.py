@@ -4,7 +4,7 @@ from pathlib import Path
 
 from propstore.repository import Repository
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
-from propstore.repo import GitStore
+from propstore.storage import GitStore
 
 
 def test_filesystem_knowledge_path_basic_traversal(tmp_path: Path) -> None:

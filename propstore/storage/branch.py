@@ -16,10 +16,10 @@ from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from propstore.repo.git_backend import _commit_object, _ref_delete, _ref_get, _ref_set
+from propstore.storage.git_backend import _commit_object, _ref_delete, _ref_get, _ref_set
 
 if TYPE_CHECKING:
-    from propstore.repo.git_backend import GitStore
+    from propstore.storage.git_backend import GitStore
 
 
 @dataclass(frozen=True)

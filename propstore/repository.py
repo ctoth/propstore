@@ -111,7 +111,7 @@ class Repository:
     @cached_property
     def git(self):
         """Return the GitStore if this directory is git-backed, else None."""
-        from propstore.repo import GitStore
+        from propstore.storage import GitStore
         if GitStore.is_repo(self._root):
             return GitStore.open(self._root)
         return None
@@ -124,9 +124,9 @@ class Repository:
 
     @cached_property
     def snapshot(self):
-        from propstore.repo.snapshot import RepoSnapshot
+        from propstore.storage.snapshot import RepositorySnapshot
 
-        return RepoSnapshot(self)
+        return RepositorySnapshot(self)
 
     @classmethod
     def find(cls, start: Path | None = None) -> Repository:
@@ -136,7 +136,7 @@ class Repository:
         a ``concepts/`` subdirectory (e.g. ``pks -C path/to/knowledge``
         or when cwd is already inside the knowledge tree).
         """
-        from propstore.repo import GitStore
+        from propstore.storage import GitStore
 
         current = (start or Path.cwd()).resolve()
         # If start itself has the knowledge structure (e.g. -C pointed at it,
@@ -163,7 +163,7 @@ class Repository:
     def init(cls, root: Path) -> Repository:
         """Create the directory structure and return a Repository."""
         # Initialize git first (sync_worktree in init only writes .gitignore)
-        from propstore.repo import GitStore
+        from propstore.storage import GitStore
         GitStore.init(root)
         # Create dirs after git init so sync_worktree doesn't remove them
         dirs = [

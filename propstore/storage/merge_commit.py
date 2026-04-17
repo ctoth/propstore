@@ -9,16 +9,16 @@ from dulwich.objects import Blob, Commit
 
 from propstore.artifacts.families import CLAIMS_FILE_FAMILY, MERGE_MANIFEST_FAMILY
 from propstore.artifacts.refs import ClaimsFileRef, MergeManifestRef
-from propstore.repo.git_backend import _DEFAULT_AUTHOR, _ref_set
-from propstore.repo.merge_classifier import build_merge_framework
-from propstore.repo.merge_report import semantic_candidate_details
+from propstore.storage.git_backend import _DEFAULT_AUTHOR, _ref_set
+from propstore.storage.merge_classifier import build_merge_framework
+from propstore.storage.merge_report import semantic_candidate_details
 
 if TYPE_CHECKING:
-    from propstore.repo.snapshot import RepoSnapshot
+    from propstore.storage.snapshot import RepositorySnapshot
 
 
 def create_merge_commit(
-    snapshot: RepoSnapshot,
+    snapshot: RepositorySnapshot,
     branch_a: str,
     branch_b: str,
     message: str = "",

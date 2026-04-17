@@ -7,27 +7,27 @@ from pathlib import Path
 import click
 
 from propstore.artifacts.codecs import render_yaml_value
-from propstore.repo.repo_import import commit_repo_import, plan_repo_import
+from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
 
-@click.command("import-repo")
-@click.argument("source_repo", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.command("import-repository")
+@click.argument("source_repository", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--target-branch", default=None, help="Branch that receives the import commit.")
 @click.option("--message", default=None, help="Override the default import commit message.")
 @click.pass_context
-def import_repo_cmd(
+def import_repository_cmd(
     ctx: click.Context,
-    source_repo: Path,
+    source_repository: Path,
     target_branch: str | None,
     message: str | None,
 ) -> None:
-    """Import a source repo's committed semantic tree onto a destination branch."""
+    """Import a source repository's committed semantic tree onto a destination branch."""
     repo = ctx.obj["repo"]
     try:
         repo.snapshot.head_sha()
     except ValueError as exc:
-        raise click.ClickException("import-repo requires a git-backed repository") from exc
+        raise click.ClickException("import-repository requires a git-backed repository") from exc
 
-    plan = plan_repo_import(repo, source_repo, target_branch=target_branch)
-    result = commit_repo_import(repo, plan, message=message)
+    plan = plan_repository_import(repo, source_repository, target_branch=target_branch)
+    result = commit_repository_import(repo, plan, message=message)
     click.echo(render_yaml_value(asdict(result)))

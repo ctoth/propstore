@@ -16,7 +16,7 @@ from propstore.artifacts import (
 from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
 from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
-from propstore.repo.branch import create_branch
+from propstore.storage.branch import create_branch
 from propstore.artifacts.documents.sources import SourceClaimDocument, SourceClaimsDocument
 from propstore.artifacts.documents.sources import SourceProvenanceDocument
 from propstore.source.common import source_branch_name

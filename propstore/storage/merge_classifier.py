@@ -1,4 +1,4 @@
-"""Direct repo emission of a formal merge object.
+"""Direct repository merge emission as a formal object.
 
 The repository layer no longer emits claim-bucket classifications as its
 public merge result. Instead it produces a provenance-bearing partial
@@ -12,9 +12,9 @@ from enum import Enum
 from itertools import product
 from typing import Any
 
-from propstore.repo.merge_claims import MergeClaim
-from propstore.repo.merge_framework import PartialArgumentationFramework
-from propstore.repo.snapshot import RepoSnapshot
+from propstore.storage.merge_claims import MergeClaim
+from propstore.storage.merge_framework import PartialArgumentationFramework
+from propstore.storage.snapshot import RepositorySnapshot
 from propstore.z3_conditions import Z3TranslationError
 from propstore.claims import claim_file_claims
 
@@ -48,7 +48,7 @@ class MergeArgument:
 
 
 @dataclass(frozen=True)
-class RepoMergeFramework:
+class RepositoryMergeFramework:
     """Repository-facing merge object with provenance and formal semantics."""
 
     branch_a: str
@@ -273,10 +273,10 @@ def _emit_argument(
 
 
 def build_merge_framework(
-    snapshot: RepoSnapshot,
+    snapshot: RepositorySnapshot,
     branch_a: str,
     branch_b: str,
-) -> RepoMergeFramework:
+) -> RepositoryMergeFramework:
     """Build the direct repository merge object for two branches."""
     from propstore.claims import load_claim_files
 
@@ -394,11 +394,11 @@ def build_merge_framework(
     emitted.sort(key=lambda argument: (argument.canonical_claim_id, argument.claim_id))
     argument_index = {argument.claim_id: argument for argument in emitted}
 
-    canonical_groups: dict[str, list[MergeArgument]] = {}
+    emitted_groups: dict[str, list[MergeArgument]] = {}
     for argument in emitted:
-        canonical_groups.setdefault(argument.canonical_claim_id, []).append(argument)
+        emitted_groups.setdefault(argument.canonical_claim_id, []).append(argument)
 
-    for arguments in canonical_groups.values():
+    for arguments in emitted_groups.values():
         if len(arguments) < 2:
             continue
         left_arguments = [
@@ -448,7 +448,7 @@ def build_merge_framework(
         ignorance=frozenset(ignorance),
         non_attacks=ordered_pairs - frozenset(attacks) - frozenset(ignorance),
     )
-    return RepoMergeFramework(
+    return RepositoryMergeFramework(
         branch_a=branch_a,
         branch_b=branch_b,
         arguments=tuple(emitted),
@@ -459,6 +459,6 @@ def build_merge_framework(
 
 __all__ = [
     "MergeArgument",
-    "RepoMergeFramework",
+    "RepositoryMergeFramework",
     "build_merge_framework",
 ]

@@ -1121,7 +1121,7 @@ class TestContextCLIIntegration:
 
     @staticmethod
     def _commit_workspace_paths(workspace, relpaths, message):
-        from propstore.repo import GitStore
+        from propstore.storage import GitStore
 
         root = workspace / "knowledge"
         repo = GitStore.open(root)

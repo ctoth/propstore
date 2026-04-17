@@ -14,7 +14,7 @@ from hypothesis import given, settings, assume, HealthCheck
 from hypothesis import strategies as st
 
 from propstore.cel_checker import ConceptInfo, KindType
-import propstore.repo as repo_api
+import propstore.storage as repo_api
 from propstore.world.ic_merge import (
     MergeOperator,
     _eval_cel_constraint_z3,

@@ -6,7 +6,7 @@ from itertools import combinations
 import pytest
 
 from propstore.dung import ArgumentationFramework
-from propstore.repo.merge_framework import (
+from propstore.storage.merge_framework import (
     PartialArgumentationFramework,
     enumerate_paf_completions,
     merge_framework_edit_distance,
