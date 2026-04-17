@@ -1,35 +1,39 @@
 from __future__ import annotations
 
-import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Any, TypeAlias, cast
 
 import pytest
+import yaml
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-_SUITE_SRC = _REPO_ROOT.parent / "datalog-conformance-suite" / "src"
-
-_MISSING_SOURCE_TREES = [str(_path) for _path in (_SUITE_SRC,) if not _path.exists()]
-if _MISSING_SOURCE_TREES:
-    pytest.skip(
-        "Requires sibling source trees: " + ", ".join(_MISSING_SOURCE_TREES),
-        allow_module_level=True,
-    )
-
-_SUITE_SRC_TEXT = str(_SUITE_SRC)
-if _SUITE_SRC_TEXT not in sys.path:
-    sys.path.insert(0, _SUITE_SRC_TEXT)
-
-from datalog_conformance.plugin import discover_yaml_tests
-from datalog_conformance.runner import YamlTestRunner
-from datalog_conformance.schema import DefeasibleTheory as SuiteTheory
-from datalog_conformance.schema import Rule as SuiteRule
-from datalog_conformance.schema import TestCase as SuiteCase
-from gunray.conformance_adapter import GunrayConformanceEvaluator
 from gunray.adapter import GunrayEvaluator
+from gunray.conformance_adapter import GunrayConformanceEvaluator
 from gunray.disagreement import complement as gunray_complement
 from gunray.parser import parse_atom_text
+from gunray.schema import DefeasibleTheory as SuiteTheory
+from gunray.schema import Policy
+from gunray.schema import Rule as SuiteRule
 from gunray.types import Constant, GroundAtom as GunrayGroundAtom, Variable
+from propstore.resources import load_resource_text
+
+
+Scalar: TypeAlias = str | int | float | bool
+FactTuple: TypeAlias = tuple[Scalar, ...]
+PredicateFacts: TypeAlias = dict[str, list[FactTuple]]
+DefeasibleSections: TypeAlias = dict[str, PredicateFacts]
+
+
+@dataclass(frozen=True)
+class SuiteCase:
+    name: str
+    description: str
+    source: str
+    tags: list[str]
+    theory: SuiteTheory | None = None
+    expect: DefeasibleSections | None = None
+    expect_per_policy: dict[str, DefeasibleSections] | None = None
+    skip: str | None = None
 
 
 def _decode_gunray_predicate_token(token: str) -> tuple[str, bool]:
@@ -55,8 +59,7 @@ def _decode_gunray_predicate_token(token: str) -> tuple[str, bool]:
     return positive, negated
 
 
-_SUITE_TESTS_ROOT = _SUITE_SRC / "datalog_conformance" / "_tests"
-_DEFEASIBLE_ROOT = _SUITE_TESTS_ROOT / "defeasible"
+_DEFEASIBLE_RESOURCE_ROOT = "conformance/defeasible"
 
 _GUNRAY_TRANCHE_IDS = (
     "basic/depysible_birds::depysible_not_flies_tweety",
@@ -68,15 +71,178 @@ _PROPSTORE_TRANSLATION_TRANCHE_IDS = (
     "basic/goldszmidt_example1_nixon::goldszmidt_example1_pacifist_conflict",
 )
 
-def _case_id(yaml_path: Path, case: SuiteCase) -> str:
-    relative = yaml_path.relative_to(_DEFEASIBLE_ROOT).with_suffix("")
+
+def _case_id(resource_path: str, case: SuiteCase) -> str:
+    relative = Path(resource_path).with_suffix("")
     return f"{relative.as_posix()}::{case.name}"
 
 
+def _load_resource_cases(resource_path: str) -> list[SuiteCase]:
+    raw = yaml.safe_load(
+        load_resource_text(f"{_DEFEASIBLE_RESOURCE_ROOT}/{resource_path}")
+    )
+    if not isinstance(raw, dict):
+        raise AssertionError(f"Conformance resource {resource_path} must be a mapping")
+    if "tests" in raw:
+        base_source = _optional_string(raw.get("source")) or resource_path
+        base_tags = _string_list(raw.get("tags", []))
+        entries = raw.get("tests")
+        if not isinstance(entries, list):
+            raise AssertionError(f"{resource_path}: tests must be a list")
+        return [
+            _case_from_mapping(
+                entry,
+                source=base_source,
+                tags=base_tags,
+                path=f"{resource_path}.tests[{index}]",
+            )
+            for index, entry in enumerate(entries)
+        ]
+    return [_case_from_mapping(raw, source=resource_path, tags=[], path=resource_path)]
+
+
+def _case_from_mapping(
+    raw: object,
+    *,
+    source: str,
+    tags: list[str],
+    path: str,
+) -> SuiteCase:
+    data = _mapping(raw, path)
+    theory = (
+        _theory_from_mapping(data["theory"], f"{path}.theory")
+        if "theory" in data
+        else None
+    )
+    expect = (
+        _sections(data["expect"], f"{path}.expect")
+        if "expect" in data
+        else None
+    )
+    expect_per_policy = None
+    if "expect_per_policy" in data:
+        policy_map = _mapping(data["expect_per_policy"], f"{path}.expect_per_policy")
+        expect_per_policy = {
+            str(policy_name): _sections(
+                expectation,
+                f"{path}.expect_per_policy.{policy_name}",
+            )
+            for policy_name, expectation in policy_map.items()
+        }
+    case_source = _optional_string(data.get("source")) or source
+    case_tags = [*tags, *_string_list(data.get("tags", []))]
+    return SuiteCase(
+        name=_required_string(data, "name", path),
+        description=_required_string(data, "description", path),
+        source=case_source,
+        tags=case_tags,
+        theory=theory,
+        expect=expect,
+        expect_per_policy=expect_per_policy,
+        skip=_optional_string(data.get("skip")),
+    )
+
+
+def _theory_from_mapping(raw: object, path: str) -> SuiteTheory:
+    data = _mapping(raw, path)
+    return SuiteTheory(
+        facts=_predicate_facts(data.get("facts", {}), f"{path}.facts"),
+        strict_rules=_rules(data.get("strict_rules", []), f"{path}.strict_rules"),
+        defeasible_rules=_rules(
+            data.get("defeasible_rules", []),
+            f"{path}.defeasible_rules",
+        ),
+        defeaters=_rules(data.get("defeaters", []), f"{path}.defeaters"),
+        superiority=_pairs(data.get("superiority", []), f"{path}.superiority"),
+        conflicts=_pairs(data.get("conflicts", []), f"{path}.conflicts"),
+    )
+
+
+def _rules(raw: object, path: str) -> list[SuiteRule]:
+    return [
+        SuiteRule(
+            id=_required_string(_mapping(item, f"{path}[{index}]"), "id", f"{path}[{index}]"),
+            head=_required_string(_mapping(item, f"{path}[{index}]"), "head", f"{path}[{index}]"),
+            body=_string_list(_mapping(item, f"{path}[{index}]").get("body", [])),
+        )
+        for index, item in enumerate(_sequence(raw, path))
+    ]
+
+
+def _pairs(raw: object, path: str) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    for index, item in enumerate(_sequence(raw, path)):
+        pair = _sequence(item, f"{path}[{index}]")
+        if len(pair) != 2 or not all(isinstance(part, str) for part in pair):
+            raise AssertionError(f"{path}[{index}] must be a two-item string pair")
+        pairs.append((cast(str, pair[0]), cast(str, pair[1])))
+    return pairs
+
+
+def _sections(raw: object, path: str) -> DefeasibleSections:
+    data = _mapping(raw, path)
+    return {
+        str(section): _predicate_facts(predicates, f"{path}.{section}")
+        for section, predicates in data.items()
+    }
+
+
+def _predicate_facts(raw: object, path: str) -> PredicateFacts:
+    data = _mapping(raw, path)
+    result: PredicateFacts = {}
+    for predicate, rows in data.items():
+        row_values: list[FactTuple] = []
+        for index, row in enumerate(_sequence(rows, f"{path}.{predicate}")):
+            values = _sequence(row, f"{path}.{predicate}[{index}]")
+            if not all(isinstance(value, str | int | float | bool) for value in values):
+                raise AssertionError(f"{path}.{predicate}[{index}] must contain scalars")
+            row_values.append(tuple(cast(Scalar, value) for value in values))
+        result[str(predicate)] = row_values
+    return result
+
+
+def _mapping(raw: object, path: str) -> dict[object, object]:
+    if not isinstance(raw, dict):
+        raise AssertionError(f"{path} must be a mapping")
+    return cast(dict[object, object], raw)
+
+
+def _sequence(raw: object, path: str) -> list[object]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise AssertionError(f"{path} must be a list")
+    return cast(list[object], raw)
+
+
+def _string_list(raw: object) -> list[str]:
+    values = _sequence(raw, "string-list")
+    if not all(isinstance(value, str) for value in values):
+        raise AssertionError("Expected a list of strings")
+    return [cast(str, value) for value in values]
+
+
+def _required_string(data: dict[object, object], key: str, path: str) -> str:
+    value = data.get(key)
+    if not isinstance(value, str):
+        raise AssertionError(f"{path}.{key} must be a string")
+    return value
+
+
+def _optional_string(value: object) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise AssertionError("Expected optional string")
+    return value
+
+
 def _selected_cases(case_ids: tuple[str, ...]) -> list[tuple[Path, SuiteCase]]:
+    resource_paths = sorted({case_id.split("::", 1)[0] + ".yaml" for case_id in case_ids})
     cases_by_id = {
-        _case_id(yaml_path, case): (yaml_path, case)
-        for yaml_path, case in discover_yaml_tests(_DEFEASIBLE_ROOT)
+        _case_id(resource_path, case): (Path(resource_path), case)
+        for resource_path in resource_paths
+        for case in _load_resource_cases(resource_path)
     }
     missing = [case_id for case_id in case_ids if case_id not in cases_by_id]
     if missing:
@@ -99,6 +265,7 @@ _PROPSTORE_TRANSLATION_TRANCHE_CASES = _selected_cases(
     _GUNRAY_TRANCHE_CASES,
     ids=_suite_cases_to_ids(_GUNRAY_TRANCHE_CASES),
 )
+@pytest.mark.differential
 def test_gunray_matches_curated_strong_negation_conformance_tranche(
     yaml_path: Path,
     case: SuiteCase,
@@ -106,8 +273,64 @@ def test_gunray_matches_curated_strong_negation_conformance_tranche(
     if case.skip is not None:
         pytest.skip(case.skip)
 
-    runner = YamlTestRunner(GunrayConformanceEvaluator())
-    runner.run_test_case(case)
+    _run_suite_case(GunrayConformanceEvaluator(), case)
+
+
+def _run_suite_case(evaluator: object, case: SuiteCase) -> None:
+    if case.theory is None:
+        raise AssertionError("Defeasible conformance tranche requires theory cases")
+    evaluate = getattr(evaluator, "evaluate", None)
+    if not callable(evaluate):
+        raise AssertionError("Evaluator does not expose evaluate()")
+
+    if case.expect_per_policy is not None:
+        for policy_name, expected in case.expect_per_policy.items():
+            actual_model = evaluate(case.theory, Policy(policy_name))
+            _assert_sections(case.name, expected, _extract_sections(actual_model), policy_name)
+        return
+
+    if case.expect is None:
+        raise AssertionError("Defeasible conformance tranche requires expectations")
+    actual_model = evaluate(case.theory, Policy.BLOCKING)
+    _assert_sections(
+        case.name,
+        case.expect,
+        _extract_sections(actual_model),
+        Policy.BLOCKING.value,
+    )
+
+
+def _extract_sections(raw_model: object) -> dict[str, dict[str, set[FactTuple]]]:
+    sections = getattr(raw_model, "sections", raw_model)
+    if not isinstance(sections, dict):
+        raise AssertionError("Defeasible model must expose sections")
+    result: dict[str, dict[str, set[FactTuple]]] = {}
+    for section, predicates in sections.items():
+        if not isinstance(section, str) or not isinstance(predicates, dict):
+            raise AssertionError("Defeasible sections must be nested mappings")
+        result[section] = {
+            str(predicate): {tuple(cast(tuple[Scalar, ...], row)) for row in rows}
+            for predicate, rows in predicates.items()
+        }
+    return result
+
+
+def _assert_sections(
+    case_name: str,
+    expected: DefeasibleSections,
+    actual: dict[str, dict[str, set[FactTuple]]],
+    policy: str,
+) -> None:
+    for section_name, predicates in expected.items():
+        assert section_name in actual, (
+            f"{case_name} policy {policy!r}: missing section {section_name!r}"
+        )
+        for predicate, rows in predicates.items():
+            actual_rows = actual[section_name].get(predicate, set())
+            assert actual_rows == set(rows), (
+                f"{case_name} policy {policy!r} section {section_name!r} "
+                f"predicate {predicate!r}: expected {set(rows)!r}, got {actual_rows!r}"
+            )
 
 
 def _build_term_document(term: Variable | Constant):
@@ -230,7 +453,6 @@ def _build_registry(theory: SuiteTheory):
 
 def _evaluate_translated_suite_theory(case: SuiteCase, *, policy_name: str | None = None) -> object:
     from propstore.grounding.translator import translate_to_theory
-    from gunray.schema import Policy
 
     assert case.theory is not None
     rule_file = _build_rule_file(case.theory)
@@ -246,6 +468,7 @@ def _evaluate_translated_suite_theory(case: SuiteCase, *, policy_name: str | Non
     _PROPSTORE_TRANSLATION_TRANCHE_CASES,
     ids=_suite_cases_to_ids(_PROPSTORE_TRANSLATION_TRANCHE_CASES),
 )
+@pytest.mark.differential
 def test_propstore_translation_matches_curated_suite_cases(
     yaml_path: Path,
     case: SuiteCase,
