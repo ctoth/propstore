@@ -522,6 +522,88 @@ class TestConceptLink:
         assert not data.get("relationships")
 
 
+def _provenance_cli_options() -> list[str]:
+    return [
+        "--asserter", "tests",
+        "--timestamp", "2026-04-17T00:00:00Z",
+        "--source-artifact-code", "ps:test:concept-cli",
+        "--method", "unit-test",
+    ]
+
+
+class TestConceptPhase3Semantics:
+    def test_qualia_add_persists_typed_reference(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "qualia-add",
+            "speech:fundamental_frequency",
+            "telic",
+            "speech:task",
+            "--type-constraint", "speech:task",
+            *_provenance_cli_options(),
+        ])
+
+        assert result.exit_code == 0, result.output
+        data = yaml.safe_load(
+            (workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text()
+        )
+        telic = data["lexical_entry"]["senses"][0]["qualia"]["telic"][0]
+        assert telic["reference"]["uri"] == _concept_artifact("concept2")
+        assert telic["type_constraint"]["reference"]["uri"] == _concept_artifact("concept2")
+        assert telic["provenance"]["status"] == "stated"
+        assert telic["provenance"]["witnesses"][0]["method"] == "unit-test"
+
+    def test_description_kind_adds_typed_slot(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "description-kind",
+            "speech:task",
+            "--name", "TaskDescription",
+            "--reference", "speech:task",
+            "--slot", "observer=speech:fundamental_frequency",
+        ])
+
+        assert result.exit_code == 0, result.output
+        data = yaml.safe_load((workspace / "knowledge" / "concepts" / "task.yaml").read_text())
+        description_kind = data["lexical_entry"]["senses"][0]["description_kind"]
+        assert description_kind["name"] == "TaskDescription"
+        assert description_kind["reference"]["uri"] == _concept_artifact("concept2")
+        assert description_kind["slots"][0]["name"] == "observer"
+        assert description_kind["slots"][0]["type_constraint"]["uri"] == _concept_artifact("concept1")
+
+    def test_proto_role_adds_entailment_to_role_and_description_slot(self, workspace: Path) -> None:
+        runner = CliRunner()
+        kind_result = runner.invoke(cli, [
+            "concept", "description-kind",
+            "speech:task",
+            "--name", "TaskDescription",
+            "--reference", "speech:task",
+            "--slot", "observer=speech:fundamental_frequency",
+        ])
+        assert kind_result.exit_code == 0, kind_result.output
+
+        result = runner.invoke(cli, [
+            "concept", "proto-role",
+            "speech:task",
+            "observer",
+            "agent",
+            "sentience",
+            "0.75",
+            *_provenance_cli_options(),
+        ])
+
+        assert result.exit_code == 0, result.output
+        data = yaml.safe_load((workspace / "knowledge" / "concepts" / "task.yaml").read_text())
+        bundle = data["lexical_entry"]["senses"][0]["role_bundles"]["observer"]
+        entailment = bundle["proto_agent_entailments"][0]
+        assert entailment["property"] == "sentience"
+        assert entailment["value"] == 0.75
+        slot_bundle = data["lexical_entry"]["senses"][0]["description_kind"]["slots"][0][
+            "proto_role_bundle"
+        ]
+        assert slot_bundle["proto_agent_entailments"][0]["property"] == "sentience"
+
+
 # ── validate ─────────────────────────────────────────────────────────
 
 class TestValidate:

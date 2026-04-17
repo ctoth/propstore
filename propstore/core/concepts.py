@@ -66,6 +66,34 @@ def _prune_none_values(value: object) -> object:
     return value
 
 
+_SEMANTIC_EMPTY_SEQUENCE_FIELDS = {
+    "formal",
+    "constitutive",
+    "telic",
+    "agentive",
+    "proto_agent_entailments",
+    "proto_patient_entailments",
+}
+
+
+def _prune_semantic_defaults(value: object) -> object:
+    if isinstance(value, Mapping):
+        payload: dict[object, object] = {}
+        for key, item in value.items():
+            if item is None:
+                continue
+            pruned = _prune_semantic_defaults(item)
+            if key in _SEMANTIC_EMPTY_SEQUENCE_FIELDS and pruned == []:
+                continue
+            payload[key] = pruned
+        return payload
+    if isinstance(value, list):
+        return [_prune_semantic_defaults(item) for item in value]
+    if isinstance(value, tuple):
+        return [_prune_semantic_defaults(item) for item in value]
+    return value
+
+
 def _ontology_reference_payload(data: OntologyReferenceDocument) -> dict[str, Any]:
     payload: dict[str, Any] = {"uri": data.uri}
     if data.label is not None:
@@ -92,7 +120,7 @@ def _lexical_sense_payload(data: LexicalSenseDocument) -> dict[str, Any]:
     for key in ("provenance", "qualia", "description_kind", "role_bundles"):
         value = getattr(data, key)
         if value is not None:
-            payload[key] = _prune_none_values(to_document_builtins(value))
+            payload[key] = _prune_semantic_defaults(to_document_builtins(value))
     return payload
 
 
