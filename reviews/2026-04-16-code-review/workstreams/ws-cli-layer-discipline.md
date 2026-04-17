@@ -327,6 +327,18 @@ Status 2026-04-17: ATMS binding/lifecycle slice landed.
 - Move source status SQL and auto-finalize reporting into `propstore.source`.
 - Move form/context mutation and validation behavior out of CLI modules.
 
+Status 2026-04-17: claim show/compare slice landed.
+
+- Added claim owner APIs in `propstore.claims` for `show_claim` and
+  `compare_algorithm_claims`, with typed request/report/failure objects.
+- Replaced direct `WorldModel` lifecycle and claim/algorithm row shaping in
+  `propstore.cli.claim` for `claim show` and `claim compare`.
+- Added owner tests for SI display data and non-algorithm comparison failure,
+  paired with existing CLI `claim show` output tests.
+- Verification:
+  - `logs/test-runs/cli-layer-claim-show-compare-20260417-174436.log` - 5 passed.
+  - `uv run pyright propstore/claims.py` - 0 errors.
+
 ### Phase CLI-5 - Worldline, grounding, micropub, history extraction
 
 - Move worldline definition/request construction and materialization reporting

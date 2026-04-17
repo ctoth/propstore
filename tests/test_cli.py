@@ -12,6 +12,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
+from propstore.claims import ClaimCompareRequest, ClaimComparisonError, compare_algorithm_claims, show_claim
 from propstore.cli import cli
 from propstore.fragility import FragilityRequest, query_fragility
 from propstore.graph_export import GraphExportRequest, export_knowledge_graph
@@ -1408,6 +1409,34 @@ class TestConnectionClosedOnError:
 # ── claim show ──────────────────────────────────────────────────────
 
 class TestClaimShow:
+    def test_owner_show_claim_reports_si_value(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = show_claim(wm, "freq_paper:freq_claim1")
+
+        assert report.logical_id == "freq_paper:freq_claim1"
+        assert report.value == 0.2
+        assert report.value_si == 200
+        assert report.unit == "kHz"
+
+    def test_owner_compare_rejects_non_algorithm_claims(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            with pytest.raises(ClaimComparisonError):
+                compare_algorithm_claims(
+                    wm,
+                    ClaimCompareRequest(
+                        "freq_paper:freq_claim1",
+                        "freq_paper:freq_claim1",
+                    ),
+                )
+
     def test_claim_show_exists(self, freq_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["claim", "show", "freq_paper:freq_claim1"])

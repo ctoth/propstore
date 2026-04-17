@@ -12,7 +12,7 @@ from pathlib import Path
 
 import click
 
-from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
+from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION, open_world_model
 from propstore.repository import Repository
 from propstore.artifacts.schema import DocumentSchemaError
 from propstore.knowledge_path import coerce_knowledge_path
@@ -28,92 +28,54 @@ def claim() -> None:
 @click.pass_obj
 def show(obj: dict, claim_id: str) -> None:
     """Display details of a single claim."""
-    from propstore.world import WorldModel
+    from propstore.claims import UnknownClaimError, show_claim
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(EXIT_ERROR)
-
-    try:
-        claim_data = wm.get_claim(claim_id)
-        if claim_data is None:
+    with open_world_model(repo) as wm:
+        try:
+            report = show_claim(wm, claim_id)
+        except UnknownClaimError:
             click.echo(f"Claim '{claim_id}' not found.", err=True)
             sys.exit(EXIT_ERROR)
-        from propstore.core.row_types import coerce_claim_row
 
-        claim_data = coerce_claim_row(claim_data).to_dict()
-
-        logical_id = claim_data.get("logical_id") or claim_data.get("primary_logical_id")
-        artifact_id = claim_data.get("artifact_id")
-
-        if logical_id:
-            click.echo(f"Logical ID: {logical_id}")
-        click.echo(f"Artifact ID: {artifact_id}")
-        version_id = claim_data.get("version_id")
-        if version_id:
-            click.echo(f"Version ID: {version_id}")
-
-        concept_id = claim_data.get("concept_id")
-        if concept_id:
-            click.echo(f"  concept: {concept_id}")
-
-        claim_type = claim_data.get("type")
-        if claim_type:
-            click.echo(f"  type: {claim_type}")
-
-        value = claim_data.get("value")
-        unit = claim_data.get("unit") or ""
-        value_si = claim_data.get("value_si")
-
-        # Get canonical unit from concept's form
-        canonical_unit = ""
-        if concept_id:
-            concept = wm.get_concept(concept_id)
-            if concept:
-                from propstore.core.row_types import coerce_concept_row
-
-                canonical_unit = (
-                    str(coerce_concept_row(concept).attributes.get("unit_symbol") or "")
-                )
-
-        if value is not None:
-            click.echo(f"  value: {value} {unit}".rstrip())
-            if value_si is not None and value_si != value:
-                si_label = f"{value_si} {canonical_unit}".rstrip()
-                click.echo(f"  value (SI): {si_label}")
-
-        lower = claim_data.get("lower_bound")
-        lower_si = claim_data.get("lower_bound_si")
-        if lower is not None:
-            si_part = f" -> {lower_si}" if lower_si is not None and lower_si != lower else ""
-            click.echo(f"  lower_bound: {lower}{si_part}")
-
-        upper = claim_data.get("upper_bound")
-        upper_si = claim_data.get("upper_bound_si")
-        if upper is not None:
-            si_part = f" -> {upper_si}" if upper_si is not None and upper_si != upper else ""
-            click.echo(f"  upper_bound: {upper}{si_part}")
-
-        uncertainty = claim_data.get("uncertainty")
-        if uncertainty is not None:
-            click.echo(f"  uncertainty: {uncertainty}")
-
-        sample_size = claim_data.get("sample_size")
-        if sample_size is not None:
-            click.echo(f"  sample_size: {sample_size}")
-
-        source = claim_data.get("source_paper")
-        if source:
-            click.echo(f"  source: {source}")
-
-        conditions = claim_data.get("conditions_cel")
-        if conditions:
-            click.echo(f"  conditions: {conditions}")
-    finally:
-        wm.close()
+    if report.logical_id:
+        click.echo(f"Logical ID: {report.logical_id}")
+    click.echo(f"Artifact ID: {report.artifact_id}")
+    if report.version_id:
+        click.echo(f"Version ID: {report.version_id}")
+    if report.concept_id:
+        click.echo(f"  concept: {report.concept_id}")
+    if report.claim_type:
+        click.echo(f"  type: {report.claim_type}")
+    if report.value is not None:
+        click.echo(f"  value: {report.value} {report.unit}".rstrip())
+        if report.value_si is not None and report.value_si != report.value:
+            si_label = f"{report.value_si} {report.canonical_unit}".rstrip()
+            click.echo(f"  value (SI): {si_label}")
+    if report.lower_bound is not None:
+        si_part = (
+            f" -> {report.lower_bound_si}"
+            if report.lower_bound_si is not None
+            and report.lower_bound_si != report.lower_bound
+            else ""
+        )
+        click.echo(f"  lower_bound: {report.lower_bound}{si_part}")
+    if report.upper_bound is not None:
+        si_part = (
+            f" -> {report.upper_bound_si}"
+            if report.upper_bound_si is not None
+            and report.upper_bound_si != report.upper_bound
+            else ""
+        )
+        click.echo(f"  upper_bound: {report.upper_bound}{si_part}")
+    if report.uncertainty is not None:
+        click.echo(f"  uncertainty: {report.uncertainty}")
+    if report.sample_size is not None:
+        click.echo(f"  sample_size: {report.sample_size}")
+    if report.source_paper:
+        click.echo(f"  source: {report.source_paper}")
+    if report.conditions_cel:
+        click.echo(f"  conditions: {report.conditions_cel}")
 
 
 @claim.command()
@@ -290,62 +252,15 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
 @click.pass_obj
 def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
     """Compare two algorithm claims for equivalence."""
-    from ast_equiv import compare as ast_compare
-
-    from propstore.world import WorldModel
+    from propstore.claims import (
+        ClaimCompareRequest,
+        ClaimComparisonError,
+        UnknownClaimError,
+        compare_algorithm_claims,
+    )
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(EXIT_ERROR)
 
-    claim_a = wm.get_claim(id_a)
-    if claim_a is None:
-        click.echo(f"ERROR: Claim '{id_a}' not found.", err=True)
-        wm.close()
-        sys.exit(EXIT_ERROR)
-
-    claim_b = wm.get_claim(id_b)
-    if claim_b is None:
-        click.echo(f"ERROR: Claim '{id_b}' not found.", err=True)
-        wm.close()
-        sys.exit(EXIT_ERROR)
-    from propstore.core.row_types import coerce_claim_row
-
-    claim_a = coerce_claim_row(claim_a).to_dict()
-    claim_b = coerce_claim_row(claim_b).to_dict()
-
-    body_a = claim_a.get("body")
-    body_b = claim_b.get("body")
-    if not body_a or not body_b:
-        click.echo("ERROR: Both claims must be algorithm claims with a body.", err=True)
-        wm.close()
-        sys.exit(EXIT_ERROR)
-
-    import json as _json
-
-    def _parse_variables(claim: dict) -> dict[str, str]:
-        vj = claim.get("variables_json")
-        if not vj:
-            return {}
-        variables = _json.loads(vj)
-        if not isinstance(variables, list):
-            raise ValueError("algorithm variables must be stored as a list of bindings")
-        result: dict[str, str] = {}
-        for var in variables:
-            if isinstance(var, dict):
-                name = var.get("name") or var.get("symbol")
-                concept = var.get("concept", "")
-                if name:
-                    result[name] = concept
-        return result
-
-    bindings_a = _parse_variables(claim_a)
-    bindings_b = _parse_variables(claim_b)
-
-    # Parse known values from --bindings options
     known_values: dict[str, float] | None = None
     if bindings:
         known_values = {}
@@ -356,15 +271,24 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
             except ValueError:
                 click.echo(f"WARNING: Ignoring non-numeric binding: {b}", err=True)
 
-    result = ast_compare(body_a, bindings_a, body_b, bindings_b,
-                         known_values=known_values or None)
+    with open_world_model(repo) as wm:
+        try:
+            result = compare_algorithm_claims(
+                wm,
+                ClaimCompareRequest(id_a, id_b, known_values or None),
+            )
+        except UnknownClaimError as exc:
+            click.echo(f"ERROR: Claim '{exc.claim_id}' not found.", err=True)
+            sys.exit(EXIT_ERROR)
+        except ClaimComparisonError as exc:
+            click.echo(f"ERROR: {exc}", err=True)
+            sys.exit(EXIT_ERROR)
 
     click.echo(f"Tier:       {result.tier}")
     click.echo(f"Equivalent: {result.equivalent}")
     click.echo(f"Similarity: {result.similarity:.4f}")
     if result.details:
         click.echo(f"Details:    {result.details}")
-    wm.close()
 
 
 @claim.command()
