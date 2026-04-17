@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import click
@@ -403,6 +404,99 @@ def promote(obj: dict, name: str, strict: bool) -> None:
         )
     else:
         click.echo(f"Promoted {source_branch_name(name)} to master")
+
+
+@source.command("status")
+@click.argument("name")
+@click.pass_obj
+def source_status(obj: dict, name: str) -> None:
+    """Show per-claim promotion status for the named source branch.
+
+    Lists the ``claim_core`` mirror rows written by
+    ``pks source promote`` when a claim was blocked from promoting
+    (``promotion_status='blocked'``), joined with the corresponding
+    ``build_diagnostics`` rows for "why it blocked" context.
+
+    Closes axis-1 finding 3.3 per
+    ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``:
+    the partial-promote path leaves blocked claims visible and
+    diagnosable from the primary-branch sidecar without requiring a
+    round trip through ``pks source promote --strict`` or a CLI rerun.
+    """
+    repo: Repository = obj["repo"]
+    branch = source_branch_name(name)
+
+    if not repo.sidecar_path.exists():
+        click.echo("No sidecar built yet — run 'pks build' first.")
+        return
+
+    conn = sqlite3.connect(repo.sidecar_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        has_claim_core = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='claim_core'"
+        ).fetchone() is not None
+        has_diagnostics = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='build_diagnostics'"
+        ).fetchone() is not None
+        if not has_claim_core:
+            click.echo("No claim_core table — sidecar schema may predate phase 3.")
+            return
+
+        claim_rows = conn.execute(
+            """
+            SELECT id, promotion_status
+            FROM claim_core
+            WHERE branch = ? AND promotion_status IS NOT NULL
+            ORDER BY id
+            """,
+            (branch,),
+        ).fetchall()
+
+        diagnostics_by_claim: dict[str, list[sqlite3.Row]] = {}
+        if has_diagnostics:
+            like_pattern = f"{branch}:%"
+            diag_rows = conn.execute(
+                """
+                SELECT claim_id, source_ref, diagnostic_kind, blocking, message
+                FROM build_diagnostics
+                WHERE source_kind = 'claim'
+                  AND (claim_id IN (
+                    SELECT id FROM claim_core
+                    WHERE branch = ? AND promotion_status IS NOT NULL
+                  ) OR source_ref LIKE ?)
+                ORDER BY id
+                """,
+                (branch, like_pattern),
+            ).fetchall()
+            for diag in diag_rows:
+                key = diag["claim_id"] or (diag["source_ref"] or "").split(":", 1)[-1]
+                diagnostics_by_claim.setdefault(key, []).append(diag)
+    finally:
+        conn.close()
+
+    if not claim_rows:
+        click.echo(f"No promotion-status rows for {branch}.")
+        return
+
+    # Tabular text output follows the style established by `pks log`
+    # (propstore/cli/__init__.py:155-187).
+    header = f"{'CLAIM ID':<40}  {'STATUS':<10}  MESSAGE"
+    click.echo(header)
+    click.echo("-" * len(header))
+    for row in claim_rows:
+        claim_id = str(row["id"])
+        status = str(row["promotion_status"])
+        diagnostics = diagnostics_by_claim.get(claim_id, [])
+        if not diagnostics:
+            click.echo(f"{claim_id:<40}  {status:<10}  (no diagnostic)")
+            continue
+        for diag in diagnostics:
+            kind = str(diag["diagnostic_kind"])
+            message = str(diag["message"])
+            click.echo(
+                f"{claim_id:<40}  {status:<10}  [{kind}] {message}"
+            )
 
 
 @source.command("sync")
