@@ -23,6 +23,7 @@ from propstore.cli.worldline_cmds import worldline
 from propstore.cli.form import form
 from propstore.cli.init import init
 from propstore.cli.merge_cmds import merge
+from propstore.cli.micropub import micropub
 from propstore.cli.repository_import_cmd import import_repository_cmd
 from propstore.repository import Repository
 
@@ -73,6 +74,7 @@ cli.add_command(world)
 cli.add_command(worldline)
 cli.add_command(grounding)
 cli.add_command(merge)
+cli.add_command(micropub)
 cli.add_command(import_repository_cmd)
 
 
