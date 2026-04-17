@@ -2,9 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from enum import StrEnum
+from typing import Protocol, TypeAlias
 
+from propstore.cel_checker import (
+    ASTNode,
+    BinaryOpNode,
+    InNode,
+    NameNode,
+    TernaryNode,
+    UnaryOpNode,
+    parse_cel,
+)
 from propstore.cel_types import CelExpr, to_cel_expr
 from propstore.provenance import (
     NogoodWitness,
@@ -15,11 +26,73 @@ from propstore.provenance import (
     live,
     why_provenance,
 )
+from propstore.z3_conditions import (
+    SolverResult,
+    SolverSat,
+    SolverUnknown,
+    SolverUnsat,
+    Z3TranslationError,
+)
+
+CelScalar: TypeAlias = str | int | float | bool
 
 
 class DecidabilityStatus(StrEnum):
     DECIDABLE = "decidable"
     INCOMPLETE_SOUND = "incomplete_sound"
+
+
+class ClaimApplicability(StrEnum):
+    HOLDS = "holds"
+    EXCEPTED = "excepted"
+    UNKNOWN = "unknown"
+
+
+class ExceptionPolicyIssueKind(StrEnum):
+    MULTIPLE_APPLICABLE_EXCEPTIONS = "multiple_applicable_exceptions"
+
+
+class ExceptionPatternSolver(Protocol):
+    def is_condition_satisfied_result(
+        self,
+        condition: CelExpr,
+        bindings: Mapping[str, CelScalar],
+    ) -> SolverResult: ...
+
+
+@dataclass(frozen=True, order=True)
+class CelBinding:
+    name: str
+    value: CelScalar
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "name", str(self.name))
+        value = self.value
+        if not isinstance(value, str | int | float | bool):
+            raise TypeError("CEL binding value must be a scalar")
+
+
+@dataclass(frozen=True)
+class ContextualClaimUse:
+    context: str
+    claim: str
+    bindings: tuple[CelBinding, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "context", str(self.context))
+        object.__setattr__(self, "claim", str(self.claim))
+        bindings = tuple(self.bindings)
+        names = [binding.name for binding in bindings]
+        if len(names) != len(set(names)):
+            raise ValueError("ContextualClaimUse bindings must have unique names")
+        object.__setattr__(self, "bindings", bindings)
+
+    @property
+    def defeated_use_id(self) -> str:
+        return f"ist({self.context}, {self.claim})"
+
+    def binding_map(self) -> Mapping[str, CelScalar]:
+        return {binding.name: binding.value for binding in self.bindings}
 
 
 @dataclass(frozen=True)
@@ -71,6 +144,35 @@ class ExceptionDefeat:
             raise TypeError("ExceptionDefeat exception must be JustifiableException")
         if not isinstance(self.support, SupportEvidence):
             raise TypeError("ExceptionDefeat support must be SupportEvidence")
+
+
+@dataclass(frozen=True)
+class ExceptionPolicyIssue:
+    kind: ExceptionPolicyIssueKind
+    exceptions: tuple[JustifiableException, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "kind", ExceptionPolicyIssueKind(self.kind))
+        object.__setattr__(self, "exceptions", tuple(self.exceptions))
+
+
+@dataclass(frozen=True)
+class ContextualClaimResult:
+    use: ContextualClaimUse
+    applicability: ClaimApplicability
+    applied_exceptions: tuple[JustifiableException, ...]
+    defeats: tuple[ExceptionDefeat, ...]
+    policy_issues: tuple[ExceptionPolicyIssue, ...]
+    decidability_status: DecidabilityStatus
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.use, ContextualClaimUse):
+            raise TypeError("ContextualClaimResult use must be ContextualClaimUse")
+        object.__setattr__(self, "applicability", ClaimApplicability(self.applicability))
+        object.__setattr__(self, "applied_exceptions", tuple(self.applied_exceptions))
+        object.__setattr__(self, "defeats", tuple(self.defeats))
+        object.__setattr__(self, "policy_issues", tuple(self.policy_issues))
+        object.__setattr__(self, "decidability_status", DecidabilityStatus(self.decidability_status))
 
 
 def exception_live_support(
@@ -135,6 +237,170 @@ def exception_defeat_is_live(
     return bool(why_provenance(live_support))
 
 
+def evaluate_contextual_claim(
+    use: ContextualClaimUse,
+    exceptions: Iterable[JustifiableException],
+    *,
+    lifting_rules: Iterable[LiftingRuleSupport] = (),
+    nogoods: tuple[ProvenanceNogood, ...] = (),
+    solver: ExceptionPatternSolver | None = None,
+) -> ContextualClaimResult:
+    """Decide whether a contextual claim use is excepted.
+
+    Local exceptions are considered in their own context. Non-local
+    exceptions become candidates only when an explicit lifting rule licenses
+    that source/target context pair. Solver ``UNKNOWN`` and CEL translation
+    failures are reported as incomplete soundness and never converted into a
+    positive exception.
+    """
+
+    applied: list[JustifiableException] = []
+    defeats: list[ExceptionDefeat] = []
+    saw_unknown = False
+
+    for exception in _candidate_exceptions(use, exceptions, lifting_rules):
+        if exception.target_claim != use.claim:
+            continue
+        if not exception_is_applied(exception, nogoods):
+            continue
+        pattern_result = _pattern_selects_use(
+            to_cel_expr(exception.exception_pattern),
+            use,
+            solver,
+        )
+        if pattern_result is None:
+            saw_unknown = True
+            continue
+        if not pattern_result:
+            continue
+        applied.append(exception)
+        defeats.append(
+            build_exception_defeat(
+                use.defeated_use_id,
+                exception,
+                nogoods=nogoods,
+            )
+        )
+
+    policy_issues: tuple[ExceptionPolicyIssue, ...] = ()
+    if len(applied) > 1:
+        policy_issues = (
+            ExceptionPolicyIssue(
+                ExceptionPolicyIssueKind.MULTIPLE_APPLICABLE_EXCEPTIONS,
+                tuple(applied),
+            ),
+        )
+
+    if applied:
+        applicability = ClaimApplicability.EXCEPTED
+    elif saw_unknown:
+        applicability = ClaimApplicability.UNKNOWN
+    else:
+        applicability = ClaimApplicability.HOLDS
+
+    decidability_status = DecidabilityStatus.DECIDABLE
+    if saw_unknown or any(
+        exception.decidability_status is DecidabilityStatus.INCOMPLETE_SOUND
+        for exception in applied
+    ):
+        decidability_status = DecidabilityStatus.INCOMPLETE_SOUND
+
+    return ContextualClaimResult(
+        use=use,
+        applicability=applicability,
+        applied_exceptions=tuple(applied),
+        defeats=tuple(defeats),
+        policy_issues=policy_issues,
+        decidability_status=decidability_status,
+    )
+
+
+def _candidate_exceptions(
+    use: ContextualClaimUse,
+    exceptions: Iterable[JustifiableException],
+    lifting_rules: Iterable[LiftingRuleSupport],
+) -> tuple[JustifiableException, ...]:
+    candidates: list[JustifiableException] = []
+    rules = tuple(lifting_rules)
+    for exception in exceptions:
+        if exception.context == use.context:
+            candidates.append(exception)
+            continue
+        for lifting_rule in rules:
+            if (
+                lifting_rule.source_context == exception.context
+                and lifting_rule.target_context == use.context
+            ):
+                candidates.append(lift_exception(exception, lifting_rule))
+    return tuple(candidates)
+
+
+def _pattern_selects_use(
+    pattern: CelExpr,
+    use: ContextualClaimUse,
+    solver: ExceptionPatternSolver | None,
+) -> bool | None:
+    source = str(pattern).strip()
+    lowered = source.lower()
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+
+    bindings = use.binding_map()
+    names = _cel_names(pattern)
+    if names is None:
+        return None
+    if not names <= set(bindings):
+        return None
+    if solver is None:
+        return None
+
+    try:
+        result = solver.is_condition_satisfied_result(pattern, bindings)
+    except Z3TranslationError:
+        return None
+    if isinstance(result, SolverSat):
+        return True
+    if isinstance(result, SolverUnsat):
+        return False
+    if isinstance(result, SolverUnknown):
+        return None
+    return None
+
+
+def _cel_names(pattern: CelExpr) -> frozenset[str] | None:
+    try:
+        ast = parse_cel(pattern)
+    except ValueError:
+        return None
+    names: set[str] = set()
+    _collect_cel_names(ast, names)
+    return frozenset(names)
+
+
+def _collect_cel_names(node: ASTNode, names: set[str]) -> None:
+    if isinstance(node, NameNode):
+        names.add(node.name)
+        return
+    if isinstance(node, BinaryOpNode):
+        _collect_cel_names(node.left, names)
+        _collect_cel_names(node.right, names)
+        return
+    if isinstance(node, UnaryOpNode):
+        _collect_cel_names(node.operand, names)
+        return
+    if isinstance(node, InNode):
+        _collect_cel_names(node.expr, names)
+        for value in node.values:
+            _collect_cel_names(value, names)
+        return
+    if isinstance(node, TernaryNode):
+        _collect_cel_names(node.condition, names)
+        _collect_cel_names(node.true_branch, names)
+        _collect_cel_names(node.false_branch, names)
+
+
 def _compose_support_quality(left: SupportQuality, right: SupportQuality) -> SupportQuality:
     left = SupportQuality(left)
     right = SupportQuality(right)
@@ -148,11 +414,19 @@ def _compose_support_quality(left: SupportQuality, right: SupportQuality) -> Sup
 
 
 __all__ = [
+    "CelBinding",
+    "ClaimApplicability",
+    "ContextualClaimResult",
+    "ContextualClaimUse",
     "DecidabilityStatus",
     "ExceptionDefeat",
+    "ExceptionPatternSolver",
+    "ExceptionPolicyIssue",
+    "ExceptionPolicyIssueKind",
     "JustifiableException",
     "LiftingRuleSupport",
     "build_exception_defeat",
+    "evaluate_contextual_claim",
     "exception_defeat_is_live",
     "exception_is_applied",
     "exception_live_support",

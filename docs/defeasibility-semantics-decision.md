@@ -1,6 +1,6 @@
 # Defeasibility Semantics Decision
 
-Status: WS-C C-1 decision artifact, pending Q review before implementation.
+Status: WS-C C-1 decision accepted; C-2 and C-3 implementation underway.
 
 Date: 2026-04-17
 
@@ -191,4 +191,4 @@ Tests should show that ASPIC+ rationality postulates survive when defeats includ
 
 ## Review Gate
 
-This document completes the decision artifact required by WS-C phase C-1. Implementation phases C-2 through C-6 should proceed only after Q reviews this decision and accepts the CKR/ASPIC+/grounding boundary as the control surface for the rest of WS-C.
+This document completed the decision artifact required by WS-C phase C-1. Q accepted the CKR/ASPIC+/grounding boundary in the subsequent execution instructions, so implementation phases C-2 through C-6 are proceeding against this document.
