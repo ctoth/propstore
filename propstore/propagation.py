@@ -9,11 +9,35 @@ Evaluates parameterization expressions given input values. Handles:
 from __future__ import annotations
 
 import functools
+import math
 import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import Any
 
 
 _SAFE_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+class ParameterizationEvaluationStatus(StrEnum):
+    VALUE = "value"
+    SYMPY_UNAVAILABLE = "sympy_unavailable"
+    INVALID_EXPRESSION = "invalid_expression"
+    MISSING_INPUT = "missing_input"
+    NO_SOLUTION = "no_solution"
+    NON_NUMERIC = "non_numeric"
+
+
+@dataclass(frozen=True)
+class ParameterizationEvaluation:
+    status: ParameterizationEvaluationStatus
+    value: float | None = None
+    detail: str | None = None
+
+    @classmethod
+    def from_value(cls, value: float) -> ParameterizationEvaluation:
+        return cls(ParameterizationEvaluationStatus.VALUE, value=value)
 
 
 @functools.lru_cache(maxsize=128)
@@ -73,23 +97,48 @@ def evaluate_parameterization(
     sympy_expr: str,
     input_values: dict[str, float],
     output_concept_id: str,
-) -> float | None:
+) -> ParameterizationEvaluation:
     """Evaluate a SymPy parameterization expression.
 
-    Returns the computed float value, or None if evaluation fails
-    (missing inputs, unsolvable expression, etc.).
+    Returns a typed result so callers do not collapse missing inputs,
+    unsolved equations, parse failures, and non-numeric results into one
+    overloaded ``None`` channel.
     """
     try:
         from sympy import Equality, Symbol, solve
     except ImportError:
-        return None
+        return ParameterizationEvaluation(
+            ParameterizationEvaluationStatus.SYMPY_UNAVAILABLE,
+            detail="sympy import failed",
+        )
 
     # Build symbol names from inputs + output
     all_names = set(input_values.keys()) | {output_concept_id}
-    parsed_expr, symbols = parse_cached(sympy_expr, tuple(sorted(all_names)))
+    try:
+        parsed_expr, symbols = parse_cached(sympy_expr, tuple(sorted(all_names)))
+    except (TypeError, ValueError, SyntaxError, AttributeError) as exc:
+        return ParameterizationEvaluation(
+            ParameterizationEvaluationStatus.INVALID_EXPRESSION,
+            detail=str(exc),
+        )
 
     # Filter input_values to exclude the output concept (self-referencing)
     effective_inputs = {k: v for k, v in input_values.items() if k != output_concept_id}
+
+    def _numeric_result(value: Any) -> ParameterizationEvaluation:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError, ZeroDivisionError, AttributeError) as exc:
+            return ParameterizationEvaluation(
+                ParameterizationEvaluationStatus.NON_NUMERIC,
+                detail=str(exc),
+            )
+        if not math.isfinite(numeric):
+            return ParameterizationEvaluation(
+                ParameterizationEvaluationStatus.NON_NUMERIC,
+                detail=repr(value),
+            )
+        return ParameterizationEvaluation.from_value(numeric)
 
     try:
         if isinstance(parsed_expr, Equality):
@@ -100,14 +149,28 @@ def evaluate_parameterization(
 
             subs_pairs = [(symbols[k], v) for k, v in effective_inputs.items() if k in symbols]
             substituted = parsed_expr.subs(subs_pairs)
+            missing_symbols = substituted.free_symbols - {output_sym}
+            if missing_symbols:
+                return ParameterizationEvaluation(
+                    ParameterizationEvaluationStatus.MISSING_INPUT,
+                    detail=", ".join(sorted(str(symbol) for symbol in missing_symbols)),
+                )
             solutions = solve(substituted, output_sym)
             if solutions:
-                return float(solutions[0])
-            return None
+                return _numeric_result(solutions[0])
+            return ParameterizationEvaluation(ParameterizationEvaluationStatus.NO_SOLUTION)
         else:
             # Bare expression — direct substitution
             subs_pairs = [(symbols[k], v) for k, v in effective_inputs.items() if k in symbols]
             result = parsed_expr.subs(subs_pairs)
-            return float(result)
-    except (TypeError, ValueError, ZeroDivisionError, AttributeError):
-        return None
+            if result.free_symbols:
+                return ParameterizationEvaluation(
+                    ParameterizationEvaluationStatus.MISSING_INPUT,
+                    detail=", ".join(sorted(str(symbol) for symbol in result.free_symbols)),
+                )
+            return _numeric_result(result)
+    except (TypeError, ValueError, ZeroDivisionError, AttributeError) as exc:
+        return ParameterizationEvaluation(
+            ParameterizationEvaluationStatus.INVALID_EXPRESSION,
+            detail=str(exc),
+        )

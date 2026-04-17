@@ -51,8 +51,8 @@ def _typed_row_key(row: Sequence[object]) -> str:
 def _in_extension(current_status: object) -> bool:
     try:
         normalized = ValueStatus(str(current_status))
-    except Exception:
-        return True
+    except ValueError as exc:
+        raise ValueError(f"Unknown value status for extension membership: {current_status!r}") from exc
     return normalized in {
         ValueStatus.DETERMINED,
         ValueStatus.DERIVED,

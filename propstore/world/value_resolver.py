@@ -46,6 +46,14 @@ _BENIGN_INCONCLUSIVE = _AlgorithmComparison(equivalent=None, parse_failed=False)
 _PARSE_FAILED = _AlgorithmComparison(equivalent=None, parse_failed=True)
 
 
+def _comparison_from_equivalence(equivalent: object) -> _AlgorithmComparison:
+    if equivalent is True:
+        return _AlgorithmComparison(equivalent=True)
+    if equivalent is False:
+        return _AlgorithmComparison(equivalent=False)
+    return _BENIGN_INCONCLUSIVE
+
+
 @dataclass(frozen=True)
 class _ActiveClaimView:
     claim: ActiveClaim
@@ -307,8 +315,6 @@ class ActiveClaimResolver:
         override_values: Mapping[str, float | str | None] | None,
         derivation_stack: set[ConceptId],
     ) -> DerivedResult:
-        from propstore.propagation import evaluate_parameterization
-
         sympy_expr = param.sympy
         if not sympy_expr:
             return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
@@ -377,7 +383,18 @@ class ActiveClaimResolver:
         input_values: Mapping[ConceptId, float],
         output_concept_id: ConceptId,
     ) -> float | None:
-        from propstore.propagation import evaluate_parameterization
+        from propstore.propagation import (
+            ParameterizationEvaluation,
+            ParameterizationEvaluationStatus,
+            evaluate_parameterization,
+        )
+
+        def _value_or_none(
+            evaluation: ParameterizationEvaluation,
+        ) -> float | None:
+            if evaluation.status is ParameterizationEvaluationStatus.VALUE:
+                return evaluation.value
+            return None
 
         sympy_expr = param.sympy
         if not sympy_expr:
@@ -386,10 +403,12 @@ class ActiveClaimResolver:
         output_key = "__out__"
         alias_map = self._parameterization_symbol_aliases(param, output_concept_id=output_concept_id)
         if not alias_map:
-            return evaluate_parameterization(
-                sympy_expr,
-                {str(input_id): value for input_id, value in input_values.items()},
-                str(output_concept_id),
+            return _value_or_none(
+                evaluate_parameterization(
+                    sympy_expr,
+                    {str(input_id): value for input_id, value in input_values.items()},
+                    str(output_concept_id),
+                )
             )
 
         replacement_candidates: list[tuple[str, str]] = []
@@ -411,10 +430,12 @@ class ActiveClaimResolver:
         )
 
         if rewritten == sympy_expr:
-            return evaluate_parameterization(
-                sympy_expr,
-                {str(input_id): value for input_id, value in input_values.items()},
-                str(output_concept_id),
+            return _value_or_none(
+                evaluate_parameterization(
+                    sympy_expr,
+                    {str(input_id): value for input_id, value in input_values.items()},
+                    str(output_concept_id),
+                )
             )
 
         safe_values: dict[str, float] = {}
@@ -424,7 +445,9 @@ class ActiveClaimResolver:
             value = input_values.get(to_concept_id(concept_id))
             if value is not None:
                 safe_values[target_symbol] = value
-        return evaluate_parameterization(rewritten, safe_values, output_key)
+        return _value_or_none(
+            evaluate_parameterization(rewritten, safe_values, output_key)
+        )
 
     def _parameterization_symbol_aliases(
         self,
@@ -457,8 +480,10 @@ class ActiveClaimResolver:
             return None
         try:
             return float(override_value)
-        except (TypeError, ValueError):
-            return None
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Invalid override value for {override_key!r}: {override_value!r}"
+            ) from exc
 
     @staticmethod
     def _normalize_value(value: float | str | None) -> float | str | None:
@@ -504,7 +529,7 @@ class ActiveClaimResolver:
             )
             return _PARSE_FAILED
 
-        return _AlgorithmComparison(equivalent=bool(result.equivalent))
+        return _comparison_from_equivalence(result.equivalent)
 
     def _all_algorithms_equivalent(
         self,
@@ -541,8 +566,9 @@ class ActiveClaimResolver:
                 except (ValueError, SyntaxError, AlgorithmParseError, AstToSympyError) as exc:
                     logging.warning("ast_compare failed in algorithm equivalence check: %s", exc)
                     return _PARSE_FAILED
-                if not result.equivalent:
-                    return _AlgorithmComparison(equivalent=False)
+                comparison = _comparison_from_equivalence(result.equivalent)
+                if comparison.equivalent is not True:
+                    return comparison
         return _AlgorithmComparison(equivalent=True)
 
 
