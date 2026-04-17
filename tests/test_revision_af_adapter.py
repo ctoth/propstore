@@ -1,3 +1,10 @@
+"""Revision-to-argumentation adapter tests.
+
+Diller et al. 2015 postulate grounding:
+papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_003.png
+papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_004.png
+"""
+
 from __future__ import annotations
 
 import ast
