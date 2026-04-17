@@ -2775,6 +2775,7 @@ class _Phase6HypotheticalStore:
                 "type": "parameter",
                 "value": 10.0,
                 "sample_size": 50,
+                "confidence": 1.0,
                 "conditions_cel": json.dumps(["mode == 'speech'"]),
             },
         ]
@@ -2879,6 +2880,8 @@ class TestSemanticCorePhase6HypotheticalDeltas:
                     concept_id="concept_x",
                     value=20.0,
                     conditions=["mode == 'speech'"],
+                    sample_size=50,
+                    confidence=1.0,
                 ),
             ],
         )
@@ -2907,6 +2910,8 @@ class TestSemanticCorePhase6HypotheticalDeltas:
                     concept_id="concept_x",
                     value=20.0,
                     conditions=["mode == 'speech'"],
+                    sample_size=50,
+                    confidence=1.0,
                 ),
             ],
         )

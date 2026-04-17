@@ -16,6 +16,19 @@ from propstore.structured_projection import build_structured_projection
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
+def _claim(claim_id: str, concept_id: str, value: float) -> dict:
+    return {
+        "id": claim_id,
+        "concept_id": concept_id,
+        "type": "parameter",
+        "value": value,
+        "opinion_belief": 1.0,
+        "opinion_disbelief": 0.0,
+        "opinion_uncertainty": 0.0,
+        "opinion_base_rate": 0.5,
+    }
+
+
 class _MiniStore:
     def __init__(self, claims: list[dict], stances: list[dict]) -> None:
         self._claims = list(claims)
@@ -87,9 +100,9 @@ def test_praf_mc_respects_support_coupling_when_decomposing() -> None:
     """Support edges still couple components because they induce Cayrol defeats."""
     store = _MiniStore(
         claims=[
-            {"id": "claim_a", "concept_id": "c1", "type": "parameter", "value": 1.0},
-            {"id": "claim_b", "concept_id": "c2", "type": "parameter", "value": 2.0},
-            {"id": "claim_c", "concept_id": "c3", "type": "parameter", "value": 3.0},
+            _claim("claim_a", "c1", 1.0),
+            _claim("claim_b", "c2", 2.0),
+            _claim("claim_c", "c3", 3.0),
         ],
         stances=[
             {
@@ -153,8 +166,8 @@ def test_structured_projection_keeps_vacuous_attack_edges() -> None:
     """
     store = _MiniStore(
         claims=[
-            {"id": "claim_a", "concept_id": "c1", "type": "parameter", "value": 1.0},
-            {"id": "claim_b", "concept_id": "c1", "type": "parameter", "value": 2.0},
+            _claim("claim_a", "c1", 1.0),
+            _claim("claim_b", "c1", 2.0),
         ],
         stances=[
             {
@@ -188,9 +201,9 @@ def test_build_praf_keeps_direct_defeats_separate_from_derived_summaries() -> No
     """Derived defeat marginals should be queried explicitly, not stored as inputs."""
     store = _MiniStore(
         claims=[
-            {"id": "claim_a", "concept_id": "c1", "type": "parameter", "value": 1.0},
-            {"id": "claim_b", "concept_id": "c2", "type": "parameter", "value": 2.0},
-            {"id": "claim_c", "concept_id": "c3", "type": "parameter", "value": 3.0},
+            _claim("claim_a", "c1", 1.0),
+            _claim("claim_b", "c2", 2.0),
+            _claim("claim_c", "c3", 3.0),
         ],
         stances=[
             {
