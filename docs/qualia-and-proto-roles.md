@@ -34,15 +34,19 @@ proto-agent weight predicts subject position, while ties remain undecided.
 ## Description-Kinds
 
 `propstore.core.lemon.description_kinds` defines participant slots, slot
-bindings, description claims, merge arguments, and account-sensitive causal
-connection assertions.
+bindings, description claims, Dung-backed coreference queries, and
+account-sensitive causal connection assertions.
 
 Description-kind slot bindings carry both a value and a value type. Validation
 checks the value type against the slot's `OntologyReference` constraint.
-Coreference is represented as `MergeArgument`, not as a stored identity fact.
-Causal transitivity is explicitly account-sensitive: the current implementation
-does not infer transitivity for merely `stated` causal links and does not merge
-different causal accounts.
+Coreference is represented as merge hypotheses inside `CoreferenceQuery`, not
+as a stored identity fact. The query exposes a `dung.ArgumentationFramework`;
+cluster results are computed under a requested Dung semantics, so grounded
+semantics can withhold a cluster while preferred/stable semantics surface rival
+clusters without changing the stored merge hypotheses. Causal transitivity is
+explicitly account-sensitive: the current implementation does not infer
+transitivity for merely `stated` causal links and does not merge different
+causal accounts.
 
 ## Worldline Review
 

@@ -7,6 +7,7 @@ from hypothesis import strategies as st
 from propstore.core.lemon import (
     CausalAccount,
     CausalConnectionAssertion,
+    CoreferenceQuery,
     DescriptionClaim,
     DescriptionKind,
     GradedEntailment,
@@ -23,12 +24,14 @@ from propstore.core.lemon import (
     TypeConstraint,
     causal_transitivity_allowed,
     coerce_via_qualia,
+    coreference_query,
     coreference_argument,
     predicted_subject_role,
     proto_agent_weight,
     purposive_chain,
     validate_slot_bindings,
 )
+from propstore.dung import ArgumentationFramework
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
 
@@ -259,6 +262,59 @@ def test_coreference_between_description_claims_is_an_argument_not_a_fact() -> N
 
     assert argument.description_claim_ids == ("ps:claim:first", "ps:claim:second")
     assert argument.supports == ("ps:claim:first", "ps:claim:second")
+
+
+def test_coreference_query_is_dung_argumentation_with_policy_dependent_clusters() -> None:
+    kind = DescriptionKind(
+        name="Observation",
+        reference=_ref("tag:propstore:test:description-kind/observation"),
+        slots=(),
+    )
+    first = DescriptionClaim(
+        claim_id="ps:claim:first",
+        kind=kind,
+        bindings=(),
+        provenance=_provenance("observation"),
+    )
+    second = DescriptionClaim(
+        claim_id="ps:claim:second",
+        kind=kind,
+        bindings=(),
+        provenance=_provenance("observation"),
+    )
+    rival = DescriptionClaim(
+        claim_id="ps:claim:rival",
+        kind=kind,
+        bindings=(),
+        provenance=_provenance("observation"),
+    )
+    first_second = coreference_argument(
+        first,
+        second,
+        argument_id="arg:first-second",
+        provenance=_provenance("merge-hypothesis"),
+    )
+    first_rival = coreference_argument(
+        first,
+        rival,
+        argument_id="arg:first-rival",
+        provenance=_provenance("merge-hypothesis"),
+    )
+
+    query = coreference_query(
+        (first_second, first_rival),
+        attacks=(("arg:first-second", "arg:first-rival"), ("arg:first-rival", "arg:first-second")),
+    )
+
+    assert isinstance(query, CoreferenceQuery)
+    assert isinstance(query.framework, ArgumentationFramework)
+    assert query.merge_arguments == (first_second, first_rival)
+    assert query.clusters(semantics="grounded") == ()
+    assert set(query.clusters(semantics="preferred")) == {
+        frozenset({"ps:claim:first", "ps:claim:second"}),
+        frozenset({"ps:claim:first", "ps:claim:rival"}),
+    }
+    assert query.merge_arguments == (first_second, first_rival)
 
 
 def test_causal_connection_transitivity_is_account_sensitive() -> None:
