@@ -23,6 +23,7 @@ from hypothesis import strategies as st
 from propstore.preference import (
     claim_strength,
     defeat_holds,
+    strict_partial_order_closure,
     strictly_weaker,
 )
 
@@ -36,6 +37,52 @@ _preference_attack_types = st.sampled_from(["rebuts", "undermines"])
 _unconditional_attack_types = st.sampled_from(["undercuts", "supersedes"])
 
 _PROP_SETTINGS = settings(deadline=None)
+
+
+# ── Strict partial order helpers ────────────────────────────────────
+
+
+def test_strict_partial_order_closure_adds_transitive_pairs() -> None:
+    """Authored rule orders are closed to Modgil-Prakken Def 22 shape."""
+
+    assert strict_partial_order_closure({("r1", "r2"), ("r2", "r3")}) == frozenset({
+        ("r1", "r2"),
+        ("r2", "r3"),
+        ("r1", "r3"),
+    })
+
+
+def test_strict_partial_order_closure_rejects_cycles() -> None:
+    """Strict partial orders are irreflexive and asymmetric."""
+
+    with pytest.raises(ValueError, match="cycle"):
+        strict_partial_order_closure({("r1", "r2"), ("r2", "r1")})
+
+
+@given(
+    pairs=st.lists(
+        st.tuples(
+            st.integers(min_value=0, max_value=8),
+            st.integers(min_value=0, max_value=8),
+        ).filter(lambda pair: pair[0] < pair[1]),
+        max_size=12,
+        unique=True,
+    )
+)
+@_PROP_SETTINGS
+def test_strict_partial_order_closure_is_transitive_irreflexive_antisymmetric(
+    pairs: list[tuple[int, int]],
+) -> None:
+    """Generated acyclic orders close to strict partial orders."""
+
+    closure = strict_partial_order_closure(pairs)
+    for weaker, stronger in closure:
+        assert weaker != stronger
+        assert (stronger, weaker) not in closure
+    for left, mid in closure:
+        for source, right in closure:
+            if mid == source:
+                assert (left, right) in closure
 
 
 # ── Concrete tests: strictly_weaker ─────────────────────────────────

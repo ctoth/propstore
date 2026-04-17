@@ -755,6 +755,50 @@ def test_translate_strongly_negated_body_atom_preserves_surface_negation() -> No
     assert parse_atom_text(theory.defeasible_rules[0].body[0]).predicate == "~bird"
 
 
+def test_translate_preserves_authored_superiority_pairs() -> None:
+    """Rule-file superiority flows into the gunray theory unchanged.
+
+    The authored surface uses Garcia & Simari's ``superior > inferior``
+    orientation, matching the gunray schema's ``(superior, inferior)``
+    pair shape.
+    """
+    from propstore.loaded import LoadedDocument
+    from propstore.artifacts.documents.rules import (
+        RuleSourceDocument,
+        RulesFileDocument,
+    )
+    from propstore.rule_files import LoadedRuleFile
+    from propstore.grounding.translator import translate_to_theory
+
+    generic = _build_rule_document(
+        rule_id="r1",
+        kind="defeasible",
+        head=_build_atom("flies", [_build_term_var("X")]),
+        body=(_build_atom("bird", [_build_term_var("X")]),),
+    )
+    specific = _build_rule_document(
+        rule_id="r2",
+        kind="defeasible",
+        head=_build_atom("flies", [_build_term_var("X")]),
+        body=(_build_atom("penguin", [_build_term_var("X")]),),
+    )
+    loaded = LoadedDocument(
+        filename="superiority.yaml",
+        source_path=None,
+        knowledge_root=None,
+        document=RulesFileDocument(
+            source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
+            rules=(generic, specific),
+            superiority=(("r2", "r1"),),
+        ),
+    )
+    rule_file = LoadedRuleFile.from_loaded_document(loaded)
+
+    theory = translate_to_theory([rule_file], (), _bird_registry())
+
+    assert theory.superiority == [("r2", "r1")]
+
+
 def test_translate_string_constant_round_trips_control_characters() -> None:
     """String constants with control characters must stay parseable.
 

@@ -69,6 +69,7 @@ _GUNRAY_TRANCHE_IDS = (
 
 _PROPSTORE_TRANSLATION_TRANCHE_IDS = (
     "basic/goldszmidt_example1_nixon::goldszmidt_example1_pacifist_conflict",
+    "superiority/maher_example2_tweety::maher_example2_tweety",
 )
 
 
@@ -383,6 +384,7 @@ def _build_rule_file(theory: SuiteTheory):
         document=RulesFileDocument(
             source=RuleSourceDocument(paper="datalog-conformance-suite"),
             rules=tuple(rule_documents),
+            superiority=tuple(theory.superiority),
         ),
     )
     return LoadedRuleFile.from_loaded_document(loaded_document)

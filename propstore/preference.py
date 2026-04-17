@@ -19,10 +19,50 @@ structured-argument ordering over premises and defeasible rules.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Hashable, Iterable, Mapping
+from typing import Any, TypeVar
 
 from propstore.core.active_claims import ActiveClaim
+
+TOrder = TypeVar("TOrder", bound=Hashable)
+
+
+def strict_partial_order_closure(
+    pairs: Iterable[tuple[TOrder, TOrder]],
+) -> frozenset[tuple[TOrder, TOrder]]:
+    """Return the transitive closure of a strict partial order.
+
+    Pairs are oriented ``(weaker, stronger)``, matching
+    ``PreferenceConfig.rule_order`` in ``propstore.aspic``. The result is
+    the smallest transitive relation containing the authored pairs. Any
+    reflexive edge or cycle is rejected because Modgil & Prakken Def 22
+    requires a strict partial order.
+    """
+
+    closure: set[tuple[TOrder, TOrder]] = set()
+    for weaker, stronger in pairs:
+        if weaker == stronger:
+            raise ValueError("strict partial order cannot contain a reflexive pair")
+        closure.add((weaker, stronger))
+
+    changed = True
+    while changed:
+        changed = False
+        new_pairs: set[tuple[TOrder, TOrder]] = set()
+        for left, mid in closure:
+            for source, right in closure:
+                if mid == source and (left, right) not in closure:
+                    if left == right:
+                        raise ValueError("strict partial order contains a cycle")
+                    new_pairs.add((left, right))
+        if new_pairs:
+            closure |= new_pairs
+            changed = True
+
+    for weaker, stronger in closure:
+        if (stronger, weaker) in closure:
+            raise ValueError("strict partial order contains a cycle")
+    return frozenset(closure)
 
 def strictly_weaker(
     set_a: list[float],

@@ -27,7 +27,11 @@ from propstore.core.row_types import StanceRowInput
 from propstore.dung import ArgumentationFramework
 from propstore.grounding.bundle import GroundedRulesBundle
 
-from .grounding import _ground_facts_to_axioms, grounded_rules_to_rules
+from .grounding import (
+    _ground_facts_to_axioms,
+    grounded_rule_order_from_bundle,
+    grounded_rules_to_rules,
+)
 from .translate import (
     build_preference_config,
     claims_to_kb,
@@ -102,6 +106,7 @@ def compile_bridge_context(
     grounded_strict, grounded_defeasible, literals = grounded_rules_to_rules(bundle, literals)
     strict_rules |= grounded_strict
     defeasible_rules |= grounded_defeasible
+    grounded_rule_order = grounded_rule_order_from_bundle(bundle, defeasible_rules)
 
     contrariness = stances_to_contrariness(stances, literals, defeasible_rules)
     kb = claims_to_kb(normalized_claims, justifications, literals)
@@ -115,6 +120,7 @@ def compile_bridge_context(
         normalized_claims,
         literals,
         defeasible_rules,
+        rule_order=grounded_rule_order,
         comparison=comparison,
         link=link,
     )

@@ -9,6 +9,7 @@ from propstore.artifacts.documents.rules import AtomDocument
 from propstore.aspic import GroundAtom, KnowledgeBase, Literal, Rule, Scalar
 from propstore.core.literal_keys import LiteralKey, ground_key
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.preference import strict_partial_order_closure
 
 _GroundFactKey = tuple[str, bool]
 
@@ -227,6 +228,53 @@ def grounded_rules_to_rules(
     return frozenset(strict_rules), frozenset(defeasible_rules), literals
 
 
+def grounded_rule_order_from_bundle(
+    bundle: GroundedRulesBundle,
+    defeasible_rules: frozenset[Rule],
+) -> frozenset[tuple[Rule, Rule]]:
+    """Project authored superiority onto grounded ASPIC+ rule objects.
+
+    Rule files author Garcia-Simari superiority as
+    ``(superior_rule_id, inferior_rule_id)``. ASPIC+ preference config
+    stores ``(weaker_rule, stronger_rule)`` pairs. A schematic superiority
+    pair applies to every grounded instance whose rule name begins with the
+    authored rule id.
+    """
+
+    authored_pairs = [
+        pair
+        for rule_file in bundle.source_rules
+        for pair in rule_file.document.superiority
+    ]
+    if not authored_pairs:
+        return frozenset()
+
+    by_source_id: dict[str, list[Rule]] = {}
+    for rule in defeasible_rules:
+        if rule.name is None:
+            continue
+        by_source_id.setdefault(_source_rule_id(rule.name), []).append(rule)
+
+    projected: set[tuple[Rule, Rule]] = set()
+    for superior_id, inferior_id in authored_pairs:
+        stronger_rules = by_source_id.get(superior_id, [])
+        weaker_rules = by_source_id.get(inferior_id, [])
+        if not stronger_rules or not weaker_rules:
+            continue
+        for weaker in weaker_rules:
+            for stronger in stronger_rules:
+                if weaker != stronger:
+                    projected.add((weaker, stronger))
+
+    return strict_partial_order_closure(projected)
+
+
+def _source_rule_id(rule_name: str) -> str:
+    """Return the authored rule id prefix from a grounded ASPIC rule name."""
+
+    return rule_name.split("#", 1)[0]
+
+
 def _ground_facts_to_axioms(
     bundle: GroundedRulesBundle,
     literals: dict[LiteralKey, Literal],
@@ -246,5 +294,6 @@ def _ground_facts_to_axioms(
 
 
 __all__ = [
+    "grounded_rule_order_from_bundle",
     "grounded_rules_to_rules",
 ]

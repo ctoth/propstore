@@ -114,15 +114,18 @@ class RulesFileDocument(DocumentStruct):
 
     Parallels ``ClaimsFileDocument`` from
     ``propstore.artifacts.documents.claims``: a ``source`` block plus an
-    ordered tuple of rules. Order
-    is preserved across YAML round-trip because authored order can carry
-    implicit preference information relevant to structured-argumentation
-    last-link comparisons (Modgil & Prakken 2018 Def 13).
+    ordered tuple of rules. Rule priority is authored explicitly through
+    ``superiority`` pairs, oriented ``(superior_rule_id, inferior_rule_id)``
+    to match Garcia & Simari's DeLP superiority relation. YAML order stays
+    stable for reproducibility, not as an implicit priority channel.
 
     Attributes:
         source: Provenance block identifying the originating paper.
         rules: Ordered tuple of rule documents.
+        superiority: Explicit rule-priority pairs. Each pair is
+            ``(superior_rule_id, inferior_rule_id)``.
     """
 
     source: RuleSourceDocument
     rules: tuple[RuleDocument, ...] = ()
+    superiority: tuple[tuple[str, str], ...] = ()
