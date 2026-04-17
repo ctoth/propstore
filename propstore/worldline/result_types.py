@@ -14,6 +14,36 @@ from propstore.world.types import (
 )
 
 
+def _optional_mapping(value: Any, *, field: str) -> Mapping[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{field} must be a mapping")
+    return value
+
+
+def _nested_mapping_items(value: Any, *, field: str) -> dict[str, Mapping[str, Any]]:
+    raw = _optional_mapping(value, field=field)
+    items: dict[str, Mapping[str, Any]] = {}
+    for name, item in raw.items():
+        if not isinstance(item, Mapping):
+            raise ValueError(f"{field}.{name} must be a mapping")
+        items[str(name)] = item
+    return items
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    return float(value)
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    return int(value)
+
+
 @dataclass(frozen=True)
 class WorldlineVariableRef:
     name: str | None = None
@@ -62,7 +92,6 @@ class WorldlineInputSource:
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> WorldlineInputSource:
-        raw_inputs = data.get("inputs_used")
         return cls(
             source=str(data.get("source") or "unknown"),
             value=data.get("value"),
@@ -70,15 +99,13 @@ class WorldlineInputSource:
             formula=None if data.get("formula") is None else str(data.get("formula")),
             reason=None if data.get("reason") is None else str(data.get("reason")),
             strategy=None if data.get("strategy") is None else str(data.get("strategy")),
-            inputs_used=(
-                {
-                    str(name): WorldlineInputSource.from_mapping(value)
-                    for name, value in raw_inputs.items()
-                    if isinstance(value, Mapping)
-                }
-                if isinstance(raw_inputs, Mapping)
-                else {}
-            ),
+            inputs_used={
+                name: WorldlineInputSource.from_mapping(value)
+                for name, value in _nested_mapping_items(
+                    data.get("inputs_used"),
+                    field="inputs_used",
+                ).items()
+            },
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -105,12 +132,12 @@ def _coerce_variable_refs(
     raw_variables: Any,
 ) -> tuple[WorldlineVariableRef, ...]:
     if isinstance(raw_variables, Sequence) and not isinstance(raw_variables, (str, bytes)):
-        refs = tuple(
-            WorldlineVariableRef.from_mapping(item)
-            for item in raw_variables
-            if isinstance(item, Mapping)
-        )
-        return refs
+        refs: list[WorldlineVariableRef] = []
+        for index, item in enumerate(raw_variables):
+            if not isinstance(item, Mapping):
+                raise ValueError(f"worldline variables[{index}] must be a mapping")
+            refs.append(WorldlineVariableRef.from_mapping(item))
+        return tuple(refs)
     if isinstance(raw_variables, Mapping):
         raise ValueError("worldline variables must be a list of variable bindings")
     return ()
@@ -142,16 +169,13 @@ class WorldlineTargetValue:
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> WorldlineTargetValue:
         variables = _coerce_variable_refs(data.get("variables"))
-        raw_inputs = data.get("inputs_used")
-        inputs_used = (
-            {
-                str(name): WorldlineInputSource.from_mapping(value)
-                for name, value in raw_inputs.items()
-                if isinstance(value, Mapping)
-            }
-            if isinstance(raw_inputs, Mapping)
-            else {}
-        )
+        inputs_used = {
+            name: WorldlineInputSource.from_mapping(value)
+            for name, value in _nested_mapping_items(
+                data.get("inputs_used"),
+                field="inputs_used",
+            ).items()
+        }
         return cls(
             status=str(data.get("status") or "underspecified"),
             value=data.get("value"),
@@ -306,14 +330,8 @@ class WorldlineSensitivityEntry:
     def from_mapping(cls, data: Mapping[str, Any]) -> WorldlineSensitivityEntry:
         return cls(
             input_name=str(data.get("input") or ""),
-            elasticity=(
-                None if data.get("elasticity") is None else float(data.get("elasticity"))
-            ),
-            partial_derivative=(
-                None
-                if data.get("partial_derivative") is None
-                else float(data.get("partial_derivative"))
-            ),
+            elasticity=_optional_float(data.get("elasticity")),
+            partial_derivative=_optional_float(data.get("partial_derivative")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -443,10 +461,39 @@ class WorldlineArgumentationState:
         object.__setattr__(self, "why_out", dict(self.why_out))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> WorldlineArgumentationState | None:
+    def from_mapping(cls, data: object) -> WorldlineArgumentationState | None:
+        if data is None:
+            return None
+        if not isinstance(data, Mapping):
+            raise ValueError("worldline argumentation must be a mapping")
         if not data:
             return None
         raw_nogoods = data.get("nogoods") or ()
+        acceptance_probs = _optional_mapping(
+            data.get("acceptance_probs"),
+            field="acceptance_probs",
+        )
+        node_statuses = _optional_mapping(data.get("node_statuses"), field="node_statuses")
+        support_quality = _optional_mapping(
+            data.get("support_quality"),
+            field="support_quality",
+        )
+        essential_support = _optional_mapping(
+            data.get("essential_support"),
+            field="essential_support",
+        )
+        status_reasons = _optional_mapping(data.get("status_reasons"), field="status_reasons")
+        future_statuses = _optional_mapping(
+            data.get("future_statuses"),
+            field="future_statuses",
+        )
+        stability = _optional_mapping(data.get("stability"), field="stability")
+        relevance = _optional_mapping(data.get("relevance"), field="relevance")
+        witness_futures = _optional_mapping(
+            data.get("witness_futures"),
+            field="witness_futures",
+        )
+        why_out = _optional_mapping(data.get("why_out"), field="why_out")
         return cls(
             backend=None if data.get("backend") is None else str(data.get("backend")),
             status=None if data.get("status") is None else str(data.get("status")),
@@ -455,17 +502,13 @@ class WorldlineArgumentationState:
             defeated=tuple(str(item) for item in data.get("defeated") or ()),
             acceptance_probs={
                 str(claim_id): float(value)
-                for claim_id, value in (data.get("acceptance_probs") or {}).items()
+                for claim_id, value in acceptance_probs.items()
             },
             strategy_used=(
                 None if data.get("strategy_used") is None else str(data.get("strategy_used"))
             ),
-            samples=None if data.get("samples") is None else int(data.get("samples")),
-            confidence_interval_half=(
-                None
-                if data.get("confidence_interval_half") is None
-                else float(data.get("confidence_interval_half"))
-            ),
+            samples=_optional_int(data.get("samples")),
+            confidence_interval_half=_optional_float(data.get("confidence_interval_half")),
             semantics=None if data.get("semantics") is None else str(data.get("semantics")),
             supported=tuple(str(item) for item in data.get("supported") or ()),
             nogoods=tuple(
@@ -475,30 +518,30 @@ class WorldlineArgumentationState:
             ),
             node_statuses={
                 str(node_id): str(status)
-                for node_id, status in (data.get("node_statuses") or {}).items()
+                for node_id, status in node_statuses.items()
             },
             support_quality={
                 str(claim_id): str(status)
-                for claim_id, status in (data.get("support_quality") or {}).items()
+                for claim_id, status in support_quality.items()
             },
             essential_support={
                 str(claim_id): tuple(str(item) for item in support)
-                for claim_id, support in (data.get("essential_support") or {}).items()
+                for claim_id, support in essential_support.items()
             },
             status_reasons={
                 str(claim_id): None if reason is None else str(reason)
-                for claim_id, reason in (data.get("status_reasons") or {}).items()
+                for claim_id, reason in status_reasons.items()
             },
             nogood_details=tuple(data.get("nogood_details") or ()),
             declared_queryables=tuple(str(item) for item in data.get("declared_queryables") or ()),
-            future_statuses=dict(data.get("future_statuses") or {}),
-            stability=dict(data.get("stability") or {}),
-            relevance=dict(data.get("relevance") or {}),
+            future_statuses=dict(future_statuses),
+            stability=dict(stability),
+            relevance=dict(relevance),
             witness_futures={
                 str(claim_id): tuple(entries)
-                for claim_id, entries in (data.get("witness_futures") or {}).items()
+                for claim_id, entries in witness_futures.items()
             },
-            why_out=dict(data.get("why_out") or {}),
+            why_out=dict(why_out),
         )
 
     def to_dict(self) -> dict[str, Any]:

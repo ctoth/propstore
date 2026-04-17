@@ -592,6 +592,21 @@ class TestBuildCelRegistry:
         ])
         assert result["status"].category_extensible is True
 
+    def test_canonical_record_rejects_malformed_form_parameters(self):
+        record = ConceptRecord(
+            artifact_id="ps:concept:oops",
+            canonical_name="oops",
+            status="accepted",
+            definition="Definition.",
+            form="category",
+            form_parameters=["active"],
+            logical_ids=(),
+            version_id="sha256:" + ("1" * 64),
+        )
+
+        with pytest.raises(ValueError, match="form_parameters"):
+            build_canonical_cel_registry([record])
+
     def test_store_projection_requires_typed_rows(self):
         with pytest.raises(TypeError):
             build_store_cel_registry([{"id": "ps:concept:x", "canonical_name": "x"}])

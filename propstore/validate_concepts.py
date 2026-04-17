@@ -391,8 +391,11 @@ def validate_concepts(
             if form_def is not None:
                 # Category concepts must have values in form_parameters
                 if form == "category":
-                    fp = form_params if isinstance(form_params, dict) else {}
-                    if not isinstance(fp.get("values"), list):
+                    if isinstance(form_params, dict):
+                        category_values = form_params.get("values")
+                    else:
+                        category_values = None
+                    if not isinstance(category_values, list):
                         result.errors.append(
                             f"{c.filename}: category concept must have "
                             f"form_parameters with a 'values' list")
