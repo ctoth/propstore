@@ -21,11 +21,110 @@ Existing statement-based models for biomedical literature (SWAN, nanopublication
 ## Key Contributions
 - A formal semantic model (Micropublications) for scientific claims, evidence, arguments, and annotations that is grounded in argumentation theory *(p.2-3)*
 - A formal definition: MP = (A, mp, c, A_c, Phi, R) with explicit SupportGraph and ChallengeGraph DAGs *(p.19)*
-- Seven detailed use cases demonstrating the model's applicability across the biomedical communications ecosystem *(p.9-35)*
+- Nine detailed use cases demonstrating the model's applicability across the biomedical communications ecosystem *(p.5-8, Table 2 on p.6; detailed examples p.9-35)*
 - Comparison with SWAN, nanopublications, and BEL showing the model's advantages in transitivity, multipolar argumentation, and evidence grounding *(p.4-5, 39-40)*
 - An OWL ontology implementation using Open Annotation (OA) as the annotation framework *(p.34)*
 - A prototype implementation in the Domeo web annotation toolkit *(p.38-39)*
 - Analysis of citation distortion networks using the micropublication formalism *(p.36-37)*
+
+## Nine Use Cases
+
+*(p.5–8, Table 2 on p.6)*
+
+| # | Use Case | Description | Page |
+|---|----------|-------------|------|
+| 1 | Building and Using Citable Claims | Constructing libraries of citable Claims with reference attribution | p.6, p.14 |
+| 2 | Modeling Evidence Support for Claims | Enhancing citable Claims with supporting Data and reproducible Methods | p.6, p.15 |
+| 3 | Producing Digital Abstracts | Computable digital abstracts based on citable Claims, Statements, Data, Methods | p.6, p.16 |
+| 4 | Claim Network Analysis | Determining origin of, and evidence for, individual and contrasting claims | p.7, p.17 |
+| 5 | Representing Common Meaning | Similarity groups with Holotype representatives for equivalent claims | p.8, p.19 |
+| 6 | Claim Formalization | Translation of natural-language claims to formal vocabularies (BEL, ACE) | p.8, p.21 |
+| 7 | Modeling Annotation and Discussion | Annotations, comments, discussion as micropublications | p.8, p.22 |
+| 8 | Building Bipolar Claim-Evidence Networks | Support/attack relationships for alternative interpretations and hypotheses | p.8, p.23 |
+| 9 | Contextualizing Micropublications | Annotation ontology (OAM) integration for document-level contextualization | p.8, p.25 |
+
+Table 2 (p.6) maps these nine use cases to nine activities in the biomedical communications lifecycle (authoring, reviewing, editing/publishing, DB/KB curation, searching, reading, discussion, evaluation, experiment design).
+
+## Complexity Spectrum
+
+The model accommodates a spectrum of representational complexity: *(p.13–26)*
+
+- **Minimal**: A single identified Statement with its Attribution (Figure 3) *(p.10)*
+- **Simple**: Claim + Statement paraphrase + Reference attribution (Example 1, Figure 7) *(p.14–15)*
+- **Evidence-backed**: Claim + Data + Methods + Attribution (Example 2, Figure 8) *(p.15–16)*
+- **Digital abstract**: Full claim with all supporting Statements, Data, Methods, and backing References (Example 3, Figure 9) *(p.16–17)*
+- **Cross-publication network**: Claims connected across multiple publications via claim lineages (Example 4, Figures 10-11) *(p.17–18)*
+- **Similarity groups**: Equivalent claims from different publications normalized to a Holotype representative (Example 5, Figures 12-13) *(p.19–21)*
+- **Formalized**: Claims translated to formal languages like BEL with provenance preserved (Example 6, Figures 14-15) *(p.21–22)*
+- **Annotated**: Annotations modeled as micropublications referencing original claims (Example 7, Figure 16) *(p.22–23)*
+- **Challenged**: Bipolar networks showing support and challenge relations between claims (Example 8, Figures 17-18) *(p.23–25)*
+- **Contextualized**: Micropublications embedded as OAM annotations in full-text documents (Example 9, Figure 19) *(p.25–26)*
+
+## Key Concepts
+
+### Class Hierarchy (tree view)
+
+*(p.10–11)* — the paper's full class taxonomy rendered as a tree:
+
+1. **Entity** — things which may be real or imaginary
+   - **Agent** — an Entity that makes, modifies, consumes, or uses an Artifact
+     - **Person**
+     - **Organization**
+   - **Artifact** — an Entity produced, modified, consumed, or used by an Agent
+     - **Representation** — an Artifact that *represents* something
+       - **Sentence** — a well-formed series of symbols intended to convey meaning
+         - **Statement** — a declarative/truth-bearing Sentence
+           - **Claim** — the single principal Statement *arguedBy* a Micropublication
+         - **Qualifier** — a Sentence which qualifies a Statement
+           - **Reference** — a bibliographic qualifier
+           - **SemanticQualifier** — a semantic tag
+       - **Data** — empirical scientific evidence
+       - **Method** — a reusable recipe (Procedure or Material)
+       - **Attribution** — provenance information
+       - **Micropublication** — a set of Representations with support/challenge relations
+       - **ArticleText** — text from a publication
+2. **Activity** — a process by which an Artifact is produced, modified, consumed, or used *(p.10)*
+
+### Key Properties (extended)
+
+*(p.11–12)*
+
+| Property | Domain | Range | Description | Page |
+|----------|--------|-------|-------------|------|
+| argues | Micropublication | Claim | The Claim the MP argues for | p.11 |
+| hasAttribution | Micropublication | Attribution | Attribution of the MP | p.11 |
+| supports | Representation | Representation | Transitive support relation | p.11 |
+| challenges | Representation | Representation | Inferred: *directlyChallenges* OR *indirectlyChallenges* via undercutting support | p.12 |
+| directlyChallenges | Representation | Representation | Direct opposition | p.12 |
+| indirectlyChallenges | Representation | Representation | Undercutting support for another | p.12 |
+| qualifiedBy | Statement | Qualifier | Semantic or reference qualifier | p.11 |
+| supportedByData | Statement | Data | Data supports statement | p.11 |
+| supportedByMethod | Data | Method | Method supports data | p.11 |
+| assertedBy | Representation | Micropublication | Originally instantiated by that MP | p.11 |
+| quotedBy | Representation | Micropublication | Quoted after first being instantiated elsewhere | p.11 |
+| elementOf | Representation | Micropublication | Membership in MP | p.11 |
+| hasSupportGraphElement | Micropublication | Representation | Element of support graph | p.11 |
+| hasChallengeGraphElement | Micropublication | Representation | Element of challenge graph | p.12 |
+| attributionOfAgent | Attribution | Agent | Who made the attribution | p.11 |
+| hasHolotype | Claim | Claim | Representative exemplar of a similarity group | p.19 |
+
+### Claim Lineages
+
+When support relations are resolved across micropublications (e.g., MP3 quotes C3 from Spilman, which is supported by S1 citing Harrison, whose Claim C1.1 is the actual backing), the resolved graphs C1.1 → S1 and C2.1 → S2 are called **Claim Lineages** — by analogy with biological lineages. *(p.17–18)*
+
+### Asserts vs. Quotes
+
+- A Representation **assertedBy** a Micropublication is originally instantiated by that MP *(p.11)*.
+- A Representation **quotedBy** a Micropublication is referred to by that MP after first being instantiated elsewhere *(p.11)*.
+- This distinction enables proper attribution tracking when claims are imported across publication boundaries, and prevents misattribution. *(p.11)*
+
+### Ontological Status of Statements (Strawson)
+
+The model deliberately avoids assigning explicit ontological status to Statements — whether true/false, real/imaginary. Following Strawson: "meaning" is expressed in the language of the statement, while "truth" is a property of its assertion in context. The model sidesteps the philosophical problem and represents both meaning and assertion separately. *(p.20)*
+
+### "Current Best Explanation" Record
+
+Scientific claims in the literature form an open, incrementally-constructed record which changes over time as claims are challenged and reassessed. The model treats the literature as a defeasible record rather than a fixed truth store. *(p.4, p.9)*
 
 ## Methodology
 The paper is a model/ontology design paper, not an empirical study. The methodology consists of:

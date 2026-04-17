@@ -1,0 +1,19 @@
+{
+  "title": "The anatomy of a nanopublication",
+  "authors": [
+    "Paul Groth",
+    "Andrew Gibson",
+    "Jan Velterop"
+  ],
+  "year": "2010",
+  "arxiv_id": null,
+  "doi": "10.3233/ISU-2010-0613",
+  "abstract": "As the amount of scholarly communication increases, it is increasingly difficult for specific core scientific statements to be found, connected and curated. Additionally, the redundancy of these statements in multiple fora makes it difficult to determine attribution, quality and provenance. To tackle these challenges, the Concept Web Alliance has promoted the notion of nanopublications (core scientific statements with associated context). In this document, we present a model of nanopublications along with a Named Graph/RDF serialization of the model. Importantly, the serialization is defined completely using already existing community-developed technologies. Finally, we discuss the importance of aggregating nanopublications and the role that the Concept Wiki plays in facilitating it.",
+  "url": "https://www.semanticscholar.org/paper/1b0ae7920b299486a881af1dba00f67dae2584f5",
+  "pdf_url": "https://content.iospress.com:443/download/information-services-and-use/isu613?id=information-services-and-use%2Fisu613",
+  "bibtex": "@Article{Groth2010TheAO,\n author = {Paul Groth and Andrew Gibson and Jan Velterop},\n booktitle = {Information Services and Use},\n journal = {Information Services and Use},\n pages = {51 - 56},\n title = {The anatomy of a nanopublication},\n volume = {30},\n year = {2010}\n}\n",
+  "venue": "Information Services and Use",
+  "venue_type": "journal",
+  "volume": "30",
+  "pages": "51 - 56"
+}

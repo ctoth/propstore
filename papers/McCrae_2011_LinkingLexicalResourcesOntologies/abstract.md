@@ -1,0 +1,11 @@
+# Abstract
+
+## Original Text (Verbatim)
+
+There are a large number of ontologies currently available on the Semantic Web. However, in order to exploit them within natural language processing applications, more linguistic information than can be represented in current Semantic Web standards is required. Further, there are a large number of lexical resources available representing a wealth of linguistic information, but this data exists in various formats and is difficult to link to ontologies and other resources. We present a model we call *lemon* (Lexicon Model for Ontologies) that supports the sharing of terminological and lexicon resources on the Semantic Web as well as their linking to the existing semantic representations provided by ontologies. We demonstrate that *lemon* can succinctly represent existing lexical resources and in combination with standard NLP tools we can easily generate new lexica for domain ontologies according to the *lemon* model. We demonstrate that by combining generated and existing lexica we can collaboratively develop rich lexical descriptions of ontology entities. We also show that the adoption of Semantic Web standards can provide added value for lexicon models by supporting a rich axiomatization of linguistic categories that can be used to constrain the usage of the model and to perform consistency checks.
+
+---
+
+## Our Interpretation
+
+The paper fills the gap between bare RDFS/SKOS labels and rich lexical resources by giving ontologies a standards-compliant, URI-dereferenceable lexicon layer that does not prescribe a fixed inventory of linguistic categories. The core finding is that an RDF(S) model plus external data-category registries (ISOcat) plus OWL axiomatisation (lemon-LexInfo) is enough to (i) import legacy lexica like WordNet, (ii) auto-generate high-quality lexica for new ontologies (81.5% accuracy on FOAF), and (iii) merge them (69% WordNet reuse), with consistency-checkable linguistic axioms for free. For propstore this is the canonical theoretical source for the concept/semantic layer: it establishes the non-commitment stance on sense boundaries, the external-registry stance on linguistic categories, and the formal link between linguistic expressions and ontological entities that underpins the project's concept registry.
