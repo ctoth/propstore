@@ -838,6 +838,7 @@ def build_arguments_for(
     memo: dict[Literal, frozenset[Argument]] = {}
     # Track literals currently being resolved to detect cycles
     in_progress: set[Literal] = set()
+    cycle_tainted: set[Literal] = set()
 
     def _build_backward(
         target: Literal, depth: int
@@ -854,6 +855,7 @@ def build_arguments_for(
         # ASPIC+ arguments are finite trees (Def 5); cycles are not
         # valid arguments.
         if target in in_progress:
+            cycle_tainted.update(in_progress)
             return frozenset()
 
         in_progress.add(target)
@@ -916,7 +918,8 @@ def build_arguments_for(
 
         result = frozenset(args)
         in_progress.discard(target)
-        memo[target] = result
+        if target not in cycle_tainted:
+            memo[target] = result
         return result
 
     # Build arguments for the goal
