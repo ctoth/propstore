@@ -9,10 +9,15 @@ import hashlib
 import json
 import os
 import sqlite3
+from copy import deepcopy
 
 from hypothesis import settings
 
+from propstore.artifacts.codecs import convert_document
+from propstore.artifacts.families import CONCEPT_FILE_FAMILY
+from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.cel_checker import KindType
+from propstore.core.concepts import concept_document_to_record_payload
 from propstore.form_utils import FormDefinition
 from propstore.identity import (
     compute_claim_version_id,
@@ -85,6 +90,16 @@ def attach_concept_version_id(concept: dict) -> dict:
     return enriched
 
 
+def concept_artifact_to_record_payload(concept: dict) -> dict:
+    """Project a canonical concept artifact payload to the runtime record payload."""
+    document = convert_document(
+        concept,
+        CONCEPT_FILE_FAMILY.doc_type,
+        source="test concept artifact",
+    )
+    return concept_document_to_record_payload(document)
+
+
 def normalize_claims_payload(data: dict, *, default_namespace: str | None = None) -> dict:
     """Return a claim-file payload with deterministic claim identities."""
     normalized_data = dict(data)
@@ -140,31 +155,24 @@ def normalize_concept_payloads(
     *,
     default_domain: str | None = None,
 ) -> list[dict]:
-    """Return concept payloads normalized onto the concept identity contract."""
+    """Return canonical lemon concept artifact payloads with stable identities."""
     raw_to_artifact: dict[str, str] = {}
     normalized_concepts: list[dict] = []
     for concept in concepts:
-        normalized = dict(concept)
-        raw_id = normalized.pop("id", None)
-        canonical_name = normalized.get("canonical_name")
-        domain = str(normalized.get("domain") or default_domain or "propstore")
-        if "artifact_id" not in normalized:
-            local_id = str(raw_id or canonical_name or "concept")
-            normalized.update(
-                make_concept_identity(
-                    local_id,
-                    domain=domain,
-                    canonical_name=str(canonical_name) if isinstance(canonical_name, str) else None,
-                )
-            )
-            if isinstance(raw_id, str):
-                raw_to_artifact[raw_id] = normalized["artifact_id"]
-        elif isinstance(raw_id, str) and isinstance(normalized.get("artifact_id"), str):
+        raw_id = concept.get("id")
+        canonical_name = concept.get("canonical_name")
+        local_handle = str(raw_id or canonical_name or "concept")
+        normalized = normalize_canonical_concept_payload(
+            deepcopy(concept),
+            default_domain=default_domain,
+            local_handle=local_handle,
+        )
+        if isinstance(raw_id, str) and isinstance(normalized.get("artifact_id"), str):
             raw_to_artifact[raw_id] = normalized["artifact_id"]
         normalized_concepts.append(normalized)
 
     for index, concept in enumerate(normalized_concepts):
-        rewritten = dict(concept)
+        rewritten = deepcopy(concept)
         replaced_by = rewritten.get("replaced_by")
         if isinstance(replaced_by, str):
             rewritten["replaced_by"] = raw_to_artifact.get(replaced_by, _rewrite_concept_ref(replaced_by))
@@ -673,7 +681,7 @@ def make_concept_registry():
 
     Returns 3 concepts covering frequency, pressure, and category forms.
     """
-    concepts = normalize_concept_payloads([
+    concept_artifacts = normalize_concept_payloads([
         {
             "id": "concept1",
             "canonical_name": "fundamental_frequency",
@@ -708,6 +716,10 @@ def make_concept_registry():
             "domain": "speech",
         },
     ], default_domain="speech")
+    concepts = [
+        concept_artifact_to_record_payload(concept)
+        for concept in concept_artifacts
+    ]
     registry: dict[str, dict] = {}
     form_definitions = {
         "frequency": FormDefinition(

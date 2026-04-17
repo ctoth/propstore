@@ -125,21 +125,29 @@ def normalize_canonical_concept_payload(
 ) -> dict[str, Any]:
     normalized = deepcopy(data)
     raw_id = normalized.pop("id", None)
-    effective_name = canonical_name or normalized.get("canonical_name")
+    lexical_entry = normalized.get("lexical_entry")
+    lexical_name: object = None
+    if isinstance(lexical_entry, dict):
+        canonical_form = lexical_entry.get("canonical_form")
+        if isinstance(canonical_form, dict):
+            lexical_name = canonical_form.get("written_rep")
+    effective_name = canonical_name or normalized.pop("canonical_name", None) or lexical_name
     if not isinstance(effective_name, str) or not effective_name:
         effective_name = str(raw_id or local_handle or "concept")
-    normalized["canonical_name"] = effective_name
 
     effective_domain = domain
     if effective_domain is None:
-        effective_domain = normalized.get("domain") or default_domain or "propstore"
-    normalized["domain"] = effective_domain
+        effective_domain = normalized.pop("domain", None) or default_domain or "propstore"
+    else:
+        normalized.pop("domain", None)
     if default_status is not None and not isinstance(normalized.get("status"), str):
         normalized["status"] = default_status
-    if default_definition is not None and not isinstance(normalized.get("definition"), str):
-        normalized["definition"] = default_definition
-    if default_form is not None and not isinstance(normalized.get("form"), str):
-        normalized["form"] = default_form
+    definition = normalized.pop("definition", None)
+    if default_definition is not None and not isinstance(definition, str):
+        definition = default_definition
+    dimension_form = normalized.pop("form", None)
+    if default_form is not None and not isinstance(dimension_form, str):
+        dimension_form = default_form
 
     propstore_handle = normalize_logical_value(
         local_handle or _concept_local_handle(normalized, fallback=str(raw_id or effective_name))
@@ -154,6 +162,28 @@ def normalize_canonical_concept_payload(
         local_handle=propstore_handle,
         existing=normalized.get("logical_ids"),
     )
+    ontology_reference = normalized.get("ontology_reference")
+    if not isinstance(ontology_reference, dict):
+        ontology_reference = {
+            "uri": artifact_id,
+            "label": str(effective_name),
+        }
+        normalized["ontology_reference"] = ontology_reference
+    if not isinstance(normalized.get("lexical_entry"), dict):
+        normalized["lexical_entry"] = {
+            "identifier": f"entry:{propstore_handle}",
+            "canonical_form": {
+                "written_rep": str(effective_name),
+                "language": "en",
+            },
+            "senses": [
+                {
+                    "reference": ontology_reference,
+                    "usage": definition if isinstance(definition, str) else None,
+                }
+            ],
+            "physical_dimension_form": dimension_form if isinstance(dimension_form, str) else None,
+        }
     normalized["version_id"] = compute_concept_version_id(normalized)
     return normalized
 
