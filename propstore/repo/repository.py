@@ -117,12 +117,6 @@ class Repository:
         return None
 
     @cached_property
-    def store(self):
-        from propstore.world import WorldModel
-
-        return WorldModel(self)
-
-    @cached_property
     def artifacts(self):
         from propstore.artifacts import ArtifactStore
 
@@ -133,11 +127,6 @@ class Repository:
         from propstore.repo.snapshot import RepoSnapshot
 
         return RepoSnapshot(self)
-
-    def close(self) -> None:
-        store = self.__dict__.get("store")
-        if store is not None:
-            store.close()
 
     @classmethod
     def find(cls, start: Path | None = None) -> Repository:

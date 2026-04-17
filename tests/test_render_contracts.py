@@ -70,22 +70,12 @@ def test_environment_serialization_roundtrip():
     assert restored == env
 
 
-def test_repository_store_is_cached_property(monkeypatch, tmp_path):
+def test_repository_does_not_expose_world_model_store(tmp_path):
     knowledge = tmp_path / "knowledge"
     repo = Repository.init(knowledge)
-    calls: list[object] = []
 
-    class FakeStore:
-        def __init__(self, repository):
-            calls.append(repository)
-
-    monkeypatch.setattr("propstore.world.WorldModel", FakeStore)
-
-    first = repo.store
-    second = repo.store
-
-    assert first is second
-    assert calls == [repo]
+    assert not hasattr(type(repo), "store")
+    assert "store" not in repo.__dict__
 
 
 def test_render_policy_override_fields():

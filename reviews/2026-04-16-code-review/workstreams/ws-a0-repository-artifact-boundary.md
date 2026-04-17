@@ -8,6 +8,7 @@ Blocks: WS-A phase 2 hard `ConceptDocument` lemon boundary, and any later artifa
 ## Progress log
 
 - 2026-04-17: Repository facade moved from `propstore/cli/repository.py` to `propstore/repo/repository.py`; all imports updated, including tests. The first two boundary gates are active and passing: non-CLI production modules no longer import `propstore.cli.repository`, and the CLI module no longer owns `Repository` / `RepositoryNotFound`.
+- 2026-04-17: Removed `Repository.store` and the repository facade's dynamic import of `propstore.world`. Render/world code must construct `WorldModel(repo)` explicitly. The repository/world coupling gate is active and passing.
 
 ## Why this exists
 
