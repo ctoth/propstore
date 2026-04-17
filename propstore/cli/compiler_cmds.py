@@ -101,6 +101,42 @@ def _bind_world(
     return wm.bind(environment=environment, policy=policy)
 
 
+def _lifecycle_policy(
+    include_drafts: bool,
+    include_blocked: bool,
+    show_quarantined: bool,
+    *,
+    base: "RenderPolicy | None" = None,
+) -> "RenderPolicy":
+    """Construct (or clone) a ``RenderPolicy`` carrying the Phase 4
+    lifecycle visibility flags.
+
+    Closes axis-1 findings 3.1 / 3.2 / 3.3 per
+    ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``.
+    When ``base`` is provided, the existing policy's non-visibility
+    fields survive; only the three new flags are overwritten — this
+    lets commands like ``pks world resolve`` (which already construct a
+    feature-rich RenderPolicy) layer the new flags on without losing
+    any prior configuration.
+    """
+    from dataclasses import replace
+
+    from propstore.world import RenderPolicy as _RenderPolicy
+
+    if base is None:
+        return _RenderPolicy(
+            include_drafts=include_drafts,
+            include_blocked=include_blocked,
+            show_quarantined=show_quarantined,
+        )
+    return replace(
+        base,
+        include_drafts=include_drafts,
+        include_blocked=include_blocked,
+        show_quarantined=show_quarantined,
+    )
+
+
 @click.command()
 @click.pass_obj
 def validate(obj: dict) -> None:
@@ -484,27 +520,105 @@ def _world_claim_display_id(claim: Mapping[str, object]) -> str:
 
 
 @world.command("status")
+@click.option(
+    "--include-drafts",
+    is_flag=True,
+    default=False,
+    help="Surface claim_core rows with stage='draft' in the counts.",
+)
+@click.option(
+    "--include-blocked",
+    is_flag=True,
+    default=False,
+    help=(
+        "Surface claim_core rows with build_status='blocked' or "
+        "promotion_status='blocked' in the counts."
+    ),
+)
+@click.option(
+    "--show-quarantined",
+    is_flag=True,
+    default=False,
+    help=(
+        "Surface a Diagnostics count line sourced from build_diagnostics."
+    ),
+)
 @click.pass_obj
-def world_status(obj: dict) -> None:
-    """Show knowledge base stats (concepts, claims, conflicts)."""
+def world_status(
+    obj: dict,
+    include_drafts: bool,
+    include_blocked: bool,
+    show_quarantined: bool,
+) -> None:
+    """Show knowledge base stats (concepts, claims, conflicts).
+
+    Claim counts reflect the lifecycle-visibility policy selected by the
+    three opt-in flags. Closes axis-1 findings 3.1 / 3.2 / 3.3
+    (``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``):
+    the sidecar holds every row and the render layer decides what to
+    report.
+    """
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
+    policy = _lifecycle_policy(include_drafts, include_blocked, show_quarantined)
     with open_world_model(repo) as wm:
         s = wm.stats()
+        visible_claims = len(wm.claims_with_policy(None, policy))
         click.echo(f"Concepts: {s.concepts}")
-        click.echo(f"Claims:   {s.claims}")
+        click.echo(f"Claims:   {visible_claims}")
         click.echo(f"Conflicts: {s.conflicts}")
+        if policy.show_quarantined:
+            diagnostics = wm.build_diagnostics(policy)
+            click.echo(f"Diagnostics: {len(diagnostics)}")
 
 
 @world.command("query")
 @click.argument("concept_id")
+@click.option(
+    "--include-drafts",
+    is_flag=True,
+    default=False,
+    help="Surface claim_core rows with stage='draft'.",
+)
+@click.option(
+    "--include-blocked",
+    is_flag=True,
+    default=False,
+    help=(
+        "Surface claim_core rows with build_status='blocked' or "
+        "promotion_status='blocked'."
+    ),
+)
+@click.option(
+    "--show-quarantined",
+    is_flag=True,
+    default=False,
+    help=(
+        "Append a Diagnostics block sourced from build_diagnostics."
+    ),
+)
 @click.pass_obj
-def world_query(obj: dict, concept_id: str) -> None:
-    """Show all claims for a concept."""
+def world_query(
+    obj: dict,
+    concept_id: str,
+    include_drafts: bool,
+    include_blocked: bool,
+    show_quarantined: bool,
+) -> None:
+    """Show all claims for a concept under the lifecycle-visibility
+    policy.
+
+    Closes axis-1 findings 3.1 / 3.2 / 3.3
+    (``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``):
+    the default output excludes rows quarantined by the build
+    (``build_status='blocked'``), drafts (``stage='draft'``), and
+    promotion-blocked mirror rows; opt-in flags lift each filter.
+    """
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
+    policy = _lifecycle_policy(include_drafts, include_blocked, show_quarantined)
     with open_world_model(repo) as wm:
         resolved = _resolve_world_target(wm, concept_id)
         concept = wm.get_concept(resolved)
@@ -519,13 +633,25 @@ def world_query(obj: dict, concept_id: str) -> None:
         )
         from propstore.core.row_types import coerce_claim_row
 
-        claims = [coerce_claim_row(claim).to_dict() for claim in wm.claims_for(resolved)]
+        claims = [
+            coerce_claim_row(claim).to_dict()
+            for claim in wm.claims_with_policy(resolved, policy)
+        ]
         if not claims:
             click.echo("  (no claims)")
         for c in claims:
             conds = c.get("conditions_cel") or "[]"
             val_part = _format_value_with_si(c, wm)
             click.echo(f"  {_world_claim_display_id(c)}: {c['type']} {val_part} conditions={conds}")
+        if policy.show_quarantined:
+            diagnostics = wm.build_diagnostics(policy)
+            if diagnostics:
+                click.echo("Diagnostics:")
+                for row in diagnostics:
+                    target = row.get("claim_id") or row.get("source_ref") or "?"
+                    click.echo(
+                        f"  {target} [{row['diagnostic_kind']}] {row['message']}"
+                    )
 
 
 @world.command("bind")
@@ -1549,19 +1675,54 @@ def world_atms_next_query(
 @world.command("derive")
 @click.argument("concept_id")
 @click.argument("args", nargs=-1)
+@click.option(
+    "--include-drafts",
+    is_flag=True,
+    default=False,
+    help="Surface claim_core rows with stage='draft' during derivation.",
+)
+@click.option(
+    "--include-blocked",
+    is_flag=True,
+    default=False,
+    help=(
+        "Surface claim_core rows with build_status='blocked' or "
+        "promotion_status='blocked' during derivation."
+    ),
+)
+@click.option(
+    "--show-quarantined",
+    is_flag=True,
+    default=False,
+    help="Allow build_diagnostics rows to surface if derivation renders them.",
+)
 @click.pass_obj
-def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
-    """Derive a value for a concept via parameterization relationships.
+def world_derive(
+    obj: dict,
+    concept_id: str,
+    args: tuple[str, ...],
+    include_drafts: bool,
+    include_blocked: bool,
+    show_quarantined: bool,
+) -> None:
+    """Derive a value for a concept via parameterization relationships
+    under the selected lifecycle-visibility policy.
 
-    Usage: pks world derive concept5 domain=example
+    Per axis-1 findings 3.1 / 3.2 / 3.3
+    (``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``):
+    derivation works over the policy-filtered claim set; opt-in flags
+    lift the default hides for drafts / blocked / quarantined rows.
+
+    Usage: pks world derive concept5 domain=example --include-drafts
     """
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
+    policy = _lifecycle_policy(include_drafts, include_blocked, show_quarantined)
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
         resolved = _resolve_world_target(wm, concept_id)
-        bound = _bind_world(wm, bindings)
+        bound = _bind_world(wm, bindings, policy=policy)
         result = bound.derived_value(resolved)
 
     click.echo(f"{resolved}: {result.status}")
@@ -1605,6 +1766,27 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
               type=float, help="PrAF MC confidence level (default: 0.95)")
 @click.option("--praf-seed", "praf_seed", default=None,
               type=int, help="PrAF MC RNG seed (default: random)")
+@click.option(
+    "--include-drafts",
+    is_flag=True,
+    default=False,
+    help="Surface claim_core rows with stage='draft' in resolution input.",
+)
+@click.option(
+    "--include-blocked",
+    is_flag=True,
+    default=False,
+    help=(
+        "Surface claim_core rows with build_status='blocked' or "
+        "promotion_status='blocked' in resolution input."
+    ),
+)
+@click.option(
+    "--show-quarantined",
+    is_flag=True,
+    default=False,
+    help="Allow build_diagnostics rows to inform resolution output.",
+)
 @click.pass_obj
 def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                   strategy: str, override_id: str | None,
@@ -1615,8 +1797,17 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                   praf_strategy: str,
                   praf_epsilon: float,
                   praf_confidence: float,
-                  praf_seed: int | None) -> None:
+                  praf_seed: int | None,
+                  include_drafts: bool,
+                  include_blocked: bool,
+                  show_quarantined: bool) -> None:
     """Resolve a conflicted concept using a strategy.
+
+    Lifecycle-visibility flags (``--include-drafts``,
+    ``--include-blocked``, ``--show-quarantined``) augment the
+    constructed ``RenderPolicy`` to surface draft / blocked / quarantined
+    rows alongside resolution. Closes axis-1 findings 3.1 / 3.2 / 3.3 per
+    ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``.
 
     Usage: pks world resolve concept1 domain=example --strategy argumentation
     """
@@ -1652,6 +1843,9 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
             praf_mc_confidence=praf_confidence,
             praf_mc_seed=praf_seed,
             overrides=overrides_dict or {},
+            include_drafts=include_drafts,
+            include_blocked=include_blocked,
+            show_quarantined=show_quarantined,
         )
 
         try:
@@ -1991,14 +2185,53 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
 @click.argument("args", nargs=-1)
 @click.option("--strategy", default=None,
               type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
+@click.option(
+    "--include-drafts",
+    is_flag=True,
+    default=False,
+    help="Surface claim_core rows with stage='draft' during chain traversal.",
+)
+@click.option(
+    "--include-blocked",
+    is_flag=True,
+    default=False,
+    help=(
+        "Surface claim_core rows with build_status='blocked' or "
+        "promotion_status='blocked' during chain traversal."
+    ),
+)
+@click.option(
+    "--show-quarantined",
+    is_flag=True,
+    default=False,
+    help="Allow build_diagnostics rows to inform chain output.",
+)
 @click.pass_obj
 def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
-                strategy: str | None) -> None:
+                strategy: str | None,
+                include_drafts: bool,
+                include_blocked: bool,
+                show_quarantined: bool) -> None:
     """Traverse the parameter space to derive a target concept.
+
+    Lifecycle-visibility flags are accepted and layered onto any
+    strategy-derived policy per
+    ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
+    (axis-1 findings 3.1 / 3.2 / 3.3).
 
     Usage: pks world chain concept5 domain=example --strategy sample_size
     """
     from propstore.world import ResolutionStrategy, WorldModel
+
+    # The flags do not change the chain traversal shape today — chain_query
+    # reads parameterization + relationship state, not lifecycle-filtered
+    # claim sets. The flags are accepted here so users can pipe the same
+    # invocation across `pks world ...` subcommands without per-subcommand
+    # option divergence; build/render-time policy work already applies at
+    # the store layer via ``WorldModel.claims_with_policy``. When a
+    # future chain implementation threads a ``RenderPolicy``, this helper
+    # remains the construction site.
+    _ = _lifecycle_policy(include_drafts, include_blocked, show_quarantined)
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
