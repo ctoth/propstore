@@ -125,6 +125,14 @@ CKR exceptions should interact with ASPIC+ as defeat information. If an ASPIC+ a
 
 The exception defeat itself carries support evidence composed from exception support, lifting-rule support, and solver-witness support where applicable.
 
+WS-A1 makes this contract executable in `propstore.defeasibility`:
+
+- `JustifiableException.support` is `SupportEvidence`, not a dictionary, source string, or bespoke provenance record.
+- `lift_exception(...)` composes support by polynomial multiplication: exception support times lifting-rule support.
+- `build_exception_defeat(...)` preserves the exception object while live-filtering support through solver nogoods.
+- `exception_defeat_is_live(...)` reads liveness from live why-provenance, keeping the solver/nogood boundary outside the semiring.
+- Unsupported exceptions, meaning exceptions without justification claims, have zero live support and are not applied.
+
 The separation is:
 
 - ASPIC+ answers: what structured arguments can be built, and how do preferences affect defeat?
