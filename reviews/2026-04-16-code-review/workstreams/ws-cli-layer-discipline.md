@@ -372,6 +372,20 @@ Status 2026-04-17: worldline model lifecycle slice landed.
   - `rg -n -F "WorldModel(repo)" propstore\cli` - only
     `propstore\cli\helpers.py:173`.
 
+Status 2026-04-17: grounding inspection slice landed.
+
+- Added `propstore.grounding.inspection` with typed surface, status, show,
+  query, and arguments reports plus typed inspection failures.
+- Moved grounding authoring-surface classification, bundle loading, grounded
+  rule projection, argument projection, and atom parsing out of
+  `propstore.cli.grounding_cmds`.
+- Added owner coverage for ready and invalid grounding surfaces, rule/section
+  projection, argument projection, and typed query parsing. Existing CLI demo
+  grounding output tests remain green.
+- Verification:
+  - `logs/test-runs/cli-layer-grounding-inspection-20260417-175618.log` - 7 passed.
+  - `uv run pyright propstore/grounding/inspection.py propstore/cli/grounding_cmds.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
