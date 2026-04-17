@@ -1,7 +1,7 @@
 # Workstream A1 - Semiring Provenance Substrate
 
 Date: 2026-04-17
-Status: active - A1-1/A1-2 core substrate implemented; A1-3 collapse in progress
+Status: active - A1-3 collapse complete; A1-4 support-bearing fragility next
 Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A source/artifact boundaries
 Blocks: WS-C C-3 support contract, ATMS label collapse, support-bearing fragility rewrite
 Review context: `../axis-3d-semantic.md` section 6, `../axis-3e-reasoning-infra.md`, `../axis-4-test-adequacy.md`
@@ -14,6 +14,11 @@ Design review: drafted with Claude CLI; adversarial pass incorporated before imp
 - 2026-04-17: Implemented A1-1/A1-2 substrate files: `variables.py`, `polynomial.py`, `homomorphism.py`, `support.py`, `projections.py`, `nogoods.py`, and `derivative.py`.
 - 2026-04-17: Added property tests for polynomial laws, projection homomorphisms before live filtering, nogood live filtering, non-commutation canary, and derivative laws. Verification passed: `23 passed`, `logs\test-runs\provenance-core-20260417-144423.log`.
 - 2026-04-17: Verified legacy provenance imports and named-graph/stamping behavior after the package move. Verification passed: `29 passed`, `logs\test-runs\provenance-legacy-20260417-144509.log`.
+- 2026-04-17: Collapsed `core.labels.Label` onto `SupportEvidence`/`ProvenancePolynomial`; `EnvironmentKey`, `combine_labels`, and `merge_labels` now operate as ATMS/why-provenance projections instead of storing independent support truth.
+- 2026-04-17: Collapsed `NogoodSet` onto `ProvenanceNogood` and `live(...)`; empty-environment nogoods are represented as empty provenance nogoods and kill every monomial.
+- 2026-04-17: Added ATMS equivalence properties proving label-polynomial round trips, assumption/context separation, multiplication/addition projection, and `NogoodSet` live-filter projection. Verification passed: `77 passed`, `logs\test-runs\provenance-atms-20260417-145336.log`.
+- 2026-04-17: Re-ran core provenance property gate after the collapse and empty-nogood correction. Verification passed: `24 passed`, `logs\test-runs\provenance-core-20260417-145538.log`; Pyright was clean for `propstore/provenance`, `propstore/core/labels.py`, and the new provenance tests.
+- 2026-04-17: Ran A1 static gates. Remaining `combine_labels`/`merge_labels`/`NogoodSet` production hits route through polynomial-backed projection APIs. Float hits are confined to documented tropical-cost code, not confidence/probability; dict hits are named-graph IO, with projection `Mapping` inputs used for source-variable maps and cost maps.
 
 ## Why this exists
 
