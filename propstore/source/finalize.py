@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+
 from propstore.artifacts.codes import attach_source_artifact_codes
 from propstore.artifacts import (
     ClaimReferenceResolver,
@@ -7,6 +10,7 @@ from propstore.artifacts import (
     SOURCE_DOCUMENT_FAMILY,
     SOURCE_FINALIZE_REPORT_FAMILY,
     SOURCE_JUSTIFICATIONS_FAMILY,
+    SOURCE_MICROPUBS_FAMILY,
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
     SOURCE_STANCES_FAMILY,
@@ -32,7 +36,76 @@ from propstore.artifacts.documents.sources import (
     SourceJustificationsDocument,
     SourceStancesDocument,
 )
+from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
 from .registry import preview_source_parameterization_group_merges
+
+
+def _stable_micropub_artifact_id(source_id: str, claim_id: str) -> str:
+    digest = hashlib.sha256(f"{source_id}\0{claim_id}".encode("utf-8")).hexdigest()[:24]
+    return f"ps:micropub:{digest}"
+
+
+def _micropub_version_id(payload: dict[str, object]) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
+
+def _compose_source_micropubs(
+    *,
+    source_id: str,
+    source_slug: str,
+    claims_doc: SourceClaimsDocument | None,
+) -> MicropublicationsFileDocument | None:
+    if claims_doc is None or not claims_doc.claims:
+        return None
+    micropubs: list[dict[str, object]] = []
+    for claim in claims_doc.claims:
+        if not isinstance(claim.artifact_id, str) or not claim.artifact_id:
+            continue
+        if not isinstance(claim.context, str) or not claim.context:
+            continue
+        evidence: list[dict[str, str]] = []
+        provenance_payload: dict[str, object] | None = None
+        if claim.provenance is not None:
+            paper = claim.provenance.paper or source_slug
+            if claim.provenance.page is not None:
+                evidence.append({
+                    "kind": "paper_page",
+                    "reference": f"{paper}:{claim.provenance.page}",
+                })
+                provenance_payload = {
+                    "paper": paper,
+                    "page": claim.provenance.page,
+                }
+        payload: dict[str, object] = {
+            "artifact_id": _stable_micropub_artifact_id(source_id, claim.artifact_id),
+            "context": {"id": claim.context},
+            "claims": [claim.artifact_id],
+            "source": source_id,
+        }
+        if evidence:
+            payload["evidence"] = evidence
+        if claim.conditions:
+            payload["assumptions"] = list(claim.conditions)
+        if provenance_payload is not None:
+            payload["provenance"] = provenance_payload
+        payload["version_id"] = _micropub_version_id(payload)
+        micropubs.append(payload)
+    if not micropubs:
+        return None
+    return convert_document_value(
+        {
+            "source": {"paper": source_slug},
+            "micropubs": micropubs,
+        },
+        MicropublicationsFileDocument,
+        source=f"{source_branch_name(source_slug)}:micropubs.yaml",
+    )
 
 
 def finalize_source_branch(repo: Repository, source_name: str) -> str:
@@ -87,8 +160,16 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
     derived_from = list(source_doc.trust.derived_from)
     covered = bool(derived_from)
     artifact_code_status = "incomplete"
+    source_id = str(source_doc.id or source_tag_uri(repo, source_name))
+    source_slug = normalize_source_slug(source_name)
+    micropubs_doc = _compose_source_micropubs(
+        source_id=source_id,
+        source_slug=source_slug,
+        claims_doc=claims_doc,
+    )
+    micropub_status = "complete" if micropubs_doc is not None else "empty"
     with repo.artifacts.transact(
-        message=f"Finalize {normalize_source_slug(source_name)}",
+        message=f"Finalize {source_slug}",
         branch=source_branch_name(source_name),
     ) as transaction:
         ref = SourceRef(source_name)
@@ -138,12 +219,18 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
                         source=f"{source_branch_name(source_name)}:stances.yaml",
                     ),
                 )
+            if micropubs_doc is not None:
+                transaction.save(
+                    SOURCE_MICROPUBS_FAMILY,
+                    ref,
+                    micropubs_doc,
+                )
             artifact_code_status = "complete"
 
         report = convert_document_value(
             {
                 "kind": "source_finalize_report",
-                "source": str(source_doc.id or source_tag_uri(repo, source_name)),
+                "source": source_id,
                 "status": "ready"
                 if not claim_errors and not justification_errors and not stance_errors
                 else "blocked",
@@ -153,6 +240,7 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
                 "concept_alignment_candidates": concept_alignment_candidates,
                 "parameterization_group_merges": parameterization_group_merges,
                 "artifact_code_status": artifact_code_status,
+                "micropub_status": micropub_status,
                 "calibration": {
                     "prior_base_rate_status": "covered" if covered else "fallback",
                     "source_quality_status": "vacuous",

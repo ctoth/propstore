@@ -43,6 +43,25 @@ def _seed_forms(repo: Repository, form_names: list[str]) -> None:
     )
 
 
+def _seed_context(repo: Repository, context_id: str = "ctx_test") -> None:
+    repo.git.commit_batch(
+        adds={
+            f"contexts/{context_id}.yaml": yaml.safe_dump(
+                {
+                    "id": context_id,
+                    "name": context_id,
+                    "description": "Test context",
+                },
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message=f"Seed context {context_id}",
+        branch="master",
+    )
+
+
 def _add_concepts(runner: CliRunner, repo: Repository, name: str, concepts: list[dict]) -> None:
     """Helper: add concepts via batch file."""
     concepts_file = repo.root.parent / "concepts_batch.yaml"
@@ -68,6 +87,7 @@ def test_propose_claim_observation(tmp_path: Path) -> None:
     content_file = tmp_path / "paper.pdf"
     content_file.write_bytes(b"%PDF-demo\n")
     _seed_forms(repo, ["structural"])
+    _seed_context(repo)
 
     init_result = runner.invoke(
         cli,
@@ -101,6 +121,7 @@ def test_propose_claim_observation(tmp_path: Path) -> None:
             "--id", "claim1",
             "--type", "observation",
             "--statement", "Water boils at 100C.",
+            "--context", "ctx_test",
             "--page", "5",
         ],
     )
@@ -169,6 +190,7 @@ def test_propose_claim_parameter(tmp_path: Path) -> None:
             "--concept", "boiling_point",
             "--value", "100.0",
             "--unit", "celsius",
+            "--context", "ctx_test",
         ],
     )
 
@@ -211,6 +233,7 @@ def test_propose_claim_dedup(tmp_path: Path) -> None:
             "--id", "claim1",
             "--type", "observation",
             "--statement", "First version.",
+            "--context", "ctx_test",
         ],
     )
     assert result1.exit_code == 0, result1.output
@@ -224,6 +247,7 @@ def test_propose_claim_dedup(tmp_path: Path) -> None:
             "--id", "claim1",
             "--type", "observation",
             "--statement", "Updated version.",
+            "--context", "ctx_test",
         ],
     )
     assert result2.exit_code == 0, result2.output
@@ -262,6 +286,7 @@ def test_propose_justification(tmp_path: Path) -> None:
                 "--id", claim_id,
                 "--type", "observation",
                 "--statement", statement,
+                "--context", "ctx_test",
             ],
         )
         assert r.exit_code == 0, r.output
@@ -342,6 +367,7 @@ def test_propose_stance_local(tmp_path: Path) -> None:
                 "--id", claim_id,
                 "--type", "observation",
                 "--statement", statement,
+                "--context", "ctx_test",
             ],
         )
         assert r.exit_code == 0, r.output
@@ -395,6 +421,7 @@ def test_propose_stance_cross_source(tmp_path: Path) -> None:
             "--id", "c1",
             "--type", "observation",
             "--statement", "A claim.",
+            "--context", "ctx_test",
         ],
     )
     assert r.exit_code == 0, r.output

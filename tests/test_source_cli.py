@@ -408,6 +408,25 @@ def _seed_forms(repo, form_names):
     )
 
 
+def _seed_context(repo, context_id="ctx_test"):
+    repo.git.commit_batch(
+        adds={
+            f"contexts/{context_id}.yaml": yaml.safe_dump(
+                {
+                    "id": context_id,
+                    "name": context_id,
+                    "description": "Test context",
+                },
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message=f"Seed context {context_id}",
+        branch="master",
+    )
+
+
 def _prepare_promoted_parameter_source(
     runner: CliRunner,
     repo: Repository,
@@ -416,6 +435,7 @@ def _prepare_promoted_parameter_source(
     content_file = tmp_path / "paper.pdf"
     content_file.write_bytes(b"%PDF-demo\n")
     _seed_forms(repo, ["scalar"])
+    _seed_context(repo)
 
     init_result = runner.invoke(
         cli,
@@ -473,6 +493,8 @@ def _prepare_promoted_parameter_source(
             "100.0",
             "--unit",
             "celsius",
+            "--context",
+            "ctx_test",
             "--page",
             "5",
         ],

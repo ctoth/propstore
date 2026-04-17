@@ -33,6 +33,10 @@ def claims_file_relpath(name: str) -> str:
     return f"claims/{name}.yaml"
 
 
+def micropubs_file_relpath(name: str) -> str:
+    return f"micropubs/{name}.yaml"
+
+
 def concept_file_relpath(name: str) -> str:
     return f"concepts/{name}.yaml"
 
@@ -88,6 +92,11 @@ class CanonicalSourceRef:
 
 @dataclass(frozen=True)
 class ClaimsFileRef:
+    name: str
+
+
+@dataclass(frozen=True)
+class MicropubsFileRef:
     name: str
 
 

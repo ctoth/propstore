@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.contexts import ContextDocument
 from propstore.artifacts.documents.forms import FormDocument
+from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
 from propstore.artifacts.documents.worldlines import WorldlineDefinitionDocument
 from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.artifacts.refs import (
@@ -17,6 +18,7 @@ from propstore.artifacts.refs import (
     ContextRef,
     FormRef,
     JustificationsFileRef,
+    MicropubsFileRef,
     MergeManifestRef,
     SourceRef,
     StanceFileRef,
@@ -26,6 +28,7 @@ from propstore.artifacts.refs import (
     claims_file_relpath,
     concept_alignment_relpath,
     concept_file_relpath,
+    micropubs_file_relpath,
     source_branch_name,
     source_claim_from_stance_path,
     source_finalize_relpath,
@@ -145,6 +148,13 @@ def _claims_file_artifact(repo: Repository, ref: ClaimsFileRef) -> ResolvedArtif
     return ResolvedArtifact(
         branch=_primary_branch(repo),
         relpath=claims_file_relpath(ref.name),
+    )
+
+
+def _micropubs_file_artifact(repo: Repository, ref: MicropubsFileRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_primary_branch(repo),
+        relpath=micropubs_file_relpath(ref.name),
     )
 
 
@@ -310,6 +320,13 @@ SOURCE_CLAIMS_FAMILY = ArtifactFamily[SourceRef, SourceClaimsDocument](
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "claims.yaml"),
 )
 
+
+SOURCE_MICROPUBS_FAMILY = ArtifactFamily[SourceRef, MicropublicationsFileDocument](
+    name="source_micropubs",
+    doc_type=MicropublicationsFileDocument,
+    resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "micropubs.yaml"),
+)
+
 SOURCE_JUSTIFICATIONS_FAMILY = ArtifactFamily[SourceRef, SourceJustificationsDocument](
     name="source_justifications",
     doc_type=SourceJustificationsDocument,
@@ -366,6 +383,27 @@ CLAIMS_FILE_FAMILY = ArtifactFamily[ClaimsFileRef, ClaimsFileDocument](
         ref_type=ClaimsFileRef,
     ),
 )
+
+
+MICROPUBS_FILE_FAMILY = ArtifactFamily[MicropubsFileRef, MicropublicationsFileDocument](
+    name="micropubs_file",
+    doc_type=MicropublicationsFileDocument,
+    resolve_ref=_micropubs_file_artifact,
+    list_refs=lambda repo, branch, commit: _list_yaml_refs_in_directory(
+        repo,
+        branch,
+        commit,
+        subdir="micropubs",
+        ref_type=MicropubsFileRef,
+    ),
+    ref_from_path=lambda path: _yaml_path_ref(path, subdir="micropubs", ref_type=MicropubsFileRef),
+    ref_from_loaded=lambda loaded: _ref_from_loaded_source_path(
+        loaded,
+        subdir="micropubs",
+        ref_type=MicropubsFileRef,
+    ),
+)
+
 
 CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
     name="concept_file",

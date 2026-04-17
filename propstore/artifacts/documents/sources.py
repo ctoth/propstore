@@ -546,6 +546,7 @@ class SourceFinalizeReportDocument(DocumentStruct):
     status: str
     artifact_code_status: str
     calibration: SourceFinalizeCalibrationDocument
+    micropub_status: str = "not_composed"
     claim_reference_errors: tuple[str, ...] = ()
     justification_reference_errors: tuple[str, ...] = ()
     stance_reference_errors: tuple[str, ...] = ()
@@ -566,5 +567,6 @@ class SourceFinalizeReportDocument(DocumentStruct):
                 for merge in self.parameterization_group_merges
             ],
             "artifact_code_status": self.artifact_code_status,
+            "micropub_status": self.micropub_status,
             "calibration": self.calibration.to_payload(),
         }

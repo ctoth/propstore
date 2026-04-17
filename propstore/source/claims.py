@@ -182,6 +182,7 @@ def commit_source_claim_proposal(
     concept: str | None = None,
     value: float | None = None,
     unit: str | None = None,
+    context: str,
     page: int | None = None,
 ) -> SourceClaimDocument:
     branch = source_branch_name(source_name)
@@ -213,7 +214,11 @@ def commit_source_claim_proposal(
     claim_type = coerce_claim_type(claim_type)
     assert claim_type is not None
 
-    claim_payload: dict[str, object] = {"id": claim_id, "type": claim_type.value}
+    claim_payload: dict[str, object] = {
+        "id": claim_id,
+        "type": claim_type.value,
+        "context": context,
+    }
     if statement is not None:
         claim_payload["statement"] = statement
     if concept is not None:
