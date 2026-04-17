@@ -283,6 +283,7 @@ class LoadedConcept:
     source_path: KnowledgePath | None
     knowledge_root: KnowledgePath | None
     record: ConceptRecord
+    document: ConceptDocument | None = None
     source_local_id: str | None = None
 
     @property
@@ -725,6 +726,7 @@ def normalize_loaded_concepts(
                 source_path=concept.source_path,
                 knowledge_root=concept.knowledge_root,
                 record=parse_concept_record(rewritten),
+                document=concept.document,
                 source_local_id=raw_id,
             )
         )

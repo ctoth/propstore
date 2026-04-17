@@ -6,6 +6,7 @@ from propstore.core.lemon.types import (
     LexicalSense,
     OntologyReference,
     lexical_entry_identity_key,
+    lexical_form_identity_key,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "LexicalSense",
     "OntologyReference",
     "lexical_entry_identity_key",
+    "lexical_form_identity_key",
 ]

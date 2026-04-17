@@ -26,6 +26,7 @@ from propstore.core.lemon import (
     LexicalSense,
     OntologyReference,
     lexical_entry_identity_key,
+    lexical_form_identity_key,
 )
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 
@@ -60,6 +61,8 @@ def classify_relation(left: dict[str, Any], right: dict[str, Any]) -> str:
     left_entry = _proposal_lexical_entry(left)
     right_entry = _proposal_lexical_entry(right)
     if lexical_entry_identity_key(left_entry) == lexical_entry_identity_key(right_entry):
+        return "attack" if left["definition"] != right["definition"] else "non_attack"
+    if lexical_form_identity_key(left_entry) == lexical_form_identity_key(right_entry):
         return "attack" if left["definition"] != right["definition"] else "non_attack"
     if left_entry.references == right_entry.references:
         return "non_attack"

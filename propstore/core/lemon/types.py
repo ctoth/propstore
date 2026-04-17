@@ -62,11 +62,18 @@ class LexicalEntry:
         return tuple(sense.reference for sense in self.senses)
 
 
-def lexical_entry_identity_key(entry: LexicalEntry) -> tuple[str, str, str | None]:
-    """Return exact lexical identity: language, canonical written form, dimensions."""
+def lexical_form_identity_key(entry: LexicalEntry) -> tuple[str, str, str | None]:
+    """Return exact surface-form identity: language, written form, dimensions."""
 
     return (
         fold_text(entry.canonical_form.language),
         fold_text(entry.canonical_form.written_rep),
         None if entry.physical_dimension_form is None else fold_text(entry.physical_dimension_form),
     )
+
+
+def lexical_entry_identity_key(entry: LexicalEntry) -> tuple[str, str, str, str | None]:
+    """Return exact lexical-entry identity without collapsing homographs."""
+
+    form_key = lexical_form_identity_key(entry)
+    return (fold_text(entry.identifier), form_key[0], form_key[1], form_key[2])
