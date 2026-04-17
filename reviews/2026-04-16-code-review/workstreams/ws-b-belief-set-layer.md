@@ -1,7 +1,7 @@
 # Workstream B — Belief-Set Layer (Real AGM)
 
 Date: 2026-04-16
-Status: active 2026-04-17; finite model-theoretic foundation in progress
+Status: complete 2026-04-17; final full-suite verification green
 Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A phase 1 (provenance)
 Blocks: —
 Review context: `../axis-3c-revision.md` (primary), `../SYNTHESIS.md` pattern D
@@ -16,6 +16,7 @@ Review context: `../axis-3c-revision.md` (primary), `../SYNTHESIS.md` pattern D
 - 2026-04-17: Boundary-hardening slice added after audit of silent empty-mapping coercions. Red tests captured malformed CEL form parameters, YAML null/scalar mapping payloads, malformed artifact origins, worldline `inputs_used` provenance, target variables, and argumentation-state maps (`logs\test-runs\red-boundary-empty-map-20260417-101831.log`). Production decoders now reject those wrong-type payloads instead of converting them to `{}` or filtering entries away, and grep gates for `else {}` plus `isinstance(... Mapping) ... else {}` are clean across `propstore` and `tests`. Verification slice passed: focused boundary suite (`10 passed`, `logs\test-runs\boundary-empty-map-3-20260417-102355.log`) and `uv run pyright propstore/cel_registry.py propstore/artifacts/codecs.py propstore/artifacts/codes.py propstore/validate_concepts.py propstore/worldline/result_types.py` (`0 errors`).
 - 2026-04-17: Follow-up mapping-default audit checkpoint completed and intentionally stopped short of broader cleanup. Added red tests for malformed `or {}` mapping defaults at the Environment, ActiveWorldGraph, RenderPolicy, integrity-constraint, claim-provenance, worldline, and support-revision snapshot boundaries (`logs\test-runs\red-mapping-boundary-audit-20260417-103004.log`). These boundaries now distinguish absent maps from wrong-typed maps, while the repository-wide grep gates for `or {}`, `else {}`, and `isinstance(... Mapping) ... else {}` are clean across `propstore` and `tests`. Verification slice passed: focused audit suite (`12 passed`, `logs\test-runs\mapping-boundary-audit-3-20260417-103956.log`).
 - 2026-04-17: WS-B verification checkpoint completed after the boundary audit. Combined WS-B targeted suite passed (`108 passed`, `logs\test-runs\ws-b-combined-after-boundary-20260417-104102.log`). The installed Pyright CLI has no `--strict` option; strict checking is implemented through `[tool.pyright].strict`, so all `propstore/belief_set` files were added to that strict list. Strict-config pyright over `propstore/belief_set` passed (`0 errors`), after making package-internal AGM helpers public and removing one unused import. Affected belief-set property tests passed (`14 passed`, `logs\test-runs\ws-b-belief-set-strict-20260417-104251.log`).
+- 2026-04-17: WS-B final verification completed. Full project suite passed after the strict typing and boundary-audit commits (`2655 passed, 16 warnings`, `logs\test-runs\ws-b-final-20260417-104353.log`). No log files were staged or committed.
 
 ## What you're doing
 
@@ -136,7 +137,7 @@ Decisions the principled-path analysis already settled; don't re-debate:
 ## Exit criteria
 
 - All priority papers at non-stub depth.
-- `propstore/belief_set/` subsystem lives. `uv run pyright --strict` green on every file.
+- `propstore/belief_set/` subsystem lives. Strict Pyright checking is green on every file through `[tool.pyright].strict` because this installed Pyright CLI does not expose a `--strict` flag.
 - K*1-K*8, K-1-K-8, C1-C4, EE1-EE5, IC0-IC8, P*1-P*6, A*1-A*6 all `@given` property-tested and green.
 - Levi + Harper identity tests are non-tautological (test against the real AGM definitions, not against the operator's own internal implementation).
 - `world/ic_merge.py` resolution (renamed or retired) complete. `docs/gaps.md` reflects closure.
