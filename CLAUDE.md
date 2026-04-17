@@ -25,7 +25,7 @@ This principle governs every design decision. The system is lazy until rendering
 
 ### Honest ignorance over fabricated confidence
 
-When the system lacks evidence, it must say so — not fabricate a number. Vacuous opinions (Jøsang 2001, p.8) represent total ignorance honestly. Calibration (Guo et al. 2017) bridges raw model outputs to the opinion algebra. Every probability that enters the argumentation layer must carry provenance: either empirical evidence counts, a calibrated model output, or an explicit vacuous marker. "I don't know" is a valid and important signal; a made-up 0.75 is not.
+When the system lacks evidence, it must say so — not fabricate a number. Vacuous opinions (Jøsang 2001, p.8) represent total ignorance honestly. Calibration (Guo et al. 2017) bridges raw model outputs to the opinion algebra. Every probability-bearing document value that enters the argumentation layer must carry typed provenance: `measured`, `calibrated`, `stated`, `defaulted`, or `vacuous`. The logical provenance carrier is a deterministic JSON-LD named graph (Carroll 2005); the physical carrier is a git note on `refs/notes/provenance`, so provenance does not contaminate claim identity. "I don't know" is a valid and important signal; a made-up 0.75 is not.
 
 ## Architectural Layers (one-way dependencies, top depends on bottom)
 
