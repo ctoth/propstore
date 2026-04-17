@@ -19,12 +19,14 @@ from propstore.claims import load_claim_files
 from propstore.compiler.passes import validate_claims
 from propstore.world import WorldModel
 from tests.conftest import (
+    TEST_CONTEXT_ID,
     attach_claim_version_id,
     make_claim_identity,
     make_parameter_claim,
     make_concept_registry,
     normalize_claims_payload,
     normalize_concept_payloads,
+    write_test_context,
 )
 
 
@@ -39,6 +41,7 @@ def make_claim_file_data(claims, paper="test_paper"):
         if "artifact_id" not in normalized:
             raw_id = normalized.pop("id", f"claim{index}")
             normalized.update(make_claim_identity(str(raw_id), namespace=paper))
+        normalized.setdefault("context", {"id": TEST_CONTEXT_ID})
         normalized["version_id"] = attach_claim_version_id(normalized)["version_id"]
         normalized_claims.append(normalized)
     return {
@@ -68,6 +71,7 @@ def concept_dir(tmp_path):
     knowledge = tmp_path / "knowledge"
     concepts_path = knowledge / "concepts"
     concepts_path.mkdir(parents=True)
+    write_test_context(knowledge)
     counters = concepts_path / ".counters"
     counters.mkdir()
     (counters / "speech.next").write_text("3")
@@ -293,6 +297,7 @@ class TestClaimNotesProperties:
             knowledge = tmp_path / "knowledge"
             concepts_path = knowledge / "concepts"
             concepts_path.mkdir(parents=True, exist_ok=True)
+            write_test_context(knowledge)
             counters = concepts_path / ".counters"
             counters.mkdir(exist_ok=True)
             (counters / "speech.next").write_text("2")

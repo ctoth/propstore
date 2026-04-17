@@ -20,14 +20,24 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.identity import derive_concept_artifact_id
 from propstore.source import (
     finalize_source_branch,
     promote_source_branch,
 )
+from tests.conftest import TEST_CONTEXT_ID, make_test_context_commit_entry, normalize_concept_payloads
 
 
 def _init_cli_source(runner: CliRunner, repo: Repository, name: str) -> None:
+    context_path, context_body = make_test_context_commit_entry()
+    try:
+        repo.git.read_file(context_path)
+    except FileNotFoundError:
+        repo.git.commit_batch(
+            adds={context_path: context_body},
+            deletes=[],
+            message="Seed test context",
+            branch="master",
+        )
     result = runner.invoke(
         cli,
         [
@@ -48,15 +58,19 @@ def _init_cli_source(runner: CliRunner, repo: Repository, name: str) -> None:
 
 
 def _seed_master_concept_via_git(repo: Repository, name: str) -> str:
-    artifact_id = derive_concept_artifact_id("propstore", name)
-    concept = {
-        "artifact_id": artifact_id,
-        "canonical_name": name,
-        "status": "accepted",
-        "definition": f"{name} definition",
-        "domain": "source",
-        "form": "structural",
-    }
+    concept = normalize_concept_payloads(
+        [
+            {
+                "id": name,
+                "canonical_name": name,
+                "status": "accepted",
+                "definition": f"{name} definition",
+                "domain": "source",
+                "form": "structural",
+            }
+        ],
+        default_domain="source",
+    )[0]
     repo.git.commit_batch(
         adds={
             f"concepts/{name}.yaml": yaml.safe_dump(
@@ -67,7 +81,7 @@ def _seed_master_concept_via_git(repo: Repository, name: str) -> str:
         message=f"Seed concept {name}",
         branch="master",
     )
-    return artifact_id
+    return str(concept["artifact_id"])
 
 
 @pytest.fixture()
@@ -82,7 +96,7 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
     source_name = "mixed"
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
-    _seed_master_concept_via_git(repo, "shared_concept")
+    shared_concept_id = _seed_master_concept_via_git(repo, "shared_concept")
     _init_cli_source(runner, repo, source_name)
 
     runner.invoke(
@@ -112,22 +126,25 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
                         "id": "valid_a",
                         "type": "observation",
                         "statement": "First valid observation.",
-                        "concepts": ["shared_concept"],
+                        "concepts": [shared_concept_id],
                         "provenance": {"page": 1},
+                        "context": TEST_CONTEXT_ID,
                     },
                     {
                         "id": "valid_b",
                         "type": "observation",
                         "statement": "Second valid observation.",
-                        "concepts": ["shared_concept"],
+                        "concepts": [shared_concept_id],
                         "provenance": {"page": 2},
+                        "context": TEST_CONTEXT_ID,
                     },
                     {
                         "id": "broken_source",
                         "type": "observation",
                         "statement": "Claim whose stance targets a missing ref.",
-                        "concepts": ["shared_concept"],
+                        "concepts": [shared_concept_id],
                         "provenance": {"page": 3},
+                        "context": TEST_CONTEXT_ID,
                     },
                 ],
             },

@@ -24,10 +24,24 @@ from tests.builders import (
     source_justifications_document,
     source_stances_document,
 )
-from tests.conftest import normalize_concept_payloads
+from tests.conftest import (
+    concept_artifact_to_record_payload,
+    make_test_context_commit_entry,
+    normalize_concept_payloads,
+)
 
 
 def _init_source(runner: CliRunner, repo: Repository, name: str) -> None:
+    context_path, context_body = make_test_context_commit_entry()
+    try:
+        repo.git.read_file(context_path)
+    except FileNotFoundError:
+        repo.git.commit_batch(
+            adds={context_path: context_body},
+            deletes=[],
+            message="Seed test context",
+            branch="master",
+        )
     result = runner.invoke(
         cli,
         [
@@ -79,12 +93,12 @@ def _seed_master_concept(repo: Repository, *, name: str, form: str = "structural
 def _seed_master_concepts(repo: Repository, concepts: list[dict]) -> list[dict]:
     normalized = normalize_concept_payloads(concepts, default_domain="source")
     adds = {
-        f"concepts/{concept['canonical_name']}.yaml": yaml.safe_dump(
+        f"concepts/{raw['canonical_name']}.yaml": yaml.safe_dump(
             concept,
             sort_keys=False,
             allow_unicode=True,
         ).encode("utf-8")
-        for concept in normalized
+        for raw, concept in zip(concepts, normalized, strict=True)
     }
     repo.git.commit_batch(
         adds=adds,
@@ -92,7 +106,7 @@ def _seed_master_concepts(repo: Repository, concepts: list[dict]) -> list[dict]:
         message="Seed concepts",
         branch="master",
     )
-    return normalized
+    return [concept_artifact_to_record_payload(concept) for concept in normalized]
 
 
 def test_source_add_claim_rejects_unknown_concept_reference(tmp_path: Path) -> None:
@@ -660,49 +674,52 @@ def test_parameterization_group_merge_preview_is_order_invariant(
     master_order: tuple[int, ...],
     projected_order: tuple[int, ...],
 ) -> None:
-    master_concepts = normalize_concept_payloads(
-        [
-            {
-                "id": "input_a",
-                "canonical_name": "input_a",
-                "status": "accepted",
-                "definition": "Input A.",
-                "domain": "source",
-                "form": "scalar",
-            },
-            {
-                "id": "derived_a",
-                "canonical_name": "derived_a",
-                "status": "accepted",
-                "definition": "Derived from input A.",
-                "domain": "source",
-                "form": "scalar",
-                "parameterization_relationships": [
-                    {"inputs": ["input_a"], "formula": "f(input_a)"}
-                ],
-            },
-            {
-                "id": "input_b",
-                "canonical_name": "input_b",
-                "status": "accepted",
-                "definition": "Input B.",
-                "domain": "source",
-                "form": "scalar",
-            },
-            {
-                "id": "derived_b",
-                "canonical_name": "derived_b",
-                "status": "accepted",
-                "definition": "Derived from input B.",
-                "domain": "source",
-                "form": "scalar",
-                "parameterization_relationships": [
-                    {"inputs": ["input_b"], "formula": "g(input_b)"}
-                ],
-            },
-        ],
-        default_domain="source",
-    )
+    master_concepts = [
+        concept_artifact_to_record_payload(concept)
+        for concept in normalize_concept_payloads(
+            [
+                {
+                    "id": "input_a",
+                    "canonical_name": "input_a",
+                    "status": "accepted",
+                    "definition": "Input A.",
+                    "domain": "source",
+                    "form": "scalar",
+                },
+                {
+                    "id": "derived_a",
+                    "canonical_name": "derived_a",
+                    "status": "accepted",
+                    "definition": "Derived from input A.",
+                    "domain": "source",
+                    "form": "scalar",
+                    "parameterization_relationships": [
+                        {"inputs": ["input_a"], "formula": "f(input_a)"}
+                    ],
+                },
+                {
+                    "id": "input_b",
+                    "canonical_name": "input_b",
+                    "status": "accepted",
+                    "definition": "Input B.",
+                    "domain": "source",
+                    "form": "scalar",
+                },
+                {
+                    "id": "derived_b",
+                    "canonical_name": "derived_b",
+                    "status": "accepted",
+                    "definition": "Derived from input B.",
+                    "domain": "source",
+                    "form": "scalar",
+                    "parameterization_relationships": [
+                        {"inputs": ["input_b"], "formula": "g(input_b)"}
+                    ],
+                },
+            ],
+            default_domain="source",
+        )
+    ]
     artifacts = {concept["canonical_name"]: concept["artifact_id"] for concept in master_concepts}
     projected_concepts = [
         {
@@ -1069,6 +1086,7 @@ def test_source_promote_materializes_unique_proposed_concepts(tmp_path: Path) ->
                         "statement": "A first claim.",
                         "concepts": ["novel_concept"],
                         "provenance": {"page": 1},
+                            "context": "ctx_test",
                     }
                 ],
             },
@@ -1115,7 +1133,8 @@ def test_source_promote_materializes_unique_proposed_concepts(tmp_path: Path) ->
     assert promote.exit_code == 0, promote.output
 
     concept_doc = yaml.safe_load(repo.git.read_file("concepts/novel_concept.yaml"))
-    assert concept_doc["canonical_name"] == "novel_concept"
+    assert concept_doc["logical_ids"][0] == {"namespace": "source", "value": "novel_concept"}
+    assert concept_doc["lexical_entry"]["canonical_form"]["written_rep"] == "novel_concept"
     assert concept_doc["artifact_id"].startswith("ps:concept:")
     assert concept_doc["version_id"].startswith("sha256:")
 

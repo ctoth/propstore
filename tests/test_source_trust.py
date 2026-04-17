@@ -15,7 +15,7 @@ from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.world import WorldModel
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads, make_test_context_commit_entry
 
 
 def test_p_arg_from_claim_uses_prior_base_rate_when_no_claim_evidence() -> None:
@@ -140,8 +140,10 @@ def _seed_calibration_claim(repo: Repository) -> None:
         ],
         default_domain="meta",
     )[0]
+    context_path, context_body = make_test_context_commit_entry()
     repo.git.commit_batch(
         adds={
+            context_path: context_body,
             "concepts/base_replication_rate.yaml": yaml.safe_dump(
                 concept,
                 sort_keys=False,
@@ -283,6 +285,7 @@ def test_world_model_claim_rows_include_calibrated_source_prior(tmp_path: Path) 
                         "concept": "base_replication_rate",
                         "value": 0.4,
                         "unit": "probability",
+                        "context": "ctx_test",
                         "provenance": {"page": 1},
                     }
                 ],

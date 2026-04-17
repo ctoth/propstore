@@ -9,7 +9,12 @@ from propstore.sidecar.build import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
-from tests.conftest import create_world_model_schema, normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import (
+    create_world_model_schema,
+    normalize_claims_payload,
+    normalize_concept_payloads,
+    write_test_context,
+)
 
 
 # ── Fixtures (duplicated from test_world_model.py) ────────────────────
@@ -25,6 +30,7 @@ def concept_dir(tmp_path):
     knowledge = tmp_path / "knowledge"
     concepts_path = knowledge / "concepts"
     concepts_path.mkdir(parents=True)
+    write_test_context(knowledge)
     counters = concepts_path / ".counters"
     counters.mkdir()
     (counters / "speech.next").write_text("5")

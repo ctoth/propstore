@@ -929,15 +929,16 @@ def _emit_iterated_revision(result, previous_state, next_state, *, operator: str
 
 @world.command("revision-base")
 @click.argument("args", nargs=-1)
+@click.option("--context", default=None, help="Context to scope the revision base")
 @click.pass_obj
-def world_revision_base(obj: dict, args: tuple[str, ...]) -> None:
+def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Show the current revision-facing belief base for a scoped world."""
     from propstore.revision.state import is_claim_atom
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings)
+        bound = _bind_world(wm, bindings, context_id=context)
         base = bound.revision_base()
 
         click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
@@ -967,13 +968,14 @@ def world_revision_base(obj: dict, args: tuple[str, ...]) -> None:
 
 @world.command("revision-entrenchment")
 @click.argument("args", nargs=-1)
+@click.option("--context", default=None, help="Context to scope the revision entrenchment")
 @click.pass_obj
-def world_revision_entrenchment(obj: dict, args: tuple[str, ...]) -> None:
+def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Show the current deterministic entrenchment ordering for a scoped world."""
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings)
+        bound = _bind_world(wm, bindings, context_id=context)
         report = bound.revision_entrenchment()
 
         click.echo(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
@@ -993,13 +995,14 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...]) -> None:
 @world.command("expand")
 @click.argument("args", nargs=-1)
 @click.option("--atom", "atom_json", required=True, help="JSON revision atom to add")
+@click.option("--context", default=None, help="Context to scope the revision operation")
 @click.pass_obj
-def world_expand(obj: dict, args: tuple[str, ...], atom_json: str) -> None:
+def world_expand(obj: dict, args: tuple[str, ...], atom_json: str, context: str | None) -> None:
     """Expand the scoped revision belief base without mutating source YAML."""
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings)
+        bound = _bind_world(wm, bindings, context_id=context)
         result = bound.expand(_parse_revision_atom_json(atom_json))
         _emit_revision_result(result)
 
@@ -1007,13 +1010,14 @@ def world_expand(obj: dict, args: tuple[str, ...], atom_json: str) -> None:
 @world.command("contract")
 @click.argument("args", nargs=-1)
 @click.option("--target", "targets", multiple=True, required=True, help="Existing atom or claim id to contract")
+@click.option("--context", default=None, help="Context to scope the revision operation")
 @click.pass_obj
-def world_contract(obj: dict, args: tuple[str, ...], targets: tuple[str, ...]) -> None:
+def world_contract(obj: dict, args: tuple[str, ...], targets: tuple[str, ...], context: str | None) -> None:
     """Contract the scoped revision belief base without mutating source YAML."""
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings)
+        bound = _bind_world(wm, bindings, context_id=context)
         result = bound.contract(_contract_target_arg(targets))
         _emit_revision_result(result)
 
@@ -1022,15 +1026,22 @@ def world_contract(obj: dict, args: tuple[str, ...], targets: tuple[str, ...]) -
 @click.argument("args", nargs=-1)
 @click.option("--atom", "atom_json", required=True, help="JSON revision atom to admit")
 @click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
+@click.option("--context", default=None, help="Context to scope the revision operation")
 @click.pass_obj
-def world_revise(obj: dict, args: tuple[str, ...], atom_json: str, conflicts: tuple[str, ...]) -> None:
+def world_revise(
+    obj: dict,
+    args: tuple[str, ...],
+    atom_json: str,
+    conflicts: tuple[str, ...],
+    context: str | None,
+) -> None:
     """Revise the scoped belief base without mutating source YAML."""
     from propstore.revision.operators import normalize_revision_input
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings)
+        bound = _bind_world(wm, bindings, context_id=context)
         atom = _parse_revision_atom_json(atom_json)
         base = bound.revision_base()
         normalized = normalize_revision_input(base, atom)
@@ -1045,6 +1056,7 @@ def world_revise(obj: dict, args: tuple[str, ...], atom_json: str, conflicts: tu
 @click.option("--atom", "atom_json", default=None, help="JSON revision atom for expand/revise")
 @click.option("--target", "targets", multiple=True, help="Existing atom or claim id for contract")
 @click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
+@click.option("--context", default=None, help="Context to scope the revision operation")
 @click.pass_obj
 def world_revision_explain(
     obj: dict,
@@ -1053,6 +1065,7 @@ def world_revision_explain(
     atom_json: str | None,
     targets: tuple[str, ...],
     conflicts: tuple[str, ...],
+    context: str | None,
 ) -> None:
     """Explain one revision operation over the current scoped world."""
     from propstore.revision.operators import normalize_revision_input
@@ -1060,7 +1073,7 @@ def world_revision_explain(
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings)
+        bound = _bind_world(wm, bindings, context_id=context)
 
         if operation == "expand":
             if atom_json is None:
@@ -1085,13 +1098,14 @@ def world_revision_explain(
 
 @world.command("iterated-state")
 @click.argument("args", nargs=-1)
+@click.option("--context", default=None, help="Context to scope the iterated revision state")
 @click.pass_obj
-def world_iterated_state(obj: dict, args: tuple[str, ...]) -> None:
+def world_iterated_state(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Inspect the current explicit iterated revision state for a scoped world."""
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings)
+        bound = _bind_world(wm, bindings, context_id=context)
         state = bound.epistemic_state()
         _emit_epistemic_state(state)
 
@@ -1101,6 +1115,7 @@ def world_iterated_state(obj: dict, args: tuple[str, ...]) -> None:
 @click.option("--atom", "atom_json", required=True, help="JSON revision atom to admit")
 @click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
 @click.option("--operator", type=click.Choice(["restrained", "lexicographic"]), default="restrained")
+@click.option("--context", default=None, help="Context to scope the iterated revision operation")
 @click.pass_obj
 def world_iterated_revise(
     obj: dict,
@@ -1108,6 +1123,7 @@ def world_iterated_revise(
     atom_json: str,
     conflicts: tuple[str, ...],
     operator: str,
+    context: str | None,
 ) -> None:
     """Run one iterated revision episode and print the next explicit state."""
     from propstore.revision.operators import normalize_revision_input
@@ -1115,7 +1131,7 @@ def world_iterated_revise(
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings)
+        bound = _bind_world(wm, bindings, context_id=context)
         atom = _parse_revision_atom_json(atom_json)
         state = bound.epistemic_state()
         normalized = normalize_revision_input(state.base, atom)

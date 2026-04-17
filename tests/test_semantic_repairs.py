@@ -7,7 +7,7 @@ from propstore.claim_graph import compute_claim_graph_justified_claims
 from propstore.sidecar.build import build_sidecar
 from propstore.world import ResolutionStrategy, WorldModel, resolve
 from propstore.world.value_resolver import ActiveClaimResolver
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
 def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> WorldModel:
@@ -20,6 +20,7 @@ def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> Worl
     concepts_dir.mkdir(parents=True)
     claims_dir.mkdir()
     forms_dir.mkdir()
+    write_test_context(root)
     counters_dir.mkdir()
     (counters_dir / "semantic.next").write_text("10")
 

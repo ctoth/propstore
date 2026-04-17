@@ -8,7 +8,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
 def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
@@ -52,6 +52,7 @@ def revision_cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
 
     knowledge = tmp_path / "knowledge"
     repo = Repository.init(knowledge)
+    write_test_context(knowledge)
     concepts = knowledge / "concepts"
     concepts.mkdir(parents=True, exist_ok=True)
 
@@ -69,9 +70,10 @@ def revision_cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
             yaml.dump(form_data, default_flow_style=False)
         )
 
-    _write_concept(concepts, "fundamental_frequency", _make_concept(
+    frequency_concept = _make_concept(
         "fundamental_frequency", "concept1", "speech", form="frequency"
-    ))
+    )
+    _write_concept(concepts, "fundamental_frequency", frequency_concept)
     _write_concept(concepts, "speaker_sex", _make_concept(
         "speaker_sex",
         "concept2",
@@ -88,7 +90,7 @@ def revision_cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
             {
                 "id": "freq_claim1",
                 "type": "parameter",
-                "concept": "concept1",
+                "concept": frequency_concept["artifact_id"],
                 "value": 0.2,
                 "unit": "kHz",
                 "conditions": ["speaker_sex == 'male'"],
@@ -118,7 +120,7 @@ def test_world_revision_base_shows_exact_claim_atoms_and_assumptions(revision_cl
 
     result = runner.invoke(
         cli,
-        ["world", "revision-base", "speaker_sex=male"],
+        ["world", "revision-base", "--context", "ctx_test", "speaker_sex=male"],
     )
 
     assert result.exit_code == 0, result.output
@@ -131,7 +133,7 @@ def test_world_revision_entrenchment_shows_ranked_atoms(revision_cli_workspace: 
 
     result = runner.invoke(
         cli,
-        ["world", "revision-entrenchment", "speaker_sex=male"],
+        ["world", "revision-entrenchment", "--context", "ctx_test", "speaker_sex=male"],
     )
 
     assert result.exit_code == 0, result.output

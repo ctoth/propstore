@@ -13,6 +13,7 @@ from hypothesis import strategies as st
 from propstore.cli import cli
 from propstore.repository import Repository
 from tests.conftest import (
+    TEST_CONTEXT_ID,
     attach_claim_version_id,
     make_claim_identity,
     make_concept_identity,
@@ -41,13 +42,18 @@ def _write_source_file(project_root: Path, relative_path: str, content: bytes) -
 
 
 def _raw_claim_yaml(local_id: str) -> bytes:
-    return yaml.safe_dump({"claims": [{"id": local_id}]}, sort_keys=False).encode()
+    return yaml.safe_dump(
+        {"claims": [{"id": local_id, "context": {"id": TEST_CONTEXT_ID}}]},
+        sort_keys=False,
+    ).encode()
 
 
 def _expected_imported_claim_yaml(local_id: str, *, namespace: str, source_paper: str = "source") -> dict:
+    claim = make_claim_identity(local_id, namespace=namespace)
+    claim["context"] = {"id": TEST_CONTEXT_ID}
     return {
         "source": {"paper": source_paper},
-        "claims": [attach_claim_version_id(make_claim_identity(local_id, namespace=namespace))],
+        "claims": [attach_claim_version_id(claim)],
     }
 
 
@@ -163,6 +169,7 @@ def test_repository_import_normalizes_concepts_and_claim_refs_under_random_snaps
                         "type": "observation",
                         "statement": f"Claim for {concept_id}",
                         "concepts": [concept_id],
+                        "context": {"id": TEST_CONTEXT_ID},
                     }
                     for index, concept_id in enumerate(concept_ids, start=1)
                 ]
@@ -196,6 +203,7 @@ def test_repository_import_normalizes_concepts_and_claim_refs_under_random_snaps
         imported_claim = imported_claims["claims"][index - 1]
         assert imported_claim["logical_ids"][0]["value"] == f"claim_{index}"
         assert imported_claim["concepts"] == [expected_concept_ids[concept_id]]
+        assert imported_claim["context"] == {"id": TEST_CONTEXT_ID}
 
 
 def test_plan_repository_import_requires_git_backed_source(tmp_path):
@@ -418,8 +426,20 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
             "claims/source.yaml": yaml.safe_dump(
                 {
                     "claims": [
-                        {"id": "claim_a", "type": "observation", "statement": "A", "concepts": ["concept_a"]},
-                        {"id": "claim_b", "type": "observation", "statement": "B", "concepts": ["concept_b"]},
+                        {
+                            "id": "claim_a",
+                            "type": "observation",
+                            "statement": "A",
+                            "concepts": ["concept_a"],
+                            "context": {"id": TEST_CONTEXT_ID},
+                        },
+                        {
+                            "id": "claim_b",
+                            "type": "observation",
+                            "statement": "B",
+                            "concepts": ["concept_b"],
+                            "context": {"id": TEST_CONTEXT_ID},
+                        },
                     ]
                 },
                 sort_keys=False,
@@ -533,12 +553,14 @@ def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_id
                             "type": "observation",
                             "statement": "A",
                             "concepts": ["concept_a"],
+                            "context": {"id": TEST_CONTEXT_ID},
                         },
                         {
                             "id": "claim_b",
                             "type": "parameter",
                             "concept": "concept_a",
                             "value": 1.0,
+                            "context": {"id": TEST_CONTEXT_ID},
                         },
                     ]
                 },

@@ -74,6 +74,7 @@ def _rewrite_claim_concept_refs(claim: dict) -> dict:
 
     return rewritten
 from tests.conftest import (
+    TEST_CONTEXT_ID,
     attach_claim_version_id,
     make_claim_identity,
     make_parameter_claim,
@@ -108,6 +109,7 @@ def make_equation_claim(id, expression, variables, page=1, **kwargs):
         "sympy": kwargs.pop("sympy", expression),
         "variables": variables,
         "provenance": {"paper": "test_paper", "page": page},
+        "context": {"id": TEST_CONTEXT_ID},
     }
     c.update(kwargs)
     return attach_claim_version_id(c)
@@ -124,6 +126,7 @@ def make_observation_claim(id, statement, concepts, page=1, **kwargs):
             for value in concepts
         ],
         "provenance": {"paper": "test_paper", "page": page},
+        "context": {"id": TEST_CONTEXT_ID},
     }
     c.update(kwargs)
     return attach_claim_version_id(c)
@@ -148,6 +151,7 @@ def make_model_claim(id, name, equations, parameters, page=1, **kwargs):
             for parameter in parameters
         ],
         "provenance": {"paper": "test_paper", "page": page},
+        "context": {"id": TEST_CONTEXT_ID},
     }
     c.update(kwargs)
     return attach_claim_version_id(c)
@@ -165,6 +169,7 @@ def make_claim_file_data(claims, paper="test_paper"):
         if "artifact_id" not in normalized:
             raw_id = normalized.pop("id", f"claim{index}")
             normalized.update(make_claim_identity(str(raw_id), namespace=paper))
+        normalized.setdefault("context", {"id": TEST_CONTEXT_ID})
         normalized["version_id"] = attach_claim_version_id(normalized)["version_id"]
         normalized_claims.append(normalized)
     return {
@@ -732,6 +737,7 @@ class TestDraftArtifactBoundary:
                         "type": "observation",
                         "statement": "Unlinked draft observation",
                         "concepts": [],
+                        "context": {"id": TEST_CONTEXT_ID},
                         "provenance": {"paper": "test_paper", "page": 0},
                     }
                 ],
