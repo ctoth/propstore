@@ -22,7 +22,8 @@ def build_praf(
 ) -> "ProbabilisticAF":
     """Build a primitive-relation probabilistic model over the active claim graph.
 
-    P_A comes from p_arg_from_claim() (default: dogmatic true).
+    P_A comes from p_arg_from_claim(); missing calibration is omitted and
+    surfaced on the returned ProbabilisticAF.
     Primitive attacks and supports carry opinion-derived existence probabilities.
     Direct defeats are the primitive semantic relation after preference filtering.
     Cayrol derived defeats remain world-derived consequences and are not stored

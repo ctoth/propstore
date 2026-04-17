@@ -77,9 +77,11 @@ def _make_claims_and_stances_deterministic():
     """
     claims = [
         {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
-         "sample_size": 50, "provenance_json": '{"date": "2024-01-01"}'},
+         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
+         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2024-01-01"}'},
         {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
-         "sample_size": 10, "provenance_json": '{"date": "2023-01-01"}'},
+         "sample_size": 10, "claim_probability": 1.0, "effective_sample_size": 10,
+         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2023-01-01"}'},
     ]
     stances = [
         {
@@ -101,9 +103,11 @@ def _make_claims_and_stances_uncertain():
     """
     claims = [
         {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
-         "sample_size": 50, "provenance_json": '{"date": "2024-01-01"}'},
+         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
+         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2024-01-01"}'},
         {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
-         "sample_size": 10, "provenance_json": '{"date": "2023-01-01"}'},
+         "sample_size": 10, "claim_probability": 1.0, "effective_sample_size": 10,
+         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2023-01-01"}'},
     ]
     stances = [
         {
@@ -457,9 +461,11 @@ def test_build_praf_uncertain_defeat_probabilities():
     # Override claims with equal sample_size so both rebuts pass preference filter
     claims = [
         {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
-         "sample_size": 50, "provenance_json": '{"date": "2024-01-01"}'},
+         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
+         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2024-01-01"}'},
         {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
-         "sample_size": 50, "provenance_json": '{"date": "2023-01-01"}'},
+         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
+         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2023-01-01"}'},
     ]
     stances = [
         {
@@ -505,9 +511,11 @@ def test_build_praf_no_stances():
 
     claims = [
         {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
-         "sample_size": 50, "provenance_json": '{"date": "2024-01-01"}'},
+         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
+         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2024-01-01"}'},
         {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
-         "sample_size": 10, "provenance_json": '{"date": "2023-01-01"}'},
+         "sample_size": 10, "claim_probability": 1.0, "effective_sample_size": 10,
+         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2023-01-01"}'},
     ]
     store = _MockStore(claims, stances=[])
 

@@ -1,6 +1,7 @@
 """Probabilistic argumentation package."""
 
 from .engine import (
+    NoCalibration,
     PrAFResult,
     ProbabilisticAF,
     compute_praf_acceptance,
@@ -13,6 +14,7 @@ from .engine import (
 from .projection import build_praf
 
 __all__ = [
+    "NoCalibration",
     "PrAFResult",
     "ProbabilisticAF",
     "build_praf",

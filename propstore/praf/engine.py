@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import math
 import random as _random_mod
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from typing import Any
 
 from .components import connected_components
 
@@ -59,11 +61,55 @@ from propstore.dung import (
     stable_extensions,
 )
 from propstore.opinion import Opinion, W, discount, from_probability
+from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.probabilistic_relations import (
     ProbabilisticRelation,
     relation_from_row,
 )
 from propstore.core.row_types import ClaimRow, ClaimRowInput, coerce_claim_row
+
+
+@dataclass(frozen=True)
+class NoCalibration:
+    """Sentinel for probability-bearing inputs that lack calibration."""
+
+    reason: str
+    missing_fields: tuple[str, ...] = ()
+    provenance: Provenance | None = None
+
+
+def _praf_provenance(status: ProvenanceStatus, operation: str) -> Provenance:
+    """Minimal provenance until WS-A provides the final provenance algebra."""
+    return Provenance(status=status, witnesses=(), operations=(operation,))
+
+
+def _missing_calibration(reason: str, *missing_fields: str) -> NoCalibration:
+    return NoCalibration(
+        reason=reason,
+        missing_fields=tuple(missing_fields),
+        provenance=_praf_provenance(ProvenanceStatus.VACUOUS, reason),
+    )
+
+
+def _opinion_from_payload(
+    payload: Mapping[str, Any],
+    *,
+    prefix: str,
+    operation: str,
+) -> Opinion | None:
+    b = payload.get(f"{prefix}belief")
+    d = payload.get(f"{prefix}disbelief")
+    u = payload.get(f"{prefix}uncertainty")
+    a = payload.get(f"{prefix}base_rate", 0.5)
+    if b is None or d is None or u is None:
+        return None
+    return Opinion(
+        float(b),
+        float(d),
+        float(u),
+        float(a),
+        _praf_provenance(ProvenanceStatus.STATED, operation),
+    )
 
 @dataclass(frozen=True)
 class ProbabilisticAF:
@@ -77,6 +123,8 @@ class ProbabilisticAF:
     base_defeats: optional direct defeats before Cayrol closure; defaults to framework.defeats.
     attack_relations / support_relations / direct_defeat_relations preserve
     provenance-bearing primitive relation records.
+    omitted_arguments / omitted_relations preserve calibration omissions that
+    were deliberately excluded from the probabilistic envelope.
 
     The MC sampler uses Opinion.expectation() (Jøsang 2001, Def 6: E(ω) = b + a·u)
     as the sampling probability for each element.
@@ -92,6 +140,8 @@ class ProbabilisticAF:
     attack_relations: tuple[ProbabilisticRelation, ...] = ()
     support_relations: tuple[ProbabilisticRelation, ...] = ()
     direct_defeat_relations: tuple[ProbabilisticRelation, ...] = ()
+    omitted_arguments: dict[str, NoCalibration] = field(default_factory=dict)
+    omitted_relations: dict[tuple[str, str], NoCalibration] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -126,18 +176,21 @@ class PrAFResult:
             )
 
 
-def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion:
-    """Hook: derive P_A from a claim row or legacy claim dict.
+def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
+    """Derive argument-existence probability from a calibrated claim row.
 
-    Legacy fallback: Opinion.dogmatic_true() when no structured calibration
-    fields are present.
-
-    When calibration fields exist, compose:
-    1. source prior base rate -> Opinion.vacuous(a=prior)
-    2. claim evidence -> from_probability(p, n, a=prior) when present
-    3. source-quality discount -> discount(trust, claim_opinion) when present
+    Missing calibration returns ``NoCalibration`` instead of fabricating a
+    dogmatic argument-existence opinion.
     """
     if isinstance(claim, ClaimRow):
+        claim_opinion = _opinion_from_payload(
+            claim.attributes,
+            prefix="opinion_",
+            operation="claim_opinion_columns",
+        )
+        if claim_opinion is not None:
+            return claim_opinion
+
         source_trust = None if claim.source is None else claim.source.trust
         prior_base_rate = (
             None if source_trust is None else source_trust.prior_base_rate
@@ -154,12 +207,25 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion:
             or quality_opinion is not None
         )
         if not has_structured_fields:
-            return Opinion.dogmatic_true()
+            return _missing_calibration(
+                "missing_claim_calibration",
+                "source_prior_base_rate",
+                "claim_probability",
+                "source_quality_opinion",
+            )
 
         prior = 0.5 if prior_base_rate is None else float(prior_base_rate)
-        omega_prior = Opinion.vacuous(a=prior)
+        omega_prior = Opinion.vacuous(
+            a=prior,
+            provenance=_praf_provenance(ProvenanceStatus.VACUOUS, "claim_prior"),
+        )
         if claim_probability is not None and effective_sample_size is not None:
-            omega_claim = from_probability(float(claim_probability), float(effective_sample_size), prior)
+            omega_claim = from_probability(
+                float(claim_probability),
+                float(effective_sample_size),
+                prior,
+                provenance=_praf_provenance(ProvenanceStatus.CALIBRATED, "claim_evidence"),
+            )
         else:
             omega_claim = omega_prior
         if quality_opinion is None:
@@ -170,10 +236,15 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion:
         claim = coerce_claim_row(claim)
         return p_arg_from_claim(claim)
 
-    if not isinstance(claim, dict):
-        return Opinion.dogmatic_true()
-
     source = claim.get("source")
+    claim_opinion = _opinion_from_payload(
+        claim,
+        prefix="opinion_",
+        operation="claim_opinion_columns",
+    )
+    if claim_opinion is not None:
+        return claim_opinion
+
     source_trust = source.get("trust") if isinstance(source, dict) else None
     prior_base_rate = claim.get("source_prior_base_rate")
     if prior_base_rate is None and isinstance(source_trust, dict):
@@ -196,13 +267,26 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion:
         or quality_payload is not None
     )
     if not has_structured_fields:
-        return Opinion.dogmatic_true()
+        return _missing_calibration(
+            "missing_claim_calibration",
+            "source_prior_base_rate",
+            "claim_probability",
+            "source_quality_opinion",
+        )
 
     prior = 0.5 if prior_base_rate is None else float(prior_base_rate)
-    omega_prior = Opinion.vacuous(a=prior)
+    omega_prior = Opinion.vacuous(
+        a=prior,
+        provenance=_praf_provenance(ProvenanceStatus.VACUOUS, "claim_prior"),
+    )
 
     if claim_probability is not None and effective_sample_size is not None:
-        omega_claim = from_probability(float(claim_probability), float(effective_sample_size), prior)
+        omega_claim = from_probability(
+            float(claim_probability),
+            float(effective_sample_size),
+            prior,
+            provenance=_praf_provenance(ProvenanceStatus.CALIBRATED, "claim_evidence"),
+        )
     else:
         omega_claim = omega_prior
 
@@ -218,43 +302,64 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion:
         float(quality_payload["d"]),
         float(quality_payload["u"]),
         float(quality_payload["a"]),
+        _praf_provenance(ProvenanceStatus.CALIBRATED, "source_quality"),
     )
     return discount(omega_source_quality, omega_claim)
 
 
-def p_relation_from_stance(stance: dict) -> Opinion:
+def p_relation_from_stance(stance: dict) -> Opinion | NoCalibration:
     """Derive an edge-existence opinion from a stance's opinion columns.
 
-    Fallback chain per phase5b plan:
-    1. Opinion columns (b, d, u, a) → Opinion(b, d, u, a)
-    2. Confidence float → from_probability(confidence, 1)
-    3. No data → Opinion.dogmatic_true() (backward compat)
+    Fallback chain:
+    1. Opinion columns (b, d, u, a) -> Opinion(b, d, u, a)
+    2. Strictly positive confidence float -> from_probability(confidence, 1)
+    3. No calibration or zero-confidence API sentinel -> NoCalibration
 
     Per Jøsang (2001, Def 6): E(ω) = b + a·u provides the sampling probability.
     """
-    b = stance.get("opinion_belief")
-    d = stance.get("opinion_disbelief")
-    u = stance.get("opinion_uncertainty")
-    a = stance.get("opinion_base_rate", 0.5)
-
-    if b is not None and d is not None and u is not None:
-        return Opinion(b, d, u, a)
+    opinion = _opinion_from_payload(
+        stance,
+        prefix="opinion_",
+        operation="stance_opinion_columns",
+    )
+    if opinion is not None:
+        return opinion
 
     confidence = stance.get("confidence")
+    a = float(stance.get("opinion_base_rate", 0.5))
     if confidence is not None:
-        if confidence >= 1.0 - 1e-12:
-            return Opinion.dogmatic_true(a)
-        if confidence <= 1e-12:
-            return Opinion.dogmatic_false(a)
+        confidence_value = float(confidence)
+        if confidence_value <= 1e-12:
+            return _missing_calibration(
+                "zero_confidence_without_opinion",
+                "opinion_belief",
+                "opinion_disbelief",
+                "opinion_uncertainty",
+            )
+        if confidence_value >= 1.0 - 1e-12:
+            return Opinion.dogmatic_true(
+                a,
+                provenance=_praf_provenance(ProvenanceStatus.STATED, "stance_confidence"),
+            )
         # from_probability(p, n) with n=1 gives moderate uncertainty.
-        return from_probability(confidence, 1)
+        return from_probability(
+            confidence_value,
+            1,
+            a,
+            provenance=_praf_provenance(ProvenanceStatus.STATED, "stance_confidence"),
+        )
 
-    # No opinion or confidence data — certain defeat (backward compat).
-    return Opinion.dogmatic_true()
+    return _missing_calibration(
+        "missing_relation_calibration",
+        "opinion_belief",
+        "opinion_disbelief",
+        "opinion_uncertainty",
+        "confidence",
+    )
 
 
-def p_defeat_from_stance(stance: dict) -> Opinion:
-    """Backward-compatible alias for relation-existence opinions."""
+def p_defeat_from_stance(stance: dict) -> Opinion | NoCalibration:
+    """Alias for relation-existence opinions."""
     return p_relation_from_stance(stance)
 
 
