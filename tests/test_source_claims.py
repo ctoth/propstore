@@ -32,12 +32,14 @@ def test_normalized_source_claim_ids_are_content_stable(local_id_a: str, local_i
     claim_a = {
         "id": local_id_a,
         "type": "observation",
+        "context": "ctx_test",
         "statement": "same semantic content",
         "provenance": {"page": 1},
     }
     claim_b = {
         "id": local_id_b,
         "type": "observation",
+        "context": "ctx_test",
         "statement": "same semantic content",
         "provenance": {"page": 1},
     }
@@ -84,6 +86,7 @@ def test_source_add_claim_batch_normalizes_claims(tmp_path: Path) -> None:
                     {
                         "id": "claim1",
                         "type": "observation",
+                        "context": "ctx_test",
                         "statement": "A claim",
                         "provenance": {"page": 1},
                     }
@@ -148,6 +151,7 @@ def test_source_add_claim_auto_finalizes(tmp_path: Path) -> None:
                     {
                         "id": "claim1",
                         "type": "observation",
+                        "context": "ctx_test",
                         "statement": "A claim",
                         "provenance": {"page": 1},
                     }
@@ -264,6 +268,7 @@ def test_promoted_claims_conform_to_master_schema(tmp_path: Path) -> None:
                     {
                         "id": "claim1",
                         "type": "observation",
+                        "context": "ctx_test",
                         "statement": "A testable claim",
                         "concepts": ["test_concept"],
                         "provenance": {"paper": "demo", "page": 1},
@@ -330,6 +335,7 @@ def test_claims_document_produced_by_roundtrip(tmp_path: Path) -> None:
         claims:
           - id: claim1
             type: observation
+            context: ctx_test
             statement: "Test claim"
             concepts: []
             provenance:

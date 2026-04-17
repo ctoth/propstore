@@ -26,6 +26,7 @@ from propstore.artifacts import (
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.artifacts.schema import convert_document_value
+from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.identity import derive_concept_artifact_id
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source import (
@@ -177,7 +178,7 @@ def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     reloaded_alignment = load_alignment_artifact(repo, artifact.id)[1]
 
     assert promoted.decision.status == "promoted"
-    assert promoted_concept.canonical_name == "gravity"
+    assert promoted_concept.lexical_entry.canonical_form.written_rep == "gravity"
     assert reloaded_alignment.decision.status == "promoted"
 
 
@@ -203,6 +204,7 @@ def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path
                 {
                     "id": "gravity_claim_local",
                     "type": "parameter",
+                    "context": "ctx_test",
                     "concept": "gravity",
                     "value": 9.81,
                     "unit": "m/s^2",
@@ -258,15 +260,17 @@ def _seed_master_concept_via_git(repo: Repository, name: str) -> str:
 
     from propstore.identity import derive_concept_artifact_id
 
+    concept = normalize_canonical_concept_payload(
+        {
+            "canonical_name": name,
+            "status": "accepted",
+            "definition": f"{name} definition",
+            "domain": "propstore",
+            "form": "structural",
+        },
+        local_handle=name,
+    )
     artifact_id = derive_concept_artifact_id("propstore", name)
-    concept = {
-        "artifact_id": artifact_id,
-        "canonical_name": name,
-        "status": "accepted",
-        "definition": f"{name} definition",
-        "domain": "source",
-        "form": "structural",
-    }
     repo.git.commit_batch(
         adds={
             f"concepts/{name}.yaml": yaml.safe_dump(
@@ -278,6 +282,25 @@ def _seed_master_concept_via_git(repo: Repository, name: str) -> str:
         branch="master",
     )
     return artifact_id
+
+
+def _seed_master_context_via_git(repo: Repository, name: str = "ctx_test") -> None:
+    repo.git.commit_batch(
+        adds={
+            f"contexts/{name}.yaml": yaml.safe_dump(
+                {
+                    "id": name,
+                    "name": name,
+                    "description": "Test context",
+                },
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message=f"Seed context {name}",
+        branch="master",
+    )
 
 
 def _setup_source_with_partial_validity(
@@ -295,6 +318,7 @@ def _setup_source_with_partial_validity(
 
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
+    _seed_master_context_via_git(repo)
     _seed_master_concept_via_git(repo, "shared_concept")
     _init_cli_source(runner, repo, source_name)
 
@@ -321,24 +345,27 @@ def _setup_source_with_partial_validity(
             {
                 "source": {"paper": source_name},
                 "claims": [
-                    {
-                        "id": "valid_a",
-                        "type": "observation",
-                        "statement": "First valid observation.",
+                        {
+                            "id": "valid_a",
+                            "type": "observation",
+                            "context": "ctx_test",
+                            "statement": "First valid observation.",
                         "concepts": ["shared_concept"],
                         "provenance": {"page": 1},
                     },
-                    {
-                        "id": "valid_b",
-                        "type": "observation",
-                        "statement": "Second valid observation.",
+                        {
+                            "id": "valid_b",
+                            "type": "observation",
+                            "context": "ctx_test",
+                            "statement": "Second valid observation.",
                         "concepts": ["shared_concept"],
                         "provenance": {"page": 2},
                     },
-                    {
-                        "id": "broken_source",
-                        "type": "observation",
-                        "statement": "Claim whose stance targets a missing ref.",
+                        {
+                            "id": "broken_source",
+                            "type": "observation",
+                            "context": "ctx_test",
+                            "statement": "Claim whose stance targets a missing ref.",
                         "concepts": ["shared_concept"],
                         "provenance": {"page": 3},
                     },

@@ -11,6 +11,7 @@ from propstore.artifacts import (
     SOURCE_DOCUMENT_FAMILY,
     SOURCE_FINALIZE_REPORT_FAMILY,
     SOURCE_JUSTIFICATIONS_FAMILY,
+    SOURCE_MICROPUBS_FAMILY,
     SOURCE_STANCES_FAMILY,
     SourceRef,
 )
@@ -44,6 +45,7 @@ from propstore.artifacts.documents.sources import (
     SourceTrustDocument,
     SourceTrustQualityDocument,
 )
+from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
 
 TDocument = TypeVar("TDocument")
 
@@ -164,6 +166,10 @@ def load_source_concepts_document(repo: Repository, name: str) -> SourceConcepts
 
 def load_source_claims_document(repo: Repository, name: str) -> SourceClaimsDocument | None:
     return repo.artifacts.load(SOURCE_CLAIMS_FAMILY, SourceRef(name))
+
+
+def load_source_micropubs_document(repo: Repository, name: str) -> MicropublicationsFileDocument | None:
+    return repo.artifacts.load(SOURCE_MICROPUBS_FAMILY, SourceRef(name))
 
 
 def load_source_justifications_document(repo: Repository, name: str) -> SourceJustificationsDocument | None:

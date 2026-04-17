@@ -160,6 +160,7 @@ def propose_concept(
 @click.option("--concept", required=False)
 @click.option("--value", type=float, required=False)
 @click.option("--unit", required=False)
+@click.option("--context", required=True)
 @click.option("--page", type=int, required=False)
 @click.pass_obj
 def propose_claim(
@@ -171,6 +172,7 @@ def propose_claim(
     concept: str | None,
     value: float | None,
     unit: str | None,
+    context: str,
     page: int | None,
 ) -> None:
     repo: Repository = obj["repo"]
@@ -187,6 +189,7 @@ def propose_claim(
             concept=concept,
             value=value,
             unit=unit,
+            context=context,
             page=page,
         )
     except ValueError as exc:

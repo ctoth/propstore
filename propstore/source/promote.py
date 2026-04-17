@@ -31,6 +31,7 @@ from propstore.artifacts import (
     ClaimReferenceResolver,
     CONCEPT_FILE_FAMILY,
     JUSTIFICATIONS_FILE_FAMILY,
+    MICROPUBS_FILE_FAMILY,
     load_primary_branch_claim_reference_index,
     normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
@@ -40,10 +41,12 @@ from propstore.artifacts import (
     ClaimsFileRef,
     ConceptFileRef,
     JustificationsFileRef,
+    MicropubsFileRef,
     StanceFileRef,
 )
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.claims import ClaimsFileDocument
+from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
 from propstore.repository import Repository
 from propstore.artifacts.schema import convert_document_value
 from propstore.artifacts.documents.sources import SourceDocument, SourceJustificationsDocument
@@ -55,6 +58,7 @@ from .common import (
     load_source_document,
     load_source_finalize_report,
     load_source_justifications_document,
+    load_source_micropubs_document,
     load_source_stances_document,
     normalize_source_slug,
     source_branch_name,
@@ -95,6 +99,38 @@ def rewrite_claim_concept_refs(
             if isinstance(parameter, dict):
                 parameter["concept"] = resolve(parameter.get("concept"))
     return normalize_canonical_claim_payload(normalized)
+
+
+def _normalize_promoted_claim_context(claim: dict[str, Any]) -> dict[str, Any]:
+    normalized = copy.deepcopy(claim)
+    context = normalized.get("context")
+    if isinstance(context, str):
+        normalized["context"] = {"id": context}
+    return normalized
+
+
+def _filter_promoted_micropubs(
+    micropubs_doc: MicropublicationsFileDocument | None,
+    *,
+    valid_artifact_ids: set[str],
+) -> MicropublicationsFileDocument | None:
+    if micropubs_doc is None:
+        return None
+    kept = [
+        micropub.to_payload()
+        for micropub in micropubs_doc.micropubs
+        if all(claim_id in valid_artifact_ids for claim_id in micropub.claims)
+    ]
+    if not kept:
+        return None
+    return convert_document_value(
+        {
+            "source": None if micropubs_doc.source is None else micropubs_doc.source.to_payload(),
+            "micropubs": kept,
+        },
+        MicropublicationsFileDocument,
+        source="micropubs/promoted.yaml",
+    )
 
 
 def resolve_source_concept_promotions(
@@ -413,6 +449,7 @@ def promote_source_branch(
     slug = normalize_source_slug(source_name)
     source_doc = load_source_document(repo, source_name)
     claims_doc = load_source_claims_document(repo, source_name)
+    micropubs_doc = load_source_micropubs_document(repo, source_name)
     justifications_doc = load_source_justifications_document(repo, source_name)
     stances_doc = load_source_stances_document(repo, source_name)
     concept_map, promoted_concept_documents = resolve_source_concept_promotions(repo, source_name)
@@ -475,6 +512,10 @@ def promote_source_branch(
         for claim in valid_claims
         if isinstance(claim.artifact_id, str)
     }
+    promoted_micropubs_document = _filter_promoted_micropubs(
+        micropubs_doc,
+        valid_artifact_ids=valid_artifact_ids,
+    )
 
     promoted_stance_documents: dict[str, StanceFileDocument] = {}
     promoted_stances: list[dict[str, Any]] = []
@@ -546,7 +587,11 @@ def promote_source_branch(
                 updated_provenance = dict(provenance)
                 updated_provenance["paper"] = promoted_source_paper
                 claim["provenance"] = updated_provenance
-            normalized_claim = normalize_canonical_claim_payload(claim, strip_source_local=True)
+            normalized_claim = _normalize_promoted_claim_context(claim)
+            normalized_claim = normalize_canonical_claim_payload(
+                normalized_claim,
+                strip_source_local=True,
+            )
             claim.clear()
             claim.update(normalized_claim)
     promoted_claims_doc["claims"] = promoted_claims
@@ -594,6 +639,12 @@ def promote_source_branch(
             ClaimsFileRef(slug),
             promoted_claims_document,
         )
+        if promoted_micropubs_document is not None:
+            transaction.save(
+                MICROPUBS_FILE_FAMILY,
+                MicropubsFileRef(slug),
+                promoted_micropubs_document,
+            )
         for concept_slug, concept_document in promoted_concept_documents.items():
             transaction.save(
                 CONCEPT_FILE_FAMILY,
