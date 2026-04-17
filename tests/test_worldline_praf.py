@@ -51,12 +51,16 @@ class FakeWorld:
                 "concept": "concept1",
                 "value": 10.0,
                 "content_hash": "hash-a",
+                "claim_probability": 1.0,
+                "effective_sample_size": 10,
             },
             "claim_b": {
                 "id": "claim_b",
                 "concept": "concept1",
                 "value": 20.0,
                 "content_hash": "hash-b",
+                "claim_probability": 1.0,
+                "effective_sample_size": 10,
             },
         }
 

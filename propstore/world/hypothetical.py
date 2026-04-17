@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, replace
 from collections.abc import Sequence
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping, cast
 
 from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
@@ -27,6 +27,7 @@ from propstore.core.graph_types import (
     ConflictWitness,
     GraphDelta,
 )
+from propstore.core.micropublications import ActiveMicropublicationInput
 from propstore.core.store_results import (
     ArtifactStoreStats,
     ClaimSimilarityHit,
@@ -37,7 +38,12 @@ from propstore.core.row_types import (
     ClaimRow,
     ClaimRowInput,
     ConflictRow,
+    ConflictRowInput,
+    ConceptRowInput,
     ParameterizationRow,
+    ParameterizationRowInput,
+    RelationshipRowInput,
+    StanceRowInput,
     StanceRow,
     coerce_claim_row,
     coerce_concept_row,
@@ -166,6 +172,10 @@ def _claim_node_for_synthetic(
         attributes["conditions_cel"] = json.dumps(synthetic.conditions)
     else:
         attributes.pop("conditions_cel", None)
+    if synthetic.confidence is not None:
+        attributes["confidence"] = synthetic.confidence
+    else:
+        attributes.pop("confidence", None)
     return ClaimNode(
         claim_id=to_claim_id(synthetic.id),
         concept_id=to_concept_id(synthetic.concept_id),
@@ -190,7 +200,13 @@ def _synthetic_row(
             claim_type=synthetic.type,
             concept_id=to_concept_id(synthetic.concept_id),
             value=synthetic.value,
+            sample_size=synthetic.sample_size,
             conditions_cel=conditions_cel,
+            attributes=(
+                {"confidence": synthetic.confidence}
+                if synthetic.confidence is not None
+                else {}
+            ),
         )
 
     row = coerce_claim_row(existing_row)
@@ -201,7 +217,18 @@ def _synthetic_row(
         claim_type=synthetic.type,
         concept_id=to_concept_id(synthetic.concept_id),
         value=synthetic.value,
+        sample_size=synthetic.sample_size,
         conditions_cel=conditions_cel,
+        attributes=(
+            {
+                **dict(row.attributes),
+                **(
+                    {"confidence": synthetic.confidence}
+                    if synthetic.confidence is not None
+                    else {}
+                ),
+            }
+        ),
     )
 
 
@@ -210,7 +237,7 @@ class _GraphOverlayStore:
         self,
         base_store: ArtifactStore,
         *,
-        claims: list[ClaimRowInput],
+        claims: Sequence[ClaimRowInput],
         stances: list[StanceRow],
         conflicts: list[ConflictRow],
         compiled: CompiledWorldGraph | None,
@@ -222,13 +249,13 @@ class _GraphOverlayStore:
         self._conflicts = list(conflicts)
         self._compiled = compiled
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._base, name)
 
-    def get_concept(self, concept_id: str):
-        getter = getattr(self._base, "get_concept", None)
-        if callable(getter):
-            concept = getter(concept_id)
+    def get_concept(self, concept_id: str) -> ConceptRowInput | None:
+        getter = self._base.get_concept
+        concept = getter(concept_id)
+        if concept is not None:
             return concept
         if not hasattr(self._base, "all_concepts"):
             return None
@@ -238,32 +265,32 @@ class _GraphOverlayStore:
                 return concept
         return None
 
-    def get_claim(self, claim_id: str) -> ClaimRow | None:
+    def get_claim(self, claim_id: str) -> ClaimRowInput | None:
         resolved_claim_id = self.resolve_claim(claim_id) or claim_id
         return self._claims_by_id.get(resolved_claim_id)
 
     def resolve_claim(self, name: str) -> str | None:
         resolver = getattr(self._base, "resolve_claim", None)
         if callable(resolver):
-            return resolver(name)
+            return cast(Callable[[str], str | None], resolver)(name)
         return None
 
     def resolve_alias(self, alias: str) -> str | None:
         resolver = getattr(self._base, "resolve_alias", None)
         if callable(resolver):
-            return resolver(alias)
+            return cast(Callable[[str], str | None], resolver)(alias)
         return None
 
     def resolve_concept(self, name: str) -> str | None:
         resolver = getattr(self._base, "resolve_concept", None)
         if callable(resolver):
-            return resolver(name)
+            return cast(Callable[[str], str | None], resolver)(name)
         return None
 
-    def all_concepts(self):
+    def all_concepts(self) -> Sequence[ConceptRowInput]:
         return list(self._base.all_concepts())
 
-    def claims_for(self, concept_id: str | None) -> list[ClaimRow]:
+    def claims_for(self, concept_id: str | None) -> list[ClaimRowInput]:
         if concept_id is None:
             return list(self._claims)
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
@@ -274,14 +301,14 @@ class _GraphOverlayStore:
             or str(claim.target_concept or "") == resolved_concept_id
         ]
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRow]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRowInput]:
         return {
             claim_id: claim
             for claim_id, claim in self._claims_by_id.items()
             if claim_id in claim_ids
         }
 
-    def stances_between(self, claim_ids: set[str]):
+    def stances_between(self, claim_ids: set[str]) -> Sequence[StanceRowInput]:
         return [
             stance
             for stance in self._stances
@@ -289,17 +316,20 @@ class _GraphOverlayStore:
             and str(stance.target_claim_id) in claim_ids
         ]
 
-    def conflicts(self):
+    def conflicts(self) -> Sequence[ConflictRowInput]:
         return list(self._conflicts)
 
-    def all_parameterizations(self):
+    def all_parameterizations(self) -> Sequence[ParameterizationRowInput]:
         return list(self._base.all_parameterizations())
 
-    def all_relationships(self):
+    def all_relationships(self) -> Sequence[RelationshipRowInput]:
         return list(self._base.all_relationships())
 
-    def all_claim_stances(self):
+    def all_claim_stances(self) -> Sequence[StanceRowInput]:
         return list(self._stances)
+
+    def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]:
+        return list(self._base.all_micropublications())
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
         return set(self._base.concept_ids_for_group(group_id))
@@ -338,7 +368,7 @@ class _GraphOverlayStore:
     def stats(self) -> ArtifactStoreStats:
         return self._base.stats()
 
-    def parameterizations_for(self, concept_id: str):
+    def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationRowInput]:
         return list(self._base.parameterizations_for(concept_id))
 
     def explain(self, claim_id: str) -> list[StanceRow]:
@@ -386,26 +416,35 @@ class HypotheticalWorld(BeliefSpace):
         claim_resolver = getattr(base._store, "resolve_claim", None)
         concept_resolver = getattr(base._store, "resolve_concept", None)
         self._removed_ids = {
-            claim_resolver(claim_id) or claim_id
+            cast(Callable[[str], str | None], claim_resolver)(claim_id) or claim_id
             if callable(claim_resolver)
             else claim_id
             for claim_id in (remove or [])
         }
+
+        def resolve_synthetic_claim_id(claim_id: str) -> str:
+            if not callable(claim_resolver):
+                return claim_id
+            return cast(Callable[[str], str | None], claim_resolver)(claim_id) or claim_id
+
+        def resolve_synthetic_concept_id(concept_id: ConceptId) -> ConceptId:
+            if not callable(concept_resolver):
+                return concept_id
+            resolved = (
+                cast(Callable[[str], str | None], concept_resolver)(str(concept_id))
+                or concept_id
+            )
+            return to_concept_id(resolved)
+
         self._synthetics = [
             SyntheticClaim(
-                id=(
-                    claim_resolver(synthetic.id) or synthetic.id
-                    if callable(claim_resolver)
-                    else synthetic.id
-                ),
-                concept_id=(
-                    concept_resolver(synthetic.concept_id) or synthetic.concept_id
-                    if callable(concept_resolver)
-                    else synthetic.concept_id
-                ),
+                id=resolve_synthetic_claim_id(synthetic.id),
+                concept_id=resolve_synthetic_concept_id(synthetic.concept_id),
                 type=synthetic.type,
                 value=synthetic.value,
                 conditions=list(synthetic.conditions),
+                sample_size=synthetic.sample_size,
+                confidence=synthetic.confidence,
             )
             for synthetic in (add or [])
         ]

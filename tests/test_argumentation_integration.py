@@ -523,8 +523,8 @@ class TestConflictDerivedDefeats:
         direction/strength of a relation, it must express total ignorance
         via opinion_uncertainty >= 0.99 rather than fabricating confidence.
         """
-        _insert_claim(conn, "vac_a", "c1", 100.0, sample_size=50)
-        _insert_claim(conn, "vac_b", "c1", 200.0, sample_size=50)
+        _insert_claim(conn, "vac_a", "c1", 100.0, sample_size=50, confidence=1.0)
+        _insert_claim(conn, "vac_b", "c1", 200.0, sample_size=50, confidence=1.0)
         _insert_conflict(conn, "c1", "vac_a", "vac_b", "CONFLICT",
                          value_a="100.0", value_b="200.0")
         conn.commit()

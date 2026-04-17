@@ -157,7 +157,8 @@ class TestClassifyReturnsBidirectional:
         for r in results:
             if r["type"] != "none":
                 res = r["resolution"]
-                assert set(res["opinion"]) == {"b", "d", "u", "a"}
+                assert set(res["opinion"]) == {"b", "d", "u", "a", "provenance"}
+                assert res["opinion"]["provenance"]["status"] == "vacuous"
 
 
 # ---------------------------------------------------------------------------
