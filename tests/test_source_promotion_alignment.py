@@ -431,16 +431,17 @@ def test_promote_source_branch_partial_allows_valid_claims_blocks_invalid(
     assert result is not None, "partial promotion should return some marker, not raise"
 
     # Valid claims land on primary branch via CLAIMS_FILE_FAMILY.
+    # Correlate by statement text since source_local_id is stripped on promote.
     claims_file = repo.artifacts.require(
         CLAIMS_FILE_FAMILY,
         ClaimsFileRef(source_name),
     )
-    promoted_local_ids = {
-        claim.source_local_id for claim in claims_file.claims if claim.source_local_id
+    promoted_statements = {
+        claim.statement for claim in claims_file.claims if claim.statement
     }
-    assert "valid_a" in promoted_local_ids
-    assert "valid_b" in promoted_local_ids
-    assert "broken_source" not in promoted_local_ids, (
+    assert "First valid observation." in promoted_statements
+    assert "Second valid observation." in promoted_statements
+    assert "Claim whose stance targets a missing ref." not in promoted_statements, (
         "claim with broken stance must stay on source branch, not promote"
     )
 
@@ -507,10 +508,10 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
         CLAIMS_FILE_FAMILY,
         ClaimsFileRef(source_name),
     )
-    initial_local_ids = {
-        claim.source_local_id for claim in claims_file.claims if claim.source_local_id
+    initial_statements = {
+        claim.statement for claim in claims_file.claims if claim.statement
     }
-    assert "broken_source" not in initial_local_ids
+    assert "Claim whose stance targets a missing ref." not in initial_statements
 
     # Fix: remove the broken stance by overwriting source stances with empty set.
     from propstore.artifacts.documents.sources import SourceStancesDocument
@@ -532,9 +533,9 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
         CLAIMS_FILE_FAMILY,
         ClaimsFileRef(source_name),
     )
-    final_local_ids = {
-        claim.source_local_id for claim in claims_file.claims if claim.source_local_id
+    final_statements = {
+        claim.statement for claim in claims_file.claims if claim.statement
     }
-    assert "broken_source" in final_local_ids, (
+    assert "Claim whose stance targets a missing ref." in final_statements, (
         "previously-blocked claim must promote once its finalize error is fixed"
     )
