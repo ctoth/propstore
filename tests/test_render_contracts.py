@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from propstore.cli.repository import Repository
 from propstore.world import (
-    ArtifactStore,
-    BeliefSpace,
     Environment,
     ReasoningBackend,
     RenderPolicy,
@@ -88,13 +86,6 @@ def test_repository_store_is_cached_property(monkeypatch, tmp_path):
 
     assert first is second
     assert calls == [repo]
-
-
-def test_protocol_shapes():
-    assert isinstance(RenderPolicy(), RenderPolicy)
-    assert isinstance(Environment(), Environment)
-    assert hasattr(ArtifactStore, "__mro__")
-    assert hasattr(BeliefSpace, "__mro__")
 
 
 def test_render_policy_override_fields():
