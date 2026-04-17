@@ -49,11 +49,13 @@ from propstore.sidecar.concepts import (
 )
 from propstore.sidecar.schema import (
     create_claim_tables,
+    create_micropublication_tables,
     create_context_tables,
     create_tables,
     populate_contexts,
     write_schema_metadata,
 )
+from propstore.sidecar.micropublications import populate_micropublications
 from propstore.sidecar.sources import populate_sources
 from propstore.core.concepts import load_concepts
 from propstore.claims import load_claim_files
@@ -323,6 +325,7 @@ def build_sidecar(
         populate_form_algebra(conn, concepts, form_registry)
         build_concept_fts_index(conn, concepts)
         create_claim_tables(conn)
+        create_micropublication_tables(conn)
 
         if context_files:
             populate_contexts(conn, context_files)
@@ -352,6 +355,8 @@ def build_sidecar(
                 lifting_system=lifting_system,
             )
             build_claim_fts_index(conn, normalized_claim_files)
+
+        populate_micropublications(conn, knowledge_root / "micropubs")
 
         if embedding_snapshot is not None:
             try:

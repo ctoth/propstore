@@ -10,6 +10,9 @@ from propstore.artifacts.documents.micropubs import MicropublicationDocument
 from propstore.artifacts.schema import convert_document_value
 from propstore.cli import cli
 from propstore.repository import Repository
+from propstore.sidecar.build import build_sidecar
+from propstore.world import WorldModel
+from propstore.world.types import Environment, ReasoningBackend, RenderPolicy
 
 
 def test_micropublication_document_requires_claim_bundle() -> None:
@@ -215,3 +218,43 @@ def test_micropub_cli_show_bundle_and_lift(tmp_path: Path) -> None:
     )
     assert lift_result.exit_code == 0, lift_result.output
     assert "liftable" in lift_result.output
+
+
+def test_promoted_micropub_builds_as_atms_node(tmp_path: Path) -> None:
+    repo = _init_source_with_claim(tmp_path)
+    repo.git.commit_batch(
+        adds={
+            "contexts/ctx_test.yaml": yaml.safe_dump(
+                {
+                    "id": "ctx_test",
+                    "name": "ctx_test",
+                    "description": "Source context",
+                },
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        deletes=[],
+        message="Seed test context",
+        branch="master",
+    )
+    runner = CliRunner()
+    promote_result = runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"])
+    assert promote_result.exit_code == 0, promote_result.output
+
+    promoted = yaml.safe_load(repo.git.read_file("micropubs/demo.yaml"))
+    micropub_id = promoted["micropubs"][0]["artifact_id"]
+
+    assert build_sidecar(repo.tree(), repo.sidecar_path, force=True) is True
+    world = WorldModel(repo)
+    assert [entry.artifact_id for entry in world.all_micropublications()] == [micropub_id]
+
+    bound = world.bind(
+        Environment(context_id="ctx_test"),
+        policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),
+    )
+    engine = bound.atms_engine()
+
+    assert engine.supported_micropub_ids() == {micropub_id}
+    label = engine.micropub_label(micropub_id)
+    assert label is not None
+    assert label.environments[0].context_ids == ("ctx_test",)

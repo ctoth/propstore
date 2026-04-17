@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.core.id_types import ContextId, to_assumption_id, to_context_id
 from propstore.core.labels import AssumptionRef
+from propstore.core.micropublications import ActiveMicropublicationInput
 from propstore.core.store_results import (
     ArtifactStoreStats,
     ClaimSimilarityHit,
@@ -154,6 +155,11 @@ class ParameterizationCatalogStore(Protocol):
 
 
 @runtime_checkable
+class MicropublicationCatalogStore(Protocol):
+    def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]: ...
+
+
+@runtime_checkable
 class ConditionSolverStore(Protocol):
     def condition_solver(self) -> Z3ConditionSolver: ...
 
@@ -177,6 +183,7 @@ class ArtifactStore(Protocol):
     def all_parameterizations(self) -> Sequence[ParameterizationRowInput]: ...
     def all_relationships(self) -> Sequence[RelationshipRowInput]: ...
     def all_claim_stances(self) -> Sequence[StanceRowInput]: ...
+    def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]: ...
     def concept_ids_for_group(self, group_id: int) -> set[str]: ...
     def search(self, query: str) -> list[ConceptSearchHit]: ...
     def similar_claims(

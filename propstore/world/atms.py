@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, r
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.environment import ArtifactStore
+from propstore.core.environment import ArtifactStore, MicropublicationCatalogStore
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.id_types import (
     AssumptionId,
@@ -35,6 +35,11 @@ from propstore.core.id_types import (
     to_claim_ids,
     to_context_id,
     to_queryable_ids,
+)
+from propstore.core.micropublications import (
+    ActiveMicropublication,
+    ActiveMicropublicationInput,
+    coerce_active_micropublication,
 )
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness, ParameterizationEdge
 from propstore.propagation import evaluate_parameterization
@@ -200,6 +205,26 @@ class ATMSClaimNode:
 
 
 @dataclass(frozen=True)
+class ATMSMicropublicationNode:
+    node_id: str
+    micropublication: ActiveMicropublication
+    label: Label = field(default_factory=Label)
+    justification_ids: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def kind(self) -> str:
+        return "micropub"
+
+    @property
+    def micropub_id(self) -> str:
+        return self.micropublication.artifact_id
+
+    @property
+    def context_id(self) -> ContextId:
+        return self.micropublication.context_id
+
+
+@dataclass(frozen=True)
 class ATMSDerivedNode:
     node_id: str
     concept_id: str
@@ -214,7 +239,13 @@ class ATMSDerivedNode:
         return "derived"
 
 
-ATMSNode = ATMSAssumptionNode | ATMSContextNode | ATMSClaimNode | ATMSDerivedNode
+ATMSNode = (
+    ATMSAssumptionNode
+    | ATMSContextNode
+    | ATMSClaimNode
+    | ATMSMicropublicationNode
+    | ATMSDerivedNode
+)
 
 
 def _is_assumption_node(node: ATMSNode) -> TypeGuard[ATMSAssumptionNode]:
@@ -227,6 +258,10 @@ def _is_context_node(node: ATMSNode) -> TypeGuard[ATMSContextNode]:
 
 def _is_claim_node(node: ATMSNode) -> TypeGuard[ATMSClaimNode]:
     return isinstance(node, ATMSClaimNode)
+
+
+def _is_micropub_node(node: ATMSNode) -> TypeGuard[ATMSMicropublicationNode]:
+    return isinstance(node, ATMSMicropublicationNode)
 
 
 def _is_derived_node(node: ATMSNode) -> TypeGuard[ATMSDerivedNode]:
@@ -246,6 +281,7 @@ class _ATMSRuntime:
     environment: Environment
     active_graph: ActiveWorldGraph
     all_parameterizations: Callable[[], list[ParameterizationRowInput]]
+    all_micropublications: Callable[[], list[ActiveMicropublicationInput]]
     active_claims: Callable[[], list[ActiveClaim]]
     conflicts: Callable[[], list[ConflictRowInput]]
     is_param_compatible: Callable[[str | None], bool]
@@ -332,6 +368,10 @@ def _node_claim(node: ATMSNode) -> ActiveClaim | None:
 
 def _node_claim_id(node: ATMSNode) -> str | None:
     return node.claim_id if _is_claim_node(node) else None
+
+
+def _node_micropub_id(node: ATMSNode) -> str | None:
+    return node.micropub_id if _is_micropub_node(node) else None
 
 
 def _node_concept_id(node: ATMSNode) -> str | None:
@@ -433,6 +473,11 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
             for edge in active_graph.compiled.parameterizations
         ]
 
+    def _all_micropublications() -> list[ActiveMicropublicationInput]:
+        if isinstance(bound._store, MicropublicationCatalogStore):
+            return list(bound._store.all_micropublications())
+        return []
+
     def _replay(queryable_set: tuple[QueryableAssumption, ...]) -> _ATMSRuntime:
         future_environment = _extend_environment(bound._environment, queryable_set)
         future_bound = bound.rebind(
@@ -448,6 +493,7 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
         active_claims=_active_claims,
         conflicts=_conflicts,
         is_param_compatible=lambda conditions_cel: bound.is_param_compatible(conditions_cel),
+        all_micropublications=_all_micropublications,
         claim_support=lambda claim: bound.claim_support(claim),
         concept_status=lambda concept_id: bound.value_of(concept_id).status,
         replay=_replay,
@@ -469,6 +515,8 @@ class ATMSEngine:
         self._nodes: dict[str, ATMSNode] = {}
         self._justifications: dict[str, ATMSJustification] = {}
         self._claim_node_ids: dict[str, str] = {}
+        self._claim_artifact_node_ids: dict[str, str] = {}
+        self._micropub_node_ids: dict[str, str] = {}
         self._assumption_node_ids: dict[str, str] = {}
         self._context_node_ids: dict[ContextId, str] = {}
         self._all_parameterizations = tuple(self._sorted_parameterizations())
@@ -490,6 +538,19 @@ class ATMSEngine:
                 continue
             if node.label.environments:
                 supported.add(claim_id)
+        return supported
+
+    def micropub_label(self, micropub_id: str) -> Label | None:
+        node_id = self._micropub_node_ids.get(micropub_id)
+        if node_id is None:
+            return None
+        return self._label_or_none(self._nodes[node_id].label)
+
+    def supported_micropub_ids(self) -> set[str]:
+        supported: set[str] = set()
+        for micropub_id, node_id in self._micropub_node_ids.items():
+            if self._nodes[node_id].label.environments:
+                supported.add(micropub_id)
         return supported
 
     def derived_label(self, concept_id: str, value: float | str | None) -> Label | None:
@@ -1201,6 +1262,7 @@ class ATMSEngine:
         self._build_assumption_nodes()
         self._build_context_nodes()
         self._build_claim_nodes_and_justifications()
+        self._build_micropublication_nodes_and_justifications()
 
         while True:
             self._propagate_labels()
@@ -1243,6 +1305,7 @@ class ATMSEngine:
                 claim=claim,
             )
             self._claim_node_ids[claim_id] = node_id
+            self._claim_artifact_node_ids[str(claim.artifact_id)] = node_id
 
             for antecedents in self._exact_antecedent_sets(
                 claim.conditions_cel_json,
@@ -1253,6 +1316,39 @@ class ATMSEngine:
                     consequent_id=node_id,
                     informant=f"claim:{claim_id}",
                 )
+
+    def _build_micropublication_nodes_and_justifications(self) -> None:
+        for item in sorted(
+            self._runtime_micropublications(),
+            key=lambda micropub: micropub.artifact_id,
+        ):
+            node_id = f"micropub:{item.artifact_id}"
+            self._nodes[node_id] = ATMSMicropublicationNode(
+                node_id=node_id,
+                micropublication=item,
+            )
+            self._micropub_node_ids[item.artifact_id] = node_id
+
+            context_node_id = self._context_node_ids.get(item.context_id)
+            if context_node_id is None:
+                continue
+            claim_node_ids: list[str] = []
+            for claim_id in item.claim_ids:
+                claim_node_id = (
+                    self._claim_node_ids.get(claim_id)
+                    or self._claim_artifact_node_ids.get(claim_id)
+                )
+                if claim_node_id is None:
+                    claim_node_ids = []
+                    break
+                claim_node_ids.append(claim_node_id)
+            if not claim_node_ids:
+                continue
+            self._add_justification(
+                antecedent_ids=tuple(sorted((context_node_id, *claim_node_ids))),
+                consequent_id=node_id,
+                informant=f"micropub:{item.artifact_id}",
+            )
 
     def _propagate_labels(self) -> None:
         seeded_nodes = {
@@ -1630,6 +1726,15 @@ class ATMSEngine:
             context_ids=self._visible_context_ids(),
         )
 
+    def _runtime_micropublications(self) -> tuple[ActiveMicropublication, ...]:
+        loader = vars(self._runtime).get("all_micropublications")
+        if not callable(loader):
+            return ()
+        return tuple(
+            coerce_active_micropublication(item)
+            for item in loader()
+        )
+
     def _visible_context_ids(self) -> tuple[ContextId, ...]:
         context_ids: set[ContextId] = set()
         if self._runtime.environment.context_id is not None:
@@ -1637,6 +1742,8 @@ class ATMSEngine:
         for claim in self._runtime.active_claims():
             if claim.context_id is not None:
                 context_ids.add(to_context_id(claim.context_id))
+        for micropub in self._runtime_micropublications():
+            context_ids.add(micropub.context_id)
         return tuple(sorted(context_ids))
 
     def _coerce_queryables(

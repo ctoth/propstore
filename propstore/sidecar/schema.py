@@ -242,6 +242,33 @@ def create_context_tables(conn: sqlite3.Connection) -> None:
     """)
 
 
+def create_micropublication_tables(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS micropublication (
+            id TEXT PRIMARY KEY,
+            context_id TEXT NOT NULL,
+            assumptions_json TEXT NOT NULL DEFAULT '[]',
+            evidence_json TEXT NOT NULL DEFAULT '[]',
+            stance TEXT,
+            provenance_json TEXT,
+            source_slug TEXT,
+            FOREIGN KEY (context_id) REFERENCES context(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS micropublication_claim (
+            micropublication_id TEXT NOT NULL,
+            claim_id TEXT NOT NULL,
+            seq INTEGER NOT NULL,
+            PRIMARY KEY (micropublication_id, claim_id),
+            FOREIGN KEY (micropublication_id) REFERENCES micropublication(id),
+            FOREIGN KEY (claim_id) REFERENCES claim_core(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_micropub_context ON micropublication(context_id);
+        CREATE INDEX IF NOT EXISTS idx_micropub_claim ON micropublication_claim(claim_id);
+    """)
+
+
 def populate_contexts(
     conn: sqlite3.Connection,
     contexts: Sequence[LoadedContext],
