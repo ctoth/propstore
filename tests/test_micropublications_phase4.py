@@ -149,3 +149,69 @@ def test_source_promote_writes_canonical_micropub_bundle(tmp_path: Path) -> None
         promoted_claims["claims"][0]["artifact_id"]
     ]
     assert promoted_claims["claims"][0]["context"] == {"id": "ctx_test"}
+
+
+def test_micropub_cli_show_bundle_and_lift(tmp_path: Path) -> None:
+    repo = _init_source_with_claim(tmp_path)
+    repo.git.commit_batch(
+        adds={
+            "contexts/ctx_test.yaml": yaml.safe_dump(
+                {
+                    "id": "ctx_test",
+                    "name": "ctx_test",
+                    "description": "Source context",
+                    "lifting_rules": [
+                        {
+                            "id": "lift_test_target",
+                            "source": "ctx_test",
+                            "target": "ctx_target",
+                            "mode": "bridge",
+                        }
+                    ],
+                },
+                sort_keys=False,
+            ).encode("utf-8"),
+            "contexts/ctx_target.yaml": yaml.safe_dump(
+                {
+                    "id": "ctx_target",
+                    "name": "ctx_target",
+                    "description": "Target context",
+                },
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        deletes=[],
+        message="Seed test contexts",
+        branch="master",
+    )
+    runner = CliRunner()
+    promote_result = runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"])
+    assert promote_result.exit_code == 0, promote_result.output
+
+    promoted = yaml.safe_load(repo.git.read_file("micropubs/demo.yaml"))
+    micropub_id = promoted["micropubs"][0]["artifact_id"]
+
+    bundle_result = runner.invoke(cli, ["-C", str(repo.root), "micropub", "bundle", "demo"])
+    assert bundle_result.exit_code == 0, bundle_result.output
+    assert "micropubs:" in bundle_result.output
+    assert micropub_id in bundle_result.output
+
+    show_result = runner.invoke(cli, ["-C", str(repo.root), "micropub", "show", micropub_id])
+    assert show_result.exit_code == 0, show_result.output
+    assert "ctx_test" in show_result.output
+    assert "ps:claim:" in show_result.output
+
+    lift_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "micropub",
+            "lift",
+            micropub_id,
+            "--target-context",
+            "ctx_target",
+        ],
+    )
+    assert lift_result.exit_code == 0, lift_result.output
+    assert "liftable" in lift_result.output
