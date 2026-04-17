@@ -13,6 +13,16 @@ from propstore.artifacts import (
     SOURCE_JUSTIFICATIONS_FAMILY,
     SOURCE_STANCES_FAMILY,
     SourceRef,
+)
+
+# Imported directly from ``propstore.artifacts.refs`` rather than via
+# ``propstore.artifacts`` so pyright can statically resolve the
+# re-exports in ``propstore.source.__init__``. ``propstore.artifacts``
+# exposes these names through a lazy ``__getattr__`` dispatch table,
+# which pyright types as ``object`` — transitive re-exports then fail
+# analysis even though the runtime binding is correct (WS-Z-gates
+# Phase 4 Deliverable 5: pyright cleanup).
+from propstore.artifacts.refs import (
     normalize_source_slug,
     source_branch_name,
 )
