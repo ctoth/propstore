@@ -1,6 +1,26 @@
+"""Source-branch promotion.
+
+Schema-v3 partial-promotion behavior (``reviews/2026-04-16-code-review/
+workstreams/ws-z-render-gates.md`` axis-1 finding 3.3): the former
+all-or-nothing ``report.status != 'ready'`` gate is replaced with a
+per-item filter. Valid claims promote to the primary branch; claims with
+per-item finalize errors stay on the source branch with a
+``promotion_status='blocked'`` sidecar mirror row plus a
+``build_diagnostics`` row (``diagnostic_kind='promotion_blocked'``,
+``blocking=1``).
+
+The ``strict=True`` keyword argument preserves the old abort behavior
+for callers that explicitly opt in. Per the standing discipline (rule 6:
+no backward-compat shims), ``strict`` is the *only* exception and is
+documented here because Q explicitly authorized partial promotion as a
+behavioral change.
+"""
+
 from __future__ import annotations
 
 import copy
+import json
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -182,10 +202,213 @@ def load_finalize_report(repo: Repository, source_name: str):
     return load_source_finalize_report(repo, source_name)
 
 
-def promote_source_branch(repo: Repository, source_name: str) -> str:
+def _compute_blocked_claim_artifact_ids(
+    claims_doc,
+    justifications_doc,
+    stances_doc,
+    resolver: ClaimReferenceResolver,
+    source_claim_index,
+) -> tuple[set[str], dict[str, list[tuple[str, str]]]]:
+    """Identify source-branch claims blocked from promotion by per-item errors.
+
+    Per ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
+    axis-1 finding 3.3: a claim is blocked if (a) it has no canonical
+    ``artifact_id``, (b) a stance with this claim as ``source_claim``
+    has an unknown ``target``, or (c) a justification with this claim as
+    ``conclusion`` or a ``premise`` references unknown siblings.
+
+    Returns a pair: the set of blocked artifact ids, and a map from each
+    blocked artifact id to a list of ``(kind, detail)`` diagnostic tuples
+    describing why it was blocked. ``detail`` is a short human-readable
+    string suitable for the diagnostic ``message`` column.
+    """
+
+    blocked: set[str] = set()
+    reasons: dict[str, list[tuple[str, str]]] = {}
+
+    def _record(artifact_id: str, kind: str, detail: str) -> None:
+        blocked.add(artifact_id)
+        reasons.setdefault(artifact_id, []).append((kind, detail))
+
+    # (a) claims without a canonical artifact_id.
+    for claim in () if claims_doc is None else claims_doc.claims:
+        artifact_id = claim.artifact_id
+        if not isinstance(artifact_id, str) or not artifact_id:
+            # Fall back to the raw id for reference; synthetic handling is
+            # not needed because normalize_source_claims_payload fills
+            # artifact_id eagerly, so this branch fires only if upstream
+            # produced a malformed doc.
+            raw_id = str(claim.id or "?")
+            _record(raw_id, "claim_reference", f"claim {raw_id!r} missing artifact_id")
+
+    # (b) stances referencing unknown targets block the stance's source_claim.
+    for stance in () if stances_doc is None else stances_doc.stances:
+        source_claim = stance.source_claim
+        target = stance.target
+        if isinstance(source_claim, str) and source_claim:
+            if not source_claim_index.has_artifact(source_claim):
+                _record(
+                    source_claim,
+                    "stance_reference",
+                    f"stance source_claim {source_claim!r} unresolved",
+                )
+            if not isinstance(target, str) or not target or not resolver.target_is_known(target):
+                _record(
+                    source_claim,
+                    "stance_reference",
+                    f"stance target {target!r} unresolved",
+                )
+
+    # (c) justifications with unresolved conclusion or premises block the
+    # claims those references point at (when they resolve to valid
+    # artifact ids on the source branch).
+    for justification in () if justifications_doc is None else justifications_doc.justifications:
+        conclusion = justification.conclusion
+        if isinstance(conclusion, str) and not source_claim_index.has_artifact(conclusion):
+            _record(
+                conclusion,
+                "justification_reference",
+                f"justification conclusion {conclusion!r} unresolved",
+            )
+        for premise in justification.premises:
+            if isinstance(premise, str) and not source_claim_index.has_artifact(premise):
+                _record(
+                    premise,
+                    "justification_reference",
+                    f"justification premise {premise!r} unresolved",
+                )
+
+    return blocked, reasons
+
+
+def _write_promotion_blocked_sidecar_rows(
+    sidecar_path: Path,
+    source_branch: str,
+    source_paper: str,
+    blocked_claims,
+    reasons: dict[str, list[tuple[str, str]]],
+) -> None:
+    """Mirror blocked claims into the sidecar with promotion_status='blocked'.
+
+    Each blocked claim becomes a row in ``claim_core`` with
+    ``promotion_status='blocked'``, ``branch=<source_branch>``; each
+    reason becomes a ``build_diagnostics`` row with
+    ``diagnostic_kind='promotion_blocked'``, ``blocking=1``. The render
+    layer joins these to surface per-claim promotion state under opt-in
+    policy flags (phase 4).
+
+    If the sidecar file does not exist yet, the write is a no-op — the
+    primary use case (CLI ``pks source promote``) builds the sidecar at
+    repo init and then uses it continuously, so the file usually exists.
+    Tests that want to observe the mirror rows must ``build_sidecar``
+    before calling promote.
+    """
+
+    if not sidecar_path.exists():
+        return
+
+    conn = sqlite3.connect(sidecar_path)
+    try:
+        conn.execute("PRAGMA foreign_keys=ON")
+        for claim in blocked_claims:
+            artifact_id = claim.artifact_id
+            if not isinstance(artifact_id, str) or not artifact_id:
+                # Fall back to raw id — upstream shouldn't produce this,
+                # but the path must not crash on a malformed claim.
+                artifact_id = str(claim.id or "?")
+            # Delete any prior mirror row for this (artifact_id, branch)
+            # so re-promote after a fix doesn't leave stale rows.
+            conn.execute(
+                "DELETE FROM claim_core WHERE id = ? AND branch = ?",
+                (artifact_id, source_branch),
+            )
+            conn.execute(
+                "DELETE FROM build_diagnostics WHERE claim_id = ? "
+                "AND diagnostic_kind = 'promotion_blocked'",
+                (artifact_id,),
+            )
+
+            conn.execute(
+                """
+                INSERT INTO claim_core (
+                    id, primary_logical_id, logical_ids_json, version_id,
+                    content_hash, seq, type, concept_id, target_concept,
+                    source_slug, source_paper, provenance_page,
+                    provenance_json, context_id, premise_kind, branch,
+                    build_status, stage, promotion_status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    artifact_id,
+                    "",
+                    "[]",
+                    "",
+                    "",
+                    0,
+                    "promotion_blocked",
+                    None,
+                    None,
+                    source_paper,
+                    source_paper,
+                    0,
+                    None,
+                    None,
+                    "ordinary",
+                    source_branch,
+                    "ingested",
+                    None,
+                    "blocked",
+                ),
+            )
+
+            for kind, detail in reasons.get(artifact_id, []):
+                conn.execute(
+                    """
+                    INSERT INTO build_diagnostics (
+                        claim_id, source_kind, source_ref, diagnostic_kind,
+                        severity, blocking, message, file, detail_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        artifact_id,
+                        "claim",
+                        f"{source_branch}:{artifact_id}",
+                        "promotion_blocked",
+                        "error",
+                        1,
+                        detail,
+                        None,
+                        json.dumps(
+                            {"reason_kind": kind, "source_branch": source_branch},
+                            sort_keys=True,
+                        ),
+                    ),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def promote_source_branch(
+    repo: Repository,
+    source_name: str,
+    *,
+    strict: bool = False,
+) -> str:
     report = load_finalize_report(repo, source_name)
-    if report is None or report.status != "ready":
-        raise ValueError(f"Source {source_name!r} must be finalized successfully before promotion")
+    if report is None:
+        raise ValueError(
+            f"Source {source_name!r} must be finalized before promotion "
+            "(no finalize report found)"
+        )
+    # Per axis-1 finding 3.3: the all-or-nothing gate becomes a per-item
+    # filter. ``strict=True`` preserves the old behavior for callers that
+    # explicitly opt in (e.g., ``pks source promote --strict``).
+    if strict and report.status != "ready":
+        raise ValueError(
+            f"Source {source_name!r} must be finalized successfully "
+            "before promotion (strict mode)"
+        )
 
     slug = normalize_source_slug(source_name)
     source_doc = load_source_document(repo, source_name)
@@ -195,18 +418,63 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
     concept_map, promoted_concept_documents = resolve_source_concept_promotions(repo, source_name)
     unresolved_concepts: set[str] = set()
 
+    source_claim_index = load_source_claim_reference_index(repo, source_name)
+    resolver = ClaimReferenceResolver(
+        source=source_claim_index,
+        primary=load_primary_branch_claim_reference_index(repo),
+    )
+
+    blocked_artifact_ids, blocked_reasons = _compute_blocked_claim_artifact_ids(
+        claims_doc,
+        justifications_doc,
+        stances_doc,
+        resolver,
+        source_claim_index,
+    )
+
+    all_claims = tuple(() if claims_doc is None else claims_doc.claims)
+    blocked_claims = [
+        claim
+        for claim in all_claims
+        if isinstance(claim.artifact_id, str)
+        and claim.artifact_id in blocked_artifact_ids
+    ]
+    valid_claims = [
+        claim
+        for claim in all_claims
+        if isinstance(claim.artifact_id, str)
+        and claim.artifact_id not in blocked_artifact_ids
+    ]
+
+    if not valid_claims and blocked_claims:
+        # All items blocked — still write mirror rows so the render layer
+        # can surface them, then raise so the CLI can report exit code 1.
+        _write_promotion_blocked_sidecar_rows(
+            repo.sidecar_path,
+            source_branch_name(source_name),
+            slug,
+            blocked_claims,
+            blocked_reasons,
+        )
+        raise ValueError(
+            f"Source {source_name!r}: all {len(blocked_claims)} claims blocked "
+            "from promotion; see build_diagnostics for details"
+        )
+
     promoted_claims = [
         rewrite_claim_concept_refs(claim.to_payload(), concept_map, unresolved=unresolved_concepts)
-        for claim in (() if claims_doc is None else claims_doc.claims)
+        for claim in valid_claims
     ]
     if unresolved_concepts:
         formatted = ", ".join(sorted(unresolved_concepts))
         raise ValueError(f"Cannot promote source {source_name!r}; unresolved concept mappings: {formatted}")
 
-    resolver = ClaimReferenceResolver(
-        source=load_source_claim_reference_index(repo, source_name),
-        primary=load_primary_branch_claim_reference_index(repo),
-    )
+    # Filter justifications and stances to those referencing only valid claims.
+    valid_artifact_ids = {
+        claim.artifact_id
+        for claim in valid_claims
+        if isinstance(claim.artifact_id, str)
+    }
 
     promoted_stance_documents: dict[str, StanceFileDocument] = {}
     promoted_stances: list[dict[str, Any]] = []
@@ -214,6 +482,12 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
         source_claim = stance.source_claim
         if not isinstance(source_claim, str) or not source_claim:
             raise ValueError("stance source_claim must be normalized before promotion")
+        # Skip stances whose source_claim is blocked or whose target
+        # cannot be resolved under the current resolver.
+        if source_claim not in valid_artifact_ids:
+            continue
+        if not resolver.target_is_known(stance.target):
+            continue
         target = resolver.resolve_promoted_target(stance.target)
         normalized = stance.to_payload()
         normalized["target"] = target
@@ -227,10 +501,35 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
         ),
         "claims": promoted_claims,
     }
+
+    # Per axis-1 finding 3.3: filter justifications to those whose
+    # conclusion and all premises resolve to valid (non-blocked) source
+    # claims. Blocked justifications stay on the source branch.
+    if justifications_doc is None:
+        filtered_justifications_payload = None
+    else:
+        valid_justification_entries: list[dict[str, Any]] = []
+        for justification in justifications_doc.justifications:
+            conclusion = justification.conclusion
+            if not isinstance(conclusion, str):
+                continue
+            if conclusion not in valid_artifact_ids and not source_claim_index.has_artifact(conclusion):
+                continue
+            if any(
+                not isinstance(premise, str)
+                or (premise not in valid_artifact_ids and not source_claim_index.has_artifact(premise))
+                for premise in justification.premises
+            ):
+                continue
+            valid_justification_entries.append(justification.to_payload())
+        justifications_payload = justifications_doc.to_payload()
+        justifications_payload["justifications"] = valid_justification_entries
+        filtered_justifications_payload = justifications_payload
+
     promoted_source_doc, promoted_claims_doc, promoted_justifications_doc, promoted_stances_doc = attach_source_artifact_codes(
         source_doc.to_payload(),
         promoted_claims_doc,
-        None if justifications_doc is None else justifications_doc.to_payload(),
+        filtered_justifications_payload,
         {"stances": promoted_stances},
     )
     promoted_claims = promoted_claims_doc.get("claims", []) or []
@@ -322,6 +621,19 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
     repo.snapshot.sync_worktree()
+
+    # Mirror blocked claims into the sidecar so the render layer can
+    # surface them under opt-in policy flags (phase 4). If the sidecar
+    # does not exist, this is a no-op.
+    if blocked_claims:
+        _write_promotion_blocked_sidecar_rows(
+            repo.sidecar_path,
+            source_branch_name(source_name),
+            slug,
+            blocked_claims,
+            blocked_reasons,
+        )
+
     return sha
 
 

@@ -344,14 +344,65 @@ def finalize(obj: dict, name: str) -> None:
 
 @source.command("promote")
 @click.argument("name")
+@click.option(
+    "--strict",
+    is_flag=True,
+    default=False,
+    help=(
+        "Require finalize status='ready' before promoting; abort on any "
+        "per-item finalize error. Preserves pre-render-gate-removal behavior."
+    ),
+)
 @click.pass_obj
-def promote(obj: dict, name: str) -> None:
+def promote(obj: dict, name: str, strict: bool) -> None:
+    """Promote a source branch. Partial by default; valid claims promote,
+    blocked ones stay on the source branch with a ``promotion_status='blocked'``
+    sidecar mirror row (axis-1 finding 3.3 / ws-z-render-gates.md).
+
+    Exit code 0 when anything promoted (including full success). Exit code 1
+    when all items were blocked — the user must fix finalize errors and
+    re-promote.
+    """
+
+    import sys
+
     repo: Repository = obj["repo"]
     try:
-        promote_source_branch(repo, name)
+        promote_source_branch(repo, name, strict=strict)
     except ValueError as exc:
+        # When strict=True OR when all items were blocked, promote raises.
+        # Preserve the ClickException path so exit code is non-zero.
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Promoted {source_branch_name(name)} to master")
+
+    # Count promoted vs blocked via the finalize report for user-visible
+    # reporting. This re-reads state but avoids plumbing a new return type
+    # through ``promote_source_branch`` in this phase.
+    from propstore.source.common import load_source_finalize_report
+    from propstore.source.common import load_source_claims_document
+
+    claims_doc = load_source_claims_document(repo, name)
+    report = load_source_finalize_report(repo, name)
+    total_claims = len(claims_doc.claims) if claims_doc is not None else 0
+    blocked_count = 0
+    if report is not None:
+        blocked_count = (
+            len(report.claim_reference_errors)
+            + len(report.justification_reference_errors)
+            + len(report.stance_reference_errors)
+        )
+        # The error lists can reference the same claim multiple times;
+        # the important user-visible detail is "some were blocked", not
+        # exact cardinality. Clamp to total.
+        blocked_count = min(blocked_count, total_claims)
+    promoted_count = max(0, total_claims - blocked_count)
+
+    if blocked_count > 0:
+        click.echo(
+            f"Promoted {promoted_count} of {total_claims} claims to master "
+            f"({blocked_count} blocked; see build_diagnostics)."
+        )
+    else:
+        click.echo(f"Promoted {source_branch_name(name)} to master")
 
 
 @source.command("sync")
