@@ -209,8 +209,9 @@ class BoundWorld(BeliefSpace):
     ) -> None:
         self._store = world
         if environment is None:
+            environment_bindings = {} if bindings is None else bindings
             environment = Environment(
-                bindings=bindings or {},
+                bindings=environment_bindings,
                 context_id=(None if context_id is None else to_context_id(context_id)),
             )
         self._environment = environment

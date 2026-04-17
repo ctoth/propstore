@@ -29,6 +29,15 @@ from propstore.core.row_types import (
     StanceRowInput,
 )
 
+
+def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise ValueError(f"environment field '{field_name}' must be a mapping")
+    return value
+
+
 if TYPE_CHECKING:
     from propstore.core.graph_types import CompiledWorldGraph
     from propstore.world.types import ChainResult, ResolutionStrategy
@@ -52,7 +61,11 @@ class Environment:
         object.__setattr__(self, "assumptions", tuple(self.assumptions))
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> Environment:
+    def from_dict(cls, data: object) -> Environment:
+        if data is None:
+            return cls()
+        if not isinstance(data, Mapping):
+            raise ValueError("environment must be a mapping")
         if not data:
             return cls()
 
@@ -73,7 +86,7 @@ class Environment:
                 )
 
         return cls(
-            bindings=dict(data.get("bindings") or {}),
+            bindings=dict(_optional_mapping(data.get("bindings"), "bindings")),
             context_id=(
                 None
                 if data.get("context_id") is None

@@ -9,6 +9,14 @@ from propstore.artifacts.documents.sources import SourceDocument
 from propstore.provenance import ProvenanceStatus
 
 
+def _optional_dict(value: object, field_name: str) -> dict[str, object]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"source trust field '{field_name}' must be a mapping")
+    return dict(value)
+
+
 def _source_bindings(
     source_doc: SourceDocument,
     metadata: dict[str, object] | None = None,
@@ -34,14 +42,19 @@ def _source_bindings(
 
 def derive_source_trust(repo: Repository, source_doc: SourceDocument) -> SourceDocument:
     updated = source_doc.to_payload()
-    trust = dict(updated.get("trust") or {})
-    quality = dict(trust.get("quality") or {
-        "status": ProvenanceStatus.VACUOUS.value,
-        "b": 0.0,
-        "d": 0.0,
-        "u": 1.0,
-        "a": 0.5,
-    })
+    trust = _optional_dict(updated.get("trust"), "trust")
+    raw_quality = trust.get("quality")
+    quality = (
+        _optional_dict(raw_quality, "quality")
+        if raw_quality is not None
+        else {
+            "status": ProvenanceStatus.VACUOUS.value,
+            "b": 0.0,
+            "d": 0.0,
+            "u": 1.0,
+            "a": 0.5,
+        }
+    )
     if "status" not in quality:
         quality["status"] = ProvenanceStatus.VACUOUS.value
     derived_from = list(trust.get("derived_from") or [])

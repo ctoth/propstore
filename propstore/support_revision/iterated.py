@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import replace
 
 from propstore.support_revision.entrenchment import EntrenchmentReport
@@ -68,10 +69,13 @@ def iterated_revise(
 
     normalized = normalize_revision_input(state.base, atom)
     current_entrenchment = _entrenchment_from_state(state)
-    conflict_map = {
-        atom_id: tuple(targets)
-        for atom_id, targets in (conflicts or {}).items()
-    }
+    if conflicts is None:
+        conflict_items = ()
+    elif isinstance(conflicts, Mapping):
+        conflict_items = conflicts.items()
+    else:
+        raise ValueError("iterated revision conflicts must be a mapping")
+    conflict_map = {atom_id: tuple(targets) for atom_id, targets in conflict_items}
     result = revise(
         state.base,
         normalized,

@@ -36,6 +36,22 @@ def _parse_mapping_json(raw: object) -> Mapping[str, Any] | None:
     return dict(loaded) if isinstance(loaded, Mapping) else None
 
 
+def _parse_provenance_payload(raw: object) -> Mapping[str, Any]:
+    if raw is None or raw == "":
+        return {}
+    if isinstance(raw, Mapping):
+        return dict(raw)
+    if not isinstance(raw, str):
+        raise ValueError("claim provenance must be a mapping or JSON object")
+    try:
+        loaded = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError("claim provenance must be valid JSON") from exc
+    if not isinstance(loaded, Mapping):
+        raise ValueError("claim provenance JSON must decode to a mapping")
+    return dict(loaded)
+
+
 def _parse_list_json(raw: object) -> tuple[str, ...]:
     if isinstance(raw, Sequence) and not isinstance(raw, str):
         return tuple(str(item) for item in raw)
@@ -247,7 +263,7 @@ class ClaimProvenance:
         page: int | None = None,
         provenance_json: object = None,
     ) -> ClaimProvenance | None:
-        payload = _parse_mapping_json(provenance_json) or {}
+        payload = _parse_provenance_payload(provenance_json)
         resolved_paper = paper
         if resolved_paper is None and isinstance(payload.get("paper"), str):
             resolved_paper = str(payload["paper"])

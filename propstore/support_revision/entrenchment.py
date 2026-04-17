@@ -41,7 +41,13 @@ def compute_entrenchment(
     Explicit overrides outrank support-derived ordering. Support-derived ranking
     then falls back to environment coverage and stable atom id ordering.
     """
-    override_map = {str(k): dict(v) for k, v in (overrides or {}).items()}
+    if overrides is None:
+        override_items = ()
+    elif isinstance(overrides, Mapping):
+        override_items = overrides.items()
+    else:
+        raise ValueError("entrenchment overrides must be a mapping")
+    override_map = {str(k): dict(v) for k, v in override_items}
     scored: list[tuple[int, int, str]] = []
     reasons: dict[str, EntrenchmentReason] = {}
 

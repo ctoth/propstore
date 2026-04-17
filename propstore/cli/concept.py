@@ -1229,7 +1229,14 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
         click.echo(f"ERROR: '{concept_name}' is not a category concept (form={data.get('form')})", err=True)
         sys.exit(EXIT_ERROR)
 
-    fp = data.get("form_parameters", {}) or {}
+    raw_form_parameters = data.get("form_parameters")
+    if raw_form_parameters is None:
+        fp = {}
+    elif isinstance(raw_form_parameters, dict):
+        fp = raw_form_parameters
+    else:
+        click.echo(f"ERROR: '{concept_name}' form_parameters must be a mapping", err=True)
+        sys.exit(EXIT_ERROR)
     extensible = fp.get("extensible", True)
     if not extensible:
         click.echo(f"ERROR: '{concept_name}' is not extensible — cannot add values", err=True)
@@ -1273,7 +1280,17 @@ def categories(obj: dict, as_json: bool) -> None:
     for c in concepts:
         if c.data.get("form") != "category":
             continue
-        fp = c.data.get("form_parameters", {}) or {}
+        raw_form_parameters = c.data.get("form_parameters")
+        if raw_form_parameters is None:
+            fp = {}
+        elif isinstance(raw_form_parameters, dict):
+            fp = raw_form_parameters
+        else:
+            click.echo(
+                f"ERROR: '{c.data.get('canonical_name')}' form_parameters must be a mapping",
+                err=True,
+            )
+            sys.exit(EXIT_ERROR)
         values = fp.get("values", [])
         extensible = fp.get("extensible", True)
         cat_data[c.data["canonical_name"]] = {

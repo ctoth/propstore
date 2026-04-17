@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -28,6 +29,20 @@ from propstore.worldline.revision_types import (
     RevisionConflictSelection,
     WorldlineRevisionState,
 )
+
+
+def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise ValueError(f"worldline field '{field_name}' must be a mapping")
+    return value
+
+
+def _required_document_mapping(value: object, field_name: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"worldline field '{field_name}' must be a mapping")
+    return value
 
 
 @dataclass
@@ -61,12 +76,15 @@ class WorldlineInputs:
         )
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> WorldlineInputs:
-        if not data:
+    def from_dict(cls, data: object) -> WorldlineInputs:
+        if data is None:
+            return cls()
+        payload = _optional_mapping(data, "inputs")
+        if not payload:
             return cls()
         return cls(
-            environment=Environment.from_dict(data),
-            overrides=dict(data.get("overrides") or {}),
+            environment=Environment.from_dict(payload),
+            overrides=dict(_optional_mapping(payload.get("overrides"), "overrides")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -176,12 +194,17 @@ class WorldlineResult:
             content_hash=data.content_hash,
             values={
                 str(target_name): WorldlineTargetValue.from_mapping(
-                    to_document_builtins(value)
+                    _required_document_mapping(
+                        to_document_builtins(value),
+                        f"values.{target_name}",
+                    )
                 )
                 for target_name, value in data.values.items()
             },
             steps=tuple(
-                WorldlineStep.from_mapping(to_document_builtins(step))
+                WorldlineStep.from_mapping(
+                    _required_document_mapping(to_document_builtins(step), "steps")
+                )
                 for step in data.steps
             ),
             dependencies=WorldlineDependencies.from_mapping(
@@ -195,28 +218,31 @@ class WorldlineResult:
         )
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> WorldlineResult | None:
-        if not data:
+    def from_dict(cls, data: object) -> WorldlineResult | None:
+        if data is None:
             return None
+        payload = _optional_mapping(data, "results")
+        if not payload:
+            return None
+        raw_values = _optional_mapping(payload.get("values"), "values")
+        values: dict[str, WorldlineTargetValue] = {}
+        for target_name, value in raw_values.items():
+            if not isinstance(value, Mapping):
+                raise ValueError(f"worldline field 'values.{target_name}' must be a mapping")
+            values[str(target_name)] = WorldlineTargetValue.from_mapping(value)
         return cls(
-            computed=data.get("computed", ""),
-            content_hash=data.get("content_hash", ""),
-            values={
-                str(target_name): WorldlineTargetValue.from_mapping(value)
-                for target_name, value in (data.get("values") or {}).items()
-                if isinstance(value, dict)
-            },
+            computed=payload.get("computed", ""),
+            content_hash=payload.get("content_hash", ""),
+            values=values,
             steps=tuple(
                 WorldlineStep.from_mapping(step)
-                for step in (data.get("steps") or ())
+                for step in (payload.get("steps") or ())
                 if isinstance(step, dict)
             ),
-            dependencies=WorldlineDependencies.from_mapping(data.get("dependencies")),
-            sensitivity=WorldlineSensitivityReport.from_mapping(data.get("sensitivity")),
-            argumentation=WorldlineArgumentationState.from_mapping(data.get("argumentation")),
-            revision=WorldlineRevisionState.from_mapping(
-                data.get("revision") if isinstance(data.get("revision"), dict) else None
-            ),
+            dependencies=WorldlineDependencies.from_mapping(payload.get("dependencies")),
+            sensitivity=WorldlineSensitivityReport.from_mapping(payload.get("sensitivity")),
+            argumentation=WorldlineArgumentationState.from_mapping(payload.get("argumentation")),
+            revision=WorldlineRevisionState.from_mapping(payload.get("revision")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -260,6 +286,8 @@ class WorldlineDefinition:
         policy_payload = None
         if data.policy is not None:
             raw_policy = to_document_builtins(data.policy)
+            if not isinstance(raw_policy, Mapping):
+                raise ValueError("worldline field 'policy' must be a mapping")
             policy_payload = {
                 key: value
                 for key, value in raw_policy.items()

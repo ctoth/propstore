@@ -590,9 +590,10 @@ def prepare_claim_insert_row(
         normalized_claim = copy.deepcopy(semantic_claim.resolved_claim)
         effective_source_paper = str(source_paper or semantic_claim.source_paper)
     else:
+        effective_registry = {} if concept_registry is None else concept_registry
         normalized_claim = canonicalize_claim_for_storage(
             claim,
-            concept_registry or {},
+            effective_registry,
             source_paper=str(source_paper),
         )
         effective_source_paper = str(source_paper)
@@ -670,7 +671,10 @@ def prepare_claim_insert_row(
         "methodology": typed_fields.methodology,
         "notes": normalized_claim.get("notes"),
         "description": normalized_claim.get("description"),
-        "auto_summary": generate_description(normalized_claim, concept_registry or {}),
+        "auto_summary": generate_description(
+            normalized_claim,
+            {} if concept_registry is None else concept_registry,
+        ),
         "body": body,
         "canonical_ast": canonical_ast,
         "variables_json": variables_json,

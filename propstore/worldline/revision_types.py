@@ -10,6 +10,14 @@ from propstore.support_revision.snapshot_types import EpistemicStateSnapshot
 from propstore.support_revision.state import AssumptionAtom, BeliefAtom, ClaimAtom, coerce_assumption_ref
 
 
+def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise ValueError(f"worldline revision field '{field_name}' must be a mapping")
+    return value
+
+
 @dataclass(frozen=True)
 class RevisionAtomRef:
     kind: str = "claim"
@@ -19,22 +27,25 @@ class RevisionAtomRef:
     value: float | str | None = None
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> RevisionAtomRef | None:
-        if not data:
+    def from_mapping(cls, data: object) -> RevisionAtomRef | None:
+        if data is None:
             return None
-        kind = str(data.get("kind") or "claim")
-        claim_id = data.get("claim_id")
-        assumption_id = data.get("assumption_id")
+        payload = _optional_mapping(data, "atom")
+        if not payload:
+            return None
+        kind = str(payload.get("kind") or "claim")
+        claim_id = payload.get("claim_id")
+        assumption_id = payload.get("assumption_id")
         if claim_id is None and kind == "claim":
-            claim_id = data.get("id")
+            claim_id = payload.get("id")
         if assumption_id is None and kind == "assumption":
-            assumption_id = data.get("id")
+            assumption_id = payload.get("id")
         return cls(
             kind=kind,
             claim_id=None if claim_id is None else str(claim_id),
             assumption_id=None if assumption_id is None else str(assumption_id),
-            atom_id=None if data.get("atom_id") is None else str(data.get("atom_id")),
-            value=data.get("value"),
+            atom_id=None if payload.get("atom_id") is None else str(payload.get("atom_id")),
+            value=payload.get("value"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -95,13 +106,16 @@ class RevisionConflictSelection:
         )
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> RevisionConflictSelection:
-        if not data:
+    def from_mapping(cls, data: object) -> RevisionConflictSelection:
+        if data is None:
+            return cls()
+        payload = _optional_mapping(data, "conflicts")
+        if not payload:
             return cls()
         return cls(
             targets_by_atom_id={
                 str(atom_id): tuple(str(target_id) for target_id in target_ids)
-                for atom_id, target_ids in data.items()
+                for atom_id, target_ids in payload.items()
             }
         )
 
@@ -134,17 +148,22 @@ class WorldlineRevisionResult:
         object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> WorldlineRevisionResult | None:
-        if not data:
+    def from_mapping(cls, data: object) -> WorldlineRevisionResult | None:
+        if data is None:
             return None
-        explanation_data = data.get("explanation")
+        payload = _optional_mapping(data, "result")
+        if not payload:
+            return None
+        explanation_data = payload.get("explanation")
+        if explanation_data is not None and not isinstance(explanation_data, Mapping):
+            raise ValueError("worldline revision field 'explanation' must be a mapping")
         return cls(
-            accepted_atom_ids=tuple(str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())),
-            rejected_atom_ids=tuple(str(atom_id) for atom_id in (data.get("rejected_atom_ids") or ())),
-            incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
+            accepted_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())),
+            rejected_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())),
+            incision_set=tuple(str(atom_id) for atom_id in (payload.get("incision_set") or ())),
             explanation=(
                 None
-                if not isinstance(explanation_data, Mapping)
+                if explanation_data is None
                 else RevisionExplanation.from_mapping(explanation_data)
             ),
         )
@@ -174,24 +193,30 @@ class WorldlineRevisionState:
         object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> WorldlineRevisionState | None:
-        if not data:
+    def from_mapping(cls, data: object) -> WorldlineRevisionState | None:
+        if data is None:
             return None
-        state_data = data.get("state")
+        payload = _optional_mapping(data, "revision")
+        if not payload:
+            return None
+        state_data = payload.get("state")
+        result_data = payload.get("result")
+        if result_data is not None and not isinstance(result_data, Mapping):
+            raise ValueError("worldline revision field 'result' must be a mapping")
+        if state_data is not None and not isinstance(state_data, Mapping):
+            raise ValueError("worldline revision field 'state' must be a mapping")
         return cls(
-            operation=str(data.get("operation") or ""),
-            input_atom_id=None if data.get("input_atom_id") is None else str(data.get("input_atom_id")),
-            target_atom_ids=tuple(str(atom_id) for atom_id in (data.get("target_atom_ids") or ())),
-            result=WorldlineRevisionResult.from_mapping(
-                data.get("result") if isinstance(data.get("result"), Mapping) else None
-            ),
+            operation=str(payload.get("operation") or ""),
+            input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
+            target_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())),
+            result=WorldlineRevisionResult.from_mapping(result_data),
             state=(
                 None
-                if not isinstance(state_data, Mapping)
+                if state_data is None
                 else EpistemicStateSnapshot.from_mapping(state_data)
             ),
-            status=None if data.get("status") is None else str(data.get("status")),
-            error=None if data.get("error") is None else str(data.get("error")),
+            status=None if payload.get("status") is None else str(payload.get("status")),
+            error=None if payload.get("error") is None else str(payload.get("error")),
         )
 
     def to_dict(self) -> dict[str, Any]:

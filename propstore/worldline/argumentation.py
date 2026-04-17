@@ -258,7 +258,11 @@ def _capture_praf(
             treewidth_cutoff=praf_treewidth_cutoff,
             rng_seed=praf_mc_seed,
         )
-        acceptance_probs = dict(result.acceptance_probs or {})
+        acceptance_probs = (
+            {}
+            if result.acceptance_probs is None
+            else dict(result.acceptance_probs)
+        )
         strategy_used = result.strategy_used
         samples = result.samples
         confidence_interval_half = result.confidence_interval_half
