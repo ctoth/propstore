@@ -1,7 +1,7 @@
 # Workstream Z-types — Honest-Ignorance Type System
 
 Date: 2026-04-16
-Status: active 2026-04-17; solver-result and UNKNOWN propagation slice in progress
+Status: active 2026-04-17; closure/full-suite validation in progress
 Depends on: `disciplines.md`, `judgment-rubric.md`. Full payoff requires WS-A phase 1 (provenance type) but partial work can land in parallel.
 Blocks: WS-C phase C-5 (consumes `ConflictClass.UNKNOWN`)
 Review context: `../axis-1-principle-adherence.md` (Findings 2.1, 2.2, 2.4, 2.5, 2.6 + Structural S1-S3), `../axis-5-silent-failures.md` (categories 1, 2, 5, 6), `../axis-3e-reasoning-infra.md` (CRIT findings on Z3 collapse and timeouts), `../SYNTHESIS.md` patterns A and B

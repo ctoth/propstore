@@ -13,19 +13,7 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ### CRIT / structural
 
-- **`_DEFAULT_BASE_RATES` fabricates a "corpus frequency prior" without a corpus.** `propstore/calibrate.py:211-217` hard-codes `{"strong": 0.7, "moderate": 0.5, "weak": 0.3, "none": 0.1}` and feeds them into `Opinion.vacuous(a=...)` as the base-rate slot for every uncalibrated LLM classification. The one signal subjective logic reserves for honest prior ignorance is silently filled with category-keyed guesses. Citation: axis-1 Finding 2.1; axis-6 item 9. Plan: WS-Z-types phase 4.
-
-- **`praf/engine.py` `p_arg_from_claim` / `p_relation_from_stance` fallback to `Opinion.dogmatic_true()`.** `propstore/praf/engine.py:155-157, 197-199, 245-253` — when a claim has no structured fields, or when a stance has no opinion/confidence data, the hook returns maximum-certainty dogmatic true (or dogmatic_false on `confidence <= 1e-12`). Every unrated claim or stance becomes dogmatic; the "backward compat" comment on line 252 acknowledges the hack. Citation: axis-1 Finding 2.2; axis-5 Findings 1.1, 1.2, 1.5. Plan: WS-Z-types phase 5.
-
 ### HIGH
-
-- **`fragility_scoring.imps_rev` fabricates dogmatic opinions for every argument and defeat.** `propstore/fragility_scoring.py:366-367` initializes `p_args = {a: Opinion.dogmatic_true() for a in ...}` and `p_defeats` likewise before running the sensitivity analysis sold as measuring "fragility under uncertainty." Citation: axis-1 Finding 2.3; axis-6 item 8; axis-5 Category 1. Plan: WS-Z-types (bundled with 2.2 consumer update).
-
-- **`source_calibration.derive_source_trust` silently defaults `prior_base_rate=0.5` without provenance.** `propstore/source_calibration.py:39, 65, 94-97` stores a float `prior_base_rate` on `SourceTrustDocument` that could mean "we derived this from a chain query" or "we had nothing and used 0.5" — no provenance field distinguishes. The finalize report's `calibration.fallback_to_default_base_rate` boolean lives on a separate document. Citation: axis-1 Finding 2.4. Plan: WS-Z-types phase 6 + WS-A P1.
-
-- **Z3 three-valued results collapse to `bool` everywhere.** `propstore/z3_conditions.py:442-444, 459-463, 481, 489` map `solver.check() == z3.sat/unsat/unknown` into two-valued returns. Every downstream conflict-class decision, context-activation decision, and assignment-selection merge validity check silently maps unknown to a plausible-looking Boolean outcome. No timeouts are ever set (`timeout|set_param|set_option` → zero hits across `propstore/`). Citation: axis-5 Findings 2.1-2.3; axis-6 item 4. Plan: WS-Z-types phases 1-2.
-
-- **`condition_classifier.py` silently maps Z3 `unknown` to `ConflictClass.OVERLAP`.** `propstore/condition_classifier.py:32-36` falls through to OVERLAP when neither `are_equivalent` nor `are_disjoint` returned True — but those returns already collapsed `unknown` to False. Every Z3 timeout anywhere in the system becomes a fabricated OVERLAP conflict record. `ConflictClass` enum has no `UNDECIDABLE` variant. Citation: axis-5 Finding 2.4 (most dangerous single site). Plan: WS-Z-types phases 1-2.
 
 - **CLAUDE.md "Pignistic" claim names Denoeux but implements Jøsang.** `propstore/world/types.py:1064-1066` is labeled `"pignistic"` and cites Denoeux p.17-18, but the implemented formula is Jøsang `b + a·u`; Denoeux's binomial BetP is `b + u/2`. Diverges whenever `a ≠ 0.5`. Citation: axis-6 declared-limitation 2 status "materially false"; axis-3b F2. Plan: WS-Z-types (axis-3b docket).
 
@@ -33,13 +21,9 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 - **Defeasibility priority information unconditionally dropped.** `propstore/grounding/translator.py:171-178` hard-codes `superiority=[]`; `propstore/aspic_bridge/translate.py:275-280` hard-codes `rule_order=frozenset()`. Priority data flows in from rule files and is dropped on the floor twice before reaching the ASPIC+ layer. CLAUDE.md's "rule ordering always empty" understates: the drop is systematic across the whole subsystem. Citation: axis-6 item 6; axis-7; axis-9. Plan: WS-C (defeasibility).
 
-- **LLM "none" stance writes structurally invalid opinion.** `propstore/classify.py:148-161` writes `(0.0, 0.0, 0.0, 0.5)` on `"type": "none"`. `b+d+u = 0 ≠ 1.0` violates `Opinion.__post_init__`. Persists as a dict bypassing validation; downstream `p_relation_from_stance` reads the fields. Citation: axis-5 Finding 1.3; axis-1 Finding 2.6 (structural S3); axis-6 item 7. Plan: WS-A P1 (structural S3 collapse to `opinion: OpinionDocument | None`).
-
 - **Sidecar claim SI normalization silently writes non-SI values to `_si` columns.** `propstore/sidecar/claim_utils.py:596-606` — on `ValueError`/`TypeError` from `normalize_to_si`, the code writes `value_si = typed_fields.value` (i.e., the unnormalized value). Downstream queries trust the `_si` suffix. Citation: axis-5 Finding 3.1. Plan: not yet scheduled (axis-5 docket).
 
 ### MED
-
-- **`SourceTrustDocument` lacks a `prior_base_rate_status` field.** `propstore/artifacts/documents/sources.py:43-55` — `b, d, u, a` are required floats with no `status` tag; readers cannot distinguish "we intentionally recorded vacuous" from "we put zeros because we had nothing else." Citation: axis-1 Finding 2.5 (structural S2). Plan: WS-A P1 (structural S2).
 
 - **`dedup_pairs` collapses mirror pairs without provenance.** `propstore/relate.py:67-74` — when `(A,B,0.3)` and `(B,A,0.4)` both exist, keeps the cheaper pair and throws away the other. Silent collapse of two rival evidence records at pair-selection time instead of render time. Citation: axis-1 Finding 1.2. Plan: not yet scheduled.
 
@@ -75,9 +59,16 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 - **Citation-pattern drift across codebase.** `aspic.py`, `world/types.py` (Denoeux→Jøsang), and `wbf()` (WBF name, aCBF computation) cite papers for authority while implementing something different. Citation: axis-6 item 15; axis-9 cross-cutting. Plan: citation-as-claim CI lint (per disciplines.md rule 1) + workstream-specific closures.
 
-- **`Opinion` invariant `b+d+u=1.0` vs `ResolutionDocument` four independent optional scalars.** `ResolutionDocument` at `propstore/artifacts/documents/claims.py:137-168` permits `(0.0, 0.0, 0.0, 0.5)` (invalid opinion, not None). Structural fix: collapse to `opinion: OpinionDocument | None`. Citation: axis-1 Finding 2.6 (structural S3). Plan: WS-A P1 (structural S3).
-
 ## Closed gaps (reference only — kept for traceability)
+
+### Closed 2026-04-17 (WS-Z-types)
+- axis-1 Finding 2.1 / axis-6 item 9 — hardcoded `_DEFAULT_BASE_RATES` fabricated category priors. Closed by replacing the constant with explicit `CategoryPrior` / `CategoryPriorRegistry` inputs and vacuous provenanced opinions when no prior is supplied. Evidence: `tests/test_calibrate.py`, `tests/test_relate_opinions.py`, grep gate for `_DEFAULT_BASE_RATES`.
+- axis-1 Finding 2.2 / axis-5 Findings 1.1, 1.2, 1.5 — PrAF claim and stance hooks fabricated dogmatic opinions when calibration was absent. Closed by adding `NoCalibration`, returning `Opinion | NoCalibration`, omitting uncalibrated PrAF arguments/relations with omission records, and removing dogmatic fallbacks. Evidence: `tests/test_praf.py`, `tests/test_source_trust.py`, `tests/test_core_analyzers.py`, `tests/test_praf_integration.py`.
+- axis-1 Finding 2.3 / axis-5 Category 1 — `fragility_scoring.imps_rev` fabricated dogmatic PrAF opinions. Closed by requiring caller-supplied provenance-bearing `p_args` and `p_defeats` and rejecting missing/unprovenanced values. Evidence: `tests/test_fragility.py`.
+- axis-1 Findings 2.4 and 2.5 / structural S2 — source trust and source quality probability fields lacked status on the stored payload. Closed by mandatory `status` fields on `SourceTrustDocument` and `SourceTrustQualityDocument`, with source initialization/finalization writing `defaulted`, `calibrated`, or `vacuous` status. Evidence: `tests/test_provenance_foundations.py`, `tests/test_source_trust.py`.
+- axis-1 Finding 2.6 / structural S3 / axis-5 Finding 1.3 — resolution opinion data used independent scalar fields and `classify.py` wrote invalid no-stance opinions. Closed by `ResolutionDocument.opinion: OpinionDocument | None`, mandatory `OpinionDocument.provenance`, and `classify.py` writing `opinion=None` for no stance. Evidence: `tests/test_provenance_foundations.py`, `tests/test_relate_opinions.py`.
+- axis-5 Category 2 / axis-3e CRIT — Z3 `sat | unsat | unknown` collapsed to `bool`, condition classification mapped unknown to overlap, and Dung Z3 enumeration silently truncated. Closed by `SolverSat | SolverUnsat | SolverUnknown`, configured Z3 timeouts, `ConflictClass.UNKNOWN`, explicit unknown propagation, and timeout/unknown tests. Evidence: `tests/test_z3_conditions.py`, `tests/test_condition_classifier.py`, `tests/test_conflict_detector.py`, `tests/test_dung_z3.py`.
+- axis-5 Categories 5 and 6 — remaining bool/None collapses lost uncertainty in parameterization and value-resolution paths. Closed by `ParameterizationEvaluation` / `ParameterizationEvaluationStatus`, strict `ast_compare.equivalent` handling, invalid override errors, and fail-closed value-status membership. Evidence: `tests/test_propagation.py`, `tests/test_value_resolver_failure_reasons.py`, `tests/test_fragility.py`, `tests/test_atms_engine.py`, `tests/test_conflict_detector.py`.
 
 ### Closed 2026-04-17 (WS-B Phase 4)
 - axis-3c / axis-6 item 3 — `propstore/world/ic_merge.py` claimed IC-merge lineage while enumerating only `product(observed_values)` assignments. Closed by renaming that production surface to `propstore/world/assignment_selection_merge.py`, migrating callers/tests/docs to `ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE`, and implementing true Konieczny-Pino Perez model-theoretic IC merge over all `mu`-models in `propstore/belief_set/ic_merge.py`. Evidence: `tests/test_assignment_selection_merge.py`, `tests/test_resolution_helpers.py`, `tests/test_render_contracts.py`, and `tests/test_belief_set_postulates.py`.
