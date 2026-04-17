@@ -2,7 +2,7 @@
 
 Date: 2026-04-16
 Status: active - C-1 decision artifact drafted; Q review gate pending
-Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A phase 4 (contexts + lifting rules)
+Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A phase 4 (contexts + lifting rules), WS-A1 semiring provenance for C-3 support evidence
 Blocks: —
 Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumentation.md`
 
@@ -11,6 +11,7 @@ Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumen
 - 2026-04-17: Verified local artifacts for the three primary papers and the two ABA comparison papers, including processed notes and page-image directories.
 - 2026-04-17: Drafted `docs/defeasibility-semantics-decision.md` for C-1, selecting Bozzato-style CKR justifiable exceptions over WS-A `ist(c, p)` contexts, preserving ASPIC+ as the structural argument layer, preserving Diller-style datalog grounding as grounding only, and rejecting ABA as the production semantics for WS-C.
 - 2026-04-17: Stopped at the explicit C-1 Q review gate before C-2 implementation.
+- 2026-04-17: Inserted WS-A1 semiring provenance as the missing substrate workstream after reading Green 2007 notes and running design/adversarial review with Claude CLI. WS-C C-3 now depends on `SupportEvidence` rather than generic provenance blobs.
 
 ## What you're doing
 
@@ -43,6 +44,7 @@ This means WS-C builds on a substrate where claims are already description-grade
 When this workstream is complete, propstore has:
 
 - **Justifiable exceptions per Bozzato 2018 CKR.** A claim of the form "in context `c`, generalization `g` holds **except in cases where `e_1`, `e_2`, ..." is first-class. The exceptions `e_i` are themselves claims that can be non-committal, merged, revised through the existing pipeline.
+- **Semiring-shaped support for exceptions and defeats.** Exceptions and CKR-derived defeats carry WS-A1 `SupportEvidence`: positive provenance polynomial plus support quality. This keeps Green 2007 support accounting separate from CKR applicability and ASPIC+ directionality.
 - **No DL-Lite commitment.** CKR's *structure* over propstore's richer claim language. Decidable subqueries (interval reasoning, value-equality, range checks) route through `z3_conditions.py`. The remainder is sound-but-incomplete reasoning — explicitly so, with provenance recording when a conclusion depends on an undecidable inference.
 - **Lifting rules from WS-A P4 are reused as the upward-propagation channel for exceptions.** A justifiable exception in context `c` lifts to context `c'` if and only if a lifting rule licenses it; otherwise it stays bounded.
 - **ASPIC+ as the evidence layer.** When a claim is challenged, the ASPIC+ recursive-argument construction (already verified in `aspic.py:664-964`) builds an argument from the underlying non-defeasible rules + assumptions. The argument doesn't encode defeasibility — the context's exception structure does. This separates *structural* argument from *defeasibility-bearing* exception, which the existing code conflates by leaving priorities empty.
@@ -108,7 +110,7 @@ The smallest, most concrete fix. Closes axis 7's biggest finding without waiting
 
 ### Phase C-3 — CKR justifiable exceptions
 
-- Design `JustifiableException(target_claim, exception_pattern, justification, context, provenance)`. The `exception_pattern` is a CEL expression (reusing existing CEL infrastructure) that picks out which instances of `target_claim` are excepted. The `justification` is itself a claim (or a set of claims) supporting the exception.
+- Design `JustifiableException(target_claim, exception_pattern, justification_claims, context, support, decidability_status)`. The `exception_pattern` is a CEL expression (reusing existing CEL infrastructure) that picks out which instances of `target_claim` are excepted. The `justification_claims` are claims supporting the exception. The `support` is WS-A1 `SupportEvidence`, not a loose provenance dictionary.
 - Design how exceptions compose with `ist(c, p)` from WS-A P4. A justifiable exception lives in a context; it qualifies generalizations that hold in that context.
 - Design how exceptions lift across contexts via WS-A P4 lifting rules. A specific lifting rule may say "exceptions about `valid_until` lift from clinical-context to general-medicine context"; another may say they don't.
 - Implement the satisfaction algorithm: given a context `c`, a claim `p`, and a set of justifiable exceptions, decide whether `ist(c, p)` holds. For decidable subqueries (CEL-expressible exception patterns over Z3-typed values), route through `z3_conditions.py`; for the remainder, do sound-but-incomplete inference and tag the conclusion's provenance with `decidability_status: "decidable" | "incomplete-sound"`.
@@ -116,6 +118,7 @@ The smallest, most concrete fix. Closes axis 7's biggest finding without waiting
   - Justifiability: an exception with no supporting justification is not applied. (CKR's central postulate.)
   - Exception-consistency: a context's set of justifiable exceptions does not contain mutually-defeating pairs (or, if it does, both are flagged for render-time policy choice — non-commitment again).
   - Lifting-soundness: an exception lifts to a context iff a lifting rule licenses the lift; otherwise it stays bounded.
+  - Support-composition: lifted exception support multiplies exception support by lifting-rule support; solver nogoods can kill support monomials without deleting the exception object.
   - Decidability-status correctness: every conclusion's provenance reflects whether the inference was decidable.
 
 ### Phase C-4 — ASPIC+ ↔ CKR boundary cleanup
@@ -148,6 +151,7 @@ The smallest, most concrete fix. Closes axis 7's biggest finding without waiting
 - About to retrofit ASPIC+ to encode defeasibility itself — the principle is *separation of concerns*, ASPIC+ stays structural, CKR holds the defeasibility.
 - About to cite Bozzato without a backing test.
 - About to write a heuristic LLM-ASPIC bridge inside this workstream — that's a separate proposal-branch heuristic workstream.
+- About to implement exception provenance as a dict, source string, or bespoke support record instead of WS-A1 `SupportEvidence`.
 
 ## Exit criteria
 
@@ -155,6 +159,7 @@ The smallest, most concrete fix. Closes axis 7's biggest finding without waiting
 - `docs/defeasibility-semantics-decision.md`, `docs/justifiable-exceptions.md` exist.
 - `superiority` and `rule_order` populated from rule-file data; `preference.py` produces Modgil-Prakken Def 22 strict partial orders; property tests for strict-partial-order axioms green.
 - `JustifiableException` type lives; CKR satisfaction algorithm implemented with explicit decidability-status tracking.
+- Justifiable exceptions and CKR-derived defeats carry `SupportEvidence`; no parallel support/provenance representation is introduced.
 - `condition_classifier.py` propagates `ConflictClass.UNKNOWN` (depends on WS-Z-types); merge classifier handles UNKNOWN as not-evidence-of-conflict.
 - ASPIC+ rationality postulates survive integration with CKR exception defeats — verified by property test.
 - All axis-7 findings resolved or moved to `docs/gaps.md` with a successor workstream.

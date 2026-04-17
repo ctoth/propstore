@@ -89,7 +89,7 @@ Phases are sequenced because the downstream phases depend on upstream *type deci
 
 ### Phase 1 — Provenance foundations
 
-**Papers:** Buneman 2001, Carroll 2005. Optional secondary: Moreau 2013 PROV-O, Green-Karvounarakis-Tannen 2007 semirings.
+**Papers:** Buneman 2001, Carroll 2005. Optional secondary: Moreau 2013 PROV-O. Green-Karvounarakis-Tannen 2007 semirings are split into executable workstream A1.
 
 **Scope:**
 - Process Buneman 2001 and Carroll 2005 `notes.md` to non-stub depth.
@@ -260,7 +260,7 @@ What survives from the previous draft: Pustejovsky qualia (composes over descrip
 
 See `../../../semantic-substrate-papers.md` at the repo root for the canonical list and retrieval state. Quick reference:
 
-**Phase 1:** Buneman 2001, Carroll 2005. Optional: Moreau 2013, Green 2007.
+**Phase 1:** Buneman 2001, Carroll 2005. Green 2007 is no longer optional background; its executable implementation lives in `ws-a1-semiring-provenance.md`.
 
 **Phase 2:** Buitelaar 2011. Fetch: OntoLex-Lemon community report (Cimiano/McCrae/Buitelaar 2020+).
 
