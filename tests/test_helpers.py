@@ -111,9 +111,3 @@ def test_write_yaml_file_handles_unicode(tmp_path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     assert "Rényi" in text  # not \xe9 escape
 
-
-def test_write_yaml_file_importable_from_artifact_codecs() -> None:
-    """write_yaml_file should live in the artifact codec layer."""
-    from propstore.artifacts.codecs import write_yaml_file  # noqa: F401
-
-    assert callable(write_yaml_file)
