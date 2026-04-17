@@ -193,6 +193,22 @@ class TestEmbedEntitiesOperationalError:
 
         real_conn.close()
 
+    def test_unexpected_embedding_runtime_error_propagates(self):
+        """RuntimeError from the embedding provider is not converted to a batch error."""
+        from unittest.mock import MagicMock, patch
+
+        from propstore.embed import _CLAIM_CONFIG, _embed_entities
+
+        conn = _make_conn_with_schema()
+        mock_litellm = MagicMock()
+        mock_litellm.embedding.side_effect = RuntimeError("boom")
+
+        with patch("propstore.embed._require_litellm", return_value=mock_litellm):
+            with pytest.raises(RuntimeError, match="boom"):
+                _embed_entities(conn, "test-model", _CLAIM_CONFIG)
+
+        conn.close()
+
 
 class TestGetRegisteredModelsOperationalError:
     """F1.7: get_registered_models line 368 -- broad OperationalError catch.

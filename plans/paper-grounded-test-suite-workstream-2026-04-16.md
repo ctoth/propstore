@@ -675,7 +675,18 @@ Acceptance criteria:
 
 ## Phase 10: Exception Narrowing Cleanup
 
-Status: unchecked
+Status: complete
+
+Progress:
+
+- 2026-04-16: Phase 10 started. Locating each stale review-group
+  RuntimeError propagation test in its owning subsystem test file before moving
+  coverage.
+- 2026-04-16: Moved RuntimeError propagation coverage into subsystem suites
+  and deleted `tests/test_exception_narrowing_group3.py`; Phase 10
+  verification pending.
+- 2026-04-16: Verification passed:
+  `logs/test-runs/paper-grounded-exception-narrowing-20260416-212047.log`.
 
 Target:
 
@@ -690,16 +701,18 @@ Current issue:
 
 Tasks:
 
-- [ ] For each test in the file, locate the current owning subsystem test file.
-- [ ] Move or rewrite the behavior into that subsystem if it is still valuable.
-- [ ] Prefer subsystem-shaped contracts:
+- [x] For each test in the file, locate the current owning subsystem test file.
+- [x] Move or rewrite the behavior into that subsystem if it is still valuable.
+- [x] Prefer subsystem-shaped contracts:
   - missing optional table is handled narrowly
   - disk/corruption/runtime errors propagate
   - external service errors propagate or are reported explicitly
-- [ ] Delete `tests/test_exception_narrowing_group3.py` after all valuable
+- [x] Delete `tests/test_exception_narrowing_group3.py` after all valuable
   coverage is moved.
 
 Verification:
+
+- [x] Run:
 
 ```powershell
 powershell -File scripts/run_logged_pytest.ps1 -Label paper-grounded-exception-narrowing tests/test_build_sidecar.py tests/test_cli.py tests/test_embed_operational_error.py tests/test_param_conflicts.py tests/test_classify.py tests/test_sympy_generator.py tests/test_value_resolver_failure_reasons.py
@@ -785,4 +798,3 @@ This workstream is complete only when:
 6. touched generated tests are correctly marked
 7. the full suite has been run through `scripts/run_logged_pytest.ps1`
 8. the closeout report exists
-

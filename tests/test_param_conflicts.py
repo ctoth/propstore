@@ -1,6 +1,9 @@
 """Regression tests for parameterization conflict detection."""
 
 import warnings
+from unittest.mock import patch
+
+import pytest
 
 from propstore.conflict_detector.collectors import conflict_claim_from_payload
 from propstore.conflict_detector.models import ConflictClass, ConflictClaim
@@ -421,3 +424,47 @@ def test_transitive_conflict_detection_is_order_independent():
     assert first_records[0].warning_class == ConflictClass.PARAM_CONFLICT
     assert second_records[0].warning_class == ConflictClass.PARAM_CONFLICT
     assert first_records[0].value_b == second_records[0].value_b == "45.0"
+
+
+def test_runtime_error_from_sympy_parameterization_propagates():
+    records = []
+    concept_a_id, concept_a = _concept("a", form="quantity")
+    concept_b_id, concept_b = _concept("b", form="quantity")
+    derived_id, derived = _concept("derived", form="quantity")
+    by_concept = {
+        concept_a_id: [_claim({"id": "claim_a", "value": 2.0, "conditions": []})],
+        concept_b_id: [_claim({"id": "claim_b", "value": 3.0, "conditions": []})],
+        derived_id: [_claim({"id": "claim_derived", "value": 10.0, "conditions": []})],
+    }
+    concept_registry = {
+        concept_a_id: concept_a,
+        concept_b_id: concept_b,
+        derived_id: {
+            **derived,
+            "parameterization_relationships": [
+                {
+                    "exactness": "exact",
+                    "inputs": [concept_a_id, concept_b_id],
+                    "sympy": "Eq(derived, a * b)",
+                }
+            ],
+        },
+    }
+
+    from propstore.propagation import parse_cached
+
+    parse_cached.cache_clear()
+    try:
+        with patch(
+            "sympy.parsing.sympy_parser.parse_expr",
+            side_effect=RuntimeError("boom"),
+        ):
+            with pytest.raises(RuntimeError, match="boom"):
+                _detect_parameterization_conflicts(
+                    records,
+                    by_concept,
+                    concept_registry,
+                    [],
+                )
+    finally:
+        parse_cached.cache_clear()

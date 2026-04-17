@@ -185,6 +185,22 @@ class TestClassifyErrorOnApiFailure:
             assert r["type"] == "error"
             assert r["resolution"]["confidence"] == 0.0
 
+    def test_unexpected_runtime_error_propagates(self):
+        from propstore.classify import classify_stance_async
+
+        with patch("propstore.classify._require_litellm") as mock_req:
+            mock_litellm = MagicMock()
+            mock_litellm.acompletion = AsyncMock(side_effect=RuntimeError("boom"))
+            mock_req.return_value = mock_litellm
+
+            sem = asyncio.Semaphore(1)
+            with pytest.raises(RuntimeError, match="boom"):
+                _run(classify_stance_async(
+                    _make_claim("a"), _make_claim("b"), "test-model", sem,
+                    embedding_model="embed-model",
+                    embedding_distance=0.5,
+                ))
+
 
 class TestClassifyErrorOnBadJson:
     def test_json_parse_failure_returns_error(self):
