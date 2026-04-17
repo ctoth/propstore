@@ -6,6 +6,7 @@ from propstore.cli.repository import Repository
 from propstore.artifacts.schema import convert_document_value
 from propstore.source.common import load_source_metadata, normalize_source_slug
 from propstore.artifacts.documents.sources import SourceDocument
+from propstore.provenance import ProvenanceStatus
 
 
 def _source_bindings(
@@ -34,9 +35,18 @@ def _source_bindings(
 def derive_source_trust(repo: Repository, source_doc: SourceDocument) -> SourceDocument:
     updated = source_doc.to_payload()
     trust = dict(updated.get("trust") or {})
-    quality = dict(trust.get("quality") or {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5})
+    quality = dict(trust.get("quality") or {
+        "status": ProvenanceStatus.VACUOUS.value,
+        "b": 0.0,
+        "d": 0.0,
+        "u": 1.0,
+        "a": 0.5,
+    })
+    if "status" not in quality:
+        quality["status"] = ProvenanceStatus.VACUOUS.value
     derived_from = list(trust.get("derived_from") or [])
     prior = float(trust.get("prior_base_rate", 0.5))
+    trust["status"] = trust.get("status") or ProvenanceStatus.DEFAULTED.value
 
     if not repo.sidecar_path.exists():
         trust["prior_base_rate"] = prior
@@ -88,9 +98,12 @@ def derive_source_trust(repo: Repository, source_doc: SourceDocument) -> SourceD
         if resolved_prior is not None:
             prior = resolved_prior
             derived_from = resolved_from or derived_from
+            trust["status"] = ProvenanceStatus.CALIBRATED.value
     finally:
         wm.close()
 
+    if not derived_from and trust.get("status") == ProvenanceStatus.CALIBRATED.value:
+        trust["status"] = ProvenanceStatus.DEFAULTED.value
     trust["prior_base_rate"] = prior
     trust["quality"] = quality
     trust["derived_from"] = derived_from

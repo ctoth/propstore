@@ -6,6 +6,12 @@ Depends on: `disciplines.md`, `judgment-rubric.md`, `../../semantic-substrate-pa
 Blocks (within this set): WS-B (needs phase 1), WS-C (needs phase 4), WS-Z-types (needs phase 1 for full payoff)
 Review context: `../axis-3d-semantic.md` (primary), `../axis-9-doc-drift.md`, `../axis-1-principle-adherence.md`
 
+## Progress log
+
+- 2026-04-17: Workstream tightened for non-Davidsonian execution. Required implementation papers for the selected path were confirmed present in `./papers`; optional explanatory/rejection papers are not blockers.
+- 2026-04-17: Phase 1 foundation slice implemented: typed `ProvenanceStatus`, `ProvenanceWitness`, `Provenance`; deterministic JSON-LD named-graph serialization; git-notes round trip on `refs/notes/provenance`; provenance composition property tests; `Opinion.provenance` composition through fusion/discounting; `SourceTrustDocument` and `SourceTrustQualityDocument` mandatory status fields; `ResolutionDocument` collapsed to `opinion: OpinionDocument | None`; classifier/proposal outputs migrated to nested `resolution.opinion`; sidecar projection updated at the storage boundary.
+- 2026-04-17: Phase 1 foundation verification: `tests/test_provenance_foundations.py` passed; targeted affected suite `tests/test_source_trust.py tests/test_classify.py tests/test_relate_opinions.py tests/test_build_sidecar.py tests/test_praf.py` passed (`194 passed`).
+
 ## What you're doing
 
 Propstore advertises itself as a "semantic operating system" grounded in frame semantics (Fillmore 1982, Baker 1998 FrameNet), the generative lexicon (Pustejovsky 1991), ontology lexicalization (Buitelaar 2011 lemon / OntoLex), context formalization (McCarthy 1993, Guha 1991), micropublications (Clark 2014), and provenance semantics (Buneman 2001, Carroll 2005). The 2026-04-16 code review found that **none of these papers have structural representation in the code**. What exists instead is a dimensional-quantity ontology (via pint), a SKOS-style taxonomy of concepts, visibility-inheritance contexts (ancestry-based, not `ist(c,p)`), and token-Jaccard reconciliation for alignment.

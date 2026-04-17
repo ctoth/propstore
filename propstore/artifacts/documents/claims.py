@@ -9,6 +9,7 @@ from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
 from propstore.artifacts.schema import DocumentStruct
+from propstore.provenance import Provenance
 from propstore.stances import StanceType
 
 
@@ -134,6 +135,35 @@ class ParameterBindingDocument(DocumentStruct):
         return payload
 
 
+class OpinionDocument(DocumentStruct):
+    b: float | int
+    d: float | int
+    u: float | int
+    a: float | int
+    provenance: Provenance | None = None
+
+    def __post_init__(self) -> None:
+        for name, value in (("b", self.b), ("d", self.d), ("u", self.u)):
+            if value < -1e-9 or value > 1.0 + 1e-9:
+                raise ValueError(f"{name}={value} not in [0, 1]")
+        if self.a <= 0.0 or self.a >= 1.0:
+            raise ValueError(f"a={self.a} not in (0, 1)")
+        total = float(self.b) + float(self.d) + float(self.u)
+        if abs(total - 1.0) > 1e-9:
+            raise ValueError(f"b + d + u = {total}, expected 1.0")
+
+    def to_payload(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "b": self.b,
+            "d": self.d,
+            "u": self.u,
+            "a": self.a,
+        }
+        if self.provenance is not None:
+            payload["provenance"] = self.provenance.to_payload()
+        return payload
+
+
 class ResolutionDocument(DocumentStruct):
     method: str
     embedding_distance: float | int | None = None
@@ -141,10 +171,7 @@ class ResolutionDocument(DocumentStruct):
     model: str | None = None
     pass_number: int | None = None
     confidence: float | int | None = None
-    opinion_belief: float | int | None = None
-    opinion_disbelief: float | int | None = None
-    opinion_uncertainty: float | int | None = None
-    opinion_base_rate: float | int | None = None
+    opinion: OpinionDocument | None = None
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {"method": self.method}
@@ -158,14 +185,8 @@ class ResolutionDocument(DocumentStruct):
             payload["pass_number"] = self.pass_number
         if self.confidence is not None:
             payload["confidence"] = self.confidence
-        if self.opinion_belief is not None:
-            payload["opinion_belief"] = self.opinion_belief
-        if self.opinion_disbelief is not None:
-            payload["opinion_disbelief"] = self.opinion_disbelief
-        if self.opinion_uncertainty is not None:
-            payload["opinion_uncertainty"] = self.opinion_uncertainty
-        if self.opinion_base_rate is not None:
-            payload["opinion_base_rate"] = self.opinion_base_rate
+        if self.opinion is not None:
+            payload["opinion"] = self.opinion.to_payload()
         return payload
 
 

@@ -29,6 +29,7 @@ from propstore.artifacts.refs import (
 from propstore.artifacts.families import SOURCE_METADATA_FAMILY, SOURCE_NOTES_FAMILY
 from propstore.cli.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.provenance import ProvenanceStatus
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
 from propstore.artifacts.documents.sources import (
@@ -74,8 +75,10 @@ def initial_source_document(
             content_ref=ni_uri_for_file(content_file) if content_file is not None else None,
         ),
         trust=SourceTrustDocument(
+            status=ProvenanceStatus.DEFAULTED,
             prior_base_rate=0.5,
             quality=SourceTrustQualityDocument(
+                status=ProvenanceStatus.VACUOUS,
                 b=0.0,
                 d=0.0,
                 u=1.0,

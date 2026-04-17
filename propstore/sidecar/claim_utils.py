@@ -98,6 +98,20 @@ def coerce_stance_resolution(
     return resolution
 
 
+def resolution_opinion_columns(resolution: dict[str, object]) -> tuple[object, object, object, object]:
+    opinion = resolution.get("opinion")
+    if opinion is None:
+        return None, None, None, None
+    if not isinstance(opinion, dict):
+        raise ValueError("resolution opinion must be a mapping")
+    return (
+        opinion.get("b"),
+        opinion.get("d"),
+        opinion.get("u"),
+        opinion.get("a"),
+    )
+
+
 def insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> None:
     conn.execute(
         """
@@ -537,6 +551,7 @@ def extract_deferred_stance_rows(
             stance.get("resolution"),
             f"claim '{claim_id}' stance targeting '{target_claim_id}'",
         )
+        opinion_columns = resolution_opinion_columns(resolution)
         rows.append((
             claim_id,
             target_claim_id,
@@ -551,10 +566,10 @@ def extract_deferred_stance_rows(
             resolution.get("embedding_distance"),
             resolution.get("pass_number"),
             resolution.get("confidence"),
-            resolution.get("opinion_belief"),
-            resolution.get("opinion_disbelief"),
-            resolution.get("opinion_uncertainty"),
-            resolution.get("opinion_base_rate"),
+            opinion_columns[0],
+            opinion_columns[1],
+            opinion_columns[2],
+            opinion_columns[3],
         ))
     return rows
 

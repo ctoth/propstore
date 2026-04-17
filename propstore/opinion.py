@@ -11,6 +11,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from propstore.provenance import Provenance, compose_provenance
+
 # Prior weight for non-informative prior (Jøsang p.20)
 W = 2
 
@@ -49,6 +51,7 @@ class Opinion:
     d: float
     u: float
     a: float = 0.5
+    provenance: Provenance | None = None
 
     def __post_init__(self) -> None:
         for name, val in [("b", self.b), ("d", self.d), ("u", self.u)]:
@@ -113,7 +116,7 @@ class Opinion:
 
     def __invert__(self) -> Opinion:
         """Negation: ~ω = Opinion(d, b, u, 1 - a)  (Jøsang Theorem 6, p.18)."""
-        return Opinion(self.d, self.b, self.u, 1.0 - self.a)
+        return Opinion(self.d, self.b, self.u, 1.0 - self.a, self.provenance)
 
     def conjunction(self, other: Opinion) -> Opinion:
         """Subjective-logic conjunction (Jøsang 2001 Theorem 3, p.14).
@@ -133,7 +136,7 @@ class Opinion:
         d = self.d + other.d - self.d * other.d
         u = self.b * other.u + self.u * other.b + self.u * other.u
         a = self.a * other.a
-        return Opinion(b, d, u, a)
+        return Opinion(b, d, u, a, _compose_opinion_provenance("conjunction", self, other))
 
     def disjunction(self, other: Opinion) -> Opinion:
         """Subjective-logic disjunction (Jøsang 2001 Theorem 4, p.14-15).
@@ -152,7 +155,7 @@ class Opinion:
         d = self.d * other.d
         u = self.d * other.u + self.u * other.d + self.u * other.u
         a = self.a + other.a - self.a * other.a
-        return Opinion(b, d, u, a)
+        return Opinion(b, d, u, a, _compose_opinion_provenance("disjunction", self, other))
 
     def __and__(self, other: Opinion) -> Opinion:
         """Alias for :meth:`conjunction`."""
@@ -270,7 +273,17 @@ class Opinion:
         b_new = max(0.0, b_new)
         d_new = max(0.0, d_new)
 
-        return Opinion(b_new, d_new, u_max, a)
+        return Opinion(b_new, d_new, u_max, a, self.provenance)
+
+
+def _compose_opinion_provenance(
+    operation: str,
+    *opinions: Opinion,
+) -> Provenance | None:
+    records = tuple(opinion.provenance for opinion in opinions if opinion.provenance is not None)
+    if not records:
+        return None
+    return compose_provenance(*records, operation=operation)
 
 
 @dataclass(frozen=True)
@@ -348,7 +361,7 @@ def consensus_pair(a_op: Opinion, b_op: Opinion) -> Opinion:
     else:
         a = (b_op.a * a_op.u * v_b + a_op.a * b_op.u * v_a) / denom_a
 
-    return Opinion(b, d, u, a)
+    return Opinion(b, d, u, a, _compose_opinion_provenance("fusion", a_op, b_op))
 
 
 def consensus(*opinions: Opinion) -> Opinion:
@@ -384,7 +397,7 @@ def discount(trust: Opinion, source: Opinion) -> Opinion:
     d = trust.b * source.d
     u = trust.d + trust.u + trust.b * source.u
     a = source.a
-    return Opinion(b, d, u, a)
+    return Opinion(b, d, u, a, _compose_opinion_provenance("discount", trust, source))
 
 
 def wbf(*opinions: Opinion) -> Opinion:
@@ -415,7 +428,13 @@ def wbf(*opinions: Opinion) -> Opinion:
         b_fused = sum(op.b for op in dogmatic) / count
         d_fused = sum(op.d for op in dogmatic) / count
         a_fused = sum(op.a for op in dogmatic) / count
-        return Opinion(b_fused, d_fused, 0.0, _clamp_base_rate(a_fused))
+        return Opinion(
+            b_fused,
+            d_fused,
+            0.0,
+            _clamp_base_rate(a_fused),
+            _compose_opinion_provenance("fusion", *dogmatic),
+        )
 
     # Precompute products of all uncertainties excluding each index.
     # prod_except[i] = product(u_j for j != i)
@@ -464,7 +483,13 @@ def wbf(*opinions: Opinion) -> Opinion:
     # deviation from van der Heijden 2018.
     a_fused = _clamp_base_rate(a_fused)
 
-    return Opinion(b_fused, d_fused, u_fused, a_fused)
+    return Opinion(
+        b_fused,
+        d_fused,
+        u_fused,
+        a_fused,
+        _compose_opinion_provenance("fusion", *opinions),
+    )
 
 
 def ccf(*opinions: Opinion) -> Opinion:
@@ -615,7 +640,13 @@ def _ccf_binomial(opinions: list[Opinion]) -> Opinion:
         a_fused = sum(op.a * w for op, w in zip(opinions, weights)) / total_weight
     a_fused = _clamp_base_rate(a_fused)
 
-    return Opinion(b_fused, d_fused, u_fused, a_fused)
+    return Opinion(
+        b_fused,
+        d_fused,
+        u_fused,
+        a_fused,
+        _compose_opinion_provenance("fusion", *opinions),
+    )
 
 
 def fuse(*opinions: Opinion, method: str = "auto") -> Opinion:
