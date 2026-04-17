@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from propstore.belief_set.agm import RevisionOutcome, SpohnEpistemicState, _trace, revise
+from propstore.belief_set.agm import (
+    RevisionOutcome,
+    SpohnEpistemicState,
+    revision_trace,
+    revise,
+)
 from propstore.belief_set.core import BeliefSet
 from propstore.belief_set.language import Formula, World
 
@@ -17,7 +22,7 @@ def lexicographic_revise(
         return RevisionOutcome(
             belief_set=working.belief_set,
             state=working,
-            trace=_trace("lexicographic_revise", state.belief_set),
+            trace=revision_trace("lexicographic_revise", state.belief_set),
         )
     keys: dict[World, tuple[int, int]] = {
         world: (0, working.ranks[world])
@@ -30,7 +35,7 @@ def lexicographic_revise(
     return RevisionOutcome(
         belief_set=revised_state.belief_set,
         state=revised_state,
-        trace=_trace("lexicographic_revise", state.belief_set),
+        trace=revision_trace("lexicographic_revise", state.belief_set),
     )
 
 
@@ -43,7 +48,7 @@ def restrained_revise(
     return RevisionOutcome(
         belief_set=result.belief_set,
         state=result.state,
-        trace=_trace("restrained_revise", state.belief_set),
+        trace=revision_trace("restrained_revise", state.belief_set),
     )
 
 
