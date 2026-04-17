@@ -1925,6 +1925,11 @@ class TestDefeatProperties:
         Def 9 (p.12) compares the attacker against the targeted
         sub-argument B', not automatically against itself. So even a
         self-attack only succeeds when A is not strictly weaker than B'.
+
+        Page-image grounding for last-link/lifting:
+        papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png
+        papers/Lehtonen_2024_PreferentialASPIC/pages/page_004.png
+        papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
         """
         L, cfn = data.draw(logical_language())
         R_s = data.draw(strict_rules(L, cfn))
@@ -2027,7 +2032,19 @@ class TestDefeatProperties:
 
 
 class TestSetComparisonProperties:
-    """Property tests for Def. 19 over finite induced orders."""
+    """Property tests for Def. 19 over finite induced orders.
+
+    Prakken (2010), page 16, gives the elitist set order used by
+    last-link:
+    papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png
+
+    Lehtonen (2024), pages 523-524, rephrases last-link defeat under
+    elitist and democratic lifting:
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_004.png
+    papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
+    """
+
+    pytestmark = pytest.mark.property
 
     @given(
         st.permutations((0, 1, 2, 3)),
@@ -2304,7 +2321,12 @@ class TestDefeatConcrete:
         )
 
     def test_elitist_last_link_blocks_rebut_when_attacker_is_strictly_weaker(self):
-        """A rebut must fail when one attacker rule is below every target rule."""
+        """A rebut must fail when one attacker rule is below every target rule.
+
+        Last-link and elitist-lifting grounding:
+        papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-015.png
+        papers/Lehtonen_2024_PreferentialASPIC/pages/page_005.png
+        """
         a = Literal(GroundAtom("a"))
         b = Literal(GroundAtom("b"))
         c = Literal(GroundAtom("c"))
