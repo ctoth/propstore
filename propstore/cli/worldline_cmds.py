@@ -10,6 +10,7 @@ import click
 from propstore.artifacts import WORLDLINE_FAMILY, WorldlineRef
 from propstore.repository import Repository
 from propstore.artifacts.schema import DocumentSchemaError
+from propstore.cli.helpers import open_world_model
 from propstore.world.types import (
     ReasoningBackend,
     cli_argumentation_semantics_values,
@@ -328,7 +329,6 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
     in which case they are used to construct and persist a fresh definition
     before the first materialization.
     """
-    from propstore.world import WorldModel
     from propstore.worldline import WorldlineDefinition, run_worldline
 
     repo: Repository = obj["repo"]
@@ -385,16 +385,9 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
 
         wl = WorldlineDefinition.from_dict(definition)
 
-    # Materialize
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    result = run_worldline(wl, wm)
+    with open_world_model(repo) as wm:
+        result = run_worldline(wl, wm)
     wl.results = result
-    wm.close()
 
     repo.artifacts.save(
         WORLDLINE_FAMILY,
@@ -455,17 +448,16 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     click.echo(f"  Computed: {wl.results.computed}")
 
     if check:
-        from propstore.world import WorldModel
         try:
-            wm = WorldModel(repo)
-            stale = wl.is_stale(wm)
-            wm.close()
+            with open_world_model(repo) as wm:
+                stale = wl.is_stale(wm)
+        except SystemExit:
+            click.echo("  ? Cannot check staleness — sidecar not found")
+        else:
             if stale:
                 click.echo("  ⚠ STALE — upstream dependencies have changed")
             else:
                 click.echo("  ✓ Fresh — dependencies unchanged")
-        except FileNotFoundError:
-            click.echo("  ? Cannot check staleness — sidecar not found")
 
     click.echo("Results:")
     for target, val in wl.results.values.items():

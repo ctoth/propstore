@@ -360,6 +360,18 @@ Status 2026-04-17: form show slice landed.
 - Move log classification/merge summary/diff/show/checkout report generation
   into storage/repository owner modules.
 
+Status 2026-04-17: worldline model lifecycle slice landed.
+
+- Replaced direct `WorldModel(repo)` construction and manual `close()` handling
+  in worldline materialization and freshness checks with the shared
+  `open_world_model` lifecycle helper.
+- Verified no direct `WorldModel(repo)` construction remains under
+  `propstore/cli` except the helper boundary itself.
+- Verification:
+  - `logs/test-runs/cli-layer-worldline-lifecycle-20260417-175153.log` - 3 passed.
+  - `rg -n -F "WorldModel(repo)" propstore\cli` - only
+    `propstore\cli\helpers.py:173`.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
