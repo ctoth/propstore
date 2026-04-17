@@ -22,6 +22,7 @@ from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world.resolution import resolve
 from propstore.world.types import Environment, ReasoningBackend, ResolutionStrategy
 from propstore.worldline import WorldlineDefinition, run_worldline
+from tests.atms_helpers import leaf_lifting_system
 
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
@@ -38,11 +39,6 @@ class _OverlapSolver:
         if "x > 0" in left and "x == 1" in right:
             return False
         return set(left).isdisjoint(right)
-
-
-class _LeafHierarchy:
-    def ancestors(self, context_id: str) -> list[str]:
-        return []
 
 
 class _ProjectionStore:
@@ -109,7 +105,7 @@ def _make_bound(
     bindings: dict[str, object] | None = None,
     context_id: str | None = None,
     effective_assumptions: tuple[str, ...] = (),
-    context_hierarchy=None,
+    lifting_system=None,
 ) -> BoundWorld:
     bindings = bindings or {}
     environment = Environment(
@@ -125,7 +121,7 @@ def _make_bound(
     return BoundWorld(
         store,
         environment=environment,
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
     )
 
 
@@ -264,7 +260,7 @@ def test_structured_projection_does_not_treat_context_scope_as_unconditional() -
         store,
         context_id="ctx_general",
         effective_assumptions=("framework == 'general'",),
-        context_hierarchy=_LeafHierarchy(),
+        lifting_system=leaf_lifting_system("ctx_general"),
     )
     active = bound.active_claims()
 

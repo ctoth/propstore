@@ -19,14 +19,14 @@ from .parameter_claims import detect_parameter_conflicts
 from .parameterization_conflicts import _detect_parameterization_conflicts
 
 if TYPE_CHECKING:
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
 
 
 def detect_conflicts(
     claims: Sequence[ConflictClaim],
     concept_registry: dict[str, dict],
     cel_registry: Mapping[str, ConceptInfo],
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
 ) -> list[ConflictRecord]:
     """Detect conflicts between claims binding to the same concept."""
     records: list[ConflictRecord] = []
@@ -66,7 +66,7 @@ def detect_conflicts(
     parameter_records, by_concept = detect_parameter_conflicts(
         claims,
         cel_registry,
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
         solver=condition_solver,
     )
     records.extend(parameter_records)
@@ -74,7 +74,7 @@ def detect_conflicts(
         detect_measurement_conflicts(
             claims,
             cel_registry,
-            context_hierarchy=context_hierarchy,
+            lifting_system=lifting_system,
             solver=condition_solver,
         )
     )
@@ -82,7 +82,7 @@ def detect_conflicts(
         detect_equation_conflicts(
             claims,
             cel_registry,
-            context_hierarchy=context_hierarchy,
+            lifting_system=lifting_system,
             solver=condition_solver,
         )
     )
@@ -90,7 +90,7 @@ def detect_conflicts(
         detect_algorithm_conflicts(
             claims,
             cel_registry,
-            context_hierarchy=context_hierarchy,
+            lifting_system=lifting_system,
             solver=condition_solver,
         )
     )
@@ -100,7 +100,7 @@ def detect_conflicts(
         by_concept,
         concept_registry,
         claims,
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
     )
     return records
 

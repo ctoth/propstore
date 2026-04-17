@@ -10,7 +10,7 @@ from propstore.cel_checker import ConceptInfo
 from .models import ConflictClass, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
     from propstore.form_utils import FormDefinition
     from propstore.conflict_detector.models import ConflictClaim
 
@@ -19,7 +19,7 @@ def detect_conflicts(
     claims: Sequence[ConflictClaim],
     concept_registry: dict[str, dict],
     cel_registry: Mapping[str, ConceptInfo],
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
 ) -> list[ConflictRecord]:
     from .orchestrator import detect_conflicts as _detect_conflicts
 
@@ -27,7 +27,7 @@ def detect_conflicts(
         claims,
         concept_registry,
         cel_registry,
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
     )
 
 
@@ -35,7 +35,7 @@ def detect_transitive_conflicts(
     claims: Sequence[ConflictClaim],
     concept_registry: dict[str, dict],
     *,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
     forms: dict[str, FormDefinition] | None = None,
 ) -> list[ConflictRecord]:
     from .parameterization_conflicts import (
@@ -45,7 +45,7 @@ def detect_transitive_conflicts(
     return _detect_transitive_conflicts(
         claims,
         concept_registry,
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
         forms=forms,
     )
 

@@ -18,7 +18,7 @@ from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.cel_checker import ConceptInfo
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
 
 
 def _build_z3_solver(cel_registry: dict[str, ConceptInfo]):
@@ -33,7 +33,7 @@ def detect_parameter_conflicts(
     claims: Sequence[ConflictClaim],
     cel_registry: dict[str, ConceptInfo],
     *,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
     solver=None,
 ) -> tuple[list[ConflictRecord], dict[str, list[ConflictClaim]]]:
     records: list[ConflictRecord] = []
@@ -63,7 +63,7 @@ def detect_parameter_conflicts(
                 claims,
                 all_conditions,
                 cel_registry,
-                context_hierarchy=context_hierarchy,
+                lifting_system=lifting_system,
                 solver=z3_solver,
             )
             continue
@@ -74,7 +74,7 @@ def detect_parameter_conflicts(
             claims,
             all_conditions,
             eq_classes,
-            context_hierarchy=context_hierarchy,
+            lifting_system=lifting_system,
         )
         _detect_cross_class_parameter_conflicts(
             records,
@@ -84,7 +84,7 @@ def detect_parameter_conflicts(
             eq_classes,
             cel_registry,
             z3_solver,
-            context_hierarchy=context_hierarchy,
+            lifting_system=lifting_system,
         )
 
     return records, by_concept
@@ -97,7 +97,7 @@ def _detect_pairwise_parameter_conflicts(
     all_conditions: list[list[CelExpr]],
     cel_registry: dict[str, ConceptInfo],
     *,
-    context_hierarchy: ContextHierarchy | None,
+    lifting_system: LiftingSystem | None,
     solver=None,
 ) -> None:
     for i in range(len(claims)):
@@ -120,7 +120,7 @@ def _detect_pairwise_parameter_conflicts(
                 value_b=_value_str(value_b, claim=claim_b),
                 context_a=_claim_context(claim_a),
                 context_b=_claim_context(claim_b),
-                context_hierarchy=context_hierarchy,
+                lifting_system=lifting_system,
             ):
                 continue
             records.append(ConflictRecord(
@@ -147,7 +147,7 @@ def _detect_equivalent_parameter_conflicts(
     all_conditions: list[list[CelExpr]],
     eq_classes: list[list[int]],
     *,
-    context_hierarchy: ContextHierarchy | None,
+    lifting_system: LiftingSystem | None,
 ) -> None:
     for group in eq_classes:
         for ii in range(len(group)):
@@ -170,7 +170,7 @@ def _detect_equivalent_parameter_conflicts(
                     value_b=_value_str(value_b, claim=claim_b),
                     context_a=_claim_context(claim_a),
                     context_b=_claim_context(claim_b),
-                    context_hierarchy=context_hierarchy,
+                    lifting_system=lifting_system,
                 ):
                     continue
                 records.append(ConflictRecord(
@@ -194,7 +194,7 @@ def _detect_cross_class_parameter_conflicts(
     cel_registry: dict[str, ConceptInfo],
     z3_solver,
     *,
-    context_hierarchy: ContextHierarchy | None,
+    lifting_system: LiftingSystem | None,
 ) -> None:
     from propstore.z3_conditions import Z3TranslationError
     import z3
@@ -233,7 +233,7 @@ def _detect_cross_class_parameter_conflicts(
                         value_b=_value_str(value_b, claim=claim_b),
                         context_a=_claim_context(claim_a),
                         context_b=_claim_context(claim_b),
-                        context_hierarchy=context_hierarchy,
+                        lifting_system=lifting_system,
                     ):
                         continue
                     records.append(ConflictRecord(

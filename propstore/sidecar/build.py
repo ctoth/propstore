@@ -230,7 +230,7 @@ def build_sidecar(
         if (knowledge_root / "claims").exists()
         else None
     )
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_types import loaded_contexts_to_lifting_system
     from propstore.validate_contexts import load_contexts
 
     context_files = (
@@ -339,13 +339,17 @@ def build_sidecar(
             if raw_id_quarantine_records:
                 populate_raw_id_quarantine_records(conn, raw_id_quarantine_records)
 
-            context_hierarchy = ContextHierarchy(list(context_files)) if context_files else None
+            lifting_system = (
+                loaded_contexts_to_lifting_system(list(context_files))
+                if context_files
+                else None
+            )
             populate_conflicts(
                 conn,
                 normalized_claim_files,
                 concept_registry,
                 dict(compilation_context.cel_registry),
-                context_hierarchy=context_hierarchy,
+                lifting_system=lifting_system,
             )
             build_claim_fts_index(conn, normalized_claim_files)
 

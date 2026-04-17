@@ -28,7 +28,7 @@ from propstore.world.types import (
 )
 from propstore.worldline import WorldlineDefinition, run_worldline
 
-from tests.atms_helpers import _ExactMatchSolver, _LeafHierarchy, _OverlapSolver
+from tests.atms_helpers import _ExactMatchSolver, _OverlapSolver, leaf_lifting_system
 
 
 class _ATMSStore:
@@ -118,7 +118,7 @@ def _make_bound(
     return BoundWorld(
         store,
         environment=environment,
-        context_hierarchy=_LeafHierarchy() if context_id is not None else None,
+        lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
         policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),
     )
 
@@ -138,7 +138,7 @@ class _GraphOnlyATMSRuntime:
                 build_compiled_world_graph(bound._store),
                 environment=bound._environment,
                 solver=bound._store.condition_solver(),
-                context_hierarchy=bound._context_hierarchy,
+                lifting_system=bound._lifting_system,
             )
         )
         self._bound = bound
@@ -818,7 +818,7 @@ def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> 
                         context_id=context_id,
                     ),
                 ),
-                context_hierarchy=_LeafHierarchy() if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
                 policy=policy,
             )
 
@@ -908,7 +908,7 @@ def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
                         context_id=context_id,
                     ),
                 ),
-                context_hierarchy=_LeafHierarchy() if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
                 policy=policy,
             )
 
@@ -1516,7 +1516,7 @@ def test_atms_worldline_future_capture_is_opt_in() -> None:
                     effective_assumptions=effective_assumptions,
                     assumptions=assumptions,
                 ),
-                context_hierarchy=_LeafHierarchy() if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
                 policy=policy,
             )
 
@@ -1679,7 +1679,7 @@ def test_atms_cli_surfaces_future_analysis(monkeypatch) -> None:
                     effective_assumptions=effective_assumptions,
                     assumptions=assumptions,
                 ),
-                context_hierarchy=_LeafHierarchy() if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
                 policy=policy,
             )
 
@@ -1757,7 +1757,7 @@ def test_atms_cli_surfaces_interventions_and_next_queries(monkeypatch) -> None:
                     effective_assumptions=effective_assumptions,
                     assumptions=assumptions,
                 ),
-                context_hierarchy=_LeafHierarchy() if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
                 policy=policy,
             )
 

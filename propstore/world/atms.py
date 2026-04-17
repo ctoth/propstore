@@ -92,7 +92,7 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
     from propstore.world.bound import BoundWorld
 
 
@@ -131,7 +131,7 @@ class _ATMSBoundLike(Protocol):
     _environment: Environment
     _active_graph: ActiveWorldGraph | None
     _store: ArtifactStore
-    _context_hierarchy: ContextHierarchy | None
+    _lifting_system: LiftingSystem | None
     _policy: Any
 
     def is_param_compatible(self, conditions_cel: str | None) -> bool: ...
@@ -382,7 +382,7 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
             build_compiled_world_graph(bound._store),
             environment=bound._environment,
             solver=bound._store.condition_solver(),
-            context_hierarchy=bound._context_hierarchy,
+            lifting_system=bound._lifting_system,
         )
 
     compiled_claims = {

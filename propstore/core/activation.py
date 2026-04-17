@@ -20,7 +20,7 @@ from propstore.core.labels import binding_condition_to_cel
 from propstore.z3_conditions import Z3TranslationError
 
 if TYPE_CHECKING:
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
     from propstore.z3_conditions import Z3ConditionSolver
 
 
@@ -35,15 +35,16 @@ def _binding_conditions(environment: Environment) -> tuple[CelExpr, ...]:
     return to_cel_exprs(conditions)
 
 
-def _visible_contexts(
+def _lifted_contexts(
     environment: Environment,
-    context_hierarchy: ContextHierarchy | None,
+    lifting_system: LiftingSystem | None,
 ) -> set[str] | None:
-    if environment.context_id is None or context_hierarchy is None:
+    if environment.context_id is None or lifting_system is None:
         return None
-    visible = {str(environment.context_id)}
-    visible.update(str(context_id) for context_id in context_hierarchy.ancestors(str(environment.context_id)))
-    return visible
+    return {
+        str(context_id)
+        for context_id in lifting_system.contexts_visible_from(environment.context_id)
+    }
 
 
 def _claim_attributes(claim: ClaimNode) -> dict[str, Any]:
@@ -125,9 +126,9 @@ def is_claim_node_active(
     *,
     environment: Environment,
     solver: Z3ConditionSolver | None,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
 ) -> bool:
-    visible_contexts = _visible_contexts(environment, context_hierarchy)
+    visible_contexts = _lifted_contexts(environment, lifting_system)
     claim_context_id = _claim_context_id(claim)
     if visible_contexts is not None and claim_context_id is not None:
         if claim_context_id not in visible_contexts:
@@ -161,9 +162,9 @@ def is_active_claim_active(
     *,
     environment: Environment,
     solver: Z3ConditionSolver | None,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
 ) -> bool:
-    visible_contexts = _visible_contexts(environment, context_hierarchy)
+    visible_contexts = _lifted_contexts(environment, lifting_system)
     claim_context_id = claim.context_id
     if visible_contexts is not None and claim_context_id is not None:
         if str(claim_context_id) not in visible_contexts:
@@ -197,7 +198,7 @@ def activate_compiled_world_graph(
     *,
     environment: Environment,
     solver: Z3ConditionSolver,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
 ) -> ActiveWorldGraph:
     active_claim_ids: list[ClaimId] = []
     inactive_claim_ids: list[ClaimId] = []
@@ -207,7 +208,7 @@ def activate_compiled_world_graph(
             claim,
             environment=environment,
             solver=solver,
-            context_hierarchy=context_hierarchy,
+            lifting_system=lifting_system,
         ):
             active_claim_ids.append(claim.claim_id)
         else:

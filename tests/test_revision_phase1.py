@@ -4,7 +4,7 @@ import json
 
 from propstore.world import BoundWorld, Environment, ReasoningBackend, RenderPolicy
 from propstore.core.row_types import ConflictRowInput, StanceRowInput
-from tests.atms_helpers import _ExactMatchSolver, _LeafHierarchy, _OverlapSolver
+from tests.atms_helpers import _ExactMatchSolver, _OverlapSolver, leaf_lifting_system
 
 
 class _RevisionStore:
@@ -75,7 +75,7 @@ def _make_bound(
     return BoundWorld(
         store,
         environment=environment,
-        context_hierarchy=_LeafHierarchy() if context_id is not None else None,
+        lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
         policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),
     )
 

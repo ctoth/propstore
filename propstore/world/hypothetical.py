@@ -509,7 +509,7 @@ class HypotheticalWorld(BeliefSpace):
                 self._compiled_graph,
                 environment=base._environment,
                 solver=self._overlay_store.condition_solver(),
-                context_hierarchy=base._context_hierarchy,
+                lifting_system=base._lifting_system,
             )
             if self._compiled_graph is not None
             else None
@@ -517,7 +517,7 @@ class HypotheticalWorld(BeliefSpace):
         self._overlay = BoundWorld(
             self._overlay_store,
             environment=base._environment,
-            context_hierarchy=base._context_hierarchy,
+            lifting_system=base._lifting_system,
             policy=base._policy,
             active_graph=self._active_graph,
         )

@@ -35,7 +35,7 @@ The ATMS distinguishes four levels of support quality, reflecting how precisely 
 |---------|---------|
 | `EXACT` | Conditions match current assumption CELs directly |
 | `SEMANTIC_COMPATIBLE` | Active via Z3 condition solving but not an exact CEL match |
-| `CONTEXT_VISIBLE_ONLY` | Active only through context hierarchy visibility |
+| `CONTEXT_VISIBLE_ONLY` | Active only through explicit context lifting visibility |
 | `MIXED` | Combination of semantic and context activation |
 
 The ATMS engine only grants exact support. A claim that is semantically compatible or context-visible is active in `BoundWorld` but OUT in the ATMS. This is deliberate: the ATMS tracks precise justification structure, not approximate compatibility.

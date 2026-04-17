@@ -13,9 +13,9 @@ Six classes describe the relationship between any pair of claims that share a co
 | `PHI_NODE` | Values differ, conditions provably disjoint. Not a conflict -- a regime split. | Yes (informational) |
 | `OVERLAP` | Values differ, conditions partially overlapping. | Yes |
 | `PARAM_CONFLICT` | A value derived through a parameterization chain contradicts a direct claim. The inputs and the output are individually plausible, but the formula connecting them produces a contradiction. | Yes |
-| `CONTEXT_PHI_NODE` | Claims belong to mutually excluded contexts in the context hierarchy. Not a conflict -- a context-based regime split. | Yes (informational) |
+| `CONTEXT_PHI_NODE` | Claims belong to distinct contexts with no explicit lifting path between them. Not a conflict -- a context-based regime split. | Yes (informational) |
 
-The detection order matters: value compatibility is checked first (yielding `COMPATIBLE`), then context exclusion (yielding `CONTEXT_PHI_NODE`), then condition classification (yielding `CONFLICT`, `PHI_NODE`, or `OVERLAP`).
+The detection order matters: value compatibility is checked first (yielding `COMPATIBLE`), then explicit context lifting is checked (yielding `CONTEXT_PHI_NODE` when neither context lifts to the other), then condition classification runs (yielding `CONFLICT`, `PHI_NODE`, or `OVERLAP`).
 
 ## The detection pipeline
 
@@ -147,7 +147,7 @@ Regime splits are not conflicts. A claim that "fundamental frequency is 120 Hz w
 Two paths produce regime splits:
 
 - **Condition-based (`PHI_NODE`):** Z3 or interval arithmetic proves that the condition sets cannot be simultaneously satisfied.
-- **Context-based (`CONTEXT_PHI_NODE`):** The context hierarchy reports that the two claims belong to mutually excluded contexts. This check runs before condition analysis and short-circuits further classification.
+- **Context-based (`CONTEXT_PHI_NODE`):** The lifting system reports that the two claims belong to distinct contexts with no explicit lifting path in either direction. This check runs before condition analysis and short-circuits further classification.
 
 ## Transitive conflicts (PARAM_CONFLICT)
 
@@ -168,7 +168,7 @@ For each concept with an exact parameterization relationship (`conflict_detector
 2. Seed resolved values from direct claims
 3. Forward-propagate derived values through parameterization edges until fixpoint
 4. Compare derived values (from 2+ hop chains) against direct claims
-5. Skip derivations whose source claims belong to mutually excluded contexts
+5. Skip derivations whose source claims belong to distinct contexts with no explicit lifting path
 
 Single-hop derivations are handled by the single-hop detector and skipped here to avoid duplicates.
 
@@ -186,7 +186,7 @@ Only "real" conflict classes produce defeats:
 | `OVERLAP` | Yes | Partial disagreement, conservative treatment |
 | `PARAM_CONFLICT` | Yes | Derivation chain contradiction |
 | `PHI_NODE` | No | Not a real disagreement -- different regimes |
-| `CONTEXT_PHI_NODE` | No | Not a real disagreement -- excluded contexts |
+| `CONTEXT_PHI_NODE` | No | Not a real disagreement -- non-liftable contexts |
 | `COMPATIBLE` | No | Not recorded at all |
 
 ### Defeat generation

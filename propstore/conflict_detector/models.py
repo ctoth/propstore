@@ -83,9 +83,13 @@ class ConflictClaim:
                 str(item)
                 for item in cast(list[object] | tuple[object, ...], raw_conditions)
             )
-        context_id = payload.get("context_id")
-        if context_id is None:
-            context_id = payload.get("context")
+        raw_context_id: object = payload.get("context_id")
+        if raw_context_id is None:
+            raw_context_id = payload.get("context")
+        if isinstance(raw_context_id, dict):
+            context_id: object = cast(dict[str, object], raw_context_id).get("id")
+        else:
+            context_id = raw_context_id
         return cls(
             claim_id=claim_id,
             claim_type=None if payload.get("type") is None else str(payload.get("type")),

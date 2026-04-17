@@ -388,9 +388,22 @@ id: ctx_abstract_argumentation
 name: ctx_abstract_argumentation
 description: Dung's abstract argumentation framework tradition — arguments as abstract
   entities with attack relations, multiple acceptability semantics
+structure:
+  assumptions:
+    - "domain == 'argumentation'"
+  parameters:
+    tradition: abstract
+  perspective: dung
+lifting_rules:
+  - id: lift_dung_to_argumentation
+    source:
+      id: ctx_abstract_argumentation
+    target:
+      id: ctx_argumentation
+    mode: monotonic
 ```
 
-Claims reference their context via `context_id`. The compiler validates that all `context_id` references resolve to registered contexts. Contexts support hierarchy (`inherits`), mutual exclusion (`excludes`), and visibility scoping — a BoundWorld can be filtered to show only claims from a given context and its ancestors.
+Claims reference their context via `context: {id: ...}`. The compiler validates that all context references resolve to registered contexts. Contexts are structured logical terms with authored assumptions, parameters, and perspective metadata. Visibility inheritance is not a production concept; cross-context visibility is granted only by explicit lifting rules.
 
 ## Schema
 

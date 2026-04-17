@@ -43,12 +43,12 @@ def _flatten_claims(claims_or_files):
     return flattened
 
 
-def detect_conflicts(claim_files, registry, context_hierarchy=None):
+def detect_conflicts(claim_files, registry, lifting_system=None):
     return _detect_conflicts(
         _flatten_claims(claim_files),
         registry,
         make_cel_registry(registry),
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
     )
 
 

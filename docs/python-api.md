@@ -94,7 +94,7 @@ with WorldModel.from_path("knowledge") as world:
 |--------|-----------|-------------|
 | `all_relationships` | `() -> list[dict]` | All concept-to-concept relationships. |
 | `compiled_graph` | `() -> CompiledWorldGraph` | Build/cache the compiled semantic graph. |
-| `active_graph` | `(environment, *, context_hierarchy?) -> ActiveWorldGraph` | Activate the graph for an environment. |
+| `active_graph` | `(environment, *, lifting_system?) -> ActiveWorldGraph` | Activate the graph for an environment. |
 
 #### Stats and internals
 

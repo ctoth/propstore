@@ -84,12 +84,12 @@ def _flatten_claims(claims_or_files):
     return flattened
 
 
-def detect_conflicts(claim_files, registry, context_hierarchy=None):
+def detect_conflicts(claim_files, registry, lifting_system=None):
     return _detect_conflicts(
         _flatten_claims(claim_files),
         registry,
         make_cel_registry(registry),
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
     )
 
 
@@ -317,8 +317,8 @@ def test_single_hop_conflict_carries_derived_conditions():
     assert records[0].conditions_b == ["mode == 'normal'", "task == 'speech'"]
 
 
-def test_single_hop_conflict_respects_context_exclusion():
-    from propstore.context_hierarchy import ContextHierarchy
+def test_single_hop_conflict_requires_lifted_contexts():
+    from propstore.context_lifting import ContextReference, LiftingSystem
 
     concept_in_id, concept_in = _concept("concept_in", form="frequency")
     concept_out_id, concept_out = _concept("concept_out", form="frequency")
@@ -355,18 +355,14 @@ def test_single_hop_conflict_respects_context_exclusion():
             ],
         },
     }
-    hierarchy = ContextHierarchy([
-        _context("input", {"id": "ctx_input", "name": "Input"}),
-        _context(
-            "direct",
-            {"id": "ctx_direct", "name": "Direct", "excludes": ["ctx_input"]},
-        ),
-    ])
+    lifting_system = LiftingSystem(
+        contexts=(ContextReference("ctx_input"), ContextReference("ctx_direct")),
+    )
 
     records = detect_conflicts(
         [claim_file],
         concept_registry,
-        context_hierarchy=hierarchy,
+        lifting_system=lifting_system,
     )
 
     assert len(records) == 1

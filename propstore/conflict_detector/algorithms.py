@@ -15,14 +15,14 @@ from .models import ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.cel_checker import ConceptInfo
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
 
 
 def detect_algorithm_conflicts(
     claims: Sequence[ConflictClaim],
     cel_registry: dict[str, ConceptInfo],
     *,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
     solver=None,
 ) -> list[ConflictRecord]:
     records: list[ConflictRecord] = []
@@ -69,7 +69,7 @@ def detect_algorithm_conflicts(
                     value_b=f"algorithm:{claim_b.claim_id}",
                     context_a=_claim_context(claim_a),
                     context_b=_claim_context(claim_b),
-                    context_hierarchy=context_hierarchy,
+                    lifting_system=lifting_system,
                     derivation_chain=derivation_chain,
                 ):
                     continue

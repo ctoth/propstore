@@ -9,6 +9,7 @@ from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
 from propstore.artifacts.schema import DocumentStruct
+from propstore.artifacts.documents.contexts import ContextReferenceDocument
 from propstore.provenance import Provenance
 from propstore.stances import StanceType
 
@@ -218,6 +219,7 @@ class StanceDocument(DocumentStruct):
 
 
 class ClaimDocument(DocumentStruct):
+    context: ContextReferenceDocument
     artifact_id: str | None = None
     artifact_code: str | None = None
     logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
@@ -230,7 +232,6 @@ class ClaimDocument(DocumentStruct):
     concepts: tuple[str, ...] = ()
     conditions: tuple[CelExpr, ...] = ()
     confidence: float | int | None = None
-    context: str | None = None
     equations: tuple[str, ...] = ()
     expression: str | None = None
     fit: FitStatisticsDocument | None = None
@@ -286,8 +287,7 @@ class ClaimDocument(DocumentStruct):
             payload["conditions"] = list(self.conditions)
         if self.confidence is not None:
             payload["confidence"] = self.confidence
-        if self.context is not None:
-            payload["context"] = self.context
+        payload["context"] = self.context.to_payload()
         if self.equations:
             payload["equations"] = list(self.equations)
         if self.expression is not None:

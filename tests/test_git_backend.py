@@ -434,6 +434,7 @@ def test_load_claim_files_from_git_tree(tmp_path):
                 "type": "observation",
                 "statement": "test observation",
                 "concepts": ["concept1"],
+                "context": {"id": "ctx_test"},
                 "provenance": {"paper": "test", "page": 1},
             }
         ]
@@ -456,7 +457,7 @@ def test_load_contexts_from_git_tree(tmp_path):
     context_data = {
         "id": "ctx1",
         "name": "Test Context",
-        "assumptions": ["test assumption"],
+        "structure": {"assumptions": ["test assumption"]},
     }
     kr.commit_files({
         "contexts/test_context.yaml": yaml.dump(context_data).encode(),
@@ -498,8 +499,8 @@ def test_context_add_creates_commit(tmp_path):
     assert data["description"] == "Committed context"
 
 
-def test_context_add_uses_committed_head_for_inheritance_checks(tmp_path):
-    """Inherited parent lookup should come from committed HEAD, not ambient files."""
+def test_context_add_writes_structured_context_to_git_head(tmp_path):
+    """Structured context authoring writes through the repository artifact store."""
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
@@ -507,28 +508,22 @@ def test_context_add_uses_committed_head_for_inheritance_checks(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     git = repo.git
-    git.commit_files({
-        "contexts/ctx_parent.yaml": yaml.dump({
-            "id": "ctx_parent",
-            "name": "ctx_parent",
-            "description": "Parent context",
-        }).encode("utf-8"),
-    }, "Add parent context")
-    git.sync_worktree()
-    (root / "contexts" / "ctx_parent.yaml").unlink()
-
     runner = CliRunner()
     result = runner.invoke(cli, [
         "-C", str(root),
         "context", "add",
-        "--name", "ctx_child",
-        "--description", "Child context",
-        "--inherits", "ctx_parent",
+        "--name", "ctx_structured",
+        "--description", "Structured context",
+        "--assumption", "framework == 'general'",
+        "--parameter", "domain=speech",
+        "--perspective", "local-model",
     ])
     assert result.exit_code == 0, result.output
 
-    child = yaml.safe_load(git.read_file("contexts/ctx_child.yaml"))
-    assert child["inherits"] == "ctx_parent"
+    context = yaml.safe_load(git.read_file("contexts/ctx_structured.yaml"))
+    assert context["structure"]["assumptions"] == ["framework == 'general'"]
+    assert context["structure"]["parameters"] == {"domain": "speech"}
+    assert context["structure"]["perspective"] == "local-model"
 
 
 def test_context_list_reads_git_head_not_worktree(tmp_path):
@@ -1282,7 +1277,7 @@ def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(tmp_pat
     original_commit_files = GitStore.commit_files
 
     def _boom(self, files, message, branch="master"):
-        if message == "Seed default forms":
+        if message == "Seed default forms and concepts":
             raise RuntimeError("seed commit failed")
         return original_commit_files(self, files, message, branch=branch)
 

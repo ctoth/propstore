@@ -17,14 +17,14 @@ from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.cel_checker import ConceptInfo
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
 
 
 def detect_measurement_conflicts(
     claims: Sequence[ConflictClaim],
     cel_registry: dict[str, ConceptInfo],
     *,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
     solver=None,
 ) -> list[ConflictRecord]:
     records: list[ConflictRecord] = []
@@ -54,7 +54,7 @@ def detect_measurement_conflicts(
                     value_b=_value_str(None, claim=claim_b),
                     context_a=_claim_context(claim_a),
                     context_b=_claim_context(claim_b),
-                    context_hierarchy=context_hierarchy,
+                    lifting_system=lifting_system,
                 ):
                     continue
 

@@ -551,12 +551,13 @@ Add a new context to the registry.
 |--------|------|---------|-------------|
 | `--name` | TEXT | -- | Context ID (e.g., ctx_atms_tradition) (required) |
 | `--description` | TEXT | -- | Short description (required) |
-| `--inherits` | TEXT | -- | Parent context ID |
-| `--excludes` | TEXT | -- | Comma-separated excluded context IDs |
+| `--assumption` | TEXT | -- | Context-local CEL assumption; repeat for multiple assumptions |
+| `--parameter` | TEXT | -- | Context parameter as `KEY=VALUE`; repeat for multiple parameters |
+| `--perspective` | TEXT | -- | Named perspective for this context |
 | `--dry-run` | FLAG | false | [Dry-run](#dry-run) |
 
 ```bash
-uv run pks context add --name ctx_atms_tradition --description "Papers from the ATMS research tradition"
+uv run pks context add --name ctx_atms_tradition --description "Papers from the ATMS research tradition" --assumption "domain == 'argumentation'"
 ```
 
 ### `pks context list`
