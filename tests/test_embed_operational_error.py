@@ -19,6 +19,59 @@ import sqlite3
 import pytest
 
 
+class TestEmbedEntitiesStoreProtocol:
+    def test_embeds_entities_supplied_by_store_without_sidecar_schema(self):
+        from unittest.mock import MagicMock, patch
+
+        from propstore.core.embeddings import EmbeddingEntity
+        from propstore.embed import _deserialize_float32, _embed_entities
+
+        class MemoryStore:
+            def __init__(self):
+                self.prepared = None
+                self.saved = []
+
+            def ensure_storage(self):
+                pass
+
+            def load_entities(self, entity_ids=None):
+                assert entity_ids == ["c1"]
+                return [
+                    EmbeddingEntity(
+                        entity_id="c1",
+                        seq=7,
+                        content_hash="h1",
+                        text="claim summary",
+                    )
+                ]
+
+            def existing_content_hashes(self, model_key):
+                return {}
+
+            def prepare_model(self, model_key, model_name, dimensions, created_at):
+                self.prepared = (model_key, model_name, dimensions, created_at)
+
+            def save_embedding(self, model_key, entity, vector_blob, embedded_at):
+                self.saved.append((model_key, entity, vector_blob, embedded_at))
+
+        store = MemoryStore()
+        litellm = MagicMock()
+        litellm.embedding.return_value.data = [{"embedding": [1.0, 2.0]}]
+
+        with patch("propstore.embed._require_litellm", return_value=litellm):
+            result = _embed_entities(store, "provider/model", entity_ids=["c1"])
+
+        assert result == {"embedded": 1, "skipped": 0, "errors": 0}
+        assert store.prepared is not None
+        assert store.prepared[:3] == ("provider_model", "provider/model", 2)
+        assert len(store.saved) == 1
+        model_key, entity, vector_blob, embedded_at = store.saved[0]
+        assert model_key == "provider_model"
+        assert entity.entity_id == "c1"
+        assert _deserialize_float32(vector_blob) == [1.0, 2.0]
+        assert embedded_at == store.prepared[3]
+
+
 class _FailingConnection:
     """Wraps a real sqlite3.Connection, raising on targeted SQL patterns.
 
@@ -154,60 +207,63 @@ class TestEmbedEntitiesOperationalError:
         """
         from unittest.mock import patch, MagicMock
 
-        real_conn = _make_conn_with_schema()
+        from propstore.core.embeddings import EmbeddingEntity
+        from propstore.embed import _embed_entities
 
-        # Wrap: blow up when _embed_entities queries embedding_status
-        wrapper = _FailingConnection(real_conn, "FROM embedding_status", "disk I/O error")
+        class FailingStatusStore:
+            def ensure_storage(self):
+                pass
 
-        from propstore.embed import _embed_entities, _EmbedConfig
+            def load_entities(self, entity_ids=None):
+                return [
+                    EmbeddingEntity(
+                        entity_id="c1",
+                        seq=1,
+                        content_hash="h1",
+                        text="summary",
+                    )
+                ]
 
-        config = _EmbedConfig(
-            entity_table="""
-                (
-                    SELECT
-                        core.id,
-                        core.seq,
-                        core.content_hash,
-                        txt.auto_summary,
-                        txt.statement,
-                        txt.expression,
-                        txt.name
-                    FROM claim_core AS core
-                    LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-                )
-            """,
-            select_columns="id, seq, content_hash, auto_summary, statement, expression, name",
-            status_table="embedding_status",
-            status_id_column="claim_id",
-            vec_prefix="claim_vec",
-            text_builder=lambda e, _: str(e["id"]),
-            pre_batch_hook=None,
-        )
+            def existing_content_hashes(self, model_key):
+                raise sqlite3.OperationalError("disk I/O error")
 
         mock_litellm = MagicMock()
 
         with patch("propstore.embed._require_litellm", return_value=mock_litellm):
             # The error should propagate -- not be silently caught
             with pytest.raises(sqlite3.OperationalError, match="disk I/O error"):
-                _embed_entities(wrapper, "test-model", config)
-
-        real_conn.close()
+                _embed_entities(FailingStatusStore(), "test-model")
 
     def test_unexpected_embedding_runtime_error_propagates(self):
         """RuntimeError from the embedding provider is not converted to a batch error."""
         from unittest.mock import MagicMock, patch
 
-        from propstore.embed import _CLAIM_CONFIG, _embed_entities
+        from propstore.core.embeddings import EmbeddingEntity
+        from propstore.embed import _embed_entities
 
-        conn = _make_conn_with_schema()
+        class MemoryEmbeddingStore:
+            def ensure_storage(self):
+                pass
+
+            def load_entities(self, entity_ids=None):
+                return [
+                    EmbeddingEntity(
+                        entity_id="c1",
+                        seq=1,
+                        content_hash="h1",
+                        text="summary",
+                    )
+                ]
+
+            def existing_content_hashes(self, model_key):
+                return {}
+
         mock_litellm = MagicMock()
         mock_litellm.embedding.side_effect = RuntimeError("boom")
 
         with patch("propstore.embed._require_litellm", return_value=mock_litellm):
             with pytest.raises(RuntimeError, match="boom"):
-                _embed_entities(conn, "test-model", _CLAIM_CONFIG)
-
-        conn.close()
+                _embed_entities(MemoryEmbeddingStore(), "test-model")
 
 
 class TestGetRegisteredModelsOperationalError:
