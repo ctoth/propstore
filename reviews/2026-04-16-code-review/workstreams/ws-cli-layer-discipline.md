@@ -290,6 +290,20 @@ Status 2026-04-17: world-query CLI helper cleanup landed.
 - Preserve ATMS/revision tests while replacing CLI-owned orchestration with
   owner-layer result objects.
 
+Status 2026-04-17: support revision workflow slice landed.
+
+- Added `propstore.support_revision.workflows` with `RevisionWorldRequest`,
+  `IteratedRevisionReport`, and owner functions for revision base,
+  entrenchment, expand, contract, revise, explain, epistemic state, and
+  iterated revise.
+- Replaced CLI-owned revision world binding and revision operation
+  orchestration with owner workflow calls. CLI keeps JSON argument parsing and
+  text rendering.
+- Added direct workflow tests beside the existing revision CLI coverage.
+- Verification:
+  - `logs/test-runs/cli-layer-revision-workflows-20260417-173524.log` - 11 passed.
+  - `uv run pyright propstore/support_revision/workflows.py` - 0 errors.
+
 ### Phase CLI-4 - Concept, claim, source, form, context extraction
 
 - Move concept mutations behind typed owner-layer functions.
