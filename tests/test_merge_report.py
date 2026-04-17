@@ -4,7 +4,7 @@ from __future__ import annotations
 import yaml
 
 from propstore.identity import compute_claim_version_id
-from propstore.repo import KnowledgeRepo
+from propstore.repo import GitStore
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_report import summarize_merge_framework
@@ -67,12 +67,12 @@ def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_
     return yaml.dump(normalized, sort_keys=False).encode()
 
 
-def _snapshot(kr: KnowledgeRepo) -> RepoSnapshot:
+def _snapshot(kr: GitStore) -> RepoSnapshot:
     return RepoSnapshot.for_git(kr)
 
 
 def test_merge_report_surfaces_conflict_query_state(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
@@ -123,7 +123,7 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
 
 
 def test_merge_report_surfaces_ignorance_query_state(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
@@ -178,7 +178,7 @@ def test_merge_report_surfaces_ignorance_query_state(tmp_path):
 
 
 def test_merge_report_surfaces_semantic_candidates_without_forced_fusion(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/candidates"
     create_branch(kr, branch_name, source_commit=base_sha)

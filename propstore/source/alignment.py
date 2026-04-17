@@ -9,7 +9,7 @@ from propstore.artifacts.families import CONCEPT_ALIGNMENT_FAMILY, CONCEPT_FILE_
 from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.artifacts.refs import ConceptAlignmentRef, ConceptFileRef
 from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.artifacts.schema import convert_document_value
 from propstore.repo.merge_framework import PartialArgumentationFramework
 from propstore.repo.paf_queries import credulously_accepted_arguments, skeptically_accepted_arguments

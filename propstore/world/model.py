@@ -35,7 +35,7 @@ from propstore.knowledge_path import FilesystemKnowledgePath, KnowledgePath
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 
 if TYPE_CHECKING:
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
     from propstore.world.bound import BoundWorld
     from propstore.context_hierarchy import ContextHierarchy
 from propstore.world.resolution import resolve

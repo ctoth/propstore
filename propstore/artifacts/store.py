@@ -18,7 +18,7 @@ from propstore.artifacts.types import (
 from propstore.repo.branch import branch_head
 
 if TYPE_CHECKING:
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
 
 class ArtifactStore:

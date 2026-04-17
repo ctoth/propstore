@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.artifacts import SOURCE_DOCUMENT_FAMILY, SourceRef
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document, source_branch_name
 from propstore.artifacts.documents.sources import SourceDocument

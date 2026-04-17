@@ -151,7 +151,7 @@ def graph_build_world(tmp_path):
         encoding="utf-8",
     )
 
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     repo = Repository(knowledge)
     build_sidecar(knowledge, repo.sidecar_path)

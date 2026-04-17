@@ -27,7 +27,7 @@ from propstore.artifacts.refs import (
     source_branch_name,
 )
 from propstore.artifacts.families import SOURCE_METADATA_FAMILY, SOURCE_NOTES_FAMILY
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.provenance import ProvenanceStatus
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri

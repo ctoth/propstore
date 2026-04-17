@@ -11,7 +11,7 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from tests.conftest import (
     attach_claim_version_id,
     make_claim_identity,

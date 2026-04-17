@@ -16,7 +16,7 @@ import time
 import pytest
 from dulwich.objects import Commit
 
-from propstore.repo import KnowledgeRepo
+from propstore.repo import GitStore
 from propstore.repo.branch import (
     BranchInfo,
     branch_head,
@@ -29,7 +29,7 @@ from propstore.repo.git_backend import _set_symbolic_ref
 
 
 def _create_two_parent_commit(
-    kr: KnowledgeRepo,
+    kr: GitStore,
     *,
     left_parent: str,
     right_parent: str,
@@ -65,7 +65,7 @@ def test_create_branch_from_master(tmp_path):
     defaults to current branch tip. The new branch must appear in
     list_branches() and its tip must equal master's HEAD.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
     master_sha = kr.head_sha()
 
@@ -85,7 +85,7 @@ def test_create_branch_from_commit(tmp_path):
     irrelevant to this branch's starting state. This is an analogy, not
     a formal C1 verification (which requires a revision operator).
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     sha_a = kr.commit_files({"a.yaml": b"x: 1\n"}, "commit A")
     sha_b = kr.commit_files({"b.yaml": b"y: 2\n"}, "commit B")
 
@@ -101,7 +101,7 @@ def test_create_branch_kinds(tmp_path):
     Propstore spec: three branch kinds — paper/{slug}, agent/{run_id},
     hypothesis/{name}. BranchInfo.kind must reflect the prefix.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
 
     create_branch(kr, "paper/foo")
@@ -120,7 +120,7 @@ def test_delete_branch(tmp_path):
     Basic CRUD: after deletion, the branch must not appear in
     list_branches() and branch_head() must return None.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
     create_branch(kr, "paper/ephemeral")
 
@@ -133,7 +133,7 @@ def test_delete_branch(tmp_path):
 
 def test_delete_current_head_branch_refused(tmp_path):
     """Deleting the current HEAD branch must raise ValueError."""
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
     create_branch(kr, "paper/active")
     _set_symbolic_ref(kr._repo.refs, b"HEAD", b"refs/heads/paper/active")
@@ -148,7 +148,7 @@ def test_list_branches_includes_master(tmp_path):
     Master is always present — it is the default epistemic state
     from which all branches fork.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
 
     branches = list_branches(kr)
@@ -167,7 +167,7 @@ def test_commit_to_branch_isolation(tmp_path):
     satisfaction requires a revision operator (Phase 2+); this test
     verifies the structural independence that makes C1-C4 applicable.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "commit A to master")
 
     create_branch(kr, "paper/test")
@@ -193,7 +193,7 @@ def test_branch_linear_history(tmp_path):
     satisfy BU — each commit has exactly one parent (except the root
     which has zero). This rules out merge commits within a branch.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "root")
     create_branch(kr, "paper/linear")
 
@@ -224,7 +224,7 @@ def test_parallel_branch_divergence(tmp_path):
     Master and branch must each contain only their own commits after
     the fork.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     sha_a = kr.commit_files({"a.yaml": b"shared\n"}, "commit A (shared)")
 
     create_branch(kr, "paper/diverge")
@@ -258,7 +258,7 @@ def test_merge_base_simple(tmp_path):
     the common knowledge base from which both branches evolved. IC0
     satisfaction requires the merge operator itself (Phase 2+).
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     sha_a = kr.commit_files({"a.yaml": b"x: 1\n"}, "commit A")
 
     create_branch(kr, "paper/test", source_commit=sha_a)
@@ -275,7 +275,7 @@ def test_merge_base_no_divergence(tmp_path):
     When a branch is created and neither side commits, the merge base
     is the branch point itself (trivially the common ancestor).
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     sha_a = kr.commit_files({"a.yaml": b"x: 1\n"}, "commit A")
 
     create_branch(kr, "paper/test", source_commit=sha_a)
@@ -292,7 +292,7 @@ def test_merge_base_deep_history(tmp_path):
     and further commits on both sides, merge_base must return commit 3
     — the unique branching point in the forward-tree structure.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
 
     shas = []
     for i in range(5):
@@ -316,7 +316,7 @@ def test_merge_base_same_branch(tmp_path):
 
     Trivial case: a branch's common ancestor with itself is its tip.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     sha = kr.commit_files({"a.yaml": b"x: 1\n"}, "commit A")
 
     result = merge_base(kr, "master", "master")
@@ -332,7 +332,7 @@ def test_merge_base_prefers_nearer_common_ancestor_over_older_one(tmp_path):
 
     The correct merge base of master and the branch is B, not A.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files({"base.yaml": b"base\n"}, "base")
     create_branch(kr, "paper/merge", source_commit=base_sha)
     branch_tip = kr.commit_files(
@@ -357,14 +357,14 @@ def test_merge_base_prefers_nearer_common_ancestor_over_older_one(tmp_path):
 
 
 def test_existing_api_unchanged(tmp_path):
-    """KnowledgeRepo public API works identically when imported from propstore.repo.
+    """GitStore public API works identically when imported from propstore.repo.
 
     All existing operations (init, commit_files, read_file, list_dir,
     head_sha, log) must work without a branch parameter, defaulting to
     the current HEAD branch. This ensures the Phase 1 refactor does not break any
     existing callers.
     """
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed master")
     master_tip = kr.head_sha()
     create_branch(kr, "paper/current")
@@ -393,13 +393,13 @@ def test_existing_api_unchanged(tmp_path):
     assert entries[0]["message"].startswith("add b")
 
 
-def test_old_import_path_works():
-    """propstore.repo is the canonical import path for KnowledgeRepo.
+def test_canonical_git_store_import_path_works():
+    """propstore.repo is the canonical import path for GitStore.
 
     All callers have been updated to import from propstore.repo directly.
     Verify the new canonical path works.
     """
-    from propstore.repo import KnowledgeRepo as NewKR
+    from propstore.repo import GitStore as ImportedGitStore
 
     # Must not raise ImportError — the canonical path works
-    assert NewKR is not None
+    assert ImportedGitStore is not None

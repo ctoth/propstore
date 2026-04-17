@@ -137,7 +137,7 @@ def property_kb(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def property_world(property_kb):
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
     repo = Repository(property_kb)
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
     build_sidecar(property_kb, repo.sidecar_path)

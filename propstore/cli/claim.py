@@ -13,7 +13,7 @@ from pathlib import Path
 import click
 
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.artifacts.schema import DocumentSchemaError
 from propstore.knowledge_path import coerce_knowledge_path
 

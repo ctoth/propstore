@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.artifacts import SOURCE_CONCEPTS_FAMILY, SourceRef
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.artifacts.schema import decode_document_path
 
 from .common import load_source_concepts_document

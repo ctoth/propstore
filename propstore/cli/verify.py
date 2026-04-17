@@ -6,7 +6,7 @@ import click
 
 from propstore.artifacts.codecs import render_yaml_value
 from propstore.artifacts.codes import verify_claim_tree
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 
 
 @click.group()

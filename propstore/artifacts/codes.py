@@ -21,7 +21,7 @@ from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.uri import ni_uri_for_file
 
 if TYPE_CHECKING:
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
 
 def _hash_payload(payload: dict[str, Any]) -> str:

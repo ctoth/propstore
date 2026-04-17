@@ -25,7 +25,7 @@ from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.core.concepts import load_concepts
 
 if TYPE_CHECKING:
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
 
 @dataclass(frozen=True)

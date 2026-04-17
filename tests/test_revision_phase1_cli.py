@@ -7,7 +7,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
