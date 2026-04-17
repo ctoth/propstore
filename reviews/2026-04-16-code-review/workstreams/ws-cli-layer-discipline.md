@@ -339,6 +339,18 @@ Status 2026-04-17: claim show/compare slice landed.
   - `logs/test-runs/cli-layer-claim-show-compare-20260417-174436.log` - 5 passed.
   - `uv run pyright propstore/claims.py` - 0 errors.
 
+Status 2026-04-17: form show slice landed.
+
+- Added `show_form`, `FormShowReport`, algebra line types, and
+  `FormNotFoundError` to `propstore.form_utils`.
+- Replaced CLI-owned form YAML lookup, conversion report source loading, and
+  sidecar algebra lookup with the owner report. CLI now renders the sections.
+- Added owner coverage for YAML/conversion reporting, paired with existing
+  form conversion and algebra CLI tests.
+- Verification:
+  - `logs/test-runs/cli-layer-form-show-20260417-174758.log` - 6 passed.
+  - `uv run pyright propstore/form_utils.py` - 0 errors.
+
 ### Phase CLI-5 - Worldline, grounding, micropub, history extraction
 
 - Move worldline definition/request construction and materialization reporting
