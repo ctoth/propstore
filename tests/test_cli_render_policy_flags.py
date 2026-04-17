@@ -33,7 +33,12 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.world import RenderPolicy, WorldModel
-from propstore.world.queries import WorldStatusRequest, get_world_status
+from propstore.world.queries import (
+    WorldConceptQueryRequest,
+    WorldStatusRequest,
+    get_world_status,
+    query_world_concept,
+)
 from tests.conftest import normalize_concept_payloads
 
 
@@ -309,6 +314,54 @@ class TestWorldStatusFlags:
 
 class TestWorldQueryFlags:
     """`pks world query <concept>` lists claims under policy."""
+
+    def test_owner_report_default_hides_draft(self, seeded_workspace: Path) -> None:
+        aid = _concept_id(seeded_workspace)
+        repo = Repository.find(seeded_workspace / "knowledge")
+        wm = WorldModel(repo)
+        try:
+            report = query_world_concept(
+                wm,
+                WorldConceptQueryRequest(target=aid, policy=RenderPolicy()),
+            )
+        finally:
+            wm.close()
+
+        assert [claim.display_id for claim in report.claims] == ["claim_fixture_final"]
+        assert report.diagnostics == ()
+
+    def test_owner_report_all_flags_surfaces_diagnostics(
+        self,
+        seeded_workspace: Path,
+    ) -> None:
+        aid = _concept_id(seeded_workspace)
+        repo = Repository.find(seeded_workspace / "knowledge")
+        wm = WorldModel(repo)
+        try:
+            report = query_world_concept(
+                wm,
+                WorldConceptQueryRequest(
+                    target=aid,
+                    policy=RenderPolicy(
+                        include_drafts=True,
+                        include_blocked=True,
+                        show_quarantined=True,
+                    ),
+                ),
+            )
+        finally:
+            wm.close()
+
+        assert {claim.display_id for claim in report.claims} == {
+            "claim_fixture_final",
+            "claim_fixture_draft",
+            "claim_fixture_blocked",
+            "claim_fixture_promote_blocked",
+        }
+        assert [diagnostic.diagnostic_kind for diagnostic in report.diagnostics] == [
+            "raw_id_input",
+            "promotion_blocked",
+        ]
 
     def test_default_hides_draft(self, seeded_workspace: Path) -> None:
         runner = CliRunner()
