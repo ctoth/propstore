@@ -84,10 +84,6 @@ def test_repository_facade_does_not_depend_on_world_model() -> None:
         assert store_defs == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="WS-A0 red gate: canonical concept loading must go through artifact families/store.",
-)
 def test_core_concept_loading_does_not_decode_concept_documents_directly() -> None:
     path = ROOT / "propstore" / "core" / "concepts.py"
     tree = _parse(path)
@@ -96,9 +92,12 @@ def test_core_concept_loading_does_not_decode_concept_documents_directly() -> No
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        if not isinstance(node.func, ast.Name) or node.func.id != "load_document":
+        if not isinstance(node.func, ast.Name):
+            continue
+        if node.func.id not in {"load_document", "decode_document", "decode_document_bytes"}:
             continue
         if any(isinstance(arg, ast.Name) and arg.id == "ConceptDocument" for arg in node.args):
             direct_decode_calls.append(node.lineno)
 
     assert direct_decode_calls == []
+    assert "CONCEPT_FILE_FAMILY" in path.read_text(encoding="utf-8")

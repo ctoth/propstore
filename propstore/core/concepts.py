@@ -15,12 +15,14 @@ from propstore.artifacts.documents.concepts import (
     ConceptRelationshipDocument,
     ParameterizationRelationshipDocument,
 )
+from propstore.artifacts.codecs import decode_document
+from propstore.artifacts.families import CONCEPT_FILE_FAMILY
 from propstore.core.concept_status import ConceptStatus, coerce_concept_status
 from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     coerce_concept_relationship_type,
 )
-from propstore.artifacts.schema import load_document, to_document_builtins
+from propstore.artifacts.schema import to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (
@@ -655,16 +657,25 @@ def format_loaded_concept_logical_ids(record: ConceptRecord) -> list[dict[str, s
 
 
 def load_concepts(concepts_root: KnowledgePath | None) -> list[LoadedConcept]:
-    """Load all canonical concept YAML files from a concept subtree."""
+    """Load canonical concept artifacts from a concept subtree."""
 
     if concepts_root is None or not concepts_root.is_dir():
         return []
     knowledge_root = concepts_root.parent if concepts_root.name else concepts_root
     loaded_documents = [
-        load_document(
-            entry,
-            ConceptDocument,
+        LoadedDocument(
+            filename=entry.stem,
+            source_path=entry,
             knowledge_root=knowledge_root,
+            document=(
+                CONCEPT_FILE_FAMILY.decode_bytes(entry.read_bytes(), entry.as_posix())
+                if CONCEPT_FILE_FAMILY.decode_bytes is not None
+                else decode_document(
+                    entry.read_bytes(),
+                    CONCEPT_FILE_FAMILY.doc_type,
+                    source=entry.as_posix(),
+                )
+            ),
         )
         for entry in concepts_root.iterdir()
         if entry.is_file() and entry.suffix == ".yaml"
