@@ -16,6 +16,7 @@ from propstore.claims import ClaimCompareRequest, ClaimComparisonError, compare_
 from propstore.cli import cli
 from propstore.fragility import FragilityRequest, query_fragility
 from propstore.graph_export import GraphExportRequest, export_knowledge_graph
+from propstore.form_utils import show_form
 from propstore.repository import Repository
 from propstore.sensitivity import SensitivityRequest, query_sensitivity
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
@@ -1844,6 +1845,25 @@ class TestFormShowConversions:
         assert result.exit_code == 0, result.output
         assert "Unit Conversions" in result.output
         assert "kHz" in result.output
+
+    def test_owner_form_show_reports_yaml_and_conversions(self, workspace: Path) -> None:
+        self._write_form_with_conversions(workspace, "frequency", {
+            "name": "frequency",
+            "kind": "quantity",
+            "dimensionless": False,
+            "unit_symbol": "Hz",
+            "dimensions": {"T": -1},
+            "common_alternatives": [
+                {"unit": "kHz", "type": "multiplicative", "multiplier": 1000},
+            ],
+        })
+        repo = Repository.find(workspace)
+
+        report = show_form(repo, "frequency")
+
+        assert "name: frequency" in report.yaml_text
+        assert report.form is not None
+        assert "kHz" in report.form.conversions
 
     def test_form_show_no_conversions_for_category(self, workspace: Path) -> None:
         runner = CliRunner()

@@ -5,7 +5,7 @@ import datetime
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from propstore.artifacts.documents.forms import (
     FormDocument,
@@ -16,6 +16,9 @@ from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore import dimensions as dimension_api
 from propstore.diagnostics import ValidationResult
 from propstore.resources import load_resource_json
+
+if TYPE_CHECKING:
+    from propstore.repository import Repository
 
 
 @dataclass
@@ -32,8 +35,79 @@ class FormDefinition:
     conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
 
 
+class FormNotFoundError(Exception):
+    def __init__(self, name: str) -> None:
+        super().__init__(f"Form '{name}' not found")
+        self.name = name
+
+
+@dataclass(frozen=True)
+class FormAlgebraDecomposition:
+    input_forms: tuple[str, ...]
+    source_formula: object
+    source_concept_id: object
+
+
+@dataclass(frozen=True)
+class FormAlgebraUse:
+    output_form: object
+    input_forms: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class FormShowReport:
+    yaml_text: str
+    form: FormDefinition | None
+    decompositions: tuple[FormAlgebraDecomposition, ...] = ()
+    uses: tuple[FormAlgebraUse, ...] = ()
+
+
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
 _form_schema_cache: dict[str, Any] | None = None
+
+
+def show_form(
+    repo: Repository,
+    name: str,
+) -> FormShowReport:
+    forms_tree = repo.tree() / "forms"
+    path = forms_tree / f"{name}.yaml"
+    if not path.exists():
+        raise FormNotFoundError(name)
+
+    form_def = load_form_path(forms_tree, name)
+    decompositions: tuple[FormAlgebraDecomposition, ...] = ()
+    uses: tuple[FormAlgebraUse, ...] = ()
+    if repo.sidecar_path.exists():
+        try:
+            from propstore.world import WorldModel
+
+            with WorldModel(repo) as world:
+                decompositions = tuple(
+                    FormAlgebraDecomposition(
+                        input_forms=tuple(json.loads(entry["input_forms"])),
+                        source_formula=entry.get("source_formula"),
+                        source_concept_id=entry.get("source_concept_id", "?"),
+                    )
+                    for entry in world.form_algebra_for(name)
+                )
+                uses = tuple(
+                    FormAlgebraUse(
+                        output_form=entry["output_form"],
+                        input_forms=tuple(json.loads(entry["input_forms"])),
+                    )
+                    for entry in world.form_algebra_using(name)
+                )
+        except Exception:
+            decompositions = ()
+            uses = ()
+
+    return FormShowReport(
+        yaml_text=path.read_text(),
+        form=form_def,
+        decompositions=decompositions,
+        uses=uses,
+    )
 
 
 def clear_form_cache() -> None:

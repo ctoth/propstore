@@ -12,7 +12,13 @@ from propstore.artifacts.codecs import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.repository import Repository
 from propstore.artifacts.schema import DocumentSchemaError, convert_document_value
-from propstore.form_utils import load_all_forms_path, load_form_definition, load_form_path, validate_form_files
+from propstore.form_utils import (
+    FormNotFoundError,
+    load_all_forms_path,
+    load_form_definition,
+    show_form,
+    validate_form_files,
+)
 from propstore.core.concepts import load_concepts
 
 
@@ -105,15 +111,14 @@ def show(obj: dict, name: str) -> None:
     concept parameterizations, and forms that use this one).
     """
     repo: Repository = obj["repo"]
-    forms_tree = repo.tree() / "forms"
-    path = forms_tree / f"{name}.yaml"
-    if not path.exists():
+    try:
+        report = show_form(repo, name)
+    except FormNotFoundError:
         click.echo(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
-    click.echo(path.read_text())
+    click.echo(report.yaml_text)
 
-    # Display unit conversions if the form has any
-    form_def = load_form_path(forms_tree, name)
+    form_def = report.form
     if form_def and form_def.conversions:
         click.echo("Unit Conversions:")
         si = form_def.unit_symbol or "SI"
@@ -127,32 +132,22 @@ def show(obj: dict, name: str) -> None:
             else:
                 click.echo(f"  {conv.unit} \u2192 {si}  ({conv.type})")
 
-    # Append algebra from sidecar if available
-    if repo.sidecar_path.exists():
-        try:
-            from propstore.world import WorldModel
-            wm = WorldModel(repo)
-            decompositions = wm.form_algebra_for(name)
-            uses = wm.form_algebra_using(name)
-            wm.close()
-
-            if decompositions or uses:
-                click.echo("---")
-                click.echo("# Form Algebra (derived from concept parameterizations)")
-            if decompositions:
-                click.echo("decompositions:")
-                for entry in decompositions:
-                    input_forms = json.loads(entry["input_forms"])
-                    click.echo(f"  - {name} = {' * '.join(input_forms)}")
-                    if entry.get("source_formula"):
-                        click.echo(f"    from: {entry['source_formula']} ({entry.get('source_concept_id', '?')})")
-            if uses:
-                click.echo("used_in:")
-                for entry in uses:
-                    input_forms = json.loads(entry["input_forms"])
-                    click.echo(f"  - {entry['output_form']} = {' * '.join(input_forms)}")
-        except (FileNotFoundError, Exception):
-            pass  # No sidecar or error — just show the YAML
+    if report.decompositions or report.uses:
+        click.echo("---")
+        click.echo("# Form Algebra (derived from concept parameterizations)")
+    if report.decompositions:
+        click.echo("decompositions:")
+        for entry in report.decompositions:
+            click.echo(f"  - {name} = {' * '.join(entry.input_forms)}")
+            if entry.source_formula:
+                click.echo(
+                    f"    from: {entry.source_formula} "
+                    f"({entry.source_concept_id})"
+                )
+    if report.uses:
+        click.echo("used_in:")
+        for entry in report.uses:
+            click.echo(f"  - {entry.output_form} = {' * '.join(entry.input_forms)}")
 
 
 # ── form add ─────────────────────────────────────────────────────────
