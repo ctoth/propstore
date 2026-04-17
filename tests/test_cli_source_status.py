@@ -21,7 +21,9 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.source import (
+    SourceStatusState,
     finalize_source_branch,
+    inspect_source_status,
     promote_source_branch,
 )
 from tests.conftest import TEST_CONTEXT_ID, make_test_context_commit_entry, normalize_concept_payloads
@@ -212,6 +214,35 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
 
 
 # ── Behavioral contract ─────────────────────────────────────────────
+
+
+def test_source_status_report_lists_blocked_promotion_rows(
+    promoted_partial: tuple[Repository, str]
+) -> None:
+    repo, source_name = promoted_partial
+
+    report = inspect_source_status(repo, source_name)
+
+    assert report.state is SourceStatusState.HAS_ROWS
+    assert report.branch == "source/mixed"
+    assert len(report.rows) == 1
+    row = report.rows[0]
+    assert row.promotion_status == "blocked"
+    assert row.diagnostics
+    assert any(
+        diagnostic.kind == "promotion_blocked"
+        or "unresolved" in diagnostic.message.lower()
+        for diagnostic in row.diagnostics
+    )
+
+
+def test_source_status_report_marks_missing_sidecar(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+
+    report = inspect_source_status(repo, "clean")
+
+    assert report.state is SourceStatusState.SIDECAR_MISSING
+    assert report.rows == ()
 
 
 def test_source_status_lists_blocked_promotion_rows(
