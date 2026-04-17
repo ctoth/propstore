@@ -559,6 +559,49 @@ def _parse_bindings(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
     return parsed, concept_id
 
 
+def _parse_hypothetical_add(add_json: str | None):
+    """Parse the CLI JSON payload for ``world hypothetical --add``."""
+    from propstore.world.queries import WorldHypotheticalSyntheticClaimSpec
+
+    if add_json is None:
+        return ()
+    try:
+        raw = json.loads(add_json)
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(f"invalid --add JSON: {exc.msg}") from exc
+    entries = [raw] if isinstance(raw, dict) else raw
+    if not isinstance(entries, list):
+        raise click.ClickException("--add JSON must be an object or a list of objects")
+    specs: list[WorldHypotheticalSyntheticClaimSpec] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise click.ClickException("--add JSON entries must be objects")
+        claim_id = entry.get("id")
+        concept_id = entry.get("concept_id")
+        if not isinstance(claim_id, str) or not claim_id:
+            raise click.ClickException("--add JSON entries require string id")
+        if not isinstance(concept_id, str) or not concept_id:
+            raise click.ClickException("--add JSON entries require string concept_id")
+        conditions = entry.get("conditions", [])
+        if not isinstance(conditions, list):
+            raise click.ClickException("--add JSON conditions must be a list")
+        value = entry.get("value")
+        if value is not None and (
+            not isinstance(value, str | int | float) or isinstance(value, bool)
+        ):
+            raise click.ClickException("--add JSON value must be a string or number")
+        specs.append(
+            WorldHypotheticalSyntheticClaimSpec(
+                claim_id=claim_id,
+                concept_id=concept_id,
+                claim_type=entry.get("type", "parameter"),
+                value=float(value) if isinstance(value, int | float) else value,
+                conditions=tuple(conditions),
+            )
+        )
+    return tuple(specs)
+
+
 def _format_revision_payload(payload: dict) -> str:
     claim_type = payload.get("type")
     concept_id = payload.get("concept_id")
@@ -1487,26 +1530,30 @@ def world_derive(
 
     Usage: pks world derive concept5 domain=example --include-drafts
     """
-    from propstore.world import WorldModel
+    from propstore.world.queries import WorldDeriveRequest, derive_world_value
 
     repo: Repository = obj["repo"]
     policy = _lifecycle_policy(include_drafts, include_blocked, show_quarantined)
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        resolved = _resolve_world_target(wm, concept_id)
-        bound = _bind_world(wm, bindings, policy=policy)
-        result = bound.derived_value(resolved)
+        report = derive_world_value(
+            wm,
+            WorldDeriveRequest(
+                concept_id=concept_id,
+                bindings=bindings,
+                policy=policy,
+            ),
+        )
 
-    click.echo(f"{resolved}: {result.status}")
-    if result.value is not None:
-        click.echo(f"  value: {result.value}")
-    if result.formula:
-        click.echo(f"  formula: {result.formula}")
-    if result.input_values:
-        click.echo(f"  inputs: {result.input_values}")
-    if result.exactness:
-        click.echo(f"  exactness: {result.exactness}")
-    wm.close()
+    click.echo(f"{report.concept_id}: {report.status}")
+    if report.value is not None:
+        click.echo(f"  value: {report.value}")
+    if report.formula:
+        click.echo(f"  formula: {report.formula}")
+    if report.input_values:
+        click.echo(f"  inputs: {report.input_values}")
+    if report.exactness:
+        click.echo(f"  exactness: {report.exactness}")
 
 
 @world.command("resolve")
@@ -1924,36 +1971,31 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
 
     Usage: pks world hypothetical domain=example --remove claim2
     """
-    from propstore.core.id_types import to_concept_id
-    from propstore.world import HypotheticalWorld, SyntheticClaim, WorldModel
+    from propstore.world.queries import (
+        WorldHypotheticalRequest,
+        diff_hypothetical_world,
+    )
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings)
-        synthetics: list[SyntheticClaim] = []
-        if add_json:
-            data = json.loads(add_json)
-            if isinstance(data, dict):
-                data = [data]
-            for d in data:
-                synthetics.append(SyntheticClaim(
-                    id=d["id"],
-                    concept_id=to_concept_id(d["concept_id"]),
-                    type=d.get("type", "parameter"),
-                    value=d.get("value"),
-                    conditions=d.get("conditions", []),
-                ))
+        report = diff_hypothetical_world(
+            wm,
+            WorldHypotheticalRequest(
+                bindings=bindings,
+                remove_claim_ids=tuple(remove),
+                add_claims=_parse_hypothetical_add(add_json),
+            ),
+        )
 
-        resolved_remove = [wm.resolve_claim(claim_id) or claim_id for claim_id in remove]
-        hypo = HypotheticalWorld(bound, remove=resolved_remove, add=synthetics)
-        diff = hypo.diff()
-
-        if not diff:
-            click.echo("No changes detected.")
-        else:
-            for cid, (base_vr, hypo_vr) in diff.items():
-                click.echo(f"{_world_concept_display_id(wm, cid)}: {base_vr.status} → {hypo_vr.status}")
+    if not report.changes:
+        click.echo("No changes detected.")
+    else:
+        for change in report.changes:
+            click.echo(
+                f"{change.concept_display_id}: "
+                f"{change.base_status} → {change.hypothetical_status}"
+            )
 
 
 @world.command("chain")

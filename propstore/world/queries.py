@@ -163,6 +163,51 @@ class WorldAlgorithmsReport:
     algorithms: tuple[WorldAlgorithmLine, ...]
 
 
+@dataclass(frozen=True)
+class WorldDeriveRequest:
+    concept_id: str
+    bindings: Mapping[str, str]
+    policy: RenderPolicy
+
+
+@dataclass(frozen=True)
+class WorldDeriveReport:
+    concept_id: str
+    status: object
+    value: object
+    formula: object
+    input_values: object
+    exactness: object
+
+
+@dataclass(frozen=True)
+class WorldHypotheticalSyntheticClaimSpec:
+    claim_id: str
+    concept_id: str
+    claim_type: object = "parameter"
+    value: float | str | None = None
+    conditions: tuple[object, ...] = ()
+
+
+@dataclass(frozen=True)
+class WorldHypotheticalRequest:
+    bindings: Mapping[str, str]
+    remove_claim_ids: tuple[str, ...] = ()
+    add_claims: tuple[WorldHypotheticalSyntheticClaimSpec, ...] = ()
+
+
+@dataclass(frozen=True)
+class WorldHypotheticalChangeLine:
+    concept_display_id: str
+    base_status: object
+    hypothetical_status: object
+
+
+@dataclass(frozen=True)
+class WorldHypotheticalReport:
+    changes: tuple[WorldHypotheticalChangeLine, ...]
+
+
 def _maybe_float(value: object) -> float | None:
     if isinstance(value, bool):
         return None
@@ -408,5 +453,69 @@ def list_world_algorithms(
                 else "-",
             )
             for claim in algorithms
+        )
+    )
+
+
+def derive_world_value(
+    world: WorldModel,
+    request: WorldDeriveRequest,
+) -> WorldDeriveReport:
+    from propstore.core.environment import Environment
+
+    resolved = resolve_world_target(world, request.concept_id)
+    bound = world.bind(
+        Environment(bindings=dict(request.bindings)),
+        policy=request.policy,
+    )
+    result = bound.derived_value(resolved)
+    return WorldDeriveReport(
+        concept_id=resolved,
+        status=result.status,
+        value=result.value,
+        formula=result.formula,
+        input_values=result.input_values,
+        exactness=result.exactness,
+    )
+
+
+def diff_hypothetical_world(
+    world: WorldModel,
+    request: WorldHypotheticalRequest,
+) -> WorldHypotheticalReport:
+    from propstore.cel_types import to_cel_exprs
+    from propstore.core.claim_types import ClaimType, coerce_claim_type
+    from propstore.core.environment import Environment
+    from propstore.core.id_types import to_concept_id
+    from propstore.world import HypotheticalWorld, SyntheticClaim
+
+    bound = world.bind(Environment(bindings=dict(request.bindings)))
+    synthetics = [
+        SyntheticClaim(
+            id=spec.claim_id,
+            concept_id=to_concept_id(spec.concept_id),
+            type=coerce_claim_type(spec.claim_type) or ClaimType.PARAMETER,
+            value=spec.value,
+            conditions=list(to_cel_exprs(spec.conditions)),
+        )
+        for spec in request.add_claims
+    ]
+    resolved_remove = [
+        world.resolve_claim(claim_id) or claim_id
+        for claim_id in request.remove_claim_ids
+    ]
+    diff = HypotheticalWorld(
+        bound,
+        remove=resolved_remove,
+        add=synthetics,
+    ).diff()
+    return WorldHypotheticalReport(
+        changes=tuple(
+            WorldHypotheticalChangeLine(
+                concept_display_id=world_concept_display_id(world, concept_id),
+                base_status=base.status,
+                hypothetical_status=hypothetical.status,
+            )
+            for concept_id, (base, hypothetical) in diff.items()
         )
     )

@@ -190,6 +190,22 @@ Status 2026-04-17: `pks world explain` and `pks world algorithms` slice landed.
   - `logs/test-runs/cli-layer-world-explain-algorithms-20260417-171434.log` - 9 passed.
   - `uv run pyright propstore/world/queries.py` - 0 errors.
 
+Status 2026-04-17: `pks world derive` and `pks world hypothetical` slice landed.
+
+- Added `WorldDeriveRequest`, `WorldDeriveReport`, and `derive_world_value`.
+- Added typed hypothetical synthetic-claim specs, change lines, reports, and
+  `diff_hypothetical_world`.
+- Replaced CLI-owned world binding, derivation, synthetic-claim construction,
+  claim removal resolution, and hypothetical diff shaping with owner-layer
+  reports. The CLI remains responsible for parsing raw JSON from `--add` and
+  rendering text.
+- Added direct owner tests for derive status and removed-claim hypothetical
+  changes, and expanded the CLI lifecycle regression coverage to include
+  `world derive`.
+- Verification:
+  - `logs/test-runs/cli-layer-world-derive-hypothetical-20260417-171913.log` - 12 passed.
+  - `uv run pyright propstore/world/queries.py` - 0 errors.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.
