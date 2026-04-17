@@ -14,12 +14,37 @@ from __future__ import annotations
 
 from typing import Any
 
-from z3 import And, Bool, BoolVal, ModelRef, Not, Or, Solver, is_true, sat
+from z3 import And, Bool, BoolVal, ModelRef, Not, Or, Solver, is_true
 
 from propstore.dung import ArgumentationFramework, _attackers_index
+from propstore.z3_conditions import (
+    DEFAULT_Z3_TIMEOUT_MS,
+    SolverSat,
+    SolverUnknown,
+    Z3UnknownError,
+    solver_result_from_z3,
+)
 
 
 Z3BoolExpr = Any
+
+
+def _new_solver() -> Solver:
+    solver = Solver()
+    solver.set(timeout=DEFAULT_Z3_TIMEOUT_MS)
+    return solver
+
+
+def _next_model(solver: Solver) -> ModelRef | None:
+    result = solver_result_from_z3(solver)
+    if isinstance(result, SolverSat):
+        model = result.model
+        if not isinstance(model, ModelRef):
+            raise TypeError("Z3 SAT result did not include a model")
+        return model
+    if isinstance(result, SolverUnknown):
+        raise Z3UnknownError(result)
+    return None
 
 
 def _make_vars(
@@ -145,11 +170,10 @@ def z3_stable_extensions(
 
     # Enumerate all solutions
     results: list[frozenset[str]] = []
-    solver = Solver()
+    solver = _new_solver()
     solver.add(*base_constraints)
 
-    while solver.check() == sat:
-        model = solver.model()
+    while (model := _next_model(solver)) is not None:
         ext = _extract_extension(v, model)
         results.append(ext)
         solver.add(*_block_solution(v, ext))
@@ -191,11 +215,10 @@ def z3_complete_extensions(
 
     # Enumerate
     results: list[frozenset[str]] = []
-    solver = Solver()
+    solver = _new_solver()
     solver.add(*base_constraints)
 
-    while solver.check() == sat:
-        model = solver.model()
+    while (model := _next_model(solver)) is not None:
         ext = _extract_extension(v, model)
         results.append(ext)
         solver.add(*_block_solution(v, ext))

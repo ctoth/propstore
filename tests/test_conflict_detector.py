@@ -1240,7 +1240,7 @@ class TestParameterZ3FailureHandling:
             return_value=[[0, 1], [2]],
         ), patch.object(
             solver,
-            "are_disjoint",
+            "are_disjoint_result",
             side_effect=RuntimeError("unexpected"),
         ):
             with pytest.raises(RuntimeError, match="unexpected"):

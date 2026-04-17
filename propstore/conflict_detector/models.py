@@ -128,6 +128,7 @@ class ConflictClaim:
 
 class ConflictClass(Enum):
     COMPATIBLE = "COMPATIBLE"
+    UNKNOWN = "UNKNOWN"
     PHI_NODE = "PHI_NODE"
     CONFLICT = "CONFLICT"
     OVERLAP = "OVERLAP"

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from propstore.cel_types import CelExpr
 from propstore.cel_checker import ConceptInfo
 from propstore.conflict_detector.models import ConflictClass
+from propstore.z3_conditions import SolverSat, SolverUnknown, SolverUnsat
 
 if TYPE_CHECKING:
     from propstore.z3_conditions import Z3ConditionSolver
@@ -29,10 +30,21 @@ def _try_z3_classify(
             raise RuntimeError("Z3 condition reasoning is required but unavailable") from exc
         solver = Z3ConditionSolver(cel_registry)
 
-    if solver.are_equivalent(conditions_a, conditions_b):
+    equivalence = solver.are_equivalent_result(conditions_a, conditions_b)
+    if isinstance(equivalence, SolverUnknown):
+        return ConflictClass.UNKNOWN
+    if isinstance(equivalence, SolverUnsat):
         return ConflictClass.CONFLICT
-    if solver.are_disjoint(conditions_a, conditions_b):
+    if not isinstance(equivalence, SolverSat):
+        raise TypeError(f"Unexpected solver result: {type(equivalence).__name__}")
+
+    disjointness = solver.are_disjoint_result(conditions_a, conditions_b)
+    if isinstance(disjointness, SolverUnknown):
+        return ConflictClass.UNKNOWN
+    if isinstance(disjointness, SolverUnsat):
         return ConflictClass.PHI_NODE
+    if not isinstance(disjointness, SolverSat):
+        raise TypeError(f"Unexpected solver result: {type(disjointness).__name__}")
     return ConflictClass.OVERLAP
 
 

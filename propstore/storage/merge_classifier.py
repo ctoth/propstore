@@ -23,6 +23,26 @@ class _DiffKind(Enum):
     COMPATIBLE = "compatible"
     CONFLICT = "conflict"
     PHI_NODE = "phi_node"
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def from_conflict_class(cls, conflict_class: object) -> _DiffKind:
+        from propstore.conflict_detector import ConflictClass
+
+        if conflict_class in (
+            ConflictClass.CONFLICT,
+            ConflictClass.OVERLAP,
+            ConflictClass.PARAM_CONFLICT,
+        ):
+            return cls.CONFLICT
+        if conflict_class in (
+            ConflictClass.PHI_NODE,
+            ConflictClass.CONTEXT_PHI_NODE,
+        ):
+            return cls.PHI_NODE
+        if conflict_class == ConflictClass.UNKNOWN:
+            return cls.UNKNOWN
+        return cls.COMPATIBLE
 
 
 @dataclass(frozen=True)
@@ -225,19 +245,16 @@ def _classify_pair(
         raise
 
     for record in records:
-        if record.warning_class in (
-            ConflictClass.CONFLICT,
-            ConflictClass.OVERLAP,
-            ConflictClass.PARAM_CONFLICT,
-        ):
+        if _DiffKind.from_conflict_class(record.warning_class) == _DiffKind.CONFLICT:
             return _DiffKind.CONFLICT
 
     for record in records:
-        if record.warning_class in (
-            ConflictClass.PHI_NODE,
-            ConflictClass.CONTEXT_PHI_NODE,
-        ):
+        if _DiffKind.from_conflict_class(record.warning_class) == _DiffKind.PHI_NODE:
             return _DiffKind.PHI_NODE
+
+    for record in records:
+        if _DiffKind.from_conflict_class(record.warning_class) == _DiffKind.UNKNOWN:
+            return _DiffKind.UNKNOWN
 
     if _extract_concept(left_claim) != _extract_concept(right_claim):
         return _DiffKind.COMPATIBLE
@@ -367,7 +384,7 @@ def build_merge_framework(
             if diff_kind == _DiffKind.CONFLICT:
                 attacks.add((left_claim_id, right_claim_id))
                 attacks.add((right_claim_id, left_claim_id))
-            elif diff_kind == _DiffKind.PHI_NODE:
+            elif diff_kind in (_DiffKind.PHI_NODE, _DiffKind.UNKNOWN):
                 ignorance.add((left_claim_id, right_claim_id))
                 ignorance.add((right_claim_id, left_claim_id))
             continue
@@ -422,7 +439,7 @@ def build_merge_framework(
             if diff_kind == _DiffKind.CONFLICT:
                 attacks.add(pair)
                 attacks.add(reverse_pair)
-            elif diff_kind == _DiffKind.PHI_NODE:
+            elif diff_kind in (_DiffKind.PHI_NODE, _DiffKind.UNKNOWN):
                 ignorance.add(pair)
                 ignorance.add(reverse_pair)
 
