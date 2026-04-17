@@ -175,6 +175,21 @@ Status 2026-04-17: `pks world bind` slice landed.
   - `logs/test-runs/cli-layer-world-bind-20260417-171012.log` - 5 passed.
   - `uv run pyright propstore/world/queries.py` - 0 errors.
 
+Status 2026-04-17: `pks world explain` and `pks world algorithms` slice landed.
+
+- Added `WorldExplainRequest`, `WorldExplainReport`, typed stance lines,
+  `UnknownClaimError`, and `explain_world_claim`.
+- Added `WorldAlgorithmsRequest`, `WorldAlgorithmsReport`, typed algorithm
+  rows, and `list_world_algorithms`.
+- Replaced CLI-owned claim lookup, stance-chain traversal, algorithm filtering,
+  and algorithm row shaping with owner-layer reports; CLI now only opens the
+  `WorldModel`, maps expected failures, and renders text.
+- Tightened tests to use `WorldModel` as a context manager and added explicit
+  CLI-output tests for both commands.
+- Verification:
+  - `logs/test-runs/cli-layer-world-explain-algorithms-20260417-171434.log` - 9 passed.
+  - `uv run pyright propstore/world/queries.py` - 0 errors.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.
