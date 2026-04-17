@@ -15,12 +15,16 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
-from propstore.world import WorldModel
+from propstore.world import RenderPolicy, WorldModel
 from propstore.world.queries import (
     WorldBindConceptReport,
     WorldBindRequest,
+    WorldDeriveRequest,
     WorldExplainRequest,
     WorldAlgorithmsRequest,
+    WorldHypotheticalRequest,
+    derive_world_value,
+    diff_hypothetical_world,
     explain_world_claim,
     list_world_algorithms,
     query_bound_world,
@@ -1463,6 +1467,45 @@ class TestWorldOwnerReports:
         assert result.exit_code == 0, result.output
         assert "No algorithm claims found." in result.output
 
+    def test_owner_derive_reports_value_status(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            expected_concept_id = wm.resolve_concept("speech:fundamental_frequency")
+            report = derive_world_value(
+                wm,
+                WorldDeriveRequest(
+                    concept_id="speech:fundamental_frequency",
+                    bindings={},
+                    policy=RenderPolicy(),
+                ),
+            )
+
+        assert report.concept_id == expected_concept_id
+        assert str(report.status) == "no_relationship"
+
+    def test_owner_hypothetical_reports_removed_claim_change(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = diff_hypothetical_world(
+                wm,
+                WorldHypotheticalRequest(
+                    bindings={},
+                    remove_claim_ids=("freq_paper:freq_claim1",),
+                ),
+            )
+
+        assert len(report.changes) == 1
+        change = report.changes[0]
+        assert change.concept_display_id == "speech:fundamental_frequency"
+        assert str(change.base_status) == "determined"
+        assert str(change.hypothetical_status) == "no_claims"
+
 
 # ── world query/bind SI values ──────────────────────────────────────
 
@@ -1515,6 +1558,7 @@ class TestWorldCommandsKeepConnectionOpen:
         ("args", "expected_substrings"),
         [
             (["world", "resolve", "speech:fundamental_frequency", "--strategy", "recency"], ["speech:fundamental_frequency: determined"]),
+            (["world", "derive", "speech:fundamental_frequency"], [": no_relationship"]),
             (["world", "extensions", "--semantics", "grounded"], ["Backend: claim_graph", "Accepted (1 claims):"]),
             (["world", "hypothetical", "--remove", "freq_paper:freq_claim1"], ["speech:fundamental_frequency:", "no_claims"]),
             (["world", "export-graph", "--format", "json"], ['"nodes"', '"edges"']),
