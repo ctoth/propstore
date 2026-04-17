@@ -665,6 +665,83 @@ class TestPreferenceConfig:
                 f"Rule order is reflexive: {weaker} < {weaker}"
             )
 
+    def test_grounded_rule_superiority_reaches_preference_config(self):
+        """Rule-file superiority becomes ASPIC+ ``rule_order``.
+
+        The rule-file surface uses ``(superior, inferior)`` pairs as in
+        Garcia & Simari's DeLP superiority relation; ASPIC+ stores
+        ``(weaker, stronger)`` pairs in ``PreferenceConfig.rule_order``.
+        """
+        from propstore.artifacts.documents.rules import (
+            AtomDocument,
+            RuleDocument,
+            RuleSourceDocument,
+            RulesFileDocument,
+            TermDocument,
+        )
+        from propstore.loaded import LoadedDocument
+        from propstore.rule_files import LoadedRuleFile
+
+        variable = TermDocument(kind="var", name="X")
+        generic = RuleDocument(
+            id="r1",
+            kind="defeasible",
+            head=AtomDocument(predicate="flies", terms=(variable,)),
+            body=(AtomDocument(predicate="bird", terms=(variable,)),),
+        )
+        specific = RuleDocument(
+            id="r2",
+            kind="defeasible",
+            head=AtomDocument(predicate="flies", terms=(variable,), negated=True),
+            body=(AtomDocument(predicate="penguin", terms=(variable,)),),
+        )
+        rule_file = LoadedRuleFile.from_loaded_document(
+            LoadedDocument(
+                filename="superiority.yaml",
+                source_path=None,
+                knowledge_root=None,
+                document=RulesFileDocument(
+                    source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
+                    rules=(generic, specific),
+                    superiority=(("r2", "r1"),),
+                ),
+            )
+        )
+        bundle = GroundedRulesBundle(
+            source_rules=(rule_file,),
+            source_facts=(),
+            sections={
+                "definitely": {
+                    "bird": frozenset({("tweety",)}),
+                    "penguin": frozenset({("tweety",)}),
+                },
+                "defeasibly": {},
+                "not_defeasibly": {},
+                "undecided": {},
+            },
+        )
+
+        csaf = build_bridge_csaf([], [], [], bundle=bundle)
+
+        rule_order_names = {
+            (weaker.name, stronger.name)
+            for weaker, stronger in csaf.pref.rule_order
+        }
+        assert any(
+            weaker is not None
+            and stronger is not None
+            and weaker.startswith("r1#")
+            and stronger.startswith("r2#")
+            for weaker, stronger in rule_order_names
+        )
+        assert not any(
+            weaker is not None
+            and stronger is not None
+            and weaker.startswith("r2#")
+            and stronger.startswith("r1#")
+            for weaker, stronger in rule_order_names
+        )
+
 
 # ── T6: build_bridge_csaf (the big integration) ───────────────────
 

@@ -427,6 +427,51 @@ def test_rules_file_document_preserves_rule_order(file_doc) -> None:
     assert tuple(r.id for r in decoded.rules) == tuple(r.id for r in file_doc.rules)
 
 
+def test_rules_file_document_preserves_authored_superiority() -> None:
+    """Authored superiority pairs round-trip at the file-envelope level.
+
+    Garcia & Simari 2004 §3 includes a superiority relation over rules.
+    The rule-file surface carries it explicitly as ``[superior, inferior]``
+    pairs so priority semantics do not depend on incidental YAML order.
+    """
+    from propstore.artifacts.documents.rules import (  # noqa: E402
+        AtomDocument,
+        RuleDocument,
+        RulesFileDocument,
+        RuleSourceDocument,
+    )
+
+    head = AtomDocument(predicate="flies")
+    file_doc = RulesFileDocument(
+        source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
+        rules=(
+            RuleDocument(id="r1", kind="defeasible", head=head),
+            RuleDocument(id="r2", kind="defeasible", head=head),
+        ),
+        superiority=(("r2", "r1"),),
+    )
+
+    encoded = msgspec.yaml.encode(file_doc)
+    decoded = msgspec.yaml.decode(encoded, type=RulesFileDocument, strict=True)
+
+    assert decoded.superiority == (("r2", "r1"),)
+
+
+def test_rules_file_document_rejects_malformed_superiority_pair() -> None:
+    """A superiority entry must be exactly two rule ids."""
+    from propstore.artifacts.documents.rules import RulesFileDocument  # noqa: E402
+
+    invalid_yaml = b"""
+source:
+  paper: Garcia_2004_DefeasibleLogicProgramming
+rules: []
+superiority:
+  - [r2, r1, extra]
+"""
+    with pytest.raises(msgspec.ValidationError):
+        msgspec.yaml.decode(invalid_yaml, type=RulesFileDocument, strict=True)
+
+
 def test_loaded_rule_file_from_loaded_document() -> None:
     """LoadedRuleFile wraps LoadedDocument[RulesFileDocument].
 

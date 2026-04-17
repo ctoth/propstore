@@ -1,7 +1,7 @@
 # Workstream C — Defeasibility (CKR Justifiable Exceptions + ASPIC+ Coexistence)
 
 Date: 2026-04-16
-Status: active - C-1 decision artifact drafted; Q review gate pending
+Status: active - C-2 priority pipeline repaired; C-3 next
 Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A phase 4 (contexts + lifting rules), WS-A1 semiring provenance for C-3 support evidence
 Blocks: —
 Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumentation.md`
@@ -13,6 +13,7 @@ Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumen
 - 2026-04-17: Stopped at the explicit C-1 Q review gate before C-2 implementation.
 - 2026-04-17: Inserted WS-A1 semiring provenance as the missing substrate workstream after reading Green 2007 notes and running design/adversarial review with Claude CLI. WS-C C-3 now depends on `SupportEvidence` rather than generic provenance blobs.
 - 2026-04-17: WS-A1 added the executable C-3 support contract in `propstore.defeasibility`: `JustifiableException`, `LiftingRuleSupport`, and `ExceptionDefeat` all carry `SupportEvidence`; lifted support multiplies by lifting-rule support; solver nogoods live-filter support without deleting the exception object.
+- 2026-04-17: C-2 priority pipeline repaired. `RulesFileDocument` now carries explicit authored `superiority` pairs, the grounding translator emits those pairs into gunray as a validated strict partial order, and the ASPIC bridge projects schematic superiority onto grounded `PreferenceConfig.rule_order` pairs. Verification passed: `91 passed`, `logs\test-runs\ws-c2-runtime-20260417-153640.log`; production Pyright was clean for changed C-2 files. Grep gates found no production `superiority=[]`, no production `rule_order=frozenset()`, and no bridge `del defeasible_rules`.
 
 ## What you're doing
 

@@ -17,7 +17,7 @@ from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_a
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import ClaimLiteralKey, LiteralKey, claim_key
 from propstore.core.row_types import StanceRow, StanceRowInput, coerce_stance_row
-from propstore.preference import metadata_strength_vector
+from propstore.preference import metadata_strength_vector, strict_partial_order_closure
 
 
 def _claim_attr(claim: ActiveClaim, key: str) -> Any:
@@ -244,16 +244,28 @@ def build_preference_config(
     literals: dict[LiteralKey, Literal],
     defeasible_rules: frozenset[Rule],
     *,
+    rule_order: frozenset[tuple[Rule, Rule]] = frozenset(),
     comparison: str = "elitist",
     link: str = "last",
 ) -> PreferenceConfig:
-    """Build premise ordering from claim metadata and leave rules incomparable."""
+    """Build ASPIC+ preference configuration.
 
-    del defeasible_rules
+    Premise ordering remains the existing metadata heuristic. Rule ordering
+    is an explicit authored strict partial order over defeasible rules,
+    oriented ``(weaker, stronger)``.
+    """
 
     normalized_claims = coerce_active_claims(active_claims)
     claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
     premise_order: set[tuple[Literal, Literal]] = set()
+
+    unknown_rule_pairs = [
+        (weaker, stronger)
+        for weaker, stronger in rule_order
+        if weaker not in defeasible_rules or stronger not in defeasible_rules
+    ]
+    if unknown_rule_pairs:
+        raise ValueError("rule_order contains rules outside defeasible_rules")
 
     claim_ids = [
         key.claim_id
@@ -273,7 +285,7 @@ def build_preference_config(
                 premise_order.add((lit_b, lit_a))
 
     return PreferenceConfig(
-        rule_order=frozenset(),
+        rule_order=strict_partial_order_closure(rule_order),
         premise_order=_transitive_closure(premise_order),
         comparison=comparison,
         link=link,

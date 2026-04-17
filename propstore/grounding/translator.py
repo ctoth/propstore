@@ -66,6 +66,7 @@ from collections.abc import Iterable
 from propstore.aspic import GroundAtom
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.artifacts.documents.rules import AtomDocument, TermDocument
+from propstore.preference import strict_partial_order_closure
 from propstore.rule_files import LoadedRuleFile
 
 # ``gunray.schema.Scalar`` and ``propstore.aspic.Scalar`` are both
@@ -97,9 +98,8 @@ def translate_to_theory(
     - ``kind == "defeater"`` rules populate ``defeaters``.
     - Strong negation on translated head/body atoms is emitted via the
       gunray surface prefix ``~`` (for example ``~flies(X)``).
-    - ``superiority`` and ``conflicts`` are always empty on the output
-      theory; Propstore's authored rule files do not expose those
-      relations yet.
+    - ``superiority`` is populated from authored rule-file pairs and
+      closed to a strict partial order; ``conflicts`` remains empty.
     - The ``registry`` parameter is threaded through for future
       validation (Diller, Borg, Bex 2025 §4 requires arity discipline
       at the grounder boundary), but Phase 1 performs no additional
@@ -131,6 +131,8 @@ def translate_to_theory(
     strict_rules: list[gunray_schema.Rule] = []
     defeasible_rules: list[gunray_schema.Rule] = []
     defeaters: list[gunray_schema.Rule] = []
+    authored_superiority: list[tuple[str, str]] = []
+    non_strict_rule_ids: set[str] = set()
     for rule_file in rule_files:
         for rule_doc in rule_file.rules:
             schema_rule = gunray_schema.Rule(
@@ -141,9 +143,12 @@ def translate_to_theory(
             if rule_doc.kind == "strict":
                 strict_rules.append(schema_rule)
             elif rule_doc.kind == "defeasible":
+                non_strict_rule_ids.add(rule_doc.id)
                 defeasible_rules.append(schema_rule)
             else:
+                non_strict_rule_ids.add(rule_doc.id)
                 defeaters.append(schema_rule)
+        authored_superiority.extend(rule_file.document.superiority)
 
     # Group facts by predicate id. Diller, Borg, Bex 2025 §3
     # Definition 7 shape: ``PredicateFacts`` maps each predicate id to
@@ -173,9 +178,52 @@ def translate_to_theory(
         strict_rules=strict_rules,
         defeasible_rules=defeasible_rules,
         defeaters=defeaters,
-        superiority=[],
+        superiority=_normalise_superiority(
+            authored_superiority,
+            non_strict_rule_ids,
+        ),
         conflicts=[],
     )
+
+
+def _normalise_superiority(
+    authored_pairs: list[tuple[str, str]],
+    non_strict_rule_ids: set[str],
+) -> list[tuple[str, str]]:
+    """Validate and close authored DeLP superiority pairs.
+
+    Authored pairs are oriented ``(superior, inferior)``. The shared
+    strict-order helper works in ASPIC+ orientation ``(weaker, stronger)``,
+    so this function inverts before closure and inverts back for gunray.
+    """
+
+    if not authored_pairs:
+        return []
+
+    for superior, inferior in authored_pairs:
+        missing = {
+            rule_id
+            for rule_id in (superior, inferior)
+            if rule_id not in non_strict_rule_ids
+        }
+        if missing:
+            missing_list = ", ".join(sorted(missing))
+            raise ValueError(
+                "superiority references unknown or strict rule id(s): "
+                f"{missing_list}"
+            )
+
+    closed = strict_partial_order_closure(
+        (inferior, superior)
+        for superior, inferior in authored_pairs
+    )
+    return [
+        (stronger, weaker)
+        for weaker, stronger in sorted(
+            closed,
+            key=lambda pair: (str(pair[1]), str(pair[0])),
+        )
+    ]
 
 
 def _stringify_atom(atom: AtomDocument) -> str:
