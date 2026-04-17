@@ -5,6 +5,7 @@ and symbol validation against variable bindings.
 """
 
 import pytest
+from unittest.mock import patch
 
 from propstore.sympy_generator import generate_sympy, check_symbols
 
@@ -75,6 +76,16 @@ class TestGenerateSympy:
     def test_none_input_returns_none(self):
         """None input returns None."""
         assert generate_sympy(None) is None
+
+    def test_unexpected_parse_runtime_error_propagates(self):
+        from propstore.sympy_generator import generate_sympy_with_error
+
+        with patch(
+            "propstore.sympy_generator.parse_expr",
+            side_effect=RuntimeError("boom"),
+        ):
+            with pytest.raises(RuntimeError, match="boom"):
+                generate_sympy_with_error("x + 1")
 
 
 class TestCheckSymbols:

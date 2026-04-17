@@ -9,6 +9,10 @@ unparseable reason.
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
+import pytest
+
 from propstore.core.claim_types import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
 from propstore.world.value_resolver import ActiveClaimResolver
@@ -208,3 +212,18 @@ def test_successful_algorithm_only_has_no_reason_annotation():
 
     assert result.status is ValueStatus.DETERMINED
     assert result.reason is None
+
+
+def test_runtime_error_from_algorithm_equivalence_propagates():
+    resolver = _make_resolver()
+    algo_claims = [
+        {"body": "x = 1", "id": "c1"},
+        {"body": "x = 2", "id": "c2"},
+    ]
+
+    with patch(
+        "propstore.world.value_resolver.ast_compare",
+        side_effect=RuntimeError("boom"),
+    ):
+        with pytest.raises(RuntimeError, match="boom"):
+            resolver._all_algorithms_equivalent(algo_claims, known_values={})

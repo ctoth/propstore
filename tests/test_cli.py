@@ -96,6 +96,23 @@ def _read_counter(concepts_dir: Path, domain: str) -> int:
     return int((concepts_dir / ".counters" / "global.next").read_text().strip())
 
 
+def test_scan_max_concept_id_propagates_unexpected_decode_runtime_error(tmp_path: Path) -> None:
+    from unittest.mock import patch
+
+    from propstore.cli.helpers import _scan_max_concept_id
+
+    concept_dir = tmp_path / "concepts"
+    concept_dir.mkdir()
+    (concept_dir / "c1.yaml").write_text("id: concept1\n")
+
+    with patch(
+        "propstore.cli.helpers.decode_document_path",
+        side_effect=RuntimeError("boom"),
+    ):
+        with pytest.raises(RuntimeError, match="boom"):
+            _scan_max_concept_id(concept_dir)
+
+
 def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
     claims_dir.mkdir(parents=True, exist_ok=True)
     path = claims_dir / filename

@@ -5,6 +5,7 @@ populates them from concept YAML files, and builds the FTS5 index.
 """
 
 import sqlite3
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -2282,3 +2283,25 @@ class TestClaimValueSI:
         assert row["upper_bound"] == 0.3, "raw upper_bound preserved"
         assert row["lower_bound_si"] == pytest.approx(100.0), "lower_bound_si = 0.1 * 1000"
         assert row["upper_bound_si"] == pytest.approx(300.0), "upper_bound_si = 0.3 * 1000"
+
+
+class TestEmbeddingSnapshotErrors:
+    def test_embedding_snapshot_runtime_error_propagates(
+        self,
+        knowledge_reader,
+        sidecar_path,
+    ):
+        sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(sidecar_path)
+        conn.execute("CREATE TABLE existing_snapshot_marker (id TEXT)")
+        conn.close()
+
+        with (
+            patch("propstore.embed._load_vec_extension", MagicMock()),
+            patch(
+                "propstore.embed.extract_embeddings",
+                MagicMock(side_effect=RuntimeError("snapshot boom")),
+            ),
+        ):
+            with pytest.raises(RuntimeError, match="snapshot boom"):
+                build_sidecar(knowledge_reader, sidecar_path, force=True)
