@@ -460,7 +460,10 @@ class WorldModel(ArtifactStore):
                 num.lower_bound_si,
                 num.upper_bound_si,
                 core.context_id,
-                core.branch
+                core.branch,
+                core.build_status,
+                core.stage,
+                core.promotion_status
             FROM claim_core AS core
             LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
             LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
@@ -631,6 +634,97 @@ class WorldModel(ArtifactStore):
             "WHERE core.concept_id = ? OR core.target_concept = ? ORDER BY core.id",
             (resolved_concept_id, resolved_concept_id),
         )
+
+    def _render_policy_predicates(
+        self, policy: RenderPolicy
+    ) -> tuple[list[str], tuple[Any, ...]]:
+        """Translate a ``RenderPolicy`` into SQL ``WHERE`` predicates on
+        ``claim_core``'s lifecycle columns.
+
+        Per axis-1 findings 3.1 / 3.2 / 3.3 (closed in
+        ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``):
+
+        - ``stage = 'draft'`` rows are hidden unless ``include_drafts=True``.
+        - ``build_status = 'blocked'`` rows are hidden unless
+          ``include_blocked=True`` (raw-id quarantine, Phase 3 Gate 1).
+        - ``promotion_status = 'blocked'`` rows are hidden unless
+          ``include_blocked=True`` (partial-promote mirror, Phase 3 Gate 3).
+
+        A policy with all three flags at their default ``False`` produces
+        three predicates that together preserve the "don't show problems
+        by default" posture required by the CLAUDE.md design checklist.
+        """
+        predicates: list[str] = []
+        params: list[Any] = []
+        if not policy.include_drafts:
+            predicates.append("(core.stage IS NULL OR core.stage != 'draft')")
+        if not policy.include_blocked:
+            predicates.append(
+                "(core.build_status IS NULL OR core.build_status != 'blocked')"
+            )
+            predicates.append(
+                "(core.promotion_status IS NULL "
+                "OR core.promotion_status != 'blocked')"
+            )
+        return predicates, tuple(params)
+
+    def claims_with_policy(
+        self,
+        concept_id: str | None,
+        policy: RenderPolicy,
+    ) -> list[ClaimRow]:
+        """Return claim rows filtered by the lifecycle visibility flags
+        on ``policy``.
+
+        Implements the render-time contract described in
+        ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
+        (axis-1 findings 3.1 / 3.2 / 3.3): the source-of-truth sidecar
+        holds every row, and the render layer picks what to show based
+        on explicit user policy. Default policy preserves the
+        pre-render-gate-removal visibility — drafts and blocked rows
+        stay out of the default view but remain queryable through opt-in
+        flags.
+        """
+        predicates, params = self._render_policy_predicates(policy)
+        clauses: list[str] = []
+        bound: list[Any] = list(params)
+        if concept_id is not None:
+            resolved = self.resolve_concept(concept_id) or concept_id
+            clauses.append("(core.concept_id = ? OR core.target_concept = ?)")
+            bound.extend([resolved, resolved])
+        clauses.extend(predicates)
+        where_sql = ""
+        if clauses:
+            where_sql = "WHERE " + " AND ".join(clauses) + " "
+        return self._claim_rows(where_sql + "ORDER BY core.id", tuple(bound))
+
+    def build_diagnostics(self, policy: RenderPolicy) -> list[dict[str, Any]]:
+        """Return ``build_diagnostics`` rows when ``policy.show_quarantined``
+        is ``True``; an empty list otherwise.
+
+        Per axis-1 findings 3.1 / 3.2 / 3.3: the ``build_diagnostics``
+        table is the quarantine surface for rows the sidecar accepted
+        but flagged as problematic. The render layer surfaces these rows
+        only under explicit opt-in, preserving the
+        ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
+        exit-criterion that "the default view matches pre-fix behaviour
+        for clean trees."
+        """
+        if not policy.show_quarantined:
+            return []
+        if not self._has_table("build_diagnostics"):
+            return []
+        rows = self._conn.execute(
+            """
+            SELECT
+                id, claim_id, source_kind, source_ref,
+                diagnostic_kind, severity, blocking,
+                message, file, detail_json
+            FROM build_diagnostics
+            ORDER BY id
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRow]:
         if not claim_ids:

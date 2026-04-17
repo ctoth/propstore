@@ -50,7 +50,7 @@ def _insert_minimal_source(conn: sqlite3.Connection, slug: str = "test-source") 
         INSERT INTO source (slug, source_id, kind, origin_type, origin_value)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (slug, slug, "test", "synthetic", "fixture"),
+        (slug, slug, "academic_paper", "manual", "fixture"),
     )
 
 

@@ -319,7 +319,10 @@ def test_world_model_compiled_graph_matches_normalized_storage_projection(
                     num.value_si,
                     num.lower_bound_si,
                     num.upper_bound_si,
-                    core.context_id
+                    core.context_id,
+                    core.build_status,
+                    core.stage,
+                    core.promotion_status
                 FROM claim_core AS core
                 LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
                 LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
