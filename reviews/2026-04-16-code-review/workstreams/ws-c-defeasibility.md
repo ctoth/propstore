@@ -1,10 +1,16 @@
 # Workstream C — Defeasibility (CKR Justifiable Exceptions + ASPIC+ Coexistence)
 
 Date: 2026-04-16
-Status: proposed
+Status: active - C-1 decision artifact drafted; Q review gate pending
 Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A phase 4 (contexts + lifting rules)
 Blocks: —
 Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumentation.md`
+
+## Progress
+
+- 2026-04-17: Verified local artifacts for the three primary papers and the two ABA comparison papers, including processed notes and page-image directories.
+- 2026-04-17: Drafted `docs/defeasibility-semantics-decision.md` for C-1, selecting Bozzato-style CKR justifiable exceptions over WS-A `ist(c, p)` contexts, preserving ASPIC+ as the structural argument layer, preserving Diller-style datalog grounding as grounding only, and rejecting ABA as the production semantics for WS-C.
+- 2026-04-17: Stopped at the explicit C-1 Q review gate before C-2 implementation.
 
 ## What you're doing
 
