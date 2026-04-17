@@ -26,6 +26,12 @@ class UnknownConceptError(WorldQueryError):
         self.target = target
 
 
+class UnknownClaimError(WorldQueryError):
+    def __init__(self, target: str) -> None:
+        super().__init__(f"Unknown claim: {target}")
+        self.target = target
+
+
 @dataclass(frozen=True)
 class WorldStatusRequest:
     policy: RenderPolicy
@@ -112,6 +118,49 @@ class WorldBindActiveReport:
 
 
 WorldBindReport = WorldBindConceptReport | WorldBindActiveReport
+
+
+@dataclass(frozen=True)
+class WorldExplainRequest:
+    claim_id: str
+
+
+@dataclass(frozen=True)
+class WorldStanceLine:
+    source_display_id: str
+    stance_type: str
+    target_display_id: str
+    strength: object
+    note: object
+    nested: bool
+
+
+@dataclass(frozen=True)
+class WorldExplainReport:
+    claim_display_id: str
+    claim_type: str
+    concept_display_id: str
+    value: object
+    stances: tuple[WorldStanceLine, ...]
+
+
+@dataclass(frozen=True)
+class WorldAlgorithmsRequest:
+    stage: str | None = None
+    concept: str | None = None
+
+
+@dataclass(frozen=True)
+class WorldAlgorithmLine:
+    claim_id: str
+    name: str
+    stage: str
+    concept_id: str
+
+
+@dataclass(frozen=True)
+class WorldAlgorithmsReport:
+    algorithms: tuple[WorldAlgorithmLine, ...]
 
 
 def _maybe_float(value: object) -> float | None:
@@ -274,4 +323,90 @@ def query_bound_world(
             for active_claim in active_claims
             for claim_dict in (active_claim.row.to_dict(),)
         ),
+    )
+
+
+def explain_world_claim(
+    world: WorldModel,
+    request: WorldExplainRequest,
+) -> WorldExplainReport:
+    from propstore.core.row_types import coerce_claim_row
+
+    claim_input = world.get_claim(request.claim_id)
+    if claim_input is None:
+        raise UnknownClaimError(request.claim_id)
+    claim = coerce_claim_row(claim_input)
+    claim_display_id = world_claim_display_id(claim)
+    stances: list[WorldStanceLine] = []
+    for stance in world.explain(str(claim.claim_id)):
+        source_id = str(stance.claim_id)
+        source_claim = world.get_claim(source_id)
+        source_display_id = (
+            world_claim_display_id(source_claim) if source_claim else source_id
+        )
+        target_claim_id = str(stance.target_claim_id)
+        target_claim = world.get_claim(target_claim_id)
+        target_display_id = (
+            world_claim_display_id(target_claim)
+            if target_claim
+            else target_claim_id
+        )
+        stances.append(
+            WorldStanceLine(
+                source_display_id=source_display_id,
+                stance_type=str(stance.stance_type),
+                target_display_id=target_display_id,
+                strength=stance.attributes.get("strength"),
+                note=stance.attributes.get("note"),
+                nested=source_id != str(claim.claim_id),
+            )
+        )
+    return WorldExplainReport(
+        claim_display_id=claim_display_id,
+        claim_type=str(claim.claim_type),
+        concept_display_id=world_concept_display_id(world, str(claim.concept_id)),
+        value=claim.value,
+        stances=tuple(stances),
+    )
+
+
+def list_world_algorithms(
+    world: WorldModel,
+    request: WorldAlgorithmsRequest,
+) -> WorldAlgorithmsReport:
+    from propstore.core.algorithm_stage import coerce_algorithm_stage
+    from propstore.core.claim_types import ClaimType
+    from propstore.core.row_types import coerce_claim_row
+
+    claims = [coerce_claim_row(claim) for claim in world.claims_for(None)]
+    algorithms = [claim for claim in claims if claim.claim_type is ClaimType.ALGORITHM]
+    stage_filter = (
+        coerce_algorithm_stage(request.stage)
+        if request.stage is not None
+        else None
+    )
+    if stage_filter is not None:
+        algorithms = [
+            claim for claim in algorithms if claim.algorithm_stage == stage_filter
+        ]
+    if request.concept:
+        algorithms = [
+            claim
+            for claim in algorithms
+            if str(claim.concept_id or "") == request.concept
+        ]
+    return WorldAlgorithmsReport(
+        algorithms=tuple(
+            WorldAlgorithmLine(
+                claim_id=str(claim.claim_id),
+                name=claim.name or (claim.body or "")[:25] or "?",
+                stage=str(claim.algorithm_stage)
+                if claim.algorithm_stage is not None
+                else "-",
+                concept_id=str(claim.concept_id)
+                if claim.concept_id is not None
+                else "-",
+            )
+            for claim in algorithms
+        )
     )

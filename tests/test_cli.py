@@ -19,6 +19,10 @@ from propstore.world import WorldModel
 from propstore.world.queries import (
     WorldBindConceptReport,
     WorldBindRequest,
+    WorldExplainRequest,
+    WorldAlgorithmsRequest,
+    explain_world_claim,
+    list_world_algorithms,
     query_bound_world,
 )
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, make_test_context_commit_entry
@@ -1409,6 +1413,57 @@ class TestClaimShow:
         assert result.exit_code != 0 or "not found" in result.output.lower()
 
 
+# ── world owner reports ─────────────────────────────────────────────
+
+class TestWorldOwnerReports:
+    def test_owner_explain_reports_claim_without_stances(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = explain_world_claim(
+                wm,
+                WorldExplainRequest(claim_id="freq_paper:freq_claim1"),
+            )
+
+        assert report.claim_display_id == "freq_paper:freq_claim1"
+        assert report.concept_display_id == "speech:fundamental_frequency"
+        assert report.stances == ()
+
+    def test_owner_algorithms_report_empty_when_none(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = list_world_algorithms(wm, WorldAlgorithmsRequest())
+
+        assert report.algorithms == ()
+
+    def test_world_explain_cli_reports_claim_without_stances(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["world", "explain", "freq_paper:freq_claim1"])
+
+        assert result.exit_code == 0, result.output
+        assert "freq_paper:freq_claim1:" in result.output
+        assert "concept=speech:fundamental_frequency" in result.output
+        assert "  (no stances)" in result.output
+
+    def test_world_algorithms_cli_reports_empty_inventory(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["world", "algorithms"])
+
+        assert result.exit_code == 0, result.output
+        assert "No algorithm claims found." in result.output
+
+
 # ── world query/bind SI values ──────────────────────────────────────
 
 class TestWorldQuerySIValues:
@@ -1428,14 +1483,11 @@ class TestWorldQuerySIValues:
 
     def test_owner_world_bind_report_shows_si_value(self, freq_workspace: Path) -> None:
         repo = Repository.find(freq_workspace)
-        wm = WorldModel(repo)
-        try:
+        with WorldModel(repo) as wm:
             report = query_bound_world(
                 wm,
                 WorldBindRequest(bindings={}, target="speech:fundamental_frequency"),
             )
-        finally:
-            wm.close()
 
         assert isinstance(report, WorldBindConceptReport)
         assert report.concept_display_id == "speech:fundamental_frequency"

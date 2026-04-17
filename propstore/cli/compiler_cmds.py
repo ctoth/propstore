@@ -478,39 +478,34 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
 @click.pass_obj
 def world_explain(obj: dict, claim_id: str) -> None:
     """Show the stance chain for a claim."""
-    from propstore.world import WorldModel
+    from propstore.world.queries import (
+        UnknownClaimError,
+        WorldExplainRequest,
+        explain_world_claim,
+    )
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
-        from propstore.core.row_types import coerce_claim_row
-
-        claim_input = wm.get_claim(claim_id)
-        claim = None if claim_input is None else coerce_claim_row(claim_input)
-        if claim is None:
+        try:
+            report = explain_world_claim(wm, WorldExplainRequest(claim_id=claim_id))
+        except UnknownClaimError:
             click.echo(f"Unknown claim: {claim_id}", err=True)
             sys.exit(1)
 
-    claim_display_id = _world_claim_display_id(claim)
     click.echo(
-        f"{claim_display_id}: {claim.claim_type} "
-        f"concept={_world_concept_display_id(wm, str(claim.concept_id))} "
-        f"value={claim.value}"
+        f"{report.claim_display_id}: {report.claim_type} "
+        f"concept={report.concept_display_id} "
+        f"value={report.value}"
     )
-    chain = wm.explain(str(claim.claim_id))
-    if not chain:
+    if not report.stances:
         click.echo("  (no stances)")
-    for s in chain:
-        src = str(s.claim_id)
-        src_claim = wm.get_claim(src)
-        src_display_id = _world_claim_display_id(src_claim) if src_claim else src
-        target_claim_id = str(s.target_claim_id)
-        tgt_claim = wm.get_claim(target_claim_id)
-        tgt_display_id = _world_claim_display_id(tgt_claim) if tgt_claim else target_claim_id
-        indent = "  " if src == str(claim.claim_id) else "    "
+    for stance in report.stances:
+        indent = "    " if stance.nested else "  "
         click.echo(
-            f"{indent}{src_display_id} {s.stance_type} -> {tgt_display_id}"
-            f" (strength={s.attributes.get('strength')}, note={s.attributes.get('note')})")
-    wm.close()
+            f"{indent}{stance.source_display_id} "
+            f"{stance.stance_type} -> {stance.target_display_id}"
+            f" (strength={stance.strength}, note={stance.note})"
+        )
 
 
 @world.command("algorithms")
@@ -519,41 +514,32 @@ def world_explain(obj: dict, claim_id: str) -> None:
 @click.pass_obj
 def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
     """List algorithm claims in the world model."""
-    from propstore.core.algorithm_stage import coerce_algorithm_stage
-    from propstore.core.claim_types import ClaimType
-    from propstore.core.row_types import coerce_claim_row
-    from propstore.world import WorldModel
+    from propstore.world.queries import (
+        WorldAlgorithmsRequest,
+        list_world_algorithms,
+    )
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
-        all_claims = [coerce_claim_row(claim) for claim in wm.claims_for(None)]
-        algos = [claim for claim in all_claims if claim.claim_type is ClaimType.ALGORITHM]
+        report = list_world_algorithms(
+            wm,
+            WorldAlgorithmsRequest(stage=stage, concept=concept),
+        )
 
-    stage_filter = coerce_algorithm_stage(stage) if stage is not None else None
-    if stage_filter is not None:
-        algos = [claim for claim in algos if claim.algorithm_stage == stage_filter]
-    if concept:
-        algos = [claim for claim in algos if str(claim.concept_id or "") == concept]
-
-    if not algos:
+    if not report.algorithms:
         click.echo("No algorithm claims found.")
-        wm.close()
         return
 
     # Table header
     click.echo(f"{'ID':<20} {'Name':<30} {'Stage':<15} {'Concept(s)'}")
     click.echo("-" * 80)
-    for claim in algos:
-        aid = str(claim.claim_id)
-        name = claim.name or (claim.body or "")[:25] or "?"
-        a_stage = (
-            str(claim.algorithm_stage) if claim.algorithm_stage is not None else "-"
+    for claim in report.algorithms:
+        click.echo(
+            f"{claim.claim_id:<20} {claim.name:<30} "
+            f"{claim.stage:<15} {claim.concept_id}"
         )
-        a_concept = str(claim.concept_id) if claim.concept_id is not None else "-"
-        click.echo(f"{aid:<20} {name:<30} {a_stage:<15} {a_concept}")
 
-    click.echo(f"\n{len(algos)} algorithm claim(s).")
-    wm.close()
+    click.echo(f"\n{len(report.algorithms)} algorithm claim(s).")
 
 
 def _parse_bindings(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
