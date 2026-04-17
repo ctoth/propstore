@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from propstore.revision.iterated import epistemic_state_payload, make_epistemic_state
-from propstore.revision.operators import revise
-from propstore.revision.state import ClaimAtom, RevisionScope
+from propstore.support_revision.iterated import epistemic_state_payload, make_epistemic_state
+from propstore.support_revision.operators import revise
+from propstore.support_revision.state import ClaimAtom, RevisionScope
 from tests.test_revision_iterated import _history_sensitive_base
 from tests.test_revision_operators import _base_with_shared_support
 
@@ -142,7 +142,7 @@ class _RevisionWorld:
 
 
 def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
-    from propstore.revision.explain import build_revision_explanation
+    from propstore.support_revision.explain import build_revision_explanation
     from propstore.worldline import WorldlineDefinition, run_worldline
     from propstore.worldline.result_types import WorldlineTargetValue
 
@@ -194,7 +194,7 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
 
 
 def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> None:
-    from propstore.revision.explain import build_revision_explanation
+    from propstore.support_revision.explain import build_revision_explanation
     from propstore.worldline import WorldlineDefinition, run_worldline
     from propstore.worldline.result_types import WorldlineTargetValue
 

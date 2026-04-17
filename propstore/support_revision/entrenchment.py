@@ -5,12 +5,12 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.core.id_types import AssumptionId
-from propstore.revision.explanation_types import (
+from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
     coerce_entrenchment_reason,
     _coerce_override_priority,
 )
-from propstore.revision.state import BeliefBase, is_assumption_atom, is_claim_atom
+from propstore.support_revision.state import BeliefBase, is_assumption_atom, is_claim_atom
 
 
 @dataclass(frozen=True)

@@ -4,8 +4,8 @@ import ast
 from pathlib import Path
 
 from propstore.core.labels import AssumptionRef, Label
-from propstore.revision.entrenchment import compute_entrenchment
-from propstore.revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
+from propstore.support_revision.entrenchment import compute_entrenchment
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
 
 
 class _BoundStub:
@@ -81,7 +81,7 @@ def test_compute_entrenchment_kind_override_can_promote_assumptions() -> None:
 
 
 def test_revision_modules_do_not_import_ic_merge() -> None:
-    revision_dir = Path("propstore/revision")
+    revision_dir = Path("propstore/support_revision")
     assert revision_dir.exists()
 
     for path in sorted(revision_dir.glob("*.py")):

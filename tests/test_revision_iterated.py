@@ -1,9 +1,4 @@
-"""Iterated revision tests over propstore epistemic states.
-
-Diller et al. 2015 postulate grounding:
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_003.png
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_004.png
-"""
+"""Operational support-state history tests."""
 
 from __future__ import annotations
 
@@ -11,15 +6,15 @@ import ast
 from dataclasses import replace
 from pathlib import Path
 
-from propstore.revision.entrenchment import EntrenchmentReport
-from propstore.revision.explanation_types import EntrenchmentReason
-from propstore.revision.operators import contract
-from propstore.revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionEpisode, RevisionScope
+from propstore.support_revision.entrenchment import EntrenchmentReport
+from propstore.support_revision.explanation_types import EntrenchmentReason
+from propstore.support_revision.operators import contract
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionEpisode, RevisionScope
 from tests.test_revision_operators import _base_with_shared_support
 
 
 def test_make_epistemic_state_captures_base_entrenchment_and_empty_history() -> None:
-    from propstore.revision.iterated import make_epistemic_state
+    from propstore.support_revision.iterated import make_epistemic_state
 
     base, entrenchment = _base_with_shared_support()
 
@@ -33,7 +28,7 @@ def test_make_epistemic_state_captures_base_entrenchment_and_empty_history() -> 
 
 
 def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
-    from propstore.revision.iterated import advance_epistemic_state, make_epistemic_state
+    from propstore.support_revision.iterated import advance_epistemic_state, make_epistemic_state
 
     base, entrenchment = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
@@ -64,7 +59,7 @@ def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
 
 
 def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
-    from propstore.revision.iterated import advance_epistemic_state, epistemic_state_payload, make_epistemic_state
+    from propstore.support_revision.iterated import advance_epistemic_state, epistemic_state_payload, make_epistemic_state
 
     base, entrenchment = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
@@ -91,7 +86,7 @@ def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
 
 
 def test_iterated_revision_module_does_not_import_ic_merge() -> None:
-    path = Path("propstore/revision/iterated.py")
+    path = Path("propstore/support_revision/iterated.py")
     assert path.exists()
 
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -155,7 +150,7 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
 
 
 def test_iterated_revise_is_history_sensitive_even_with_same_current_acceptance() -> None:
-    from propstore.revision.iterated import iterated_revise, make_epistemic_state
+    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
     base, left_first, right_first = _history_sensitive_base()
     state_left = replace(
@@ -194,7 +189,7 @@ def test_iterated_revise_is_history_sensitive_even_with_same_current_acceptance(
 
 
 def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
-    from propstore.revision.iterated import iterated_revise, make_epistemic_state
+    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
     base, entrenchment, _ = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
@@ -219,7 +214,7 @@ def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
 
 
 def test_iterated_revise_linear_sequence_appends_history_and_uses_next_state() -> None:
-    from propstore.revision.iterated import iterated_revise, make_epistemic_state
+    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
     base, entrenchment, _ = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
@@ -248,7 +243,7 @@ def test_iterated_revise_linear_sequence_appends_history_and_uses_next_state() -
 def test_iterated_revise_refuses_merge_point_states() -> None:
     import pytest
 
-    from propstore.revision.iterated import iterated_revise, make_epistemic_state
+    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
     base, entrenchment, _ = _history_sensitive_base()
     merge_base = replace(

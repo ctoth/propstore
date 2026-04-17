@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from propstore.revision.projection import project_belief_base
+from propstore.support_revision.projection import project_belief_base
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 

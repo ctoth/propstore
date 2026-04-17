@@ -5,14 +5,16 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.cel_types import to_cel_expr
+from propstore.core.active_claims import coerce_active_claim
+from propstore.core.id_types import to_assumption_id, to_assumption_ids, to_context_id
 from propstore.core.labels import AssumptionRef, EnvironmentKey, Label
-from propstore.revision.explanation_types import (
+from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
     RevisionAtomDetail,
     coerce_entrenchment_reason,
     coerce_revision_atom_detail,
 )
-from propstore.revision.state import (
+from propstore.support_revision.state import (
     BeliefAtom,
     BeliefBase,
     EpistemicState,
@@ -26,7 +28,7 @@ from propstore.revision.state import (
 
 
 def _environment_key_from_mapping(data: Mapping[str, Any]) -> EnvironmentKey:
-    return EnvironmentKey(tuple(str(item) for item in (data.get("assumption_ids") or ())))
+    return EnvironmentKey(to_assumption_ids(data.get("assumption_ids") or ()))
 
 
 def _environment_key_to_dict(environment: EnvironmentKey) -> dict[str, Any]:
@@ -60,7 +62,7 @@ def _label_to_dict(label: Label | None) -> dict[str, Any] | None:
 
 def _assumption_ref_from_mapping(data: Mapping[str, Any]) -> AssumptionRef:
     return AssumptionRef(
-        assumption_id=str(data.get("assumption_id") or ""),
+        assumption_id=to_assumption_id(data.get("assumption_id") or ""),
         kind=str(data.get("kind") or ""),
         source=str(data.get("source") or ""),
         cel=to_cel_expr(str(data.get("cel") or "")),
@@ -79,11 +81,17 @@ def _assumption_ref_to_dict(assumption: AssumptionRef) -> dict[str, Any]:
 def _scope_from_mapping(data: Mapping[str, Any]) -> RevisionScope:
     return RevisionScope(
         bindings=dict(data.get("bindings") or {}),
-        context_id=None if data.get("context_id") is None else str(data.get("context_id")),
+        context_id=None if data.get("context_id") is None else to_context_id(data.get("context_id")),
         branch=None if data.get("branch") is None else str(data.get("branch")),
         commit=None if data.get("commit") is None else str(data.get("commit")),
         merge_parent_commits=tuple(str(item) for item in (data.get("merge_parent_commits") or ())),
     )
+
+
+def _required_mapping(data: object, field_name: str) -> Mapping[str, Any]:
+    if not isinstance(data, Mapping):
+        raise ValueError(f"Support revision snapshot requires mapping '{field_name}'")
+    return data
 
 
 def _scope_to_dict(scope: RevisionScope) -> dict[str, Any]:
@@ -109,24 +117,31 @@ def _belief_atom_from_mapping(data: Mapping[str, Any]) -> BeliefAtom:
     if kind == "claim":
         if not isinstance(payload_data, Mapping):
             raise ValueError("Claim atom snapshot requires mapping payload")
-        return ClaimAtom(atom_id=atom_id, claim=payload_data, label=label)
+        return ClaimAtom(atom_id=atom_id, claim=coerce_active_claim(payload_data), label=label)
     if kind == "assumption":
         if not isinstance(payload_data, Mapping):
             raise ValueError("Assumption atom snapshot requires mapping payload")
-        return AssumptionAtom(atom_id=atom_id, assumption=payload_data, label=label)
+        return AssumptionAtom(atom_id=atom_id, assumption=_assumption_ref_from_mapping(payload_data), label=label)
     raise ValueError(f"Unsupported belief atom snapshot kind: {kind}")
 
 
 def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
-    data: dict[str, Any] = {
-        "atom_id": atom.atom_id,
-        "kind": "claim" if is_claim_atom(atom) else "assumption",
-        "payload": atom.claim.to_dict() if is_claim_atom(atom) else {
+    if isinstance(atom, ClaimAtom):
+        payload = atom.claim.to_dict()
+        kind = "claim"
+    else:
+        assert isinstance(atom, AssumptionAtom)
+        payload = {
             "assumption_id": atom.assumption.assumption_id,
             "cel": atom.assumption.cel,
             "kind": atom.assumption.kind,
             "source": atom.assumption.source,
-        },
+        }
+        kind = "assumption"
+    data: dict[str, Any] = {
+        "atom_id": atom.atom_id,
+        "kind": kind,
+        "payload": payload,
     }
     label = _label_to_dict(atom.label)
     if label is not None:
@@ -138,7 +153,7 @@ def _belief_base_from_mapping(data: Mapping[str, Any]) -> BeliefBase:
     support_sets_payload = data.get("support_sets") or {}
     essential_support_payload = data.get("essential_support") or {}
     return BeliefBase(
-        scope=_scope_from_mapping(data.get("scope") if isinstance(data.get("scope"), Mapping) else {}),
+        scope=_scope_from_mapping(_required_mapping(data.get("scope"), "scope")),
         atoms=tuple(
             _belief_atom_from_mapping(item)
             for item in (data.get("atoms") or ())
@@ -151,13 +166,13 @@ def _belief_base_from_mapping(data: Mapping[str, Any]) -> BeliefBase:
         ),
         support_sets={
             str(atom_id): tuple(
-                tuple(str(assumption_id) for assumption_id in support_set)
+                to_assumption_ids(support_set)
                 for support_set in support_sets
             )
             for atom_id, support_sets in support_sets_payload.items()
         },
         essential_support={
-            str(atom_id): tuple(str(assumption_id) for assumption_id in support)
+            str(atom_id): to_assumption_ids(support)
             for atom_id, support in essential_support_payload.items()
         },
     )
@@ -291,8 +306,8 @@ class EpistemicStateSnapshot:
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> EpistemicStateSnapshot:
         return cls(
-            scope=_scope_from_mapping(data.get("scope") if isinstance(data.get("scope"), Mapping) else {}),
-            base=_belief_base_from_mapping(data.get("base") if isinstance(data.get("base"), Mapping) else {}),
+            scope=_scope_from_mapping(_required_mapping(data.get("scope"), "scope")),
+            base=_belief_base_from_mapping(_required_mapping(data.get("base"), "base")),
             accepted_atom_ids=tuple(str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())),
             ranked_atom_ids=tuple(str(atom_id) for atom_id in (data.get("ranked_atom_ids") or ())),
             ranking={

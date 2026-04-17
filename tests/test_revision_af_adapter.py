@@ -1,9 +1,4 @@
-"""Revision-to-argumentation adapter tests.
-
-Diller et al. 2015 postulate grounding:
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_003.png
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_004.png
-"""
+"""Support-revision to argumentation adapter tests."""
 
 from __future__ import annotations
 
@@ -21,7 +16,7 @@ _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
 def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims() -> None:
-    from propstore.revision.af_adapter import project_epistemic_state_argumentation_view
+    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
 
     bound = _operator_bound()
     _, state = bound.iterated_revise(
@@ -43,7 +38,7 @@ def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims(
 
 
 def test_project_epistemic_state_builds_structured_inputs_with_exact_support_metadata() -> None:
-    from propstore.revision.af_adapter import project_epistemic_state_argumentation_view
+    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
 
     store = _RevisionStore(
         claims=[
@@ -76,7 +71,7 @@ def test_project_epistemic_state_builds_structured_inputs_with_exact_support_met
 
 
 def test_revision_af_adapter_does_not_import_ic_merge() -> None:
-    path = Path("propstore/revision/af_adapter.py")
+    path = Path("propstore/support_revision/af_adapter.py")
     assert path.exists()
 
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

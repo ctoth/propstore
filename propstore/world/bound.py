@@ -502,19 +502,19 @@ class BoundWorld(BeliefSpace):
 
     def revision_base(self):
         """Project this bound world into a revision-facing belief base."""
-        from propstore.revision.projection import project_belief_base
+        from propstore.support_revision.projection import project_belief_base
 
         return project_belief_base(self)
 
     def revision_entrenchment(self, *, overrides: Mapping[str, Mapping[str, Any]] | None = None):
         """Compute the current revision-facing entrenchment ordering."""
-        from propstore.revision.entrenchment import compute_entrenchment
+        from propstore.support_revision.entrenchment import compute_entrenchment
 
         return compute_entrenchment(self, self.revision_base(), overrides=overrides)
 
     def expand(self, atom):
         """Expand the scoped revision belief base without mutating source storage."""
-        from propstore.revision.operators import expand as expand_revision_base
+        from propstore.support_revision.operators import expand as expand_revision_base
 
         return expand_revision_base(self.revision_base(), atom)
 
@@ -525,7 +525,7 @@ class BoundWorld(BeliefSpace):
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
         """Contract the scoped revision belief base using the current entrenchment."""
-        from propstore.revision.operators import contract as contract_revision_base
+        from propstore.support_revision.operators import contract as contract_revision_base
 
         return contract_revision_base(
             self.revision_base(),
@@ -541,7 +541,7 @@ class BoundWorld(BeliefSpace):
         conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
     ):
         """Revise the scoped belief base by delegating to the revision package."""
-        from propstore.revision.operators import revise as revise_revision_base
+        from propstore.support_revision.operators import revise as revise_revision_base
 
         return revise_revision_base(
             self.revision_base(),
@@ -557,7 +557,7 @@ class BoundWorld(BeliefSpace):
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
         """Render the default explanation payload for a revision result."""
-        from propstore.revision.explain import build_revision_explanation
+        from propstore.support_revision.explain import build_revision_explanation
 
         return build_revision_explanation(
             result,
@@ -570,7 +570,7 @@ class BoundWorld(BeliefSpace):
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
         """Build the explicit iterated revision state for this scoped world."""
-        from propstore.revision.iterated import make_epistemic_state
+        from propstore.support_revision.iterated import make_epistemic_state
 
         return make_epistemic_state(
             self.revision_base(),
@@ -587,7 +587,7 @@ class BoundWorld(BeliefSpace):
         state=None,
     ):
         """Revise an explicit epistemic state using the selected iterated operator."""
-        from propstore.revision.iterated import iterated_revise as iterated_revise_state
+        from propstore.support_revision.iterated import iterated_revise as iterated_revise_state
 
         current_state = state or self.epistemic_state(overrides=overrides)
         return iterated_revise_state(

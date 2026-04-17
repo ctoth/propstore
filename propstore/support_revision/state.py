@@ -6,9 +6,9 @@ from typing import Any, TypeGuard
 
 from propstore.cel_types import to_cel_expr
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
-from propstore.core.id_types import AssumptionId, ContextId, to_assumption_ids, to_context_id
+from propstore.core.id_types import AssumptionId, ContextId, to_assumption_id, to_assumption_ids, to_context_id
 from propstore.core.labels import AssumptionRef, Label
-from propstore.revision.explanation_types import (
+from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
     RevisionAtomDetail,
     coerce_entrenchment_reason,
@@ -23,7 +23,7 @@ def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> Assumpt
     if assumption_id is None:
         raise ValueError("Assumption atom requires 'assumption_id' or 'id'")
     return AssumptionRef(
-        assumption_id=str(assumption_id),
+        assumption_id=to_assumption_id(assumption_id),
         cel=to_cel_expr(str(payload.get("cel") or "")),
         kind=str(payload.get("kind") or ""),
         source=str(payload.get("source") or ""),

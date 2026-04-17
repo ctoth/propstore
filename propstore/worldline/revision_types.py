@@ -4,9 +4,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.revision.explanation_types import RevisionExplanation
-from propstore.revision.snapshot_types import EpistemicStateSnapshot
-from propstore.revision.state import AssumptionAtom, BeliefAtom, ClaimAtom
+from propstore.core.active_claims import coerce_active_claim
+from propstore.support_revision.explanation_types import RevisionExplanation
+from propstore.support_revision.snapshot_types import EpistemicStateSnapshot
+from propstore.support_revision.state import AssumptionAtom, BeliefAtom, ClaimAtom, coerce_assumption_ref
 
 
 @dataclass(frozen=True)
@@ -54,18 +55,18 @@ class RevisionAtomRef:
                 raise ValueError("Claim revision atom requires a claim_id")
             return ClaimAtom(
                 atom_id=self.resolved_atom_id() or f"claim:{self.claim_id}",
-                claim={
+                claim=coerce_active_claim({
                     "id": self.claim_id,
                     "artifact_id": self.claim_id,
                     "value": self.value,
-                },
+                }),
             )
         if self.kind == "assumption":
             if self.assumption_id is None:
                 raise ValueError("Assumption revision atom requires an assumption_id")
             return AssumptionAtom(
                 atom_id=self.resolved_atom_id() or f"assumption:{self.assumption_id}",
-                assumption={"assumption_id": self.assumption_id},
+                assumption=coerce_assumption_ref({"assumption_id": self.assumption_id}),
             )
         raise ValueError(f"Unsupported revision atom kind: {self.kind}")
 

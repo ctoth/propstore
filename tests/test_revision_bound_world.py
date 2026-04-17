@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import json
 
-from propstore.revision.explain import build_revision_explanation
-from propstore.revision.iterated import iterated_revise as iterated_revise_base
-from propstore.revision.iterated import make_epistemic_state
-from propstore.revision.operators import contract as contract_base
-from propstore.revision.operators import expand as expand_base
-from propstore.revision.operators import revise as revise_base
+from propstore.support_revision.explain import build_revision_explanation
+from propstore.support_revision.iterated import iterated_revise as iterated_revise_base
+from propstore.support_revision.iterated import make_epistemic_state
+from propstore.support_revision.operators import contract as contract_base
+from propstore.support_revision.operators import expand as expand_base
+from propstore.support_revision.operators import revise as revise_base
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 

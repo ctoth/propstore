@@ -18,7 +18,7 @@ from propstore.cel_checker import synthetic_category_concept
 from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
 from propstore.context_lifting import ContextReference, LiftingRule, LiftingSystem
-from propstore.context_types import LoadedContext, loaded_contexts_to_lifting_system
+from propstore.context_types import LoadedContext, loaded_contexts_to_lifting_system, parse_context_record
 from propstore.loaded import LoadedEntry
 from propstore.sidecar.schema import create_context_tables, populate_contexts
 from propstore.validate_contexts import load_contexts, validate_contexts
@@ -57,6 +57,23 @@ def make_context(
     if lifting_rules:
         payload["lifting_rules"] = lifting_rules
     return payload
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    (
+        ({"id": "ctx", "structure": "not-a-mapping"}, "structure"),
+        ({"id": "ctx", "assumptions": "not-a-sequence"}, "assumptions"),
+        ({"id": "ctx", "structure": {"assumptions": "not-a-sequence"}}, "assumptions"),
+        ({"id": "ctx", "structure": {"parameters": "not-a-mapping"}}, "parameters"),
+    ),
+)
+def test_parse_context_record_rejects_malformed_structured_fields(
+    payload: dict[str, object],
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        parse_context_record(payload)
 
 
 def insert_claim_row(

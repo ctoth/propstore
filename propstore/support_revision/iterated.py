@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from propstore.revision.entrenchment import EntrenchmentReport
-from propstore.revision.explanation_types import EntrenchmentReason
-from propstore.revision.operators import normalize_revision_input, revise
-from propstore.revision.snapshot_types import epistemic_state_snapshot
-from propstore.revision.state import BeliefBase, EpistemicState, RevisionEpisode, RevisionResult
+from propstore.support_revision.entrenchment import EntrenchmentReport
+from propstore.support_revision.explanation_types import EntrenchmentReason
+from propstore.support_revision.operators import normalize_revision_input, revise
+from propstore.support_revision.snapshot_types import epistemic_state_snapshot
+from propstore.support_revision.state import BeliefBase, EpistemicState, RevisionEpisode, RevisionResult
 
 
 def make_epistemic_state(

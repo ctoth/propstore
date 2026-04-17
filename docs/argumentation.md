@@ -51,7 +51,7 @@ Condition disjointness is checked via Z3 satisfiability. Category concepts get E
 - `claim_graph` remains the default backend and preserves the current claim-row projection and behavior.
 - `aspic` is the canonical structured-argument backend over active claims plus exact support metadata.
 - `atms` is a global label/nogood propagation backend over the active belief space. It is an ATMS-style engine pass, not a full de Kleer runtime manager, not AGM entrenchment, and not full ASPIC+.
-- the separate `propstore.revision` layer performs claim/context revision over derived belief state; argumentation consumers observe that revised state through adapters or worldline capture, rather than performing revision themselves
+- `propstore.belief_set` owns formal belief revision and AF revision. `propstore.support_revision` is only an operational support-incision adapter for scoped worldline capture; argumentation consumers do not treat it as AGM or AF-revision semantics.
 - `resolution_strategy` selects how to pick a winner when a conflicted concept still has multiple active claims after belief-space reasoning.
 - `comparison` selects the preference-comparison rule used inside the claim-graph argumentation backend.
 
@@ -101,7 +101,7 @@ The labelled core and `atms` backend track exact support only. Semantically comp
 - **Stability and relevance** — whether a claim keeps the same status across all bounded consistent future replays, and which declared queryables can flip it
 - **Intervention planning** — minimal bounded additive queryable sets that reach a requested target status; next-query suggestions derived from actual minimal plans
 
-These remain bounded replay over admitted future queryables. This is not AGM revision, entrenchment maintenance, or full structured-argument dynamics. Those live in the separate revision layer.
+These remain bounded replay over admitted future queryables. This is not AGM revision, entrenchment maintenance, or full structured-argument dynamics. Formal revision operators live in `propstore.belief_set`; support-incision capture lives in `propstore.support_revision`.
 
 ## Extensions CLI
 
@@ -132,4 +132,4 @@ Decision criteria at render time: pignistic (default), Hurwicz, lower bound, upp
 
 ## Future work
 
-Claim/context AGM-style revision semantics are implemented in the separate revision layer. Remaining future work is AF-level and warrant-level revision, plus extended Jøsang operators (deduction, comultiplication, abduction) and interval dominance (Denoeux 2019).
+Claim/context AGM-style revision semantics are implemented in `propstore.belief_set`. Remaining future work is warrant-level revision, plus extended Jøsang operators (deduction, comultiplication, abduction) and interval dominance (Denoeux 2019).

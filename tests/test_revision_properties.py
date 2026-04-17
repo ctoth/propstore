@@ -1,10 +1,4 @@
-"""Generated postulate checks for the exposed revision operator surface.
-
-Diller et al. 2015 state revision postulates for argumentation-framework
-revision by formulas and by AFs:
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_003.png
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_004.png
-"""
+"""Generated properties for the operational support-incision surface."""
 
 from __future__ import annotations
 
@@ -12,10 +6,10 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.revision.entrenchment import EntrenchmentReport
-from propstore.revision.operators import expand, revise, stabilize_belief_base
-from propstore.revision.operators import normalize_revision_input
-from propstore.revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
+from propstore.support_revision.entrenchment import EntrenchmentReport
+from propstore.support_revision.operators import expand, revise, stabilize_belief_base
+from propstore.support_revision.operators import normalize_revision_input
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
 
 
 _ident = st.text(
@@ -90,16 +84,10 @@ def test_normalize_revision_input_resolves_existing_claim_atom_by_all_user_handl
 
 
 class TestGeneratedRevisionPostulates:
-    """Generated checks for exposed AGM/Diller-style revision behavior.
+    """Generated checks for the finite support-incision adapter.
 
-    The tested surface is propstore's finite support-incision operator,
-    not a full AF-extension semantic operator. Unsupported semantic
-    postulates are recorded in:
-    reports/paper-grounded-revision-postulate-gap-2026-04-16.md
-
-    Diller et al. 2015 postulate grounding:
-    papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_003.png
-    papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_004.png
+    Formal literature postulate tests live under the ``propstore.belief_set``
+    test suites.
     """
 
     pytestmark = pytest.mark.property
@@ -128,8 +116,7 @@ class TestGeneratedRevisionPostulates:
     def test_revise_success_for_nonconflicting_satisfiable_input(self, generated):
         """Nonconflicting revision accepts the input and rejects nothing.
 
-        Diller P*3 requires a non-empty result for consistent input; on
-        this exposed finite-base surface, a nonconflicting new atom is
+        On this exposed finite-base surface, a nonconflicting new atom is
         satisfiable and must be accepted.
         """
         base, entrenchment = generated
@@ -150,8 +137,7 @@ class TestGeneratedRevisionPostulates:
     def test_syntax_irrelevance_for_equivalent_claim_inputs(self, generated):
         """Equivalent claim inputs produce the same revised base.
 
-        This is the exposed analogue of Diller P*4 syntax irrelevance:
-        the mapping and domain object name the same claim atom.
+        The mapping and domain object name the same claim atom.
         """
         base, entrenchment = generated
         mapping_input = {"kind": "claim", "id": "new"}
