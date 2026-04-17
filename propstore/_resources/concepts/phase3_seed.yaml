@@ -1,0 +1,224 @@
+concepts:
+  - ref: entity
+    name: Entity
+    artifact_id: ps:concept:entity
+    definition: A typed participant or object that can fill a description-kind slot.
+
+  - ref: agent
+    name: Agent
+    artifact_id: ps:concept:agent
+    definition: An entity capable of observing, asserting, deciding, or acting.
+    is_a: ps:concept:entity
+
+  - ref: description_claim
+    name: Description Claim
+    artifact_id: ps:concept:description_claim
+    definition: A claim whose predicate is a description-kind concept.
+    is_a: ps:concept:entity
+
+  - ref: quantity
+    name: Quantity
+    artifact_id: ps:concept:quantity
+    definition: A measured quantity or variable.
+    is_a: ps:concept:entity
+
+  - ref: measurement_value
+    name: Measurement Value
+    artifact_id: ps:concept:measurement_value
+    definition: A value reported by a measurement description.
+    is_a: ps:concept:entity
+
+  - ref: measurement_instrument
+    name: Measurement Instrument
+    artifact_id: ps:concept:measurement_instrument
+    definition: An instrument whose telic role affords measurement.
+    is_a: ps:concept:entity
+    qualia:
+      telic:
+        - reference: ps:concept:measurement
+          label: Measurement
+          type_constraint: ps:concept:measurement
+
+  - ref: unit
+    name: Unit
+    artifact_id: ps:concept:unit
+    definition: A unit expression attached to a measurement value.
+    is_a: ps:concept:entity
+
+  - ref: temporal_location
+    name: Temporal Location
+    artifact_id: ps:concept:temporal_location
+    definition: A TIMEPOINT-valued temporal anchor for a description-claim.
+    form: timepoint
+    is_a: ps:concept:entity
+
+  - ref: condition
+    name: Condition
+    artifact_id: ps:concept:condition
+    definition: A condition under which a description holds.
+    is_a: ps:concept:entity
+
+  - ref: calibration_reference
+    name: Calibration Reference
+    artifact_id: ps:concept:calibration_reference
+    definition: Evidence or procedure documenting measurement calibration.
+    is_a: ps:concept:entity
+
+  - ref: source
+    name: Source
+    artifact_id: ps:concept:source
+    definition: A source artifact or authority for an assertion.
+    is_a: ps:concept:entity
+
+  - ref: evidential_basis
+    name: Evidential Basis
+    artifact_id: ps:concept:evidential_basis
+    definition: Evidence supporting an assertion description.
+    is_a: ps:concept:entity
+
+  - ref: decision_option
+    name: Decision Option
+    artifact_id: ps:concept:decision_option
+    definition: An option considered in a decision description.
+    is_a: ps:concept:entity
+
+  - ref: justification
+    name: Justification
+    artifact_id: ps:concept:justification
+    definition: A reason or argument supporting a decision.
+    is_a: ps:concept:entity
+
+  - ref: reactant
+    name: Reactant
+    artifact_id: ps:concept:reactant
+    definition: A participant consumed or transformed in a reaction description.
+    is_a: ps:concept:entity
+
+  - ref: product
+    name: Product
+    artifact_id: ps:concept:product
+    definition: A participant produced by a reaction description.
+    is_a: ps:concept:entity
+
+  - ref: reaction_type
+    name: Reaction Type
+    artifact_id: ps:concept:reaction_type
+    definition: A typed classification of a reaction description.
+    is_a: ps:concept:entity
+
+  - ref: causal_account
+    name: Causal Account
+    artifact_id: ps:concept:causal_account
+    definition: The account tag for a causal-connection assertion.
+    is_a: ps:concept:entity
+
+  - ref: observation
+    name: Observation
+    artifact_id: ps:concept:observation
+    definition: A description-kind for an observation made by an observer.
+    description_kind:
+      slots:
+        - name: observer
+          type: ps:concept:agent
+        - name: observed
+          type: ps:concept:entity
+        - name: instrumentation
+          type: ps:concept:measurement_instrument
+        - name: temporal-location
+          type: ps:concept:temporal_location
+        - name: conditions
+          type: ps:concept:condition
+
+  - ref: measurement
+    name: Measurement
+    artifact_id: ps:concept:measurement
+    definition: A description-kind for measuring a quantity with a value, units, and instrument.
+    description_kind:
+      slots:
+        - name: quantity-measured
+          type: ps:concept:quantity
+        - name: value
+          type: ps:concept:measurement_value
+        - name: instrument
+          type: ps:concept:measurement_instrument
+          proto_agent:
+            causation: 0.8
+        - name: units
+          type: ps:concept:unit
+        - name: temporal-location
+          type: ps:concept:temporal_location
+        - name: conditions
+          type: ps:concept:condition
+        - name: calibration-reference
+          type: ps:concept:calibration_reference
+
+  - ref: assertion
+    name: Assertion
+    artifact_id: ps:concept:assertion
+    definition: A description-kind for an agent asserting a claim from a source and evidence.
+    description_kind:
+      slots:
+        - name: asserter
+          type: ps:concept:agent
+          proto_agent:
+            sentience: 0.8
+        - name: asserted-claim
+          type: ps:concept:description_claim
+        - name: temporal-location
+          type: ps:concept:temporal_location
+        - name: source
+          type: ps:concept:source
+        - name: evidential-basis
+          type: ps:concept:evidential_basis
+
+  - ref: decision
+    name: Decision
+    artifact_id: ps:concept:decision
+    definition: A description-kind for a decision made by an agent among options.
+    description_kind:
+      slots:
+        - name: decider
+          type: ps:concept:agent
+          proto_agent:
+            volition: 0.9
+            sentience: 0.8
+        - name: decision-content
+          type: ps:concept:entity
+        - name: temporal-location
+          type: ps:concept:temporal_location
+        - name: options-considered
+          type: ps:concept:decision_option
+        - name: justification
+          type: ps:concept:justification
+
+  - ref: reaction
+    name: Reaction
+    artifact_id: ps:concept:reaction
+    definition: A description-kind for reactants producing products under conditions.
+    description_kind:
+      slots:
+        - name: reactants
+          type: ps:concept:reactant
+          proto_patient:
+            affected: 0.8
+        - name: products
+          type: ps:concept:product
+        - name: conditions
+          type: ps:concept:condition
+        - name: temporal-location
+          type: ps:concept:temporal_location
+        - name: reaction-type
+          type: ps:concept:reaction_type
+
+  - ref: causal_connection
+    name: Causal Connection
+    artifact_id: ps:concept:causal_connection
+    definition: A description-kind asserting a causal connection between two description-claims under an explicit account.
+    description_kind:
+      slots:
+        - name: cause-description
+          type: ps:concept:description_claim
+        - name: effect-description
+          type: ps:concept:description_claim
+        - name: account
+          type: ps:concept:causal_account

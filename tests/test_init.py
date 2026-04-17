@@ -106,6 +106,49 @@ class TestInit:
         result = runner.invoke(cli, ["validate"])
         assert result.exit_code == 0, result.output
 
+    def test_init_seeds_phase3_description_kind_concepts(self, empty_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+
+        concepts_dir = empty_workspace / "knowledge" / "concepts"
+        required = {
+            "observation",
+            "measurement",
+            "assertion",
+            "decision",
+            "reaction",
+        }
+        seeded = {path.stem for path in concepts_dir.glob("*.yaml")}
+        assert required <= seeded
+
+        for name in required:
+            data = yaml.safe_load((concepts_dir / f"{name}.yaml").read_text())
+            sense = data["lexical_entry"]["senses"][0]
+            description_kind = sense["description_kind"]
+            assert description_kind["reference"]["uri"] == data["artifact_id"]
+            assert description_kind["slots"], f"{name} has no participant slots"
+            assert all("type_constraint" in slot for slot in description_kind["slots"])
+
+    def test_init_seeds_qualia_and_causal_connection_examples(self, empty_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+
+        concepts_dir = empty_workspace / "knowledge" / "concepts"
+        instrument = yaml.safe_load((concepts_dir / "measurement_instrument.yaml").read_text())
+        measurement = yaml.safe_load((concepts_dir / "measurement.yaml").read_text())
+        instrument_sense = instrument["lexical_entry"]["senses"][0]
+        telic = instrument_sense["qualia"]["telic"][0]
+        assert telic["reference"]["uri"] == measurement["artifact_id"]
+        assert telic["type_constraint"]["reference"]["uri"] == measurement["artifact_id"]
+        assert telic["provenance"]["status"] == "stated"
+
+        causal = yaml.safe_load((concepts_dir / "causal_connection.yaml").read_text())
+        causal_kind = causal["lexical_entry"]["senses"][0]["description_kind"]
+        slot_names = {slot["name"] for slot in causal_kind["slots"]}
+        assert {"cause-description", "effect-description", "account"} <= slot_names
+
     def test_init_with_directory_flag(self, empty_workspace: Path) -> None:
         """pks -C /some/path init should create knowledge/ inside that path."""
         subdir = empty_workspace / "parent"
