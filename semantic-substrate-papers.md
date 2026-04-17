@@ -83,9 +83,9 @@ The hardest semantic piece, biggest leverage. `ist(c, p)` turns every claim into
 
 ### In corpus, currently stub (must be processed)
 
-- `Clark_2014_Micropublications` **and** `Clark_2014_MicropublicationsSemanticModel` — these are duplicate directories on disk with divergent `notes.md`; only the `SemanticModel` variant has the PDF per the axis-9 doc-drift report. **Dedupe before processing** — pick the canonical directory, merge any unique content from the duplicate, delete the stale one. Confirm the deduped dir is what `papers/index.md` references.
+- `Clark_2014_Micropublications` — canonical directory after dedupe. The earlier `Clark_2014_MicropublicationsSemanticModel` directory held the complete PDF/png/notes artifact and has been renamed to the canonical path; `papers/index.md` references the canonical directory.
 - `McCarthy_1993` (context formalization / `ist(c, p)`) — almost certainly a stub per axis 3d; paper manifest flagged as foundational high-priority.
-- `Guha_1991_ContextsFormalization` + `Guha_1991_ContextsFormalizationApplications` — McCarthy's student; operationalization of contexts. Both flagged as stubs.
+- `Guha_1991_ContextsFormalization` — Guha's thesis is titled _Contexts: A Formalization and Some Applications_ and covers both the formalization and applications material previously listed as two separate workstream entries.
 
 ### May need retrieval
 

@@ -170,7 +170,7 @@ Specific points of contact:
 ### Conceptual Links (not citation-based)
 - [[Fillmore_1982_FrameSemantics]] — Lemon's Ontology Entity corresponds to a Fillmorean frame; lemon formalizes the link between linguistic surface forms and the frame-structured concepts they reference
 - [[Baker_1998_BerkeleyFrameNet]] — FrameNet's Lexical Units (word senses tied to frames) are the empirical counterpart to lemon's Lexical Entries tied to Ontology Entities
-- [[Clark_2014_MicropublicationsSemanticModel]] — Clark's Similarity Groups / Holotypes address the same vocabulary normalization problem that lemon's sense-disambiguated lexicalization solves structurally
+- [[Clark_2014_Micropublications]] — Clark's Similarity Groups / Holotypes address the same vocabulary normalization problem that lemon's sense-disambiguated lexicalization solves structurally
 
 ## Related Work Worth Reading
 - Guarino N. (1998) — Formal Ontology in Information Systems (foundational ontology reference)

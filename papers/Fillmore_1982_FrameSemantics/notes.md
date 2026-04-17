@@ -185,7 +185,7 @@ Specific points of contact:
 - [[Narayanan_2014_BridgingTextKnowledgeFrames]] — Narayanan's applications demonstrate the text-to-knowledge bridge that Fillmore theorizes here
 - [[Buitelaar_2011_OntologyLexicalizationLemon]] — Lemon formalizes the link between linguistic forms and ontological concepts that Fillmore's frame semantics requires
 - [[Pustejovsky_2013_DynamicEventStructureHabitat]] — Pustejovsky's qualia structure and habitats operationalize Fillmore's frames as typed record structures with dynamic content
-- [[Clark_2014_MicropublicationsSemanticModel]] — Clark's Similarity Groups address the vocabulary normalization problem that arises when different terms frame the same underlying claim
+- [[Clark_2014_Micropublications]] — Clark's Similarity Groups address the vocabulary normalization problem that arises when different terms frame the same underlying claim
 - [Ontological Promiscuity](../Hobbs_1985_OntologicalPromiscuity/notes.md) — **Strong.** Hobbs's primed predicates `p'(e, x₁,…,xₙ)` reify the event/condition so modifiers and adjuncts attach as predications over it — structurally the same move Fillmore makes with frame elements. Hobbs supplies the logical-form mechanics for discourse interpretation; Fillmore supplies the conceptual apparatus (frames as cognitive-linguistic schemata). Propstore's concept layer needs both: formal shape (Hobbs) + frame-theoretic grounding (Fillmore).
 
 ## Related Work Worth Reading
