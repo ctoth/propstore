@@ -1,0 +1,268 @@
+# Workstream A — Semantic Substrate Retrofit
+
+Date: 2026-04-16
+Status: active, tightened 2026-04-17 for non-Davidsonian execution
+Depends on: `disciplines.md`, `judgment-rubric.md`, `../../semantic-substrate-papers.md` (paper list + retrieval state)
+Blocks (within this set): WS-B (needs phase 1), WS-C (needs phase 4), WS-Z-types (needs phase 1 for full payoff)
+Review context: `../axis-3d-semantic.md` (primary), `../axis-9-doc-drift.md`, `../axis-1-principle-adherence.md`
+
+## What you're doing
+
+Propstore advertises itself as a "semantic operating system" grounded in frame semantics (Fillmore 1982, Baker 1998 FrameNet), the generative lexicon (Pustejovsky 1991), ontology lexicalization (Buitelaar 2011 lemon / OntoLex), context formalization (McCarthy 1993, Guha 1991), micropublications (Clark 2014), and provenance semantics (Buneman 2001, Carroll 2005). The 2026-04-16 code review found that **none of these papers have structural representation in the code**. What exists instead is a dimensional-quantity ontology (via pint), a SKOS-style taxonomy of concepts, visibility-inheritance contexts (ancestry-based, not `ist(c,p)`), and token-Jaccard reconciliation for alignment.
+
+Your job: cash out the rhetoric. Read the papers. Design and implement the type system they describe. Migrate the existing code onto the new substrate. Produce a concept/semantic layer that actually delivers frame semantics + qualia + lemon + `ist(c,p)` + micropublications + provenance, as an integrated whole.
+
+This is the biggest workstream in the set. It is structured as four phases, but those phases are *internal* to the workstream — they share a type system, they share a migration pass, they share a papers-read first pass. Do not treat them as separable workstreams.
+
+## What the review actually found
+
+Verbatim, so you don't have to chase the axis report:
+
+> **Axis 3d, biggest drift:** The four papers CLAUDE.md explicitly names as grounding the concept/semantic layer — Fillmore 1982, Pustejovsky 1991, Buitelaar 2011 (lemon), McCarthy 1993 (`ist(c, p)`) — have zero corresponding structural content in code. Grep for `qualia|telic|agentive|constitutive|proto_role|lemon|LexicalEntry|LexicalForm|LexicalSense|lexicon|sameAs|ist\(c|lifting|bridge_rule|LocalModels` across `propstore/` → zero hits. Grep for `frame` → one file (`opinion.py`), and every hit is "binomial frame of discernment" (Dempster-Shafer), not Fillmore.
+
+> **Axis 3d, honest assessment:** Of 6 clauses in CLAUDE.md's "Concept/semantic layer" paragraph, 2 are cashed out (forms + CEL/Z3), 4 are misdescriptions. The 4 misdescriptions are precisely the ones referencing semantic-substrate papers. What propstore actually implements is a dimensional-quantity system + SKOS taxonomy + visibility-inheritance contexts + string-token Jaccard reconciliation + partial micropublication info structure.
+
+> **Axis 9 cross-ref:** `papers/Clark_2014_Micropublications/` and `papers/Clark_2014_MicropublicationsSemanticModel/` are two directories on disk with divergent `notes.md` — same paper, duplicated. Only the `SemanticModel` variant has the PDF.
+
+> **Axis 9 cross-ref:** `Buneman_2001_CharacterizationDataProvenance` and `Carroll_2005_NamedGraphsProvenanceTrust` are metadata-only stubs with no PDF and no notes. The foundational provenance papers have never been read.
+
+> **Axis 1 Finding 2.4 (HIGH):** `source_calibration.derive_source_trust` silently defaults `prior_base_rate=0.5` without provenance on the stored payload. The `SourceTrustDocument` has no `status` field. Downstream readers cannot distinguish "derived" from "had nothing."
+
+> **Axis 1 Structural S2:** `SourceTrustDocument` and `SourceTrustQualityDocument` carry numeric values with no `status` field. Cannot label ignorance.
+
+> **Axis 1 Structural S3:** `ResolutionDocument` has four independent scalar opinion fields instead of `opinion: Opinion | None`. Permits invariant-violating `(0.0, 0.0, 0.0, 0.5)`.
+
+## Vision
+
+When this workstream is complete, propstore has:
+
+- **Typed provenance woven through everything.** Every probability, every stance, every opinion, every derived quantity carries a `Provenance` record whose `status` field distinguishes `measured | calibrated | stated | defaulted | vacuous`. Fusion operators compose provenance. Serialization preserves it.
+- **A lemon-shaped concept registry.** `LexicalEntry → Form → LexicalSense → OntologyReference`, with entry-level physical-dimension annotations (the existing `pint` integration finds its principled home as a sibling of lemon rather than mixed into it).
+- **Qualia as the generative-lexicon substrate at the sense level.** `LexicalSense.qualia: QualiaStructure` holds four roles (formal, constitutive, telic, agentive) per Pustejovsky 1991 with type-driven coercion rules. Qualia values are typed `QualiaReference` objects into other concepts, carrying provenance and licensing transitive composition (X's TELIC is Y, Y's TELIC is Z → X has a purposive chain to Z — this is the generative bit).
+- **Description-kinds as concepts (events as defeasible coreference).** propstore does not treat events as individuals with pre-descriptive identity. There are description-kind concepts — `Observation`, `Measurement`, `Assertion`, `Decision`, `Reaction` — whose senses carry frame-like participant slots (observer, observed, instrumentation; quantity, value, instrument; etc.) and temporal anchoring via TIMEPOINT. Particular descriptions are *claims* of these kinds, living in the existing claim machinery. What we informally call "an event" is a render-time inference: a cluster of description-claims under an explicit merge-hypothesis whose justification is itself a defeasible Dung argument. Coreference is never a stored fact; it is the conclusion of an argument that survives attack under some assumption-set, queryable at render time. See `docs/event-semantics.md` for the full position statement and its commitments against Davidsonian / neo-Davidsonian event reification.
+- **Graded proto-role entailments on relational roles.** Dowty 1991 proto-agent (volition, sentience, causation, movement, change-of-state) and proto-patient (affected, incremental theme, stationary, causally affected, change-of-state) entailments decorate thematic roles as `GradedEntailment(value ∈ [0,1], provenance)`. Graded and provenance-bearing — honest ignorance works at this layer too; ASP's argument-realization predictions compose.
+- **First-class contexts per McCarthy 1993 `ist(c, p)`.** Contexts are logical objects, not visibility tags. Lifting rules per Guha 1991 + Giunchiglia-Serafini 1994 connect them. Bozzato 2018 justifiable exceptions sit on top (feeds directly into WS-C).
+- **Claims as context-qualified propositions.** Every claim is `(context, proposition)`, not bare proposition. Visibility inheritance is retired; its behavior, where users want it, is re-expressed as explicit lifting rules per repo.
+- **Clark micropublications as the composition rule.** A micropub bundles a claim (or claims) with evidence references, assumption sets, stance, and provenance into a publishable atomic unit. Each micropub is an ATMS node (the label algebra gains context dimension).
+- **Alignment by lexical identity, not by token Jaccard.** Reconciliation walks lemon entries and senses; if no match, it proposes candidates on a proposal branch rather than silently collapsing.
+- **A migration path for existing repos.** Q runs `pks migrate semantic-substrate` on each local repo; existing flat concepts become lemon entries with default senses; existing visibility contexts become explicit lifting rules; existing claims get a default top-level context.
+
+## Phase structure (internal to this workstream)
+
+Phases are sequenced because the downstream phases depend on upstream *type decisions*, not because they require separate merges. One workstream, one integrated design doc, one migration, one PR chain.
+
+### Phase 1 — Provenance foundations
+
+**Papers:** Buneman 2001, Carroll 2005. Optional secondary: Moreau 2013 PROV-O, Green-Karvounarakis-Tannen 2007 semirings.
+
+**Scope:**
+- Process Buneman 2001 and Carroll 2005 `notes.md` to non-stub depth.
+- Design `Provenance` type: fields for witness chain (asserter, timestamp, source-artifact-code, method), status discriminator (`measured | calibrated | stated | defaulted | vacuous`), composition algebra for fusion-derived provenance.
+- **Storage mechanism: git-notes via dulwich.** The logical form of provenance is a named graph per Carroll 2005. The *storage realization* is git-notes: provenance named-graph payloads attach to claim-object SHAs as notes on a dedicated notes ref (e.g. `refs/notes/provenance`). This keeps the claim object's content-hash stable while provenance rides alongside — the "provenance does not contaminate claim identity" invariant is enforced by git's object model itself. Dulwich ≥ 1.1.0 (already the propstore pin) supports notes natively via `dulwich.notes`. No parallel per-repo provenance table; no impedance mismatch; notes push/pull via standard git refspecs (`refs/notes/*:refs/notes/*`), which means the provenance carrier is **substrate-independent** — works with local dulwich, GitHub / GitLab, Cloudflare Artifacts, or any git-speaking remote.
+- **Decidability of content-hashing:** every provenance payload is itself content-addressed (hash of the named-graph serialization), so identical witness chains dedupe automatically at the note-object level. No custom dedup layer; git's own object dedup suffices.
+- Named-graph serialization format (the content that lives inside the note): JSON-LD or Turtle — decision during design; pick whichever round-trips most cleanly with `msgspec`. Readers reconstruct the named graph from the note; they never reconstruct from a side table.
+- Rewrite `propstore/provenance.py`. Existing agent-timestamp stamping becomes the `method="stated"` branch.
+- `SourceTrustDocument` + `SourceTrustQualityDocument` gain `status` field. Mandatory, not optional.
+- `ResolutionDocument` collapses four scalars into `opinion: OpinionDocument | None` (a single tagged field).
+- `Opinion` carries provenance as an optional field (or use a tagged-union variant distinguishing raw `Opinion(...)` from `Opinion.with_provenance(..., provenance)`).
+- Fusion operators (`consensus_pair`, `_ccf_binomial`, `wbf` — once fixed in WS-Z-types — and any future operators) compose provenance through their output.
+- Property tests: provenance composition under fusion where the underlying operator is associative; named-graph round-trip; `status`-field parse-time enforcement; `SourceTrustDocument.status` mandatory at load.
+- Migration: existing repos fail-to-load until the reauthor CLI runs. `pks provenance backfill --source=<name>` walks the repo; every probability-bearing field requires explicit provenance or explicit `status="vacuous"`.
+
+**Phase 1 exit:** Buneman + Carroll notes non-stub; `docs/provenance.md` exists and documents the git-notes storage mechanism + serialization format; `uv run pyright --strict propstore/provenance.py` green; `test_provenance*` green and expanded with composition properties + a git-notes round-trip test (write a provenance note on a claim SHA; read it back via `dulwich.notes`; verify named-graph content is byte-identical); CLAUDE.md's provenance paragraph updated to reflect the git-notes-as-carrier decision.
+
+### Phase 2 — Lemon concept container
+
+**Papers:** Buitelaar 2011. Secondary: OntoLex-Lemon community report (Cimiano, McCrae, Buitelaar 2020 — fetch if not already retrieved).
+
+**Scope:**
+- Process Buitelaar 2011 notes; fetch + process OntoLex-Lemon 2020+ spec.
+- Design `LexicalEntry`, `Form`, `LexicalSense`, `OntologyReference` types.
+- Decide Form↔dimension relationship: `Form` does NOT carry dimensional annotation directly (dimensional annotation rides on the `LexicalEntry` or on a sibling `Measurement` document); this preserves lemon's separation and keeps the pint integration clean.
+- Split `form_utils.py`: physical-dimension algebra moves to `propstore/dimensions.py`; lemon `Form` machinery lives in `propstore/core/lemon/forms.py`.
+- Rewrite `core/concepts.py`: a concept becomes the `(LexicalEntry, OntologyReference)` pair (an entry has senses; a reference may be pointed at by multiple senses).
+- `source/alignment.py`: **remove the Jaccard fallback**. Reconciliation tries `LexicalEntry` identity → `Form` identity → `OntologyReference` equality. If all miss, candidates are proposed on the proposal branch with `status="alignment_candidate"`. Jaccard is *gone*, not demoted.
+- CLI: `pks concept` and `pks form` reshape around lemon.
+- Validation: `validate_concepts.py` checks lemon invariants (entry has ≥1 sense; sense has ≤1 reference; homography permitted at entry level, polysemy at sense level).
+- Property tests: lemon structural invariants; homograph vs. polyseme distinction.
+- Migration: existing flat concepts become lemon entries with a single default sense pointing at the existing ontological reference. Aliases re-express as homograph entries sharing a reference.
+
+**Phase 2 exit:** Buitelaar + OntoLex-Lemon notes non-stub; `docs/lemon-concepts.md` exists; `propstore/core/lemon/` package live; `form_utils.py` split completed; `source/alignment.py` Jaccard removed; CLAUDE.md's concept/semantic paragraph updated.
+
+### Phase 3 — Qualia, proto-roles, and description-kinds
+
+**Two reframing notes preceded this phase. Both materially change what gets implemented; read the layered history before proceeding.**
+
+**First reframe (FrameNet drop):** an early draft committed to a FrameNet inventory import. FrameNet is a *lexicographic catalog* — `Causation.Cause` is a string label with a prose definition, not a typed slot with entailments. Fillmore 1982 is a pre-formal conceptual paper that motivated FrameNet's taxonomic work, not a formalism target. We dropped FrameNet entirely in favor of formalisms that have actual algebra: Pustejovsky qualia (type-driven coercion) and Dowty proto-roles (graded entailments that predict argument realization).
+
+**Second reframe (Davidsonian event drop — events as defeasible coreference):** the post-FrameNet draft committed to Davidsonian / neo-Davidsonian events as first-class typed individuals (Parsons 1990). On closer reading, Davidson required event identity to be a metaphysical fact about the world — same causes/effects (1969, abandoned as circular), then sameness of spatiotemporal region (1985, contested). propstore is not in the business of asserting metaphysical identity conditions; doing so would re-introduce the kind of pre-descriptive individuation that the project's non-commitment discipline rejects elsewhere. We are dropping Davidson, dropping Parsons, dropping the `Event` type, dropping `causes`/`precedes`/`overlaps` as primitives between determinate event referents.
+
+What replaces them: description-kinds as concepts; particular descriptions as claims; coreference between descriptions resolved by Dung-style argumentation over merge proposals at render time. The full position belongs in `docs/event-semantics.md` before shipping description-kind behavior. This is a non-Davidsonian implementation decision: Davidson, Parsons, Hobbs, Quine, and Putnam are useful rejection/background context, but they are not retrieval blockers for the executable type system.
+
+What survives from the previous draft: Pustejovsky qualia (composes over description-kind concepts), Dowty proto-roles (decorates participant slots on description-kind senses), TIMEPOINT-anchored Allen-1983 temporal reasoning (description-claims are temporally located via the existing solver; nothing changes here), and the `worldline/` cross-reference (an agent's worldline is the agent's own trajectory through their own description-claims — the physics metaphor fits more naturally under the descriptivist reading, where a worldline is also relative to an observer's frame).
+
+**Papers (primary, read fully before coding this phase):**
+- Pustejovsky 1991 — qualia structure with type-driven coercion. Composes over description-kind concepts.
+- Dowty 1991 — proto-agent / proto-patient graded entailments. Decorates participant slots.
+
+**Papers (secondary, read for context):**
+- Fillmore 1982 — understand the mental-frame motivation before implementing Pustejovsky's formalization.
+- Hobbs 1985, Quine 1968, and late-period Putnam — optional explanatory background for the non-Davidsonian descriptivist position. Do not block implementation on these unless `docs/event-semantics.md` needs a new philosophical argument not already covered by the repo decision.
+
+**Papers (optional):** Pustejovsky 2013+ (qualia refinements), Jackendoff 1990 (alternative semantic ontology for comparison), Levin-Rappaport Hovav 2005 (argument-realization theory operationalizing Dowty).
+
+**Read for "what we are explicitly NOT doing and why":**
+- Davidson 1967, *The Logical Form of Action Sentences*. Read to understand the position propstore rejects, and why event-as-individual was tempting.
+- Davidson 1969 + 1985 essays on event identity. Read to see the metaphysical commitment we are not making.
+- Parsons 1990, *Events in the Semantics of English*. The clean neo-Davidsonian reference; instructive as the maximally-developed version of the position we are choosing against.
+
+**NOT implementation targets:** Baker 1998 (FrameNet operationalization), the FrameNet inventory, Davidsonian or neo-Davidsonian event reification. No `Event` type. No event-individuation primitives. No `causes(e1, e2)` between determinate event referents.
+
+**Scope:**
+
+*Qualia (Pustejovsky):*
+- Design `QualiaStructure(formal, constitutive, telic, agentive)` with each field `list[QualiaReference] | None`.
+- Each `QualiaReference(reference: OntologyReference, type_constraint: TypeConstraint | None, provenance: Provenance)`. Typed, not just a pointer.
+- Implement **type-driven coercion**: if a predicate expects type T and an argument has type U, walk the argument's qualia for a coercion path (typically TELIC) that produces a T-typed view. Coercion is explicit — every coerced reference records the coercion path in its provenance so downstream reasoning can trace "we got a readable thing by coercing a book through its TELIC."
+- Property tests: coercion soundness (coerced view satisfies target type); qualia transitivity (if X's TELIC is Y and Y's TELIC is Z, there is a recoverable purposive chain X → Z); qualia invariants (e.g. FORMAL is stable under coercion; AGENTIVE preserves a source witness).
+
+*Description-kinds (replacing the Davidsonian event subsection):*
+
+**Anchor before designing.** Two existing facts about propstore shape the description-kind type design:
+
+1. **Temporal anchoring reuses `KindType.TIMEPOINT`.** Description-claims are not a new coordinate system. They live in the temporal coordinate propstore already implements: `cel_checker.KindType.TIMEPOINT` (maps to `z3.Real`) + `Z3ConditionSolver` providing Allen-1983 interval reasoning over real-valued constraints. A description-claim's temporal location uses TIMEPOINT-valued concept-references; temporal relations between description-claims (precedes, overlaps, during, equals, starts, finishes, ...) resolve via Z3 conjunction over the existing real-valued interval constraints. Per-claim `valid_from`/`valid_until` scoping (today's shape exercised in `tests/test_temporal_conditions.py`) remains the mechanism. **Do not build a second temporal layer; description-claims ride on the first.**
+
+2. **`worldline/` is the natural home for an agent's description trajectory.** propstore's `worldline/` module tracks an agent's trajectory through epistemic state. In the descriptivist event model, a worldline is the agent's own sequence of description-claims (observations, measurements, assertions, decisions made by that agent over time). The physics metaphor — a worldline as the timelike trajectory from an observer's frame of reference — fits naturally; in physics too, a worldline is relative to a frame, not an objective fact about the universe. The module's existing types (`worldline/trace.py`, `worldline/revision_capture.py`, `worldline/argumentation.py`) likely want to be revisited so trajectory entries are description-claims rather than a parallel-invented type. **Read worldline/ before designing description-kind types to make sure they compose, not collide.**
+
+*Concrete deliverables for description-kinds:*
+
+- Define seed description-kind concepts as lemon LexicalEntries with senses carrying participant slots:
+  - `Observation` — slots: observer, observed, instrumentation, temporal-location, conditions.
+  - `Measurement` — slots: quantity-measured, value, instrument, units, temporal-location, conditions, calibration-reference.
+  - `Assertion` — slots: asserter, asserted-claim, temporal-location, source, evidential-basis.
+  - `Decision` — slots: decider, decision-content, temporal-location, options-considered, justification.
+  - `Reaction` — slots: reactants, products, conditions, temporal-location, reaction-type.
+- Each slot carries a `type_constraint: OntologyReference` and a `proto_role_bundle: ProtoRoleBundle | None` (Dowty proto-role decorations on the description-kind's argument structure).
+- Description-claims are claims of these concepts. They live in `claim_core` like every other claim. Their `predicate` is the description-kind concept; their bindings are the slot-value assignments.
+- A description-claim's temporal location is a TIMEPOINT-valued slot binding; temporal reasoning over multiple description-claims uses the existing Z3+Allen machinery on those slot bindings.
+- **No `Event` type. No `EventStructure`. No `EventReference`. No `causes(e1, e2)` primitive between determinate event individuals.** Causal connection is itself a *causal-connection assertion* — a description-kind whose participants are two other description-claims and whose `account: Literal["stated", "counterfactual", "statistical", "mechanistic"]` tag carries the kind of causal claim being made. Causal-connection assertions are claims like any other; they have provenance, they can be merged, attacked, defeated.
+- **Coreference between description-claims is not a stored relation; it is a render-time inference.** Two description-claims that the system or a user might "treat as describing the same event" do so under an explicit merge-hypothesis. The merge-hypothesis is a Dung argument; its acceptance is policy-dependent (which extension of the argumentation framework, which assumption-set in ATMS terms). The render layer surfaces a `MergedDescriptionCluster` as the answer to "give me the cluster of descriptions about X" — but the cluster is computed at query time, the merge-justification is inspectable, and rival cluster-hypotheses survive in storage.
+- Property tests for the description-kinds:
+  - Slot-binding type-constraint enforcement.
+  - Description-claims compose with provenance (every binding has its source recoverable via provenance).
+  - Temporal reasoning over description-claim timestamps reduces to the existing Z3+Allen path; no new solver required.
+  - Coreference query (given two description-claims, return the merge-argument for treating them as co-referring) returns a Dung argument structure; the argument's acceptance under different semantics yields different cluster compositions; storage is policy-invariant.
+  - For causal-connection assertions: transitivity is *conditional* on the `account` tag; "stated" causation does not imply "counterfactual" causation. Don't try to bake a unified causal closure into the type.
+- Description-claims compose: a participant of one description-claim can itself be another description-claim (a causal-connection assertion has two description-claims as its participants; an assertion-claim's `asserted-claim` slot can be filled by another claim, including another description-claim; nested narratives are description-claims whose participants include description-claims about the same temporal region).
+- Temporal primitives apply at the description-claim level via the existing Z3+TIMEPOINT machinery — no new solver. Two description-claims with TIMEPOINT-valued temporal-location slots can be checked for Allen-relation disjointness/overlap via Z3 conjunction over the slot bindings. The 13 Allen relations apply at the description-claim level; a thin module on top of `Z3ConditionSolver` provides them. There is no separate event-temporal layer because there is no event individual to anchor.
+
+*Proto-roles (Dowty):*
+- Design `ProtoRoleBundle(proto_agent_entailments, proto_patient_entailments)`.
+- Each entailment: `GradedEntailment(property: ProtoRoleProperty, value: float ∈ [0,1], provenance: Provenance)`. Dowty's proto-agent properties: volition, sentience, causation, movement, change-of-state. Proto-patient: affected, incremental theme, stationary, causally affected, change-of-state.
+- Graded, not binary — Dowty's paper argues entailments vary in strength, and provenance-bearing grades let us express "moderate-strength causation entailment with witness X" honestly.
+- Dowty's Argument Selection Principle as a property test: for relational concepts with proto-role bundles on both argument positions, the position with the higher total proto-agent entailment weight is predicted as syntactic subject. ASP should be stable under independent re-bundlings and transparent under composition.
+
+*`LexicalSense` extension:*
+- `qualia: QualiaStructure | None`
+- `description_kind: DescriptionKind | None` (for description-kind concepts such as Observation, Measurement, Assertion, Decision, Reaction; None for non-description concepts)
+- `role_bundles: dict[RoleName, ProtoRoleBundle] | None` (for relational concepts with nameable arguments)
+
+*Fillmore-read:*
+- Verify notes for Fillmore 1982 are non-stub in `papers/Fillmore_1982_FrameSemantics/notes.md`. The notes should explain the frame concept as cognitive structure and explain why propstore uses Pustejovsky qualia + Dowty proto-roles + description-kinds rather than FrameNet or Davidsonian event individuals.
+
+*CLI:*
+- `pks concept qualia-add`, `pks concept description-kind`, `pks concept proto-role` — the primary manipulation surface.
+
+*Validation:*
+- Qualia reference integrity (each QualiaReference points at an existing concept satisfying type_constraint).
+- Description-kind slot type-constraint satisfaction.
+- Proto-role entailment values in [0, 1].
+- `GradedEntailment.provenance` mandatory (no silent defaults; same discipline as WS-A phase 1).
+
+*Seed examples:*
+- One canonical qualia-carrying concept: pick something from propstore's use case, e.g. `Measurement_Instrument` with TELIC pointing at the measurement activity it affords.
+- One description-kind concept: e.g. `Measurement` with typed participant slots (quantity-measured, value, instrument, units, temporal-location), each with provenance-bearing bindings.
+- One relational description-kind replacing a "frame label": `Causal_Connection` as a description-kind whose participants are two other description-claims and whose `account` tag distinguishes stated/counterfactual/statistical/mechanistic claims.
+
+**Phase 3 exit:** Pustejovsky 1991, Dowty 1991, and Fillmore 1982 notes verified non-stub; `docs/event-semantics.md` exists with the non-Davidsonian descriptivist position statement; `docs/qualia-and-proto-roles.md` exists describing the implemented semantics; modules `propstore/core/lemon/qualia.py`, `propstore/core/lemon/proto_roles.py`, `propstore/core/lemon/description_kinds.py` (NOT `events.py` — the naming matters) live; seed description-kind concepts (`Observation`, `Measurement`, `Assertion`, `Decision`, `Reaction`) defined in the seed knowledge tree; property tests green for qualia coercion, proto-role-driven argument selection, slot-binding type enforcement, coreference-as-Dung-argument behavior; the existing TIMEPOINT-based per-claim scoping (per `tests/test_temporal_conditions.py`) continues to pass unchanged; `worldline/` reviewed and either adopted as the agent's-description-trajectory consumer or deliberately left unchanged with a documented reason; CLAUDE.md's concept-content paragraph updated with honest description (qualia + proto-roles + description-kinds — no "frame semantics" rhetoric, no FrameNet reference, no Davidsonian-event reference).
+
+### Phase 4 — Contexts + micropublications
+
+**Cross-reference to phase 3's descriptivist event reframe.** Under the descriptivist event semantics committed to in phase 3 (see `docs/event-semantics.md`), contexts are interpretable as description-clusters: a `Context` may *be* the cluster of descriptions propstore informally calls "the Stanford Prison Experiment" or "the 2024 RHIC run." McCarthy's `ist(c, p)` reads as "p is true in the context of (the inference cluster I am calling) c," where the cluster's coherence is itself a defeasible Dung argument. This composes cleanly with WS-C's CKR justifiable exceptions: an exception is "this generalization holds in cluster c, except in the cases described by these other description-claims." No new type machinery is required for the descriptivist reading — the existing `Context` design extended in this phase already supports it. Make this connection explicit in `docs/contexts-and-micropubs.md`.
+
+**Papers:** Clark 2014 (dedupe first, then process), McCarthy 1993, both Guha 1991 papers. Fetch: Giunchiglia-Serafini 1994 (local model semantics); McCarthy-Buvac 1997 (formalizing context, expanded notes). Cross-reference Bozzato 2018 (already in corpus for WS-C).
+
+**Scope:**
+- **Dedupe Clark_2014 directories.** Canonicalize to `Clark_2014_Micropublications/` (drop `MicropublicationsSemanticModel` suffix). Merge unique content from the stale dir, ensure the PDF is in the canonical dir, delete stale, update `papers/index.md`.
+- Process all four priority papers + Giunchiglia-Serafini 1994 + McCarthy-Buvac 1997 to non-stub depth.
+- Design `Context` as a first-class logical term with identity, structure, composition. Commit to **structured contexts** (carrying assumptions, parameters, perspective) rather than opaque handles — structured is what McCarthy's philosophical framework + Guha's operationalization + Bozzato's CKR all push toward.
+- Design `LiftingRule` per Guha 1991 bridge rules + Bozzato 2018 justifiable exceptions (the WS-C prep). Concrete types for lifting rules that fit the DL-Lite-adjacent decidable fragment where possible, falling back to sound-but-incomplete reasoning with Z3 routed for decidable subqueries.
+- Design `ist(c, p)` as the primary claim shape. **Commit to nested `ist` at the type level now** — a context can contain `ist`-statements that reference contexts. Operational reasoning over nested contexts can land later; the type shape is cheap now.
+- Design `Micropublication` per Clark 2014: bundle of claims + evidence references + assumption set + stance + provenance. **Each micropub IS an ATMS node.** The label algebra in `world/atms.py` + `core/labels.py` gains context dimension.
+- `ClaimDocument` grows `context: ContextReference`.
+- New `MicropubDocument`.
+- `context_hierarchy.py` → `context_lifting.py`. **Visibility inheritance is retired, not demoted.** Existing repos' visibility contexts migrate to explicit lifting rules (the migration tool auto-generates the declarative equivalents).
+- `source/` emits micropubs, not bare claim bundles. `finalize.py` composes into micropubs. `promote.py` promotes whole micropubs atomically.
+- CLI: `pks context` presents first-class contexts; `pks micropub show / bundle / lift` commands; `pks claim` takes context argument.
+- ATMS property tests extended with context dimension: labels still minimal + consistent + complete + sound; context-lifting preserves label invariants.
+- Property tests: `ist`-composition under lifting; micropub well-formedness; context identity; nested-`ist` parsing and round-trip; ATMS label algebra with context dimension.
+- Migration: every existing claim gets a default `GLOBAL` context; existing context hierarchy re-expresses as lifting rules (auto-generated by the migration tool); visibility inheritance dies.
+
+**Phase 4 exit:** Clark dedupe complete; all five required papers + two fetches at non-stub depth; `docs/contexts-and-micropubs.md` exists; context/lifting modules live; claim representation migrated; ATMS label algebra extended; CLAUDE.md's context + micropublication paragraphs updated.
+
+## What you are NOT doing
+
+- **Not fully implementing context-qualified attacks in the argumentation layer.** The data structures permit it after this workstream; the argumentation-layer reasoning over context-qualified attacks/defeats is *future* work. Types support it; semantics can evolve.
+- **Not importing FrameNet.** FrameNet is a lexicographic catalog without formal algebra — `Causation.Cause` is a string label with a prose definition, not a typed slot with entailments. Propstore is not an NLP parser; the inventory adds no formal content we can reason over. The structural frame-like commitment is Pustejovsky qualia + Davidsonian events + Dowty proto-roles, which *do* compose algebraically. (If a later project decides to consume natural-language text and bind it to propstore concepts, FrameNet-style parsing could live in a separate heuristic workstream feeding proposal branches. Not this workstream.)
+- **Not touching `revision/`, `world/ic_merge.py`, `aspic*`, `praf/`, `grounding/`, `conflict_detector/` except where they must consume the new types.** The argumentation + revision + defeasibility + merge subsystems are other workstreams. Your scope is the concept/semantic substrate + provenance + claim representation.
+- **Not building LLM-driven classifiers for frames / qualia / contexts.** Those are heuristic layer concerns and belong on proposal branches; they can be added later as independent heuristic workstreams.
+- **Not committing to full DL-Lite semantics.** Use CKR's *structure* over propstore's richer claim language; accept sound-but-incomplete reasoning at the top; route decidable subqueries to Z3.
+
+## Papers (comprehensive list)
+
+See `../../../semantic-substrate-papers.md` at the repo root for the canonical list and retrieval state. Quick reference:
+
+**Phase 1:** Buneman 2001, Carroll 2005. Optional: Moreau 2013, Green 2007.
+
+**Phase 2:** Buitelaar 2011. Fetch: OntoLex-Lemon community report (Cimiano/McCrae/Buitelaar 2020+).
+
+**Phase 3:** Pustejovsky 1991, Dowty 1991. Secondary: Fillmore 1982 (concept grounding only, not implementation target). Optional explanatory/rejection context: Hobbs 1985, Quine 1968, late-period Putnam, Davidson event papers, Parsons 1990. NOT implementing: FrameNet (Baker 1998 is read-for-context only; the Berkeley inventory is not imported), Davidsonian or neo-Davidsonian event reification.
+
+**Phase 4:** Clark 2014 (deduped), McCarthy 1993, Guha 1991 ×2. Fetch: Giunchiglia-Serafini 1994, McCarthy-Buvac 1997. Cross-reference: Bozzato 2018.
+
+The required implementation papers for the non-Davidsonian path are present in `./papers` as of 2026-04-17. Optional explanatory/rejection-context papers are not blockers.
+
+## Red flags — stop if you find yourself
+
+- About to add a `"legacy"` status value to `Provenance`.
+- About to preserve Jaccard reconciliation "as a fallback."
+- About to keep visibility inheritance as a default lifting rule.
+- About to defer nested `ist` to a future workstream.
+- About to use `list[OntologyReference]` as the qualia structure (loses typed coercion — the generative bit).
+- About to import FrameNet, ship a frame inventory, or add a `FrameBinding` type.
+- About to add an `Event` type, `EventStructure`, `EventReference`, `TemporalAnchoring`, or `causes(e1, e2)` primitive between determinate events. **There is no event individual.** See `docs/event-semantics.md`. Description-kinds are concepts; particular descriptions are claims; coreference is a Dung argument resolved at render time.
+- About to commit to Davidsonian or neo-Davidsonian event identity. propstore rejects the metaphysical commitment (Davidson 1969 causal identity, Davidson 1985 spatiotemporal identity). Read the position statement before any type design that could re-introduce event-as-individual.
+- About to model `Causation` as anything other than a description-kind whose participants are two other description-claims and whose `account` tag distinguishes the kind of causal claim being made.
+- About to fabricate a default prior instead of marking `status="vacuous"`.
+- About to build a parallel per-repo provenance table or side-car index. The storage mechanism is **git-notes on a dedicated notes ref** (`refs/notes/provenance`) via `dulwich.notes`. No parallel table. Named-graph payloads live inside the note contents; git's object model handles dedup. If you find yourself writing `CREATE TABLE provenance (...)`, stop — the wrong mechanism.
+- About to write a backward-compat shim for old schemas.
+- About to cite a paper for a formula you have not property-tested.
+- About to start coding before the relevant paper's notes are non-stub.
+
+Each is a principled-path violation. Stop, re-read `disciplines.md`, re-read `principled-path.md`, ask Q if still unsure.
+
+## Exit criteria (workstream-level)
+
+- All four phases' exit criteria satisfied.
+- `uv run pytest tests/` green, including all new property tests.
+- `uv run pyright --strict` green on all new modules in `propstore/core/lemon/`, `propstore/core/contexts/`, and `propstore/provenance.py`.
+- CLAUDE.md's literature grounding section updated: semantic-substrate papers now cited with references to passing tests that verify the structural commitments.
+- `docs/gaps.md` updated: axis-3d findings for each phase are resolved and removed; any new gaps discovered during the work are added with plan.
+- Migration tool (`pks migrate semantic-substrate`) exists and has been dry-run-tested on Q's local repos.
+- The five fabrication/collapse patterns the review flagged are no longer *reachable* from the new type system — you cannot construct a probability without provenance; you cannot construct a `ResolutionDocument` with `(0,0,0,0.5)`; you cannot construct a `SourceTrust` without a `status`.
+
+## On learning
+
+This workstream involves reading 10+ papers deeply and integrating them into a coherent type system. That is a lot of reading. It is also a tremendous opportunity. These papers — Fillmore on frames, Pustejovsky on the generative lexicon, Buitelaar on lemon, McCarthy on contexts, Clark on micropublications, Buneman on provenance — are the intellectual substrate of essentially every principled knowledge-representation system in the next decade. Read them slowly. Take notes. Let them teach you.
+
+The implementation is the payoff. The reading is the point.
