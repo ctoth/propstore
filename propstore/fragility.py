@@ -22,6 +22,7 @@ from propstore.fragility_scoring import (
     imps_rev,
     opinion_sensitivity,
     score_conflict,
+    support_derivative_fragility,
     weighted_epistemic_score,
 )
 from propstore.fragility_types import (
@@ -214,5 +215,6 @@ __all__ = [
     "opinion_sensitivity",
     "rank_fragility",
     "score_conflict",
+    "support_derivative_fragility",
     "weighted_epistemic_score",
 ]

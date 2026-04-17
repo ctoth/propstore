@@ -18,6 +18,14 @@ from propstore.fragility_types import (
     RankedIntervention,
 )
 from propstore.core.id_types import to_queryable_id
+from propstore.provenance import (
+    ProvenanceNogood,
+    ProvenancePolynomial,
+    SourceVariableId,
+    derivation_count,
+    live,
+    partial_derivative,
+)
 from propstore.world.types import QueryableAssumption
 
 if TYPE_CHECKING:
@@ -122,6 +130,30 @@ def weighted_epistemic_score(
     if current_in_extension:
         return raw
     return 1.0 - raw
+
+
+def support_derivative_fragility(
+    support: ProvenancePolynomial,
+    variable: SourceVariableId,
+    *,
+    live_nogoods: Sequence[ProvenanceNogood] = (),
+    total_worlds: int,
+    current_in_extension: bool = True,
+) -> float:
+    """Score a support source by the live witness monomials that depend on it."""
+
+    if total_worlds <= 0:
+        return 0.0
+    live_support = live(support, live_nogoods)
+    derivative = partial_derivative(live_support, variable)
+    affected_witness_count = derivation_count(derivative)
+    if affected_witness_count == 0:
+        return 0.0
+    return weighted_epistemic_score(
+        tuple(object() for _ in range(affected_witness_count)),
+        total_worlds,
+        current_in_extension=current_in_extension,
+    )
 
 
 def _target_queryable_map(

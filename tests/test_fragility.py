@@ -35,9 +35,20 @@ from propstore.fragility import (
     detect_interactions,
     rank_fragility,
     score_conflict,
+    support_derivative_fragility,
     weighted_epistemic_score,
 )
 from propstore.fragility_contributors import _in_extension
+from propstore.provenance import (
+    NogoodWitness,
+    Provenance,
+    ProvenanceNogood,
+    ProvenancePolynomial,
+    ProvenanceStatus,
+    SourceVariableId,
+    SupportEvidence,
+    SupportQuality,
+)
 
 
 class TestInterventionModel:
@@ -248,6 +259,31 @@ class TestUtilityScores:
         assert weighted_epistemic_score(witnesses, 4, current_in_extension=False) == pytest.approx(0.5)
         assert weighted_epistemic_score([{"future_idx": 0}], 4, current_in_extension=False) == pytest.approx(0.75)
 
+    def test_support_derivative_fragility_uses_live_support(self) -> None:
+        a = SourceVariableId("ps:source:assumption:a")
+        b = SourceVariableId("ps:source:assumption:b")
+        support = ProvenancePolynomial.variable(a) + (
+            ProvenancePolynomial.variable(a) * ProvenancePolynomial.variable(b)
+        )
+        nogood = ProvenanceNogood(
+            frozenset((a, b)),
+            NogoodWitness("test", "dead joint witness"),
+            Provenance(status=ProvenanceStatus.VACUOUS, witnesses=()),
+        )
+
+        assert support_derivative_fragility(
+            support,
+            a,
+            live_nogoods=(nogood,),
+            total_worlds=4,
+        ) == pytest.approx(0.25)
+        assert support_derivative_fragility(
+            support,
+            b,
+            live_nogoods=(nogood,),
+            total_worlds=4,
+        ) == 0.0
+
     def test_imps_rev_requires_explicit_probabilistic_inputs(self) -> None:
         from propstore.dung import ArgumentationFramework
         from propstore.fragility import imps_rev
@@ -374,6 +410,18 @@ class TestATMSInterventions:
         )
         assert report.interventions
         assert all(item.target.kind is InterventionKind.ASSUMPTION for item in report.interventions)
+
+    def test_assumption_interventions_carry_derivative_support(self) -> None:
+        bound = _mock_bound_for_atms(["x == 1", "y == 2"])
+        ranked = collect_assumption_interventions(bound, ["c1"], None, atms_limit=8)
+
+        assert ranked
+        assert all(item.local_fragility == pytest.approx(0.25) for item in ranked)
+        for item in ranked:
+            support = item.target.provenance.support
+            assert isinstance(support, SupportEvidence)
+            assert support.quality is SupportQuality.EXACT
+            assert support.polynomial != ProvenancePolynomial.zero()
 
 
 class TestMissingMeasurementInterventions:
