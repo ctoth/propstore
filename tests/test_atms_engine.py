@@ -421,7 +421,7 @@ def test_atms_supported_claims_are_subset_of_active_claims_and_ignore_semantic_o
     assert [str(claim.claim_id) for claim in result.claims] == ["claim_exact"]
 
 
-def test_atms_does_not_fabricate_exact_support_from_context_visibility() -> None:
+def test_atms_records_context_as_label_dimension_for_context_scoped_claim() -> None:
     store = _ATMSStore(
         claims=[
             {
@@ -441,9 +441,11 @@ def test_atms_does_not_fabricate_exact_support_from_context_visibility() -> None
     )
 
     assert _runtime_claim_id_set(bound.active_claims("concept1")) == {"claim_ctx"}
-    assert bound.atms_engine().supported_claim_ids("concept1") == set()
-    assert bound.value_of("concept1").status == "no_claims"
-    assert bound.value_of("concept1").label is None
+    assert bound.atms_engine().supported_claim_ids("concept1") == {"claim_ctx"}
+    assert bound.atms_engine().claim_label("claim_ctx") == Label(
+        (EnvironmentKey((), context_ids=("ctx_general",)),)
+    )
+    assert bound.value_of("concept1").status == "determined"
 
 
 def test_atms_reconstructs_exact_support_for_context_scoped_claim_with_matching_assumption() -> None:
@@ -473,7 +475,7 @@ def test_atms_reconstructs_exact_support_for_context_scoped_claim_with_matching_
     assert _runtime_claim_id_set(bound.active_claims("concept1")) == {"claim_ctx_exact"}
     assert bound.atms_engine().supported_claim_ids("concept1") == {"claim_ctx_exact"}
     assert bound.atms_engine().claim_label("claim_ctx_exact") == Label(
-        (EnvironmentKey((assumption_id,)),)
+        (EnvironmentKey((assumption_id,), context_ids=("ctx_general",)),)
     )
     assert bound.value_of("concept1").status == "determined"
 
