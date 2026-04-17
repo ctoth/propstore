@@ -20,6 +20,7 @@ import json
 import logging
 
 from propstore.calibrate import categorical_to_opinion
+from propstore.opinion import Opinion
 from propstore.stances import VALID_STANCE_TYPES
 
 
@@ -119,6 +120,20 @@ def _build_error_pair(
     return [forward, reverse]
 
 
+def _opinion_payload(opinion: Opinion | None) -> dict | None:
+    if opinion is None:
+        return None
+    if opinion.provenance is None:
+        raise ValueError("Resolution opinion must carry provenance")
+    return {
+        "b": float(opinion.b),
+        "d": float(opinion.d),
+        "u": float(opinion.u),
+        "a": float(opinion.a),
+        "provenance": opinion.provenance.to_payload(),
+    }
+
+
 def _build_stance_dict(
     raw: dict,
     target_id: str,
@@ -155,12 +170,7 @@ def _build_stance_dict(
         "embedding_model": embedding_model,
         "embedding_distance": embedding_distance,
         "confidence": confidence,
-        "opinion": {
-            "b": opinion.b if opinion is not None else 0.0,
-            "d": opinion.d if opinion is not None else 0.0,
-            "u": opinion.u if opinion is not None else 1.0,
-            "a": opinion.a if opinion is not None else 0.5,
-        },
+        "opinion": _opinion_payload(opinion),
     }
 
     return {

@@ -141,7 +141,7 @@ class OpinionDocument(DocumentStruct):
     d: float | int
     u: float | int
     a: float | int
-    provenance: Provenance | None = None
+    provenance: Provenance
 
     def __post_init__(self) -> None:
         for name, value in (("b", self.b), ("d", self.d), ("u", self.u)):
@@ -154,15 +154,13 @@ class OpinionDocument(DocumentStruct):
             raise ValueError(f"b + d + u = {total}, expected 1.0")
 
     def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
+        return {
             "b": self.b,
             "d": self.d,
             "u": self.u,
             "a": self.a,
+            "provenance": self.provenance.to_payload(),
         }
-        if self.provenance is not None:
-            payload["provenance"] = self.provenance.to_payload()
-        return payload
 
 
 class ResolutionDocument(DocumentStruct):
