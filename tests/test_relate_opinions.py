@@ -23,6 +23,26 @@ from propstore.calibrate import categorical_to_opinion
 from propstore.opinion import Opinion
 
 
+def _vacuous_provenance_payload() -> dict:
+    return {"status": "vacuous", "witnesses": []}
+
+
+def _opinion_payload(
+    *,
+    b: float = 0.0,
+    d: float = 0.0,
+    u: float = 1.0,
+    a: float = 0.5,
+) -> dict:
+    return {
+        "b": b,
+        "d": d,
+        "u": u,
+        "a": a,
+        "provenance": _vacuous_provenance_payload(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Helper: build bidirectional mock response
 # ---------------------------------------------------------------------------
@@ -94,7 +114,7 @@ class TestCategoricalToOpinionWithCalibration:
 
 class TestResolutionDictHasOpinionFields:
     """The resolution dict produced by classify_stance_async() must contain
-    both confidence (float) and the four opinion components."""
+    both confidence (float) and a provenance-bearing opinion document."""
 
     @pytest.fixture
     def mock_litellm_response(self):
@@ -123,9 +143,10 @@ class TestResolutionDictHasOpinionFields:
         result = results[0]  # forward stance
         res = result["resolution"]
         assert "confidence" in res
-        assert set(res["opinion"]) == {"b", "d", "u", "a"}
+        assert set(res["opinion"]) == {"b", "d", "u", "a", "provenance"}
         for key in ("b", "d", "u", "a"):
             assert isinstance(res["opinion"][key], float), f"opinion.{key} must be float"
+        assert res["opinion"]["provenance"]["status"] == "vacuous"
 
 
 # ---------------------------------------------------------------------------
@@ -200,7 +221,7 @@ class TestStanceYamlRoundTrip:
                 "embedding_model": None,
                 "embedding_distance": None,
                 "confidence": 0.7,
-                "opinion": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.7},
+                "opinion": _opinion_payload(a=0.7),
             },
         }]
 
@@ -211,6 +232,7 @@ class TestStanceYamlRoundTrip:
         assert res["opinion"]["d"] == pytest.approx(0.0)
         assert res["opinion"]["u"] == pytest.approx(1.0)
         assert res["opinion"]["a"] == pytest.approx(0.7)
+        assert res["opinion"]["provenance"]["status"] == "vacuous"
         assert res["confidence"] == pytest.approx(0.7)
 
 
@@ -300,7 +322,7 @@ class TestSidecarPopulatesOpinionColumns:
                     "method": "nli",
                     "model": "test",
                     "confidence": 0.7,
-                    "opinion": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.7},
+                    "opinion": _opinion_payload(a=0.7),
                 },
             }],
         }
@@ -454,6 +476,7 @@ class TestNoneStanceGetsZeroConfidence:
 
         results = asyncio.run(run())
         assert results[0]["resolution"]["confidence"] == 0.0
+        assert results[0]["resolution"]["opinion"] is None
 
 
 # ---------------------------------------------------------------------------

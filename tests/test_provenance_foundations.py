@@ -157,6 +157,15 @@ def test_source_trust_status_round_trips() -> None:
     }
 
 
+def test_opinion_document_requires_provenance() -> None:
+    with pytest.raises(DocumentSchemaError):
+        convert_document_value(
+            {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+            OpinionDocument,
+            source="stances.yaml",
+        )
+
+
 def test_resolution_rejects_scalar_opinion_fields() -> None:
     with pytest.raises(DocumentSchemaError):
         convert_document_value(
@@ -190,4 +199,3 @@ def test_resolution_uses_single_opinion_document_with_provenance() -> None:
     assert set(payload) == {"method", "confidence", "opinion"}
     assert payload["opinion"]["provenance"]["status"] == "vacuous"
     assert "opinion_belief" not in payload
-
