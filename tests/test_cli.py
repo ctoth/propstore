@@ -17,6 +17,10 @@ from propstore.graph_export import GraphExportRequest, export_knowledge_graph
 from propstore.repository import Repository
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from propstore.world import RenderPolicy, ResolutionStrategy, WorldModel
+from propstore.world.consistency import (
+    WorldConsistencyRequest,
+    check_world_consistency,
+)
 from propstore.world.queries import (
     WorldBindConceptReport,
     WorldBindRequest,
@@ -1570,6 +1574,36 @@ class TestWorldOwnerReports:
         assert "nodes" in report.graph.to_json()
         assert "edges" in report.graph.to_json()
 
+    def test_owner_consistency_reports_no_bound_conflicts(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = check_world_consistency(
+                repo,
+                wm,
+                WorldConsistencyRequest(bindings={}),
+            )
+
+        assert report.transitive is False
+        assert report.conflicts == ()
+
+    def test_owner_consistency_reports_no_transitive_conflicts(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = check_world_consistency(
+                repo,
+                wm,
+                WorldConsistencyRequest(bindings={}, transitive=True),
+            )
+
+        assert report.transitive is True
+        assert report.conflicts == ()
+
 
 # ── world query/bind SI values ──────────────────────────────────────
 
@@ -1628,6 +1662,7 @@ class TestWorldCommandsKeepConnectionOpen:
             (["world", "hypothetical", "--remove", "freq_paper:freq_claim1"], ["speech:fundamental_frequency:", "no_claims"]),
             (["world", "export-graph", "--format", "json"], ['"nodes"', '"edges"']),
             (["world", "check-consistency"], ["No conflicts under current bindings."]),
+            (["world", "check-consistency", "--transitive"], ["No transitive conflicts found."]),
         ],
     )
     def test_world_commands_do_not_use_closed_world_model(

@@ -236,6 +236,20 @@ Status 2026-04-17: `pks world export-graph` slice landed.
   - `logs/test-runs/cli-layer-world-graph-export-20260417-172446.log` - 16 passed.
   - `uv run pyright propstore/graph_export.py` - 0 errors.
 
+Status 2026-04-17: `pks world check-consistency` slice landed.
+
+- Added `propstore.world.consistency` with `WorldConsistencyRequest`,
+  `WorldConsistencyReport`, typed conflict lines, and
+  `check_world_consistency`.
+- Replaced CLI-owned bound conflict detection and transitive conflict registry
+  construction with the owner module. The owner now uses typed row coercion
+  instead of the previous CLI-local `dict(row)` handling.
+- Added owner tests for both bound and transitive no-conflict paths, paired
+  with CLI output assertions for both command modes.
+- Verification:
+  - `logs/test-runs/cli-layer-world-consistency-20260417-172716.log` - 19 passed.
+  - `uv run pyright propstore/world/consistency.py` - 0 errors.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.

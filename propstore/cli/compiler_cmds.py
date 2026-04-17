@@ -2290,55 +2290,40 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
     Usage: pks world check-consistency domain=example
            pks world check-consistency --transitive
     """
-    from propstore.world import WorldModel
+    from propstore.world.consistency import (
+        WorldConsistencyRequest,
+        check_world_consistency,
+    )
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        if transitive:
-            from propstore.conflict_detector import detect_transitive_conflicts
-            from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-            from propstore.claims import load_claim_files
+        report = check_world_consistency(
+            repo,
+            wm,
+            WorldConsistencyRequest(bindings=bindings, transitive=transitive),
+        )
 
-            claim_files = load_claim_files(repo.tree() / "claims")
-            concept_registry: dict[str, dict] = {}
-            for cdata in wm.all_concepts():
-                cdata = dict(cdata)
-                cid = cdata["id"]
-                param_rows = wm.parameterizations_for(cid)
-                if param_rows:
-                    cdata["parameterization_relationships"] = []
-                    for pr in param_rows:
-                        prd = dict(pr)
-                        cdata["parameterization_relationships"].append({
-                            "inputs": json.loads(prd["concept_ids"]),
-                            "sympy": prd.get("sympy"),
-                            "exactness": prd.get("exactness"),
-                            "conditions": json.loads(prd["conditions_cel"]) if prd.get("conditions_cel") else [],
-                        })
-                concept_registry[cid] = cdata
-
-            records = detect_transitive_conflicts(
-                conflict_claims_from_claim_files(claim_files),
-                concept_registry,
-            )
-            if not records:
-                click.echo("No transitive conflicts found.")
-            else:
-                click.echo(f"Found {len(records)} transitive conflict(s):")
-                for r in records:
-                    click.echo(f"  {r.concept_id}: {r.value_a} vs {r.value_b}")
-                    if r.derivation_chain:
-                        click.echo(f"    chain: {r.derivation_chain}")
+    if report.transitive:
+        if not report.conflicts:
+            click.echo("No transitive conflicts found.")
         else:
-            bound = _bind_world(wm, bindings)
-            conflicts = bound.conflicts()
-            if not conflicts:
-                click.echo("No conflicts under current bindings.")
-            else:
-                click.echo(f"Found {len(conflicts)} conflict(s):")
-                for c in conflicts:
-                    click.echo(
-                        f"  {c.concept_id}: {c.warning_class.value if c.warning_class else '?'} "
-                        f"({c.claim_a_id} vs {c.claim_b_id})"
-                    )
+            click.echo(f"Found {len(report.conflicts)} transitive conflict(s):")
+            for conflict in report.conflicts:
+                click.echo(
+                    f"  {conflict.concept_id}: "
+                    f"{conflict.value_a} vs {conflict.value_b}"
+                )
+                if conflict.derivation_chain:
+                    click.echo(f"    chain: {conflict.derivation_chain}")
+        return
+
+    if not report.conflicts:
+        click.echo("No conflicts under current bindings.")
+    else:
+        click.echo(f"Found {len(report.conflicts)} conflict(s):")
+        for conflict in report.conflicts:
+            click.echo(
+                f"  {conflict.concept_id}: {conflict.warning_class} "
+                f"({conflict.claim_a_id} vs {conflict.claim_b_id})"
+            )
