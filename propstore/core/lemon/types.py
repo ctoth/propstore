@@ -2,18 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from propstore.core.lemon.forms import LexicalForm, fold_text, require_text
 from propstore.provenance import Provenance
-
-
-def _require_text(value: str, field: str) -> str:
-    cleaned = value.strip()
-    if not cleaned:
-        raise ValueError(f"{field} must be non-empty")
-    return cleaned
-
-
-def _fold_text(value: str) -> str:
-    return " ".join(value.strip().casefold().split())
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,33 +14,9 @@ class OntologyReference:
     label: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "uri", _require_text(self.uri, "uri"))
+        object.__setattr__(self, "uri", require_text(self.uri, "uri"))
         if self.label is not None:
-            object.__setattr__(self, "label", _require_text(self.label, "label"))
-
-
-@dataclass(frozen=True, slots=True)
-class LexicalForm:
-    """A surface realization of a lexical entry.
-
-    Buitelaar 2011 and OntoLex-Lemon keep linguistic form separate from
-    ontology/world facts. Physical dimensions therefore belong on the entry or
-    an adjacent measurement document, not here.
-    """
-
-    written_rep: str
-    language: str
-    phonetic_rep: str | None = None
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "written_rep", _require_text(self.written_rep, "written_rep"))
-        object.__setattr__(self, "language", _require_text(self.language, "language"))
-        if self.phonetic_rep is not None:
-            object.__setattr__(
-                self,
-                "phonetic_rep",
-                _require_text(self.phonetic_rep, "phonetic_rep"),
-            )
+            object.__setattr__(self, "label", require_text(self.label, "label"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,7 +29,7 @@ class LexicalSense:
 
     def __post_init__(self) -> None:
         if self.usage is not None:
-            object.__setattr__(self, "usage", _require_text(self.usage, "usage"))
+            object.__setattr__(self, "usage", require_text(self.usage, "usage"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,14 +43,14 @@ class LexicalEntry:
     physical_dimension_form: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "identifier", _require_text(self.identifier, "identifier"))
+        object.__setattr__(self, "identifier", require_text(self.identifier, "identifier"))
         if not self.senses:
             raise ValueError("LexicalEntry requires at least one lexical sense")
         if self.physical_dimension_form is not None:
             object.__setattr__(
                 self,
                 "physical_dimension_form",
-                _require_text(self.physical_dimension_form, "physical_dimension_form"),
+                require_text(self.physical_dimension_form, "physical_dimension_form"),
             )
 
     @property
@@ -100,7 +66,7 @@ def lexical_entry_identity_key(entry: LexicalEntry) -> tuple[str, str, str | Non
     """Return exact lexical identity: language, canonical written form, dimensions."""
 
     return (
-        _fold_text(entry.canonical_form.language),
-        _fold_text(entry.canonical_form.written_rep),
-        None if entry.physical_dimension_form is None else _fold_text(entry.physical_dimension_form),
+        fold_text(entry.canonical_form.language),
+        fold_text(entry.canonical_form.written_rep),
+        None if entry.physical_dimension_form is None else fold_text(entry.physical_dimension_form),
     )

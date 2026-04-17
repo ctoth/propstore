@@ -3,64 +3,19 @@ from __future__ import annotations
 
 import datetime
 import json
-import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from collections.abc import Sequence
 from typing import Any
 
-import pint
-
 from propstore.artifacts.documents.forms import (
-    FormAlternativeDocument,
     FormDocument,
-    FormExtraUnitDocument,
 )
 from propstore.cel_checker import KindType
 from propstore.artifacts.schema import DocumentSchemaError, decode_document_path
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
+from propstore import dimensions as dimension_api
 from propstore.diagnostics import ValidationResult
 from propstore.resources import load_resource_json
-
-# Module-level unit registry for pint conversions
-ureg = pint.UnitRegistry()
-
-# Map propstore unit symbols to pint-recognized names
-_PINT_ALIASES: dict[str, str] = {
-    "°C": "degC",
-    "°F": "degF",
-    "µ": "u",
-    "d": "day",
-    "wk": "week",
-    "mo": "month",
-    "yr": "year",
-}
-
-
-def _pint_unit(unit_str: str) -> str:
-    """Translate a propstore unit symbol to a pint-compatible name."""
-    return _PINT_ALIASES.get(unit_str, unit_str)
-
-
-
-@dataclass(frozen=True)
-class UnitConversion:
-    """Conversion specification from an alternative unit to the form's SI unit."""
-    unit: str
-    type: str          # "multiplicative", "affine", "logarithmic"
-    multiplier: float = 1.0
-    offset: float = 0.0      # affine: si = raw * multiplier + offset
-    base: float = 10.0       # logarithmic: si = reference * base^(raw / divisor)
-    divisor: float = 1.0
-    reference: float = 1.0
-
-
-@dataclass(frozen=True)
-class ExtraUnitDefinition:
-    """Additional unit metadata declared on a form."""
-
-    symbol: str
-    dimensions: dict[str, int]
 
 
 @dataclass
@@ -73,8 +28,8 @@ class FormDefinition:
     is_dimensionless: bool = False
     parameters: dict[str, Any] = field(default_factory=dict)
     dimensions: dict[str, int] | None = None
-    extra_units: tuple[ExtraUnitDefinition, ...] = ()
-    conversions: dict[str, UnitConversion] = field(default_factory=dict)
+    extra_units: tuple[dimension_api.ExtraUnitDefinition, ...] = ()
+    conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
 
 
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
@@ -137,7 +92,7 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
     dimensions = None if data.dimensions is None else dict(data.dimensions)
 
     extra_units = tuple(
-        ExtraUnitDefinition(
+        dimension_api.ExtraUnitDefinition(
             symbol=entry.symbol,
             dimensions=dict(entry.dimensions),
         )
@@ -146,9 +101,9 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
     for entry in extra_units:
         allowed.add(entry.symbol)
 
-    conversions: dict[str, UnitConversion] = {}
+    conversions: dict[str, dimension_api.UnitConversion] = {}
     for alt in data.common_alternatives:
-        conversions[alt.unit] = UnitConversion(
+        conversions[alt.unit] = dimension_api.UnitConversion(
             unit=alt.unit,
             type=alt.type,
             multiplier=float(alt.multiplier),
@@ -200,60 +155,6 @@ def load_form_path(forms_dir: KnowledgePath, form_name: str | None) -> FormDefin
     return load_form(forms_dir, form_name)
 
 
-def normalize_to_si(value: float, unit: str | None, form: FormDefinition) -> float:
-    """Convert a value from the given unit to the form's canonical (SI) unit."""
-    if unit is None or unit == form.unit_symbol:
-        return value
-    if form.unit_symbol is None:
-        raise ValueError(
-            f"Cannot convert '{unit}' for dimensionless form '{form.name}'"
-        )
-    # Use explicit conversions when available (preferred over pint)
-    if unit in form.conversions:
-        conv = form.conversions[unit]
-        if conv.type == "logarithmic":
-            return conv.reference * conv.base ** (value / conv.divisor)
-        if conv.type == "multiplicative":
-            return value * conv.multiplier
-        if conv.type == "affine":
-            return value * conv.multiplier + conv.offset
-    # Fall through to pint for auto-prefix units and anything not explicitly listed
-    try:
-        q = ureg.Quantity(value, _pint_unit(unit))
-        return q.to(_pint_unit(form.unit_symbol)).magnitude
-    except (pint.UndefinedUnitError, pint.DimensionalityError) as e:
-        raise ValueError(
-            f"Cannot convert '{unit}' to '{form.unit_symbol}' for form '{form.name}': {e}"
-        )
-
-
-def from_si(si_value: float, unit: str | None, form: FormDefinition) -> float:
-    """Convert an SI value back to the given unit."""
-    if unit is None or unit == form.unit_symbol:
-        return si_value
-    if form.unit_symbol is None:
-        raise ValueError(
-            f"Cannot convert to '{unit}' for dimensionless form '{form.name}'"
-        )
-    # Use explicit conversions when available (preferred over pint)
-    if unit in form.conversions:
-        conv = form.conversions[unit]
-        if conv.type == "logarithmic":
-            return conv.divisor * math.log(si_value / conv.reference, conv.base)
-        if conv.type == "multiplicative":
-            return si_value / conv.multiplier
-        if conv.type == "affine":
-            return (si_value - conv.offset) / conv.multiplier
-    # Fall through to pint for auto-prefix units and anything not explicitly listed
-    try:
-        q = ureg.Quantity(si_value, _pint_unit(form.unit_symbol))
-        return q.to(_pint_unit(unit)).magnitude
-    except (pint.UndefinedUnitError, pint.DimensionalityError) as e:
-        raise ValueError(
-            f"Cannot convert '{form.unit_symbol}' to '{unit}' for form '{form.name}': {e}"
-        )
-
-
 def load_all_forms(forms_dir: Path | KnowledgePath) -> dict[str, FormDefinition]:
     """Load all form YAML files and return a registry keyed by form name."""
     registry: dict[str, FormDefinition] = {}
@@ -279,76 +180,6 @@ def load_all_forms_path(forms_dir: KnowledgePath) -> dict[str, FormDefinition]:
             if fd is not None:
                 registry[fd.name] = fd
     return registry
-
-
-# ── Pure form utilities ─────────────────────────────────────────────
-
-
-def forms_with_dimensions(
-    forms: Sequence[FormDefinition | None],
-) -> list[FormDefinition] | None:
-    """Filter a form list, returning None if any form lacks dimensions."""
-    concrete: list[FormDefinition] = []
-    for form_def in forms:
-        if form_def is None or form_def.dimensions is None:
-            return None
-        concrete.append(form_def)
-    return concrete
-
-
-def required_dimensions(form_def: FormDefinition) -> dict[str, int]:
-    """Return dimensions dict, raising ValueError if None."""
-    dimensions = form_def.dimensions
-    if dimensions is None:
-        raise ValueError(f"form '{form_def.name}' has no dimensions")
-    return dimensions
-
-
-def verify_form_algebra_dimensions(
-    output: FormDefinition,
-    inputs: list[FormDefinition],
-    operation: str,
-) -> bool:
-    """Check dimensional consistency of a form algebra expression.
-
-    Returns True if the operation is dimensionally valid, False otherwise.
-    Requires bridgman and sympy.
-    """
-    if output.dimensions is None:
-        return False
-    concrete_inputs = forms_with_dimensions(inputs)
-    if concrete_inputs is None:
-        return False
-    try:
-        import sympy as sp
-        from bridgman import verify_expr
-
-        dim_map: dict[str, dict[str, int]] = {}
-        dim_map[output.name] = dict(required_dimensions(output))
-        for inp_fd in concrete_inputs:
-            dim_map[inp_fd.name] = dict(required_dimensions(inp_fd))
-
-        form_parsed = sp.sympify(operation)
-        if not isinstance(form_parsed, sp.Eq):
-            return False
-        return bool(verify_expr(form_parsed, dim_map))
-    except (KeyError, ValueError, ImportError):
-        return False
-
-
-def dims_signature(dimensions: dict[str, int] | None) -> str | None:
-    """Canonical string key for a dimension dict.
-
-    Returns a sorted, zero-stripped representation like ``'L:1,M:1,T:-2'``,
-    an empty string for dimensionless (all-zero or empty dict),
-    or ``None`` when *dimensions* is ``None``.
-    """
-    if dimensions is None:
-        return None
-    cleaned = {k: v for k, v in dimensions.items() if v != 0}
-    if not cleaned:
-        return ""
-    return ",".join(f"{k}:{v}" for k, v in sorted(cleaned.items()))
 
 
 def json_safe(obj: Any) -> Any:

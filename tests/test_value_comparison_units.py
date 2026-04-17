@@ -1,7 +1,8 @@
 """Tests for unit-aware value comparison in values_compatible()."""
 
 from propstore.cel_checker import KindType
-from propstore.form_utils import FormDefinition, UnitConversion
+from propstore.dimensions import UnitConversion
+from propstore.form_utils import FormDefinition
 from propstore.value_comparison import values_compatible
 
 

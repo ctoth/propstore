@@ -9,10 +9,10 @@ from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
 
 from propstore.core.concepts import ConceptRecord, LoadedConcept
+from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.form_utils import (
     FormDefinition,
     kind_value_from_form_name,
-    verify_form_algebra_dimensions,
 )
 from propstore.parameterization_groups import build_groups
 from propstore.propagation import rewrite_parameterization_symbols

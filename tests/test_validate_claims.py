@@ -1246,7 +1246,9 @@ class TestFormAwareUnitValidation:
             default_domain="speech",
         )
         for cdata in concept_payloads:
-            (concepts_dir / f"{cdata['canonical_name']}.yaml").write_text(
+            canonical_form = cdata["lexical_entry"]["canonical_form"]
+            concept_slug = canonical_form["written_rep"]
+            (concepts_dir / f"{concept_slug}.yaml").write_text(
                 _yaml.dump(cdata, default_flow_style=False))
 
         adds = {
@@ -1778,12 +1780,12 @@ class TestSympyExceptNarrowing:
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_units.yaml", data)
 
-        import propstore.form_utils as form_utils
+        import propstore.dimensions as dimensions
 
         def _boom(*_args, **_kwargs):
             raise NameError("unit_translation_bug")
 
-        monkeypatch.setattr(form_utils, "_pint_unit", _boom)
+        monkeypatch.setattr(dimensions, "_pint_unit", _boom)
 
         files = load_claim_files(claims_dir)
         with pytest.raises(NameError, match="unit_translation_bug"):
