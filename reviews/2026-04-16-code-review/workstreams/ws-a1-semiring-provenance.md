@@ -1,7 +1,7 @@
 # Workstream A1 - Semiring Provenance Substrate
 
 Date: 2026-04-17
-Status: proposed - inserted because axis 3d found Green-style provenance absent
+Status: proposed - implementation-grade plan inserted because axis 3d found Green-style provenance absent
 Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A source/artifact boundaries
 Blocks: WS-C C-3 support contract, ATMS label collapse, support-bearing fragility rewrite
 Review context: `../axis-3d-semantic.md` section 6, `../axis-3e-reasoning-infra.md`, `../axis-4-test-adequacy.md`
@@ -253,6 +253,305 @@ Expected public types:
 - `SupportQuality`
 
 Do not pass dict-shaped provenance polynomial objects through the semantic pipeline. Dicts may exist only at IO boundaries.
+
+## Implementation-grade execution map
+
+### Exact initial API
+
+Create `propstore/provenance/variables.py`:
+
+```python
+class SourceRole(StrEnum):
+    CLAIM = "claim"
+    RULE = "rule"
+    MEASUREMENT = "measurement"
+    CALIBRATION = "calibration"
+    LIFTING_RULE = "lifting_rule"
+    SOLVER_WITNESS = "solver_witness"
+    ASSUMPTION = "assumption"
+    CONTEXT = "context"
+
+SourceVariableId = NewType("SourceVariableId", str)
+
+@dataclass(frozen=True)
+class SourceVariable:
+    id: SourceVariableId
+    role: SourceRole
+    artifact_id: str
+    canonical_body_hash: str
+    provenance: ProvenanceRecord
+
+def derive_source_variable_id(
+    role: SourceRole,
+    artifact_id: str,
+    canonical_body_hash: str,
+) -> SourceVariableId: ...
+```
+
+Create `propstore/provenance/polynomial.py`:
+
+```python
+@dataclass(frozen=True, order=True)
+class VariablePower:
+    variable: SourceVariableId
+    exponent: int
+
+@dataclass(frozen=True)
+class PolynomialTerm:
+    coefficient: int
+    powers: tuple[VariablePower, ...]
+
+@dataclass(frozen=True)
+class ProvenancePolynomial:
+    terms: tuple[PolynomialTerm, ...] = ()
+
+    @classmethod
+    def zero(cls) -> ProvenancePolynomial: ...
+    @classmethod
+    def one(cls) -> ProvenancePolynomial: ...
+    @classmethod
+    def variable(cls, variable: SourceVariableId) -> ProvenancePolynomial: ...
+
+    def __add__(self, other: ProvenancePolynomial) -> ProvenancePolynomial: ...
+    def __mul__(self, other: ProvenancePolynomial) -> ProvenancePolynomial: ...
+    def squarefree_supports(self) -> tuple[frozenset[SourceVariableId], ...]: ...
+```
+
+Create `propstore/provenance/homomorphism.py`:
+
+```python
+class Homomorphism(Protocol[K]):
+    @property
+    def zero(self) -> K: ...
+    @property
+    def one(self) -> K: ...
+    def add(self, left: K, right: K) -> K: ...
+    def mul(self, left: K, right: K) -> K: ...
+    def variable(self, variable: SourceVariableId) -> K: ...
+
+def evaluate(poly: ProvenancePolynomial, hom: Homomorphism[K]) -> K: ...
+```
+
+Create `propstore/provenance/nogoods.py`:
+
+```python
+@dataclass(frozen=True)
+class NogoodWitness:
+    source: str
+    detail: str
+
+@dataclass(frozen=True)
+class ProvenanceNogood:
+    variables: frozenset[SourceVariableId]
+    witness: NogoodWitness
+    provenance: ProvenanceRecord
+
+def live(
+    poly: ProvenancePolynomial,
+    nogoods: Iterable[ProvenanceNogood],
+) -> ProvenancePolynomial: ...
+```
+
+Create `propstore/provenance/support.py`:
+
+```python
+class SupportQuality(StrEnum):
+    EXACT = "exact"
+    SEMANTIC_COMPATIBLE = "semantic_compatible"
+    CONTEXT_VISIBLE_ONLY = "context_visible_only"
+    MIXED = "mixed"
+
+@dataclass(frozen=True)
+class SupportEvidence:
+    polynomial: ProvenancePolynomial
+    quality: SupportQuality
+```
+
+The new `SupportQuality` replaces `propstore.core.labels.SupportQuality` after the collapse gate. Until then, `core.labels.SupportQuality` may import/re-export this enum, but it must not define a competing enum.
+
+Create `propstore/provenance/projections.py`:
+
+```python
+def boolean_presence(poly: ProvenancePolynomial, trusted: Container[SourceVariableId]) -> bool: ...
+def derivation_count(poly: ProvenancePolynomial) -> int: ...
+def why_provenance(poly: ProvenancePolynomial) -> tuple[WhySupport, ...]: ...
+def tropical_cost(poly: ProvenancePolynomial, costs: Mapping[SourceVariableId, float]) -> float: ...
+```
+
+`WhySupport` must preserve the current assumption/context split:
+
+```python
+@dataclass(frozen=True)
+class WhySupport:
+    assumption_ids: tuple[AssumptionId, ...] = ()
+    context_ids: tuple[ContextId, ...] = ()
+    other_variables: tuple[SourceVariableId, ...] = ()
+```
+
+Create `propstore/provenance/derivative.py`:
+
+```python
+def partial_derivative(
+    poly: ProvenancePolynomial,
+    variable: SourceVariableId,
+) -> ProvenancePolynomial: ...
+```
+
+### File-by-file phase plan
+
+Phase A1-1 writes:
+
+- `propstore/provenance/__init__.py`
+- `propstore/provenance/variables.py`
+- `propstore/provenance/polynomial.py`
+- `propstore/provenance/homomorphism.py`
+- `propstore/provenance/support.py`
+- `tests/test_provenance_polynomial_properties.py`
+
+Phase A1-2 writes:
+
+- `propstore/provenance/nogoods.py`
+- `propstore/provenance/projections.py`
+- `tests/test_provenance_projection_properties.py`
+- `tests/test_provenance_nogoods_properties.py`
+
+Phase A1-3 edits:
+
+- `propstore/core/labels.py`
+- `propstore/world/atms.py`
+- `propstore/world/bound.py`
+- `propstore/world/types.py`
+- `propstore/worldline/result_types.py`
+- `propstore/core/graph_types.py`
+- `propstore/core/results.py`
+- `tests/test_labels_properties.py`
+- `tests/test_labelled_core.py`
+- `tests/test_atms_engine.py`
+- `tests/test_provenance_atms_equivalence.py`
+
+Phase A1-4 edits:
+
+- `propstore/provenance/derivative.py`
+- `propstore/fragility_types.py`
+- `propstore/fragility_contributors.py`
+- `propstore/fragility_scoring.py`
+- `propstore/fragility.py`
+- `tests/test_provenance_derivative_properties.py`
+- `tests/test_fragility.py`
+
+Phase A1-5 edits:
+
+- `docs/defeasibility-semantics-decision.md`
+- `reviews/2026-04-16-code-review/workstreams/ws-c-defeasibility.md`
+- WS-C implementation files when C-3 starts.
+
+Do not add production database tables, sidecar indexes, compatibility shims, or backfill commands.
+
+### Current label importer audit
+
+Production consumers that must be redirected or proven projection-only during A1-3:
+
+- `propstore/aspic_bridge/projection.py`
+- `propstore/artifacts/codes.py`
+- `propstore/cli/compiler_cmds.py`
+- `propstore/core/activation.py`
+- `propstore/core/environment.py`
+- `propstore/core/graph_types.py`
+- `propstore/core/results.py`
+- `propstore/structured_projection.py`
+- `propstore/support_revision/af_adapter.py`
+- `propstore/support_revision/projection.py`
+- `propstore/support_revision/snapshot_types.py`
+- `propstore/support_revision/state.py`
+- `propstore/world/atms.py`
+- `propstore/world/bound.py`
+- `propstore/world/model.py`
+- `propstore/world/resolution.py`
+- `propstore/world/types.py`
+- `propstore/worldline/argumentation.py`
+
+Tests that must be ported or extended:
+
+- `tests/test_labels_properties.py`
+- `tests/test_labelled_core.py`
+- `tests/test_atms_engine.py`
+- `tests/test_aspic_bridge.py`
+- `tests/test_core_graph_types.py`
+- `tests/test_core_justifications.py`
+- `tests/test_revision_entrenchment.py`
+- `tests/test_revision_phase1.py`
+- `tests/test_semantic_core_phase0.py`
+- `tests/test_structured_projection.py`
+
+Use this command as a gate after A1-3:
+
+```powershell
+rg -n "Label\\(|EnvironmentKey\\(|NogoodSet\\(|combine_labels\\(|merge_labels\\(|normalize_environments\\(" propstore tests
+```
+
+After collapse, hits are allowed only in `propstore/core/labels.py`, provenance projection tests, and compatibility-facing tests that assert the names are projection views. Any production hit that constructs independent label truth is a blocker.
+
+### Test map
+
+New tests:
+
+- `tests/test_provenance_polynomial_properties.py`: algebra laws and canonicalization.
+- `tests/test_provenance_projection_properties.py`: homomorphism laws before live filtering, Boolean/count/why/tropical projections.
+- `tests/test_provenance_nogoods_properties.py`: live filtering, non-commutation canary for non-idempotent projections.
+- `tests/test_provenance_atms_equivalence.py`: generated and fixture-backed equivalence between polynomial why-provenance and current labels.
+- `tests/test_provenance_derivative_properties.py`: formal derivative laws and live-support derivative behavior.
+
+Existing targeted tests to run after each affected phase:
+
+```powershell
+powershell -File scripts/run_logged_pytest.ps1 -Label provenance-core tests/test_provenance_polynomial_properties.py
+powershell -File scripts/run_logged_pytest.ps1 -Label provenance-projections tests/test_provenance_projection_properties.py tests/test_provenance_nogoods_properties.py
+powershell -File scripts/run_logged_pytest.ps1 -Label provenance-atms tests/test_labels_properties.py tests/test_labelled_core.py tests/test_atms_engine.py tests/test_provenance_atms_equivalence.py
+powershell -File scripts/run_logged_pytest.ps1 -Label provenance-fragility tests/test_provenance_derivative_properties.py tests/test_fragility.py
+```
+
+Run the full suite before any deletion commit and after the final A1 commit.
+
+### Grep/type gates
+
+No naked float confidence from provenance:
+
+```powershell
+rg -n "->\\s*float|:\\s*float" propstore/provenance
+```
+
+Allowed float hits must be limited to tropical cost and documented as cost, not confidence/probability.
+
+No dict-shaped polynomial/support objects outside IO:
+
+```powershell
+rg -n "dict\\[|Mapping\\[|Any" propstore/provenance
+```
+
+Allowed hits must be in serialization/IO helpers only. Core polynomial, nogood, support, and homomorphism types must remain typed domain objects.
+
+No parallel support truth after A1-3:
+
+```powershell
+rg -n "label=Label\\(|self\\.nogoods\\s*=\\s*NogoodSet|combine_labels\\(|merge_labels\\(" propstore
+```
+
+Every remaining hit must route through polynomial projection APIs.
+
+### Minimal WS-C C-3 unblock gate
+
+WS-C C-3 may start after A1-1 and A1-2 if these concrete APIs exist and are property-tested:
+
+- `SupportEvidence`
+- `SupportQuality`
+- `ProvenancePolynomial`
+- `SourceVariableId`
+- `ProvenanceNogood`
+- `live`
+- Boolean projection
+- why-provenance projection
+
+WS-C C-3 must not wait for the full ATMS collapse if it only consumes support evidence. It also must not invent its own support representation while waiting for A1.
 
 ## Phase structure
 
