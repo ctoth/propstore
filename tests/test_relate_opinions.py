@@ -60,11 +60,12 @@ class TestCategoricalToOpinionNoCalibration:
         op = categorical_to_opinion("weak", 1)
         assert op.u == pytest.approx(1.0)
 
-    def test_base_rate_varies_by_category(self):
-        """Base rate reflects corpus frequency prior, not fabricated confidence."""
+    def test_base_rate_does_not_vary_without_explicit_prior(self):
+        """Without an explicit prior, every category uses vacuous a=0.5."""
         strong = categorical_to_opinion("strong", 1)
         weak = categorical_to_opinion("weak", 1)
-        assert strong.a > weak.a, "strong should have higher base rate than weak"
+        assert strong.a == pytest.approx(0.5)
+        assert weak.a == pytest.approx(0.5)
 
 
 # ---------------------------------------------------------------------------

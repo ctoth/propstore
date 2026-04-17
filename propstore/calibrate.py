@@ -11,9 +11,12 @@ from __future__ import annotations
 import bisect
 import math
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 
 from propstore.opinion import Opinion, from_evidence, from_probability
+from propstore.provenance import Provenance, ProvenanceStatus, compose_provenance
 
 
 # ---------------------------------------------------------------------------
@@ -208,13 +211,85 @@ class CorpusCalibrator:
 # 3. Categorical-to-Opinion Mapping
 # ---------------------------------------------------------------------------
 
-# Default base rates per category — corpus frequency priors.
-_DEFAULT_BASE_RATES: dict[str, float] = {
-    "strong": 0.7,
-    "moderate": 0.5,
-    "weak": 0.3,
-    "none": 0.1,
-}
+_KNOWN_CATEGORIES = frozenset({"strong", "moderate", "weak", "none"})
+
+
+class CalibrationSource(StrEnum):
+    MEASURED = "measured"
+    USER_DEFAULT = "user_default"
+    MODULE_DEFAULT = "module_default"
+    VACUOUS = "vacuous"
+
+
+@dataclass(frozen=True)
+class CategoryPrior:
+    """Explicit provenance-bearing base rate for a categorical label."""
+
+    category: str
+    value: float
+    source: CalibrationSource
+    provenance: Provenance
+
+    def __post_init__(self) -> None:
+        normalized = self.category.lower()
+        if normalized not in _KNOWN_CATEGORIES:
+            raise ValueError(f"Unknown category {self.category!r}")
+        if self.value <= 0.0 or self.value >= 1.0:
+            raise ValueError("CategoryPrior.value must be in the open interval (0, 1)")
+        object.__setattr__(self, "category", normalized)
+        object.__setattr__(self, "source", CalibrationSource(self.source))
+
+
+@dataclass(frozen=True)
+class CategoryPriorRegistry:
+    """Explicit lookup table for user- or measurement-supplied category priors."""
+
+    priors: Mapping[str, CategoryPrior]
+
+    def __post_init__(self) -> None:
+        normalized: dict[str, CategoryPrior] = {}
+        for category, prior in self.priors.items():
+            key = str(category).lower()
+            if key != prior.category:
+                raise ValueError(
+                    f"CategoryPrior key {category!r} does not match prior category {prior.category!r}"
+                )
+            normalized[key] = prior
+        object.__setattr__(self, "priors", normalized)
+
+    def get(self, category: str) -> CategoryPrior | None:
+        return self.priors.get(category.lower())
+
+
+def _provenance(status: ProvenanceStatus, operation: str) -> Provenance:
+    return Provenance(status=status, witnesses=(), operations=(operation,))
+
+
+def _validate_category(category: str) -> str:
+    normalized = category.lower()
+    if normalized not in _KNOWN_CATEGORIES:
+        raise ValueError(
+            f"Unknown category '{category}', expected one of {sorted(_KNOWN_CATEGORIES)}"
+        )
+    return normalized
+
+
+def _resolve_prior(
+    category: str,
+    *,
+    prior: CategoryPrior | None,
+    prior_registry: CategoryPriorRegistry | None,
+) -> CategoryPrior | None:
+    if prior is not None and prior_registry is not None:
+        raise ValueError("Specify either prior or prior_registry, not both")
+    resolved = prior if prior is not None else None
+    if resolved is None and prior_registry is not None:
+        resolved = prior_registry.get(category)
+    if resolved is not None and resolved.category != category:
+        raise ValueError(
+            f"CategoryPrior category {resolved.category!r} does not match category {category!r}"
+        )
+    return resolved
 
 
 def load_calibration_counts(conn) -> dict[tuple[int, str], tuple[int, int]] | None:
@@ -243,6 +318,8 @@ def categorical_to_opinion(
     pass_number: int,
     *,
     calibration_counts: dict[tuple[int, str], tuple[int, int]] | None = None,
+    prior: CategoryPrior | None = None,
+    prior_registry: CategoryPriorRegistry | None = None,
 ) -> Opinion:
     """Convert categorical LLM output to opinion.
 
@@ -266,31 +343,49 @@ def categorical_to_opinion(
             from a validation set of human-judged stances.
 
     Returns:
-        Opinion with base_rate derived from corpus frequency of this category.
+        Opinion with an explicit or vacuous base rate. Without a supplied
+        CategoryPrior, the base rate is the binary-frame ignorance value 0.5.
     """
-    cat = category.lower()
-    if cat not in _DEFAULT_BASE_RATES:
-        raise ValueError(
-            f"Unknown category '{category}', "
-            f"expected one of {list(_DEFAULT_BASE_RATES.keys())}"
-        )
-
-    base_rate = _DEFAULT_BASE_RATES[cat]
+    cat = _validate_category(category)
+    resolved_prior = _resolve_prior(
+        cat,
+        prior=prior,
+        prior_registry=prior_registry,
+    )
+    base_rate = 0.5 if resolved_prior is None else resolved_prior.value
+    prior_provenance = (
+        _provenance(ProvenanceStatus.VACUOUS, "no_category_prior_supplied")
+        if resolved_prior is None
+        else resolved_prior.provenance
+    )
 
     if calibration_counts is None:
-        return Opinion.vacuous(a=base_rate)
+        return Opinion.vacuous(a=base_rate, provenance=prior_provenance)
 
     key = (pass_number, cat)
     if key not in calibration_counts:
-        return Opinion.vacuous(a=base_rate)
+        return Opinion.vacuous(a=base_rate, provenance=prior_provenance)
 
     correct, total = calibration_counts[key]
     if total <= 0:
-        return Opinion.vacuous(a=base_rate)
+        return Opinion.vacuous(a=base_rate, provenance=prior_provenance)
 
     r = float(correct)
     s = float(total - correct)
-    return from_evidence(r, s, base_rate)
+    counts_provenance = _provenance(
+        ProvenanceStatus.CALIBRATED,
+        "categorical_calibration_counts",
+    )
+    return from_evidence(
+        r,
+        s,
+        base_rate,
+        provenance=compose_provenance(
+            prior_provenance,
+            counts_provenance,
+            operation="categorical_calibration_counts",
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
