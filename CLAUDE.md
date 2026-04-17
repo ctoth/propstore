@@ -40,15 +40,11 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 
 See `papers/index.md` for the full collection with descriptions and tags. Each paper directory contains `notes.md` with detailed extraction, `claims.yaml` where extracted, and cross-references via `reconcile`.
 
-## Known Limitations
+## Gaps
 
-**ASPIC+ argument construction:** The claim graph routes through `aspic_bridge.py` → `aspic.py` for recursive argument construction (Modgil & Prakken 2018 Defs 1-22). Rule ordering in the bridge is always empty — only premise ordering from metadata has discriminating power.
+Known gaps between the paper citations / intended behavior and the current implementation are tracked in [`docs/gaps.md`](docs/gaps.md). This replaces an earlier Known Limitations section whose claims the 2026-04-16 code review found to be materially inaccurate (`reviews/2026-04-16-code-review/axis-6-limitation-honesty.md`).
 
-**Decision criteria:** Interval dominance (Denoeux 2019) not yet implemented. Pignistic, Hurwicz, lower/upper bound are in `world/types.py:apply_decision_criterion`.
-
-**Semantic merge:** Assignment-level IC merge with CEL/Z3 is implemented. Full belief-base/model semantics for Konieczny IC0-IC8 and rich PAF attack inversion (Amgoud & Vesic 2014) are deferred.
-
-**Deduction, comultiplication, abduction:** Extended Jøsang operators not implemented. Core 2001 operators are complete.
+New gaps are added to `docs/gaps.md` when observed; closures happen in the same commit that implements the fix.
 
 ## Technical Conventions
 
