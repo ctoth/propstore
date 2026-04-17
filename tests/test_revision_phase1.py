@@ -81,7 +81,7 @@ def _make_bound(
 
 
 def test_project_belief_base_includes_exact_support_claims_and_active_assumptions() -> None:
-    from propstore.revision.projection import project_belief_base
+    from propstore.support_revision.projection import project_belief_base
 
     store = _RevisionStore(
         claims=[
@@ -115,8 +115,8 @@ def test_project_belief_base_includes_exact_support_claims_and_active_assumption
 
 
 def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_support() -> None:
-    from propstore.revision.entrenchment import compute_entrenchment
-    from propstore.revision.projection import project_belief_base
+    from propstore.support_revision.entrenchment import compute_entrenchment
+    from propstore.support_revision.projection import project_belief_base
 
     store = _RevisionStore(
         claims=[

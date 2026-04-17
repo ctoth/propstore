@@ -163,15 +163,20 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
     )
 
     raw_structure = payload.get("structure")
-    structure = raw_structure if isinstance(raw_structure, Mapping) else {}
+    if raw_structure is None:
+        structure: Mapping[str, Any] = {}
+    elif isinstance(raw_structure, Mapping):
+        structure = raw_structure
+    else:
+        raise ValueError("Context record 'structure' must be a mapping when present")
 
     raw_top_level_assumptions = payload.get("assumptions")
-    top_level_assumptions = (
-        raw_top_level_assumptions
-        if isinstance(raw_top_level_assumptions, Sequence)
-        and not isinstance(raw_top_level_assumptions, str)
-        else ()
-    )
+    if raw_top_level_assumptions is None:
+        top_level_assumptions = ()
+    elif isinstance(raw_top_level_assumptions, Sequence) and not isinstance(raw_top_level_assumptions, str):
+        top_level_assumptions = raw_top_level_assumptions
+    else:
+        raise ValueError("Context record 'assumptions' must be a sequence when present")
     assumptions = tuple(
         assumption
         for assumption in top_level_assumptions
@@ -179,12 +184,12 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
     )
     if not assumptions:
         raw_structured_assumptions = structure.get("assumptions")
-        structured_assumptions = (
-            raw_structured_assumptions
-            if isinstance(raw_structured_assumptions, Sequence)
-            and not isinstance(raw_structured_assumptions, str)
-            else ()
-        )
+        if raw_structured_assumptions is None:
+            structured_assumptions = ()
+        elif isinstance(raw_structured_assumptions, Sequence) and not isinstance(raw_structured_assumptions, str):
+            structured_assumptions = raw_structured_assumptions
+        else:
+            raise ValueError("Context record structure 'assumptions' must be a sequence when present")
         assumptions = tuple(
             assumption
             for assumption in structured_assumptions
@@ -192,14 +197,15 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
         )
 
     raw_parameters = structure.get("parameters")
-    parameters = (
-        {
+    if raw_parameters is None:
+        parameters = {}
+    elif isinstance(raw_parameters, Mapping):
+        parameters = {
             str(key): str(value)
             for key, value in raw_parameters.items()
         }
-        if isinstance(raw_parameters, Mapping)
-        else {}
-    )
+    else:
+        raise ValueError("Context record structure 'parameters' must be a mapping when present")
     raw_perspective = structure.get("perspective")
     perspective = (
         raw_perspective

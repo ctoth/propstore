@@ -6,9 +6,10 @@ from itertools import combinations
 from typing import Any
 
 from propstore.core.id_types import AssumptionId
-from propstore.revision.entrenchment import EntrenchmentReport
-from propstore.revision.explanation_types import RevisionAtomDetail
-from propstore.revision.state import (
+from propstore.core.active_claims import coerce_active_claim
+from propstore.support_revision.entrenchment import EntrenchmentReport
+from propstore.support_revision.explanation_types import RevisionAtomDetail
+from propstore.support_revision.state import (
     BeliefAtom,
     BeliefBase,
     AssumptionAtom,
@@ -75,14 +76,16 @@ def normalize_revision_input(
         if not claim_id:
             raise ValueError("Claim revision input requires 'id' or 'claim_id'")
         atom_id = str(revision_input.get("atom_id") or f"claim:{claim_id}")
-        return ClaimAtom(atom_id=atom_id, claim=revision_input)
+        return ClaimAtom(atom_id=atom_id, claim=coerce_active_claim(revision_input))
 
     if kind == "assumption":
         assumption_id = revision_input.get("assumption_id") or revision_input.get("id")
         if not assumption_id:
             raise ValueError("Assumption revision input requires 'assumption_id' or 'id'")
         atom_id = str(revision_input.get("atom_id") or f"assumption:{assumption_id}")
-        return AssumptionAtom(atom_id=atom_id, assumption=revision_input)
+        from propstore.support_revision.state import coerce_assumption_ref
+
+        return AssumptionAtom(atom_id=atom_id, assumption=coerce_assumption_ref(revision_input))
 
     raise ValueError(f"Unsupported revision input kind: {kind}")
 

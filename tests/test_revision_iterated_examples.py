@@ -1,13 +1,8 @@
-"""Named examples for iterated revision ranking updates.
-
-Diller et al. 2015 postulate grounding:
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_003.png
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_004.png
-"""
+"""Named examples for support-state ranking updates."""
 
 from __future__ import annotations
 
-from propstore.revision.iterated import iterated_revise, make_epistemic_state
+from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 from tests.test_revision_iterated import _history_sensitive_base
 
 

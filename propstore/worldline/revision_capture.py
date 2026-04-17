@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from propstore.revision.snapshot_types import epistemic_state_snapshot
-from propstore.revision.state import BeliefAtom
+from propstore.support_revision.snapshot_types import epistemic_state_snapshot
+from propstore.support_revision.state import BeliefAtom
 from propstore.worldline.revision_types import (
     RevisionAtomRef,
     WorldlineRevisionResult,

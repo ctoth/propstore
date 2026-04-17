@@ -13,9 +13,9 @@ from propstore.core.row_types import (
     coerce_conflict_row,
     coerce_stance_row,
 )
-from propstore.revision.state import EpistemicState
+from propstore.support_revision.state import EpistemicState
 from propstore.core.labels import Label, SupportQuality
-from propstore.revision.state import is_claim_atom
+from propstore.support_revision.state import is_claim_atom
 
 
 @dataclass(frozen=True)

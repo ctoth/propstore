@@ -1,18 +1,13 @@
-"""Example and contract tests for support-incision revision operators.
-
-Diller et al. 2015 revision-postulate grounding:
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_003.png
-papers/Diller_2015_ExtensionBasedBeliefRevision/pages/page_004.png
-"""
+"""Example and contract tests for operational support-incision operators."""
 
 from __future__ import annotations
 
 import ast
 from pathlib import Path
 
-from propstore.revision.entrenchment import EntrenchmentReport
-from propstore.revision.explanation_types import EntrenchmentReason
-from propstore.revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
+from propstore.support_revision.entrenchment import EntrenchmentReport
+from propstore.support_revision.explanation_types import EntrenchmentReason
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
 
 
 def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport]:
@@ -59,7 +54,7 @@ def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport]:
 
 
 def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() -> None:
-    from propstore.revision.operators import contract
+    from propstore.support_revision.operators import contract
 
     base, entrenchment = _base_with_shared_support()
 
@@ -76,7 +71,7 @@ def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() ->
 
 
 def test_expand_adds_atom_without_mutating_input_base() -> None:
-    from propstore.revision.operators import expand
+    from propstore.support_revision.operators import expand
 
     base, _ = _base_with_shared_support()
     new_atom = ClaimAtom("claim:new", {"id": "new"})
@@ -89,7 +84,7 @@ def test_expand_adds_atom_without_mutating_input_base() -> None:
 
 
 def test_revise_matches_operational_levi_identity() -> None:
-    from propstore.revision.operators import contract, expand, revise
+    from propstore.support_revision.operators import contract, expand, revise
 
     base, entrenchment = _base_with_shared_support()
     new_atom = ClaimAtom("claim:new", {"id": "new"})
@@ -117,7 +112,7 @@ def test_revise_matches_operational_levi_identity() -> None:
 
 
 def test_normalize_revision_input_resolves_existing_claim_ids() -> None:
-    from propstore.revision.operators import normalize_revision_input
+    from propstore.support_revision.operators import normalize_revision_input
 
     base, _ = _base_with_shared_support()
 
@@ -128,7 +123,7 @@ def test_normalize_revision_input_resolves_existing_claim_ids() -> None:
 
 
 def test_normalize_revision_input_builds_synthetic_claim_atoms() -> None:
-    from propstore.revision.operators import normalize_revision_input
+    from propstore.support_revision.operators import normalize_revision_input
 
     base, _ = _base_with_shared_support()
 
@@ -148,7 +143,7 @@ def test_normalize_revision_input_builds_synthetic_claim_atoms() -> None:
 
 
 def test_normalize_revision_input_builds_assumption_atoms() -> None:
-    from propstore.revision.operators import normalize_revision_input
+    from propstore.support_revision.operators import normalize_revision_input
 
     base, _ = _base_with_shared_support()
 
@@ -168,7 +163,7 @@ def test_normalize_revision_input_builds_assumption_atoms() -> None:
 
 
 def test_expand_accepts_synthetic_claim_mapping_via_adapter() -> None:
-    from propstore.revision.operators import expand
+    from propstore.support_revision.operators import expand
 
     base, _ = _base_with_shared_support()
 
@@ -186,7 +181,7 @@ def test_expand_accepts_synthetic_claim_mapping_via_adapter() -> None:
 
 
 def test_stabilize_belief_base_applies_support_loss_cascade_from_incision_set() -> None:
-    from propstore.revision.operators import stabilize_belief_base
+    from propstore.support_revision.operators import stabilize_belief_base
 
     base, _ = _base_with_shared_support()
 
@@ -200,7 +195,7 @@ def test_stabilize_belief_base_applies_support_loss_cascade_from_incision_set() 
 
 
 def test_stabilize_belief_base_is_idempotent_on_stable_result() -> None:
-    from propstore.revision.operators import stabilize_belief_base
+    from propstore.support_revision.operators import stabilize_belief_base
 
     base, _ = _base_with_shared_support()
 
@@ -214,7 +209,7 @@ def test_stabilize_belief_base_is_idempotent_on_stable_result() -> None:
 
 
 def test_contract_matches_explicit_stabilization_of_chosen_incision_set() -> None:
-    from propstore.revision.operators import contract, stabilize_belief_base
+    from propstore.support_revision.operators import contract, stabilize_belief_base
 
     base, entrenchment = _base_with_shared_support()
 
@@ -229,7 +224,7 @@ def test_contract_matches_explicit_stabilization_of_chosen_incision_set() -> Non
 
 
 def test_revision_operators_do_not_import_ic_merge() -> None:
-    path = Path("propstore/revision/operators.py")
+    path = Path("propstore/support_revision/operators.py")
     assert path.exists()
 
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

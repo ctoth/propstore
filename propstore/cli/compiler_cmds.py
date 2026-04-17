@@ -933,7 +933,7 @@ def _emit_iterated_revision(result, previous_state, next_state, *, operator: str
 @click.pass_obj
 def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Show the current revision-facing belief base for a scoped world."""
-    from propstore.revision.state import is_claim_atom
+    from propstore.support_revision.state import is_claim_atom
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
@@ -1036,7 +1036,7 @@ def world_revise(
     context: str | None,
 ) -> None:
     """Revise the scoped belief base without mutating source YAML."""
-    from propstore.revision.operators import normalize_revision_input
+    from propstore.support_revision.operators import normalize_revision_input
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
@@ -1068,7 +1068,7 @@ def world_revision_explain(
     context: str | None,
 ) -> None:
     """Explain one revision operation over the current scoped world."""
-    from propstore.revision.operators import normalize_revision_input
+    from propstore.support_revision.operators import normalize_revision_input
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
@@ -1126,7 +1126,7 @@ def world_iterated_revise(
     context: str | None,
 ) -> None:
     """Run one iterated revision episode and print the next explicit state."""
-    from propstore.revision.operators import normalize_revision_input
+    from propstore.support_revision.operators import normalize_revision_input
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:

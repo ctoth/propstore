@@ -29,7 +29,7 @@ class RevisionAtomDetail:
             reason=None if data.get("reason") is None else str(data.get("reason")),
             incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
             support_sets=tuple(
-                tuple(str(assumption_id) for assumption_id in support_set)
+                to_assumption_ids(support_set)
                 for support_set in (data.get("support_sets") or ())
             ),
         )
@@ -71,16 +71,14 @@ class EntrenchmentReason:
         if not data:
             return cls()
         raw_override_priority = data.get("override_priority", data.get("override"))
+        raw_support_count = data.get("support_count")
         return cls(
             override_priority=_coerce_override_priority(raw_override_priority),
             override_key=None if data.get("override_key") is None else str(data.get("override_key")),
             support_count=(
-                None if data.get("support_count") is None else int(data.get("support_count"))
+                None if raw_support_count is None else int(raw_support_count)
             ),
-            essential_support=tuple(
-                str(assumption_id)
-                for assumption_id in (data.get("essential_support") or ())
-            ),
+            essential_support=to_assumption_ids(data.get("essential_support") or ()),
             iterated_operator=(
                 None
                 if data.get("iterated_operator") is None
@@ -158,7 +156,7 @@ class RevisionAtomExplanation:
             ),
             incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
             support_sets=tuple(
-                tuple(str(assumption_id) for assumption_id in support_set)
+                to_assumption_ids(support_set)
                 for support_set in (data.get("support_sets") or ())
             ),
         )

@@ -4,7 +4,7 @@ from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import AssumptionId, to_claim_id
 from propstore.core.labels import SupportQuality
 
-from propstore.revision.state import BeliefBase, ClaimAtom, RevisionScope
+from propstore.support_revision.state import BeliefBase, ClaimAtom, RevisionScope
 
 
 def _claim_atom_id(claim: ActiveClaim) -> str | None:
