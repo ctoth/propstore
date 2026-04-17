@@ -26,6 +26,7 @@ from tests.conftest import (
     attach_concept_version_id,
     make_concept_identity,
     normalize_claims_payload,
+    normalize_concept_payloads,
 )
 
 
@@ -70,56 +71,10 @@ def concept_dir(tmp_path):
 
 def write_concept(concept_dir, filename, data):
     """Helper: write a concept YAML file."""
-    normalized = dict(data)
-    raw_id = normalized.pop("id", None)
-    if "artifact_id" not in normalized or "logical_ids" not in normalized:
-        local_id = str(raw_id or normalized.get("canonical_name") or filename.removesuffix(".yaml"))
-        normalized.update(
-            make_concept_identity(
-                local_id,
-                domain=str(normalized.get("domain") or "propstore"),
-                canonical_name=str(normalized.get("canonical_name") or local_id),
-            )
-        )
-
-    replaced_by = normalized.get("replaced_by")
-    if isinstance(replaced_by, str) and replaced_by.startswith("concept"):
-        normalized["replaced_by"] = make_concept_identity(replaced_by)["artifact_id"]
-
-    relationships = normalized.get("relationships")
-    if isinstance(relationships, list):
-        rewritten_relationships = []
-        for rel in relationships:
-            if not isinstance(rel, dict):
-                rewritten_relationships.append(rel)
-                continue
-            rel_copy = dict(rel)
-            target = rel_copy.get("target")
-            if isinstance(target, str) and target.startswith("concept"):
-                rel_copy["target"] = make_concept_identity(target)["artifact_id"]
-            rewritten_relationships.append(rel_copy)
-        normalized["relationships"] = rewritten_relationships
-
-    parameterizations = normalized.get("parameterization_relationships")
-    if isinstance(parameterizations, list):
-        rewritten_parameterizations = []
-        for param in parameterizations:
-            if not isinstance(param, dict):
-                rewritten_parameterizations.append(param)
-                continue
-            param_copy = dict(param)
-            inputs = param_copy.get("inputs")
-            if isinstance(inputs, list):
-                param_copy["inputs"] = [
-                    make_concept_identity(input_id)["artifact_id"]
-                    if isinstance(input_id, str) and input_id.startswith("concept")
-                    else input_id
-                    for input_id in inputs
-                ]
-            rewritten_parameterizations.append(param_copy)
-        normalized["parameterization_relationships"] = rewritten_parameterizations
-
-    normalized = attach_concept_version_id(normalized)
+    normalized = normalize_concept_payloads(
+        [data],
+        default_domain=str(data.get("domain") or "propstore"),
+    )[0]
     path = concept_dir / filename
     path.write_text(yaml.dump(normalized, default_flow_style=False))
     return path
@@ -437,7 +392,7 @@ class TestFormValidation:
         }
         c.update(make_concept_identity("concept1", domain="speech", canonical_name="bad_concept"))
         write_concept(concept_dir, "bad_concept.yaml", c)
-        with pytest.raises(DocumentSchemaError, match="missing required field `form`"):
+        with pytest.raises(DocumentSchemaError, match="missing required field `physical_dimension_form`"):
             load_concepts(concept_dir)
 
     def test_nonexistent_form_error(self, concept_dir):
@@ -476,8 +431,8 @@ class TestIdentityFormat:
 
     def test_raw_id_input_rejected(self, concept_dir):
         c = make_quantity_concept("concept1", "test_concept")
+        c = normalize_concept_payloads([c], default_domain="speech")[0]
         c["id"] = "concept1"
-        c["version_id"] = attach_concept_version_id(c)["version_id"]
         path = concept_dir / "test_concept.yaml"
         path.write_text(yaml.dump(c, default_flow_style=False))
         with pytest.raises(DocumentSchemaError, match="unknown field `id`"):

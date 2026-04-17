@@ -37,7 +37,12 @@ from propstore.identity import (
     format_logical_id,
     primary_logical_id,
 )
-from propstore.core.concepts import LoadedConcept, parse_concept_record
+from propstore.core.concepts import (
+    LoadedConcept,
+    concept_document_to_record_payload,
+    parse_concept_record,
+    parse_concept_record_document,
+)
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.form_utils import load_form_path
 from propstore.knowledge_path import KnowledgePath
@@ -167,7 +172,12 @@ def _claims_ref(claim_file: LoadedClaimsFile) -> ClaimsFileRef:
 
 
 def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> object:
-    return repo.artifacts.coerce(CONCEPT_FILE_FAMILY, data, source=_artifact_source(repo, CONCEPT_FILE_FAMILY, ref))
+    payload = _normalize_concept_data(data)
+    return repo.artifacts.coerce(
+        CONCEPT_FILE_FAMILY,
+        payload,
+        source=_artifact_source(repo, CONCEPT_FILE_FAMILY, ref),
+    )
 
 
 def _claims_document(repo: Repository, ref: ClaimsFileRef, data: dict) -> object:
@@ -190,7 +200,13 @@ def _normalize_concept_data(
 
 
 def _concept_display_handle(data: dict) -> str:
-    return primary_logical_id(data) or data.get("canonical_name") or data.get("artifact_id") or "?"
+    lexical_entry = data.get("lexical_entry")
+    lexical_name = None
+    if isinstance(lexical_entry, dict):
+        canonical_form = lexical_entry.get("canonical_form")
+        if isinstance(canonical_form, dict):
+            lexical_name = canonical_form.get("written_rep")
+    return primary_logical_id(data) or data.get("canonical_name") or lexical_name or data.get("artifact_id") or "?"
 
 
 def _build_concept_registry(
@@ -379,7 +395,7 @@ def add(
             filename=name,
             source_path=semantic_path,
             knowledge_root=repo.tree(),
-            record=parse_concept_record(data),
+            record=parse_concept_record_document(document),
         )
     )
 
@@ -397,10 +413,10 @@ def add(
         CONCEPT_FILE_FAMILY,
         ref,
         document,
-        message=f"Add concept: {name} ({_concept_display_handle(data)})",
+        message=f"Add concept: {name} ({_concept_display_handle(concept_document_to_record_payload(document))})",
     )
     snapshot.sync_worktree()
-    click.echo(f"Created {filepath} with logical ID {_concept_display_handle(data)}")
+    click.echo(f"Created {filepath} with logical ID {_concept_display_handle(concept_document_to_record_payload(document))}")
 
 
 # ── concept alias ────────────────────────────────────────────────────
@@ -516,7 +532,8 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             changed_concept_refs.add(concept_ref)
         if _rewrite_concept_conditions(concept_data, old_name, name):
             changed_concept_refs.add(concept_ref)
-        concept_data = _normalize_concept_data(concept_data, local_handle=local_handle)
+        concept_data = _normalize_concept_data(concept_data)
+        concept_document = _concept_document(repo, updated_ref, concept_data)
         updated_concepts.append((
             concept_ref,
             updated_ref,
@@ -524,7 +541,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 filename=name if updated_ref == new_ref else concept_record.filename,
                 source_path=_artifact_knowledge_path(repo, CONCEPT_FILE_FAMILY, updated_ref),
                 knowledge_root=concept_record.knowledge_root,
-                record=parse_concept_record(concept_data),
+                record=parse_concept_record_document(concept_document),
             ),
         ))
 
@@ -714,6 +731,7 @@ def link(
     data["relationships"] = rels
     data["last_modified"] = str(date.today())
     data = _normalize_concept_data(data)
+    updated_document = _concept_document(repo, ref, data)
 
     concepts = load_concepts(repo.tree() / "concepts")
     updated_concepts = []
@@ -733,7 +751,9 @@ def link(
                 ),
                 knowledge_root=concept_record.knowledge_root,
                 record=parse_concept_record(
-                    data if concept_path == filepath else concept_record.data,
+                    concept_document_to_record_payload(updated_document)
+                    if concept_path == filepath
+                    else concept_record.data,
                 ),
             )
         )
@@ -754,7 +774,7 @@ def link(
     repo.artifacts.save(
         CONCEPT_FILE_FAMILY,
         ref,
-        _concept_document(repo, ref, data),
+        updated_document,
         message=f"Link {_concept_display_handle(data)} {rel_type} {_concept_display_handle(target_entry.data)}",
     )
     snapshot.sync_worktree()

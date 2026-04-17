@@ -12,6 +12,10 @@ from propstore.artifacts.documents.concepts import (
     ConceptFormParametersDocument,
     ConceptIdScanDocument,
     ConceptLogicalIdDocument,
+    LexicalEntryDocument,
+    LexicalFormDocument,
+    LexicalSenseDocument,
+    OntologyReferenceDocument,
     ConceptRelationshipDocument,
     ParameterizationRelationshipDocument,
 )
@@ -44,7 +48,64 @@ def _mapping_to_builtin_dict(value: object) -> dict[str, Any] | None:
     builtins_value = to_document_builtins(value)
     if not isinstance(builtins_value, dict):
         return None
-    return builtins_value
+    pruned = _prune_none_values(builtins_value)
+    return pruned if isinstance(pruned, dict) else None
+
+
+def _prune_none_values(value: object) -> object:
+    if isinstance(value, Mapping):
+        return {
+            key: _prune_none_values(item)
+            for key, item in value.items()
+            if item is not None
+        }
+    if isinstance(value, list):
+        return [_prune_none_values(item) for item in value]
+    if isinstance(value, tuple):
+        return [_prune_none_values(item) for item in value]
+    return value
+
+
+def _ontology_reference_payload(data: OntologyReferenceDocument) -> dict[str, Any]:
+    payload: dict[str, Any] = {"uri": data.uri}
+    if data.label is not None:
+        payload["label"] = data.label
+    return payload
+
+
+def _lexical_form_payload(data: LexicalFormDocument) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "written_rep": data.written_rep,
+        "language": data.language,
+    }
+    if data.phonetic_rep is not None:
+        payload["phonetic_rep"] = data.phonetic_rep
+    return payload
+
+
+def _lexical_sense_payload(data: LexicalSenseDocument) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "reference": _ontology_reference_payload(data.reference),
+    }
+    if data.usage is not None:
+        payload["usage"] = data.usage
+    return payload
+
+
+def _lexical_entry_payload(data: LexicalEntryDocument) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "identifier": data.identifier,
+        "canonical_form": _lexical_form_payload(data.canonical_form),
+        "senses": [_lexical_sense_payload(sense) for sense in data.senses],
+    }
+    if data.other_forms:
+        payload["other_forms"] = [
+            _lexical_form_payload(form)
+            for form in data.other_forms
+        ]
+    if data.physical_dimension_form is not None:
+        payload["physical_dimension_form"] = data.physical_dimension_form
+    return payload
 
 
 @dataclass(frozen=True)
@@ -441,8 +502,8 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
 def concept_document_to_payload(data: ConceptDocument) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "status": data.status.value,
-        "ontology_reference": to_document_builtins(data.ontology_reference),
-        "lexical_entry": to_document_builtins(data.lexical_entry),
+        "ontology_reference": _ontology_reference_payload(data.ontology_reference),
+        "lexical_entry": _lexical_entry_payload(data.lexical_entry),
     }
     if data.artifact_id is not None:
         payload["artifact_id"] = data.artifact_id
@@ -588,10 +649,14 @@ def rewrite_concept_payload_refs(
     concept_ref_map: Mapping[str, str],
 ) -> dict[str, Any]:
     rewritten = dict(data)
+    changed = False
 
     replaced_by = rewritten.get("replaced_by")
     if replaced_by is not None:
-        rewritten["replaced_by"] = _rewrite_concept_reference(replaced_by, concept_ref_map)
+        updated_replaced_by = _rewrite_concept_reference(replaced_by, concept_ref_map)
+        if updated_replaced_by != replaced_by:
+            changed = True
+        rewritten["replaced_by"] = updated_replaced_by
 
     relationships = rewritten.get("relationships")
     if isinstance(relationships, list):
@@ -601,7 +666,10 @@ def rewrite_concept_payload_refs(
                 updated_relationships.append(relationship)
                 continue
             updated = dict(relationship)
-            updated["target"] = _rewrite_concept_reference(updated.get("target"), concept_ref_map)
+            original_target = updated.get("target")
+            updated["target"] = _rewrite_concept_reference(original_target, concept_ref_map)
+            if updated["target"] != original_target:
+                changed = True
             updated_relationships.append(updated)
         rewritten["relationships"] = updated_relationships
 
@@ -615,14 +683,18 @@ def rewrite_concept_payload_refs(
             updated = dict(parameterization)
             inputs = updated.get("inputs")
             if isinstance(inputs, Sequence) and not isinstance(inputs, str):
-                updated["inputs"] = [
+                updated_inputs = [
                     _rewrite_concept_reference(input_value, concept_ref_map)
                     for input_value in inputs
                 ]
+                if list(inputs) != updated_inputs:
+                    changed = True
+                updated["inputs"] = updated_inputs
             updated_parameterizations.append(updated)
         rewritten["parameterization_relationships"] = updated_parameterizations
 
-    rewritten["version_id"] = compute_concept_version_id(rewritten)
+    if changed:
+        rewritten["version_id"] = compute_concept_version_id(rewritten)
     return rewritten
 
 

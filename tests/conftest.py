@@ -160,12 +160,10 @@ def normalize_concept_payloads(
     normalized_concepts: list[dict] = []
     for concept in concepts:
         raw_id = concept.get("id")
-        canonical_name = concept.get("canonical_name")
-        local_handle = str(raw_id or canonical_name or "concept")
         normalized = normalize_canonical_concept_payload(
             deepcopy(concept),
             default_domain=default_domain,
-            local_handle=local_handle,
+            local_handle=str(raw_id) if isinstance(raw_id, str) else None,
         )
         if isinstance(raw_id, str) and isinstance(normalized.get("artifact_id"), str):
             raw_to_artifact[raw_id] = normalized["artifact_id"]
