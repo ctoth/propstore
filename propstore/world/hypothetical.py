@@ -217,7 +217,7 @@ def _synthetic_row(
         claim_type=synthetic.type,
         concept_id=to_concept_id(synthetic.concept_id),
         value=synthetic.value,
-        sample_size=synthetic.sample_size,
+        sample_size=synthetic.sample_size if synthetic.sample_size is not None else row.sample_size,
         conditions_cel=conditions_cel,
         attributes=(
             {
@@ -253,10 +253,11 @@ class _GraphOverlayStore:
         return getattr(self._base, name)
 
     def get_concept(self, concept_id: str) -> ConceptRowInput | None:
-        getter = self._base.get_concept
-        concept = getter(concept_id)
-        if concept is not None:
-            return concept
+        getter = getattr(self._base, "get_concept", None)
+        if callable(getter):
+            concept = cast(Callable[[str], ConceptRowInput | None], getter)(concept_id)
+            if concept is not None:
+                return concept
         if not hasattr(self._base, "all_concepts"):
             return None
         for concept_input in self._base.all_concepts():
