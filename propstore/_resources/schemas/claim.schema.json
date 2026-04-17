@@ -144,6 +144,20 @@
                     "$ref": "#/$defs/Provenance",
                     "description": "Where in the paper this claim was found."
                 },
+                "proposition": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/AtomicProposition"
+                        },
+                        {
+                            "$ref": "#/$defs/IstProposition"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Typed proposition body for nested ist(c, p) claim shapes."
+                },
                 "sample_size": {
                     "description": "Number of observations the parameter estimate is based on.\n",
                     "type": [
@@ -253,6 +267,229 @@
                 "context"
             ],
             "title": "Claim",
+            "type": "object"
+        },
+        "AtomicProposition": {
+            "additionalProperties": false,
+            "properties": {
+                "kind": {
+                    "const": "atomic",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/$defs/ClaimType"
+                },
+                "body": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "concept": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "concepts": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "conditions": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "confidence": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "equations": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "expression": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "fit": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/FitStatistics"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "listener_population": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "lower_bound": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "measure": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "methodology": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "notes": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "parameters": {
+                    "items": {
+                        "$ref": "#/$defs/ParameterBinding"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "sample_size": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "stage": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "statement": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "sympy": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "target_concept": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "value": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "unit": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "uncertainty": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "uncertainty_type": {
+                    "$ref": "#/$defs/UncertaintyType"
+                },
+                "upper_bound": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "variables": {
+                    "anyOf": [
+                        {
+                            "items": {
+                                "$ref": "#/$defs/VariableBinding"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "kind",
+                "type"
+            ],
+            "title": "AtomicProposition",
+            "type": "object"
+        },
+        "IstProposition": {
+            "additionalProperties": false,
+            "properties": {
+                "kind": {
+                    "const": "ist",
+                    "type": "string"
+                },
+                "context": {
+                    "$ref": "#/$defs/ContextReference"
+                },
+                "proposition": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/AtomicProposition"
+                        },
+                        {
+                            "$ref": "#/$defs/IstProposition"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "kind",
+                "context",
+                "proposition"
+            ],
+            "title": "IstProposition",
             "type": "object"
         },
         "ContextReference": {

@@ -218,8 +218,110 @@ class StanceDocument(DocumentStruct):
         return payload
 
 
+class AtomicPropositionDocument(DocumentStruct, tag="atomic", tag_field="kind"):
+    type: ClaimType
+    body: str | None = None
+    concept: str | None = None
+    concepts: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
+    confidence: float | int | None = None
+    equations: tuple[str, ...] = ()
+    expression: str | None = None
+    fit: FitStatisticsDocument | None = None
+    listener_population: str | None = None
+    lower_bound: float | int | None = None
+    measure: str | None = None
+    methodology: str | None = None
+    name: str | None = None
+    notes: str | None = None
+    parameters: tuple[ParameterBindingDocument, ...] = ()
+    sample_size: int | None = None
+    stage: AlgorithmStage | None = None
+    statement: str | None = None
+    sympy: str | None = None
+    target_concept: str | None = None
+    uncertainty: float | int | None = None
+    uncertainty_type: str | None = None
+    unit: str | None = None
+    upper_bound: float | int | None = None
+    value: float | int | None = None
+    variables: tuple[VariableBindingDocument, ...] = ()
+
+    def to_payload(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {"kind": "atomic", "type": self.type.value}
+        if self.body is not None:
+            payload["body"] = self.body
+        if self.concept is not None:
+            payload["concept"] = self.concept
+        if self.concepts:
+            payload["concepts"] = list(self.concepts)
+        if self.conditions:
+            payload["conditions"] = list(self.conditions)
+        if self.confidence is not None:
+            payload["confidence"] = self.confidence
+        if self.equations:
+            payload["equations"] = list(self.equations)
+        if self.expression is not None:
+            payload["expression"] = self.expression
+        if self.fit is not None:
+            payload["fit"] = self.fit.to_payload()
+        if self.listener_population is not None:
+            payload["listener_population"] = self.listener_population
+        if self.lower_bound is not None:
+            payload["lower_bound"] = self.lower_bound
+        if self.measure is not None:
+            payload["measure"] = self.measure
+        if self.methodology is not None:
+            payload["methodology"] = self.methodology
+        if self.name is not None:
+            payload["name"] = self.name
+        if self.notes is not None:
+            payload["notes"] = self.notes
+        if self.parameters:
+            payload["parameters"] = [
+                parameter.to_payload()
+                for parameter in self.parameters
+            ]
+        if self.sample_size is not None:
+            payload["sample_size"] = self.sample_size
+        if self.stage is not None:
+            payload["stage"] = str(self.stage)
+        if self.statement is not None:
+            payload["statement"] = self.statement
+        if self.sympy is not None:
+            payload["sympy"] = self.sympy
+        if self.target_concept is not None:
+            payload["target_concept"] = self.target_concept
+        if self.uncertainty is not None:
+            payload["uncertainty"] = self.uncertainty
+        if self.uncertainty_type is not None:
+            payload["uncertainty_type"] = self.uncertainty_type
+        if self.unit is not None:
+            payload["unit"] = self.unit
+        if self.upper_bound is not None:
+            payload["upper_bound"] = self.upper_bound
+        if self.value is not None:
+            payload["value"] = self.value
+        if self.variables:
+            payload["variables"] = [variable.to_payload() for variable in self.variables]
+        return payload
+
+
+class IstPropositionDocument(DocumentStruct, tag="ist", tag_field="kind"):
+    context: ContextReferenceDocument
+    proposition: AtomicPropositionDocument | IstPropositionDocument
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "kind": "ist",
+            "context": self.context.to_payload(),
+            "proposition": self.proposition.to_payload(),
+        }
+
+
 class ClaimDocument(DocumentStruct):
     context: ContextReferenceDocument
+    proposition: AtomicPropositionDocument | IstPropositionDocument | None = None
     artifact_id: str | None = None
     artifact_code: str | None = None
     logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
@@ -288,6 +390,8 @@ class ClaimDocument(DocumentStruct):
         if self.confidence is not None:
             payload["confidence"] = self.confidence
         payload["context"] = self.context.to_payload()
+        if self.proposition is not None:
+            payload["proposition"] = self.proposition.to_payload()
         if self.equations:
             payload["equations"] = list(self.equations)
         if self.expression is not None:
