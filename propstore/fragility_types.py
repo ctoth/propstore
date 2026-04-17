@@ -9,6 +9,7 @@ from typing import Protocol, runtime_checkable
 
 from propstore.cel_types import CelExpr, to_cel_expr
 from propstore.core.environment import ArtifactStore
+from propstore.provenance import SupportEvidence
 from propstore.world.types import (
     ATMSConceptStabilityReport,
     BeliefSpace,
@@ -53,6 +54,7 @@ class InterventionProvenance:
     source_ids: tuple[str, ...]
     subject_concept_ids: tuple[str, ...]
     notes: tuple[str, ...] = ()
+    support: SupportEvidence | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "family", InterventionFamily(self.family))
@@ -63,6 +65,8 @@ class InterventionProvenance:
             tuple(str(item) for item in self.subject_concept_ids),
         )
         object.__setattr__(self, "notes", tuple(str(item) for item in self.notes))
+        if self.support is not None and not isinstance(self.support, SupportEvidence):
+            raise TypeError("InterventionProvenance support must be SupportEvidence")
 
 
 @dataclass(frozen=True)

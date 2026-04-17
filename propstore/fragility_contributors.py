@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 import warnings
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
 from propstore.aspic import conc, top_rule
 from propstore.aspic_bridge.build import build_bridge_csaf, compile_bridge_context
 from propstore.aspic_bridge.extract import _extract_justifications, _extract_stance_rows
 from propstore.aspic_bridge.grounding import _decode_grounded_predicate, grounded_rules_to_rules
 from propstore.core.row_types import coerce_parameterization_row
-from propstore.fragility_scoring import FragilityWarning, score_conflict, weighted_epistemic_score
+from propstore.fragility_scoring import FragilityWarning, score_conflict, support_derivative_fragility
 from propstore.fragility_types import (
     AssumptionTarget,
     BridgeUndercutTarget,
@@ -27,7 +28,68 @@ from propstore.fragility_types import (
     RankedIntervention,
     RankingPolicy,
 )
+from propstore.provenance import (
+    ProvenancePolynomial,
+    SourceVariableId,
+    SupportEvidence,
+    SupportQuality,
+    derivation_count,
+    partial_derivative,
+)
 from propstore.world.types import QueryableAssumption, ValueStatus, coerce_queryable_assumptions
+
+
+_ASSUMPTION_VAR_PREFIX = "ps:source:assumption:"
+
+
+@dataclass
+class _AssumptionContribution:
+    queryable: QueryableAssumption
+    concepts: set[str]
+    witness_count: int
+    consistent_future_count: int
+    max_score: float
+    support: SupportEvidence
+
+
+@dataclass
+class _ConflictContribution:
+    concepts: set[str]
+    max_score: float
+
+
+def _queryable_source_variable(queryable: QueryableAssumption) -> SourceVariableId:
+    return SourceVariableId(f"{_ASSUMPTION_VAR_PREFIX}{queryable.assumption_id}")
+
+
+def _witness_support_polynomial(
+    witnesses: Sequence[object],
+    queryables: Sequence[QueryableAssumption],
+) -> ProvenancePolynomial:
+    queryable_by_cel = {str(queryable.cel): queryable for queryable in queryables}
+    support = ProvenancePolynomial.zero()
+    for witness in witnesses:
+        if not isinstance(witness, Mapping):
+            continue
+        monomial = ProvenancePolynomial.one()
+        for qcel in witness.get("queryable_cels", ()):
+            queryable = queryable_by_cel.get(str(qcel), QueryableAssumption.from_cel(str(qcel)))
+            monomial = monomial * ProvenancePolynomial.variable(_queryable_source_variable(queryable))
+        support = support + monomial
+    return support
+
+
+def _support_queryables(
+    witnesses: Sequence[object],
+    queryables: Sequence[QueryableAssumption],
+) -> tuple[QueryableAssumption, ...]:
+    queryable_by_cel = {str(queryable.cel): queryable for queryable in queryables}
+    for witness in witnesses:
+        if not isinstance(witness, Mapping):
+            continue
+        for qcel in witness.get("queryable_cels", ()):
+            queryable_by_cel.setdefault(str(qcel), QueryableAssumption.from_cel(str(qcel)))
+    return tuple(sorted(queryable_by_cel.values(), key=lambda item: str(item.assumption_id)))
 
 
 def _typed_scalar_key(value: object) -> dict[str, object]:
@@ -115,7 +177,7 @@ def collect_assumption_interventions(
         return ()
 
     engine = bound.atms_engine()
-    contributions: dict[str, dict[str, object]] = {}
+    contributions: dict[str, _AssumptionContribution] = {}
 
     for concept_id in concept_ids:
         try:
@@ -130,42 +192,46 @@ def collect_assumption_interventions(
 
         witnesses = stability.get("witnesses", [])
         consistent_future_count = int(stability.get("consistent_future_count", 0))
-        concept_score = weighted_epistemic_score(
-            witnesses,
-            consistent_future_count,
-            current_in_extension=_in_extension(stability.get("current_status")),
-        )
-        for witness in witnesses:
-            for qcel in witness.get("queryable_cels", []):
-                qcel_text = str(qcel)
-                queryable = next(
-                    (candidate for candidate in normalized_queryables if candidate.cel == qcel_text),
-                    QueryableAssumption.from_cel(qcel_text),
-                )
-                entry = contributions.setdefault(
-                    str(queryable.assumption_id),
-                    {
-                        "queryable": queryable,
-                        "concepts": set(),
-                        "witness_count": 0,
-                        "consistent_future_count": consistent_future_count,
-                        "max_score": 0.0,
-                    },
-                )
-                entry["concepts"].add(str(concept_id))
-                entry["witness_count"] = int(entry["witness_count"]) + 1
-                entry["consistent_future_count"] = max(
-                    int(entry["consistent_future_count"]),
-                    consistent_future_count,
-                )
-                entry["max_score"] = max(float(entry["max_score"]), concept_score)
+        support = _witness_support_polynomial(witnesses, normalized_queryables)
+        current_in_extension = _in_extension(stability.get("current_status"))
+        for queryable in _support_queryables(witnesses, normalized_queryables):
+            source_variable = _queryable_source_variable(queryable)
+            derivative = partial_derivative(support, source_variable)
+            derivative_count = derivation_count(derivative)
+            if derivative_count <= 0:
+                continue
+            local_score = support_derivative_fragility(
+                support,
+                source_variable,
+                total_worlds=consistent_future_count,
+                current_in_extension=current_in_extension,
+            )
+            derivative_support = SupportEvidence(derivative, SupportQuality.EXACT)
+            entry = contributions.setdefault(
+                str(queryable.assumption_id),
+                _AssumptionContribution(
+                    queryable=queryable,
+                    concepts=set(),
+                    witness_count=0,
+                    consistent_future_count=consistent_future_count,
+                    max_score=0.0,
+                    support=derivative_support,
+                ),
+            )
+            entry.concepts.add(str(concept_id))
+            entry.witness_count += derivative_count
+            entry.consistent_future_count = max(entry.consistent_future_count, consistent_future_count)
+            previous_score = entry.max_score
+            entry.max_score = max(previous_score, local_score)
+            if local_score > previous_score:
+                entry.support = derivative_support
 
     ranked: list[RankedIntervention] = []
     for queryable_id, entry in sorted(contributions.items()):
-        queryable = entry["queryable"]
-        assert isinstance(queryable, QueryableAssumption)
-        concepts = tuple(sorted(str(item) for item in entry["concepts"]))
-        local_fragility = float(entry["max_score"])
+        queryable = entry.queryable
+        support = entry.support
+        concepts = tuple(sorted(entry.concepts))
+        local_fragility = entry.max_score
         target = InterventionTarget(
             intervention_id=f"assumption:{queryable_id}",
             kind=InterventionKind.ASSUMPTION,
@@ -177,13 +243,14 @@ def collect_assumption_interventions(
                 family=InterventionFamily.ATMS,
                 source_ids=(str(queryable.assumption_id),),
                 subject_concept_ids=concepts,
+                support=support,
             ),
             payload=AssumptionTarget(
                 queryable_id=str(queryable.assumption_id),
                 cel=queryable.cel,
                 stabilizes_concepts=concepts,
-                witness_count=int(entry["witness_count"]),
-                consistent_future_count=int(entry["consistent_future_count"]),
+                witness_count=entry.witness_count,
+                consistent_future_count=entry.consistent_future_count,
             ),
         )
         ranked.append(
@@ -192,7 +259,7 @@ def collect_assumption_interventions(
                 local_fragility=local_fragility,
                 roi=local_fragility / target.cost_tier,
                 ranking_policy=RankingPolicy.HEURISTIC_ROI,
-                score_explanation=f"max ATMS flip score across {len(concepts)} concepts",
+                score_explanation=f"max derivative-backed ATMS flip score across {len(concepts)} concepts",
             )
         )
     return tuple(ranked)
@@ -278,22 +345,22 @@ def collect_conflict_interventions(
         )
         return ()
 
-    aggregated: dict[tuple[str, str], dict[str, object]] = {}
+    aggregated: dict[tuple[str, str], _ConflictContribution] = {}
     for concept_id in concept_ids:
         for conflict in bound.conflicts(concept_id):
             claim_a_id = str(conflict.claim_a_id)
             claim_b_id = str(conflict.claim_b_id)
             pair = (min(claim_a_id, claim_b_id), max(claim_a_id, claim_b_id))
-            entry = aggregated.setdefault(pair, {"concepts": set(), "max_score": 0.0})
-            entry["concepts"].add(str(conflict.concept_id or concept_id))
-            entry["max_score"] = max(
-                float(entry["max_score"]),
+            entry = aggregated.setdefault(pair, _ConflictContribution(concepts=set(), max_score=0.0))
+            entry.concepts.add(str(conflict.concept_id or concept_id))
+            entry.max_score = max(
+                entry.max_score,
                 score_conflict(framework, claim_a_id, claim_b_id),
             )
 
     ranked: list[RankedIntervention] = []
     for pair, entry in sorted(aggregated.items()):
-        concepts = tuple(sorted(str(item) for item in entry["concepts"]))
+        concepts = tuple(sorted(entry.concepts))
         target = InterventionTarget(
             intervention_id=f"conflict:{pair[0]}:{pair[1]}",
             kind=InterventionKind.CONFLICT,
@@ -312,7 +379,7 @@ def collect_conflict_interventions(
                 affected_concept_ids=concepts,
             ),
         )
-        local_fragility = float(entry["max_score"])
+        local_fragility = entry.max_score
         ranked.append(
             RankedIntervention(
                 target=target,
