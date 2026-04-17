@@ -819,6 +819,21 @@ class RenderPolicy:
     future_limit: int | None = None
     overrides: Mapping[str, str] = field(default_factory=dict)
     concept_strategies: Mapping[str, ResolutionStrategy] = field(default_factory=dict)
+    # Lifecycle visibility flags (WS-Z-gates Phase 4; axis-1 findings 3.1/3.2/3.3).
+    # Default False preserves the "don't show problems by default" posture the
+    # design checklist requires (see CLAUDE.md and
+    # reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md).
+    # - include_drafts: lifts the default filter that hides claim_core rows
+    #   carrying stage='draft' (Phase 3 Gate 2; per
+    #   propstore/compiler/passes.py draft traversal).
+    # - include_blocked: lifts the default filter that hides rows with
+    #   build_status='blocked' (raw-id quarantine; Phase 3 Gate 1) or
+    #   promotion_status='blocked' (partial-promote mirror rows; Phase 3
+    #   Gate 3).
+    # - show_quarantined: surfaces build_diagnostics rows in render output.
+    include_drafts: bool = False
+    include_blocked: bool = False
+    show_quarantined: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.reasoning_backend, ReasoningBackend):
@@ -940,6 +955,9 @@ class RenderPolicy:
             ),
             overrides=dict(data.get("overrides") or {}),
             concept_strategies=concept_strategies,
+            include_drafts=bool(data.get("include_drafts", False)),
+            include_blocked=bool(data.get("include_blocked", False)),
+            show_quarantined=bool(data.get("show_quarantined", False)),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -992,6 +1010,12 @@ class RenderPolicy:
                 concept_id: strategy.value
                 for concept_id, strategy in self.concept_strategies.items()
             }
+        if self.include_drafts:
+            data["include_drafts"] = self.include_drafts
+        if self.include_blocked:
+            data["include_blocked"] = self.include_blocked
+        if self.show_quarantined:
+            data["show_quarantined"] = self.show_quarantined
         return data
 
 
