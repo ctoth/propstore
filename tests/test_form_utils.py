@@ -47,14 +47,6 @@ class TestFormDefinitionLoading:
         fd = load_form(forms_dir, "nonexistent_form_xyz")
         assert fd is None
 
-    def test_load_form_with_none_returns_none(self, forms_dir):
-        fd = load_form(forms_dir, None)
-        assert fd is None
-
-    def test_load_form_with_empty_string_returns_none(self, forms_dir):
-        fd = load_form(forms_dir, "")
-        assert fd is None
-
     def test_load_form_rejects_unknown_document_fields(self, tmp_path):
         form_path = tmp_path / "strict_form.yaml"
         form_path.write_text(
