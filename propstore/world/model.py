@@ -17,6 +17,7 @@ from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import to_cel_exprs
 from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.labels import compile_environment_assumptions
+from propstore.core.micropublications import ActiveMicropublication
 from propstore.core.store_results import (
     ArtifactStoreStats,
     ClaimSimilarityHit,
@@ -849,6 +850,41 @@ class WorldModel(ArtifactStore):
             """
         ).fetchall()
         return [StanceRow.from_mapping(dict(row)) for row in rows]
+
+    def all_micropublications(self) -> list[ActiveMicropublication]:
+        if not self._has_table("micropublication"):
+            return []
+        rows = self._conn.execute(
+            """
+            SELECT
+                mp.id AS artifact_id,
+                mp.context_id,
+                mp.assumptions_json,
+                mp.stance,
+                mp.source_slug,
+                (
+                    SELECT json_group_array(mc.claim_id)
+                    FROM micropublication_claim mc
+                    WHERE mc.micropublication_id = mp.id
+                    ORDER BY mc.seq
+                ) AS claim_ids
+            FROM micropublication mp
+            ORDER BY mp.id
+            """
+        ).fetchall()
+        return [
+            ActiveMicropublication.from_mapping(
+                {
+                    "artifact_id": row["artifact_id"],
+                    "context_id": row["context_id"],
+                    "claim_ids": row["claim_ids"],
+                    "assumptions": row["assumptions_json"],
+                    "stance": row["stance"],
+                    "source": row["source_slug"],
+                }
+            )
+            for row in rows
+        ]
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
         rows = self._conn.execute(

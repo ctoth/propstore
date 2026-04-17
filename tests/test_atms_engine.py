@@ -38,11 +38,13 @@ class _ATMSStore:
         claims: list[dict],
         parameterizations: list[dict] | None = None,
         conflicts: list[dict] | None = None,
+        micropublications: list[dict] | None = None,
         solver=None,
     ) -> None:
         self._claims = list(claims)
         self._parameterizations = list(parameterizations or [])
         self._conflicts = list(conflicts or [])
+        self._micropublications = list(micropublications or [])
         self._solver = solver or _ExactMatchSolver()
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
@@ -79,6 +81,9 @@ class _ATMSStore:
 
     def stances_between(self, claim_ids: set[str]) -> list[dict]:
         return []
+
+    def all_micropublications(self) -> list[dict]:
+        return list(self._micropublications)
 
     def resolve_concept(self, name: str) -> str | None:
         for claim in self._claims:
@@ -446,6 +451,36 @@ def test_atms_records_context_as_label_dimension_for_context_scoped_claim() -> N
         (EnvironmentKey((), context_ids=("ctx_general",)),)
     )
     assert bound.value_of("concept1").status == "determined"
+
+
+def test_atms_materializes_micropublication_as_contextual_bundle_node() -> None:
+    store = _ATMSStore(
+        claims=[
+            {
+                "id": "claim_ctx",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 7.0,
+                "context_id": "ctx_general",
+                "conditions_cel": None,
+            }
+        ],
+        micropublications=[
+            {
+                "artifact_id": "ps:micropub:bundle",
+                "context_id": "ctx_general",
+                "claim_ids": ["claim_ctx"],
+            }
+        ],
+    )
+    bound = _make_bound(store, context_id="ctx_general")
+    engine = bound.atms_engine()
+
+    assert engine.supported_micropub_ids() == {"ps:micropub:bundle"}
+    assert engine.micropub_label("ps:micropub:bundle") == Label(
+        (EnvironmentKey((), context_ids=("ctx_general",)),)
+    )
+    assert engine.node_status("micropub:ps:micropub:bundle").status == ATMSNodeStatus.IN
 
 
 def test_atms_reconstructs_exact_support_for_context_scoped_claim_with_matching_assumption() -> None:
