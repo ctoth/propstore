@@ -6,6 +6,7 @@ from copy import deepcopy
 import sys
 from datetime import date
 from pathlib import Path
+from typing import TypeVar
 
 import click
 
@@ -15,14 +16,15 @@ from propstore.claims import (
     loaded_claim_file_from_payload,
     load_claim_files,
 )
-from propstore.artifacts import (
-    CLAIMS_FILE_FAMILY,
-    CONCEPT_FILE_FAMILY,
-    ClaimsFileRef,
-    ConceptFileRef,
+from propstore.artifacts.documents.claims import ClaimsFileDocument
+from propstore.artifacts.documents.concepts import ConceptDocument
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY
+from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
+    normalize_claim_file_payload,
 )
-from propstore.artifacts.identity import normalize_claim_file_payload
+from propstore.artifacts.refs import ClaimsFileRef, ConceptFileRef
+from propstore.artifacts.types import ArtifactFamily
 from propstore.source import (
     align_sources,
     decide_alignment,
@@ -39,6 +41,7 @@ from propstore.identity import (
 )
 from propstore.core.concepts import (
     LoadedConcept,
+    concept_document_to_payload,
     concept_document_to_record_payload,
     parse_concept_record,
     parse_concept_record_document,
@@ -47,11 +50,16 @@ from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP
 from propstore.form_utils import load_form_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.repository import Repository
+from propstore.storage.snapshot import RepositorySnapshot
 from propstore.core.concepts import load_concepts
 from propstore.validate_concepts import validate_concepts
 from propstore.compiler.passes import validate_claims
 
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
+QUALIA_ROLES = ("formal", "constitutive", "telic", "agentive")
+PROTO_ROLE_KINDS = ("agent", "patient")
+TRef = TypeVar("TRef")
+TDoc = TypeVar("TDoc")
 
 
 @click.group()
@@ -140,7 +148,7 @@ def _rewrite_claim_conditions(claim_file_data: dict, old_name: str, new_name: st
     return changed
 
 
-def _require_snapshot(repo: Repository):
+def _require_snapshot(repo: Repository) -> RepositorySnapshot:
     try:
         repo.snapshot.head_sha()
     except ValueError as exc:
@@ -152,14 +160,14 @@ def _concepts_tree(repo: Repository) -> KnowledgePath:
     return repo.tree() / "concepts"
 
 
-def _artifact_source(repo: Repository, family, ref) -> str:
+def _artifact_source(repo: Repository, family: ArtifactFamily[TRef, TDoc], ref: TRef) -> str:
     return repo.artifacts.resolve(family, ref).relpath
 
 
-def _artifact_tree_path(repo: Repository, family, ref) -> Path:
+def _artifact_tree_path(repo: Repository, family: ArtifactFamily[TRef, TDoc], ref: TRef) -> Path:
     return repo.root / Path(_artifact_source(repo, family, ref))
 
-def _artifact_knowledge_path(repo: Repository, family, ref) -> KnowledgePath:
+def _artifact_knowledge_path(repo: Repository, family: ArtifactFamily[TRef, TDoc], ref: TRef) -> KnowledgePath:
     return repo.tree() / _artifact_source(repo, family, ref)
 
 
@@ -171,7 +179,7 @@ def _claims_ref(claim_file: LoadedClaimsFile) -> ClaimsFileRef:
     return ClaimsFileRef(claim_file.filename)
 
 
-def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> object:
+def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> ConceptDocument:
     payload = _normalize_concept_data(data)
     return repo.artifacts.coerce(
         CONCEPT_FILE_FAMILY,
@@ -180,8 +188,19 @@ def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> obje
     )
 
 
-def _claims_document(repo: Repository, ref: ClaimsFileRef, data: dict) -> object:
+def _canonical_concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> ConceptDocument:
+    document = _concept_document(repo, ref, data)
+    return _concept_document(repo, ref, concept_document_to_payload(document))
+
+
+def _claims_document(repo: Repository, ref: ClaimsFileRef, data: dict) -> ClaimsFileDocument:
     return repo.artifacts.coerce(CLAIMS_FILE_FAMILY, data, source=_artifact_source(repo, CLAIMS_FILE_FAMILY, ref))
+
+
+def _concept_artifact_payload(concept_entry: LoadedConcept) -> dict:
+    if concept_entry.document is not None:
+        return concept_document_to_payload(concept_entry.document)
+    return _normalize_concept_data(concept_entry.data)
 
 
 def _normalize_concept_data(
@@ -279,6 +298,85 @@ def _require_concept_artifact_id(repo: Repository, handle: str, *, label: str) -
     if not isinstance(artifact_id, str) or not artifact_id:
         raise click.ClickException(f"{label} '{handle}' does not have an artifact_id")
     return artifact_id
+
+
+def _require_concept_reference(repo: Repository, handle: str, *, label: str) -> dict[str, str]:
+    concept_entry = _find_concept_entry(repo, handle)
+    if concept_entry is None:
+        raise click.ClickException(f"{label} '{handle}' not found")
+    artifact_id = concept_entry.data.get("artifact_id")
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raise click.ClickException(f"{label} '{handle}' does not have an artifact_id")
+    reference: dict[str, str] = {"uri": artifact_id}
+    canonical_name = concept_entry.data.get("canonical_name")
+    if isinstance(canonical_name, str) and canonical_name:
+        reference["label"] = canonical_name
+    return reference
+
+
+def _provenance_payload(
+    *,
+    asserter: str,
+    timestamp: str,
+    source_artifact_code: str,
+    method: str,
+) -> dict[str, object]:
+    return {
+        "status": "stated",
+        "witnesses": [
+            {
+                "asserter": asserter,
+                "timestamp": timestamp,
+                "source_artifact_code": source_artifact_code,
+                "method": method,
+            }
+        ],
+    }
+
+
+def _first_lexical_sense(data: dict) -> dict:
+    lexical_entry = data.get("lexical_entry")
+    if not isinstance(lexical_entry, dict):
+        raise click.ClickException("concept is missing lexical_entry")
+    senses = lexical_entry.get("senses")
+    if not isinstance(senses, list) or not senses or not isinstance(senses[0], dict):
+        raise click.ClickException("concept lexical_entry requires at least one sense")
+    return senses[0]
+
+
+def _validate_updated_concept(
+    repo: Repository,
+    concept_entry: LoadedConcept,
+    document: ConceptDocument,
+) -> None:
+    ref = _concept_ref(concept_entry)
+    concepts = []
+    for loaded in load_concepts(_concepts_tree(repo)):
+        if _concept_ref(loaded) == ref:
+            concepts.append(
+                LoadedConcept(
+                    filename=loaded.filename,
+                    source_path=_artifact_knowledge_path(repo, CONCEPT_FILE_FAMILY, ref),
+                    knowledge_root=loaded.knowledge_root,
+                    record=parse_concept_record_document(document),
+                    document=document,
+                )
+            )
+            continue
+        concepts.append(loaded)
+
+    validation = validate_concepts(
+        concepts,
+        claims_dir=(repo.tree() / "claims") if (repo.tree() / "claims").exists() else None,
+        forms_dir=repo.tree() / "forms",
+    )
+    if not validation.ok:
+        for e in validation.errors:
+            click.echo(f"ERROR: {e}", err=True)
+        click.echo("Validation failed. No changes written.", err=True)
+        sys.exit(EXIT_VALIDATION)
+    for w in validation.warnings:
+        click.echo(f"WARNING: {w}", err=True)
 
 
 def _resolve_sidecar_concept_id(conn: sqlite3.Connection, handle: str) -> str:
@@ -783,6 +881,268 @@ def link(
     snapshot.sync_worktree()
 
     click.echo(f"Added {rel_type} -> {_concept_display_handle(target_entry.data)} on {_concept_display_handle(data)} ({filepath.stem})")
+
+
+def _apply_proto_role_entailment(
+    bundle: dict[str, object],
+    *,
+    role_kind: str,
+    entailment: dict[str, object],
+) -> None:
+    key = (
+        "proto_agent_entailments"
+        if role_kind == "agent"
+        else "proto_patient_entailments"
+    )
+    entailments = bundle.get(key)
+    if not isinstance(entailments, list):
+        entailments = []
+    entailments.append(entailment)
+    bundle[key] = entailments
+
+
+# ── concept qualia-add ───────────────────────────────────────────────
+
+@concept.command("qualia-add")
+@click.argument("concept_id")
+@click.argument("role", type=click.Choice(QUALIA_ROLES))
+@click.argument("target_concept")
+@click.option("--type-constraint", default=None, help="Concept that the qualia target must satisfy")
+@click.option("--asserter", required=True)
+@click.option("--timestamp", required=True)
+@click.option("--source-artifact-code", required=True)
+@click.option("--method", required=True)
+@click.option("--dry-run", is_flag=True)
+@click.pass_obj
+def qualia_add(
+    obj: dict,
+    concept_id: str,
+    role: str,
+    target_concept: str,
+    type_constraint: str | None,
+    asserter: str,
+    timestamp: str,
+    source_artifact_code: str,
+    method: str,
+    dry_run: bool,
+) -> None:
+    """Add a provenance-bearing qualia reference to a concept sense."""
+    repo: Repository = obj["repo"]
+    snapshot = _require_snapshot(repo)
+    concept_entry = _find_concept_entry(repo, concept_id)
+    if concept_entry is None:
+        click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
+        sys.exit(EXIT_ERROR)
+    ref = _concept_ref(concept_entry)
+    data = _concept_artifact_payload(concept_entry)
+    sense = _first_lexical_sense(data)
+
+    qualia = sense.get("qualia")
+    if not isinstance(qualia, dict):
+        qualia = {}
+    role_entries = qualia.get(role)
+    if not isinstance(role_entries, list):
+        role_entries = []
+    entry: dict[str, object] = {
+        "reference": _require_concept_reference(repo, target_concept, label="Target concept"),
+        "provenance": _provenance_payload(
+            asserter=asserter,
+            timestamp=timestamp,
+            source_artifact_code=source_artifact_code,
+            method=method,
+        ),
+    }
+    if type_constraint is not None:
+        entry["type_constraint"] = {
+            "reference": _require_concept_reference(
+                repo,
+                type_constraint,
+                label="Type constraint",
+            )
+        }
+    role_entries.append(entry)
+    qualia[role] = role_entries
+    sense["qualia"] = qualia
+    data["last_modified"] = str(date.today())
+    document = _canonical_concept_document(repo, ref, data)
+    data = concept_document_to_record_payload(document)
+
+    if dry_run:
+        click.echo(repo.artifacts.render(document))
+        return
+
+    _validate_updated_concept(repo, concept_entry, document)
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ref,
+        document,
+        message=f"Add {role} qualia to {_concept_display_handle(data)}",
+    )
+    snapshot.sync_worktree()
+    click.echo(f"Added {role} qualia to {_concept_display_handle(data)}")
+
+
+# ── concept description-kind ─────────────────────────────────────────
+
+@concept.command("description-kind")
+@click.argument("concept_id")
+@click.option("--name", required=True)
+@click.option("--reference", "reference_handle", required=True)
+@click.option("--slot", "slots", multiple=True, help="Slot as name=type-concept")
+@click.option("--dry-run", is_flag=True)
+@click.pass_obj
+def description_kind_cmd(
+    obj: dict,
+    concept_id: str,
+    name: str,
+    reference_handle: str,
+    slots: tuple[str, ...],
+    dry_run: bool,
+) -> None:
+    """Set the description-kind structure carried by a concept sense."""
+    repo: Repository = obj["repo"]
+    snapshot = _require_snapshot(repo)
+    concept_entry = _find_concept_entry(repo, concept_id)
+    if concept_entry is None:
+        click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
+        sys.exit(EXIT_ERROR)
+    ref = _concept_ref(concept_entry)
+    data = _concept_artifact_payload(concept_entry)
+    sense = _first_lexical_sense(data)
+
+    slot_payloads: list[dict[str, object]] = []
+    for raw_slot in slots:
+        slot_name, separator, type_handle = raw_slot.partition("=")
+        if not separator or not slot_name or not type_handle:
+            raise click.ClickException("--slot must use name=type-concept")
+        slot_payloads.append(
+            {
+                "name": slot_name,
+                "type_constraint": _require_concept_reference(
+                    repo,
+                    type_handle,
+                    label=f"Slot '{slot_name}' type constraint",
+                ),
+            }
+        )
+
+    sense["description_kind"] = {
+        "name": name,
+        "reference": _require_concept_reference(repo, reference_handle, label="Description-kind reference"),
+        "slots": slot_payloads,
+    }
+    data["last_modified"] = str(date.today())
+    document = _canonical_concept_document(repo, ref, data)
+    data = concept_document_to_record_payload(document)
+
+    if dry_run:
+        click.echo(repo.artifacts.render(document))
+        return
+
+    _validate_updated_concept(repo, concept_entry, document)
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ref,
+        document,
+        message=f"Set description kind on {_concept_display_handle(data)}",
+    )
+    snapshot.sync_worktree()
+    click.echo(f"Set description kind on {_concept_display_handle(data)}")
+
+
+# ── concept proto-role ───────────────────────────────────────────────
+
+@concept.command("proto-role")
+@click.argument("concept_id")
+@click.argument("role_name")
+@click.argument("role_kind", type=click.Choice(PROTO_ROLE_KINDS))
+@click.argument("property_name")
+@click.argument("value", type=float)
+@click.option("--asserter", required=True)
+@click.option("--timestamp", required=True)
+@click.option("--source-artifact-code", required=True)
+@click.option("--method", required=True)
+@click.option("--dry-run", is_flag=True)
+@click.pass_obj
+def proto_role_cmd(
+    obj: dict,
+    concept_id: str,
+    role_name: str,
+    role_kind: str,
+    property_name: str,
+    value: float,
+    asserter: str,
+    timestamp: str,
+    source_artifact_code: str,
+    method: str,
+    dry_run: bool,
+) -> None:
+    """Add a Dowty proto-role entailment to a named role."""
+    repo: Repository = obj["repo"]
+    snapshot = _require_snapshot(repo)
+    concept_entry = _find_concept_entry(repo, concept_id)
+    if concept_entry is None:
+        click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
+        sys.exit(EXIT_ERROR)
+    ref = _concept_ref(concept_entry)
+    data = _concept_artifact_payload(concept_entry)
+    sense = _first_lexical_sense(data)
+
+    entailment = {
+        "property": property_name,
+        "value": value,
+        "provenance": _provenance_payload(
+            asserter=asserter,
+            timestamp=timestamp,
+            source_artifact_code=source_artifact_code,
+            method=method,
+        ),
+    }
+    role_bundles = sense.get("role_bundles")
+    if not isinstance(role_bundles, dict):
+        role_bundles = {}
+    bundle = role_bundles.get(role_name)
+    if not isinstance(bundle, dict):
+        bundle = {}
+    _apply_proto_role_entailment(bundle, role_kind=role_kind, entailment=entailment)
+    role_bundles[role_name] = bundle
+    sense["role_bundles"] = role_bundles
+
+    description_kind = sense.get("description_kind")
+    if isinstance(description_kind, dict):
+        slots = description_kind.get("slots")
+        if isinstance(slots, list):
+            for slot in slots:
+                if not isinstance(slot, dict) or slot.get("name") != role_name:
+                    continue
+                slot_bundle = slot.get("proto_role_bundle")
+                if not isinstance(slot_bundle, dict):
+                    slot_bundle = {}
+                _apply_proto_role_entailment(
+                    slot_bundle,
+                    role_kind=role_kind,
+                    entailment=deepcopy(entailment),
+                )
+                slot["proto_role_bundle"] = slot_bundle
+                break
+
+    data["last_modified"] = str(date.today())
+    document = _canonical_concept_document(repo, ref, data)
+    data = concept_document_to_record_payload(document)
+
+    if dry_run:
+        click.echo(repo.artifacts.render(document))
+        return
+
+    _validate_updated_concept(repo, concept_entry, document)
+    repo.artifacts.save(
+        CONCEPT_FILE_FAMILY,
+        ref,
+        document,
+        message=f"Add {role_kind} proto-role {property_name} to {_concept_display_handle(data)}",
+    )
+    snapshot.sync_worktree()
+    click.echo(f"Added {role_kind} proto-role {property_name} to {_concept_display_handle(data)}")
 
 
 # ── concept search ───────────────────────────────────────────────────
