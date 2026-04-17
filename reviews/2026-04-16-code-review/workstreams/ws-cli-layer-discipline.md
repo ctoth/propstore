@@ -351,6 +351,18 @@ Status 2026-04-17: form show slice landed.
   - `logs/test-runs/cli-layer-form-show-20260417-174758.log` - 6 passed.
   - `uv run pyright propstore/form_utils.py` - 0 errors.
 
+Status 2026-04-17: source status slice landed.
+
+- Added `propstore.source.status` with typed source-status states, rows, and
+  diagnostic reports.
+- Moved source promotion-status sidecar queries and diagnostic correlation out
+  of `propstore.cli.source`; CLI now renders the returned report state.
+- Added direct owner coverage for blocked-row reports and missing-sidecar
+  reports, paired with the existing source status CLI coverage.
+- Verification:
+  - `logs/test-runs/cli-layer-source-status-20260417-175844.log` - 5 passed.
+  - `uv run pyright propstore/source/status.py propstore/cli/source.py` - 0 errors.
+
 ### Phase CLI-5 - Worldline, grounding, micropub, history extraction
 
 - Move worldline definition/request construction and materialization reporting

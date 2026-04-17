@@ -51,6 +51,7 @@ from .relations import (
     normalize_source_justifications_payload,
     normalize_source_stances_payload,
 )
+from .status import SourceStatusState, inspect_source_status
 
 __all__ = [
     "CONCEPT_PROPOSAL_BRANCH",
@@ -91,7 +92,9 @@ __all__ = [
     "promote_source_branch",
     "save_alignment_artifact",
     "source_branch_name",
+    "SourceStatusState",
     "source_tag_uri",
     "sync_source_branch",
     "validate_form_name",
+    "inspect_source_status",
 ]
