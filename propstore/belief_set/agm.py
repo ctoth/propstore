@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from propstore.belief_set.core import BeliefSet, expand
+from propstore.belief_set.core import BeliefSet
 from propstore.belief_set.language import Formula, World, negate
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
@@ -71,7 +71,7 @@ class SpohnEpistemicState:
 def revise(state: SpohnEpistemicState, formula: Formula) -> RevisionOutcome:
     """Darwiche-Pearl 1997 bullet revision over a Spohn ranking."""
     signature = state.alphabet | formula.atoms()
-    working_state = _extend_state(state, signature)
+    working_state = extend_state(state, signature)
     worlds = BeliefSet.all_worlds(signature)
     satisfying = tuple(world for world in worlds if formula.evaluate(world))
     if not satisfying:
@@ -89,7 +89,7 @@ def revise(state: SpohnEpistemicState, formula: Formula) -> RevisionOutcome:
     return RevisionOutcome(
         belief_set=result_state.belief_set,
         state=result_state,
-        trace=_trace("revise", state.belief_set),
+        trace=revision_trace("revise", state.belief_set),
     )
 
 
@@ -99,18 +99,18 @@ def full_meet_contract(state: SpohnEpistemicState, formula: Formula) -> Revision
         return RevisionOutcome(
             belief_set=state.belief_set,
             state=state,
-            trace=_trace("contract", state.belief_set),
+            trace=revision_trace("contract", state.belief_set),
         )
     revised_by_negation = revise(state, negate(formula))
     contracted = state.belief_set.intersection_theory(revised_by_negation.belief_set)
     return RevisionOutcome(
         belief_set=contracted,
         state=SpohnEpistemicState.from_belief_set(contracted),
-        trace=_trace("contract", state.belief_set),
+        trace=revision_trace("contract", state.belief_set),
     )
 
 
-def _extend_state(state: SpohnEpistemicState, alphabet: frozenset[str]) -> SpohnEpistemicState:
+def extend_state(state: SpohnEpistemicState, alphabet: frozenset[str]) -> SpohnEpistemicState:
     if alphabet == state.alphabet:
         return state
     extras = tuple(sorted(alphabet - state.alphabet))
@@ -121,7 +121,7 @@ def _extend_state(state: SpohnEpistemicState, alphabet: frozenset[str]) -> Spohn
     return SpohnEpistemicState.from_ranks(alphabet, ranks)
 
 
-def _trace(operator: str, pre_image: BeliefSet) -> RevisionTrace:
+def revision_trace(operator: str, pre_image: BeliefSet) -> RevisionTrace:
     graph_name = f"urn:propstore:belief-set:{operator}:{pre_image.fingerprint()}"
     provenance = Provenance(
         status=ProvenanceStatus.STATED,

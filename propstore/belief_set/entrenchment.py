@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from propstore.belief_set.agm import SpohnEpistemicState
+from propstore.belief_set.agm import SpohnEpistemicState, extend_state
 from propstore.belief_set.core import BeliefSet
 from propstore.belief_set.language import Formula, negate
 
@@ -25,9 +25,7 @@ class EpistemicEntrenchment:
         signature = self.state.alphabet | formula.atoms()
         state = self.state
         if signature != state.alphabet:
-            from propstore.belief_set.agm import _extend_state
-
-            state = _extend_state(state, signature)
+            state = extend_state(state, signature)
         countermodels = [
             world
             for world in BeliefSet.all_worlds(signature)
