@@ -17,6 +17,7 @@ from propstore.fragility_types import (
     InterventionKind,
     RankedIntervention,
 )
+from propstore.core.id_types import to_queryable_id
 from propstore.world.types import QueryableAssumption
 
 if TYPE_CHECKING:
@@ -134,7 +135,7 @@ def _target_queryable_map(
         if not isinstance(payload, AssumptionTarget):
             continue
         queryables[ranked.target.intervention_id] = QueryableAssumption(
-            assumption_id=payload.queryable_id,
+            assumption_id=to_queryable_id(payload.queryable_id),
             cel=payload.cel,
         )
     return queryables
@@ -355,16 +356,33 @@ def imps_rev(
     supports: dict[tuple[str, str], float],
     base_scores: dict[str, float],
     attack: tuple[str, str],
+    *,
+    p_args: dict[str, Opinion],
+    p_defeats: dict[tuple[str, str], Opinion],
 ) -> float:
     from propstore.dung import ArgumentationFramework as AF
-    from propstore.opinion import Opinion
     from propstore.praf import ProbabilisticAF
     from propstore.praf.dfquad import compute_dfquad_strengths
 
     if attack not in framework.defeats:
         return 0.0
-    p_args = {argument: Opinion.dogmatic_true() for argument in framework.arguments}
-    p_defeats = {defeat: Opinion.dogmatic_true() for defeat in framework.defeats}
+
+    missing_args = sorted(argument for argument in framework.arguments if argument not in p_args)
+    missing_defeats = sorted(defeat for defeat in framework.defeats if defeat not in p_defeats)
+    if missing_args or missing_defeats:
+        raise ValueError(
+            "imps_rev requires explicit probabilistic inputs for every argument "
+            f"and defeat; missing_args={missing_args}, missing_defeats={missing_defeats}"
+        )
+    unprovenanced_args = sorted(argument for argument, opinion in p_args.items() if opinion.provenance is None)
+    unprovenanced_defeats = sorted(defeat for defeat, opinion in p_defeats.items() if opinion.provenance is None)
+    if unprovenanced_args or unprovenanced_defeats:
+        raise ValueError(
+            "imps_rev requires provenance-bearing opinions; "
+            f"unprovenanced_args={unprovenanced_args}, "
+            f"unprovenanced_defeats={unprovenanced_defeats}"
+        )
+
     praf = ProbabilisticAF(framework=framework, p_args=p_args, p_defeats=p_defeats)
     strengths_full = compute_dfquad_strengths(praf, supports, base_scores=base_scores)
 
