@@ -1,21 +1,37 @@
 from __future__ import annotations
 
-from typing import get_type_hints
-
 from propstore.artifacts.documents.claims import ClaimDocument, StanceDocument
 from propstore.core.claim_types import ClaimType
-from propstore.artifacts.schema import convert_document_value
+from propstore.artifacts.schema import DocumentSchemaError, convert_document_value
 from propstore.artifacts.documents.sources import SourceClaimDocument, SourceStanceEntryDocument
 from propstore.artifacts.documents.stances import StanceEntryDocument
 from propstore.stances import StanceType
 
+import pytest
 
-def test_claim_and_stance_document_annotations_use_enums() -> None:
-    assert get_type_hints(ClaimDocument)["type"] == ClaimType | None
-    assert get_type_hints(SourceClaimDocument)["type"] == ClaimType | None
-    assert get_type_hints(StanceDocument)["type"] == StanceType
-    assert get_type_hints(StanceEntryDocument)["type"] == StanceType | None
-    assert get_type_hints(SourceStanceEntryDocument)["type"] == StanceType | None
+
+def test_claim_document_rejects_invalid_claim_type() -> None:
+    with pytest.raises(DocumentSchemaError):
+        convert_document_value(
+            {
+                "artifact_id": "ps:claim:test",
+                "version_id": "v1",
+                "type": "not-a-claim-type",
+                "body": "def compute(x):\n    return x\n",
+                "provenance": {"paper": "test_paper", "page": 1},
+            },
+            ClaimDocument,
+            source="test-claim",
+        )
+
+
+def test_stance_document_rejects_invalid_stance_type() -> None:
+    with pytest.raises(DocumentSchemaError):
+        convert_document_value(
+            {"type": "not-a-stance-type", "target": "ps:claim:other"},
+            StanceDocument,
+            source="test-stance",
+        )
 
 
 def test_claim_document_decodes_claim_and_inline_stance_enums() -> None:
