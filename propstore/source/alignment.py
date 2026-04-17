@@ -5,13 +5,9 @@ from collections import Counter
 from itertools import product
 from typing import Any
 
-from propstore.artifacts import (
-    CONCEPT_ALIGNMENT_FAMILY,
-    CONCEPT_FILE_FAMILY,
-    ConceptAlignmentRef,
-    ConceptFileRef,
-    normalize_canonical_concept_payload,
-)
+from propstore.artifacts.families import CONCEPT_ALIGNMENT_FAMILY, CONCEPT_FILE_FAMILY
+from propstore.artifacts.identity import normalize_canonical_concept_payload
+from propstore.artifacts.refs import ConceptAlignmentRef, ConceptFileRef
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.cli.repository import Repository
 from propstore.artifacts.schema import convert_document_value
@@ -23,6 +19,13 @@ from propstore.artifacts.documents.source_alignment import (
     AlignmentFrameworkDocument,
     AlignmentQueriesDocument,
     ConceptAlignmentArtifactDocument,
+)
+from propstore.core.lemon import (
+    LexicalEntry,
+    LexicalForm,
+    LexicalSense,
+    OntologyReference,
+    lexical_entry_identity_key,
 )
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 
@@ -39,21 +42,27 @@ def alignment_slug(value: str) -> str:
     return cleaned or "alignment"
 
 
-def token_overlap(left: str, right: str) -> float:
-    left_tokens = {token for token in alignment_slug(left).split("_") if token}
-    right_tokens = {token for token in alignment_slug(right).split("_") if token}
-    if not left_tokens and not right_tokens:
-        return 1.0
-    if not left_tokens or not right_tokens:
-        return 0.0
-    return len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
+def _proposal_lexical_entry(proposal: dict[str, Any]) -> LexicalEntry:
+    proposed_name = str(proposal["proposed_name"])
+    proposed_uri = str(
+        proposal.get("proposed_uri")
+        or concept_tag_uri(proposed_name, authority=DEFAULT_URI_AUTHORITY)
+    )
+    return LexicalEntry(
+        identifier=str(proposal["local_handle"]),
+        canonical_form=LexicalForm(written_rep=proposed_name, language="und"),
+        senses=(LexicalSense(reference=OntologyReference(uri=proposed_uri)),),
+        physical_dimension_form=str(proposal["form"]),
+    )
 
 
 def classify_relation(left: dict[str, Any], right: dict[str, Any]) -> str:
-    if left["proposed_name"] == right["proposed_name"] and left["form"] == right["form"]:
+    left_entry = _proposal_lexical_entry(left)
+    right_entry = _proposal_lexical_entry(right)
+    if lexical_entry_identity_key(left_entry) == lexical_entry_identity_key(right_entry):
         return "attack" if left["definition"] != right["definition"] else "non_attack"
-    if left["form"] == right["form"] and token_overlap(left["definition"], right["definition"]) >= 0.5:
-        return "ignorance"
+    if left_entry.references == right_entry.references:
+        return "non_attack"
     return "non_attack"
 
 
@@ -87,28 +96,28 @@ def build_alignment_artifact(
     cluster_seed = enriched[0]["proposed_name"]
     cluster_id = f"align:{alignment_slug(cluster_seed)}"
     arguments = [argument["id"] for argument in enriched]
-    attacks: list[list[str]] = []
-    ignorance: list[list[str]] = []
-    non_attacks: list[list[str]] = []
+    attacks: list[tuple[str, str]] = []
+    ignorance: list[tuple[str, str]] = []
+    non_attacks: list[tuple[str, str]] = []
 
     by_id = {argument["id"]: argument for argument in enriched}
     for attacker, target in product(arguments, arguments):
         if attacker == target:
-            non_attacks.append([attacker, target])
+            non_attacks.append((attacker, target))
             continue
         relation = classify_relation(by_id[attacker], by_id[target])
         if relation == "attack":
-            attacks.append([attacker, target])
+            attacks.append((attacker, target))
         elif relation == "ignorance":
-            ignorance.append([attacker, target])
+            ignorance.append((attacker, target))
         else:
-            non_attacks.append([attacker, target])
+            non_attacks.append((attacker, target))
 
     paf = PartialArgumentationFramework(
         arguments=frozenset(arguments),
-        attacks=frozenset(tuple(pair) for pair in attacks),
-        ignorance=frozenset(tuple(pair) for pair in ignorance),
-        non_attacks=frozenset(tuple(pair) for pair in non_attacks),
+        attacks=frozenset(attacks),
+        ignorance=frozenset(ignorance),
+        non_attacks=frozenset(non_attacks),
     )
     skeptical = sorted(skeptically_accepted_arguments(paf))
     credulous = sorted(credulously_accepted_arguments(paf))
@@ -134,9 +143,9 @@ def build_alignment_artifact(
             for argument in enriched
         ),
         framework=AlignmentFrameworkDocument(
-            attacks=tuple(tuple(pair) for pair in attacks),
-            ignorance=tuple(tuple(pair) for pair in ignorance),
-            non_attacks=tuple(tuple(pair) for pair in non_attacks),
+            attacks=tuple(attacks),
+            ignorance=tuple(ignorance),
+            non_attacks=tuple(non_attacks),
         ),
         queries=AlignmentQueriesDocument(
             skeptical_acceptance=tuple(skeptical),

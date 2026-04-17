@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
-from propstore.source import build_alignment_artifact
+from propstore.source import build_alignment_artifact, classify_relation
 
 
 def _init_source(runner: CliRunner, repo: Repository, name: str) -> None:
@@ -95,6 +95,33 @@ def test_alignment_builder_emits_mutual_attacks_for_same_name_different_definiti
     attacks = {tuple(pair) for pair in artifact.framework.attacks}
     assert ("alt_local_a", "alt_local_b") in attacks
     assert ("alt_local_b", "alt_local_a") in attacks
+
+
+@given(
+    shared_token=st.text(
+        alphabet=st.characters(blacklist_categories=("Cs",), blacklist_characters="\x00"),
+        min_size=1,
+        max_size=20,
+    ).filter(lambda value: bool(value.strip())),
+)
+@settings(deadline=None)
+def test_alignment_does_not_infer_from_definition_token_overlap(shared_token: str) -> None:
+    left = {
+        "source": "tag:local@propstore,2026:source/a",
+        "local_handle": "local_a",
+        "proposed_name": "temperature",
+        "definition": f"{shared_token} measured field",
+        "form": "quantity",
+    }
+    right = {
+        "source": "tag:local@propstore,2026:source/b",
+        "local_handle": "local_b",
+        "proposed_name": "pressure",
+        "definition": f"{shared_token} measured field",
+        "form": "quantity",
+    }
+
+    assert classify_relation(left, right) == "non_attack"
 
 
 def test_concept_align_creates_proposal_artifact_and_promote(tmp_path: Path) -> None:

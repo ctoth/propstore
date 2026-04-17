@@ -12,6 +12,7 @@ Review context: `../axis-3d-semantic.md` (primary), `../axis-9-doc-drift.md`, `.
 - 2026-04-17: Phase 1 foundation slice implemented: typed `ProvenanceStatus`, `ProvenanceWitness`, `Provenance`; deterministic JSON-LD named-graph serialization; git-notes round trip on `refs/notes/provenance`; provenance composition property tests; `Opinion.provenance` composition through fusion/discounting; `SourceTrustDocument` and `SourceTrustQualityDocument` mandatory status fields; `ResolutionDocument` collapsed to `opinion: OpinionDocument | None`; classifier/proposal outputs migrated to nested `resolution.opinion`; sidecar projection updated at the storage boundary.
 - 2026-04-17: Phase 1 foundation verification: `tests/test_provenance_foundations.py` passed; targeted affected suite `tests/test_source_trust.py tests/test_classify.py tests/test_relate_opinions.py tests/test_build_sidecar.py tests/test_praf.py` passed (`194 passed`).
 - 2026-04-17: Removed the erroneous old-repo migration/backfill requirement from the workstream. Existing pre-workstream knowledge repositories are explicitly not a compatibility target; no migration, backfill, adapter, fallback, or bridge CLI belongs in WS-A.
+- 2026-04-17: Phase 2 lemon foundation slice implemented: `propstore/core/lemon/` now defines `OntologyReference`, `LexicalForm`, `LexicalSense`, and `LexicalEntry`; `LexicalForm` rejects dimensional metadata by construction; concept alignment no longer uses definition-token/Jaccard overlap and instead classifies exact lemon identity/reference relations.
 
 ## What you're doing
 
