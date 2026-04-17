@@ -206,6 +206,22 @@ Status 2026-04-17: `pks world derive` and `pks world hypothetical` slice landed.
   - `logs/test-runs/cli-layer-world-derive-hypothetical-20260417-171913.log` - 12 passed.
   - `uv run pyright propstore/world/queries.py` - 0 errors.
 
+Status 2026-04-17: `pks world resolve` and `pks world chain` slice landed.
+
+- Added `WorldResolveRequest`, `WorldResolveReport`, typed acceptance
+  probability lines, `WorldResolveError`, and `resolve_world_value`.
+- Added `WorldChainRequest`, typed target/step/report objects, and
+  `query_world_chain`.
+- Replaced CLI-owned resolution execution, winner display lookup, chain query
+  execution, concept label lookup, and chain step shaping with owner-layer
+  reports. CLI still constructs the `RenderPolicy` from command flags and
+  renders text.
+- Added owner-layer tests for resolved values and direct-claim chain steps,
+  plus CLI output coverage for `world chain`.
+- Verification:
+  - `logs/test-runs/cli-layer-world-resolve-chain-20260417-172224.log` - 15 passed.
+  - `uv run pyright propstore/world/queries.py` - 0 errors.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.

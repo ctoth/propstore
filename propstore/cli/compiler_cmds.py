@@ -602,6 +602,12 @@ def _parse_hypothetical_add(add_json: str | None):
     return tuple(specs)
 
 
+def _format_chain_concept(concept) -> str:
+    if concept.canonical_name:
+        return f"{concept.display_id} ({concept.canonical_name})"
+    return str(concept.display_id)
+
+
 def _format_revision_payload(payload: dict) -> str:
     claim_type = payload.get("type")
     concept_id = payload.get("concept_id")
@@ -1631,11 +1637,13 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
     Usage: pks world resolve concept1 domain=example --strategy argumentation
     """
     from propstore.world import (
-        ReasoningBackend,
         RenderPolicy,
         ResolutionStrategy,
-        WorldModel,
-        resolve,
+    )
+    from propstore.world.queries import (
+        WorldResolveError,
+        WorldResolveRequest,
+        resolve_world_value,
     )
     from propstore.world.types import normalize_argumentation_semantics
 
@@ -1643,7 +1651,6 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
         resolved = _resolve_world_target(wm, concept_id)
-        bound = _bind_world(wm, bindings)
         strat = ResolutionStrategy(strategy)
         overrides_dict = {resolved: override_id} if override_id else None
         from propstore.world.types import normalize_reasoning_backend
@@ -1668,28 +1675,31 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         )
 
         try:
-            result = resolve(
-                bound, resolved, policy=policy, world=wm,
+            report = resolve_world_value(
+                wm,
+                WorldResolveRequest(
+                    concept_id=concept_id,
+                    bindings=bindings,
+                    policy=policy,
+                ),
             )
-        except (ValueError, NotImplementedError) as e:
+        except WorldResolveError as e:
             click.echo(f"ERROR: {e}", err=True)
             sys.exit(1)
 
-        click.echo(f"{_world_concept_display_id(wm, resolved)}: {result.status}")
-        if result.value is not None:
-            click.echo(f"  value: {result.value}")
-        if result.winning_claim_id:
-            winning_claim = wm.get_claim(result.winning_claim_id)
-            winner_id = _world_claim_display_id(winning_claim) if winning_claim else result.winning_claim_id
-            click.echo(f"  winner: {winner_id}")
-        if result.strategy:
-            click.echo(f"  strategy: {result.strategy}")
-        if result.reason:
-            click.echo(f"  reason: {result.reason}")
-        if result.acceptance_probs:
-            click.echo("  acceptance_probs:")
-            for cid, prob in sorted(result.acceptance_probs.items()):
-                click.echo(f"    {cid}: {prob:.4f}")
+    click.echo(f"{report.concept_display_id}: {report.status}")
+    if report.value is not None:
+        click.echo(f"  value: {report.value}")
+    if report.winning_claim_display_id:
+        click.echo(f"  winner: {report.winning_claim_display_id}")
+    if report.strategy:
+        click.echo(f"  strategy: {report.strategy}")
+    if report.reason:
+        click.echo(f"  reason: {report.reason}")
+    if report.acceptance_probs:
+        click.echo("  acceptance_probs:")
+        for probability in report.acceptance_probs:
+            click.echo(f"    {probability.claim_id}: {probability.probability:.4f}")
 
 
 @world.command("extensions")
@@ -2039,7 +2049,7 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world chain concept5 domain=example --strategy sample_size
     """
-    from propstore.world import ResolutionStrategy, WorldModel
+    from propstore.world.queries import WorldChainRequest, query_world_chain
 
     # The flags do not change the chain traversal shape today — chain_query
     # reads parameterization + relationship state, not lifecycle-filtered
@@ -2054,30 +2064,24 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        resolved = _resolve_world_target(wm, concept_id)
-        strat = ResolutionStrategy(strategy) if strategy else None
-        result = wm.chain_query(resolved, strategy=strat, **bindings)
+        report = query_world_chain(
+            wm,
+            WorldChainRequest(
+                concept_id=concept_id,
+                bindings=bindings,
+                strategy=strategy,
+            ),
+        )
 
-        def _label(cid: str) -> str:
-            """Return 'conceptN (canonical_name)' or just the id if no name."""
-            c = wm.get_concept(cid)
-            if c is None:
-                name = ""
-            else:
-                from propstore.core.row_types import coerce_concept_row
-
-                name = coerce_concept_row(c).canonical_name
-            display_id = _world_concept_display_id(wm, cid)
-            return f"{display_id} ({name})" if name else display_id
-
-        click.echo(f"Target: {_label(resolved)}")
-        click.echo(f"Result: {result.result.status}")
-        from propstore.world import DerivedResult
-        if isinstance(result.result, DerivedResult) and result.result.value is not None:
-            click.echo(f"  value: {result.result.value}")
-        click.echo(f"Steps ({len(result.steps)}):")
-        for step in result.steps:
-            click.echo(f"  {_label(step.concept_id)}: {step.value} ({step.source})")
+    click.echo(f"Target: {_format_chain_concept(report.target)}")
+    click.echo(f"Result: {report.status}")
+    if report.value is not None:
+        click.echo(f"  value: {report.value}")
+    click.echo(f"Steps ({len(report.steps)}):")
+    for step in report.steps:
+        click.echo(
+            f"  {_format_chain_concept(step.concept)}: {step.value} ({step.source})"
+        )
 
 
 @world.command("export-graph")

@@ -15,19 +15,23 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
-from propstore.world import RenderPolicy, WorldModel
+from propstore.world import RenderPolicy, ResolutionStrategy, WorldModel
 from propstore.world.queries import (
     WorldBindConceptReport,
     WorldBindRequest,
+    WorldChainRequest,
     WorldDeriveRequest,
     WorldExplainRequest,
     WorldAlgorithmsRequest,
     WorldHypotheticalRequest,
+    WorldResolveRequest,
     derive_world_value,
     diff_hypothetical_world,
     explain_world_claim,
     list_world_algorithms,
+    query_world_chain,
     query_bound_world,
+    resolve_world_value,
 )
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, make_test_context_commit_entry
 
@@ -1506,6 +1510,49 @@ class TestWorldOwnerReports:
         assert str(change.base_status) == "determined"
         assert str(change.hypothetical_status) == "no_claims"
 
+    def test_owner_resolve_reports_winner_display_id(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = resolve_world_value(
+                wm,
+                WorldResolveRequest(
+                    concept_id="speech:fundamental_frequency",
+                    bindings={},
+                    policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY),
+                ),
+            )
+
+        assert report.concept_display_id == "speech:fundamental_frequency"
+        assert str(report.status) == "determined"
+        assert report.value == 0.2
+        assert report.winning_claim_display_id is None
+
+    def test_owner_chain_reports_direct_claim_step(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = query_world_chain(
+                wm,
+                WorldChainRequest(
+                    concept_id="speech:fundamental_frequency",
+                    bindings={},
+                ),
+            )
+
+        assert report.target.display_id == "speech:fundamental_frequency"
+        assert report.target.canonical_name == "fundamental_frequency"
+        assert str(report.status) == "determined"
+        assert len(report.steps) == 1
+        step = report.steps[0]
+        assert step.concept.display_id == "speech:fundamental_frequency"
+        assert step.value == 0.2
+        assert step.source == "claim"
+
 
 # ── world query/bind SI values ──────────────────────────────────────
 
@@ -1559,6 +1606,7 @@ class TestWorldCommandsKeepConnectionOpen:
         [
             (["world", "resolve", "speech:fundamental_frequency", "--strategy", "recency"], ["speech:fundamental_frequency: determined"]),
             (["world", "derive", "speech:fundamental_frequency"], [": no_relationship"]),
+            (["world", "chain", "speech:fundamental_frequency"], ["Target: speech:fundamental_frequency (fundamental_frequency)", "Result: determined", "0.2 (claim)"]),
             (["world", "extensions", "--semantics", "grounded"], ["Backend: claim_graph", "Accepted (1 claims):"]),
             (["world", "hypothetical", "--remove", "freq_paper:freq_claim1"], ["speech:fundamental_frequency:", "no_claims"]),
             (["world", "export-graph", "--format", "json"], ['"nodes"', '"edges"']),

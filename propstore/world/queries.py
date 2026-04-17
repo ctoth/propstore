@@ -208,6 +208,64 @@ class WorldHypotheticalReport:
     changes: tuple[WorldHypotheticalChangeLine, ...]
 
 
+class WorldResolveError(WorldQueryError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
+
+
+@dataclass(frozen=True)
+class WorldResolveRequest:
+    concept_id: str
+    bindings: Mapping[str, str]
+    policy: RenderPolicy
+
+
+@dataclass(frozen=True)
+class WorldAcceptanceProbabilityLine:
+    claim_id: str
+    probability: float
+
+
+@dataclass(frozen=True)
+class WorldResolveReport:
+    concept_display_id: str
+    status: object
+    value: object
+    winning_claim_display_id: str | None
+    strategy: object
+    reason: object
+    acceptance_probs: tuple[WorldAcceptanceProbabilityLine, ...]
+
+
+@dataclass(frozen=True)
+class WorldChainRequest:
+    concept_id: str
+    bindings: Mapping[str, str]
+    strategy: str | None = None
+
+
+@dataclass(frozen=True)
+class WorldChainConceptLine:
+    display_id: str
+    canonical_name: str | None
+
+
+@dataclass(frozen=True)
+class WorldChainStepLine:
+    concept: WorldChainConceptLine
+    value: object
+    source: str
+
+
+@dataclass(frozen=True)
+class WorldChainReport:
+    target: WorldChainConceptLine
+    status: object
+    value: object
+    steps: tuple[WorldChainStepLine, ...]
+
+
 def _maybe_float(value: object) -> float | None:
     if isinstance(value, bool):
         return None
@@ -279,6 +337,24 @@ def world_claim_display_id(claim: Mapping[str, object] | Any) -> str:
     if isinstance(logical_id, str) and logical_id:
         return logical_id
     return str(row.claim_id)
+
+
+def _world_chain_concept_line(
+    world: WorldModel,
+    concept_id: str,
+) -> WorldChainConceptLine:
+    from propstore.core.row_types import coerce_concept_row
+
+    concept = world.get_concept(concept_id)
+    canonical_name = (
+        coerce_concept_row(concept).canonical_name
+        if concept is not None
+        else None
+    )
+    return WorldChainConceptLine(
+        display_id=world_concept_display_id(world, concept_id),
+        canonical_name=canonical_name,
+    )
 
 
 def query_world_concept(
@@ -518,4 +594,72 @@ def diff_hypothetical_world(
             )
             for concept_id, (base, hypothetical) in diff.items()
         )
+    )
+
+
+def resolve_world_value(
+    world: WorldModel,
+    request: WorldResolveRequest,
+) -> WorldResolveReport:
+    from propstore.core.environment import Environment
+    from propstore.world import resolve
+
+    resolved = resolve_world_target(world, request.concept_id)
+    bound = world.bind(Environment(bindings=dict(request.bindings)))
+    try:
+        result = resolve(bound, resolved, policy=request.policy, world=world)
+    except (ValueError, NotImplementedError) as exc:
+        raise WorldResolveError(str(exc)) from exc
+
+    winner_id = None
+    if result.winning_claim_id:
+        winning_claim = world.get_claim(result.winning_claim_id)
+        winner_id = (
+            world_claim_display_id(winning_claim)
+            if winning_claim
+            else result.winning_claim_id
+        )
+    return WorldResolveReport(
+        concept_display_id=world_concept_display_id(world, resolved),
+        status=result.status,
+        value=result.value,
+        winning_claim_display_id=winner_id,
+        strategy=result.strategy,
+        reason=result.reason,
+        acceptance_probs=tuple(
+            WorldAcceptanceProbabilityLine(claim_id=str(claim_id), probability=prob)
+            for claim_id, prob in sorted(result.acceptance_probs.items())
+        )
+        if result.acceptance_probs
+        else (),
+    )
+
+
+def query_world_chain(
+    world: WorldModel,
+    request: WorldChainRequest,
+) -> WorldChainReport:
+    from propstore.world import DerivedResult, ResolutionStrategy
+
+    resolved = resolve_world_target(world, request.concept_id)
+    strategy = ResolutionStrategy(request.strategy) if request.strategy else None
+    result = world.chain_query(resolved, strategy=strategy, **dict(request.bindings))
+    value = (
+        result.result.value
+        if isinstance(result.result, DerivedResult)
+        and result.result.value is not None
+        else None
+    )
+    return WorldChainReport(
+        target=_world_chain_concept_line(world, resolved),
+        status=result.result.status,
+        value=value,
+        steps=tuple(
+            WorldChainStepLine(
+                concept=_world_chain_concept_line(world, step.concept_id),
+                value=step.value,
+                source=step.source,
+            )
+            for step in result.steps
+        ),
     )
