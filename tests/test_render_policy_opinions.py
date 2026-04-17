@@ -4,11 +4,17 @@ Decision criteria determine how opinion uncertainty maps to actionable
 values at render time. Per Denoeux (2019, p.17-18): pignistic is the
 default; Hurwicz, lower_bound, upper_bound give users control over
 how uncertainty is handled.
+
+Page-image grounding:
+papers/Josang_2001_LogicUncertainProbabilities/pngs/page-004.png
+papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
 """
 
 from __future__ import annotations
 
 import pytest
+from hypothesis import given, settings, assume
+from hypothesis import strategies as st
 
 from propstore.opinion import Opinion
 from propstore.world.types import (
@@ -35,6 +41,8 @@ def test_pignistic_equals_expectation():
 
     The pignistic criterion must match the existing confidence column value
     (which is Opinion.expectation()).
+
+    papers/Josang_2001_LogicUncertainProbabilities/pngs/page-004.png
     """
     # Opinion with known components: b=0.6, d=0.1, u=0.3, a=0.5
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
@@ -50,7 +58,10 @@ def test_pignistic_equals_expectation():
 # ── 3. Lower bound equals belief ────────────────────────────────
 
 def test_lower_bound_equals_belief():
-    """Per Jøsang (2001, p.4): Bel(x) = b."""
+    """Per Jøsang (2001, Def 9): Bel(x) = b.
+
+    papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
+    """
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
     result = apply_decision_criterion(b, d, u, a, confidence=0.75, criterion="lower_bound")
     assert result.source is DecisionValueSource.OPINION
@@ -61,7 +72,10 @@ def test_lower_bound_equals_belief():
 # ── 4. Upper bound equals plausibility ──────────────────────────
 
 def test_upper_bound_equals_plausibility():
-    """Per Jøsang (2001, p.4): Pl(x) = 1 - d."""
+    """Plausibility is 1 - disbelief for the binary opinion interval.
+
+    papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
+    """
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
     result = apply_decision_criterion(b, d, u, a, confidence=0.75, criterion="upper_bound")
     assert result.source is DecisionValueSource.OPINION
@@ -210,6 +224,82 @@ def test_fallback_to_confidence_when_opinion_missing():
     )
     assert result_none.source is DecisionValueSource.NO_DATA
     assert result_none.value is None
+
+
+@st.composite
+def valid_decision_opinions(draw):
+    """Generate valid opinion components for render-boundary criteria."""
+    u = draw(st.floats(min_value=0.0, max_value=1.0))
+    remaining = 1.0 - u
+    b = draw(st.floats(min_value=0.0, max_value=remaining))
+    d = remaining - b
+    a = draw(st.floats(min_value=0.01, max_value=0.99))
+    assume(abs(b + d + u - 1.0) < 1e-9)
+    return b, d, u, a
+
+
+@given(valid_decision_opinions())
+@settings(deadline=None)
+def test_generated_decision_criteria_stay_inside_belief_plausibility(opinion):
+    """Decision criteria preserve Bel <= value <= Pl for generated opinions.
+
+    Jøsang's expectation allocates uncertainty by base rate, so
+    b <= b + a*u <= 1-d. Hurwicz is a convex combination of the same
+    endpoints.
+
+    papers/Josang_2001_LogicUncertainProbabilities/pngs/page-004.png
+    papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
+    """
+    b, d, u, a = opinion
+    bel = b
+    pl = 1.0 - d
+
+    pignistic = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="pignistic",
+    )
+    lower = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="lower_bound",
+    )
+    upper = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="upper_bound",
+    )
+    hurwicz = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="hurwicz", pessimism_index=0.37,
+    )
+
+    for result in (pignistic, lower, upper, hurwicz):
+        assert result.source is DecisionValueSource.OPINION
+        assert result.value is not None
+        assert bel - 1e-9 <= result.value <= pl + 1e-9
+
+
+@pytest.mark.parametrize(
+    "components",
+    [
+        (None, 0.1, 0.2, 0.5),
+        (0.7, None, 0.2, 0.5),
+        (0.7, 0.1, None, 0.5),
+        (0.7, 0.1, 0.2, None),
+    ],
+)
+def test_partial_opinion_is_fallback_not_opinion(components):
+    """Partial opinion columns are explicitly classified as fallback/no-data.
+
+    A default base rate or partial tuple must not be silently promoted to
+    a calibrated opinion at the render boundary.
+    """
+    b, d, u, a = components
+    fallback = apply_decision_criterion(
+        b, d, u, a, confidence=0.8, criterion="pignistic",
+    )
+    assert fallback.source is DecisionValueSource.CONFIDENCE_FALLBACK
+    assert fallback.value == pytest.approx(0.8)
+
+    no_data = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="pignistic",
+    )
+    assert no_data.source is DecisionValueSource.NO_DATA
+    assert no_data.value is None
 
 
 # ── 11. Lifecycle-visibility flags (WS-Z-gates Phase 4) ─────────────

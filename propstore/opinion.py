@@ -391,11 +391,12 @@ def wbf(*opinions: Opinion) -> Opinion:
     """N-source Weighted Belief Fusion (van der Heijden 2018, Definition 4).
 
     Generalizes consensus_pair to N sources. Each source is weighted by
-    its certainty (1/u_i). For N=2, produces identical results to
-    consensus_pair().
+    its certainty (1/u_i). For N=2 non-dogmatic opinions, produces
+    identical results to consensus_pair().
 
-    Raises ValueError for empty input or if any opinion is dogmatic
-    (u < _TOL), since WBF's denominator diverges.
+    Definition 4 has separate cases for dogmatic and no-evidence inputs:
+    dogmatic sources dominate finite-evidence sources, while all-vacuous
+    inputs remain vacuous.
     """
     if len(opinions) == 0:
         raise ValueError("Need at least one opinion")
@@ -403,12 +404,18 @@ def wbf(*opinions: Opinion) -> Opinion:
         return opinions[0]
 
     N = len(opinions)
-    for i, op in enumerate(opinions):
-        if op.u < _TOL:
-            raise ValueError(
-                f"Opinion {i} is dogmatic (u={op.u}). "
-                "Use fuse(method='auto') or ccf() for dogmatic sources."
-            )
+    dogmatic = [op for op in opinions if op.u < _TOL]
+    if dogmatic:
+        # van der Heijden 2018 Definition 4, Case 2: finite-evidence
+        # opinions have negligible weight when any dogmatic source is
+        # present. With exactly one dogmatic source this returns that
+        # source unchanged; with multiple dogmatic sources the limiting
+        # weights are equal in this unweighted API.
+        count = len(dogmatic)
+        b_fused = sum(op.b for op in dogmatic) / count
+        d_fused = sum(op.d for op in dogmatic) / count
+        a_fused = sum(op.a for op in dogmatic) / count
+        return Opinion(b_fused, d_fused, 0.0, _clamp_base_rate(a_fused))
 
     # Precompute products of all uncertainties excluding each index.
     # prod_except[i] = product(u_j for j != i)
