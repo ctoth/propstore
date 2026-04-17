@@ -1,7 +1,7 @@
 # Workstream A0 - Repository / Artifact Boundary Prerequisite
 
 Date: 2026-04-17
-Status: planned, prerequisite for WS-A phase 2 document-boundary work
+Status: completed 2026-04-17
 Depends on: `disciplines.md`, `judgment-rubric.md`, `../axis-2-layer-discipline.md`, `../SYNTHESIS.md`
 Blocks: WS-A phase 2 hard `ConceptDocument` lemon boundary, and any later artifact-family rewrite that assumes repository access is layer-clean
 
@@ -9,6 +9,7 @@ Blocks: WS-A phase 2 hard `ConceptDocument` lemon boundary, and any later artifa
 
 - 2026-04-17: Repository facade moved from `propstore/cli/repository.py` to `propstore/repo/repository.py`; all imports updated, including tests. The first two boundary gates are active and passing: non-CLI production modules no longer import `propstore.cli.repository`, and the CLI module no longer owns `Repository` / `RepositoryNotFound`.
 - 2026-04-17: Removed `Repository.store` and the repository facade's dynamic import of `propstore.world`. Render/world code must construct `WorldModel(repo)` explicitly. The repository/world coupling gate is active and passing.
+- 2026-04-17: Canonical `load_concepts` now decodes through `CONCEPT_FILE_FAMILY` rather than direct `load_document(..., ConceptDocument, ...)`. All four A0 boundary gates are active and passing; affected suite passed (`300 passed`).
 
 ## Why this exists
 
@@ -18,7 +19,7 @@ That is exactly the class of violation called out by `axis-2-layer-discipline.md
 
 ## Target architecture
 
-- `Repository` and `RepositoryNotFound` live in a layer-1 module, either `propstore/repository.py` or `propstore/repo/repository.py`.
+- `Repository` and `RepositoryNotFound` live in the layer-1 module `propstore/repo/repository.py`.
 - `propstore/cli/` consumes the repository facade; it does not own it.
 - `propstore/cli/repository.py` is removed or reduced to no repository facade definitions. Do not leave an import alias, compatibility shim, or re-export.
 - Non-CLI production modules do not import `propstore.cli.repository`.
@@ -29,7 +30,7 @@ That is exactly the class of violation called out by `axis-2-layer-discipline.md
 
 ## TDD gates
 
-The initial red gates are in `tests/test_repository_artifact_boundary_gates.py`. They are marked `xfail(strict=True)` until this workstream is actively implemented. Strict xfail is intentional: the tests demonstrate the present violation now, and once a slice fixes a violation the unexpected pass forces the implementer to remove the marker and promote the test to an active gate.
+The boundary gates are in `tests/test_repository_artifact_boundary_gates.py`. They began as `xfail(strict=True)` red gates and are now all active passing regression tests.
 
 Required gate promotions during this workstream:
 
