@@ -1,6 +1,6 @@
-"""Tests for global IC-merge and test-local one-concept oracle kernels.
+"""Tests for global assignment-selection merge and test-local one-concept oracle kernels.
 
-These tests treat assignment-level ``solve_ic_merge`` as the main production
+These tests treat assignment-level ``solve_assignment_selection_merge`` as the main production
 surface. The one-concept scalar kernels live in this test module only as
 oracles for degenerate reductions and operator properties.
 """
@@ -15,16 +15,16 @@ from hypothesis import strategies as st
 
 from propstore.cel_checker import ConceptInfo, KindType
 import propstore.storage as repo_api
-from propstore.world.ic_merge import (
+from propstore.world.assignment_selection_merge import (
     MergeOperator,
     _eval_cel_constraint_z3,
     assignment_satisfies_mu,
     enumerate_candidate_assignments,
     claim_distance,
-    solve_ic_merge,
+    solve_assignment_selection_merge,
 )
 from propstore.world.types import (
-    ICMergeProblem,
+    AssignmentSelectionProblem,
     IntegrityConstraint,
     IntegrityConstraintKind,
     MergeAssignment,
@@ -33,7 +33,7 @@ from propstore.world.types import (
     ResolutionStrategy,
 )
 
-ic_merge_module = importlib.import_module("propstore.world.ic_merge")
+assignment_selection_module = importlib.import_module("propstore.world.assignment_selection_merge")
 
 
 def _eval_cel_ast_oracle(node, bindings):
@@ -222,7 +222,7 @@ def _gmax_merge(profile: dict[str, object]) -> object:
     return best_value
 
 
-def _scalar_ic_merge(profile: dict[str, object], *, operator: str = "sigma") -> object:
+def _scalar_assignment_selection_merge(profile: dict[str, object], *, operator: str = "sigma") -> object:
     dispatch = {
         "sigma": _sigma_merge,
         "max": _max_merge,
@@ -240,8 +240,8 @@ def _scalar_profile_problem(
     operator: MergeOperator | str = MergeOperator.SIGMA,
     constraints: tuple[IntegrityConstraint, ...] = tuple(),
     concept_id: str = "__value__",
-) -> ICMergeProblem:
-    return ICMergeProblem(
+) -> AssignmentSelectionProblem:
+    return AssignmentSelectionProblem(
         concept_ids=(concept_id,),
         sources=tuple(
             MergeSource(
@@ -555,34 +555,34 @@ class TestGMaxMerge:
 # ── Group 5: Scalar Kernel Dispatcher ───────────────────────────────
 
 
-class TestIcMergeDispatcher:
-    def test_ic_merge_dispatches_sigma(self):
-        """_scalar_ic_merge with operator='sigma' delegates to _sigma_merge."""
+class TestAssignmentSelectionDispatcher:
+    def test_assignment_selection_dispatches_sigma(self):
+        """_scalar_assignment_selection_merge with operator='sigma' delegates to _sigma_merge."""
         profile = {"b1": 5.0, "b2": 5.0}
-        assert _scalar_ic_merge(profile, operator="sigma") == _sigma_merge(profile)
+        assert _scalar_assignment_selection_merge(profile, operator="sigma") == _sigma_merge(profile)
 
-    def test_ic_merge_dispatches_max(self):
-        """_scalar_ic_merge with operator='max' delegates to _max_merge."""
+    def test_assignment_selection_dispatches_max(self):
+        """_scalar_assignment_selection_merge with operator='max' delegates to _max_merge."""
         profile = {"b1": 5.0, "b2": 5.0}
-        assert _scalar_ic_merge(profile, operator="max") == _max_merge(profile)
+        assert _scalar_assignment_selection_merge(profile, operator="max") == _max_merge(profile)
 
-    def test_ic_merge_dispatches_gmax(self):
-        """_scalar_ic_merge with operator='gmax' delegates to _gmax_merge."""
+    def test_assignment_selection_dispatches_gmax(self):
+        """_scalar_assignment_selection_merge with operator='gmax' delegates to _gmax_merge."""
         profile = {"b1": 5.0, "b2": 5.0}
-        assert _scalar_ic_merge(profile, operator="gmax") == _gmax_merge(profile)
+        assert _scalar_assignment_selection_merge(profile, operator="gmax") == _gmax_merge(profile)
 
-    def test_ic_merge_default_is_sigma(self):
+    def test_assignment_selection_default_is_sigma(self):
         """Default operator is sigma (majority).
 
         Sigma is the default aggregation kernel in the current scalar adapter.
         """
         profile = {"b1": 5.0, "b2": 10.0, "b3": 5.0}
-        assert _scalar_ic_merge(profile) == _sigma_merge(profile)
+        assert _scalar_assignment_selection_merge(profile) == _sigma_merge(profile)
 
 
-class TestAssignmentLevelICMerge:
+class TestAssignmentLevelAssignmentSelectionMerge:
     def test_cel_constraint_filters_assignments_by_canonical_name(self):
-        problem = ICMergeProblem(
+        problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=(
                 MergeSource(
@@ -609,7 +609,7 @@ class TestAssignmentLevelICMerge:
             operator=MergeOperator.SIGMA,
         )
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert result.winners == (
             MergeAssignment(values={"x": 0.0, "y": 1.0}),
@@ -617,7 +617,7 @@ class TestAssignmentLevelICMerge:
         assert all(assignment_satisfies_mu(problem, winner) for winner in result.winners)
 
     def test_invalid_cel_constraint_fails_explicitly(self):
-        problem = ICMergeProblem(
+        problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=(
                 MergeSource(
@@ -641,7 +641,7 @@ class TestAssignmentLevelICMerge:
         )
 
         with pytest.raises(ValueError, match="Undefined concept"):
-            solve_ic_merge(problem)
+            solve_assignment_selection_merge(problem)
 
     def test_open_category_constraint_allows_undeclared_literal(self):
         extensible_category_registry = {
@@ -653,7 +653,7 @@ class TestAssignmentLevelICMerge:
                 category_extensible=True,
             )
         }
-        problem = ICMergeProblem(
+        problem = AssignmentSelectionProblem(
             concept_ids=("task",),
             sources=(
                 MergeSource(
@@ -676,7 +676,7 @@ class TestAssignmentLevelICMerge:
             operator=MergeOperator.SIGMA,
         )
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert result.winners == (
             MergeAssignment(values={"task": "yodel"}),
@@ -692,7 +692,7 @@ class TestAssignmentLevelICMerge:
                 category_extensible=True,
             )
         }
-        problem = ICMergeProblem(
+        problem = AssignmentSelectionProblem(
             concept_ids=("task",),
             sources=(
                 MergeSource(
@@ -719,7 +719,7 @@ class TestAssignmentLevelICMerge:
             operator=MergeOperator.SIGMA,
         )
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert result.admissible_count == 2
         assert all(
@@ -728,8 +728,8 @@ class TestAssignmentLevelICMerge:
         )
 
     def test_duplicate_production_cel_runtime_is_removed(self):
-        assert not hasattr(ic_merge_module, "_eval_cel_ast")
-        assert not hasattr(ic_merge_module, "_eval_cel_constraint_bruteforce")
+        assert not hasattr(assignment_selection_module, "_eval_cel_ast")
+        assert not hasattr(assignment_selection_module, "_eval_cel_constraint_bruteforce")
 
     def test_cel_constraints_reuse_one_solver_per_problem(self, monkeypatch):
         import propstore.z3_conditions as z3_conditions
@@ -743,7 +743,7 @@ class TestAssignmentLevelICMerge:
                 init_count += 1
                 super().__init__(registry)
 
-        problem = ICMergeProblem(
+        problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=(
                 MergeSource(
@@ -767,7 +767,7 @@ class TestAssignmentLevelICMerge:
         )
 
         monkeypatch.setattr(z3_conditions, "Z3ConditionSolver", CountingSolver)
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert result.winners
         assert init_count == 1
@@ -796,15 +796,15 @@ class TestAssignmentLevelICMerge:
             )
             for index, (x, y) in enumerate(source_pairs)
         )
-        unconstrained = solve_ic_merge(
-            ICMergeProblem(
+        unconstrained = solve_assignment_selection_merge(
+            AssignmentSelectionProblem(
                 concept_ids=("x", "y"),
                 sources=sources,
                 operator=operator,
             )
         )
-        constrained = solve_ic_merge(
-            ICMergeProblem(
+        constrained = solve_assignment_selection_merge(
+            AssignmentSelectionProblem(
                 concept_ids=("x", "y"),
                 sources=sources,
                 constraints=(
@@ -838,8 +838,8 @@ class TestAssignmentLevelICMerge:
         source_pairs,
         operator,
     ):
-        result = solve_ic_merge(
-            ICMergeProblem(
+        result = solve_assignment_selection_merge(
+            AssignmentSelectionProblem(
                 concept_ids=("x", "y"),
                 sources=tuple(
                     MergeSource(
@@ -880,7 +880,7 @@ class TestAssignmentLevelICMerge:
         source_pairs,
         limit,
     ):
-        problem = ICMergeProblem(
+        problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=tuple(
                 MergeSource(
@@ -908,7 +908,7 @@ class TestAssignmentLevelICMerge:
             )
 
     def test_cross_concept_constraint_changes_winner_set_vs_independent_solves(self):
-        global_problem = ICMergeProblem(
+        global_problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=(
                 MergeSource(
@@ -937,14 +937,14 @@ class TestAssignmentLevelICMerge:
             operator=MergeOperator.SIGMA,
         )
 
-        unconstrained_x = solve_ic_merge(
+        unconstrained_x = solve_assignment_selection_merge(
             _scalar_profile_problem(
                 {"s1": 0.0, "s2": 0.0, "s3": 1.0},
                 operator=MergeOperator.SIGMA,
                 concept_id="x",
             )
         )
-        unconstrained_y = solve_ic_merge(
+        unconstrained_y = solve_assignment_selection_merge(
             _scalar_profile_problem(
                 {"s1": 0.0, "s2": 1.0, "s3": 0.0},
                 operator=MergeOperator.SIGMA,
@@ -952,7 +952,7 @@ class TestAssignmentLevelICMerge:
             )
         )
 
-        constrained = solve_ic_merge(global_problem)
+        constrained = solve_assignment_selection_merge(global_problem)
 
         independent_winner = MergeAssignment(
             values={
@@ -968,7 +968,7 @@ class TestAssignmentLevelICMerge:
         )
 
     def test_custom_constraint_is_scoped_to_declared_concepts(self):
-        problem = ICMergeProblem(
+        problem = AssignmentSelectionProblem(
             concept_ids=("x", "y", "z"),
             sources=(
                 MergeSource(
@@ -992,7 +992,7 @@ class TestAssignmentLevelICMerge:
             operator=MergeOperator.SIGMA,
         )
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert result.winners
         assert result.admissible_count == 8
@@ -1020,7 +1020,7 @@ class TestAssignmentLevelICMerge:
         y_values = {y for _, y in source_pairs}
         assume(any(x + y <= max_sum for x, y in product(x_values, y_values)))
 
-        problem = ICMergeProblem(
+        problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=tuple(
                 MergeSource(
@@ -1042,7 +1042,7 @@ class TestAssignmentLevelICMerge:
             operator=operator,
         )
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert result.winners
         assert all(assignment_satisfies_mu(problem, winner) for winner in result.winners)
@@ -1070,7 +1070,7 @@ class TestAssignmentLevelICMerge:
         x_upper = x_values[min(len(x_values) - 1, len(x_values) // 2)]
         y_upper = y_values[min(len(y_values) - 1, len(y_values) // 2)]
 
-        global_problem = ICMergeProblem(
+        global_problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=tuple(
                 MergeSource(
@@ -1094,7 +1094,7 @@ class TestAssignmentLevelICMerge:
             operator=operator,
         )
 
-        x_result = solve_ic_merge(
+        x_result = solve_assignment_selection_merge(
             _scalar_profile_problem(
                 x_profile,
                 operator=operator,
@@ -1108,7 +1108,7 @@ class TestAssignmentLevelICMerge:
                 ),
             )
         )
-        y_result = solve_ic_merge(
+        y_result = solve_assignment_selection_merge(
             _scalar_profile_problem(
                 y_profile,
                 operator=operator,
@@ -1123,7 +1123,7 @@ class TestAssignmentLevelICMerge:
             )
         )
 
-        global_result = solve_ic_merge(global_problem)
+        global_result = solve_assignment_selection_merge(global_problem)
         expected_winners = tuple(
             MergeAssignment(values={"x": x_assignment.value_for("x"), "y": y_assignment.value_for("y")})
             for x_assignment, y_assignment in product(x_result.winners, y_result.winners)
@@ -1132,7 +1132,7 @@ class TestAssignmentLevelICMerge:
         assert global_result.winners == expected_winners
 
     def test_two_concept_problem_returns_assignment_winner(self):
-        problem = ICMergeProblem(
+        problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=(
                 MergeSource(
@@ -1151,7 +1151,7 @@ class TestAssignmentLevelICMerge:
             operator=MergeOperator.SIGMA,
         )
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert result.winners == (
             MergeAssignment(values={"x": 0.0, "y": 1.0}),
@@ -1162,7 +1162,7 @@ class TestAssignmentLevelICMerge:
 
     def test_problem_rejects_source_assignment_outside_declared_concepts(self):
         with pytest.raises(ValueError, match="unknown concept ids"):
-            ICMergeProblem(
+            AssignmentSelectionProblem(
                 concept_ids=("x", "y"),
                 sources=(
                     MergeSource(
@@ -1175,7 +1175,7 @@ class TestAssignmentLevelICMerge:
 
     def test_problem_rejects_duplicate_concept_ids(self):
         with pytest.raises(ValueError, match="duplicate concept ids"):
-            ICMergeProblem(
+            AssignmentSelectionProblem(
                 concept_ids=("x", "x"),
                 sources=(
                     MergeSource(
@@ -1203,7 +1203,7 @@ class TestAssignmentLevelICMerge:
         source_pairs,
         operator,
     ):
-        forward_problem = ICMergeProblem(
+        forward_problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=tuple(
                 MergeSource(
@@ -1214,7 +1214,7 @@ class TestAssignmentLevelICMerge:
             ),
             operator=operator,
         )
-        reversed_problem = ICMergeProblem(
+        reversed_problem = AssignmentSelectionProblem(
             concept_ids=("x", "y"),
             sources=tuple(
                 MergeSource(
@@ -1226,8 +1226,8 @@ class TestAssignmentLevelICMerge:
             operator=operator,
         )
 
-        forward_result = solve_ic_merge(forward_problem)
-        reversed_result = solve_ic_merge(reversed_problem)
+        forward_result = solve_assignment_selection_merge(forward_problem)
+        reversed_result = solve_assignment_selection_merge(reversed_problem)
 
         assert forward_result.winners == reversed_result.winners
         assert [
@@ -1252,7 +1252,7 @@ class TestAssignmentLevelICMerge:
             ),
         )
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert [winner.value_for("__value__") for winner in result.winners] == [10.0]
         assert result.admissible_count == 2
@@ -1274,7 +1274,7 @@ class TestAssignmentLevelICMerge:
             ),
         )
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert all(
             winner.value_for("__value__") in {"speech", "whisper"}
@@ -1290,10 +1290,10 @@ class TestAssignmentLevelICMerge:
     def test_unconstrained_single_concept_matches_scalar_dispatch(self, profile, operator):
         problem = _scalar_profile_problem(profile, operator=operator)
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert result.scored_candidates
-        assert result.scored_candidates[0].assignment.value_for("__value__") == _scalar_ic_merge(
+        assert result.scored_candidates[0].assignment.value_for("__value__") == _scalar_assignment_selection_merge(
             profile,
             operator=operator,
         )
@@ -1318,7 +1318,7 @@ class TestAssignmentLevelICMerge:
             ),
         )
 
-        result = solve_ic_merge(problem)
+        result = solve_assignment_selection_merge(problem)
 
         assert result.winners
         assert all(
@@ -1337,8 +1337,8 @@ class TestAssignmentLevelICMerge:
             for index, value in enumerate(profile.values())
         }
 
-        original_result = solve_ic_merge(_scalar_profile_problem(profile, operator=operator))
-        renamed_result = solve_ic_merge(_scalar_profile_problem(renamed, operator=operator))
+        original_result = solve_assignment_selection_merge(_scalar_profile_problem(profile, operator=operator))
+        renamed_result = solve_assignment_selection_merge(_scalar_profile_problem(renamed, operator=operator))
 
         assert original_result.scored_candidates
         assert renamed_result.scored_candidates
@@ -1355,7 +1355,7 @@ class TestRenderPolicyIntegration:
     def test_render_policy_has_merge_operator(self):
         """RenderPolicy has merge_operator field with default 'sigma'.
 
-        The merge_operator field selects which IC merge operator to use
+        The merge_operator field selects which assignment-selection merge operator to use
         at render time, following the pattern of existing operator-selection
         fields like reasoning_backend.
         """
@@ -1366,19 +1366,19 @@ class TestRenderPolicyIntegration:
         """RenderPolicy has branch_filter field, default None.
 
         The branch_filter controls which branches are included as sources
-        in the IC merge profile.
+        in the assignment-selection merge profile.
         """
         policy = RenderPolicy()
         assert policy.branch_filter is None
 
-    def test_resolution_strategy_has_ic_merge(self):
-        """ResolutionStrategy has IC_MERGE member.
+    def test_resolution_strategy_has_assignment_selection_merge(self):
+        """ResolutionStrategy has ASSIGNMENT_SELECTION_MERGE member.
 
-        IC merge is a new resolution strategy distinct from argumentation —
+        assignment-selection merge is a new resolution strategy distinct from argumentation —
         it uses distance-based merging across multiple sources rather than
         argumentation-based winner selection.
         """
-        assert ResolutionStrategy.IC_MERGE == "ic_merge"
+        assert ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE == "assignment_selection_merge"
 
     def test_render_policy_round_trips_merge_operator_enum(self):
         policy = RenderPolicy(merge_operator=MergeOperator.GMAX)
@@ -1389,26 +1389,26 @@ class TestRenderPolicyIntegration:
 
 
 class TestPublicApiHonesty:
-    def test_repo_public_api_does_not_export_world_ic_merge_entrypoints(self):
-        assert not hasattr(repo_api, "solve_ic_merge")
-        assert "solve_ic_merge" not in repo_api.__all__
+    def test_repo_public_api_does_not_export_world_assignment_selection_entrypoints(self):
+        assert not hasattr(repo_api, "solve_assignment_selection_merge")
+        assert "solve_assignment_selection_merge" not in repo_api.__all__
         assert "claim_distance" not in repo_api.__all__
         assert "MergeOperator" not in repo_api.__all__
-        assert "ICMergeProblem" not in repo_api.__all__
-        assert "ICMergeResult" not in repo_api.__all__
+        assert "AssignmentSelectionProblem" not in repo_api.__all__
+        assert "AssignmentSelectionResult" not in repo_api.__all__
         assert "scalar_profile_problem" not in repo_api.__all__
         assert "sigma_merge" not in repo_api.__all__
         assert "max_merge" not in repo_api.__all__
         assert "gmax_merge" not in repo_api.__all__
-        assert "ic_merge" not in repo_api.__all__
+        assert "assignment_selection_merge" not in repo_api.__all__
 
-    def test_ic_merge_module_docs_point_to_global_solver(self):
-        module_doc = ic_merge_module.__doc__ or ""
+    def test_assignment_selection_module_docs_point_to_global_solver(self):
+        module_doc = assignment_selection_module.__doc__ or ""
 
-        assert "solve_ic_merge" in module_doc
+        assert "solve_assignment_selection_merge" in module_doc
         assert "assignment-level" in module_doc.lower()
         assert "scalar helper" not in module_doc.lower()
-        assert not hasattr(ic_merge_module, "_scalar_ic_merge")
-        assert not hasattr(ic_merge_module, "_scalar_profile_problem")
-        assert not hasattr(ic_merge_module, "_eval_cel_ast")
-        assert not hasattr(ic_merge_module, "_eval_cel_constraint_bruteforce")
+        assert not hasattr(assignment_selection_module, "_scalar_assignment_selection_merge")
+        assert not hasattr(assignment_selection_module, "_scalar_profile_problem")
+        assert not hasattr(assignment_selection_module, "_eval_cel_ast")
+        assert not hasattr(assignment_selection_module, "_eval_cel_constraint_bruteforce")

@@ -6,7 +6,7 @@ import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, overload, runtime_checkable
 
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
@@ -68,6 +68,14 @@ class ValueResultReason(Enum):
     """
 
     ALGORITHM_UNPARSEABLE = "algorithm_unparseable"
+
+
+@overload
+def coerce_value_status(value: None) -> None: ...
+
+
+@overload
+def coerce_value_status(value: object) -> ValueStatus: ...
 
 
 def coerce_value_status(value: object | None) -> ValueStatus | None:
@@ -434,7 +442,7 @@ class ResolutionStrategy(StrEnum):
     SAMPLE_SIZE = "sample_size"
     ARGUMENTATION = "argumentation"
     OVERRIDE = "override"
-    IC_MERGE = "ic_merge"
+    ASSIGNMENT_SELECTION_MERGE = "assignment_selection_merge"
 
 
 class MergeOperator(StrEnum):
@@ -634,11 +642,7 @@ def integrity_constraint_from_dict(data: Mapping[str, Any]) -> IntegrityConstrai
         ),
         concept_ids=tuple(str(concept_id) for concept_id in data.get("concept_ids", ())),
         metadata=dict(data.get("metadata") or {}),
-        cel=(
-            None
-            if data.get("cel") is None
-            else str(data["cel"])
-        ),
+        cel=None if data.get("cel") is None else to_cel_expr(str(data["cel"])),
         description=(
             None
             if data.get("description") is None
@@ -685,7 +689,7 @@ class MergeAssignmentScore:
 
 
 @dataclass(frozen=True)
-class ICMergeProblem:
+class AssignmentSelectionProblem:
     concept_ids: tuple[str, ...]
     sources: tuple[MergeSource, ...]
     constraints: tuple[IntegrityConstraint, ...] = field(default_factory=tuple)
@@ -697,9 +701,9 @@ class ICMergeProblem:
         object.__setattr__(self, "constraints", tuple(self.constraints))
         object.__setattr__(self, "operator", normalize_merge_operator(self.operator))
         if not self.concept_ids:
-            raise ValueError("ICMergeProblem requires at least one concept id")
+            raise ValueError("AssignmentSelectionProblem requires at least one concept id")
         if len(set(self.concept_ids)) != len(self.concept_ids):
-            raise ValueError("ICMergeProblem has duplicate concept ids")
+            raise ValueError("AssignmentSelectionProblem has duplicate concept ids")
 
         declared_concepts = set(self.concept_ids)
         for source in self.sources:
@@ -711,7 +715,7 @@ class ICMergeProblem:
             if unknown_concepts:
                 joined = ", ".join(sorted(unknown_concepts))
                 raise ValueError(
-                    f"ICMergeProblem source {source.source_id!r} references unknown concept ids: {joined}"
+                    f"AssignmentSelectionProblem source {source.source_id!r} references unknown concept ids: {joined}"
                 )
 
         for constraint in self.constraints:
@@ -723,12 +727,12 @@ class ICMergeProblem:
             if unknown_concepts:
                 joined = ", ".join(sorted(unknown_concepts))
                 raise ValueError(
-                    f"ICMergeProblem constraint references unknown concept ids: {joined}"
+                    f"AssignmentSelectionProblem constraint references unknown concept ids: {joined}"
                 )
 
 
 @dataclass(frozen=True)
-class ICMergeResult:
+class AssignmentSelectionResult:
     winners: tuple[MergeAssignment, ...]
     scored_candidates: tuple[MergeAssignmentScore, ...]
     admissible_count: int
@@ -806,14 +810,14 @@ class RenderPolicy:
     praf_mc_confidence: float = 0.95  # MC confidence level
     praf_treewidth_cutoff: int = 12  # max treewidth for exact DP (Popescu 2024, p.8)
     praf_mc_seed: int | None = None  # RNG seed (None = random)
-    # IC merge fields for the assignment-level Konieczny-style adaptation.
+    # assignment-selection merge fields for the assignment-level Konieczny-style adaptation.
     # merge_operator selects the aggregation family used by the global solver.
     merge_operator: MergeOperator = MergeOperator.SIGMA
     # branch_filter restricts which branches are included as sources.
     branch_filter: tuple[str, ...] | None = None
     # branch_weights assigns per-branch importance weights.
     branch_weights: Mapping[str, float] | None = None
-    # explicit integrity constraints for global IC merge
+    # explicit integrity constraints for global assignment-selection merge
     integrity_constraints: tuple[IntegrityConstraint, ...] = field(default_factory=tuple)
     future_queryables: tuple[str, ...] = field(default_factory=tuple)
     future_limit: int | None = None
