@@ -7,7 +7,7 @@ from propstore.identity import derive_concept_artifact_id
 from propstore.sidecar.build import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
 from propstore.world import WorldModel
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -21,6 +21,7 @@ def _concept_artifact(local_id: str) -> str:
 def concept_dir(tmp_path):
     """Create a concepts directory with test concepts."""
     knowledge = tmp_path / "knowledge"
+    write_test_context(knowledge)
     concepts_path = knowledge / "concepts"
     concepts_path.mkdir(parents=True)
     counters = concepts_path / ".counters"
@@ -315,6 +316,7 @@ def world(concept_dir, repo, claim_files):
 def nonlinear_world(tmp_path):
     """Minimal fixture with a nonlinear parameterization: out = a^2 * b."""
     knowledge = tmp_path / "knowledge"
+    write_test_context(knowledge)
     concepts_path = knowledge / "concepts"
     concepts_path.mkdir(parents=True)
     counters = concepts_path / ".counters"

@@ -12,6 +12,7 @@ from propstore.artifacts.codes import attach_source_artifact_codes
 from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
+from tests.conftest import make_test_context_commit_entry
 from tests.test_source_relations import _init_source, _seed_master_concept
 
 
@@ -21,6 +22,13 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
     content_file = tmp_path / "paper.pdf"
     content_file.write_bytes(b"%PDF-demo\n")
     _seed_master_concept(repo, name="claims_identical")
+    context_path, context_body = make_test_context_commit_entry()
+    repo.git.commit_batch(
+        adds={context_path: context_body},
+        deletes=[],
+        message="Seed test context",
+        branch="master",
+    )
 
     init_result = runner.invoke(
         cli,
@@ -72,6 +80,7 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
                         "concept": "claims_identical",
                         "value": 1.0,
                         "unit": "probability",
+                        "context": "ctx_test",
                         "provenance": {"page": 1},
                     },
                     {
@@ -79,6 +88,7 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
                         "type": "observation",
                         "statement": "A second claim.",
                         "concepts": ["claims_identical"],
+                        "context": "ctx_test",
                         "provenance": {"page": 2},
                     },
                 ],

@@ -271,8 +271,8 @@ def test_structured_projection_does_not_treat_context_scope_as_unconditional() -
         support_metadata=_support_metadata(bound, active),
     )
 
-    assert projection.arguments[0].label is None
-    assert projection.arguments[0].support_quality == SupportQuality.CONTEXT_VISIBLE_ONLY
+    assert projection.arguments[0].label == Label.context("ctx_general")
+    assert projection.arguments[0].support_quality == SupportQuality.EXACT
 
 
 def test_structured_projection_support_induces_additional_defeat_path() -> None:

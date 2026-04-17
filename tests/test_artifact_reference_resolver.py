@@ -13,7 +13,8 @@ from propstore.artifacts import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
-from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
+from propstore.artifacts.documents.claims import ClaimDocument, ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
+from propstore.artifacts.documents.contexts import ContextReferenceDocument
 from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
 from propstore.storage.branch import create_branch
@@ -62,7 +63,8 @@ def test_load_primary_branch_claim_reference_index_reads_canonical_claim_files(t
         ClaimsFileDocument(
             source=ClaimSourceDocument(paper="paper"),
             claims=(
-                SourceClaimDocument(
+                ClaimDocument(
+                    context=ContextReferenceDocument(id="ctx_test"),
                     artifact_id="ps:claim:a",
                     logical_ids=(ClaimLogicalIdDocument(namespace="paper", value="claim_a"),),
                     type=ClaimType.OBSERVATION,
