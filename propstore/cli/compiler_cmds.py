@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from dataclasses import asdict
 import json
-import sqlite3
 import sys
 from collections.abc import Mapping, Sequence
 from enum import Enum
@@ -21,10 +20,6 @@ import click
 
 from propstore.cli.helpers import EXIT_VALIDATION, open_world_model
 from propstore.repository import Repository
-from propstore.artifacts.schema import DocumentSchemaError
-from propstore.identity import (
-    primary_logical_id,
-)
 from propstore.world.types import ATMSNodeStatus, ValueStatus, coerce_value_status
 
 if TYPE_CHECKING:
@@ -137,105 +132,42 @@ def _lifecycle_policy(
     )
 
 
+def _emit_workflow_messages(messages) -> None:
+    for message in messages:
+        label = message.level.upper()
+        if message.scope:
+            label = f"{label} ({message.scope})"
+        click.echo(f"{label}: {message.text}", err=True)
+
+
 @click.command()
 @click.pass_obj
 def validate(obj: dict) -> None:
     """Validate all concepts and claims. Runs CEL type-checking."""
-    from propstore.compiler.context import build_compilation_context_from_repo
-    from propstore.core.concepts import load_concepts
-    from propstore.validate_concepts import validate_concepts
-    from propstore.claims import load_claim_files
-    from propstore.compiler.passes import validate_claims
-
-
-
-
+    from propstore.compiler.workflows import (
+        CompilerWorkflowError,
+        validate_repository,
+    )
 
     repo: Repository = obj["repo"]
-    tree = repo.tree()
-    concepts_root = tree / "concepts"
-    if not concepts_root.exists():
-        click.echo("No concept files found.")
-        return
-
     try:
-        concepts = load_concepts(concepts_root)
-    except DocumentSchemaError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
-        click.echo("Validation FAILED: 1 error(s)", err=True)
+        report = validate_repository(repo)
+    except CompilerWorkflowError as exc:
+        _emit_workflow_messages(exc.messages)
+        click.echo(exc.summary, err=True)
         sys.exit(EXIT_VALIDATION)
-    if not concepts:
+
+    if report.no_concepts:
         click.echo("No concept files found.")
         return
 
-    # Validate form schema files
-    from propstore.form_utils import validate_form_files
-
-    form_result = validate_form_files(tree / "forms")
-    for e in form_result.errors:
-        click.echo(f"ERROR (form): {e}", err=True)
-
-    concept_result = validate_concepts(
-        concepts,
-        claims_dir=(tree / "claims") if (tree / "claims").exists() else None,
-        forms_dir=tree / "forms",
-    )
-
-    for w in concept_result.warnings:
-        click.echo(f"WARNING: {w}", err=True)
-    for e in concept_result.errors:
-        click.echo(f"ERROR: {e}", err=True)
-
-    # Claims (if directory exists)
-    claim_error_count = 0
-    claim_file_count = 0
-    claims_root = tree / "claims"
-    if claims_root.exists():
-        try:
-            files = load_claim_files(claims_root)
-        except DocumentSchemaError as exc:
-            click.echo(f"ERROR: {exc}", err=True)
-            click.echo("Validation FAILED: 1 error(s)", err=True)
-            sys.exit(EXIT_VALIDATION)
-        claim_file_count = len(files)
-        if files:
-            context = build_compilation_context_from_repo(repo, claim_files=files)
-            claim_result = validate_claims(files, context)
-            for w in claim_result.warnings:
-                click.echo(f"WARNING: {w}", err=True)
-            for e in claim_result.errors:
-                click.echo(f"ERROR: {e}", err=True)
-            claim_error_count = len(claim_result.errors)
-
-    # Contexts (if directory exists)
-    context_error_count = 0
-    if (tree / "contexts").exists():
-        from propstore.validate_contexts import load_contexts, validate_contexts
-        try:
-            ctx_list = load_contexts(tree / "contexts")
-        except DocumentSchemaError as exc:
-            click.echo(f"ERROR (context): {exc}", err=True)
-            click.echo("Validation FAILED: 1 error(s)", err=True)
-            sys.exit(EXIT_VALIDATION)
-        if ctx_list:
-            ctx_result = validate_contexts(ctx_list)
-            for w in ctx_result.warnings:
-                click.echo(f"WARNING (context): {w}", err=True)
-            for e in ctx_result.errors:
-                click.echo(f"ERROR (context): {e}", err=True)
-            context_error_count = len(ctx_result.errors)
-
-    total_errors = (
-        len(concept_result.errors) + claim_error_count
-        + len(form_result.errors) + context_error_count
-    )
-
-    if total_errors == 0:
+    _emit_workflow_messages(report.messages)
+    if report.ok:
         click.echo(
-            f"Validation passed: {len(concepts)} concept(s), "
-            f"{claim_file_count} claim file(s)")
+            f"Validation passed: {report.concept_count} concept(s), "
+            f"{report.claim_file_count} claim file(s)")
     else:
-        click.echo(f"Validation FAILED: {total_errors} error(s)", err=True)
+        click.echo(f"Validation FAILED: {len(report.errors)} error(s)", err=True)
         sys.exit(EXIT_VALIDATION)
 
 
@@ -245,175 +177,39 @@ def validate(obj: dict) -> None:
 @click.pass_obj
 def build(obj: dict, output: str | None, force: bool) -> None:
     """Validate everything, build sidecar, run conflict detection."""
-    from propstore.compiler.context import build_compilation_context_from_paths
-    from propstore.compiler.passes import compile_claim_files
-    from propstore.sidecar.build import build_sidecar
-    from propstore.core.concepts import load_concepts
-    from propstore.validate_concepts import validate_concepts
-    from propstore.claims import load_claim_files
+    from propstore.compiler.workflows import CompilerWorkflowError, build_repository
 
     repo: Repository = obj["repo"]
-    hash_key = repo.snapshot.head_sha()
-    tree = repo.snapshot.tree(commit=hash_key)
+    try:
+        report = build_repository(repo, output=output, force=force)
+    except CompilerWorkflowError as exc:
+        _emit_workflow_messages(exc.messages)
+        click.echo(exc.summary, err=True)
+        sys.exit(EXIT_VALIDATION)
 
-    concepts_root = tree / "concepts"
-    if not concepts_root.exists():
+    if report.no_concepts:
         click.echo("No concept files found.")
         return
 
-    try:
-        concepts = load_concepts(concepts_root)
-    except DocumentSchemaError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
-        click.echo("Build aborted: schema validation failed.", err=True)
-        sys.exit(EXIT_VALIDATION)
-    if not concepts:
-        click.echo("No concept files found.")
-        return
+    _emit_workflow_messages(report.messages)
+    for conflict in report.conflicts:
+        click.echo(
+            f"  {conflict.warning_class}: {conflict.concept_id} "
+            f"({conflict.claim_a_id} vs {conflict.claim_b_id})",
+            err=True,
+        )
+    for group in report.phi_groups:
+        click.echo(
+            f"  {group.key} — {len(group.claim_ids)} branches: "
+            f"{', '.join(group.claim_ids)}",
+            err=True,
+        )
 
-    # Step 0: Validate form schema files
-    from propstore.form_utils import validate_form_files
-
-    form_result = validate_form_files(tree / "forms")
-    if not form_result.ok:
-        for e in form_result.errors:
-            click.echo(f"ERROR (form): {e}", err=True)
-        click.echo("Build aborted: form validation failed.", err=True)
-        sys.exit(EXIT_VALIDATION)
-
-    # Step 1: Validate concepts
-    concept_result = validate_concepts(
-        concepts,
-        claims_dir=(tree / "claims") if (tree / "claims").exists() else None,
-        forms_dir=tree / "forms",
-    )
-    if not concept_result.ok:
-        for e in concept_result.errors:
-            click.echo(f"ERROR: {e}", err=True)
-        click.echo("Build aborted: concept validation failed.", err=True)
-        sys.exit(EXIT_VALIDATION)
-
-    # Step 1b: Load and validate contexts (if any)
-    from propstore.validate_contexts import load_contexts, validate_contexts
-    context_files = None
-    context_ids: set[str] = set()
-    if (tree / "contexts").exists():
-        try:
-            ctx_list = load_contexts(tree / "contexts")
-        except DocumentSchemaError as exc:
-            click.echo(f"ERROR (context): {exc}", err=True)
-            click.echo("Build aborted: context validation failed.", err=True)
-            sys.exit(EXIT_VALIDATION)
-        if ctx_list:
-            ctx_result = validate_contexts(ctx_list)
-            for w in ctx_result.warnings:
-                click.echo(f"WARNING (context): {w}", err=True)
-            if not ctx_result.ok:
-                for e in ctx_result.errors:
-                    click.echo(f"ERROR (context): {e}", err=True)
-                click.echo("Build aborted: context validation failed.", err=True)
-                sys.exit(EXIT_VALIDATION)
-            context_files = ctx_list
-            context_ids = {
-                str(c.record.context_id)
-                for c in ctx_list
-                if c.record.context_id is not None
-            }
-
-    # Step 2: Validate claims (if any)
-    claim_files = None
-    compilation_context = build_compilation_context_from_paths(
-        tree / "concepts",
-        tree / "forms",
-        context_ids=context_ids,
-    )
-    claim_bundle = None
-    if (tree / "claims").exists():
-        try:
-            files = load_claim_files(tree / "claims")
-        except DocumentSchemaError as exc:
-            click.echo(f"ERROR: {exc}", err=True)
-            click.echo("Build aborted: claim validation failed.", err=True)
-            sys.exit(EXIT_VALIDATION)
-        if files:
-            compilation_context = build_compilation_context_from_paths(
-                tree / "concepts",
-                tree / "forms",
-                claim_files=files,
-                context_ids=context_ids if context_ids else None,
-            )
-            claim_bundle = compile_claim_files(
-                files,
-                compilation_context,
-                context_ids=context_ids if context_ids else None,
-            )
-            claim_result = claim_bundle.to_validation_result()
-            if not claim_result.ok:
-                for e in claim_result.errors:
-                    click.echo(f"ERROR: {e}", err=True)
-                click.echo("Build aborted: claim validation failed.", err=True)
-                sys.exit(EXIT_VALIDATION)
-            claim_files = files
-
-    # Step 3: Build sidecar
-    sidecar_path = Path(output) if output else repo.sidecar_path
-    rebuilt = build_sidecar(
-        tree, sidecar_path, force=force,
-        commit_hash=hash_key,
-        compilation_context=compilation_context,
-        claim_bundle=claim_bundle,
-    )
-
-    # Step 4: Summary via WorldModel (proves the roundtrip)
-    from propstore.world import WorldModel
-
-    warning_count = len(concept_result.warnings)
-    try:
-        wm = WorldModel(repo)
-        s = wm.stats()
-        claim_count = s.claims
-
-        conflicts = wm.conflicts()
-        # Group PHI_NODEs by concept for compact display;
-        # count them separately from real conflicts.
-        from collections import defaultdict
-        from propstore.conflict_detector import ConflictClass
-        phi_groups: dict[str, set[str]] = defaultdict(set)
-        phi_node_count = 0
-        real_conflict_count = 0
-        for c in conflicts:
-            wc = c.warning_class
-            if wc in (ConflictClass.PHI_NODE, ConflictClass.CONTEXT_PHI_NODE):
-                key = f"{wc.value}: {c.concept_id}"
-                phi_groups[key].add(str(c.claim_a_id))
-                phi_groups[key].add(str(c.claim_b_id))
-                phi_node_count += 1
-            else:
-                real_conflict_count += 1
-                click.echo(
-                    f"  {wc}: {c.concept_id} "
-                    f"({c.claim_a_id} vs {c.claim_b_id})", err=True)
-        for key, claim_ids in phi_groups.items():
-            sorted_ids = sorted(claim_ids)
-            click.echo(
-                f"  {key} — {len(sorted_ids)} branches: "
-                f"{', '.join(sorted_ids)}", err=True)
-        conflict_count = real_conflict_count
-        wm.close()
-    except FileNotFoundError:
-        # Sidecar didn't get written (no claims?) — fall back to counting
-        conflict_count = 0
-        phi_node_count = 0
-        claim_count = 0
-        if claim_files:
-            for cf in claim_files:
-                claim_count += len(cf.data.get("claims", []))
-
-    status = "rebuilt" if rebuilt else "unchanged"
+    status = "rebuilt" if report.rebuilt else "unchanged"
     click.echo(
-        f"Build {status}: {len(concepts)} concepts, {claim_count} claims, "
-        f"{conflict_count} conflicts, {phi_node_count} phi-nodes, "
-        f"{warning_count} warnings")
+        f"Build {status}: {report.concept_count} concepts, "
+        f"{report.claim_count} claims, {report.conflict_count} conflicts, "
+        f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings")
 
 
 @click.command()
@@ -421,31 +217,24 @@ def build(obj: dict, output: str | None, force: bool) -> None:
 @click.pass_obj
 def query(obj: dict, sql: str) -> None:
     """Run raw SQL against the sidecar SQLite."""
+    from propstore.sidecar.query import SidecarQueryError, query_sidecar
+
     repo: Repository = obj["repo"]
-    sidecar = repo.sidecar_path
-    if not sidecar.exists():
+    try:
+        result = query_sidecar(repo, sql)
+    except FileNotFoundError:
         click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
         sys.exit(1)
-
-    conn = sqlite3.connect(sidecar)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA query_only=ON")
-    try:
-        cursor = conn.execute(sql)
-        rows = cursor.fetchall()
-        if rows:
-            # Print header
-            keys = rows[0].keys()
-            click.echo("\t".join(keys))
-            for row in rows:
-                click.echo("\t".join(str(row[k]) for k in keys))
-        else:
-            click.echo("(no results)")
-    except sqlite3.Error as e:
-        click.echo(f"SQL error: {e}", err=True)
+    except SidecarQueryError as exc:
+        click.echo(f"SQL error: {exc}", err=True)
         sys.exit(1)
-    finally:
-        conn.close()
+
+    if not result.rows:
+        click.echo("(no results)")
+        return
+    click.echo("\t".join(result.columns))
+    for row in result.rows:
+        click.echo("\t".join(row))
 
 
 @click.command("export-aliases")
@@ -454,31 +243,23 @@ def query(obj: dict, sql: str) -> None:
 @click.pass_obj
 def export_aliases(obj: dict, fmt: str) -> None:
     """Export the alias lookup table."""
+    from propstore.core.aliases import export_concept_aliases
+
     repo: Repository = obj["repo"]
-    concepts_root = repo.tree() / "concepts"
-    if not concepts_root.exists():
+    try:
+        aliases = export_concept_aliases(repo)
+    except FileNotFoundError:
         click.echo("ERROR: No concepts directory.", err=True)
         sys.exit(1)
 
-    from propstore.core.concepts import load_concepts
-
-    concepts = load_concepts(concepts_root)
-    aliases: dict[str, dict[str, str]] = {}
-
-    for c in concepts:
-        d = c.data
-        logical_id = primary_logical_id(d) or d.get("canonical_name", "")
-        name = d.get("canonical_name", "")
-        for a in d.get("aliases", []) or []:
-            alias_name = a.get("name", "")
-            if alias_name:
-                aliases[alias_name] = {"logical_id": logical_id, "name": name}
-
     if fmt == "json":
-        click.echo(json.dumps(aliases, indent=2))
+        click.echo(json.dumps(
+            {alias: entry.to_dict() for alias, entry in aliases.items()},
+            indent=2,
+        ))
     else:
         for alias_name, info in sorted(aliases.items()):
-            click.echo(f"{alias_name} -> {info['logical_id']} ({info['name']})")
+            click.echo(f"{alias_name} -> {info.logical_id} ({info.name})")
 
 
 # ── World command group ──────────────────────────────────────────────
@@ -558,19 +339,17 @@ def world_status(
     the sidecar holds every row and the render layer decides what to
     report.
     """
-    from propstore.world import WorldModel
+    from propstore.world.queries import WorldStatusRequest, get_world_status
 
     repo: Repository = obj["repo"]
     policy = _lifecycle_policy(include_drafts, include_blocked, show_quarantined)
     with open_world_model(repo) as wm:
-        s = wm.stats()
-        visible_claims = len(wm.claims_with_policy(None, policy))
-        click.echo(f"Concepts: {s.concepts}")
-        click.echo(f"Claims:   {visible_claims}")
-        click.echo(f"Conflicts: {s.conflicts}")
+        report = get_world_status(wm, WorldStatusRequest(policy=policy))
+        click.echo(f"Concepts: {report.concept_count}")
+        click.echo(f"Claims:   {report.visible_claim_count}")
+        click.echo(f"Conflicts: {report.conflict_count}")
         if policy.show_quarantined:
-            diagnostics = wm.build_diagnostics(policy)
-            click.echo(f"Diagnostics: {len(diagnostics)}")
+            click.echo(f"Diagnostics: {report.diagnostic_count}")
 
 
 @world.command("query")
