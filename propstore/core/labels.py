@@ -34,19 +34,30 @@ class AssumptionRef:
 
 @dataclass(frozen=True, order=True)
 class EnvironmentKey:
-    """Immutable set of supporting assumption IDs."""
+    """Immutable set of supporting assumption and context IDs."""
 
     assumption_ids: tuple[AssumptionId, ...] = ()
+    context_ids: tuple[ContextId, ...] = ()
 
     def __post_init__(self) -> None:
         normalized = tuple(sorted(dict.fromkeys(to_assumption_ids(self.assumption_ids))))
         object.__setattr__(self, "assumption_ids", normalized)
+        normalized_contexts = tuple(
+            sorted(dict.fromkeys(to_context_id(value) for value in self.context_ids))
+        )
+        object.__setattr__(self, "context_ids", normalized_contexts)
 
     def union(self, other: EnvironmentKey) -> EnvironmentKey:
-        return EnvironmentKey(self.assumption_ids + other.assumption_ids)
+        return EnvironmentKey(
+            self.assumption_ids + other.assumption_ids,
+            context_ids=self.context_ids + other.context_ids,
+        )
 
     def subsumes(self, other: EnvironmentKey) -> bool:
-        return set(self.assumption_ids).issubset(other.assumption_ids)
+        return (
+            set(self.assumption_ids).issubset(other.assumption_ids)
+            and set(self.context_ids).issubset(other.context_ids)
+        )
 
 
 @dataclass(frozen=True)
@@ -73,11 +84,18 @@ def normalize_environments(
 ) -> tuple[EnvironmentKey, ...]:
     """Deduplicate, prune supersets, and drop known-nogood environments."""
     unique = {
-        env.assumption_ids: env
+        (env.assumption_ids, env.context_ids): env
         for env in environments
         if nogoods is None or not nogoods.excludes(env)
     }
-    ordered = sorted(unique.values(), key=lambda env: (len(env.assumption_ids), env.assumption_ids))
+    ordered = sorted(
+        unique.values(),
+        key=lambda env: (
+            len(env.assumption_ids) + len(env.context_ids),
+            env.assumption_ids,
+            env.context_ids,
+        ),
+    )
     minimal: list[EnvironmentKey] = []
     for candidate in ordered:
         if any(existing.subsumes(candidate) for existing in minimal):
@@ -107,6 +125,10 @@ class Label:
     @classmethod
     def singleton(cls, assumption: AssumptionRef) -> Label:
         return cls((EnvironmentKey((assumption.assumption_id,)),))
+
+    @classmethod
+    def context(cls, context_id: ContextId | str) -> Label:
+        return cls((EnvironmentKey((), context_ids=(to_context_id(context_id),)),))
 
 
 def binding_condition_to_cel(key: str, value: Any) -> CelExpr:

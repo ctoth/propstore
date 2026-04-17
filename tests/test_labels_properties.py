@@ -29,6 +29,7 @@ from propstore.core.labels import combine_labels, merge_labels
 
 
 _ASSUMPTION_IDS = st.text(alphabet="abcdef", min_size=1, max_size=3)
+_CONTEXT_IDS = st.text(alphabet="xyz", min_size=1, max_size=3).map(lambda text: f"ctx_{text}")
 
 
 @st.composite
@@ -97,10 +98,11 @@ class TestLabelMinimality:
         """No two environments in a label are identical."""
         seen = set()
         for env in label.environments:
-            assert env.assumption_ids not in seen, (
+            identity = (env.assumption_ids, env.context_ids)
+            assert identity not in seen, (
                 f"Duplicate environment {env} in label"
             )
-            seen.add(env.assumption_ids)
+            seen.add(identity)
 
 
 # ── 2. normalize_environments properties ──────────────────────────
@@ -301,3 +303,22 @@ class TestEnvironmentKey:
         ids = env.assumption_ids
         assert ids == tuple(sorted(ids))
         assert len(ids) == len(set(ids))
+
+    @given(_ASSUMPTION_IDS)
+    @_PROP_SETTINGS
+    def test_contexts_are_part_of_environment_identity(self, assumption_id):
+        """Same assumptions in different contexts are distinct ATMS environments."""
+        left = EnvironmentKey((assumption_id,), context_ids=("ctx_left",))
+        right = EnvironmentKey((assumption_id,), context_ids=("ctx_right",))
+
+        assert left != right
+        assert not left.subsumes(right)
+        assert not right.subsumes(left)
+        assert left.union(right).context_ids == ("ctx_left", "ctx_right")
+
+    @given(st.lists(_CONTEXT_IDS, min_size=0, max_size=6))
+    @_PROP_SETTINGS
+    def test_contexts_sorted_and_deduplicated(self, context_ids):
+        """EnvironmentKey always stores sorted, deduplicated context IDs."""
+        env = EnvironmentKey((), context_ids=tuple(context_ids))
+        assert env.context_ids == tuple(sorted(set(context_ids)))

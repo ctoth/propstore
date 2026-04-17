@@ -28,10 +28,12 @@ from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.id_types import (
     AssumptionId,
     ClaimId,
+    ContextId,
     QueryableId,
     to_assumption_id,
     to_assumption_ids,
     to_claim_ids,
+    to_context_id,
     to_queryable_ids,
 )
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness, ParameterizationEdge
@@ -162,6 +164,18 @@ class ATMSAssumptionNode:
 
 
 @dataclass(frozen=True)
+class ATMSContextNode:
+    node_id: str
+    context_id: ContextId
+    label: Label = field(default_factory=Label)
+    justification_ids: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def kind(self) -> str:
+        return "context"
+
+
+@dataclass(frozen=True)
 class ATMSClaimNode:
     node_id: str
     claim: ActiveClaim
@@ -200,11 +214,15 @@ class ATMSDerivedNode:
         return "derived"
 
 
-ATMSNode = ATMSAssumptionNode | ATMSClaimNode | ATMSDerivedNode
+ATMSNode = ATMSAssumptionNode | ATMSContextNode | ATMSClaimNode | ATMSDerivedNode
 
 
 def _is_assumption_node(node: ATMSNode) -> TypeGuard[ATMSAssumptionNode]:
     return isinstance(node, ATMSAssumptionNode)
+
+
+def _is_context_node(node: ATMSNode) -> TypeGuard[ATMSContextNode]:
+    return isinstance(node, ATMSContextNode)
 
 
 def _is_claim_node(node: ATMSNode) -> TypeGuard[ATMSClaimNode]:
@@ -336,6 +354,10 @@ def _node_assumption(node: ATMSNode) -> AssumptionRef | None:
     return node.assumption if _is_assumption_node(node) else None
 
 
+def _node_context_id(node: ATMSNode) -> ContextId | None:
+    return node.context_id if _is_context_node(node) else None
+
+
 def _extend_environment(
     environment: Environment,
     queryable_set: tuple[QueryableAssumption, ...],
@@ -448,6 +470,7 @@ class ATMSEngine:
         self._justifications: dict[str, ATMSJustification] = {}
         self._claim_node_ids: dict[str, str] = {}
         self._assumption_node_ids: dict[str, str] = {}
+        self._context_node_ids: dict[ContextId, str] = {}
         self._all_parameterizations = tuple(self._sorted_parameterizations())
         self.nogoods = NogoodSet()
         self._nogood_provenance: dict[EnvironmentKey, tuple[ATMSNogoodProvenanceDetail, ...]] = {}
@@ -1176,6 +1199,7 @@ class ATMSEngine:
 
     def _build(self) -> None:
         self._build_assumption_nodes()
+        self._build_context_nodes()
         self._build_claim_nodes_and_justifications()
 
         while True:
@@ -1199,6 +1223,16 @@ class ATMSEngine:
             )
             self._nodes[node_id] = node
             self._assumption_node_ids[assumption.assumption_id] = node_id
+
+    def _build_context_nodes(self) -> None:
+        for context_id in self._visible_context_ids():
+            node_id = f"context:{context_id}"
+            self._nodes[node_id] = ATMSContextNode(
+                node_id=node_id,
+                context_id=context_id,
+                label=Label.context(context_id),
+            )
+            self._context_node_ids[context_id] = node_id
 
     def _build_claim_nodes_and_justifications(self) -> None:
         for claim in sorted(self._runtime.active_claims(), key=lambda row: str(row.claim_id)):
@@ -1224,10 +1258,10 @@ class ATMSEngine:
         seeded_nodes = {
             node_id: node.label
             for node_id, node in self._nodes.items()
-            if node.kind == "assumption"
+            if node.kind in {"assumption", "context"}
         }
         for node_id, node in list(self._nodes.items()):
-            if node.kind != "assumption":
+            if node.kind not in {"assumption", "context"}:
                 self._nodes[node_id] = replace(node, label=Label(()))
 
         for node_id, label in seeded_nodes.items():
@@ -1386,15 +1420,22 @@ class ATMSEngine:
         *,
         context_id: str | None = None,
     ) -> list[tuple[str, ...]]:
+        context_antecedents: tuple[str, ...] = ()
+        if context_id is not None:
+            context_node_id = self._context_node_ids.get(to_context_id(context_id))
+            if context_node_id is None:
+                return []
+            context_antecedents = (context_node_id,)
+
         if not conditions_cel:
-            return [] if context_id is not None else [()]
+            return [context_antecedents]
 
         try:
             conditions = json.loads(conditions_cel)
         except (TypeError, json.JSONDecodeError):
             return []
         if not conditions:
-            return [] if context_id is not None else [()]
+            return [context_antecedents]
 
         matching_node_groups: list[list[str]] = []
         for condition in conditions:
@@ -1410,7 +1451,7 @@ class ATMSEngine:
             matching_node_groups.append(sorted(matches))
 
         return [
-            tuple(sorted(node_ids))
+            tuple(sorted(context_antecedents + node_ids))
             for node_ids in product(*matching_node_groups)
         ]
 
@@ -1568,6 +1609,11 @@ class ATMSEngine:
             if assumption is not None:
                 return Label.singleton(assumption)
             return Label(())
+        if node.kind == "context":
+            context_id = _node_context_id(node)
+            if context_id is not None:
+                return Label.context(context_id)
+            return Label(())
 
         candidates = [
             self._justification_candidate_label(self._justifications[justification_id], nogoods=self.nogoods)
@@ -1580,8 +1626,18 @@ class ATMSEngine:
             tuple(
                 assumption.assumption_id
                 for assumption in self._runtime.environment.assumptions
-            )
+            ),
+            context_ids=self._visible_context_ids(),
         )
+
+    def _visible_context_ids(self) -> tuple[ContextId, ...]:
+        context_ids: set[ContextId] = set()
+        if self._runtime.environment.context_id is not None:
+            context_ids.add(to_context_id(self._runtime.environment.context_id))
+        for claim in self._runtime.active_claims():
+            if claim.context_id is not None:
+                context_ids.add(to_context_id(claim.context_id))
+        return tuple(sorted(context_ids))
 
     def _coerce_queryables(
         self,
