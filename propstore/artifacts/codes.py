@@ -202,7 +202,13 @@ def _serialize_label(label: Label | None) -> list[list[str]] | None:
 
 
 def _verify_origin(repo: Repository, source_slug: str, source_doc: dict[str, Any]) -> dict[str, Any]:
-    origin = source_doc.get("origin") if isinstance(source_doc.get("origin"), dict) else {}
+    raw_origin = source_doc.get("origin")
+    if raw_origin is None:
+        origin: dict[str, Any] = {}
+    elif isinstance(raw_origin, dict):
+        origin = raw_origin
+    else:
+        raise ValueError(f"source {source_slug}: origin must be a mapping")
     expected = origin.get("content_ref")
     if not isinstance(expected, str) or not expected:
         return {"status": "unavailable", "path": None, "expected": expected, "actual": None}

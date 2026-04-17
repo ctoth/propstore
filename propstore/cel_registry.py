@@ -53,11 +53,12 @@ def concept_info_from_concept_record(record: ConceptRecord) -> ConceptInfo:
     if not isinstance(record.canonical_name, str) or not record.canonical_name:
         raise ValueError("concept record must define a non-empty canonical_name")
     kind = _kind_type_from_optional_fields(kind_type=None, form=record.form)
-    form_parameters = (
-        record.form_parameters
-        if isinstance(record.form_parameters, Mapping)
-        else {}
-    )
+    if record.form_parameters is None:
+        form_parameters: Mapping[str, Any] = {}
+    elif isinstance(record.form_parameters, Mapping):
+        form_parameters = record.form_parameters
+    else:
+        raise ValueError("concept record form_parameters must be a mapping")
     category_values, category_extensible = _category_metadata(form_parameters)
     return ConceptInfo(
         id=concept_id,

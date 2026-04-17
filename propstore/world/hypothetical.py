@@ -159,7 +159,9 @@ def _claim_node_for_synthetic(
         (claim for claim in compiled.claims if claim.claim_id == synthetic.id),
         None,
     )
-    attributes = dict(existing.attributes) if existing is not None else {}
+    attributes: dict[str, Any] = {}
+    if existing is not None:
+        attributes = dict(existing.attributes)
     if synthetic.conditions:
         attributes["conditions_cel"] = json.dumps(synthetic.conditions)
     else:

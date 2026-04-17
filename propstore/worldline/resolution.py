@@ -373,11 +373,9 @@ def _resolve_chain_target(
     if not callable(chain_query):
         return None
     strategy_enum = context.policy.strategy if context.policy.strategy is not None else None
-    chain_bindings = (
-        dict(context.query_world._bindings)
-        if isinstance(context.query_world, HasBindings)
-        else {}
-    )
+    chain_bindings: dict[str, Any] = {}
+    if isinstance(context.query_world, HasBindings):
+        chain_bindings = dict(context.query_world._bindings)
     try:
         chain_result = chain_query(
             concept_id,
