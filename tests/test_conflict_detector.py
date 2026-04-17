@@ -39,6 +39,7 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", conditions=None):
         "concept": concept_id,
         "unit": unit,
         "conditions": conditions or [],
+        "context": {"id": "ctx_test"},
         "provenance": {"paper": "test", "page": 1},
     }
     if isinstance(value, list):
@@ -78,12 +79,12 @@ def flatten_claims(claims_or_files):
     return flattened
 
 
-def detect_conflicts(claim_files, registry, context_hierarchy=None):
+def detect_conflicts(claim_files, registry, lifting_system=None):
     return _detect_conflicts(
         flatten_claims(claim_files),
         registry,
         make_cel_registry(registry),
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
     )
 
 
@@ -978,15 +979,10 @@ class TestAlgorithmConflicts:
 
 
 class TestTransitiveContextSemantics:
-    def test_transitive_conflicts_in_unrelated_contexts_not_suppressed(self):
-        """Unrelated contexts no longer suppress transitive conflicts.
-
-        Previously, unrelated contexts fell through to CONTEXT_PHI_NODE,
-        silently suppressing real conflicts. Now condition analysis runs,
-        revealing the actual PARAM_CONFLICT.
-        """
+    def test_transitive_conflicts_in_unrelated_contexts_are_context_phi_nodes(self):
+        """Unrelated contexts require an explicit lifting rule before conflict."""
         from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.context_hierarchy import ContextHierarchy
+        from propstore.context_lifting import ContextReference, LiftingSystem
 
         concept_out = make_concept_identity(
             "concept_out",
@@ -1055,28 +1051,23 @@ class TestTransitiveContextSemantics:
             ) | {"context": "ctx_other"},
         ]
         cf = make_claim_file(claims)
-        hierarchy = ContextHierarchy([
-            make_context("root", {"id": "ctx_root", "name": "Root"}),
-            make_context("other", {"id": "ctx_other", "name": "Other"}),
-        ])
+        lifting_system = LiftingSystem(
+            contexts=(ContextReference("ctx_root"), ContextReference("ctx_other")),
+        )
 
         records = detect_transitive_conflicts(
             cf,
             registry,
-            context_hierarchy=hierarchy,
+            lifting_system=lifting_system,
         )
 
         assert len(records) == 1
-        assert records[0].warning_class == ConflictClass.PARAM_CONFLICT
+        assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
         assert records[0].concept_id == concept_out["artifact_id"]
 
-    def test_unrelated_contexts_do_not_suppress_direct_conflicts(self):
-        """Claims in unrelated contexts should NOT be suppressed as CONTEXT_PHI_NODE.
-
-        Two contexts with no hierarchy relationship (not excluded, not visible)
-        should let condition analysis decide, not silently classify as phi-node.
-        """
-        from propstore.context_hierarchy import ContextHierarchy
+    def test_unrelated_contexts_classify_direct_conflicts_as_context_phi(self):
+        """Claims in unrelated contexts need authored lifting to interact."""
+        from propstore.context_lifting import ContextReference, LiftingSystem
 
         claims = [
             make_parameter_claim(
@@ -1089,25 +1080,18 @@ class TestTransitiveContextSemantics:
             ) | {"context": "ctx_beta"},
         ]
         cf = make_claim_file(claims)
-        hierarchy = ContextHierarchy([
-            make_context("alpha", {"id": "ctx_alpha", "name": "Alpha"}),
-            make_context("beta", {"id": "ctx_beta", "name": "Beta"}),
-        ])
+        lifting_system = LiftingSystem(
+            contexts=(ContextReference("ctx_alpha"), ContextReference("ctx_beta")),
+        )
 
         records = detect_conflicts(
             [cf],
             make_concept_registry(),
-            context_hierarchy=hierarchy,
+            lifting_system=lifting_system,
         )
 
-        # Unrelated contexts must NOT suppress the conflict as CONTEXT_PHI_NODE.
-        # The pair has same conditions + different values = real CONFLICT.
-        phi_records = [r for r in records if r.warning_class == ConflictClass.CONTEXT_PHI_NODE]
-        assert len(phi_records) == 0, (
-            f"Expected no CONTEXT_PHI_NODE for unrelated contexts, got {phi_records}"
-        )
         assert len(records) == 1
-        assert records[0].warning_class == ConflictClass.CONFLICT
+        assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
 
 
 # ── Exception-handling tests (Group 2) ──────────────────────────────

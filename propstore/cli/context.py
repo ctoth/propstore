@@ -22,16 +22,18 @@ def context() -> None:
 @context.command()
 @click.option("--name", required=True, help="Context ID (e.g., ctx_atms_tradition)")
 @click.option("--description", required=True, help="Short description")
-@click.option("--inherits", default=None, help="Parent context ID")
-@click.option("--excludes", default=None, help="Comma-separated excluded context IDs")
+@click.option("--assumption", multiple=True, help="Context-local CEL assumption")
+@click.option("--parameter", multiple=True, help="Context parameter as KEY=VALUE")
+@click.option("--perspective", default=None, help="Named perspective for this context")
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
 @click.pass_obj
 def add(
     obj: dict,
     name: str,
     description: str,
-    inherits: str | None,
-    excludes: str | None,
+    assumption: tuple[str, ...],
+    parameter: tuple[str, ...],
+    perspective: str | None,
     dry_run: bool,
 ) -> None:
     """Add a new context to the registry."""
@@ -44,22 +46,31 @@ def add(
         click.echo(f"ERROR: Context file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
-    # Validate inherits reference
-    if inherits:
-        parent_path = contexts_tree / f"{inherits}.yaml"
-        if not parent_path.exists():
-            click.echo(f"ERROR: Parent context '{inherits}' does not exist", err=True)
+    parameters: dict[str, str] = {}
+    for raw_parameter in parameter:
+        key, sep, value = raw_parameter.partition("=")
+        if not sep or not key or not value:
+            click.echo(
+                f"ERROR: Context parameter '{raw_parameter}' must be KEY=VALUE",
+                err=True,
+            )
             sys.exit(EXIT_ERROR)
+        parameters[key] = value
 
     data: dict = {
         "id": name,
         "name": name,
         "description": description,
     }
-    if inherits:
-        data["inherits"] = inherits
-    if excludes:
-        data["excludes"] = [e.strip() for e in excludes.split(",")]
+    structure: dict[str, object] = {}
+    if assumption:
+        structure["assumptions"] = list(assumption)
+    if parameters:
+        structure["parameters"] = parameters
+    if perspective:
+        structure["perspective"] = perspective
+    if structure:
+        data["structure"] = structure
 
     if dry_run:
         click.echo(f"Would create {filepath}")
@@ -101,6 +112,5 @@ def list_contexts(obj: dict) -> None:
         record = context.record
         cid = context.filename if record.context_id is None else str(record.context_id)
         desc = record.description or ""
-        inherits = None if record.inherits is None else str(record.inherits)
-        suffix = f" (inherits {inherits})" if inherits else ""
+        suffix = f" ({record.perspective})" if record.perspective else ""
         click.echo(f"  {cid}{suffix} — {desc}")

@@ -65,12 +65,12 @@ from propstore.world.types import (
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
     from propstore.fragility import FragilityReport
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
     from propstore.world.atms import ATMSEngine
 
 @runtime_checkable
-class _ContextHierarchyLoader(Protocol):
-    def _load_context_hierarchy(self) -> ContextHierarchy | None: ...
+class _LiftingSystemLoader(Protocol):
+    def _load_lifting_system(self) -> LiftingSystem | None: ...
 
 
 @dataclass(frozen=True)
@@ -164,16 +164,16 @@ def _recomputed_conflicts(
     else:
         concept_registry = precomputed_inputs.concept_registry
         cel_registry = precomputed_inputs.cel_registry
-    context_hierarchy = (
-        world._load_context_hierarchy()
-        if isinstance(world, _ContextHierarchyLoader)
+    lifting_system = (
+        world._load_lifting_system()
+        if isinstance(world, _LiftingSystemLoader)
         else None
     )
     records = detect_conflicts(
         conflict_claims,
         concept_registry,
         cel_registry,
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
     )
     return [
         ConflictRow(
@@ -201,7 +201,7 @@ class BoundWorld(BeliefSpace):
         world: ArtifactStore,
         bindings: dict[str, Any] | None = None,
         context_id: str | None = None,
-        context_hierarchy: ContextHierarchy | None = None,
+        lifting_system: LiftingSystem | None = None,
         *,
         environment: Environment | None = None,
         policy: RenderPolicy | None = None,
@@ -236,12 +236,12 @@ class BoundWorld(BeliefSpace):
             if assumption not in self._binding_conds:
                 self._binding_conds.append(assumption)
         self._context_id = environment.context_id
-        self._context_hierarchy = context_hierarchy
-        # Pre-compute ancestor set for fast lookups
-        if self._context_id and context_hierarchy is not None:
-            self._context_visible: set[str] | None = {self._context_id}
-            for ancestor in context_hierarchy.ancestors(self._context_id):
-                self._context_visible.add(ancestor)
+        self._lifting_system = lifting_system
+        if self._context_id and lifting_system is not None:
+            self._context_visible: set[str] | None = {
+                str(context_id)
+                for context_id in lifting_system.contexts_visible_from(self._context_id)
+            }
         else:
             self._context_visible = None  # no context filtering
         self._conflicts_cache: dict[str | None, list[ConflictRow]] = {}
@@ -304,7 +304,7 @@ class BoundWorld(BeliefSpace):
         return self.__class__(
             self._store,
             environment=environment,
-            context_hierarchy=self._context_hierarchy,
+            lifting_system=self._lifting_system,
             policy=policy,
         )
 
@@ -327,7 +327,7 @@ class BoundWorld(BeliefSpace):
             active_claim,
             environment=self._environment,
             solver=solver,
-            context_hierarchy=self._context_hierarchy,
+            lifting_system=self._lifting_system,
         )
 
     def is_param_compatible(self, conditions_cel: str | None) -> bool:

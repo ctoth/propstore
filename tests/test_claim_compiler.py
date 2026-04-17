@@ -214,6 +214,7 @@ def test_compile_claim_files_rejects_raw_id_only_claims(tmp_path):
                 "concept": concepts[0]["artifact_id"],
                 "value": 200.0,
                 "unit": "Hz",
+                "context": {"id": "ctx_test"},
                 "provenance": {"paper": "paper", "page": 1},
             }
         ],

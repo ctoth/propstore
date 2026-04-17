@@ -94,7 +94,7 @@ The conflict detector (`conflict_detector/algorithms.py`) integrates algorithm c
 2. For each concept with 2+ claims, pairwise `ast_compare()` is called
 3. If `result.equivalent and result.tier <= 2`: no conflict (equivalent algorithms)
 4. Otherwise: a conflict is recorded with `derivation_chain = f"similarity:{result.similarity:.3f} tier:{result.tier}"`
-5. Condition overlap and context hierarchy are respected — two algorithms with fully disjoint conditions produce a `PHI_NODE`, not a conflict
+5. Condition overlap and explicit context lifting are respected — two algorithms with fully disjoint conditions produce a `PHI_NODE`, not a conflict
 
 Error tolerance: if `ast_compare` raises `ValueError` or `SyntaxError` for a pair, the pair is logged and skipped rather than failing the entire conflict detection run.
 

@@ -214,8 +214,8 @@ def create_context_tables(conn: sqlite3.Connection) -> None:
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             description TEXT,
-            inherits TEXT,
-            FOREIGN KEY (inherits) REFERENCES context(id)
+            parameters_json TEXT,
+            perspective TEXT
         );
 
         CREATE TABLE IF NOT EXISTS context_assumption (
@@ -225,16 +225,20 @@ def create_context_tables(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (context_id) REFERENCES context(id)
         );
 
-        CREATE TABLE IF NOT EXISTS context_exclusion (
-            context_a TEXT NOT NULL,
-            context_b TEXT NOT NULL,
-            FOREIGN KEY (context_a) REFERENCES context(id),
-            FOREIGN KEY (context_b) REFERENCES context(id)
+        CREATE TABLE IF NOT EXISTS context_lifting_rule (
+            id TEXT PRIMARY KEY,
+            source_context_id TEXT NOT NULL,
+            target_context_id TEXT NOT NULL,
+            conditions_cel TEXT,
+            mode TEXT NOT NULL,
+            justification TEXT,
+            FOREIGN KEY (source_context_id) REFERENCES context(id),
+            FOREIGN KEY (target_context_id) REFERENCES context(id)
         );
 
         CREATE INDEX IF NOT EXISTS idx_ctx_assumption ON context_assumption(context_id);
-        CREATE INDEX IF NOT EXISTS idx_ctx_exclusion_a ON context_exclusion(context_a);
-        CREATE INDEX IF NOT EXISTS idx_ctx_exclusion_b ON context_exclusion(context_b);
+        CREATE INDEX IF NOT EXISTS idx_ctx_lift_source ON context_lifting_rule(source_context_id);
+        CREATE INDEX IF NOT EXISTS idx_ctx_lift_target ON context_lifting_rule(target_context_id);
     """)
 
 
@@ -242,8 +246,9 @@ def populate_contexts(
     conn: sqlite3.Connection,
     contexts: Sequence[LoadedContext],
 ) -> None:
+    import json
+
     typed_contexts = coerce_loaded_contexts(contexts)
-    exclusion_pairs: list[tuple[str, str]] = []
     for context in typed_contexts:
         record = context.record
         if record.context_id is None:
@@ -251,12 +256,18 @@ def populate_contexts(
         context_id = str(record.context_id)
 
         conn.execute(
-            "INSERT INTO context (id, name, description, inherits) VALUES (?, ?, ?, ?)",
+            """
+            INSERT INTO context (id, name, description, parameters_json, perspective)
+            VALUES (?, ?, ?, ?, ?)
+            """,
             (
                 context_id,
                 record.name or "",
                 record.description,
-                None if record.inherits is None else str(record.inherits),
+                json.dumps(dict(record.parameters), sort_keys=True)
+                if record.parameters
+                else None,
+                record.perspective,
             ),
         )
 
@@ -266,14 +277,25 @@ def populate_contexts(
                 (context_id, assumption, seq),
             )
 
-        for exclusion in record.excludes:
-            exclusion_pairs.append((context_id, str(exclusion)))
-
-    for context_a, context_b in exclusion_pairs:
-        conn.execute(
-            "INSERT INTO context_exclusion (context_a, context_b) VALUES (?, ?)",
-            (context_a, context_b),
-        )
+        for rule in record.lifting_rules:
+            conn.execute(
+                """
+                INSERT INTO context_lifting_rule (
+                    id, source_context_id, target_context_id,
+                    conditions_cel, mode, justification
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    rule.id,
+                    str(rule.source.id),
+                    str(rule.target.id),
+                    json.dumps(list(rule.conditions), sort_keys=True)
+                    if rule.conditions
+                    else None,
+                    rule.mode.value,
+                    rule.justification,
+                ),
+            )
 
 
 def create_claim_tables(conn: sqlite3.Connection) -> None:

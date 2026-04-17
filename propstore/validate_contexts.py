@@ -1,4 +1,4 @@
-"""Context file validator and hierarchy for the propstore knowledge store."""
+"""Context file validator for the propstore knowledge store."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def load_contexts(contexts_dir: KnowledgePath | None) -> list[LoadedContext]:
 
 
 def validate_contexts(contexts: list[ContextInput]) -> ValidationResult:
-    """Validate context files for required fields, references, and cycles."""
+    """Validate context files for required fields and lifting-rule references."""
     typed_contexts = coerce_loaded_contexts(contexts)
     result = ValidationResult()
     seen_ids: dict[str, str] = {}
@@ -56,35 +56,16 @@ def validate_contexts(contexts: list[ContextInput]) -> ValidationResult:
         else:
             seen_ids[context_id] = context.filename
 
-        if record.inherits is not None and str(record.inherits) not in all_ids:
-            result.errors.append(
-                f"{context.filename}: context '{context_id}' inherits nonexistent context '{record.inherits}'"
-            )
-
-        for exclusion in record.excludes:
-            if str(exclusion) not in all_ids:
+        for rule in record.lifting_rules:
+            if str(rule.source.id) not in all_ids:
                 result.errors.append(
-                    f"{context.filename}: context '{context_id}' excludes nonexistent context '{exclusion}'"
+                    f"{context.filename}: lifting rule '{rule.id}' references "
+                    f"nonexistent source context '{rule.source.id}'"
                 )
-
-    parent_map: dict[str, str | None] = {}
-    for context in typed_contexts:
-        if context.record.context_id is None:
-            continue
-        parent_map[str(context.record.context_id)] = (
-            None if context.record.inherits is None else str(context.record.inherits)
-        )
-
-    for context_id in parent_map:
-        visited: set[str] = set()
-        current = context_id
-        while current is not None:
-            if current in visited:
+            if str(rule.target.id) not in all_ids:
                 result.errors.append(
-                    f"Inheritance cycle detected involving context '{context_id}'"
+                    f"{context.filename}: lifting rule '{rule.id}' references "
+                    f"nonexistent target context '{rule.target.id}'"
                 )
-                break
-            visited.add(current)
-            current = parent_map.get(current)
 
     return result

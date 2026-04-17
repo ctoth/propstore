@@ -196,6 +196,12 @@ def concept_dir(tmp_path):
     # Create form definition files
     forms_dir = knowledge / "forms"
     forms_dir.mkdir()
+    contexts_dir = knowledge / "contexts"
+    contexts_dir.mkdir()
+    (contexts_dir / "ctx_test.yaml").write_text(yaml.dump(
+        {"id": "ctx_test", "name": "Test context"},
+        default_flow_style=False,
+    ))
     dimensionless_forms = {"category", "structural", "duration_ratio"}
     for form_name in ("frequency", "category", "structural", "duration_ratio", "pressure"):
         (forms_dir / f"{form_name}.yaml").write_text(
@@ -757,14 +763,22 @@ class TestRebuildSkipping:
         contexts_dir = concept_dir.parent / "contexts"
         contexts_dir.mkdir(exist_ok=True)
         (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
-            {"id": "ctx_root", "name": "Root", "assumptions": ["task == 'speech'"]},
+            {
+                "id": "ctx_root",
+                "name": "Root",
+                "structure": {"assumptions": ["task == 'speech'"]},
+            },
             default_flow_style=False,
         ))
 
         assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
         (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
-            {"id": "ctx_root", "name": "Root", "assumptions": ["task == 'singing'"]},
+            {
+                "id": "ctx_root",
+                "name": "Root",
+                "structure": {"assumptions": ["task == 'singing'"]},
+            },
             default_flow_style=False,
         ))
 
@@ -824,13 +838,21 @@ class TestRebuildSkipping:
         contexts_dir.mkdir(exist_ok=True)
 
         (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
-            {"id": "ctx_root", "name": "Root", "assumptions": [assumption_a]},
+            {
+                "id": "ctx_root",
+                "name": "Root",
+                "structure": {"assumptions": [assumption_a]},
+            },
             default_flow_style=False,
         ))
         hash_a = _content_hash(concept_dir.parent)
 
         (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
-            {"id": "ctx_root", "name": "Root", "assumptions": [assumption_b]},
+            {
+                "id": "ctx_root",
+                "name": "Root",
+                "structure": {"assumptions": [assumption_b]},
+            },
             default_flow_style=False,
         ))
         hash_b = _content_hash(concept_dir.parent)
@@ -1301,6 +1323,7 @@ class TestClaimStanceTable:
                             "concept": CONCEPT1_ID,
                             "value": 200.0,
                             "unit": "Hz",
+                            "context": {"id": "ctx_test"},
                             "provenance": {"paper": "raw_handles", "page": 1},
                         },
                         {
@@ -1309,6 +1332,7 @@ class TestClaimStanceTable:
                             "concept": CONCEPT1_ID,
                             "value": 220.0,
                             "unit": "Hz",
+                            "context": {"id": "ctx_test"},
                             "stances": [{"type": "rebuts", "target": "claim1"}],
                             "provenance": {"paper": "raw_handles", "page": 2},
                         },
@@ -1411,6 +1435,7 @@ class TestClaimStanceTable:
                             "concept": CONCEPT1_ID,
                             "value": 300.0,
                             "unit": "Hz",
+                            "context": {"id": "ctx_test"},
                             "provenance": {"paper": "broken_claim", "page": 1},
                         },
                     ],

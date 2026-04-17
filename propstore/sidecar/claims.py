@@ -368,7 +368,7 @@ def populate_conflicts(
     claim_files: Sequence[LoadedClaimsFile],
     concept_registry: dict,
     cel_registry: dict,
-    context_hierarchy=None,
+    lifting_system=None,
 ) -> None:
     from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
     from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
@@ -378,12 +378,12 @@ def populate_conflicts(
         conflict_claims,
         concept_registry,
         cel_registry,
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
     )
     transitive_records = detect_transitive_conflicts(
         conflict_claims,
         concept_registry,
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
     )
     records.extend(transitive_records)
     for record in records:

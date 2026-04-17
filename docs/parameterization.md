@@ -121,7 +121,7 @@ Results are sorted by `|elasticity|` descending. The `SensitivityResult` include
 4. Compare derived endpoint values against direct claims
 5. Skip single-hop conflicts (already found by `_detect_parameterization_conflicts`)
 
-Context merging via `_merge_contexts_for_derivation()` (line 74) rejects incoherent derivation paths -- if two edges along a chain require mutually exclusive conditions, the path is discarded.
+Context merging via `_merge_contexts_for_derivation()` rejects incoherent derivation paths -- if two edges along a chain require contexts with no explicit lifting path, the path is discarded.
 
 ## CLI Usage
 

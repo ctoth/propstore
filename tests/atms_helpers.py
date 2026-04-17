@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from propstore.context_lifting import ContextReference, LiftingSystem
+
 
 class _ExactMatchSolver:
     def are_disjoint(self, left: list[str], right: list[str]) -> bool:
@@ -17,6 +19,5 @@ class _OverlapSolver:
         return set(left).isdisjoint(right)
 
 
-class _LeafHierarchy:
-    def ancestors(self, context_id: str) -> list[str]:
-        return []
+def leaf_lifting_system(context_id: str) -> LiftingSystem:
+    return LiftingSystem(contexts=(ContextReference(context_id),))

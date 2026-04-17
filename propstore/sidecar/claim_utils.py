@@ -637,6 +637,9 @@ def prepare_claim_insert_row(
             lower_bound_si = typed_fields.lower_bound
             upper_bound_si = typed_fields.upper_bound
 
+    raw_context = normalized_claim.get("context")
+    context_id = raw_context.get("id") if isinstance(raw_context, dict) else raw_context
+
     return {
         "id": normalized_claim.get("artifact_id"),
         "primary_logical_id": primary_logical_id(normalized_claim),
@@ -676,6 +679,6 @@ def prepare_claim_insert_row(
         "source_paper": provenance.get("paper", effective_source_paper),
         "provenance_page": provenance.get("page", 0),
         "provenance_json": json.dumps(provenance, sort_keys=True),
-        "context_id": normalized_claim.get("context"),
+        "context_id": context_id,
         "branch": normalized_claim.get("branch"),
     }

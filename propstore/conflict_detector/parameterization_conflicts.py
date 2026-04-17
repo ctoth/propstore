@@ -24,7 +24,7 @@ from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.form_utils import FormDefinition
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
 
 
 @dataclass(frozen=True)
@@ -158,28 +158,25 @@ def _evaluate_parameterization_with_registry(
 
 def _merge_contexts_for_derivation(
     contexts: Sequence[str | None],
-    hierarchy: ContextHierarchy | None,
+    lifting_system: LiftingSystem | None,
 ) -> str | None | _Sentinel:
     concrete = [context for context in contexts if context]
     if not concrete:
         return None
-    if hierarchy is None:
+    if lifting_system is None:
         return concrete[0] if len(set(concrete)) == 1 else None
-    if any(
-        hierarchy.are_excluded(ctx_a, ctx_b)
-        for index, ctx_a in enumerate(concrete)
-        for ctx_b in concrete[index + 1:]
-    ):
-        return _INCOHERENT_CONTEXT
 
     candidates = [
         candidate
         for candidate in concrete
-        if all(candidate == other or hierarchy.is_visible(candidate, other) for other in concrete)
+        if all(
+            candidate == other or lifting_system.can_lift(other, candidate)
+            for other in concrete
+        )
     ]
     if not candidates:
         return _INCOHERENT_CONTEXT
-    return max(candidates, key=lambda context_id: len(hierarchy.ancestors(context_id)))
+    return sorted(candidates)[0]
 
 
 def _merge_conditions(*groups: Iterable[CelExpr]) -> tuple[CelExpr, ...]:
@@ -255,7 +252,7 @@ def _derive_state(
     input_states: Sequence[DerivedConflictValue],
     edge_conditions: Sequence[CelExpr],
     concept_registry: dict[str, dict],
-    context_hierarchy: ContextHierarchy | None,
+    lifting_system: LiftingSystem | None,
     *,
     warn_on_known_failure: bool,
 ) -> DerivedConflictValue | None:
@@ -279,7 +276,7 @@ def _derive_state(
 
     merged_context = _merge_contexts_for_derivation(
         [state.context_id for state in input_states],
-        context_hierarchy,
+        lifting_system,
     )
     if merged_context is _INCOHERENT_CONTEXT:
         return None
@@ -361,7 +358,7 @@ def _compare_direct_claim_against_derived(
     concept_id: str,
     direct_claim: ConflictClaim,
     derived_state: DerivedConflictValue,
-    context_hierarchy: ContextHierarchy | None,
+    lifting_system: LiftingSystem | None,
     forms: dict[str, FormDefinition] | None,
     concept_registry: dict[str, dict],
 ) -> None:
@@ -379,7 +376,7 @@ def _compare_direct_claim_against_derived(
     context_class = _classify_pair_context(
         _claim_context(direct_claim),
         derived_state.context_id,
-        context_hierarchy,
+        lifting_system,
     )
     if context_class is not None:
         _append_parameterization_record(
@@ -408,7 +405,7 @@ def _detect_parameterization_conflicts(
     concept_registry: dict[str, dict],
     claims: Sequence[ConflictClaim],
     *,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
     forms: dict[str, FormDefinition] | None = None,
 ) -> None:
     all_param_claims = by_concept or _collect_parameter_claims(claims)
@@ -454,7 +451,7 @@ def _detect_parameterization_conflicts(
                     input_states,
                     edge_conditions,
                     concept_registry,
-                    context_hierarchy,
+                    lifting_system,
                     warn_on_known_failure=True,
                 )
                 if derived_state is None:
@@ -466,7 +463,7 @@ def _detect_parameterization_conflicts(
                         concept_id=concept_id,
                         direct_claim=direct_claim,
                         derived_state=derived_state,
-                        context_hierarchy=context_hierarchy,
+                        lifting_system=lifting_system,
                         forms=forms,
                         concept_registry=concept_registry,
                     )
@@ -488,7 +485,7 @@ def _detect_transitive_conflicts_for_claims(
     concept_registry: dict[str, dict],
     by_concept: dict[str, list[ConflictClaim]],
     *,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
     forms: dict[str, FormDefinition] | None = None,
 ) -> list[ConflictRecord]:
     from propstore.parameterization_groups import build_groups
@@ -560,7 +557,7 @@ def _detect_transitive_conflicts_for_claims(
                             input_states,
                             edge_conditions,
                             unique_registry,
-                            context_hierarchy,
+                            lifting_system,
                             warn_on_known_failure=False,
                         )
                         if derived_state is None:
@@ -588,7 +585,7 @@ def _detect_transitive_conflicts_for_claims(
                         concept_id=concept_id,
                         direct_claim=direct_claim,
                         derived_state=derived_state,
-                        context_hierarchy=context_hierarchy,
+                        lifting_system=lifting_system,
                         forms=forms,
                         concept_registry=unique_registry,
                     )
@@ -600,7 +597,7 @@ def detect_transitive_conflicts(
     claims: Sequence[ConflictClaim],
     concept_registry: dict[str, dict],
     *,
-    context_hierarchy: ContextHierarchy | None = None,
+    lifting_system: LiftingSystem | None = None,
     forms: dict[str, FormDefinition] | None = None,
 ) -> list[ConflictRecord]:
     by_concept = _collect_parameter_claims(claims)
@@ -608,6 +605,6 @@ def detect_transitive_conflicts(
         claims,
         concept_registry,
         by_concept,
-        context_hierarchy=context_hierarchy,
+        lifting_system=lifting_system,
         forms=forms,
     )

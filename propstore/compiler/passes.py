@@ -448,8 +448,20 @@ def compile_claim_files(
                         artifact_id=cid,
                     ))
 
-            claim_context = semantic_claim.resolved_claim.get("context")
-            if claim_context and context_ids is not None and claim_context not in context_ids:
+            raw_claim_context = semantic_claim.resolved_claim.get("context")
+            claim_context = (
+                raw_claim_context.get("id")
+                if isinstance(raw_claim_context, dict)
+                else raw_claim_context
+            )
+            if not isinstance(claim_context, str) or not claim_context:
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message=f"claim '{cid}' missing required context",
+                    filename=normalized_file.filename,
+                    artifact_id=cid,
+                ))
+            elif context_ids is not None and claim_context not in context_ids:
                 file_diagnostics.append(SemanticDiagnostic(
                     level="error",
                     message=(

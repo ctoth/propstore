@@ -9,28 +9,26 @@ from propstore.cel_types import CelExpr
 from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
 
 
 def _classify_pair_context(
     context_a: str | None,
     context_b: str | None,
-    hierarchy: ContextHierarchy | None,
+    lifting_system: LiftingSystem | None,
 ) -> ConflictClass | None:
     """Check if two claims' contexts make them non-conflicting."""
-    if hierarchy is None:
+    if lifting_system is None:
         return None
     if context_a is None or context_b is None:
         return None
     if context_a == context_b:
         return None
-    if hierarchy.are_excluded(context_a, context_b):
-        return ConflictClass.CONTEXT_PHI_NODE
-    if hierarchy.is_visible(context_a, context_b):
+    if lifting_system.can_lift(context_a, context_b):
         return None
-    if hierarchy.is_visible(context_b, context_a):
+    if lifting_system.can_lift(context_b, context_a):
         return None
-    return None  # unrelated contexts — let condition analysis decide
+    return ConflictClass.CONTEXT_PHI_NODE
 
 
 def _claim_context(claim: ConflictClaim) -> str | None:
@@ -49,10 +47,10 @@ def _append_context_classified_record(
     value_b: str,
     context_a: str | None,
     context_b: str | None,
-    context_hierarchy: ContextHierarchy | None,
+    lifting_system: LiftingSystem | None,
     derivation_chain: str | None = None,
 ) -> bool:
-    context_class = _classify_pair_context(context_a, context_b, context_hierarchy)
+    context_class = _classify_pair_context(context_a, context_b, lifting_system)
     if context_class is None:
         return False
     records.append(ConflictRecord(

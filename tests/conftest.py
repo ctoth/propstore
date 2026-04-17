@@ -127,6 +127,7 @@ def normalize_claims_payload(data: dict, *, default_namespace: str | None = None
             raw_id = normalized.get("id")
             if isinstance(raw_id, str):
                 local_to_artifact[raw_id] = normalized["artifact_id"]
+        normalized.setdefault("context", {"id": "ctx_test"})
         normalized_claims.append(normalized)
 
     for index, normalized in enumerate(normalized_claims):
@@ -408,7 +409,8 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             description TEXT,
-            inherits TEXT
+            parameters_json TEXT,
+            perspective TEXT
         );
 
         CREATE TABLE context_assumption (
@@ -417,9 +419,13 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             seq INTEGER NOT NULL
         );
 
-        CREATE TABLE context_exclusion (
-            context_a TEXT NOT NULL,
-            context_b TEXT NOT NULL
+        CREATE TABLE context_lifting_rule (
+            id TEXT PRIMARY KEY,
+            source_context_id TEXT NOT NULL,
+            target_context_id TEXT NOT NULL,
+            conditions_cel TEXT NOT NULL DEFAULT '[]',
+            mode TEXT NOT NULL,
+            justification TEXT
         );
 
         CREATE TABLE claim_core (

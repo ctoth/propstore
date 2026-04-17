@@ -17,7 +17,7 @@ from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world.types import DerivedResult, Environment, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
 
-from tests.atms_helpers import _ExactMatchSolver, _LeafHierarchy, _OverlapSolver
+from tests.atms_helpers import _ExactMatchSolver, _OverlapSolver, leaf_lifting_system
 
 
 class _StubStore:
@@ -252,7 +252,7 @@ def test_context_scoped_claim_is_not_labeled_as_unconditional() -> None:
                 context_id="ctx_general",
             ),
         ),
-        context_hierarchy=_LeafHierarchy(),
+        lifting_system=leaf_lifting_system("ctx"),
     )
 
     result = bound.value_of("concept_ctx")

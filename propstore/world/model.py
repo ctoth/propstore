@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import deque
-from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -15,6 +14,7 @@ from propstore.cel_checker import (
     with_standard_synthetic_bindings,
 )
 from propstore.cel_registry import build_store_cel_registry
+from propstore.cel_types import to_cel_exprs
 from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.store_results import (
@@ -37,7 +37,7 @@ from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 if TYPE_CHECKING:
     from propstore.repository import Repository
     from propstore.world.bound import BoundWorld
-    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.context_lifting import LiftingSystem
 from propstore.world.resolution import resolve
 from propstore.world.types import (
     ArtifactStore,
@@ -110,9 +110,16 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
     "form": {"name", "dimensions", "is_dimensionless"},
     "form_algebra": {"output_form", "input_forms"},
     "concept_fts": {"concept_id"},
-    "context": {"id", "name", "description", "inherits"},
+    "context": {"id", "name", "description", "parameters_json", "perspective"},
     "context_assumption": {"context_id", "assumption_cel", "seq"},
-    "context_exclusion": {"context_a", "context_b"},
+    "context_lifting_rule": {
+        "id",
+        "source_context_id",
+        "target_context_id",
+        "conditions_cel",
+        "mode",
+        "justification",
+    },
     "claim_core": {
         "id",
         "primary_logical_id",
@@ -218,8 +225,8 @@ class WorldModel(ArtifactStore):
         self._grounding_bundle_cache = None
         self._solver: Z3ConditionSolver | None = None
         self._registry: dict[str, ConceptInfo] | None = None
-        self._context_hierarchy: ContextHierarchy | None = None
-        self._context_hierarchy_loaded = False
+        self._lifting_system: LiftingSystem | None = None
+        self._lifting_system_loaded = False
         self._table_cache: dict[str, bool] = {}
         self._compiled_graph_cache = None
         self._active_graph_cache: dict[str, Any] = {}
@@ -332,40 +339,37 @@ class WorldModel(ArtifactStore):
     def condition_solver(self) -> Z3ConditionSolver:
         return self._ensure_solver()
 
-    def _load_context_hierarchy(self) -> ContextHierarchy | None:
-        if self._context_hierarchy_loaded:
-            return self._context_hierarchy
-        self._context_hierarchy_loaded = True
+    def _load_lifting_system(self) -> LiftingSystem | None:
+        if self._lifting_system_loaded:
+            return self._lifting_system
+        self._lifting_system_loaded = True
 
-        from propstore.context_types import ContextRecord, LoadedContext
-        from propstore.context_hierarchy import ContextHierarchy
+        from propstore.context_lifting import (
+            ContextReference,
+            LiftingMode,
+            LiftingRule,
+            LiftingSystem,
+        )
 
         rows = self._conn.execute(
-            "SELECT id, name, description, inherits FROM context ORDER BY id"
+            "SELECT id FROM context ORDER BY id"
         ).fetchall()
         if not rows:
-            self._context_hierarchy = None
+            self._lifting_system = None
             return None
 
-        records_by_id: dict[str, ContextRecord] = {}
-        for row in rows:
-            context_id = row["id"]
-            records_by_id[context_id] = ContextRecord(
-                context_id=to_context_id(context_id),
-                name=row["name"],
-                description=row["description"],
-                inherits=None if row["inherits"] is None else to_context_id(row["inherits"]),
-                assumptions=(),
-                excludes=(),
-            )
+        context_ids = [str(row["id"]) for row in rows]
+        context_refs = tuple(
+            ContextReference(id=to_context_id(context_id))
+            for context_id in context_ids
+        )
 
         assumption_rows = self._conn.execute(
             "SELECT context_id, assumption_cel FROM context_assumption "
             "ORDER BY context_id, seq"
         ).fetchall()
         assumptions_by_id: dict[str, list[str]] = {
-            context_id: []
-            for context_id in records_by_id
+            context_id: [] for context_id in context_ids
         }
         for row in assumption_rows:
             context_id = row["context_id"]
@@ -373,38 +377,41 @@ class WorldModel(ArtifactStore):
                 continue
             assumptions_by_id[context_id].append(row["assumption_cel"])
 
-        exclusion_rows = self._conn.execute(
-            "SELECT context_a, context_b FROM context_exclusion ORDER BY context_a, context_b"
+        lifting_rows = self._conn.execute(
+            """
+            SELECT id, source_context_id, target_context_id,
+                   conditions_cel, mode, justification
+            FROM context_lifting_rule
+            ORDER BY id
+            """
         ).fetchall()
-        exclusions_by_id: dict[str, list[str]] = {
-            context_id: []
-            for context_id in records_by_id
-        }
-        for row in exclusion_rows:
-            context_id = row["context_a"]
-            if context_id not in exclusions_by_id:
-                continue
-            exclusion = row["context_b"]
-            if exclusion not in exclusions_by_id[context_id]:
-                exclusions_by_id[context_id].append(exclusion)
-
-        loaded_contexts = [
-            LoadedContext.from_record(
-                filename=context_id,
-                source_path=None,
-                record=replace(
-                    record,
-                    assumptions=tuple(assumptions_by_id.get(context_id, ())),
-                    excludes=tuple(
-                        to_context_id(exclusion)
-                        for exclusion in exclusions_by_id.get(context_id, ())
-                    ),
-                ),
+        lifting_rules: list[LiftingRule] = []
+        for row in lifting_rows:
+            raw_conditions = row["conditions_cel"]
+            if raw_conditions:
+                conditions = tuple(str(item) for item in json.loads(raw_conditions))
+            else:
+                conditions = ()
+            lifting_rules.append(
+                LiftingRule(
+                    id=row["id"],
+                    source=ContextReference(id=to_context_id(row["source_context_id"])),
+                    target=ContextReference(id=to_context_id(row["target_context_id"])),
+                    conditions=to_cel_exprs(conditions),
+                    mode=LiftingMode(row["mode"]),
+                    justification=row["justification"],
+                )
             )
-            for context_id, record in records_by_id.items()
-        ]
-        self._context_hierarchy = ContextHierarchy(loaded_contexts)
-        return self._context_hierarchy
+
+        self._lifting_system = LiftingSystem(
+            contexts=context_refs,
+            lifting_rules=tuple(lifting_rules),
+            context_assumptions={
+                to_context_id(context_id): to_cel_exprs(assumptions)
+                for context_id, assumptions in assumptions_by_id.items()
+            },
+        )
+        return self._lifting_system
 
     # ── Unbound queries ──────────────────────────────────────────────
 
@@ -1002,19 +1009,19 @@ class WorldModel(ArtifactStore):
         self,
         environment: Environment,
         *,
-        context_hierarchy: ContextHierarchy | None = None,
+        lifting_system: LiftingSystem | None = None,
     ):
         from propstore.core.activation import activate_compiled_world_graph
         from propstore.core.graph_types import ActiveWorldGraph
 
-        hierarchy = context_hierarchy or self._load_context_hierarchy()
+        resolved_lifting_system = lifting_system or self._load_lifting_system()
         cache_key = json.dumps(environment.to_dict(), sort_keys=True)
         if cache_key not in self._active_graph_cache:
             self._active_graph_cache[cache_key] = activate_compiled_world_graph(
                 self.compiled_graph(),
                 environment=environment,
                 solver=self.condition_solver(),
-                context_hierarchy=hierarchy,
+                lifting_system=resolved_lifting_system,
             )
         cached = self._active_graph_cache[cache_key]
         return ActiveWorldGraph.from_dict(cached.to_dict())
@@ -1107,13 +1114,13 @@ class WorldModel(ArtifactStore):
                 assumptions=tuple(environment.assumptions),
             )
 
-        context_hierarchy = self._load_context_hierarchy()
-        if environment.context_id is not None and context_hierarchy is not None:
+        lifting_system = self._load_lifting_system()
+        if environment.context_id is not None and lifting_system is not None:
             environment = Environment(
                 bindings=environment.bindings,
                 context_id=environment.context_id,
                 effective_assumptions=tuple(
-                    context_hierarchy.effective_assumptions(environment.context_id)
+                    lifting_system.effective_assumptions(environment.context_id)
                 ),
                 assumptions=tuple(environment.assumptions),
             )
@@ -1132,11 +1139,11 @@ class WorldModel(ArtifactStore):
         return BoundWorld(
             self,
             environment=environment,
-            context_hierarchy=context_hierarchy,
+            lifting_system=lifting_system,
             policy=policy,
             active_graph=self.active_graph(
                 environment,
-                context_hierarchy=context_hierarchy,
+                lifting_system=lifting_system,
             ),
         )
 
