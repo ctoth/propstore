@@ -286,9 +286,9 @@ class TestConceptAdd:
         assert filepath.exists()
         data = yaml.safe_load(filepath.read_text())
         assert data["artifact_id"] == _concept_artifact("concept3")
-        assert data["canonical_name"] == "test_pressure"
+        assert data["lexical_entry"]["canonical_form"]["written_rep"] == "test_pressure"
         assert data["status"] == "proposed"
-        assert data["form"] == "pressure"
+        assert data["lexical_entry"]["physical_dimension_form"] == "pressure"
         assert data["logical_ids"][0] == {"namespace": "speech", "value": "test_pressure"}
         assert {"namespace": "propstore", "value": "concept3"} in data["logical_ids"]
         assert data["version_id"].startswith("sha256:")
@@ -306,7 +306,7 @@ class TestConceptAdd:
 
         show_result = runner.invoke(cli, ["concept", "show", "speech:test_pressure"])
         assert show_result.exit_code == 0, show_result.output
-        assert "canonical_name: test_pressure" in show_result.output
+        assert "written_rep: test_pressure" in show_result.output
         assert f"artifact_id: {_concept_artifact('concept3')}" in show_result.output
 
     def test_increments_counter(self, workspace: Path) -> None:
@@ -399,7 +399,7 @@ class TestConceptRename:
         assert new_path.exists()
 
         data = yaml.safe_load(new_path.read_text())
-        assert data["canonical_name"] == "vocal_task"
+        assert data["lexical_entry"]["canonical_form"]["written_rep"] == "vocal_task"
         assert data["artifact_id"] == _concept_artifact("concept2")
         assert data["logical_ids"][0] == {"namespace": "speech", "value": "vocal_task"}
         assert {"namespace": "propstore", "value": "concept2"} in data["logical_ids"]

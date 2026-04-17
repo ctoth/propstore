@@ -20,7 +20,7 @@ from bridgman import verify_expr, dims_of_expr, DimensionalError
 
 from propstore.cel_checker import ConceptInfo, KindType, check_cel_expr
 from propstore.cel_registry import build_canonical_cel_registry
-from propstore.artifacts.documents.concepts import ConceptDocument
+from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.form_utils import kind_type_from_form_name, load_form_path
@@ -194,7 +194,9 @@ def validate_concepts(
                 f"{c.filename}: concept '{cid}' version_id must match sha256:<64 hex chars>"
             )
         else:
-            expected_version_id = compute_concept_version_id(data)
+            expected_version_id = compute_concept_version_id(
+                normalize_canonical_concept_payload(data)
+            )
             if version_id != expected_version_id:
                 result.errors.append(
                     f"{c.filename}: concept '{cid}' version_id mismatch "

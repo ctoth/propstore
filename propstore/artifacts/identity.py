@@ -137,7 +137,12 @@ def normalize_canonical_concept_payload(
 
     effective_domain = domain
     if effective_domain is None:
-        effective_domain = normalized.pop("domain", None) or default_domain or "propstore"
+        effective_domain = (
+            normalized.pop("domain", None)
+            or default_domain
+            or _primary_logical_namespace(normalized.get("logical_ids"))
+            or "propstore"
+        )
     else:
         normalized.pop("domain", None)
     if default_status is not None and not isinstance(normalized.get("status"), str):
@@ -170,7 +175,7 @@ def normalize_canonical_concept_payload(
         }
         normalized["ontology_reference"] = ontology_reference
     if not isinstance(normalized.get("lexical_entry"), dict):
-        normalized["lexical_entry"] = {
+        lexical_payload: dict[str, Any] = {
             "identifier": f"entry:{propstore_handle}",
             "canonical_form": {
                 "written_rep": str(effective_name),
@@ -182,8 +187,17 @@ def normalize_canonical_concept_payload(
                     "usage": definition if isinstance(definition, str) else None,
                 }
             ],
-            "physical_dimension_form": dimension_form if isinstance(dimension_form, str) else None,
         }
+        if isinstance(dimension_form, str):
+            lexical_payload["physical_dimension_form"] = dimension_form
+        normalized["lexical_entry"] = lexical_payload
+    range_value = normalized.get("range")
+    if (
+        isinstance(range_value, list)
+        and len(range_value) == 2
+        and all(isinstance(item, (int, float)) for item in range_value)
+    ):
+        normalized["range"] = [float(range_value[0]), float(range_value[1])]
     normalized["version_id"] = compute_concept_version_id(normalized)
     return normalized
 
@@ -226,6 +240,18 @@ def _concept_local_handle(data: dict[str, Any], *, fallback: str | None = None) 
     if isinstance(raw_id, str) and raw_id:
         return normalize_logical_value(raw_id)
     return normalize_logical_value(fallback or data.get("canonical_name") or "concept")
+
+
+def _primary_logical_namespace(logical_ids: object) -> str | None:
+    if not isinstance(logical_ids, list) or not logical_ids:
+        return None
+    first = logical_ids[0]
+    if not isinstance(first, dict):
+        return None
+    namespace = first.get("namespace")
+    if not isinstance(namespace, str) or not namespace:
+        return None
+    return namespace
 
 
 def _concept_logical_ids(

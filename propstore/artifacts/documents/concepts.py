@@ -71,8 +71,8 @@ class LexicalEntryDocument(DocumentStruct):
     identifier: str
     canonical_form: LexicalFormDocument
     senses: tuple[LexicalSenseDocument, ...]
+    physical_dimension_form: str
     other_forms: tuple[LexicalFormDocument, ...] = ()
-    physical_dimension_form: str | None = None
 
     def __post_init__(self) -> None:
         if not self.senses:
