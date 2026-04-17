@@ -2,7 +2,7 @@
 
 TDD red phase: these tests define the contract for branch CRUD,
 commit isolation, and merge-base computation. All should FAIL
-(ImportError) since propstore/repo/ does not exist yet.
+(ImportError) until the storage package exists.
 
 Literature grounding:
 - Darwiche & Pearl 1997: iterated belief revision postulates C1-C4

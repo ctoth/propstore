@@ -1,22 +1,22 @@
 # Git Backend
 
-propstore uses Dulwich (pure-Python git) to version knowledge repos. The git object store is the single source of truth; the working tree is a materialized view. This enables historical builds, branch-based isolation, and atomic commits.
+propstore uses Dulwich (pure-Python git) to version knowledge repositories. The git object store is the single source of truth; the working tree is a materialized view. This enables historical builds, branch-based isolation, and atomic commits.
 
-Dulwich is confined to a single file (`propstore/repo/git_backend.py`). Everything else interacts through `GitStore` or `TreeReader`.
+Dulwich is confined to a single file (`propstore/storage/git_backend.py`). Everything else interacts through `GitStore` or `TreeReader`.
 
 ## Design Principles
 
 - **Object store is truth, working tree is a view.** `sync_worktree()` materializes HEAD to disk. The object store is never derived from the filesystem.
-- **Dulwich confined to one file.** Only `propstore/repo/git_backend.py` imports Dulwich. All other modules use `GitStore` or `TreeReader`.
+- **Dulwich confined to one file.** Only `propstore/storage/git_backend.py` imports Dulwich. All other modules use `GitStore` or `TreeReader`.
 - **HEAD is secondary; branch refs are primary.** Branch refs (`refs/heads/{name}`) are the authoritative pointers. HEAD symref is only set when the active branch is master.
-- **Linear ordinary history per branch; merge commits exist globally.** Ordinary branch commits created by `GitStore._commit()` have exactly one parent, so each branch's non-merge history stays linear. Repository merges created by `propstore/repo/merge_commit.py:create_merge_commit()` write two-parent commits on the target branch.
+- **Linear ordinary history per branch; merge commits exist globally.** Ordinary branch commits created by `GitStore._commit()` have exactly one parent, so each branch's non-merge history stays linear. Repository merges created by `propstore/storage/merge_commit.py:create_merge_commit()` write two-parent commits on the target branch.
 - **Branch metadata is ephemeral.** `_branch_meta` is stored as an attribute on the `GitStore` instance, not persisted to git. It is lost when the process exits.
 
 ## GitStore
 
 The core wrapper around a Dulwich `Repo`. All git operations go through this class.
 
-`propstore/repo/git_backend.py:GitStore`
+`propstore/storage/git_backend.py:GitStore`
 
 ### Lifecycle
 
@@ -52,7 +52,7 @@ All three delegate to `_commit()`, which:
 5. Creates a Commit object with `parents = [tip_sha]`
 6. Updates the branch ref; only sets HEAD symref when `branch == "master"`
 
-`propstore/repo/git_backend.py:GitStore._commit`
+`propstore/storage/git_backend.py:GitStore._commit`
 
 `_commit()` is the ordinary single-parent commit path. Formal repository merges use `create_merge_commit()` instead; that code path writes a two-parent commit after constructing the merge framework.
 
@@ -75,7 +75,7 @@ All three delegate to `_commit()`, which:
 
 `sync_worktree()` materializes the HEAD tree to the filesystem. It writes all tracked files and removes non-git files (excluding `.git/`). The working tree is a convenience for human inspection — the object store remains the source of truth.
 
-`propstore/repo/git_backend.py:GitStore.sync_worktree`
+`propstore/storage/git_backend.py:GitStore.sync_worktree`
 
 ## TreeReader
 
@@ -107,7 +107,7 @@ Backed by a `GitStore` and an optional commit SHA. Delegates to `GitStore.list_d
 
 Branches provide isolated epistemic states (Darwiche & Pearl 1997, C1-C4). Each branch maintains independent ordinary history until an explicit merge writes a two-parent commit onto a target branch. Commits to one branch are invisible on other branches until merged.
 
-`propstore/repo/branch.py`
+`propstore/storage/branch.py`
 
 ### BranchInfo
 
@@ -122,7 +122,7 @@ A dataclass with automatic kind detection from name prefixes:
 
 Fields: `name`, `tip_sha`, `kind`, `parent_branch`, `created_at`.
 
-`propstore/repo/branch.py:BranchInfo`
+`propstore/storage/branch.py:BranchInfo`
 
 ### Operations
 
@@ -140,9 +140,9 @@ The repository merge path now has an explicit formal layer above raw git writes.
 
 ### Merge Framework
 
-`propstore/repo/merge_classifier.py:build_merge_framework`
+`propstore/storage/merge_classifier.py:build_merge_framework`
 
-Builds a `RepoMergeFramework` from two branch tips. Its public payload is:
+Builds a `RepositoryMergeFramework` from two branch tips. Its public payload is:
 
 - `arguments` — branch-local argument summaries with provenance back to claims
 - `framework` — a partial argumentation framework over those arguments
@@ -152,7 +152,7 @@ The partial framework records `attack`, `ignorance`, and `non-attack` over the m
 
 ### Merge Commit Creation
 
-`propstore/repo/merge_commit.py:create_merge_commit`
+`propstore/storage/merge_commit.py:create_merge_commit`
 
 1. Build the formal merge framework with `build_merge_framework()`
 2. Materialize merged claim storage from the merged argument set
@@ -272,7 +272,7 @@ Inspect the formal merge framework between two branches.
 uv run pks merge inspect agent/paper-a agent/paper-b --semantics grounded
 ```
 
-Output is a YAML summary derived from `propstore/repo/merge_report.py`, including branch provenance, framework size, uncertain pairs, and acceptance under the requested semantics.
+Output is a YAML summary derived from `propstore/storage/merge_report.py`, including branch provenance, framework size, uncertain pairs, and acceptance under the requested semantics.
 
 ### pks merge commit
 

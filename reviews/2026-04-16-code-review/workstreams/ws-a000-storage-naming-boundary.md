@@ -29,6 +29,7 @@ The code no longer has two `Repository` classes, but it still asks readers to di
 - A structural test rejects production imports of `propstore.repo`.
 - A structural test verifies `propstore.storage.GitStore` is the canonical low-level storage carrier.
 - A structural test rejects propstore-owned production classes with a `Repo` prefix.
+- A structural test rejects current user-facing docs that name the deleted `propstore/repo` storage surface or old public `Repo*` type vocabulary.
 
 ## Execution Plan
 
@@ -43,3 +44,4 @@ The code no longer has two `Repository` classes, but it still asks readers to di
 
 - 2026-04-17: Workstream opened after the repository question exposed that WS-A00 still left `propstore.repo` as a public storage package and `Repo*` as public production type vocabulary.
 - 2026-04-17: Completed. Git-backed storage and merge primitives now live under `propstore.storage`; `propstore/repo/` is deleted; public `Repo*` production types were renamed to `RepositorySnapshot`, `RepositoryMergeFramework`, `RepositoryImportPlan`, and `RepositoryImportResult`; repository import helpers are `plan_repository_import` / `commit_repository_import`; `pks import-repository` uses the repository vocabulary. Final verification passed: storage naming/world boundary plus affected storage/import/merge/source/worldline suite (`263 passed`), including GitStore Hypothesis properties; `uv run pyright propstore/storage propstore/repository.py propstore/cli/repository_import_cmd.py` passed with `0 errors`.
+- 2026-04-17: Documentation cleanup slice completed after the repository/repo question exposed stale current docs. Added a doc-facing gate for deleted storage-package names and old public `Repo*` type vocabulary; updated `CLAUDE.md`, `docs/git-backend.md`, `docs/semantic-merge.md`, and the branch-storage test docstring to the `propstore.storage` / `RepositoryMergeFramework` shape; removed the now-closed `docs/gaps.md` entry about CLAUDE assigning ATMS/ASPIC+/IC-merge ownership to the deleted repo package.

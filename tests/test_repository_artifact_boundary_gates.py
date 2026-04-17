@@ -167,6 +167,27 @@ def test_production_public_types_do_not_use_repo_prefix() -> None:
     assert offenders == []
 
 
+def test_current_docs_do_not_name_deleted_repo_storage_surface() -> None:
+    docs = [
+        ROOT / "CLAUDE.md",
+        ROOT / "docs" / "git-backend.md",
+        ROOT / "docs" / "semantic-merge.md",
+        ROOT / "tests" / "test_repo_branch.py",
+    ]
+    deleted_package = "propstore" + "/repo"
+    old_public_type = "Repo" + "MergeFramework"
+    offenders: list[tuple[str, str]] = []
+
+    for path in docs:
+        text = path.read_text(encoding="utf-8")
+        if deleted_package in text:
+            offenders.append((_relative(path), deleted_package))
+        if old_public_type in text:
+            offenders.append((_relative(path), old_public_type))
+
+    assert offenders == []
+
+
 def test_core_concept_loading_does_not_decode_concept_documents_directly() -> None:
     path = ROOT / "propstore" / "core" / "concepts.py"
     tree = _parse(path)
