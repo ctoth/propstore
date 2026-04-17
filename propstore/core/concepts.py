@@ -440,10 +440,9 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
 
 def concept_document_to_payload(data: ConceptDocument) -> dict[str, Any]:
     payload: dict[str, Any] = {
-        "canonical_name": data.canonical_name,
         "status": data.status.value,
-        "definition": data.definition,
-        "form": data.form,
+        "ontology_reference": to_document_builtins(data.ontology_reference),
+        "lexical_entry": to_document_builtins(data.lexical_entry),
     }
     if data.artifact_id is not None:
         payload["artifact_id"] = data.artifact_id
@@ -522,8 +521,36 @@ def concept_document_to_payload(data: ConceptDocument) -> dict[str, Any]:
     return payload
 
 
+def concept_document_to_record_payload(data: ConceptDocument) -> dict[str, Any]:
+    payload = concept_document_to_payload(data)
+    reference_uri = data.ontology_reference.uri
+    primary_sense = next(
+        (
+            sense
+            for sense in data.lexical_entry.senses
+            if sense.reference.uri == reference_uri
+        ),
+        data.lexical_entry.senses[0],
+    )
+    dimension_form = data.lexical_entry.physical_dimension_form
+    if dimension_form is None:
+        raise ValueError(
+            f"concept '{data.lexical_entry.identifier}' requires lexical_entry.physical_dimension_form"
+        )
+    payload["canonical_name"] = data.lexical_entry.canonical_form.written_rep
+    payload["definition"] = (
+        primary_sense.usage
+        or data.ontology_reference.label
+        or data.lexical_entry.canonical_form.written_rep
+    )
+    payload["form"] = dimension_form
+    if data.domain is None and data.logical_ids:
+        payload["domain"] = data.logical_ids[0].namespace
+    return payload
+
+
 def parse_concept_record_document(data: ConceptDocument) -> ConceptRecord:
-    return parse_concept_record(concept_document_to_payload(data))
+    return parse_concept_record(concept_document_to_record_payload(data))
 
 
 def concept_reference_keys(
@@ -606,7 +633,7 @@ def normalize_loaded_concepts(
     pending: list[tuple[LoadedDocument[ConceptDocument], dict[str, Any], str | None]] = []
 
     for concept in concepts:
-        payload = concept_document_to_payload(concept.document)
+        payload = concept_document_to_record_payload(concept.document)
         raw_id = payload.get("id") if isinstance(payload.get("id"), str) else None
         normalized = normalize_concept_payload(payload)
         artifact_id = normalized.get("artifact_id")

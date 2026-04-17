@@ -51,11 +51,38 @@ class ParameterizationRelationshipDocument(DocumentStruct):
     fit_statistics: str | None = None
 
 
+class OntologyReferenceDocument(DocumentStruct):
+    uri: str
+    label: str | None = None
+
+
+class LexicalFormDocument(DocumentStruct):
+    written_rep: str
+    language: str
+    phonetic_rep: str | None = None
+
+
+class LexicalSenseDocument(DocumentStruct):
+    reference: OntologyReferenceDocument
+    usage: str | None = None
+
+
+class LexicalEntryDocument(DocumentStruct):
+    identifier: str
+    canonical_form: LexicalFormDocument
+    senses: tuple[LexicalSenseDocument, ...]
+    other_forms: tuple[LexicalFormDocument, ...] = ()
+    physical_dimension_form: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.senses:
+            raise ValueError("lexical_entry requires at least one sense")
+
+
 class ConceptDocument(DocumentStruct):
-    canonical_name: str
     status: ConceptStatus
-    definition: str
-    form: str
+    ontology_reference: OntologyReferenceDocument
+    lexical_entry: LexicalEntryDocument
     artifact_id: str | None = None
     logical_ids: tuple[ConceptLogicalIdDocument, ...] = ()
     version_id: str | None = None

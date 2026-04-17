@@ -29,12 +29,12 @@ def test_concept_family_save_applies_identity_normalization_on_write(tmp_path) -
     ref = ConceptFileRef("demo")
     document = repo.artifacts.coerce(
         CONCEPT_FILE_FAMILY,
-        {
+        normalize_canonical_concept_payload({
             "canonical_name": "demo",
             "status": "accepted",
             "definition": "Demo concept.",
             "form": "structural",
-        },
+        }),
         source="concepts/demo.yaml",
     )
 
@@ -49,4 +49,6 @@ def test_concept_family_save_applies_identity_normalization_on_write(tmp_path) -
     assert loaded.artifact_id == derive_concept_artifact_id("propstore", "demo")
     assert loaded.logical_ids[0].namespace == "propstore"
     assert loaded.logical_ids[0].value == "demo"
+    assert loaded.lexical_entry.canonical_form.written_rep == "demo"
+    assert loaded.lexical_entry.physical_dimension_form == "structural"
     assert isinstance(loaded.version_id, str) and loaded.version_id.startswith("sha256:")

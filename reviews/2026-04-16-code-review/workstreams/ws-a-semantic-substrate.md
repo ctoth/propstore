@@ -1,7 +1,7 @@
 # Workstream A — Semantic Substrate Retrofit
 
 Date: 2026-04-16
-Status: active, tightened 2026-04-17 for non-Davidsonian execution; phase 2 document-boundary work blocked on WS-A0
+Status: active, tightened 2026-04-17 for non-Davidsonian execution; phase 2 document-boundary work in progress after WS-A0 completion
 Depends on: `disciplines.md`, `judgment-rubric.md`, `../../semantic-substrate-papers.md` (paper list + retrieval state), `ws-a0-repository-artifact-boundary.md` before phase 2 document-boundary conversion
 Blocks (within this set): WS-B (needs phase 1), WS-C (needs phase 4), WS-Z-types (needs phase 1 for full payoff)
 Review context: `../axis-3d-semantic.md` (primary), `../axis-9-doc-drift.md`, `../axis-1-principle-adherence.md`
@@ -14,6 +14,7 @@ Review context: `../axis-3d-semantic.md` (primary), `../axis-9-doc-drift.md`, `.
 - 2026-04-17: Removed the erroneous old-repo migration/backfill requirement from the workstream. Existing pre-workstream knowledge repositories are explicitly not a compatibility target; no migration, backfill, adapter, fallback, or bridge CLI belongs in WS-A.
 - 2026-04-17: Phase 2 lemon foundation slice implemented: `propstore/core/lemon/` now defines `OntologyReference`, `LexicalForm`, `LexicalSense`, and `LexicalEntry`; `LexicalForm` rejects dimensional metadata by construction; concept alignment no longer uses definition-token/Jaccard overlap and instead classifies exact lemon identity/reference relations.
 - 2026-04-17: Added WS-A0 as a prerequisite after the attempted `ConceptDocument` lemon hard-boundary slice exposed repository/artifact boundary debt: non-CLI production modules import `propstore.cli.repository`, `Repository.store` couples repository to `WorldModel`, and canonical concept loading bypasses artifact families/store. WS-A phase 2 may continue with standalone lemon work, but the canonical concept-document conversion must wait for WS-A0 gates to be active and green.
+- 2026-04-17: WS-A0 completed and phase 2 canonical concept-document conversion resumed. `ConceptDocument` now rejects the old flat `canonical_name`/`definition`/`form` artifact shape and requires lemon-shaped `ontology_reference` plus `lexical_entry`; the runtime `ConceptRecord` projection remains explicit at the artifact boundary. Fixture authors now emit canonical lemon concept artifacts and project to record payloads only for in-memory registries. Verification slice passed: `tests/test_lemon_concept_documents.py tests/test_artifact_identity_policy.py tests/test_claim_compiler.py tests/test_build_sidecar.py` (`107 passed`).
 
 ## What you're doing
 
