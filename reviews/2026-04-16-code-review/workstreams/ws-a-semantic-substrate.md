@@ -1,8 +1,8 @@
 # Workstream A — Semantic Substrate Retrofit
 
 Date: 2026-04-16
-Status: active, tightened 2026-04-17 for non-Davidsonian execution
-Depends on: `disciplines.md`, `judgment-rubric.md`, `../../semantic-substrate-papers.md` (paper list + retrieval state)
+Status: active, tightened 2026-04-17 for non-Davidsonian execution; phase 2 document-boundary work blocked on WS-A0
+Depends on: `disciplines.md`, `judgment-rubric.md`, `../../semantic-substrate-papers.md` (paper list + retrieval state), `ws-a0-repository-artifact-boundary.md` before phase 2 document-boundary conversion
 Blocks (within this set): WS-B (needs phase 1), WS-C (needs phase 4), WS-Z-types (needs phase 1 for full payoff)
 Review context: `../axis-3d-semantic.md` (primary), `../axis-9-doc-drift.md`, `../axis-1-principle-adherence.md`
 
@@ -13,6 +13,7 @@ Review context: `../axis-3d-semantic.md` (primary), `../axis-9-doc-drift.md`, `.
 - 2026-04-17: Phase 1 foundation verification: `tests/test_provenance_foundations.py` passed; targeted affected suite `tests/test_source_trust.py tests/test_classify.py tests/test_relate_opinions.py tests/test_build_sidecar.py tests/test_praf.py` passed (`194 passed`).
 - 2026-04-17: Removed the erroneous old-repo migration/backfill requirement from the workstream. Existing pre-workstream knowledge repositories are explicitly not a compatibility target; no migration, backfill, adapter, fallback, or bridge CLI belongs in WS-A.
 - 2026-04-17: Phase 2 lemon foundation slice implemented: `propstore/core/lemon/` now defines `OntologyReference`, `LexicalForm`, `LexicalSense`, and `LexicalEntry`; `LexicalForm` rejects dimensional metadata by construction; concept alignment no longer uses definition-token/Jaccard overlap and instead classifies exact lemon identity/reference relations.
+- 2026-04-17: Added WS-A0 as a prerequisite after the attempted `ConceptDocument` lemon hard-boundary slice exposed repository/artifact boundary debt: non-CLI production modules import `propstore.cli.repository`, `Repository.store` couples repository to `WorldModel`, and canonical concept loading bypasses artifact families/store. WS-A phase 2 may continue with standalone lemon work, but the canonical concept-document conversion must wait for WS-A0 gates to be active and green.
 
 ## What you're doing
 
@@ -83,12 +84,14 @@ Phases are sequenced because the downstream phases depend on upstream *type deci
 
 **Papers:** Buitelaar 2011. Secondary: OntoLex-Lemon community report (Cimiano, McCrae, Buitelaar 2020 — fetch if not already retrieved).
 
+**Prerequisite:** Complete `ws-a0-repository-artifact-boundary.md` before changing the canonical `ConceptDocument` shape. The lemon core package and source-alignment Jaccard removal can exist before WS-A0; the storage/document boundary cannot. The prerequisite is not migration work. It is a layer-boundary correction that prevents two concept-loading production paths from coexisting.
+
 **Scope:**
 - Process Buitelaar 2011 notes; fetch + process OntoLex-Lemon 2020+ spec.
 - Design `LexicalEntry`, `Form`, `LexicalSense`, `OntologyReference` types.
 - Decide Form↔dimension relationship: `Form` does NOT carry dimensional annotation directly (dimensional annotation rides on the `LexicalEntry` or on a sibling `Measurement` document); this preserves lemon's separation and keeps the pint integration clean.
 - Split `form_utils.py`: physical-dimension algebra moves to `propstore/dimensions.py`; lemon `Form` machinery lives in `propstore/core/lemon/forms.py`.
-- Rewrite `core/concepts.py`: a concept becomes the `(LexicalEntry, OntologyReference)` pair (an entry has senses; a reference may be pointed at by multiple senses).
+- Rewrite `core/concepts.py` only after WS-A0: a concept becomes the `(LexicalEntry, OntologyReference)` pair (an entry has senses; a reference may be pointed at by multiple senses), and canonical concept reads go through artifact families/store rather than a direct `load_document(..., ConceptDocument, ...)` path.
 - `source/alignment.py`: **remove the Jaccard fallback**. Reconciliation tries `LexicalEntry` identity → `Form` identity → `OntologyReference` equality. If all miss, candidates are proposed on the proposal branch with `status="alignment_candidate"`. Jaccard is *gone*, not demoted.
 - CLI: `pks concept` and `pks form` reshape around lemon.
 - Validation: `validate_concepts.py` checks lemon invariants (entry has ≥1 sense; sense has ≤1 reference; homography permitted at entry level, polysemy at sense level).
@@ -254,6 +257,7 @@ The required implementation papers for the non-Davidsonian path are present in `
 - About to fabricate a default prior instead of marking `status="vacuous"`.
 - About to build a parallel per-repo provenance table or side-car index. The storage mechanism is **git-notes on a dedicated notes ref** (`refs/notes/provenance`) via `dulwich.notes`. No parallel table. Named-graph payloads live inside the note contents; git's object model handles dedup. If you find yourself writing `CREATE TABLE provenance (...)`, stop — the wrong mechanism.
 - About to write a backward-compat shim for old schemas.
+- About to make `ConceptDocument` lemon-shaped while `propstore/core/concepts.py` still directly decodes concept YAML or while non-CLI production modules still import `propstore.cli.repository`. Complete WS-A0 first.
 - About to cite a paper for a formula you have not property-tested.
 - About to start coding before the relevant paper's notes are non-stub.
 
