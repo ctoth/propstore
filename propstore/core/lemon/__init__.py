@@ -35,6 +35,11 @@ from propstore.core.lemon.qualia import (
     qualia_references,
 )
 from propstore.core.lemon.references import OntologyReference
+from propstore.core.lemon.temporal import (
+    AllenRelation,
+    DescriptionTemporalAnchor,
+    description_temporal_relation,
+)
 from propstore.core.lemon.types import (
     LexicalEntry,
     LexicalSense,
@@ -49,6 +54,7 @@ __all__ = [
     "CoreferenceQuery",
     "DescriptionClaim",
     "DescriptionKind",
+    "DescriptionTemporalAnchor",
     "GradedEntailment",
     "LexicalEntry",
     "LexicalForm",
@@ -64,10 +70,12 @@ __all__ = [
     "QualiaStructure",
     "SlotBinding",
     "TypeConstraint",
+    "AllenRelation",
     "causal_transitivity_allowed",
     "coerce_via_qualia",
     "coreference_query",
     "coreference_argument",
+    "description_temporal_relation",
     "lexical_entry_identity_key",
     "lexical_form_identity_key",
     "predicted_subject_role",

@@ -48,6 +48,15 @@ explicitly account-sensitive: the current implementation does not infer
 transitivity for merely `stated` causal links and does not merge different
 causal accounts.
 
+## Temporal Anchoring
+
+`propstore.core.lemon.temporal` defines `DescriptionTemporalAnchor`,
+`AllenRelation`, and `description_temporal_relation`. The module intentionally
+reuses `KindType.TIMEPOINT` and `Z3ConditionSolver`: Allen relations between
+description-claim intervals are CEL constraints over `left_from`, `left_until`,
+`right_from`, and `right_until`, so the existing TIMEPOINT ordering guarantees
+still apply and no event-specific temporal solver exists.
+
 ## Worldline Review
 
 `propstore/worldline/trace.py`, `revision_capture.py`, and
@@ -75,4 +84,6 @@ Pustejovsky qualia, description-kind structure, and Dowty role entailments.
 The first Phase 3 slice is guarded by
 `tests/test_lemon_phase3_semantics.py`, including Hypothesis properties for
 qualia coercion soundness, TELIC chain recovery, graded entailment bounds, and
-Dowty-style argument selection.
+Dowty-style argument selection. The same file now also guards Dung-backed
+coreference, account-sensitive causal transitivity, and Allen/TIMEPOINT
+description-temporal reduction.
