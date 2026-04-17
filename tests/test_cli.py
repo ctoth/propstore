@@ -15,6 +15,7 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.graph_export import GraphExportRequest, export_knowledge_graph
 from propstore.repository import Repository
+from propstore.sensitivity import SensitivityRequest, query_sensitivity
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from propstore.world import RenderPolicy, ResolutionStrategy, WorldModel
 from propstore.world.consistency import (
@@ -1604,6 +1605,24 @@ class TestWorldOwnerReports:
         assert report.transitive is True
         assert report.conflicts == ()
 
+    def test_owner_sensitivity_reports_unavailable_analysis(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            expected_concept_id = wm.resolve_concept("speech:fundamental_frequency")
+            report = query_sensitivity(
+                wm,
+                SensitivityRequest(
+                    concept_id="speech:fundamental_frequency",
+                    bindings={},
+                ),
+            )
+
+        assert report.concept_id == expected_concept_id
+        assert report.result is None
+
 
 # ── world query/bind SI values ──────────────────────────────────────
 
@@ -1663,6 +1682,7 @@ class TestWorldCommandsKeepConnectionOpen:
             (["world", "export-graph", "--format", "json"], ['"nodes"', '"edges"']),
             (["world", "check-consistency"], ["No conflicts under current bindings."]),
             (["world", "check-consistency", "--transitive"], ["No transitive conflicts found."]),
+            (["world", "sensitivity", "speech:fundamental_frequency"], ["No sensitivity analysis available for "]),
         ],
     )
     def test_world_commands_do_not_use_closed_world_model(

@@ -2130,49 +2130,50 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world sensitivity concept5 domain=example
     """
-    from propstore.sensitivity import analyze_sensitivity
-    from propstore.world import WorldModel
+    from propstore.sensitivity import SensitivityRequest, query_sensitivity
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        resolved = _resolve_world_target(wm, concept_id)
-        bound = _bind_world(wm, bindings)
-        result = analyze_sensitivity(wm, resolved, bound)
+        report = query_sensitivity(
+            wm,
+            SensitivityRequest(concept_id=concept_id, bindings=bindings),
+        )
+        result = report.result
 
-        if result is None:
-            click.echo(f"No sensitivity analysis available for {resolved}.")
-            return
+    if result is None:
+        click.echo(f"No sensitivity analysis available for {report.concept_id}.")
+        return
 
-        if fmt == "json":
-            data = {
-                "concept_id": result.concept_id,
-                "formula": result.formula,
-                "output_value": result.output_value,
-                "input_values": result.input_values,
-                "entries": [
-                    {
-                        "input_concept_id": e.input_concept_id,
-                        "partial_derivative_expr": e.partial_derivative_expr,
-                        "partial_derivative_value": e.partial_derivative_value,
-                        "elasticity": e.elasticity,
-                    }
-                    for e in result.entries
-                ],
-            }
-            click.echo(json.dumps(data, indent=2))
-        else:
-            click.echo(f"Sensitivity: {resolved}")
-            click.echo(f"Formula: {result.formula}")
-            click.echo(f"Output value: {result.output_value}")
-            click.echo(f"Inputs: {result.input_values}")
-            click.echo("")
-            click.echo(f"{'Input':<25} {'Partial':>12} {'Elasticity':>12}")
-            click.echo("-" * 51)
-            for e in result.entries:
-                pval = f"{e.partial_derivative_value:.6g}" if e.partial_derivative_value is not None else "N/A"
-                elast = f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A"
-                click.echo(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
+    if fmt == "json":
+        data = {
+            "concept_id": result.concept_id,
+            "formula": result.formula,
+            "output_value": result.output_value,
+            "input_values": result.input_values,
+            "entries": [
+                {
+                    "input_concept_id": e.input_concept_id,
+                    "partial_derivative_expr": e.partial_derivative_expr,
+                    "partial_derivative_value": e.partial_derivative_value,
+                    "elasticity": e.elasticity,
+                }
+                for e in result.entries
+            ],
+        }
+        click.echo(json.dumps(data, indent=2))
+    else:
+        click.echo(f"Sensitivity: {report.concept_id}")
+        click.echo(f"Formula: {result.formula}")
+        click.echo(f"Output value: {result.output_value}")
+        click.echo(f"Inputs: {result.input_values}")
+        click.echo("")
+        click.echo(f"{'Input':<25} {'Partial':>12} {'Elasticity':>12}")
+        click.echo("-" * 51)
+        for e in result.entries:
+            pval = f"{e.partial_derivative_value:.6g}" if e.partial_derivative_value is not None else "N/A"
+            elast = f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A"
+            click.echo(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
 
 
 @world.command("fragility")

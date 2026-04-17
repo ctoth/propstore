@@ -9,11 +9,15 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from propstore.core.environment import Environment
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.row_types import coerce_parameterization_row
 from propstore.propagation import parse_cached, rewrite_parameterization_symbols
+
+if TYPE_CHECKING:
+    from propstore.world import WorldModel
 
 
 @dataclass
@@ -42,6 +46,30 @@ class SensitivityResult:
             to_concept_id(concept_id): float(value)
             for concept_id, value in self.input_values.items()
         }
+
+
+@dataclass(frozen=True)
+class SensitivityRequest:
+    concept_id: str
+    bindings: Mapping[str, str]
+
+
+@dataclass(frozen=True)
+class SensitivityReport:
+    concept_id: str
+    result: SensitivityResult | None
+
+
+def query_sensitivity(
+    world: WorldModel,
+    request: SensitivityRequest,
+) -> SensitivityReport:
+    resolved = world.resolve_concept(request.concept_id) or request.concept_id
+    bound = world.bind(Environment(bindings=dict(request.bindings)))
+    return SensitivityReport(
+        concept_id=resolved,
+        result=analyze_sensitivity(world, resolved, bound),
+    )
 
 
 def analyze_sensitivity(

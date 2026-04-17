@@ -250,6 +250,19 @@ Status 2026-04-17: `pks world check-consistency` slice landed.
   - `logs/test-runs/cli-layer-world-consistency-20260417-172716.log` - 19 passed.
   - `uv run pyright propstore/world/consistency.py` - 0 errors.
 
+Status 2026-04-17: `pks world sensitivity` slice landed.
+
+- Added `SensitivityRequest`, `SensitivityReport`, and `query_sensitivity` to
+  `propstore.sensitivity`, next to the existing derivative analysis logic.
+- Replaced CLI-owned target resolution and world binding with the owner
+  request/report wrapper. CLI now renders either the unavailable-analysis
+  message or the existing text/JSON sensitivity output.
+- Added owner coverage for the unavailable-analysis path and CLI output
+  coverage for the same command surface.
+- Verification:
+  - `logs/test-runs/cli-layer-world-sensitivity-20260417-172902.log` - 21 passed.
+  - `uv run pyright propstore/sensitivity.py` - 0 errors.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.
