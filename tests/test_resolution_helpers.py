@@ -64,7 +64,7 @@ class _AspicView:
         return None, None
 
 
-class _ICMergeWorld:
+class _AssignmentSelectionWorld:
     def __init__(self, *, lower: float, upper: float) -> None:
         self._concept = {
             "id": "concept1",
@@ -81,7 +81,7 @@ class _ICMergeWorld:
         return dict(self._concept)
 
 
-class _GlobalICMergeWorld:
+class _GlobalAssignmentSelectionWorld:
     def __init__(self) -> None:
         self._concepts = {
             "concept1": {
@@ -107,7 +107,7 @@ class _GlobalICMergeWorld:
         return None if concept is None else dict(concept)
 
 
-class _GlobalICMergeView:
+class _GlobalAssignmentSelectionView:
     def __init__(self) -> None:
         self._claims = [
             {"id": "claim_ax", "concept_id": "concept1", "value": 1.0, "branch": "a"},
@@ -131,7 +131,7 @@ class _GlobalICMergeView:
         return [claim for claim in self._claims if claim["concept_id"] == concept_id]
 
 
-class _DuplicateSourceICMergeView:
+class _DuplicateSourceAssignmentSelectionView:
     def __init__(self) -> None:
         self._claims = [
             {"id": "claim_a1", "concept_id": "concept1", "value": 10.0, "branch": "a"},
@@ -152,7 +152,7 @@ class _DuplicateSourceICMergeView:
         return [claim for claim in self._claims if claim["concept_id"] == concept_id]
 
 
-class _ICMergeView:
+class _AssignmentSelectionView:
     def __init__(self) -> None:
         self._claims = [
             {"id": "claim_a", "concept_id": "concept1", "value": 50.0},
@@ -398,13 +398,13 @@ def test_structured_resolution_grounded_uses_plain_grounded_extension(monkeypatc
     assert reason == "sole ASPIC+ survivor in grounded extension"
 
 
-def test_ic_merge_resolution_filters_with_range_mu() -> None:
+def test_assignment_selection_resolution_filters_with_range_mu() -> None:
     result = resolve(
-        _ICMergeView(),
+        _AssignmentSelectionView(),
         "concept1",
-        strategy=ResolutionStrategy.IC_MERGE,
-        world=_ICMergeWorld(lower=0.0, upper=20.0),
-        policy=RenderPolicy(strategy=ResolutionStrategy.IC_MERGE),
+        strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
+        world=_AssignmentSelectionWorld(lower=0.0, upper=20.0),
+        policy=RenderPolicy(strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE),
     )
 
     assert result.status == "resolved"
@@ -412,27 +412,27 @@ def test_ic_merge_resolution_filters_with_range_mu() -> None:
     assert result.value == 10.0
 
 
-def test_ic_merge_resolution_reports_no_admissible_assignments() -> None:
+def test_assignment_selection_resolution_reports_no_admissible_assignments() -> None:
     result = resolve(
-        _ICMergeView(),
+        _AssignmentSelectionView(),
         "concept1",
-        strategy=ResolutionStrategy.IC_MERGE,
-        world=_ICMergeWorld(lower=0.0, upper=4.0),
-        policy=RenderPolicy(strategy=ResolutionStrategy.IC_MERGE),
+        strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
+        world=_AssignmentSelectionWorld(lower=0.0, upper=4.0),
+        policy=RenderPolicy(strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE),
     )
 
     assert result.status == "conflicted"
     assert result.reason == "no admissible assignments"
 
 
-def test_global_ic_merge_resolution_reads_target_from_global_assignment() -> None:
+def test_global_assignment_selection_resolution_reads_target_from_global_assignment() -> None:
     result = resolve(
-        _GlobalICMergeView(),
+        _GlobalAssignmentSelectionView(),
         "concept1",
-        strategy=ResolutionStrategy.IC_MERGE,
-        world=_GlobalICMergeWorld(),
+        strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
+        world=_GlobalAssignmentSelectionWorld(),
         policy=RenderPolicy(
-            strategy=ResolutionStrategy.IC_MERGE,
+            strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
             integrity_constraints=(
                 IntegrityConstraint(
                     kind=IntegrityConstraintKind.CEL,
@@ -448,14 +448,14 @@ def test_global_ic_merge_resolution_reads_target_from_global_assignment() -> Non
     assert result.value == 0.0
 
 
-def test_global_ic_merge_branch_filter_changes_sources_not_projection_logic() -> None:
+def test_global_assignment_selection_branch_filter_changes_sources_not_projection_logic() -> None:
     result = resolve(
-        _GlobalICMergeView(),
+        _GlobalAssignmentSelectionView(),
         "concept1",
-        strategy=ResolutionStrategy.IC_MERGE,
-        world=_GlobalICMergeWorld(),
+        strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
+        world=_GlobalAssignmentSelectionWorld(),
         policy=RenderPolicy(
-            strategy=ResolutionStrategy.IC_MERGE,
+            strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
             branch_filter=("a", "b"),
             integrity_constraints=(
                 IntegrityConstraint(
@@ -471,13 +471,13 @@ def test_global_ic_merge_branch_filter_changes_sources_not_projection_logic() ->
     assert result.reason == "no admissible assignments"
 
 
-def test_global_ic_merge_reports_duplicate_claims_per_source_explicitly() -> None:
+def test_global_assignment_selection_reports_duplicate_claims_per_source_explicitly() -> None:
     result = resolve(
-        _DuplicateSourceICMergeView(),
+        _DuplicateSourceAssignmentSelectionView(),
         "concept1",
-        strategy=ResolutionStrategy.IC_MERGE,
-        world=_ICMergeWorld(lower=0.0, upper=20.0),
-        policy=RenderPolicy(strategy=ResolutionStrategy.IC_MERGE),
+        strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
+        world=_AssignmentSelectionWorld(lower=0.0, upper=20.0),
+        policy=RenderPolicy(strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE),
     )
 
     assert result.status == "conflicted"

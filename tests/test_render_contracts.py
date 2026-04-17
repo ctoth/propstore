@@ -91,7 +91,7 @@ def test_render_policy_override_fields():
 
 def test_render_policy_roundtrip_preserves_integrity_constraints():
     policy = RenderPolicy(
-        strategy=ResolutionStrategy.IC_MERGE,
+        strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
         integrity_constraints=(
             IntegrityConstraint(
                 kind=IntegrityConstraintKind.CEL,

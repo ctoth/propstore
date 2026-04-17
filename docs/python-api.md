@@ -103,7 +103,7 @@ with WorldModel.from_path("knowledge") as world:
 |--------|-----------|-------------|
 | `stats` | `() -> dict` | Counts of concepts, claims, conflicts. |
 | `has_table` | `(name) -> bool` | Check if a sidecar table exists. |
-| `condition_solver` | `() -> Z3ConditionSolver` | Lazy shared CEL runtime for activation, conflict detection, and IC-merge. |
+| `condition_solver` | `() -> Z3ConditionSolver` | Lazy shared CEL runtime for activation, conflict detection, and assignment-selection merge. |
 | `close` | `() -> None` | Close the SQLite connection. |
 
 ## BoundWorld
@@ -325,10 +325,10 @@ A frozen dataclass controlling how the render layer resolves values. Passed to `
 | `praf_treewidth_cutoff` | `int` | `12` | Treewidth cutoff for exact PrAF DP routing. |
 | `praf_mc_seed` | `int \| None` | `None` | PrAF Monte Carlo RNG seed. |
 | `include_conflict_stances` | `bool` | `False` | Include conflict stances in argumentation. |
-| `merge_operator` | `MergeOperator` | `SIGMA` | IC-merge aggregation family for multi-branch resolution. |
-| `branch_filter` | `tuple[str, ...] \| None` | `None` | Restrict IC-merge sources to specific branches. |
-| `branch_weights` | `Mapping[str, float] \| None` | `None` | Per-branch weighting for IC merge. |
-| `integrity_constraints` | `tuple[IntegrityConstraint, ...]` | `()` | Explicit integrity constraints for IC merge. |
+| `merge_operator` | `MergeOperator` | `SIGMA` | assignment-selection merge aggregation family for multi-branch resolution. |
+| `branch_filter` | `tuple[str, ...] \| None` | `None` | Restrict assignment-selection merge sources to specific branches. |
+| `branch_weights` | `Mapping[str, float] \| None` | `None` | Per-branch weighting for assignment-selection merge. |
+| `integrity_constraints` | `tuple[IntegrityConstraint, ...]` | `()` | Explicit integrity constraints for assignment-selection merge. |
 | `future_queryables` | `tuple[str, ...]` | `()` | Future queryable assumptions for ATMS. |
 | `future_limit` | `int \| None` | `None` | Bound on ATMS future-environment exploration. |
 | `overrides` | `Mapping[str, str]` | `{}` | Per-concept value overrides. |
@@ -382,7 +382,7 @@ How to pick a winner when multiple active claims disagree.
 | `SAMPLE_SIZE` | Claim backed by the largest sample size wins. |
 | `ARGUMENTATION` | Compute Dung extensions and pick the accepted claim. |
 | `OVERRIDE` | Use the value from `RenderPolicy.overrides`. |
-| `IC_MERGE` | Run integrity-constraint merge across branch-scoped sources. |
+| `ASSIGNMENT_SELECTION_MERGE` | Run assignment selection across branch-scoped sources under integrity constraints. |
 
 ### ReasoningBackend
 

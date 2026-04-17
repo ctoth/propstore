@@ -1,6 +1,6 @@
-"""Assignment-level IC-merge for propstore.
+"""Assignment selection over observed typed assignments for propstore.
 
-The primary production entrypoint is ``solve_ic_merge(problem)``, which solves
+The primary production entrypoint is ``solve_assignment_selection_merge(problem)``, which solves
 one assignment-level merge problem over a declared concept domain subject to an
 integrity constraint ``mu``. Production resolution routes through that
 global solver.
@@ -23,8 +23,8 @@ from propstore.cel_checker import (
 )
 from propstore.cel_types import CheckedCelExpr
 from propstore.world.types import (
-    ICMergeProblem,
-    ICMergeResult,
+    AssignmentSelectionProblem,
+    AssignmentSelectionResult,
     IntegrityConstraint,
     IntegrityConstraintKind,
     MergeAssignment,
@@ -83,7 +83,7 @@ def _score_sort_key(score: float | tuple[float, ...]) -> tuple[float, ...]:
     return (score,)
 
 
-def enumerate_candidate_assignments(problem: ICMergeProblem) -> tuple[MergeAssignment, ...]:
+def enumerate_candidate_assignments(problem: AssignmentSelectionProblem) -> tuple[MergeAssignment, ...]:
     """Enumerate discrete candidate assignments from observed source values."""
     domains: list[list[Any]] = []
     for concept_id in problem.concept_ids:
@@ -176,7 +176,7 @@ def _eval_cel_constraint_z3(
     try:
         from propstore.z3_conditions import Z3ConditionSolver
     except ImportError as exc:
-        raise RuntimeError("Z3 is required for CEL IC-merge evaluation") from exc
+        raise RuntimeError("Z3 is required for CEL assignment-selection merge evaluation") from exc
     solver = Z3ConditionSolver(registry)
     return solver.is_condition_satisfied(checked, bindings)
 
@@ -188,7 +188,7 @@ def _compile_cel_constraint(
     try:
         from propstore.z3_conditions import Z3ConditionSolver
     except ImportError as exc:
-        raise RuntimeError("Z3 is required for CEL IC-merge evaluation") from exc
+        raise RuntimeError("Z3 is required for CEL assignment-selection merge evaluation") from exc
     solver = Z3ConditionSolver(registry)
 
     def _holds(assignment: MergeAssignment) -> bool:
@@ -276,14 +276,14 @@ def _constraint_holds(
     return bool(constraint.holds(assignment))
 
 
-def assignment_satisfies_mu(problem: ICMergeProblem, assignment: MergeAssignment) -> bool:
+def assignment_satisfies_mu(problem: AssignmentSelectionProblem, assignment: MergeAssignment) -> bool:
     """Whether an assignment satisfies every integrity constraint in the problem."""
     compiled_constraints = _compile_constraints(problem.constraints)
     return all(_constraint_holds(assignment, constraint) for constraint in compiled_constraints)
 
 
 def _score_assignment(
-    problem: ICMergeProblem,
+    problem: AssignmentSelectionProblem,
     assignment: MergeAssignment,
 ) -> float | tuple[float, ...]:
     operator = normalize_merge_operator(problem.operator)
@@ -309,8 +309,8 @@ def _score_assignment(
     raise ValueError(f"Unknown merge operator: {problem.operator}")
 
 
-def solve_ic_merge(problem: ICMergeProblem) -> ICMergeResult:
-    """Solve one assignment-level IC-merge problem over the declared concept domain."""
+def solve_assignment_selection_merge(problem: AssignmentSelectionProblem) -> AssignmentSelectionResult:
+    """Solve one assignment-level assignment-selection merge problem over the declared concept domain."""
     candidates = enumerate_candidate_assignments(problem)
     compiled_constraints = _compile_constraints(problem.constraints)
     admissible = tuple(
@@ -319,7 +319,7 @@ def solve_ic_merge(problem: ICMergeProblem) -> ICMergeResult:
         if all(_constraint_holds(candidate, constraint) for constraint in compiled_constraints)
     )
     if not admissible:
-        return ICMergeResult(
+        return AssignmentSelectionResult(
             winners=tuple(),
             scored_candidates=tuple(),
             admissible_count=0,
@@ -342,7 +342,7 @@ def solve_ic_merge(problem: ICMergeProblem) -> ICMergeResult:
     )
     best_score = scored[0].score
     winners = tuple(item.assignment for item in scored if item.score == best_score)
-    return ICMergeResult(
+    return AssignmentSelectionResult(
         winners=winners,
         scored_candidates=tuple(scored),
         admissible_count=len(admissible),

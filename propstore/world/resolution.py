@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import json
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from typing import cast
 
 from propstore.cel_checker import (
     ConceptInfo,
@@ -19,13 +20,15 @@ from propstore.cel_checker import (
 from propstore.cel_registry import build_store_cel_registry
 from propstore.core.active_claims import (
     ActiveClaim,
+    ActiveClaimInput,
     coerce_active_claims,
 )
 from propstore.core.claim_values import ClaimProvenance
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.form_utils import kind_type_from_form_name
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
-from propstore.core.row_types import ConceptRowInput, coerce_claim_row, coerce_concept_row
+from propstore.core.row_types import ClaimRowInput, ConceptRowInput, coerce_claim_row, coerce_concept_row
 from propstore.world.types import (
     ArgumentationSemantics,
     ArtifactStore,
@@ -33,7 +36,7 @@ from propstore.world.types import (
     ClaimSupportView,
     HasActiveGraph,
     HasATMSEngine,
-    ICMergeProblem,
+    AssignmentSelectionProblem,
     IntegrityConstraint,
     IntegrityConstraintKind,
     MergeAssignment,
@@ -123,13 +126,14 @@ def _display_claim_id(store: ArtifactStore | None, claim_id: str | None) -> str 
     if store is None:
         return claim_id
     getter = getattr(store, "get_claim", None)
-    if callable(getter):
-        claim = getter(claim_id)
-        if claim is not None:
-            row = coerce_claim_row(claim)
-            logical_value = row.primary_logical_value
-            if isinstance(logical_value, str) and logical_value:
-                return logical_value
+    if not callable(getter):
+        return claim_id
+    claim = cast(Callable[[str], ClaimRowInput | None], getter)(claim_id)
+    if claim is not None:
+        row = coerce_claim_row(claim)
+        logical_value = row.primary_logical_value
+        if isinstance(logical_value, str) and logical_value:
+            return logical_value
     return claim_id
 
 
@@ -258,7 +262,7 @@ def _concept_integrity_constraints(
     return tuple(constraints)
 
 
-def _filtered_ic_merge_claim_rows(
+def _filtered_assignment_selection_claim_rows(
     active_claim_rows: Sequence[ActiveClaim],
     policy: RenderPolicy | None,
 ) -> list[ActiveClaim]:
@@ -297,7 +301,7 @@ def _cel_registry_for_concepts(
         if (concept := world.get_concept(concept_id)) is not None
     ]
     registry = build_store_cel_registry(rows)
-    return scope_cel_registry(registry, concept_ids)
+    return scope_cel_registry(registry, tuple(concept_ids))
 
 
 def _enriched_policy_integrity_constraints(
@@ -323,13 +327,13 @@ def _enriched_policy_integrity_constraints(
     return tuple(enriched)
 
 
-def _build_global_ic_merge_problem(
+def _build_global_assignment_selection_problem(
     active_claim_rows: Sequence[ActiveClaim],
     target_concept_id: str,
     *,
     world: ArtifactStore,
     policy: RenderPolicy | None,
-) -> ICMergeProblem:
+) -> AssignmentSelectionProblem:
     branch_weights = None if policy is None else policy.branch_weights
     merge_operator = (
         policy.merge_operator
@@ -385,7 +389,7 @@ def _build_global_ic_merge_problem(
     for concept_id in sorted(concept_ids):
         automatic_constraints.extend(_concept_integrity_constraints(world, concept_id))
 
-    return ICMergeProblem(
+    return AssignmentSelectionProblem(
         concept_ids=tuple(sorted(concept_ids)),
         sources=tuple(sources),
         constraints=tuple(automatic_constraints) + explicit_constraints,
@@ -400,7 +404,7 @@ def _claim_concept_id(claim: ActiveClaim) -> str:
     return concept_id
 
 
-def _resolve_ic_merge(
+def _resolve_assignment_selection_merge(
     target_claim_rows: Sequence[ActiveClaim],
     active_claim_rows: Sequence[ActiveClaim],
     concept_id: str,
@@ -408,16 +412,16 @@ def _resolve_ic_merge(
     world: ArtifactStore,
     policy: RenderPolicy | None = None,
 ) -> tuple[str | None, str | None]:
-    from propstore.world.ic_merge import solve_ic_merge
+    from propstore.world.assignment_selection_merge import solve_assignment_selection_merge
 
     if world is None:
-        return None, "ic_merge strategy requires an explicit artifact store"
+        return None, "assignment_selection_merge strategy requires an explicit artifact store"
 
-    filtered_rows = _filtered_ic_merge_claim_rows(active_claim_rows, policy)
+    filtered_rows = _filtered_assignment_selection_claim_rows(active_claim_rows, policy)
     if not filtered_rows:
-        return None, "no IC-merge sources after branch filter"
+        return None, "no assignment-selection merge sources after branch filter"
     try:
-        problem = _build_global_ic_merge_problem(
+        problem = _build_global_assignment_selection_problem(
             filtered_rows,
             concept_id,
             world=world,
@@ -426,7 +430,7 @@ def _resolve_ic_merge(
     except (KeyError, TypeError, ValueError) as exc:
         return None, str(exc)
 
-    result = solve_ic_merge(problem)
+    result = solve_assignment_selection_merge(problem)
     if not result.winners:
         return None, result.reason
 
@@ -435,7 +439,7 @@ def _resolve_ic_merge(
         for winner in result.winners
     }
     if len(target_values) != 1:
-        return None, f"{len(result.winners)} IC-merge assignments disagree on target value"
+        return None, f"{len(result.winners)} assignment-selection merge assignments disagree on target value"
 
     winning_value = next(iter(target_values))
     matching_claims = [
@@ -449,7 +453,7 @@ def _resolve_ic_merge(
         )
 
     return _claim_id(matching_claims[0]), (
-        f"global IC merge ({problem.operator}) winner satisfies {len(problem.constraints)} constraints across {len(problem.concept_ids)} concepts"
+        f"global assignment-selection merge ({problem.operator}) winner satisfies {len(problem.constraints)} constraints across {len(problem.concept_ids)} concepts"
     )
 
 
@@ -550,10 +554,11 @@ def _resolve_structured_argumentation(
     if not callable(grounding_bundle):
         return None, "ASPIC backend requires a grounded bundle-capable store"
 
+    typed_grounding_bundle = cast(Callable[[], GroundedRulesBundle], grounding_bundle)
     projection = build_structured_projection(
         world,
-        active_claim_rows,
-        bundle=grounding_bundle(),
+        cast(list[ActiveClaimInput], active_claim_rows),
+        bundle=typed_grounding_bundle(),
         support_metadata=support_metadata,
         comparison=comparison,
         link=link,
@@ -886,16 +891,16 @@ def resolve(
     elif strategy == ResolutionStrategy.SAMPLE_SIZE:
         winner_id, reason = _resolve_sample_size(active_views)
 
-    elif strategy == ResolutionStrategy.IC_MERGE:
+    elif strategy == ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE:
         if world is None:
             return ResolvedResult(
                 concept_id=typed_concept_id,
                 status=ValueStatus.CONFLICTED,
                 claims=active,
                 strategy=strategy.value,
-                reason="ic_merge strategy requires an explicit artifact store",
+                reason="assignment_selection_merge strategy requires an explicit artifact store",
             )
-        winner_id, reason = _resolve_ic_merge(
+        winner_id, reason = _resolve_assignment_selection_merge(
             active,
             active_claim_rows,
             concept_id,
@@ -954,11 +959,18 @@ def resolve(
         )
 
     winning_claim = next((claim for claim in active_views if claim.id == winner_id), None)
+    display_store: ArtifactStore | None
+    if world is not None:
+        display_store = world
+    elif isinstance(view, ArtifactStore):
+        display_store = view
+    else:
+        display_store = None
     value = None if winning_claim is None else winning_claim.value
     return ResolvedResult(
         concept_id=typed_concept_id, status=ValueStatus.RESOLVED,
         value=value, claims=active,
-        winning_claim_id=to_claim_id(_display_claim_id(world or view, winner_id) or winner_id),
+        winning_claim_id=to_claim_id(_display_claim_id(display_store, winner_id) or winner_id),
         strategy=strategy.value, reason=reason,
         acceptance_probs=_acceptance_probs,
     )
