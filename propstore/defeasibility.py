@@ -17,6 +17,8 @@ from propstore.cel_checker import (
     parse_cel,
 )
 from propstore.cel_types import CelExpr, to_cel_expr
+from propstore.aspic import Argument, CSAF, conc
+from propstore.dung import ArgumentationFramework
 from propstore.provenance import (
     NogoodWitness,
     ProvenanceNogood,
@@ -315,6 +317,62 @@ def evaluate_contextual_claim(
     )
 
 
+def apply_exception_defeats_to_csaf(
+    csaf: CSAF,
+    results: Iterable[ContextualClaimResult],
+) -> CSAF:
+    """Return a CSAF whose Dung layer includes CKR exception defeats.
+
+    ASPIC+ remains responsible for structural argument construction. CKR
+    contributes only extra defeat edges: justification-claim arguments attack
+    arguments concluding the excepted contextual claim.
+    """
+
+    extra_defeats: set[tuple[Argument, Argument]] = set()
+    for result in results:
+        if result.applicability is not ClaimApplicability.EXCEPTED:
+            continue
+        target_arguments = _arguments_concluding(csaf, result.use.claim)
+        if not target_arguments:
+            raise ValueError(
+                "CKR exception result targets a claim with no ASPIC argument: "
+                f"{result.use.claim!r}"
+            )
+        for exception in result.applied_exceptions:
+            attacker_arguments: set[Argument] = set()
+            for justification_claim in exception.justification_claims:
+                attacker_arguments.update(
+                    _arguments_concluding(csaf, justification_claim)
+                )
+            if not attacker_arguments:
+                raise ValueError(
+                    "CKR exception has no ASPIC argument for its justification claims"
+                )
+            for attacker in attacker_arguments:
+                for target in target_arguments:
+                    if attacker != target:
+                        extra_defeats.add((attacker, target))
+
+    if not extra_defeats:
+        return csaf
+
+    defeat_ids = frozenset(
+        (csaf.arg_to_id[attacker], csaf.arg_to_id[target])
+        for attacker, target in extra_defeats
+    )
+    existing_attacks = csaf.framework.attacks or frozenset()
+    framework = ArgumentationFramework(
+        arguments=csaf.framework.arguments,
+        defeats=csaf.framework.defeats | defeat_ids,
+        attacks=existing_attacks | defeat_ids,
+    )
+    return replace(
+        csaf,
+        defeats=csaf.defeats | frozenset(extra_defeats),
+        framework=framework,
+    )
+
+
 def _candidate_exceptions(
     use: ContextualClaimUse,
     exceptions: Iterable[JustifiableException],
@@ -333,6 +391,14 @@ def _candidate_exceptions(
             ):
                 candidates.append(lift_exception(exception, lifting_rule))
     return tuple(candidates)
+
+
+def _arguments_concluding(csaf: CSAF, claim_id: str) -> set[Argument]:
+    return {
+        argument
+        for argument in csaf.arguments
+        if conc(argument).atom.predicate == claim_id
+    }
 
 
 def _pattern_selects_use(
@@ -425,6 +491,7 @@ __all__ = [
     "ExceptionPolicyIssueKind",
     "JustifiableException",
     "LiftingRuleSupport",
+    "apply_exception_defeats_to_csaf",
     "build_exception_defeat",
     "evaluate_contextual_claim",
     "exception_defeat_is_live",
