@@ -8,7 +8,7 @@ from typing import Any
 import click
 
 from propstore.artifacts import WORLDLINE_FAMILY, WorldlineRef
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.artifacts.schema import DocumentSchemaError
 from propstore.world.types import (
     ReasoningBackend,

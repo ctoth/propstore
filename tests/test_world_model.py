@@ -291,7 +291,7 @@ def concept_dir(tmp_path):
 
 @pytest.fixture
 def repo(concept_dir):
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
     return Repository(concept_dir.parent)
 
 
@@ -544,7 +544,7 @@ class TestWorldModelConstruction:
         assert isinstance(world, ArtifactStore)
 
     def test_raises_without_sidecar(self, tmp_path):
-        from propstore.cli.repository import Repository
+        from propstore.repo.repository import Repository
         repo = Repository.init(tmp_path / "empty_knowledge")
         with pytest.raises(FileNotFoundError):
             WorldModel(repo)
@@ -694,7 +694,7 @@ class TestUnboundQueries:
         })
         (claims_dir / "paper.yaml").write_text(yaml.dump(claim_payload, default_flow_style=False))
 
-        from propstore.cli.repository import Repository
+        from propstore.repo.repository import Repository
 
         repo = Repository(knowledge)
         build_sidecar(knowledge, repo.sidecar_path)
@@ -750,7 +750,7 @@ class TestUnboundQueries:
         })
         (claims_dir / "paper.yaml").write_text(yaml.dump(claim_payload, default_flow_style=False))
 
-        from propstore.cli.repository import Repository
+        from propstore.repo.repository import Repository
 
         repo = Repository(knowledge)
         build_sidecar(knowledge, repo.sidecar_path)
@@ -2148,7 +2148,7 @@ def algo_concept_dir(tmp_path):
 
 @pytest.fixture
 def algo_repo(algo_concept_dir):
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
     return Repository(algo_concept_dir.parent)
 
 
@@ -2600,7 +2600,7 @@ class TestWorldModelSidecarPath:
     """WorldModel should accept a sidecar_path: Path directly, without
     requiring a Repository object.  This is Finding 4 from the architecture
     audit: world/model.py (Layer 5 render) should not depend on
-    propstore.cli.repository (Layer 6 CLI/agent workflow).
+    propstore.repo.repository (Layer 6 CLI/agent workflow).
 
     These tests MUST FAIL on the current code because __init__ only
     accepts a Repository, not a Path.
@@ -2678,10 +2678,10 @@ class TestWorldModelSidecarPath:
 
     def test_worldmodel_importable_without_cli(self):
         """propstore.world.model.WorldModel.from_path should not require
-        propstore.cli.repository at runtime.
+        propstore.repo.repository at runtime.
 
         Currently fails because from_path() line 46 does:
-            from propstore.cli.repository import Repository
+            from propstore.repo.repository import Repository
         This is an upward dependency: Layer 5 (render) -> Layer 6 (CLI).
         """
         import importlib
@@ -2710,7 +2710,7 @@ class TestWorldModelSidecarPath:
         try:
             # Call from_path — this should NOT need propstore.cli.
             # Currently FAILS because from_path() does a runtime import of
-            # propstore.cli.repository.Repository at line 46.
+            # propstore.repo.repository.Repository at line 46.
             from propstore.world.model import WorldModel as WM
 
             try:

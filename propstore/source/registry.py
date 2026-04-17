@@ -4,7 +4,7 @@ import copy
 from typing import Any
 
 from propstore.artifacts import normalize_canonical_concept_payload
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.parameterization_groups import build_groups
 
 from .common import normalize_source_slug

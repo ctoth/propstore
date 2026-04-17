@@ -11,7 +11,7 @@ from propstore.artifacts.identity import (
     normalize_claim_file_payload,
 )
 from propstore.cli.init import _seed_form_documents
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 
 
 def _initialize_repo(root: Path) -> Repository:

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.core.claim_types import coerce_claim_type
 from propstore.core.source_types import (
     coerce_source_kind,

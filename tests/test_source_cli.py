@@ -9,7 +9,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.repo.branch import create_branch, list_branches
 
 

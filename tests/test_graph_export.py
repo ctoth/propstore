@@ -155,7 +155,7 @@ def concept_dir(tmp_path):
 
 @pytest.fixture
 def repo(concept_dir):
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
     return Repository(concept_dir.parent)
 
 

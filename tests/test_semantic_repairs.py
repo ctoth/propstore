@@ -44,7 +44,7 @@ def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> Worl
             yaml.dump(normalize_claims_payload(claim_doc), default_flow_style=False)
         )
 
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     repo = Repository(root)
     build_sidecar(root, repo.sidecar_path)

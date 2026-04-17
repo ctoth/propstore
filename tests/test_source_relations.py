@@ -14,7 +14,7 @@ from hypothesis import strategies as st
 
 from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.source import parameterization_group_merge_preview
 from tests.builders import (
     SourceClaimSpec,

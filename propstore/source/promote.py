@@ -44,7 +44,7 @@ from propstore.artifacts import (
 )
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.claims import ClaimsFileDocument
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.artifacts.schema import convert_document_value
 from propstore.artifacts.documents.sources import SourceDocument, SourceJustificationsDocument
 from propstore.artifacts.documents.stances import StanceFileDocument

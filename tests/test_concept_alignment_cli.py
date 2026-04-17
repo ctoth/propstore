@@ -8,7 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.source import build_alignment_artifact, classify_relation
 
 

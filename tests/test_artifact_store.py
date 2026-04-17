@@ -14,7 +14,7 @@ from propstore.artifacts import (
     ConceptFileRef,
     WorldlineRef,
 )
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.repo.branch import create_branch
 from propstore.source.common import initial_source_document, source_branch_name

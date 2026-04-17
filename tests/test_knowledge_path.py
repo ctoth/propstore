@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
 from propstore.repo import KnowledgeRepo
 
