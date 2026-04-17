@@ -13,6 +13,7 @@ This decision is based on the WS-C workstream, the 2026-04-16 axis-7 and axis-3a
 - Diller, Gaggl, Hanisch, Monterosso, and Rauschenbach 2025, `papers/Diller_2025_GroundingRule-BasedArgumentationDatalog/notes.md`
 - Bondarenko, Dung, Kowalski, and Toni 1997, `papers/Bondarenko_1997_AbstractArgumentation-TheoreticApproachDefault/notes.md`
 - Toni 2014, `papers/Toni_2014_TutorialAssumption-basedArgumentation/notes.md`
+- Green, Karvounarakis, and Tannen 2007, `papers/Green_2007_ProvenanceSemirings/notes.md`
 
 I verified that page-image artifacts exist for those five paper directories. I did not independently reread every page image for this decision artifact; it uses the processed notes as the local evidence base.
 
@@ -48,9 +49,9 @@ The production type should be explicit, not a loose dictionary:
 JustifiableException(
     target_claim,
     exception_pattern,
-    justification,
+    justification_claims,
     context,
-    provenance,
+    support,
     decidability_status,
 )
 ```
@@ -59,13 +60,32 @@ JustifiableException(
 
 `exception_pattern` is a CEL expression or equivalent typed condition over the instances to which the exception applies.
 
-`justification` is one or more propstore claims that support the exception. An exception with no supporting justification is not applied.
+`justification_claims` is one or more propstore claims that support the exception. An exception with no supporting justification is not applied.
 
 `context` is the description cluster in which the exception is asserted or derived.
 
-`provenance` records the source path from authored/imported material through proposal and promotion.
+`support` is semiring-compatible `SupportEvidence`: a provenance polynomial plus support quality. It records how source claims, rules, lifting rules, measurements, calibration records, and solver witnesses compose to support the exception. This is not a loose provenance dictionary.
 
 `decidability_status` records whether the satisfaction decision used only decidable checks or a sound-but-incomplete path.
+
+### Support provenance
+
+Green 2007 changes the provenance contract. CKR exceptions and CKR-derived defeats must carry support evidence shaped for semiring projection:
+
+```text
+SupportEvidence(
+    polynomial: ProvenancePolynomial,
+    quality: SupportQuality,
+)
+```
+
+The polynomial is positive support provenance: alternative derivations add, joint derivations multiply. Render/query policies project that support through explicit homomorphisms, for example Boolean presence, why-provenance/ATMS labels, derivation count, or tropical cost.
+
+This does not make the claim content a polynomial. The content remains typed semantic content; the polynomial is its support annotation.
+
+This also does not put Z3 inside the semiring. Solvers inspect claim content and produce nogoods. Current-world support projections must operate on `live(polynomial, nogoods)`, where live filtering removes monomials whose squarefree support contains a nogood. Live filtering is not a generic semiring homomorphism and must not be documented as one.
+
+Support quality is mandatory. If support is only semantic-compatible, context-visible, mixed, or otherwise non-exact, the result must say so instead of fabricating exact polynomial support.
 
 ### Justifiability
 
@@ -102,6 +122,8 @@ ASPIC+ keeps building arguments recursively from knowledge bases, strict rules, 
 ASPIC+ preferences must become real strict partial orders over authored rule priority data. The current empty `superiority=[]` in the grounding translator and empty `rule_order=frozenset()` in the ASPIC bridge are implementation bugs when priority data is present.
 
 CKR exceptions should interact with ASPIC+ as defeat information. If an ASPIC+ argument concludes or uses `p` in context `c`, and CKR says `p` is excepted in `c` by a justified exception, then the exception's supporting claims form the defeating argument against that use.
+
+The exception defeat itself carries support evidence composed from exception support, lifting-rule support, and solver-witness support where applicable.
 
 The separation is:
 
@@ -141,12 +163,16 @@ The current metadata-strength vector in `preference.py` is not a replacement for
 
 The CKR module should expose typed domain objects and typed results. It should reject dict-shaped semantic objects after the IO boundary.
 
+This phase depends on WS-A1's semiring provenance substrate for production `SupportEvidence`. If WS-C reaches C-3 before A1 is implemented, stop rather than introducing a parallel support representation.
+
 Core property tests:
 
 - An exception with no justification is not applied.
 - A justified exception applies only to instances selected by its pattern.
 - Exceptions lift iff an explicit lifting rule licenses the lift.
+- Lifted exception support multiplies exception support by lifting-rule support.
 - Solver unknown produces `UNKNOWN`/sound-but-incomplete provenance, not a conflict.
+- Solver nogoods can kill exception support monomials without deleting the exception object.
 - Conflicting exceptions are surfaced for render-time policy rather than silently collapsed.
 
 ### C-4 boundary cleanup

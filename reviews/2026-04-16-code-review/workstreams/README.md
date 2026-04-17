@@ -50,6 +50,7 @@ What "right" looks like for each workstream:
 |---|---|---|---|
 | A0 | `ws-a0-repository-artifact-boundary.md` | Moves repository ownership out of `propstore.cli`, removes repository/world coupling, and forces canonical concept reads through artifact families/store before WS-A phase 2 rewrites concept documents. | Axis 2 + synthesis |
 | A | `ws-a-semantic-substrate.md` | Retrofits the concept/semantic layer with real Fillmore frames, Pustejovsky qualia, Buitelaar lemon, McCarthy `ist(c, p)` contexts, Clark micropublications, Buneman+Carroll provenance. Four internal phases. Largest workstream. | Papers being retrieved by Q; A0 before phase 2 document-boundary work |
+| A1 | `ws-a1-semiring-provenance.md` | Implements Green 2007-style positive provenance polynomials as the support substrate, then collapses ATMS labels into a why-provenance projection once equivalence tests prove it. | Axis 3d; WS-A source/artifact boundaries |
 | B | `ws-b-belief-set-layer.md` | Real AGM revision + Darwiche-Pearl iterated + Konieczny IC merge + Baumann/Diller AF revision, all over belief sets with `Cn` closure. Property-tests every postulate. | WS-A phase 1 (provenance) |
 | C | `ws-c-defeasibility.md` | Bozzato CKR justifiable-exceptions + ASPIC+ coexistence. Populates the currently-empty priority pipeline. | WS-A phase 4 (contexts) |
 | Z-types | `ws-z-honest-ignorance-types.md` | `Provenance`, `CategoryPrior`, `SolverResult`, `Opinion | NoCalibration`, `ConflictClass.UNKNOWN`. Closes the cross-cutting fabrication pattern. | WS-A phase 1 (provenance) for full payoff |
@@ -60,7 +61,8 @@ Dependencies:
 ```
   WS-Z-gates ────── independent, start anytime
   WS-A phase 1 ──┬── WS-A0 ── WS-A phase 2 → 3 → 4 ──── WS-C
-                 └── WS-Z-types
+                 ├── WS-A1 semiring provenance ───────── WS-C C-3
+                 ├── WS-Z-types
                  └── WS-B
 ```
 
