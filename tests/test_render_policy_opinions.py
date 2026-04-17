@@ -210,3 +210,58 @@ def test_fallback_to_confidence_when_opinion_missing():
     )
     assert result_none.source is DecisionValueSource.NO_DATA
     assert result_none.value is None
+
+
+# ── 11. Lifecycle-visibility flags (WS-Z-gates Phase 4) ─────────────
+
+def test_lifecycle_visibility_flags_default_false():
+    """Per reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md
+    (exit criteria): default policy hides ``stage='draft'``,
+    ``build_status='blocked'``, ``promotion_status='blocked'`` rows, and does
+    NOT surface ``build_diagnostics`` rows. The three RenderPolicy visibility
+    flags default to ``False`` to preserve that "don't show problems by
+    default" posture.
+    """
+    policy = RenderPolicy()
+    assert policy.include_drafts is False
+    assert policy.include_blocked is False
+    assert policy.show_quarantined is False
+
+
+def test_lifecycle_visibility_flags_round_trip():
+    """Per ws-z-render-gates.md (axis-1 findings 3.1/3.2/3.3 closure): the
+    three visibility flags are user-configurable opt-ins. They must survive
+    the ``to_dict`` / ``from_dict`` serialization round-trip identically so
+    ``--policy-json`` plumbing and equivalent persistence paths preserve
+    them.
+    """
+    policy = RenderPolicy(
+        include_drafts=True,
+        include_blocked=True,
+        show_quarantined=True,
+    )
+    restored = RenderPolicy.from_dict(policy.to_dict())
+    assert restored.include_drafts is True
+    assert restored.include_blocked is True
+    assert restored.show_quarantined is True
+
+
+def test_lifecycle_visibility_flags_omit_when_default():
+    """Per propstore/world/types.py ``to_dict`` convention: fields at their
+    default value are omitted from the serialized dict. The three lifecycle
+    visibility flags follow that pattern — a default-configured policy
+    produces a dict that does NOT contain ``include_drafts``,
+    ``include_blocked``, or ``show_quarantined`` keys.
+    """
+    default = RenderPolicy()
+    payload = default.to_dict()
+    assert "include_drafts" not in payload
+    assert "include_blocked" not in payload
+    assert "show_quarantined" not in payload
+
+    # Inverse: enabling one flag surfaces it in the dict.
+    flagged = RenderPolicy(include_drafts=True)
+    flagged_payload = flagged.to_dict()
+    assert flagged_payload["include_drafts"] is True
+    assert "include_blocked" not in flagged_payload
+    assert "show_quarantined" not in flagged_payload
