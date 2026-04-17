@@ -28,8 +28,6 @@ class ProvenanceNogood:
 
     def __post_init__(self) -> None:
         variables = frozenset(SourceVariableId(str(variable)) for variable in self.variables)
-        if not variables:
-            raise ValueError("ProvenanceNogood variables must be non-empty")
         object.__setattr__(self, "variables", variables)
 
 

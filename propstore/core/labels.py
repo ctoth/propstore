@@ -6,7 +6,6 @@ import hashlib
 import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any
 
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
@@ -17,6 +16,11 @@ from propstore.core.id_types import (
     to_assumption_ids,
     to_context_id,
 )
+from propstore.provenance.polynomial import ProvenancePolynomial
+from propstore.provenance import Provenance, ProvenanceStatus
+from propstore.provenance.nogoods import NogoodWitness, ProvenanceNogood, live
+from propstore.provenance.support import SupportEvidence, SupportQuality
+from propstore.provenance.variables import SourceVariableId
 
 
 @dataclass(frozen=True, order=True)
@@ -60,21 +64,39 @@ class EnvironmentKey:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class NogoodSet:
-    """Minimal inconsistent environments."""
+    """Minimal inconsistent environments projected from provenance nogoods."""
 
-    environments: tuple[EnvironmentKey, ...] = ()
+    provenance_nogoods: tuple[ProvenanceNogood, ...]
 
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        environments: Iterable[EnvironmentKey] = (),
+        *,
+        provenance_nogoods: Iterable[ProvenanceNogood] | None = None,
+    ) -> None:
+        if provenance_nogoods is None:
+            provenance_nogoods = tuple(
+                _environment_to_provenance_nogood(environment)
+                for environment in normalize_environments(environments)
+            )
         object.__setattr__(
             self,
-            "environments",
-            normalize_environments(self.environments),
+            "provenance_nogoods",
+            tuple(provenance_nogoods),
+        )
+
+    @property
+    def environments(self) -> tuple[EnvironmentKey, ...]:
+        return normalize_environments(
+            _provenance_nogood_to_environment(nogood)
+            for nogood in self.provenance_nogoods
         )
 
     def excludes(self, environment: EnvironmentKey) -> bool:
-        return any(nogood.subsumes(environment) for nogood in self.environments)
+        support = _environment_to_polynomial(environment)
+        return not live(support, self.provenance_nogoods).terms
 
 
 def normalize_environments(
@@ -104,18 +126,37 @@ def normalize_environments(
     return tuple(minimal)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False, eq=False)
 class Label:
-    """Minimal antichain of supporting environments."""
+    """Minimal antichain of supporting environments projected from support."""
 
-    environments: tuple[EnvironmentKey, ...] = ()
+    support: SupportEvidence
 
-    def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "environments",
-            normalize_environments(self.environments),
-        )
+    def __init__(
+        self,
+        environments: Iterable[EnvironmentKey] = (),
+        *,
+        support: SupportEvidence | None = None,
+    ) -> None:
+        if support is None:
+            normalized = normalize_environments(environments)
+            support = SupportEvidence(
+                _environments_to_polynomial(normalized),
+                SupportQuality.EXACT,
+            )
+        object.__setattr__(self, "support", support)
+
+    @property
+    def environments(self) -> tuple[EnvironmentKey, ...]:
+        return _polynomial_to_environments(self.support.polynomial)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Label):
+            return NotImplemented
+        return self.environments == other.environments
+
+    def __hash__(self) -> int:
+        return hash(self.environments)
 
     @classmethod
     def empty(cls) -> Label:
@@ -161,15 +202,6 @@ class JustificationRecord:
             antecedents=tuple(antecedents),
             label=combine_labels(*antecedents, nogoods=nogoods),
         )
-
-
-class SupportQuality(Enum):
-    """How faithfully the current belief-space activation can be labeled."""
-
-    EXACT = "exact"
-    SEMANTIC_COMPATIBLE = "semantic_compatible"
-    CONTEXT_VISIBLE_ONLY = "context_visible_only"
-    MIXED = "mixed"
 
 
 def cel_to_binding(cel: str | CelExpr) -> tuple[str, Any] | None:
@@ -238,18 +270,16 @@ def combine_labels(
     if not labels:
         return Label.empty()
 
-    environments = (EnvironmentKey(()),)
+    support = ProvenancePolynomial.one()
     for label in labels:
         if not label.environments:
             return Label(())
-        combined: list[EnvironmentKey] = []
-        for left in environments:
-            for right in label.environments:
-                combined.append(left.union(right))
-        environments = normalize_environments(combined, nogoods=nogoods)
+        support = support * label.support.polynomial
+        environments = normalize_environments(_polynomial_to_environments(support), nogoods=nogoods)
         if not environments:
             return Label(())
-    return Label(tuple(environments))
+        support = _environments_to_polynomial(environments)
+    return Label(support=SupportEvidence(support, SupportQuality.EXACT))
 
 
 def merge_labels(
@@ -258,10 +288,103 @@ def merge_labels(
     nogoods: NogoodSet | None = None,
 ) -> Label:
     """Merge alternative supports for the same datum into one normalized label."""
-    environments: list[EnvironmentKey] = []
+    support = ProvenancePolynomial.zero()
     for label in labels:
-        environments.extend(label.environments)
-    return Label(tuple(normalize_environments(environments, nogoods=nogoods)))
+        support = support + label.support.polynomial
+    environments = normalize_environments(_polynomial_to_environments(support), nogoods=nogoods)
+    return Label(support=SupportEvidence(_environments_to_polynomial(environments), SupportQuality.EXACT))
+
+
+_ASSUMPTION_VAR_PREFIX = "ps:source:assumption:"
+_CONTEXT_VAR_PREFIX = "ps:source:context:"
+
+
+def label_to_polynomial(label: Label) -> ProvenancePolynomial:
+    return label.support.polynomial
+
+
+def polynomial_to_label(poly: ProvenancePolynomial) -> Label:
+    return Label(support=SupportEvidence(poly, SupportQuality.EXACT))
+
+
+def _environment_to_provenance_nogood(environment: EnvironmentKey) -> ProvenanceNogood:
+    variables = frozenset(
+        power.variable
+        for term in _environment_to_polynomial(environment).terms
+        for power in term.powers
+    )
+    return ProvenanceNogood(
+        variables=variables,
+        witness=NogoodWitness(
+            source="core.labels.NogoodSet",
+            detail="ATMS inconsistent environment projected to provenance nogood",
+        ),
+        provenance=Provenance(
+            status=ProvenanceStatus.VACUOUS,
+            witnesses=(),
+            operations=("atms-nogood-projection",),
+        ),
+    )
+
+
+def _provenance_nogood_to_environment(nogood: ProvenanceNogood) -> EnvironmentKey:
+    assumptions: list[AssumptionId] = []
+    contexts: list[ContextId] = []
+    for variable in sorted(nogood.variables, key=str):
+        assumption, context = _variable_to_environment_piece(variable)
+        if assumption is not None:
+            assumptions.append(assumption)
+        if context is not None:
+            contexts.append(context)
+    return EnvironmentKey(tuple(assumptions), context_ids=tuple(contexts))
+
+
+def _assumption_variable(assumption_id: AssumptionId) -> SourceVariableId:
+    return SourceVariableId(f"{_ASSUMPTION_VAR_PREFIX}{assumption_id}")
+
+
+def _context_variable(context_id: ContextId) -> SourceVariableId:
+    return SourceVariableId(f"{_CONTEXT_VAR_PREFIX}{context_id}")
+
+
+def _variable_to_environment_piece(variable: SourceVariableId) -> tuple[AssumptionId | None, ContextId | None]:
+    value = str(variable)
+    if value.startswith(_ASSUMPTION_VAR_PREFIX):
+        return to_assumption_id(value.removeprefix(_ASSUMPTION_VAR_PREFIX)), None
+    if value.startswith(_CONTEXT_VAR_PREFIX):
+        return None, to_context_id(value.removeprefix(_CONTEXT_VAR_PREFIX))
+    return to_assumption_id(value), None
+
+
+def _environment_to_polynomial(environment: EnvironmentKey) -> ProvenancePolynomial:
+    support = ProvenancePolynomial.one()
+    for assumption_id in environment.assumption_ids:
+        support = support * ProvenancePolynomial.variable(_assumption_variable(assumption_id))
+    for context_id in environment.context_ids:
+        support = support * ProvenancePolynomial.variable(_context_variable(context_id))
+    return support
+
+
+def _environments_to_polynomial(environments: Iterable[EnvironmentKey]) -> ProvenancePolynomial:
+    support = ProvenancePolynomial.zero()
+    for environment in environments:
+        support = support + _environment_to_polynomial(environment)
+    return support
+
+
+def _polynomial_to_environments(poly: ProvenancePolynomial) -> tuple[EnvironmentKey, ...]:
+    environments: list[EnvironmentKey] = []
+    for term in poly.terms:
+        assumptions: list[AssumptionId] = []
+        contexts: list[ContextId] = []
+        for power in term.powers:
+            assumption, context = _variable_to_environment_piece(power.variable)
+            if assumption is not None:
+                assumptions.append(assumption)
+            if context is not None:
+                contexts.append(context)
+        environments.append(EnvironmentKey(tuple(assumptions), context_ids=tuple(contexts)))
+    return normalize_environments(environments)
 
 
 def _stable_id(kind: str, source: str, body: str) -> AssumptionId:

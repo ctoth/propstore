@@ -99,3 +99,14 @@ class TestLiveFiltering:
 
         assert raw_count == 2
         assert live_count == 1
+
+    def test_empty_nogood_kills_every_monomial(self):
+        a = SourceVariableId("ps:source:test:a")
+        poly = ProvenancePolynomial.one() + ProvenancePolynomial.variable(a)
+        nogood = ProvenanceNogood(
+            frozenset(),
+            NogoodWitness("test", "inconsistent empty environment"),
+            _provenance(),
+        )
+
+        assert live(poly, (nogood,)) == ProvenancePolynomial.zero()

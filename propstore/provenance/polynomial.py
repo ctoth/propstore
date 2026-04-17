@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Iterable
+from typing import DefaultDict, Iterable
 
 from propstore.provenance.variables import SourceVariableId
 
@@ -31,10 +31,9 @@ class PolynomialTerm:
         if coefficient <= 0:
             raise ValueError("PolynomialTerm coefficient must be positive")
         object.__setattr__(self, "coefficient", coefficient)
-        combined: dict[SourceVariableId, int] = defaultdict(int)
+        combined: DefaultDict[SourceVariableId, int] = defaultdict(int)
         for power in self.powers:
-            normalized = power if isinstance(power, VariablePower) else VariablePower(*power)
-            combined[normalized.variable] += normalized.exponent
+            combined[power.variable] += power.exponent
         object.__setattr__(
             self,
             "powers",
@@ -57,10 +56,9 @@ class ProvenancePolynomial:
     terms: tuple[PolynomialTerm, ...] = ()
 
     def __post_init__(self) -> None:
-        coefficients: dict[tuple[VariablePower, ...], int] = defaultdict(int)
+        coefficients: DefaultDict[tuple[VariablePower, ...], int] = defaultdict(int)
         for term in self.terms:
-            normalized = term if isinstance(term, PolynomialTerm) else PolynomialTerm(*term)
-            coefficients[normalized.key] += normalized.coefficient
+            coefficients[term.key] += term.coefficient
         object.__setattr__(
             self,
             "terms",

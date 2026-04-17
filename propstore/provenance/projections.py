@@ -111,6 +111,8 @@ def normalize_why_supports(supports: list[WhySupport]) -> tuple[WhySupport, ...]
 
 
 class _TropicalCostHomomorphism:
+    """Min-plus cost projection; these floats are costs, not confidence values."""
+
     def __init__(self, costs: Mapping[SourceVariableId, float]) -> None:
         self._costs = costs
 
@@ -136,4 +138,6 @@ def tropical_cost(
     poly: ProvenancePolynomial,
     costs: Mapping[SourceVariableId, float],
 ) -> float:
+    """Return the preferred derivation cost, not a probability or confidence."""
+
     return evaluate(poly, _TropicalCostHomomorphism(costs))
