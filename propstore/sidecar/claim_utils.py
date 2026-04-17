@@ -14,7 +14,8 @@ from ast_equiv import canonical_dump
 from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_source_paper
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.claim_types import ClaimType
-from propstore.form_utils import FormDefinition, normalize_to_si
+from propstore.dimensions import normalize_to_si
+from propstore.form_utils import FormDefinition
 from propstore.identity import (
     compute_claim_version_id,
     derive_claim_artifact_id,

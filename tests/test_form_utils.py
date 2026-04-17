@@ -16,13 +16,16 @@ import yaml
 
 from propstore.form_utils import (
     FormDefinition,
-    UnitConversion,
     clear_form_cache,
     load_form,
     load_form_path,
-    normalize_to_si,
-    from_si,
     _form_cache,
+)
+from propstore.dimensions import (
+    _PINT_ALIASES,
+    UnitConversion,
+    from_si,
+    normalize_to_si,
 )
 from propstore.knowledge_path import FilesystemKnowledgePath
 
@@ -388,20 +391,16 @@ class TestClinicalTimeUnits:
 
     def test_pint_alias_mo_resolves(self):
         """mo -> month in _PINT_ALIASES for defense-in-depth."""
-        from propstore.form_utils import _PINT_ALIASES
         assert _PINT_ALIASES.get("mo") == "month"
 
     def test_pint_alias_yr_resolves(self):
         """yr -> year in _PINT_ALIASES for defense-in-depth."""
-        from propstore.form_utils import _PINT_ALIASES
         assert _PINT_ALIASES.get("yr") == "year"
 
     def test_pint_alias_wk_resolves(self):
         """wk -> week in _PINT_ALIASES for defense-in-depth."""
-        from propstore.form_utils import _PINT_ALIASES
         assert _PINT_ALIASES.get("wk") == "week"
 
     def test_pint_alias_d_resolves(self):
         """d -> day in _PINT_ALIASES for defense-in-depth."""
-        from propstore.form_utils import _PINT_ALIASES
         assert _PINT_ALIASES.get("d") == "day"

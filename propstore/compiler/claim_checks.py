@@ -25,6 +25,7 @@ from propstore.cel_checker import (
 from propstore.artifacts.identity import normalize_claim_file_payload
 from propstore.core.concepts import LoadedConcept
 from propstore.diagnostics import SemanticDiagnostic, ValidationResult
+from propstore.dimensions import can_convert_unit_to
 from propstore.form_utils import (
     FormDefinition,
     json_safe,
@@ -505,21 +506,8 @@ def _validate_unit_against_form(
     # common_alternatives, and extra_units. If none declared, skip.
     if form_def.allowed_units:
         if unit not in form_def.allowed_units:
-            # Before rejecting, try pint dimensional compatibility.
-            try:
-                from propstore import form_utils
-
-                src = form_utils.ureg.Quantity(1, form_utils._pint_unit(unit))
-                src.to(form_utils._pint_unit(form_def.unit_symbol))
-                # Dimensionally compatible — accept it
+            if can_convert_unit_to(unit, form_def.unit_symbol):
                 return
-            except (
-                form_utils.pint.UndefinedUnitError,
-                form_utils.pint.DimensionalityError,
-                TypeError,
-                ValueError,
-            ):
-                pass
             diagnostics.append(SemanticDiagnostic(
                 level="error",
                 message=(

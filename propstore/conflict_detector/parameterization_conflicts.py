@@ -69,7 +69,7 @@ def _normalize_claim_value(
     form_name = concept_registry.get(concept_id, {}).get("form")
     if form_name is None or form_name not in forms:
         return value
-    from propstore.form_utils import normalize_to_si
+    from propstore.dimensions import normalize_to_si
 
     form_def = forms[form_name]
     if unit == form_def.unit_symbol:

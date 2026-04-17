@@ -62,7 +62,7 @@ def _normalize_interval(
     form: "FormDefinition",
 ) -> tuple[float, float, float]:
     """Normalize all three components of an interval to SI units."""
-    from propstore.form_utils import normalize_to_si
+    from propstore.dimensions import normalize_to_si
 
     center, lo, hi = interval
     return (
