@@ -1,22 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
+from propstore.core.lemon.description_kinds import DescriptionKind
 from propstore.core.lemon.forms import LexicalForm, fold_text, require_text
+from propstore.core.lemon.proto_roles import ProtoRoleBundle
+from propstore.core.lemon.qualia import QualiaStructure
+from propstore.core.lemon.references import OntologyReference
 from propstore.provenance import Provenance
-
-
-@dataclass(frozen=True, slots=True)
-class OntologyReference:
-    """The ontology entity side of a lemon lexicalization."""
-
-    uri: str
-    label: str | None = None
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "uri", require_text(self.uri, "uri"))
-        if self.label is not None:
-            object.__setattr__(self, "label", require_text(self.label, "label"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,10 +18,16 @@ class LexicalSense:
     reference: OntologyReference
     usage: str | None = None
     provenance: Provenance | None = None
+    qualia: QualiaStructure | None = None
+    description_kind: DescriptionKind | None = None
+    role_bundles: Mapping[str, ProtoRoleBundle] | None = None
 
     def __post_init__(self) -> None:
         if self.usage is not None:
             object.__setattr__(self, "usage", require_text(self.usage, "usage"))
+        if self.role_bundles is not None:
+            for role_name in self.role_bundles:
+                require_text(role_name, "role_bundles key")
 
 
 @dataclass(frozen=True, slots=True)
