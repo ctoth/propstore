@@ -370,3 +370,61 @@ def stamp_file(
     if changed:
         path.write_text(result, encoding="utf-8")
     return changed
+
+
+from propstore.provenance.derivative import partial_derivative
+from propstore.provenance.homomorphism import Homomorphism, evaluate
+from propstore.provenance.nogoods import NogoodWitness, ProvenanceNogood, live
+from propstore.provenance.polynomial import (
+    PolynomialTerm,
+    ProvenancePolynomial,
+    VariablePower,
+)
+from propstore.provenance.projections import (
+    WhySupport,
+    boolean_presence,
+    derivation_count,
+    tropical_cost,
+    why_provenance,
+)
+from propstore.provenance.support import SupportEvidence, SupportQuality
+from propstore.provenance.variables import (
+    SourceRole,
+    SourceVariable,
+    SourceVariableId,
+    derive_source_variable_id,
+)
+
+
+__all__ = [
+    "Homomorphism",
+    "NogoodWitness",
+    "PolynomialTerm",
+    "PROVENANCE_NOTES_REF",
+    "Provenance",
+    "ProvenanceNogood",
+    "ProvenancePolynomial",
+    "ProvenanceStatus",
+    "ProvenanceWitness",
+    "SourceRole",
+    "SourceVariable",
+    "SourceVariableId",
+    "SupportEvidence",
+    "SupportQuality",
+    "VariablePower",
+    "WhySupport",
+    "boolean_presence",
+    "compose_provenance",
+    "decode_named_graph",
+    "derive_source_variable_id",
+    "derivation_count",
+    "encode_named_graph",
+    "evaluate",
+    "live",
+    "partial_derivative",
+    "read_provenance_note",
+    "stamp_file",
+    "tropical_cost",
+    "why_provenance",
+    "write_provenance_note",
+]
