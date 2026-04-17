@@ -42,7 +42,10 @@ from propstore.core.micropublications import (
     coerce_active_micropublication,
 )
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness, ParameterizationEdge
-from propstore.propagation import evaluate_parameterization
+from propstore.propagation import (
+    ParameterizationEvaluationStatus,
+    evaluate_parameterization,
+)
 from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
@@ -1417,31 +1420,35 @@ class ATMSEngine:
                 continue
 
             for provider_combo in product(*input_provider_sets):
-                input_values = {
-                    concept_id: float(_node_value(self._nodes[node_id]))
-                    for concept_id, node_id in zip(effective_inputs, provider_combo, strict=True)
-                }
-                derived_value = evaluate_parameterization(sympy_expr, input_values, output_concept_id)
-                if derived_value is None:
-                    continue
+                input_values: dict[str, float] = {}
+                for concept_id, node_id in zip(effective_inputs, provider_combo, strict=True):
+                    raw_value = _node_value(self._nodes[node_id])
+                    if isinstance(raw_value, bool) or not isinstance(raw_value, int | float):
+                        break
+                    input_values[concept_id] = float(raw_value)
+                else:
+                    evaluation = evaluate_parameterization(sympy_expr, input_values, output_concept_id)
+                    if evaluation.status is not ParameterizationEvaluationStatus.VALUE:
+                        continue
+                    assert evaluation.value is not None
+                    derived_value = evaluation.value
+                    derived_node_id = self._derived_node_id(output_concept_id, derived_value)
+                    if derived_node_id not in self._nodes:
+                        self._nodes[derived_node_id] = ATMSDerivedNode(
+                            node_id=derived_node_id,
+                            concept_id=output_concept_id,
+                            value=derived_value,
+                            parameterization_index=index,
+                            formula=param.formula,
+                        )
 
-                derived_node_id = self._derived_node_id(output_concept_id, derived_value)
-                if derived_node_id not in self._nodes:
-                    self._nodes[derived_node_id] = ATMSDerivedNode(
-                        node_id=derived_node_id,
-                        concept_id=output_concept_id,
-                        value=derived_value,
-                        parameterization_index=index,
-                        formula=param.formula,
-                    )
-
-                for condition_antecedent_ids in condition_antecedents:
-                    antecedent_ids = tuple(condition_antecedent_ids + provider_combo)
-                    added |= self._add_justification(
-                        antecedent_ids=antecedent_ids,
-                        consequent_id=derived_node_id,
-                        informant=f"parameterization:{index}",
-                    )
+                    for condition_antecedent_ids in condition_antecedents:
+                        antecedent_ids = tuple(condition_antecedent_ids + provider_combo)
+                        added |= self._add_justification(
+                            antecedent_ids=antecedent_ids,
+                            consequent_id=derived_node_id,
+                            informant=f"parameterization:{index}",
+                        )
 
         return added
 

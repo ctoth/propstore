@@ -37,6 +37,7 @@ from propstore.fragility import (
     score_conflict,
     weighted_epistemic_score,
 )
+from propstore.fragility_contributors import _in_extension
 
 
 class TestInterventionModel:
@@ -70,6 +71,10 @@ class TestInterventionModel:
         assert hash(target)
         with pytest.raises(AttributeError):
             target.description = "mutate"  # type: ignore[misc]
+
+    def test_unknown_value_status_is_not_in_extension(self) -> None:
+        with pytest.raises(ValueError, match="Unknown value status"):
+            _in_extension("not-a-status")
 
     def test_target_rejects_payload_that_does_not_match_kind(self) -> None:
         with pytest.raises(TypeError, match="payload"):

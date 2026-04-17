@@ -123,7 +123,16 @@ def _evaluate_parameterization_with_registry(
     output_concept_id: str,
     concept_registry: dict[str, dict],
 ) -> float | None:
-    from propstore.propagation import evaluate_parameterization
+    from propstore.propagation import (
+        ParameterizationEvaluation,
+        ParameterizationEvaluationStatus,
+        evaluate_parameterization,
+    )
+
+    def _value_or_none(evaluation: ParameterizationEvaluation) -> float | None:
+        if evaluation.status is ParameterizationEvaluationStatus.VALUE:
+            return evaluation.value
+        return None
 
     output_data = concept_registry.get(output_concept_id, {})
     input_aliases = {
@@ -152,8 +161,10 @@ def _evaluate_parameterization_with_registry(
             )
 
     if rewritten == sympy_expr:
-        return evaluate_parameterization(sympy_expr, input_values, output_concept_id)
-    return evaluate_parameterization(rewritten, safe_values, "__out__")
+        return _value_or_none(
+            evaluate_parameterization(sympy_expr, input_values, output_concept_id)
+        )
+    return _value_or_none(evaluate_parameterization(rewritten, safe_values, "__out__"))
 
 
 def _merge_contexts_for_derivation(

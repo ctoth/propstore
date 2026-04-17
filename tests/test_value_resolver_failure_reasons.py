@@ -15,7 +15,7 @@ import pytest
 
 from propstore.core.claim_types import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
-from propstore.world.value_resolver import ActiveClaimResolver
+from propstore.world.value_resolver import ActiveClaimResolver, _active_claim_view
 
 
 def _is_algorithm_claim(claim) -> bool:
@@ -227,3 +227,35 @@ def test_runtime_error_from_algorithm_equivalence_propagates():
     ):
         with pytest.raises(RuntimeError, match="boom"):
             resolver._all_algorithms_equivalent(algo_claims, known_values={})
+
+
+def test_ast_compare_none_equivalence_is_benign_inconclusive():
+    resolver = _make_resolver()
+    claim = {
+        "id": "algo",
+        "type": "algorithm",
+        "body": "def compute(x):\n    return x * 2\n",
+        "variables_json": '[{"name":"x","concept":"input"}]',
+    }
+
+    class _Comparison:
+        equivalent = None
+
+    with patch(
+        "propstore.world.value_resolver.ast_compare",
+        return_value=_Comparison(),
+    ):
+        comparison = resolver._algorithm_matches_direct_value(
+            _active_claim_view(claim),
+            10.0,
+        )
+
+    assert comparison.equivalent is None
+    assert comparison.parse_failed is False
+
+
+def test_unparseable_override_value_raises():
+    resolver = _make_resolver()
+
+    with pytest.raises(ValueError, match="Invalid override value"):
+        resolver._coerce_override_value({"input": "not-a-number"}, "input")
