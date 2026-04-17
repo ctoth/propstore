@@ -1,7 +1,7 @@
 # Workstream A1 - Semiring Provenance Substrate
 
 Date: 2026-04-17
-Status: active - A1-4 support-bearing fragility complete; A1-5 WS-C contract next
+Status: active - A1-5 WS-C support contract implemented; final full-suite gate pending
 Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A source/artifact boundaries
 Blocks: WS-C C-3 support contract, ATMS label collapse, support-bearing fragility rewrite
 Review context: `../axis-3d-semantic.md` section 6, `../axis-3e-reasoning-infra.md`, `../axis-4-test-adequacy.md`
@@ -21,6 +21,8 @@ Design review: drafted with Claude CLI; adversarial pass incorporated before imp
 - 2026-04-17: Ran A1 static gates. Remaining `combine_labels`/`merge_labels`/`NogoodSet` production hits route through polynomial-backed projection APIs. Float hits are confined to documented tropical-cost code, not confidence/probability; dict hits are named-graph IO, with projection `Mapping` inputs used for source-variable maps and cost maps.
 - 2026-04-17: Routed ATMS assumption fragility through live provenance support derivatives: status-flip witnesses are support monomials, queryable relevance is partial derivative support, and intervention provenance now carries `SupportEvidence`. Discovery, conflict, grounding, and bridge families keep their existing semantics rather than returning fabricated derivative results.
 - 2026-04-17: Added fragility tests for live derivative scoring and derivative-backed assumption intervention support. Verification passed: `37 passed`, `logs\test-runs\provenance-fragility-20260417-150228.log`; production Pyright was clean for fragility files.
+- 2026-04-17: Added the executable WS-C C-3 support contract in `propstore.defeasibility`: `JustifiableException`, `LiftingRuleSupport`, `ExceptionDefeat`, live support checks, lifting support multiplication, and exception-defeat liveness via live why-provenance.
+- 2026-04-17: Updated WS-C docs to point at the executable support contract and added property tests for unsupported exceptions, lifting support composition, solver nogood live filtering, Boolean/why liveness agreement, and support-quality preservation. Verification passed: `5 passed`, `logs\test-runs\defeasibility-support-20260417-150458.log`; Pyright was clean for `propstore/defeasibility.py` and its tests.
 
 ## Why this exists
 

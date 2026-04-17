@@ -12,6 +12,7 @@ Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumen
 - 2026-04-17: Drafted `docs/defeasibility-semantics-decision.md` for C-1, selecting Bozzato-style CKR justifiable exceptions over WS-A `ist(c, p)` contexts, preserving ASPIC+ as the structural argument layer, preserving Diller-style datalog grounding as grounding only, and rejecting ABA as the production semantics for WS-C.
 - 2026-04-17: Stopped at the explicit C-1 Q review gate before C-2 implementation.
 - 2026-04-17: Inserted WS-A1 semiring provenance as the missing substrate workstream after reading Green 2007 notes and running design/adversarial review with Claude CLI. WS-C C-3 now depends on `SupportEvidence` rather than generic provenance blobs.
+- 2026-04-17: WS-A1 added the executable C-3 support contract in `propstore.defeasibility`: `JustifiableException`, `LiftingRuleSupport`, and `ExceptionDefeat` all carry `SupportEvidence`; lifted support multiplies by lifting-rule support; solver nogoods live-filter support without deleting the exception object.
 
 ## What you're doing
 
