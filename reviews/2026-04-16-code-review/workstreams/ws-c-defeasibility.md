@@ -1,7 +1,7 @@
 # Workstream C — Defeasibility (CKR Justifiable Exceptions + ASPIC+ Coexistence)
 
 Date: 2026-04-16
-Status: active - C-6 docs updated; final full-suite gate pending
+Status: complete - WS-C exit criteria met
 Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A phase 4 (contexts + lifting rules), WS-A1 semiring provenance for C-3 support evidence
 Blocks: —
 Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumentation.md`
@@ -18,6 +18,7 @@ Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumen
 - 2026-04-17: C-4 ASPIC+/CKR boundary integrated. `apply_exception_defeats_to_csaf(...)` injects CKR-derived exception defeats into the Dung layer using ASPIC arguments for exception justification claims as attackers and excepted target-claim arguments as targets; it fails loudly if an applied exception cannot be represented structurally. Added `docs/justifiable-exceptions.md` for the implemented boundary. Verification passed: `18 passed`, `logs\test-runs\ws-c3-c4-20260417-154647.log`; Pyright was clean for C-3/C-4 files and tests.
 - 2026-04-17: C-5 was already satisfied by WS-Z-types in the current repo state. `condition_classifier.py` returns `ConflictClass.UNKNOWN` for solver unknowns, parameter conflict records preserve UNKNOWN, and repository merge maps UNKNOWN to ignorance rather than attacks. Verification passed: `8 passed`, `logs\test-runs\ws-c5-unknown-20260417-154850.log`.
 - 2026-04-17: C-6 documentation cleanup completed before the final suite: `CLAUDE.md` now describes the CKR/ASPIC+ boundary, `docs/structured-argumentation.md` no longer claims rule ordering is empty or references `aspic_bridge.py` as a live file, `docs/gaps.md` closes the priority-drop gap while preserving the narrowed premise-ordering caveat, and `docs/justifiable-exceptions.md` describes the implemented exception semantics. Grep gates passed for the stale live-doc phrases `aspic_bridge.py` and `Rule ordering always empty`.
+- 2026-04-17: Final WS-C gate passed after `uv sync --upgrade` completed with no tracked lockfile changes. The first full-suite attempt hit an xdist worker crash on `tests/test_aspic.py::TestRationalityPostulates::test_indirect_consistency` after `2724 passed`; the exact focused rerun passed (`1 passed`, `logs\test-runs\ws-c-final-aspic-indirect-20260417-155931.log`), and the full-suite rerun passed: `2725 passed, 16 warnings`, `logs\test-runs\full-ws-c-final-rerun-20260417-155953.log`.
 
 ## What you're doing
 
