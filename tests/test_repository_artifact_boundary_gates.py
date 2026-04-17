@@ -64,10 +64,6 @@ def test_cli_repository_module_no_longer_defines_repository_facade() -> None:
     assert "RepositoryNotFound" not in class_names
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="WS-A0 red gate: repository facade must be layer-1 and must not expose WorldModel.",
-)
 def test_repository_facade_does_not_depend_on_world_model() -> None:
     candidates = [
         ROOT / "propstore" / "repository.py",
