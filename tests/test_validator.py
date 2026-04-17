@@ -30,6 +30,20 @@ from tests.conftest import (
 )
 
 
+def provenance_payload() -> dict[str, object]:
+    return {
+        "status": "stated",
+        "witnesses": [
+            {
+                "asserter": "test",
+                "timestamp": "2026-04-17T00:00:00Z",
+                "source_artifact_code": "ps:test:validator",
+                "method": "unit-test",
+            }
+        ],
+    }
+
+
 @pytest.fixture
 def concept_dir(tmp_path):
     """Create a temporary concepts directory with form definitions."""
@@ -325,6 +339,155 @@ class TestLemonInvariants:
         result = validate_concepts(load_concepts(concept_dir))
 
         assert not result.errors
+
+    def test_qualia_reference_must_point_at_existing_concept(self, concept_dir):
+        data = make_structural_concept(
+            "instrument",
+            "instrument",
+            ontology_reference={"uri": "ps:concept:instrument", "label": "Instrument"},
+            lexical_entry={
+                "identifier": "entry:instrument",
+                "canonical_form": {"written_rep": "instrument", "language": "en"},
+                "senses": [
+                    {
+                        "reference": {
+                            "uri": "ps:concept:instrument",
+                            "label": "Instrument",
+                        },
+                        "usage": "A measurement instrument.",
+                        "qualia": {
+                            "telic": [
+                                {
+                                    "reference": {
+                                        "uri": "ps:concept:missing_measurement",
+                                        "label": "Missing Measurement",
+                                    },
+                                    "provenance": provenance_payload(),
+                                }
+                            ]
+                        },
+                    }
+                ],
+                "physical_dimension_form": "structural",
+            },
+        )
+        write_concept(concept_dir, "instrument.yaml", data)
+
+        result = validate_concepts(load_concepts(concept_dir))
+
+        assert any("qualia" in e and "missing_measurement" in e for e in result.errors)
+
+    def test_qualia_type_constraint_must_be_satisfied(self, concept_dir):
+        description_kind = make_structural_concept(
+            "description_kind",
+            "description_kind",
+        )
+        description_kind_id = description_kind["artifact_id"]
+        description_kind.update(
+            ontology_reference={"uri": description_kind_id, "label": "Description Kind"},
+            lexical_entry={
+                "identifier": "entry:description-kind",
+                "canonical_form": {"written_rep": "description kind", "language": "en"},
+                "senses": [
+                    {
+                        "reference": {
+                            "uri": description_kind_id,
+                            "label": "Description Kind",
+                        },
+                        "usage": "A type for description-kind concepts.",
+                    }
+                ],
+                "physical_dimension_form": "structural",
+            },
+        )
+        unrelated_type = make_structural_concept("unrelated_type", "unrelated_type")
+        unrelated_type_id = unrelated_type["artifact_id"]
+        unrelated_type.update(
+            ontology_reference={"uri": unrelated_type_id, "label": "Unrelated Type"},
+            lexical_entry={
+                "identifier": "entry:unrelated-type",
+                "canonical_form": {"written_rep": "unrelated type", "language": "en"},
+                "senses": [
+                    {
+                        "reference": {
+                            "uri": unrelated_type_id,
+                            "label": "Unrelated Type",
+                        },
+                        "usage": "A type that should not satisfy description kind.",
+                    }
+                ],
+                "physical_dimension_form": "structural",
+            },
+        )
+        measurement = make_structural_concept(
+            "measurement",
+            "measurement",
+            relationships=[{"type": "is_a", "target": unrelated_type_id}],
+        )
+        measurement_id = measurement["artifact_id"]
+        measurement.update(
+            ontology_reference={"uri": measurement_id, "label": "Measurement"},
+            lexical_entry={
+                "identifier": "entry:measurement",
+                "canonical_form": {"written_rep": "measurement", "language": "en"},
+                "senses": [
+                    {
+                        "reference": {"uri": measurement_id, "label": "Measurement"},
+                        "usage": "A measurement description.",
+                    }
+                ],
+                "physical_dimension_form": "structural",
+            },
+        )
+        instrument = make_structural_concept(
+            "instrument",
+            "instrument",
+        )
+        instrument_id = instrument["artifact_id"]
+        instrument.update(
+            ontology_reference={"uri": instrument_id, "label": "Instrument"},
+            lexical_entry={
+                "identifier": "entry:instrument",
+                "canonical_form": {"written_rep": "instrument", "language": "en"},
+                "senses": [
+                    {
+                        "reference": {"uri": instrument_id, "label": "Instrument"},
+                        "usage": "A measurement instrument.",
+                        "qualia": {
+                            "telic": [
+                                {
+                                    "reference": {
+                                        "uri": measurement_id,
+                                        "label": "Measurement",
+                                    },
+                                    "type_constraint": {
+                                        "reference": {
+                                            "uri": description_kind_id,
+                                            "label": "Description Kind",
+                                        }
+                                    },
+                                    "provenance": provenance_payload(),
+                                }
+                            ]
+                        },
+                    }
+                ],
+                "physical_dimension_form": "structural",
+            },
+        )
+        write_concept(concept_dir, "description_kind.yaml", description_kind)
+        write_concept(concept_dir, "unrelated_type.yaml", unrelated_type)
+        write_concept(concept_dir, "measurement.yaml", measurement)
+        write_concept(concept_dir, "instrument.yaml", instrument)
+
+        result = validate_concepts(load_concepts(concept_dir))
+
+        assert any(
+            "qualia.telic" in e
+            and "does not satisfy type constraint" in e
+            and description_kind_id in e
+            for e in result.errors
+        )
 
 
 # ── Deprecated concepts ──────────────────────────────────────────────
