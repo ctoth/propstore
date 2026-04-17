@@ -164,6 +164,17 @@ Status 2026-04-17: `pks world query` slice landed.
   - `logs/test-runs/cli-layer-world-query-20260417-170802.log` - 9 passed.
   - `uv run pyright propstore/world/queries.py` - 0 errors.
 
+Status 2026-04-17: `pks world bind` slice landed.
+
+- Added `WorldBindRequest`, typed bind reports, and `query_bound_world`.
+- CLI parsing remains in `compiler_cmds.py`; binding/query behavior moved to
+  `propstore.world.queries`.
+- Added owner-layer assertion for bound SI-value display, paired with existing
+  CLI output assertions.
+- Verification:
+  - `logs/test-runs/cli-layer-world-bind-20260417-171012.log` - 5 passed.
+  - `uv run pyright propstore/world/queries.py` - 0 errors.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.

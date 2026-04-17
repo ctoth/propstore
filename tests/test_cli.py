@@ -15,6 +15,12 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
+from propstore.world import WorldModel
+from propstore.world.queries import (
+    WorldBindConceptReport,
+    WorldBindRequest,
+    query_bound_world,
+)
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, make_test_context_commit_entry
 
 
@@ -1419,6 +1425,24 @@ class TestWorldQuerySIValues:
         result = runner.invoke(cli, ["world", "query", "fundamental_frequency"])
         assert result.exit_code == 0, result.output
         assert "fundamental_frequency (speech:fundamental_frequency)" in result.output
+
+    def test_owner_world_bind_report_shows_si_value(self, freq_workspace: Path) -> None:
+        repo = Repository.find(freq_workspace)
+        wm = WorldModel(repo)
+        try:
+            report = query_bound_world(
+                wm,
+                WorldBindRequest(bindings={}, target="speech:fundamental_frequency"),
+            )
+        finally:
+            wm.close()
+
+        assert isinstance(report, WorldBindConceptReport)
+        assert report.concept_display_id == "speech:fundamental_frequency"
+        assert report.status == "determined"
+        assert report.claims
+        assert "0.2" in report.claims[0].value_display
+        assert "200" in report.claims[0].value_display
 
     def test_world_bind_shows_si_value(self, freq_workspace: Path) -> None:
         runner = CliRunner()
