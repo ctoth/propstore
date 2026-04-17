@@ -8,9 +8,9 @@ Where argumentation discards defeated arguments, the ATMS keeps everything and l
 
 ### Labels and Environments
 
-A **label** is a set of minimal environments justifying a datum. Each environment is a sorted tuple of assumption IDs (an `EnvironmentKey`). A claim with label `{(x), (y)}` means: this claim holds if assumption x is active, or if assumption y is active — two independent justification paths.
+A **label** is a set of minimal environments justifying a datum. Each environment is a sorted tuple of assumption IDs plus a sorted tuple of context IDs (an `EnvironmentKey`). A claim with label `{(x), (y)}` means: this claim holds if assumption x is active, or if assumption y is active — two independent justification paths. A context-scoped claim with label `{context_ids=(ctx_lab_run)}` holds under that explicit context support, not unconditionally.
 
-**Minimality** is enforced automatically: no environment in a label is a superset of another. If a claim is justified by `{a}` and also by `{a, b}`, only `{a}` survives — the smaller environment is strictly more general. This normalization happens on construction and after every propagation step.
+**Minimality** is enforced automatically across both assumptions and contexts: no environment in a label is a superset of another. If a claim is justified by `{a}` and also by `{a, b}`, only `{a}` survives — the smaller environment is strictly more general. If a claim is justified by `ctx_general` and also by `ctx_general + assumption_x`, only the context-only environment survives. This normalization happens on construction and after every propagation step.
 
 `propstore/core/labels.py:Label` — frozen dataclass, auto-normalized on init
 `propstore/core/labels.py:EnvironmentKey` — frozen, ordered, auto-sorted/deduped
@@ -29,16 +29,16 @@ During label propagation, nogoods prune labels: any environment that contains (i
 
 ### Support Quality
 
-The ATMS distinguishes four levels of support quality, reflecting how precisely a claim's conditions match the current assumption environment:
+The ATMS distinguishes four levels of support quality, reflecting how precisely a claim's conditions match the current assumption and context environment:
 
 | Quality | Meaning |
 |---------|---------|
 | `EXACT` | Conditions match current assumption CELs directly |
 | `SEMANTIC_COMPATIBLE` | Active via Z3 condition solving but not an exact CEL match |
-| `CONTEXT_VISIBLE_ONLY` | Active only through explicit context lifting visibility |
+| `CONTEXT_VISIBLE_ONLY` | Active through context lifting but without exact ATMS support in the current environment |
 | `MIXED` | Combination of semantic and context activation |
 
-The ATMS engine only grants exact support. A claim that is semantically compatible or context-visible is active in `BoundWorld` but OUT in the ATMS. This is deliberate: the ATMS tracks precise justification structure, not approximate compatibility.
+The ATMS engine only grants exact support. Context-scoped claims can have exact ATMS support when their context node is part of the label environment. A claim that is only semantically compatible or only context-visible through a non-exact lifting path remains active in `BoundWorld` but OUT in the ATMS. This is deliberate: the ATMS tracks precise justification structure, not approximate compatibility.
 
 `propstore/world/labelled.py:SupportQuality` — enum
 `propstore/world/atms.py:ATMSEngine._support_quality_for_node` — classifies support
@@ -67,11 +67,12 @@ This distinction matters for intervention planning: a nogood-pruned claim might 
 
 The ATMS builds its graph and propagates labels to fixpoint. The algorithm:
 
-**1. Build assumption nodes.** Each environment assumption gets an ATMS node with a singleton label — it supports itself.
+**1. Build assumption and context nodes.** Each environment assumption gets an ATMS node with a singleton assumption label, and each visible context gets a context node with a singleton context label. These nodes support themselves.
 
 `propstore/world/atms.py:ATMSEngine._build_assumption_nodes`
+`propstore/world/atms.py:ATMSEngine._build_context_nodes`
 
-**2. Build claim nodes and justifications.** Each active claim gets a node. For claims with `conditions_cel`, the engine finds matching assumption nodes and creates justifications linking assumption nodes to claim nodes.
+**2. Build claim nodes and justifications.** Each active claim gets a node. For claims with `conditions_cel`, the engine finds matching assumption nodes and creates justifications linking assumption nodes to claim nodes. For context-qualified claims, the engine also links the context node as an antecedent.
 
 `propstore/world/atms.py:ATMSEngine._build_claim_nodes_and_justifications`
 
@@ -81,8 +82,9 @@ The ATMS builds its graph and propagates labels to fixpoint. The algorithm:
 `propstore/world/labelled.py:combine_labels` — cross-product union, nogood-pruned
 `propstore/world/labelled.py:merge_labels` — alternative supports merged, normalized
 
-**4. Materialize parameterization justifications.** For each compatible parameterization, find all supported provider nodes, evaluate the SymPy formula, create derived nodes and justifications. These are claims whose values are computed from other claims.
+**4. Materialize micropublication and parameterization justifications.** Canonical micropublication bundles become ATMS nodes supported by their context node and member claim nodes. For each compatible parameterization, find all supported provider nodes, evaluate the SymPy formula, create derived nodes and justifications. These are claims whose values are computed from other claims.
 
+`propstore/world/atms.py:ATMSEngine._build_micropublication_nodes_and_justifications`
 `propstore/world/atms.py:ATMSEngine._materialize_parameterization_justifications`
 
 **5. Update nogoods from conflicts.** For each active conflict between two claims, take the cross-product of their label environments and add each union as a nogood. Record provenance.
@@ -156,6 +158,13 @@ The shared assumptions across all compatible label environments. If a claim has 
 Essential support identifies the assumptions a claim cannot do without, regardless of which specific justification path is active.
 
 `propstore/world/atms.py:ATMSEngine.essential_support`
+
+### Micropublication Support
+
+A canonical micropublication is represented as an ATMS node whose antecedents are the bundle's context node and every member claim node. Its label is therefore the cross-product of the exact environments supporting the whole bundle. If one member claim is unsupported, the micropublication node is OUT.
+
+`propstore/world/atms.py:ATMSEngine.supported_micropub_ids` — supported bundle IDs
+`propstore/world/atms.py:ATMSEngine.micropub_label` — exact bundle label
 
 ## CLI Usage
 
