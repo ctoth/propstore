@@ -32,6 +32,8 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
+from propstore.world import RenderPolicy, WorldModel
+from propstore.world.queries import WorldStatusRequest, get_world_status
 from tests.conftest import normalize_concept_payloads
 
 
@@ -199,6 +201,46 @@ def seeded_workspace(workspace: Path) -> Path:
 
 class TestWorldStatusFlags:
     """`pks world status` reports claim counts under the policy."""
+
+    def test_owner_report_default_hides_draft_blocked_promotion(
+        self,
+        seeded_workspace: Path,
+    ) -> None:
+        repo = Repository.find(seeded_workspace / "knowledge")
+        wm = WorldModel(repo)
+        try:
+            report = get_world_status(
+                wm,
+                WorldStatusRequest(policy=RenderPolicy()),
+            )
+        finally:
+            wm.close()
+
+        assert report.visible_claim_count == 1
+        assert report.diagnostic_count == 0
+
+    def test_owner_report_all_flags_surface_everything(
+        self,
+        seeded_workspace: Path,
+    ) -> None:
+        repo = Repository.find(seeded_workspace / "knowledge")
+        wm = WorldModel(repo)
+        try:
+            report = get_world_status(
+                wm,
+                WorldStatusRequest(
+                    policy=RenderPolicy(
+                        include_drafts=True,
+                        include_blocked=True,
+                        show_quarantined=True,
+                    )
+                ),
+            )
+        finally:
+            wm.close()
+
+        assert report.visible_claim_count == 4
+        assert report.diagnostic_count == 2
 
     def test_default_hides_draft_blocked_promotion(self, seeded_workspace: Path) -> None:
         runner = CliRunner()

@@ -1,0 +1,231 @@
+# Workstream CLI Layer Discipline
+
+Date: 2026-04-17
+Status: IN PROGRESS
+Depends on: `disciplines.md`, `judgment-rubric.md`
+Blocks: none
+Review context: layer discipline from `../axis-2-layer-discipline.md` and the
+standing architecture in `../../../CLAUDE.md`.
+
+## What triggered this
+
+The CLI package had become an application and domain layer by accumulation.
+`propstore/cli/compiler_cmds.py` was roughly 100 KB and hosted compiler
+workflow orchestration, world query behavior, revision operation plumbing,
+ATMS interrogation, graph export, sensitivity, fragility, and consistency
+checking. Other CLI modules had similar drift at smaller scale: concept
+mutation logic in `propstore/cli/concept.py`, log classification in
+`propstore/cli/__init__.py`, source status SQL in `propstore/cli/source.py`,
+worldline definition construction in `propstore/cli/worldline_cmds.py`, and
+grounding inspection in `propstore/cli/grounding_cmds.py`.
+
+I read every file under `propstore/cli/` on 2026-04-17 before creating this
+workstream:
+
+- `__init__.py`
+- `claim.py`
+- `compiler_cmds.py`
+- `concept.py`
+- `context.py`
+- `form.py`
+- `grounding_cmds.py`
+- `helpers.py`
+- `init.py`
+- `merge_cmds.py`
+- `micropub.py`
+- `repository_import_cmd.py`
+- `source.py`
+- `verify.py`
+- `worldline_cmds.py`
+
+## Target discipline
+
+The CLI package is a presentation adapter. It may:
+
+- declare Click groups, commands, options, and arguments;
+- parse command-line strings into typed request objects;
+- call owner-layer functions;
+- render typed result objects;
+- translate typed failures into Click exceptions or exit codes.
+
+The CLI package must not own:
+
+- compiler/build/validation workflows;
+- repository mutation semantics;
+- source promotion/finalize/status semantics;
+- world, ATMS, revision, fragility, sensitivity, graph, or argumentation
+  query semantics;
+- concept identity mutation logic;
+- sidecar SQL access policy;
+- reusable formatting that a non-CLI caller would reasonably need.
+
+## Owner API contract
+
+Each extraction must publish the same shape before the CLI caller is changed:
+
+- frozen request dataclass when the operation has more than one domain input;
+- frozen report/result dataclass for successful behavior;
+- typed failure class or sum type for expected failures;
+- renderer function in CLI when the output is command-specific text;
+- direct owner-layer test for behavior plus CLI output test for rendering.
+
+Owner modules must not import `click`, call `sys.exit`, or write to stdout or
+stderr. Owner modules must not accept Click-shaped flag names when a domain
+object already exists. For render workflows, CLI may construct a `RenderPolicy`
+from command flags; owner functions accept the policy rather than rebuilding it.
+
+World/render workflows should not hide `WorldModel` lifecycle behind generic
+helpers. A world query owner function should take an existing `WorldModel` or
+`BoundWorld` plus a typed request. Repository/compiler/storage workflows may
+take `Repository` because their job is to orchestrate repository state.
+
+## Target module map
+
+| Current CLI responsibility | Owner module |
+|---|---|
+| `pks validate`, `pks build` orchestration | `propstore.compiler.workflows` |
+| raw read-only sidecar query policy | `propstore.sidecar.query` |
+| concept alias export | `propstore.core.aliases` |
+| world status/query/bind/explain/derive/resolve/chain/hypothetical | `propstore.world.queries` or narrower `propstore.world.*_workflows` modules |
+| ATMS status/context/futures/stability/relevance/interventions/next-query | `propstore.world.atms_workflows` |
+| revision-base/expand/contract/revise/iterated surfaces | `propstore.support_revision.workflows` or `propstore.world.revision_workflows` |
+| argumentation extension computation | `propstore.world.argumentation_workflows` |
+| sensitivity/fragility/export-graph/check-consistency | existing owner modules plus thin workflow functions where needed |
+| concept add/alias/rename/deprecate/link/qualia/proto-role/add-value | `propstore.core.concept_workflows` or artifact-family-specific concept services |
+| concept search/embed/similar | `propstore.core.concept_search` / `propstore.embed` request-result functions |
+| claim show/validate/conflicts/compare/embed/similar/relate | `propstore.claims.workflows` plus existing `compiler`, `conflict_detector`, `embed`, `relate` |
+| context/form add/list/show/remove/validate | owner workflow modules in `propstore.contexts` / `propstore.forms` or existing typed artifact helpers |
+| source CLI status and auto-finalize wrapper | `propstore.source.status` / `propstore.source` return objects |
+| worldline create/run/show/list/diff/refresh/delete request handling | `propstore.worldline.workflows` |
+| log/diff/show/checkout repository-history presentation data | `propstore.storage.history` / `propstore.storage.checkout` |
+| grounding status/show/query/arguments inspection | `propstore.grounding.inspection` |
+| init seed construction | `propstore.bootstrap` or `propstore.repository_init` |
+| micropub iteration/find/lift query | `propstore.micropubs` / context lifting owner modules |
+
+## Phase structure
+
+### Phase CLI-1 - Compiler and sidecar extraction
+
+- Move repository validation/build orchestration from
+  `propstore/cli/compiler_cmds.py` to `propstore/compiler/workflows.py`.
+- Move raw sidecar query execution to `propstore/sidecar/query.py`.
+- Move concept alias export to `propstore/core/aliases.py`.
+- Keep the CLI text output stable.
+- Run targeted CLI/build/query/export-alias tests through the logged wrapper.
+
+Status 2026-04-17: first slice landed.
+
+- Added `propstore.compiler.workflows` with typed validation/build reports,
+  messages, and failures.
+- Added `propstore.sidecar.query` with typed read-only SQL result/failure.
+- Added `propstore.core.aliases` with typed alias export entries.
+- Reduced `propstore/cli/compiler_cmds.py` by moving `validate`, `build`,
+  `query`, and `export-aliases` behavior to owner modules while keeping CLI
+  rendering stable.
+- Verification:
+  - `logs/test-runs/cli-layer-20260417-165300.log` - 161 passed.
+  - `logs/test-runs/cli-layer-build-20260417-165335.log` - 203 passed.
+  - `logs/test-runs/cli-layer-smoke-20260417-165522.log` - 11 passed.
+  - `uv run pyright propstore/compiler/workflows.py propstore/sidecar/query.py propstore/core/aliases.py` - 0 errors.
+
+Observed debt: `propstore/cli/compiler_cmds.py` still has pre-existing pyright
+errors unrelated to this first extraction. They remain in the old CLI/world
+surface and should be retired as the corresponding logic moves.
+
+### Phase CLI-2 - World query extraction
+
+- Extract render-policy construction, target resolution, value formatting, and
+  world status/query/bind/explain/algorithms/derive/resolve/chain/hypothetical
+  workflows into `propstore.world` owner modules.
+- CLI commands construct requests and render typed reports only.
+- Delete the old production path in `compiler_cmds.py` as each workflow moves.
+
+Status 2026-04-17: `pks world status` slice landed.
+
+- Added `propstore.world.queries` with `WorldStatusRequest`,
+  `WorldStatusReport`, `WorldQueryError`, and `get_world_status`.
+- Kept lifecycle flag parsing / `RenderPolicy` construction in the CLI; the
+  owner API accepts the policy.
+- Added owner-layer assertions for default and all-flags status counts, paired
+  with existing CLI output assertions.
+- Verification:
+  - `logs/test-runs/cli-layer-world-status-20260417-170155.log` - 6 passed.
+  - `uv run pyright propstore/world/queries.py propstore/compiler/workflows.py propstore/sidecar/query.py propstore/core/aliases.py` - 0 errors.
+
+### Phase CLI-3 - ATMS and revision extraction
+
+- Move ATMS inspection workflows into `propstore.world.atms_workflows`.
+- Move support-revision command behavior into the support revision/world owner
+  layer.
+- Preserve ATMS/revision tests while replacing CLI-owned orchestration with
+  owner-layer result objects.
+
+### Phase CLI-4 - Concept, claim, source, form, context extraction
+
+- Move concept mutations behind typed owner-layer functions.
+- Move claim validation/conflict/compare/embedding/relation request handling
+  behind typed owner-layer functions.
+- Move source status SQL and auto-finalize reporting into `propstore.source`.
+- Move form/context mutation and validation behavior out of CLI modules.
+
+### Phase CLI-5 - Worldline, grounding, micropub, history extraction
+
+- Move worldline definition/request construction and materialization reporting
+  into `propstore.worldline.workflows`.
+- Move grounding inspection into `propstore.grounding.inspection`.
+- Move micropublication traversal and lift query behavior out of CLI.
+- Move log classification/merge summary/diff/show/checkout report generation
+  into storage/repository owner modules.
+
+### Phase CLI-6 - Discipline capture and enforcement
+
+- Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
+- Add tests or architectural checks that prevent large workflow logic from
+  returning to `propstore.cli` where practical.
+- Update `docs/cli-reference.md` only if command behavior changes. The default
+  target is no behavior change.
+
+## Exit criteria
+
+- `propstore/cli/*.py` files contain Click declarations, argument parsing,
+  owner-layer calls, rendering, and failure mapping only.
+- Every moved behavior has one owner-layer function with typed request/result
+  objects or typed failures.
+- Every extracted command has a stable output-contract test. Existing
+  `CliRunner` assertions count where they cover the exact command text; larger
+  extractions should add snapshot-style fixtures before moving behavior.
+- Every extracted command has at least one owner-layer behavior test that does
+  not call the CLI.
+- No compatibility shim, alias path, fallback reader, or old/new dual path is
+  introduced.
+- The command surface remains stable unless explicitly changed in this
+  workstream document.
+- `AGENTS.md` and `CLAUDE.md` include the CLI adapter discipline.
+- Targeted CLI tests pass after each phase.
+- Full logged `tests/` run is green before the workstream is declared complete,
+  unless Q explicitly defers the full-suite verification.
+
+## Red flags
+
+- Moving code from `propstore.cli` into a generic dumping-ground module.
+- Adding a `*_workflows.py` file without naming its request, report/result, and
+  failure types in the module docstring or nearby type definitions.
+- Returning untyped dicts from new owner-layer APIs where a domain object is
+  practical.
+- Keeping old and new production paths alive in parallel.
+- Adding a facade that still lets CLI-only code own the real behavior.
+- Treating formatting as logic. Presentation can stay in CLI; policy,
+  selection, mutation, and query semantics cannot.
+
+## Review checks
+
+- `rg -n -F "import click" propstore` finds no owner-module imports introduced
+  by this workstream.
+- `rg -n -F "sys.exit" propstore` finds no owner-module exits introduced by
+  this workstream.
+- New owner-layer APIs return dataclasses or existing domain objects, not loose
+  dicts, unless the owner module is explicitly at an IO boundary.
+- Render workflows accept `RenderPolicy`; they do not reconstruct it from CLI
+  flag-shaped inputs.
+- Each phase reports both the CLI-output tests and owner-layer tests that
+  passed.

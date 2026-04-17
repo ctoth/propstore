@@ -36,6 +36,24 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 5. **Render layer** — Resolution strategies (recency, sample_size, argumentation, override), world queries, hypothetical reasoning. Multiple render policies over the same underlying corpus.
 6. **Agent workflow layer** — extract-claims, reconcile-vocabulary, relate, adjudicate. These produce proposals, not truth.
 
+### CLI adapter discipline
+
+`propstore.cli` is a presentation adapter, not an owner layer. CLI modules may
+declare Click commands/options, parse command strings into typed requests, call
+owner-layer functions, render typed results, and map typed failures to exit
+codes. They must not own compiler workflows, repository mutation semantics,
+source promotion/finalize/status semantics, world/ATMS/revision/argumentation
+query semantics, sidecar SQL policy, or concept/claim/form/context mutation
+logic. Put reusable behavior where the architecture says it belongs, update
+every caller, and delete the CLI-owned production path.
+
+Owner-layer APIs extracted from CLI code use typed request/report/failure
+objects or existing domain objects. They do not import Click, write to stdout or
+stderr, call `sys.exit`, or accept flag-shaped CLI inputs when a domain type
+exists. Render workflows accept a `RenderPolicy`; the CLI may construct that
+policy from flags, but owner modules do not reconstruct it from command-line
+booleans.
+
 ## Literature Grounding
 
 See `papers/index.md` for the full collection with descriptions and tags. Each paper directory contains `notes.md` with detailed extraction, `claims.yaml` where extracted, and cross-references via `reconcile`.

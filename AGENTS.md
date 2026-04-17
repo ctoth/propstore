@@ -31,3 +31,10 @@ When we control the stack, do the right thing:
 - Build the actual ambitious system the architecture enables, not a placeholder that merely looks finished.
 - If we control the code on both sides of an interface, never write backwards-compatibility shims, adapters, aliases, fallbacks, or dual-path glue.
 - Change the interface and update every caller.
+
+CLI layer discipline:
+- Treat `propstore.cli` as a presentation adapter only.
+- CLI modules may declare Click commands/options, parse command strings into typed requests, call owner-layer functions, render typed results, and map typed failures to exit codes.
+- CLI modules must not own compiler workflows, repository mutation semantics, source promotion/finalize/status semantics, world/ATMS/revision/argumentation query semantics, sidecar SQL policy, or concept/claim/form/context mutation logic.
+- When CLI behavior needs reusable logic, move it to the architectural owner module, update every caller, and delete the CLI-owned production path.
+- Owner-layer APIs extracted from CLI code should use typed request/report/failure objects or existing domain objects; they must not import Click, write to stdout/stderr, call `sys.exit`, or accept flag-shaped CLI inputs when a domain type exists.
