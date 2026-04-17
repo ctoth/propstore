@@ -54,6 +54,18 @@ def argumentation_frameworks(draw, max_args=8):
     return ArgumentationFramework(arguments=args, defeats=attacks)
 
 
+def _all_subsets(arguments: frozenset[str]) -> list[frozenset[str]]:
+    ordered = sorted(arguments)
+    return [
+        frozenset(arg for index, arg in enumerate(ordered) if mask & (1 << index))
+        for mask in range(1 << len(ordered))
+    ]
+
+
+def _draw_subset(data: st.DataObject, arguments: frozenset[str]) -> frozenset[str]:
+    return frozenset(data.draw(st.sets(st.sampled_from(sorted(arguments)), max_size=len(arguments))))
+
+
 # ── Concrete regression tests ───────────────────────────────────────
 
 
@@ -258,34 +270,125 @@ class TestHelpers:
 _PROP_SETTINGS = settings(deadline=None)
 
 
+class TestDungDefinitionProperties:
+    """Property tests for Dung 1995 definitions."""
+
+    pytestmark = pytest.mark.property
+
+    @given(framework=argumentation_frameworks(), data=st.data())
+    @_PROP_SETTINGS
+    def test_conflict_free_matches_dung_1995_page_326_definition(self, framework, data):
+        """Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-005.png`.
+
+        Dung's conflict-free definition excludes every set that contains both
+        sides of an attack relation.
+        """
+        candidate = _draw_subset(data, framework.arguments)
+
+        expected = not any(
+            attacker in candidate and target in candidate
+            for attacker, target in framework.defeats
+        )
+
+        assert conflict_free(candidate, framework.defeats) is expected
+
+    @given(framework=argumentation_frameworks(), data=st.data())
+    @_PROP_SETTINGS
+    def test_admissible_matches_dung_1995_page_326_definition(self, framework, data):
+        """Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-005.png`.
+
+        An admissible set is conflict-free and every member is acceptable with
+        respect to that set.
+        """
+        candidate = _draw_subset(data, framework.arguments)
+
+        expected = conflict_free(candidate, framework.defeats) and all(
+            defends(candidate, argument, framework.arguments, framework.defeats)
+            for argument in candidate
+        )
+
+        assert admissible(candidate, framework.arguments, framework.defeats) is expected
+
+    @given(argumentation_frameworks(max_args=6))
+    @_PROP_SETTINGS
+    def test_fundamental_lemma_dung_1995_page_327(self, framework):
+        """Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-006.png`.
+
+        If an admissible set S defends A and B, then S plus A remains
+        admissible and still defends B.
+        """
+        for candidate in _all_subsets(framework.arguments):
+            if not admissible(candidate, framework.arguments, framework.defeats):
+                continue
+            acceptable = characteristic_fn(candidate, framework.arguments, framework.defeats)
+            for accepted_argument in acceptable:
+                enlarged = candidate | {accepted_argument}
+                assert admissible(enlarged, framework.arguments, framework.defeats)
+                for still_accepted in acceptable:
+                    assert defends(
+                        enlarged,
+                        still_accepted,
+                        framework.arguments,
+                        framework.defeats,
+                    )
+
+
 class TestGroundedProperties:
     """Property tests for grounded extension (Dung 1995 theorems)."""
+
+    pytestmark = pytest.mark.property
 
     @given(argumentation_frameworks())
     @_PROP_SETTINGS
     def test_conflict_free(self, framework):
-        """P1: Grounded extension is conflict-free (Def 6)."""
+        """P1: Grounded extension is conflict-free.
+
+        Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-005.png`.
+        """
         ext = grounded_extension(framework)
         assert conflict_free(ext, framework.defeats)
 
     @given(argumentation_frameworks())
     @_PROP_SETTINGS
     def test_admissible(self, framework):
-        """P2: Grounded extension is admissible (Def 8)."""
+        """P2: Grounded extension is admissible.
+
+        Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-005.png`.
+        """
         ext = grounded_extension(framework)
         assert admissible(ext, framework.arguments, framework.defeats)
 
     @given(argumentation_frameworks())
     @_PROP_SETTINGS
     def test_fixed_point(self, framework):
-        """P7: Grounded is fixed point of F (Def 20, Thm 25)."""
+        """P7: Grounded is fixed point of F.
+
+        Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-008.png`.
+        """
         ext = grounded_extension(framework)
         assert characteristic_fn(ext, framework.arguments, framework.defeats) == ext
+
+    @given(argumentation_frameworks(max_args=6))
+    @_PROP_SETTINGS
+    def test_grounded_is_least_fixed_point_dung_1995_page_329(self, framework):
+        """Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-008.png`."""
+        grounded = grounded_extension(framework)
+        fixed_points = [
+            candidate
+            for candidate in _all_subsets(framework.arguments)
+            if characteristic_fn(candidate, framework.arguments, framework.defeats) == candidate
+        ]
+
+        assert fixed_points
+        assert all(grounded <= fixed_point for fixed_point in fixed_points)
 
     @given(argumentation_frameworks())
     @_PROP_SETTINGS
     def test_subset_of_every_preferred(self, framework):
-        """P3: Grounded ⊆ every preferred extension (Thm 25)."""
+        """P3: Grounded is contained in every preferred extension.
+
+        Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-008.png`.
+        """
         grounded = grounded_extension(framework)
         for pref in preferred_extensions(framework):
             assert grounded <= pref
@@ -301,10 +404,15 @@ class TestGroundedProperties:
 class TestPreferredProperties:
     """Property tests for preferred extensions."""
 
+    pytestmark = pytest.mark.property
+
     @given(argumentation_frameworks())
     @_PROP_SETTINGS
     def test_all_admissible(self, framework):
-        """P4: Every preferred extension is admissible (Def 8)."""
+        """P4: Every preferred extension is admissible.
+
+        Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-006.png`.
+        """
         for ext in preferred_extensions(framework):
             assert admissible(ext, framework.arguments, framework.defeats)
 
@@ -325,7 +433,10 @@ class TestPreferredProperties:
     @given(argumentation_frameworks())
     @_PROP_SETTINGS
     def test_at_least_one(self, framework):
-        """Every AF has at least one preferred extension."""
+        """Every AF has at least one preferred extension.
+
+        Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-006.png`.
+        """
         assert len(preferred_extensions(framework)) >= 1
 
     @given(argumentation_frameworks())
@@ -340,6 +451,8 @@ class TestPreferredProperties:
 
 class TestStableProperties:
     """Property tests for stable extensions."""
+
+    pytestmark = pytest.mark.property
 
     @given(argumentation_frameworks())
     @_PROP_SETTINGS
@@ -364,6 +477,8 @@ class TestStableProperties:
 class TestCompleteProperties:
     """Property tests for complete extensions."""
 
+    pytestmark = pytest.mark.property
+
     @given(argumentation_frameworks())
     @_PROP_SETTINGS
     def test_are_fixed_points(self, framework):
@@ -383,17 +498,27 @@ class TestCompleteProperties:
 class TestCharacteristicFnProperties:
     """Property tests for the characteristic function."""
 
-    @given(argumentation_frameworks())
+    pytestmark = pytest.mark.property
+
+    @given(framework=argumentation_frameworks(), data=st.data())
     @_PROP_SETTINGS
-    def test_monotone(self, framework):
-        """P11: F is monotone — if S1 ⊆ S2, then F(S1) ⊆ F(S2) (Fundamental Lemma)."""
+    def test_monotone(self, framework, data):
+        """F is monotone: if S1 is a subset of S2, then F(S1) is a subset of F(S2).
+
+        Grounded in `papers/Dung_1995_AcceptabilityArguments/pngs/page-008.png`.
+        """
         args = framework.arguments
         defeats = framework.defeats
-        # Test with empty set and grounded extension (which is a superset)
-        f_empty = characteristic_fn(frozenset(), args, defeats)
-        grounded = grounded_extension(framework)
-        f_grounded = characteristic_fn(grounded, args, defeats)
-        assert f_empty <= f_grounded
+        lower = _draw_subset(data, args)
+        remaining = args - lower
+        extra = (
+            frozenset(data.draw(st.sets(st.sampled_from(sorted(remaining)), max_size=len(remaining))))
+            if remaining
+            else frozenset()
+        )
+        upper = lower | extra
+
+        assert characteristic_fn(lower, args, defeats) <= characteristic_fn(upper, args, defeats)
 
 
 class TestAutoBackendDispatch:
@@ -479,4 +604,3 @@ def af_with_attacks_superset(draw, max_args=6):
         defeats=defeats,
         attacks=all_attacks,
     )
-
