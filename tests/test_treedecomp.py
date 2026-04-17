@@ -37,12 +37,14 @@ def _make_praf(
         defeats=frozenset(defeats),
     )
     p_args = {}
+    per_arg_map = {} if per_arg is None else per_arg
     for a in args:
-        p = (per_arg or {}).get(a, p_arg)
+        p = per_arg_map.get(a, p_arg)
         p_args[a] = from_probability(p, 1000) if p < 1.0 else Opinion.dogmatic_true()
     p_defeats_dict = {}
+    per_defeat_map = {} if per_defeat is None else per_defeat
     for d in defeats:
-        p = (per_defeat or {}).get(d, p_defeat)
+        p = per_defeat_map.get(d, p_defeat)
         p_defeats_dict[d] = from_probability(p, 1000) if p < 1.0 else Opinion.dogmatic_true()
     return ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats_dict)
 

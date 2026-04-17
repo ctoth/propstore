@@ -234,7 +234,8 @@ def init(obj: dict, directory: str) -> None:
     If no DIRECTORY argument is given, creates a ``knowledge/`` directory
     in the current working directory.
     """
-    start = (obj or {}).get("start")
+    context_obj = {} if obj is None else obj
+    start = context_obj.get("start")
     if start is not None:
         root = start / directory
     else:

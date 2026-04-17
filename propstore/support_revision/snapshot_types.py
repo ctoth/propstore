@@ -80,7 +80,7 @@ def _assumption_ref_to_dict(assumption: AssumptionRef) -> dict[str, Any]:
 
 def _scope_from_mapping(data: Mapping[str, Any]) -> RevisionScope:
     return RevisionScope(
-        bindings=dict(data.get("bindings") or {}),
+        bindings=dict(_optional_mapping(data.get("bindings"), "bindings")),
         context_id=None if data.get("context_id") is None else to_context_id(data.get("context_id")),
         branch=None if data.get("branch") is None else str(data.get("branch")),
         commit=None if data.get("commit") is None else str(data.get("commit")),
@@ -89,6 +89,14 @@ def _scope_from_mapping(data: Mapping[str, Any]) -> RevisionScope:
 
 
 def _required_mapping(data: object, field_name: str) -> Mapping[str, Any]:
+    if not isinstance(data, Mapping):
+        raise ValueError(f"Support revision snapshot requires mapping '{field_name}'")
+    return data
+
+
+def _optional_mapping(data: object, field_name: str) -> Mapping[str, Any]:
+    if data is None:
+        return {}
     if not isinstance(data, Mapping):
         raise ValueError(f"Support revision snapshot requires mapping '{field_name}'")
     return data
@@ -150,8 +158,8 @@ def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
 
 
 def _belief_base_from_mapping(data: Mapping[str, Any]) -> BeliefBase:
-    support_sets_payload = data.get("support_sets") or {}
-    essential_support_payload = data.get("essential_support") or {}
+    support_sets_payload = _optional_mapping(data.get("support_sets"), "support_sets")
+    essential_support_payload = _optional_mapping(data.get("essential_support"), "essential_support")
     return BeliefBase(
         scope=_scope_from_mapping(_required_mapping(data.get("scope"), "scope")),
         atoms=tuple(
@@ -232,6 +240,12 @@ class RevisionEpisodeSnapshot:
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> RevisionEpisodeSnapshot:
+        explanation_payload = _optional_mapping(data.get("explanation"), "explanation")
+        explanation: dict[str, RevisionAtomDetail] = {}
+        for atom_id, detail in explanation_payload.items():
+            if not isinstance(detail, Mapping):
+                raise ValueError(f"Support revision snapshot requires mapping 'explanation.{atom_id}'")
+            explanation[str(atom_id)] = RevisionAtomDetail.from_mapping(detail)
         return cls(
             operator=str(data.get("operator") or ""),
             input_atom_id=None if data.get("input_atom_id") is None else str(data.get("input_atom_id")),
@@ -239,11 +253,7 @@ class RevisionEpisodeSnapshot:
             accepted_atom_ids=tuple(str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())),
             rejected_atom_ids=tuple(str(atom_id) for atom_id in (data.get("rejected_atom_ids") or ())),
             incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
-            explanation={
-                str(atom_id): RevisionAtomDetail.from_mapping(detail)
-                for atom_id, detail in (data.get("explanation") or {}).items()
-                if isinstance(detail, Mapping)
-            },
+            explanation=explanation,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -305,6 +315,16 @@ class EpistemicStateSnapshot:
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> EpistemicStateSnapshot:
+        ranking_payload = _optional_mapping(data.get("ranking"), "ranking")
+        entrenchment_payload = _optional_mapping(
+            data.get("entrenchment_reasons"),
+            "entrenchment_reasons",
+        )
+        entrenchment_reasons: dict[str, EntrenchmentReason] = {}
+        for atom_id, reason in entrenchment_payload.items():
+            if not isinstance(reason, Mapping):
+                raise ValueError(f"Support revision snapshot requires mapping 'entrenchment_reasons.{atom_id}'")
+            entrenchment_reasons[str(atom_id)] = EntrenchmentReason.from_mapping(reason)
         return cls(
             scope=_scope_from_mapping(_required_mapping(data.get("scope"), "scope")),
             base=_belief_base_from_mapping(_required_mapping(data.get("base"), "base")),
@@ -312,13 +332,9 @@ class EpistemicStateSnapshot:
             ranked_atom_ids=tuple(str(atom_id) for atom_id in (data.get("ranked_atom_ids") or ())),
             ranking={
                 str(atom_id): int(rank)
-                for atom_id, rank in (data.get("ranking") or {}).items()
+                for atom_id, rank in ranking_payload.items()
             },
-            entrenchment_reasons={
-                str(atom_id): EntrenchmentReason.from_mapping(reason)
-                for atom_id, reason in (data.get("entrenchment_reasons") or {}).items()
-                if isinstance(reason, Mapping)
-            },
+            entrenchment_reasons=entrenchment_reasons,
             history=tuple(
                 RevisionEpisodeSnapshot.from_mapping(item)
                 for item in (data.get("history") or ())

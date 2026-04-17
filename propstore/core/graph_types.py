@@ -34,6 +34,15 @@ def _sequence_items(value: Any) -> list[Any]:
     return list(value)
 
 
+def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
+    if value is None:
+        empty: dict[str, Any] = {}
+        return empty
+    if not isinstance(value, Mapping):
+        raise ValueError(f"active world graph field '{field_name}' must be a mapping")
+    return value
+
+
 def _pairs_from_mapping(value: Mapping[str, object]) -> list[tuple[str, object]]:
     pairs: list[tuple[str, object]] = []
     for key, item in value.items():
@@ -473,7 +482,9 @@ class ActiveWorldGraph:
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> ActiveWorldGraph:
         return cls(
-            compiled=CompiledWorldGraph.from_dict(data.get("compiled") or {}),
+            compiled=CompiledWorldGraph.from_dict(
+                _optional_mapping(data.get("compiled"), "compiled")
+            ),
             environment=Environment.from_dict(data.get("environment")),
             active_claim_ids=to_claim_ids(data.get("active_claim_ids") or ()),
             inactive_claim_ids=to_claim_ids(data.get("inactive_claim_ids") or ()),

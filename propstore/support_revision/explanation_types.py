@@ -7,6 +7,14 @@ from typing import Any
 from propstore.core.id_types import AssumptionId, to_assumption_ids
 
 
+def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise ValueError(f"support revision explanation field '{field_name}' must be a mapping")
+    return value
+
+
 @dataclass(frozen=True)
 class RevisionAtomDetail:
     reason: str | None = None
@@ -22,15 +30,18 @@ class RevisionAtomDetail:
         )
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> RevisionAtomDetail:
-        if not data:
+    def from_mapping(cls, data: object) -> RevisionAtomDetail:
+        if data is None:
+            return cls()
+        payload = _optional_mapping(data, "atom_detail")
+        if not payload:
             return cls()
         return cls(
-            reason=None if data.get("reason") is None else str(data.get("reason")),
-            incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
+            reason=None if payload.get("reason") is None else str(payload.get("reason")),
+            incision_set=tuple(str(atom_id) for atom_id in (payload.get("incision_set") or ())),
             support_sets=tuple(
                 to_assumption_ids(support_set)
-                for support_set in (data.get("support_sets") or ())
+                for support_set in (payload.get("support_sets") or ())
             ),
         )
 
@@ -67,25 +78,28 @@ class EntrenchmentReason:
         object.__setattr__(self, "essential_support", to_assumption_ids(self.essential_support))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> EntrenchmentReason:
-        if not data:
+    def from_mapping(cls, data: object) -> EntrenchmentReason:
+        if data is None:
             return cls()
-        raw_override_priority = data.get("override_priority", data.get("override"))
-        raw_support_count = data.get("support_count")
+        payload = _optional_mapping(data, "entrenchment_reason")
+        if not payload:
+            return cls()
+        raw_override_priority = payload.get("override_priority", payload.get("override"))
+        raw_support_count = payload.get("support_count")
         return cls(
             override_priority=_coerce_override_priority(raw_override_priority),
-            override_key=None if data.get("override_key") is None else str(data.get("override_key")),
+            override_key=None if payload.get("override_key") is None else str(payload.get("override_key")),
             support_count=(
                 None if raw_support_count is None else int(raw_support_count)
             ),
-            essential_support=to_assumption_ids(data.get("essential_support") or ()),
+            essential_support=to_assumption_ids(payload.get("essential_support") or ()),
             iterated_operator=(
                 None
-                if data.get("iterated_operator") is None
-                else str(data.get("iterated_operator"))
+                if payload.get("iterated_operator") is None
+                else str(payload.get("iterated_operator"))
             ),
             revised_in=(
-                None if data.get("revised_in") is None else bool(data.get("revised_in"))
+                None if payload.get("revised_in") is None else bool(payload.get("revised_in"))
             ),
         )
 
@@ -146,12 +160,14 @@ class RevisionAtomExplanation:
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> RevisionAtomExplanation:
         ranking_data = data.get("ranking")
+        if ranking_data is not None and not isinstance(ranking_data, Mapping):
+            raise ValueError("support revision explanation field 'ranking' must be a mapping")
         return cls(
             status=str(data.get("status") or "accepted"),
             reason=str(data.get("reason") or "unchanged"),
             ranking=(
                 None
-                if not isinstance(ranking_data, Mapping)
+                if ranking_data is None
                 else EntrenchmentReason.from_mapping(ranking_data)
             ),
             incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
@@ -190,15 +206,17 @@ class RevisionExplanation:
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> RevisionExplanation:
+        atoms_payload = _optional_mapping(data.get("atoms"), "atoms")
+        atoms: dict[str, RevisionAtomExplanation] = {}
+        for atom_id, atom_data in atoms_payload.items():
+            if not isinstance(atom_data, Mapping):
+                raise ValueError(f"support revision explanation field 'atoms.{atom_id}' must be a mapping")
+            atoms[str(atom_id)] = RevisionAtomExplanation.from_mapping(atom_data)
         return cls(
             accepted_atom_ids=tuple(str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())),
             rejected_atom_ids=tuple(str(atom_id) for atom_id in (data.get("rejected_atom_ids") or ())),
             incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
-            atoms={
-                str(atom_id): RevisionAtomExplanation.from_mapping(atom_data)
-                for atom_id, atom_data in (data.get("atoms") or {}).items()
-                if isinstance(atom_data, Mapping)
-            },
+            atoms=atoms,
         )
 
     def to_dict(self) -> dict[str, Any]:

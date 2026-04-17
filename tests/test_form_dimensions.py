@@ -236,7 +236,7 @@ class TestFormDefinitionDimensions:
         })
         fd = load_form(tmp_path, "legacy_test")
         assert fd is not None
-        # Backward compat: dimensions should be None or {} when absent
+        # Missing dimensions are represented as absent or as an empty mapping.
         assert fd.dimensions is None or fd.dimensions == {}
 
 

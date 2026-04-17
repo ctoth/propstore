@@ -41,6 +41,14 @@ if TYPE_CHECKING:
     from propstore.z3_conditions import Z3ConditionSolver
 
 
+def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise ValueError(f"render policy field '{field_name}' must be a mapping")
+    return value
+
+
 class ValueStatus(StrEnum):
     """Status of a value/derived/resolved result.
 
@@ -641,7 +649,7 @@ def integrity_constraint_from_dict(data: Mapping[str, Any]) -> IntegrityConstrai
             else IntegrityConstraintKind(str(data["kind"]))
         ),
         concept_ids=tuple(str(concept_id) for concept_id in data.get("concept_ids", ())),
-        metadata=dict(data.get("metadata") or {}),
+        metadata=dict(_optional_mapping(data.get("metadata"), "metadata")),
         cel=None if data.get("cel") is None else to_cel_expr(str(data["cel"])),
         description=(
             None
@@ -904,8 +912,16 @@ class RenderPolicy:
                 if isinstance(strategy, ResolutionStrategy)
                 else ResolutionStrategy(str(strategy))
             )
-            for concept_id, strategy in (data.get("concept_strategies") or {}).items()
+            for concept_id, strategy in _optional_mapping(
+                data.get("concept_strategies"),
+                "concept_strategies",
+            ).items()
         }
+        branch_weights = (
+            None
+            if data.get("branch_weights") is None
+            else dict(_optional_mapping(data.get("branch_weights"), "branch_weights"))
+        )
         return cls(
             reasoning_backend=reasoning_backend,
             strategy=(
@@ -942,11 +958,7 @@ class RenderPolicy:
                 if data.get("branch_filter") is None
                 else tuple(data["branch_filter"])
             ),
-            branch_weights=(
-                None
-                if data.get("branch_weights") is None
-                else dict(data["branch_weights"])
-            ),
+            branch_weights=branch_weights,
             integrity_constraints=tuple(
                 integrity_constraint_from_dict(item)
                 for item in (data.get("integrity_constraints") or ())
@@ -957,7 +969,7 @@ class RenderPolicy:
                 if data.get("future_limit") is None
                 else int(data["future_limit"])
             ),
-            overrides=dict(data.get("overrides") or {}),
+            overrides=dict(_optional_mapping(data.get("overrides"), "overrides")),
             concept_strategies=concept_strategies,
             include_drafts=bool(data.get("include_drafts", False)),
             include_blocked=bool(data.get("include_blocked", False)),

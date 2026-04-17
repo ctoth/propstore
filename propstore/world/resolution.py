@@ -871,7 +871,8 @@ def resolve(
     active_graph = view._active_graph if isinstance(view, HasActiveGraph) else None
 
     if strategy == ResolutionStrategy.OVERRIDE:
-        override_id = (overrides or {}).get(concept_id)
+        override_map = {} if overrides is None else overrides
+        override_id = override_map.get(concept_id)
         if override_id is None:
             return ResolvedResult(
                 concept_id=typed_concept_id, status=ValueStatus.CONFLICTED,

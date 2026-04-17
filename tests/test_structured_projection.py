@@ -107,7 +107,7 @@ def _make_bound(
     effective_assumptions: tuple[str, ...] = (),
     lifting_system=None,
 ) -> BoundWorld:
-    bindings = bindings or {}
+    bindings = {} if bindings is None else bindings
     environment = Environment(
         bindings=bindings,
         context_id=context_id,

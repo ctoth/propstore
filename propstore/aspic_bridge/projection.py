@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import statistics
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from propstore.aspic import CSAF, Literal, PremiseArg, conc, prem, sub, top_rule
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
@@ -57,7 +57,9 @@ def csaf_to_projection(
 ) -> StructuredProjection:
     """Map a CSAF onto the public ``StructuredProjection`` facade."""
 
-    metadata = support_metadata or {}
+    metadata: SupportMetadata = {}
+    if support_metadata is not None:
+        metadata = support_metadata
     normalized_claims = coerce_active_claims(active_claims)
     claim_id_set = {str(claim.claim_id) for claim in normalized_claims}
     claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}

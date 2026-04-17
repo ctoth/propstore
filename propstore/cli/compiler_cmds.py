@@ -1858,7 +1858,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
             praf_mc_epsilon=praf_epsilon,
             praf_mc_confidence=praf_confidence,
             praf_mc_seed=praf_seed,
-            overrides=overrides_dict or {},
+            overrides={} if overrides_dict is None else overrides_dict,
             include_drafts=include_drafts,
             include_blocked=include_blocked,
             show_quarantined=show_quarantined,
@@ -1973,7 +1973,11 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                        f"{summary['included_as_attacks']} included as attacks")
             click.echo("\nAcceptance probabilities:")
             claim_map = {str(claim.claim_id): claim for claim in active}
-            acceptance_probs = praf_result.acceptance_probs or {}
+            acceptance_probs = (
+                {}
+                if praf_result.acceptance_probs is None
+                else praf_result.acceptance_probs
+            )
             for cid, prob in sorted(
                 acceptance_probs.items(),
                 key=lambda x: -x[1],

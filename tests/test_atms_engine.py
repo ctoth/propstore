@@ -109,7 +109,7 @@ def _make_bound(
 ) -> BoundWorld:
     if solver is not None:
         store._solver = solver
-    bindings = bindings or {}
+    bindings = {} if bindings is None else bindings
     environment = Environment(
         bindings=bindings,
         context_id=context_id,
