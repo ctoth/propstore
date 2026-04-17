@@ -9,9 +9,9 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.repo.branch import create_branch
-from propstore.repo.merge_commit import create_merge_commit
-from propstore.repo.snapshot import RepoSnapshot
+from propstore.storage.branch import create_branch
+from propstore.storage.merge_commit import create_merge_commit
+from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
@@ -169,7 +169,7 @@ def test_log_merge_summary_output(tmp_path: Path) -> None:
         branch="agent/demo",
     )
 
-    merge_sha = create_merge_commit(RepoSnapshot.for_git(git), "master", "agent/demo")
+    merge_sha = create_merge_commit(RepositorySnapshot.for_git(git), "master", "agent/demo")
     assert merge_sha
 
     runner = CliRunner()

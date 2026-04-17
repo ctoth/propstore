@@ -9,10 +9,10 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.repo.branch import create_branch
-from propstore.repo.merge_classifier import build_merge_framework
-from propstore.repo.merge_report import summarize_merge_framework
-from propstore.repo.snapshot import RepoSnapshot
+from propstore.storage.branch import create_branch
+from propstore.storage.merge_classifier import build_merge_framework
+from propstore.storage.merge_report import summarize_merge_framework
+from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import normalize_claims_payload
 
 
@@ -72,7 +72,7 @@ def _param_claim(
     return claim
 
 
-def _snapshot(repo: Repository) -> RepoSnapshot:
+def _snapshot(repo: Repository) -> RepositorySnapshot:
     return repo.snapshot
 
 

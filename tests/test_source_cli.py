@@ -10,7 +10,8 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.repo.branch import create_branch, list_branches
+from propstore.storage.branch import create_branch, list_branches
+from tests.conftest import normalize_concept_payloads
 
 
 def test_source_branch_kind_is_detected(tmp_path: Path) -> None:
@@ -189,19 +190,23 @@ def test_source_write_metadata_commits_json_to_source_branch(tmp_path: Path) -> 
 def test_source_add_concepts_batch_preserves_inventory_fields(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
+    existing_concept = normalize_concept_payloads(
+        [
+            {
+                "id": "existing",
+                "canonical_name": "existing",
+                "status": "accepted",
+                "definition": "Existing concept.",
+                "domain": "source",
+                "form": "structural",
+            }
+        ],
+        default_domain="source",
+    )[0]
     repo.git.commit_batch(
         adds={
             "concepts/existing.yaml": yaml.safe_dump(
-                {
-                    "canonical_name": "existing",
-                    "status": "accepted",
-                    "definition": "Existing concept.",
-                    "domain": "source",
-                    "form": "structural",
-                    "artifact_id": "ps:concept:existing",
-                    "logical_ids": [{"namespace": "propstore", "value": "existing"}],
-                    "version_id": "version:existing",
-                },
+                existing_concept,
                 sort_keys=False,
                 allow_unicode=True,
             ).encode("utf-8")
@@ -275,7 +280,7 @@ def test_source_add_concepts_batch_preserves_inventory_fields(tmp_path: Path) ->
     assert branch_tip is not None
     stored = yaml.safe_load(repo.git.read_file("concepts.yaml", commit=branch_tip))
     assert stored["concepts"][0]["status"] == "linked"
-    assert stored["concepts"][0]["registry_match"]["artifact_id"] == "ps:concept:existing"
+    assert stored["concepts"][0]["registry_match"]["artifact_id"] == existing_concept["artifact_id"]
     assert stored["concepts"][0]["aliases"] == [{"name": "existing_alias"}]
     assert stored["concepts"][1]["status"] == "proposed"
     assert stored["concepts"][1]["parameterization_relationships"][0]["inputs"] == ["existing"]
@@ -501,19 +506,23 @@ def test_propose_concept_reports_linked_status(tmp_path: Path) -> None:
 
     # Seed a concept on master so propose-concept can link to it.
     _seed_forms(repo, ["structural"])
+    existing_concept = normalize_concept_payloads(
+        [
+            {
+                "id": "existing",
+                "canonical_name": "existing",
+                "status": "accepted",
+                "definition": "Existing concept.",
+                "domain": "source",
+                "form": "structural",
+            }
+        ],
+        default_domain="source",
+    )[0]
     repo.git.commit_batch(
         adds={
             "concepts/existing.yaml": yaml.safe_dump(
-                {
-                    "canonical_name": "existing",
-                    "status": "accepted",
-                    "definition": "Existing concept.",
-                    "domain": "source",
-                    "form": "structural",
-                    "artifact_id": "ps:concept:existing",
-                    "logical_ids": [{"namespace": "propstore", "value": "existing"}],
-                    "version_id": "version:existing",
-                },
+                existing_concept,
                 sort_keys=False,
                 allow_unicode=True,
             ).encode("utf-8")
@@ -540,7 +549,7 @@ def test_propose_concept_reports_linked_status(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     assert "Linked" in result.output
     assert "existing" in result.output
-    assert "ps:concept:existing" in result.output
+    assert existing_concept["artifact_id"] in result.output
 
 
 def test_propose_concept_reports_proposed_status(tmp_path: Path) -> None:

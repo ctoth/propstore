@@ -1,11 +1,11 @@
-"""Layer boundary enforcement: propstore/world/ must not import from propstore/repo/.
+"""Layer boundary enforcement: propstore/world/ must not import storage.
 
 Per CLAUDE.md architectural layers, the world (concept/semantic) layer sits
 below the render layer and above pure storage. It must not reach into
-propstore.repo, which is the git-backed source-of-truth storage layer.
+propstore.storage, which is the git-backed source-of-truth storage layer.
 
 This test walks every .py file under propstore/world/ and asserts zero
-`from propstore.repo...` or `import propstore.repo...` statements.
+`from propstore.storage...` or `import propstore.storage...` statements.
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import ast
 from pathlib import Path
 
 
-def test_world_package_does_not_import_from_propstore_repo() -> None:
+def test_world_package_does_not_import_from_storage() -> None:
     world_dir = Path("propstore/world")
     assert world_dir.exists(), f"expected world dir at {world_dir.resolve()}"
 
@@ -28,15 +28,19 @@ def test_world_package_does_not_import_from_propstore_repo() -> None:
             if isinstance(node, ast.ImportFrom) and node.module:
                 if node.module == "propstore.repo" or node.module.startswith(
                     "propstore.repo."
+                ) or node.module == "propstore.storage" or node.module.startswith(
+                    "propstore.storage."
                 ):
                     offenders.append((str(py_file), node.lineno, node.module))
             elif isinstance(node, ast.Import):
                 for alias in node.names:
                     if alias.name == "propstore.repo" or alias.name.startswith(
                         "propstore.repo."
+                    ) or alias.name == "propstore.storage" or alias.name.startswith(
+                        "propstore.storage."
                     ):
                         offenders.append((str(py_file), node.lineno, alias.name))
 
     assert offenders == [], (
-        f"propstore/world/ imports from propstore/repo/ (layer violation): {offenders}"
+        f"propstore/world/ imports storage (layer violation): {offenders}"
     )

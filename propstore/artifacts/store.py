@@ -15,7 +15,7 @@ from propstore.artifacts.types import (
     TDoc,
     TRef,
 )
-from propstore.repo.branch import branch_head
+from propstore.storage.branch import branch_head
 
 if TYPE_CHECKING:
     from propstore.repository import Repository

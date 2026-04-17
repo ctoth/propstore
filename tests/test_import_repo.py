@@ -69,13 +69,13 @@ def _expected_imported_claim_yaml(local_id: str, *, namespace: str, source_paper
         unique=True,
     ),
 )
-def test_repo_import_is_snapshot_convergent_under_repeated_commits(
+def test_repository_import_is_snapshot_convergent_under_repeated_commits(
     tmp_path,
     source_claim_ids: list[str],
     stale_claim_ids: list[str],
 ):
-    from propstore.repo.branch import create_branch
-    from propstore.repo.repo_import import commit_repo_import, plan_repo_import
+    from propstore.storage.branch import create_branch
+    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     assume(set(source_claim_ids).isdisjoint(stale_claim_ids))
 
@@ -104,8 +104,8 @@ def test_repo_import_is_snapshot_convergent_under_repeated_commits(
         "seed source snapshot",
     )
 
-    first_result = commit_repo_import(destination, plan_repo_import(destination, source.root.parent))
-    second_result = commit_repo_import(destination, plan_repo_import(destination, source.root.parent))
+    first_result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
+    second_result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
 
     first_tree = destination_git._repo[first_result.commit_sha.encode()].tree
     second_tree = destination_git._repo[second_result.commit_sha.encode()].tree
@@ -130,11 +130,11 @@ def test_repo_import_is_snapshot_convergent_under_repeated_commits(
         unique=True,
     ),
 )
-def test_repo_import_normalizes_concepts_and_claim_refs_under_random_snapshots(
+def test_repository_import_normalizes_concepts_and_claim_refs_under_random_snapshots(
     tmp_path,
     concept_ids: list[str],
 ):
-    from propstore.repo.repo_import import commit_repo_import, plan_repo_import
+    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / f"dest_{uuid4().hex}")
     source = _init_project(tmp_path / f"repo-b_{uuid4().hex}")
@@ -172,7 +172,7 @@ def test_repo_import_normalizes_concepts_and_claim_refs_under_random_snapshots(
     }
     source_git.commit_files({**concept_files, **claim_files}, "seed randomized source snapshot")
 
-    result = commit_repo_import(destination, plan_repo_import(destination, source.root.parent))
+    result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
     imported_claims = yaml.safe_load(destination.git.read_file("claims/source.yaml", commit=result.commit_sha))
 
     expected_concept_ids = {
@@ -198,19 +198,19 @@ def test_repo_import_normalizes_concepts_and_claim_refs_under_random_snapshots(
         assert imported_claim["concepts"] == [expected_concept_ids[concept_id]]
 
 
-def test_plan_repo_import_requires_git_backed_source(tmp_path):
-    from propstore.repo.repo_import import plan_repo_import
+def test_plan_repository_import_requires_git_backed_source(tmp_path):
+    from propstore.storage.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source_project = tmp_path / "source"
     (source_project / "knowledge" / "concepts").mkdir(parents=True)
 
     with pytest.raises(ValueError, match="git-backed"):
-        plan_repo_import(destination, source_project)
+        plan_repository_import(destination, source_project)
 
 
-def test_plan_repo_import_uses_committed_head_snapshot(tmp_path):
-    from propstore.repo.repo_import import plan_repo_import
+def test_plan_repository_import_uses_committed_head_snapshot(tmp_path):
+    from propstore.storage.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -228,7 +228,7 @@ def test_plan_repo_import_uses_committed_head_snapshot(tmp_path):
         _raw_claim_yaml("uncommitted"),
     )
 
-    plan = plan_repo_import(destination, source.root.parent)
+    plan = plan_repository_import(destination, source.root.parent)
 
     assert plan.source_commit == source_git.head_sha()
     assert plan.writes["claims/source.yaml"].document.to_payload() == _expected_imported_claim_yaml(
@@ -237,8 +237,8 @@ def test_plan_repo_import_uses_committed_head_snapshot(tmp_path):
     )
 
 
-def test_plan_repo_import_uses_default_branch_name_from_source_repo(tmp_path):
-    from propstore.repo.repo_import import plan_repo_import
+def test_plan_repository_import_uses_default_branch_name_from_source_repository(tmp_path):
+    from propstore.storage.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -246,15 +246,15 @@ def test_plan_repo_import_uses_default_branch_name_from_source_repo(tmp_path):
     assert source_git is not None
     source_git.commit_files({"concepts/example.yaml": b"id: concept1\n"}, "seed")
 
-    plan = plan_repo_import(destination, source.root.parent)
+    plan = plan_repository_import(destination, source.root.parent)
 
-    assert plan.repo_name == "repo-b"
+    assert plan.repository_name == "repo-b"
     assert plan.target_branch == "import/repo-b"
     assert plan.sync_worktree_default is False
 
 
-def test_plan_repo_import_limits_to_semantic_tree_and_excludes_sidecar(tmp_path):
-    from propstore.repo.repo_import import plan_repo_import
+def test_plan_repository_import_limits_to_semantic_tree_and_excludes_sidecar(tmp_path):
+    from propstore.storage.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -270,7 +270,7 @@ def test_plan_repo_import_limits_to_semantic_tree_and_excludes_sidecar(tmp_path)
     }
     source_git.commit_files(tracked_files, "seed")
 
-    plan = plan_repo_import(destination, source.root.parent)
+    plan = plan_repository_import(destination, source.root.parent)
 
     assert set(plan.touched_paths) == {
         "claims/source.yaml",
@@ -280,9 +280,9 @@ def test_plan_repo_import_limits_to_semantic_tree_and_excludes_sidecar(tmp_path)
     assert all(path.split("/", 1)[0] in SEMANTIC_DIRS for path in plan.touched_paths)
 
 
-def test_commit_repo_import_writes_commit_to_target_branch_and_returns_result(tmp_path):
-    from propstore.repo.branch import branch_head
-    from propstore.repo.repo_import import commit_repo_import, plan_repo_import
+def test_commit_repository_import_writes_commit_to_target_branch_and_returns_result(tmp_path):
+    from propstore.storage.branch import branch_head
+    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
@@ -300,8 +300,8 @@ def test_commit_repo_import_writes_commit_to_target_branch_and_returns_result(tm
         "seed",
     )
 
-    plan = plan_repo_import(destination, source.root.parent)
-    result = commit_repo_import(destination, plan)
+    plan = plan_repository_import(destination, source.root.parent)
+    result = commit_repository_import(destination, plan)
     imported_tip = branch_head(destination_git, plan.target_branch)
 
     assert imported_tip == result.commit_sha
@@ -309,8 +309,8 @@ def test_commit_repo_import_writes_commit_to_target_branch_and_returns_result(tm
     assert yaml.safe_load(destination_git.read_file("claims/source.yaml", commit=imported_tip)) == (
         _expected_imported_claim_yaml("imported", namespace="repo-b")
     )
-    assert result.surface == "repo_import_commit"
-    assert result.source_repo == str(source.root)
+    assert result.surface == "repository_import_commit"
+    assert result.source_repository == str(source.root)
     assert result.source_commit == source_git.head_sha()
     assert result.target_branch == "import/repo-b"
     assert result.touched_paths == [
@@ -321,8 +321,8 @@ def test_commit_repo_import_writes_commit_to_target_branch_and_returns_result(tm
     assert result.worktree_synced is False
 
 
-def test_commit_repo_import_does_not_mutate_master_unless_targeted(tmp_path):
-    from propstore.repo.repo_import import commit_repo_import, plan_repo_import
+def test_commit_repository_import_does_not_mutate_master_unless_targeted(tmp_path):
+    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
@@ -336,8 +336,8 @@ def test_commit_repo_import_does_not_mutate_master_unless_targeted(tmp_path):
     assert source_git is not None
     source_git.commit_files({"claims/source.yaml": yaml.safe_dump({"claims": []}, sort_keys=False).encode()}, "seed")
 
-    plan = plan_repo_import(destination, source.root.parent)
-    result = commit_repo_import(destination, plan)
+    plan = plan_repository_import(destination, source.root.parent)
+    result = commit_repository_import(destination, plan)
 
     assert destination_git.head_sha() == master_before
     with pytest.raises(FileNotFoundError):
@@ -348,8 +348,8 @@ def test_commit_repo_import_does_not_mutate_master_unless_targeted(tmp_path):
     }
 
 
-def test_commit_repo_import_auto_syncs_master_but_not_other_branches(tmp_path):
-    from propstore.repo.repo_import import commit_repo_import, plan_repo_import
+def test_commit_repository_import_auto_syncs_master_but_not_other_branches(tmp_path):
+    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     source = _init_project(tmp_path / "repo-b")
     source_git = source.git
@@ -357,27 +357,27 @@ def test_commit_repo_import_auto_syncs_master_but_not_other_branches(tmp_path):
     source_git.commit_files({"claims/source.yaml": _raw_claim_yaml("imported")}, "seed")
 
     non_master_destination = _init_project(tmp_path / "dest-branch")
-    non_master_plan = plan_repo_import(non_master_destination, source.root.parent)
-    non_master_result = commit_repo_import(non_master_destination, non_master_plan)
+    non_master_plan = plan_repository_import(non_master_destination, source.root.parent)
+    non_master_result = commit_repository_import(non_master_destination, non_master_plan)
     assert non_master_result.worktree_synced is False
     assert not (non_master_destination.root / "claims" / "source.yaml").exists()
 
     master_destination = _init_project(tmp_path / "dest-master")
-    master_plan = plan_repo_import(
+    master_plan = plan_repository_import(
         master_destination,
         source.root.parent,
         target_branch="master",
     )
-    master_result = commit_repo_import(master_destination, master_plan)
+    master_result = commit_repository_import(master_destination, master_plan)
     assert master_result.worktree_synced is True
     assert yaml.safe_load((master_destination.root / "claims" / "source.yaml").read_bytes()) == (
         _expected_imported_claim_yaml("imported", namespace="repo-b")
     )
 
 
-def test_plan_repo_import_deletes_paths_missing_from_latest_source_snapshot(tmp_path):
-    from propstore.repo.branch import create_branch
-    from propstore.repo.repo_import import plan_repo_import
+def test_plan_repository_import_deletes_paths_missing_from_latest_source_snapshot(tmp_path):
+    from propstore.storage.branch import create_branch
+    from propstore.storage.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
@@ -400,14 +400,14 @@ def test_plan_repo_import_deletes_paths_missing_from_latest_source_snapshot(tmp_
         "seed fresh source snapshot",
     )
 
-    plan = plan_repo_import(destination, source.root.parent)
+    plan = plan_repository_import(destination, source.root.parent)
 
     assert plan.deletes == ["claims/stale.yaml", "concepts/stale.yaml"]
     assert plan.touched_paths == ["claims/fresh.yaml", "claims/stale.yaml", "concepts/stale.yaml"]
 
 
 def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
-    from propstore.repo.repo_import import commit_repo_import, plan_repo_import
+    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -435,8 +435,8 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
         "seed source claims and stances",
     )
 
-    plan = plan_repo_import(destination, source.root.parent)
-    result = commit_repo_import(destination, plan)
+    plan = plan_repository_import(destination, source.root.parent)
+    result = commit_repository_import(destination, plan)
 
     imported_stances = yaml.safe_load(
         destination.git.read_file("stances/claim_a.yaml", commit=result.commit_sha)
@@ -448,7 +448,7 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
 
 
 def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_path):
-    from propstore.repo.repo_import import commit_repo_import, plan_repo_import
+    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -488,8 +488,8 @@ def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_
         "seed source concepts",
     )
 
-    plan = plan_repo_import(destination, source.root.parent)
-    result = commit_repo_import(destination, plan)
+    plan = plan_repository_import(destination, source.root.parent)
+    result = commit_repository_import(destination, plan)
 
     concept_a = yaml.safe_load(destination.git.read_file("concepts/concept_a.yaml", commit=result.commit_sha))
     concept_b_id = make_concept_identity("concept_b", domain="speech", canonical_name="concept_b")["artifact_id"]
@@ -507,7 +507,7 @@ def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_
 
 
 def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_ids(tmp_path):
-    from propstore.repo.repo_import import commit_repo_import, plan_repo_import
+    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -548,8 +548,8 @@ def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_id
         "seed source concepts and claims",
     )
 
-    plan = plan_repo_import(destination, source.root.parent)
-    result = commit_repo_import(destination, plan)
+    plan = plan_repository_import(destination, source.root.parent)
+    result = commit_repository_import(destination, plan)
 
     concept_a_id = make_concept_identity("concept_a", domain="speech", canonical_name="concept_a")["artifact_id"]
     imported_claims = yaml.safe_load(destination.git.read_file("claims/source.yaml", commit=result.commit_sha))
@@ -571,13 +571,13 @@ def test_import_repo_cli_emits_structured_yaml_for_import_commit(tmp_path):
     runner = CliRunner()
     result = runner.invoke(
         cli,
-        ["-C", str(destination.root), "import-repo", str(source.root.parent)],
+        ["-C", str(destination.root), "import-repository", str(source.root.parent)],
     )
 
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
-    assert payload["surface"] == "repo_import_commit"
-    assert payload["source_repo"] == str(source.root)
+    assert payload["surface"] == "repository_import_commit"
+    assert payload["source_repository"] == str(source.root)
     assert payload["source_commit"] == source_git.head_sha()
     assert payload["target_branch"] == "import/repo-b"
     assert len(payload["commit_sha"]) == 40
@@ -602,7 +602,7 @@ def test_import_repo_cli_can_target_master_and_sync_worktree(tmp_path):
         [
             "-C",
             str(destination.root),
-            "import-repo",
+            "import-repository",
             str(source.root.parent),
             "--target-branch",
             "master",
@@ -618,9 +618,9 @@ def test_import_repo_cli_can_target_master_and_sync_worktree(tmp_path):
     )
 
 
-def test_import_repo_does_not_break_top_level_propstore_repo_import():
-    from propstore import repo as repo_module
+def test_import_repository_exports_from_storage_surface():
+    from propstore import storage as storage_module
 
-    assert repo_module is not None
-    assert hasattr(repo_module, "plan_repo_import")
-    assert hasattr(repo_module, "commit_repo_import")
+    assert storage_module is not None
+    assert hasattr(storage_module, "plan_repository_import")
+    assert hasattr(storage_module, "commit_repository_import")

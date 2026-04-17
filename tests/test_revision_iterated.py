@@ -101,7 +101,7 @@ def test_iterated_revision_module_does_not_import_ic_merge() -> None:
             imports.extend(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module is not None:
             imports.append(node.module)
-    assert "propstore.repo.ic_merge" not in imports
+    assert "propstore.storage.ic_merge" not in imports
 
 
 def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, EntrenchmentReport]:

@@ -7,7 +7,7 @@ from propstore.dung import (
     preferred_extensions,
     stable_extensions,
 )
-from propstore.repo.merge_framework import (
+from propstore.storage.merge_framework import (
     PartialArgumentationFramework,
     enumerate_paf_completions,
 )

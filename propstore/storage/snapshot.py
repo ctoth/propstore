@@ -3,14 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from propstore.artifacts.schema import decode_document_bytes
-from propstore.repo.branch import BranchInfo, branch_head, create_branch, delete_branch, list_branches, merge_base
+from propstore.storage.branch import BranchInfo, branch_head, create_branch, delete_branch, list_branches, merge_base
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
-    from propstore.repo.git_backend import GitStore
+    from propstore.storage.git_backend import GitStore
 
 TDocument = TypeVar("TDocument")
 
@@ -28,10 +28,10 @@ class SnapshotFile:
     content: bytes
 
 
-class RepoSnapshot:
+class RepositorySnapshot:
     @classmethod
-    def for_git(cls, git: object) -> RepoSnapshot:
-        return cls(SimpleNamespace(git=git, tree=lambda commit=None: git.tree(commit=commit)))
+    def for_git(cls, git: Any) -> RepositorySnapshot:
+        return cls(cast("Repository", SimpleNamespace(git=git, tree=lambda commit=None: git.tree(commit=commit))))
 
     def __init__(self, repo: Repository) -> None:
         self._repo = repo

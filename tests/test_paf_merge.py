@@ -7,7 +7,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from propstore.dung import ArgumentationFramework
-from propstore.repo.paf_merge import (
+from propstore.storage.paf_merge import (
     consensual_expand,
     leximax_merge_frameworks,
     max_merge_frameworks,

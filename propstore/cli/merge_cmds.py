@@ -29,8 +29,8 @@ def merge() -> None:
 @click.pass_context
 def merge_inspect(ctx: click.Context, branch_a: str, branch_b: str, semantics: str) -> None:
     """Inspect the formal merge framework between two branches."""
-    from propstore.repo.merge_classifier import build_merge_framework
-    from propstore.repo.merge_report import summarize_merge_framework
+    from propstore.storage.merge_classifier import build_merge_framework
+    from propstore.storage.merge_report import summarize_merge_framework
 
     repo = ctx.obj["repo"]
     merge_framework = build_merge_framework(repo.snapshot, branch_a, branch_b)
@@ -52,7 +52,7 @@ def merge_commit_cmd(
     target_branch: str | None,
 ) -> None:
     """Create a storage merge commit from the formal merge framework."""
-    from propstore.repo.merge_commit import create_merge_commit
+    from propstore.storage.merge_commit import create_merge_commit
 
     repo = ctx.obj["repo"]
     resolved_target_branch = target_branch or repo.snapshot.primary_branch_name()

@@ -21,7 +21,7 @@ from propstore.identity import derive_concept_artifact_id
 from propstore.sidecar.build import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
 from propstore.knowledge_path import GitKnowledgePath
-from propstore.repo import GitStore
+from propstore.storage import GitStore
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
@@ -59,9 +59,9 @@ class _FakeWorldlineRepo:
 
     @property
     def snapshot(self):
-        from propstore.repo.snapshot import RepoSnapshot
+        from propstore.storage.snapshot import RepositorySnapshot
 
-        return RepoSnapshot(self)
+        return RepositorySnapshot(self)
 
     def tree(self, commit: str | None = None):
         return GitKnowledgePath(self.git, commit=commit)

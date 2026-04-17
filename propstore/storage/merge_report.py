@@ -1,17 +1,17 @@
-"""Repo-facing summaries for merge frameworks."""
+"""Repository-facing summaries for merge frameworks."""
 from __future__ import annotations
 
 from collections import defaultdict
 
-from propstore.repo.merge_classifier import RepoMergeFramework
-from propstore.repo.merge_framework import enumerate_paf_completions
-from propstore.repo.paf_queries import (
+from propstore.storage.merge_classifier import RepositoryMergeFramework
+from propstore.storage.merge_framework import enumerate_paf_completions
+from propstore.storage.paf_queries import (
     credulously_accepted_arguments,
     skeptically_accepted_arguments,
 )
 
 
-def semantic_candidate_details(merge: RepoMergeFramework) -> list[dict]:
+def semantic_candidate_details(merge: RepositoryMergeFramework) -> list[dict]:
     argument_index = merge.argument_index()
     details: list[dict] = []
     for claim_ids in merge.semantic_candidates:
@@ -39,7 +39,7 @@ def semantic_candidate_details(merge: RepoMergeFramework) -> list[dict]:
 
 
 def summarize_merge_framework(
-    merge: RepoMergeFramework,
+    merge: RepositoryMergeFramework,
     *,
     semantics: str = "grounded",
 ) -> dict:

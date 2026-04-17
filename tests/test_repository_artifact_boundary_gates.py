@@ -87,14 +87,17 @@ def test_repository_facade_does_not_depend_on_world_model() -> None:
 def test_repository_facade_has_single_canonical_import_surface() -> None:
     canonical = ROOT / "propstore" / "repository.py"
     old_nested = ROOT / "propstore" / "repo" / "repository.py"
+    old_storage_nested = ROOT / "propstore" / "storage" / "repository.py"
 
     assert canonical.exists()
     assert not old_nested.exists()
+    assert not old_storage_nested.exists()
 
     offenders = [
         _relative(path)
         for path in _production_files()
         if _imports_module(_parse(path), "propstore.repo.repository")
+        or _imports_module(_parse(path), "propstore.storage.repository")
     ]
 
     assert offenders == []
@@ -110,12 +113,58 @@ def test_propstore_git_carrier_is_not_named_knowledge_repo() -> None:
     assert offenders == []
 
 
-def test_repo_package_exports_git_store_not_knowledge_repo() -> None:
-    path = ROOT / "propstore" / "repo" / "__init__.py"
+def test_storage_package_exports_git_store_not_knowledge_repo() -> None:
+    path = ROOT / "propstore" / "storage" / "__init__.py"
     contents = path.read_text(encoding="utf-8")
 
     assert "GitStore" in contents
     assert "KnowledgeRepo" not in contents
+
+
+def test_git_storage_surface_is_not_named_repo() -> None:
+    storage = ROOT / "propstore" / "storage" / "__init__.py"
+    old_repo_package = ROOT / "propstore" / "repo"
+
+    assert storage.exists()
+    assert not old_repo_package.exists()
+
+    contents = storage.read_text(encoding="utf-8")
+    assert "GitStore" in contents
+    assert "KnowledgeRepo" not in contents
+
+
+def test_production_imports_do_not_use_propstore_repo_package() -> None:
+    offenders: list[str] = []
+    for path in _production_files():
+        tree = _parse(path)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                if node.module == "propstore.repo" or node.module.startswith("propstore.repo."):
+                    offenders.append(_relative(path))
+                    break
+            if isinstance(node, ast.Import):
+                if any(
+                    alias.name == "propstore.repo" or alias.name.startswith("propstore.repo.")
+                    for alias in node.names
+                ):
+                    offenders.append(_relative(path))
+                    break
+
+    assert offenders == []
+
+
+def test_production_public_types_do_not_use_repo_prefix() -> None:
+    offenders: list[tuple[str, int, str]] = []
+    for path in _production_files():
+        for node in ast.walk(_parse(path)):
+            if (
+                isinstance(node, ast.ClassDef)
+                and node.name.startswith("Repo")
+                and not node.name.startswith("Repository")
+            ):
+                offenders.append((_relative(path), node.lineno, node.name))
+
+    assert offenders == []
 
 
 def test_core_concept_loading_does_not_decode_concept_documents_directly() -> None:

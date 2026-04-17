@@ -1,4 +1,4 @@
-"""Tests for multi-branch git primitives in propstore.repo.
+"""Tests for multi-branch git primitives in propstore.storage.
 
 TDD red phase: these tests define the contract for branch CRUD,
 commit isolation, and merge-base computation. All should FAIL
@@ -16,8 +16,8 @@ import time
 import pytest
 from dulwich.objects import Commit
 
-from propstore.repo import GitStore
-from propstore.repo.branch import (
+from propstore.storage import GitStore
+from propstore.storage.branch import (
     BranchInfo,
     branch_head,
     create_branch,
@@ -25,7 +25,7 @@ from propstore.repo.branch import (
     list_branches,
     merge_base,
 )
-from propstore.repo.git_backend import _set_symbolic_ref
+from propstore.storage.git_backend import _set_symbolic_ref
 
 
 def _create_two_parent_commit(
@@ -353,11 +353,11 @@ def test_merge_base_prefers_nearer_common_ancestor_over_older_one(tmp_path):
     assert result == branch_tip
 
 
-# ── Group 4: Backward Compatibility ──────────────────────────────────
+# ── Group 4: Storage API ──────────────────────────────────
 
 
 def test_existing_api_unchanged(tmp_path):
-    """GitStore public API works identically when imported from propstore.repo.
+    """GitStore public API works identically when imported from propstore.storage.
 
     All existing operations (init, commit_files, read_file, list_dir,
     head_sha, log) must work without a branch parameter, defaulting to
@@ -394,12 +394,12 @@ def test_existing_api_unchanged(tmp_path):
 
 
 def test_canonical_git_store_import_path_works():
-    """propstore.repo is the canonical import path for GitStore.
+    """propstore.storage is the canonical import path for GitStore.
 
-    All callers have been updated to import from propstore.repo directly.
+    All callers have been updated to import from propstore.storage directly.
     Verify the new canonical path works.
     """
-    from propstore.repo import GitStore as ImportedGitStore
+    from propstore.storage import GitStore as ImportedGitStore
 
     # Must not raise ImportError — the canonical path works
     assert ImportedGitStore is not None

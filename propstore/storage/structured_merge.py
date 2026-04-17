@@ -9,11 +9,12 @@ from typing import Any
 
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.core.row_types import StanceRow
+from propstore.stances import coerce_stance_type
 from propstore.artifacts.schema import decode_document_path
 from propstore.dung import ArgumentationFramework
 from propstore.knowledge_path import KnowledgePath
-from propstore.repo.merge_claims import MergeClaim
-from propstore.repo.snapshot import RepoSnapshot
+from propstore.storage.merge_claims import MergeClaim
+from propstore.storage.snapshot import RepositorySnapshot
 from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.structured_projection import StructuredProjection, build_structured_projection
 
@@ -67,10 +68,14 @@ def _stance_row_from_mapping(
             continue
         attributes[str(key)] = value
 
+    coerced_stance_type = coerce_stance_type(stance_type)
+    if coerced_stance_type is None:
+        return None
+
     return StanceRow(
         claim_id=source_claim_id,
         target_claim_id=to_claim_id(target),
-        stance_type=stance_type,
+        stance_type=coerced_stance_type,
         target_justification_id=target_justification_id,
         attributes=attributes,
     )
@@ -253,7 +258,7 @@ def _file_stance_rows(stances_root: KnowledgePath) -> list[StanceRow]:
     return rows
 
 
-def build_branch_structured_summary(snapshot: RepoSnapshot, branch: str) -> BranchStructuredSummary:
+def build_branch_structured_summary(snapshot: RepositorySnapshot, branch: str) -> BranchStructuredSummary:
     tree = snapshot.tree(commit=snapshot.branch_head(branch))
     active_claims = _load_branch_claims(tree / "claims")
     raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(tree / "stances")
@@ -284,13 +289,13 @@ def build_branch_structured_summary(snapshot: RepoSnapshot, branch: str) -> Bran
 
 
 def build_structured_merge_candidates(
-    snapshot: RepoSnapshot,
+    snapshot: RepositorySnapshot,
     branch_a: str,
     branch_b: str,
     *,
     operator: str = "sum",
 ) -> list[ArgumentationFramework]:
-    from propstore.repo.paf_merge import (
+    from propstore.storage.paf_merge import (
         leximax_merge_frameworks,
         max_merge_frameworks,
         sum_merge_frameworks,

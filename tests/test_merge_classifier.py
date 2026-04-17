@@ -9,11 +9,11 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.identity import compute_claim_version_id
-from propstore.repo import GitStore
-from propstore.repo.branch import create_branch
-from propstore.repo.merge_classifier import build_merge_framework
-from propstore.repo.merge_commit import create_merge_commit
-from propstore.repo.snapshot import RepoSnapshot
+from propstore.storage import GitStore
+from propstore.storage.branch import create_branch
+from propstore.storage.merge_classifier import build_merge_framework
+from propstore.storage.merge_commit import create_merge_commit
+from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
 
 
@@ -111,8 +111,8 @@ def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_
     return yaml.dump(normalized, sort_keys=False).encode()
 
 
-def _snapshot(kr: GitStore) -> RepoSnapshot:
-    return RepoSnapshot.for_git(kr)
+def _snapshot(kr: GitStore) -> RepositorySnapshot:
+    return RepositorySnapshot.for_git(kr)
 
 
 def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):

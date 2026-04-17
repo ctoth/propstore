@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from propstore.artifacts.codecs import decode_yaml_mapping
 from propstore.artifacts.resolution import ImportedClaimHandleIndex
@@ -15,6 +15,7 @@ from propstore.artifacts.identity import (
 )
 
 if TYPE_CHECKING:
+    from propstore.artifacts.store import ArtifactStore
     from propstore.repository import Repository
 
 
@@ -29,13 +30,13 @@ SEMANTIC_ROOT_DIRS = (
 
 
 @dataclass(frozen=True)
-class RepoImportPlan:
-    """Planned committed-snapshot import from a source repo into a destination repo."""
+class RepositoryImportPlan:
+    """Planned committed-snapshot import between knowledge repositories."""
 
-    source_repo: str
+    source_repository: str
     source_commit: str
     target_branch: str
-    repo_name: str
+    repository_name: str
     writes: dict[str, "PlannedArtifactWrite"]
     deletes: list[str]
     touched_paths: list[str]
@@ -44,11 +45,11 @@ class RepoImportPlan:
 
 
 @dataclass(frozen=True)
-class RepoImportResult:
+class RepositoryImportResult:
     """Committed repository import result."""
 
     surface: str
-    source_repo: str
+    source_repository: str
     source_commit: str
     target_branch: str
     commit_sha: str
@@ -67,17 +68,17 @@ class PlannedArtifactWrite:
     relpath: str
 
 
-def _infer_repo_name(repo: Repository) -> str:
-    root = repo.root
+def _infer_repository_name(repository: Repository) -> str:
+    root = repository.root
     if root.name == "knowledge" and root.parent.name:
         return root.parent.name
     return root.name
 
 
-def _iter_semantic_paths(repo: Repository, *, commit: str) -> dict[str, bytes]:
+def _iter_semantic_paths(repository: Repository, *, commit: str) -> dict[str, bytes]:
     return {
         snapshot_file.relpath: snapshot_file.content
-        for snapshot_file in repo.snapshot.files(
+        for snapshot_file in repository.snapshot.files(
             commit=commit,
             roots=SEMANTIC_ROOT_DIRS,
         )
@@ -281,7 +282,7 @@ def _normalize_imported_concept_write(
     path: str,
     *,
     payload: dict[str, Any],
-    repo_name: str,
+    repository_name: str,
 ) -> tuple[PlannedArtifactWrite, set[str]]:
     seeded_payload = dict(payload)
     raw_id = seeded_payload.get("id")
@@ -302,7 +303,7 @@ def _normalize_imported_concept_write(
 
     normalized_payload, reference_keys = _normalize_concept_payload(
         seeded_payload,
-        default_domain=repo_name,
+        default_domain=repository_name,
     )
     return _planned_write(store, path, normalized_payload), reference_keys
 
@@ -312,7 +313,7 @@ def _normalize_imported_claim_write(
     path: str,
     *,
     payload: dict[str, Any],
-    repo_name: str,
+    repository_name: str,
     concept_ref_map: dict[str, str],
 ) -> tuple[PlannedArtifactWrite, dict[str, str]]:
     seeded_payload = dict(payload)
@@ -321,7 +322,7 @@ def _normalize_imported_claim_write(
 
     normalized_payload, local_map = normalize_claim_file_payload(
         seeded_payload if has_source else payload,
-        default_namespace=repo_name,
+        default_namespace=repository_name,
     )
     if not has_source:
         normalized_payload["source"] = _claim_source_from_import_path(path)
@@ -350,7 +351,7 @@ def _normalize_import_writes(
     store: ArtifactStore,
     writes: dict[str, bytes],
     *,
-    repo_name: str,
+    repository_name: str,
 ) -> tuple[dict[str, PlannedArtifactWrite], list[str]]:
     normalized: dict[str, PlannedArtifactWrite] = {}
     warnings: list[str] = []
@@ -363,21 +364,24 @@ def _normalize_import_writes(
             store,
             path,
             payload=_decode_yaml(writes[path], path=path),
-            repo_name=repo_name,
+            repository_name=repository_name,
         )
         normalized_concepts[path] = concept_write
-        artifact_id = concept_write.document.artifact_id
+        artifact_id = getattr(concept_write.document, "artifact_id", None)
         if not isinstance(artifact_id, str) or not artifact_id:
             raise ValueError(f"Imported concept {path!r} is missing artifact_id after normalization")
         for reference_key in reference_keys:
             concept_ref_map[str(reference_key)] = artifact_id
 
     for path in concept_paths:
+        concept_payload = _document_payload(normalized_concepts[path].document)
+        if not isinstance(concept_payload, dict):
+            raise TypeError(f"Imported concept {path!r} did not render to a mapping payload")
         normalized[path] = _planned_write(
             store,
             path,
             _rewrite_concept_payload_refs(
-                _document_payload(normalized_concepts[path].document),
+                concept_payload,
                 concept_ref_map=concept_ref_map,
             ),
         )
@@ -389,7 +393,7 @@ def _normalize_import_writes(
             store,
             path,
             payload=_decode_yaml(writes[path], path=path),
-            repo_name=repo_name,
+            repository_name=repository_name,
             concept_ref_map=concept_ref_map,
         )
         for local_id, artifact_id in local_map.items():
@@ -418,45 +422,45 @@ def _normalize_import_writes(
     return normalized, warnings
 
 
-def plan_repo_import(
-    destination_repo: Repository,
-    source_repo_path: Path,
+def plan_repository_import(
+    destination_repository: Repository,
+    source_repository_path: Path,
     *,
     target_branch: str | None = None,
-) -> RepoImportPlan:
-    """Plan a committed-snapshot import from a source repo into a destination repo."""
+) -> RepositoryImportPlan:
+    """Plan a committed-snapshot import between knowledge repositories."""
     from propstore.repository import Repository, RepositoryNotFound
 
     try:
-        source_repo = Repository.find(source_repo_path.resolve())
+        source_repository = Repository.find(source_repository_path.resolve())
     except RepositoryNotFound as exc:
         raise ValueError("Source repository must be git-backed") from exc
 
-    source_commit = source_repo.snapshot.head_sha()
+    source_commit = source_repository.snapshot.head_sha()
     if source_commit is None:
         raise ValueError("Source repository has no committed HEAD")
 
-    primary_branch = destination_repo.snapshot.primary_branch_name()
-    repo_name = _infer_repo_name(source_repo)
-    selected_branch = target_branch or f"import/{repo_name}"
+    primary_branch = destination_repository.snapshot.primary_branch_name()
+    repository_name = _infer_repository_name(source_repository)
+    selected_branch = target_branch or f"import/{repository_name}"
     writes, warnings = _normalize_import_writes(
-        destination_repo.artifacts,
-        _iter_semantic_paths(source_repo, commit=source_commit),
-        repo_name=repo_name,
+        destination_repository.artifacts,
+        _iter_semantic_paths(source_repository, commit=source_commit),
+        repository_name=repository_name,
     )
 
     existing_paths: set[str] = set()
-    existing_branch_sha = destination_repo.snapshot.branch_head(selected_branch)
+    existing_branch_sha = destination_repository.snapshot.branch_head(selected_branch)
     if existing_branch_sha is not None:
-        existing_paths = set(_iter_semantic_paths(destination_repo, commit=existing_branch_sha))
+        existing_paths = set(_iter_semantic_paths(destination_repository, commit=existing_branch_sha))
     deletes = sorted(existing_paths - set(writes))
     touched_paths = sorted(set(writes) | set(deletes))
 
-    return RepoImportPlan(
-        source_repo=str(source_repo.root),
+    return RepositoryImportPlan(
+        source_repository=str(source_repository.root),
         source_commit=source_commit,
         target_branch=selected_branch,
-        repo_name=repo_name,
+        repository_name=repository_name,
         writes=writes,
         deletes=deletes,
         touched_paths=touched_paths,
@@ -465,35 +469,35 @@ def plan_repo_import(
     )
 
 
-def commit_repo_import(
-    repo: Repository,
-    plan: RepoImportPlan,
+def commit_repository_import(
+    repository: Repository,
+    plan: RepositoryImportPlan,
     *,
     message: str | None = None,
     sync_worktree: str = "auto",
-) -> RepoImportResult:
+) -> RepositoryImportResult:
     """Commit a planned import onto the destination repository."""
 
     if sync_worktree not in {"auto", "always", "never"}:
         raise ValueError("sync_worktree must be one of: auto, always, never")
 
-    primary_branch = repo.snapshot.primary_branch_name()
-    if repo.snapshot.branch_head(plan.target_branch) is None and plan.target_branch != primary_branch:
-        repo.snapshot.ensure_branch(plan.target_branch)
+    primary_branch = repository.snapshot.primary_branch_name()
+    if repository.snapshot.branch_head(plan.target_branch) is None and plan.target_branch != primary_branch:
+        repository.snapshot.ensure_branch(plan.target_branch)
 
-    with repo.artifacts.transact(
-        message=message or f"Import {plan.repo_name} at {plan.source_commit[:12]}",
+    with repository.artifacts.transact(
+        message=message or f"Import {plan.repository_name} at {plan.source_commit[:12]}",
         branch=plan.target_branch,
     ) as transaction:
         for planned_write in plan.writes.values():
             transaction.save(
-                planned_write.family,
-                planned_write.ref,
-                planned_write.document,
+                cast(Any, planned_write.family),
+                cast(Any, planned_write.ref),
+                cast(Any, planned_write.document),
             )
         for path in plan.deletes:
-            family = _family_for_semantic_path(path)
-            transaction.delete(family, repo.artifacts.ref_from_path(family, path))
+            family = cast(Any, _family_for_semantic_path(path))
+            transaction.delete(family, repository.artifacts.ref_from_path(family, path))
     commit_sha = transaction.commit_sha
     if commit_sha is None:
         raise ValueError("repo import transaction did not produce a commit")
@@ -509,11 +513,11 @@ def commit_repo_import(
         should_sync = plan.sync_worktree_default
 
     if should_sync:
-        repo.snapshot.sync_worktree()
+        repository.snapshot.sync_worktree()
 
-    return RepoImportResult(
-        surface="repo_import_commit",
-        source_repo=plan.source_repo,
+    return RepositoryImportResult(
+        surface="repository_import_commit",
+        source_repository=plan.source_repository,
         source_commit=plan.source_commit,
         target_branch=plan.target_branch,
         commit_sha=commit_sha,

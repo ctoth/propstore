@@ -7,9 +7,9 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from propstore.dung import grounded_extension, preferred_extensions, stable_extensions
-from propstore.repo.merge_framework import PartialArgumentationFramework
-from propstore.repo.merge_framework import enumerate_paf_completions
-from propstore.repo.paf_queries import (
+from propstore.storage.merge_framework import PartialArgumentationFramework
+from propstore.storage.merge_framework import enumerate_paf_completions
+from propstore.storage.paf_queries import (
     credulously_accepted_arguments,
     skeptically_accepted_arguments,
 )

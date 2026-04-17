@@ -4,7 +4,7 @@ from __future__ import annotations
 from itertools import combinations, product
 
 from propstore.dung import ArgumentationFramework
-from propstore.repo.merge_framework import (
+from propstore.storage.merge_framework import (
     PartialArgumentationFramework,
     merge_framework_edit_distance,
 )

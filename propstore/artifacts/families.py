@@ -200,7 +200,7 @@ def _list_yaml_refs_in_directory(
     subdir: str,
     ref_type: type[WorldlineRef],
 ) -> list[WorldlineRef]:
-    from propstore.repo.branch import branch_head
+    from propstore.storage.branch import branch_head
 
     target_commit = commit
     if repo.git is not None and target_commit is None:
@@ -227,7 +227,7 @@ def _list_stance_refs_in_directory(
     branch: str | None,
     commit: str | None,
 ) -> list[StanceFileRef]:
-    from propstore.repo.branch import branch_head
+    from propstore.storage.branch import branch_head
 
     target_commit = commit
     if repo.git is not None and target_commit is None:

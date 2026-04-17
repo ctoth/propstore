@@ -7,10 +7,10 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.repo import GitStore
-from propstore.repo.branch import create_branch
-from propstore.repo.snapshot import RepoSnapshot
-from propstore.repo.structured_merge import (
+from propstore.storage import GitStore
+from propstore.storage.branch import create_branch
+from propstore.storage.snapshot import RepositorySnapshot
+from propstore.storage.structured_merge import (
     build_branch_structured_summary,
     build_structured_merge_candidates,
 )
@@ -52,8 +52,8 @@ def _obs_claim(cid: str, statement: str) -> dict:
     }
 
 
-def _snapshot(kr: GitStore) -> RepoSnapshot:
-    return RepoSnapshot.for_git(kr)
+def _snapshot(kr: GitStore) -> RepositorySnapshot:
+    return RepositorySnapshot.for_git(kr)
 
 
 def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
