@@ -672,6 +672,7 @@ class TestWBF:
         result = wbf(a, b)
         assert result.u <= min(a.u, b.u) + _TOL
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_sum_invariant(self, a, b):
@@ -705,6 +706,7 @@ class TestWBF:
         result = wbf(dogmatic, normal)
         assert result == dogmatic
 
+    @pytest.mark.property
     @given(a=st.floats(min_value=0.01, max_value=0.99))
     @settings(deadline=None)
     def test_wbf_all_vacuous_inputs_stay_vacuous(self, a):
@@ -767,6 +769,7 @@ class TestCCF:
         assert abs(result.d - 0.0) < 1e-6
         assert abs(result.u - 0.0) < 1e-6
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_ccf_sum_invariant(self, a, b):
@@ -778,6 +781,7 @@ class TestCCF:
         result = ccf(a, b)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
+    @pytest.mark.property
     @given(a=st.floats(min_value=0.01, max_value=0.99))
     @settings(deadline=None)
     def test_ccf_all_vacuous_inputs_stay_vacuous(self, a):

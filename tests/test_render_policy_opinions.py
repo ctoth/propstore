@@ -238,6 +238,7 @@ def valid_decision_opinions(draw):
     return b, d, u, a
 
 
+@pytest.mark.property
 @given(valid_decision_opinions())
 @settings(deadline=None)
 def test_generated_decision_criteria_stay_inside_belief_plausibility(opinion):

@@ -82,6 +82,7 @@ class TestOpinionSchemaColumns:
         assert abs(row[2] - 0.2) < 1e-9
         assert abs(row[3] - 0.5) < 1e-9
 
+    @pytest.mark.property
     @given(valid_schema_opinions())
     @settings(deadline=None)
     def test_generated_opinion_tuple_roundtrips_as_opinion(self, opinion):

@@ -725,23 +725,35 @@ Acceptance criteria:
 
 ## Phase 11: Marker And Suite Hygiene
 
-Status: unchecked
+Status: complete
+
+Progress:
+
+- 2026-04-16: Phase 11 started after commit `ca758bc`; checking touched
+  generated invariant and differential tests for required markers.
+- 2026-04-16: Added missing `property` markers to touched generated
+  subjective-logic, opinion-schema, and render-policy tests. Existing touched
+  differential tests already carry `differential` markers.
+- 2026-04-16: Migration inventory passed: `uv run
+  scripts/list_migration_tests.py` reported no migration-marked tests.
+- 2026-04-16: Focused changed-suite verification passed:
+  `logs/test-runs/paper-grounded-changed-suite-20260416-212308.log`.
 
 Tasks:
 
-- [ ] Add `@pytest.mark.property` to new and existing generated invariant tests
+- [x] Add `@pytest.mark.property` to new and existing generated invariant tests
   touched by this workstream.
-- [ ] Add `@pytest.mark.differential` to backend/oracle comparison tests touched
+- [x] Add `@pytest.mark.differential` to backend/oracle comparison tests touched
   by this workstream.
-- [ ] Confirm no `@pytest.mark.migration` tests were added unless an external
+- [x] Confirm no `@pytest.mark.migration` tests were added unless an external
   compatibility target forced them.
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 uv run scripts/list_migration_tests.py
 ```
 
-- [ ] Run a focused changed-suite pass:
+- [x] Run a focused changed-suite pass:
 
 ```powershell
 powershell -File scripts/run_logged_pytest.ps1 -Label paper-grounded-changed-suite tests/test_helpers.py tests/test_render_contracts.py tests/test_form_utils.py tests/test_claim_and_stance_document_enums.py tests/test_atms_engine.py tests/test_uri.py tests/test_dung.py tests/test_dung_z3.py tests/test_aspic.py tests/test_preference.py tests/test_opinion.py tests/test_revision_properties.py
