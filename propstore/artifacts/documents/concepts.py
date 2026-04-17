@@ -5,10 +5,14 @@ from typing import Any
 import msgspec
 
 from propstore.cel_types import CelExpr
+from propstore.core.lemon.description_kinds import DescriptionKind
+from propstore.core.lemon.proto_roles import ProtoRoleBundle
+from propstore.core.lemon.qualia import QualiaStructure
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import ConceptRelationshipType
 from propstore.core.exactness_types import Exactness
 from propstore.artifacts.schema import DocumentStruct
+from propstore.provenance import Provenance
 
 
 class ConceptLogicalIdDocument(DocumentStruct):
@@ -65,6 +69,10 @@ class LexicalFormDocument(DocumentStruct):
 class LexicalSenseDocument(DocumentStruct):
     reference: OntologyReferenceDocument
     usage: str | None = None
+    provenance: Provenance | None = None
+    qualia: QualiaStructure | None = None
+    description_kind: DescriptionKind | None = None
+    role_bundles: dict[str, ProtoRoleBundle] | None = None
 
 
 class LexicalEntryDocument(DocumentStruct):

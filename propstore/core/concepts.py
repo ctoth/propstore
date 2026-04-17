@@ -89,6 +89,10 @@ def _lexical_sense_payload(data: LexicalSenseDocument) -> dict[str, Any]:
     }
     if data.usage is not None:
         payload["usage"] = data.usage
+    for key in ("provenance", "qualia", "description_kind", "role_bundles"):
+        value = getattr(data, key)
+        if value is not None:
+            payload[key] = _prune_none_values(to_document_builtins(value))
     return payload
 
 
@@ -412,11 +416,14 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
             continue
         if not isinstance(target, str) or not target:
             continue
+        coerced_relationship_type = coerce_concept_relationship_type(relationship_type)
+        if coerced_relationship_type is None:
+            continue
         relationships.append(
             ConceptRelationship(
-                relationship_type=relationship_type,
+                relationship_type=coerced_relationship_type,
                 target=to_concept_id(target),
-                conditions=_string_list(relationship.get("conditions")),
+                conditions=to_cel_exprs(_string_list(relationship.get("conditions"))),
                 note=relationship.get("note") if isinstance(relationship.get("note"), str) else None,
             )
         )
@@ -442,7 +449,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
                 formula=parameterization.get("formula") if isinstance(parameterization.get("formula"), str) else None,
                 sympy=parameterization.get("sympy") if isinstance(parameterization.get("sympy"), str) else None,
                 exactness=parameterization.get("exactness") if isinstance(parameterization.get("exactness"), str) else None,
-                conditions=_string_list(parameterization.get("conditions")),
+                conditions=to_cel_exprs(_string_list(parameterization.get("conditions"))),
                 source=parameterization.get("source") if isinstance(parameterization.get("source"), str) else None,
                 bidirectional=(
                     parameterization.get("bidirectional")

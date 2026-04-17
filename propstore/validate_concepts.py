@@ -22,7 +22,10 @@ from propstore.cel_checker import ConceptInfo, KindType, check_cel_expr
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.core.concept_status import ConceptStatus
-from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
+from propstore.core.concept_relationship_types import (
+    ConceptRelationshipType,
+    VALID_CONCEPT_RELATIONSHIP_TYPES,
+)
 from propstore.form_utils import kind_type_from_form_name, load_form_path
 from propstore.identity import (
     CONCEPT_ARTIFACT_ID_RE,
@@ -46,6 +49,130 @@ if TYPE_CHECKING:
 
 
 VALID_RELATIONSHIP_TYPES = VALID_CONCEPT_RELATIONSHIP_TYPES
+_QUALIA_ROLE_NAMES = ("formal", "constitutive", "telic", "agentive")
+_TYPE_RELATIONSHIPS = {
+    ConceptRelationshipType.IS_A,
+    ConceptRelationshipType.KIND_OF,
+}
+
+
+def _concept_reference_keys(concept: LoadedConcept) -> set[str]:
+    keys = set(concept.record.reference_keys())
+    if concept.source_local_id:
+        keys.add(concept.source_local_id)
+    document = concept.document
+    if document is not None:
+        keys.add(document.ontology_reference.uri)
+        for sense in document.lexical_entry.senses:
+            keys.add(sense.reference.uri)
+    return {key for key in keys if key}
+
+
+def _concept_reference_index(concepts: list[LoadedConcept]) -> dict[str, LoadedConcept]:
+    index: dict[str, LoadedConcept] = {}
+    for concept in concepts:
+        for key in _concept_reference_keys(concept):
+            index.setdefault(key, concept)
+    return index
+
+
+def _concept_satisfies_type(
+    concept: LoadedConcept,
+    required_reference: str,
+    reference_index: dict[str, LoadedConcept],
+) -> bool:
+    if required_reference in _concept_reference_keys(concept):
+        return True
+    for relationship in concept.record.relationships:
+        if relationship.relationship_type not in _TYPE_RELATIONSHIPS:
+            continue
+        target = str(relationship.target)
+        if target == required_reference:
+            return True
+        target_concept = reference_index.get(target)
+        if target_concept is not None and required_reference in _concept_reference_keys(target_concept):
+            return True
+    return False
+
+
+def _validate_reference_exists(
+    concept: LoadedConcept,
+    *,
+    field: str,
+    reference_uri: str,
+    reference_index: dict[str, LoadedConcept],
+    result: ValidationResult,
+) -> LoadedConcept | None:
+    target = reference_index.get(reference_uri)
+    if target is None:
+        result.errors.append(
+            f"{concept.filename}: {field} reference '{reference_uri}' not found in registry"
+        )
+    return target
+
+
+def _validate_phase3_lemon_references(
+    concept: LoadedConcept,
+    *,
+    reference_index: dict[str, LoadedConcept],
+    result: ValidationResult,
+) -> None:
+    document = concept.document
+    if document is None:
+        return
+
+    for sense in document.lexical_entry.senses:
+        qualia = sense.qualia
+        if qualia is not None:
+            for role_name in _QUALIA_ROLE_NAMES:
+                for qualia_reference in getattr(qualia, role_name):
+                    target = _validate_reference_exists(
+                        concept,
+                        field=f"qualia.{role_name}",
+                        reference_uri=qualia_reference.reference.uri,
+                        reference_index=reference_index,
+                        result=result,
+                    )
+                    type_constraint = qualia_reference.type_constraint
+                    if type_constraint is None:
+                        continue
+                    required_uri = type_constraint.reference.uri
+                    required = _validate_reference_exists(
+                        concept,
+                        field=f"qualia.{role_name}.type_constraint",
+                        reference_uri=required_uri,
+                        reference_index=reference_index,
+                        result=result,
+                    )
+                    if target is not None and required is not None and not _concept_satisfies_type(
+                        target,
+                        required_uri,
+                        reference_index,
+                    ):
+                        result.errors.append(
+                            f"{concept.filename}: qualia.{role_name} reference "
+                            f"'{qualia_reference.reference.uri}' does not satisfy "
+                            f"type constraint '{required_uri}'"
+                        )
+
+        description_kind = sense.description_kind
+        if description_kind is None:
+            continue
+        _validate_reference_exists(
+            concept,
+            field="description_kind",
+            reference_uri=description_kind.reference.uri,
+            reference_index=reference_index,
+            result=result,
+        )
+        for slot in description_kind.slots:
+            _validate_reference_exists(
+                concept,
+                field=f"description_kind.slot.{slot.name}.type_constraint",
+                reference_uri=slot.type_constraint.uri,
+                reference_index=reference_index,
+                result=result,
+            )
 
 
 def _validate_lemon_document(
@@ -144,6 +271,7 @@ def _validate_logical_ids(
             continue
         formatted_ids.add(formatted)
         seen_logical_ids[formatted] = filename
+    return formatted_ids
 
 
 def normalize_concept_record(data: dict) -> dict:
@@ -311,6 +439,7 @@ def validate_concepts(
                     f"{c.filename}: deprecated concept must have 'replaced_by'")
 
     all_ids = set(id_to_concept.keys())
+    reference_index = _concept_reference_index(concepts)
     try:
         cel_registry = build_canonical_cel_registry(
             concept.record
@@ -327,6 +456,11 @@ def validate_concepts(
     # ── Cross-concept checks (need all concepts loaded) ─────────
 
     for c in concepts:
+        _validate_phase3_lemon_references(
+            c,
+            reference_index=reference_index,
+            result=result,
+        )
         data = c.record.to_payload()
         cid = data.get("artifact_id", "")
         status = data.get("status")

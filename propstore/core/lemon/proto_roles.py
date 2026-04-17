@@ -24,11 +24,14 @@ class ProtoPatientProperty(StrEnum):
 
 
 class GradedEntailment(DocumentStruct):
-    property: ProtoAgentProperty | ProtoPatientProperty
+    property: str
     value: float
     provenance: Provenance
 
     def __post_init__(self) -> None:
+        if not self.property:
+            raise ValueError("graded entailment requires a property")
+        object.__setattr__(self, "property", str(self.property))
         if self.value < 0.0 or self.value > 1.0:
             raise ValueError("graded entailment value must be in [0, 1]")
 
@@ -36,6 +39,12 @@ class GradedEntailment(DocumentStruct):
 class ProtoRoleBundle(DocumentStruct):
     proto_agent_entailments: tuple[GradedEntailment, ...] = ()
     proto_patient_entailments: tuple[GradedEntailment, ...] = ()
+
+    def __post_init__(self) -> None:
+        for entailment in self.proto_agent_entailments:
+            ProtoAgentProperty(entailment.property)
+        for entailment in self.proto_patient_entailments:
+            ProtoPatientProperty(entailment.property)
 
 
 def proto_agent_weight(bundle: ProtoRoleBundle) -> float:
