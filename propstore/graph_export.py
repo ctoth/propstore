@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any, Mapping
 
+from propstore.core.environment import Environment
 from propstore.core.row_types import (
     coerce_claim_row,
     coerce_concept_row,
@@ -18,6 +19,9 @@ from propstore.core.row_types import (
     coerce_stance_row,
 )
 from propstore.world import ArtifactStore, BeliefSpace
+
+if TYPE_CHECKING:
+    from propstore.world import WorldModel
 
 
 def _coerce_claim_like(claim_input):
@@ -125,6 +129,31 @@ class KnowledgeGraph:
                 for e in self.edges
             ],
         }
+
+
+@dataclass(frozen=True)
+class GraphExportRequest:
+    bindings: Mapping[str, str]
+    group_id: int | None = None
+
+
+@dataclass(frozen=True)
+class GraphExportReport:
+    graph: KnowledgeGraph
+
+
+def export_knowledge_graph(
+    world: WorldModel,
+    request: GraphExportRequest,
+) -> GraphExportReport:
+    bound = (
+        world.bind(Environment(bindings=dict(request.bindings)))
+        if request.bindings
+        else None
+    )
+    return GraphExportReport(
+        graph=build_knowledge_graph(world, bound=bound, group_id=request.group_id)
+    )
 
 
 def build_knowledge_graph(

@@ -222,6 +222,20 @@ Status 2026-04-17: `pks world resolve` and `pks world chain` slice landed.
   - `logs/test-runs/cli-layer-world-resolve-chain-20260417-172224.log` - 15 passed.
   - `uv run pyright propstore/world/queries.py` - 0 errors.
 
+Status 2026-04-17: `pks world export-graph` slice landed.
+
+- Added `GraphExportRequest`, `GraphExportReport`, and
+  `export_knowledge_graph` to `propstore.graph_export`, next to the graph
+  model and DOT/JSON serializers it already owns.
+- Replaced CLI-owned graph binding and graph construction with the owner
+  report. CLI now chooses the requested textual format and handles optional
+  file output.
+- Added direct owner-layer graph export coverage while retaining the existing
+  CLI JSON-output regression.
+- Verification:
+  - `logs/test-runs/cli-layer-world-graph-export-20260417-172446.log` - 16 passed.
+  - `uv run pyright propstore/graph_export.py` - 0 errors.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.

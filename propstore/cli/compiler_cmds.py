@@ -2097,25 +2097,26 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
 
     Usage: pks world export-graph domain=example --format dot --output graph.dot
     """
-    from propstore.graph_export import build_knowledge_graph
-    from propstore.world import WorldModel
+    from propstore.graph_export import GraphExportRequest, export_knowledge_graph
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings) if bindings else None
-        graph = build_knowledge_graph(wm, bound=bound, group_id=group_id)
+        report = export_knowledge_graph(
+            wm,
+            GraphExportRequest(bindings=bindings, group_id=group_id),
+        )
 
-        if fmt == "json":
-            output = json.dumps(graph.to_json(), indent=2)
-        else:
-            output = graph.to_dot()
+    if fmt == "json":
+        output = json.dumps(report.graph.to_json(), indent=2)
+    else:
+        output = report.graph.to_dot()
 
-        if output_file:
-            Path(output_file).write_text(output)
-            click.echo(f"Graph written to {output_file}")
-        else:
-            click.echo(output)
+    if output_file:
+        Path(output_file).write_text(output)
+        click.echo(f"Graph written to {output_file}")
+    else:
+        click.echo(output)
 
 
 @world.command("sensitivity")

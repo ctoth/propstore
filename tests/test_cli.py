@@ -13,6 +13,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.graph_export import GraphExportRequest, export_knowledge_graph
 from propstore.repository import Repository
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from propstore.world import RenderPolicy, ResolutionStrategy, WorldModel
@@ -1552,6 +1553,22 @@ class TestWorldOwnerReports:
         assert step.concept.display_id == "speech:fundamental_frequency"
         assert step.value == 0.2
         assert step.source == "claim"
+
+    def test_owner_graph_export_returns_graph_report(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldModel(repo) as wm:
+            report = export_knowledge_graph(
+                wm,
+                GraphExportRequest(bindings={}),
+            )
+
+        assert report.graph.nodes
+        assert report.graph.edges
+        assert "nodes" in report.graph.to_json()
+        assert "edges" in report.graph.to_json()
 
 
 # ── world query/bind SI values ──────────────────────────────────────
