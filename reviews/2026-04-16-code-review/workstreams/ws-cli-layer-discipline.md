@@ -304,6 +304,21 @@ Status 2026-04-17: support revision workflow slice landed.
   - `logs/test-runs/cli-layer-revision-workflows-20260417-173524.log` - 11 passed.
   - `uv run pyright propstore/support_revision/workflows.py` - 0 errors.
 
+Status 2026-04-17: ATMS binding/lifecycle slice landed.
+
+- Added `propstore.world.atms_workflows` with `ATMSBindRequest` and
+  `bind_atms_world`, so ATMS reasoning policy and context binding live outside
+  the CLI.
+- Replaced the remaining direct `WorldModel(repo)` / manual `wm.close()` ATMS
+  helper in `compiler_cmds.py` with a context-managed CLI wrapper around
+  `open_world_model`.
+- Added direct owner coverage for ATMS policy/context binding and retained the
+  ATMS CLI regression tests for status, context, verify, futures, why-out,
+  stability, relevance, interventions, and next-query surfaces.
+- Verification:
+  - `logs/test-runs/cli-layer-atms-lifecycle-20260417-174021.log` - 4 passed.
+  - `uv run pyright propstore/world/atms_workflows.py` - 0 errors.
+
 ### Phase CLI-4 - Concept, claim, source, form, context extraction
 
 - Move concept mutations behind typed owner-layer functions.

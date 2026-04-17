@@ -16,6 +16,7 @@ from propstore.core.labels import (
     compile_environment_assumptions,
 )
 from propstore.world.resolution import resolve
+from propstore.world.atms_workflows import ATMSBindRequest, bind_atms_world
 from propstore.world.types import (
     ATMSNodeStatus,
     ATMSOutKind,
@@ -29,6 +30,30 @@ from propstore.world.types import (
 from propstore.worldline import WorldlineDefinition, run_worldline
 
 from tests.atms_helpers import _ExactMatchSolver, _OverlapSolver, leaf_lifting_system
+
+
+def test_atms_bind_workflow_applies_atms_policy_and_context() -> None:
+    class FakeWorld:
+        def __init__(self) -> None:
+            self.environment = None
+            self.policy = None
+
+        def bind(self, environment=None, *, policy=None):
+            self.environment = environment
+            self.policy = policy
+            return "bound"
+
+    world = FakeWorld()
+
+    bound = bind_atms_world(
+        world,
+        ATMSBindRequest(bindings={"x": "1"}, context_id="ctx_test"),
+    )
+
+    assert bound == "bound"
+    assert world.environment.bindings == {"x": "1"}
+    assert world.environment.context_id == "ctx_test"
+    assert world.policy.reasoning_backend is ReasoningBackend.ATMS
 
 
 class _ATMSStore:
