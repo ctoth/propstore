@@ -394,42 +394,39 @@ def world_query(
     (``build_status='blocked'``), drafts (``stage='draft'``), and
     promotion-blocked mirror rows; opt-in flags lift each filter.
     """
-    from propstore.world import WorldModel
+    from propstore.world.queries import (
+        UnknownConceptError,
+        WorldConceptQueryRequest,
+        query_world_concept,
+    )
 
     repo: Repository = obj["repo"]
     policy = _lifecycle_policy(include_drafts, include_blocked, show_quarantined)
     with open_world_model(repo) as wm:
-        resolved = _resolve_world_target(wm, concept_id)
-        concept = wm.get_concept(resolved)
-        if concept is None:
+        try:
+            report = query_world_concept(
+                wm,
+                WorldConceptQueryRequest(target=concept_id, policy=policy),
+            )
+        except UnknownConceptError:
             click.echo(f"Unknown concept: {concept_id}", err=True)
             sys.exit(1)
-        from propstore.core.row_types import coerce_concept_row
 
-        click.echo(
-            f"{coerce_concept_row(concept).canonical_name} "
-            f"({_world_concept_display_id(wm, resolved)})"
-        )
-        from propstore.core.row_types import coerce_claim_row
-
-        claims = [
-            coerce_claim_row(claim).to_dict()
-            for claim in wm.claims_with_policy(resolved, policy)
-        ]
-        if not claims:
+        click.echo(f"{report.canonical_name} ({report.concept_display_id})")
+        if not report.claims:
             click.echo("  (no claims)")
-        for c in claims:
-            conds = c.get("conditions_cel") or "[]"
-            val_part = _format_value_with_si(c, wm)
-            click.echo(f"  {_world_claim_display_id(c)}: {c['type']} {val_part} conditions={conds}")
+        for claim in report.claims:
+            click.echo(
+                f"  {claim.display_id}: {claim.claim_type} "
+                f"{claim.value_display} conditions={claim.conditions}"
+            )
         if policy.show_quarantined:
-            diagnostics = wm.build_diagnostics(policy)
-            if diagnostics:
+            if report.diagnostics:
                 click.echo("Diagnostics:")
-                for row in diagnostics:
-                    target = row.get("claim_id") or row.get("source_ref") or "?"
+                for diagnostic in report.diagnostics:
                     click.echo(
-                        f"  {target} [{row['diagnostic_kind']}] {row['message']}"
+                        f"  {diagnostic.target} "
+                        f"[{diagnostic.diagnostic_kind}] {diagnostic.message}"
                     )
 
 

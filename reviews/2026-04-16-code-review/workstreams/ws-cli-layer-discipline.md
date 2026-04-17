@@ -152,6 +152,18 @@ Status 2026-04-17: `pks world status` slice landed.
   - `logs/test-runs/cli-layer-world-status-20260417-170155.log` - 6 passed.
   - `uv run pyright propstore/world/queries.py propstore/compiler/workflows.py propstore/sidecar/query.py propstore/core/aliases.py` - 0 errors.
 
+Status 2026-04-17: `pks world query` slice landed.
+
+- Added `WorldConceptQueryRequest`, `WorldConceptQueryReport`, typed claim and
+  diagnostic rows, and `query_world_concept`.
+- Added owner-layer assertions for default policy filtering and all-flags
+  diagnostic visibility, paired with existing CLI output assertions.
+- Preserved SI value display through the owner report because canonical-unit
+  lookup depends on world/concept metadata.
+- Verification:
+  - `logs/test-runs/cli-layer-world-query-20260417-170802.log` - 9 passed.
+  - `uv run pyright propstore/world/queries.py` - 0 errors.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.
