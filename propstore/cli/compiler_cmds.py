@@ -28,57 +28,6 @@ if TYPE_CHECKING:
     from propstore.core.labels import Label, SupportQuality
 
 
-def _maybe_float(value: object) -> float | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int | float):
-        return float(value)
-    if isinstance(value, str):
-        try:
-            return float(value)
-        except ValueError:
-            return None
-    return None
-
-
-def _format_value_with_si(claim: Mapping[str, object], wm: WorldModel | None = None) -> str:
-    """Format a claim's value, appending its SI normalization when it differs.
-
-    Returns e.g. ``value=0.2 kHz (SI: 200.0 Hz)`` when the stored unit
-    differs from the canonical SI unit, or ``value=200.0 Hz`` when they match.
-    The canonical unit is resolved from the claim's concept via *wm*; if *wm*
-    is not supplied (or the concept has no unit_symbol), the SI value is shown
-    without a unit label.
-    """
-    value = claim.get("value")
-    unit = claim.get("unit")
-    value_si = claim.get("value_si")
-    numeric_value = _maybe_float(value)
-    numeric_value_si = _maybe_float(value_si)
-    if (
-        isinstance(unit, str)
-        and numeric_value is not None
-        and numeric_value_si is not None
-        and numeric_value_si != numeric_value
-    ):
-        canonical_unit = ""
-        if wm is not None:
-            concept_id = claim.get("concept_id")
-            if isinstance(concept_id, str):
-                concept = wm.get_concept(concept_id)
-                if concept is not None:
-                    from propstore.core.row_types import coerce_concept_row
-
-                    canonical_unit = str(
-                        coerce_concept_row(concept).attributes.get("unit_symbol") or ""
-                    )
-        si_label = f"{value_si} {canonical_unit}".rstrip()
-        return f"value={value} {unit} (SI: {si_label})"
-    if isinstance(unit, str):
-        return f"value={value} {unit}"
-    return f"value={value}"
-
-
 def _bind_world(
     wm: WorldModel,
     bindings: Mapping[str, str],
@@ -275,29 +224,6 @@ def world(obj: dict) -> None:
 def _resolve_world_target(wm, target: str) -> str:
     """Resolve a world command target by alias, concept ID, or canonical name."""
     return wm.resolve_concept(target) or target
-
-
-def _world_concept_display_id(wm, concept_id: str) -> str:
-    from propstore.core.row_types import coerce_concept_row
-
-    concept = wm.get_concept(concept_id)
-    if concept is None:
-        return concept_id
-    row = coerce_concept_row(concept)
-    logical_id = row.primary_logical_id
-    if isinstance(logical_id, str) and logical_id:
-        return logical_id
-    return str(row.concept_id or concept_id)
-
-
-def _world_claim_display_id(claim: Mapping[str, object]) -> str:
-    from propstore.core.row_types import coerce_claim_row
-
-    row = coerce_claim_row(claim)
-    logical_id = row.primary_logical_id
-    if isinstance(logical_id, str) and logical_id:
-        return logical_id
-    return str(row.claim_id)
 
 
 @world.command("status")

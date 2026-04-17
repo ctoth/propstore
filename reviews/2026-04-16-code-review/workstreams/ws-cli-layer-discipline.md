@@ -275,6 +275,13 @@ Status 2026-04-17: `pks world fragility` slice landed.
   - `logs/test-runs/cli-layer-world-fragility-20260417-173131.log` - 25 passed.
   - `uv run pyright propstore/fragility.py` - 0 errors.
 
+Status 2026-04-17: world-query CLI helper cleanup landed.
+
+- Removed stale CLI-local value/SI formatting and display-id helpers after
+  their behavior moved to owner modules.
+- Verification:
+  - `logs/test-runs/cli-layer-world-cleanup-20260417-173247.log` - 22 passed.
+
 ### Phase CLI-3 - ATMS and revision extraction
 
 - Move ATMS inspection workflows into `propstore.world.atms_workflows`.
