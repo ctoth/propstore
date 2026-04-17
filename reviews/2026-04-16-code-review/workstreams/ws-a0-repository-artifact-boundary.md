@@ -5,6 +5,10 @@ Status: planned, prerequisite for WS-A phase 2 document-boundary work
 Depends on: `disciplines.md`, `judgment-rubric.md`, `../axis-2-layer-discipline.md`, `../SYNTHESIS.md`
 Blocks: WS-A phase 2 hard `ConceptDocument` lemon boundary, and any later artifact-family rewrite that assumes repository access is layer-clean
 
+## Progress log
+
+- 2026-04-17: Repository facade moved from `propstore/cli/repository.py` to `propstore/repo/repository.py`; all imports updated, including tests. The first two boundary gates are active and passing: non-CLI production modules no longer import `propstore.cli.repository`, and the CLI module no longer owns `Repository` / `RepositoryNotFound`.
+
 ## Why this exists
 
 WS-A phase 2 started correctly by adding the lemon core and deleting the Jaccard alignment fallback. The next natural step, making canonical `ConceptDocument` lemon-shaped, exposed a prior architectural violation: production layers below CLI import `propstore.cli.repository.Repository`, and core concept loading decodes canonical concept YAML directly instead of entering through the artifact-store family boundary.

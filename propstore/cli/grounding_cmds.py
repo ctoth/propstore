@@ -9,7 +9,7 @@ from propstore.aspic import GroundAtom
 from propstore.grounding.loading import build_grounded_bundle
 
 if TYPE_CHECKING:
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
     from propstore.grounding.bundle import GroundedRulesBundle
     from gunray import Argument
     from gunray.types import GroundDefeasibleRule, Scalar

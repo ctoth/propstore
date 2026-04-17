@@ -8,7 +8,7 @@ from propstore.artifacts import SOURCE_CLAIMS_FAMILY, SourceRef
 from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.artifacts.documents.sources import SourceProvenanceDocument
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.artifacts.schema import convert_document_value, decode_document_path
 from propstore.identity import (
     compute_claim_version_id,

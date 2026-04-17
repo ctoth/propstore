@@ -489,6 +489,6 @@ class TestSymbolTableReset:
 
 
 def _make_mock_repo(base: Path):
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     return Repository.init(base)

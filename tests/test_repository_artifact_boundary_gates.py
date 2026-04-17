@@ -38,10 +38,6 @@ def _imports_module(tree: ast.AST, module_name: str) -> bool:
     return False
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="WS-A0 red gate: repository must move out of propstore.cli before this is promoted.",
-)
 def test_non_cli_production_modules_do_not_import_cli_repository() -> None:
     offenders = [
         _relative(path)
@@ -53,10 +49,6 @@ def test_non_cli_production_modules_do_not_import_cli_repository() -> None:
     assert offenders == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="WS-A0 red gate: propstore.cli must not own the core Repository type.",
-)
 def test_cli_repository_module_no_longer_defines_repository_facade() -> None:
     path = ROOT / "propstore" / "cli" / "repository.py"
     if not path.exists():

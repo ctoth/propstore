@@ -7,7 +7,7 @@ import click
 
 from propstore.artifacts.codecs import decode_yaml_mapping
 from propstore.artifacts import FORM_FAMILY, FormRef
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 
 
 def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, object]]:

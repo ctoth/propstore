@@ -248,7 +248,7 @@ def physics_knowledge(tmp_path_factory):
 @pytest.fixture(scope="module")
 def physics_world(physics_knowledge):
     """Build sidecar and create WorldModel for physics knowledge."""
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     repo = Repository(physics_knowledge)
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
@@ -334,7 +334,7 @@ def chained_physics_knowledge(tmp_path_factory):
 @pytest.fixture(scope="module")
 def chained_physics_world(chained_physics_knowledge):
     """Build sidecar and create WorldModel for chained-derivation testing."""
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     repo = Repository(chained_physics_knowledge)
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)

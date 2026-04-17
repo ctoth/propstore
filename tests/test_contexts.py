@@ -1082,7 +1082,7 @@ class TestContextCLIIntegration:
     @staticmethod
     def _make_workspace(tmp_path):
         """Create a minimal workspace with concepts, forms, and contexts."""
-        from propstore.cli.repository import Repository
+        from propstore.repo.repository import Repository
 
         knowledge = tmp_path / "knowledge"
         repo = Repository.init(knowledge)

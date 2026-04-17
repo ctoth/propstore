@@ -49,7 +49,7 @@ from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.artifacts.documents.merge import MergeManifestDocument
 
 if TYPE_CHECKING:
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
 
 def _source_artifact(repo: Repository, ref: SourceRef, relpath: str) -> ResolvedArtifact:

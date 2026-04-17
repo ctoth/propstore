@@ -15,7 +15,7 @@ from propstore.artifacts.identity import (
 )
 
 if TYPE_CHECKING:
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
 
 SEMANTIC_ROOT_DIRS = (
@@ -425,7 +425,7 @@ def plan_repo_import(
     target_branch: str | None = None,
 ) -> RepoImportPlan:
     """Plan a committed-snapshot import from a source repo into a destination repo."""
-    from propstore.cli.repository import Repository, RepositoryNotFound
+    from propstore.repo.repository import Repository, RepositoryNotFound
 
     try:
         source_repo = Repository.find(source_repo_path.resolve())

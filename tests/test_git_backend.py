@@ -474,7 +474,7 @@ def test_context_add_creates_commit(tmp_path):
     """Adding a context in a git-backed repo creates a commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -502,7 +502,7 @@ def test_context_add_uses_committed_head_for_inheritance_checks(tmp_path):
     """Inherited parent lookup should come from committed HEAD, not ambient files."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -535,7 +535,7 @@ def test_context_list_reads_git_head_not_worktree(tmp_path):
     """Context listing should ignore uncommitted worktree edits in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -571,7 +571,7 @@ def test_form_add_creates_commit(tmp_path):
     """Adding a form in a git-backed repo creates a commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -600,7 +600,7 @@ def test_form_show_reads_git_head_not_worktree(tmp_path):
     """Form show should ignore uncommitted worktree edits in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -636,7 +636,7 @@ def test_form_list_reads_git_head_not_worktree(tmp_path):
     """Form list should ignore uncommitted worktree edits in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -671,7 +671,7 @@ def test_form_remove_uses_committed_head_for_reference_checks(tmp_path):
     """Form removal should respect committed concept references, not ambient files."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -709,7 +709,7 @@ def test_worldline_create_creates_commit(tmp_path):
     """Creating a worldline in a git-backed repo creates a commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -736,7 +736,7 @@ def test_worldline_create_uses_committed_head_for_duplicate_checks(tmp_path):
     """Worldline create should reject duplicates based on committed HEAD."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -765,7 +765,7 @@ def test_worldline_show_reads_git_head_not_worktree(tmp_path):
     """Worldline show should ignore uncommitted worktree edits in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -801,7 +801,7 @@ def test_worldline_list_reads_git_head_not_worktree(tmp_path):
     """Worldline list should ignore uncommitted worktree additions in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -837,7 +837,7 @@ def test_worldline_delete_commits_delete_from_git_head(tmp_path):
     """Worldline delete should remove the committed definition even if the worktree is missing it."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -873,7 +873,7 @@ def _setup_git_knowledge_repo(tmp_path):
     """Helper: create a git-backed knowledge repo with one concept and form."""
     import shutil
     from pathlib import Path
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     kr = KnowledgeRepo.init(root)
@@ -1025,7 +1025,7 @@ def test_concept_add_creates_commit(tmp_path):
     import shutil
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1075,7 +1075,7 @@ def test_concept_rename_atomic(tmp_path):
     import shutil
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1132,7 +1132,7 @@ def test_promote_commits(tmp_path):
     """Promoting proposal-branch stance files creates a master commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
     from propstore.proposals import commit_stance_proposals
 
     root = tmp_path / "knowledge"
@@ -1171,7 +1171,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     """Promotion must not change master if the promote commit fails."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
     from propstore.proposals import STANCE_PROPOSAL_BRANCH, commit_stance_proposals
 
     root = tmp_path / "knowledge"
@@ -1214,7 +1214,7 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
     import sqlite3
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
     from propstore.proposals import STANCE_PROPOSAL_BRANCH
     import propstore.embed as embed_mod
     import propstore.relate as relate_mod
@@ -1299,7 +1299,7 @@ def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(tmp_pat
 
 def test_repository_find_rejects_non_git_knowledge_dir(tmp_path):
     """Repository.find() rejects plain knowledge directories after the git-only cutover."""
-    from propstore.cli.repository import Repository, RepositoryNotFound
+    from propstore.repo.repository import Repository, RepositoryNotFound
 
     root = tmp_path / "knowledge"
     (root / "concepts").mkdir(parents=True)
@@ -1353,7 +1353,7 @@ def test_diff_cli(tmp_path):
     """pks diff via CliRunner shows output."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1374,7 +1374,7 @@ def test_show_cli(tmp_path):
     """pks show <sha> via CliRunner shows output."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1398,7 +1398,7 @@ def test_checkout_builds_from_historical(tmp_path):
     import sqlite3
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1468,7 +1468,7 @@ def test_validate_reads_git_head_not_worktree(tmp_path):
     """pks validate must ignore uncommitted semantic edits in the worktree."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1529,7 +1529,7 @@ def test_build_reads_git_head_not_worktree(tmp_path):
     """pks build must ignore uncommitted semantic edits in the worktree."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1592,7 +1592,7 @@ def test_export_aliases_reads_git_head_not_worktree(tmp_path):
 
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1652,7 +1652,7 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
     """source add-claim must persist claims and auto-finalize on the source branch."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)

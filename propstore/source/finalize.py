@@ -12,7 +12,7 @@ from propstore.artifacts import (
     SOURCE_STANCES_FAMILY,
     SourceRef,
 )
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.artifacts.schema import convert_document_value
 from propstore.source_calibration import derive_source_trust
 

@@ -24,7 +24,7 @@ from propstore.cli.form import form
 from propstore.cli.init import init
 from propstore.cli.merge_cmds import merge
 from propstore.cli.repo_import_cmd import import_repo_cmd
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 
 
 class _LazyRepository:

@@ -153,7 +153,7 @@ def concept_dir(tmp_path):
 
 @pytest.fixture
 def repo(concept_dir):
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
     return Repository(concept_dir.parent)
 
 
@@ -408,7 +408,7 @@ def nonlinear_world(tmp_path):
         yaml.dump(normalize_claims_payload(claims), default_flow_style=False)
     )
 
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
 
     repo = Repository(knowledge)
     build_sidecar(knowledge, repo.sidecar_path)

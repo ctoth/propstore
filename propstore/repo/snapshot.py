@@ -9,7 +9,7 @@ from propstore.artifacts.schema import decode_document_bytes
 from propstore.repo.branch import BranchInfo, branch_head, create_branch, delete_branch, list_branches, merge_base
 
 if TYPE_CHECKING:
-    from propstore.cli.repository import Repository
+    from propstore.repo.repository import Repository
     from propstore.repo.git_backend import KnowledgeRepo
 
 TDocument = TypeVar("TDocument")

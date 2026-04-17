@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.cli.repository import Repository
+from propstore.repo.repository import Repository
 from propstore.world import (
     Environment,
     ReasoningBackend,
