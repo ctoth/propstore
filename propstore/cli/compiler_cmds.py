@@ -440,43 +440,37 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
 
     Arguments with '=' are bindings, the last argument without '=' is a concept filter.
     """
-    from propstore.world import WorldModel
+    from propstore.world.queries import (
+        WorldBindActiveReport,
+        WorldBindConceptReport,
+        WorldBindRequest,
+        query_bound_world,
+    )
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
-        # Parse: args with '=' are bindings, last arg without '=' is concept_id
-        binding_args = [a for a in args if "=" in a]
-        non_binding = [a for a in args if "=" not in a]
-        query_concept = non_binding[-1] if non_binding else None
+        bindings, query_concept = _parse_bindings(args)
+        report = query_bound_world(
+            wm,
+            WorldBindRequest(bindings=bindings, target=query_concept),
+        )
 
-        parsed: dict[str, str] = {}
-        for b in binding_args:
-            if "=" not in b:
-                click.echo(f"Invalid binding: {b} (expected key=value)", err=True)
-                sys.exit(1)
-            key, _, value = b.partition("=")
-            parsed[key] = value
-
-        bound = _bind_world(wm, parsed)
-
-        if query_concept:
-            resolved = _resolve_world_target(wm, query_concept)
-            result = bound.value_of(resolved)
-            click.echo(f"{_world_concept_display_id(wm, resolved)}: {result.status}")
-            for active_claim in result.claims:
-                c = active_claim.row.to_dict()
-                val_part = _format_value_with_si(c, wm)
-                click.echo(f"  {_world_claim_display_id(c)}: {val_part} source={c.get('source_paper')}")
-        else:
-            active = bound.active_claims()
-            click.echo(f"Active claims: {len(active)}")
-            for active_claim in active:
-                c = active_claim.row.to_dict()
-                conds = c.get("conditions_cel") or "[]"
-                val_part = _format_value_with_si(c, wm)
+        if isinstance(report, WorldBindConceptReport):
+            click.echo(f"{report.concept_display_id}: {report.status}")
+            for claim in report.claims:
                 click.echo(
-                    f"  {_world_claim_display_id(c)}: {_world_concept_display_id(wm, str(c.get('concept_id', '?')))} "
-                    f"{val_part} conditions={conds}")
+                    f"  {claim.display_id}: {claim.value_display} "
+                    f"source={claim.source}"
+                )
+            return
+
+        assert isinstance(report, WorldBindActiveReport)
+        click.echo(f"Active claims: {report.active_claim_count}")
+        for claim in report.claims:
+            click.echo(
+                f"  {claim.display_id}: {claim.concept_display_id} "
+                f"{claim.value_display} conditions={claim.conditions}"
+            )
 
 
 @world.command("explain")

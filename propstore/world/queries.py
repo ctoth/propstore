@@ -83,6 +83,37 @@ class WorldConceptQueryReport:
     diagnostics: tuple[WorldDiagnosticLine, ...]
 
 
+@dataclass(frozen=True)
+class WorldBindRequest:
+    bindings: Mapping[str, str]
+    target: str | None = None
+
+
+@dataclass(frozen=True)
+class WorldBindClaimLine:
+    display_id: str
+    concept_display_id: str | None
+    value_display: str
+    conditions: str | None
+    source: str | None = None
+
+
+@dataclass(frozen=True)
+class WorldBindConceptReport:
+    concept_display_id: str
+    status: str
+    claims: tuple[WorldBindClaimLine, ...]
+
+
+@dataclass(frozen=True)
+class WorldBindActiveReport:
+    active_claim_count: int
+    claims: tuple[WorldBindClaimLine, ...]
+
+
+WorldBindReport = WorldBindConceptReport | WorldBindActiveReport
+
+
 def _maybe_float(value: object) -> float | None:
     if isinstance(value, bool):
         return None
@@ -194,4 +225,53 @@ def query_world_concept(
         concept_display_id=world_concept_display_id(world, resolved),
         claims=claims,
         diagnostics=diagnostics,
+    )
+
+
+def query_bound_world(
+    world: WorldModel,
+    request: WorldBindRequest,
+) -> WorldBindReport:
+    from propstore.core.environment import Environment
+
+    bound = world.bind(Environment(bindings=dict(request.bindings)))
+    if request.target is not None:
+        resolved = resolve_world_target(world, request.target)
+        result = bound.value_of(resolved)
+        return WorldBindConceptReport(
+            concept_display_id=world_concept_display_id(world, resolved),
+            status=str(result.status),
+            claims=tuple(
+                WorldBindClaimLine(
+                    display_id=world_claim_display_id(claim_dict),
+                    concept_display_id=None,
+                    value_display=_format_value_with_si(claim_dict, world),
+                    conditions=None,
+                    source=(
+                        None
+                        if claim_dict.get("source_paper") is None
+                        else str(claim_dict.get("source_paper"))
+                    ),
+                )
+                for active_claim in result.claims
+                for claim_dict in (active_claim.row.to_dict(),)
+            ),
+        )
+
+    active_claims = bound.active_claims()
+    return WorldBindActiveReport(
+        active_claim_count=len(active_claims),
+        claims=tuple(
+            WorldBindClaimLine(
+                display_id=world_claim_display_id(claim_dict),
+                concept_display_id=world_concept_display_id(
+                    world,
+                    str(claim_dict.get("concept_id", "?")),
+                ),
+                value_display=_format_value_with_si(claim_dict, world),
+                conditions=str(claim_dict.get("conditions_cel") or "[]"),
+            )
+            for active_claim in active_claims
+            for claim_dict in (active_claim.row.to_dict(),)
+        ),
     )
