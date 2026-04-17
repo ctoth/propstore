@@ -74,20 +74,24 @@ class Opinion:
 
     # --- Special constructors ---
 
+    def with_provenance(self, provenance: Provenance) -> Opinion:
+        """Return the same opinion with explicit provenance attached."""
+        return Opinion(self.b, self.d, self.u, self.a, provenance)
+
     @classmethod
-    def vacuous(cls, a: float = 0.5) -> Opinion:
+    def vacuous(cls, a: float = 0.5, *, provenance: Provenance | None = None) -> Opinion:
         """Total ignorance."""
-        return cls(0.0, 0.0, 1.0, a)
+        return cls(0.0, 0.0, 1.0, a, provenance)
 
     @classmethod
-    def dogmatic_true(cls, a: float = 0.5) -> Opinion:
+    def dogmatic_true(cls, a: float = 0.5, *, provenance: Provenance | None = None) -> Opinion:
         """Absolute belief."""
-        return cls(1.0, 0.0, 0.0, a)
+        return cls(1.0, 0.0, 0.0, a, provenance)
 
     @classmethod
-    def dogmatic_false(cls, a: float = 0.5) -> Opinion:
+    def dogmatic_false(cls, a: float = 0.5, *, provenance: Provenance | None = None) -> Opinion:
         """Absolute disbelief."""
-        return cls(0.0, 1.0, 0.0, a)
+        return cls(0.0, 1.0, 0.0, a, provenance)
 
     # --- Core methods ---
 
@@ -305,29 +309,41 @@ class BetaEvidence:
         if self.a <= 0.0 or self.a >= 1.0:
             raise ValueError(f"a={self.a} not in (0, 1)")
 
-    def to_opinion(self) -> Opinion:
+    def to_opinion(self, *, provenance: Provenance | None = None) -> Opinion:
         """BetaEvidence -> Opinion."""
         denom = self.r + self.s + W
         b = self.r / denom
         d = self.s / denom
         u = W / denom
-        return Opinion(b, d, u, self.a)
+        return Opinion(b, d, u, self.a, provenance)
 
 
 # --- Module-level convenience functions ---
 
 
-def from_evidence(r: float, s: float, a: float = 0.5) -> Opinion:
+def from_evidence(
+    r: float,
+    s: float,
+    a: float = 0.5,
+    *,
+    provenance: Provenance | None = None,
+) -> Opinion:
     """Create opinion from evidence counts."""
-    return BetaEvidence(r, s, a).to_opinion()
+    return BetaEvidence(r, s, a).to_opinion(provenance=provenance)
 
 
-def from_probability(p: float, n: float, a: float = 0.5) -> Opinion:
+def from_probability(
+    p: float,
+    n: float,
+    a: float = 0.5,
+    *,
+    provenance: Provenance | None = None,
+) -> Opinion:
     """Create opinion from calibrated probability p with effective sample size n.
 
     r = p * n, s = (1-p) * n.
     """
-    return from_evidence(p * n, (1.0 - p) * n, a)
+    return from_evidence(p * n, (1.0 - p) * n, a, provenance=provenance)
 
 
 def consensus_pair(a_op: Opinion, b_op: Opinion) -> Opinion:

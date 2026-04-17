@@ -214,10 +214,10 @@ def test_roundtrip_categorical_to_expectation():
     counts = {(1, "strong"): (85, 100)}
     op = categorical_to_opinion("strong", 1, calibration_counts=counts)
     # r=85, s=15 -> b=85/102, d=15/102, u=2/102
-    # expectation = b + a*u = 85/102 + 0.7 * 2/102
+    # expectation = b + a*u = 85/102 + 0.5 * 2/102
     # The empirical prob is 85/100 = 0.85
-    # With W=2 prior, expectation ≈ (85 + 0.7*2) / 102 ≈ 0.847
-    expected_emp = (85 + 0.7 * 2) / 102
+    # With W=2 and no explicit CategoryPrior, expectation = (85 + 0.5*2) / 102.
+    expected_emp = (85 + 0.5 * 2) / 102
     assert abs(op.expectation() - expected_emp) < 1e-6
 
 
