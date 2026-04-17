@@ -1,0 +1,16 @@
+{
+  "title": "Ontological Promiscuity",
+  "authors": [
+    "Jerry R. Hobbs"
+  ],
+  "year": "1985",
+  "arxiv_id": null,
+  "doi": "10.3115/981210.981218",
+  "abstract": "To facilitate work in discourse interpretation, the logical form of English sentences should be both close to English and syntactically simple. In this paper I propose a logical notation which is first-order and nonintensional, and for which semantic translation can be naively compositional. The key move is to expand what kinds of entities one allows in one's ontology, rather than complicating the logical notation, the logical form of sentences, or the semantic translation process. Three classical problems - opaque adverbials, the distinction between de re and de dicto belief reports, and the problem of identity in intensional contexts - are examined for the difficulties they pose for this logical notation, and it is shown that the difficulties can be overcome. The paper closes with a statement about the view of semantics that is presupposed by this approach.",
+  "url": "https://www.semanticscholar.org/paper/0b380f641e115ad426984079f504b21aea9636c5",
+  "pdf_url": "http://dl.acm.org/ft_gateway.cfm?id=981218&type=pdf",
+  "bibtex": "@Article{Hobbs1985OntologicalP,\n author = {Jerry R. Hobbs},\n booktitle = {Annual Meeting of the Association for Computational Linguistics},\n pages = {61-69},\n title = {Ontological Promiscuity},\n year = {1985}\n}\n",
+  "venue": "Annual Meeting of the Association for Computational Linguistics",
+  "venue_type": "conference",
+  "pages": "61-69"
+}

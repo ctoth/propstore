@@ -207,6 +207,7 @@ This paper provides foundational theory for how lexical items carry structured s
 
 ### Conceptual Links (not citation-based)
 - [[Pustejovsky_2013_DynamicEventStructureHabitat]] — direct intellectual lineage: Pustejovsky 2013 extends the qualia structure and event structure from this 1991 paper into Dynamic Event Structure for annotation frameworks
+- [Ontological Promiscuity](../Hobbs_1985_OntologicalPromiscuity/notes.md) — **Strong.** Qualia structure gives the *internal* composition of a concept (formal, constitutive, telic, agentive); Hobbs's `p/p'` gives the *external* eventuality handle that lets the concept participate in discourse predications. Complementary: qualia say what a concept is made of; Hobbs's nominalization says how discourse grabs hold of it. Propstore's concept layer wants both — internal qualia and external eventuality arguments.
 
 ## Related Work Worth Reading
 - Pustejovsky (1989a, 1989b, forthcoming/1991 book) — fuller formalization of the Generative Lexicon theory
