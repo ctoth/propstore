@@ -2,11 +2,17 @@
 
 Verifies that the four subjective logic opinion columns
 (Josang 2001, Def 9, p.7) are present and functional in claim_stance.
+
+Page-image grounding:
+papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
 """
 
 import sqlite3
 import pytest
+from hypothesis import given, settings, assume
+from hypothesis import strategies as st
 
+from propstore.opinion import Opinion
 from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 
 
@@ -24,6 +30,18 @@ def _insert_claims(conn):
     insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
 
 
+@st.composite
+def valid_schema_opinions(draw):
+    """Generate valid opinion tuples for storage roundtrip behavior."""
+    u = draw(st.floats(min_value=0.0, max_value=1.0))
+    remaining = 1.0 - u
+    b = draw(st.floats(min_value=0.0, max_value=remaining))
+    d = remaining - b
+    a = draw(st.floats(min_value=0.01, max_value=0.99))
+    assume(abs(b + d + u - 1.0) < 1e-9)
+    return Opinion(b, d, u, a)
+
+
 class TestOpinionSchemaColumns:
     """Test that claim_stance table has the opinion columns after schema creation."""
 
@@ -38,7 +56,12 @@ class TestOpinionSchemaColumns:
         assert "opinion_base_rate" in columns
 
     def test_insert_with_opinion_values_roundtrips(self, conn):
-        """INSERT with explicit opinion values should round-trip via SELECT."""
+        """INSERT with explicit opinion values should round-trip via SELECT.
+
+        Jøsang's opinion tuple is (belief, disbelief, uncertainty,
+        base-rate):
+        papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
+        """
         _insert_claims(conn)
 
         # Insert stance with opinion values: b=0.7, d=0.1, u=0.2, a=0.5
@@ -59,9 +82,47 @@ class TestOpinionSchemaColumns:
         assert abs(row[2] - 0.2) < 1e-9
         assert abs(row[3] - 0.5) < 1e-9
 
+    @given(valid_schema_opinions())
+    @settings(deadline=None)
+    def test_generated_opinion_tuple_roundtrips_as_opinion(self, opinion):
+        """Generated opinion fields roundtrip through storage as an Opinion.
+
+        This guards the behavior, not just the presence of nullable columns:
+        b, d, u, and a remain the subjective-logic tuple described by
+        Jøsang 2001 Definition 9.
+
+        papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
+        """
+        conn = sqlite3.connect(":memory:")
+        create_argumentation_schema(conn)
+        _insert_claims(conn)
+        insert_stance(
+            conn, "c1", "c2", "supports",
+            confidence=opinion.expectation(),
+            opinion_belief=opinion.b,
+            opinion_disbelief=opinion.d,
+            opinion_uncertainty=opinion.u,
+            opinion_base_rate=opinion.a,
+        )
+
+        row = conn.execute(
+            "SELECT opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate "
+            "FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
+        ).fetchone()
+
+        assert row is not None
+        restored = Opinion(row[0], row[1], row[2], row[3])
+        assert restored.b == pytest.approx(opinion.b, abs=1e-9)
+        assert restored.d == pytest.approx(opinion.d, abs=1e-9)
+        assert restored.u == pytest.approx(opinion.u, abs=1e-9)
+        assert restored.a == pytest.approx(opinion.a, abs=1e-9)
+
     def test_insert_without_opinion_values_backward_compat(self, conn):
-        """INSERT without opinion values should work — columns default to NULL
-        (except opinion_base_rate which defaults to 0.5)."""
+        """Missing opinion evidence remains explicit at the storage boundary.
+
+        Belief, disbelief, and uncertainty remain NULL when no opinion was
+        authored. The base-rate default alone is not treated as an opinion.
+        """
         _insert_claims(conn)
 
         # Insert stance WITHOUT opinion values — backward compat

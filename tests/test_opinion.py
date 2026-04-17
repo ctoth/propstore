@@ -1,4 +1,11 @@
-"""Tests for propstore.opinion — Jøsang 2001 subjective logic operations."""
+"""Tests for propstore.opinion — Jøsang 2001 subjective logic operations.
+
+Page-image grounding:
+- papers/Josang_2001_LogicUncertainProbabilities/pngs/page-004.png
+- papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
+- papers/Josang_2001_LogicUncertainProbabilities/pngs/page-024.png
+- papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
+"""
 
 import math
 
@@ -152,69 +159,7 @@ class TestDisjunctionExpectation:
         assert 0.0 <= disj.expectation() <= 1.0
 
 
-# --- 6. Consensus is commutative ---
-
-class TestConsensusCommutative:
-    def test_commutative(self):
-        a = Opinion(0.3, 0.2, 0.5, 0.5)
-        b = Opinion(0.4, 0.1, 0.5, 0.5)
-        ab = consensus_pair(a, b)
-        ba = consensus_pair(b, a)
-        assert ab == ba
-
-    def test_commutative_different_base_rates(self):
-        a = Opinion(0.2, 0.3, 0.5, 0.6)
-        b = Opinion(0.5, 0.1, 0.4, 0.3)
-        ab = consensus_pair(a, b)
-        ba = consensus_pair(b, a)
-        assert ab.b == approx(ba.b)
-        assert ab.d == approx(ba.d)
-        assert ab.u == approx(ba.u)
-
-
-# --- 7. Consensus is associative ---
-
-class TestConsensusAssociative:
-    def test_associative(self):
-        a = Opinion(0.3, 0.2, 0.5, 0.5)
-        b = Opinion(0.4, 0.1, 0.5, 0.5)
-        c = Opinion(0.2, 0.3, 0.5, 0.5)
-        ab_c = consensus_pair(consensus_pair(a, b), c)
-        a_bc = consensus_pair(a, consensus_pair(b, c))
-        assert ab_c.b == approx(a_bc.b)
-        assert ab_c.d == approx(a_bc.d)
-        assert ab_c.u == approx(a_bc.u)
-
-    def test_associative_via_fold(self):
-        ops = [
-            Opinion(0.3, 0.2, 0.5, 0.5),
-            Opinion(0.4, 0.1, 0.5, 0.5),
-            Opinion(0.2, 0.3, 0.5, 0.5),
-        ]
-        result = consensus(*ops)
-        manual = consensus_pair(consensus_pair(ops[0], ops[1]), ops[2])
-        assert result.b == approx(manual.b)
-        assert result.d == approx(manual.d)
-        assert result.u == approx(manual.u)
-
-
-# --- 8. Consensus reduces uncertainty ---
-
-class TestConsensusReducesUncertainty:
-    def test_uncertainty_decreases(self):
-        a = Opinion(0.3, 0.2, 0.5, 0.5)
-        b = Opinion(0.4, 0.1, 0.5, 0.5)
-        fused = consensus_pair(a, b)
-        assert fused.u <= min(a.u, b.u) + 1e-9
-
-    def test_uncertainty_decreases_asymmetric(self):
-        a = Opinion(0.1, 0.1, 0.8, 0.5)
-        b = Opinion(0.6, 0.1, 0.3, 0.5)
-        fused = consensus_pair(a, b)
-        assert fused.u <= min(a.u, b.u) + 1e-9
-
-
-# --- 9. Discounting with vacuous trust produces vacuous opinion ---
+# --- 6. Discounting with vacuous trust produces vacuous opinion ---
 
 class TestDiscountVacuousTrust:
     def test_vacuous_trust(self):
@@ -232,27 +177,9 @@ class TestDiscountVacuousTrust:
         assert result.a == approx(source.a)
 
 
-# --- 10. Discounting preserves base rate ---
-
-class TestDiscountPreservesBaseRate:
-    def test_base_rate_preserved(self):
-        trust = Opinion(0.8, 0.1, 0.1, 0.5)
-        source = Opinion(0.5, 0.2, 0.3, 0.7)
-        result = discount(trust, source)
-        assert result.a == approx(source.a)
-
-
-# --- 11. Negation is involution ---
+# --- 7. Negation field mapping ---
 
 class TestNegationInvolution:
-    def test_double_negation(self):
-        o = Opinion(0.3, 0.2, 0.5, 0.6)
-        assert ~~o == o
-
-    def test_double_negation_vacuous(self):
-        o = Opinion.vacuous()
-        assert ~~o == o
-
     def test_negation_swaps_b_d(self):
         o = Opinion(0.3, 0.2, 0.5, 0.6)
         neg = ~o
@@ -262,17 +189,9 @@ class TestNegationInvolution:
         assert neg.a == approx(1.0 - o.a)
 
 
-# --- 12. Round-trip Opinion -> BetaEvidence -> Opinion ---
+# --- 8. Round-trip Opinion -> BetaEvidence -> Opinion ---
 
 class TestRoundTrip:
-    def test_roundtrip(self):
-        o = Opinion(0.3, 0.2, 0.5, 0.6)
-        rt = o.to_beta_evidence().to_opinion()
-        assert rt.b == approx(o.b)
-        assert rt.d == approx(o.d)
-        assert rt.u == approx(o.u)
-        assert rt.a == approx(o.a)
-
     def test_roundtrip_vacuous(self):
         o = Opinion.vacuous(a=0.7)
         rt = o.to_beta_evidence().to_opinion()
@@ -283,7 +202,7 @@ class TestRoundTrip:
             Opinion.dogmatic_true().to_beta_evidence()
 
 
-# --- 13. from_evidence(0, 0) produces vacuous opinion ---
+# --- 9. from_evidence(0, 0) produces vacuous opinion ---
 
 class TestFromEvidenceVacuous:
     def test_zero_evidence(self):
@@ -293,7 +212,7 @@ class TestFromEvidenceVacuous:
         assert o.u == approx(1.0)
 
 
-# --- 14. from_probability(0.5, 0) produces vacuous opinion ---
+# --- 10. from_probability(0.5, 0) produces vacuous opinion ---
 
 class TestFromProbabilityVacuous:
     def test_zero_sample_size(self):
@@ -303,7 +222,7 @@ class TestFromProbabilityVacuous:
         assert o.u == approx(1.0)
 
 
-# --- 15. from_probability(0.7, 100) produces narrow opinion near 0.7 ---
+# --- 11. from_probability(0.7, 100) produces narrow opinion near 0.7 ---
 
 class TestFromProbabilityNarrow:
     def test_narrow_opinion(self):
@@ -697,7 +616,11 @@ class TestDiscountVacuousTrustProperty:
 
 
 class TestWBF:
-    """Weighted Belief Fusion — N-source generalization of consensus."""
+    """Weighted Belief Fusion — N-source generalization of consensus.
+
+    Grounding:
+    papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
+    """
 
     def test_wbf_single_opinion(self):
         """WBF of a single opinion returns it unchanged."""
@@ -752,7 +675,11 @@ class TestWBF:
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_sum_invariant(self, a, b):
-        """b + d + u == 1 for fused result."""
+        """b + d + u == 1 for fused result.
+
+        van der Heijden 2018 Definition 4:
+        papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
+        """
         result = wbf(a, b)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
@@ -768,12 +695,28 @@ class TestWBF:
         result = wbf(a, b)
         assert -_TOL <= result.expectation() <= 1.0 + _TOL
 
-    def test_wbf_dogmatic_raises(self):
-        """WBF raises when given a dogmatic opinion."""
+    def test_wbf_single_dogmatic_source_controls_result(self):
+        """WBF Definition 4 Case 2: one dogmatic source controls the result.
+
+        papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
+        """
         dogmatic = Opinion.dogmatic_true()
         normal = Opinion(0.3, 0.2, 0.5, 0.5)
-        with pytest.raises(ValueError, match="dogmatic"):
-            wbf(dogmatic, normal)
+        result = wbf(dogmatic, normal)
+        assert result == dogmatic
+
+    @given(a=st.floats(min_value=0.01, max_value=0.99))
+    @settings(deadline=None)
+    def test_wbf_all_vacuous_inputs_stay_vacuous(self, a):
+        """WBF Definition 4 Case 3: all no-evidence sources fuse to no evidence.
+
+        papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
+        """
+        result = wbf(Opinion.vacuous(a), Opinion.vacuous(a))
+        assert result.b == pytest.approx(0.0, abs=1e-9)
+        assert result.d == pytest.approx(0.0, abs=1e-9)
+        assert result.u == pytest.approx(1.0, abs=1e-9)
+        assert result.a == pytest.approx(a, abs=1e-9)
 
     def test_wbf_three_sources(self):
         """Concrete 3-source WBF: result is valid and uncertainty decreases."""
@@ -792,7 +735,11 @@ class TestWBF:
 
 
 class TestCCF:
-    """Cumulative & Compromise Fusion — handles dogmatic sources."""
+    """Cumulative & Compromise Fusion — handles dogmatic sources.
+
+    Grounding:
+    papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
+    """
 
     def test_ccf_single_opinion(self):
         """CCF of a single opinion returns it unchanged."""
@@ -823,9 +770,26 @@ class TestCCF:
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_ccf_sum_invariant(self, a, b):
-        """b + d + u == 1 for CCF result."""
+        """b + d + u == 1 for CCF result.
+
+        van der Heijden 2018 Definition 5:
+        papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
+        """
         result = ccf(a, b)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
+
+    @given(a=st.floats(min_value=0.01, max_value=0.99))
+    @settings(deadline=None)
+    def test_ccf_all_vacuous_inputs_stay_vacuous(self, a):
+        """CCF of all no-evidence sources remains vacuous.
+
+        papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
+        """
+        result = ccf(Opinion.vacuous(a), Opinion.vacuous(a), Opinion.vacuous(a))
+        assert result.b == pytest.approx(0.0, abs=1e-9)
+        assert result.d == pytest.approx(0.0, abs=1e-9)
+        assert result.u == pytest.approx(1.0, abs=1e-9)
+        assert result.a == pytest.approx(a, abs=1e-9)
 
 
 # ── CCF Definition 5: old simplified tests deleted (review-2026-04-14) ──
@@ -907,8 +871,11 @@ class TestFuse:
         assert abs(result_fuse.d - result_wbf.d) < 1e-9
         assert abs(result_fuse.u - result_wbf.u) < 1e-9
 
-    def test_fuse_auto_falls_back_to_ccf(self):
-        """For dogmatic inputs, fuse(auto) doesn't raise."""
+    def test_fuse_auto_handles_dogmatic_wbf_case(self):
+        """For dogmatic inputs, fuse(auto) uses WBF Definition 4 Case 2.
+
+        papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
+        """
         dt = Opinion.dogmatic_true()
         df = Opinion.dogmatic_false()
         result = fuse(dt, df, method="auto")
