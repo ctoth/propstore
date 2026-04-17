@@ -11,6 +11,7 @@ Review context: `../axis-3d-semantic.md` (primary), `../axis-9-doc-drift.md`, `.
 - 2026-04-17: Workstream tightened for non-Davidsonian execution. Required implementation papers for the selected path were confirmed present in `./papers`; optional explanatory/rejection papers are not blockers.
 - 2026-04-17: Phase 1 foundation slice implemented: typed `ProvenanceStatus`, `ProvenanceWitness`, `Provenance`; deterministic JSON-LD named-graph serialization; git-notes round trip on `refs/notes/provenance`; provenance composition property tests; `Opinion.provenance` composition through fusion/discounting; `SourceTrustDocument` and `SourceTrustQualityDocument` mandatory status fields; `ResolutionDocument` collapsed to `opinion: OpinionDocument | None`; classifier/proposal outputs migrated to nested `resolution.opinion`; sidecar projection updated at the storage boundary.
 - 2026-04-17: Phase 1 foundation verification: `tests/test_provenance_foundations.py` passed; targeted affected suite `tests/test_source_trust.py tests/test_classify.py tests/test_relate_opinions.py tests/test_build_sidecar.py tests/test_praf.py` passed (`194 passed`).
+- 2026-04-17: Removed the erroneous old-repo migration/backfill requirement from the workstream. Existing pre-workstream knowledge repositories are explicitly not a compatibility target; no migration, backfill, adapter, fallback, or bridge CLI belongs in WS-A.
 
 ## What you're doing
 
@@ -18,7 +19,7 @@ Propstore advertises itself as a "semantic operating system" grounded in frame s
 
 Your job: cash out the rhetoric. Read the papers. Design and implement the type system they describe. Migrate the existing code onto the new substrate. Produce a concept/semantic layer that actually delivers frame semantics + qualia + lemon + `ist(c,p)` + micropublications + provenance, as an integrated whole.
 
-This is the biggest workstream in the set. It is structured as four phases, but those phases are *internal* to the workstream — they share a type system, they share a migration pass, they share a papers-read first pass. Do not treat them as separable workstreams.
+This is the biggest workstream in the set. It is structured as four phases, but those phases are *internal* to the workstream — they share a type system, they share a target-architecture implementation pass, they share a papers-read first pass. Do not treat them as separable workstreams.
 
 ## What the review actually found
 
@@ -51,11 +52,11 @@ When this workstream is complete, propstore has:
 - **Claims as context-qualified propositions.** Every claim is `(context, proposition)`, not bare proposition. Visibility inheritance is retired; its behavior, where users want it, is re-expressed as explicit lifting rules per repo.
 - **Clark micropublications as the composition rule.** A micropub bundles a claim (or claims) with evidence references, assumption sets, stance, and provenance into a publishable atomic unit. Each micropub is an ATMS node (the label algebra gains context dimension).
 - **Alignment by lexical identity, not by token Jaccard.** Reconciliation walks lemon entries and senses; if no match, it proposes candidates on a proposal branch rather than silently collapsing.
-- **A migration path for existing repos.** Q runs `pks migrate semantic-substrate` on each local repo; existing flat concepts become lemon entries with default senses; existing visibility contexts become explicit lifting rules; existing claims get a default top-level context.
+- **No old-repo compatibility path.** The target architecture is implemented directly. Existing pre-workstream knowledge repositories are not a compatibility target and must not drive backfill, migration, adapter, fallback, or bridge code.
 
 ## Phase structure (internal to this workstream)
 
-Phases are sequenced because the downstream phases depend on upstream *type decisions*, not because they require separate merges. One workstream, one integrated design doc, one migration, one PR chain.
+Phases are sequenced because the downstream phases depend on upstream *type decisions*, not because they require separate merges. One workstream, one integrated design doc, one target architecture, one PR chain.
 
 ### Phase 1 — Provenance foundations
 
@@ -73,7 +74,7 @@ Phases are sequenced because the downstream phases depend on upstream *type deci
 - `Opinion` carries provenance as an optional field (or use a tagged-union variant distinguishing raw `Opinion(...)` from `Opinion.with_provenance(..., provenance)`).
 - Fusion operators (`consensus_pair`, `_ccf_binomial`, `wbf` — once fixed in WS-Z-types — and any future operators) compose provenance through their output.
 - Property tests: provenance composition under fusion where the underlying operator is associative; named-graph round-trip; `status`-field parse-time enforcement; `SourceTrustDocument.status` mandatory at load.
-- Migration: existing repos fail-to-load until the reauthor CLI runs. `pks provenance backfill --source=<name>` walks the repo; every probability-bearing field requires explicit provenance or explicit `status="vacuous"`.
+- No old-repo migration surface. Existing knowledge repositories are not a compatibility target for this workstream; do not add a backfill, reauthor, bridge, fallback, or compatibility CLI. New authored data must use the Phase 1 document shape directly, and pre-Phase-1 payloads fail at the document boundary.
 
 **Phase 1 exit:** Buneman + Carroll notes non-stub; `docs/provenance.md` exists and documents the git-notes storage mechanism + serialization format; `uv run pyright --strict propstore/provenance.py` green; `test_provenance*` green and expanded with composition properties + a git-notes round-trip test (write a provenance note on a claim SHA; read it back via `dulwich.notes`; verify named-graph content is byte-identical); CLAUDE.md's provenance paragraph updated to reflect the git-notes-as-carrier decision.
 
@@ -91,7 +92,7 @@ Phases are sequenced because the downstream phases depend on upstream *type deci
 - CLI: `pks concept` and `pks form` reshape around lemon.
 - Validation: `validate_concepts.py` checks lemon invariants (entry has ≥1 sense; sense has ≤1 reference; homography permitted at entry level, polysemy at sense level).
 - Property tests: lemon structural invariants; homograph vs. polyseme distinction.
-- Migration: existing flat concepts become lemon entries with a single default sense pointing at the existing ontological reference. Aliases re-express as homograph entries sharing a reference.
+- New authored concepts use lemon entries directly. Do not add a flat-concept migration path, default-sense backfill, or alias compatibility bridge.
 
 **Phase 2 exit:** Buitelaar + OntoLex-Lemon notes non-stub; `docs/lemon-concepts.md` exists; `propstore/core/lemon/` package live; `form_utils.py` split completed; `source/alignment.py` Jaccard removed; CLAUDE.md's concept/semantic paragraph updated.
 
@@ -207,12 +208,12 @@ What survives from the previous draft: Pustejovsky qualia (composes over descrip
 - Design `Micropublication` per Clark 2014: bundle of claims + evidence references + assumption set + stance + provenance. **Each micropub IS an ATMS node.** The label algebra in `world/atms.py` + `core/labels.py` gains context dimension.
 - `ClaimDocument` grows `context: ContextReference`.
 - New `MicropubDocument`.
-- `context_hierarchy.py` → `context_lifting.py`. **Visibility inheritance is retired, not demoted.** Existing repos' visibility contexts migrate to explicit lifting rules (the migration tool auto-generates the declarative equivalents).
+- `context_hierarchy.py` → `context_lifting.py`. **Visibility inheritance is retired, not demoted.** New authored contexts use explicit lifting rules directly; do not add old hierarchy migration code.
 - `source/` emits micropubs, not bare claim bundles. `finalize.py` composes into micropubs. `promote.py` promotes whole micropubs atomically.
 - CLI: `pks context` presents first-class contexts; `pks micropub show / bundle / lift` commands; `pks claim` takes context argument.
 - ATMS property tests extended with context dimension: labels still minimal + consistent + complete + sound; context-lifting preserves label invariants.
 - Property tests: `ist`-composition under lifting; micropub well-formedness; context identity; nested-`ist` parsing and round-trip; ATMS label algebra with context dimension.
-- Migration: every existing claim gets a default `GLOBAL` context; existing context hierarchy re-expresses as lifting rules (auto-generated by the migration tool); visibility inheritance dies.
+- New authored claims require an explicit context. Do not add a default-`GLOBAL` migration path, hierarchy-to-lifting auto-generator, or visibility compatibility bridge. Visibility inheritance dies.
 
 **Phase 4 exit:** Clark dedupe complete; all five required papers + two fetches at non-stub depth; `docs/contexts-and-micropubs.md` exists; context/lifting modules live; claim representation migrated; ATMS label algebra extended; CLAUDE.md's context + micropublication paragraphs updated.
 
@@ -264,7 +265,6 @@ Each is a principled-path violation. Stop, re-read `disciplines.md`, re-read `pr
 - `uv run pyright --strict` green on all new modules in `propstore/core/lemon/`, `propstore/core/contexts/`, and `propstore/provenance.py`.
 - CLAUDE.md's literature grounding section updated: semantic-substrate papers now cited with references to passing tests that verify the structural commitments.
 - `docs/gaps.md` updated: axis-3d findings for each phase are resolved and removed; any new gaps discovered during the work are added with plan.
-- Migration tool (`pks migrate semantic-substrate`) exists and has been dry-run-tested on Q's local repos.
 - The five fabrication/collapse patterns the review flagged are no longer *reachable* from the new type system — you cannot construct a probability without provenance; you cannot construct a `ResolutionDocument` with `(0,0,0,0.5)`; you cannot construct a `SourceTrust` without a `status`.
 
 ## On learning
