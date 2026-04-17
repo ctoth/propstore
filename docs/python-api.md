@@ -43,7 +43,7 @@ with WorldModel.from_path("knowledge") as world:
 | `bind` | `(environment?, *, policy?, **conditions) -> BoundWorld` | Create a condition-bound view. The primary entry point for querying. |
 | `chain_query` | `(target_concept_id, strategy?, **bindings) -> ChainResult` | Multi-step derivation through the parameterization graph. |
 
-`bind()` accepts an explicit `Environment` object, a `RenderPolicy`, and/or keyword condition bindings (e.g., `task="speech"`). If both `environment` and keyword conditions are given, the conditions merge into the environment. Context hierarchy and environment assumptions are compiled automatically.
+`bind()` accepts an explicit `Environment` object, a `RenderPolicy`, and/or keyword condition bindings (e.g., `task="speech"`). If both `environment` and keyword conditions are given, the conditions merge into the environment. Explicit context lifting rules and environment assumptions are compiled automatically.
 
 #### Concept lookup
 
@@ -65,6 +65,7 @@ with WorldModel.from_path("knowledge") as world:
 | `claims_by_ids` | `(claim_ids: set[str]) -> dict[str, dict]` | Batch claim lookup. |
 | `stances_between` | `(claim_ids: set[str]) -> list[dict]` | Stances among a set of claims. |
 | `all_claim_stances` | `() -> list[dict]` | All claim-to-claim stances. |
+| `all_micropublications` | `() -> list[ActiveMicropublication]` | All canonical micropublication bundles from the sidecar. |
 | `conflicts` | `(concept_id?) -> list[dict]` | Conflict witnesses, optionally scoped to a concept. |
 | `explain` | `(claim_id) -> list[dict]` | BFS walk of the stance graph from a claim. |
 
@@ -169,6 +170,8 @@ bound = world.bind(task="speech", policy=policy)
 | `verify_atms_labels` | `() -> dict` | Run ATMS consistency/minimality/soundness/completeness checks. |
 | `claims_in_environment` | `(environment) -> list[str]` | Claim IDs visible in an ATMS environment. |
 | `explain_claim_support` | `(claim_id) -> dict` | ATMS justification trace for a claim. |
+
+ATMS labels use `EnvironmentKey(assumption_ids, context_ids)`. Context-qualified claims and micropublication bundles therefore carry exact context support in the label algebra, not a separate visibility flag. Use `bound.atms_engine().supported_micropub_ids()` and `bound.atms_engine().micropub_label(artifact_id)` when inspecting bundle support directly.
 
 ### Fragility
 

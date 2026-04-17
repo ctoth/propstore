@@ -164,6 +164,7 @@ Key subcommands:
 - `pks source write-notes <name> --file notes.md`
 - `pks source write-metadata <name> --file metadata.json`
 - `pks source propose-concept <name> --name <concept> --definition <text> --form <form>`
+- `pks source propose-claim <name> --id <claim-id> --concept <concept-id> --type <type> --context <context-id> ...`
 - `pks source add-concepts <name> --batch concepts.yaml`
 - `pks source add-claim <name> --batch claims.yaml`
 - `pks source add-justification <name> --batch justifications.yaml`
@@ -177,6 +178,7 @@ uv run pks source init Demo_2026 --kind academic_paper --origin-type file --orig
 uv run pks source write-notes Demo_2026 --file ../research/papers/Demo_2026/notes.md
 uv run pks source write-metadata Demo_2026 --file ../research/papers/Demo_2026/metadata.json
 uv run pks source propose-concept Demo_2026 --name pitch --definition "Fundamental frequency of voiced speech" --form frequency
+uv run pks source propose-claim Demo_2026 --id demo_pitch --concept speech.pitch --type measurement --context ctx_demo --value 125.0
 uv run pks source add-claim Demo_2026 --batch ../research/papers/Demo_2026/claims.yaml
 uv run pks source finalize Demo_2026
 uv run pks source promote Demo_2026
@@ -566,6 +568,40 @@ List all registered contexts. No options.
 
 ```bash
 uv run pks context list
+```
+
+---
+
+## Micropublications (`pks micropub`)
+
+Micropublication commands inspect canonical `micropubs/{source}.yaml` artifacts promoted from source branches. A micropublication bundles context-qualified claims with evidence, assumptions, stance, provenance, and source identity.
+
+### `pks micropub bundle SOURCE`
+
+Render the canonical micropublication bundle for a source.
+
+```bash
+uv run pks micropub bundle Demo_2026
+```
+
+### `pks micropub show ARTIFACT_ID`
+
+Render one micropublication by artifact ID.
+
+```bash
+uv run pks micropub show ps:micropub:Demo_2026:demo_pitch
+```
+
+### `pks micropub lift ARTIFACT_ID --target-context CONTEXT`
+
+Report whether a micropublication can lift from its authored source context to a target context through the authored context lifting system.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--target-context` | TEXT | -- | Target context ID (required) |
+
+```bash
+uv run pks micropub lift ps:micropub:Demo_2026:demo_pitch --target-context ctx_review
 ```
 
 ---

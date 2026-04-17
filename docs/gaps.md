@@ -35,8 +35,6 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 - **AF revision (Baumann/Diller/Cayrol) absent entirely.** `propstore/revision/af_adapter.py` does not implement AF revision — it projects an active-claim subset of a store. No module implements Baumann 2015 expansion kernels, Diller 2015 extension-based revision, or Cayrol 2014 change operators. Citation: axis-6 item 2; axis-3c. Plan: WS-B (belief-set layer).
 
-- **Semantic substrate remains incomplete at contexts and micropublications.** WS-A Phase 1 added typed provenance and the git-notes named-graph carrier; WS-A Phase 2 added lemon-shaped concept artifacts, lemon core types, dimension/form separation, and Jaccard-free alignment; WS-A Phase 3 added Pustejovsky qualia, Dowty proto-roles, non-Davidsonian description-kinds, Dung-backed description coreference, and Allen/TIMEPOINT description-temporal reasoning. The remaining axis-3d semantic gap is the unimplemented Phase 4 substrate: McCarthy/Guha contexts and lifting plus Clark micropublications. Citation: axis-6 item 3; axis-3d; WS-A progress log. Plan: WS-A phase 4.
-
 - **Defeasibility priority information unconditionally dropped.** `propstore/grounding/translator.py:171-178` hard-codes `superiority=[]`; `propstore/aspic_bridge/translate.py:275-280` hard-codes `rule_order=frozenset()`. Priority data flows in from rule files and is dropped on the floor twice before reaching the ASPIC+ layer. CLAUDE.md's "rule ordering always empty" understates: the drop is systematic across the whole subsystem. Citation: axis-6 item 6; axis-7; axis-9. Plan: WS-C (defeasibility).
 
 - **LLM "none" stance writes structurally invalid opinion.** `propstore/classify.py:148-161` writes `(0.0, 0.0, 0.0, 0.5)` on `"type": "none"`. `b+d+u = 0 ≠ 1.0` violates `Opinion.__post_init__`. Persists as a dict bypassing validation; downstream `p_relation_from_stance` reads the fields. Citation: axis-5 Finding 1.3; axis-1 Finding 2.6 (structural S3); axis-6 item 7. Plan: WS-A P1 (structural S3 collapse to `opinion: OpinionDocument | None`).
@@ -86,6 +84,9 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 - **`Opinion` invariant `b+d+u=1.0` vs `ResolutionDocument` four independent optional scalars.** `ResolutionDocument` at `propstore/artifacts/documents/claims.py:137-168` permits `(0.0, 0.0, 0.0, 0.5)` (invalid opinion, not None). Structural fix: collapse to `opinion: OpinionDocument | None`. Citation: axis-1 Finding 2.6 (structural S3). Plan: WS-A P1 (structural S3).
 
 ## Closed gaps (reference only — kept for traceability)
+
+### Closed 2026-04-17 (WS-A Phase 4)
+- axis-3d / axis-6 item 3 — semantic substrate remained incomplete at contexts and micropublications. Closed by WS-A Phase 4: `context_hierarchy.py` was replaced by `context_lifting.py`; `ClaimDocument.context` is required; nested `ist(c, p)` proposition documents exist; source finalize/promote emits canonical `micropubs/{source}.yaml`; sidecar `micropublication` and `micropublication_claim` tables materialize bundles; `WorldModel.all_micropublications()` returns typed `ActiveMicropublication` records; `EnvironmentKey` includes `context_ids`; ATMS seeds context nodes and micropublication nodes. Evidence: `docs/contexts-and-micropubs.md`, `tests/test_context_lifting_phase4.py`, `tests/test_micropublications_phase4.py`, `tests/test_labels_properties.py`, and `tests/test_atms_engine.py`.
 
 ### Closed 2026-04-16 (this commit)
 - axis-1 Finding 3.1 — raw-id claim quarantine. Closed by commit `67fccc1` (WS-Z-gates phase 3).
