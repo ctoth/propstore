@@ -30,6 +30,32 @@ from propstore.identity import (
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 
 
+TEST_CONTEXT_ID = "ctx_test"
+TEST_CONTEXT_PAYLOAD = {"id": TEST_CONTEXT_ID, "name": "Test context"}
+
+
+def write_test_context(knowledge_root, context_id: str = TEST_CONTEXT_ID) -> None:
+    """Author the explicit test context required by context-qualified claims."""
+    import yaml
+
+    contexts_dir = knowledge_root / "contexts"
+    contexts_dir.mkdir(parents=True, exist_ok=True)
+    (contexts_dir / f"{context_id}.yaml").write_text(
+        yaml.dump({"id": context_id, "name": "Test context"}, default_flow_style=False)
+    )
+
+
+def make_test_context_commit_entry(context_id: str = TEST_CONTEXT_ID) -> tuple[str, bytes]:
+    import yaml
+
+    return (
+        f"contexts/{context_id}.yaml",
+        yaml.dump({"id": context_id, "name": "Test context"}, default_flow_style=False).encode(
+            "utf-8"
+        ),
+    )
+
+
 settings.register_profile("default", deadline=None)
 settings.register_profile("overnight", deadline=None, max_examples=1000)
 settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
@@ -127,7 +153,7 @@ def normalize_claims_payload(data: dict, *, default_namespace: str | None = None
             raw_id = normalized.get("id")
             if isinstance(raw_id, str):
                 local_to_artifact[raw_id] = normalized["artifact_id"]
-        normalized.setdefault("context", {"id": "ctx_test"})
+        normalized.setdefault("context", {"id": TEST_CONTEXT_ID})
         normalized_claims.append(normalized)
 
     for index, normalized in enumerate(normalized_claims):
@@ -675,6 +701,7 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", *, page=1, paper="tes
         "value": value,
         "unit": unit,
         "provenance": {"paper": paper, "page": page},
+        "context": {"id": TEST_CONTEXT_ID},
     }
     c.update(kwargs)
     return attach_claim_version_id(c)

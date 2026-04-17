@@ -1147,29 +1147,27 @@ class BoundWorld(BeliefSpace):
 
     def _claim_support_label(self, claim: ActiveClaim) -> Label | None:
         # Labels are only attached when the active support can be reconstructed
-        # exactly from compiled assumptions. Context visibility is enforced
-        # separately from CEL activation, so a context-scoped claim is not an
-        # unconditional fact even if it has no explicit conditions.
+        # exactly from compiled assumptions and context labels.
+        labels: list[Label] = []
         if claim.context_id is not None:
-            return None
+            labels.append(Label.context(claim.context_id))
 
         if not claim.conditions:
-            return Label.empty()
+            return combine_labels(*labels) if labels else Label.empty()
 
-        condition_labels: list[Label] = []
         for condition in claim.conditions:
             matches = self._assumptions_by_cel.get(condition)
             if not matches:
                 return None
-            condition_labels.append(
+            labels.append(
                 Label(
                     tuple(
                         EnvironmentKey((assumption.assumption_id,))
                         for assumption in matches
                     )
                 )
-        )
-        return combine_labels(*condition_labels)
+            )
+        return combine_labels(*labels)
 
     def _support_quality(self, claim: ActiveClaim) -> SupportQuality:
         has_conditions = bool(claim.conditions)

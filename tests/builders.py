@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from tests.conftest import TEST_CONTEXT_ID
+
 
 @dataclass(frozen=True)
 class SourceClaimSpec:
@@ -19,6 +21,7 @@ class SourceClaimSpec:
             "id": self.local_id,
             "type": self.claim_type,
             "provenance": {"page": self.page},
+            "context": TEST_CONTEXT_ID,
         }
         if self.statement is not None:
             payload["statement"] = self.statement

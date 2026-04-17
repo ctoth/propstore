@@ -15,7 +15,7 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads, make_test_context_commit_entry
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -177,6 +177,8 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         sort_keys=False,
     ).encode("utf-8")
     adds["concepts/.counters/global.next"] = b"3\n"
+    context_path, context_body = make_test_context_commit_entry()
+    adds[context_path] = context_body
     repo.git.commit_files(adds, "Seed test workspace")
     repo.git.sync_worktree()
 

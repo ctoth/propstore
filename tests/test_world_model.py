@@ -35,7 +35,7 @@ from propstore.core.store_results import (
 from propstore.sidecar.build import build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from propstore.stances import StanceType
-from tests.conftest import create_world_model_schema, make_claim_identity
+from tests.conftest import create_world_model_schema, make_claim_identity, write_test_context
 from propstore.world import (
     ArtifactStore,
     BeliefSpace,
@@ -155,6 +155,7 @@ def concept_dir(tmp_path):
     knowledge = tmp_path / "knowledge"
     concepts_path = knowledge / "concepts"
     concepts_path.mkdir(parents=True)
+    write_test_context(knowledge)
     counters = concepts_path / ".counters"
     counters.mkdir()
     (counters / "speech.next").write_text("5")
@@ -587,7 +588,7 @@ class TestUnboundQueries:
                     "id": "source-alpha",
                     "kind": "academic_paper",
                     "origin": {"type": "doi", "value": "10.1000/example"},
-                    "trust": {"prior_base_rate": 0.6},
+                    "trust": {"prior_base_rate": 0.6, "status": "stated"},
                 },
                 default_flow_style=False,
             )
@@ -656,6 +657,7 @@ class TestUnboundQueries:
         knowledge = tmp_path / "knowledge"
         concepts_path = knowledge / "concepts"
         concepts_path.mkdir(parents=True)
+        write_test_context(knowledge)
         counters = concepts_path / ".counters"
         counters.mkdir()
         (counters / "speech.next").write_text("2")
@@ -712,6 +714,7 @@ class TestUnboundQueries:
         knowledge = tmp_path / "knowledge"
         concepts_path = knowledge / "concepts"
         concepts_path.mkdir(parents=True)
+        write_test_context(knowledge)
         counters = concepts_path / ".counters"
         counters.mkdir()
         (counters / "speech.next").write_text("2")
@@ -2081,6 +2084,7 @@ def algo_concept_dir(tmp_path):
     knowledge = tmp_path / "knowledge"
     concepts_path = knowledge / "concepts"
     concepts_path.mkdir(parents=True)
+    write_test_context(knowledge)
     counters = concepts_path / ".counters"
     counters.mkdir()
     (counters / "speech.next").write_text("5")

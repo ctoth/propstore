@@ -14,6 +14,8 @@ def test_world_expand_shows_added_revision_atom(revision_cli_workspace) -> None:
         [
             "world",
             "expand",
+            "--context",
+            "ctx_test",
             "speaker_sex=male",
             "--atom",
             '{"kind":"claim","id":"synthetic_freq","value":123.0}',
@@ -33,6 +35,8 @@ def test_world_contract_shows_rejected_atoms_and_incision_set(revision_cli_works
         [
             "world",
             "contract",
+            "--context",
+            "ctx_test",
             "speaker_sex=male",
             "--target",
             "freq_claim1",
@@ -53,6 +57,8 @@ def test_world_revise_shows_new_atom_and_rejected_conflict(revision_cli_workspac
         [
             "world",
             "revise",
+            "--context",
+            "ctx_test",
             "speaker_sex=male",
             "--atom",
             '{"kind":"claim","id":"synthetic_freq","value":123.0}',
@@ -74,6 +80,8 @@ def test_world_revision_explain_shows_atom_status_and_reason(revision_cli_worksp
         [
             "world",
             "revision-explain",
+            "--context",
+            "ctx_test",
             "speaker_sex=male",
             "--operation",
             "contract",
@@ -96,6 +104,8 @@ def test_world_iterated_state_shows_ranked_atoms_and_empty_history(revision_cli_
         [
             "world",
             "iterated-state",
+            "--context",
+            "ctx_test",
             "speaker_sex=male",
         ],
     )
@@ -114,6 +124,8 @@ def test_world_iterated_revise_shows_operator_and_next_state_summary(revision_cl
         [
             "world",
             "iterated-revise",
+            "--context",
+            "ctx_test",
             "speaker_sex=male",
             "--atom",
             '{"kind":"claim","id":"synthetic_freq","value":123.0}',

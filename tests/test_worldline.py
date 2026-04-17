@@ -25,7 +25,7 @@ from propstore.storage import GitStore
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -145,6 +145,7 @@ def physics_knowledge(tmp_path_factory):
     root = tmp_path_factory.mktemp("physics_kb") / "knowledge"
     concepts_dir = root / "concepts"
     concepts_dir.mkdir(parents=True)
+    write_test_context(root)
     counters = concepts_dir / ".counters"
     counters.mkdir()
     (counters / "physics.next").write_text("10")
@@ -263,6 +264,7 @@ def chained_physics_knowledge(tmp_path_factory):
     root = tmp_path_factory.mktemp("chained_physics_kb") / "knowledge"
     concepts_dir = root / "concepts"
     concepts_dir.mkdir(parents=True)
+    write_test_context(root)
     counters = concepts_dir / ".counters"
     counters.mkdir()
     (counters / "physics.next").write_text("10")
