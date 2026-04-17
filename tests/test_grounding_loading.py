@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import yaml
 
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.loading import build_grounded_bundle
 from propstore.sidecar.build import build_sidecar

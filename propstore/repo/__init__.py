@@ -3,7 +3,7 @@
 Re-exports the canonical git-backed storage surface plus repository merge
 primitives.
 """
-from propstore.repo.git_backend import KnowledgeRepo
+from propstore.repo.git_backend import GitStore
 from propstore.repo.merge_classifier import (
     MergeArgument,
     RepoMergeFramework,
@@ -40,7 +40,7 @@ from propstore.repo.repo_import import (
 )
 
 __all__ = [
-    "KnowledgeRepo",
+    "GitStore",
     "MergeArgument",
     "RepoMergeFramework",
     "build_merge_framework",

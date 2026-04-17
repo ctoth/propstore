@@ -15,7 +15,7 @@ from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.artifacts.schema import convert_document_value
 
 if TYPE_CHECKING:
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
 
 def stance_proposal_filename(source_claim_id: str) -> str:

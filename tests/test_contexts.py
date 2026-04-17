@@ -1082,7 +1082,7 @@ class TestContextCLIIntegration:
     @staticmethod
     def _make_workspace(tmp_path):
         """Create a minimal workspace with concepts, forms, and contexts."""
-        from propstore.repo.repository import Repository
+        from propstore.repository import Repository
 
         knowledge = tmp_path / "knowledge"
         repo = Repository.init(knowledge)
@@ -1121,10 +1121,10 @@ class TestContextCLIIntegration:
 
     @staticmethod
     def _commit_workspace_paths(workspace, relpaths, message):
-        from propstore.repo import KnowledgeRepo
+        from propstore.repo import GitStore
 
         root = workspace / "knowledge"
-        repo = KnowledgeRepo.open(root)
+        repo = GitStore.open(root)
         repo.commit_files(
             {
                 relpath: (root / relpath).read_bytes()

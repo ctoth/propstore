@@ -57,7 +57,7 @@ The literature alignment is:
 
 ```python
 def build_merge_framework(
-    kr: KnowledgeRepo,
+    kr: GitStore,
     branch_a: str,
     branch_b: str,
 ) -> RepoMergeFramework
@@ -174,7 +174,7 @@ Currently supported semantics are:
 
 ```python
 def create_merge_commit(
-    kr: KnowledgeRepo,
+    kr: GitStore,
     branch_a: str,
     branch_b: str,
     message: str = "",

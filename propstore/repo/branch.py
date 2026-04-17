@@ -1,6 +1,6 @@
 """Branch operations for propstore knowledge repositories.
 
-All functions take a KnowledgeRepo as first argument rather than
+All functions take a GitStore as first argument rather than
 being methods — branches are operations ON a repo, not OF a repo.
 
 Literature grounding:
@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from propstore.repo.git_backend import _commit_object, _ref_delete, _ref_get, _ref_set
 
 if TYPE_CHECKING:
-    from propstore.repo.git_backend import KnowledgeRepo
+    from propstore.repo.git_backend import GitStore
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,7 @@ def _detect_kind(name: str) -> str:
     return "workspace"
 
 
-def create_branch(kr: KnowledgeRepo, name: str, source_commit: str | None = None) -> str:
+def create_branch(kr: GitStore, name: str, source_commit: str | None = None) -> str:
     """Create a branch pointing at source_commit (default: current HEAD tip).
 
     Returns the tip SHA of the new branch.
@@ -86,7 +86,7 @@ def create_branch(kr: KnowledgeRepo, name: str, source_commit: str | None = None
     return sha_bytes.decode("ascii")
 
 
-def delete_branch(kr: KnowledgeRepo, name: str) -> None:
+def delete_branch(kr: GitStore, name: str) -> None:
     """Delete a branch. Raises ValueError for the current HEAD branch.
 
     The checked-out branch must never be deleted
@@ -101,7 +101,7 @@ def delete_branch(kr: KnowledgeRepo, name: str) -> None:
     _ref_delete(kr._repo.refs, ref)
 
 
-def list_branches(kr: KnowledgeRepo) -> list[BranchInfo]:
+def list_branches(kr: GitStore) -> list[BranchInfo]:
     """List all branches with metadata.
 
     Returns BranchInfo for every ref under refs/heads/.
@@ -127,7 +127,7 @@ def list_branches(kr: KnowledgeRepo) -> list[BranchInfo]:
     return result
 
 
-def branch_head(kr: KnowledgeRepo, name: str) -> str | None:
+def branch_head(kr: GitStore, name: str) -> str | None:
     """Return tip SHA for a branch, or None if branch doesn't exist."""
     ref = f"refs/heads/{name}".encode()
     sha_bytes = _ref_get(kr._repo.refs, ref)
@@ -136,7 +136,7 @@ def branch_head(kr: KnowledgeRepo, name: str) -> str | None:
     return sha_bytes.decode("ascii")
 
 
-def _ancestor_distances(kr: KnowledgeRepo, start_sha: str) -> dict[str, int]:
+def _ancestor_distances(kr: GitStore, start_sha: str) -> dict[str, int]:
     """Return shortest-path distances from a commit to all of its ancestors."""
     distances: dict[str, int] = {start_sha: 0}
     queue: deque[str] = deque([start_sha])
@@ -154,7 +154,7 @@ def _ancestor_distances(kr: KnowledgeRepo, start_sha: str) -> dict[str, int]:
     return distances
 
 
-def merge_base(kr: KnowledgeRepo, branch_a: str, branch_b: str) -> str:
+def merge_base(kr: GitStore, branch_a: str, branch_b: str) -> str:
     """Find common ancestor of two branches by walking parents.
 
     Returns a Git-like best common ancestor: a common ancestor that is not

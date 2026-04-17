@@ -432,7 +432,7 @@ class TestFormAlgebra:
 @pytest.fixture
 def world_model(physics_project):
     """Build sidecar and return a WorldModel."""
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
     from propstore.world import WorldModel
     knowledge = physics_project / "knowledge"
     repo = Repository(knowledge)
@@ -492,7 +492,7 @@ class TestFormShowAlgebra:
 def _repo_from_world(wm):
     """Extract the Repository from a WorldModel (it stores it internally)."""
     # WorldModel stores conn but we need the repo — reconstruct from sidecar path
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
     db_path = wm._conn.execute("PRAGMA database_list").fetchone()[2]
     from pathlib import Path
     sidecar_path = Path(db_path)

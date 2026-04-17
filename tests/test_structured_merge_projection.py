@@ -7,7 +7,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.repo import KnowledgeRepo
+from propstore.repo import GitStore
 from propstore.repo.branch import create_branch
 from propstore.repo.snapshot import RepoSnapshot
 from propstore.repo.structured_merge import (
@@ -52,12 +52,12 @@ def _obs_claim(cid: str, statement: str) -> dict:
     }
 
 
-def _snapshot(kr: KnowledgeRepo) -> RepoSnapshot:
+def _snapshot(kr: GitStore) -> RepoSnapshot:
     return RepoSnapshot.for_git(kr)
 
 
 def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files(
         {
             "claims/claims.yaml": _claim_yaml([
@@ -102,7 +102,7 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
 
 
 def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/structured"
     create_branch(kr, branch_name, source_commit=base_sha)
@@ -129,7 +129,7 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
 
 
 def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files(
         {
             "claims/claims.yaml": _claim_yaml([
@@ -154,7 +154,7 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
 
 
 def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/local-only"
     create_branch(kr, branch_name, source_commit=base_sha)
@@ -190,7 +190,7 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
 
 
 def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files(
         {
             "claims/claims.yaml": _claim_yaml([
@@ -224,7 +224,7 @@ def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_
 def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
     extra_targets: list[str],
 ):
-    kr = KnowledgeRepo.init_memory()
+    kr = GitStore.init_memory()
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/out_of_scope"
     create_branch(kr, branch_name, source_commit=base_sha)
@@ -282,7 +282,7 @@ def test_branch_structured_summary_is_order_invariant(
     claim_order: tuple[str, ...],
     stance_order: tuple[str, ...],
 ):
-    kr = KnowledgeRepo.init_memory()
+    kr = GitStore.init_memory()
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/order_invariant"
     create_branch(kr, branch_name, source_commit=base_sha)

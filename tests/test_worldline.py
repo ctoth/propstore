@@ -21,7 +21,7 @@ from propstore.identity import derive_concept_artifact_id
 from propstore.sidecar.build import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
 from propstore.knowledge_path import GitKnowledgePath
-from propstore.repo import KnowledgeRepo
+from propstore.repo import GitStore
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
@@ -42,7 +42,7 @@ class _FakeWorldlineRepo:
             f"worldlines/{path.name}": path.read_bytes()
             for path in sorted(worldlines_dir.glob("*.yaml"))
         }
-        self.git = KnowledgeRepo.init(self._root)
+        self.git = GitStore.init(self._root)
         if existing_worldlines:
             self.git.commit_files(existing_worldlines, "Seed fake worldlines")
             self.git.sync_worktree()
@@ -248,7 +248,7 @@ def physics_knowledge(tmp_path_factory):
 @pytest.fixture(scope="module")
 def physics_world(physics_knowledge):
     """Build sidecar and create WorldModel for physics knowledge."""
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     repo = Repository(physics_knowledge)
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
@@ -334,7 +334,7 @@ def chained_physics_knowledge(tmp_path_factory):
 @pytest.fixture(scope="module")
 def chained_physics_world(chained_physics_knowledge):
     """Build sidecar and create WorldModel for chained-derivation testing."""
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     repo = Repository(chained_physics_knowledge)
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)

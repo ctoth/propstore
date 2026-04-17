@@ -13,7 +13,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
@@ -991,7 +991,7 @@ class TestConceptCategoryValues:
 
         filepath = workspace / "knowledge" / "concepts" / "dataset.yaml"
         data = yaml.safe_load(filepath.read_text())
-        assert data["form"] == "category"
+        assert data["lexical_entry"]["physical_dimension_form"] == "category"
         assert data["form_parameters"]["values"] == ["ActivityNet", "YouCook2", "Charades"]
 
     def test_add_category_without_values_fails(self, workspace: Path) -> None:
@@ -1055,7 +1055,7 @@ class TestConceptCategoryValues:
         assert result.exit_code == 0, result.output
         filepath = workspace / "knowledge" / "concepts" / "closed_cat.yaml"
         data = yaml.safe_load(filepath.read_text())
-        assert data["form"] == "category"
+        assert data["lexical_entry"]["physical_dimension_form"] == "category"
         assert data["form_parameters"]["values"] == ["a", "b", "c"]
         assert data["form_parameters"]["extensible"] is False
 

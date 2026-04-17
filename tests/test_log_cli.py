@@ -8,7 +8,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_commit import create_merge_commit
 from propstore.repo.snapshot import RepoSnapshot

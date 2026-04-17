@@ -19,7 +19,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.identity import derive_concept_artifact_id
 from propstore.source import (
     finalize_source_branch,

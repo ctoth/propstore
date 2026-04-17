@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 import msgspec
 
 if TYPE_CHECKING:
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
 TRef = TypeVar("TRef")
 TDoc = TypeVar("TDoc")

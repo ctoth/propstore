@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 import click
 
 from propstore.cli.helpers import EXIT_VALIDATION, open_world_model
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.artifacts.schema import DocumentSchemaError
 from propstore.identity import (
     primary_logical_id,

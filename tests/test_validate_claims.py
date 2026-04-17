@@ -1198,7 +1198,7 @@ class TestFormAwareUnitValidation:
 
     def _make_registry_with_forms(self, tmp_path):
         """Build a concept registry with form definitions available on disk."""
-        from propstore.repo.repository import Repository
+        from propstore.repository import Repository
         from propstore.compiler.context import build_concept_registry
 
         knowledge = tmp_path / "knowledge"

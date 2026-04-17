@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, BinaryIO, Iterator, Protocol, Self, TextIO
 
 if TYPE_CHECKING:
-    from propstore.repo.git_backend import KnowledgeRepo
+    from propstore.repo.git_backend import GitStore
 
 
 class KnowledgePath(Protocol):
@@ -162,7 +162,7 @@ class FilesystemKnowledgePath(_BaseKnowledgePath):
 class GitKnowledgePath(_BaseKnowledgePath):
     def __init__(
         self,
-        repo: KnowledgeRepo,
+        repo: GitStore,
         commit: str | None = None,
         relative_path: PurePosixPath | None = None,
     ) -> None:

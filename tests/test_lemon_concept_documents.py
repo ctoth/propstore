@@ -5,7 +5,7 @@ import pytest
 from propstore.artifacts import CONCEPT_FILE_FAMILY, ConceptFileRef
 from propstore.artifacts.schema import DocumentSchemaError
 from propstore.core.concepts import parse_concept_record_document
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 
 
 def _lemon_concept_payload() -> dict[str, object]:

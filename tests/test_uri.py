@@ -6,7 +6,7 @@ import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.uri import ni_uri_for_bytes, tag_uri
 
 

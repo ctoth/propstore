@@ -5,7 +5,7 @@ import yaml
 
 import propstore.repo as repo_module
 from propstore.identity import compute_claim_version_id
-from propstore.repo import KnowledgeRepo
+from propstore.repo import GitStore
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_commit import create_merge_commit
@@ -88,12 +88,12 @@ def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_
     return yaml.dump(normalized, sort_keys=False).encode()
 
 
-def _snapshot(kr: KnowledgeRepo) -> RepoSnapshot:
+def _snapshot(kr: GitStore) -> RepoSnapshot:
     return RepoSnapshot.for_git(kr)
 
 
 def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
@@ -126,7 +126,7 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
 
 
 def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
@@ -166,7 +166,7 @@ def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
 def test_build_merge_framework_compatible_one_sided_modification_emits_single_argument(
     tmp_path,
 ):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
@@ -192,7 +192,7 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
 
 
 def test_create_merge_commit_keeps_divergent_same_artifact_versions_out_of_materialized_claims(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
@@ -239,7 +239,7 @@ def test_repo_public_merge_surface_excludes_bridge_helpers() -> None:
 
 
 def test_create_merge_commit_records_semantic_candidates_in_manifest(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/candidates"
     create_branch(kr, branch_name, source_commit=base_sha)

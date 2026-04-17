@@ -9,7 +9,7 @@ from propstore.artifacts import (
     load_source_claim_reference_index,
     SourceRef,
 )
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.artifacts.schema import convert_document_value, decode_document_path
 from propstore.stances import StanceType, coerce_stance_type
 

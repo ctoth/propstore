@@ -13,7 +13,7 @@ from propstore.opinion import Opinion, discount, from_probability
 from propstore.praf import p_arg_from_claim
 from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.world import WorldModel
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 

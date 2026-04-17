@@ -84,6 +84,40 @@ def test_repository_facade_does_not_depend_on_world_model() -> None:
         assert store_defs == []
 
 
+def test_repository_facade_has_single_canonical_import_surface() -> None:
+    canonical = ROOT / "propstore" / "repository.py"
+    old_nested = ROOT / "propstore" / "repo" / "repository.py"
+
+    assert canonical.exists()
+    assert not old_nested.exists()
+
+    offenders = [
+        _relative(path)
+        for path in _production_files()
+        if _imports_module(_parse(path), "propstore.repo.repository")
+    ]
+
+    assert offenders == []
+
+
+def test_propstore_git_carrier_is_not_named_knowledge_repo() -> None:
+    offenders: list[tuple[str, int]] = []
+    for path in _production_files():
+        for node in ast.walk(_parse(path)):
+            if isinstance(node, ast.ClassDef) and node.name == "KnowledgeRepo":
+                offenders.append((_relative(path), node.lineno))
+
+    assert offenders == []
+
+
+def test_repo_package_exports_git_store_not_knowledge_repo() -> None:
+    path = ROOT / "propstore" / "repo" / "__init__.py"
+    contents = path.read_text(encoding="utf-8")
+
+    assert "GitStore" in contents
+    assert "KnowledgeRepo" not in contents
+
+
 def test_core_concept_loading_does_not_decode_concept_documents_directly() -> None:
     path = ROOT / "propstore" / "core" / "concepts.py"
     tree = _parse(path)

@@ -1,4 +1,4 @@
-"""Tests for the Dulwich-backed KnowledgeRepo and KnowledgePath implementations."""
+"""Tests for the Dulwich-backed GitStore and KnowledgePath implementations."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,7 +7,7 @@ import yaml
 import pytest
 
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
-from propstore.repo import KnowledgeRepo
+from propstore.repo import GitStore
 from tests.conftest import (
     make_concept_identity,
     normalize_concept_payloads,
@@ -34,11 +34,11 @@ def _concept_payload(
     return normalize_concept_payloads([payload])[0]
 
 
-# ── KnowledgeRepo lifecycle ─────────────────────────────────────────
+# ── GitStore lifecycle ─────────────────────────────────────────
 
 
 def test_init_creates_repo(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     assert (tmp_path / "knowledge" / ".git").is_dir()
     assert (tmp_path / "knowledge" / ".gitignore").exists()
     gitignore = (tmp_path / "knowledge" / ".gitignore").read_text()
@@ -48,15 +48,15 @@ def test_init_creates_repo(tmp_path):
 
 def test_is_repo(tmp_path):
     root = tmp_path / "knowledge"
-    assert not KnowledgeRepo.is_repo(root)
-    KnowledgeRepo.init(root)
-    assert KnowledgeRepo.is_repo(root)
+    assert not GitStore.is_repo(root)
+    GitStore.init(root)
+    assert GitStore.is_repo(root)
 
 
 def test_open_existing(tmp_path):
     root = tmp_path / "knowledge"
-    KnowledgeRepo.init(root)
-    kr = KnowledgeRepo.open(root)
+    GitStore.init(root)
+    kr = GitStore.open(root)
     assert kr is not None
 
 
@@ -64,7 +64,7 @@ def test_open_existing(tmp_path):
 
 
 def test_commit_and_read(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     content = b"x: 1\n"
     sha = kr.commit_files({"a.yaml": content}, "add a")
     assert isinstance(sha, str)
@@ -73,21 +73,21 @@ def test_commit_and_read(tmp_path):
 
 
 def test_commit_nested_path(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     content = b"name: test\n"
     kr.commit_files({"concepts/test_concept.yaml": content}, "add concept")
     assert kr.read_file("concepts/test_concept.yaml") == content
 
 
 def test_read_nonexistent_raises(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
     with pytest.raises(FileNotFoundError):
         kr.read_file("nonexistent.yaml")
 
 
 def test_commit_overwrites_existing(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"v: 1\n"}, "v1")
     kr.commit_files({"a.yaml": b"v: 2\n"}, "v2")
     assert kr.read_file("a.yaml") == b"v: 2\n"
@@ -97,7 +97,7 @@ def test_commit_overwrites_existing(tmp_path):
 
 
 def test_list_dir(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({
         "concepts/alpha.yaml": b"id: concept1\n",
         "concepts/beta.yaml": b"id: concept2\n",
@@ -110,13 +110,13 @@ def test_list_dir(tmp_path):
 
 
 def test_list_dir_empty(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
     assert kr.list_dir("concepts") == []
 
 
 def test_list_dir_no_commits(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     assert kr.list_dir("concepts") == []
 
 
@@ -124,7 +124,7 @@ def test_list_dir_no_commits(tmp_path):
 
 
 def test_commit_deletes(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n", "b.yaml": b"y: 2\n"}, "add")
     kr.commit_deletes(["a.yaml"], "remove a")
     with pytest.raises(FileNotFoundError):
@@ -136,7 +136,7 @@ def test_commit_deletes(tmp_path):
 
 
 def test_commit_batch(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({
         "old.yaml": b"old: true\n",
         "keep.yaml": b"keep: true\n",
@@ -163,7 +163,7 @@ def test_commit_batch(tmp_path):
 
 def test_sync_worktree(tmp_path):
     root = tmp_path / "knowledge"
-    kr = KnowledgeRepo.init(root)
+    kr = GitStore.init(root)
     kr.commit_files({
         "concepts/foo.yaml": b"id: concept1\ncanonical_name: foo\n",
     }, "add foo")
@@ -176,7 +176,7 @@ def test_sync_worktree(tmp_path):
 
 def test_sync_worktree_removes_deleted(tmp_path):
     root = tmp_path / "knowledge"
-    kr = KnowledgeRepo.init(root)
+    kr = GitStore.init(root)
     kr.commit_files({"a.yaml": b"x: 1\n"}, "add")
     kr.sync_worktree()
     assert (root / "a.yaml").exists()
@@ -188,7 +188,7 @@ def test_sync_worktree_removes_deleted(tmp_path):
 
 def test_sync_worktree_preserves_ignored_sidecar_artifacts(tmp_path):
     root = tmp_path / "knowledge"
-    kr = KnowledgeRepo.init(root)
+    kr = GitStore.init(root)
     kr.commit_files({"concepts/foo.yaml": b"id: concept1\ncanonical_name: foo\n"}, "add foo")
     kr.sync_worktree()
 
@@ -210,7 +210,7 @@ def test_sync_worktree_preserves_ignored_sidecar_artifacts(tmp_path):
 
 
 def test_log(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"v: 1\n"}, "first")
     kr.commit_files({"a.yaml": b"v: 2\n"}, "second")
 
@@ -225,14 +225,14 @@ def test_log(tmp_path):
 
 
 def test_log_empty_repo(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     # init creates a .gitignore commit
     history = kr.log()
     assert len(history) == 1
 
 
 def test_head_sha(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     sha1 = kr.head_sha()
     assert sha1 is not None
     assert len(sha1) == 40
@@ -246,7 +246,7 @@ def test_head_sha(tmp_path):
 
 
 def test_read_file_at_commit(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"v: 1\n"}, "v1")
     sha1 = kr.head_sha()
     kr.commit_files({"a.yaml": b"v: 2\n"}, "v2")
@@ -259,12 +259,12 @@ def test_read_file_at_commit(tmp_path):
 
 
 def test_next_concept_id_empty(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     assert kr.next_concept_id() == 1
 
 
 def test_next_concept_id_scans_tree(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     c3 = yaml.dump({"id": "concept3", "canonical_name": "alpha"}).encode()
     c7 = yaml.dump({"id": "concept7", "canonical_name": "beta"}).encode()
     kr.commit_files({
@@ -275,7 +275,7 @@ def test_next_concept_id_scans_tree(tmp_path):
 
 
 def test_next_concept_id_ignores_non_concept_ids(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     data = yaml.dump({"id": "something_else", "canonical_name": "foo"}).encode()
     kr.commit_files({"concepts/foo.yaml": data}, "add")
     assert kr.next_concept_id() == 1
@@ -285,7 +285,7 @@ def test_next_concept_id_ignores_non_concept_ids(tmp_path):
 
 
 def test_git_knowledge_path_iterdir(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({
         "concepts/a.yaml": b"id: concept1\n",
         "concepts/b.yaml": b"id: concept2\n",
@@ -301,7 +301,7 @@ def test_git_knowledge_path_iterdir(tmp_path):
 
 
 def test_git_knowledge_path_read_bytes(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"concepts/foo.yaml": b"id: concept1\n"}, "add")
 
     tree = GitKnowledgePath(kr)
@@ -310,7 +310,7 @@ def test_git_knowledge_path_read_bytes(tmp_path):
 
 
 def test_git_knowledge_path_exists(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"concepts/a.yaml": b"x: 1\n"}, "add")
 
     tree = GitKnowledgePath(kr)
@@ -319,7 +319,7 @@ def test_git_knowledge_path_exists(tmp_path):
 
 
 def test_git_knowledge_path_at_commit(tmp_path):
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"concepts/a.yaml": b"v: 1\n"}, "v1")
     sha1 = kr.head_sha()
     kr.commit_files({"concepts/a.yaml": b"v: 2\n"}, "v2")
@@ -374,7 +374,7 @@ def test_filesystem_knowledge_path_exists(tmp_path):
 def test_knowledge_path_equivalence(tmp_path):
     """GitKnowledgePath and FilesystemKnowledgePath produce identical output after sync."""
     root = tmp_path / "knowledge"
-    kr = KnowledgeRepo.init(root)
+    kr = GitStore.init(root)
     kr.commit_files({
         "concepts/alpha.yaml": b"id: concept1\ncanonical_name: alpha\n",
         "concepts/beta.yaml": b"id: concept2\ncanonical_name: beta\n",
@@ -403,7 +403,7 @@ def test_knowledge_path_equivalence(tmp_path):
 
 def test_load_concepts_from_git_tree(tmp_path):
     """load_concepts() works from a committed git-backed knowledge path."""
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     concept_data = _concept_payload(
         "concept1",
         "test_concept",
@@ -425,7 +425,7 @@ def test_load_concepts_from_git_tree(tmp_path):
 
 def test_load_claim_files_from_git_tree(tmp_path):
     """load_claim_files() works from a committed git-backed knowledge path."""
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     claim_data = {
         "source": {"paper": "test"},
         "claims": [
@@ -452,7 +452,7 @@ def test_load_claim_files_from_git_tree(tmp_path):
 
 def test_load_contexts_from_git_tree(tmp_path):
     """load_contexts() works from a committed git-backed knowledge path."""
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     context_data = {
         "id": "ctx1",
         "name": "Test Context",
@@ -474,7 +474,7 @@ def test_context_add_creates_commit(tmp_path):
     """Adding a context in a git-backed repo creates a commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -502,7 +502,7 @@ def test_context_add_uses_committed_head_for_inheritance_checks(tmp_path):
     """Inherited parent lookup should come from committed HEAD, not ambient files."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -535,7 +535,7 @@ def test_context_list_reads_git_head_not_worktree(tmp_path):
     """Context listing should ignore uncommitted worktree edits in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -571,7 +571,7 @@ def test_form_add_creates_commit(tmp_path):
     """Adding a form in a git-backed repo creates a commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -600,7 +600,7 @@ def test_form_show_reads_git_head_not_worktree(tmp_path):
     """Form show should ignore uncommitted worktree edits in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -636,7 +636,7 @@ def test_form_list_reads_git_head_not_worktree(tmp_path):
     """Form list should ignore uncommitted worktree edits in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -671,7 +671,7 @@ def test_form_remove_uses_committed_head_for_reference_checks(tmp_path):
     """Form removal should respect committed concept references, not ambient files."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -709,7 +709,7 @@ def test_worldline_create_creates_commit(tmp_path):
     """Creating a worldline in a git-backed repo creates a commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -736,7 +736,7 @@ def test_worldline_create_uses_committed_head_for_duplicate_checks(tmp_path):
     """Worldline create should reject duplicates based on committed HEAD."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -765,7 +765,7 @@ def test_worldline_show_reads_git_head_not_worktree(tmp_path):
     """Worldline show should ignore uncommitted worktree edits in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -801,7 +801,7 @@ def test_worldline_list_reads_git_head_not_worktree(tmp_path):
     """Worldline list should ignore uncommitted worktree additions in git-backed repos."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -837,7 +837,7 @@ def test_worldline_delete_commits_delete_from_git_head(tmp_path):
     """Worldline delete should remove the committed definition even if the worktree is missing it."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -873,10 +873,10 @@ def _setup_git_knowledge_repo(tmp_path):
     """Helper: create a git-backed knowledge repo with one concept and form."""
     import shutil
     from pathlib import Path
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
-    kr = KnowledgeRepo.init(root)
+    kr = GitStore.init(root)
 
     # Seed forms directory on disk (forms are package resources, loaded from filesystem)
     forms_dir = root / "forms"
@@ -1025,7 +1025,7 @@ def test_concept_add_creates_commit(tmp_path):
     import shutil
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1062,7 +1062,7 @@ def test_concept_add_creates_commit(tmp_path):
     # Verify file is in git tree
     content = git.read_file("concepts/test_freq.yaml")
     data = yaml.safe_load(content)
-    assert data["canonical_name"] == "test_freq"
+    assert data["lexical_entry"]["canonical_form"]["written_rep"] == "test_freq"
     assert data["artifact_id"] == make_concept_identity(
         "concept1",
         domain="testing",
@@ -1075,7 +1075,7 @@ def test_concept_rename_atomic(tmp_path):
     import shutil
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1132,7 +1132,7 @@ def test_promote_commits(tmp_path):
     """Promoting proposal-branch stance files creates a master commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
     from propstore.proposals import commit_stance_proposals
 
     root = tmp_path / "knowledge"
@@ -1171,7 +1171,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     """Promotion must not change master if the promote commit fails."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
     from propstore.proposals import STANCE_PROPOSAL_BRANCH, commit_stance_proposals
 
     root = tmp_path / "knowledge"
@@ -1214,7 +1214,7 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
     import sqlite3
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
     from propstore.proposals import STANCE_PROPOSAL_BRANCH
     import propstore.embed as embed_mod
     import propstore.relate as relate_mod
@@ -1268,7 +1268,7 @@ def test_init_creates_git_repo(tmp_path):
     assert (root / ".git").is_dir()
 
     # Should have commits (gitignore + forms)
-    kr = KnowledgeRepo.open(root)
+    kr = GitStore.open(root)
     history = kr.log(max_count=10)
     assert len(history) >= 2  # .gitignore init + forms seed
 
@@ -1277,16 +1277,16 @@ def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(tmp_pat
     """Seed forms should not appear on disk if the git seed commit fails."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo import KnowledgeRepo
+    from propstore.repo import GitStore
 
-    original_commit_files = KnowledgeRepo.commit_files
+    original_commit_files = GitStore.commit_files
 
     def _boom(self, files, message, branch="master"):
         if message == "Seed default forms":
             raise RuntimeError("seed commit failed")
         return original_commit_files(self, files, message, branch=branch)
 
-    monkeypatch.setattr(KnowledgeRepo, "commit_files", _boom)
+    monkeypatch.setattr(GitStore, "commit_files", _boom)
 
     root = tmp_path / "knowledge"
     runner = CliRunner()
@@ -1299,7 +1299,7 @@ def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(tmp_pat
 
 def test_repository_find_rejects_non_git_knowledge_dir(tmp_path):
     """Repository.find() rejects plain knowledge directories after the git-only cutover."""
-    from propstore.repo.repository import Repository, RepositoryNotFound
+    from propstore.repository import Repository, RepositoryNotFound
 
     root = tmp_path / "knowledge"
     (root / "concepts").mkdir(parents=True)
@@ -1313,7 +1313,7 @@ def test_repository_find_rejects_non_git_knowledge_dir(tmp_path):
 
 def test_diff_shows_changes(tmp_path):
     """diff_commits() returns correct added/modified/deleted between two commits."""
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({
         "concepts/alpha.yaml": b"id: concept1\n",
         "concepts/beta.yaml": b"id: concept2\n",
@@ -1336,7 +1336,7 @@ def test_diff_shows_changes(tmp_path):
 
 def test_show_commit(tmp_path):
     """show_commit() returns correct sha, message, and file changes."""
-    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"concepts/a.yaml": b"v: 1\n"}, "add concept a")
     sha = kr.head_sha()
 
@@ -1353,7 +1353,7 @@ def test_diff_cli(tmp_path):
     """pks diff via CliRunner shows output."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1374,7 +1374,7 @@ def test_show_cli(tmp_path):
     """pks show <sha> via CliRunner shows output."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1398,7 +1398,7 @@ def test_checkout_builds_from_historical(tmp_path):
     import sqlite3
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1468,7 +1468,7 @@ def test_validate_reads_git_head_not_worktree(tmp_path):
     """pks validate must ignore uncommitted semantic edits in the worktree."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1529,7 +1529,7 @@ def test_build_reads_git_head_not_worktree(tmp_path):
     """pks build must ignore uncommitted semantic edits in the worktree."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1592,7 +1592,7 @@ def test_export_aliases_reads_git_head_not_worktree(tmp_path):
 
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1652,7 +1652,7 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
     """source add-claim must persist claims and auto-finalize on the source branch."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)

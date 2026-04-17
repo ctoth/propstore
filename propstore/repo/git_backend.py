@@ -1,7 +1,7 @@
 """Dulwich-backed git storage for knowledge repositories.
 
 This is the single module where Dulwich is imported. All other modules
-interact with git through the KnowledgeRepo wrapper, never Dulwich directly.
+interact with git through the GitStore wrapper, never Dulwich directly.
 
 Design invariant: the git object store is the single source of truth.
 The working tree is a materialized view for human inspection.
@@ -128,7 +128,7 @@ def _tree_add(tree: Any, name: bytes, mode: int, object_id: bytes) -> None:
     tree.add(name, mode, object_id)
 
 
-class KnowledgeRepo:
+class GitStore:
     """Git-backed knowledge repository wrapping a Dulwich Repo.
 
     All path arguments are repo-relative posix strings
@@ -183,7 +183,7 @@ class KnowledgeRepo:
     # ── Lifecycle ────────────────────────────────────────────────────
 
     @classmethod
-    def init(cls, root: Path) -> KnowledgeRepo:
+    def init(cls, root: Path) -> GitStore:
         """Create a new git-backed knowledge repository."""
         root.mkdir(parents=True, exist_ok=True)
         dulwich_repo = Repo.init(str(root))
@@ -194,8 +194,8 @@ class KnowledgeRepo:
         return kr
 
     @classmethod
-    def init_memory(cls) -> KnowledgeRepo:
-        """Create an in-memory KnowledgeRepo (no filesystem). For testing."""
+    def init_memory(cls) -> GitStore:
+        """Create an in-memory GitStore (no filesystem). For testing."""
         repo = MemoryRepo()
         kr = cls(repo)
         kr.commit_files(
@@ -205,7 +205,7 @@ class KnowledgeRepo:
         return kr
 
     @classmethod
-    def open(cls, root: Path) -> KnowledgeRepo:
+    def open(cls, root: Path) -> GitStore:
         """Open an existing git-backed knowledge repository."""
         dulwich_repo = Repo(str(root))
         return cls(dulwich_repo, root)

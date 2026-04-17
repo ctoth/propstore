@@ -1,4 +1,4 @@
-"""Phase 8: Hypothesis property tests for KnowledgeRepo.
+"""Phase 8: Hypothesis property tests for GitStore.
 
 Tests deep invariants of the git-backed knowledge repository using
 property-based testing (Hypothesis) and a stateful RuleBasedStateMachine.
@@ -15,7 +15,7 @@ from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, initialize
 
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
-from propstore.repo import KnowledgeRepo
+from propstore.repo import GitStore
 
 # ── Strategies ──────────────────────────────────────────────────────
 
@@ -40,16 +40,16 @@ valid_filename = st.from_regex(r"[a-z][a-z0-9_]{0,20}", fullmatch=True).map(
 valid_path = st.tuples(valid_subdir, valid_filename).map(lambda t: f"{t[0]}/{t[1]}")
 
 
-def _make_repo() -> KnowledgeRepo:
-    """Create a fresh in-memory KnowledgeRepo."""
-    return KnowledgeRepo.init_memory()
+def _make_repo() -> GitStore:
+    """Create a fresh in-memory GitStore."""
+    return GitStore.init_memory()
 
 
-def _make_disk_repo() -> tuple[KnowledgeRepo, Path]:
-    """Create a fresh KnowledgeRepo on disk (for worktree/filesystem tests)."""
+def _make_disk_repo() -> tuple[GitStore, Path]:
+    """Create a fresh GitStore on disk (for worktree/filesystem tests)."""
     tmpdir = tempfile.mkdtemp()
     root = Path(tmpdir) / "knowledge"
-    repo = KnowledgeRepo.init(root)
+    repo = GitStore.init(root)
     return repo, root
 
 
@@ -288,19 +288,19 @@ def test_path_normalization(subdir: str, name: str, content: bytes) -> None:
 # ── Stateful test: RuleBasedStateMachine ────────────────────────────
 
 
-class KnowledgeRepoMachine(RuleBasedStateMachine):
-    """Model-based test: dict[str, bytes] is the oracle, KnowledgeRepo is the SUT."""
+class GitStoreMachine(RuleBasedStateMachine):
+    """Model-based test: dict[str, bytes] is the oracle, GitStore is the SUT."""
 
     def __init__(self) -> None:
         super().__init__()
         self.model: dict[str, bytes] = {}
         self.commit_count = 0
-        self.repo: KnowledgeRepo | None = None
+        self.repo: GitStore | None = None
         self.tmpdir: str = ""
 
     @initialize()
     def init_repo(self) -> None:
-        self.repo = KnowledgeRepo.init_memory()
+        self.repo = GitStore.init_memory()
         self.commit_count = 1  # init creates .gitignore commit
         self.model = {}
 
@@ -352,8 +352,8 @@ class KnowledgeRepoMachine(RuleBasedStateMachine):
         )
 
 
-TestKnowledgeRepo = KnowledgeRepoMachine.TestCase
-TestKnowledgeRepo.settings = settings(
+TestGitStore = GitStoreMachine.TestCase
+TestGitStore.settings = settings(
     stateful_step_count=10,
     deadline=None,
 )

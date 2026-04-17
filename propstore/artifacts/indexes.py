@@ -7,7 +7,7 @@ from propstore.artifacts.documents.claims import ClaimLogicalIdDocument
 from propstore.artifacts.documents.sources import SourceClaimsDocument
 
 if TYPE_CHECKING:
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
 
 @dataclass(frozen=True)

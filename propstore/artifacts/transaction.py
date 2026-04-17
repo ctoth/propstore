@@ -8,7 +8,7 @@ from propstore.artifacts.codecs import convert_document, document_to_payload
 from propstore.artifacts.types import ArtifactFamily, ResolvedArtifact, TDoc, TRef
 
 if TYPE_CHECKING:
-    from propstore.repo.repository import Repository
+    from propstore.repository import Repository
 
 
 @dataclass

@@ -14,7 +14,7 @@ from propstore.artifacts import (
     load_source_claim_reference_index,
 )
 from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
 from propstore.repo.branch import create_branch
 from propstore.artifacts.documents.sources import SourceClaimDocument, SourceClaimsDocument

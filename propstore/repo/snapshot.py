@@ -9,8 +9,8 @@ from propstore.artifacts.schema import decode_document_bytes
 from propstore.repo.branch import BranchInfo, branch_head, create_branch, delete_branch, list_branches, merge_base
 
 if TYPE_CHECKING:
-    from propstore.repo.repository import Repository
-    from propstore.repo.git_backend import KnowledgeRepo
+    from propstore.repository import Repository
+    from propstore.repo.git_backend import GitStore
 
 TDocument = TypeVar("TDocument")
 
@@ -41,7 +41,7 @@ class RepoSnapshot:
         return self._repo
 
     @property
-    def git(self) -> KnowledgeRepo:
+    def git(self) -> GitStore:
         git = self._repo.git
         if git is None:
             raise ValueError("snapshot operations require a git-backed repository")

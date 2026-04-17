@@ -11,7 +11,7 @@ from hypothesis import strategies as st
 from propstore.artifacts.codes import attach_source_artifact_codes
 from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
-from propstore.repo.repository import Repository
+from propstore.repository import Repository
 from tests.test_source_relations import _init_source, _seed_master_concept
 
 
