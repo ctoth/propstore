@@ -396,6 +396,7 @@ def add(
             source_path=semantic_path,
             knowledge_root=repo.tree(),
             record=parse_concept_record_document(document),
+            document=document,
         )
     )
 
@@ -542,6 +543,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 source_path=_artifact_knowledge_path(repo, CONCEPT_FILE_FAMILY, updated_ref),
                 knowledge_root=concept_record.knowledge_root,
                 record=parse_concept_record_document(concept_document),
+                document=concept_document,
             ),
         ))
 
@@ -755,6 +757,7 @@ def link(
                     if concept_path == filepath
                     else concept_record.data,
                 ),
+                document=updated_document if concept_path == filepath else concept_record.document,
             )
         )
     validation = validate_concepts(

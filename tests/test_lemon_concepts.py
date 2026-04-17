@@ -9,6 +9,7 @@ from propstore.core.lemon import (
     LexicalForm,
     LexicalSense,
     OntologyReference,
+    lexical_form_identity_key,
     lexical_entry_identity_key,
 )
 
@@ -60,7 +61,7 @@ def test_lexical_entry_identity_is_reference_stable(
 
 @given(written_rep=_text, language=_text, reference_uri=_text)
 @settings(deadline=None)
-def test_homographs_are_distinct_senses_on_one_entry(
+def test_polysemy_is_multiple_senses_on_one_entry(
     written_rep: str,
     language: str,
     reference_uri: str,
@@ -75,3 +76,37 @@ def test_homographs_are_distinct_senses_on_one_entry(
 
     assert len(entry.senses) == 2
     assert entry.references == (first.reference, second.reference)
+
+
+@given(
+    written_rep=_text,
+    language=_text,
+    first_identifier=_text,
+    second_identifier=_text,
+    first_reference_uri=_text,
+    second_reference_uri=_text,
+)
+@settings(deadline=None)
+def test_homographs_share_form_without_collapsing_entry_identity(
+    written_rep: str,
+    language: str,
+    first_identifier: str,
+    second_identifier: str,
+    first_reference_uri: str,
+    second_reference_uri: str,
+) -> None:
+    if first_identifier == second_identifier:
+        return
+    first = LexicalEntry(
+        identifier=first_identifier,
+        canonical_form=LexicalForm(written_rep=written_rep, language=language),
+        senses=(LexicalSense(reference=OntologyReference(uri=first_reference_uri)),),
+    )
+    second = LexicalEntry(
+        identifier=second_identifier,
+        canonical_form=LexicalForm(written_rep=written_rep, language=language),
+        senses=(LexicalSense(reference=OntologyReference(uri=second_reference_uri)),),
+    )
+
+    assert lexical_form_identity_key(first) == lexical_form_identity_key(second)
+    assert lexical_entry_identity_key(first) != lexical_entry_identity_key(second)

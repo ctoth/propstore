@@ -32,7 +32,12 @@ from propstore.identity import (
     compute_concept_version_id,
     format_logical_id,
 )
-from propstore.core.concepts import LoadedConcept, load_concepts, normalize_loaded_concepts
+from propstore.core.concepts import (
+    LoadedConcept,
+    concept_document_to_payload,
+    load_concepts,
+    normalize_loaded_concepts,
+)
 from propstore.diagnostics import ValidationResult
 
 if TYPE_CHECKING:
@@ -41,6 +46,32 @@ if TYPE_CHECKING:
 
 
 VALID_RELATIONSHIP_TYPES = VALID_CONCEPT_RELATIONSHIP_TYPES
+
+
+def _validate_lemon_document(
+    concept: LoadedConcept,
+    *,
+    result: ValidationResult,
+) -> None:
+    document = concept.document
+    if document is None:
+        return
+
+    entry = document.lexical_entry
+    ontology_uri = document.ontology_reference.uri
+    sense_uris: set[str] = set()
+    for sense in entry.senses:
+        reference_uri = sense.reference.uri
+        if reference_uri in sense_uris:
+            result.errors.append(
+                f"{concept.filename}: duplicate lexical sense reference '{reference_uri}'"
+            )
+        sense_uris.add(reference_uri)
+
+    if ontology_uri not in sense_uris:
+        result.errors.append(
+            f"{concept.filename}: ontology_reference '{ontology_uri}' must have a matching lexical sense"
+        )
 
 
 def _load_all_claim_ids(claims_dir: KnowledgePath | None) -> set[str]:
@@ -164,6 +195,7 @@ def validate_concepts(
 
     for c in concepts:
         data = c.record.to_payload()
+        _validate_lemon_document(c, result=result)
 
         # ── Required fields (basic) ─────────────────────────────
         cid = data.get("artifact_id")
@@ -194,8 +226,13 @@ def validate_concepts(
                 f"{c.filename}: concept '{cid}' version_id must match sha256:<64 hex chars>"
             )
         else:
+            version_payload = (
+                concept_document_to_payload(c.document)
+                if c.document is not None
+                else data
+            )
             expected_version_id = compute_concept_version_id(
-                normalize_canonical_concept_payload(data)
+                normalize_canonical_concept_payload(version_payload)
             )
             if version_id != expected_version_id:
                 result.errors.append(
@@ -259,11 +296,6 @@ def validate_concepts(
         else:
             id_to_concept[cid] = c
 
-        # ── Canonical name matches filename ─────────────────────
-        if name and name != c.filename:
-            result.errors.append(
-                f"{c.filename}: canonical_name '{name}' does not match filename '{c.filename}'")
-
         # ── Artifact ID format ───────────────────────────────────
         if cid and not CONCEPT_ARTIFACT_ID_RE.match(cid):
             result.errors.append(
@@ -286,7 +318,11 @@ def validate_concepts(
             if str(concept.record.artifact_id) in all_ids
         )
     except ValueError as exc:
-        result.errors.append(f"CEL registry error: {exc}")
+        message = str(exc)
+        if "duplicate canonical_name" in message:
+            result.warnings.append(f"CEL registry skipped ambiguous lexical form: {message}")
+        else:
+            result.errors.append(f"CEL registry error: {message}")
 
     # ── Cross-concept checks (need all concepts loaded) ─────────
 

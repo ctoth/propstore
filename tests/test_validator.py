@@ -211,12 +211,120 @@ class TestIdUniqueness:
 # ── Canonical name matches filename ──────────────────────────────────
 
 class TestFilenameMatch:
-    def test_mismatch_error(self, concept_dir):
+    def test_filename_is_not_canonical_identity(self, concept_dir):
         write_concept(concept_dir, "wrong_name.yaml",
                       make_quantity_concept("concept1", "correct_name"))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
-        assert any("filename" in e.lower() or "canonical_name" in e.lower() for e in result.errors)
+        assert not any("filename" in e.lower() or "canonical_name" in e.lower() for e in result.errors)
+
+
+class TestLemonInvariants:
+    def test_concept_ontology_reference_must_have_a_matching_sense(self, concept_dir):
+        data = make_structural_concept(
+            "concept1",
+            "bass",
+            ontology_reference={"uri": "tag:propstore:test:concept/bass-fish", "label": "bass"},
+            lexical_entry={
+                "identifier": "entry:bass-fish",
+                "canonical_form": {"written_rep": "bass", "language": "en"},
+                "senses": [
+                    {
+                        "reference": {
+                            "uri": "tag:propstore:test:concept/bass-instrument",
+                            "label": "bass",
+                        },
+                        "usage": "A low-pitched instrument.",
+                    }
+                ],
+                "physical_dimension_form": "structural",
+            },
+        )
+        write_concept(concept_dir, "bass_fish.yaml", data)
+
+        result = validate_concepts(load_concepts(concept_dir))
+
+        assert any("ontology_reference" in e and "matching lexical sense" in e for e in result.errors)
+
+    def test_duplicate_sense_reference_error(self, concept_dir):
+        data = make_structural_concept(
+            "concept1",
+            "bass",
+            ontology_reference={"uri": "tag:propstore:test:concept/bass", "label": "bass"},
+            lexical_entry={
+                "identifier": "entry:bass",
+                "canonical_form": {"written_rep": "bass", "language": "en"},
+                "senses": [
+                    {
+                        "reference": {"uri": "tag:propstore:test:concept/bass", "label": "bass"},
+                        "usage": "First usage.",
+                    },
+                    {
+                        "reference": {"uri": "tag:propstore:test:concept/bass", "label": "bass"},
+                        "usage": "Duplicate usage.",
+                    },
+                ],
+                "physical_dimension_form": "structural",
+            },
+        )
+        write_concept(concept_dir, "bass.yaml", data)
+
+        result = validate_concepts(load_concepts(concept_dir))
+
+        assert any("duplicate lexical sense reference" in e for e in result.errors)
+
+    def test_homographic_entries_may_share_written_form(self, concept_dir):
+        fish = make_structural_concept(
+            "bass_fish",
+            "bass",
+            domain="fish",
+            logical_ids=[
+                {"namespace": "fish", "value": "bass_fish"},
+                {"namespace": "propstore", "value": "bass_fish"},
+            ],
+            ontology_reference={"uri": "tag:propstore:test:concept/bass-fish", "label": "bass"},
+            lexical_entry={
+                "identifier": "entry:bass-fish",
+                "canonical_form": {"written_rep": "bass", "language": "en"},
+                "senses": [
+                    {
+                        "reference": {"uri": "tag:propstore:test:concept/bass-fish", "label": "bass"},
+                        "usage": "A fish.",
+                    }
+                ],
+                "physical_dimension_form": "structural",
+            },
+        )
+        instrument = make_structural_concept(
+            "bass_instrument",
+            "bass",
+            domain="music",
+            logical_ids=[
+                {"namespace": "music", "value": "bass_instrument"},
+                {"namespace": "propstore", "value": "bass_instrument"},
+            ],
+            ontology_reference={"uri": "tag:propstore:test:concept/bass-instrument", "label": "bass"},
+            lexical_entry={
+                "identifier": "entry:bass-instrument",
+                "canonical_form": {"written_rep": "bass", "language": "en"},
+                "senses": [
+                    {
+                        "reference": {
+                            "uri": "tag:propstore:test:concept/bass-instrument",
+                            "label": "bass",
+                        },
+                        "usage": "A low-pitched instrument.",
+                    }
+                ],
+                "physical_dimension_form": "structural",
+            },
+        )
+        write_concept(concept_dir, "bass_fish.yaml", fish)
+        write_concept(concept_dir, "bass_instrument.yaml", instrument)
+
+        result = validate_concepts(load_concepts(concept_dir))
+
+        assert not result.errors
 
 
 # ── Deprecated concepts ──────────────────────────────────────────────
