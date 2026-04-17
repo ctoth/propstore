@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 
 from propstore.core.row_types import coerce_claim_row
 from propstore.opinion import Opinion, discount, from_probability
-from propstore.praf import p_arg_from_claim
+from propstore.praf import NoCalibration, p_arg_from_claim
 from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
@@ -20,7 +20,9 @@ from tests.conftest import normalize_claims_payload, normalize_concept_payloads,
 
 def test_p_arg_from_claim_uses_prior_base_rate_when_no_claim_evidence() -> None:
     opinion = p_arg_from_claim({"source_prior_base_rate": 0.62})
+    assert isinstance(opinion, Opinion)
     assert opinion == Opinion.vacuous(a=0.62)
+    assert opinion.provenance is not None
 
 
 def test_p_arg_from_claim_builds_claim_evidence_opinion() -> None:
@@ -31,7 +33,9 @@ def test_p_arg_from_claim_builds_claim_evidence_opinion() -> None:
             "effective_sample_size": 10,
         }
     )
+    assert isinstance(opinion, Opinion)
     assert opinion == from_probability(0.8, 10, 0.62)
+    assert opinion.provenance is not None
 
 
 def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
@@ -48,7 +52,10 @@ def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
     }
     expected_claim = from_probability(0.8, 10, 0.62)
     expected = discount(Opinion(0.7, 0.1, 0.2, 0.5), expected_claim)
-    assert p_arg_from_claim(claim) == expected
+    actual = p_arg_from_claim(claim)
+    assert isinstance(actual, Opinion)
+    assert actual == expected
+    assert actual.provenance is not None
 
 
 def test_p_arg_from_claim_accepts_typed_claim_rows() -> None:
@@ -73,7 +80,10 @@ def test_p_arg_from_claim_accepts_typed_claim_rows() -> None:
     )
     expected_claim = from_probability(0.8, 10, 0.62)
     expected = discount(Opinion(0.7, 0.1, 0.2, 0.5), expected_claim)
-    assert p_arg_from_claim(claim) == expected
+    actual = p_arg_from_claim(claim)
+    assert isinstance(actual, Opinion)
+    assert actual == expected
+    assert actual.provenance is not None
 
 
 def test_p_arg_from_claim_invalid_typed_input_propagates() -> None:
@@ -82,8 +92,9 @@ def test_p_arg_from_claim_invalid_typed_input_propagates() -> None:
 
 
 def test_p_arg_from_claim_ignores_sample_size_without_calibration_payload() -> None:
-    opinion = p_arg_from_claim({"sample_size": 50})
-    assert opinion == Opinion.dogmatic_true()
+    result = p_arg_from_claim({"sample_size": 50})
+    assert isinstance(result, NoCalibration)
+    assert result.reason == "missing_claim_calibration"
 
 
 @given(
@@ -104,6 +115,7 @@ def test_p_arg_from_claim_expectation_stays_in_unit_interval(
             "effective_sample_size": n_eff,
         }
     )
+    assert isinstance(opinion, Opinion)
     assert 0.0 <= opinion.expectation() <= 1.0
 
 
@@ -313,5 +325,7 @@ def test_world_model_claim_rows_include_calibrated_source_prior(tmp_path: Path) 
     assert claim is not None
     claim_data = coerce_claim_row(claim).to_dict()
     assert claim_data["source"]["trust"]["prior_base_rate"] == pytest.approx(0.36)
-    assert p_arg_from_claim(claim_data) == Opinion.vacuous(a=0.36)
-
+    opinion = p_arg_from_claim(claim_data)
+    assert isinstance(opinion, Opinion)
+    assert opinion == Opinion.vacuous(a=0.36)
+    assert opinion.provenance is not None

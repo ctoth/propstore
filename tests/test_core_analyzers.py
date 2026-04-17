@@ -27,6 +27,7 @@ def _insert_claim(
         concept_id=concept_id,
         value=value,
         sample_size=sample_size,
+        confidence=1.0,
     )
 
 

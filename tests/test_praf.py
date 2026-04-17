@@ -361,12 +361,32 @@ def test_connected_component_decomposition():
 # 8. test_p_arg_hook_default
 # ---------------------------------------------------------------------------
 def test_p_arg_hook_default():
-    """Default p_arg_from_claim returns Opinion.dogmatic_true()."""
-    from propstore.praf import p_arg_from_claim
+    """Bare claims are missing calibration, not certain existing arguments."""
+    from propstore.praf import NoCalibration, p_arg_from_claim
 
     claim = {"claim_id": "test", "concept": "foo"}
     result = p_arg_from_claim(claim)
-    assert result == Opinion.dogmatic_true()
+    assert isinstance(result, NoCalibration)
+    assert result.reason == "missing_claim_calibration"
+
+
+def test_p_arg_from_claim_accepts_stated_opinion_columns():
+    """Claim-level opinion columns are explicit P_A calibration, not a fallback."""
+    from propstore.praf import p_arg_from_claim
+
+    result = p_arg_from_claim(
+        {
+            "claim_id": "test",
+            "opinion_belief": 0.6,
+            "opinion_disbelief": 0.1,
+            "opinion_uncertainty": 0.3,
+            "opinion_base_rate": 0.5,
+        }
+    )
+
+    assert isinstance(result, Opinion)
+    assert result == Opinion(0.6, 0.1, 0.3, 0.5)
+    assert result.provenance is not None
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +396,7 @@ def test_p_defeat_from_opinion_columns():
     """Stance with opinion columns → P_D = Opinion(b,d,u,a).
     Stance without opinion → P_D from confidence fallback.
     """
-    from propstore.praf import p_defeat_from_stance
+    from propstore.praf import NoCalibration, p_defeat_from_stance
 
     # With full opinion columns
     stance_with_opinion = {
@@ -387,9 +407,11 @@ def test_p_defeat_from_opinion_columns():
         "confidence": 0.8,
     }
     op = p_defeat_from_stance(stance_with_opinion)
+    assert isinstance(op, Opinion)
     assert abs(op.b - 0.7) < 1e-9
     assert abs(op.d - 0.1) < 1e-9
     assert abs(op.u - 0.2) < 1e-9
+    assert op.provenance is not None
 
     # Without opinion, with confidence — from_probability(0.75, 1) maps to
     # r=0.75, s=0.25, denom=3.0, b=0.25, d=0.083, u=0.667, E=b+a*u=0.583
@@ -397,14 +419,20 @@ def test_p_defeat_from_opinion_columns():
     # but the opinion should be constructible and have reasonable values.
     stance_with_confidence = {"confidence": 0.75}
     op2 = p_defeat_from_stance(stance_with_confidence)
+    assert isinstance(op2, Opinion)
     assert op2.b > 0  # has some belief
     assert op2.u > 0  # has uncertainty (not dogmatic)
     assert 0.0 < op2.expectation() < 1.0  # reasonable range
 
+    zero_confidence = p_defeat_from_stance({"confidence": 0.0})
+    assert isinstance(zero_confidence, NoCalibration)
+    assert zero_confidence.reason == "zero_confidence_without_opinion"
+
     # Without opinion or confidence
     stance_bare = {}
     op3 = p_defeat_from_stance(stance_bare)
-    assert op3 == Opinion.dogmatic_true()
+    assert isinstance(op3, NoCalibration)
+    assert op3.reason == "missing_relation_calibration"
 
 
 # ---------------------------------------------------------------------------
@@ -449,12 +477,57 @@ def test_build_praf_from_store():
         praf = build_praf(store, {"c1", "c2"})
 
     assert isinstance(praf, ProbabilisticAF)
-    # P_A should be dogmatic_true for all active claims
-    for arg_id in {"c1", "c2"}:
-        assert praf.p_args[arg_id] == Opinion.dogmatic_true()
+    # Bare active claims are omitted from PrAF and surfaced as missing calibration.
+    assert praf.framework.arguments == frozenset()
+    assert set(praf.omitted_arguments) == {"c1", "c2"}
 
     # There should be a defeat with Opinion-based P_D
     assert len(praf.p_defeats) >= 0  # may have defeats depending on preference
+
+
+def test_build_praf_omits_uncalibrated_relation_from_probability_envelope():
+    """A bare stance may remain deterministic claim-graph structure, but not PrAF certainty."""
+    from propstore.core.analyzers import build_praf_from_shared_input, shared_analyzer_input_from_active_graph
+    from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph, RelationEdge
+
+    graph = ActiveWorldGraph(
+        compiled=CompiledWorldGraph(
+            claims=(
+                ClaimNode(
+                    claim_id="c1",
+                    concept_id="x",
+                    claim_type="parameter",
+                    scalar_value=1.0,
+                    attributes=(("source_prior_base_rate", 0.6),),
+                ),
+                ClaimNode(
+                    claim_id="c2",
+                    concept_id="x",
+                    claim_type="parameter",
+                    scalar_value=2.0,
+                    attributes=(("source_prior_base_rate", 0.6),),
+                ),
+            ),
+            relations=(
+                RelationEdge(
+                    source_id="c1",
+                    target_id="c2",
+                    relation_type="rebuts",
+                ),
+            ),
+            conflicts=(),
+        ),
+        active_claim_ids=("c1", "c2"),
+    )
+    shared = shared_analyzer_input_from_active_graph(graph)
+    praf = build_praf_from_shared_input(shared)
+
+    assert praf.framework.arguments == frozenset({"c1", "c2"})
+    assert praf.framework.defeats == frozenset()
+    assert praf.p_defeats == {}
+    assert praf.omitted_relations == {
+        ("c1", "c2"): praf.omitted_relations[("c1", "c2")]
+    }
 
 
 # ---------------------------------------------------------------------------

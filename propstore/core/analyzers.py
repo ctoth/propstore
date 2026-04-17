@@ -14,6 +14,8 @@ from propstore.bipolar import (
     stable_extensions as bipolar_stable_extensions,
 )
 from propstore.conflict_detector import ConflictClass
+from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.core.graph_relation_types import coerce_graph_relation_type
 from propstore.core.id_types import ClaimId, to_claim_id, to_claim_ids, to_concept_id
 from propstore.core.graph_types import (
     ActiveWorldGraph,
@@ -157,7 +159,7 @@ def _claim_node_from_row(row_input: ClaimRowInput | dict) -> ClaimNode:
     return ClaimNode(
         claim_id=to_claim_id(row.claim_id),
         concept_id=to_concept_id(str(row.concept_id or row.target_concept or "")),
-        claim_type=str(row.claim_type or "unknown"),
+        claim_type=coerce_claim_type(row.claim_type or "unknown") or ClaimType.UNKNOWN,
         scalar_value=row.value,
         attributes=attributes,
     )
@@ -174,7 +176,7 @@ def _relation_edge_from_row(row: StanceRowInput) -> RelationEdge:
     return RelationEdge(
         source_id=str(stance.claim_id),
         target_id=str(stance.target_claim_id),
-        relation_type=stance.stance_type,
+        relation_type=coerce_graph_relation_type(stance.stance_type),
         provenance=ProvenanceRecord(
             source_table="relation_edge",
             source_id=(
@@ -284,7 +286,7 @@ def _collect_claim_graph_relations(
     *,
     comparison: str,
 ) -> tuple[dict[str, dict], tuple[dict, ...], ClaimGraphRelations]:
-    from propstore.praf import p_relation_from_stance
+    from propstore.praf import NoCalibration, p_relation_from_stance
 
     active_ids = _active_claim_ids(active_graph)
     claims_by_id = _graph_claim_rows(active_graph)
@@ -367,49 +369,37 @@ def _collect_claim_graph_relations(
             continue
         if stance_type in _SUPPORT_TYPES:
             supports.add((source_id, target_id))
-            support_relations.append(
-                relation_from_row(
-                    kind="support",
-                    source=source_id,
-                    target=target_id,
-                    opinion=p_relation_from_stance(stance),
-                    row=stance,
+            support_opinion = p_relation_from_stance(stance)
+            if not isinstance(support_opinion, NoCalibration):
+                support_relations.append(
+                    relation_from_row(
+                        kind="support",
+                        source=source_id,
+                        target=target_id,
+                        opinion=support_opinion,
+                        row=stance,
+                    )
                 )
-            )
             continue
         if stance_type not in _ATTACK_TYPES:
             continue
 
         attacks.add((source_id, target_id))
         attack_opinion = p_relation_from_stance(stance)
-        attack_relations.append(
-            relation_from_row(
-                kind="attack",
-                source=source_id,
-                target=target_id,
-                opinion=attack_opinion,
-                row=stance,
-            )
-        )
-
-        if stance_type in _UNCONDITIONAL_TYPES:
-            direct_defeats.add((source_id, target_id))
-            direct_defeat_relations.append(
+        if not isinstance(attack_opinion, NoCalibration):
+            attack_relations.append(
                 relation_from_row(
-                    kind="direct_defeat",
+                    kind="attack",
                     source=source_id,
                     target=target_id,
                     opinion=attack_opinion,
                     row=stance,
                 )
             )
-            continue
 
-        if stance_type in _PREFERENCE_TYPES:
-            attacker_strength = claim_strength(claims_by_id[source_id])
-            target_strength = claim_strength(claims_by_id[target_id])
-            if defeat_holds(stance_type, attacker_strength, target_strength, comparison):
-                direct_defeats.add((source_id, target_id))
+        if stance_type in _UNCONDITIONAL_TYPES:
+            direct_defeats.add((source_id, target_id))
+            if not isinstance(attack_opinion, NoCalibration):
                 direct_defeat_relations.append(
                     relation_from_row(
                         kind="direct_defeat",
@@ -419,6 +409,23 @@ def _collect_claim_graph_relations(
                         row=stance,
                     )
                 )
+            continue
+
+        if stance_type in _PREFERENCE_TYPES:
+            attacker_strength = claim_strength(claims_by_id[source_id])
+            target_strength = claim_strength(claims_by_id[target_id])
+            if defeat_holds(stance_type, attacker_strength, target_strength, comparison):
+                direct_defeats.add((source_id, target_id))
+                if not isinstance(attack_opinion, NoCalibration):
+                    direct_defeat_relations.append(
+                        relation_from_row(
+                            kind="direct_defeat",
+                            source=source_id,
+                            target=target_id,
+                            opinion=attack_opinion,
+                            row=stance,
+                        )
+                    )
 
     relations = ClaimGraphRelations(
         arguments=frozenset(active_ids),
@@ -602,23 +609,82 @@ def analyze_claim_graph(
 
 
 def build_praf_from_shared_input(shared: SharedAnalyzerInput):
-    from propstore.praf import ProbabilisticAF, p_arg_from_claim
+    from propstore.praf import NoCalibration, ProbabilisticAF, p_arg_from_claim
 
-    p_args = {
-        claim_id: p_arg_from_claim(shared.claims_by_id.get(claim_id, {"claim_id": claim_id}))
-        for claim_id in shared.argumentation_framework.arguments
+    p_args = {}
+    omitted_arguments = {}
+    for claim_id in shared.argumentation_framework.arguments:
+        p_arg = p_arg_from_claim(shared.claims_by_id.get(claim_id, {"claim_id": claim_id}))
+        if isinstance(p_arg, NoCalibration):
+            omitted_arguments[claim_id] = p_arg
+            continue
+        p_args[claim_id] = p_arg
+
+    active_args = frozenset(p_args)
+    direct_defeat_map = relation_map(shared.relations.direct_defeat_relations)
+    attack_map = relation_map(shared.relations.attack_relations)
+    support_map = relation_map(shared.relations.support_relations)
+
+    missing_relation_edges = (
+        set(shared.relations.attacks - frozenset(attack_map))
+        | set(shared.relations.direct_defeats - frozenset(direct_defeat_map))
+        | set(shared.relations.supports - frozenset(support_map))
+    )
+    omitted_relations = {
+        edge: NoCalibration(
+            reason="missing_relation_calibration",
+            missing_fields=(
+                "opinion_belief",
+                "opinion_disbelief",
+                "opinion_uncertainty",
+                "confidence",
+            ),
+        )
+        for edge in missing_relation_edges
     }
+
+    def calibrated_edge(edge: tuple[str, str]) -> bool:
+        return (
+            edge[0] in active_args
+            and edge[1] in active_args
+            and edge not in missing_relation_edges
+        )
+
+    defeats = frozenset(
+        edge for edge in shared.argumentation_framework.defeats
+        if calibrated_edge(edge)
+    )
+    attacks = (
+        None
+        if shared.argumentation_framework.attacks is None
+        else frozenset(edge for edge in shared.argumentation_framework.attacks if calibrated_edge(edge))
+    )
+    supports = frozenset(edge for edge in shared.relations.supports if calibrated_edge(edge))
+    base_defeats = frozenset(edge for edge in shared.relations.direct_defeats if calibrated_edge(edge))
+    framework = ArgumentationFramework(
+        arguments=active_args,
+        defeats=defeats,
+        attacks=attacks,
+    )
+
+    def keep_relation(relation):
+        return relation.source in active_args and relation.target in active_args and relation.edge not in missing_relation_edges
+
     return ProbabilisticAF(
-        framework=shared.argumentation_framework,
+        framework=framework,
         p_args=p_args,
-        p_defeats=relation_map(shared.relations.direct_defeat_relations),
-        p_attacks=relation_map(shared.relations.attack_relations),
-        supports=shared.relations.supports,
-        p_supports=relation_map(shared.relations.support_relations),
-        base_defeats=shared.relations.direct_defeats,
-        attack_relations=shared.relations.attack_relations,
-        support_relations=shared.relations.support_relations,
-        direct_defeat_relations=shared.relations.direct_defeat_relations,
+        p_defeats={edge: opinion for edge, opinion in direct_defeat_map.items() if calibrated_edge(edge)},
+        p_attacks={edge: opinion for edge, opinion in attack_map.items() if calibrated_edge(edge)},
+        supports=supports,
+        p_supports={edge: opinion for edge, opinion in support_map.items() if calibrated_edge(edge)},
+        base_defeats=base_defeats,
+        attack_relations=tuple(relation for relation in shared.relations.attack_relations if keep_relation(relation)),
+        support_relations=tuple(relation for relation in shared.relations.support_relations if keep_relation(relation)),
+        direct_defeat_relations=tuple(
+            relation for relation in shared.relations.direct_defeat_relations if keep_relation(relation)
+        ),
+        omitted_arguments=omitted_arguments,
+        omitted_relations=omitted_relations,
     )
 
 
