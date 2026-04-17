@@ -1,7 +1,7 @@
 # Workstream A1 - Semiring Provenance Substrate
 
 Date: 2026-04-17
-Status: active - A1-5 WS-C support contract implemented; final full-suite gate pending
+Status: complete - WS-A1 exit criteria met; WS-C C-3 support contract unblocked
 Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A source/artifact boundaries
 Blocks: WS-C C-3 support contract, ATMS label collapse, support-bearing fragility rewrite
 Review context: `../axis-3d-semantic.md` section 6, `../axis-3e-reasoning-infra.md`, `../axis-4-test-adequacy.md`
@@ -23,6 +23,9 @@ Design review: drafted with Claude CLI; adversarial pass incorporated before imp
 - 2026-04-17: Added fragility tests for live derivative scoring and derivative-backed assumption intervention support. Verification passed: `37 passed`, `logs\test-runs\provenance-fragility-20260417-150228.log`; production Pyright was clean for fragility files.
 - 2026-04-17: Added the executable WS-C C-3 support contract in `propstore.defeasibility`: `JustifiableException`, `LiftingRuleSupport`, `ExceptionDefeat`, live support checks, lifting support multiplication, and exception-defeat liveness via live why-provenance.
 - 2026-04-17: Updated WS-C docs to point at the executable support contract and added property tests for unsupported exceptions, lifting support composition, solver nogood live filtering, Boolean/why liveness agreement, and support-quality preservation. Verification passed: `5 passed`, `logs\test-runs\defeasibility-support-20260417-150458.log`; Pyright was clean for `propstore/defeasibility.py` and its tests.
+- 2026-04-17: Ran `uv sync --upgrade`; the environment resolved and audited cleanly with no lockfile changes.
+- 2026-04-17: Stabilized the expensive ASPIC bridge rationality property gate by bounding generated examples for that rationality-postulate class, after the exact xdist-crashed tests passed in isolation and a serial run showed unbounded generation could exceed the suite timeout.
+- 2026-04-17: Final full-suite gate passed. Verification passed: `2709 passed, 16 warnings`, `logs\test-runs\full-a1-final-20260417-152636.log`.
 
 ## Why this exists
 

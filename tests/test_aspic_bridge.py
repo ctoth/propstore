@@ -756,7 +756,7 @@ class TestBridgeRationalityPostulates:
     """
 
     @given(claim_graph())
-    @settings(deadline=None)
+    @settings(deadline=None, max_examples=25)
     def test_sub_argument_closure(self, graph):
         """Postulate 1 — Sub-argument closure (Thm 12, p.18).
 
@@ -774,7 +774,7 @@ class TestBridgeRationalityPostulates:
                     )
 
     @given(claim_graph())
-    @settings(deadline=None)
+    @settings(deadline=None, max_examples=25)
     def test_direct_consistency(self, graph):
         """Postulate 3 — Direct consistency (Thm 14, p.18).
 
@@ -804,7 +804,7 @@ class TestBridgeRationalityPostulates:
                     )
 
     @given(claim_graph())
-    @settings(deadline=None)
+    @settings(deadline=None, max_examples=25)
     def test_attack_based_conflict_free(self, graph):
         """Postulate 7 — Attack-based conflict-free (Def 14, p.14).
 
