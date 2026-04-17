@@ -119,7 +119,7 @@ We do not use CKR's datalog translation as the implementation boundary for all s
 
 ASPIC+ keeps building arguments recursively from knowledge bases, strict rules, defeasible rules, and contrariness. The axis-3a review found the existing recursive construction directionally correct.
 
-ASPIC+ preferences must become real strict partial orders over authored rule priority data. The current empty `superiority=[]` in the grounding translator and empty `rule_order=frozenset()` in the ASPIC bridge are implementation bugs when priority data is present.
+ASPIC+ preferences over defeasible rules are strict partial orders over authored rule priority data. WS-C C-2 closed the former empty `superiority=[]` in the grounding translator and empty `rule_order=frozenset()` in the ASPIC bridge.
 
 CKR exceptions should interact with ASPIC+ as defeat information. If an ASPIC+ argument concludes or uses `p` in context `c`, and CKR says `p` is excepted in `c` by a justified exception, then the exception's supporting claims form the defeating argument against that use.
 
