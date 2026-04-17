@@ -296,6 +296,9 @@ The paper's warning about diamond-shaped hierarchies creating inconsistent colle
 **Belief revision and merging:**
 - [[Alchourron_1985_TheoryChange]] — **Moderate.** AGM postulates define correctness for belief revision operations. Microtheory merging (collector microtheories) implicitly performs belief union, which AGM governs. The paper's warning about diamond shapes creating inconsistency is essentially the AGM observation that unconstrained expansion can break consistency.
 
+**Predication-level eventualities:**
+- [Ontological Promiscuity](../Hobbs_1985_OntologicalPromiscuity/notes.md) — **Strong.** Hobbs reifies the *condition* of a single predication via `p'(e, x₁,…,xₙ)`, where microtheories reify the *stable context* in which many predications hold. The two grains are complementary — a microtheory is a bag of Hobbs-style atomic predications sharing contextual assumptions. Propstore's claim layer needs both: Hobbs-shape per-claim eventualities carried inside Kallem-shape microtheory contexts.
+
 ## Related Work Worth Reading
 - McCarthy, J. (1987, 1993). "Generality in Artificial Intelligence" — original `ist` operator and context formalization → NOW IN COLLECTION: [[McCarthy_1993_FormalizingContext]]
 - Guha, R.V. (1991). "Contexts: A Formalization and Some Applications." PhD Thesis, Stanford — formal theory of contexts underlying CYC

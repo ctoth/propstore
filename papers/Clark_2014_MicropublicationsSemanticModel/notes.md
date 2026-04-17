@@ -339,6 +339,7 @@ The model was implemented as an OWL ontology using Open Annotation and prototype
 - [[Juty_2020_UniquePersistentResolvableIdentifiers]] — persistent identifiers for scientific objects directly serve the micropublication attribution and reference resolution needs
 - [[Modgil_2018_GeneralAccountArgumentationPreferences]] — ASPIC+ provides the formal structured argumentation framework that could formalize the micropublication SupportGraph/ChallengeGraph as proper arguments with preference orderings
 - [[Pollock_1987_DefeasibleReasoning]] — Pollock's rebutting vs undercutting defeat maps to the micropublication distinction between challenge (rebutting a claim) and undermining (attacking supporting evidence)
+- [Ontological Promiscuity](../Hobbs_1985_OntologicalPromiscuity/notes.md) — **Strong.** Hobbs's separation of `Exist(e)` from `p'(e, x₁,…,xₙ)` is the logical-form analog of Clark's separation of a claim's propositional content from its evidence and attribution. Both refuse to collapse reference onto commitment. The micropublication "claim present without asserted truth" shape is exactly what Hobbs's reified-condition + optional-existence apparatus licenses at the formula level. Propstore's non-commitment principle has both a logical-form precursor (Hobbs) and a scientific-discourse precursor (Clark).
 
 ## Related Work Worth Reading
 - **Clark et al. 2011 [9]**: SWAN model predecessor — for understanding what Micropublications extends
