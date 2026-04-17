@@ -91,6 +91,8 @@ class TestZ3PreferredConcrete:
 class TestZ3MatchesBruteForce:
     """Hypothesis property tests: z3 matches brute-force for all semantics."""
 
+    pytestmark = [pytest.mark.property, pytest.mark.differential]
+
     @given(argumentation_frameworks())
     @settings(deadline=10000)
     def test_stable_matches(self, framework):
@@ -121,6 +123,8 @@ class TestZ3MatchesBruteForceWithAttacksDefeatsDivergence:
     against defeats. The z3 backend must match the brute-force reference
     on these mixed-relation frameworks too.
     """
+
+    pytestmark = [pytest.mark.property, pytest.mark.differential]
 
     @given(af_with_attacks_superset())
     @settings(deadline=10000)
