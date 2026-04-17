@@ -1,7 +1,7 @@
 # Workstream C — Defeasibility (CKR Justifiable Exceptions + ASPIC+ Coexistence)
 
 Date: 2026-04-16
-Status: active - C-3 justifiable-exception satisfaction implemented; C-4 next
+Status: active - C-4 ASPIC+ boundary integrated; C-5 next
 Depends on: `disciplines.md`, `judgment-rubric.md`, WS-A phase 4 (contexts + lifting rules), WS-A1 semiring provenance for C-3 support evidence
 Blocks: —
 Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumentation.md`
@@ -15,6 +15,7 @@ Review context: `../axis-7-defeasible-datalog.md` (primary), `../axis-3a-argumen
 - 2026-04-17: WS-A1 added the executable C-3 support contract in `propstore.defeasibility`: `JustifiableException`, `LiftingRuleSupport`, and `ExceptionDefeat` all carry `SupportEvidence`; lifted support multiplies by lifting-rule support; solver nogoods live-filter support without deleting the exception object.
 - 2026-04-17: C-2 priority pipeline repaired. `RulesFileDocument` now carries explicit authored `superiority` pairs, the grounding translator emits those pairs into gunray as a validated strict partial order, and the ASPIC bridge projects schematic superiority onto grounded `PreferenceConfig.rule_order` pairs. Verification passed: `91 passed`, `logs\test-runs\ws-c2-runtime-20260417-153640.log`; production Pyright was clean for changed C-2 files. Grep gates found no production `superiority=[]`, no production `rule_order=frozenset()`, and no bridge `del defeasible_rules`.
 - 2026-04-17: C-3 justifiable-exception satisfaction implemented. `ContextualClaimUse`, typed `CelBinding`s, `ClaimApplicability`, policy issues, and `evaluate_contextual_claim(...)` now decide local/lifted exception applicability over live support; CEL patterns route through a supplied Z3-compatible solver, missing bindings and solver unknowns become `UNKNOWN` with `INCOMPLETE_SOUND`, and multiple applicable exceptions are surfaced rather than collapsed. Verification passed: `10 passed`, `logs\test-runs\ws-c3-satisfaction-20260417-154226.log`; Pyright was clean for `propstore/defeasibility.py` and C-3 tests.
+- 2026-04-17: C-4 ASPIC+/CKR boundary integrated. `apply_exception_defeats_to_csaf(...)` injects CKR-derived exception defeats into the Dung layer using ASPIC arguments for exception justification claims as attackers and excepted target-claim arguments as targets; it fails loudly if an applied exception cannot be represented structurally. Added `docs/justifiable-exceptions.md` for the implemented boundary. Verification passed: `18 passed`, `logs\test-runs\ws-c3-c4-20260417-154647.log`; Pyright was clean for C-3/C-4 files and tests.
 
 ## What you're doing
 
