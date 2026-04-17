@@ -12,7 +12,24 @@ $logPath = Join-Path $logDir "$Label-$timestamp.log"
 
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
-$uvArgs = @("run", "pytest", "-vv") + $PytestArgs
+$hasWorkerArg = $false
+foreach ($arg in $PytestArgs) {
+    if ($arg -eq "-n" -or $arg -eq "--numprocesses" -or $arg -like "--numprocesses=*") {
+        $hasWorkerArg = $true
+        break
+    }
+}
+
+$defaultPytestArgs = @("-vv")
+if (-not $hasWorkerArg) {
+    $workerCount = [Math]::Min([Environment]::ProcessorCount, 16)
+    if ($workerCount -lt 1) {
+        $workerCount = 1
+    }
+    $defaultPytestArgs += @("-n", [string]$workerCount, "--dist", "worksteal")
+}
+
+$uvArgs = @("run", "pytest") + $defaultPytestArgs + $PytestArgs
 $quotedArgs = foreach ($arg in $uvArgs) {
     if ($arg -match '[\s"]') {
         '"' + ($arg -replace '"', '\"') + '"'

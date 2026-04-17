@@ -7,7 +7,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
+
+from hypothesis import settings
 
 from propstore.cel_checker import KindType
 from propstore.form_utils import FormDefinition
@@ -20,6 +23,11 @@ from propstore.identity import (
     normalize_logical_value,
 )
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
+
+
+settings.register_profile("default", deadline=None)
+settings.register_profile("overnight", deadline=None, max_examples=1000)
+settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
 
 
 def _rewrite_concept_ref(value: object) -> object:
