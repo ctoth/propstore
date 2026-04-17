@@ -1,15 +1,18 @@
 {
-  "title": "Named graphs, provenance and trust",
+  "title": "Named Graphs, Provenance and Trust",
   "authors": [
-    "J. Carroll",
+    "Jeremy J. Carroll",
     "Christian Bizer",
-    "P. Hayes",
+    "Pat Hayes",
     "Patrick Stickler"
   ],
   "year": "2005",
   "arxiv_id": null,
   "doi": "10.1145/1060745.1060835",
-  "abstract": null,
-  "url": "https://www.semanticscholar.org/paper/4a3aa48dc1cc0f8cd7b02d8fb8d8980769656f64",
-  "pdf_url": ""
+  "abstract": "The Semantic Web consists of many RDF graphs nameable by URIs. This paper extends the syntax and semantics of RDF to cover such Named Graphs. This enables RDF statements that describe graphs, which is beneficial in many Semantic Web application areas. As a case study, we explore the application area of Semantic Web publishing: Named Graphs allow publishers to communicate assertional intent, and to sign their graphs; information consumers can evaluate specific graphs using task-specific trust policies, and act on information from those Named Graphs that they accept. Graphs are trusted depending on: their content; information about the graph; and the task the user is performing. The extension of RDF to Named Graphs provides a formally defined framework to be a foundation for the Semantic Web trust layer.",
+  "url": "https://dl.acm.org/doi/10.1145/1060745.1060835",
+  "pdf_url": null,
+  "venue": "Proceedings of the 14th International Conference on World Wide Web (WWW '05)",
+  "pages": "613-622",
+  "publisher": "ACM"
 }

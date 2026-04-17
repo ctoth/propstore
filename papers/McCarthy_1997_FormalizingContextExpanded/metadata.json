@@ -1,0 +1,14 @@
+{
+  "title": "Formalizing Context (Expanded Notes)",
+  "authors": ["John McCarthy", "Saša Buvač"],
+  "year": 1998,
+  "venue": "Computing Natural Language (Aliseda, van Glabbeek, Westerståhl, eds), CSLI Publications",
+  "technical_report_id": "STAN-CS-TN-94-13",
+  "abstract": "These notes discuss formalizing contexts as first class objects. The basic relations are ist(c, p) meaning that the proposition p is true in the context c, and value(c, e) designating the value of the term e in the context c. Besides these there are lifting formulas that relate the propositions and terms in subcontexts to possibly more general propositions and terms in the outer context. Subcontexts are often specialized with regard to time, place and terminology. Introducing contexts as formal objects will permit axiomatizations in limited contexts to be expanded to transcend the original limitations.",
+  "url": "http://jmc.stanford.edu/articles/mccarthy-buvac-98/context.pdf",
+  "source": "jmc.stanford.edu (direct download)",
+  "pages": 38,
+  "doi": null,
+  "arxiv_id": null,
+  "notes": "Originally Stanford CS Technical Note STAN-CS-TN-94-13 (draft 1994). Reprinted in Aliseda, van Glabbeek, Westerståhl (eds), Computing Natural Language, CSLI 1998. Metadata hand-written from title page; S2 URL: resolution not attempted because landing page path differed from input URL. Dated on title page as 'February 28, 2012' (LaTeX compile date of the retyped version hosted on Stanford's Project JMC mirror)."
+}

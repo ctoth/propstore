@@ -1,4 +1,0 @@
----
-tags: [argumentation, claims, semantic-model, provenance, scientific-evidence]
----
-Defines the micropublications semantic model for representing scientific claims with their supporting evidence, arguments, attributions, and challenge/disagreement relations, formalized as an OWL 2 ontology grounded in Toulmin-Verheij defeasible argumentation theory. Key contributions include a layered complexity spectrum from minimal attributed statements to full cross-publication claim-evidence networks, nine use cases mapping the model to the biomedical communications lifecycle, and a formal distinction between support and challenge relations enabling bipolar argumentation networks. Directly foundational for the propstore's claim representation architecture, providing theoretical grounding for claim types, provenance tracking, cross-paper stances, and claim reconciliation via similarity groups and holotypes.

@@ -1,0 +1,30 @@
+{
+  "title": "PROV-O: The PROV Ontology",
+  "authors": [
+    "Timothy Lebo",
+    "Satya Sahoo",
+    "Deborah McGuinness",
+    "Khalid Belhajjame",
+    "James Cheney",
+    "David Corsar",
+    "Daniel Garijo",
+    "Stian Soiland-Reyes",
+    "Stephan Zednik",
+    "Jun Zhao",
+    "Luc Moreau",
+    "Paolo Missier"
+  ],
+  "year": "2013",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "The PROV Ontology (PROV-O) expresses the PROV Data Model [PROV-DM] using the OWL2 Web Ontology Language (OWL2) [OWL2-OVERVIEW]. It provides a set of classes, properties, and restrictions that can be used to represent and interchange provenance information generated in different systems and under different contexts. It can also be specialized to create new classes and properties to model provenance information for different applications and domains. The PROV Document Overview describes the overall state of PROV, and should be read before other PROV documents. The namespace for all PROV-O terms is http://www.w3.org/ns/prov#.",
+  "url": "https://www.w3.org/TR/prov-o/",
+  "pdf_url": null,
+  "venue": "W3C Recommendation",
+  "date": "2013-04-30",
+  "dated_url": "https://www.w3.org/TR/2013/REC-prov-o-20130430/",
+  "source": "w3c-direct",
+  "retrieval_method": "headless-chrome-print-to-pdf",
+  "retrieved_at": "2026-04-16",
+  "retrieval_notes": "W3C TR Recommendation. No DOI or arxiv_id assigned. Retrieved via headless Chrome print-to-pdf from the canonical HTML because paper-retriever's fetch_paper.py has no W3C resolver. Canary pilot for the semantic-substrate batch dispatch."
+}

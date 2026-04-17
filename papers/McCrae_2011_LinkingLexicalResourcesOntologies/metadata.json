@@ -1,0 +1,18 @@
+{
+  "title": "Linking Lexical Resources and Ontologies on the Semantic Web with Lemon",
+  "authors": [
+    "John P. McCrae",
+    "Dennis Spohr",
+    "P. Cimiano"
+  ],
+  "year": "2011",
+  "arxiv_id": null,
+  "doi": "10.1007/978-3-642-21034-1_17",
+  "abstract": "There are a large number of ontologies currently available on the Semantic Web. However, in order to exploit them within natural language processing applications, more linguistic information than can be represented in current Semantic Web standards is required. Further, there are a large number of lexical resources available representing a wealth of linguistic information, but this data exists in various formats and is difficult to link to ontologies and other resources. We present a model we call lemon (Lexicon Model for Ontologies) that supports the sharing of terminological and lexicon resources on the Semantic Web as well as their linking to the existing semantic representations provided by ontologies. We demonstrate that lemon can succinctly represent existing lexical resources and in combination with standard NLP tools we can easily generate new lexica for domain ontologies according to the lemon model. We demonstrate that by combining generated and existing lexica we can collaboratively develop rich lexical descriptions of ontology entities. We also show that the adoption of Semantic Web standards can provide added value for lexicon models by supporting a rich axiomatization of linguistic categories that can be used to constrain the usage of the model and to perform consistency checks.",
+  "url": "https://www.semanticscholar.org/paper/fbe9215d7968767739c855468ee5b82d1e2e8f61",
+  "pdf_url": null,
+  "bibtex": "@Article{McCrae2011LinkingLR,\n author = {John P. McCrae and Dennis Spohr and P. Cimiano},\n booktitle = {Extended Semantic Web Conference},\n pages = {245-259},\n title = {Linking Lexical Resources and Ontologies on the Semantic Web with Lemon},\n year = {2011}\n}\n",
+  "venue": "Extended Semantic Web Conference (ESWC 2011), LNCS 6643",
+  "venue_type": "conference",
+  "pages": "245-259"
+}

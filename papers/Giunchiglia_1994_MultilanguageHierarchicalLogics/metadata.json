@@ -1,0 +1,16 @@
+{
+  "title": "Multilanguage hierarchical logics (or: how we can do without modal logics)",
+  "authors": [
+    "Fausto Giunchiglia",
+    "L. Serafini"
+  ],
+  "year": "1994",
+  "doi": "10.1016/0004-3702(94)90037-X",
+  "url": "https://www.semanticscholar.org/paper/ad3962eed6af5878ac5dced2d5ecaaaacd59f306",
+  "pdf_url": "",
+  "bibtex": "@Article{Giunchiglia1994MultilanguageHL,\n author = {Fausto Giunchiglia and L. Serafini},\n booktitle = {Compulog Net Meeting on Knowledge Bases},\n journal = {Artif. Intell.},\n pages = {29-70},\n title = {Multilanguage hierarchical logics (or: how we can do without modal logics)},\n volume = {65},\n year = {1994}\n}\n",
+  "venue": "Compulog Net Meeting on Knowledge Bases",
+  "venue_type": "conference",
+  "volume": "65",
+  "pages": "29-70"
+}

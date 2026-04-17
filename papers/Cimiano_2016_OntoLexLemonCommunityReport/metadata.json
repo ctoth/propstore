@@ -1,0 +1,27 @@
+{
+  "title": "Lexicon Model for Ontologies: Community Report",
+  "authors": [
+    "John P. McCrae",
+    "Julia Bosque-Gil",
+    "Jorge Gracia",
+    "Paul Buitelaar",
+    "Philipp Cimiano"
+  ],
+  "editors": [
+    "Philipp Cimiano",
+    "John P. McCrae",
+    "Paul Buitelaar"
+  ],
+  "year": 2016,
+  "date": "2016-05-10",
+  "publisher": "W3C Ontology-Lexica Community Group",
+  "venue": "W3C Community Report (Final)",
+  "version": "Final 2.0",
+  "url": "https://www.w3.org/2016/05/ontolex/",
+  "doi": null,
+  "arxiv_id": null,
+  "retrieval_method": "headless-chrome-print-to-pdf",
+  "retrieved_at": "2026-04-16",
+  "source_format": "HTML",
+  "abstract": "This document describes the lexicon model for ontologies (lemon/OntoLex) developed by the W3C Ontology-Lexica Community Group. The model provides a rich linguistic grounding for ontologies, including the representation of morphological and syntactic properties of lexical entries as well as the syntax-semantics interface, i.e. the meaning of these lexical entries with respect to an ontology or vocabulary. Modules cover the ontology-lexicon interface, syntax and semantics, decomposition, variation and translation, linguistic metadata, and lexicography."
+}
