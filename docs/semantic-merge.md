@@ -17,19 +17,19 @@ The important consequence is:
 
 ## What Exists Now
 
-The repository layer exposes these public merge modules:
+The storage layer exposes these public merge modules:
 
 | Module | What it does |
 |---|---|
-| `propstore/repo/merge_framework.py` | `PartialArgumentationFramework`, completion enumeration, exact per-pair edit distance |
-| `propstore/repo/merge_classifier.py` | `MergeArgument`, `RepoMergeFramework`, `build_merge_framework()` — direct repo emission of the formal merge object |
-| `propstore/repo/merge_commit.py` | `create_merge_commit()` — two-parent storage merge built from the formal merge object |
-| `propstore/repo/paf_merge.py` | exact `consensual_expand()`, `sum_merge_frameworks()`, `max_merge_frameworks()`, `leximax_merge_frameworks()` |
-| `propstore/repo/paf_queries.py` | skeptical and credulous completion queries |
-| `propstore/repo/merge_report.py` | repo-facing summary/report helper over merge frameworks |
-| `propstore/repo/structured_merge.py` | branch-local structured summaries via ASPIC projection, then exact merge candidates over those summaries |
+| `propstore/storage/merge_framework.py` | `PartialArgumentationFramework`, completion enumeration, exact per-pair edit distance |
+| `propstore/storage/merge_classifier.py` | `MergeArgument`, `RepositoryMergeFramework`, `build_merge_framework()` — direct storage emission of the formal merge object |
+| `propstore/storage/merge_commit.py` | `create_merge_commit()` — two-parent storage merge built from the formal merge object |
+| `propstore/storage/paf_merge.py` | exact `consensual_expand()`, `sum_merge_frameworks()`, `max_merge_frameworks()`, `leximax_merge_frameworks()` |
+| `propstore/storage/paf_queries.py` | skeptical and credulous completion queries |
+| `propstore/storage/merge_report.py` | storage-facing summary/report helper over merge frameworks |
+| `propstore/storage/structured_merge.py` | branch-local structured summaries via ASPIC projection, then exact merge candidates over those summaries |
 
-`propstore/repo/__init__.py` re-exports the public merge surface.
+`propstore/storage/__init__.py` re-exports the public merge surface.
 
 ## Formal Mapping
 
@@ -51,7 +51,7 @@ The literature alignment is:
 
 ## Repository Merge Object
 
-`propstore/repo/merge_classifier.py`
+`propstore/storage/merge_classifier.py`
 
 ### `build_merge_framework()`
 
@@ -60,10 +60,10 @@ def build_merge_framework(
     kr: GitStore,
     branch_a: str,
     branch_b: str,
-) -> RepoMergeFramework
+) -> RepositoryMergeFramework
 ```
 
-This is the public repo merge boundary.
+This is the public storage merge boundary.
 
 It:
 
@@ -74,9 +74,9 @@ It:
 
 The output is:
 
-- `RepoMergeFramework.branch_a`, `branch_b`
-- `RepoMergeFramework.arguments`: emitted alternatives with provenance
-- `RepoMergeFramework.framework`: the formal partial framework
+- `RepositoryMergeFramework.branch_a`, `branch_b`
+- `RepositoryMergeFramework.arguments`: emitted alternatives with provenance
+- `RepositoryMergeFramework.framework`: the formal partial framework
 
 ### `MergeArgument`
 
@@ -100,7 +100,7 @@ The internal left-v-right conflict check still uses the existing conflict detect
 
 ## Partial Framework Kernel
 
-`propstore/repo/merge_framework.py`
+`propstore/storage/merge_framework.py`
 
 ### `PartialArgumentationFramework`
 
@@ -124,7 +124,7 @@ This is exact and intended for tiny merge objects and exact tests, not large-sca
 
 ## Exact Merge Operators
 
-`propstore/repo/paf_merge.py`
+`propstore/storage/paf_merge.py`
 
 ### `consensual_expand()`
 
@@ -150,7 +150,7 @@ These operators currently target tiny AF profiles and are intended as exact merg
 
 ## Completion Queries
 
-`propstore/repo/paf_queries.py`
+`propstore/storage/paf_queries.py`
 
 ### `skeptically_accepted_arguments()`
 
@@ -168,7 +168,7 @@ Currently supported semantics are:
 
 ## Storage Merge Commits
 
-`propstore/repo/merge_commit.py`
+`propstore/storage/merge_commit.py`
 
 ### `create_merge_commit()`
 
@@ -188,7 +188,7 @@ This creates a two-parent commit from the formal merge framework.
 Behavior:
 
 - non-claim files are merged left-over-right
-- claim content is serialized from `RepoMergeFramework.arguments`
+- claim content is serialized from `RepositoryMergeFramework.arguments`
 - conflicting emitted alternatives keep disambiguated IDs and `branch_origin` provenance
 - the commit stores both parents and updates `target_branch`
 
@@ -197,7 +197,7 @@ It should be read as a projection artifact, not as the thing that makes the disa
 
 ## Structured Merge Slice
 
-`propstore/repo/structured_merge.py`
+`propstore/storage/structured_merge.py`
 
 ### `build_branch_structured_summary()`
 
