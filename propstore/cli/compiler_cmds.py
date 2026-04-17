@@ -2199,85 +2199,87 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
                     skip_grounding: bool, skip_bridge: bool,
                     ranking_policy: str, fmt: str) -> None:
     """Rank intervention targets by fragility — what to inspect next."""
-    from propstore.fragility import rank_fragility
+    from propstore.fragility import FragilityRequest, query_fragility
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, context_id = _parse_bindings(args)
-        bound = _bind_world(wm, bindings, context_id=context_id)
-
-        report = rank_fragility(
-            bound,
-            concept_id=concept_id,
-            top_k=top_k,
-            include_atms=not skip_atms,
-            include_discovery=not skip_discovery,
-            include_conflict=not skip_conflict,
-            include_grounding=not skip_grounding,
-            include_bridge=not skip_bridge,
-            ranking_policy=ranking_policy,
+        report = query_fragility(
+            wm,
+            FragilityRequest(
+                bindings=bindings,
+                context_id=context_id,
+                concept_id=concept_id,
+                top_k=top_k,
+                include_atms=not skip_atms,
+                include_discovery=not skip_discovery,
+                include_conflict=not skip_conflict,
+                include_grounding=not skip_grounding,
+                include_bridge=not skip_bridge,
+                ranking_policy=ranking_policy,
+            ),
         )
 
-        if fmt == "json":
-            result_dict = {
-                "world_fragility": report.world_fragility,
-                "analysis_scope": report.analysis_scope,
-                "interventions": [
-                    {
-                        "intervention_id": item.target.intervention_id,
-                        "kind": item.target.kind,
-                        "family": item.target.family,
-                        "subject_id": item.target.subject_id,
-                        "description": item.target.description,
-                        "cost_tier": item.target.cost_tier,
-                        "local_fragility": item.local_fragility,
-                        "roi": item.roi,
-                        "ranking_policy": item.ranking_policy,
-                        "score_explanation": item.score_explanation,
-                    }
-                    for item in report.interventions
-                ],
-                "interactions": [asdict(i) for i in report.interactions],
-            }
-            click.echo(json.dumps(result_dict, indent=2))
-        else:
-            click.echo(f"Fragility Analysis (top {top_k}, ranking={ranking_policy})")
-            click.echo("=" * 60)
-            click.echo("")
+    if fmt == "json":
+        result_dict = {
+            "world_fragility": report.world_fragility,
+            "analysis_scope": report.analysis_scope,
+            "interventions": [
+                {
+                    "intervention_id": item.target.intervention_id,
+                    "kind": item.target.kind,
+                    "family": item.target.family,
+                    "subject_id": item.target.subject_id,
+                    "description": item.target.description,
+                    "cost_tier": item.target.cost_tier,
+                    "local_fragility": item.local_fragility,
+                    "roi": item.roi,
+                    "ranking_policy": item.ranking_policy,
+                    "score_explanation": item.score_explanation,
+                }
+                for item in report.interventions
+            ],
+            "interactions": [asdict(i) for i in report.interactions],
+        }
+        click.echo(json.dumps(result_dict, indent=2))
+    else:
+        click.echo(f"Fragility Analysis (top {top_k}, ranking={ranking_policy})")
+        click.echo("=" * 60)
+        click.echo("")
+        click.echo(
+            f"{'Rank':>4}  {'Score':>5}  {'ROI':>5}  {'Cost':>4}  {'Family':<10} {'Kind':<20} {'Intervention'}"
+        )
+        for i, item in enumerate(report.interventions, 1):
+            roi = f"{item.roi:.2f}"
+            cost = str(item.target.cost_tier)
             click.echo(
-                f"{'Rank':>4}  {'Score':>5}  {'ROI':>5}  {'Cost':>4}  {'Family':<10} {'Kind':<20} {'Intervention'}"
+                f"{i:>4}  {item.local_fragility:>5.2f}  {roi:>5}  {cost:>4}  "
+                f"{item.target.family:<10} {item.target.kind:<20} {item.target.intervention_id}"
             )
-            for i, item in enumerate(report.interventions, 1):
-                roi = f"{item.roi:.2f}"
-                cost = str(item.target.cost_tier)
-                click.echo(
-                    f"{i:>4}  {item.local_fragility:>5.2f}  {roi:>5}  {cost:>4}  "
-                    f"{item.target.family:<10} {item.target.kind:<20} {item.target.intervention_id}"
-                )
-            click.echo("")
-            click.echo(f"World fragility: {report.world_fragility:.2f}")
+        click.echo("")
+        click.echo(f"World fragility: {report.world_fragility:.2f}")
 
-            # Display interactions if present
-            if report.interactions:
-                click.echo("")
-                click.echo("Interactions:")
-                for inter in report.interactions:
-                    itype = inter.interaction_type
-                    a_id = inter.intervention_a_id
-                    b_id = inter.intervention_b_id
-                    concepts = inter.subjects_affected
-                    if itype == "synergistic":
-                        desc = "synergistic (neither alone flips, both together flip)"
-                    elif itype == "redundant":
-                        desc = "redundant (both alone flip — learning one suffices)"
-                    elif itype == "mixed":
-                        desc = "mixed (synergistic and redundant for different concepts)"
-                    elif itype == "independent":
-                        desc = "independent"
-                    else:
-                        desc = "unknown (no ATMS data)"
-                    concept_str = f" for {', '.join(concepts)}" if concepts else ""
-                    click.echo(f"  {a_id} + {b_id}: {desc}{concept_str}")
+        # Display interactions if present
+        if report.interactions:
+            click.echo("")
+            click.echo("Interactions:")
+            for inter in report.interactions:
+                itype = inter.interaction_type
+                a_id = inter.intervention_a_id
+                b_id = inter.intervention_b_id
+                concepts = inter.subjects_affected
+                if itype == "synergistic":
+                    desc = "synergistic (neither alone flips, both together flip)"
+                elif itype == "redundant":
+                    desc = "redundant (both alone flip — learning one suffices)"
+                elif itype == "mixed":
+                    desc = "mixed (synergistic and redundant for different concepts)"
+                elif itype == "independent":
+                    desc = "independent"
+                else:
+                    desc = "unknown (no ATMS data)"
+                concept_str = f" for {', '.join(concepts)}" if concepts else ""
+                click.echo(f"  {a_id} + {b_id}: {desc}{concept_str}")
 
 
 @world.command("check-consistency")
