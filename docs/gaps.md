@@ -19,8 +19,6 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 - **`opinion.wbf()` is algebraically aCBF, not WBF.** `propstore/opinion.py` implementation has three structural divergences from the van der Heijden 2018 WBF formula; worked example drifts 0.175 absolute on uncertainty. Commit `c7a9215` self-acknowledges the open bug. Citation: axis-6 declared-limitation 4 "materially false"; axis-3b F1. Plan: WS-Z-types (axis-3b docket).
 
-- **Defeasibility priority information unconditionally dropped.** `propstore/grounding/translator.py:171-178` hard-codes `superiority=[]`; `propstore/aspic_bridge/translate.py:275-280` hard-codes `rule_order=frozenset()`. Priority data flows in from rule files and is dropped on the floor twice before reaching the ASPIC+ layer. CLAUDE.md's "rule ordering always empty" understates: the drop is systematic across the whole subsystem. Citation: axis-6 item 6; axis-7; axis-9. Plan: WS-C (defeasibility).
-
 - **Sidecar claim SI normalization silently writes non-SI values to `_si` columns.** `propstore/sidecar/claim_utils.py:596-606` — on `ValueError`/`TypeError` from `normalize_to_si`, the code writes `value_si = typed_fields.value` (i.e., the unnormalized value). Downstream queries trust the `_si` suffix. Citation: axis-5 Finding 3.1. Plan: not yet scheduled (axis-5 docket).
 
 ### MED
@@ -31,7 +29,7 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 - **Probabilistic argumentation treewidth bound doesn't deliver.** `propstore/praf/treedecomp.py:13-17` self-documents row count as `O(2^|defeats| * 2^|args|)`, not the Popescu & Wallner 2024 `O(2^tw)` bound the engine dispatch assumes. Queries the engine considers cheap may be exponentially expensive. Citation: axis-6 item 5; axis-3a. Plan: WS-C or independent.
 
-- **Preference heuristic is not Modgil-Prakken.** `propstore/preference.py` uses Pareto dominance on a 3-vector; Modgil-Prakken 2018 Def 22 is a strict partial order from a base ordering over premises. File self-documents the split but the heuristic flows into the bridge unlabeled. Citation: axis-6 item 11; axis-3a. Plan: WS-C (defeasibility).
+- **Ordinary-premise ordering remains metadata-derived.** Authored rule-file superiority now populates ASPIC+ `rule_order` as a strict partial order, but ordinary-premise ordering still comes from Pareto dominance over `metadata_strength_vector()`, not from an authored premise-priority surface. Citation: narrowed residue of axis-6 item 11; axis-3a. Plan: future premise-priority authoring workstream if premise priorities become a first-class input.
 
 - **Oikarinen strong-equivalence kernels are absent.** No production module implements Oikarinen 2010 `a`/`a*`/`c` kernels or kernel-based strong-equivalence checks for Dung AFs. Phase 5 of the paper-grounded test-suite workstream searched for a production surface and recorded the absence in `reports/paper-grounded-oikarinen-kernel-gap-2026-04-16.md`; no placeholder tests were added. Citation: axis-3a item 5; paper manifest `Oikarinen_2010_CharacterizingStrongEquivalenceArgumentation`; `plans/paper-grounded-test-suite-workstream-2026-04-16.md` Phase 5. Plan: future argumentation strong-equivalence implementation workstream.
 
@@ -60,6 +58,10 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 - **Citation-pattern drift across codebase.** `aspic.py`, `world/types.py` (Denoeux→Jøsang), and `wbf()` (WBF name, aCBF computation) cite papers for authority while implementing something different. Citation: axis-6 item 15; axis-9 cross-cutting. Plan: citation-as-claim CI lint (per disciplines.md rule 1) + workstream-specific closures.
 
 ## Closed gaps (reference only — kept for traceability)
+
+### Closed 2026-04-17 (WS-C Defeasibility)
+- axis-6 item 6 / axis-7 / axis-9 — defeasibility priority information was unconditionally dropped by `superiority=[]` in the grounding translator and `rule_order=frozenset()` in the ASPIC bridge. Closed by `RulesFileDocument.superiority`, translator strict-partial-order validation and emission, and ASPIC bridge projection of authored schematic superiority onto grounded `PreferenceConfig.rule_order` pairs. Evidence: `tests/test_rule_documents.py`, `tests/test_grounding_translator.py`, `tests/test_defeasible_conformance_tranche.py`, `tests/test_preference.py`, `tests/test_aspic_bridge.py`.
+- WS-C C-3/C-4 — CKR-style justifiable exceptions and exception-derived ASPIC+ boundary defeats were absent. Closed by `propstore.defeasibility` support-bearing exception contracts, contextual satisfaction, explicit lifting, unknown-aware decidability status, and `apply_exception_defeats_to_csaf(...)`. Evidence: `tests/test_defeasibility_support_contract.py`, `tests/test_defeasibility_satisfaction.py`, `tests/test_defeasibility_aspic_integration.py`.
 
 ### Closed 2026-04-17 (WS-Z-types)
 - axis-1 Finding 2.1 / axis-6 item 9 — hardcoded `_DEFAULT_BASE_RATES` fabricated category priors. Closed by replacing the constant with explicit `CategoryPrior` / `CategoryPriorRegistry` inputs and vacuous provenanced opinions when no prior is supplied. Evidence: `tests/test_calibrate.py`, `tests/test_relate_opinions.py`, grep gate for `_DEFAULT_BASE_RATES`.

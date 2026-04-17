@@ -8,13 +8,13 @@ For scientific claims, this matters because a claim supported by a strict logica
 
 ### The Translation Pipeline (T1-T7)
 
-The bridge module (`propstore/aspic_bridge.py`) translates propstore's claim graph into formal ASPIC+ types via seven translation steps. Each step corresponds to a definition in Modgil & Prakken (2018).
+The bridge package (`propstore.aspic_bridge`) translates propstore's claim graph into formal ASPIC+ types via seven translation steps. Each step corresponds to a definition in Modgil & Prakken (2018).
 
 **T1: Claims become literals** (Def 1, p.8)
 
 Each active claim becomes a `Literal(atom=claim_id, negated=False)`. The atom is the claim ID, not the concept ID, because multiple claims can bind to the same concept with different values. The logical language L is closed under contrariness: for every literal, its complement is also in L.
 
-`propstore/aspic_bridge.py:88` — `claims_to_literals()`
+`propstore/aspic_bridge/translate.py` — `claims_to_literals()`
 
 **T2: Justifications become inference rules** (Def 2, p.8)
 
@@ -24,7 +24,7 @@ Each canonical justification becomes a `Rule` mapping premise literals to a conc
 
 Rules where premise or conclusion literals are missing (because the corresponding claim is inactive) are silently dropped.
 
-`propstore/aspic_bridge.py:113` — `justifications_to_rules()`
+`propstore/aspic_bridge/translate.py` — `justifications_to_rules()`
 
 **T3: Stances become contrariness relations** (Def 2, p.8)
 
@@ -35,7 +35,7 @@ Stances between claims define the contrariness function:
 
 This distinction matters for defeat: contradictory attacks are filtered through preferences (either side can win), while contrary attacks always defeat (the attacker wins regardless of preference).
 
-`propstore/aspic_bridge.py:173` — `stances_to_contrariness()`
+`propstore/aspic_bridge/translate.py` — `stances_to_contrariness()`
 
 **T4: Claims partitioned into knowledge base** (Def 4, p.9)
 
@@ -43,15 +43,15 @@ Claims with `reported_claim` justifications become premises in the knowledge bas
 - `premise_kind="necessary"` places the claim in K_n (axioms — firm, cannot be attacked)
 - All other premise kinds place the claim in K_p (ordinary premises — can be undermined)
 
-`propstore/aspic_bridge.py:261` — `claims_to_kb()`
+`propstore/aspic_bridge/translate.py` — `claims_to_kb()`
 
-**T5: Metadata strength vectors become preference ordering** (Def 22, p.22)
+**T5: Preference configuration** (Defs 19-22, p.21-22)
 
-Each claim carries a `metadata_strength_vector`. Component-wise Pareto domination between vectors defines the premise ordering: claim A is preferred over claim B iff A dominates B on every component. Transitive closure is applied to the resulting relation.
+Each claim carries a `metadata_strength_vector`. Component-wise Pareto domination between vectors defines the current heuristic premise ordering: claim A is preferred over claim B iff A dominates B on every component. Transitive closure is applied to the resulting relation.
 
-Rule ordering is always empty. Only premise ordering from metadata has discriminating power. This is a known limitation.
+Rule ordering is populated from authored rule-file `superiority` data. Rule-file pairs are authored as `(superior_rule_id, inferior_rule_id)`, validated and closed as a strict partial order, then projected into ASPIC+ `PreferenceConfig.rule_order` as `(weaker_rule, stronger_rule)` pairs over grounded defeasible rules.
 
-`propstore/aspic_bridge.py:341` — `build_preference_config()`
+`propstore/aspic_bridge/translate.py` — `build_preference_config()`
 
 **T6: Full CSAF assembly** (Def 12, p.13)
 
@@ -64,18 +64,18 @@ The orchestrator calls T1-T5 in sequence, then:
 
 The result is a `CSAF` (Complete Structured Argumentation Framework) that bundles the argumentation system, knowledge base, preferences, arguments, attacks, defeats, and the induced Dung AF.
 
-`propstore/aspic_bridge.py:441` — `build_bridge_csaf()`
+`propstore/aspic_bridge/build.py` — `build_bridge_csaf()`
 
 **T7: Projection back to StructuredArgument instances** (Def 5)
 
 ASPIC+ arguments are mapped back to `StructuredArgument` dataclasses for downstream consumption. Transposition artifacts (negated literals or atoms not matching any claim ID) are excluded from projection. Argument strength is computed as the mean of the claim strength vector. The framework's defeats and attacks are filtered to projected arguments only.
 
-`propstore/aspic_bridge.py:543` — `csaf_to_projection()`
+`propstore/aspic_bridge/projection.py` — `csaf_to_projection()`
 
 ## Architecture
 
 ```
-structured_projection.py              aspic_bridge.py                aspic.py
+structured_projection.py              aspic_bridge/                 aspic.py
   build_structured_projection() ---> build_aspic_projection()
                                        _extract_stance_rows()
                                        _extract_justifications()
@@ -93,9 +93,9 @@ structured_projection.py              aspic_bridge.py                aspic.py
     -> grounded_extension() / preferred_extensions() / etc. (dung.py)
 ```
 
-Data flows one way: claims/stances/justifications enter as propstore domain objects, are translated into formal ASPIC+ types, pass through argument construction and attack/defeat computation, produce a Dung AF, and exit as extensions.
+Data flows one way: claims/stances/justifications and grounded rule priorities enter as propstore domain objects, are translated into formal ASPIC+ types, pass through argument construction and attack/defeat computation, produce a Dung AF, and exit as extensions. CKR-style contextual exceptions are integrated after ASPIC+ argument construction by adding exception-derived Dung defeats with `propstore.defeasibility.apply_exception_defeats_to_csaf(...)`.
 
-`propstore/aspic.py` is a leaf module with zero propstore imports. It implements ASPIC+ in pure logic. `propstore/aspic_bridge.py` handles all translation between propstore's claim graph and the formal engine. `propstore/structured_projection.py` provides the public dataclasses and thin delegation wrappers.
+`propstore/aspic.py` is a leaf module with zero propstore imports. It implements ASPIC+ in pure logic. `propstore.aspic_bridge` handles all translation between propstore's claim graph and the formal engine. `propstore/structured_projection.py` provides the public dataclasses and thin delegation wrappers.
 
 ## Argument Construction
 
@@ -243,7 +243,7 @@ These properties are verified by Hypothesis property-based tests over randomly g
 
 ### Bridge-Level Integration: `query_claim()`
 
-`query_claim()` in `propstore/aspic_bridge.py` provides the claim-graph-level integration. It runs the same T1-T5 translation pipeline as `build_bridge_csaf()`, then replaces the exhaustive `build_arguments()` with `build_arguments_for()` for the queried claim.
+`query_claim()` in `propstore.aspic_bridge` provides the claim-graph-level integration. It runs the same T1-T5 translation pipeline as `build_bridge_csaf()`, then replaces the exhaustive `build_arguments()` with `build_arguments_for()` for the queried claim.
 
 ```python
 from propstore.aspic_bridge import query_claim
@@ -296,7 +296,7 @@ query_claim()  ─────────────────────�
 
 ## Known Limitations
 
-- **Rule ordering always empty**: `build_preference_config()` sets `rule_order=frozenset()`. Only premise ordering derived from metadata strength vectors has discriminating power. This means two arguments using different defeasible rules but identical premises are preference-incomparable.
+- **Premise ordering is metadata-derived**: authored rule priorities now populate `rule_order`, but ordinary-premise ordering still comes from `metadata_strength_vector()` rather than an authored premise-priority surface.
 - **K_a partition missing**: Odekerken (2023) defines assumption premises as a third knowledge base partition K_a. This is not yet implemented.
 
 ## References
