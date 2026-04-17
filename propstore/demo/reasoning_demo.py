@@ -79,6 +79,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                     "type": "parameter",
                     "concept": "flight_score",
                     "value": 1.0,
+                    "context": {"id": "demo"},
                     "provenance": {"paper": "reasoning_demo", "page": 1},
                 },
                 {
@@ -86,6 +87,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                     "type": "parameter",
                     "concept": "flight_score",
                     "value": 0.0,
+                    "context": {"id": "demo"},
                     "provenance": {"paper": "reasoning_demo", "page": 1},
                 },
                 {
@@ -93,6 +95,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                     "type": "observation",
                     "statement": "Independent evidence defeats the non-flight claim.",
                     "concepts": ["tweety"],
+                    "context": {"id": "demo"},
                     "provenance": {"paper": "reasoning_demo", "page": 1},
                 },
             ],
@@ -161,6 +164,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
             "concepts/bird_class.yaml": render_yaml_value(bird_class).encode("utf-8"),
             "concepts/tweety.yaml": render_yaml_value(tweety).encode("utf-8"),
             "concepts/flight_score.yaml": render_yaml_value(flight_score).encode("utf-8"),
+            "contexts/demo.yaml": render_yaml_value({"id": "demo", "name": "Reasoning demo"}).encode("utf-8"),
             "claims/reasoning_demo.yaml": render_yaml_value(claims_payload).encode("utf-8"),
             "predicates/reasoning_demo.yaml": render_yaml_value(predicates_payload).encode("utf-8"),
             "rules/reasoning_demo.yaml": render_yaml_value(rules_payload).encode("utf-8"),

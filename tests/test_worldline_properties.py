@@ -18,7 +18,7 @@ from hypothesis import strategies as st
 from propstore.sidecar.build import build_sidecar
 from propstore.world import HypotheticalWorld, WorldModel
 from propstore.worldline import WorldlineDefinition, run_worldline
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
 # ── Fixtures ────────────────────────────────────────────────────────
@@ -40,6 +40,7 @@ def property_kb(tmp_path_factory):
     - concept8 (distance): claim dist=100.0 (unrelated to force)
     """
     root = tmp_path_factory.mktemp("prop_kb") / "knowledge"
+    write_test_context(root)
     concepts_dir = root / "concepts"
     concepts_dir.mkdir(parents=True)
     (concepts_dir / ".counters").mkdir()

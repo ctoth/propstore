@@ -12,7 +12,7 @@ from propstore.repository import Repository
 from propstore.storage.branch import create_branch
 from propstore.storage.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import make_test_context_commit_entry, normalize_claims_payload, normalize_concept_payloads
 
 
 def _concept_payload(
@@ -208,6 +208,7 @@ def test_log_yaml_reports_worldline_materialization_history(tmp_path: Path) -> N
     repo = Repository.init(root)
     git = repo.git
     assert git is not None
+    context_path, context_body = make_test_context_commit_entry()
 
     concept = _concept_payload(
         "concept1",
@@ -249,6 +250,7 @@ def test_log_yaml_reports_worldline_materialization_history(tmp_path: Path) -> N
                 sort_keys=False,
                 allow_unicode=True,
             ).encode("utf-8"),
+            context_path: context_body,
         },
         "Seed worldline inputs",
     )

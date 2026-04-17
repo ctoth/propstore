@@ -227,7 +227,7 @@ def test_bound_world_uses_singleton_binding_labels() -> None:
     assert result.label == Label.singleton(by_cel["x == 1"])
 
 
-def test_context_scoped_claim_is_not_labeled_as_unconditional() -> None:
+def test_context_scoped_claim_gets_explicit_context_label() -> None:
     class ContextScopedStore(_StubStore):
         def __init__(self) -> None:
             self._claims = [
@@ -258,7 +258,7 @@ def test_context_scoped_claim_is_not_labeled_as_unconditional() -> None:
     result = bound.value_of("concept_ctx")
 
     assert result.status == "determined"
-    assert result.label is None
+    assert result.label == Label.context("ctx_general")
 
 
 def test_semantically_active_claim_without_exact_assumption_match_gets_no_label() -> None:

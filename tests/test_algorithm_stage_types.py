@@ -45,6 +45,7 @@ def test_claim_file_stage_split_is_preserved(tmp_path) -> None:
                         "body": "def compute(x):\n    return x\n",
                         "stage": "inference",
                         "variables": [{"name": "x", "concept": "concept1"}],
+                        "context": {"id": "ctx_test"},
                         "provenance": {"paper": "test_paper", "page": 1},
                     }
                 ],
