@@ -83,7 +83,7 @@ def plan_repository_import(
     repository_name = _infer_repository_name(source_repository)
     selected_branch = target_branch or f"import/{repository_name}"
     writes, warnings = SEMANTIC_FAMILIES.normalize_import_writes(
-        destination_repository.artifacts,
+        destination_repository.families.store,
         _iter_semantic_paths(source_repository, commit=source_commit),
         repository_name=repository_name,
     )
@@ -124,23 +124,19 @@ def commit_repository_import(
     if repository.snapshot.branch_head(plan.target_branch) is None and plan.target_branch != primary_branch:
         repository.snapshot.ensure_branch(plan.target_branch)
 
-    with repository.artifacts.transact(
+    with repository.families.transact(
         message=message or f"Import {plan.repository_name} at {plan.source_commit[:12]}",
         branch=plan.target_branch,
     ) as transaction:
         for planned_write in plan.writes.values():
-            transaction.save(
-                cast(Any, planned_write.family),
+            transaction.by_artifact_family(cast(Any, planned_write.family)).save(
                 cast(Any, planned_write.ref),
                 cast(Any, planned_write.document),
             )
         for path in plan.deletes:
             semantic_family = SEMANTIC_FAMILIES.family_for_path(path)
-            artifact_family = semantic_family.artifact_family
-            transaction.delete(
-                cast(Any, artifact_family),
-                repository.artifacts.ref_from_path(cast(Any, artifact_family), path),
-            )
+            bound_family = transaction.by_artifact_family(cast(Any, semantic_family.artifact_family))
+            bound_family.delete(bound_family.ref_from_path(path))
     commit_sha = transaction.commit_sha
     if commit_sha is None:
         raise ValueError("repo import transaction did not produce a commit")
