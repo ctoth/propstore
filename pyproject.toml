@@ -18,7 +18,7 @@ dependencies = [
     "pint>=0.25.3",
     "dulwich>=1.1.0",
     "gunray @ git+https://github.com/ctoth/gunray@3ea1a00e414cbd445f40d4b2e7f1d7f58dd9756c",
-    "quire @ git+https://github.com/ctoth/quire@500d234bb6273cd3cff29b2a47997be93c19f327",
+    "quire @ git+https://github.com/ctoth/quire@af98d14d0ad2a8af27f9f7e2ac1e6ac68092b0bd",
 ]
 
 [project.optional-dependencies]

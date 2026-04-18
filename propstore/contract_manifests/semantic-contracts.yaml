@@ -3562,5 +3562,5 @@ contracts:
     source_field: replaced_by
     target_family: concept
 registry:
-  name: semantic-family-registry
-  contract_version: 2026.04.27
+  name: propstore
+  contract_version: 2026.04.28

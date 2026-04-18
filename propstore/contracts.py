@@ -103,8 +103,8 @@ def build_propstore_contract_manifest() -> ContractManifest:
         format_version=1,
         package_name="propstore",
         package_version="0.1.0",
-        registry_name="semantic-family-registry",
-        registry_contract_version=PROPSTORE_REGISTRY_CONTRACT_VERSION,
+        registry_name=PROPSTORE_FAMILY_REGISTRY.name,
+        registry_contract_version=PROPSTORE_FAMILY_REGISTRY.contract_version,
         contracts=tuple(contracts),
     )
 
