@@ -1,9 +1,4 @@
-"""Per-type claim validators emitting SemanticDiagnostic directly.
-
-Moved from propstore/validate_claims.py in phase 6 of the validation
-pipeline migration.  Every function here appends to a
-``list[SemanticDiagnostic]`` instead of mutating a ``ValidationResult``.
-"""
+"""Claim validation checks driven by claim-type contract declarations."""
 
 from __future__ import annotations
 
@@ -14,6 +9,12 @@ import bridgman
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
+from propstore.artifacts.documents.claims import (
+    ClaimTypeContract,
+    ClaimUnitPolicyDeclaration,
+    ClaimValueGroupDeclaration,
+    claim_type_contract_for,
+)
 from propstore.compiler.context import CompilationContext
 from propstore.compiler.references import (
     concept_exists,
@@ -33,6 +34,24 @@ from propstore.stances import VALID_STANCE_TYPES
 # ---------------------------------------------------------------------------
 # Validators
 # ---------------------------------------------------------------------------
+
+
+def _record(
+    diagnostics: list[SemanticDiagnostic],
+    *,
+    level: str = "error",
+    message: str,
+    filename: str,
+    artifact_id: str | None = None,
+) -> None:
+    diagnostics.append(
+        SemanticDiagnostic(
+            level=level,
+            message=message,
+            filename=filename,
+            artifact_id=artifact_id,
+        )
+    )
 
 
 def _validate_logical_ids(
@@ -246,11 +265,12 @@ def _validate_stances(
 def _validate_value_fields(
     claim: dict, cid: str, filename: str,
     label: str, diagnostics: list[SemanticDiagnostic],
+    value_group: ClaimValueGroupDeclaration,
 ) -> None:
     """Validate value, bounds, and uncertainty fields shared by parameter and measurement claims."""
-    value = claim.get("value")
-    lower_bound = claim.get("lower_bound")
-    upper_bound = claim.get("upper_bound")
+    value = claim.get(value_group.value_field)
+    lower_bound = claim.get(value_group.lower_bound_field)
+    upper_bound = claim.get(value_group.upper_bound_field)
 
     has_value = value is not None
     has_lower = lower_bound is not None
@@ -260,8 +280,9 @@ def _validate_value_fields(
         diagnostics.append(SemanticDiagnostic(
             level="error",
             message=(
-                f"{label} claim '{cid}' missing 'value' "
-                f"(must have value or lower_bound+upper_bound)"
+                f"{label} claim '{cid}' missing '{value_group.value_field}' "
+                f"(must have {value_group.value_field} or "
+                f"{value_group.lower_bound_field}+{value_group.upper_bound_field})"
             ),
             filename=filename,
             artifact_id=cid,
@@ -270,14 +291,20 @@ def _validate_value_fields(
     if has_lower and not has_upper:
         diagnostics.append(SemanticDiagnostic(
             level="error",
-            message=f"{label} claim '{cid}' has lower_bound without upper_bound",
+            message=(
+                f"{label} claim '{cid}' has {value_group.lower_bound_field} "
+                f"without {value_group.upper_bound_field}"
+            ),
             filename=filename,
             artifact_id=cid,
         ))
     if has_upper and not has_lower:
         diagnostics.append(SemanticDiagnostic(
             level="error",
-            message=f"{label} claim '{cid}' has upper_bound without lower_bound",
+            message=(
+                f"{label} claim '{cid}' has {value_group.upper_bound_field} "
+                f"without {value_group.lower_bound_field}"
+            ),
             filename=filename,
             artifact_id=cid,
         ))
@@ -289,7 +316,10 @@ def _validate_value_fields(
             lb = None
             diagnostics.append(SemanticDiagnostic(
                 level="error",
-                message=f"{label} claim '{cid}' has non-numeric lower_bound: {lower_bound!r}",
+                message=(
+                    f"{label} claim '{cid}' has non-numeric "
+                    f"{value_group.lower_bound_field}: {lower_bound!r}"
+                ),
                 filename=filename,
                 artifact_id=cid,
             ))
@@ -299,34 +329,46 @@ def _validate_value_fields(
             ub = None
             diagnostics.append(SemanticDiagnostic(
                 level="error",
-                message=f"{label} claim '{cid}' has non-numeric upper_bound: {upper_bound!r}",
+                message=(
+                    f"{label} claim '{cid}' has non-numeric "
+                    f"{value_group.upper_bound_field}: {upper_bound!r}"
+                ),
                 filename=filename,
                 artifact_id=cid,
             ))
         if lb is not None and ub is not None and lb > ub:
             diagnostics.append(SemanticDiagnostic(
                 level="error",
-                message=f"{label} claim '{cid}' lower_bound > upper_bound",
+                message=(
+                    f"{label} claim '{cid}' {value_group.lower_bound_field} "
+                    f"> {value_group.upper_bound_field}"
+                ),
                 filename=filename,
                 artifact_id=cid,
             ))
 
-    uncertainty = claim.get("uncertainty")
-    uncertainty_type = claim.get("uncertainty_type")
+    uncertainty = claim.get(value_group.uncertainty_field)
+    uncertainty_type = claim.get(value_group.uncertainty_type_field)
     has_uncertainty = uncertainty is not None
     has_uncertainty_type = uncertainty_type is not None
 
     if has_uncertainty_type and not has_uncertainty:
         diagnostics.append(SemanticDiagnostic(
             level="error",
-            message=f"{label} claim '{cid}' has uncertainty_type without uncertainty",
+            message=(
+                f"{label} claim '{cid}' has {value_group.uncertainty_type_field} "
+                f"without {value_group.uncertainty_field}"
+            ),
             filename=filename,
             artifact_id=cid,
         ))
     if has_uncertainty and not has_uncertainty_type:
         diagnostics.append(SemanticDiagnostic(
             level="error",
-            message=f"{label} claim '{cid}' has uncertainty without uncertainty_type",
+            message=(
+                f"{label} claim '{cid}' has {value_group.uncertainty_field} "
+                f"without {value_group.uncertainty_type_field}"
+            ),
             filename=filename,
             artifact_id=cid,
         ))
@@ -338,14 +380,20 @@ def _validate_value_fields(
             uval = None
             diagnostics.append(SemanticDiagnostic(
                 level="error",
-                message=f"{label} claim '{cid}' has non-numeric uncertainty: {uncertainty!r}",
+                message=(
+                    f"{label} claim '{cid}' has non-numeric "
+                    f"{value_group.uncertainty_field}: {uncertainty!r}"
+                ),
                 filename=filename,
                 artifact_id=cid,
             ))
         if uval is not None and uval < 0:
             diagnostics.append(SemanticDiagnostic(
                 level="error",
-                message=f"{label} claim '{cid}' uncertainty must be >= 0",
+                message=(
+                    f"{label} claim '{cid}' "
+                    f"{value_group.uncertainty_field} must be >= 0"
+                ),
                 filename=filename,
                 artifact_id=cid,
             ))
@@ -366,56 +414,416 @@ def _concept_form_definition(
     return concept_form_definition(concept_ref, context)
 
 
-def _validate_parameter(
-    claim: dict, cid: str, filename: str,
-    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
+def validate_claim_semantics(
+    claim: dict,
+    cid: str,
+    filename: str,
+    context: CompilationContext,
+    diagnostics: list[SemanticDiagnostic],
 ) -> None:
-    concept = claim.get("concept")
-    if not concept:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"parameter claim '{cid}' missing 'concept'",
+    contract = claim_type_contract_for(claim.get("type"))
+    if contract is None:
+        _record(
+            diagnostics,
+            message=f"claim '{cid}' has unrecognized type '{claim.get('type')}'",
             filename=filename,
             artifact_id=cid,
-        ))
-    elif _has_concepts(context) and not _concept_exists(concept, context):
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"parameter claim '{cid}' references nonexistent concept '{concept}'",
-            filename=filename,
-            artifact_id=cid,
-        ))
+        )
+        return
 
-    _validate_value_fields(claim, cid, filename, "parameter", diagnostics)
+    _validate_claim_contract(claim, cid, filename, context, diagnostics, contract)
+    _run_claim_semantic_checks(claim, cid, filename, context, diagnostics, contract)
 
-    # Look up form definition before checking unit so we can auto-fill dimensionless.
-    form_def = _concept_form_definition(concept, context)
 
-    unit = claim.get("unit")
-    if not unit:
-        if form_def is not None and form_def.is_dimensionless:
-            claim["unit"] = "1"
-            unit = "1"
-        else:
-            diagnostics.append(SemanticDiagnostic(
-                level="error",
-                message=f"parameter claim '{cid}' missing 'unit'",
+def _validate_claim_contract(
+    claim: dict,
+    cid: str,
+    filename: str,
+    context: CompilationContext,
+    diagnostics: list[SemanticDiagnostic],
+    contract: ClaimTypeContract,
+) -> None:
+    label = contract.claim_type.value
+
+    for field in contract.required_fields:
+        if not claim.get(field):
+            _record(
+                diagnostics,
+                message=f"{label} claim '{cid}' missing '{field}'",
                 filename=filename,
                 artifact_id=cid,
-            ))
-    if unit and _concept_exists(concept, context):
+            )
+
+    for field in contract.nonempty_fields:
+        value = claim.get(field)
+        if not isinstance(value, list) or not value:
+            _record(
+                diagnostics,
+                message=f"{label} claim '{cid}' missing '{field}' (at least one required)",
+                filename=filename,
+                artifact_id=cid,
+            )
+
+    if contract.value_group is not None:
+        _validate_value_fields(
+            claim,
+            cid,
+            filename,
+            label,
+            diagnostics,
+            contract.value_group,
+        )
+
+    for reference in contract.concept_references:
+        _validate_concept_reference_declaration(
+            claim,
+            cid,
+            filename,
+            context,
+            diagnostics,
+            label,
+            field=reference.field,
+            source=reference.source,
+            message_subject=reference.message_subject,
+        )
+
+    if contract.unit_policy is not None:
+        _validate_unit_policy(
+            claim,
+            cid,
+            filename,
+            context,
+            diagnostics,
+            label,
+            contract.unit_policy,
+        )
+
+
+def _validate_concept_reference_declaration(
+    claim: dict,
+    cid: str,
+    filename: str,
+    context: CompilationContext,
+    diagnostics: list[SemanticDiagnostic],
+    label: str,
+    *,
+    field: str,
+    source: str,
+    message_subject: str | None,
+) -> None:
+    if source == "scalar":
+        concept_ref = claim.get(field)
+        if concept_ref and _has_concepts(context) and not _concept_exists(concept_ref, context):
+            _record(
+                diagnostics,
+                message=f"{label} claim '{cid}' references nonexistent concept '{concept_ref}'",
+                filename=filename,
+                artifact_id=cid,
+            )
+        return
+
+    if source == "list":
+        values = claim.get(field)
+        if not isinstance(values, list):
+            return
+        for concept_ref in values:
+            if _has_concepts(context) and not _concept_exists(concept_ref, context):
+                _record(
+                    diagnostics,
+                    message=(
+                        f"{label} claim '{cid}' references "
+                        f"nonexistent concept '{concept_ref}'"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+        return
+
+    if source == "bindings":
+        values = claim.get(field)
+        if not isinstance(values, list):
+            return
+        for entry in values:
+            if not isinstance(entry, dict):
+                continue
+            concept_ref = entry.get("concept")
+            if concept_ref and _has_concepts(context) and not _concept_exists(concept_ref, context):
+                subject = "" if message_subject is None else f" {message_subject}"
+                _record(
+                    diagnostics,
+                    message=(
+                        f"{label} claim '{cid}'{subject} references "
+                        f"nonexistent concept '{concept_ref}'"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+
+
+def _validate_unit_policy(
+    claim: dict,
+    cid: str,
+    filename: str,
+    context: CompilationContext,
+    diagnostics: list[SemanticDiagnostic],
+    label: str,
+    unit_policy: ClaimUnitPolicyDeclaration,
+) -> None:
+    concept_ref = (
+        claim.get(unit_policy.form_concept_field)
+        if unit_policy.form_concept_field is not None
+        else None
+    )
+    form_def = (
+        _concept_form_definition(concept_ref, context)
+        if unit_policy.form_concept_field is not None
+        else None
+    )
+    unit = claim.get("unit")
+    if not unit:
+        if (
+            unit_policy.dimensionless_default_unit is not None
+            and form_def is not None
+            and form_def.is_dimensionless
+        ):
+            claim["unit"] = unit_policy.dimensionless_default_unit
+            unit = unit_policy.dimensionless_default_unit
+        elif unit_policy.required:
+            _record(
+                diagnostics,
+                message=f"{label} claim '{cid}' missing 'unit'",
+                filename=filename,
+                artifact_id=cid,
+            )
+
+    if (
+        unit
+        and unit_policy.form_concept_field is not None
+        and _concept_exists(concept_ref, context)
+    ):
         if form_def is None:
-            diagnostics.append(SemanticDiagnostic(
-                level="error",
+            _record(
+                diagnostics,
                 message=(
-                    f"parameter claim '{cid}' concept '{concept}' "
+                    f"{label} claim '{cid}' concept '{concept_ref}' "
                     "is missing a loaded form definition"
                 ),
                 filename=filename,
                 artifact_id=cid,
-            ))
+            )
             return
-        _validate_unit_against_form(unit, form_def, cid, concept or "", filename, diagnostics)
+        _validate_unit_against_form(unit, form_def, cid, concept_ref or "", filename, diagnostics)
+
+
+def _run_claim_semantic_checks(
+    claim: dict,
+    cid: str,
+    filename: str,
+    context: CompilationContext,
+    diagnostics: list[SemanticDiagnostic],
+    contract: ClaimTypeContract,
+) -> None:
+    algorithm_tree: Any = None
+    for check in contract.semantic_checks:
+        if check == "sympy_generation":
+            _validate_equation_sympy_generation(claim, cid, filename, diagnostics)
+        elif check == "dimensional_consistency":
+            _validate_equation_dimensional_consistency(
+                claim,
+                cid,
+                filename,
+                context,
+                diagnostics,
+            )
+        elif check == "algorithm_parse":
+            algorithm_tree = _validate_algorithm_parse(
+                claim,
+                cid,
+                filename,
+                diagnostics,
+            )
+        elif check == "algorithm_unbound_names":
+            _validate_algorithm_unbound_names(
+                claim,
+                cid,
+                filename,
+                context,
+                diagnostics,
+                algorithm_tree,
+            )
+
+
+def _validate_equation_sympy_generation(
+    claim: dict,
+    cid: str,
+    filename: str,
+    diagnostics: list[SemanticDiagnostic],
+) -> None:
+    from propstore.sympy_generator import generate_sympy_with_error
+
+    expression = claim.get("expression")
+    sympy_field = claim.get("sympy")
+    if sympy_field:
+        sympy_result = generate_sympy_with_error(sympy_field)
+        if sympy_result.expression is None:
+            _record(
+                diagnostics,
+                message=(
+                    f"equation claim '{cid}' has invalid 'sympy' field: "
+                    f"cannot parse '{sympy_field}'"
+                    f" ({sympy_result.error})"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
+    elif expression:
+        generated = generate_sympy_with_error(expression)
+        if generated.expression is None:
+            _record(
+                diagnostics,
+                level="warning",
+                message=(
+                    f"equation claim '{cid}' could not auto-generate sympy "
+                    f"from expression '{expression}'"
+                    f" ({generated.error})"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
+
+
+def _validate_equation_dimensional_consistency(
+    claim: dict,
+    cid: str,
+    filename: str,
+    context: CompilationContext,
+    diagnostics: list[SemanticDiagnostic],
+) -> None:
+    sympy_str = claim.get("sympy")
+    variables = claim.get("variables")
+    if not sympy_str or not isinstance(variables, list):
+        return
+
+    try:
+        import sympy as sp
+
+        dim_map: dict[str, dict[str, int]] = {}
+        for var in variables:
+            if not isinstance(var, dict):
+                continue
+            var_concept = var.get("concept")
+            var_symbol = var.get("symbol")
+            if not var_concept or not _has_concepts(context) or not _concept_exists(var_concept, context):
+                continue
+            form_def = _concept_form_definition(var_concept, context)
+            if form_def is None:
+                continue
+            if form_def.dimensions is not None:
+                dims = dict(form_def.dimensions)
+            elif form_def.is_dimensionless:
+                dims = {}
+            else:
+                continue
+            if var_symbol:
+                dim_map[var_symbol] = dims
+            dim_map[var_concept] = dims
+
+        for cid_ref in re.findall(r"concept\d+", sympy_str):
+            if cid_ref not in dim_map and _concept_exists(cid_ref, context):
+                form_def = _concept_form_definition(cid_ref, context)
+                if form_def is not None:
+                    if form_def.dimensions is not None:
+                        dim_map[cid_ref] = dict(form_def.dimensions)
+                    elif form_def.is_dimensionless:
+                        dim_map[cid_ref] = {}
+
+        if not dim_map:
+            return
+
+        parsed = sp.sympify(sympy_str)
+        if isinstance(parsed, sp.Eq):
+            if not bridgman.verify_expr(parsed, dim_map):
+                _record(
+                    diagnostics,
+                    level="warning",
+                    message=(
+                        f"equation claim '{cid}' dimensional verification "
+                        f"failed for sympy '{sympy_str}'"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+        else:
+            _record(
+                diagnostics,
+                level="warning",
+                message=(
+                    f"equation claim '{cid}' sympy '{sympy_str}' "
+                    "is not an Eq() - cannot verify dimensional consistency. "
+                    "Wrap as Eq(lhs, rhs)."
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
+    except (KeyError, SyntaxError, bridgman.DimensionalError, TypeError):
+        pass
+
+
+def _validate_algorithm_parse(
+    claim: dict,
+    cid: str,
+    filename: str,
+    diagnostics: list[SemanticDiagnostic],
+) -> Any:
+    body = claim.get("body")
+    if not body:
+        return None
+    try:
+        return parse_algorithm(body)
+    except AlgorithmParseError as exc:
+        _record(
+            diagnostics,
+            message=f"algorithm claim '{cid}' body parse error: {exc}",
+            filename=filename,
+            artifact_id=cid,
+        )
+        return None
+
+
+def _validate_algorithm_unbound_names(
+    claim: dict,
+    cid: str,
+    filename: str,
+    context: CompilationContext,
+    diagnostics: list[SemanticDiagnostic],
+    tree: Any,
+) -> None:
+    variables = claim.get("variables")
+    if not isinstance(variables, list):
+        return
+
+    declared_names: set[str] = set()
+    for var in variables:
+        if isinstance(var, dict):
+            var_name = var.get("name") or var.get("symbol")
+            if var_name:
+                declared_names.add(var_name)
+
+    body = claim.get("body")
+    if body and tree is not None:
+        ast_names = extract_names(tree)
+        unbound = ast_names - KNOWN_BUILTINS - declared_names
+        for name in sorted(unbound):
+            _record(
+                diagnostics,
+                level="warning",
+                message=(
+                    f"algorithm claim '{cid}' body references "
+                    f"name '{name}' not declared in variables"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
 
 
 def _validate_unit_against_form(
@@ -467,325 +875,3 @@ def _validate_unit_against_form(
                 artifact_id=cid,
             ))
 
-
-def _validate_equation(
-    claim: dict, cid: str, filename: str,
-    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
-) -> None:
-    expression = claim.get("expression")
-    if not expression:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"equation claim '{cid}' missing 'expression'",
-            filename=filename,
-            artifact_id=cid,
-        ))
-
-    # Validate explicit sympy field if provided; warn if auto-generation fails when absent
-    from propstore.sympy_generator import generate_sympy_with_error
-    sympy_field = claim.get("sympy")
-    if sympy_field:
-        sympy_result = generate_sympy_with_error(sympy_field)
-        if sympy_result.expression is None:
-            diagnostics.append(SemanticDiagnostic(
-                level="error",
-                message=(
-                    f"equation claim '{cid}' has invalid 'sympy' field: "
-                    f"cannot parse '{sympy_field}'"
-                    f" ({sympy_result.error})"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
-    elif expression:
-        generated = generate_sympy_with_error(expression)
-        if generated.expression is None:
-            diagnostics.append(SemanticDiagnostic(
-                level="warning",
-                message=(
-                    f"equation claim '{cid}' could not auto-generate sympy "
-                    f"from expression '{expression}'"
-                    f" ({generated.error})"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
-
-    variables = claim.get("variables")
-    if not variables or not isinstance(variables, list) or len(variables) == 0:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"equation claim '{cid}' missing 'variables' (at least one required)",
-            filename=filename,
-            artifact_id=cid,
-        ))
-    elif isinstance(variables, list):
-        for var in variables:
-            if isinstance(var, dict):
-                var_concept = var.get("concept")
-                if var_concept and _has_concepts(context) and not _concept_exists(var_concept, context):
-                    diagnostics.append(SemanticDiagnostic(
-                        level="error",
-                        message=(
-                            f"equation claim '{cid}' variable references "
-                            f"nonexistent concept '{var_concept}'"
-                        ),
-                        filename=filename,
-                        artifact_id=cid,
-                    ))
-
-    # ── Dimensional consistency (bridgman) ────────────────────
-    sympy_str = claim.get("sympy")
-    if sympy_str and isinstance(variables, list):
-        try:
-            import sympy as sp
-
-            # Build dim_map: map both symbol names and concept IDs to dimensions
-            dim_map: dict[str, dict[str, int]] = {}
-            for var in variables:
-                if not isinstance(var, dict):
-                    continue
-                var_concept = var.get("concept")
-                var_symbol = var.get("symbol")
-                if not var_concept or not _has_concepts(context) or not _concept_exists(var_concept, context):
-                    continue
-                form_def = _concept_form_definition(var_concept, context)
-                if form_def is None:
-                    continue
-                if form_def.dimensions is not None:
-                    dims = dict(form_def.dimensions)
-                elif form_def.is_dimensionless:
-                    dims = {}
-                else:
-                    continue
-                if var_symbol:
-                    dim_map[var_symbol] = dims
-                dim_map[var_concept] = dims
-
-            # Also scan sympy for concept IDs not declared in variables
-            for cid_ref in re.findall(r'concept\d+', sympy_str):
-                if cid_ref not in dim_map and _concept_exists(cid_ref, context):
-                    form_def = _concept_form_definition(cid_ref, context)
-                    if form_def is not None:
-                        if form_def.dimensions is not None:
-                            dim_map[cid_ref] = dict(form_def.dimensions)
-                        elif form_def.is_dimensionless:
-                            dim_map[cid_ref] = {}
-
-            if dim_map:
-                parsed = sp.sympify(sympy_str)
-                if isinstance(parsed, sp.Eq):
-                    if not bridgman.verify_expr(parsed, dim_map):
-                        diagnostics.append(SemanticDiagnostic(
-                            level="warning",
-                            message=(
-                                f"equation claim '{cid}' dimensional verification "
-                                f"failed for sympy '{sympy_str}'"
-                            ),
-                            filename=filename,
-                            artifact_id=cid,
-                        ))
-                else:
-                    diagnostics.append(SemanticDiagnostic(
-                        level="warning",
-                        message=(
-                            f"equation claim '{cid}' sympy '{sympy_str}' "
-                            f"is not an Eq() — cannot verify dimensional consistency. "
-                            f"Wrap as Eq(lhs, rhs)."
-                        ),
-                        filename=filename,
-                        artifact_id=cid,
-                    ))
-        except (KeyError, SyntaxError, bridgman.DimensionalError, TypeError):
-            pass  # missing concept, unparseable sympy, dim errors, or type issues — skip
-
-
-def _validate_observation(
-    claim: dict, cid: str, filename: str,
-    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
-    claim_type: str = "observation",
-) -> None:
-    statement = claim.get("statement")
-    if not statement:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"{claim_type} claim '{cid}' missing 'statement'",
-            filename=filename,
-            artifact_id=cid,
-        ))
-
-    concepts = claim.get("concepts")
-    if not concepts or not isinstance(concepts, list) or len(concepts) == 0:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"{claim_type} claim '{cid}' missing 'concepts' (at least one required)",
-            filename=filename,
-            artifact_id=cid,
-        ))
-    elif isinstance(concepts, list):
-        for concept_id in concepts:
-            if _has_concepts(context) and not _concept_exists(concept_id, context):
-                diagnostics.append(SemanticDiagnostic(
-                    level="error",
-                    message=(
-                        f"{claim_type} claim '{cid}' references "
-                        f"nonexistent concept '{concept_id}'"
-                    ),
-                    filename=filename,
-                    artifact_id=cid,
-                ))
-
-
-def _validate_model(
-    claim: dict, cid: str, filename: str,
-    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
-) -> None:
-    name = claim.get("name")
-    if not name:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"model claim '{cid}' missing 'name'",
-            filename=filename,
-            artifact_id=cid,
-        ))
-
-    equations = claim.get("equations")
-    if not equations or not isinstance(equations, list) or len(equations) == 0:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"model claim '{cid}' missing 'equations' (at least one required)",
-            filename=filename,
-            artifact_id=cid,
-        ))
-
-    parameters = claim.get("parameters")
-    if not parameters or not isinstance(parameters, list) or len(parameters) == 0:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"model claim '{cid}' missing 'parameters' (at least one required)",
-            filename=filename,
-            artifact_id=cid,
-        ))
-    elif isinstance(parameters, list):
-        for param in parameters:
-            if isinstance(param, dict):
-                param_concept = param.get("concept")
-                if param_concept and _has_concepts(context) and not _concept_exists(param_concept, context):
-                    diagnostics.append(SemanticDiagnostic(
-                        level="error",
-                        message=(
-                            f"model claim '{cid}' parameter references "
-                            f"nonexistent concept '{param_concept}'"
-                        ),
-                        filename=filename,
-                        artifact_id=cid,
-                    ))
-
-
-def _validate_measurement(
-    claim: dict, cid: str, filename: str,
-    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
-) -> None:
-    target_concept = claim.get("target_concept")
-    if not target_concept:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"measurement claim '{cid}' missing 'target_concept'",
-            filename=filename,
-            artifact_id=cid,
-        ))
-    elif _has_concepts(context) and not _concept_exists(target_concept, context):
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"measurement claim '{cid}' references nonexistent concept '{target_concept}'",
-            filename=filename,
-            artifact_id=cid,
-        ))
-
-    measure = claim.get("measure")
-    if not measure:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"measurement claim '{cid}' missing 'measure'",
-            filename=filename,
-            artifact_id=cid,
-        ))
-
-    _validate_value_fields(claim, cid, filename, "measurement", diagnostics)
-
-    unit = claim.get("unit")
-    if not unit:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"measurement claim '{cid}' missing 'unit'",
-            filename=filename,
-            artifact_id=cid,
-        ))
-
-
-def _validate_algorithm(
-    claim: dict, cid: str, filename: str,
-    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
-) -> None:
-    body = claim.get("body")
-    tree = None
-    if not body:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"algorithm claim '{cid}' missing 'body'",
-            filename=filename,
-            artifact_id=cid,
-        ))
-    else:
-        try:
-            tree = parse_algorithm(body)
-        except AlgorithmParseError as e:
-            diagnostics.append(SemanticDiagnostic(
-                level="error",
-                message=f"algorithm claim '{cid}' body parse error: {e}",
-                filename=filename,
-                artifact_id=cid,
-            ))
-            tree = None
-
-    variables = claim.get("variables")
-    if not variables:
-        diagnostics.append(SemanticDiagnostic(
-            level="error",
-            message=f"algorithm claim '{cid}' missing 'variables' (at least one required)",
-            filename=filename,
-            artifact_id=cid,
-        ))
-    elif isinstance(variables, list):
-        declared_names: set[str] = set()
-        for var in variables:
-            if isinstance(var, dict):
-                var_concept = var.get("concept")
-                if var_concept and _has_concepts(context) and not _concept_exists(var_concept, context):
-                    diagnostics.append(SemanticDiagnostic(
-                        level="error",
-                        message=(
-                            f"algorithm claim '{cid}' variable references "
-                            f"nonexistent concept '{var_concept}'"
-                        ),
-                        filename=filename,
-                        artifact_id=cid,
-                    ))
-                var_name = var.get("name") or var.get("symbol")
-                if var_name:
-                    declared_names.add(var_name)
-
-        # Cross-check: warn about unbound names in body AST
-        if body and tree is not None:
-            ast_names = extract_names(tree)
-            unbound = ast_names - KNOWN_BUILTINS - declared_names
-            for name in sorted(unbound):
-                diagnostics.append(SemanticDiagnostic(
-                    level="warning",
-                    message=(
-                        f"algorithm claim '{cid}' body references "
-                        f"name '{name}' not declared in variables"
-                    ),
-                    filename=filename,
-                    artifact_id=cid,
-                ))

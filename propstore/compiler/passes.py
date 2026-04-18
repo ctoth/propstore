@@ -18,14 +18,9 @@ from propstore.claims import (
     load_claim_file,
 )
 from propstore.compiler.claim_checks import (
-    _validate_algorithm,
-    _validate_equation,
     _validate_logical_ids,
-    _validate_measurement,
-    _validate_model,
-    _validate_observation,
-    _validate_parameter,
     _validate_stances,
+    validate_claim_semantics,
 )
 from propstore.compiler.context import (
     CompilationContext,
@@ -223,7 +218,6 @@ def compile_claim_files(
             semantic_claims.append(semantic_claim)
 
             cid = semantic_claim.resolved_claim.get("artifact_id")
-            ctype = semantic_claim.resolved_claim.get("type")
 
             if not cid:
                 file_diagnostics.append(SemanticDiagnostic(
@@ -382,70 +376,13 @@ def compile_claim_files(
                     )
                     semantic_claims[-1] = semantic_claim
 
-            if ctype == "parameter":
-                _validate_parameter(
-                    semantic_claim.resolved_claim,
-                    cid,
-                    normalized_file.filename,
-                    effective_context,
-                    file_diagnostics,
-                )
-            elif ctype == "equation":
-                _validate_equation(
-                    semantic_claim.resolved_claim,
-                    cid,
-                    normalized_file.filename,
-                    effective_context,
-                    file_diagnostics,
-                )
-            elif ctype == "observation":
-                _validate_observation(
-                    semantic_claim.resolved_claim,
-                    cid,
-                    normalized_file.filename,
-                    effective_context,
-                    file_diagnostics,
-                )
-            elif ctype == "model":
-                _validate_model(
-                    semantic_claim.resolved_claim,
-                    cid,
-                    normalized_file.filename,
-                    effective_context,
-                    file_diagnostics,
-                )
-            elif ctype == "measurement":
-                _validate_measurement(
-                    semantic_claim.resolved_claim,
-                    cid,
-                    normalized_file.filename,
-                    effective_context,
-                    file_diagnostics,
-                )
-            elif ctype == "algorithm":
-                _validate_algorithm(
-                    semantic_claim.resolved_claim,
-                    cid,
-                    normalized_file.filename,
-                    effective_context,
-                    file_diagnostics,
-                )
-            elif ctype in ("mechanism", "comparison", "limitation"):
-                _validate_observation(
-                    semantic_claim.resolved_claim,
-                    cid,
-                    normalized_file.filename,
-                    effective_context,
-                    file_diagnostics,
-                    claim_type=ctype,
-                )
-            else:
-                file_diagnostics.append(SemanticDiagnostic(
-                    level="error",
-                    message=f"claim '{cid}' has unrecognized type '{ctype}'",
-                    filename=normalized_file.filename,
-                    artifact_id=cid,
-                ))
+            validate_claim_semantics(
+                semantic_claim.resolved_claim,
+                cid,
+                normalized_file.filename,
+                effective_context,
+                file_diagnostics,
+            )
 
             _validate_stances(
                 semantic_claim.resolved_claim,

@@ -360,6 +360,180 @@ contracts:
     resolve_ref: propstore.artifacts.families._worldline_artifact
     scan_type: null
     validate_for_write: null
+- kind: claim_type_contract
+  name: algorithm
+  contract_version: 2026.04.21
+  body:
+    claim_type: algorithm
+    concept_references:
+    - field: variables
+      message_subject: variable
+      source: bindings
+      target_family: concept
+    nonempty_fields:
+    - variables
+    required_fields:
+    - body
+    semantic_checks:
+    - algorithm_parse
+    - algorithm_unbound_names
+    unit_policy: null
+    value_group: null
+- kind: claim_type_contract
+  name: comparison
+  contract_version: 2026.04.21
+  body:
+    claim_type: comparison
+    concept_references:
+    - field: concepts
+      message_subject: null
+      source: list
+      target_family: concept
+    nonempty_fields:
+    - concepts
+    required_fields:
+    - statement
+    semantic_checks: []
+    unit_policy: null
+    value_group: null
+- kind: claim_type_contract
+  name: equation
+  contract_version: 2026.04.21
+  body:
+    claim_type: equation
+    concept_references:
+    - field: variables
+      message_subject: variable
+      source: bindings
+      target_family: concept
+    nonempty_fields:
+    - variables
+    required_fields:
+    - expression
+    semantic_checks:
+    - sympy_generation
+    - dimensional_consistency
+    unit_policy: null
+    value_group: null
+- kind: claim_type_contract
+  name: limitation
+  contract_version: 2026.04.21
+  body:
+    claim_type: limitation
+    concept_references:
+    - field: concepts
+      message_subject: null
+      source: list
+      target_family: concept
+    nonempty_fields:
+    - concepts
+    required_fields:
+    - statement
+    semantic_checks: []
+    unit_policy: null
+    value_group: null
+- kind: claim_type_contract
+  name: measurement
+  contract_version: 2026.04.21
+  body:
+    claim_type: measurement
+    concept_references:
+    - field: target_concept
+      message_subject: null
+      source: scalar
+      target_family: concept
+    nonempty_fields: []
+    required_fields:
+    - target_concept
+    - measure
+    semantic_checks: []
+    unit_policy:
+      dimensionless_default_unit: null
+      form_concept_field: null
+      required: true
+    value_group:
+      lower_bound_field: lower_bound
+      uncertainty_field: uncertainty
+      uncertainty_type_field: uncertainty_type
+      upper_bound_field: upper_bound
+      value_field: value
+- kind: claim_type_contract
+  name: mechanism
+  contract_version: 2026.04.21
+  body:
+    claim_type: mechanism
+    concept_references:
+    - field: concepts
+      message_subject: null
+      source: list
+      target_family: concept
+    nonempty_fields:
+    - concepts
+    required_fields:
+    - statement
+    semantic_checks: []
+    unit_policy: null
+    value_group: null
+- kind: claim_type_contract
+  name: model
+  contract_version: 2026.04.21
+  body:
+    claim_type: model
+    concept_references:
+    - field: parameters
+      message_subject: parameter
+      source: bindings
+      target_family: concept
+    nonempty_fields:
+    - equations
+    - parameters
+    required_fields:
+    - name
+    semantic_checks: []
+    unit_policy: null
+    value_group: null
+- kind: claim_type_contract
+  name: observation
+  contract_version: 2026.04.21
+  body:
+    claim_type: observation
+    concept_references:
+    - field: concepts
+      message_subject: null
+      source: list
+      target_family: concept
+    nonempty_fields:
+    - concepts
+    required_fields:
+    - statement
+    semantic_checks: []
+    unit_policy: null
+    value_group: null
+- kind: claim_type_contract
+  name: parameter
+  contract_version: 2026.04.21
+  body:
+    claim_type: parameter
+    concept_references:
+    - field: concept
+      message_subject: null
+      source: scalar
+      target_family: concept
+    nonempty_fields: []
+    required_fields:
+    - concept
+    semantic_checks:
+    - unit_form_compatibility
+    unit_policy:
+      dimensionless_default_unit: '1'
+      form_concept_field: concept
+      required: true
+    value_group:
+      lower_bound_field: lower_bound
+      uncertainty_field: uncertainty
+      uncertainty_type_field: uncertainty_type
+      upper_bound_field: upper_bound
+      value_field: value
 - kind: document_schema
   name: AlignmentArgumentDocument
   contract_version: 2026.04.19

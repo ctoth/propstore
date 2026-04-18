@@ -3,13 +3,16 @@ from __future__ import annotations
 import argparse
 import inspect
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import msgspec
 from quire.artifacts import ArtifactFamily
 from quire.contracts import ContractEntry, ContractManifest
 from quire.references import ForeignKeySpec
 from quire.versions import VersionId
+
+if TYPE_CHECKING:
+    from propstore.artifacts.documents.claims import ClaimTypeContract
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.19")
 CONTRACT_MANIFEST_PATH = (
@@ -34,6 +37,14 @@ def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
     from propstore.compiler.references import iter_semantic_foreign_keys as iter_foreign_keys
 
     return tuple(sorted(iter_foreign_keys(), key=lambda spec: spec.name))
+
+
+def iter_claim_type_contracts() -> tuple["ClaimTypeContract", ...]:
+    from propstore.artifacts.documents.claims import (
+        iter_claim_type_contracts as iter_contracts,
+    )
+
+    return iter_contracts()
 
 
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
@@ -84,6 +95,7 @@ def build_propstore_contract_manifest() -> ContractManifest:
     contracts.extend(_document_contract(document_type) for document_type in iter_document_schema_types())
     contracts.extend(_family_contract(family) for family in iter_artifact_families())
     contracts.extend(_foreign_key_contract(spec) for spec in iter_semantic_foreign_keys())
+    contracts.extend(_claim_type_contract(contract) for contract in iter_claim_type_contracts())
     return ContractManifest(
         format_version=1,
         package_name="propstore",
@@ -147,6 +159,15 @@ def _foreign_key_contract(spec: ForeignKeySpec) -> ContractEntry:
         name=spec.name,
         contract_version=spec.contract_version,
         body=spec.contract_body(),
+    )
+
+
+def _claim_type_contract(contract: "ClaimTypeContract") -> ContractEntry:
+    return ContractEntry(
+        kind="claim_type_contract",
+        name=contract.claim_type.value,
+        contract_version=contract.contract_version,
+        body=contract.contract_body(),
     )
 
 
