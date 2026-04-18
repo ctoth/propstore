@@ -13,6 +13,7 @@ from quire.versions import VersionId
 
 if TYPE_CHECKING:
     from propstore.artifacts.documents.claims import ClaimTypeContract
+    from propstore.artifacts.semantic_families import SemanticFamilyDefinition
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.19")
 CONTRACT_MANIFEST_PATH = (
@@ -34,9 +35,15 @@ def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any, Any], ...]:
 
 
 def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
-    from propstore.compiler.references import iter_semantic_foreign_keys as iter_foreign_keys
+    from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 
-    return tuple(sorted(iter_foreign_keys(), key=lambda spec: spec.name))
+    return tuple(sorted(SEMANTIC_FAMILIES.foreign_keys(), key=lambda spec: spec.name))
+
+
+def iter_semantic_families() -> tuple["SemanticFamilyDefinition", ...]:
+    from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
+
+    return tuple(sorted(SEMANTIC_FAMILIES.families, key=lambda family: family.name))
 
 
 def iter_claim_type_contracts() -> tuple["ClaimTypeContract", ...]:
@@ -94,6 +101,7 @@ def build_propstore_contract_manifest() -> ContractManifest:
     contracts: list[ContractEntry] = []
     contracts.extend(_document_contract(document_type) for document_type in iter_document_schema_types())
     contracts.extend(_family_contract(family) for family in iter_artifact_families())
+    contracts.extend(_semantic_family_contract(family) for family in iter_semantic_families())
     contracts.extend(_foreign_key_contract(spec) for spec in iter_semantic_foreign_keys())
     contracts.extend(_claim_type_contract(contract) for contract in iter_claim_type_contracts())
     return ContractManifest(
@@ -150,6 +158,15 @@ def _family_contract(family: ArtifactFamily[Any, Any, Any]) -> ContractEntry:
                 else f"{family.scan_type.__module__}.{family.scan_type.__qualname__}"
             ),
         },
+    )
+
+
+def _semantic_family_contract(family: "SemanticFamilyDefinition") -> ContractEntry:
+    return ContractEntry(
+        kind="semantic_family",
+        name=family.name,
+        contract_version=family.contract_version,
+        body=family.contract_body(),
     )
 
 

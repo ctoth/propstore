@@ -12,8 +12,8 @@ from quire.references import (
     ReferenceResolution,
     build_reference_lookup,
 )
-from quire.versions import VersionId
 
+from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from propstore.claims import (
     LoadedClaimsFile,
     claim_file_claims,
@@ -27,103 +27,8 @@ if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
 
 
-PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.20")
-
-SEMANTIC_FOREIGN_KEYS: tuple[ForeignKeySpec, ...] = (
-    ForeignKeySpec(
-        name="claim_concept",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
-        source_field="concept",
-        target_family="concept",
-    ),
-    ForeignKeySpec(
-        name="claim_concepts",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
-        source_field="concepts",
-        target_family="concept",
-        many=True,
-    ),
-    ForeignKeySpec(
-        name="claim_variable_concept",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
-        source_field="variables[].concept",
-        target_family="concept",
-    ),
-    ForeignKeySpec(
-        name="claim_parameter_concept",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
-        source_field="parameters[].concept",
-        target_family="concept",
-    ),
-    ForeignKeySpec(
-        name="claim_measurement_target_concept",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
-        source_field="target_concept",
-        target_family="concept",
-    ),
-    ForeignKeySpec(
-        name="claim_stance_target",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
-        source_field="stances[].target",
-        target_family="claim",
-    ),
-    ForeignKeySpec(
-        name="concept_parameterization_input",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
-        source_field="parameterization_relationships[].inputs[]",
-        target_family="concept",
-        many=True,
-    ),
-    ForeignKeySpec(
-        name="concept_parameterization_canonical_claim",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
-        source_field="parameterization_relationships[].canonical_claim",
-        target_family="claim",
-        required=False,
-    ),
-    ForeignKeySpec(
-        name="concept_replaced_by",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
-        source_field="replaced_by",
-        target_family="concept",
-        required=False,
-    ),
-    ForeignKeySpec(
-        name="concept_relationship_target",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
-        source_field="relationships[].target",
-        target_family="concept",
-        many=True,
-    ),
-    ForeignKeySpec(
-        name="concept_form",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
-        source_field="form",
-        target_family="form",
-    ),
-    ForeignKeySpec(
-        name="claim_context",
-        contract_version=PROPSTORE_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
-        source_field="context",
-        target_family="context",
-    ),
-)
-
-
 def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
-    return SEMANTIC_FOREIGN_KEYS
+    return SEMANTIC_FAMILIES.foreign_keys()
 
 
 def build_claim_reference_lookup(

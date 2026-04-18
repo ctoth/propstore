@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from propstore.aspic import GroundAtom, Scalar
 from propstore.grounding.loading import build_grounded_bundle
 
@@ -94,9 +95,11 @@ def _yaml_file_names(node) -> tuple[str, ...]:
 
 def inspect_grounding_surface(repo: "Repository") -> GroundingSurface:
     tree = repo.tree()
+    predicate_family = SEMANTIC_FAMILIES.by_name("predicate")
+    rule_family = SEMANTIC_FAMILIES.by_name("rule")
     return GroundingSurface(
-        predicate_files=_yaml_file_names(tree / "predicates"),
-        rule_files=_yaml_file_names(tree / "rules"),
+        predicate_files=_yaml_file_names(tree / predicate_family.root),
+        rule_files=_yaml_file_names(tree / rule_family.root),
     )
 
 

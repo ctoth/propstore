@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import cast
 
-from propstore.core.concepts import load_concepts
 from propstore.artifacts.documents.predicates import PredicatesFileDocument
 from propstore.artifacts.documents.rules import RulesFileDocument
+from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
+from propstore.core.concepts import load_concepts
 from quire.documents import load_document_dir
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import extract_facts
@@ -20,9 +22,10 @@ from propstore.rule_files import LoadedRuleFile
 def load_predicate_files(predicates_root: KnowledgePath | None) -> list[LoadedPredicateFile]:
     """Load all predicate declaration files from a knowledge subtree."""
 
+    family = SEMANTIC_FAMILIES.by_name("predicate")
     return load_document_dir(
         predicates_root,
-        PredicatesFileDocument,
+        cast(type[PredicatesFileDocument], family.document_type),
         wrapper=LoadedPredicateFile.from_loaded_document,
     )
 
@@ -30,9 +33,10 @@ def load_predicate_files(predicates_root: KnowledgePath | None) -> list[LoadedPr
 def load_rule_files(rules_root: KnowledgePath | None) -> list[LoadedRuleFile]:
     """Load all DeLP rule files from a knowledge subtree."""
 
+    family = SEMANTIC_FAMILIES.by_name("rule")
     return load_document_dir(
         rules_root,
-        RulesFileDocument,
+        cast(type[RulesFileDocument], family.document_type),
         wrapper=LoadedRuleFile.from_loaded_document,
     )
 
@@ -50,8 +54,10 @@ def build_grounded_bundle(
     without authored predicates, the boundary fails loudly instead of guessing.
     """
 
-    predicates_root = knowledge_root / "predicates"
-    rules_root = knowledge_root / "rules"
+    predicate_family = SEMANTIC_FAMILIES.by_name("predicate")
+    rule_family = SEMANTIC_FAMILIES.by_name("rule")
+    predicates_root = knowledge_root / predicate_family.root
+    rules_root = knowledge_root / rule_family.root
     has_predicates = predicates_root.is_dir()
     has_rules = rules_root.is_dir()
 

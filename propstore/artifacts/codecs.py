@@ -20,6 +20,8 @@ def _prune_none(value: object) -> object:
         }
     if isinstance(value, list):
         return [_prune_none(item) for item in value]
+    if isinstance(value, tuple):
+        return [_prune_none(item) for item in value]
     return value
 
 

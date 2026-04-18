@@ -45,6 +45,14 @@ def justifications_file_relpath(name: str) -> str:
     return f"justifications/{name}.yaml"
 
 
+def predicate_file_relpath(name: str) -> str:
+    return f"predicates/{name}.yaml"
+
+
+def rule_file_relpath(name: str) -> str:
+    return f"rules/{name}.yaml"
+
+
 def stance_file_relpath(source_claim: str) -> str:
     return f"stances/{source_claim.replace(':', '__')}.yaml"
 
@@ -107,6 +115,16 @@ class ConceptFileRef:
 
 @dataclass(frozen=True)
 class JustificationsFileRef:
+    name: str
+
+
+@dataclass(frozen=True)
+class PredicateFileRef:
+    name: str
+
+
+@dataclass(frozen=True)
+class RuleFileRef:
     name: str
 
 
