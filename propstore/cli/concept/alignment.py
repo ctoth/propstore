@@ -14,7 +14,6 @@ from propstore.claims import (
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY
 from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
@@ -43,9 +42,6 @@ from propstore.cli.concept import (
     PROTO_ROLE_KINDS,
     QUALIA_ROLES,
     RELATIONSHIP_TYPES,
-    _artifact_knowledge_path,
-    _artifact_source,
-    _artifact_tree_path,
     _canonical_concept_document,
     _claims_document,
     _claims_ref,

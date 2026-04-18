@@ -4,13 +4,9 @@ from __future__ import annotations
 from copy import deepcopy
 import sys
 from datetime import date
-from pathlib import Path
-from typing import TypeVar
 
 import click
 
-from quire.artifacts import ArtifactFamily
-from quire.tree_path import TreePath as KnowledgePath
 from propstore.claims import (
     ClaimFileEntry,
     claim_file_filename,
@@ -19,7 +15,6 @@ from propstore.claims import (
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY, FORM_FAMILY
 from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
@@ -57,8 +52,6 @@ from propstore.form_utils import parse_form
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
 QUALIA_ROLES = ("formal", "constitutive", "telic", "agentive")
 PROTO_ROLE_KINDS = ("agent", "patient")
-TRef = TypeVar("TRef")
-TDoc = TypeVar("TDoc")
 
 
 @click.group()
@@ -153,18 +146,6 @@ def _require_snapshot(repo: Repository) -> RepositorySnapshot:
     except ValueError as exc:
         raise click.ClickException("concept mutations require a git-backed repository") from exc
     return repo.snapshot
-
-
-def _artifact_source(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> str:
-    return repo.families.by_artifact_family(family).address(ref).require_path()
-
-
-def _artifact_tree_path(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> Path:
-    return repo.root / Path(_artifact_source(repo, family, ref))
-
-
-def _artifact_knowledge_path(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> KnowledgePath:
-    return repo.tree() / _artifact_source(repo, family, ref)
 
 
 def _concept_ref(concept_entry: LoadedConcept) -> ConceptFileRef:
@@ -323,7 +304,7 @@ def _validate_updated_concept(
             concepts.append(
                 LoadedConcept(
                     filename=loaded_ref.name,
-                    source_path=_artifact_knowledge_path(repo, CONCEPT_FILE_FAMILY, ref),
+                    source_path=tree / repo.families.concepts.address(ref).require_path(),
                     knowledge_root=tree,
                     record=parse_concept_record_document(document),
                     document=document,

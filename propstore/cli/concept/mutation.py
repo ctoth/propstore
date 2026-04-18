@@ -15,7 +15,6 @@ from propstore.claims import (
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY, FORM_FAMILY
 from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
@@ -47,9 +46,6 @@ from propstore.cli.concept import (
     PROTO_ROLE_KINDS,
     QUALIA_ROLES,
     RELATIONSHIP_TYPES,
-    _artifact_knowledge_path,
-    _artifact_source,
-    _artifact_tree_path,
     _canonical_concept_document,
     _claims_document,
     _claims_ref,
@@ -106,8 +102,8 @@ def add(
         form_name = click.prompt("Form")
 
     ref = ConceptFileRef(name)
-    filepath = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, ref)
-    semantic_path = _artifact_knowledge_path(repo, CONCEPT_FILE_FAMILY, ref)
+    filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
+    semantic_path = repo.tree() / repo.families.concepts.address(ref).require_path()
     if semantic_path.exists():
         click.echo(f"ERROR: Concept file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
@@ -219,7 +215,7 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
         sys.exit(EXIT_ERROR)
 
     ref = _concept_ref(concept_entry)
-    filepath = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, ref)
+    filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
     data = deepcopy(concept_entry.record.to_payload())
 
     # Warn if alias matches another concept's canonical_name
@@ -289,11 +285,11 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     old_ref = _concept_ref(concept_entry)
     new_ref = ConceptFileRef(name)
 
-    filepath = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, old_ref)
+    filepath = repo.root / Path(repo.families.concepts.address(old_ref).require_path())
     data = deepcopy(concept_entry.record.to_payload())
     old_name = data.get("canonical_name", filepath.stem)
-    new_path = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, new_ref)
-    new_semantic_path = _artifact_knowledge_path(repo, CONCEPT_FILE_FAMILY, new_ref)
+    new_path = repo.root / Path(repo.families.concepts.address(new_ref).require_path())
+    new_semantic_path = repo.tree() / repo.families.concepts.address(new_ref).require_path()
     if old_name == name:
         click.echo(f"No change: concept already named '{name}'")
         return
@@ -340,7 +336,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             updated_ref,
             LoadedConcept(
                 filename=name if updated_ref == new_ref else concept_record.filename,
-                source_path=_artifact_knowledge_path(repo, CONCEPT_FILE_FAMILY, updated_ref),
+                source_path=repo.tree() / repo.families.concepts.address(updated_ref).require_path(),
                 knowledge_root=concept_record.knowledge_root,
                 record=parse_concept_record_document(concept_document),
                 document=concept_document,
@@ -378,7 +374,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 claim_ref,
                 loaded_claim_file_from_payload(
                     filename=claim_file_filename(claim_file),
-                    source_path=_artifact_knowledge_path(repo, CLAIMS_FILE_FAMILY, claim_ref),
+                    source_path=repo.tree() / repo.families.claims.address(claim_ref).require_path(),
                     knowledge_root=repo.tree(),
                     data=claim_data,
                 ),
@@ -448,7 +444,7 @@ def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> No
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
     ref = _concept_ref(concept_entry)
-    filepath = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, ref)
+    filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
 
     # Validate replacement target
     replacement_entry = _find_concept_entry(repo, replaced_by)
@@ -514,7 +510,7 @@ def link(
         click.echo(f"ERROR: Source concept '{source_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
     ref = _concept_ref(concept_entry)
-    filepath = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, ref)
+    filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
 
     target_entry = _find_concept_entry(repo, target_id)
     if target_entry is None:
@@ -561,19 +557,12 @@ def link(
         )
     updated_concepts = []
     for concept_record in concepts:
-        concept_path = _artifact_tree_path(
-            repo,
-            CONCEPT_FILE_FAMILY,
-            _concept_ref(concept_record),
-        )
+        concept_ref = _concept_ref(concept_record)
+        concept_path = repo.root / Path(repo.families.concepts.address(concept_ref).require_path())
         updated_concepts.append(
             LoadedConcept(
                 filename=concept_record.filename,
-                source_path=_artifact_knowledge_path(
-                    repo,
-                    CONCEPT_FILE_FAMILY,
-                    _concept_ref(concept_record),
-                ),
+                source_path=repo.tree() / repo.families.concepts.address(concept_ref).require_path(),
                 knowledge_root=concept_record.knowledge_root,
                 record=parse_concept_record(
                     concept_document_to_record_payload(updated_document)
@@ -890,7 +879,7 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
         click.echo(f"ERROR: Concept '{concept_name}' not found", err=True)
         sys.exit(EXIT_ERROR)
     ref = _concept_ref(concept_entry)
-    filepath = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, ref)
+    filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
 
     data = deepcopy(concept_entry.record.to_payload())
 
