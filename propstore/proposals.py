@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, cast
 
 from propstore.artifacts.codecs import encode_document
 from propstore.artifacts.families import PROPOSAL_STANCE_FAMILY
-from propstore.artifacts.refs import StanceFileRef
+from propstore.artifacts.families import StanceFileRef
 from propstore.artifacts.documents.stances import StanceFileDocument
 from quire.documents import convert_document_value
 

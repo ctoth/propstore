@@ -152,7 +152,7 @@ def build_source_claim_reference_index(document: SourceClaimsDocument | None) ->
 
 
 def load_source_claim_reference_index(repo: Repository, source_name: str) -> ClaimReferenceIndex:
-    from propstore.artifacts.refs import SourceRef
+    from propstore.artifacts.families import SourceRef
 
     document = repo.families.source_claims.load(SourceRef(source_name))
     return build_source_claim_reference_index(document)

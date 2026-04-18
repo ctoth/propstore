@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.artifacts.refs import ClaimsFileRef, SourceRef
+from propstore.artifacts.families import ClaimsFileRef, SourceRef
 from propstore.claim_references import (
     ClaimReferenceIndex,
     ClaimReferenceResolver,

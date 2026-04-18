@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Mapping, TypeAlias
 
 from quire.artifacts import ArtifactHandle
 from propstore.artifacts.documents.claims import ClaimDocument, ClaimsFileDocument
-from propstore.artifacts.refs import ClaimsFileRef
+from propstore.artifacts.families import ClaimsFileRef
 from quire.documents import (
     convert_document_value,
     load_document,

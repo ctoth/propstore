@@ -19,6 +19,7 @@ from quire.artifacts import (
 from quire.families import FamilyDefinition, FamilyRegistry
 from quire.family_store import DocumentFamilyStore
 from quire.references import ForeignKeySpec
+from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
 from propstore.artifacts.codecs import decode_yaml_mapping
@@ -48,22 +49,6 @@ from propstore.identity import (
     normalize_claim_file_payload,
 )
 from propstore.claim_references import ImportedClaimHandleIndex
-from propstore.artifacts.refs import (
-    CanonicalSourceRef,
-    ClaimsFileRef,
-    ConceptAlignmentRef,
-    ConceptFileRef,
-    ContextRef,
-    FormRef,
-    JustificationsFileRef,
-    MicropubsFileRef,
-    MergeManifestRef,
-    PredicateFileRef,
-    RuleFileRef,
-    SourceRef,
-    StanceFileRef,
-    WorldlineRef,
-)
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -93,6 +78,22 @@ class PropstoreFamily(str, Enum):
     PROPOSAL_STANCES = "proposal_stances"
     CONCEPT_ALIGNMENTS = "concept_alignments"
     MERGE_MANIFESTS = "merge_manifests"
+
+
+SourceRef = single_field_ref_type("SourceRef", "name", module=__name__)
+ContextRef = single_field_ref_type("ContextRef", "name", module=__name__)
+FormRef = single_field_ref_type("FormRef", "name", module=__name__)
+WorldlineRef = single_field_ref_type("WorldlineRef", "name", module=__name__)
+CanonicalSourceRef = single_field_ref_type("CanonicalSourceRef", "name", module=__name__)
+ClaimsFileRef = single_field_ref_type("ClaimsFileRef", "name", module=__name__)
+MicropubsFileRef = single_field_ref_type("MicropubsFileRef", "name", module=__name__)
+ConceptFileRef = single_field_ref_type("ConceptFileRef", "name", module=__name__)
+JustificationsFileRef = single_field_ref_type("JustificationsFileRef", "name", module=__name__)
+PredicateFileRef = single_field_ref_type("PredicateFileRef", "name", module=__name__)
+RuleFileRef = single_field_ref_type("RuleFileRef", "name", module=__name__)
+StanceFileRef = single_field_ref_type("StanceFileRef", "source_claim", module=__name__)
+ConceptAlignmentRef = single_field_ref_type("ConceptAlignmentRef", "slug", module=__name__)
+MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
 
 
 ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.24")

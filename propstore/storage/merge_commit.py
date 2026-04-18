@@ -5,7 +5,7 @@ import time
 from collections import Counter
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.refs import ClaimsFileRef, MergeManifestRef
+from propstore.artifacts.families import ClaimsFileRef, MergeManifestRef
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import semantic_candidate_details
 
