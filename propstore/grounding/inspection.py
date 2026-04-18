@@ -10,8 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.families import PREDICATE_FILE_FAMILY, RULE_FILE_FAMILY
-from propstore.aspic import GroundAtom, Scalar
+from argumentation.aspic import GroundAtom, Scalar
 from propstore.grounding.loading import build_grounded_bundle
 
 if TYPE_CHECKING:
@@ -86,13 +85,13 @@ def inspect_grounding_surface(repo: "Repository") -> GroundingSurface:
         predicate_files=tuple(
             sorted(
                 f"{ref.name}.yaml"
-                for ref in repo.artifacts.list(PREDICATE_FILE_FAMILY)
+                for ref in repo.families.predicates.list()
             )
         ),
         rule_files=tuple(
             sorted(
                 f"{ref.name}.yaml"
-                for ref in repo.artifacts.list(RULE_FILE_FAMILY)
+                for ref in repo.families.rules.list()
             )
         ),
     )

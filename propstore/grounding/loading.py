@@ -4,11 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from propstore.artifacts.families import (
-    CONCEPT_FILE_FAMILY,
-    PREDICATE_FILE_FAMILY,
-    RULE_FILE_FAMILY,
-)
 from propstore.core.concepts import LoadedConcept, parse_concept_record_document
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import extract_facts
@@ -41,9 +36,9 @@ def build_grounded_bundle(
             knowledge_root=tree,
             document=handle.document,
         )
-        for ref in repo.artifacts.list(PREDICATE_FILE_FAMILY, commit=commit)
+        for ref in repo.families.predicates.list(commit=commit)
         for handle in (
-            repo.artifacts.require_handle(PREDICATE_FILE_FAMILY, ref, commit=commit),
+            repo.families.predicates.require_handle(ref, commit=commit),
         )
     ]
     rule_files: Sequence[LoadedRuleFile] = [
@@ -53,9 +48,9 @@ def build_grounded_bundle(
             knowledge_root=tree,
             document=handle.document,
         )
-        for ref in repo.artifacts.list(RULE_FILE_FAMILY, commit=commit)
+        for ref in repo.families.rules.list(commit=commit)
         for handle in (
-            repo.artifacts.require_handle(RULE_FILE_FAMILY, ref, commit=commit),
+            repo.families.rules.require_handle(ref, commit=commit),
         )
     ]
 
@@ -76,9 +71,9 @@ def build_grounded_bundle(
             record=parse_concept_record_document(handle.document),
             document=handle.document,
         )
-        for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=commit)
+        for ref in repo.families.concepts.list(commit=commit)
         for handle in (
-            repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref, commit=commit),
+            repo.families.concepts.require_handle(ref, commit=commit),
         )
     ]
     facts = extract_facts(concepts, registry)
