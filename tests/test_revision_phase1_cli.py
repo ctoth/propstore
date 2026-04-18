@@ -120,7 +120,7 @@ def test_world_revision_base_shows_exact_claim_atoms_and_assumptions(revision_cl
 
     result = runner.invoke(
         cli,
-        ["world", "revision-base", "--context", "ctx_test", "speaker_sex=male"],
+        ["world", "revision", "base", "--context", "ctx_test", "speaker_sex=male"],
     )
 
     assert result.exit_code == 0, result.output
@@ -133,7 +133,7 @@ def test_world_revision_entrenchment_shows_ranked_atoms(revision_cli_workspace: 
 
     result = runner.invoke(
         cli,
-        ["world", "revision-entrenchment", "--context", "ctx_test", "speaker_sex=male"],
+        ["world", "revision", "entrenchment", "--context", "ctx_test", "speaker_sex=male"],
     )
 
     assert result.exit_code == 0, result.output

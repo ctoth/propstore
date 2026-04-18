@@ -82,6 +82,7 @@ def test_world_expand_shows_added_revision_atom(revision_cli_workspace) -> None:
         cli,
         [
             "world",
+            "revision",
             "expand",
             "--context",
             "ctx_test",
@@ -103,6 +104,7 @@ def test_world_contract_shows_rejected_atoms_and_incision_set(revision_cli_works
         cli,
         [
             "world",
+            "revision",
             "contract",
             "--context",
             "ctx_test",
@@ -125,6 +127,7 @@ def test_world_revise_shows_new_atom_and_rejected_conflict(revision_cli_workspac
         cli,
         [
             "world",
+            "revision",
             "revise",
             "--context",
             "ctx_test",
@@ -148,7 +151,8 @@ def test_world_revision_explain_shows_atom_status_and_reason(revision_cli_worksp
         cli,
         [
             "world",
-            "revision-explain",
+            "revision",
+            "explain",
             "--context",
             "ctx_test",
             "speaker_sex=male",
@@ -172,6 +176,7 @@ def test_world_iterated_state_shows_ranked_atoms_and_empty_history(revision_cli_
         cli,
         [
             "world",
+            "revision",
             "iterated-state",
             "--context",
             "ctx_test",
@@ -192,6 +197,7 @@ def test_world_iterated_revise_shows_operator_and_next_state_summary(revision_cl
         cli,
         [
             "world",
+            "revision",
             "iterated-revise",
             "--context",
             "ctx_test",

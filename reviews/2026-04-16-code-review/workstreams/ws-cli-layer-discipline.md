@@ -627,6 +627,24 @@ Status 2026-04-17: world ATMS commands are grouped and split.
   - `logs/test-runs/cli-world-atms-group-20260417-201239.log` - 11 passed.
   - `uv run pyright propstore/cli/world_cmds.py propstore/cli/world_atms_cmds.py tests/test_cli_layout.py` - 0 errors.
 
+Status 2026-04-17: world revision commands are grouped and split.
+
+- Moved revision-oriented `pks world` adapters to
+  `propstore.cli.world_revision_cmds`.
+- Replaced the flat revision surface with `pks world revision ...` commands:
+  `base`, `entrenchment`, `expand`, `contract`, `revise`, `explain`,
+  `iterated-state`, and `iterated-revise`.
+- Updated tests and docs to the grouped command surface; no flat-command
+  aliases were retained.
+- Added a layout guard preventing revision command handlers from returning to
+  `propstore.cli.world_cmds`.
+- Verification:
+  - `uv run pks world revision --help` lists the revision subgroup commands.
+  - `uv run pks world expand --help` fails with "No such command".
+  - `uv run pks world revision-base --help` fails with "No such command".
+  - `logs/test-runs/cli-world-revision-group-20260417-201634.log` - 17 passed.
+  - `uv run pyright propstore/cli/world_cmds.py propstore/cli/world_revision_cmds.py propstore/cli/world_atms_cmds.py tests/test_cli_layout.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
