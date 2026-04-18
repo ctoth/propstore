@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from propstore.artifacts.documents.claims import ClaimDocument
 from propstore.cel_checker import check_cel_expr
@@ -31,6 +31,10 @@ from propstore.compiler.context import (
     CompilationContext,
     _build_claim_lookup,
 )
+from propstore.compiler.references import (
+    resolve_claim_reference,
+    resolve_concept_reference,
+)
 from propstore.diagnostics import SemanticDiagnostic, ValidationResult
 from propstore.compiler.ir import (
     ClaimCompilationBundle,
@@ -46,121 +50,22 @@ from propstore.identity import (
 )
 
 
-def _concept_match_kind(
-    raw_text: str,
-    resolved_id: str,
-    context: CompilationContext,
-) -> tuple[str | None, str | None]:
-    if raw_text == resolved_id:
-        return "artifact_id", raw_text
-    concept = context.concepts_by_id.get(resolved_id)
-    if concept is None:
-        return None, None
-    if concept.canonical_name == raw_text:
-        return "canonical_name", raw_text
-    for logical_id in concept.logical_ids:
-        if logical_id.formatted == raw_text:
-            return "logical_id", raw_text
-        if logical_id.value == raw_text:
-            return "logical_value", raw_text
-    for alias in concept.aliases:
-        if alias.name == raw_text:
-            return "alias", raw_text
-    if raw_text in context.concept_lookup:
-        return "legacy_key", raw_text
-    return None, None
-
-
-def _resolve_concept_reference(
-    concept_ref: object,
-    context: CompilationContext,
-) -> ResolvedReference | None:
-    if not isinstance(concept_ref, str) or not concept_ref:
-        return None
-    candidates = context.concept_lookup.get(concept_ref, ())
-    if len(candidates) == 1:
-        matched_by, matched_text = _concept_match_kind(concept_ref, candidates[0], context)
-        return ResolvedReference(
-            raw_text=concept_ref,
-            target_kind="concept",
-            resolved_id=candidates[0],
-            matched_by=matched_by,
-            matched_text=matched_text,
-        )
-    return ResolvedReference(
-        raw_text=concept_ref,
-        target_kind="concept",
-        resolved_id=None,
-        matched_by=None,
-        matched_text=None,
-        ambiguous_candidates=tuple(candidates),
-    )
-
-
-def _claim_match_kind(
-    raw_text: str,
-    resolved_id: str,
-    normalized_claim_files: list[LoadedClaimsFile],
-) -> tuple[str | None, str | None]:
-    if raw_text == resolved_id:
-        return "artifact_id", raw_text
-    for claim_file in normalized_claim_files:
-        for claim in claim_file_claims(claim_file):
-            if claim.artifact_id != resolved_id:
-                continue
-            for logical_id in claim.logical_ids:
-                if logical_id.formatted == raw_text:
-                    return "logical_id", raw_text
-                if logical_id.value == raw_text:
-                    return "logical_value", raw_text
-            break
-    return None, None
-
-
-def _resolve_claim_reference(
-    claim_ref: object,
-    claim_lookup: Mapping[str, tuple[str, ...]],
-    normalized_claim_files: list[LoadedClaimsFile],
-) -> ResolvedReference | None:
-    if not isinstance(claim_ref, str) or not claim_ref:
-        return None
-    candidates = claim_lookup.get(claim_ref, ())
-    if len(candidates) == 1:
-        matched_by, matched_text = _claim_match_kind(claim_ref, candidates[0], normalized_claim_files)
-        return ResolvedReference(
-            raw_text=claim_ref,
-            target_kind="claim",
-            resolved_id=candidates[0],
-            matched_by=matched_by,
-            matched_text=matched_text,
-        )
-    return ResolvedReference(
-        raw_text=claim_ref,
-        target_kind="claim",
-        resolved_id=None,
-        matched_by=None,
-        matched_text=None,
-        ambiguous_candidates=tuple(candidates),
-    )
-
-
 def _bind_claim(
     claim: ClaimDocument,
     *,
     filename: str,
     source_paper: str,
     context: CompilationContext,
-    claim_lookup: Mapping[str, tuple[str, ...]],
     normalized_claim_files: list[LoadedClaimsFile],
 ) -> SemanticClaim:
     authored_claim = claim.to_payload()
     resolved_claim = copy.deepcopy(authored_claim)
 
-    concept_ref = _resolve_concept_reference(claim.concept, context)
+    concept_ref = resolve_concept_reference(claim.concept, context)
     if concept_ref is not None and concept_ref.resolved_id is not None:
         resolved_claim["concept"] = concept_ref.resolved_id
 
-    target_concept_ref = _resolve_concept_reference(claim.target_concept, context)
+    target_concept_ref = resolve_concept_reference(claim.target_concept, context)
     if target_concept_ref is not None and target_concept_ref.resolved_id is not None:
         resolved_claim["target_concept"] = target_concept_ref.resolved_id
 
@@ -168,7 +73,7 @@ def _bind_claim(
     if claim.concepts:
         rewritten_concepts: list[object] = []
         for concept_value in claim.concepts:
-            concept_binding = _resolve_concept_reference(concept_value, context)
+            concept_binding = resolve_concept_reference(concept_value, context)
             if concept_binding is not None:
                 concept_refs.append(concept_binding)
                 rewritten_concepts.append(concept_binding.resolved_id or concept_binding.raw_text)
@@ -181,7 +86,7 @@ def _bind_claim(
         if isinstance(claim.variables, dict):
             rewritten_variables: dict[str, object] = {}
             for variable_name, concept_value in claim.variables.items():
-                binding = _resolve_concept_reference(concept_value, context)
+                binding = resolve_concept_reference(concept_value, context)
                 if binding is not None:
                     variable_refs.append(binding)
                     rewritten_variables[variable_name] = (
@@ -194,7 +99,7 @@ def _bind_claim(
             rewritten_variables_list: list[object] = []
             for variable in claim.variables:
                 updated = variable.to_payload()
-                binding = _resolve_concept_reference(variable.concept, context)
+                binding = resolve_concept_reference(variable.concept, context)
                 if binding is not None:
                     variable_refs.append(binding)
                     updated["concept"] = binding.resolved_id or binding.raw_text
@@ -206,7 +111,7 @@ def _bind_claim(
         rewritten_parameters: list[object] = []
         for parameter in claim.parameters:
             updated = parameter.to_payload()
-            binding = _resolve_concept_reference(parameter.concept, context)
+            binding = resolve_concept_reference(parameter.concept, context)
             if binding is not None:
                 parameter_refs.append(binding)
                 updated["concept"] = binding.resolved_id or binding.raw_text
@@ -218,9 +123,9 @@ def _bind_claim(
         rewritten_stances: list[object] = []
         for stance in claim.stances:
             updated = stance.to_payload()
-            target_ref = _resolve_claim_reference(
+            target_ref = resolve_claim_reference(
                 stance.target,
-                claim_lookup,
+                context,
                 normalized_claim_files,
             )
             if target_ref is None:
@@ -313,7 +218,6 @@ def compile_claim_files(
                 filename=normalized_file.filename,
                 source_paper=source_paper,
                 context=effective_context,
-                claim_lookup=claim_lookup,
                 normalized_claim_files=normalized_claim_files,
             )
             semantic_claims.append(semantic_claim)

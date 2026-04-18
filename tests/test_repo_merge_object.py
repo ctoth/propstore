@@ -6,7 +6,7 @@ import yaml
 import propstore.storage as repo_module
 from propstore.identity import compute_claim_version_id
 from quire.git_store import GitStore
-from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
+from propstore.storage import init_git_store
 from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.storage.merge_commit import create_merge_commit

@@ -16,7 +16,7 @@ from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, initiali
 
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
 from quire.git_store import GitStore
-from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
+from propstore.storage import init_git_store, init_memory_git_store
 
 # ── Strategies ──────────────────────────────────────────────────────
 

@@ -826,6 +826,46 @@ class TestCanonicalClaim:
         result = validate_concepts(concepts, claims_dir=claims_dir)
         assert not any("canonical_claim" in e.lower() for e in result.errors)
 
+    def test_valid_canonical_claim_logical_id(self, concept_dir):
+        """canonical_claim may point through the claim logical-reference index."""
+        claims_dir = concept_dir.parent / "claims"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = normalize_claims_payload({
+            "source": {"paper": "test_paper"},
+            "claims": [
+                {
+                    "type": "parameter",
+                    "concept": make_concept_identity(
+                        "concept1",
+                        domain="speech",
+                        canonical_name="concept_a",
+                    )["artifact_id"],
+                    "value": 200.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "test_paper", "page": 1},
+                },
+            ],
+        })
+        (claims_dir / "test_paper.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False))
+        logical_id = claim_data["claims"][0]["logical_ids"][0]
+
+        c1 = make_quantity_concept("concept1", "concept_a")
+        c2 = make_quantity_concept("concept2", "concept_b",
+                                   parameterization_relationships=[{
+                                       "formula": "b = a * 2",
+                                       "inputs": ["concept1"],
+                                       "exactness": "exact",
+                                       "source": "Test_2024",
+                                       "bidirectional": True,
+                                       "canonical_claim": f"{logical_id['namespace']}:{logical_id['value']}",
+                                   }])
+        write_concept(concept_dir, "concept_a.yaml", c1)
+        write_concept(concept_dir, "concept_b.yaml", c2)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts, claims_dir=claims_dir)
+        assert not any("canonical_claim" in e.lower() for e in result.errors)
+
     def test_canonical_claim_nonexistent(self, concept_dir):
         """canonical_claim pointing to nonexistent claim produces validation error."""
         c1 = make_quantity_concept("concept1", "concept_a")

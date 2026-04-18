@@ -9,7 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from quire.git_store import GitStore
-from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
+from propstore.storage import init_git_store
 from propstore.repository import Repository
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.merge.structured_merge import (

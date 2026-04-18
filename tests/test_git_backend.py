@@ -9,7 +9,7 @@ import pytest
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
 from propstore.concept_ids import next_concept_id, next_concept_id_for_git, record_concept_id_counter
 from quire.git_store import GitStore
-from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
+from propstore.storage import init_git_store, is_git_repo, open_git_store
 from tests.conftest import (
     make_concept_identity,
     normalize_concept_payloads,

@@ -72,7 +72,7 @@ Relevant current surfaces:
   - History/read facade over git snapshots.
   - Correct ownership: snapshot reads/history operations.
 
-- `propstore.artifacts.store.ArtifactStore`
+- the former propstore artifact persistence store
   - Typed artifact persistence facade.
   - Problem: name collides with world/query protocol.
 
@@ -145,7 +145,7 @@ remain.
 
 Two unrelated concepts are named `ArtifactStore`:
 
-- `propstore.artifacts.store.ArtifactStore`
+- the former propstore artifact persistence store
 - `propstore.core.environment.ArtifactStore`
 
 One is typed artifact persistence. The other is compiled semantic world query.

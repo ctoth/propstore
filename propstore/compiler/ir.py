@@ -5,21 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from quire.references import ReferenceResolution as ResolvedReference
+
 from propstore.cel_types import CheckedCelConditionSet
 from propstore.claims import LoadedClaimsFile
 from propstore.diagnostics import SemanticDiagnostic, ValidationResult, diagnostics_to_validation_result
-
-
-@dataclass(frozen=True)
-class ResolvedReference:
-    """A bound reference together with its resolution provenance."""
-
-    raw_text: str
-    target_kind: str
-    resolved_id: str | None
-    matched_by: str | None
-    matched_text: str | None
-    ambiguous_candidates: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

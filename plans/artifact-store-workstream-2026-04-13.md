@@ -454,7 +454,7 @@ Add:
 
 Modify:
 
-- [artifacts/store.py](/C:/Users/Q/code/propstore/propstore/artifacts/store.py)
+- the deleted propstore generic artifact store module
 - [artifacts/transaction.py](/C:/Users/Q/code/propstore/propstore/artifacts/transaction.py)
 - [artifacts/families.py](/C:/Users/Q/code/propstore/propstore/artifacts/families.py)
 - [artifacts/types.py](/C:/Users/Q/code/propstore/propstore/artifacts/types.py)

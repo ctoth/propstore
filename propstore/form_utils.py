@@ -587,7 +587,7 @@ def validate_form_files(forms_dir: Path | KnowledgePath) -> ValidationResult:
         has_unit = document.unit_symbol is not None
         if dims is not None:
             for dimension_key in dims:
-                if not dimension_key.isidentifier():
+                if not dimension_key or not dimension_key[0].isalpha() or not dimension_key.isidentifier():
                     result.errors.append(
                         f"{entry.stem}: dimension key '{dimension_key}' must be an identifier"
                     )

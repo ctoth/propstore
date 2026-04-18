@@ -5,7 +5,7 @@ package:
 contracts:
 - kind: artifact_family
   name: canonical_source
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -22,24 +22,24 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: claims_file
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.claims.ClaimsFileDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.families.<lambda>
+    list_refs: propstore.artifacts.families._claims_file_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.families.<lambda>
-    ref_from_path: propstore.artifacts.families.<lambda>
+    ref_from_loaded: propstore.artifacts.families._claims_file_ref_from_loaded
+    ref_from_path: propstore.artifacts.families._claims_file_ref_from_path
     render_document: null
     resolve_ref: propstore.artifacts.families._claims_file_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: concept_alignment
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -56,24 +56,24 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: concept_file
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.concepts.ConceptDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.families.<lambda>
+    list_refs: propstore.artifacts.families._concept_file_refs
     normalize_for_write: propstore.artifacts.families._normalize_concept_for_write
-    ref_from_loaded: propstore.artifacts.families.<lambda>
-    ref_from_path: propstore.artifacts.families.<lambda>
+    ref_from_loaded: propstore.artifacts.families._concept_file_ref_from_loaded
+    ref_from_path: propstore.artifacts.families._concept_file_ref_from_path
     render_document: null
     resolve_ref: propstore.artifacts.families._concept_file_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: context
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -83,14 +83,14 @@ contracts:
     list_refs: null
     normalize_for_write: null
     ref_from_loaded: null
-    ref_from_path: propstore.artifacts.families.<lambda>
+    ref_from_path: propstore.artifacts.families._context_ref_from_path
     render_document: null
     resolve_ref: propstore.artifacts.families._context_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: form
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -100,14 +100,14 @@ contracts:
     list_refs: null
     normalize_for_write: null
     ref_from_loaded: null
-    ref_from_path: propstore.artifacts.families.<lambda>
+    ref_from_path: propstore.artifacts.families._form_ref_from_path
     render_document: null
     resolve_ref: propstore.artifacts.families._form_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: justifications_file
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -124,7 +124,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: merge_manifest
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -141,41 +141,41 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: micropubs_file
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.families.<lambda>
+    list_refs: propstore.artifacts.families._micropubs_file_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.families.<lambda>
-    ref_from_path: propstore.artifacts.families.<lambda>
+    ref_from_loaded: propstore.artifacts.families._micropubs_file_ref_from_loaded
+    ref_from_path: propstore.artifacts.families._micropubs_file_ref_from_path
     render_document: null
     resolve_ref: propstore.artifacts.families._micropubs_file_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: proposal_stance_file
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.stances.StanceFileDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.families.<lambda>
+    list_refs: propstore.artifacts.families._proposal_stance_refs
     normalize_for_write: null
     ref_from_loaded: null
-    ref_from_path: propstore.artifacts.families.<lambda>
+    ref_from_path: propstore.artifacts.families._stance_file_ref_from_path
     render_document: null
     resolve_ref: propstore.artifacts.families._proposal_stance_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_claims
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -187,12 +187,12 @@ contracts:
     ref_from_loaded: null
     ref_from_path: null
     render_document: null
-    resolve_ref: propstore.artifacts.families.<lambda>
+    resolve_ref: propstore.artifacts.families._source_claims_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_concepts
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -204,12 +204,12 @@ contracts:
     ref_from_loaded: null
     ref_from_path: null
     render_document: null
-    resolve_ref: propstore.artifacts.families.<lambda>
+    resolve_ref: propstore.artifacts.families._source_concepts_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_document
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -221,12 +221,12 @@ contracts:
     ref_from_loaded: null
     ref_from_path: null
     render_document: null
-    resolve_ref: propstore.artifacts.families.<lambda>
+    resolve_ref: propstore.artifacts.families._source_document_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_finalize_report
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -238,12 +238,12 @@ contracts:
     ref_from_loaded: null
     ref_from_path: null
     render_document: null
-    resolve_ref: propstore.artifacts.families.<lambda>
+    resolve_ref: propstore.artifacts.families._source_finalize_report_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_justifications
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -255,29 +255,29 @@ contracts:
     ref_from_loaded: null
     ref_from_path: null
     render_document: null
-    resolve_ref: propstore.artifacts.families.<lambda>
+    resolve_ref: propstore.artifacts.families._source_justifications_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_metadata
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: propstore.artifacts.families._coerce_json_mapping
     decode_bytes: propstore.artifacts.families._decode_json_mapping
     doc_type: builtins.dict
-    document_payload: propstore.artifacts.families.<lambda>
+    document_payload: propstore.artifacts.families._identity_json_mapping
     encode_document: propstore.artifacts.families._encode_json_mapping
     list_refs: null
     normalize_for_write: null
     ref_from_loaded: null
     ref_from_path: null
     render_document: propstore.artifacts.families._render_json_mapping
-    resolve_ref: propstore.artifacts.families.<lambda>
+    resolve_ref: propstore.artifacts.families._source_metadata_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_micropubs
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -289,29 +289,29 @@ contracts:
     ref_from_loaded: null
     ref_from_path: null
     render_document: null
-    resolve_ref: propstore.artifacts.families.<lambda>
+    resolve_ref: propstore.artifacts.families._source_micropubs_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_notes
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: propstore.artifacts.families._coerce_text_document
     decode_bytes: propstore.artifacts.families._decode_text_document
     doc_type: builtins.str
-    document_payload: propstore.artifacts.families.<lambda>
+    document_payload: propstore.artifacts.families._identity_text_document
     encode_document: propstore.artifacts.families._encode_text_document
     list_refs: null
     normalize_for_write: null
     ref_from_loaded: null
     ref_from_path: null
-    render_document: propstore.artifacts.families.<lambda>
-    resolve_ref: propstore.artifacts.families.<lambda>
+    render_document: propstore.artifacts.families._identity_text_document
+    resolve_ref: propstore.artifacts.families._source_notes_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_stances
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -323,12 +323,12 @@ contracts:
     ref_from_loaded: null
     ref_from_path: null
     render_document: null
-    resolve_ref: propstore.artifacts.families.<lambda>
+    resolve_ref: propstore.artifacts.families._source_stances_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: stance_file
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
@@ -338,24 +338,24 @@ contracts:
     list_refs: propstore.artifacts.families._list_stance_refs_in_directory
     normalize_for_write: null
     ref_from_loaded: null
-    ref_from_path: propstore.artifacts.families.<lambda>
+    ref_from_path: propstore.artifacts.families._stance_file_ref_from_path
     render_document: null
     resolve_ref: propstore.artifacts.families._stance_file_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: worldline
-  contract_version: 2026.04.19
+  contract_version: 2026.04.20
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.worldlines.WorldlineDefinitionDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.families.<lambda>
+    list_refs: propstore.artifacts.families._worldline_refs
     normalize_for_write: null
     ref_from_loaded: null
-    ref_from_path: propstore.artifacts.families.<lambda>
+    ref_from_path: propstore.artifacts.families._worldline_ref_from_path
     render_document: null
     resolve_ref: propstore.artifacts.families._worldline_artifact
     scan_type: null
@@ -2532,6 +2532,114 @@ contracts:
       required: true
       type: str | None
     module: propstore.artifacts.documents.worldlines
+- kind: foreign_key
+  name: claim_concept
+  contract_version: 2026.04.20
+  body:
+    many: false
+    required: true
+    source_family: claim
+    source_field: concept
+    target_family: concept
+- kind: foreign_key
+  name: claim_concepts
+  contract_version: 2026.04.20
+  body:
+    many: true
+    required: true
+    source_family: claim
+    source_field: concepts
+    target_family: concept
+- kind: foreign_key
+  name: claim_context
+  contract_version: 2026.04.20
+  body:
+    many: false
+    required: true
+    source_family: claim
+    source_field: context
+    target_family: context
+- kind: foreign_key
+  name: claim_measurement_target_concept
+  contract_version: 2026.04.20
+  body:
+    many: false
+    required: true
+    source_family: claim
+    source_field: target_concept
+    target_family: concept
+- kind: foreign_key
+  name: claim_parameter_concept
+  contract_version: 2026.04.20
+  body:
+    many: false
+    required: true
+    source_family: claim
+    source_field: parameters[].concept
+    target_family: concept
+- kind: foreign_key
+  name: claim_stance_target
+  contract_version: 2026.04.20
+  body:
+    many: false
+    required: true
+    source_family: claim
+    source_field: stances[].target
+    target_family: claim
+- kind: foreign_key
+  name: claim_variable_concept
+  contract_version: 2026.04.20
+  body:
+    many: false
+    required: true
+    source_family: claim
+    source_field: variables[].concept
+    target_family: concept
+- kind: foreign_key
+  name: concept_form
+  contract_version: 2026.04.20
+  body:
+    many: false
+    required: true
+    source_family: concept
+    source_field: form
+    target_family: form
+- kind: foreign_key
+  name: concept_parameterization_canonical_claim
+  contract_version: 2026.04.20
+  body:
+    many: false
+    required: false
+    source_family: concept
+    source_field: parameterization_relationships[].canonical_claim
+    target_family: claim
+- kind: foreign_key
+  name: concept_parameterization_input
+  contract_version: 2026.04.20
+  body:
+    many: true
+    required: true
+    source_family: concept
+    source_field: parameterization_relationships[].inputs[]
+    target_family: concept
+- kind: foreign_key
+  name: concept_relationship_target
+  contract_version: 2026.04.20
+  body:
+    many: true
+    required: true
+    source_family: concept
+    source_field: relationships[].target
+    target_family: concept
+- kind: foreign_key
+  name: concept_replaced_by
+  contract_version: 2026.04.20
+  body:
+    many: false
+    required: false
+    source_family: concept
+    source_field: replaced_by
+    target_family: concept
 registry:
   name: semantic-family-registry
   contract_version: 2026.04.19

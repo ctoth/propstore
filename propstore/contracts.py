@@ -8,6 +8,7 @@ from typing import Any
 import msgspec
 from quire.artifacts import ArtifactFamily
 from quire.contracts import ContractEntry, ContractManifest
+from quire.references import ForeignKeySpec
 from quire.versions import VersionId
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.19")
@@ -27,6 +28,12 @@ def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any, Any], ...]:
         if isinstance(value, ArtifactFamily)
     ]
     return tuple(sorted(discovered, key=lambda family: family.name))
+
+
+def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
+    from propstore.compiler.references import iter_semantic_foreign_keys as iter_foreign_keys
+
+    return tuple(sorted(iter_foreign_keys(), key=lambda spec: spec.name))
 
 
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
@@ -76,6 +83,7 @@ def build_propstore_contract_manifest() -> ContractManifest:
     contracts: list[ContractEntry] = []
     contracts.extend(_document_contract(document_type) for document_type in iter_document_schema_types())
     contracts.extend(_family_contract(family) for family in iter_artifact_families())
+    contracts.extend(_foreign_key_contract(spec) for spec in iter_semantic_foreign_keys())
     return ContractManifest(
         format_version=1,
         package_name="propstore",
@@ -130,6 +138,15 @@ def _family_contract(family: ArtifactFamily[Any, Any, Any]) -> ContractEntry:
                 else f"{family.scan_type.__module__}.{family.scan_type.__qualname__}"
             ),
         },
+    )
+
+
+def _foreign_key_contract(spec: ForeignKeySpec) -> ContractEntry:
+    return ContractEntry(
+        kind="foreign_key",
+        name=spec.name,
+        contract_version=spec.contract_version,
+        body=spec.contract_body(),
     )
 
 

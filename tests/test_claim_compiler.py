@@ -4,10 +4,16 @@ from __future__ import annotations
 
 import yaml
 
+from quire.references import CrossFamilyReferenceIndex
+
 from propstore.compiler.context import (
     build_compilation_context_from_paths,
 )
 from propstore.compiler.passes import compile_claim_files
+from propstore.compiler.references import (
+    foreign_keys_from_context,
+    iter_semantic_foreign_keys,
+)
 from propstore.claims import load_claim_files
 from propstore.sidecar.claim_utils import prepare_claim_insert_row
 from tests.conftest import (
@@ -142,6 +148,35 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
     assert semantic_claim.concept_ref.resolved_id == semantic_claim.resolved_claim["concept"]
     assert semantic_claim.stances[0].target_ref.matched_by == "logical_id"
     assert semantic_claim.stances[0].target_ref.resolved_id == target_claim_id
+
+
+def test_compilation_context_exposes_quire_cross_family_foreign_key_index(tmp_path):
+    claims_dir = tmp_path / "claims"
+    claims_dir.mkdir()
+
+    claim = make_parameter_claim("claim1", "concept1", 200.0, "Hz", paper="paper")
+    payload = normalize_claims_payload({
+        "source": {"paper": "paper"},
+        "claims": [claim],
+    })
+    (claims_dir / "paper.yaml").write_text(yaml.dump(payload, default_flow_style=False))
+
+    files = load_claim_files(claims_dir)
+    context = make_compilation_context(make_concept_registry(), claim_files=files)
+    references = foreign_keys_from_context(context)
+    claim_logical_id = (
+        f"{payload['claims'][0]['logical_ids'][0]['namespace']}:"
+        f"{payload['claims'][0]['logical_ids'][0]['value']}"
+    )
+
+    assert isinstance(references, CrossFamilyReferenceIndex)
+    assert references.exists("concept", "F0")
+    assert references.exists("claim", claim_logical_id)
+    assert references.resolve_id("claim", claim_logical_id) == payload["claims"][0]["artifact_id"]
+    assert {spec.name for spec in iter_semantic_foreign_keys()} >= {
+        "claim_stance_target",
+        "concept_parameterization_canonical_claim",
+    }
 
 
 def test_prepare_claim_insert_row_matches_for_raw_and_semantic_claims(tmp_path):
