@@ -40,7 +40,14 @@ def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
         return empty
     if not isinstance(value, Mapping):
         raise ValueError(f"active world graph field '{field_name}' must be a mapping")
-    return value
+    return {str(key): item for key, item in _mapping_items(value)}
+
+
+def _require_claim_type(value: object) -> ClaimType:
+    claim_type = coerce_claim_type(value)
+    if claim_type is None:
+        raise ValueError("active world graph claim node requires claim_type")
+    return claim_type
 
 
 def _pairs_from_mapping(value: Mapping[str, object]) -> list[tuple[str, object]]:
@@ -212,7 +219,7 @@ class ClaimNode:
         return cls(
             claim_id=to_claim_id(data["claim_id"]),
             concept_id=to_concept_id(data["concept_id"]),
-            claim_type=coerce_claim_type(data["claim_type"]),
+            claim_type=_require_claim_type(data["claim_type"]),
             scalar_value=data.get("scalar_value"),
             provenance=(
                 None
