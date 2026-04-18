@@ -113,15 +113,17 @@ def test_propstore_git_carrier_is_not_named_knowledge_repo() -> None:
     assert offenders == []
 
 
-def test_storage_package_exports_git_store_not_knowledge_repo() -> None:
+def test_storage_package_exports_policy_constructors_not_gitstore_shim() -> None:
     path = ROOT / "propstore" / "storage" / "__init__.py"
     contents = path.read_text(encoding="utf-8")
 
-    assert "GitStore" in contents
+    assert "GitStore" not in contents
+    assert "init_git_store" in contents
+    assert "open_git_store" in contents
     assert "KnowledgeRepo" not in contents
 
 
-def test_git_storage_surface_is_not_named_repo() -> None:
+def test_git_storage_surface_is_not_named_repo_or_gitstore_shim() -> None:
     storage = ROOT / "propstore" / "storage" / "__init__.py"
     old_repo_package = ROOT / "propstore" / "repo"
 
@@ -129,7 +131,9 @@ def test_git_storage_surface_is_not_named_repo() -> None:
     assert not old_repo_package.exists()
 
     contents = storage.read_text(encoding="utf-8")
-    assert "GitStore" in contents
+    assert "GitStore" not in contents
+    assert "init_git_store" in contents
+    assert "open_git_store" in contents
     assert "KnowledgeRepo" not in contents
 
 
