@@ -49,7 +49,11 @@ from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
 from propstore.repository import Repository
 from propstore.artifacts.schema import convert_document_value
-from propstore.artifacts.documents.sources import SourceDocument, SourceJustificationsDocument
+from propstore.artifacts.documents.sources import (
+    SourceConceptEntryDocument,
+    SourceDocument,
+    SourceJustificationsDocument,
+)
 from propstore.artifacts.documents.stances import StanceFileDocument
 
 from .common import (
@@ -141,7 +145,7 @@ def resolve_source_concept_promotions(
     concepts_by_artifact, handle_to_artifact = load_primary_branch_concepts(repo)
     mapping: dict[str, str] = {}
     concept_documents: dict[str, ConceptDocument] = {}
-    new_concepts: list[tuple[object, str, str]] = []
+    new_concepts: list[tuple[SourceConceptEntryDocument, str, str]] = []
     seen_new_artifacts: dict[str, str] = {}
 
     for entry in (() if concepts_doc is None else concepts_doc.concepts):
@@ -149,14 +153,12 @@ def resolve_source_concept_promotions(
         if registry_match is not None:
             artifact_id = registry_match.artifact_id
             if isinstance(artifact_id, str) and artifact_id:
-                for key in ("local_name", "proposed_name"):
-                    handle = getattr(entry, key)
+                for handle in (entry.local_name, entry.proposed_name):
                     if isinstance(handle, str) and handle:
                         mapping[handle] = artifact_id
                 continue
         matched_artifact_id: str | None = None
-        for key in ("local_name", "proposed_name"):
-            handle = getattr(entry, key)
+        for handle in (entry.local_name, entry.proposed_name):
             if isinstance(handle, str) and handle in handle_to_artifact:
                 matched_artifact_id = handle_to_artifact[handle]
                 mapping[handle] = matched_artifact_id
@@ -186,8 +188,7 @@ def resolve_source_concept_promotions(
             )
         seen_new_artifacts[artifact_id] = handle_seed
         new_concepts.append((entry, artifact_id, slug))
-        for key in ("local_name", "proposed_name"):
-            handle = getattr(entry, key)
+        for handle in (entry.local_name, entry.proposed_name):
             if isinstance(handle, str) and handle:
                 mapping[handle] = artifact_id
 
