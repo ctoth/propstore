@@ -16,7 +16,6 @@ from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.repository import Repository
 from propstore.artifacts.families import CLAIMS_FILE_FAMILY
 from propstore.artifacts.documents.claims import ClaimsFileDocument
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from quire.documents import DocumentSchemaError, load_document_dir
 from quire.tree_path import coerce_tree_path as coerce_knowledge_path
 
@@ -117,7 +116,11 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
             sys.exit(EXIT_ERROR)
         forms_root = coerce_knowledge_path(concepts_override.parent / "forms")
         if not forms_root.exists():
-            forms_root = SEMANTIC_FAMILIES.root_path("form", repo.tree())
+            click.echo(
+                f"ERROR: Concepts override requires sibling forms directory '{forms_root.as_posix()}'",
+                err=True,
+            )
+            sys.exit(EXIT_ERROR)
 
     try:
         if claims_root is None:
@@ -181,7 +184,11 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
             sys.exit(EXIT_ERROR)
         forms_root = coerce_knowledge_path(concepts_override.parent / "forms")
         if not forms_root.exists():
-            forms_root = SEMANTIC_FAMILIES.root_path("form", repo.tree())
+            click.echo(
+                f"ERROR: Concepts override requires sibling forms directory '{forms_root.as_posix()}'",
+                err=True,
+            )
+            sys.exit(EXIT_ERROR)
 
     try:
         if concepts_root is None:
@@ -225,12 +232,6 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
     )
 
     repo: Repository = obj["repo"]
-    concepts_root = SEMANTIC_FAMILIES.root_path("concept", repo.tree())
-
-    if not concepts_root.exists():
-        click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
-        sys.exit(EXIT_ERROR)
-
     files = [
         repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref)
         for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
