@@ -5,343 +5,364 @@ package:
 contracts:
 - kind: artifact_family
   name: canonical_source
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families._canonical_source_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: claims_file
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.claims.ClaimsFileDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: true
-    has_normalize_for_write: false
-    has_ref_from_loaded: true
-    has_ref_from_path: true
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: propstore.artifacts.families.<lambda>
+    normalize_for_write: null
+    ref_from_loaded: propstore.artifacts.families.<lambda>
+    ref_from_path: propstore.artifacts.families.<lambda>
+    render_document: null
+    resolve_ref: propstore.artifacts.families._claims_file_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: concept_alignment
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.source_alignment.ConceptAlignmentArtifactDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families._concept_alignment_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: concept_file
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.concepts.ConceptDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: true
-    has_normalize_for_write: true
-    has_ref_from_loaded: true
-    has_ref_from_path: true
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: propstore.artifacts.families.<lambda>
+    normalize_for_write: propstore.artifacts.families._normalize_concept_for_write
+    ref_from_loaded: propstore.artifacts.families.<lambda>
+    ref_from_path: propstore.artifacts.families.<lambda>
+    render_document: null
+    resolve_ref: propstore.artifacts.families._concept_file_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: context
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.contexts.ContextDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: true
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: propstore.artifacts.families.<lambda>
+    render_document: null
+    resolve_ref: propstore.artifacts.families._context_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: form
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.forms.FormDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: true
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: propstore.artifacts.families.<lambda>
+    render_document: null
+    resolve_ref: propstore.artifacts.families._form_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: justifications_file
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families._justifications_file_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: merge_manifest
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.merge.MergeManifestDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families._merge_manifest_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: micropubs_file
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: true
-    has_normalize_for_write: false
-    has_ref_from_loaded: true
-    has_ref_from_path: true
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: propstore.artifacts.families.<lambda>
+    normalize_for_write: null
+    ref_from_loaded: propstore.artifacts.families.<lambda>
+    ref_from_path: propstore.artifacts.families.<lambda>
+    render_document: null
+    resolve_ref: propstore.artifacts.families._micropubs_file_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: proposal_stance_file
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.stances.StanceFileDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: true
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: true
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: propstore.artifacts.families.<lambda>
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: propstore.artifacts.families.<lambda>
+    render_document: null
+    resolve_ref: propstore.artifacts.families._proposal_stance_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: source_claims
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceClaimsDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families.<lambda>
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: source_concepts
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceConceptsDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families.<lambda>
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: source_document
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families.<lambda>
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: source_finalize_report
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceFinalizeReportDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families.<lambda>
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: source_justifications
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families.<lambda>
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: source_metadata
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: propstore.artifacts.families._coerce_json_mapping
+    decode_bytes: propstore.artifacts.families._decode_json_mapping
     doc_type: builtins.dict
-    has_coerce_payload: true
-    has_decode_bytes: true
-    has_document_payload: true
-    has_encode_document: true
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: true
-    has_validate_for_write: false
+    document_payload: propstore.artifacts.families.<lambda>
+    encode_document: propstore.artifacts.families._encode_json_mapping
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: propstore.artifacts.families._render_json_mapping
+    resolve_ref: propstore.artifacts.families.<lambda>
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: source_micropubs
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families.<lambda>
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: source_notes
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: propstore.artifacts.families._coerce_text_document
+    decode_bytes: propstore.artifacts.families._decode_text_document
     doc_type: builtins.str
-    has_coerce_payload: true
-    has_decode_bytes: true
-    has_document_payload: true
-    has_encode_document: true
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: true
-    has_validate_for_write: false
+    document_payload: propstore.artifacts.families.<lambda>
+    encode_document: propstore.artifacts.families._encode_text_document
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: propstore.artifacts.families.<lambda>
+    resolve_ref: propstore.artifacts.families.<lambda>
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: source_stances
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceStancesDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: false
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: false
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: null
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: null
+    render_document: null
+    resolve_ref: propstore.artifacts.families.<lambda>
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: stance_file
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.stances.StanceFileDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: true
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: true
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: propstore.artifacts.families._list_stance_refs_in_directory
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: propstore.artifacts.families.<lambda>
+    render_document: null
+    resolve_ref: propstore.artifacts.families._stance_file_artifact
     scan_type: null
+    validate_for_write: null
 - kind: artifact_family
   name: worldline
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
+    coerce_payload: null
+    decode_bytes: null
     doc_type: propstore.artifacts.documents.worldlines.WorldlineDefinitionDocument
-    has_coerce_payload: false
-    has_decode_bytes: false
-    has_document_payload: false
-    has_encode_document: false
-    has_list_refs: true
-    has_normalize_for_write: false
-    has_ref_from_loaded: false
-    has_ref_from_path: true
-    has_render_document: false
-    has_validate_for_write: false
+    document_payload: null
+    encode_document: null
+    list_refs: propstore.artifacts.families.<lambda>
+    normalize_for_write: null
+    ref_from_loaded: null
+    ref_from_path: propstore.artifacts.families.<lambda>
+    render_document: null
+    resolve_ref: propstore.artifacts.families._worldline_artifact
     scan_type: null
+    validate_for_write: null
 - kind: document_schema
   name: AlignmentArgumentDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -368,7 +389,7 @@ contracts:
     module: propstore.artifacts.documents.source_alignment
 - kind: document_schema
   name: AlignmentDecisionDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: status
@@ -386,7 +407,7 @@ contracts:
     module: propstore.artifacts.documents.source_alignment
 - kind: document_schema
   name: AlignmentFrameworkDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: attacks
@@ -401,7 +422,7 @@ contracts:
     module: propstore.artifacts.documents.source_alignment
 - kind: document_schema
   name: AlignmentQueriesDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: skeptical_acceptance
@@ -416,7 +437,7 @@ contracts:
     module: propstore.artifacts.documents.source_alignment
 - kind: document_schema
   name: AtomDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: predicate
@@ -431,7 +452,7 @@ contracts:
     module: propstore.artifacts.documents.rules
 - kind: document_schema
   name: AtomicPropositionDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: type
@@ -518,7 +539,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: ClaimDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: context
@@ -632,7 +653,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: ClaimLogicalIdDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: namespace
@@ -650,7 +671,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: ClaimSourceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: paper
@@ -668,7 +689,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: ClaimsFileDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: source
@@ -683,7 +704,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: ConceptAliasDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: name
@@ -698,7 +719,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: ConceptAlignmentArtifactDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: kind
@@ -725,7 +746,7 @@ contracts:
     module: propstore.artifacts.documents.source_alignment
 - kind: document_schema
   name: ConceptDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: status
@@ -782,7 +803,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: ConceptFormParametersDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: construction
@@ -803,7 +824,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: ConceptIdScanDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -818,7 +839,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: ConceptLogicalIdDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: namespace
@@ -830,7 +851,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: ConceptRelationshipDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: type
@@ -851,7 +872,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: ContextDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -872,7 +893,7 @@ contracts:
     module: propstore.artifacts.documents.contexts
 - kind: document_schema
   name: ContextReferenceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -881,7 +902,7 @@ contracts:
     module: propstore.artifacts.documents.contexts
 - kind: document_schema
   name: ContextStructureDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: assumptions
@@ -896,7 +917,7 @@ contracts:
     module: propstore.artifacts.documents.contexts
 - kind: document_schema
   name: ExtractionProvenanceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: reader
@@ -911,7 +932,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: FitStatisticsDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: r
@@ -929,7 +950,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: FormAlternativeDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: unit
@@ -956,7 +977,7 @@ contracts:
     module: propstore.artifacts.documents.forms
 - kind: document_schema
   name: FormDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: name
@@ -995,7 +1016,7 @@ contracts:
     module: propstore.artifacts.documents.forms
 - kind: document_schema
   name: FormExtraUnitDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: symbol
@@ -1007,7 +1028,7 @@ contracts:
     module: propstore.artifacts.documents.forms
 - kind: document_schema
   name: IstPropositionDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: context
@@ -1019,7 +1040,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: LexicalEntryDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: identifier
@@ -1040,7 +1061,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: LexicalFormDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: written_rep
@@ -1055,7 +1076,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: LexicalSenseDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: reference
@@ -1079,7 +1100,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: LiftingRuleDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -1103,7 +1124,7 @@ contracts:
     module: propstore.artifacts.documents.contexts
 - kind: document_schema
   name: MergeManifestArgumentDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: claim_id
@@ -1127,7 +1148,7 @@ contracts:
     module: propstore.artifacts.documents.merge
 - kind: document_schema
   name: MergeManifestDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: merge
@@ -1136,7 +1157,7 @@ contracts:
     module: propstore.artifacts.documents.merge
 - kind: document_schema
   name: MergeManifestPayloadDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: branch_a
@@ -1157,7 +1178,7 @@ contracts:
     module: propstore.artifacts.documents.merge
 - kind: document_schema
   name: MergeSemanticCandidateArgumentDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: claim_id
@@ -1178,7 +1199,7 @@ contracts:
     module: propstore.artifacts.documents.merge
 - kind: document_schema
   name: MergeSemanticCandidateDetailDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: claim_ids
@@ -1196,7 +1217,7 @@ contracts:
     module: propstore.artifacts.documents.merge
 - kind: document_schema
   name: MicropublicationDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: artifact_id
@@ -1229,7 +1250,7 @@ contracts:
     module: propstore.artifacts.documents.micropubs
 - kind: document_schema
   name: MicropublicationEvidenceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: kind
@@ -1241,7 +1262,7 @@ contracts:
     module: propstore.artifacts.documents.micropubs
 - kind: document_schema
   name: MicropublicationsFileDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: micropubs
@@ -1253,7 +1274,7 @@ contracts:
     module: propstore.artifacts.documents.micropubs
 - kind: document_schema
   name: OntologyReferenceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: uri
@@ -1265,7 +1286,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: OpinionDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: b
@@ -1286,7 +1307,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: ParameterBindingDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: name
@@ -1301,7 +1322,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: ParameterizationRelationshipDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: inputs
@@ -1337,7 +1358,7 @@ contracts:
     module: propstore.artifacts.documents.concepts
 - kind: document_schema
   name: PredicateDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -1358,7 +1379,7 @@ contracts:
     module: propstore.artifacts.documents.predicates
 - kind: document_schema
   name: PredicatesFileDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: predicates
@@ -1367,7 +1388,7 @@ contracts:
     module: propstore.artifacts.documents.predicates
 - kind: document_schema
   name: ProvenanceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: page
@@ -1394,7 +1415,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: ResolutionDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: method
@@ -1421,7 +1442,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: RuleDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -1439,7 +1460,7 @@ contracts:
     module: propstore.artifacts.documents.rules
 - kind: document_schema
   name: RuleSourceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: paper
@@ -1448,7 +1469,7 @@ contracts:
     module: propstore.artifacts.documents.rules
 - kind: document_schema
   name: RulesFileDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: source
@@ -1463,7 +1484,7 @@ contracts:
     module: propstore.artifacts.documents.rules
 - kind: document_schema
   name: SourceAttackTargetDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: target_claim
@@ -1478,7 +1499,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceClaimDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: artifact_id
@@ -1589,7 +1610,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceClaimsDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: claims
@@ -1604,7 +1625,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceConceptAliasDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: name
@@ -1619,7 +1640,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceConceptEntryDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: local_name
@@ -1655,7 +1676,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceConceptFormParametersDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: construction
@@ -1676,7 +1697,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceConceptRegistryMatchDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: artifact_id
@@ -1688,7 +1709,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceConceptsDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: concepts
@@ -1697,7 +1718,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -1721,7 +1742,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceFinalizeCalibrationDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: prior_base_rate_status
@@ -1736,7 +1757,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceFinalizeReportDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: kind
@@ -1775,7 +1796,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceJustificationDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -1805,7 +1826,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceJustificationsDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: justifications
@@ -1820,7 +1841,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceMetadataDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: name
@@ -1829,7 +1850,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceOriginDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: type
@@ -1847,7 +1868,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceParameterizationGroupMergeDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: merged_group
@@ -1862,7 +1883,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceParameterizationRelationshipDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: inputs
@@ -1898,7 +1919,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceProvenanceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: paper
@@ -1922,7 +1943,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceStanceEntryDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: source_claim
@@ -1955,7 +1976,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceStancesDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: stances
@@ -1970,7 +1991,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceTrustDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: status
@@ -1988,7 +2009,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: SourceTrustQualityDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: status
@@ -2009,7 +2030,7 @@ contracts:
     module: propstore.artifacts.documents.sources
 - kind: document_schema
   name: StanceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: type
@@ -2036,7 +2057,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: StanceEntryDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: source_claim
@@ -2069,7 +2090,7 @@ contracts:
     module: propstore.artifacts.documents.stances
 - kind: document_schema
   name: StanceFileDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: source_claim
@@ -2087,7 +2108,7 @@ contracts:
     module: propstore.artifacts.documents.stances
 - kind: document_schema
   name: TermDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: kind
@@ -2102,7 +2123,7 @@ contracts:
     module: propstore.artifacts.documents.rules
 - kind: document_schema
   name: VariableBindingDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: concept
@@ -2120,7 +2141,7 @@ contracts:
     module: propstore.artifacts.documents.claims
 - kind: document_schema
   name: WorldlineAssumptionDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: assumption_id
@@ -2138,7 +2159,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineDefinitionDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: id
@@ -2168,7 +2189,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineDependenciesDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: claims
@@ -2183,7 +2204,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineInputSourceDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: source
@@ -2210,7 +2231,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineInputsDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: bindings
@@ -2231,7 +2252,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlinePolicyDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: reasoning_backend
@@ -2300,7 +2321,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineResultDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: computed
@@ -2330,7 +2351,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionAtomDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: kind
@@ -2348,7 +2369,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionQueryDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: operation
@@ -2369,7 +2390,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionResultDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: accepted_atom_ids
@@ -2387,7 +2408,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionStateDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: operation
@@ -2414,7 +2435,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineStepDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: concept
@@ -2441,7 +2462,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineTargetValueDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: status
@@ -2495,7 +2516,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: document_schema
   name: WorldlineVariableRefDocument
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19
   body:
     fields:
     - name: name
@@ -2513,4 +2534,4 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 registry:
   name: semantic-family-registry
-  contract_version: 2026.04.18
+  contract_version: 2026.04.19

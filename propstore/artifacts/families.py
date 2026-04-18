@@ -62,7 +62,7 @@ if TYPE_CHECKING:
 
 TYamlRef = TypeVar("TYamlRef")
 
-ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.18")
+ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.19")
 
 
 def _source_artifact(repo: Repository, ref: SourceRef, relpath: str) -> ResolvedArtifact:
