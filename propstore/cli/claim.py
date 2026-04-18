@@ -14,7 +14,6 @@ import click
 
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.repository import Repository
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from quire.documents import DocumentSchemaError, load_document_dir
 from quire.tree_path import coerce_tree_path as coerce_knowledge_path
@@ -125,8 +124,8 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
     try:
         if claims_root is None:
             files = [
-                repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref)
-                for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+                repo.families.claims.require_handle(ref)
+                for ref in repo.families.claims.list()
             ]
         else:
             files = load_document_dir(claims_root, ClaimsFileDocument)
@@ -233,8 +232,8 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
 
     repo: Repository = obj["repo"]
     files = [
-        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref)
-        for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+        repo.families.claims.require_handle(ref)
+        for ref in repo.families.claims.list()
     ]
     if not files:
         click.echo("No claim files found.")

@@ -4,8 +4,6 @@ from __future__ import annotations
 import click
 
 from propstore.artifacts import (
-    CLAIMS_FILE_FAMILY,
-    MERGE_MANIFEST_FAMILY,
     ClaimsFileRef,
     MergeManifestRef,
 )
@@ -63,8 +61,7 @@ def merge_commit_cmd(
         message=message,
         target_branch=resolved_target_branch,
     )
-    manifest = repo.artifacts.require(
-        MERGE_MANIFEST_FAMILY,
+    manifest = repo.families.merge_manifests.require(
         MergeManifestRef(),
         commit=commit_sha,
     )
@@ -73,8 +70,8 @@ def merge_commit_cmd(
         "branch_a": branch_a,
         "branch_b": branch_b,
         "target_branch": resolved_target_branch,
-        "claims_path": repo.artifacts.address(CLAIMS_FILE_FAMILY, ClaimsFileRef("merged")).require_path(),
-        "manifest_path": repo.artifacts.address(MERGE_MANIFEST_FAMILY, MergeManifestRef()).require_path(),
+        "claims_path": repo.families.claims.family.address_for(repo, ClaimsFileRef("merged")).require_path(),
+        "manifest_path": repo.families.merge_manifests.family.address_for(repo, MergeManifestRef()).require_path(),
         "commit_sha": commit_sha,
         "semantic_candidate_count": len(manifest.merge.semantic_candidate_details),
     }
