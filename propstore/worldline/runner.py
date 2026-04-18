@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from propstore.core.id_types import ContextId
+from propstore.core.id_types import ConceptId, ContextId, to_concept_id
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
 from propstore.worldline.hashing import compute_worldline_content_hash
@@ -48,7 +48,7 @@ def run_worldline(
     strategy = policy.strategy
     bound = world.bind(environment, policy=policy)
 
-    override_concept_ids: dict[str, float | str] = {}
+    override_concept_ids: dict[ConceptId, float | str] = {}
     for name, value in overrides.items():
         concept_id = _resolve_concept_name(world, name)
         if concept_id is not None:
@@ -60,7 +60,7 @@ def run_worldline(
     for name, value in overrides.items():
         trace.record_override(name, value)
 
-    target_map: dict[str, str] = {}
+    target_map: dict[str, ConceptId] = {}
     for target in definition.targets:
         concept_id = _resolve_concept_name(world, target)
         if concept_id is not None:
@@ -163,9 +163,9 @@ def run_worldline(
 def _capture_sensitivity(
     world: WorldlineStore,
     bound: Any,
-    target_map: dict[str, str],
+    target_map: dict[str, ConceptId],
     values: dict[str, WorldlineTargetValue],
-    override_concept_ids: dict[str, float | str],
+    override_concept_ids: dict[ConceptId, float | str],
 ) -> WorldlineSensitivityReport | None:
     outcomes: dict[str, WorldlineSensitivityOutcome] = {}
     float_overrides = {
@@ -182,7 +182,7 @@ def _capture_sensitivity(
 
             result = analyze_sensitivity(
                 world,
-                concept_id,
+                to_concept_id(concept_id),
                 bound,
                 override_values=float_overrides,
             )
