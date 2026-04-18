@@ -9,7 +9,6 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.storage.branch import create_branch
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import summarize_merge_framework
 from propstore.storage.snapshot import RepositorySnapshot
@@ -86,7 +85,7 @@ def test_merge_inspect_cli_surfaces_query_summary(tmp_path):
         "seed",
     )
     branch_name = "paper/phi"
-    create_branch(git, branch_name, source_commit=base_sha)
+    git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
         {
             "claims/shared.yaml": _claim_yaml(
@@ -139,7 +138,7 @@ def test_merge_inspect_cli_matches_report_helper_output(tmp_path, semantics):
         "seed",
     )
     branch_name = "paper/differential"
-    create_branch(git, branch_name, source_commit=base_sha)
+    git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
         {
             "claims/shared.yaml": _claim_yaml(
@@ -192,7 +191,7 @@ def test_merge_commit_cli_surfaces_storage_commit_metadata(tmp_path):
         "seed",
     )
     branch_name = "paper/conflict"
-    create_branch(git, branch_name, source_commit=base_sha)
+    git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
         "left",
@@ -228,7 +227,7 @@ def test_merge_inspect_cli_surfaces_semantic_candidate_details(tmp_path):
 
     base_sha = git.commit_files({}, "seed")
     branch_name = "paper/candidates"
-    create_branch(git, branch_name, source_commit=base_sha)
+    git.create_branch(branch_name, source_commit=base_sha)
 
     left_claim = {
         "id": "claim_a",
@@ -302,7 +301,7 @@ def test_merge_commit_cli_reports_semantic_candidate_count(tmp_path):
 
     base_sha = git.commit_files({}, "seed")
     branch_name = "paper/candidates"
-    create_branch(git, branch_name, source_commit=base_sha)
+    git.create_branch(branch_name, source_commit=base_sha)
 
     left_claim = {
         "id": "claim_a",
@@ -354,7 +353,7 @@ def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
         "seed",
     )
     branch_name = "paper/storage"
-    create_branch(git, branch_name, source_commit=base_sha)
+    git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
         "left",

@@ -10,8 +10,8 @@ from quire.refs import RefName
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 
 if TYPE_CHECKING:
+    from quire.git_store import GitStore
     from propstore.repository import Repository
-    from propstore.storage import GitStore
 
 _CONCEPT_ID_RE = re.compile(r"^concept(\d+)$")
 CONCEPT_ID_COUNTER_REF = RefName("refs/propstore/indexes/concept-id-counter")

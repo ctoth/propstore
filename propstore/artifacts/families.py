@@ -220,12 +220,10 @@ def _list_yaml_refs_in_directory(
     subdir: str,
     ref_type: Callable[[str], TYamlRef],
 ) -> list[TYamlRef]:
-    from propstore.storage.branch import branch_head
-
     target_commit = commit
     if repo.git is not None and target_commit is None:
         target_branch = branch or _default_branch(repo)
-        target_commit = branch_head(repo.git, target_branch)
+        target_commit = repo.git.branch_sha(target_branch)
         if target_commit is None:
             return []
 
@@ -247,12 +245,10 @@ def _list_stance_refs_in_directory(
     branch: str | None,
     commit: str | None,
 ) -> list[StanceFileRef]:
-    from propstore.storage.branch import branch_head
-
     target_commit = commit
     if repo.git is not None and target_commit is None:
         target_branch = branch or _primary_branch(repo)
-        target_commit = branch_head(repo.git, target_branch)
+        target_commit = repo.git.branch_sha(target_branch)
         if target_commit is None:
             return []
 

@@ -12,11 +12,10 @@ from propstore.artifacts.codecs import (
     encode_document,
     render_document,
 )
-from propstore.storage.branch import branch_head
 
 if TYPE_CHECKING:
+    from quire.git_store import GitStore
     from propstore.repository import Repository
-    from propstore.storage import GitStore
 
 
 class ArtifactRepository(DocumentFamilyStore["Repository"]):
@@ -42,7 +41,7 @@ class ArtifactRepository(DocumentFamilyStore["Repository"]):
 
 
 def _branch_head(backend: object, branch: str) -> str | None:
-    return branch_head(cast("GitStore", backend), branch)
+    return cast("GitStore", backend).branch_sha(branch)
 
 
 def _convert_document(payload: object, document_type: type[object], source: str) -> object:

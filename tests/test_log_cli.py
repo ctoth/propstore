@@ -14,7 +14,6 @@ from propstore.repository_history import (
     classify_log_operation,
 )
 from propstore.repository import Repository
-from propstore.storage.branch import create_branch
 from propstore.storage.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_test_context_commit_entry, normalize_claims_payload, normalize_concept_payloads
@@ -92,7 +91,7 @@ def test_log_branch_output(tmp_path: Path) -> None:
     git = repo.git
     assert git is not None
 
-    create_branch(git, "agent/demo")
+    git.create_branch("agent/demo")
     git.commit_files(
         {"concepts/agent_demo.yaml": b"canonical_name: agent_demo\n"},
         "Add concept: agent_demo (testing:agent_demo)",
@@ -215,7 +214,7 @@ def test_log_merge_summary_output(tmp_path: Path) -> None:
     assert git is not None
 
     base_sha = git.commit_files({"concepts/base.yaml": b"canonical_name: base\n"}, "seed")
-    create_branch(git, "agent/demo", source_commit=base_sha)
+    git.create_branch("agent/demo", source_commit=base_sha)
     git.commit_files(
         {"concepts/agent_demo.yaml": b"canonical_name: agent_demo\n"},
         "branch update",

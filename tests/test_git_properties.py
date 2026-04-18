@@ -15,7 +15,8 @@ from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, initialize
 
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
-from propstore.storage import GitStore
+from quire.git_store import GitStore
+from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
 
 # ── Strategies ──────────────────────────────────────────────────────
 
@@ -42,14 +43,14 @@ valid_path = st.tuples(valid_subdir, valid_filename).map(lambda t: f"{t[0]}/{t[1
 
 def _make_repo() -> GitStore:
     """Create a fresh in-memory GitStore."""
-    return GitStore.init_memory()
+    return init_memory_git_store()
 
 
 def _make_disk_repo() -> tuple[GitStore, Path]:
     """Create a fresh GitStore on disk (for worktree/filesystem tests)."""
     tmpdir = tempfile.mkdtemp()
     root = Path(tmpdir) / "knowledge"
-    repo = GitStore.init(root)
+    repo = init_git_store(root)
     return repo, root
 
 
@@ -300,7 +301,7 @@ class GitStoreMachine(RuleBasedStateMachine):
 
     @initialize()
     def init_repo(self) -> None:
-        self.repo = GitStore.init_memory()
+        self.repo = init_memory_git_store()
         self.commit_count = 1  # init creates .gitignore commit
         self.model = {}
 

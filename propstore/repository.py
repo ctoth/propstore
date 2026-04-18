@@ -111,9 +111,9 @@ class Repository:
     @cached_property
     def git(self):
         """Return the GitStore if this directory is git-backed, else None."""
-        from propstore.storage import GitStore
-        if GitStore.is_repo(self._root):
-            return GitStore.open(self._root)
+        from propstore.storage import is_git_repo, open_git_store
+        if is_git_repo(self._root):
+            return open_git_store(self._root)
         return None
 
     @cached_property
@@ -136,13 +136,13 @@ class Repository:
         a ``concepts/`` subdirectory (e.g. ``pks -C path/to/knowledge``
         or when cwd is already inside the knowledge tree).
         """
-        from propstore.storage import GitStore
+        from propstore.storage import is_git_repo
 
         current = (start or Path.cwd()).resolve()
         # If start itself has the knowledge structure (e.g. -C pointed at it,
         # or cwd is already the knowledge dir)
         if (current / "concepts").is_dir():
-            if GitStore.is_repo(current):
+            if is_git_repo(current):
                 return cls(current)
             raise RepositoryNotFound(
                 f"No git-backed knowledge/ directory found (searched from {current}). "
@@ -152,7 +152,7 @@ class Repository:
         for ancestor in [current, *current.parents]:
             candidate = ancestor / "knowledge"
             if candidate.is_dir() and (candidate / "concepts").is_dir():
-                if GitStore.is_repo(candidate):
+                if is_git_repo(candidate):
                     return cls(candidate)
         raise RepositoryNotFound(
             f"No git-backed knowledge/ directory found (searched from {current}). "
@@ -163,8 +163,8 @@ class Repository:
     def init(cls, root: Path) -> Repository:
         """Create the directory structure and return a Repository."""
         # Initialize git first (sync_worktree in init only writes .gitignore)
-        from propstore.storage import GitStore
-        GitStore.init(root)
+        from propstore.storage import init_git_store
+        init_git_store(root)
         # Create dirs after git init so sync_worktree doesn't remove them
         dirs = [
             root / "concepts" / ".counters",

@@ -4,8 +4,8 @@ from __future__ import annotations
 import yaml
 
 from propstore.identity import compute_claim_version_id
-from propstore.storage import GitStore
-from propstore.storage.branch import create_branch
+from quire.git_store import GitStore
+from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import summarize_merge_framework
 from propstore.storage.snapshot import RepositorySnapshot
@@ -72,13 +72,13 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 
 def test_merge_report_surfaces_conflict_query_state(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
     )
     branch_name = "paper/conflict"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
         "left",
@@ -123,13 +123,13 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
 
 
 def test_merge_report_surfaces_ignorance_query_state(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
     )
     branch_name = "paper/phi"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
         {
             "claims/shared.yaml": _claim_yaml(
@@ -178,10 +178,10 @@ def test_merge_report_surfaces_ignorance_query_state(tmp_path):
 
 
 def test_merge_report_surfaces_semantic_candidates_without_forced_fusion(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/candidates"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     left_claim = {
         "id": "claim_a",

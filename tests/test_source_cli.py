@@ -10,7 +10,6 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.storage.branch import create_branch, list_branches
 from tests.conftest import normalize_concept_payloads
 
 
@@ -18,9 +17,9 @@ def test_source_branch_kind_is_detected(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     repo.git.commit_files({"seed.txt": b"ok\n"}, "seed")
 
-    create_branch(repo.git, "source/test-source")
+    repo.git.create_branch("source/test-source")
 
-    branches = {branch.name: branch for branch in list_branches(repo.git)}
+    branches = {branch.name: branch for branch in repo.snapshot.list_branches()}
     assert branches["source/test-source"].kind == "source"
 
 
