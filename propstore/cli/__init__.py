@@ -23,7 +23,16 @@ from propstore.cli.init import init
 from propstore.cli.merge_cmds import merge
 from propstore.cli.micropub import micropub
 from propstore.cli.repository_import_cmd import import_repository_cmd
-from propstore.repository_history import BranchNotFoundError, LogRecord, build_log_report
+from propstore.repository_history import (
+    BranchNotFoundError,
+    CommitHasNoConceptsError,
+    CommitNotFoundError,
+    LogRecord,
+    build_commit_show_report,
+    build_diff_report,
+    build_log_report,
+    checkout_commit,
+)
 from propstore.repository import Repository
 
 
@@ -155,18 +164,14 @@ def log_cmd(ctx, count, branch_name, show_files, output_format):
 def diff_cmd(ctx, commit):
     """Show files changed in COMMIT vs its parent (defaults to HEAD)."""
     repo = ctx.obj["repo"]
-    result = repo.snapshot.diff(commit1=commit)
-    any_changes = False
-    for path in result.get("added", []):
+    report = build_diff_report(repo, commit)
+    for path in report.added:
         click.echo(f"  Added: {path}")
-        any_changes = True
-    for path in result.get("modified", []):
+    for path in report.modified:
         click.echo(f"  Modified: {path}")
-        any_changes = True
-    for path in result.get("deleted", []):
+    for path in report.deleted:
         click.echo(f"  Deleted: {path}")
-        any_changes = True
-    if not any_changes:
+    if not report.has_changes:
         click.echo("No changes.")
 
 
@@ -179,21 +184,21 @@ def show_cmd(ctx, commit):
     """Show details of a specific commit."""
     repo = ctx.obj["repo"]
     try:
-        info = repo.snapshot.show_commit(commit)
-    except KeyError:
+        report = build_commit_show_report(repo, commit)
+    except CommitNotFoundError:
         click.echo(f"Commit not found: {commit}")
         return
-    click.echo(f"  Commit: {info['sha'][:8]}")
-    click.echo(f"  Author: {info['author']}")
-    click.echo(f"  Date: {info['time']}")
-    click.echo(f"  Message: {info['message']}")
+    click.echo(f"  Commit: {report.sha[:8]}")
+    click.echo(f"  Author: {report.author}")
+    click.echo(f"  Date: {report.time}")
+    click.echo(f"  Message: {report.message}")
     click.echo()
     click.echo("  Files:")
-    for path in info.get("added", []):
+    for path in report.changes.added:
         click.echo(f"    A {path}")
-    for path in info.get("modified", []):
+    for path in report.changes.modified:
         click.echo(f"    M {path}")
-    for path in info.get("deleted", []):
+    for path in report.changes.deleted:
         click.echo(f"    D {path}")
 
 
@@ -210,28 +215,18 @@ def checkout_cmd(ctx, commit):
     so that subsequent ``pks world`` / ``pks query`` commands see the
     historical state until the next ``pks build``.
     """
-    from propstore.sidecar.build import build_sidecar
-
     repo = ctx.obj["repo"]
 
-    # Verify commit exists
     try:
-        repo.snapshot.show_commit(commit)
-    except KeyError:
+        report = checkout_commit(repo, commit)
+    except CommitNotFoundError:
         click.echo(f"Commit not found: {commit}")
         return
-
-    tree = repo.snapshot.tree(commit=commit)
-    if not (tree / "concepts").exists():
+    except CommitHasNoConceptsError:
         click.echo("No concepts found at that commit.")
         return
 
-    rebuilt = build_sidecar(
-        tree, repo.sidecar_path, force=True,
-        commit_hash=commit,
-    )
-
-    if rebuilt:
+    if report.rebuilt:
         click.echo(f"Sidecar built from commit {commit[:8]}.")
     else:
         click.echo(f"Sidecar already at commit {commit[:8]}.")

@@ -450,6 +450,18 @@ Status 2026-04-17: log history report slice landed.
   - `logs/test-runs/cli-layer-log-history-20260417-180653.log` - 10 passed.
   - `uv run pyright propstore/repository_history.py propstore/cli/__init__.py` - 0 errors.
 
+Status 2026-04-17: diff/show/checkout history slice landed.
+
+- Extended `propstore.repository_history` with typed file-change, commit-show,
+  and checkout reports plus commit-not-found and no-concepts failures.
+- Moved root `pks diff`, `pks show`, and `pks checkout` snapshot querying and
+  sidecar checkout decisions out of `propstore.cli.__init__`.
+- Added owner coverage for diff/show reports and checkout missing-commit
+  failure, paired with existing CLI diff/show/checkout regression tests.
+- Verification:
+  - `logs/test-runs/cli-layer-history-commands-20260417-181837.log` - 5 passed.
+  - `uv run pyright propstore/repository_history.py propstore/cli/__init__.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
