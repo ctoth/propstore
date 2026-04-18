@@ -1,81 +1,86 @@
-"""Knowledge-root loading helpers for the grounding pipeline."""
+"""Repository-family loading helpers for the grounding pipeline."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import cast
 
-from propstore.artifacts.documents.predicates import PredicatesFileDocument
-from propstore.artifacts.documents.rules import RulesFileDocument
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
-from propstore.core.concepts import load_concepts
-from quire.documents import load_document_dir
+from propstore.artifacts.families import (
+    CONCEPT_FILE_FAMILY,
+    PREDICATE_FILE_FAMILY,
+    RULE_FILE_FAMILY,
+)
+from propstore.core.concepts import LoadedConcept, parse_concept_record_document
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import extract_facts
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from quire.tree_path import TreePath as KnowledgePath
 from propstore.predicate_files import LoadedPredicateFile
+from propstore.repository import Repository
 from propstore.rule_files import LoadedRuleFile
 
 
-def load_predicate_files(predicates_root: KnowledgePath | None) -> list[LoadedPredicateFile]:
-    """Load all predicate declaration files from a knowledge subtree."""
-
-    family = SEMANTIC_FAMILIES.by_name("predicate")
-    return load_document_dir(
-        predicates_root,
-        cast(type[PredicatesFileDocument], family.document_type),
-        wrapper=LoadedPredicateFile.from_loaded_document,
-    )
-
-
-def load_rule_files(rules_root: KnowledgePath | None) -> list[LoadedRuleFile]:
-    """Load all DeLP rule files from a knowledge subtree."""
-
-    family = SEMANTIC_FAMILIES.by_name("rule")
-    return load_document_dir(
-        rules_root,
-        cast(type[RulesFileDocument], family.document_type),
-        wrapper=LoadedRuleFile.from_loaded_document,
-    )
-
-
 def build_grounded_bundle(
-    knowledge_root: KnowledgePath,
+    repo: Repository,
     *,
+    commit: str | None = None,
     return_arguments: bool = False,
 ) -> GroundedRulesBundle:
-    """Build the grounding bundle for one knowledge root.
+    """Build the grounding bundle for one repository snapshot.
 
-    The explicit rule-free case is: both ``predicates/`` and ``rules/`` are
-    absent. That repository surface has no defeasible grounding authoring, so
-    the reasoning bundle is intentionally empty. If authored rules exist
-    without authored predicates, the boundary fails loudly instead of guessing.
+    The explicit rule-free case is: both predicate and rule families are empty.
+    That repository surface has no defeasible grounding authoring, so the
+    reasoning bundle is intentionally empty. If authored rules exist without
+    authored predicates, the boundary fails loudly instead of guessing.
     """
 
-    predicate_family = SEMANTIC_FAMILIES.by_name("predicate")
-    rule_family = SEMANTIC_FAMILIES.by_name("rule")
-    predicates_root = knowledge_root / predicate_family.root
-    rules_root = knowledge_root / rule_family.root
-    has_predicates = predicates_root.is_dir()
-    has_rules = rules_root.is_dir()
+    tree = repo.tree(commit=commit)
+    predicate_files = [
+        LoadedPredicateFile(
+            filename=ref.name,
+            source_path=tree / handle.address.require_path(),
+            knowledge_root=tree,
+            document=handle.document,
+        )
+        for ref in repo.artifacts.list(PREDICATE_FILE_FAMILY, commit=commit)
+        for handle in (
+            repo.artifacts.require_handle(PREDICATE_FILE_FAMILY, ref, commit=commit),
+        )
+    ]
+    rule_files: Sequence[LoadedRuleFile] = [
+        LoadedRuleFile(
+            filename=ref.name,
+            source_path=tree / handle.address.require_path(),
+            knowledge_root=tree,
+            document=handle.document,
+        )
+        for ref in repo.artifacts.list(RULE_FILE_FAMILY, commit=commit)
+        for handle in (
+            repo.artifacts.require_handle(RULE_FILE_FAMILY, ref, commit=commit),
+        )
+    ]
 
-    if not has_predicates:
-        if has_rules:
+    if not predicate_files:
+        if rule_files:
             raise ValueError(
                 "knowledge root has rules/ but no predicates/; grounding requires "
                 "declared predicates"
             )
         return GroundedRulesBundle.empty()
 
-    predicate_files = load_predicate_files(predicates_root)
-    if not predicate_files:
-        raise ValueError("predicates/ exists but contains no YAML predicate files")
-
     registry = PredicateRegistry.from_files(predicate_files)
-    rule_files: Sequence[LoadedRuleFile] = load_rule_files(rules_root) if has_rules else ()
-    concepts = load_concepts(knowledge_root / "concepts")
+    concepts = [
+        LoadedConcept(
+            filename=ref.name,
+            source_path=tree / handle.address.require_path(),
+            knowledge_root=tree,
+            record=parse_concept_record_document(handle.document),
+            document=handle.document,
+        )
+        for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=commit)
+        for handle in (
+            repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref, commit=commit),
+        )
+    ]
     facts = extract_facts(concepts, registry)
     return ground(
         rule_files,

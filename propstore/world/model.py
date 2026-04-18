@@ -222,6 +222,7 @@ class WorldModel(WorldStore):
         )
         if repo is not None and hasattr(repo, "tree"):
             knowledge_root = repo.tree()
+        self._repo = repo
         self._knowledge_root = knowledge_root
         self._grounding_bundle_cache = None
         self._solver: Z3ConditionSolver | None = None
@@ -251,9 +252,14 @@ class WorldModel(WorldStore):
         """Return the grounded-rule bundle for this world model's knowledge root."""
 
         if self._grounding_bundle_cache is None:
+            if self._repo is None:
+                from propstore.grounding.bundle import GroundedRulesBundle
+
+                self._grounding_bundle_cache = GroundedRulesBundle.empty()
+                return self._grounding_bundle_cache
             from propstore.grounding.loading import build_grounded_bundle
 
-            self._grounding_bundle_cache = build_grounded_bundle(self._knowledge_root)
+            self._grounding_bundle_cache = build_grounded_bundle(self._repo)
         return self._grounding_bundle_cache
 
     def _validate_schema(self) -> None:

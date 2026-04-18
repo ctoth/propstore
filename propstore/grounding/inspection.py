@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
+from propstore.artifacts.families import PREDICATE_FILE_FAMILY, RULE_FILE_FAMILY
 from propstore.aspic import GroundAtom, Scalar
 from propstore.grounding.loading import build_grounded_bundle
 
@@ -81,25 +81,20 @@ class GroundingArgumentsReport:
     arguments: tuple[str, ...]
 
 
-def _yaml_file_names(node) -> tuple[str, ...]:
-    if not node.exists() or not node.is_dir():
-        return ()
-    return tuple(
-        sorted(
-            entry.name
-            for entry in node.iterdir()
-            if entry.is_file() and entry.suffix == ".yaml"
-        )
-    )
-
-
 def inspect_grounding_surface(repo: "Repository") -> GroundingSurface:
-    tree = repo.tree()
-    predicate_family = SEMANTIC_FAMILIES.by_name("predicate")
-    rule_family = SEMANTIC_FAMILIES.by_name("rule")
     return GroundingSurface(
-        predicate_files=_yaml_file_names(tree / predicate_family.root),
-        rule_files=_yaml_file_names(tree / rule_family.root),
+        predicate_files=tuple(
+            sorted(
+                f"{ref.name}.yaml"
+                for ref in repo.artifacts.list(PREDICATE_FILE_FAMILY)
+            )
+        ),
+        rule_files=tuple(
+            sorted(
+                f"{ref.name}.yaml"
+                for ref in repo.artifacts.list(RULE_FILE_FAMILY)
+            )
+        ),
     )
 
 
@@ -119,7 +114,7 @@ def require_grounding_bundle(
         )
     try:
         return build_grounded_bundle(
-            repo.tree(),
+            repo,
             return_arguments=return_arguments,
         )
     except ValueError as exc:
