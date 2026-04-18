@@ -12,10 +12,10 @@ from contextlib import contextmanager
 from dataclasses import asdict
 import json
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import click
 
@@ -24,6 +24,7 @@ from propstore.repository import Repository
 from propstore.world.types import ATMSNodeStatus, ValueStatus, coerce_value_status
 
 if TYPE_CHECKING:
+    from propstore.core.active_claims import ActiveClaim
     from propstore.core.graph_types import ActiveWorldGraph
     from propstore.world import BoundWorld, QueryableAssumption, RenderPolicy, WorldModel
     from propstore.core.labels import Label, SupportQuality
@@ -665,7 +666,7 @@ def _emit_iterated_revision(result, previous_state, next_state, *, operator: str
 @click.pass_obj
 def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Show the current revision-facing belief base for a scoped world."""
-    from propstore.support_revision.state import is_claim_atom
+    from propstore.support_revision.state import is_assumption_atom, is_claim_atom
     from propstore.support_revision.workflows import (
         RevisionWorldRequest,
         revision_base,
@@ -678,16 +679,17 @@ def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -
 
         click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
         for atom in base.atoms:
-            payload = (
-                atom.claim.to_dict()
-                if is_claim_atom(atom)
-                else {
+            if is_claim_atom(atom):
+                payload = atom.claim.to_dict()
+            elif is_assumption_atom(atom):
+                payload = {
                     "assumption_id": atom.assumption.assumption_id,
                     "cel": atom.assumption.cel,
                     "kind": atom.assumption.kind,
                     "source": atom.assumption.source,
                 }
-            )
+            else:
+                raise TypeError(f"unsupported revision atom: {type(atom).__name__}")
             details = _format_revision_payload(payload)
             atom_display_id = _revision_atom_display_id(atom.atom_id, payload=payload)
             if details:
@@ -958,7 +960,7 @@ def _format_status_value(status: object) -> str:
 
 def _support_metadata_for(
     bound: object,
-    active_claims: Sequence[Any],
+    active_claims: Sequence["ActiveClaim"],
 ) -> dict[str, tuple[Label | None, SupportQuality]]:
     from propstore.world.types import ClaimSupportView
 
@@ -967,11 +969,7 @@ def _support_metadata_for(
 
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     for claim in active_claims:
-        claim_id = getattr(claim, "claim_id", None)
-        if claim_id is None and isinstance(claim, Mapping):
-            claim_id = claim.get("id")
-        if claim_id is not None:
-            support_metadata[str(claim_id)] = bound.claim_support(claim)
+        support_metadata[str(claim.claim_id)] = bound.claim_support(claim)
     return support_metadata
 
 
@@ -1768,7 +1766,11 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             grounding_bundle = GroundedRulesBundle.empty()
             bundle_getter = getattr(wm, "grounding_bundle", None)
             if callable(bundle_getter):
-                grounding_bundle = bundle_getter()
+                typed_bundle_getter = cast(
+                    Callable[[], GroundedRulesBundle],
+                    bundle_getter,
+                )
+                grounding_bundle = typed_bundle_getter()
 
             aspic_projection = build_structured_projection(
                 wm,
