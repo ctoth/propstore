@@ -11,8 +11,8 @@ from propstore.artifacts.refs import ConceptAlignmentRef, ConceptFileRef
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.repository import Repository
 from quire.documents import convert_document_value
-from propstore.storage.merge_framework import PartialArgumentationFramework
-from propstore.storage.paf_queries import credulously_accepted_arguments, skeptically_accepted_arguments
+from argumentation.partial_af import PartialArgumentationFramework
+from argumentation.partial_af import credulously_accepted_arguments, skeptically_accepted_arguments
 from propstore.artifacts.documents.source_alignment import (
     AlignmentArgumentDocument,
     AlignmentDecisionDocument,

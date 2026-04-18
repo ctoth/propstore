@@ -13,7 +13,7 @@ from itertools import product
 from typing import Any
 
 from propstore.merge.merge_claims import MergeClaim
-from propstore.storage.merge_framework import PartialArgumentationFramework
+from argumentation.partial_af import PartialArgumentationFramework
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.z3_conditions import Z3TranslationError
 from propstore.claims import claim_file_claims
