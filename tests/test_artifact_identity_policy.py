@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.artifacts import CONCEPT_FILE_FAMILY, ConceptFileRef, normalize_canonical_concept_payload
+from propstore.artifacts import ConceptFileRef, normalize_canonical_concept_payload
 from propstore.repository import Repository
 from propstore.identity import derive_concept_artifact_id
 
@@ -27,8 +27,7 @@ def test_normalize_canonical_concept_payload_preserves_propstore_handle_and_upda
 def test_concept_family_save_applies_identity_normalization_on_write(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     ref = ConceptFileRef("demo")
-    document = repo.artifacts.coerce(
-        CONCEPT_FILE_FAMILY,
+    document = repo.families.concepts.coerce(
         normalize_canonical_concept_payload({
             "canonical_name": "demo",
             "status": "accepted",
@@ -38,13 +37,12 @@ def test_concept_family_save_applies_identity_normalization_on_write(tmp_path) -
         source="concepts/demo.yaml",
     )
 
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         document,
         message="Write demo concept",
     )
-    loaded = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref)
+    loaded = repo.families.concepts.require(ref)
 
     assert loaded.artifact_id == derive_concept_artifact_id("propstore", "demo")
     assert loaded.logical_ids[0].namespace == "propstore"

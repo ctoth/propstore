@@ -122,16 +122,39 @@ class Repository:
         return None
 
     @cached_property
-    def artifacts(self):
-        from propstore.artifacts.policy import create_artifact_store
+    def _family_store(self):
+        from quire.family_store import DocumentFamilyStore
+        from propstore.artifacts.codecs import (
+            convert_document,
+            decode_document,
+            document_to_payload,
+            encode_document,
+            render_document,
+        )
 
-        return create_artifact_store(self)
+        return DocumentFamilyStore(
+            owner=self,
+            backend=self.git,
+            convert_document=lambda payload, document_type, source: convert_document(
+                payload,
+                document_type,
+                source=source,
+            ),
+            decode_document=lambda payload, document_type, source: decode_document(
+                payload,
+                document_type,
+                source=source,
+            ),
+            encode_document=encode_document,
+            render_document_value=render_document,
+            document_to_payload=document_to_payload,
+        )
 
     @cached_property
     def families(self):
         from propstore.artifacts.families import PROPSTORE_FAMILY_REGISTRY
 
-        return PROPSTORE_FAMILY_REGISTRY.bind(self, self.artifacts)
+        return PROPSTORE_FAMILY_REGISTRY.bind(self, self._family_store)
 
     @cached_property
     def snapshot(self):

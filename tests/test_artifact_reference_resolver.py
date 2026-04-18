@@ -3,8 +3,6 @@ from __future__ import annotations
 import pytest
 
 from propstore.artifacts import (
-    CLAIMS_FILE_FAMILY,
-    SOURCE_CLAIMS_FAMILY,
     ClaimReferenceIndex,
     ClaimReferenceResolver,
     ClaimsFileRef,
@@ -26,8 +24,7 @@ def test_load_source_claim_reference_index_reads_source_claim_artifacts(tmp_path
     repo = Repository.init(tmp_path / "knowledge")
     repo.git.create_branch(source_branch_name("paper"))
 
-    repo.artifacts.save(
-        SOURCE_CLAIMS_FAMILY,
+    repo.families.source_claims.save(
         SourceRef("paper"),
         SourceClaimsDocument(
             source=ClaimSourceDocument(paper="paper"),
@@ -56,8 +53,7 @@ def test_load_source_claim_reference_index_reads_source_claim_artifacts(tmp_path
 def test_load_primary_branch_claim_reference_index_reads_canonical_claim_files(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
-    repo.artifacts.save(
-        CLAIMS_FILE_FAMILY,
+    repo.families.claims.save(
         ClaimsFileRef("paper"),
         ClaimsFileDocument(
             source=ClaimSourceDocument(paper="paper"),

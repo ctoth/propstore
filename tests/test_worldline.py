@@ -9,6 +9,7 @@ which does not exist yet — all tests should fail with ImportError initially.
 """
 
 import sqlite3
+from functools import cached_property
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,7 @@ from hypothesis import strategies as st
 
 from quire.documents import decode_document_path
 from propstore.identity import derive_concept_artifact_id
+from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar
 from propstore.cli.worldline import _parse_kv_args
 from quire.tree_path import GitTreePath as GitKnowledgePath
@@ -31,6 +33,20 @@ from tests.conftest import normalize_claims_payload, normalize_concept_payloads,
 
 def _concept_artifact(local_id: str) -> str:
     return derive_concept_artifact_id("propstore", local_id)
+
+
+def _commit_fixture_repository(repo: Repository, message: str) -> None:
+    assert repo.git is not None
+    repo.git.commit_files(
+        {
+            path.relative_to(repo.root).as_posix(): path.read_bytes()
+            for path in repo.root.rglob("*")
+            if path.is_file()
+            and ".git" not in path.relative_to(repo.root).parts
+            and "sidecar" not in path.relative_to(repo.root).parts
+        },
+        message,
+    )
 
 
 # ── Test fixtures ───────────────────────────────────────────────────
@@ -52,17 +68,40 @@ class _FakeWorldlineRepo:
     def worldlines_dir(self) -> Path:
         return self._root / "worldlines"
 
-    @property
-    def artifacts(self):
-        from propstore.artifacts.policy import create_artifact_store
+    @cached_property
+    def _family_store(self):
+        from quire.family_store import DocumentFamilyStore
+        from propstore.artifacts.codecs import (
+            convert_document,
+            decode_document,
+            document_to_payload,
+            encode_document,
+            render_document,
+        )
 
-        return create_artifact_store(self)
+        return DocumentFamilyStore(
+            owner=self,
+            backend=self.git,
+            convert_document=lambda payload, document_type, source: convert_document(
+                payload,
+                document_type,
+                source=source,
+            ),
+            decode_document=lambda payload, document_type, source: decode_document(
+                payload,
+                document_type,
+                source=source,
+            ),
+            encode_document=encode_document,
+            render_document_value=render_document,
+            document_to_payload=document_to_payload,
+        )
 
-    @property
+    @cached_property
     def families(self):
         from propstore.artifacts.families import PROPSTORE_FAMILY_REGISTRY
 
-        return PROPSTORE_FAMILY_REGISTRY.bind(self, self.artifacts)
+        return PROPSTORE_FAMILY_REGISTRY.bind(self, self._family_store)
 
     @property
     def snapshot(self):
@@ -150,15 +189,16 @@ def worldline_yaml_file(tmp_path, worldline_yaml_question):
 def physics_knowledge(tmp_path_factory):
     """Create a minimal physics knowledge base for worldline testing."""
     root = tmp_path_factory.mktemp("physics_kb") / "knowledge"
+    repo = Repository.init(root)
     concepts_dir = root / "concepts"
-    concepts_dir.mkdir(parents=True)
+    concepts_dir.mkdir(parents=True, exist_ok=True)
     write_test_context(root)
     counters = concepts_dir / ".counters"
-    counters.mkdir()
+    counters.mkdir(exist_ok=True)
     (counters / "physics.next").write_text("10")
 
     forms_dir = root / "forms"
-    forms_dir.mkdir()
+    forms_dir.mkdir(exist_ok=True)
     for form_name in ("acceleration", "force", "mass", "velocity", "energy", "category"):
         data = {"name": form_name, "dimensionless": False, "kind": "quantity"}
         if form_name == "category":
@@ -216,7 +256,7 @@ def physics_knowledge(tmp_path_factory):
     })
 
     claims_dir = root / "claims"
-    claims_dir.mkdir()
+    claims_dir.mkdir(exist_ok=True)
     with open(claims_dir / "physics_claims.yaml", "w") as f:
         yaml.dump(normalize_claims_payload({
             "source": {"paper": "test"},
@@ -250,18 +290,17 @@ def physics_knowledge(tmp_path_factory):
             ],
         }), f, default_flow_style=False)
 
-    return root
+    _commit_fixture_repository(repo, "Seed physics worldline fixture")
+    return repo
 
 
 @pytest.fixture(scope="module")
 def physics_world(physics_knowledge):
     """Build sidecar and create WorldModel for physics knowledge."""
-    from propstore.repository import Repository
-
-    repo = Repository(physics_knowledge)
+    repo = physics_knowledge
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
-    build_sidecar(physics_knowledge, repo.sidecar_path)
+    build_sidecar(repo, repo.sidecar_path)
     return WorldModel(repo)
 
 
@@ -269,15 +308,16 @@ def physics_world(physics_knowledge):
 def chained_physics_knowledge(tmp_path_factory):
     """Create a minimal physics KB with a two-hop derivation chain."""
     root = tmp_path_factory.mktemp("chained_physics_kb") / "knowledge"
+    repo = Repository.init(root)
     concepts_dir = root / "concepts"
-    concepts_dir.mkdir(parents=True)
+    concepts_dir.mkdir(parents=True, exist_ok=True)
     write_test_context(root)
     counters = concepts_dir / ".counters"
-    counters.mkdir()
+    counters.mkdir(exist_ok=True)
     (counters / "physics.next").write_text("10")
 
     forms_dir = root / "forms"
-    forms_dir.mkdir()
+    forms_dir.mkdir(exist_ok=True)
     for form_name in ("acceleration", "force", "mass"):
         data = {"name": form_name, "dimensionless": False, "kind": "quantity"}
         with open(forms_dir / f"{form_name}.yaml", "w", encoding="utf-8") as f:
@@ -321,7 +361,7 @@ def chained_physics_knowledge(tmp_path_factory):
     })
 
     claims_dir = root / "claims"
-    claims_dir.mkdir()
+    claims_dir.mkdir(exist_ok=True)
     with open(claims_dir / "physics_claims.yaml", "w", encoding="utf-8") as f:
         yaml.dump(normalize_claims_payload({
             "source": {"paper": "test"},
@@ -337,18 +377,17 @@ def chained_physics_knowledge(tmp_path_factory):
             ],
         }), f, default_flow_style=False)
 
-    return root
+    _commit_fixture_repository(repo, "Seed chained physics worldline fixture")
+    return repo
 
 
 @pytest.fixture(scope="module")
 def chained_physics_world(chained_physics_knowledge):
     """Build sidecar and create WorldModel for chained-derivation testing."""
-    from propstore.repository import Repository
-
-    repo = Repository(chained_physics_knowledge)
+    repo = chained_physics_knowledge
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
-    build_sidecar(chained_physics_knowledge, repo.sidecar_path)
+    build_sidecar(repo, repo.sidecar_path)
     return WorldModel(repo)
 
 
