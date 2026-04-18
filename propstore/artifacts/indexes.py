@@ -64,21 +64,18 @@ def build_source_claim_reference_index(document: SourceClaimsDocument | None) ->
 
 
 def load_source_claim_reference_index(repo: Repository, source_name: str) -> ClaimReferenceIndex:
-    from propstore.artifacts.families import SOURCE_CLAIMS_FAMILY
     from propstore.artifacts.refs import SourceRef
 
-    document = repo.artifacts.load(SOURCE_CLAIMS_FAMILY, SourceRef(source_name))
+    document = repo.families.source_claims.load(SourceRef(source_name))
     return build_source_claim_reference_index(document)
 
 
 def load_primary_branch_claim_reference_index(repo: Repository) -> ClaimReferenceIndex:
-    from propstore.artifacts.families import CLAIMS_FILE_FAMILY
-
     logical_to_artifact: dict[str, str] = {}
     artifact_ids: set[str] = set()
 
-    for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY):
-        claim_file = repo.artifacts.require(CLAIMS_FILE_FAMILY, ref)
+    for ref in repo.families.claims.list():
+        claim_file = repo.families.claims.require(ref)
         for claim in claim_file.claims:
             artifact_id = claim.artifact_id
             if not isinstance(artifact_id, str) or not artifact_id:

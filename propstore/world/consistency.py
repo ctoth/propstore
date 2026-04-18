@@ -66,7 +66,6 @@ def _check_transitive_consistency(
     repo: Repository,
     world: WorldModel,
 ) -> WorldConsistencyReport:
-    from propstore.artifacts.families import CLAIMS_FILE_FAMILY
     from propstore.conflict_detector import detect_transitive_conflicts
     from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
     from propstore.core.row_types import (
@@ -75,8 +74,8 @@ def _check_transitive_consistency(
     )
 
     claim_files = [
-        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref)
-        for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+        repo.families.claims.require_handle(ref)
+        for ref in repo.families.claims.list()
     ]
     concept_registry: dict[str, dict] = {}
     for concept_input in world.all_concepts():
