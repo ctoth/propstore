@@ -499,7 +499,7 @@ def check_cel_condition_set(
     return checked_condition_set(checked)
 
 
-def _resolve_type(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> ExprType:
+def _resolve_type(node: ASTNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> ExprType:
     """Determine the type of an AST node and accumulate errors."""
     if isinstance(node, LiteralNode):
         if node.lit_type in ("int", "float"):
@@ -555,7 +555,7 @@ def _resolve_type(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], er
     return ExprType.UNKNOWN
 
 
-def _check_binary(node: BinaryOpNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> ExprType:
+def _check_binary(node: BinaryOpNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> ExprType:
     left_type = _resolve_type(node.left, expr, registry, errors)
     right_type = _resolve_type(node.right, expr, registry, errors)
 
@@ -613,7 +613,7 @@ def _check_binary(node: BinaryOpNode, expr: str, registry: dict[str, ConceptInfo
     return ExprType.UNKNOWN
 
 
-def _check_in(node: InNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> ExprType:
+def _check_in(node: InNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> ExprType:
     """Type-check 'x in [a, b, c]'."""
     _resolve_type(node.expr, expr, registry, errors)
 
@@ -646,7 +646,7 @@ def _check_in(node: InNode, expr: str, registry: dict[str, ConceptInfo], errors:
     return ExprType.BOOLEAN
 
 
-def _check_node(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+def _check_node(node: ASTNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> None:
     """Top-level check — just resolves type and accumulates errors."""
     _resolve_type(node, expr, registry, errors)
 
@@ -654,7 +654,7 @@ def _check_node(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], erro
 def _check_disallowed_kind_usage(
     node: ASTNode,
     expr: str,
-    registry: dict[str, ConceptInfo],
+    registry: Mapping[str, ConceptInfo],
     errors: list[CelError],
     *,
     operation_class: str,
@@ -676,7 +676,7 @@ def _check_comparison_type_mismatch(
     left_type: ExprType,
     right_type: ExprType,
     expr: str,
-    registry: dict[str, ConceptInfo],
+    registry: Mapping[str, ConceptInfo],
     errors: list[CelError],
 ) -> None:
     """Check that comparison operands are type-compatible."""
@@ -706,15 +706,17 @@ def _check_comparison_type_mismatch(
     ):
         return
 
-    left_info = registry.get(left.name) if isinstance(left, NameNode) else None
-    right_info = registry.get(right.name) if isinstance(right, NameNode) else None
+    left_name = left.name if isinstance(left, NameNode) else None
+    right_name = right.name if isinstance(right, NameNode) else None
+    left_info = registry.get(left_name) if left_name is not None else None
+    right_info = registry.get(right_name) if right_name is not None else None
     if left_info is not None and right_info is not None:
         errors.append(
             CelError(
                 expr,
                 "Cannot compare "
-                f"{left_info.kind.value} concept '{left.name}' "
-                f"to {right_info.kind.value} concept '{right.name}'",
+                f"{left_info.kind.value} concept '{left_name}' "
+                f"to {right_info.kind.value} concept '{right_name}'",
             )
         )
         return
@@ -732,7 +734,7 @@ def _check_concept_literal_type_mismatch(
     other_node: ASTNode,
     other_type: ExprType,
     expr: str,
-    registry: dict[str, ConceptInfo],
+    registry: Mapping[str, ConceptInfo],
     errors: list[CelError],
 ) -> bool:
     """Check that a concept isn't being compared to a mismatched literal type."""
@@ -757,7 +759,7 @@ def _check_concept_literal_type_mismatch(
     return False
 
 
-def _check_category_value(concept_node: ASTNode, value_node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+def _check_category_value(concept_node: ASTNode, value_node: ASTNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> None:
     """If concept_node is a category and value_node is a string literal, check the value set."""
     if not isinstance(concept_node, NameNode) or not isinstance(value_node, LiteralNode):
         return

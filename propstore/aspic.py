@@ -186,7 +186,10 @@ class PremiseArg:
                 "_hash",
                 hash((PremiseArg, self.premise, self.is_axiom)),
             )
-        return self._hash
+        cached = self._hash
+        if cached is None:
+            raise RuntimeError("PremiseArg hash cache was not initialized")
+        return cached
 
 
 @dataclass(frozen=True)
@@ -214,7 +217,10 @@ class StrictArg:
                 "_hash",
                 hash((StrictArg, self.sub_args, self.rule)),
             )
-        return self._hash
+        cached = self._hash
+        if cached is None:
+            raise RuntimeError("StrictArg hash cache was not initialized")
+        return cached
 
 
 @dataclass(frozen=True)
@@ -242,7 +248,10 @@ class DefeasibleArg:
                 "_hash",
                 hash((DefeasibleArg, self.sub_args, self.rule)),
             )
-        return self._hash
+        cached = self._hash
+        if cached is None:
+            raise RuntimeError("DefeasibleArg hash cache was not initialized")
+        return cached
 
 
 Argument: TypeAlias = Union[PremiseArg, StrictArg, DefeasibleArg]
