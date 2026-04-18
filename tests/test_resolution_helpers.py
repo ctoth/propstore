@@ -8,7 +8,7 @@ from hypothesis import strategies as st
 
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
-from propstore.dung import ArgumentationFramework
+from argumentation.dung import ArgumentationFramework
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.resolution import (
     _resolve_claim_graph_argumentation,

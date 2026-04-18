@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from collections.abc import Sequence
 
-from propstore.aspic import (
+from argumentation.aspic import (
     Argument,
     ArgumentationSystem,
     CSAF,
@@ -24,7 +24,7 @@ from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_a
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey
 from propstore.core.row_types import StanceRowInput
-from propstore.dung import ArgumentationFramework
+from argumentation.dung import ArgumentationFramework
 from propstore.grounding.bundle import GroundedRulesBundle
 
 from .grounding import (

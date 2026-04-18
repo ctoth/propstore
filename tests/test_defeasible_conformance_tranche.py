@@ -391,7 +391,7 @@ def _build_rule_file(theory: SuiteTheory):
 
 
 def _build_fact_atoms(theory: SuiteTheory):
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
 
     facts: list[GroundAtom] = []
     for predicate, rows in theory.facts.items():

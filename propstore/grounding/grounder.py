@@ -52,7 +52,7 @@ import gunray
 from gunray.adapter import GunrayEvaluator
 from gunray.schema import DefeasibleModel, DefeasibleSections, Policy
 
-from propstore.aspic import GroundAtom, Scalar
+from argumentation.aspic import GroundAtom, Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.grounding.translator import translate_to_theory

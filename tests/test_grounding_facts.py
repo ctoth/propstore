@@ -378,7 +378,7 @@ def test_extract_facts_returns_tuple(graph, registry) -> None:
     guarantees.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.facts import extract_facts
 
     atoms = extract_facts(graph, registry)
@@ -402,7 +402,7 @@ def test_extract_facts_concept_relation_is_a_minimal() -> None:
     Definition 7 fixes the ``p(t_1,...,t_n)`` shape this asserts.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.facts import extract_facts
 
     concept = _build_loaded_concept(
@@ -437,7 +437,7 @@ def test_extract_facts_multiple_concepts_same_predicate() -> None:
     over-specify the deterministic ordering tested elsewhere.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.facts import extract_facts
 
     concepts = [
@@ -693,7 +693,7 @@ def test_extract_facts_mixed_derived_from_only_emits_supported() -> None:
     ones from the same graph.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.facts import extract_facts
 
     concept = _build_loaded_concept(

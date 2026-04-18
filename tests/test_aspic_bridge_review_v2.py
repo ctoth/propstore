@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.aspic import GroundAtom, Literal
-from propstore.aspic import conc
+from argumentation.aspic import GroundAtom, Literal
+from argumentation.aspic import conc
 from propstore.aspic_bridge import (
     build_bridge_csaf,
     csaf_to_projection,

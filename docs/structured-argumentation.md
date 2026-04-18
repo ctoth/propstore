@@ -75,7 +75,7 @@ ASPIC+ arguments are mapped back to `StructuredArgument` dataclasses for downstr
 ## Architecture
 
 ```
-structured_projection.py              aspic_bridge/                 aspic.py
+structured_projection.py              aspic_bridge/                 argumentation.aspic
   build_structured_projection() ---> build_aspic_projection()
                                        _extract_stance_rows()
                                        _extract_justifications()
@@ -90,12 +90,12 @@ structured_projection.py              aspic_bridge/                 aspic.py
                                          |                            compute_defeats()
                                        csaf_to_projection() --------> StructuredProjection
   compute_structured_justified_arguments()
-    -> grounded_extension() / preferred_extensions() / etc. (dung.py)
+    -> grounded_extension() / preferred_extensions() / etc. (argumentation.dung)
 ```
 
 Data flows one way: claims/stances/justifications and grounded rule priorities enter as propstore domain objects, are translated into formal ASPIC+ types, pass through argument construction and attack/defeat computation, produce a Dung AF, and exit as extensions. CKR-style contextual exceptions are integrated after ASPIC+ argument construction by adding exception-derived Dung defeats with `propstore.defeasibility.apply_exception_defeats_to_csaf(...)`.
 
-`propstore/aspic.py` is a leaf module with zero propstore imports. It implements ASPIC+ in pure logic. `propstore.aspic_bridge` handles all translation between propstore's claim graph and the formal engine. `propstore/structured_projection.py` provides the public dataclasses and thin delegation wrappers.
+`argumentation/src/argumentation/aspic.py` is a leaf module with zero propstore imports. It implements ASPIC+ in pure logic. `propstore.aspic_bridge` handles all translation between propstore's claim graph and the formal engine. `propstore/structured_projection.py` provides the public dataclasses and thin delegation wrappers.
 
 ## Argument Construction
 
@@ -105,7 +105,7 @@ Arguments are built recursively following Def 5 (pp.9-10) of Modgil & Prakken (2
 - **StrictArg** (Def 5 clause 2): An argument built by applying a strict inference rule to the conclusions of its sub-arguments. The conclusion follows necessarily.
 - **DefeasibleArg** (Def 5 clause 3): An argument built by applying a defeasible inference rule. The conclusion follows tentatively and can be challenged.
 
-The construction algorithm (`propstore/aspic.py:514`, `build_arguments()`) operates as a fixpoint:
+The construction algorithm (`argumentation/src/argumentation/aspic.py:514`, `build_arguments()`) operates as a fixpoint:
 1. Seed with a `PremiseArg` for each literal in K_n and K_p
 2. Index arguments by their conclusion literal
 3. Iterate: for each rule, enumerate the Cartesian product of arguments matching each antecedent
@@ -132,7 +132,7 @@ Three attack types are defined per Def 8 (p.11) of Modgil & Prakken (2018):
 
 **Undercutting** (Def 8c): Argument A attacks argument B on sub-argument B' if A's conclusion is contrary or contradictory to the rule-name literal of a defeasible rule used in B'. This does not challenge B's conclusion directly — it challenges the applicability of B's reasoning step. Corresponds to Pollock (1987) Def 2.5 (p.485).
 
-The implementation (`propstore/aspic.py:622`, `compute_attacks()`) pre-computes a sub-argument cache and conclusion index to avoid O(n^3) scanning.
+The implementation (`argumentation/src/argumentation/aspic.py:622`, `compute_attacks()`) pre-computes a sub-argument cache and conclusion index to avoid O(n^3) scanning.
 
 ## Preference-Based Defeat
 
@@ -150,19 +150,19 @@ Two modes for comparing sets of rules or premises:
 - **Elitist**: set A is strictly less than set B iff every element of A is less than some element of B. This is the stricter standard — the entire attacking set must be outclassed.
 - **Democratic**: set A is strictly less than set B iff some element of A is less than some element of B. This is the more permissive standard — one weak link is enough.
 
-`propstore/aspic.py:724` — `_set_strictly_less()`
+`argumentation/src/argumentation/aspic.py:724` — `_set_strictly_less()`
 
 ### Last-Link Principle (Def 20, p.21)
 
 Compare the `LastDefRules` sets of the attacker and target. The last defeasible rules are the ones applied at the final inference step. If both sets are empty (firm+strict arguments), fall back to comparing ordinary premises.
 
-`propstore/aspic.py:808` — `_strictly_weaker()` (last-link branch)
+`argumentation/src/argumentation/aspic.py:808` — `_strictly_weaker()` (last-link branch)
 
 ### Weakest-Link Principle (Def 21, p.21)
 
 Compare both `Prem_p` (ordinary premises) and `DefRules` (all defeasible rules) of the attacker and target. Three cases based on whether each argument is firm, strict, or neither. The weakest link in the chain determines the comparison.
 
-`propstore/aspic.py:825` — `_strictly_weaker()` (weakest-link branch)
+`argumentation/src/argumentation/aspic.py:825` — `_strictly_weaker()` (weakest-link branch)
 
 ## Transposition Closure
 
@@ -172,7 +172,7 @@ Transposition closure (Def 12, p.13; Prakken 2010 Def 5.1) ensures that strict r
 
 Transposition closure is required for the rationality postulates (Thms 12-15) to hold. Without it, the framework can produce inconsistent extensions — arguments that are jointly accepted but whose conclusions contradict each other under strict rules.
 
-`propstore/aspic.py:247` — `transposition_closure()`
+`argumentation/src/argumentation/aspic.py:247` — `transposition_closure()`
 
 ## Rationality Postulates
 
@@ -215,7 +215,7 @@ The exhaustive `build_arguments()` constructs every possible argument from the k
 
 ### Algorithm
 
-The backward chaining algorithm in `build_arguments_for()` (`propstore/aspic.py`) works top-down from the goal:
+The backward chaining algorithm in `build_arguments_for()` (`argumentation/src/argumentation/aspic.py`) works top-down from the goal:
 
 1. **Base case**: If the goal literal is in K_n (axioms) or K_p (premises), create a `PremiseArg`.
 2. **Recursive case**: Find all rules whose consequent matches the goal. For each rule, recursively build arguments for every antecedent. Combine sub-arguments via Cartesian product into `StrictArg` or `DefeasibleArg`.
@@ -239,7 +239,7 @@ build_arguments_for(system, kb, goal, include_attackers=False) ⊆ build_argumen
 
 Additionally, backward chaining is **complete for the goal literal**: every exhaustive argument whose conclusion is the goal also appears in the goal-directed result. Together these mean the backward result contains *exactly* the exhaustive arguments concluding the goal, plus their sub-arguments.
 
-These properties are verified by Hypothesis property-based tests over randomly generated ASPIC+ systems (`tests/test_backward_chaining.py`).
+These properties are verified by Hypothesis property-based tests over randomly generated ASPIC+ systems in the external `argumentation` package.
 
 ### Bridge-Level Integration: `query_claim()`
 

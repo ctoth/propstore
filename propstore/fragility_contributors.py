@@ -7,7 +7,7 @@ import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from propstore.aspic import conc, top_rule
+from argumentation.aspic import conc, top_rule
 from propstore.aspic_bridge.build import build_bridge_csaf, compile_bridge_context
 from propstore.aspic_bridge.extract import _extract_justifications, _extract_stance_rows
 from propstore.aspic_bridge.grounding import _decode_grounded_predicate, grounded_rules_to_rules

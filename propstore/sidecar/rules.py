@@ -63,7 +63,7 @@ import sqlite3
 from collections.abc import Mapping
 from types import MappingProxyType
 
-from propstore.aspic import Scalar
+from argumentation.aspic import Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system. The
@@ -233,7 +233,7 @@ def read_grounded_facts(
     inner maps go ``predicate_id -> frozenset(arg_tuple)``. Argument
     tuples are decoded from the JSON column via ``json.loads`` and
     cast to :class:`tuple`; Python's ``json`` module preserves the
-    :data:`~propstore.aspic.Scalar` union (``str``/``int``/``float``/
+    :data:`~argumentation.aspic.Scalar` union (``str``/``int``/``float``/
     ``bool``) losslessly for the domain the Hypothesis strategy
     samples (NaN/Infinity are excluded at the strategy level so the
     round-trip is well defined).

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.aspic import GroundAtom
+from argumentation.aspic import GroundAtom
 from propstore.aspic_bridge import claims_to_literals
 from propstore.core.literal_keys import (
     ClaimLiteralKey,

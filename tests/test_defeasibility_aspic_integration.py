@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from propstore.aspic import conc
+from argumentation.aspic import conc
 from propstore.aspic_bridge import build_bridge_csaf
 from propstore.core.justifications import CanonicalJustification
 from propstore.defeasibility import (
@@ -13,7 +13,7 @@ from propstore.defeasibility import (
     apply_exception_defeats_to_csaf,
     evaluate_contextual_claim,
 )
-from propstore.dung import complete_extensions, conflict_free, grounded_extension
+from argumentation.dung import complete_extensions, conflict_free, grounded_extension
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.provenance import (
     ProvenancePolynomial,

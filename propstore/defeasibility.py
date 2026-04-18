@@ -17,8 +17,8 @@ from propstore.cel_checker import (
     parse_cel,
 )
 from propstore.cel_types import CelExpr, to_cel_expr
-from propstore.aspic import Argument, CSAF, conc
-from propstore.dung import ArgumentationFramework
+from argumentation.aspic import Argument, CSAF, conc
+from argumentation.dung import ArgumentationFramework
 from propstore.provenance import (
     NogoodWitness,
     ProvenanceNogood,

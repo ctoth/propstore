@@ -6,7 +6,7 @@ import json
 import statistics
 from collections.abc import Mapping, Sequence
 
-from propstore.aspic import CSAF, Literal, PremiseArg, conc, prem, sub, top_rule
+from argumentation.aspic import CSAF, Literal, PremiseArg, conc, prem, sub, top_rule
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph

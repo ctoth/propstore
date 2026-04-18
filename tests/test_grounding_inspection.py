@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.aspic import GroundAtom
+from argumentation.aspic import GroundAtom
 from propstore.demo import materialize_reasoning_demo
 from propstore.grounding.inspection import (
     GroundingInspectionError,

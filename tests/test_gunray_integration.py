@@ -433,7 +433,7 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     today; the call raises ``TypeError`` at step 4.
     """
 
-    from propstore.aspic import DefeasibleArg, GroundAtom, Literal, conc
+    from argumentation.aspic import DefeasibleArg, GroundAtom, Literal, conc
     from propstore.aspic_bridge import query_claim
     from propstore.grounding.facts import extract_facts
     from propstore.grounding.grounder import ground
@@ -518,7 +518,7 @@ def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
     ``query_claim`` yet — ``TypeError`` at call time.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.aspic_bridge import query_claim
     from propstore.grounding.facts import extract_facts
     from propstore.grounding.grounder import ground
@@ -574,7 +574,7 @@ def test_tweety_multiple_birds_produces_multiple_arguments() -> None:
     ``bundle`` keyword today.
     """
 
-    from propstore.aspic import DefeasibleArg, GroundAtom, Literal, conc
+    from argumentation.aspic import DefeasibleArg, GroundAtom, Literal, conc
     from propstore.aspic_bridge import build_bridge_csaf
     from propstore.grounding.facts import extract_facts
     from propstore.grounding.grounder import ground
@@ -680,7 +680,7 @@ def test_tweety_rule_body_fact_missing_produces_zero_arguments() -> None:
     yet.
     """
 
-    from propstore.aspic import DefeasibleArg
+    from argumentation.aspic import DefeasibleArg
     from propstore.aspic_bridge import build_bridge_csaf
     from propstore.grounding.facts import extract_facts
     from propstore.grounding.grounder import ground

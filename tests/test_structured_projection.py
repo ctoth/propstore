@@ -15,7 +15,7 @@ from propstore.structured_projection import (
     build_structured_projection,
     compute_structured_justified_arguments,
 )
-from propstore.dung import ArgumentationFramework, grounded_extension
+from argumentation.dung import ArgumentationFramework, grounded_extension
 from propstore.world.bound import BoundWorld
 from propstore.core.labels import Label, compile_environment_assumptions
 from propstore.core.row_types import ConflictRowInput, StanceRowInput

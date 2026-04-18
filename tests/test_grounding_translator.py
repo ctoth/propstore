@@ -347,7 +347,7 @@ def ground_fact_tuples() -> st.SearchStrategy:
 
     @st.composite
     def _build(draw):
-        from propstore.aspic import GroundAtom
+        from argumentation.aspic import GroundAtom
 
         count = draw(st.integers(min_value=0, max_value=5))
         seen: set[tuple[str, tuple[str, ...]]] = set()
@@ -601,7 +601,7 @@ def test_translate_delp_birds_fly_example() -> None:
     from gunray.parser import parse_atom_text
     from gunray.types import Variable
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.translator import translate_to_theory
 
     rule = _build_rule_document(
@@ -648,7 +648,7 @@ def test_translate_multiple_facts_same_predicate() -> None:
     populated.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.translator import translate_to_theory
 
     rule = _build_rule_document(

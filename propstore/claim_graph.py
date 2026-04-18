@@ -11,7 +11,7 @@ from propstore.core.analyzers import (
     analyze_claim_graph,
     shared_analyzer_input_from_store,
 )
-from propstore.dung import ArgumentationFramework
+from argumentation.dung import ArgumentationFramework
 from propstore.world.types import (
     ArgumentationSemantics,
     WorldStore,
