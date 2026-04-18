@@ -4,14 +4,14 @@ propstore uses formal argumentation to resolve disagreements between scientific 
 
 ## Dung abstract argumentation
 
-The core engine implements Dung's abstract argumentation framework AF = (Args, Defeats). Given a set of arguments (claims) and a defeat relation (derived from stances filtered through preference ordering), it computes:
+The external `argumentation.dung` kernel implements Dung's abstract argumentation framework AF = (Args, Defeats). Propstore builds those frameworks from active claims, stances, contexts, and preferences, then delegates extension computation through `argumentation.semantics`.
 
 - **Grounded extension** — the unique minimal complete extension (skeptical reasoning)
 - **Complete extensions** — every admissible set that contains all arguments it defends (Dung 1995 Def 10)
 - **Preferred extensions** — maximal admissible sets (credulous reasoning)
 - **Stable extensions** — conflict-free sets that defeat all external arguments
 
-Two backends: brute-force enumeration (`dung.py`) and Z3 SAT encoding (`dung_z3.py`) for scalability.
+Two kernel backends are available through the external package: brute-force enumeration (`argumentation.dung`) and Z3 SAT encoding (`argumentation.dung_z3`) for scalability. `argumentation.semantics` provides the generic set-returning dispatch over Dung, bipolar, and partial-AF dataclasses; propstore keeps backend validation, projection, and rendering policy.
 
 ## Claim-graph bridge
 
@@ -23,7 +23,12 @@ The bridge layer (`claim_graph.py`) converts raw stances into a Dung AF:
 4. Build the Dung AF from surviving defeats
 5. Compute extensions under chosen semantics
 
-propstore ships multiple reasoning backends at different abstraction levels. The **claim-graph** backend builds a Dung AF over active claim rows using heuristic metadata for preferences. The **structured-projection** and **aspic** backends delegate to `aspic_bridge.py` for full ASPIC+ argument construction (recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack determination per Modgil & Prakken 2018 Def 8, last-link/weakest-link preference defeat per Defs 19-21). See [Structured Argumentation](structured-argumentation.md) for full details. The **praf** backend adds probabilistic argument/defeat acceptance via MC sampling (Li et al. 2012) with Agresti-Coull stopping, DF-QuAD gradual semantics (Freedman et al. 2025), and optional COH enforcement (Hunter & Thimm 2017). See [Probabilistic Argumentation](probabilistic-argumentation.md) for full details. The **atms** backend provides label propagation and bounded replay over the active belief space (de Kleer 1986).
+propstore ships multiple reasoning backends at different abstraction levels. The **claim-graph** backend builds a Dung AF over active claim rows using heuristic metadata for preferences, then calls `argumentation.semantics`. The **structured-projection** and **aspic** backends use `propstore.aspic_bridge` to translate propstore claims into `argumentation.aspic` objects for full ASPIC+ argument construction (recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack determination per Modgil & Prakken 2018 Def 8, last-link/weakest-link preference defeat per Defs 19-21). See [Structured Argumentation](structured-argumentation.md) for full details. The **praf** backend keeps propstore opinion/calibration/provenance adapters, then calls the float-valued `argumentation.probabilistic` kernel for MC sampling (Li et al. 2012), exact enumeration, exact-DP, and DF-QuAD gradual semantics (Freedman et al. 2025). Optional COH enforcement over subjective opinions remains in propstore. See [Probabilistic Argumentation](probabilistic-argumentation.md) for full details. The **atms** backend provides label propagation and bounded replay over the active belief space (de Kleer 1986).
+
+The package boundary for the reusable formal kernel is recorded in
+[Argumentation Package Boundary](argumentation-package-boundary.md). The
+execution workstream was
+`plans/argumentation-package-extraction-workstream-2026-04-18.md`.
 
 ## Goal-directed queries
 
@@ -51,7 +56,7 @@ Condition disjointness is checked via Z3 satisfiability. Category concepts get E
 - `claim_graph` remains the default backend and preserves the current claim-row projection and behavior.
 - `aspic` is the canonical structured-argument backend over active claims plus exact support metadata.
 - `atms` is a global label/nogood propagation backend over the active belief space. It is an ATMS-style engine pass, not a full de Kleer runtime manager, not AGM entrenchment, and not full ASPIC+.
-- `propstore.belief_set` owns formal belief revision and AF revision. `propstore.support_revision` is only an operational support-incision adapter for scoped worldline capture; argumentation consumers do not treat it as AGM or AF-revision semantics.
+- `propstore.belief_set` owns claim/context belief-revision operators. Formal AF revision lives in `argumentation.af_revision`. `propstore.support_revision` is only an operational support-incision adapter for scoped worldline capture; argumentation consumers do not treat it as AGM or AF-revision semantics.
 - `resolution_strategy` selects how to pick a winner when a conflicted concept still has multiple active claims after belief-space reasoning.
 - `comparison` selects the preference-comparison rule used inside the claim-graph argumentation backend.
 
@@ -120,7 +125,13 @@ The grounded extension is unique and represents the skeptically justified claims
 
 ## Bipolar argumentation
 
-The bipolar backend (`bipolar.py`) implements Cayrol 2005: support relations create derived defeat paths via fixpoint computation. Three admissibility variants (d-admissible, s-admissible, c-admissible), stable extensions, and three corresponding preferred extension types. See [Bipolar Argumentation](bipolar-argumentation.md) for full details.
+The bipolar kernel (`argumentation.bipolar`) implements Cayrol 2005: support relations create derived defeat paths via fixpoint computation. Propstore's claim-graph and PrAF adapters decide which claim relations become support or defeat inputs. See [Bipolar Argumentation](bipolar-argumentation.md) for full details.
+
+## Partial AFs and AF revision
+
+Repository semantic merge uses `argumentation.partial_af` for the formal partial-AF partition, completion enumeration, skeptical/credulous completion queries, and Sum/Max/Leximax merge operators. Propstore storage code owns branch comparison, emitted merge arguments, and two-parent merge commits.
+
+AF-level revision operators live in `argumentation.af_revision`; propstore worldline and support-revision modules only adapt active support state into those formal inputs.
 
 ## Subjective logic and calibration
 

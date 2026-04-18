@@ -2,22 +2,38 @@
 
 Standard Dung AFs treat arguments and defeats as either present or absent. In practice, both may be uncertain: a claim's existence depends on evidence quality, and a defeat relationship may hold only with some probability. The PrAF subsystem extends Dung's framework with probabilistic argument and defeat existence, enabling reasoning under genuine uncertainty rather than forcing binary commitment.
 
-The implementation follows Li et al. (2012), with opinions from Josang (2001) as the uncertainty carrier, component decomposition from Hunter & Thimm (2017), and gradual semantics from Freedman et al. (2025).
+The implementation follows Li et al. (2012), with opinions from Josang (2001)
+as propstore's uncertainty carrier, component decomposition from Hunter &
+Thimm (2017), and gradual semantics from Freedman et al. (2025).
 
-PrAF remains propstore-owned. It consumes finite Dung and bipolar kernels from
-the external `argumentation` package, but its probabilities, opinions,
-provenance-bearing relation rows, sampling policy, and projection from
-propstore claim data are not part of the reusable formal kernel package.
+The reusable probabilistic AF kernel lives in `argumentation.probabilistic`.
+It accepts plain float probabilities in `[0, 1]` and owns deterministic,
+exact-enumeration, Monte Carlo, tree-decomposition DP, and DF-QuAD / QBAF
+algorithms. Propstore owns the adapter layer around that kernel: opinions,
+source calibration, provenance-bearing relation rows, repository projection,
+and CLI/worldline policy.
 
 ## The PrAF model
 
 A probabilistic argumentation framework PrAF = (A, P_A, D, P_D) extends a Dung AF with existence probabilities (Li et al. 2012, Def 2):
 
-- **P_A** maps each argument to an existence probability. In propstore these are subjective logic opinions (Josang 2001), not bare floats. Default: `Opinion.dogmatic_true()` (the argument definitely exists).
-- **P_D** maps each defeat relation to an existence probability, also as opinions. Derived from stance confidence, opinion columns, or defaulting to dogmatic true.
-- **Sampling probability** uses the opinion expectation E(w) = b + a*u (Josang 2001, Def 6). This bridges the four-valued opinion algebra to a single probability for MC sampling.
+- **P_A** maps each argument to an existence probability. In propstore these
+  start as subjective logic opinions (Josang 2001), then convert to floats at
+  the `argumentation.probabilistic` boundary. Default:
+  `Opinion.dogmatic_true()` (the argument definitely exists).
+- **P_D** maps each defeat relation to an existence probability. Propstore
+  derives those opinions from stance confidence, opinion columns, or
+  dogmatic-true defaults before converting them to floats for the external
+  kernel.
+- **Sampling probability** uses the opinion expectation E(w) = b + a*u
+  (Josang 2001, Def 6). This bridges the four-valued opinion algebra to the
+  plain probability accepted by the formal kernel.
 
-The `ProbabilisticAF` dataclass (`propstore/praf/engine.py`) also carries support edges, primitive attack probabilities (when attacks and defeats differ due to preference filtering), base defeats before Cayrol closure, and provenance-bearing relation records.
+`argumentation.probabilistic.ProbabilisticAF` carries the formal Dung
+framework, argument probabilities, defeat probabilities, optional primitive
+attack probabilities, support probabilities, support edges, and base defeats.
+`propstore.praf.engine.PropstorePrAF` wraps that kernel with propstore-owned
+opinion and provenance metadata.
 
 A PrAF induces a distribution over deterministic sub-frameworks (DAFs). Each DAF is a standard Dung AF obtained by sampling which arguments and defeats exist. Acceptance probability for an argument is the weighted sum of its acceptance across all induced DAFs.
 
@@ -25,7 +41,8 @@ A PrAF induces a distribution over deterministic sub-frameworks (DAFs). Each DAF
 
 ### Auto dispatch
 
-The default strategy `"auto"` selects the best computation method based on framework characteristics (`propstore/praf/engine.py`):
+The default strategy `"auto"` selects the best computation method based on
+framework characteristics (`argumentation.probabilistic`):
 
 ```
 All probabilities ~= 1.0?  -->  deterministic fallback
@@ -57,7 +74,10 @@ Complexity is O(2^(|A|+|D|)). The 13-argument threshold follows Li et al. (2012,
 
 For larger frameworks, MC sampling estimates acceptance probabilities (Li et al. 2012, Algorithm 1, p.5):
 
-1. **Sample a subgraph** (`propstore/praf/engine.py`): for each argument, include with probability E(P_A). For each edge where both endpoints survived, include with probability E(P_D). Apply Cayrol derived defeats from sampled supports and direct defeats.
+1. **Sample a subgraph** (`argumentation.probabilistic`): for each argument,
+   include with probability P_A. For each edge where both endpoints survived,
+   include with probability P_D. Apply Cayrol derived defeats from sampled
+   supports and direct defeats.
 2. **Compute extensions** on the sampled Dung AF.
 3. **Record acceptance** for each argument in the extension.
 4. **Repeat** until convergence.
@@ -70,21 +90,30 @@ For larger frameworks, MC sampling estimates acceptance probabilities (Li et al.
 
 Convergence requires ci_half <= epsilon for every argument in the component. Minimum 30 samples before checking. Safety cap at 100,000 samples. Z-scores: 0.90 -> 1.645, 0.95 -> 1.960, 0.99 -> 2.576.
 
-**Connected component decomposition** (Hunter & Thimm 2017, Prop 18): acceptance probability separates over connected components of the attack/support graph. Each component gets independent MC sampling (`propstore/praf/components.py` and `propstore/praf/engine.py`). Components where all probabilities are deterministic are short-circuited to exact Dung evaluation, avoiding unnecessary sampling.
+**Connected component decomposition** (Hunter & Thimm 2017, Prop 18):
+acceptance probability separates over connected components of the
+attack/support graph. Each component gets independent MC sampling
+(`argumentation.probabilistic_components` and `argumentation.probabilistic`).
+Components where all probabilities are deterministic are short-circuited to
+exact Dung evaluation, avoiding unnecessary sampling.
 
 ### DF-QuAD gradual semantics
 
-DF-QuAD (Freedman et al. 2025, p.3) computes continuous argument strengths in [0,1] rather than binary acceptance. Implemented in `propstore/praf/dfquad.py`.
+DF-QuAD (Freedman et al. 2025, p.3) computes continuous argument strengths in
+[0,1] rather than binary acceptance. Implemented in
+`argumentation.probabilistic_dfquad`.
 
 The evaluation formula: sigma(a) = f_agg(tau(a), f_comb(v_a+, v_a-))
 
-**Combination function** (`propstore/praf/dfquad.py:39`): aggregates influence from supporters and attackers using noisy-OR:
+**Combination function** (`argumentation.probabilistic_dfquad`): aggregates
+influence from supporters and attackers using noisy-OR:
 
 - support = 1 - product(1 - s for s in supporter_strengths)
 - attack = 1 - product(1 - a for a in attacker_strengths)
 - combined = support - attack
 
-**Aggregation function** (`propstore/praf/dfquad.py:21`): combines base score with combined influence:
+**Aggregation function** (`argumentation.probabilistic_dfquad`): combines base
+score with combined influence:
 
 - If combined >= 0: base + combined * (1 - base) (push toward 1)
 - If combined < 0: base + combined * base (push toward 0)
@@ -98,7 +127,8 @@ The evaluation formula: sigma(a) = f_agg(tau(a), f_comb(v_a+, v_a-))
 
 ### Tree decomposition DP
 
-Per Popescu & Wallner (2024). Exact computation via tree decomposition dynamic programming. Delegates to `propstore/praf/treedecomp.py`.
+Per Popescu & Wallner (2024). Exact computation via tree decomposition dynamic
+programming. Implemented in `argumentation.probabilistic_treedecomp`.
 
 Currently **gated off** in auto dispatch (`_public_exact_dp_enabled` returns False). The current implementation tracks full edge sets, giving O(2^|defeats| * 2^|args|) complexity -- no asymptotic improvement over brute force. Effective only for treewidth <= ~15. Only supports credulous argument acceptance over defeat-only frameworks.
 
@@ -108,7 +138,12 @@ The auto dispatch checks treewidth but will not select this strategy unless expl
 
 The COH rationality constraint (Hunter & Thimm 2017, p.9) requires that for every attack (A, B), the existence probabilities satisfy P(A) + P(B) <= 1. Self-attacks imply P(A) <= 0.5. This prevents paradoxical situations where two mutually attacking arguments both exist with high probability.
 
-`enforce_coh()` (`propstore/praf/engine.py`) applies iterative proportional scaling (up to 100 iterations): when a pair violates the constraint, both expectations are scaled proportionally so their sum equals 1.0. Opinions are rebuilt from adjusted expectations preserving evidence counts.
+`enforce_coh()` (`propstore/praf/engine.py`) is propstore-owned because it
+rewrites subjective opinions before kernel construction. It applies iterative
+proportional scaling (up to 100 iterations): when a pair violates the
+constraint, both expectations are scaled proportionally so their sum equals
+1.0. Opinions are rebuilt from adjusted expectations preserving evidence
+counts.
 
 COH is opt-in. Apply it when your domain requires that mutual attackers cannot coexist with high probability. Skip it when argument existence is independently justified and you want the MC sampler to see the full probability space.
 
@@ -123,9 +158,19 @@ Opinions flow into PrAF from the stance and calibration layer:
    - Confidence float -> `from_probability(confidence, 1)` (moderate uncertainty)
    - No data -> `Opinion.dogmatic_true()` (backward compatibility)
 
-3. **Construction from store:** `build_praf()` in `propstore/praf/projection.py` is the store-facing entrypoint. It is re-exported from `propstore.praf` and delegates to `build_praf_from_shared_input()` in `propstore/core/analyzers.py` to assemble the full `ProbabilisticAF` from relation maps and claim data.
+3. **Construction from store:** `build_praf()` in
+   `propstore/praf/projection.py` is the store-facing entrypoint. It is
+   re-exported from `propstore.praf` and delegates to
+   `build_praf_from_shared_input()` in `propstore/core/analyzers.py` to
+   assemble a `PropstorePrAF` from relation maps and claim data. The embedded
+   `.kernel` is an `argumentation.probabilistic.ProbabilisticAF`.
 
-The calibration layer (temperature scaling per Guo et al. 2017, evidence-to-opinion mapping per Sensoy et al. 2018) feeds into opinion construction upstream of PrAF. See `docs/argumentation.md` for details on the opinion algebra and calibration.
+The calibration layer (temperature scaling per Guo et al. 2017,
+evidence-to-opinion mapping per Sensoy et al. 2018) feeds into opinion
+construction upstream of PrAF. The external `argumentation` package does not
+own a subjective-logic opinion calculus; propstore converts opinions to float
+expectations before invoking `argumentation.probabilistic`. See
+`docs/argumentation.md` for details on the opinion algebra and calibration.
 
 ## CLI usage
 
@@ -185,7 +230,12 @@ Lower-level `compute_probabilistic_acceptance()` also accepts `exact_enum`, `exa
 
 ## Known limitations
 
-- **P_A conflated with tau in DF-QuAD mode.** Li et al. (2012) define P_A as argument existence probability; Rago (2016) and Freedman et al. (2025) define tau as intrinsic argument strength. These are conceptually distinct but currently share the same value (`propstore/praf/engine.py`). This means DF-QuAD base scores are driven by existence probability rather than independent intrinsic strength.
+- **P_A conflated with tau in DF-QuAD mode.** Li et al. (2012) define P_A as
+  argument existence probability; Rago (2016) and Freedman et al. (2025)
+  define tau as intrinsic argument strength. These are conceptually distinct
+  but currently share the same value at the propstore adapter boundary. This
+  means DF-QuAD base scores are driven by existence probability rather than
+  independent intrinsic strength.
 - **Tree decomposition gated off.** The Popescu & Wallner (2024) DP backend exists but provides no asymptotic improvement in its current form. It remains disabled in auto dispatch.
 - **Extension probability query limited to grounded semantics.** The MC extension probability loop computes P(grounded extension = queried set) but does not generalize to preferred or stable semantics.
 - **P_A always dogmatic.** `p_arg_from_claim()` currently returns `Opinion.dogmatic_true()` for all claims. Variable argument existence would require evidence-count integration at the claim level.
