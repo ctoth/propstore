@@ -342,7 +342,7 @@ def _validate_updated_concept(
 
 
 # Import split command modules after the group and shared helpers are defined.
-from propstore.cli import concept_alignment_cmds as _concept_alignment_cmds
-from propstore.cli import concept_display_cmds as _concept_display_cmds
-from propstore.cli import concept_embedding_cmds as _concept_embedding_cmds
-from propstore.cli import concept_mutation_cmds as _concept_mutation_cmds
+from propstore.cli.concept import alignment as _alignment
+from propstore.cli.concept import display as _display
+from propstore.cli.concept import embedding as _embedding
+from propstore.cli.concept import mutation as _mutation

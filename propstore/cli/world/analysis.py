@@ -8,7 +8,7 @@ from pathlib import Path
 import click
 
 from propstore.cli.helpers import open_world_model
-from propstore.cli.world_cmds import _lifecycle_policy, _parse_bindings, world
+from propstore.cli.world import _lifecycle_policy, _parse_bindings, world
 from propstore.repository import Repository
 
 

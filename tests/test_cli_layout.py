@@ -9,23 +9,23 @@ from propstore.cli import cli
 
 def test_world_commands_live_outside_compiler_cmds() -> None:
     compiler_cmds = Path("propstore/cli/compiler_cmds.py").read_text(encoding="utf-8")
-    world_cmds = Path("propstore/cli/world_cmds.py").read_text(encoding="utf-8")
+    world_cmds = Path("propstore/cli/world/__init__.py").read_text(encoding="utf-8")
 
     assert "@world.command" not in compiler_cmds
     assert "def world(" not in compiler_cmds
     assert "@world.command" not in world_cmds
     assert "def world(" in world_cmds
-    assert "from propstore.cli import world_query_cmds" in world_cmds
+    assert "from propstore.cli.world import query" in world_cmds
 
 
 def test_world_command_families_live_outside_group_module() -> None:
-    query_cmds = Path("propstore/cli/world_query_cmds.py").read_text(
+    query_cmds = Path("propstore/cli/world/query.py").read_text(
         encoding="utf-8"
     )
-    reasoning_cmds = Path("propstore/cli/world_reasoning_cmds.py").read_text(
+    reasoning_cmds = Path("propstore/cli/world/reasoning.py").read_text(
         encoding="utf-8"
     )
-    analysis_cmds = Path("propstore/cli/world_analysis_cmds.py").read_text(
+    analysis_cmds = Path("propstore/cli/world/analysis.py").read_text(
         encoding="utf-8"
     )
 
@@ -35,19 +35,19 @@ def test_world_command_families_live_outside_group_module() -> None:
 
 
 def test_world_atms_commands_live_outside_world_group_module() -> None:
-    world_cmds = Path("propstore/cli/world_cmds.py").read_text(encoding="utf-8")
-    atms_cmds = Path("propstore/cli/world_atms_cmds.py").read_text(encoding="utf-8")
+    world_cmds = Path("propstore/cli/world/__init__.py").read_text(encoding="utf-8")
+    atms_cmds = Path("propstore/cli/world/atms.py").read_text(encoding="utf-8")
 
     assert '@world.command("atms-' not in world_cmds
     assert '@world.group("atms"' in atms_cmds
     assert '@atms.command("status")' in atms_cmds
     assert '@atms.command("next-query")' in atms_cmds
-    assert "from propstore.cli import world_atms_cmds" in world_cmds
+    assert "from propstore.cli.world import atms" in world_cmds
 
 
 def test_world_revision_commands_live_outside_world_group_module() -> None:
-    world_cmds = Path("propstore/cli/world_cmds.py").read_text(encoding="utf-8")
-    revision_cmds = Path("propstore/cli/world_revision_cmds.py").read_text(
+    world_cmds = Path("propstore/cli/world/__init__.py").read_text(encoding="utf-8")
+    revision_cmds = Path("propstore/cli/world/revision.py").read_text(
         encoding="utf-8"
     )
 
@@ -56,7 +56,7 @@ def test_world_revision_commands_live_outside_world_group_module() -> None:
     assert '@world.group("revision"' in revision_cmds
     assert '@revision.command("base")' in revision_cmds
     assert '@revision.command("revise")' in revision_cmds
-    assert "from propstore.cli import world_revision_cmds" in world_cmds
+    assert "from propstore.cli.world import revision" in world_cmds
 
 
 def test_root_cli_only_registers_top_level_commands() -> None:
@@ -84,14 +84,14 @@ def test_forms_alias_does_not_trigger_startup_traceback() -> None:
 
 
 def test_worldline_commands_live_outside_group_module() -> None:
-    group_module = Path("propstore/cli/worldline_cmds.py").read_text(encoding="utf-8")
-    materialize = Path("propstore/cli/worldline_materialize_cmds.py").read_text(
+    group_module = Path("propstore/cli/worldline/__init__.py").read_text(encoding="utf-8")
+    materialize = Path("propstore/cli/worldline/materialize.py").read_text(
         encoding="utf-8"
     )
-    display = Path("propstore/cli/worldline_display_cmds.py").read_text(
+    display = Path("propstore/cli/worldline/display.py").read_text(
         encoding="utf-8"
     )
-    mutation = Path("propstore/cli/worldline_mutation_cmds.py").read_text(
+    mutation = Path("propstore/cli/worldline/mutation.py").read_text(
         encoding="utf-8"
     )
 
@@ -106,24 +106,42 @@ def test_worldline_commands_live_outside_group_module() -> None:
 
 
 def test_concept_commands_live_outside_group_module() -> None:
-    group_module = Path("propstore/cli/concept.py").read_text(encoding="utf-8")
-    mutation = Path("propstore/cli/concept_mutation_cmds.py").read_text(
+    group_module = Path("propstore/cli/concept/__init__.py").read_text(encoding="utf-8")
+    mutation = Path("propstore/cli/concept/mutation.py").read_text(
         encoding="utf-8"
     )
-    display = Path("propstore/cli/concept_display_cmds.py").read_text(
+    display = Path("propstore/cli/concept/display.py").read_text(
         encoding="utf-8"
     )
-    alignment = Path("propstore/cli/concept_alignment_cmds.py").read_text(
+    alignment = Path("propstore/cli/concept/alignment.py").read_text(
         encoding="utf-8"
     )
-    embedding = Path("propstore/cli/concept_embedding_cmds.py").read_text(
+    embedding = Path("propstore/cli/concept/embedding.py").read_text(
         encoding="utf-8"
     )
 
     assert "@concept.command" not in group_module
     assert "def concept(" in group_module
-    assert "from propstore.cli import concept_mutation_cmds" in group_module
+    assert "from propstore.cli.concept import mutation" in group_module
     assert '@concept.command("add-value")' in mutation
     assert '@concept.command("list")' in display
     assert '@concept.command("align")' in alignment
     assert "def similar(" in embedding
+
+
+def test_source_commands_live_in_source_package() -> None:
+    group_module = Path("propstore/cli/source/__init__.py").read_text(encoding="utf-8")
+    authoring = Path("propstore/cli/source/authoring.py").read_text(encoding="utf-8")
+    batch = Path("propstore/cli/source/batch.py").read_text(encoding="utf-8")
+    lifecycle = Path("propstore/cli/source/lifecycle.py").read_text(encoding="utf-8")
+    proposal = Path("propstore/cli/source/proposal.py").read_text(encoding="utf-8")
+
+    assert "@source.command" not in group_module
+    assert "def source(" in group_module
+    assert "from propstore.cli.source import authoring" in group_module
+    assert '@source.command("write-notes")' in authoring
+    assert '@source.command("write-metadata")' in authoring
+    assert '@source.command("add-concepts")' in batch
+    assert '@source.command("init")' in lifecycle
+    assert '@source.command("finalize")' in lifecycle
+    assert '@source.command("propose-concept")' in proposal

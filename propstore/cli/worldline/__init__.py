@@ -211,6 +211,6 @@ def _build_revision_dict(
 
 
 # Import command modules after the group and shared decorators are defined.
-from propstore.cli import worldline_display_cmds as _worldline_display_cmds
-from propstore.cli import worldline_materialize_cmds as _worldline_materialize_cmds
-from propstore.cli import worldline_mutation_cmds as _worldline_mutation_cmds
+from propstore.cli.worldline import display as _display
+from propstore.cli.worldline import materialize as _materialize
+from propstore.cli.worldline import mutation as _mutation

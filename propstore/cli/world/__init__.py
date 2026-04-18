@@ -102,8 +102,8 @@ def _format_assumption_ids(assumption_ids: Sequence[str]) -> str:
 
 
 # Import split command modules after the group and shared helpers are defined.
-from propstore.cli import world_query_cmds as _world_query_cmds
-from propstore.cli import world_reasoning_cmds as _world_reasoning_cmds
-from propstore.cli import world_analysis_cmds as _world_analysis_cmds
-from propstore.cli import world_atms_cmds as _world_atms_cmds
-from propstore.cli import world_revision_cmds as _world_revision_cmds
+from propstore.cli.world import analysis as _analysis
+from propstore.cli.world import atms as _atms
+from propstore.cli.world import query as _query
+from propstore.cli.world import reasoning as _reasoning
+from propstore.cli.world import revision as _revision

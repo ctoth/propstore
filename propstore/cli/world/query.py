@@ -6,7 +6,7 @@ import sys
 import click
 
 from propstore.cli.helpers import open_world_model
-from propstore.cli.world_cmds import (
+from propstore.cli.world import (
     _bind_world,
     _lifecycle_policy,
     _parse_bindings,

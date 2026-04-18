@@ -57,10 +57,14 @@ booleans.
 The root CLI entry point stays lazy: registering or asking for one command must
 not import unrelated command families. Add commands through the lazy registry in
 `propstore.cli.__init__`, and keep command aliases there rather than by eager
-module imports. Package `__init__.py` files also stay shallow. Do not re-export
-merge, reasoning, or workflow surfaces from low-level packages when that would
-force circular or cross-layer imports; import those concrete modules at the
-call site that owns the behavior.
+module imports. CLI command families with sibling modules are packages: the
+package `__init__.py` owns the Click group and shared CLI-only helpers, and each
+command family lives in a named sibling module inside that package.
+
+Package `__init__.py` files stay shallow. Do not re-export merge, reasoning, or
+workflow surfaces from low-level packages when that would force circular or
+cross-layer imports; import those concrete modules at the call site that owns
+the behavior.
 
 ## Literature Grounding
 

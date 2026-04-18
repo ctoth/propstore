@@ -296,7 +296,7 @@ def test_source_add_concepts_auto_finalize_runtime_error_propagates(tmp_path: Pa
     concepts_file.write_text("concepts: []\n", encoding="utf-8")
 
     with (
-        patch("propstore.cli.source.commit_source_concepts_batch"),
+        patch("propstore.cli.source.batch.commit_source_concepts_batch"),
         patch(
             "propstore.cli.source.finalize_source_branch",
             side_effect=RuntimeError("auto finalize boom"),

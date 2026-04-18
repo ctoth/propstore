@@ -33,8 +33,8 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
     "source": ("propstore.cli.source", "source", "Manage source-local authoring state."),
     "validate": ("propstore.cli.compiler_cmds", "validate", "Validate concepts and claims."),
     "verify": ("propstore.cli.verify", "verify", "Verify repository evidence."),
-    "world": ("propstore.cli.world_cmds", "world", "Query the world model."),
-    "worldline": ("propstore.cli.worldline_cmds", "worldline", "Manage materialized query artifacts."),
+    "world": ("propstore.cli.world", "world", "Query the world model."),
+    "worldline": ("propstore.cli.worldline", "worldline", "Manage materialized query artifacts."),
 }
 
 _COMMAND_ALIASES = {
