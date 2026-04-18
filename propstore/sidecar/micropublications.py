@@ -4,25 +4,21 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterable
 
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
-from quire.documents import decode_document_path
-from quire.tree_path import TreePath as KnowledgePath
 from propstore.sidecar.claim_utils import claim_reference_map_from_conn, resolve_claim_reference
 
 
-def populate_micropublications(conn: sqlite3.Connection, micropubs_root: KnowledgePath) -> int:
-    if not micropubs_root.exists():
-        return 0
-
+def populate_micropublications(
+    conn: sqlite3.Connection,
+    micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
+) -> int:
     claim_reference_map = claim_reference_map_from_conn(conn)
     valid_claim_ids = set(claim_reference_map.values())
     count = 0
 
-    for entry in sorted(micropubs_root.iterdir(), key=lambda item: item.name):
-        if not entry.is_file() or entry.suffix != ".yaml":
-            continue
-        document = decode_document_path(entry, MicropublicationsFileDocument)
+    for _name, document in sorted(micropub_files, key=lambda item: item[0]):
         for micropub in document.micropubs:
             resolved_claims = [
                 resolve_claim_reference(claim_id, claim_reference_map)

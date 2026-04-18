@@ -244,7 +244,7 @@ def test_promoted_micropub_builds_as_atms_node(tmp_path: Path) -> None:
     promoted = yaml.safe_load(repo.git.read_file("micropubs/demo.yaml"))
     micropub_id = promoted["micropubs"][0]["artifact_id"]
 
-    assert build_sidecar(repo.tree(), repo.sidecar_path, force=True) is True
+    assert build_sidecar(repo, repo.sidecar_path, force=True) is True
     world = WorldModel(repo)
     assert [entry.artifact_id for entry in world.all_micropublications()] == [micropub_id]
 

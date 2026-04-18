@@ -264,12 +264,11 @@ def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
     except KeyError as exc:
         raise CommitNotFoundError(f"Commit not found: {commit}") from exc
 
-    tree = repo.snapshot.tree(commit=commit)
     if not repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=commit):
         raise CommitHasNoConceptsError("No concepts found at that commit.")
 
     rebuilt = build_sidecar(
-        tree,
+        repo,
         repo.sidecar_path,
         force=True,
         commit_hash=commit,

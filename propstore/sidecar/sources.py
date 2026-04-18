@@ -4,21 +4,14 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterable
 
-from quire.documents import decode_document_path
-from quire.tree_path import TreePath as KnowledgePath
 from propstore.artifacts.documents.sources import SourceDocument
 
 
-def populate_sources(conn: sqlite3.Connection, knowledge_root: KnowledgePath) -> None:
+def populate_sources(conn: sqlite3.Connection, sources: Iterable[tuple[str, SourceDocument]]) -> None:
     """Populate the compiled source table from canonical source YAML."""
-    sources_root = knowledge_root / "sources"
-    if not sources_root.exists():
-        return
-    for entry in sources_root.iterdir():
-        if not entry.is_file() or entry.suffix != ".yaml":
-            continue
-        source_doc = decode_document_path(entry, SourceDocument)
+    for slug, source_doc in sources:
         origin = source_doc.origin
         trust = source_doc.trust
         conn.execute(
@@ -26,8 +19,8 @@ def populate_sources(conn: sqlite3.Connection, knowledge_root: KnowledgePath) ->
             "origin_content_ref, prior_base_rate, quality_json, derived_from_json, artifact_code) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                entry.stem,
-                str(source_doc.id or entry.stem),
+                slug,
+                str(source_doc.id or slug),
                 source_doc.kind.value,
                 origin.type.value,
                 origin.value,

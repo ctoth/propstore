@@ -13,7 +13,8 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from quire.documents import DocumentSchemaError
-from propstore.sidecar.build import _content_hash, build_sidecar
+from propstore.repository import Repository
+from propstore.sidecar.build import build_sidecar as _build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from tests.conftest import (
     make_claim_identity,
@@ -32,6 +33,41 @@ CONCEPT3_ID = _concept_artifact("concept3")
 CONCEPT4_ID = _concept_artifact("concept4")
 CONCEPT5_ID = _concept_artifact("concept5")
 CONCEPT6_ID = _concept_artifact("concept6")
+
+
+def _commit_worktree(repo: Repository, message: str = "Update test knowledge") -> str:
+    adds: dict[str, bytes] = {}
+    head = repo.git.head_sha()
+    changed = head is None
+    for path in sorted(repo.root.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(repo.root)
+        if ".git" in rel.parts:
+            continue
+        rel_text = rel.as_posix()
+        if rel_text.startswith("sidecar/") or rel_text.endswith((".sqlite", ".sqlite-wal", ".sqlite-shm", ".hash")):
+            continue
+        content = path.read_bytes()
+        adds[rel_text] = content
+        if not changed:
+            try:
+                changed = repo.git.read_file(rel_text, commit=head) != content
+            except FileNotFoundError:
+                changed = True
+    if not changed and head is not None:
+        return head
+    return repo.git.commit_batch(adds=adds, deletes=(), message=message)
+
+
+def build_sidecar(
+    repo: Repository,
+    sidecar_path,
+    force: bool = False,
+    **kwargs,
+):
+    _commit_worktree(repo)
+    return _build_sidecar(repo, sidecar_path, force=force, **kwargs)
 
 
 def _normalize_claim_concept_refs(payload: dict) -> dict:
@@ -186,18 +222,19 @@ def _fetch_relation_edge_rows(
 def concept_dir(tmp_path):
     """Create a concepts directory with a few test concepts."""
     knowledge = tmp_path / "knowledge"
+    Repository.init(knowledge)
     concepts_path = knowledge / "concepts"
-    concepts_path.mkdir(parents=True)
+    concepts_path.mkdir(parents=True, exist_ok=True)
     counters = concepts_path / ".counters"
-    counters.mkdir()
+    counters.mkdir(exist_ok=True)
     (counters / "speech.next").write_text("5")
     (counters / "narr.next").write_text("2")
 
     # Create form definition files
     forms_dir = knowledge / "forms"
-    forms_dir.mkdir()
+    forms_dir.mkdir(exist_ok=True)
     contexts_dir = knowledge / "contexts"
-    contexts_dir.mkdir()
+    contexts_dir.mkdir(exist_ok=True)
     (contexts_dir / "ctx_test.yaml").write_text(yaml.dump(
         {"id": "ctx_test", "name": "Test context"},
         default_flow_style=False,
@@ -301,8 +338,10 @@ def concept_dir(tmp_path):
 
 @pytest.fixture
 def knowledge_reader(concept_dir):
-    """Return the knowledge/ root path."""
-    return concept_dir.parent
+    """Return the git-backed knowledge repository."""
+    repo = Repository(concept_dir.parent)
+    _commit_worktree(repo, message="Seed sidecar test knowledge")
+    return repo
 
 
 @pytest.fixture
@@ -808,17 +847,14 @@ class TestRebuildSkipping:
 
         assert build_sidecar(knowledge_reader, sidecar_path) is True
 
-    def test_rebuild_when_semantic_version_changes(self, knowledge_reader, sidecar_path, monkeypatch):
-        import propstore.sidecar.build as build_sidecar_module
-
+    def test_rebuild_when_new_commit_changes(self, concept_dir, knowledge_reader, sidecar_path):
         assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
-        monkeypatch.setattr(
-            build_sidecar_module,
-            "_SEMANTIC_INPUT_VERSION",
-            "test-version-bump",
-            raising=False,
-        )
+        contexts_dir = concept_dir.parent / "contexts"
+        (contexts_dir / "ctx_commit_key.yaml").write_text(yaml.dump(
+            {"id": "ctx_commit_key", "name": "Commit-key context"},
+            default_flow_style=False,
+        ))
 
         assert build_sidecar(knowledge_reader, sidecar_path) is True
 
@@ -830,6 +866,7 @@ class TestRebuildSkipping:
     def test_content_hash_changes_when_context_semantics_change(
         self,
         concept_dir,
+        sidecar_path,
         assumption_a,
         assumption_b,
     ):
@@ -845,7 +882,9 @@ class TestRebuildSkipping:
             },
             default_flow_style=False,
         ))
-        hash_a = _content_hash(concept_dir.parent)
+        repo = Repository(concept_dir.parent)
+        assert build_sidecar(repo, sidecar_path, force=True) is True
+        hash_a = sidecar_path.with_suffix(".hash").read_text()
 
         (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
             {
@@ -855,7 +894,8 @@ class TestRebuildSkipping:
             },
             default_flow_style=False,
         ))
-        hash_b = _content_hash(concept_dir.parent)
+        assert build_sidecar(repo, sidecar_path) is True
+        hash_b = sidecar_path.with_suffix(".hash").read_text()
 
         assert hash_a != hash_b
 
@@ -977,8 +1017,7 @@ def claim_files(concept_dir):
     (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
 
-    from propstore.claims import load_claim_files
-    return load_claim_files(claims_dir)
+    return None
 
 
 @pytest.fixture
@@ -1022,9 +1061,9 @@ class TestClaimTable:
         knowledge_reader,
         sidecar_path,
     ):
-        claims_dir = knowledge_reader / "claims"
+        claims_dir = knowledge_reader.root / "claims"
         claims_dir.mkdir(exist_ok=True)
-        sources_dir = knowledge_reader / "sources"
+        sources_dir = knowledge_reader.root / "sources"
         sources_dir.mkdir(exist_ok=True)
 
         source_doc = {
@@ -1625,7 +1664,7 @@ class TestClaimStanceTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        knowledge_reader = concept_dir.parent
+        knowledge_reader = Repository(concept_dir.parent)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
@@ -1846,8 +1885,7 @@ def algorithm_claim_files(concept_dir):
         yaml.dump(algo_paper, default_flow_style=False)
     )
 
-    from propstore.claims import load_claim_files
-    return load_claim_files(claims_dir)
+    return None
 
 
 @pytest.fixture
@@ -2232,7 +2270,7 @@ class TestClaimValueSI:
         (claims_dir / "si_test_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
-        knowledge_reader = concept_dir.parent
+        knowledge_reader = Repository(concept_dir.parent)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         return sidecar_path
 

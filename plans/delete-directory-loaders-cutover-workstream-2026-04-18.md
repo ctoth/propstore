@@ -10,6 +10,14 @@ production callers to use the Quire family API directly.
 This is intentionally short. The work is not to design another abstraction. The
 work is deletion, then iteration until tests pass.
 
+## Quire Family Understanding
+
+The provisional model for Quire-owned family registries lives in the Quire repo:
+
+`../quire/plans/family-registry-provisional-understanding-2026-04-18.md`
+
+This propstore workstream only tracks the downstream deletion/cutover work.
+
 ## Rule
 
 Delete first.

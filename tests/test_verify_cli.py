@@ -159,7 +159,7 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
 
     claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
     claim_id = claims_doc["claims"][1]["artifact_id"]
-    build_sidecar(repo.tree(), repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
     papers_dir = repo.root.parent / "papers" / "demo"
     papers_dir.mkdir(parents=True, exist_ok=True)
     (papers_dir / "paper.pdf").write_bytes(content_file.read_bytes())
