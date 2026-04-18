@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+import msgspec
 from quire.artifacts import (
     ArtifactContext,
     ArtifactFamily,
@@ -18,11 +19,11 @@ from quire.artifacts import (
 )
 from quire.families import FamilyDefinition, FamilyRegistry
 from quire.family_store import DocumentFamilyStore
+from quire.documents import decode_yaml_mapping
 from quire.references import ForeignKeySpec
 from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
-from propstore.document_codecs import decode_yaml_mapping
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.contexts import ContextDocument
@@ -42,6 +43,7 @@ from propstore.artifacts.documents.sources import (
 )
 from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.artifacts.documents.worldlines import WorldlineDefinitionDocument
+from propstore.core.concepts import concept_document_to_payload
 from propstore.identity import (
     concept_reference_keys,
     normalize_canonical_claim_payload,
@@ -97,6 +99,8 @@ MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
 
 
 ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.24")
+CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.25")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.25")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
@@ -259,6 +263,18 @@ def _identity_json_mapping(document: dict[str, Any]) -> dict[str, Any]:
     return document
 
 
+def _concept_document_payload(document: ConceptDocument) -> dict[str, Any]:
+    return concept_document_to_payload(document)
+
+
+def _encode_concept_document(document: ConceptDocument) -> bytes:
+    return msgspec.yaml.encode(_concept_document_payload(document))
+
+
+def _render_concept_document(document: ConceptDocument) -> str:
+    return _encode_concept_document(document).decode("utf-8").rstrip()
+
+
 def _normalize_concept_for_write(
     context: ArtifactContext["Repository", ConceptFileRef],
     document: ConceptDocument,
@@ -298,9 +314,12 @@ CLAIMS_FILE_FAMILY = ArtifactFamily["Repository", ClaimsFileRef, ClaimsFileDocum
 
 CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocument](
     name="concept_file",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ConceptDocument,
     placement=CONCEPT_PLACEMENT,
+    encode_document=_encode_concept_document,
+    render_document=_render_concept_document,
+    document_payload=_concept_document_payload,
     normalize_for_write=_normalize_concept_for_write,
 )
 
@@ -593,7 +612,7 @@ def _semantic_metadata(
 
 PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
     name="propstore",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
     families=(
         FamilyDefinition(
             key=PropstoreFamily.CLAIMS,

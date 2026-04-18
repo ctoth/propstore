@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from click.testing import CliRunner
 
-from propstore.document_codecs import render_yaml_value
+from quire.documents import render_yaml_value
 from propstore.cli import cli
 from propstore.micropubs import (
     MicropubNotFoundError,

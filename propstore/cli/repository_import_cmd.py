@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from propstore.document_codecs import render_yaml_value
+from quire.documents import render_yaml_value
 from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
 

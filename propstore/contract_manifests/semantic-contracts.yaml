@@ -69,13 +69,13 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: concept_file
-  contract_version: 2026.04.24
+  contract_version: 2026.04.25
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.concepts.ConceptDocument
-    document_payload: null
-    encode_document: null
+    document_payload: propstore.artifacts.families._concept_document_payload
+    encode_document: propstore.artifacts.families._encode_concept_document
     normalize_for_write: propstore.artifacts.families._normalize_concept_for_write
     placement:
       branch:
@@ -85,7 +85,7 @@ contracts:
       kind: flat-yaml
       namespace: concepts
       ref_field: name
-    render_document: null
+    render_document: propstore.artifacts.families._render_concept_document
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
@@ -2835,13 +2835,13 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: family-registry
   name: propstore
-  contract_version: 2026.04.24
+  contract_version: 2026.04.25
   body:
     families:
     - contract_version: 2026.04.24
       key: claims
       name: claims
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.25
       key: concepts
       name: concepts
     - contract_version: 2026.04.24
@@ -2989,7 +2989,7 @@ contracts:
     key: concept_alignments
 - kind: family
   name: concepts
-  contract_version: 2026.04.24
+  contract_version: 2026.04.25
   body:
     accessor: concepts
     artifact_family: concept_file
@@ -3003,7 +3003,7 @@ contracts:
         kind: flat-yaml
         namespace: concepts
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.25
     foreign_keys:
     - many: true
       required: true
