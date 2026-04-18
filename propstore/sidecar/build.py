@@ -28,7 +28,7 @@ from propstore.compiler.context import (
 )
 from propstore.compiler.passes import compile_claim_files
 from propstore.form_utils import FormDefinition, load_all_forms_path
-from propstore.knowledge_path import KnowledgePath
+from quire.tree_path import TreePath as KnowledgePath
 from propstore.sidecar.claims import (
     build_claim_fts_index,
     populate_authored_justifications_from_files,

@@ -167,7 +167,7 @@ def _build_rule_file(rules):
     rule file is a flat tuple of rules anchored to a paper source).
     """
 
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.rules import RulesFileDocument, RuleSourceDocument
     from propstore.rule_files import LoadedRuleFile
 
@@ -217,7 +217,7 @@ def _build_registry(predicates):
     """
 
     from propstore.grounding.predicates import PredicateRegistry
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.predicates import PredicatesFileDocument
     from propstore.predicate_files import LoadedPredicateFile
 
@@ -762,7 +762,7 @@ def test_translate_preserves_authored_superiority_pairs() -> None:
     orientation, matching the gunray schema's ``(superior, inferior)``
     pair shape.
     """
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.rules import (
         RuleSourceDocument,
         RulesFileDocument,

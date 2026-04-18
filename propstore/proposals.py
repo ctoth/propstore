@@ -15,7 +15,7 @@ from propstore.artifacts.codecs import encode_document
 from propstore.artifacts.families import PROPOSAL_STANCE_FAMILY, STANCE_FILE_FAMILY
 from propstore.artifacts.refs import STANCE_PROPOSAL_BRANCH, StanceFileRef
 from propstore.artifacts.documents.stances import StanceFileDocument
-from propstore.artifacts.schema import convert_document_value
+from quire.documents import convert_document_value
 
 if TYPE_CHECKING:
     from propstore.repository import Repository

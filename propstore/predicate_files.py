@@ -6,7 +6,7 @@ from propstore.artifacts.documents.predicates import (
     PredicateDocument,
     PredicatesFileDocument,
 )
-from propstore.loaded import LoadedDocument
+from quire.documents import LoadedDocument
 
 
 class LoadedPredicateFile(LoadedDocument[PredicatesFileDocument]):

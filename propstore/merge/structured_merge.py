@@ -10,9 +10,9 @@ from typing import Any
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.core.row_types import StanceRow
 from propstore.stances import coerce_stance_type
-from propstore.artifacts.schema import decode_document_path
+from quire.documents import decode_document_path
 from propstore.dung import ArgumentationFramework
-from propstore.knowledge_path import KnowledgePath
+from quire.tree_path import TreePath as KnowledgePath
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.artifacts.documents.stances import StanceFileDocument

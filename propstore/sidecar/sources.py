@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from propstore.artifacts.schema import decode_document_path
-from propstore.knowledge_path import KnowledgePath
+from quire.documents import decode_document_path
+from quire.tree_path import TreePath as KnowledgePath
 from propstore.artifacts.documents.sources import SourceDocument
 
 

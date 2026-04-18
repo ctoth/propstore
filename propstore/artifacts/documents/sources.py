@@ -18,7 +18,7 @@ from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
 from propstore.core.exactness_types import Exactness
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 from propstore.provenance import ProvenanceStatus
 from propstore.stances import StanceType
 

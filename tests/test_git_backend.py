@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 import pytest
 
-from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
+from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
 from propstore.concept_ids import next_concept_id
 from propstore.storage import GitStore
 from tests.conftest import (

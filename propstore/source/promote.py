@@ -48,7 +48,7 @@ from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
 from propstore.repository import Repository
-from propstore.artifacts.schema import convert_document_value
+from quire.documents import convert_document_value
 from propstore.artifacts.documents.sources import (
     SourceConceptEntryDocument,
     SourceDocument,

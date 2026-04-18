@@ -153,7 +153,7 @@ def _rule_file(rules):
     tuple of rules anchored to a source.
     """
 
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.rules import RulesFileDocument, RuleSourceDocument
     from propstore.rule_files import LoadedRuleFile
 

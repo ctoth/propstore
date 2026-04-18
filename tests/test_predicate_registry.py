@@ -139,7 +139,7 @@ def loaded_predicate_files_from(docs) -> "list":
     documents so the registry sees the entire population at once.
     """
 
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.predicates import PredicatesFileDocument  # noqa: E402
     from propstore.predicate_files import LoadedPredicateFile  # noqa: E402
 
@@ -315,7 +315,7 @@ def test_registry_duplicate_predicate_id_rejected() -> None:
     """
 
     from propstore.grounding.predicates import PredicateRegistry  # noqa: E402
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.predicates import (  # noqa: E402
         PredicateDocument,
         PredicatesFileDocument,

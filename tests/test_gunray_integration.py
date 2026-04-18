@@ -173,7 +173,7 @@ def _build_registry(predicates):
     """
 
     from propstore.grounding.predicates import PredicateRegistry
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.predicates import (
         PredicatesFileDocument,
     )
@@ -246,7 +246,7 @@ def _build_rule_file(rules):
     of authored order.
     """
 
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.rules import RulesFileDocument, RuleSourceDocument
     from propstore.rule_files import LoadedRuleFile
 

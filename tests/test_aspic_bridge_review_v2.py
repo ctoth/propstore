@@ -76,7 +76,7 @@ def _make_rule_document(
 
 
 def _make_rule_file(rules):
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.rules import RuleSourceDocument, RulesFileDocument
     from propstore.rule_files import LoadedRuleFile
 

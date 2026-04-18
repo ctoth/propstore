@@ -6,7 +6,7 @@ from hypothesis import strategies as st
 
 from propstore.artifacts.documents.claims import ClaimDocument, IstPropositionDocument
 from propstore.artifacts.documents.contexts import ContextDocument
-from propstore.artifacts.schema import DocumentSchemaError, convert_document_value
+from quire.documents import DocumentSchemaError, convert_document_value
 
 
 def test_context_document_rejects_visibility_inheritance_fields() -> None:

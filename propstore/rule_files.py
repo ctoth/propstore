@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from propstore.artifacts.documents.rules import RuleDocument, RulesFileDocument
-from propstore.loaded import LoadedDocument
+from quire.documents import LoadedDocument
 
 
 class LoadedRuleFile(LoadedDocument[RulesFileDocument]):

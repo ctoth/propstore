@@ -171,7 +171,7 @@ def _build_registry(predicates):
     """Wrap predicate documents in a populated PredicateRegistry."""
 
     from propstore.grounding.predicates import PredicateRegistry
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.predicates import PredicatesFileDocument
     from propstore.predicate_files import LoadedPredicateFile
 

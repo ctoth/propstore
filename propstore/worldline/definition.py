@@ -13,7 +13,7 @@ from propstore.artifacts.documents.worldlines import (
     WorldlineRevisionQueryDocument,
     WorldlineResultDocument,
 )
-from propstore.artifacts.schema import convert_document_value, to_document_builtins
+from quire.documents import convert_document_value, to_document_builtins
 from propstore.world.types import Environment, RenderPolicy
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,

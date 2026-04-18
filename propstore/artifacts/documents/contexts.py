@@ -8,7 +8,7 @@ from typing import Any
 import msgspec
 
 from propstore.cel_types import CelExpr
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 from propstore.context_lifting import LiftingMode
 
 

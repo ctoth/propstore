@@ -27,7 +27,7 @@ from propstore.dimensions import (
     from_si,
     normalize_to_si,
 )
-from propstore.knowledge_path import FilesystemKnowledgePath
+from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath
 
 
 @pytest.fixture

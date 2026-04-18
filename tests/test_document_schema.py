@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.artifacts.schema import (
+from quire.documents import (
     DocumentSchemaError,
     DocumentStruct,
     decode_document_bytes,

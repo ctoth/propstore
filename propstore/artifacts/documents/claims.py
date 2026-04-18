@@ -8,7 +8,7 @@ from typing import Any
 from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 from propstore.artifacts.documents.contexts import ContextReferenceDocument
 from propstore.provenance import Provenance
 from propstore.stances import StanceType

@@ -12,7 +12,7 @@ from pathlib import Path
 import click
 
 from propstore.artifacts.documents.concepts import ConceptIdScanDocument
-from propstore.artifacts.schema import decode_document_path
+from quire.documents import decode_document_path
 
 
 # ── File locking (cross-platform, stdlib only) ──────────────────────

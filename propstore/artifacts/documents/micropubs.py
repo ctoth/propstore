@@ -6,7 +6,7 @@ from typing import Any
 
 from propstore.artifacts.documents.claims import ClaimSourceDocument, ProvenanceDocument
 from propstore.artifacts.documents.contexts import ContextReferenceDocument
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 from propstore.stances import StanceType
 
 

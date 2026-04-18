@@ -16,11 +16,11 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.artifacts.schema import decode_document_path
+from quire.documents import decode_document_path
 from propstore.identity import derive_concept_artifact_id
 from propstore.sidecar.build import build_sidecar
 from propstore.cli.worldline import _parse_kv_args
-from propstore.knowledge_path import GitKnowledgePath
+from quire.tree_path import GitTreePath as GitKnowledgePath
 from propstore.storage import GitStore
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult

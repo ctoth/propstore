@@ -6,7 +6,7 @@ import sys
 import click
 
 from propstore.artifacts import WORLDLINE_FAMILY
-from propstore.artifacts.schema import DocumentSchemaError
+from quire.documents import DocumentSchemaError
 from propstore.cli.helpers import open_world_model
 from propstore.cli.worldline import _load_worldline_definition, worldline
 from propstore.repository import Repository

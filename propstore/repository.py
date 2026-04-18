@@ -4,8 +4,8 @@ from __future__ import annotations
 from functools import cached_property
 from pathlib import Path
 
-from propstore.artifacts.schema import DocumentStruct, decode_document_bytes
-from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath, KnowledgePath
+from quire.documents import DocumentStruct, decode_document_bytes
+from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
 from propstore.uri import DEFAULT_URI_AUTHORITY
 
 

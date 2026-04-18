@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Mapping
 
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 from propstore.core.lemon.references import OntologyReference
 from propstore.provenance import Provenance, compose_provenance
 

@@ -24,7 +24,7 @@ from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     coerce_concept_relationship_type,
 )
-from propstore.artifacts.schema import load_document_dir, to_document_builtins
+from quire.documents import load_document_dir, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (
@@ -33,8 +33,8 @@ from propstore.identity import (
     format_logical_id,
     normalize_logical_value,
 )
-from propstore.knowledge_path import KnowledgePath
-from propstore.loaded import LoadedDocument
+from quire.tree_path import TreePath as KnowledgePath
+from quire.documents import LoadedDocument
 
 
 def _string_list(value: object) -> tuple[str, ...]:

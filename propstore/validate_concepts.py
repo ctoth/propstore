@@ -44,7 +44,7 @@ from propstore.core.concepts import (
 from propstore.diagnostics import ValidationResult
 
 if TYPE_CHECKING:
-    from propstore.knowledge_path import KnowledgePath
+    from quire.tree_path import TreePath as KnowledgePath
 
 
 

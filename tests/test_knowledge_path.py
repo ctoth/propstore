@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.repository import Repository
-from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
+from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
 from propstore.storage import GitStore
 
 

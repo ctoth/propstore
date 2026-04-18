@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from propstore.artifacts.schema import convert_document_value
+from quire.documents import convert_document_value
 from propstore.artifacts.documents.sources import SourceDocument
 from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
