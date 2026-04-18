@@ -133,8 +133,10 @@ class SemanticFamilyDefinition:
         raise ValueError(f"unknown semantic family branch policy: {self.branch_policy}")
 
     def root_path(self, tree_or_repo: object) -> object:
+        if isinstance(tree_or_repo, Path):
+            return tree_or_repo / self.root
         root = getattr(tree_or_repo, "root", None)
-        if root is not None:
+        if isinstance(root, Path):
             return root / self.root
         return tree_or_repo / self.root  # type: ignore[operator]
 
@@ -157,6 +159,13 @@ class SemanticFamilyDefinition:
 
     def relpath(self, ref: object) -> str:
         return f"{self.root}/{self.filename_stem(ref)}{self.extension}"
+
+    def matches_path(self, path: str | Path) -> bool:
+        try:
+            self.ref_from_path(path)
+        except ValueError:
+            return False
+        return True
 
     def resolve(self, repo: Repository, ref: object) -> ResolvedArtifact:
         return ResolvedArtifact(
@@ -269,6 +278,25 @@ class SemanticFamilyRegistry:
             for spec in family.foreign_keys
         ]
         return tuple(sorted(specs, key=lambda spec: spec.name))
+
+    def root_path(self, name: str, tree_or_repo: object) -> object:
+        return self.by_name(name).root_path(tree_or_repo)
+
+    def relpath(self, name: str, ref: object) -> str:
+        return self.by_name(name).relpath(ref)
+
+    def list_refs(
+        self,
+        name: str,
+        repo: Repository,
+        *,
+        branch: str | None = None,
+        commit: str | None = None,
+    ) -> list[object]:
+        return self.by_name(name).list_refs(repo, branch, commit)
+
+    def ref_from_path(self, name: str, path: str | Path) -> object:
+        return self.by_name(name).ref_from_path(path)
 
     def normalize_import_writes(
         self,

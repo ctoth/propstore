@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from propstore.artifacts.documents.concepts import ConceptIdScanDocument
+from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from quire.documents import DocumentSchemaError, decode_document_path
 from quire.refs import RefName
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
@@ -54,9 +55,10 @@ def next_concept_id(concepts_root: Path | KnowledgePath) -> int:
 
 
 def next_concept_id_for_repo(repo: Repository) -> int:
+    concepts_root = SEMANTIC_FAMILIES.root_path("concept", repo.tree())
     if repo.git is None:
-        return next_concept_id(repo.tree() / "concepts")
-    return next_concept_id_for_git(repo.git, repo.tree() / "concepts")
+        return next_concept_id(concepts_root)
+    return next_concept_id_for_git(repo.git, concepts_root)
 
 
 def next_concept_id_for_git(git: GitStore, concepts_root: Path | KnowledgePath) -> int:

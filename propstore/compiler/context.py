@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Mapping, cast
 from propstore.cel_checker import ConceptInfo
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.claims import LoadedClaimsFile
+from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from quire.references import (
     extend_reference_lookup,
     finalize_reference_lookup,
@@ -133,8 +134,8 @@ def build_compilation_context_from_repo(
             context_ids=context_ids,
         )
     return build_compilation_context_from_paths(
-        repo.tree() / "concepts",
-        repo.tree() / "forms",
+        SEMANTIC_FAMILIES.root_path("concept", repo.tree()),
+        SEMANTIC_FAMILIES.root_path("form", repo.tree()),
         claim_files=claim_files,
         context_ids=context_ids,
     )
