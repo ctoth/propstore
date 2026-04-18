@@ -73,7 +73,7 @@ def create_merge_commit(
     claims_document = artifacts.coerce(
         CLAIMS_FILE_FAMILY,
         claims_payload,
-        source=artifacts.resolve(CLAIMS_FILE_FAMILY, claims_ref).relpath,
+        source=artifacts.address(CLAIMS_FILE_FAMILY, claims_ref).require_path(),
     )
 
     manifest_payload = {
@@ -115,7 +115,7 @@ def create_merge_commit(
     )
 
     for prepared in (prepared_claims, prepared_manifest):
-        merged_entries[prepared.resolved.relpath] = kr.store_blob(prepared.content)
+        merged_entries[prepared.address.require_path()] = kr.store_blob(prepared.content)
 
     return kr.commit_flat_tree(
         merged_entries,

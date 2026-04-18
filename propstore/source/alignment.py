@@ -34,13 +34,17 @@ from .common import load_document_from_branch, load_source_document
 from propstore.artifacts.documents.sources import SourceConceptsDocument
 
 
-CONCEPT_PROPOSAL_BRANCH = "proposal/concepts"
-
-
 def alignment_slug(value: str) -> str:
     cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in value.strip().lower())
     cleaned = cleaned.strip("_-")
     return cleaned or "alignment"
+
+
+def concept_proposal_branch(repo: Repository | None = None) -> str:
+    return CONCEPT_ALIGNMENT_FAMILY.address_for(
+        object() if repo is None else repo,
+        ConceptAlignmentRef("placeholder"),
+    ).branch
 
 
 def _proposal_lexical_entry(proposal: dict[str, Any]) -> LexicalEntry:
@@ -185,7 +189,7 @@ def align_sources(
                 }
             )
     artifact = build_alignment_artifact(proposals, authority=repo.uri_authority)
-    repo.snapshot.ensure_branch(CONCEPT_PROPOSAL_BRANCH)
+    repo.snapshot.ensure_branch(concept_proposal_branch(repo))
     slug = artifact.id.split(":", 1)[1]
     repo.artifacts.save(
         CONCEPT_ALIGNMENT_FAMILY,
@@ -277,7 +281,7 @@ def promote_alignment(
     document = convert_document_value(
         concept_doc,
         ConceptDocument,
-        source=CONCEPT_FILE_FAMILY.resolve_ref(repo, concept_ref).relpath,
+        source=repo.artifacts.address(CONCEPT_FILE_FAMILY, concept_ref).require_path(),
     )
     repo.artifacts.save(
         CONCEPT_FILE_FAMILY,

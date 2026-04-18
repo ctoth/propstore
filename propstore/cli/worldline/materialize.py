@@ -43,10 +43,10 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     from propstore.worldline import WorldlineDefinition
 
     repo: Repository = obj["repo"]
-    resolved = repo.artifacts.resolve(WORLDLINE_FAMILY, WorldlineRef(name))
+    address = repo.artifacts.address(WORLDLINE_FAMILY, WorldlineRef(name))
     if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is not None:
         click.echo(
-            f"ERROR: Worldline '{name}' already exists at {resolved.relpath}",
+            f"ERROR: Worldline '{name}' already exists at {address.require_path()}",
             err=True,
         )
         sys.exit(1)
@@ -104,7 +104,7 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     )
     repo.snapshot.sync_worktree()
 
-    click.echo(f"Created worldline '{name}' at {resolved.relpath}")
+    click.echo(f"Created worldline '{name}' at {address.require_path()}")
 
 
 @worldline.command("run")

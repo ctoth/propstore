@@ -19,7 +19,6 @@ from propstore.artifacts.families import (
     SOURCE_MICROPUBS_FAMILY,
     SOURCE_STANCES_FAMILY,
     STANCE_FILE_FAMILY,
-    STANCE_PROPOSAL_BRANCH,
     WORLDLINE_FAMILY,
 )
 from propstore.artifacts.identity import (
@@ -82,7 +81,6 @@ __all__ = [
     "SOURCE_MICROPUBS_FAMILY",
     "SOURCE_STANCES_FAMILY",
     "StanceFileRef",
-    "STANCE_PROPOSAL_BRANCH",
     "WORLDLINE_FAMILY",
     "SourceRef",
     "WorldlineRef",

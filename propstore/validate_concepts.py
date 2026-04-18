@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING, Mapping
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, dims_of_expr, DimensionalError
 
+from quire.documents import load_document_dir
+from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.cel_checker import ConceptInfo, KindType, check_cel_expr
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.artifacts.identity import normalize_canonical_concept_payload
@@ -206,11 +208,11 @@ def _load_claim_reference_lookup(
     claims_dir: KnowledgePath | None,
 ) -> Mapping[str, tuple[str, ...]]:
     """Load claim artifact and logical reference keys from claim YAML files."""
-    from propstore.claims import load_claim_files
-
     if claims_dir is None:
         return {}
-    return build_claim_reference_lookup(list(load_claim_files(claims_dir)))
+    return build_claim_reference_lookup(
+        list(load_document_dir(claims_dir, ClaimsFileDocument))
+    )
 
 
 def _validate_logical_ids(
@@ -284,6 +286,7 @@ def validate_concepts(
     claims_dir: KnowledgePath | None = None,
     *,
     forms_dir: KnowledgePath | None = None,
+    claim_reference_lookup: Mapping[str, tuple[str, ...]] | None = None,
 ) -> ValidationResult:
     """Run all compiler contract validation checks.
 
@@ -292,6 +295,8 @@ def validate_concepts(
         claims_dir: Optional path to claims directory. When provided,
             canonical_claim references on parameterizations are validated
             against the claim IDs found in claim files.
+        claim_reference_lookup: Preloaded claim reference lookup. Repository
+            workflows pass this instead of enumerating a claims directory.
         forms_dir: Optional explicit forms root. When omitted, concepts must
             carry ``knowledge_root`` metadata so the validator can resolve
             ``knowledge_root / "forms"`` without guessing from local paths.
@@ -315,7 +320,11 @@ def validate_concepts(
             return dict(form_def.dimensions)
         return {} if form_def.is_dimensionless else None
 
-    claim_reference_lookup = _load_claim_reference_lookup(claims_dir)
+    loaded_claim_reference_lookup = (
+        _load_claim_reference_lookup(claims_dir)
+        if claim_reference_lookup is None
+        else claim_reference_lookup
+    )
 
     for c in concepts:
         data = c.record.to_payload()
@@ -641,13 +650,13 @@ def validate_concepts(
             # canonical_claim must reference an existing claim
             canonical_claim = param.get("canonical_claim")
             if canonical_claim:
-                if claims_dir is None:
+                if claim_reference_lookup is None and claims_dir is None:
                     # No claims_dir provided — can't validate, emit error
                     result.errors.append(
                         f"{c.filename}: canonical_claim '{canonical_claim}' "
                         f"cannot be validated (no claims directory provided)")
                 else:
-                    claim_candidates = claim_reference_lookup.get(str(canonical_claim), ())
+                    claim_candidates = loaded_claim_reference_lookup.get(str(canonical_claim), ())
                     if len(claim_candidates) == 0:
                         result.errors.append(
                             f"{c.filename}: canonical_claim '{canonical_claim}' "

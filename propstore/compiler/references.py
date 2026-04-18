@@ -15,8 +15,9 @@ from quire.references import (
 
 from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from propstore.claims import (
-    LoadedClaimsFile,
+    ClaimFileEntry,
     claim_file_claims,
+    claim_file_filename,
     claim_file_source_paper,
 )
 from propstore.core.concepts import ConceptRecord
@@ -32,7 +33,7 @@ def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
 
 
 def build_claim_reference_lookup(
-    claim_files: list[LoadedClaimsFile],
+    claim_files: list[ClaimFileEntry],
 ) -> Mapping[str, tuple[str, ...]]:
     lookup = build_reference_lookup(
         (
@@ -46,14 +47,14 @@ def build_claim_reference_lookup(
     return MappingProxyType(dict(lookup))
 
 
-def _claim_target_id(item: tuple[LoadedClaimsFile, Any]) -> str | None:
+def _claim_target_id(item: tuple[ClaimFileEntry, Any]) -> str | None:
     artifact_id = item[1].artifact_id
     return artifact_id if isinstance(artifact_id, str) and artifact_id else None
 
 
-def _claim_reference_keys(item: tuple[LoadedClaimsFile, Any]) -> tuple[str | None, ...]:
+def _claim_reference_keys(item: tuple[ClaimFileEntry, Any]) -> tuple[str | None, ...]:
     claim_file, claim = item
-    source_paper = claim_file_source_paper(claim_file) or claim_file.filename
+    source_paper = claim_file_source_paper(claim_file) or claim_file_filename(claim_file)
     keys: list[str | None] = []
     raw_id = getattr(claim, "id", None)
     if isinstance(raw_id, str) and raw_id:
@@ -169,7 +170,7 @@ def resolve_concept_reference(
 def resolve_claim_reference(
     claim_ref: object,
     context: CompilationContext,
-    normalized_claim_files: list[LoadedClaimsFile],
+    normalized_claim_files: list[ClaimFileEntry],
 ) -> ReferenceResolution | None:
     return foreign_keys_from_context(context).family("claim").resolve(
         claim_ref,
@@ -184,7 +185,7 @@ def resolve_claim_reference(
 def _claim_match_kind(
     raw_text: str,
     resolved_id: str,
-    normalized_claim_files: list[LoadedClaimsFile],
+    normalized_claim_files: list[ClaimFileEntry],
 ) -> tuple[str | None, str | None]:
     if raw_text == resolved_id:
         return "artifact_id", raw_text

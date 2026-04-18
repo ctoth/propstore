@@ -10,11 +10,12 @@ from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING, Any, Mapping, TypeAlias
 
+from quire.artifacts import ArtifactHandle
 from propstore.artifacts.documents.claims import ClaimDocument, ClaimsFileDocument
+from propstore.artifacts.refs import ClaimsFileRef
 from quire.documents import (
     convert_document_value,
     load_document,
-    load_document_dir,
 )
 from quire.tree_path import TreePath as KnowledgePath
 from quire.documents import LoadedDocument
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from propstore.world import WorldModel
 
 LoadedClaimsFile: TypeAlias = LoadedDocument[ClaimsFileDocument]
+ClaimFileEntry: TypeAlias = LoadedClaimsFile | ArtifactHandle[Any, ClaimsFileRef, ClaimsFileDocument]
 
 
 class ClaimWorkflowError(Exception):
@@ -378,7 +380,7 @@ def relate_claims(
     on_progress: Callable[[int, int], None] | None = None,
 ) -> ClaimRelateReport:
     from propstore.embed import _load_vec_extension
-    from propstore.proposals import STANCE_PROPOSAL_BRANCH, commit_stance_proposals
+    from propstore.proposals import commit_stance_proposals, stance_proposal_branch
     from propstore.relate import relate_all as relate_all_fn
     from propstore.relate import relate_claim
 
@@ -403,14 +405,14 @@ def relate_claims(
                 )
             )
             if not stances:
-                return ClaimRelateReport(branch=STANCE_PROPOSAL_BRANCH)
+                return ClaimRelateReport(branch=stance_proposal_branch(repo))
             commit_sha, committed_relpaths = commit_stance_proposals(
                 repo,
                 {request.claim_id: list(stances)},
                 request.model,
             )
             return ClaimRelateReport(
-                branch=STANCE_PROPOSAL_BRANCH,
+                branch=stance_proposal_branch(repo),
                 stances=stances,
                 commit_sha=commit_sha,
                 relpaths=tuple(committed_relpaths),
@@ -437,7 +439,7 @@ def relate_claims(
                 )
                 relpaths = tuple(committed_relpaths)
             return ClaimRelateReport(
-                branch=STANCE_PROPOSAL_BRANCH,
+                branch=stance_proposal_branch(repo),
                 commit_sha=commit_sha,
                 relpaths=relpaths,
                 claims_processed=_required_int(result, "claims_processed"),
@@ -496,12 +498,6 @@ def load_claim_file(
     )
 
 
-def load_claim_files(claims_dir: KnowledgePath | Path | None) -> list[LoadedClaimsFile]:
-    """Load all direct child claim YAML files from a claims subtree."""
-
-    return load_document_dir(claims_dir, ClaimsFileDocument)
-
-
 def loaded_claim_file_from_payload(
     *,
     filename: str,
@@ -522,17 +518,28 @@ def loaded_claim_file_from_payload(
     )
 
 
-def claim_file_claims(claim_file: LoadedClaimsFile) -> tuple[ClaimDocument, ...]:
+def claim_file_filename(claim_file: ClaimFileEntry) -> str:
+    filename = getattr(claim_file, "filename", None)
+    if isinstance(filename, str):
+        return filename
+    ref = getattr(claim_file, "ref", None)
+    name = getattr(ref, "name", None)
+    if isinstance(name, str):
+        return name
+    raise TypeError("claim file entry has no filename or ref name")
+
+
+def claim_file_claims(claim_file: ClaimFileEntry) -> tuple[ClaimDocument, ...]:
     return claim_file.document.claims
 
 
-def claim_file_source_paper(claim_file: LoadedClaimsFile) -> str:
+def claim_file_source_paper(claim_file: ClaimFileEntry) -> str:
     return claim_file.document.source.paper
 
 
-def claim_file_stage(claim_file: LoadedClaimsFile) -> str | None:
+def claim_file_stage(claim_file: ClaimFileEntry) -> str | None:
     return claim_file.document.stage
 
 
-def claim_file_payload(claim_file: LoadedClaimsFile) -> dict[str, Any]:
+def claim_file_payload(claim_file: ClaimFileEntry) -> dict[str, Any]:
     return claim_file.document.to_payload()

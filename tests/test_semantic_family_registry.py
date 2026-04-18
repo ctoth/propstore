@@ -46,13 +46,17 @@ def test_semantic_family_contract_includes_path_schema() -> None:
 
     concept_body = concept.contract_body()
     stance_body = stance.contract_body()
+    concept_placement = concept_body["placement"]
+    stance_placement = stance_body["placement"]
 
-    assert concept_body["root"] == "concepts"
-    assert concept_body["extension"] == ".yaml"
-    assert concept_body["branch_policy"] == "primary"
-    assert concept_body["filename_codec"] == "stem"
+    assert concept_placement["namespace"] == "concepts"
+    assert concept_placement["extension"] == ".yaml"
+    assert concept_placement["branch"] == {"policy": "primary"}
+    assert concept_placement["codec"] == "stem"
     assert concept_body["ref_type"].endswith(".ConceptFileRef")
-    assert stance_body["filename_codec"] == "colon_to_double_underscore"
+    assert stance_placement["codec"] == "colon_to_double_underscore"
+    assert "root" not in concept_body
+    assert "filename_codec" not in concept_body
 
 
 def test_canonical_artifact_path_helpers_are_deleted() -> None:
@@ -116,10 +120,10 @@ def test_semantic_family_owns_path_ref_and_listing_behaviour(tmp_path: Path) -> 
     claim = SEMANTIC_FAMILIES.by_name("claim")
     stance = SEMANTIC_FAMILIES.by_name("stance")
 
-    assert concept.relpath(concept.ref_type("pitch")) == "concepts/pitch.yaml"
+    assert concept.address_path(repo, concept.ref_type("pitch")) == "concepts/pitch.yaml"
     assert claim.ref_from_path("claims/paper.yaml").name == "paper"
-    assert stance.relpath(stance.ref_type("claim:a")) == "stances/claim__a.yaml"
-    assert stance.ref_from_path(repo.root / "stances" / "claim__a.yaml").source_claim == "claim:a"
+    assert stance.address_path(repo, stance.ref_type("claim:a")) == "stances/claim__a.yaml"
+    assert stance.ref_from_path("stances/claim__a.yaml").source_claim == "claim:a"
     assert repo.artifacts.ref_from_path(concept.artifact_family, "concepts/pitch.yaml").name == "pitch"
     assert repo.artifacts.list(concept.artifact_family) == []
 

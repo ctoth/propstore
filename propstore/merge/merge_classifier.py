@@ -16,6 +16,7 @@ from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.merge_framework import PartialArgumentationFramework
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.z3_conditions import Z3TranslationError
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY
 from propstore.claims import claim_file_claims
 
 
@@ -295,19 +296,28 @@ def build_merge_framework(
     branch_b: str,
 ) -> RepositoryMergeFramework:
     """Build the direct repository merge object for two branches."""
-    from propstore.claims import load_claim_files
-
     base_sha = snapshot.merge_base(branch_a, branch_b)
     left_sha = snapshot.branch_head(branch_a)
     right_sha = snapshot.branch_head(branch_b)
 
-    base_claims_root = snapshot.tree(commit=base_sha) / "claims"
-    left_claims_root = snapshot.tree(commit=left_sha) / "claims"
-    right_claims_root = snapshot.tree(commit=right_sha) / "claims"
-
-    base_idx = _index_claims(load_claim_files(base_claims_root))
-    left_idx = _index_claims(load_claim_files(left_claims_root))
-    right_idx = _index_claims(load_claim_files(right_claims_root))
+    base_idx = _index_claims(
+        [
+            snapshot.repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref, commit=base_sha)
+            for ref in snapshot.repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=base_sha)
+        ]
+    )
+    left_idx = _index_claims(
+        [
+            snapshot.repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref, commit=left_sha)
+            for ref in snapshot.repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=left_sha)
+        ]
+    )
+    right_idx = _index_claims(
+        [
+            snapshot.repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref, commit=right_sha)
+            for ref in snapshot.repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=right_sha)
+        ]
+    )
     canonical_groups = _canonical_claim_groups(base_idx, left_idx, right_idx)
 
     all_ids = sorted(set(base_idx) | set(left_idx) | set(right_idx))

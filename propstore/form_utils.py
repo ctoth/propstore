@@ -12,6 +12,7 @@ from propstore.artifacts.documents.forms import (
 )
 from propstore.artifacts.families import FORM_FAMILY
 from propstore.artifacts.refs import FormRef
+from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from propstore.cel_checker import KindType
 from quire.documents import DocumentSchemaError, convert_document_value, decode_document_path
 from propstore.core.concepts import load_concepts
@@ -125,7 +126,7 @@ def show_form(
     repo: Repository,
     name: str,
 ) -> FormShowReport:
-    forms_tree = repo.tree() / "forms"
+    forms_tree = SEMANTIC_FAMILIES.root_path("form", repo.tree())
     path = forms_tree / f"{name}.yaml"
     if not path.exists():
         raise FormNotFoundError(name)
@@ -196,7 +197,7 @@ def list_form_items(
     *,
     dims_filter: str | None,
 ) -> tuple[FormListItem, ...] | None:
-    forms_tree = repo.tree() / "forms"
+    forms_tree = SEMANTIC_FAMILIES.root_path("form", repo.tree())
     if not forms_tree.exists():
         return None
 
@@ -269,7 +270,7 @@ def _form_add_payload(request: FormAddRequest) -> dict[str, object]:
 
 def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> FormAddReport:
     ref = FormRef(request.name)
-    relpath = FORM_FAMILY.resolve_ref(repo, ref).relpath
+    relpath = repo.artifacts.address(FORM_FAMILY, ref).require_path()
     path = repo.root / relpath
     if (repo.tree() / relpath).exists():
         raise FormWorkflowError(f"Form '{request.name}' already exists")
@@ -299,7 +300,7 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
 
 def form_references(repo: Repository, name: str) -> tuple[str, ...]:
     references: list[str] = []
-    for concept in load_concepts(repo.tree() / "concepts"):
+    for concept in load_concepts(SEMANTIC_FAMILIES.root_path("concept", repo.tree())):
         if concept.record.form == name:
             references.append(f"{concept.record.artifact_id} ({concept.filename})")
     return tuple(references)
@@ -313,7 +314,7 @@ def remove_form(
     dry_run: bool,
 ) -> FormRemoveReport:
     ref = FormRef(name)
-    relpath = FORM_FAMILY.resolve_ref(repo, ref).relpath
+    relpath = repo.artifacts.address(FORM_FAMILY, ref).require_path()
     path = repo.root / relpath
     if not (repo.tree() / relpath).exists():
         raise FormNotFoundError(name)
@@ -334,7 +335,7 @@ def remove_form(
 
 
 def validate_forms(repo: Repository, name: str | None = None) -> FormValidationReport | None:
-    forms_tree = repo.tree() / "forms"
+    forms_tree = SEMANTIC_FAMILIES.root_path("form", repo.tree())
     if not forms_tree.exists():
         return None
 
@@ -347,7 +348,7 @@ def validate_forms(repo: Repository, name: str | None = None) -> FormValidationR
         for p in forms_tree.iterdir()
         if p.is_file() and p.suffix == ".yaml"
     }
-    concepts_tree = repo.tree() / "concepts"
+    concepts_tree = SEMANTIC_FAMILIES.root_path("concept", repo.tree())
     if concepts_tree.exists():
         for concept in load_concepts(concepts_tree):
             ref = concept.record.form

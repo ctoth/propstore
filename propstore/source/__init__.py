@@ -1,8 +1,8 @@
 from .alignment import (
-    CONCEPT_PROPOSAL_BRANCH,
     align_sources,
     build_alignment_artifact,
     classify_relation,
+    concept_proposal_branch,
     decide_alignment,
     load_alignment_artifact,
     promote_alignment,
@@ -54,10 +54,10 @@ from .relations import (
 from .status import SourceStatusState, inspect_source_status
 
 __all__ = [
-    "CONCEPT_PROPOSAL_BRANCH",
     "align_sources",
     "build_alignment_artifact",
     "classify_relation",
+    "concept_proposal_branch",
     "commit_source_claim_proposal",
     "commit_source_claims_batch",
     "commit_source_concept_proposal",

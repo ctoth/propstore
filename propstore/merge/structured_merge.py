@@ -13,6 +13,8 @@ from propstore.stances import coerce_stance_type
 from quire.documents import decode_document_path
 from propstore.dung import ArgumentationFramework
 from quire.tree_path import TreePath as KnowledgePath
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY
+from propstore.claims import claim_file_claims
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.artifacts.documents.stances import StanceFileDocument
@@ -218,11 +220,14 @@ def _canonical_stance_rows(
     return canonical_rows
 
 
-def _load_branch_claims(claims_root: KnowledgePath) -> list[MergeClaim]:
-    from propstore.claims import claim_file_claims, load_claim_files
-
+def _load_branch_claims(snapshot: RepositorySnapshot, commit: str | None) -> list[MergeClaim]:
     active_claims: list[MergeClaim] = []
-    for claim_file in load_claim_files(claims_root):
+    for ref in snapshot.repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=commit):
+        claim_file = snapshot.repo.artifacts.require_handle(
+            CLAIMS_FILE_FAMILY,
+            ref,
+            commit=commit,
+        )
         for claim in claim_file_claims(claim_file):
             merge_claim = MergeClaim.from_document(claim)
             if merge_claim is not None:
@@ -259,8 +264,9 @@ def _file_stance_rows(stances_root: KnowledgePath) -> list[StanceRow]:
 
 
 def build_branch_structured_summary(snapshot: RepositorySnapshot, branch: str) -> BranchStructuredSummary:
-    tree = snapshot.tree(commit=snapshot.branch_head(branch))
-    active_claims = _load_branch_claims(tree / "claims")
+    commit = snapshot.branch_head(branch)
+    tree = snapshot.tree(commit=commit)
+    active_claims = _load_branch_claims(snapshot, commit)
     raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(tree / "stances")
     stance_rows = _canonical_stance_rows(active_claims, raw_stance_rows)
     claim_ids = _summary_claim_ids(active_claims)

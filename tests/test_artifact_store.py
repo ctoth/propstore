@@ -183,7 +183,7 @@ def test_artifact_store_moves_worldlines_atomically(tmp_path: Path) -> None:
     assert commit_sha
     assert repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef("demo_worldline")) is None
     renamed = repo.artifacts.require_handle(WORLDLINE_FAMILY, WorldlineRef("renamed_worldline"))
-    assert renamed.resolved.relpath == "worldlines/renamed_worldline.yaml"
+    assert renamed.address.require_path() == "worldlines/renamed_worldline.yaml"
     assert WorldlineDefinition.from_document(renamed.document) == definition
 
 

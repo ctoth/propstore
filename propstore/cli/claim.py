@@ -14,7 +14,10 @@ import click
 
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.repository import Repository
-from quire.documents import DocumentSchemaError
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY
+from propstore.artifacts.documents.claims import ClaimsFileDocument
+from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
+from quire.documents import DocumentSchemaError, load_document_dir
 from quire.tree_path import coerce_tree_path as coerce_knowledge_path
 
 
@@ -90,7 +93,6 @@ def show(obj: dict, claim_id: str) -> None:
 @click.pass_obj
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
-    from propstore.claims import load_claim_files
     from propstore.compiler.context import build_compilation_context_from_paths
     from propstore.compiler.passes import validate_claims
 
@@ -100,11 +102,15 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
 
 
     repo: Repository = obj["repo"]
-    claims_root = coerce_knowledge_path(Path(claims_path)) if claims_path else repo.tree() / "claims"
+    claims_root = coerce_knowledge_path(Path(claims_path)) if claims_path else None
     concepts_override = Path(concepts_path) if concepts_path else None
-    concepts_root = coerce_knowledge_path(concepts_override) if concepts_override else repo.tree() / "concepts"
+    concepts_root = (
+        coerce_knowledge_path(concepts_override)
+        if concepts_override
+        else SEMANTIC_FAMILIES.root_path("concept", repo.tree())
+    )
 
-    if not claims_root.exists():
+    if claims_root is not None and not claims_root.exists():
         click.echo(f"ERROR: Claims directory '{claims_root.as_posix()}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
     if not concepts_root.exists():
@@ -114,13 +120,19 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
     forms_root = (
         coerce_knowledge_path(concepts_override.parent / "forms")
         if concepts_override is not None
-        else repo.tree() / "forms"
+        else SEMANTIC_FAMILIES.root_path("form", repo.tree())
     )
     if not forms_root.exists():
-        forms_root = repo.tree() / "forms"
+        forms_root = SEMANTIC_FAMILIES.root_path("form", repo.tree())
 
     try:
-        files = load_claim_files(claims_root)
+        if claims_root is None:
+            files = [
+                repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref)
+                for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+            ]
+        else:
+            files = load_document_dir(claims_root, ClaimsFileDocument)
         context = build_compilation_context_from_paths(
             concepts_root,
             forms_root,
@@ -159,7 +171,11 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
 
     repo: Repository = obj["repo"]
     concepts_override = Path(concepts_path) if concepts_path else None
-    concepts_root = coerce_knowledge_path(concepts_override) if concepts_override else repo.tree() / "concepts"
+    concepts_root = (
+        coerce_knowledge_path(concepts_override)
+        if concepts_override
+        else SEMANTIC_FAMILIES.root_path("concept", repo.tree())
+    )
 
     if not concepts_root.exists():
         click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
@@ -168,10 +184,10 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
     forms_root = (
         coerce_knowledge_path(concepts_override.parent / "forms")
         if concepts_override is not None
-        else repo.tree() / "forms"
+        else SEMANTIC_FAMILIES.root_path("form", repo.tree())
     )
     if not forms_root.exists():
-        forms_root = repo.tree() / "forms"
+        forms_root = SEMANTIC_FAMILIES.root_path("form", repo.tree())
 
     try:
         context = build_compilation_context_from_paths(concepts_root, forms_root)
@@ -203,24 +219,22 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
     """Detect and report claim conflicts."""
     from propstore.conflict_detector import ConflictClass, detect_conflicts
     from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-    from propstore.claims import load_claim_files
     from propstore.compiler.context import (
         build_compilation_context_from_repo,
         concept_registry_for_context,
     )
 
     repo: Repository = obj["repo"]
-    claims_root = repo.tree() / "claims"
-    concepts_root = repo.tree() / "concepts"
+    concepts_root = SEMANTIC_FAMILIES.root_path("concept", repo.tree())
 
-    if not claims_root.exists():
-        click.echo(f"ERROR: Claims directory '{claims_root.as_posix()}' does not exist", err=True)
-        sys.exit(EXIT_ERROR)
     if not concepts_root.exists():
         click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
 
-    files = load_claim_files(claims_root)
+    files = [
+        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref)
+        for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+    ]
     if not files:
         click.echo("No claim files found.")
         return
@@ -412,7 +426,7 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
 
     Uses embedding similarity to pick top-k candidates per claim, then calls
     the LLM to label each (support / rebut / refine / etc.) and commits the
-    classifications as stance proposal files to the STANCE_PROPOSAL_BRANCH.
+    classifications as stance proposal files to the stance proposal placement branch.
     The main branch is not mutated; promote proposals into source-of-truth
     storage with ``pks promote``."""
     from propstore.claims import (

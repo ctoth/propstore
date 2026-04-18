@@ -10,12 +10,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
 from quire.documents import DocumentSchemaError
-from propstore.claims import claim_file_payload, load_claim_files
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY
+from propstore.claims import claim_file_payload
 from propstore.compiler.context import (
     build_compilation_context_from_paths,
     build_compilation_context_from_repo,
 )
 from propstore.compiler.passes import compile_claim_files, validate_claims
+from propstore.compiler.references import build_claim_reference_lookup
 from propstore.core.concepts import load_concepts
 from propstore.form_utils import validate_form_files
 from propstore.repository import Repository
@@ -128,30 +130,31 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
     form_result = validate_form_files(tree / "forms")
     messages.extend(_messages_from_result(form_result, scope="form"))
 
+    files = [
+        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref)
+        for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+    ]
+
     concept_result = validate_concepts(
         concepts,
-        claims_dir=(tree / "claims") if (tree / "claims").exists() else None,
         forms_dir=tree / "forms",
+        claim_reference_lookup=build_claim_reference_lookup(files),
     )
     messages.extend(_messages_from_result(concept_result))
 
     claim_error_count = 0
-    claim_file_count = 0
-    claims_root = tree / "claims"
-    if claims_root.exists():
+    claim_file_count = len(files)
+    if files:
         try:
-            files = load_claim_files(claims_root)
+            context = build_compilation_context_from_repo(repo, claim_files=files)
+            claim_result = validate_claims(files, context)
         except DocumentSchemaError as exc:
             raise CompilerWorkflowError(
                 "Validation FAILED: 1 error(s)",
                 (WorkflowMessage("error", str(exc)),),
             ) from exc
-        claim_file_count = len(files)
-        if files:
-            context = build_compilation_context_from_repo(repo, claim_files=files)
-            claim_result = validate_claims(files, context)
-            messages.extend(_messages_from_result(claim_result))
-            claim_error_count = len(claim_result.errors)
+        messages.extend(_messages_from_result(claim_result))
+        claim_error_count = len(claim_result.errors)
 
     context_error_count = 0
     if (tree / "contexts").exists():
@@ -237,10 +240,15 @@ def build_repository(
             _messages_from_result(form_result, scope="form"),
         )
 
+    files = [
+        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref, commit=hash_key)
+        for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=hash_key)
+    ]
+
     concept_result = validate_concepts(
         concepts,
-        claims_dir=(tree / "claims") if (tree / "claims").exists() else None,
         forms_dir=tree / "forms",
+        claim_reference_lookup=build_claim_reference_lookup(files),
     )
     if not concept_result.ok:
         raise CompilerWorkflowError(
@@ -285,15 +293,8 @@ def build_repository(
         context_ids=context_ids,
     )
     claim_bundle = None
-    if (tree / "claims").exists():
+    if files:
         try:
-            files = load_claim_files(tree / "claims")
-        except DocumentSchemaError as exc:
-            raise CompilerWorkflowError(
-                "Build aborted: claim validation failed.",
-                (WorkflowMessage("error", str(exc)),),
-            ) from exc
-        if files:
             compilation_context = build_compilation_context_from_paths(
                 tree / "concepts",
                 tree / "forms",
@@ -315,6 +316,11 @@ def build_repository(
                     ),
                 )
             claim_files = files
+        except DocumentSchemaError as exc:
+            raise CompilerWorkflowError(
+                "Build aborted: claim validation failed.",
+                (WorkflowMessage("error", str(exc)),),
+            ) from exc
 
     sidecar_path = Path(output) if output else repo.sidecar_path
     rebuilt = build_sidecar(

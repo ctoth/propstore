@@ -11,7 +11,6 @@ from propstore.claims import (
     LoadedClaimsFile,
     claim_file_payload,
     loaded_claim_file_from_payload,
-    load_claim_files,
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument

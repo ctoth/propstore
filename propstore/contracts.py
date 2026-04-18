@@ -140,8 +140,7 @@ def _family_contract(family: ArtifactFamily[Any, Any, Any]) -> ContractEntry:
         name=family.name,
         contract_version=family.contract_version,
         body={
-            "doc_type": f"{family.doc_type.__module__}.{family.doc_type.__qualname__}",
-            "resolve_ref": _callback_id(family.resolve_ref),
+            **family.contract_body(),
             "coerce_payload": _callback_id(family.coerce_payload),
             "decode_bytes": _callback_id(family.decode_bytes),
             "encode_document": _callback_id(family.encode_document),
@@ -149,9 +148,6 @@ def _family_contract(family: ArtifactFamily[Any, Any, Any]) -> ContractEntry:
             "document_payload": _callback_id(family.document_payload),
             "normalize_for_write": _callback_id(family.normalize_for_write),
             "validate_for_write": _callback_id(family.validate_for_write),
-            "list_refs": _callback_id(family.list_refs),
-            "ref_from_path": _callback_id(family.ref_from_path),
-            "ref_from_loaded": _callback_id(family.ref_from_loaded),
             "scan_type": (
                 None
                 if family.scan_type is None

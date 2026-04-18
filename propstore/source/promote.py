@@ -230,7 +230,7 @@ def resolve_source_concept_promotions(
         concept_documents[slug] = convert_document_value(
             concept_doc,
             ConceptDocument,
-            source=CONCEPT_FILE_FAMILY.resolve_ref(repo, concept_ref).relpath,
+            source=repo.artifacts.address(CONCEPT_FILE_FAMILY, concept_ref).require_path(),
         )
 
     return mapping, concept_documents
@@ -614,7 +614,7 @@ def promote_source_branch(
                 "stances": entries,
             },
             StanceFileDocument,
-            source=STANCE_FILE_FAMILY.resolve_ref(repo, stance_ref).relpath,
+            source=repo.artifacts.address(STANCE_FILE_FAMILY, stance_ref).require_path(),
         )
 
     source_ref = CanonicalSourceRef(slug)
@@ -622,12 +622,12 @@ def promote_source_branch(
     promoted_source_document = convert_document_value(
         promoted_source_doc,
         SourceDocument,
-        source=CANONICAL_SOURCE_FAMILY.resolve_ref(repo, source_ref).relpath,
+        source=repo.artifacts.address(CANONICAL_SOURCE_FAMILY, source_ref).require_path(),
     )
     promoted_claims_document = convert_document_value(
         promoted_claims_doc,
         ClaimsFileDocument,
-        source=CLAIMS_FILE_FAMILY.resolve_ref(repo, claims_ref).relpath,
+        source=repo.artifacts.address(CLAIMS_FILE_FAMILY, claims_ref).require_path(),
     )
 
     with repo.artifacts.transact(
