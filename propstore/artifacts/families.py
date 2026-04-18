@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 import json
 from typing import Any
 
@@ -11,6 +12,7 @@ from quire.artifacts import (
     SingletonFilePlacement,
     TemplateFilePlacement,
 )
+from quire.families import FamilyDefinition, FamilyRegistry
 from quire.versions import VersionId
 
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
@@ -24,7 +26,9 @@ from propstore.artifacts.refs import (
     StanceFileRef,
 )
 from propstore.artifacts.semantic_families import (
+    CLAIM_FOREIGN_KEYS,
     CLAIMS_FILE_FAMILY,
+    CONCEPT_FOREIGN_KEYS,
     CONCEPT_FILE_FAMILY,
     CONTEXT_FAMILY,
     FORM_FAMILY,
@@ -108,6 +112,32 @@ MERGE_MANIFEST_PLACEMENT = SingletonFilePlacement["Repository", MergeManifestRef
     ref_factory=MergeManifestRef,
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
+
+
+class PropstoreFamily(str, Enum):
+    CLAIMS = "claims"
+    CONCEPTS = "concepts"
+    CONTEXTS = "contexts"
+    FORMS = "forms"
+    PREDICATES = "predicates"
+    RULES = "rules"
+    STANCES = "stances"
+    WORLDLINES = "worldlines"
+    SOURCES = "sources"
+    MICROPUBS = "micropubs"
+    JUSTIFICATIONS = "justifications"
+    SOURCE_DOCUMENTS = "source_documents"
+    SOURCE_NOTES = "source_notes"
+    SOURCE_METADATA = "source_metadata"
+    SOURCE_CONCEPTS = "source_concepts"
+    SOURCE_CLAIMS = "source_claims"
+    SOURCE_MICROPUBS = "source_micropubs"
+    SOURCE_JUSTIFICATIONS = "source_justifications"
+    SOURCE_STANCES = "source_stances"
+    SOURCE_FINALIZE_REPORTS = "source_finalize_reports"
+    PROPOSAL_STANCES = "proposal_stances"
+    CONCEPT_ALIGNMENTS = "concept_alignments"
+    MERGE_MANIFESTS = "merge_manifests"
 
 
 def _coerce_text_document(payload: object, source: str) -> str:
@@ -274,4 +304,152 @@ MERGE_MANIFEST_FAMILY = ArtifactFamily["Repository", MergeManifestRef, MergeMani
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MergeManifestDocument,
     placement=MERGE_MANIFEST_PLACEMENT,
+)
+
+
+PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
+    name="propstore",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    families=(
+        FamilyDefinition(
+            key=PropstoreFamily.CLAIMS,
+            name=PropstoreFamily.CLAIMS.value,
+            contract_version=CLAIMS_FILE_FAMILY.contract_version,
+            artifact_family=CLAIMS_FILE_FAMILY,
+            foreign_keys=CLAIM_FOREIGN_KEYS,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.CONCEPTS,
+            name=PropstoreFamily.CONCEPTS.value,
+            contract_version=CONCEPT_FILE_FAMILY.contract_version,
+            artifact_family=CONCEPT_FILE_FAMILY,
+            foreign_keys=CONCEPT_FOREIGN_KEYS,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.CONTEXTS,
+            name=PropstoreFamily.CONTEXTS.value,
+            contract_version=CONTEXT_FAMILY.contract_version,
+            artifact_family=CONTEXT_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.FORMS,
+            name=PropstoreFamily.FORMS.value,
+            contract_version=FORM_FAMILY.contract_version,
+            artifact_family=FORM_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.PREDICATES,
+            name=PropstoreFamily.PREDICATES.value,
+            contract_version=PREDICATE_FILE_FAMILY.contract_version,
+            artifact_family=PREDICATE_FILE_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.RULES,
+            name=PropstoreFamily.RULES.value,
+            contract_version=RULE_FILE_FAMILY.contract_version,
+            artifact_family=RULE_FILE_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.STANCES,
+            name=PropstoreFamily.STANCES.value,
+            contract_version=STANCE_FILE_FAMILY.contract_version,
+            artifact_family=STANCE_FILE_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.WORLDLINES,
+            name=PropstoreFamily.WORLDLINES.value,
+            contract_version=WORLDLINE_FAMILY.contract_version,
+            artifact_family=WORLDLINE_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCES,
+            name=PropstoreFamily.SOURCES.value,
+            contract_version=CANONICAL_SOURCE_FAMILY.contract_version,
+            artifact_family=CANONICAL_SOURCE_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.MICROPUBS,
+            name=PropstoreFamily.MICROPUBS.value,
+            contract_version=MICROPUBS_FILE_FAMILY.contract_version,
+            artifact_family=MICROPUBS_FILE_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.JUSTIFICATIONS,
+            name=PropstoreFamily.JUSTIFICATIONS.value,
+            contract_version=JUSTIFICATIONS_FILE_FAMILY.contract_version,
+            artifact_family=JUSTIFICATIONS_FILE_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCE_DOCUMENTS,
+            name=PropstoreFamily.SOURCE_DOCUMENTS.value,
+            contract_version=SOURCE_DOCUMENT_FAMILY.contract_version,
+            artifact_family=SOURCE_DOCUMENT_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCE_NOTES,
+            name=PropstoreFamily.SOURCE_NOTES.value,
+            contract_version=SOURCE_NOTES_FAMILY.contract_version,
+            artifact_family=SOURCE_NOTES_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCE_METADATA,
+            name=PropstoreFamily.SOURCE_METADATA.value,
+            contract_version=SOURCE_METADATA_FAMILY.contract_version,
+            artifact_family=SOURCE_METADATA_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCE_CONCEPTS,
+            name=PropstoreFamily.SOURCE_CONCEPTS.value,
+            contract_version=SOURCE_CONCEPTS_FAMILY.contract_version,
+            artifact_family=SOURCE_CONCEPTS_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCE_CLAIMS,
+            name=PropstoreFamily.SOURCE_CLAIMS.value,
+            contract_version=SOURCE_CLAIMS_FAMILY.contract_version,
+            artifact_family=SOURCE_CLAIMS_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCE_MICROPUBS,
+            name=PropstoreFamily.SOURCE_MICROPUBS.value,
+            contract_version=SOURCE_MICROPUBS_FAMILY.contract_version,
+            artifact_family=SOURCE_MICROPUBS_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCE_JUSTIFICATIONS,
+            name=PropstoreFamily.SOURCE_JUSTIFICATIONS.value,
+            contract_version=SOURCE_JUSTIFICATIONS_FAMILY.contract_version,
+            artifact_family=SOURCE_JUSTIFICATIONS_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCE_STANCES,
+            name=PropstoreFamily.SOURCE_STANCES.value,
+            contract_version=SOURCE_STANCES_FAMILY.contract_version,
+            artifact_family=SOURCE_STANCES_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SOURCE_FINALIZE_REPORTS,
+            name=PropstoreFamily.SOURCE_FINALIZE_REPORTS.value,
+            contract_version=SOURCE_FINALIZE_REPORT_FAMILY.contract_version,
+            artifact_family=SOURCE_FINALIZE_REPORT_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.PROPOSAL_STANCES,
+            name=PropstoreFamily.PROPOSAL_STANCES.value,
+            contract_version=PROPOSAL_STANCE_FAMILY.contract_version,
+            artifact_family=PROPOSAL_STANCE_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.CONCEPT_ALIGNMENTS,
+            name=PropstoreFamily.CONCEPT_ALIGNMENTS.value,
+            contract_version=CONCEPT_ALIGNMENT_FAMILY.contract_version,
+            artifact_family=CONCEPT_ALIGNMENT_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.MERGE_MANIFESTS,
+            name=PropstoreFamily.MERGE_MANIFESTS.value,
+            contract_version=MERGE_MANIFEST_FAMILY.contract_version,
+            artifact_family=MERGE_MANIFEST_FAMILY,
+        ),
+    ),
 )

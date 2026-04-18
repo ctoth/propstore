@@ -8,6 +8,8 @@ from quire.family_store import DocumentFamilyStore, DocumentFamilyTransaction
 from propstore.artifacts import (
     CLAIMS_FILE_FAMILY,
     CONCEPT_FILE_FAMILY,
+    PROPSTORE_FAMILY_REGISTRY,
+    PropstoreFamily,
     SOURCE_DOCUMENT_FAMILY,
     SOURCE_FINALIZE_REPORT_FAMILY,
     SourceRef,
@@ -31,6 +33,15 @@ def test_repository_artifacts_is_direct_quire_family_store(tmp_path: Path) -> No
 
     assert type(repo.artifacts) is DocumentFamilyStore
     assert repo.artifacts.owner is repo
+
+
+def test_repository_exposes_bound_family_registry(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+
+    assert repo.families.registry is PROPSTORE_FAMILY_REGISTRY
+    assert repo.families.by_key(PropstoreFamily.CLAIMS).family.name == "claims_file"
+    assert repo.families.by_name("claims").family.name == "claims_file"
+    assert repo.families.claims.list() == []
 
 
 def test_artifact_transaction_is_quire_family_transaction(tmp_path: Path) -> None:
