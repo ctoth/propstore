@@ -15,7 +15,7 @@ from propstore.claims import (
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.identity import (
+from propstore.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
 )

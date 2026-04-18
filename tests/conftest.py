@@ -16,7 +16,7 @@ from hypothesis import settings
 
 from propstore.artifacts.codecs import convert_document
 from propstore.artifacts.families import CONCEPT_FILE_FAMILY
-from propstore.artifacts.identity import normalize_canonical_concept_payload
+from propstore.identity import normalize_canonical_concept_payload
 from propstore.cel_checker import KindType
 from propstore.core.concepts import concept_document_to_record_payload
 from propstore.form_utils import FormDefinition

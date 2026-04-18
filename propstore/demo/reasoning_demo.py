@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.artifacts.identity import (
+from propstore.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
 )

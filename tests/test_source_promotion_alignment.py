@@ -17,7 +17,7 @@ from propstore.artifacts.refs import (
 from propstore.cli import cli
 from propstore.repository import Repository
 from quire.documents import convert_document_value
-from propstore.artifacts.identity import normalize_canonical_concept_payload
+from propstore.identity import normalize_canonical_concept_payload
 from propstore.identity import derive_concept_artifact_id
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source import (
