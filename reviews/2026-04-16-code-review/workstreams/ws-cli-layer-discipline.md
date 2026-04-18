@@ -462,6 +462,20 @@ Status 2026-04-17: diff/show/checkout history slice landed.
   - `logs/test-runs/cli-layer-history-commands-20260417-181837.log` - 5 passed.
   - `uv run pyright propstore/repository_history.py propstore/cli/__init__.py` - 0 errors.
 
+Status 2026-04-17: proposal promotion slice landed.
+
+- Added typed stance proposal promotion plans, items, and results to
+  `propstore.proposals`.
+- Moved top-level `pks promote` proposal branch discovery, requested-file
+  selection, target path calculation, artifact promotion, and sync semantics
+  out of `propstore.cli.__init__`.
+- Added owner coverage for promotion planning, missing proposal branch reports,
+  and master promotion. Existing promote CLI registration, help, commit, and
+  commit-failure atomicity regressions remain green.
+- Verification:
+  - `logs/test-runs/cli-layer-proposal-promotion-20260417-185006.log` - 7 passed.
+  - `uv run pyright propstore/proposals.py propstore/cli/__init__.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
