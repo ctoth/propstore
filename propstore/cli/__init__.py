@@ -59,6 +59,13 @@ class _LazyRepository:
 
 
 class _LazyCLIGroup(click.Group):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.commands.update({
+            name: click.Command(name, help=spec[2])
+            for name, spec in _COMMANDS.items()
+        })
+
     def list_commands(self, ctx: click.Context) -> list[str]:
         return sorted(_COMMANDS)
 
