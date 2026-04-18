@@ -40,7 +40,6 @@ from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.compiler.references import build_claim_reference_lookup
 from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_for_repo
 from propstore.repository import Repository
-from propstore.core.concepts import load_concepts
 from propstore.validate_concepts import validate_concepts
 from propstore.compiler.passes import validate_claims
 from propstore.cli.concept import (
@@ -57,7 +56,6 @@ from propstore.cli.concept import (
     _concept_display_handle,
     _concept_document,
     _concept_ref,
-    _concepts_tree,
     _find_concept_entry,
     _first_lexical_sense,
     _normalize_concept_data,
@@ -155,12 +153,24 @@ def add(
         click.echo(repo.artifacts.render(document))
         return
 
-    concepts = load_concepts(_concepts_tree(repo))
+    tree = repo.tree()
+    concepts: list[LoadedConcept] = []
+    for existing_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, existing_ref)
+        concepts.append(
+            LoadedConcept(
+                filename=existing_ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_concept_record_document(handle.document),
+                document=handle.document,
+            )
+        )
     concepts.append(
         LoadedConcept(
             filename=name,
             source_path=semantic_path,
-            knowledge_root=repo.tree(),
+            knowledge_root=tree,
             record=parse_concept_record_document(document),
             document=document,
         )
@@ -210,9 +220,18 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
     data = deepcopy(concept_entry.record.to_payload())
 
     # Warn if alias matches another concept's canonical_name
-    for other_entry in load_concepts(_concepts_tree(repo)):
-        if _concept_ref(other_entry) == ref:
+    tree = repo.tree()
+    for other_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+        if other_ref == ref:
             continue
+        other_document = repo.artifacts.require(CONCEPT_FILE_FAMILY, other_ref)
+        other_entry = LoadedConcept(
+            filename=other_ref.name,
+            source_path=tree / repo.artifacts.address(CONCEPT_FILE_FAMILY, other_ref).require_path(),
+            knowledge_root=tree,
+            record=parse_concept_record_document(other_document),
+            document=other_document,
+        )
         if other_entry.record.to_payload().get("canonical_name") == name:
             click.echo(
                 f"WARNING: alias '{name}' matches canonical_name of "
@@ -285,7 +304,19 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         click.echo(f"  {filepath} -> {new_path}")
         return
 
-    loaded_concepts = load_concepts(repo.tree() / "concepts")
+    tree = repo.tree()
+    loaded_concepts: list[LoadedConcept] = []
+    for loaded_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, loaded_ref)
+        loaded_concepts.append(
+            LoadedConcept(
+                filename=loaded_ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_concept_record_document(handle.document),
+                document=handle.document,
+            )
+        )
     updated_concepts: list[tuple[ConceptFileRef, ConceptFileRef, LoadedConcept]] = []
     changed_concept_refs: set[ConceptFileRef] = set()
     for concept_record in loaded_concepts:
@@ -509,7 +540,19 @@ def link(
     data = _normalize_concept_data(data)
     updated_document = _concept_document(repo, ref, data)
 
-    concepts = load_concepts(repo.tree() / "concepts")
+    tree = repo.tree()
+    concepts: list[LoadedConcept] = []
+    for loaded_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, loaded_ref)
+        concepts.append(
+            LoadedConcept(
+                filename=loaded_ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_concept_record_document(handle.document),
+                document=handle.document,
+            )
+        )
     updated_concepts = []
     for concept_record in concepts:
         concept_path = _artifact_tree_path(

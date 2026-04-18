@@ -3,7 +3,9 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from propstore.artifacts.families import CONCEPT_FILE_FAMILY
 from propstore.artifacts import normalize_canonical_concept_payload
+from propstore.core.concepts import parse_concept_record_document
 from propstore.repository import Repository
 from propstore.parameterization_groups import build_groups
 
@@ -22,21 +24,15 @@ def _derived_concept_artifact_id(handle: str) -> str:
 
 
 def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
-    from propstore.core.concepts import load_concepts
-
     primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
     if primary_tip is None:
         return {}, {}
 
-    tree = repo.tree(commit=primary_tip)
-    concepts_root = tree / "concepts"
-    if not concepts_root.exists():
-        return {}, {}
-
     concepts_by_artifact: dict[str, dict[str, Any]] = {}
     handle_to_artifact: dict[str, str] = {}
-    for entry in load_concepts(concepts_root):
-        concept = dict(entry.record.to_payload())
+    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=primary_tip):
+        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref, commit=primary_tip)
+        concept = dict(parse_concept_record_document(document).to_payload())
         artifact_id = concept.get("artifact_id")
         if not isinstance(artifact_id, str) or not artifact_id:
             continue
@@ -54,20 +50,14 @@ def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, 
 
 
 def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
-    from propstore.core.concepts import load_concepts
-
     primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
     if primary_tip is None:
         return []
 
-    tree = repo.tree(commit=primary_tip)
-    concepts_root = tree / "concepts"
-    if not concepts_root.exists():
-        return []
-
     docs: list[dict[str, Any]] = []
-    for entry in load_concepts(concepts_root):
-        docs.append(copy.deepcopy(entry.record.to_payload()))
+    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=primary_tip):
+        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref, commit=primary_tip)
+        docs.append(copy.deepcopy(parse_concept_record_document(document).to_payload()))
     return docs
 
 

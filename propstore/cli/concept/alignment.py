@@ -38,7 +38,6 @@ from propstore.core.concepts import (
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.concept_ids import next_concept_id
 from propstore.repository import Repository
-from propstore.core.concepts import load_concepts
 from propstore.validate_concepts import validate_concepts
 from propstore.compiler.passes import validate_claims
 from propstore.cli.concept import (
@@ -55,7 +54,6 @@ from propstore.cli.concept import (
     _concept_display_handle,
     _concept_document,
     _concept_ref,
-    _concepts_tree,
     _find_concept_entry,
     _first_lexical_sense,
     _normalize_concept_data,
