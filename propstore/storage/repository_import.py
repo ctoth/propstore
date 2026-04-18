@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from quire.family_store import DocumentFamilyStore
+
 from propstore.artifacts.codecs import decode_yaml_mapping
 from propstore.artifacts.resolution import ImportedClaimHandleIndex
 from propstore.artifacts.identity import (
@@ -15,7 +17,6 @@ from propstore.artifacts.identity import (
 )
 
 if TYPE_CHECKING:
-    from propstore.artifacts.store import ArtifactRepository
     from propstore.repository import Repository
 
 
@@ -348,7 +349,7 @@ def _normalize_imported_stance_write(
 
 
 def _normalize_import_writes(
-    store: ArtifactRepository,
+    store: DocumentFamilyStore["Repository"],
     writes: dict[str, bytes],
     *,
     repository_name: str,

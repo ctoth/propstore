@@ -60,16 +60,8 @@ from propstore.artifacts.refs import (
     worldline_relpath,
 )
 from propstore.artifacts.resolution import ClaimReferenceResolver, ImportedClaimHandleIndex
-from propstore.artifacts.store import ArtifactRepository
-from propstore.artifacts.transaction import ArtifactTransaction
-from propstore.artifacts.types import ArtifactContext, ArtifactFamily, ArtifactHandle, ResolvedArtifact
 
 __all__ = [
-    "ArtifactContext",
-    "ArtifactFamily",
-    "ArtifactHandle",
-    "ArtifactRepository",
-    "ArtifactTransaction",
     "CANONICAL_SOURCE_FAMILY",
     "CLAIMS_FILE_FAMILY",
     "ClaimReferenceIndex",
@@ -93,7 +85,6 @@ __all__ = [
     "JustificationsFileRef",
     "MergeManifestRef",
     "MicropubsFileRef",
-    "ResolvedArtifact",
     "SOURCE_CLAIMS_FAMILY",
     "SOURCE_CONCEPTS_FAMILY",
     "SOURCE_DOCUMENT_FAMILY",

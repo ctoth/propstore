@@ -16,7 +16,6 @@ from propstore.artifacts import (
     ConceptFileRef,
     WorldlineRef,
 )
-from propstore.artifacts.store import ArtifactRepository
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document, source_branch_name
@@ -27,12 +26,11 @@ from propstore.artifacts.documents.sources import (
 from propstore.worldline import WorldlineDefinition
 
 
-def test_artifact_repository_is_quire_family_store_adapter(tmp_path: Path) -> None:
+def test_repository_artifacts_is_direct_quire_family_store(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
-    assert isinstance(repo.artifacts, DocumentFamilyStore)
-    assert isinstance(repo.artifacts, ArtifactRepository)
-    assert repo.artifacts.repo is repo
+    assert type(repo.artifacts) is DocumentFamilyStore
+    assert repo.artifacts.owner is repo
 
 
 def test_artifact_transaction_is_quire_family_transaction(tmp_path: Path) -> None:

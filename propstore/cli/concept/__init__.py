@@ -9,6 +9,8 @@ from typing import TypeVar
 
 import click
 
+from quire.artifacts import ArtifactFamily
+from quire.tree_path import TreePath as KnowledgePath
 from propstore.claims import (
     LoadedClaimsFile,
     claim_file_payload,
@@ -23,7 +25,6 @@ from propstore.artifacts.identity import (
     normalize_claim_file_payload,
 )
 from propstore.artifacts.refs import ClaimsFileRef, ConceptFileRef
-from propstore.artifacts.types import ArtifactFamily
 from propstore.source import (
     align_sources,
     decide_alignment,
@@ -48,7 +49,6 @@ from propstore.core.concepts import (
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.concept_ids import next_concept_id
-from quire.tree_path import TreePath as KnowledgePath
 from propstore.repository import Repository
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.core.concepts import load_concepts
@@ -160,14 +160,15 @@ def _concepts_tree(repo: Repository) -> KnowledgePath:
     return repo.tree() / "concepts"
 
 
-def _artifact_source(repo: Repository, family: ArtifactFamily[TRef, TDoc], ref: TRef) -> str:
+def _artifact_source(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> str:
     return repo.artifacts.resolve(family, ref).relpath
 
 
-def _artifact_tree_path(repo: Repository, family: ArtifactFamily[TRef, TDoc], ref: TRef) -> Path:
+def _artifact_tree_path(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> Path:
     return repo.root / Path(_artifact_source(repo, family, ref))
 
-def _artifact_knowledge_path(repo: Repository, family: ArtifactFamily[TRef, TDoc], ref: TRef) -> KnowledgePath:
+
+def _artifact_knowledge_path(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> KnowledgePath:
     return repo.tree() / _artifact_source(repo, family, ref)
 
 

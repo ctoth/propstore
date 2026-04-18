@@ -98,26 +98,26 @@ Also move the generic path helper:
 
 Do not move propstore semantic hooks, family declarations, or workflows.
 
-## Phase 3: Replace Propstore ArtifactRepository With An Adapter
+## Phase 3: Replace Propstore Artifact Store Surface Directly
 
-Reduce `propstore.artifacts.store.ArtifactRepository` to a propstore adapter
-over `quire.family_store.DocumentFamilyStore`.
+Delete `propstore.artifacts.store.ArtifactRepository`.
 
-Expected adapter responsibilities:
+`Repository.artifacts` should return quire's
+`DocumentFamilyStore[Repository]` directly, constructed with propstore's
+semantic owner, git backend, and document codec defaults.
 
-- provide `repo` as `owner`
-- provide `repo.git` as backend
-- provide propstore's branch head function
-- provide current propstore codec defaults
-- preserve the public `repo.artifacts` API
+Delete `propstore.artifacts.transaction` and update callers/tests to use
+`quire.family_store.DocumentFamilyTransaction` directly where they need the
+generic transaction type.
 
-Reduce `propstore.artifacts.transaction` to a re-export once transaction
-behavior is quire-owned.
+Delete `propstore.artifacts.types`; propstore semantic families should use
+`quire.artifacts` types directly instead of re-exporting or subclassing them.
 
 Propstore tests first:
 
-- boundary test that `ArtifactRepository` is quire-backed
-- transaction object comes from quire-backed path
+- boundary test that there is no `ArtifactRepository`
+- boundary test that there is no propstore transaction/type re-export shim
+- transaction object is quire's `DocumentFamilyTransaction`
 - existing artifact-store tests remain the behavioral contract
 
 ## Phase 4: Tighten Callback Typing
@@ -160,13 +160,13 @@ Include stable callback identifiers for:
 Keep the existing checked-in manifest comparison and baseline version-bump
 enforcement. A family callback change with the same contract version must fail.
 
-## Phase 6: Remove Propstore Duplication
-
-After the adapter is stable:
+## Phase 6: Remove Propstore Duplication And Shim Surfaces
 
 - delete generic transaction implementation from propstore
 - delete generic store implementation from propstore
-- leave only policy wiring and re-export surfaces needed by existing imports
+- delete old propstore generic type aliases and re-export surfaces
+- leave only propstore policy wiring, semantic family declarations, and
+  semantic callbacks
 - do not move semantic hooks into quire
 
 ## Phase 7: Final Verification

@@ -5,6 +5,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from quire.artifacts import ArtifactContext, ArtifactFamily, ResolvedArtifact
+from quire.family_store import DocumentFamilyStore
 from quire.versions import VersionId
 
 from propstore.artifacts.documents.concepts import ConceptDocument
@@ -40,7 +42,6 @@ from propstore.artifacts.refs import (
     worldline_relpath,
     justifications_file_relpath,
 )
-from propstore.artifacts.types import ArtifactFamily, ResolvedArtifact
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.sources import (
     SourceClaimsDocument,
@@ -55,8 +56,6 @@ from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.artifacts.documents.merge import MergeManifestDocument
 
 if TYPE_CHECKING:
-    from propstore.artifacts.store import ArtifactRepository
-    from propstore.artifacts.types import ArtifactContext
     from propstore.repository import Repository
 
 
@@ -287,9 +286,9 @@ def _ref_from_loaded_source_path(
 
 
 def _normalize_concept_for_write(
-    context: ArtifactContext[ConceptFileRef],
+    context: ArtifactContext["Repository", ConceptFileRef],
     document: ConceptDocument,
-    store: ArtifactRepository,
+    store: DocumentFamilyStore["Repository"],
 ) -> ConceptDocument:
     payload = store.payload(document)
     if not isinstance(payload, dict):
@@ -301,14 +300,14 @@ def _normalize_concept_for_write(
     )
 
 
-SOURCE_DOCUMENT_FAMILY = ArtifactFamily[SourceRef, SourceDocument](
+SOURCE_DOCUMENT_FAMILY = ArtifactFamily["Repository", SourceRef, SourceDocument](
     name="source_document",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "source.yaml"),
 )
 
-SOURCE_NOTES_FAMILY = ArtifactFamily[SourceRef, str](
+SOURCE_NOTES_FAMILY = ArtifactFamily["Repository", SourceRef, str](
     name="source_notes",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=str,
@@ -320,7 +319,7 @@ SOURCE_NOTES_FAMILY = ArtifactFamily[SourceRef, str](
     document_payload=lambda document: document,
 )
 
-SOURCE_METADATA_FAMILY = ArtifactFamily[SourceRef, dict[str, Any]](
+SOURCE_METADATA_FAMILY = ArtifactFamily["Repository", SourceRef, dict[str, Any]](
     name="source_metadata",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=dict,
@@ -332,14 +331,14 @@ SOURCE_METADATA_FAMILY = ArtifactFamily[SourceRef, dict[str, Any]](
     document_payload=lambda document: document,
 )
 
-SOURCE_CONCEPTS_FAMILY = ArtifactFamily[SourceRef, SourceConceptsDocument](
+SOURCE_CONCEPTS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceConceptsDocument](
     name="source_concepts",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceConceptsDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "concepts.yaml"),
 )
 
-SOURCE_CLAIMS_FAMILY = ArtifactFamily[SourceRef, SourceClaimsDocument](
+SOURCE_CLAIMS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceClaimsDocument](
     name="source_claims",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceClaimsDocument,
@@ -347,35 +346,35 @@ SOURCE_CLAIMS_FAMILY = ArtifactFamily[SourceRef, SourceClaimsDocument](
 )
 
 
-SOURCE_MICROPUBS_FAMILY = ArtifactFamily[SourceRef, MicropublicationsFileDocument](
+SOURCE_MICROPUBS_FAMILY = ArtifactFamily["Repository", SourceRef, MicropublicationsFileDocument](
     name="source_micropubs",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MicropublicationsFileDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "micropubs.yaml"),
 )
 
-SOURCE_JUSTIFICATIONS_FAMILY = ArtifactFamily[SourceRef, SourceJustificationsDocument](
+SOURCE_JUSTIFICATIONS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceJustificationsDocument](
     name="source_justifications",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceJustificationsDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "justifications.yaml"),
 )
 
-SOURCE_STANCES_FAMILY = ArtifactFamily[SourceRef, SourceStancesDocument](
+SOURCE_STANCES_FAMILY = ArtifactFamily["Repository", SourceRef, SourceStancesDocument](
     name="source_stances",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceStancesDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "stances.yaml"),
 )
 
-SOURCE_FINALIZE_REPORT_FAMILY = ArtifactFamily[SourceRef, SourceFinalizeReportDocument](
+SOURCE_FINALIZE_REPORT_FAMILY = ArtifactFamily["Repository", SourceRef, SourceFinalizeReportDocument](
     name="source_finalize_report",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceFinalizeReportDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, source_finalize_relpath(ref.name)),
 )
 
-CONTEXT_FAMILY = ArtifactFamily[ContextRef, ContextDocument](
+CONTEXT_FAMILY = ArtifactFamily["Repository", ContextRef, ContextDocument](
     name="context",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ContextDocument,
@@ -383,7 +382,7 @@ CONTEXT_FAMILY = ArtifactFamily[ContextRef, ContextDocument](
     ref_from_path=lambda path: _yaml_path_ref(path, subdir="contexts", ref_type=ContextRef),
 )
 
-FORM_FAMILY = ArtifactFamily[FormRef, FormDocument](
+FORM_FAMILY = ArtifactFamily["Repository", FormRef, FormDocument](
     name="form",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=FormDocument,
@@ -391,14 +390,14 @@ FORM_FAMILY = ArtifactFamily[FormRef, FormDocument](
     ref_from_path=lambda path: _yaml_path_ref(path, subdir="forms", ref_type=FormRef),
 )
 
-CANONICAL_SOURCE_FAMILY = ArtifactFamily[CanonicalSourceRef, SourceDocument](
+CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, SourceDocument](
     name="canonical_source",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceDocument,
     resolve_ref=_canonical_source_artifact,
 )
 
-CLAIMS_FILE_FAMILY = ArtifactFamily[ClaimsFileRef, ClaimsFileDocument](
+CLAIMS_FILE_FAMILY = ArtifactFamily["Repository", ClaimsFileRef, ClaimsFileDocument](
     name="claims_file",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ClaimsFileDocument,
@@ -419,7 +418,7 @@ CLAIMS_FILE_FAMILY = ArtifactFamily[ClaimsFileRef, ClaimsFileDocument](
 )
 
 
-MICROPUBS_FILE_FAMILY = ArtifactFamily[MicropubsFileRef, MicropublicationsFileDocument](
+MICROPUBS_FILE_FAMILY = ArtifactFamily["Repository", MicropubsFileRef, MicropublicationsFileDocument](
     name="micropubs_file",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MicropublicationsFileDocument,
@@ -440,7 +439,7 @@ MICROPUBS_FILE_FAMILY = ArtifactFamily[MicropubsFileRef, MicropublicationsFileDo
 )
 
 
-CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
+CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocument](
     name="concept_file",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ConceptDocument,
@@ -461,14 +460,14 @@ CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
     ),
 )
 
-JUSTIFICATIONS_FILE_FAMILY = ArtifactFamily[JustificationsFileRef, SourceJustificationsDocument](
+JUSTIFICATIONS_FILE_FAMILY = ArtifactFamily["Repository", JustificationsFileRef, SourceJustificationsDocument](
     name="justifications_file",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceJustificationsDocument,
     resolve_ref=_justifications_file_artifact,
 )
 
-STANCE_FILE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
+STANCE_FILE_FAMILY = ArtifactFamily["Repository", StanceFileRef, StanceFileDocument](
     name="stance_file",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=StanceFileDocument,
@@ -477,7 +476,7 @@ STANCE_FILE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
     list_refs=_list_stance_refs_in_directory,
 )
 
-PROPOSAL_STANCE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
+PROPOSAL_STANCE_FAMILY = ArtifactFamily["Repository", StanceFileRef, StanceFileDocument](
     name="proposal_stance_file",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=StanceFileDocument,
@@ -490,21 +489,21 @@ PROPOSAL_STANCE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
     ),
 )
 
-CONCEPT_ALIGNMENT_FAMILY = ArtifactFamily[ConceptAlignmentRef, ConceptAlignmentArtifactDocument](
+CONCEPT_ALIGNMENT_FAMILY = ArtifactFamily["Repository", ConceptAlignmentRef, ConceptAlignmentArtifactDocument](
     name="concept_alignment",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ConceptAlignmentArtifactDocument,
     resolve_ref=_concept_alignment_artifact,
 )
 
-MERGE_MANIFEST_FAMILY = ArtifactFamily[MergeManifestRef, MergeManifestDocument](
+MERGE_MANIFEST_FAMILY = ArtifactFamily["Repository", MergeManifestRef, MergeManifestDocument](
     name="merge_manifest",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MergeManifestDocument,
     resolve_ref=_merge_manifest_artifact,
 )
 
-WORLDLINE_FAMILY = ArtifactFamily[WorldlineRef, WorldlineDefinitionDocument](
+WORLDLINE_FAMILY = ArtifactFamily["Repository", WorldlineRef, WorldlineDefinitionDocument](
     name="worldline",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=WorldlineDefinitionDocument,
