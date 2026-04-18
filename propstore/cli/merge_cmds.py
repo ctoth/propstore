@@ -4,10 +4,10 @@ from __future__ import annotations
 import click
 
 from propstore.artifacts import (
+    CLAIMS_FILE_FAMILY,
     MERGE_MANIFEST_FAMILY,
+    ClaimsFileRef,
     MergeManifestRef,
-    claims_file_relpath,
-    merge_manifest_relpath,
 )
 from propstore.artifacts.codecs import render_yaml_value
 
@@ -73,8 +73,8 @@ def merge_commit_cmd(
         "branch_a": branch_a,
         "branch_b": branch_b,
         "target_branch": resolved_target_branch,
-        "claims_path": claims_file_relpath("merged"),
-        "manifest_path": merge_manifest_relpath(),
+        "claims_path": CLAIMS_FILE_FAMILY.resolve_ref(repo, ClaimsFileRef("merged")).relpath,
+        "manifest_path": MERGE_MANIFEST_FAMILY.resolve_ref(repo, MergeManifestRef()).relpath,
         "commit_sha": commit_sha,
         "semantic_candidate_count": len(manifest.merge.semantic_candidate_details),
     }
