@@ -8,11 +8,6 @@ from dulwich.repo import BaseRepo, MemoryRepo, Repo
 from quire.git_store import (
     GitStore as QuireGitStore,
     GitStorePolicy,
-    _commit_object,
-    _ref_delete,
-    _ref_get,
-    _ref_set,
-    _set_symbolic_ref,
 )
 
 _DEFAULT_AUTHOR = b"pks <pks@propstore>"

@@ -11,10 +11,7 @@ Literature grounding:
 """
 from __future__ import annotations
 
-import time
-
 import pytest
-from dulwich.objects import Commit
 
 from propstore.storage import GitStore
 from propstore.storage.branch import (
@@ -25,7 +22,6 @@ from propstore.storage.branch import (
     list_branches,
     merge_base,
 )
-from propstore.storage.git_backend import _set_symbolic_ref
 
 
 def _create_two_parent_commit(
@@ -37,22 +33,12 @@ def _create_two_parent_commit(
     message: str = "merge commit",
 ) -> str:
     """Create a synthetic two-parent commit for DAG-shaped merge-base tests."""
-    left_commit = kr._repo[left_parent.encode("ascii")]
-    commit = Commit()
-    commit.tree = left_commit.tree
-    commit.author = b"tests <tests@propstore>"
-    commit.committer = b"tests <tests@propstore>"
-    commit.encoding = b"UTF-8"
-    commit.message = message.encode("utf-8")
-    now = int(time.time())
-    commit.commit_time = now
-    commit.author_time = now
-    commit.commit_timezone = 0
-    commit.author_timezone = 0
-    commit.parents = [left_parent.encode("ascii"), right_parent.encode("ascii")]
-    kr._repo.object_store.add_object(commit)
-    kr._repo.refs[f"refs/heads/{target_branch}".encode()] = commit.id
-    return commit.id.decode("ascii")
+    return kr.commit_flat_tree(
+        kr.flat_tree_entries(left_parent),
+        message,
+        parents=[left_parent, right_parent],
+        branch=target_branch,
+    )
 
 
 # ── Group 1: Branch CRUD ──────────────────────────────────────────────
@@ -136,7 +122,7 @@ def test_delete_current_head_branch_refused(tmp_path):
     kr = GitStore.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
     create_branch(kr, "paper/active")
-    _set_symbolic_ref(kr._repo.refs, b"HEAD", b"refs/heads/paper/active")
+    kr.set_current_branch("paper/active")
 
     with pytest.raises(ValueError):
         delete_branch(kr, "paper/active")
@@ -368,7 +354,7 @@ def test_existing_api_unchanged(tmp_path):
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed master")
     master_tip = kr.head_sha()
     create_branch(kr, "paper/current")
-    _set_symbolic_ref(kr._repo.refs, b"HEAD", b"refs/heads/paper/current")
+    kr.set_current_branch("paper/current")
 
     # commit_files without branch param defaults to the current HEAD branch
     sha = kr.commit_files({"b.yaml": b"y: 2\n"}, "add b")
