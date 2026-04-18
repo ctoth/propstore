@@ -46,6 +46,7 @@ from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 from propstore.core.concepts import concept_document_to_payload
 from propstore.identity import (
     concept_reference_keys,
+    compute_concept_version_id,
     normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
@@ -342,9 +343,18 @@ def _normalize_concept_for_write(
     source = f"{context.branch}:{context.require_path()}"
     if not isinstance(payload, dict):
         raise TypeError(f"{source}: expected concept payload mapping")
+    normalized_payload = normalize_canonical_concept_payload(payload)
+    normalized_document = store.coerce(
+        CONCEPT_FILE_FAMILY,
+        normalized_payload,
+        source=source,
+    )
+    document_payload = concept_document_to_payload(normalized_document)
+    validation_payload = normalize_canonical_concept_payload(document_payload)
+    document_payload["version_id"] = compute_concept_version_id(validation_payload)
     return store.coerce(
         CONCEPT_FILE_FAMILY,
-        normalize_canonical_concept_payload(payload),
+        document_payload,
         source=source,
     )
 
