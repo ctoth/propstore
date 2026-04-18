@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from propstore.artifacts.codecs import decode_yaml_mapping
+from propstore.document_codecs import decode_yaml_mapping
 from propstore.artifact_codes import _verify_origin
 
 

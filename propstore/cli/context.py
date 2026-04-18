@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from propstore.artifacts.codecs import encode_document
+from propstore.document_codecs import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.context_workflows import (
     ContextAddRequest,

@@ -7,7 +7,7 @@ from propstore.artifacts.families import (
     ClaimsFileRef,
     MergeManifestRef,
 )
-from propstore.artifacts.codecs import render_yaml_value
+from propstore.document_codecs import render_yaml_value
 
 
 @click.group()

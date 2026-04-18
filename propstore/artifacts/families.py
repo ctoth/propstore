@@ -22,7 +22,7 @@ from quire.references import ForeignKeySpec
 from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
-from propstore.artifacts.codecs import decode_yaml_mapping
+from propstore.document_codecs import decode_yaml_mapping
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.contexts import ContextDocument
