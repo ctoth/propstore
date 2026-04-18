@@ -26,17 +26,11 @@ from typing import Any
 
 from propstore.artifacts.codes import attach_source_artifact_codes
 from propstore.artifacts import (
-    CANONICAL_SOURCE_FAMILY,
-    CLAIMS_FILE_FAMILY,
     ClaimReferenceResolver,
-    CONCEPT_FILE_FAMILY,
-    JUSTIFICATIONS_FILE_FAMILY,
-    MICROPUBS_FILE_FAMILY,
     load_primary_branch_claim_reference_index,
     normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
     load_source_claim_reference_index,
-    STANCE_FILE_FAMILY,
     CanonicalSourceRef,
     ClaimsFileRef,
     ConceptFileRef,
@@ -230,7 +224,7 @@ def resolve_source_concept_promotions(
         concept_documents[slug] = convert_document_value(
             concept_doc,
             ConceptDocument,
-            source=repo.families.concepts.family.address_for(repo, concept_ref).require_path(),
+            source=repo.families.concepts.address(concept_ref).require_path(),
         )
 
     return mapping, concept_documents
@@ -614,7 +608,7 @@ def promote_source_branch(
                 "stances": entries,
             },
             StanceFileDocument,
-            source=repo.families.stances.family.address_for(repo, stance_ref).require_path(),
+            source=repo.families.stances.address(stance_ref).require_path(),
         )
 
     source_ref = CanonicalSourceRef(slug)
@@ -622,37 +616,33 @@ def promote_source_branch(
     promoted_source_document = convert_document_value(
         promoted_source_doc,
         SourceDocument,
-        source=repo.families.sources.family.address_for(repo, source_ref).require_path(),
+        source=repo.families.sources.address(source_ref).require_path(),
     )
     promoted_claims_document = convert_document_value(
         promoted_claims_doc,
         ClaimsFileDocument,
-        source=repo.families.claims.family.address_for(repo, claims_ref).require_path(),
+        source=repo.families.claims.address(claims_ref).require_path(),
     )
 
-    with repo.artifacts.transact(
+    with repo.families.transact(
         message=f"Promote source {slug}",
         branch=repo.snapshot.primary_branch_name(),
     ) as transaction:
-        transaction.save(
-            CANONICAL_SOURCE_FAMILY,
+        transaction.sources.save(
             source_ref,
             promoted_source_document,
         )
-        transaction.save(
-            CLAIMS_FILE_FAMILY,
+        transaction.claims.save(
             claims_ref,
             promoted_claims_document,
         )
         if promoted_micropubs_document is not None:
-            transaction.save(
-                MICROPUBS_FILE_FAMILY,
+            transaction.micropubs.save(
                 MicropubsFileRef(slug),
                 promoted_micropubs_document,
             )
         for concept_slug, concept_document in promoted_concept_documents.items():
-            transaction.save(
-                CONCEPT_FILE_FAMILY,
+            transaction.concepts.save(
                 ConceptFileRef(concept_slug),
                 concept_document,
             )
@@ -660,19 +650,14 @@ def promote_source_branch(
             promoted_justifications_document = convert_document_value(
                 promoted_justifications_doc,
                 SourceJustificationsDocument,
-                source=repo.families.justifications.family.address_for(
-                    repo,
-                    JustificationsFileRef(slug),
-                ).require_path(),
+                source=repo.families.justifications.address(JustificationsFileRef(slug)).require_path(),
             )
-            transaction.save(
-                JUSTIFICATIONS_FILE_FAMILY,
+            transaction.justifications.save(
                 JustificationsFileRef(slug),
                 promoted_justifications_document,
             )
         for source_claim, stance_document in promoted_stance_documents.items():
-            transaction.save(
-                STANCE_FILE_FAMILY,
+            transaction.stances.save(
                 StanceFileRef(source_claim),
                 stance_document,
             )
