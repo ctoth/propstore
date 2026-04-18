@@ -3,15 +3,201 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any
 
 from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
 from quire.documents import DocumentStruct
+from quire.versions import VersionId
 from propstore.artifacts.documents.contexts import ContextReferenceDocument
 from propstore.provenance import Provenance
 from propstore.stances import StanceType
+
+
+CLAIM_TYPE_CONTRACT_VERSION = VersionId("2026.04.21")
+
+
+@dataclass(frozen=True)
+class ClaimFieldReferenceDeclaration:
+    field: str
+    target_family: str = "concept"
+    source: str = "scalar"
+    message_subject: str | None = None
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "field": self.field,
+            "target_family": self.target_family,
+            "source": self.source,
+            "message_subject": self.message_subject,
+        }
+
+
+@dataclass(frozen=True)
+class ClaimValueGroupDeclaration:
+    value_field: str = "value"
+    lower_bound_field: str = "lower_bound"
+    upper_bound_field: str = "upper_bound"
+    uncertainty_field: str = "uncertainty"
+    uncertainty_type_field: str = "uncertainty_type"
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "value_field": self.value_field,
+            "lower_bound_field": self.lower_bound_field,
+            "upper_bound_field": self.upper_bound_field,
+            "uncertainty_field": self.uncertainty_field,
+            "uncertainty_type_field": self.uncertainty_type_field,
+        }
+
+
+@dataclass(frozen=True)
+class ClaimUnitPolicyDeclaration:
+    required: bool = True
+    dimensionless_default_unit: str | None = None
+    form_concept_field: str | None = None
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "required": self.required,
+            "dimensionless_default_unit": self.dimensionless_default_unit,
+            "form_concept_field": self.form_concept_field,
+        }
+
+
+@dataclass(frozen=True)
+class ClaimTypeContract:
+    claim_type: ClaimType
+    required_fields: tuple[str, ...] = ()
+    nonempty_fields: tuple[str, ...] = ()
+    concept_references: tuple[ClaimFieldReferenceDeclaration, ...] = ()
+    value_group: ClaimValueGroupDeclaration | None = None
+    unit_policy: ClaimUnitPolicyDeclaration | None = None
+    semantic_checks: tuple[str, ...] = ()
+    contract_version: VersionId = CLAIM_TYPE_CONTRACT_VERSION
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "claim_type": self.claim_type.value,
+            "required_fields": self.required_fields,
+            "nonempty_fields": self.nonempty_fields,
+            "concept_references": tuple(
+                reference.contract_body()
+                for reference in self.concept_references
+            ),
+            "value_group": (
+                None
+                if self.value_group is None
+                else self.value_group.contract_body()
+            ),
+            "unit_policy": (
+                None
+                if self.unit_policy is None
+                else self.unit_policy.contract_body()
+            ),
+            "semantic_checks": self.semantic_checks,
+        }
+
+
+_OBSERVATION_CONCEPT_REFERENCE = ClaimFieldReferenceDeclaration(
+    field="concepts",
+    source="list",
+)
+_VARIABLE_CONCEPT_REFERENCE = ClaimFieldReferenceDeclaration(
+    field="variables",
+    source="bindings",
+    message_subject="variable",
+)
+_PARAMETER_CONCEPT_REFERENCE = ClaimFieldReferenceDeclaration(
+    field="parameters",
+    source="bindings",
+    message_subject="parameter",
+)
+_VALUE_GROUP = ClaimValueGroupDeclaration()
+
+CLAIM_TYPE_CONTRACTS: dict[ClaimType, ClaimTypeContract] = {
+    ClaimType.PARAMETER: ClaimTypeContract(
+        claim_type=ClaimType.PARAMETER,
+        required_fields=("concept",),
+        concept_references=(ClaimFieldReferenceDeclaration(field="concept"),),
+        value_group=_VALUE_GROUP,
+        unit_policy=ClaimUnitPolicyDeclaration(
+            dimensionless_default_unit="1",
+            form_concept_field="concept",
+        ),
+        semantic_checks=("unit_form_compatibility",),
+    ),
+    ClaimType.EQUATION: ClaimTypeContract(
+        claim_type=ClaimType.EQUATION,
+        required_fields=("expression",),
+        nonempty_fields=("variables",),
+        concept_references=(_VARIABLE_CONCEPT_REFERENCE,),
+        semantic_checks=("sympy_generation", "dimensional_consistency"),
+    ),
+    ClaimType.OBSERVATION: ClaimTypeContract(
+        claim_type=ClaimType.OBSERVATION,
+        required_fields=("statement",),
+        nonempty_fields=("concepts",),
+        concept_references=(_OBSERVATION_CONCEPT_REFERENCE,),
+    ),
+    ClaimType.MECHANISM: ClaimTypeContract(
+        claim_type=ClaimType.MECHANISM,
+        required_fields=("statement",),
+        nonempty_fields=("concepts",),
+        concept_references=(_OBSERVATION_CONCEPT_REFERENCE,),
+    ),
+    ClaimType.COMPARISON: ClaimTypeContract(
+        claim_type=ClaimType.COMPARISON,
+        required_fields=("statement",),
+        nonempty_fields=("concepts",),
+        concept_references=(_OBSERVATION_CONCEPT_REFERENCE,),
+    ),
+    ClaimType.LIMITATION: ClaimTypeContract(
+        claim_type=ClaimType.LIMITATION,
+        required_fields=("statement",),
+        nonempty_fields=("concepts",),
+        concept_references=(_OBSERVATION_CONCEPT_REFERENCE,),
+    ),
+    ClaimType.MODEL: ClaimTypeContract(
+        claim_type=ClaimType.MODEL,
+        required_fields=("name",),
+        nonempty_fields=("equations", "parameters"),
+        concept_references=(_PARAMETER_CONCEPT_REFERENCE,),
+    ),
+    ClaimType.MEASUREMENT: ClaimTypeContract(
+        claim_type=ClaimType.MEASUREMENT,
+        required_fields=("target_concept", "measure"),
+        concept_references=(
+            ClaimFieldReferenceDeclaration(field="target_concept"),
+        ),
+        value_group=_VALUE_GROUP,
+        unit_policy=ClaimUnitPolicyDeclaration(),
+    ),
+    ClaimType.ALGORITHM: ClaimTypeContract(
+        claim_type=ClaimType.ALGORITHM,
+        required_fields=("body",),
+        nonempty_fields=("variables",),
+        concept_references=(_VARIABLE_CONCEPT_REFERENCE,),
+        semantic_checks=("algorithm_parse", "algorithm_unbound_names"),
+    ),
+}
+
+
+def claim_type_contract_for(claim_type: object) -> ClaimTypeContract | None:
+    try:
+        normalized = ClaimType(str(claim_type))
+    except ValueError:
+        return None
+    return CLAIM_TYPE_CONTRACTS.get(normalized)
+
+
+def iter_claim_type_contracts() -> tuple[ClaimTypeContract, ...]:
+    return tuple(
+        CLAIM_TYPE_CONTRACTS[claim_type]
+        for claim_type in sorted(CLAIM_TYPE_CONTRACTS, key=lambda item: item.value)
+    )
 
 
 class ClaimLogicalIdDocument(DocumentStruct):

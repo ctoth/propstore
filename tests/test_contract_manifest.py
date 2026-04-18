@@ -10,6 +10,7 @@ from propstore.contracts import (
     CONTRACT_MANIFEST_PATH,
     build_propstore_contract_manifest,
     iter_artifact_families,
+    iter_claim_type_contracts,
     iter_semantic_foreign_keys,
 )
 
@@ -34,6 +35,16 @@ def test_every_semantic_foreign_key_has_contract_version() -> None:
     assert missing == []
 
 
+def test_every_claim_type_contract_has_contract_version() -> None:
+    missing = [
+        contract.claim_type.value
+        for contract in iter_claim_type_contracts()
+        if contract.contract_version is None
+    ]
+
+    assert missing == []
+
+
 def test_contract_manifest_covers_documents_and_artifact_families() -> None:
     manifest = build_propstore_contract_manifest()
     keys = {entry.key for entry in manifest.contracts}
@@ -44,6 +55,8 @@ def test_contract_manifest_covers_documents_and_artifact_families() -> None:
     assert "artifact_family:source_document" in keys
     assert "foreign_key:claim_concept" in keys
     assert "foreign_key:concept_parameterization_canonical_claim" in keys
+    assert "claim_type_contract:parameter" in keys
+    assert "claim_type_contract:algorithm" in keys
 
 
 def test_artifact_family_contract_callbacks_are_named() -> None:
