@@ -13,10 +13,11 @@ from propstore.artifacts.codecs import render_yaml_value
 from propstore.cli.concept import concept
 from propstore.cli.context import context
 from propstore.cli.claim import claim
-from propstore.cli.compiler_cmds import validate, build, query, export_aliases, world
+from propstore.cli.compiler_cmds import validate, build, query, export_aliases
 from propstore.cli.grounding_cmds import grounding
 from propstore.cli.source import source
 from propstore.cli.verify import verify
+from propstore.cli.world_cmds import world
 from propstore.cli.worldline_cmds import worldline
 from propstore.cli.form import form
 from propstore.cli.init import init
