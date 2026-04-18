@@ -102,6 +102,9 @@ class FakeWorld:
             ]
         return []
 
+    def parameterizations_for(self, concept_id):
+        return []
+
 
 # ── Tests ────────────────────────────────────────────────────────────
 

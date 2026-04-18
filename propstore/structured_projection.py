@@ -8,12 +8,12 @@ retains the public projection dataclasses and thin delegation wrappers.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.environment import StanceStore
-from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.dung import (
     ArgumentationFramework,
     grounded_extension,
@@ -57,7 +57,7 @@ class StructuredProjection:
 
 def build_structured_projection(
     store: StanceStore,
-    active_claims: list[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaimInput],
     *,
     bundle: GroundedRulesBundle,
     support_metadata: SupportMetadata | None = None,

@@ -9,12 +9,15 @@ reachable via parameterization edges from a set of starting concepts.
 from __future__ import annotations
 
 import json
-from typing import Any, Callable
+from collections.abc import Callable, Sequence
+from typing import Any
+
+from propstore.core.row_types import ParameterizationRowInput, coerce_parameterization_row
 
 
 def reachable_concepts(
     start: set[str],
-    parameterizations_for: Callable[[str], list[dict]],
+    parameterizations_for: Callable[[str], Sequence[ParameterizationRowInput]],
 ) -> set[str]:
     """Find all concepts reachable via parameterization inputs from start.
 
@@ -39,8 +42,12 @@ def reachable_concepts(
             continue
         visited.add(cid)
 
-        for param in parameterizations_for(cid):
-            concept_ids_json = param.get("concept_ids")
+        for param_input in parameterizations_for(cid):
+            param = coerce_parameterization_row(
+                param_input,
+                output_concept_id=cid,
+            )
+            concept_ids_json = param.concept_ids
             if not concept_ids_json:
                 continue
             input_ids = json.loads(concept_ids_json) if isinstance(concept_ids_json, str) else concept_ids_json

@@ -799,6 +799,9 @@ class TestWorldlineDependencyLiveness:
             def has_table(self, name):
                 return False
 
+            def parameterizations_for(self, concept_id):
+                return []
+
         wl = WorldlineDefinition.from_dict({
             "id": "recency_liveness",
             "targets": ["target"],
@@ -875,6 +878,9 @@ class TestWorldlineDependencyLiveness:
                         "confidence": 1.0,
                         "note": f"{self._stance_type}-note",
                     }]
+                return []
+
+            def parameterizations_for(self, concept_id):
                 return []
 
         def fake_justified_claims(world, active_claim_ids, **kwargs):
@@ -1138,6 +1144,9 @@ class TestSemanticCorePhase7Worldlines:
             def has_table(self, name):
                 return name == "relation_edge"
 
+            def parameterizations_for(self, concept_id):
+                return []
+
         return _World(), active_graph
 
     def test_claim_graph_worldline_capture_uses_active_graph_projection_contract(
@@ -1342,6 +1351,9 @@ class TestSemanticCorePhase7Worldlines:
 
             def grounding_bundle(self):
                 return GroundedRulesBundle.empty()
+
+            def parameterizations_for(self, concept_id):
+                return []
 
         projection = type(
             "FakeProjection",
@@ -1671,6 +1683,9 @@ class TestSilentExceptionLogging:
 
             def active_claims(self):
                 raise RuntimeError("argumentation kaboom")
+
+            def parameterizations_for(self, concept_id):
+                return []
 
         wl = WorldlineDefinition.from_dict({
             "id": "arg_fail",

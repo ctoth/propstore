@@ -208,7 +208,10 @@ class WorldlineResult:
                 for step in data.steps
             ),
             dependencies=WorldlineDependencies.from_mapping(
-                to_document_builtins(data.dependencies)
+                _required_document_mapping(
+                    to_document_builtins(data.dependencies),
+                    "dependencies",
+                )
             ),
             sensitivity=WorldlineSensitivityReport.from_mapping(data.sensitivity),
             argumentation=WorldlineArgumentationState.from_mapping(data.argumentation),
