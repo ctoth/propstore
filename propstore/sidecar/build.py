@@ -20,16 +20,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.families import (
-    CANONICAL_SOURCE_FAMILY,
-    CLAIMS_FILE_FAMILY,
-    CONCEPT_FILE_FAMILY,
-    CONTEXT_FAMILY,
-    FORM_FAMILY,
-    JUSTIFICATIONS_FILE_FAMILY,
-    MICROPUBS_FILE_FAMILY,
-    STANCE_FILE_FAMILY,
-)
 from propstore.claims import claim_file_claims, claim_file_filename, claim_file_source_paper
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
@@ -216,9 +206,9 @@ def build_sidecar(
 
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.artifacts.list(FORM_FAMILY, commit=commit_hash)
+        for form_ref in repo.families.forms.list(commit=commit_hash)
         for document in (
-            repo.artifacts.require(FORM_FAMILY, form_ref, commit=commit_hash),
+            repo.families.forms.require(form_ref, commit=commit_hash),
         )
     }
     concepts = [
@@ -229,14 +219,14 @@ def build_sidecar(
             record=parse_concept_record_document(handle.document),
             document=handle.document,
         )
-        for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=commit_hash)
+        for ref in repo.families.concepts.list(commit=commit_hash)
         for handle in (
-            repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref, commit=commit_hash),
+            repo.families.concepts.require_handle(ref, commit=commit_hash),
         )
     ]
     claim_files = [
-        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref, commit=commit_hash)
-        for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=commit_hash)
+        repo.families.claims.require_handle(ref, commit=commit_hash)
+        for ref in repo.families.claims.list(commit=commit_hash)
     ]
     context_files = [
         LoadedContext(
@@ -245,9 +235,9 @@ def build_sidecar(
             knowledge_root=tree,
             record=parse_context_record_document(handle.document),
         )
-        for ref in repo.artifacts.list(CONTEXT_FAMILY, commit=commit_hash)
+        for ref in repo.families.contexts.list(commit=commit_hash)
         for handle in (
-            repo.artifacts.require_handle(CONTEXT_FAMILY, ref, commit=commit_hash),
+            repo.families.contexts.require_handle(ref, commit=commit_hash),
         )
     ]
     context_ids = {
@@ -330,13 +320,9 @@ def build_sidecar(
             (
                 (
                     ref.name,
-                    repo.artifacts.require(
-                        CANONICAL_SOURCE_FAMILY,
-                        ref,
-                        commit=commit_hash,
-                    ),
+                    repo.families.sources.require(ref, commit=commit_hash),
                 )
-                for ref in repo.artifacts.list(CANONICAL_SOURCE_FAMILY, commit=commit_hash)
+                for ref in repo.families.sources.list(commit=commit_hash)
             ),
         )
         populate_forms(conn, form_registry)
@@ -384,13 +370,9 @@ def build_sidecar(
             (
                 (
                     ref.name,
-                    repo.artifacts.require(
-                        MICROPUBS_FILE_FAMILY,
-                        ref,
-                        commit=commit_hash,
-                    ),
+                    repo.families.micropubs.require(ref, commit=commit_hash),
                 )
-                for ref in repo.artifacts.list(MICROPUBS_FILE_FAMILY, commit=commit_hash)
+                for ref in repo.families.micropubs.list(commit=commit_hash)
             ),
         )
 
@@ -414,13 +396,9 @@ def build_sidecar(
                 (
                     (
                         ref.source_claim,
-                        repo.artifacts.require(
-                            STANCE_FILE_FAMILY,
-                            ref,
-                            commit=commit_hash,
-                        ),
+                        repo.families.stances.require(ref, commit=commit_hash),
                     )
-                    for ref in repo.artifacts.list(STANCE_FILE_FAMILY, commit=commit_hash)
+                    for ref in repo.families.stances.list(commit=commit_hash)
                 ),
             )
             populate_authored_justifications(
@@ -428,16 +406,9 @@ def build_sidecar(
                 (
                     (
                         ref.name,
-                        repo.artifacts.require(
-                            JUSTIFICATIONS_FILE_FAMILY,
-                            ref,
-                            commit=commit_hash,
-                        ),
+                        repo.families.justifications.require(ref, commit=commit_hash),
                     )
-                    for ref in repo.artifacts.list(
-                        JUSTIFICATIONS_FILE_FAMILY,
-                        commit=commit_hash,
-                    )
+                    for ref in repo.families.justifications.list(commit=commit_hash)
                 ),
             )
 
