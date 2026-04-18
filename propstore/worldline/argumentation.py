@@ -243,15 +243,16 @@ def _capture_praf(
         samples = metadata["samples"]
         confidence_interval_half = metadata["confidence_interval_half"]
     else:
-        from propstore.praf import build_praf, compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
+        from propstore.praf import build_praf
 
         praf = build_praf(
             world,
             {str(claim_id) for claim_id in active_ids},
             comparison=policy.comparison or "elitist",
         )
-        result = compute_praf_acceptance(
-            praf,
+        result = compute_probabilistic_acceptance(
+            praf.kernel,
             semantics=normalized_semantics,
             strategy=praf_strategy,
             query_kind="argument_acceptance",

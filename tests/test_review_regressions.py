@@ -3,12 +3,13 @@ from __future__ import annotations
 import pytest
 
 from propstore.praf import build_praf
-from propstore.dung import ArgumentationFramework
-from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.opinion import Opinion
-from propstore.praf import (
+from argumentation.dung import ArgumentationFramework
+from argumentation.probabilistic import (
     ProbabilisticAF,
-    compute_praf_acceptance,
+    compute_probabilistic_acceptance,
+)
+from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.praf import (
     summarize_defeat_relations,
 )
 from propstore.structured_projection import build_structured_projection
@@ -58,11 +59,11 @@ def test_praf_exact_enum_respects_attack_only_edges() -> None:
     )
     praf = ProbabilisticAF(
         framework=fw,
-        p_args={"a": Opinion.dogmatic_true(), "b": Opinion.dogmatic_true()},
+        p_args={"a": 1.0, "b": 1.0},
         p_defeats={},
     )
 
-    result = compute_praf_acceptance(
+    result = compute_probabilistic_acceptance(
         praf,
         semantics="grounded",
         strategy="exact_enum",
@@ -81,11 +82,11 @@ def test_praf_mc_respects_attack_only_edges_when_decomposing() -> None:
     )
     praf = ProbabilisticAF(
         framework=fw,
-        p_args={"a": Opinion.dogmatic_true(), "b": Opinion.dogmatic_true()},
+        p_args={"a": 1.0, "b": 1.0},
         p_defeats={},
     )
 
-    result = compute_praf_acceptance(
+    result = compute_probabilistic_acceptance(
         praf,
         semantics="grounded",
         strategy="mc",
@@ -121,8 +122,8 @@ def test_praf_mc_respects_support_coupling_when_decomposing() -> None:
     )
 
     praf = build_praf(store, {"claim_a", "claim_b", "claim_c"})
-    result = compute_praf_acceptance(
-        praf,
+    result = compute_probabilistic_acceptance(
+        praf.kernel,
         semantics="grounded",
         strategy="mc",
         rng_seed=42,
@@ -142,7 +143,7 @@ def test_praf_exact_dp_rejects_attack_only_edges() -> None:
     )
     praf = ProbabilisticAF(
         framework=fw,
-        p_args={"a": Opinion.dogmatic_true(), "b": Opinion.dogmatic_true()},
+        p_args={"a": 1.0, "b": 1.0},
         p_defeats={},
     )
 
@@ -150,7 +151,7 @@ def test_praf_exact_dp_rejects_attack_only_edges() -> None:
         ValueError,
         match="exact_dp only supports grounded semantics on defeat-only probabilistic frameworks",
     ):
-        compute_praf_acceptance(
+        compute_probabilistic_acceptance(
             praf,
             semantics="grounded",
             strategy="exact_dp",

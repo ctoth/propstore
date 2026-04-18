@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.dung import ArgumentationFramework
-from propstore.opinion import Opinion
-from propstore.praf import ProbabilisticAF, PrAFResult, compute_praf_acceptance
-from propstore.praf.dfquad import (
+from argumentation.dung import ArgumentationFramework
+from argumentation.probabilistic import (
+    PrAFResult,
+    ProbabilisticAF,
+    compute_probabilistic_acceptance,
+)
+from argumentation.probabilistic_dfquad import (
     compute_dfquad_baf_strengths,
     compute_dfquad_quad_strengths,
     dfquad_aggregate,
@@ -31,37 +34,21 @@ def _make_praf(
     base_scores: dict[str, float],
     attacks: list[tuple[str, str]] | None = None,
 ) -> ProbabilisticAF:
-    """Build a ProbabilisticAF with Opinion-based base scores.
-
-    Each argument gets Opinion.from_probability-like Opinion whose
-    expectation() equals the requested base_score.  We use dogmatic
-    opinions (b=score, d=1-score, u=0 is invalid for Opinion), so we
-    use from_probability with high evidence count for near-deterministic.
-    """
-    from propstore.opinion import from_probability
-
+    """Build a pure ProbabilisticAF with float base scores."""
     af = ArgumentationFramework(
         arguments=frozenset(arguments),
         defeats=frozenset(defeats),
         attacks=frozenset(attacks) if attacks is not None else None,
     )
-    # Use from_probability with very high n so expectation() ≈ base_score
-    p_args = {}
-    for a in arguments:
-        score = base_scores.get(a, 0.5)
-        p_args[a] = from_probability(score, 10000)
-
-    p_defeats = {}
-    for d in defeats:
-        # Defeat existence is certain
-        p_defeats[d] = Opinion.dogmatic_true()
+    p_args = {a: base_scores.get(a, 0.5) for a in arguments}
+    p_defeats = {d: 1.0 for d in defeats}
 
     return ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
 
 def _tau_from_praf(praf: ProbabilisticAF) -> dict[str, float]:
     return {
-        arg: praf.p_args[arg].expectation()
+        arg: praf.p_args[arg]
         for arg in praf.framework.arguments
     }
 
@@ -284,7 +271,7 @@ class TestPrAFDispatch:
 
     def test_dfquad_strategy_returns_result(self) -> None:
         praf = _make_praf(["A", "B"], [("A", "B")], {"A": 0.8, "B": 0.6})
-        result = compute_praf_acceptance(
+        result = compute_probabilistic_acceptance(
             praf,
             strategy="dfquad_quad",
             tau={"A": 0.8, "B": 0.6},
@@ -301,28 +288,26 @@ class TestPrAFDispatch:
 
         Freedman-style gradual strengths are support-sensitive. A support-only
         QBAF should not collapse to the target's base score when invoked through
-        compute_praf_acceptance().
+        compute_probabilistic_acceptance().
         """
-        from propstore.opinion import from_probability
-
         af = ArgumentationFramework(arguments=frozenset({"A", "B"}), defeats=frozenset())
         praf = ProbabilisticAF(
             framework=af,
             p_args={
-                "A": from_probability(0.9, 1000),
-                "B": from_probability(0.3, 1000),
+                "A": 0.9,
+                "B": 0.3,
             },
             p_defeats={},
             supports=frozenset({("A", "B")}),
-            p_supports={("A", "B"): from_probability(0.8, 1000)},
+            p_supports={("A", "B"): 0.8},
         )
 
         direct = compute_dfquad_quad_strengths(
             praf,
-            {("A", "B"): praf.p_supports[("A", "B")].expectation()},
+            {("A", "B"): praf.p_supports[("A", "B")]},
             tau={"A": 0.9, "B": 0.3},
         )
-        dispatched = compute_praf_acceptance(
+        dispatched = compute_probabilistic_acceptance(
             praf,
             strategy="dfquad_quad",
             tau={"A": 0.9, "B": 0.3},
@@ -333,33 +318,31 @@ class TestPrAFDispatch:
 
     def test_dfquad_dispatch_respects_support_weight_changes(self) -> None:
         """Changing support weight should change the target's gradual strength."""
-        from propstore.opinion import from_probability
-
         af = ArgumentationFramework(arguments=frozenset({"A", "B"}), defeats=frozenset())
         weak = ProbabilisticAF(
             framework=af,
             p_args={
-                "A": from_probability(0.9, 1000),
-                "B": from_probability(0.3, 1000),
+                "A": 0.9,
+                "B": 0.3,
             },
             p_defeats={},
             supports=frozenset({("A", "B")}),
-            p_supports={("A", "B"): from_probability(0.2, 1000)},
+            p_supports={("A", "B"): 0.2},
         )
         strong = ProbabilisticAF(
             framework=af,
             p_args=weak.p_args,
             p_defeats={},
             supports=frozenset({("A", "B")}),
-            p_supports={("A", "B"): from_probability(0.9, 1000)},
+            p_supports={("A", "B"): 0.9},
         )
 
-        weak_result = compute_praf_acceptance(
+        weak_result = compute_probabilistic_acceptance(
             weak,
             strategy="dfquad_quad",
             tau={"A": 0.9, "B": 0.3},
         )
-        strong_result = compute_praf_acceptance(
+        strong_result = compute_probabilistic_acceptance(
             strong,
             strategy="dfquad_quad",
             tau={"A": 0.9, "B": 0.3},
@@ -372,7 +355,7 @@ class TestPrAFDispatch:
         praf = _make_praf(["A", "B"], [("A", "B")], {"A": 0.8, "B": 0.6})
 
         with pytest.raises(ValueError, match="DF-QuAD"):
-            compute_praf_acceptance(
+            compute_probabilistic_acceptance(
                 praf,
                 strategy="dfquad_baf",
                 semantics="stable",
@@ -382,21 +365,21 @@ class TestPrAFDispatch:
         praf = _make_praf(["A"], [], {"A": 0.8})
 
         with pytest.raises(ValueError, match="dfquad_quad.*dfquad_baf"):
-            compute_praf_acceptance(praf, strategy="dfquad")
+            compute_probabilistic_acceptance(praf, strategy="dfquad")
 
 
 def test_dfquad_quad_requires_explicit_tau() -> None:
     praf = _make_praf(["A"], [], {"A": 0.8})
 
     with pytest.raises(ValueError, match="tau"):
-        compute_praf_acceptance(praf, strategy="dfquad_quad")
+        compute_probabilistic_acceptance(praf, strategy="dfquad_quad")
 
 
 def test_dfquad_quad_missing_tau_errors_cleanly() -> None:
     praf = _make_praf(["A", "B"], [("A", "B")], {"A": 0.8, "B": 0.6})
 
     with pytest.raises(ValueError, match="missing tau.*B"):
-        compute_praf_acceptance(
+        compute_probabilistic_acceptance(
             praf,
             strategy="dfquad_quad",
             tau={"A": 0.8},
@@ -406,7 +389,7 @@ def test_dfquad_quad_missing_tau_errors_cleanly() -> None:
 def test_dfquad_baf_uses_fixed_neutral_0_5_for_isolated_arguments() -> None:
     praf = _make_praf(["A"], [], {"A": 0.9})
 
-    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
+    result = compute_probabilistic_acceptance(praf, strategy="dfquad_baf")
 
     assert result.strategy_used == "dfquad_baf"
     assert result.acceptance_probs["A"] == pytest.approx(0.5, abs=1e-9)
@@ -416,12 +399,12 @@ def test_dfquad_quad_tau_varies_independently_of_praf_argument_probability() -> 
     low_pa = _make_praf(["A"], [], {"A": 0.1})
     high_pa = _make_praf(["A"], [], {"A": 0.9})
 
-    low_result = compute_praf_acceptance(
+    low_result = compute_probabilistic_acceptance(
         low_pa,
         strategy="dfquad_quad",
         tau={"A": 0.7},
     )
-    high_result = compute_praf_acceptance(
+    high_result = compute_probabilistic_acceptance(
         high_pa,
         strategy="dfquad_quad",
         tau={"A": 0.7},
@@ -435,8 +418,8 @@ def test_dfquad_baf_does_not_read_praf_argument_probability_as_base_score() -> N
     low_pa = _make_praf(["A"], [], {"A": 0.1})
     high_pa = _make_praf(["A"], [], {"A": 0.9})
 
-    low_result = compute_praf_acceptance(low_pa, strategy="dfquad_baf")
-    high_result = compute_praf_acceptance(high_pa, strategy="dfquad_baf")
+    low_result = compute_probabilistic_acceptance(low_pa, strategy="dfquad_baf")
+    high_result = compute_probabilistic_acceptance(high_pa, strategy="dfquad_baf")
 
     assert low_result.acceptance_probs["A"] == pytest.approx(0.5, abs=1e-9)
     assert high_result.acceptance_probs["A"] == pytest.approx(0.5, abs=1e-9)
@@ -445,7 +428,7 @@ def test_dfquad_baf_does_not_read_praf_argument_probability_as_base_score() -> N
 def test_dfquad_baf_isolated_argument_scores_0_5() -> None:
     praf = _make_praf(["A"], [], {"A": 0.2})
 
-    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
+    result = compute_probabilistic_acceptance(praf, strategy="dfquad_baf")
 
     assert result.acceptance_probs["A"] == pytest.approx(0.5, abs=1e-9)
 
@@ -532,9 +515,7 @@ class TestDFQuADCombineFunction:
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
-from propstore.dung import ArgumentationFramework
-from propstore.opinion import Opinion, from_probability
-
+from argumentation.dung import ArgumentationFramework
 
 def _small_praf_strategy_dfquad():
     """Strategy: build a small PrAF with 2-4 arguments, random attacks,
@@ -542,16 +523,13 @@ def _small_praf_strategy_dfquad():
     """
     @st.composite
     def build(draw):
-        from propstore.praf import ProbabilisticAF
-
         n_args = draw(st.integers(min_value=2, max_value=4))
         arg_names = [f"arg{i}" for i in range(n_args)]
 
         p_args = {}
         for name in arg_names:
             p = draw(st.floats(min_value=0.05, max_value=0.95))
-            n = draw(st.integers(min_value=5, max_value=20))
-            p_args[name] = from_probability(p, n)
+            p_args[name] = p
 
         attacks = set()
         for i, src in enumerate(arg_names):
@@ -564,7 +542,7 @@ def _small_praf_strategy_dfquad():
             defeats=frozenset(attacks),
             attacks=frozenset(attacks),
         )
-        p_defeats = {edge: Opinion.dogmatic_true() for edge in attacks}
+        p_defeats = {edge: 1.0 for edge in attacks}
 
         return ProbabilisticAF(
             framework=af,
@@ -583,10 +561,7 @@ def _paired_quad_inputs(draw):
         for arg in sorted(praf.framework.arguments)
     }
     alt_p_args = {
-        arg: from_probability(
-            draw(st.floats(min_value=0.05, max_value=0.95)),
-            draw(st.integers(min_value=5, max_value=20)),
-        )
+        arg: draw(st.floats(min_value=0.05, max_value=0.95))
         for arg in sorted(praf.framework.arguments)
     }
     alt_praf = ProbabilisticAF(
@@ -597,9 +572,6 @@ def _paired_quad_inputs(draw):
         supports=praf.supports,
         p_supports=praf.p_supports,
         base_defeats=praf.base_defeats,
-        attack_relations=praf.attack_relations,
-        support_relations=praf.support_relations,
-        direct_defeat_relations=praf.direct_defeat_relations,
     )
     return praf, alt_praf, tau
 
@@ -633,7 +605,7 @@ def test_dfquad_scores_bounded(praf):
     output in [0,1] when base scores are in [0,1] and combined influence
     is in [-1,1].
     """
-    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
+    result = compute_probabilistic_acceptance(praf, strategy="dfquad_baf")
     for arg, score in result.acceptance_probs.items():
         assert 0.0 <= score <= 1.0, f"arg {arg}: score={score} out of [0,1]"
 
@@ -643,12 +615,12 @@ def test_dfquad_scores_bounded(praf):
 def test_dfquad_quad_property_ignores_praf_argument_probability_when_tau_is_fixed(sample):
     praf, alt_praf, tau = sample
 
-    left = compute_praf_acceptance(
+    left = compute_probabilistic_acceptance(
         praf,
         strategy="dfquad_quad",
         tau=tau,
     )
-    right = compute_praf_acceptance(
+    right = compute_probabilistic_acceptance(
         alt_praf,
         strategy="dfquad_quad",
         tau=tau,
@@ -663,12 +635,12 @@ def test_dfquad_quad_property_changes_when_tau_changes_with_fixed_topology(sampl
     pa, tau_left, tau_right = sample
     praf = _make_praf(["A"], [], {"A": pa})
 
-    left = compute_praf_acceptance(
+    left = compute_probabilistic_acceptance(
         praf,
         strategy="dfquad_quad",
         tau={"A": tau_left},
     )
-    right = compute_praf_acceptance(
+    right = compute_probabilistic_acceptance(
         praf,
         strategy="dfquad_quad",
         tau={"A": tau_right},
@@ -682,7 +654,7 @@ def test_dfquad_quad_property_changes_when_tau_changes_with_fixed_topology(sampl
 @given(praf=_isolated_prafs())
 @settings(deadline=None)
 def test_dfquad_baf_property_keeps_isolated_arguments_at_neutral_half(praf):
-    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
+    result = compute_probabilistic_acceptance(praf, strategy="dfquad_baf")
     for score in result.acceptance_probs.values():
         assert score == pytest.approx(0.5, abs=1e-9)
 
@@ -692,7 +664,6 @@ def test_dfquad_baf_property_keeps_isolated_arguments_at_neutral_half(praf):
 
 from hypothesis import given, settings, assume
 from hypothesis import strategies as st
-from propstore.opinion import from_probability
 
 
 @st.composite
@@ -803,7 +774,7 @@ def test_dfquad_convergence_bounded(praf):
     cyclic graphs use iterative fixpoint with max 100 iterations.
     All scores must be in [0, 1].
     """
-    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
+    result = compute_probabilistic_acceptance(praf, strategy="dfquad_baf")
     for arg, score in result.acceptance_probs.items():
         assert 0.0 - 1e-9 <= score <= 1.0 + 1e-9, (
             f"arg {arg}: score={score} out of [0,1]"

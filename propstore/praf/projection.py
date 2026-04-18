@@ -11,7 +11,7 @@ from propstore.core.analyzers import (
 from propstore.world.types import WorldStore
 
 if TYPE_CHECKING:
-    from .engine import ProbabilisticAF
+    from .engine import PropstorePrAF
 
 
 def build_praf(
@@ -19,7 +19,7 @@ def build_praf(
     active_claim_ids: set[str],
     *,
     comparison: str = "elitist",
-) -> "ProbabilisticAF":
+) -> "PropstorePrAF":
     """Build a primitive-relation probabilistic model over the active claim graph.
 
     P_A comes from p_arg_from_claim(); missing calibration is omitted and

@@ -29,7 +29,7 @@ from propstore.provenance import (
 from propstore.world.types import QueryableAssumption
 
 if TYPE_CHECKING:
-    from propstore.dung import ArgumentationFramework
+    from argumentation.dung import ArgumentationFramework
     from propstore.opinion import Opinion
 
 
@@ -72,7 +72,7 @@ def score_conflict(
     *,
     semantics: str = "grounded",
 ) -> float:
-    from propstore.dung import ArgumentationFramework, grounded_extension
+    from argumentation.dung import ArgumentationFramework, grounded_extension
 
     if semantics != "grounded":
         raise ValueError(f"Unsupported semantics: {semantics!r}")
@@ -392,9 +392,9 @@ def imps_rev(
     p_args: dict[str, Opinion],
     p_defeats: dict[tuple[str, str], Opinion],
 ) -> float:
-    from propstore.dung import ArgumentationFramework as AF
-    from propstore.praf import ProbabilisticAF
-    from propstore.praf.dfquad import compute_dfquad_strengths
+    from argumentation.dung import ArgumentationFramework as AF
+    from argumentation.probabilistic import ProbabilisticAF
+    from argumentation.probabilistic_dfquad import compute_dfquad_strengths
 
     if attack not in framework.defeats:
         return 0.0
@@ -415,7 +415,11 @@ def imps_rev(
             f"unprovenanced_defeats={unprovenanced_defeats}"
         )
 
-    praf = ProbabilisticAF(framework=framework, p_args=p_args, p_defeats=p_defeats)
+    praf = ProbabilisticAF(
+        framework=framework,
+        p_args={argument: opinion.expectation() for argument, opinion in p_args.items()},
+        p_defeats={defeat: opinion.expectation() for defeat, opinion in p_defeats.items()},
+    )
     strengths_full = compute_dfquad_strengths(praf, supports, base_scores=base_scores)
 
     reduced_framework = AF(

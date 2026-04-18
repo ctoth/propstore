@@ -245,7 +245,7 @@ class TestUtilityScores:
         assert combine_fragility(0.8, 0.6, 0.2, "top2") == pytest.approx(0.7)
 
     def test_score_conflict_symmetric(self) -> None:
-        from propstore.dung import ArgumentationFramework
+        from argumentation.dung import ArgumentationFramework
 
         framework = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
@@ -285,7 +285,7 @@ class TestUtilityScores:
         ) == 0.0
 
     def test_imps_rev_requires_explicit_probabilistic_inputs(self) -> None:
-        from propstore.dung import ArgumentationFramework
+        from argumentation.dung import ArgumentationFramework
         from propstore.fragility import imps_rev
 
         framework = ArgumentationFramework(
@@ -297,7 +297,7 @@ class TestUtilityScores:
             imps_rev(framework, {}, {"A": 1.0, "B": 0.0}, ("A", "B"))
 
     def test_imps_rev_uses_supplied_opinions_without_fabricating_certainty(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from propstore.dung import ArgumentationFramework
+        from argumentation.dung import ArgumentationFramework
         from propstore.fragility import imps_rev
         from propstore.opinion import Opinion
         from propstore.provenance import Provenance, ProvenanceStatus
@@ -319,7 +319,7 @@ class TestUtilityScores:
             return {"A": 1.0, "B": 0.25 if len(seen) == 1 else 0.75}
 
         monkeypatch.setattr(
-            "propstore.praf.dfquad.compute_dfquad_strengths",
+            "argumentation.probabilistic_dfquad.compute_dfquad_strengths",
             fake_dfquad,
         )
 
@@ -339,7 +339,7 @@ class TestUtilityScores:
         assert seen[1].p_defeats == {}
 
     def test_imps_rev_rejects_unprovenanced_opinions(self) -> None:
-        from propstore.dung import ArgumentationFramework
+        from argumentation.dung import ArgumentationFramework
         from propstore.fragility import imps_rev
         from propstore.opinion import Opinion
 

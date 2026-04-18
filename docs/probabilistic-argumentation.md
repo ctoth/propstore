@@ -4,6 +4,11 @@ Standard Dung AFs treat arguments and defeats as either present or absent. In pr
 
 The implementation follows Li et al. (2012), with opinions from Josang (2001) as the uncertainty carrier, component decomposition from Hunter & Thimm (2017), and gradual semantics from Freedman et al. (2025).
 
+PrAF remains propstore-owned. It consumes finite Dung and bipolar kernels from
+the external `argumentation` package, but its probabilities, opinions,
+provenance-bearing relation rows, sampling policy, and projection from
+propstore claim data are not part of the reusable formal kernel package.
+
 ## The PrAF model
 
 A probabilistic argumentation framework PrAF = (A, P_A, D, P_D) extends a Dung AF with existence probabilities (Li et al. 2012, Def 2):
@@ -176,7 +181,7 @@ pks worldline diff scenario-a scenario-b
 ```
 
 Available public `--praf-strategy` choices: `auto`, `mc`, `exact`, `dfquad_quad`, `dfquad_baf`.
-Lower-level `compute_praf_acceptance()` also accepts `exact_enum`, `exact_dp`, and `deterministic`.
+Lower-level `compute_probabilistic_acceptance()` also accepts `exact_enum`, `exact_dp`, and `deterministic`.
 
 ## Known limitations
 

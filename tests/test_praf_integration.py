@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.dung import ArgumentationFramework
+from argumentation.dung import ArgumentationFramework
 from propstore.opinion import Opinion
 from propstore.stances import StanceType
 
@@ -402,7 +402,7 @@ def test_build_praf_deterministic():
     Per Li et al. (2012, Def 2): PrAF = (A, P_A, D, P_D).
     """
     from propstore.praf import build_praf
-    from propstore.praf import ProbabilisticAF
+    from propstore.praf import PropstorePrAF
 
     claims, stances = _make_claims_and_stances_deterministic()
     store = _MockStore(claims, stances)
@@ -410,7 +410,7 @@ def test_build_praf_deterministic():
     praf = build_praf(store, {"c1", "c2"})
 
     # Type check
-    assert isinstance(praf, ProbabilisticAF)
+    assert isinstance(praf, PropstorePrAF)
 
     # Arguments match the active claim IDs
     assert praf.framework.arguments == frozenset({"c1", "c2"})
