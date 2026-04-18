@@ -287,6 +287,79 @@ def test_plan_repository_import_limits_to_semantic_tree_and_excludes_sidecar(tmp
     assert all(path.split("/", 1)[0] in SEMANTIC_DIRS for path in plan.touched_paths)
 
 
+def test_repository_import_includes_registered_rules_and_predicates_from_committed_snapshot(tmp_path):
+    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+
+    destination = _init_project(tmp_path / "dest")
+    source = _init_project(tmp_path / "repo-b")
+    source_git = source.git
+    assert source_git is not None
+
+    source_git.commit_files(
+        {
+            "predicates/base.yaml": yaml.safe_dump(
+                {
+                    "predicates": [
+                        {
+                            "id": "bird",
+                            "arity": 1,
+                            "arg_types": ["concept"],
+                        }
+                    ]
+                },
+                sort_keys=False,
+            ).encode(),
+            "rules/base.yaml": yaml.safe_dump(
+                {
+                    "source": {"paper": "repo-b"},
+                    "rules": [
+                        {
+                            "id": "r1",
+                            "kind": "defeasible",
+                            "head": {
+                                "predicate": "flies",
+                                "terms": [{"kind": "var", "name": "X"}],
+                            },
+                            "body": [
+                                {
+                                    "predicate": "bird",
+                                    "terms": [{"kind": "var", "name": "X"}],
+                                }
+                            ],
+                        }
+                    ],
+                },
+                sort_keys=False,
+            ).encode(),
+        },
+        "seed grounding authoring",
+    )
+    source_git.sync_worktree()
+    _write_source_file(
+        source.root.parent,
+        "rules/base.yaml",
+        yaml.safe_dump({"source": {"paper": "uncommitted"}, "rules": []}, sort_keys=False).encode(),
+    )
+
+    plan = plan_repository_import(destination, source.root.parent)
+    result = commit_repository_import(destination, plan)
+
+    assert "predicates/base.yaml" in result.touched_paths
+    assert "rules/base.yaml" in result.touched_paths
+    assert yaml.safe_load(destination.git.read_file("predicates/base.yaml", commit=result.commit_sha)) == {
+        "predicates": [
+            {
+                "id": "bird",
+                "arity": 1,
+                "arg_types": ["concept"],
+            }
+        ]
+    }
+    assert yaml.safe_load(destination.git.read_file("rules/base.yaml", commit=result.commit_sha))["source"] == {
+        "paper": "repo-b"
+    }
+
+
 def test_commit_repository_import_writes_commit_to_target_branch_and_returns_result(tmp_path):
     from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
