@@ -429,8 +429,11 @@ def imps_rev(
     reduced_p_defeats = {key: value for key, value in p_defeats.items() if key != attack}
     reduced_praf = ProbabilisticAF(
         framework=reduced_framework,
-        p_args=p_args,
-        p_defeats=reduced_p_defeats,
+        p_args={argument: opinion.expectation() for argument, opinion in p_args.items()},
+        p_defeats={
+            defeat: opinion.expectation()
+            for defeat, opinion in reduced_p_defeats.items()
+        },
     )
     strengths_reduced = compute_dfquad_strengths(
         reduced_praf,

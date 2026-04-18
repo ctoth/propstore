@@ -333,9 +333,9 @@ class TestUtilityScores:
         )
 
         assert score == pytest.approx(0.5)
-        assert seen[0].p_args is p_args
-        assert seen[0].p_defeats is p_defeats
-        assert seen[1].p_args is p_args
+        assert seen[0].p_args == {"A": 0.5, "B": 0.5}
+        assert seen[0].p_defeats == {("A", "B"): 0.5}
+        assert seen[1].p_args == {"A": 0.5, "B": 0.5}
         assert seen[1].p_defeats == {}
 
     def test_imps_rev_rejects_unprovenanced_opinions(self) -> None:
