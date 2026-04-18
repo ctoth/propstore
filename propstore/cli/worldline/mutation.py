@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from propstore.artifacts.families import WorldlineRef
+from propstore.families.registry import WorldlineRef
 from propstore.cli.worldline import worldline
 from propstore.repository import Repository
 

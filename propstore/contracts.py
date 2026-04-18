@@ -23,7 +23,7 @@ CONTRACT_MANIFEST_PATH = (
 
 
 def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any, Any], ...]:
-    import propstore.artifacts.families as families
+    import propstore.families.registry as families
 
     discovered = [
         value
@@ -34,7 +34,7 @@ def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any, Any], ...]:
 
 
 def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
-    from propstore.artifacts.families import semantic_foreign_keys
+    from propstore.families.registry import semantic_foreign_keys
 
     return semantic_foreign_keys()
 
@@ -93,7 +93,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
 def build_propstore_contract_manifest() -> ContractManifest:
     contracts: list[ContractEntry] = []
     contracts.extend(_document_contract(document_type) for document_type in iter_document_schema_types())
-    from propstore.artifacts.families import PROPSTORE_FAMILY_REGISTRY
+    from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 
     contracts.extend(PROPSTORE_FAMILY_REGISTRY.contract_entries())
     contracts.extend(_family_contract(family) for family in iter_artifact_families())

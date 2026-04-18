@@ -5,7 +5,7 @@ from collections import Counter
 from itertools import product
 from typing import Any, cast
 
-from propstore.artifacts.families import (
+from propstore.families.registry import (
     CONCEPT_ALIGNMENT_FAMILY,
     CONCEPT_FILE_FAMILY,
     ConceptAlignmentRef,

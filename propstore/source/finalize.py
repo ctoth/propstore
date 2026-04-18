@@ -9,7 +9,7 @@ from propstore.claim_references import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
-from propstore.artifacts.families import SourceRef
+from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value
 from propstore.source_calibration import derive_source_trust

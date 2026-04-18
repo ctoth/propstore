@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from propstore.artifacts.families import (
+from propstore.families.registry import (
     PlannedSemanticWrite,
     normalize_semantic_import_writes,
     semantic_family_for_path,

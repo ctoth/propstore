@@ -6,7 +6,7 @@ from pathlib import Path
 
 from quire.documents import DocumentStruct, decode_document_bytes
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
-from propstore.artifacts.families import (
+from propstore.families.registry import (
     PropstoreFamily,
     semantic_init_roots,
     semantic_root_path,
@@ -132,7 +132,7 @@ class Repository:
 
     @cached_property
     def families(self):
-        from propstore.artifacts.families import PROPSTORE_FAMILY_REGISTRY
+        from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 
         return PROPSTORE_FAMILY_REGISTRY.bind(self, self._family_store)
 

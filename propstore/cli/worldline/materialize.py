@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from propstore.artifacts.families import WorldlineRef
+from propstore.families.registry import WorldlineRef
 from propstore.cli.helpers import open_world_model
 from propstore.cli.worldline import (
     _apply_reasoning_options,

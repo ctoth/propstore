@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.repository import Repository
-from propstore.artifacts.families import SourceRef
+from propstore.families.registry import SourceRef
 from quire.documents import decode_document_path
 
 from .common import load_source_concepts_document

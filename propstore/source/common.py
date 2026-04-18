@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar, cast
 
-from propstore.artifacts.families import SOURCE_DOCUMENT_FAMILY, SourceRef
+from propstore.families.registry import SOURCE_DOCUMENT_FAMILY, SourceRef
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.provenance import ProvenanceStatus

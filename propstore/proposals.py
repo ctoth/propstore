@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from quire.documents import encode_document
-from propstore.artifacts.families import PROPOSAL_STANCE_FAMILY
-from propstore.artifacts.families import StanceFileRef
+from propstore.families.registry import PROPOSAL_STANCE_FAMILY
+from propstore.families.registry import StanceFileRef
 from propstore.artifacts.documents.stances import StanceFileDocument
 from quire.documents import convert_document_value
 

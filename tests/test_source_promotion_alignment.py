@@ -7,7 +7,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from propstore.artifacts.families import (
+from propstore.families.registry import (
     CanonicalSourceRef,
     ClaimsFileRef,
     ConceptAlignmentRef,

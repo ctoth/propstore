@@ -8,7 +8,7 @@ from propstore.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
 )
-from propstore.artifacts.families import (
+from propstore.families.registry import (
     ClaimsFileRef,
     ConceptFileRef,
     ContextRef,

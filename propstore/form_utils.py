@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from propstore.artifacts.documents.forms import (
     FormDocument,
 )
-from propstore.artifacts.families import FormRef
+from propstore.families.registry import FormRef
 from propstore.cel_checker import KindType
 from quire.documents import DocumentSchemaError, convert_document_value, decode_document_path
 from propstore.core.concepts import parse_concept_record_document
