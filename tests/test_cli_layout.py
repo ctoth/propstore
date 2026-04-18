@@ -103,3 +103,27 @@ def test_worldline_commands_live_outside_group_module() -> None:
     assert "def worldline_list(" in display
     assert "def worldline_diff(" in display
     assert "def worldline_delete(" in mutation
+
+
+def test_concept_commands_live_outside_group_module() -> None:
+    group_module = Path("propstore/cli/concept.py").read_text(encoding="utf-8")
+    mutation = Path("propstore/cli/concept_mutation_cmds.py").read_text(
+        encoding="utf-8"
+    )
+    display = Path("propstore/cli/concept_display_cmds.py").read_text(
+        encoding="utf-8"
+    )
+    alignment = Path("propstore/cli/concept_alignment_cmds.py").read_text(
+        encoding="utf-8"
+    )
+    embedding = Path("propstore/cli/concept_embedding_cmds.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "@concept.command" not in group_module
+    assert "def concept(" in group_module
+    assert "from propstore.cli import concept_mutation_cmds" in group_module
+    assert '@concept.command("add-value")' in mutation
+    assert '@concept.command("list")' in display
+    assert '@concept.command("align")' in alignment
+    assert "def similar(" in embedding

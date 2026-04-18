@@ -663,6 +663,26 @@ Status 2026-04-17: remaining world command families are split.
   - `logs/test-runs/cli-world-family-split-20260417-202000.log` - 41 passed.
   - `uv run pyright propstore/cli/world_cmds.py propstore/cli/world_query_cmds.py propstore/cli/world_reasoning_cmds.py propstore/cli/world_analysis_cmds.py propstore/cli/world_atms_cmds.py propstore/cli/world_revision_cmds.py tests/test_cli_layout.py` - 0 errors.
 
+Status 2026-04-17: concept command families are split.
+
+- Reduced `propstore.cli.concept` to the `pks concept` group and shared
+  helper surface.
+- Moved mutation commands (`add`, `alias`, `rename`, `deprecate`, `link`,
+  `qualia-add`, `description-kind`, `proto-role`, `add-value`) to
+  `propstore.cli.concept_mutation_cmds`.
+- Moved display/search commands (`search`, `list`, `categories`, `show`) to
+  `propstore.cli.concept_display_cmds`.
+- Moved alignment commands (`align`, `query`, `decide`, `promote`) to
+  `propstore.cli.concept_alignment_cmds`.
+- Moved embedding commands (`embed`, `similar`) to
+  `propstore.cli.concept_embedding_cmds`.
+- Added a layout guard preventing `@concept.command` handlers from returning
+  to the group/common module.
+- Verification:
+  - `uv run pks concept --help` lists the split concept commands.
+  - `logs/test-runs/cli-concept-split-20260417-202357.log` - 47 passed.
+  - `uv run pyright propstore/cli/concept.py propstore/cli/concept_mutation_cmds.py propstore/cli/concept_display_cmds.py propstore/cli/concept_alignment_cmds.py propstore/cli/concept_embedding_cmds.py tests/test_cli_layout.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
