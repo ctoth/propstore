@@ -100,7 +100,7 @@ def add(
     if definition is None:
         definition = click.prompt("Definition")
     if form_name is None:
-        available = sorted(form_ref.name for form_ref in repo.artifacts.list(FORM_FAMILY))
+        available = sorted(form_ref.name for form_ref in repo.families.forms.list())
         if available:
             click.echo(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
@@ -149,13 +149,13 @@ def add(
 
     if dry_run:
         click.echo(f"Would create {filepath}")
-        click.echo(repo.artifacts.render(document))
+        click.echo(repo.families.concepts.render(document))
         return
 
     tree = repo.tree()
     concepts: list[LoadedConcept] = []
-    for existing_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, existing_ref)
+    for existing_ref in repo.families.concepts.list():
+        handle = repo.families.concepts.require_handle(existing_ref)
         concepts.append(
             LoadedConcept(
                 filename=existing_ref.name,
@@ -177,8 +177,8 @@ def add(
 
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.artifacts.list(FORM_FAMILY)
-        for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+        for form_ref in repo.families.forms.list()
+        for document in (repo.families.forms.require(form_ref),)
     }
     result = validate_concepts(concepts, form_registry=form_registry)
     if not result.ok:
@@ -190,8 +190,7 @@ def add(
     for w in result.warnings:
         click.echo(f"WARNING: {w}", err=True)
 
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         document,
         message=f"Add concept: {name} ({_concept_display_handle(concept_document_to_record_payload(document))})",
@@ -225,13 +224,13 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
 
     # Warn if alias matches another concept's canonical_name
     tree = repo.tree()
-    for other_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+    for other_ref in repo.families.concepts.list():
         if other_ref == ref:
             continue
-        other_document = repo.artifacts.require(CONCEPT_FILE_FAMILY, other_ref)
+        other_document = repo.families.concepts.require(other_ref)
         other_entry = LoadedConcept(
             filename=other_ref.name,
-            source_path=tree / repo.artifacts.address(CONCEPT_FILE_FAMILY, other_ref).require_path(),
+            source_path=tree / repo.families.concepts.address(other_ref).require_path(),
             knowledge_root=tree,
             record=parse_concept_record_document(other_document),
             document=other_document,
@@ -255,8 +254,7 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
     data["last_modified"] = str(date.today())
     data = _normalize_concept_data(data)
     document = _concept_document(repo, ref, data)
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         document,
         message=f"Add alias '{name}' to {_concept_display_handle(data)}",
@@ -310,8 +308,8 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
 
     tree = repo.tree()
     loaded_concepts: list[LoadedConcept] = []
-    for loaded_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, loaded_ref)
+    for loaded_ref in repo.families.concepts.list():
+        handle = repo.families.concepts.require_handle(loaded_ref)
         loaded_concepts.append(
             LoadedConcept(
                 filename=loaded_ref.name,
@@ -350,15 +348,15 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         ))
 
     claim_files = [
-        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, claim_ref)
-        for claim_ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+        repo.families.claims.require_handle(claim_ref)
+        for claim_ref in repo.families.claims.list()
     ]
     concept_validation = validate_concepts(
         [entry for _, _, entry in updated_concepts],
         form_registry={
             document.name: parse_form(document.name, document)
-            for form_ref in repo.artifacts.list(FORM_FAMILY)
-            for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+            for form_ref in repo.families.forms.list()
+            for document in (repo.families.forms.require(form_ref),)
         },
         claim_reference_lookup=build_claim_reference_lookup(claim_files),
     )
@@ -389,8 +387,8 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             [entry for _, _, entry in updated_concepts],
             form_registry={
                 document.name: parse_form(document.name, document)
-                for form_ref in repo.artifacts.list(FORM_FAMILY)
-                for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+                for form_ref in repo.families.forms.list()
+                for document in (repo.families.forms.require(form_ref),)
             },
             claim_files=[entry for _, entry in updated_claim_files],
         )
@@ -404,19 +402,17 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             click.echo("Rename validation failed. No changes written.", err=True)
             sys.exit(EXIT_VALIDATION)
 
-    with repo.artifacts.transact(message=f"Rename concept: {old_name} -> {name}") as transaction:
+    with repo.families.transact(message=f"Rename concept: {old_name} -> {name}") as transaction:
         for original_ref, updated_ref, updated_concept in updated_concepts:
             if original_ref == old_ref:
-                transaction.move(
-                    CONCEPT_FILE_FAMILY,
+                transaction.concepts.move(
                     old_ref,
                     new_ref,
                     _concept_document(repo, updated_ref, updated_concept.record.to_payload()),
                 )
                 continue
             if original_ref in changed_concept_refs:
-                transaction.save(
-                    CONCEPT_FILE_FAMILY,
+                transaction.concepts.save(
                     updated_ref,
                     _concept_document(repo, updated_ref, updated_concept.record.to_payload()),
                 )
@@ -424,8 +420,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         for claim_ref, updated_claim_file in updated_claim_files:
             if claim_ref not in changed_claim_refs:
                 continue
-            transaction.save(
-                CLAIMS_FILE_FAMILY,
+            transaction.claims.save(
                 claim_ref,
                 _claims_document(repo, claim_ref, claim_file_payload(updated_claim_file)),
             )
@@ -480,8 +475,7 @@ def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> No
     data["replaced_by"] = replacement_artifact_id
     data["last_modified"] = str(date.today())
     data = _normalize_concept_data(data)
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         _concept_document(repo, ref, data),
         message=f"Deprecate {_concept_display_handle(data)}, replaced by {_concept_display_handle(replacement_data)}",
@@ -554,8 +548,8 @@ def link(
 
     tree = repo.tree()
     concepts: list[LoadedConcept] = []
-    for loaded_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, loaded_ref)
+    for loaded_ref in repo.families.concepts.list():
+        handle = repo.families.concepts.require_handle(loaded_ref)
         concepts.append(
             LoadedConcept(
                 filename=loaded_ref.name,
@@ -593,12 +587,12 @@ def link(
         updated_concepts,
         form_registry={
             document.name: parse_form(document.name, document)
-            for form_ref in repo.artifacts.list(FORM_FAMILY)
-            for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+            for form_ref in repo.families.forms.list()
+            for document in (repo.families.forms.require(form_ref),)
         },
         claim_reference_lookup=build_claim_reference_lookup([
-            repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, claim_ref)
-            for claim_ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+            repo.families.claims.require_handle(claim_ref)
+            for claim_ref in repo.families.claims.list()
         ]),
     )
     if not validation.ok:
@@ -610,8 +604,7 @@ def link(
     for w in validation.warnings:
         click.echo(f"WARNING: {w}", err=True)
 
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         updated_document,
         message=f"Link {_concept_display_handle(data)} {rel_type} {_concept_display_handle(target_data)}",
@@ -706,12 +699,11 @@ def qualia_add(
     data = concept_document_to_record_payload(document)
 
     if dry_run:
-        click.echo(repo.artifacts.render(document))
+        click.echo(repo.families.concepts.render(document))
         return
 
     _validate_updated_concept(repo, concept_entry, document)
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         document,
         message=f"Add {role} qualia to {_concept_display_handle(data)}",
@@ -774,12 +766,11 @@ def description_kind_cmd(
     data = concept_document_to_record_payload(document)
 
     if dry_run:
-        click.echo(repo.artifacts.render(document))
+        click.echo(repo.families.concepts.render(document))
         return
 
     _validate_updated_concept(repo, concept_entry, document)
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         document,
         message=f"Set description kind on {_concept_display_handle(data)}",
@@ -869,12 +860,11 @@ def proto_role_cmd(
     data = concept_document_to_record_payload(document)
 
     if dry_run:
-        click.echo(repo.artifacts.render(document))
+        click.echo(repo.families.concepts.render(document))
         return
 
     _validate_updated_concept(repo, concept_entry, document)
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         document,
         message=f"Add {role_kind} proto-role {property_name} to {_concept_display_handle(data)}",
@@ -935,8 +925,7 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
     data["form_parameters"] = fp
     data["last_modified"] = str(date.today())
     data = _normalize_concept_data(data)
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         _concept_document(repo, ref, data),
         message=f"Add value '{value}' to {concept_name}",
