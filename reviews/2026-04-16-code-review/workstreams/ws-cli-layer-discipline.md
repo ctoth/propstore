@@ -532,15 +532,15 @@ Status 2026-04-17: project initialization slice landed.
   - `logs/test-runs/cli-layer-project-init-20260417-190937.log` - 15 passed.
   - `uv run pyright propstore/project_init.py propstore/cli/init.py` - 0 errors.
 
-Status 2026-04-17: CLI subcommand package shape started.
+Status 2026-04-17: init package experiment reverted.
 
-- Converted `propstore.cli.init` from a flat module to a subcommand package
-  with the Click adapter in `propstore.cli.init.command`.
-- Kept `from propstore.cli.init import init` stable for root registration while
-  establishing the package pattern to apply to larger command families.
+- Restored `propstore.cli.init` as a flat command module. Single-command
+  modules do not need package directories.
+- Kept the project initialization owner extraction in `propstore.project_init`;
+  only the CLI adapter layout changed back.
 - Verification:
-  - `logs/test-runs/cli-package-init-20260417-191241.log` - 15 passed.
-  - `uv run pyright propstore/cli/init/command.py propstore/cli/__init__.py` - 0 errors.
+  - `logs/test-runs/cli-init-flat-20260417-191616.log` - 15 passed.
+  - `uv run pyright propstore/cli/init.py propstore/cli/__init__.py` - 0 errors.
 
 ### Phase CLI-6 - Discipline capture and enforcement
 
