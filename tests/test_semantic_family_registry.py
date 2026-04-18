@@ -71,11 +71,11 @@ def test_semantic_family_contract_includes_path_schema() -> None:
 
 
 def test_canonical_artifact_path_helpers_are_deleted() -> None:
-    import propstore.families.registry as artifact_families
+    import propstore.families.registry as family_registry
 
-    assert importlib.util.find_spec("propstore.artifacts.refs") is None
+    assert importlib.util.find_spec("propstore.artifacts") is None
 
-    families_source = inspect.getsource(artifact_families)
+    families_source = inspect.getsource(family_registry)
     joined = "_".join
 
     deleted_helpers = (
