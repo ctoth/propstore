@@ -12,12 +12,12 @@ from propstore.families.registry import (
     ConceptFileRef,
 )
 from propstore.identity import normalize_canonical_concept_payload
-from propstore.artifacts.documents.concepts import ConceptDocument
+from propstore.families.documents.concepts import ConceptDocument
 from propstore.repository import Repository
 from quire.documents import convert_document_value
 from argumentation.partial_af import PartialArgumentationFramework
 from argumentation.partial_af import credulously_accepted_arguments, skeptically_accepted_arguments
-from propstore.artifacts.documents.source_alignment import (
+from propstore.families.documents.source_alignment import (
     AlignmentArgumentDocument,
     AlignmentDecisionDocument,
     AlignmentFrameworkDocument,
@@ -35,7 +35,7 @@ from propstore.core.lemon import (
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 
 from .common import load_document_from_branch, load_source_document
-from propstore.artifacts.documents.sources import SourceConceptsDocument
+from propstore.families.documents.sources import SourceConceptsDocument
 
 
 def alignment_slug(value: str) -> str:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.documents.concepts import ConceptDocument
+from propstore.families.documents.concepts import ConceptDocument
 from quire.refs import RefName
 
 if TYPE_CHECKING:

@@ -95,7 +95,7 @@ class RuleSourceDocument(DocumentStruct):
     """Provenance block for a rules file.
 
     Mirrors ``ClaimSourceDocument`` from
-    ``propstore.artifacts.documents.claims``
+    ``propstore.families.documents.claims``
     but scoped to the minimal fields the rule-authoring workflow needs
     today. Garcia & Simari 2004 rules are authored per-paper; the
     ``paper`` field anchors a rules file to the theory source it is
@@ -113,7 +113,7 @@ class RulesFileDocument(DocumentStruct):
     """Top-level envelope for an authored DeLP rules YAML file.
 
     Parallels ``ClaimsFileDocument`` from
-    ``propstore.artifacts.documents.claims``: a ``source`` block plus an
+    ``propstore.families.documents.claims``: a ``source`` block plus an
     ordered tuple of rules. Rule priority is authored explicitly through
     ``superiority`` pairs, oriented ``(superior_rule_id, inferior_rule_id)``
     to match Garcia & Simari's DeLP superiority relation. YAML order stays

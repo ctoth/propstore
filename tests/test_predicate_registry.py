@@ -108,7 +108,7 @@ def predicate_documents() -> st.SearchStrategy:
     every generated document is admissible to the registry layer.
     """
 
-    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
 
     @st.composite
     def _build(draw: st.DrawFn) -> "PredicateDocument":
@@ -140,7 +140,7 @@ def loaded_predicate_files_from(docs) -> "list":
     """
 
     from quire.documents import LoadedDocument
-    from propstore.artifacts.documents.predicates import PredicatesFileDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicatesFileDocument  # noqa: E402
     from propstore.predicate_files import LoadedPredicateFile  # noqa: E402
 
     file_doc = PredicatesFileDocument(predicates=tuple(docs))
@@ -316,7 +316,7 @@ def test_registry_duplicate_predicate_id_rejected() -> None:
 
     from propstore.grounding.predicates import PredicateRegistry  # noqa: E402
     from quire.documents import LoadedDocument
-    from propstore.artifacts.documents.predicates import (  # noqa: E402
+    from propstore.families.documents.predicates import (  # noqa: E402
         PredicateDocument,
         PredicatesFileDocument,
     )

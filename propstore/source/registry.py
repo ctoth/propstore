@@ -9,7 +9,7 @@ from propstore.repository import Repository
 from propstore.parameterization_groups import build_groups
 
 from .common import normalize_source_slug
-from propstore.artifacts.documents.sources import SourceConceptsDocument
+from propstore.families.documents.sources import SourceConceptsDocument
 
 
 def _derived_concept_artifact_id(handle: str) -> str:

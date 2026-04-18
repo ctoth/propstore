@@ -95,7 +95,7 @@ def _build_term_var(name: str):
     identifiers that the Herbrand grounding pass substitutes.
     """
 
-    from propstore.artifacts.documents.rules import TermDocument
+    from propstore.families.documents.rules import TermDocument
 
     return TermDocument(kind="var", name=name, value=None)
 
@@ -107,7 +107,7 @@ def _build_atom(predicate: str, terms):
     the gunray schema consumes after stringification.
     """
 
-    from propstore.artifacts.documents.rules import AtomDocument
+    from propstore.families.documents.rules import AtomDocument
 
     return AtomDocument(predicate=predicate, terms=tuple(terms), negated=False)
 
@@ -125,7 +125,7 @@ def _build_rule_document(
     grounder consumes authored strict, defeasible, and defeater rules.
     """
 
-    from propstore.artifacts.documents.rules import RuleDocument
+    from propstore.families.documents.rules import RuleDocument
 
     return RuleDocument(
         id=rule_id,
@@ -144,7 +144,7 @@ def _build_rule_file(rules):
     """
 
     from quire.documents import LoadedDocument
-    from propstore.artifacts.documents.rules import RulesFileDocument, RuleSourceDocument
+    from propstore.families.documents.rules import RulesFileDocument, RuleSourceDocument
     from propstore.rule_files import LoadedRuleFile
 
     file_doc = RulesFileDocument(
@@ -173,7 +173,7 @@ def _build_predicate_document(
     declaration time.
     """
 
-    from propstore.artifacts.documents.predicates import PredicateDocument
+    from propstore.families.documents.predicates import PredicateDocument
 
     return PredicateDocument(
         id=predicate_id,
@@ -194,7 +194,7 @@ def _build_registry(predicates):
 
     from propstore.grounding.predicates import PredicateRegistry
     from quire.documents import LoadedDocument
-    from propstore.artifacts.documents.predicates import PredicatesFileDocument
+    from propstore.families.documents.predicates import PredicatesFileDocument
     from propstore.predicate_files import LoadedPredicateFile
 
     file_doc = PredicatesFileDocument(predicates=tuple(predicates))

@@ -11,12 +11,12 @@ from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
 from quire.documents import DocumentStruct
 from quire.versions import VersionId
-from propstore.artifacts.documents.contexts import ContextReferenceDocument
+from propstore.families.documents.contexts import ContextReferenceDocument
 from propstore.provenance import Provenance
 from propstore.stances import StanceType
 
 
-CLAIM_TYPE_CONTRACT_VERSION = VersionId("2026.04.21")
+CLAIM_TYPE_CONTRACT_VERSION = VersionId("2026.04.27")
 
 
 @dataclass(frozen=True)

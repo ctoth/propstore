@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from propstore.artifacts.documents.claims import ClaimDocument, StanceDocument
+from propstore.families.documents.claims import ClaimDocument, StanceDocument
 from propstore.core.claim_types import ClaimType
 from quire.documents import DocumentSchemaError, convert_document_value
-from propstore.artifacts.documents.sources import SourceClaimDocument, SourceStanceEntryDocument
-from propstore.artifacts.documents.stances import StanceEntryDocument
+from propstore.families.documents.sources import SourceClaimDocument, SourceStanceEntryDocument
+from propstore.families.documents.stances import StanceEntryDocument
 from propstore.stances import StanceType
 
 import pytest

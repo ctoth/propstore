@@ -11,7 +11,7 @@ from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.provenance import ProvenanceStatus
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
-from propstore.artifacts.documents.sources import (
+from propstore.families.documents.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,
     SourceDocument,
@@ -23,7 +23,7 @@ from propstore.artifacts.documents.sources import (
     SourceTrustDocument,
     SourceTrustQualityDocument,
 )
-from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationsFileDocument
 
 TDocument = TypeVar("TDocument")
 

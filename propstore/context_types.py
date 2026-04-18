@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from propstore.artifacts.documents.contexts import ContextDocument
+from propstore.families.documents.contexts import ContextDocument
 from propstore.cel_types import to_cel_exprs
 from propstore.context_lifting import (
     ContextReference,

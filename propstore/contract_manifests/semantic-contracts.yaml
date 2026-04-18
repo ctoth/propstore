@@ -5,11 +5,11 @@ package:
 contracts:
 - kind: artifact_family
   name: canonical_source
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.sources.SourceDocument
+    doc_type: propstore.families.documents.sources.SourceDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -26,11 +26,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: claims_file
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.claims.ClaimsFileDocument
+    doc_type: propstore.families.documents.claims.ClaimsFileDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -47,11 +47,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: concept_alignment
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.source_alignment.ConceptAlignmentArtifactDocument
+    doc_type: propstore.families.documents.source_alignment.ConceptAlignmentArtifactDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -69,11 +69,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: concept_file
-  contract_version: 2026.04.26
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.concepts.ConceptDocument
+    doc_type: propstore.families.documents.concepts.ConceptDocument
     document_payload: propstore.families.registry._concept_document_payload
     encode_document: propstore.families.registry._encode_concept_document
     normalize_for_write: propstore.families.registry._normalize_concept_for_write
@@ -90,11 +90,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: context
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.contexts.ContextDocument
+    doc_type: propstore.families.documents.contexts.ContextDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -111,11 +111,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: form
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.forms.FormDocument
+    doc_type: propstore.families.documents.forms.FormDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -132,11 +132,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: justifications_file
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
+    doc_type: propstore.families.documents.sources.SourceJustificationsDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -153,11 +153,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: merge_manifest
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.merge.MergeManifestDocument
+    doc_type: propstore.families.documents.merge.MergeManifestDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -171,11 +171,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: micropubs_file
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
+    doc_type: propstore.families.documents.micropubs.MicropublicationsFileDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -192,11 +192,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: predicate_file
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.predicates.PredicatesFileDocument
+    doc_type: propstore.families.documents.predicates.PredicatesFileDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -213,11 +213,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: proposal_stance_file
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.stances.StanceFileDocument
+    doc_type: propstore.families.documents.stances.StanceFileDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -235,11 +235,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: rule_file
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.rules.RulesFileDocument
+    doc_type: propstore.families.documents.rules.RulesFileDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -256,11 +256,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_claims
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.sources.SourceClaimsDocument
+    doc_type: propstore.families.documents.sources.SourceClaimsDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -277,11 +277,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_concepts
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.sources.SourceConceptsDocument
+    doc_type: propstore.families.documents.sources.SourceConceptsDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -298,11 +298,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_document
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.sources.SourceDocument
+    doc_type: propstore.families.documents.sources.SourceDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -319,11 +319,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_finalize_report
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.sources.SourceFinalizeReportDocument
+    doc_type: propstore.families.documents.sources.SourceFinalizeReportDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -342,11 +342,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_justifications
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
+    doc_type: propstore.families.documents.sources.SourceJustificationsDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -363,7 +363,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_metadata
-  contract_version: 2026.04.26
+  contract_version: 2026.04.27
   body:
     coerce_payload: propstore.families.registry._coerce_json_mapping
     decode_bytes: propstore.families.registry._decode_json_mapping
@@ -384,11 +384,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_micropubs
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
+    doc_type: propstore.families.documents.micropubs.MicropublicationsFileDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -405,7 +405,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_notes
-  contract_version: 2026.04.26
+  contract_version: 2026.04.27
   body:
     coerce_payload: propstore.families.registry._coerce_text_document
     decode_bytes: propstore.families.registry._decode_text_document
@@ -426,11 +426,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_stances
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.sources.SourceStancesDocument
+    doc_type: propstore.families.documents.sources.SourceStancesDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -447,11 +447,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: stance_file
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.stances.StanceFileDocument
+    doc_type: propstore.families.documents.stances.StanceFileDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -468,11 +468,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: worldline
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.artifacts.documents.worldlines.WorldlineDefinitionDocument
+    doc_type: propstore.families.documents.worldlines.WorldlineDefinitionDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -489,7 +489,7 @@ contracts:
     validate_for_write: null
 - kind: claim_type_contract
   name: algorithm
-  contract_version: 2026.04.21
+  contract_version: 2026.04.27
   body:
     claim_type: algorithm
     concept_references:
@@ -508,7 +508,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: comparison
-  contract_version: 2026.04.21
+  contract_version: 2026.04.27
   body:
     claim_type: comparison
     concept_references:
@@ -525,7 +525,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: equation
-  contract_version: 2026.04.21
+  contract_version: 2026.04.27
   body:
     claim_type: equation
     concept_references:
@@ -544,7 +544,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: limitation
-  contract_version: 2026.04.21
+  contract_version: 2026.04.27
   body:
     claim_type: limitation
     concept_references:
@@ -561,7 +561,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: measurement
-  contract_version: 2026.04.21
+  contract_version: 2026.04.27
   body:
     claim_type: measurement
     concept_references:
@@ -586,7 +586,7 @@ contracts:
       value_field: value
 - kind: claim_type_contract
   name: mechanism
-  contract_version: 2026.04.21
+  contract_version: 2026.04.27
   body:
     claim_type: mechanism
     concept_references:
@@ -603,7 +603,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: model
-  contract_version: 2026.04.21
+  contract_version: 2026.04.27
   body:
     claim_type: model
     concept_references:
@@ -621,7 +621,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: observation
-  contract_version: 2026.04.21
+  contract_version: 2026.04.27
   body:
     claim_type: observation
     concept_references:
@@ -638,7 +638,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: parameter
-  contract_version: 2026.04.21
+  contract_version: 2026.04.27
   body:
     claim_type: parameter
     concept_references:
@@ -663,7 +663,7 @@ contracts:
       value_field: value
 - kind: document_schema
   name: AlignmentArgumentDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
@@ -687,10 +687,10 @@ contracts:
     - name: form
       required: true
       type: str
-    module: propstore.artifacts.documents.source_alignment
+    module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: AlignmentDecisionDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: status
@@ -705,10 +705,10 @@ contracts:
     - name: promoted_concept
       required: true
       type: str | None
-    module: propstore.artifacts.documents.source_alignment
+    module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: AlignmentFrameworkDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: attacks
@@ -720,10 +720,10 @@ contracts:
     - name: non_attacks
       required: true
       type: tuple[tuple[str, str], ...]
-    module: propstore.artifacts.documents.source_alignment
+    module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: AlignmentQueriesDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: skeptical_acceptance
@@ -735,10 +735,10 @@ contracts:
     - name: operator_scores
       required: true
       type: dict[str, dict[str, int]]
-    module: propstore.artifacts.documents.source_alignment
+    module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: AtomDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: predicate
@@ -750,10 +750,10 @@ contracts:
     - name: negated
       required: true
       type: bool
-    module: propstore.artifacts.documents.rules
+    module: propstore.families.documents.rules
 - kind: document_schema
   name: AtomicPropositionDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: type
@@ -837,10 +837,10 @@ contracts:
     - name: variables
       required: true
       type: tuple[VariableBindingDocument, ...]
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: ClaimDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: context
@@ -951,10 +951,10 @@ contracts:
     - name: variables
       required: true
       type: tuple[VariableBindingDocument, ...]
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: ClaimLogicalIdDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: namespace
@@ -969,10 +969,10 @@ contracts:
     - name: pass_number
       required: true
       type: int | None
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: ClaimSourceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: paper
@@ -987,10 +987,10 @@ contracts:
     - name: extraction_prompt_hash
       required: true
       type: str | None
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: ClaimsFileDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: source
@@ -1002,10 +1002,10 @@ contracts:
     - name: stage
       required: true
       type: str | None
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: ConceptAliasDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: name
@@ -1017,10 +1017,10 @@ contracts:
     - name: note
       required: true
       type: str | None
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: ConceptAlignmentArtifactDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: kind
@@ -1044,10 +1044,10 @@ contracts:
     - name: decision
       required: true
       type: AlignmentDecisionDocument
-    module: propstore.artifacts.documents.source_alignment
+    module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: ConceptDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: status
@@ -1101,10 +1101,10 @@ contracts:
     - name: replaced_by
       required: true
       type: str | None
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: ConceptFormParametersDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: construction
@@ -1122,10 +1122,10 @@ contracts:
     - name: values
       required: true
       type: tuple[str, ...] | None
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: ConceptIdScanDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
@@ -1137,10 +1137,10 @@ contracts:
     - name: logical_ids
       required: true
       type: tuple[ConceptLogicalIdDocument, ...]
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: ConceptLogicalIdDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: namespace
@@ -1149,10 +1149,10 @@ contracts:
     - name: value
       required: true
       type: str
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: ConceptRelationshipDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: type
@@ -1170,10 +1170,10 @@ contracts:
     - name: note
       required: true
       type: str | None
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: ContextDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
@@ -1191,19 +1191,19 @@ contracts:
     - name: lifting_rules
       required: true
       type: tuple[LiftingRuleDocument, ...]
-    module: propstore.artifacts.documents.contexts
+    module: propstore.families.documents.contexts
 - kind: document_schema
   name: ContextReferenceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
       required: true
       type: str
-    module: propstore.artifacts.documents.contexts
+    module: propstore.families.documents.contexts
 - kind: document_schema
   name: ContextStructureDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: assumptions
@@ -1215,10 +1215,10 @@ contracts:
     - name: perspective
       required: true
       type: str | None
-    module: propstore.artifacts.documents.contexts
+    module: propstore.families.documents.contexts
 - kind: document_schema
   name: ExtractionProvenanceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: reader
@@ -1230,10 +1230,10 @@ contracts:
     - name: timestamp
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: FitStatisticsDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: r
@@ -1248,10 +1248,10 @@ contracts:
     - name: slope_sd
       required: true
       type: float | int | None
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: FormAlternativeDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: unit
@@ -1275,10 +1275,10 @@ contracts:
     - name: reference
       required: true
       type: float
-    module: propstore.artifacts.documents.forms
+    module: propstore.families.documents.forms
 - kind: document_schema
   name: FormDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: name
@@ -1314,10 +1314,10 @@ contracts:
     - name: extra_units
       required: true
       type: tuple[FormExtraUnitDocument, ...]
-    module: propstore.artifacts.documents.forms
+    module: propstore.families.documents.forms
 - kind: document_schema
   name: FormExtraUnitDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: symbol
@@ -1326,10 +1326,10 @@ contracts:
     - name: dimensions
       required: true
       type: dict[str, int]
-    module: propstore.artifacts.documents.forms
+    module: propstore.families.documents.forms
 - kind: document_schema
   name: IstPropositionDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: context
@@ -1338,10 +1338,10 @@ contracts:
     - name: proposition
       required: true
       type: AtomicPropositionDocument | IstPropositionDocument
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: LexicalEntryDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: identifier
@@ -1359,10 +1359,10 @@ contracts:
     - name: other_forms
       required: true
       type: tuple[LexicalFormDocument, ...]
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: LexicalFormDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: written_rep
@@ -1374,10 +1374,10 @@ contracts:
     - name: phonetic_rep
       required: true
       type: str | None
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: LexicalSenseDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: reference
@@ -1398,10 +1398,10 @@ contracts:
     - name: role_bundles
       required: true
       type: dict[str, ProtoRoleBundle] | None
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: LiftingRuleDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
@@ -1422,10 +1422,10 @@ contracts:
     - name: justification
       required: true
       type: str | None
-    module: propstore.artifacts.documents.contexts
+    module: propstore.families.documents.contexts
 - kind: document_schema
   name: MergeManifestArgumentDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: claim_id
@@ -1446,19 +1446,19 @@ contracts:
     - name: materialized
       required: true
       type: bool
-    module: propstore.artifacts.documents.merge
+    module: propstore.families.documents.merge
 - kind: document_schema
   name: MergeManifestDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: merge
       required: true
       type: MergeManifestPayloadDocument
-    module: propstore.artifacts.documents.merge
+    module: propstore.families.documents.merge
 - kind: document_schema
   name: MergeManifestPayloadDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: branch_a
@@ -1476,10 +1476,10 @@ contracts:
     - name: semantic_candidate_details
       required: true
       type: tuple[MergeSemanticCandidateDetailDocument, ...]
-    module: propstore.artifacts.documents.merge
+    module: propstore.families.documents.merge
 - kind: document_schema
   name: MergeSemanticCandidateArgumentDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: claim_id
@@ -1497,10 +1497,10 @@ contracts:
     - name: source_paper
       required: true
       type: str | None
-    module: propstore.artifacts.documents.merge
+    module: propstore.families.documents.merge
 - kind: document_schema
   name: MergeSemanticCandidateDetailDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: claim_ids
@@ -1515,10 +1515,10 @@ contracts:
     - name: arguments
       required: true
       type: tuple[MergeSemanticCandidateArgumentDocument, ...]
-    module: propstore.artifacts.documents.merge
+    module: propstore.families.documents.merge
 - kind: document_schema
   name: MicropublicationDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: artifact_id
@@ -1548,10 +1548,10 @@ contracts:
     - name: source
       required: true
       type: str | None
-    module: propstore.artifacts.documents.micropubs
+    module: propstore.families.documents.micropubs
 - kind: document_schema
   name: MicropublicationEvidenceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: kind
@@ -1560,10 +1560,10 @@ contracts:
     - name: reference
       required: true
       type: str
-    module: propstore.artifacts.documents.micropubs
+    module: propstore.families.documents.micropubs
 - kind: document_schema
   name: MicropublicationsFileDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: micropubs
@@ -1572,10 +1572,10 @@ contracts:
     - name: source
       required: true
       type: ClaimSourceDocument | None
-    module: propstore.artifacts.documents.micropubs
+    module: propstore.families.documents.micropubs
 - kind: document_schema
   name: OntologyReferenceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: uri
@@ -1584,10 +1584,10 @@ contracts:
     - name: label
       required: true
       type: str | None
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: OpinionDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: b
@@ -1605,10 +1605,10 @@ contracts:
     - name: provenance
       required: true
       type: Provenance
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: ParameterBindingDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: name
@@ -1620,10 +1620,10 @@ contracts:
     - name: note
       required: true
       type: str | None
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: ParameterizationRelationshipDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: inputs
@@ -1656,10 +1656,10 @@ contracts:
     - name: fit_statistics
       required: true
       type: str | None
-    module: propstore.artifacts.documents.concepts
+    module: propstore.families.documents.concepts
 - kind: document_schema
   name: PredicateDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
@@ -1677,19 +1677,19 @@ contracts:
     - name: description
       required: true
       type: str | None
-    module: propstore.artifacts.documents.predicates
+    module: propstore.families.documents.predicates
 - kind: document_schema
   name: PredicatesFileDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: predicates
       required: true
       type: tuple[PredicateDocument, ...]
-    module: propstore.artifacts.documents.predicates
+    module: propstore.families.documents.predicates
 - kind: document_schema
   name: ProvenanceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: page
@@ -1713,10 +1713,10 @@ contracts:
     - name: table
       required: true
       type: str | None
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: ResolutionDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: method
@@ -1740,10 +1740,10 @@ contracts:
     - name: opinion
       required: true
       type: OpinionDocument | None
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: RuleDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
@@ -1758,19 +1758,19 @@ contracts:
     - name: body
       required: true
       type: tuple[AtomDocument, ...]
-    module: propstore.artifacts.documents.rules
+    module: propstore.families.documents.rules
 - kind: document_schema
   name: RuleSourceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: paper
       required: true
       type: str
-    module: propstore.artifacts.documents.rules
+    module: propstore.families.documents.rules
 - kind: document_schema
   name: RulesFileDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: source
@@ -1782,10 +1782,10 @@ contracts:
     - name: superiority
       required: true
       type: tuple[tuple[str, str], ...]
-    module: propstore.artifacts.documents.rules
+    module: propstore.families.documents.rules
 - kind: document_schema
   name: SourceAttackTargetDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: target_claim
@@ -1797,10 +1797,10 @@ contracts:
     - name: target_premise_index
       required: true
       type: int | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceClaimDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: artifact_id
@@ -1908,10 +1908,10 @@ contracts:
     - name: artifact_code
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceClaimsDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: claims
@@ -1923,10 +1923,10 @@ contracts:
     - name: produced_by
       required: true
       type: ExtractionProvenanceDocument | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptAliasDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: name
@@ -1938,10 +1938,10 @@ contracts:
     - name: note
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptEntryDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: local_name
@@ -1974,10 +1974,10 @@ contracts:
     - name: artifact_code
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptFormParametersDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: construction
@@ -1995,10 +1995,10 @@ contracts:
     - name: values
       required: true
       type: tuple[str, ...] | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptRegistryMatchDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: artifact_id
@@ -2007,19 +2007,19 @@ contracts:
     - name: canonical_name
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptsDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: concepts
       required: true
       type: tuple[SourceConceptEntryDocument, ...]
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
@@ -2040,10 +2040,10 @@ contracts:
     - name: artifact_code
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceFinalizeCalibrationDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: prior_base_rate_status
@@ -2055,10 +2055,10 @@ contracts:
     - name: fallback_to_default_base_rate
       required: true
       type: bool
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceFinalizeReportDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: kind
@@ -2094,10 +2094,10 @@ contracts:
     - name: parameterization_group_merges
       required: true
       type: tuple[SourceParameterizationGroupMergeDocument, ...]
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceJustificationDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
@@ -2124,10 +2124,10 @@ contracts:
     - name: artifact_code
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceJustificationsDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: justifications
@@ -2139,19 +2139,19 @@ contracts:
     - name: produced_by
       required: true
       type: ExtractionProvenanceDocument | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceMetadataDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: name
       required: true
       type: str
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceOriginDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: type
@@ -2166,10 +2166,10 @@ contracts:
     - name: content_ref
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceParameterizationGroupMergeDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: merged_group
@@ -2181,10 +2181,10 @@ contracts:
     - name: introduced_by
       required: true
       type: tuple[str, ...]
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceParameterizationRelationshipDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: inputs
@@ -2217,10 +2217,10 @@ contracts:
     - name: fit_statistics
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceProvenanceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: paper
@@ -2241,10 +2241,10 @@ contracts:
     - name: table
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceStanceEntryDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: source_claim
@@ -2274,10 +2274,10 @@ contracts:
     - name: artifact_code
       required: true
       type: str | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceStancesDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: stances
@@ -2289,10 +2289,10 @@ contracts:
     - name: produced_by
       required: true
       type: ExtractionProvenanceDocument | None
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceTrustDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: status
@@ -2307,10 +2307,10 @@ contracts:
     - name: derived_from
       required: true
       type: tuple[str, ...]
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceTrustQualityDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: status
@@ -2328,10 +2328,10 @@ contracts:
     - name: a
       required: true
       type: float | int
-    module: propstore.artifacts.documents.sources
+    module: propstore.families.documents.sources
 - kind: document_schema
   name: StanceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: type
@@ -2355,10 +2355,10 @@ contracts:
     - name: target_justification_id
       required: true
       type: str | None
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: StanceEntryDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: source_claim
@@ -2388,10 +2388,10 @@ contracts:
     - name: artifact_code
       required: true
       type: str | None
-    module: propstore.artifacts.documents.stances
+    module: propstore.families.documents.stances
 - kind: document_schema
   name: StanceFileDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: source_claim
@@ -2406,10 +2406,10 @@ contracts:
     - name: classification_date
       required: true
       type: str | None
-    module: propstore.artifacts.documents.stances
+    module: propstore.families.documents.stances
 - kind: document_schema
   name: TermDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: kind
@@ -2421,10 +2421,10 @@ contracts:
     - name: value
       required: true
       type: str | int | float | bool | None
-    module: propstore.artifacts.documents.rules
+    module: propstore.families.documents.rules
 - kind: document_schema
   name: VariableBindingDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: concept
@@ -2439,10 +2439,10 @@ contracts:
     - name: name
       required: true
       type: str | None
-    module: propstore.artifacts.documents.claims
+    module: propstore.families.documents.claims
 - kind: document_schema
   name: WorldlineAssumptionDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: assumption_id
@@ -2457,10 +2457,10 @@ contracts:
     - name: cel
       required: true
       type: CelExpr
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineDefinitionDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: id
@@ -2487,10 +2487,10 @@ contracts:
     - name: results
       required: true
       type: WorldlineResultDocument | None
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineDependenciesDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: claims
@@ -2502,10 +2502,10 @@ contracts:
     - name: contexts
       required: true
       type: tuple[str, ...]
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineInputSourceDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: source
@@ -2529,10 +2529,10 @@ contracts:
     - name: inputs_used
       required: true
       type: dict[str, WorldlineInputSourceDocument]
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineInputsDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: bindings
@@ -2550,10 +2550,10 @@ contracts:
     - name: overrides
       required: true
       type: dict[str, float | str]
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlinePolicyDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: reasoning_backend
@@ -2619,10 +2619,10 @@ contracts:
     - name: concept_strategies
       required: true
       type: dict[str, str]
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineResultDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: computed
@@ -2649,10 +2649,10 @@ contracts:
     - name: revision
       required: true
       type: WorldlineRevisionStateDocument | None
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionAtomDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: kind
@@ -2667,10 +2667,10 @@ contracts:
     - name: value
       required: true
       type: float | str | None
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionQueryDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: operation
@@ -2688,10 +2688,10 @@ contracts:
     - name: operator
       required: true
       type: str | None
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionResultDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: accepted_atom_ids
@@ -2706,10 +2706,10 @@ contracts:
     - name: explanation
       required: true
       type: dict[str, Any] | None
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionStateDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: operation
@@ -2733,10 +2733,10 @@ contracts:
     - name: error
       required: true
       type: str | None
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineStepDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: concept
@@ -2760,10 +2760,10 @@ contracts:
     - name: formula
       required: true
       type: str | None
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineTargetValueDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: status
@@ -2814,10 +2814,10 @@ contracts:
     - name: inputs_used
       required: true
       type: dict[str, WorldlineInputSourceDocument]
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineVariableRefDocument
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27
   body:
     fields:
     - name: name
@@ -2832,89 +2832,89 @@ contracts:
     - name: value
       required: true
       type: str | None
-    module: propstore.artifacts.documents.worldlines
+    module: propstore.families.documents.worldlines
 - kind: family-registry
   name: propstore
-  contract_version: 2026.04.26
+  contract_version: 2026.04.27
   body:
     families:
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: claims
       name: claims
-    - contract_version: 2026.04.26
+    - contract_version: 2026.04.27
       key: concepts
       name: concepts
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: contexts
       name: contexts
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: forms
       name: forms
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: predicates
       name: predicates
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: rules
       name: rules
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: stances
       name: stances
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: worldlines
       name: worldlines
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: sources
       name: sources
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: micropubs
       name: micropubs
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: justifications
       name: justifications
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: source_documents
       name: source_documents
-    - contract_version: 2026.04.26
+    - contract_version: 2026.04.27
       key: source_notes
       name: source_notes
-    - contract_version: 2026.04.26
+    - contract_version: 2026.04.27
       key: source_metadata
       name: source_metadata
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: source_concepts
       name: source_concepts
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: source_claims
       name: source_claims
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: source_micropubs
       name: source_micropubs
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: source_justifications
       name: source_justifications
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: source_stances
       name: source_stances
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: source_finalize_reports
       name: source_finalize_reports
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: proposal_stances
       name: proposal_stances
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: concept_alignments
       name: concept_alignments
-    - contract_version: 2026.04.24
+    - contract_version: 2026.04.27
       key: merge_manifests
       name: merge_manifests
 - kind: family
   name: claims
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: claims
     artifact_family: claims_file
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.claims.ClaimsFileDocument
+      doc_type: propstore.families.documents.claims.ClaimsFileDocument
       placement:
         branch:
           policy: primary
@@ -2923,7 +2923,7 @@ contracts:
         kind: flat-yaml
         namespace: claims
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys:
     - many: false
       required: true
@@ -2969,12 +2969,12 @@ contracts:
       semantic: true
 - kind: family
   name: concept_alignments
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: concept_alignments
     artifact_family: concept_alignment
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.source_alignment.ConceptAlignmentArtifactDocument
+      doc_type: propstore.families.documents.source_alignment.ConceptAlignmentArtifactDocument
       placement:
         branch:
           fixed_branch: proposal/concepts
@@ -2984,17 +2984,17 @@ contracts:
         kind: flat-yaml
         namespace: merge/concepts
         ref_field: slug
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: concept_alignments
 - kind: family
   name: concepts
-  contract_version: 2026.04.26
+  contract_version: 2026.04.27
   body:
     accessor: concepts
     artifact_family: concept_file
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.concepts.ConceptDocument
+      doc_type: propstore.families.documents.concepts.ConceptDocument
       placement:
         branch:
           policy: primary
@@ -3003,7 +3003,7 @@ contracts:
         kind: flat-yaml
         namespace: concepts
         ref_field: name
-    artifact_family_contract_version: 2026.04.26
+    artifact_family_contract_version: 2026.04.27
     foreign_keys:
     - many: true
       required: true
@@ -3039,12 +3039,12 @@ contracts:
       semantic: true
 - kind: family
   name: contexts
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: contexts
     artifact_family: context
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.contexts.ContextDocument
+      doc_type: propstore.families.documents.contexts.ContextDocument
       placement:
         branch:
           policy: current
@@ -3053,7 +3053,7 @@ contracts:
         kind: flat-yaml
         namespace: contexts
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: contexts
     metadata:
@@ -3064,12 +3064,12 @@ contracts:
       semantic: true
 - kind: family
   name: forms
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: forms
     artifact_family: form
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.forms.FormDocument
+      doc_type: propstore.families.documents.forms.FormDocument
       placement:
         branch:
           policy: current
@@ -3078,7 +3078,7 @@ contracts:
         kind: flat-yaml
         namespace: forms
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: forms
     metadata:
@@ -3089,12 +3089,12 @@ contracts:
       semantic: true
 - kind: family
   name: justifications
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: justifications
     artifact_family: justifications_file
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
+      doc_type: propstore.families.documents.sources.SourceJustificationsDocument
       placement:
         branch:
           policy: primary
@@ -3103,33 +3103,33 @@ contracts:
         kind: flat-yaml
         namespace: justifications
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: justifications
 - kind: family
   name: merge_manifests
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: merge_manifests
     artifact_family: merge_manifest
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.merge.MergeManifestDocument
+      doc_type: propstore.families.documents.merge.MergeManifestDocument
       placement:
         branch:
           policy: primary
         filename: merge/manifest.yaml
         kind: singleton-file
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: merge_manifests
 - kind: family
   name: micropubs
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: micropubs
     artifact_family: micropubs_file
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
+      doc_type: propstore.families.documents.micropubs.MicropublicationsFileDocument
       placement:
         branch:
           policy: primary
@@ -3138,17 +3138,17 @@ contracts:
         kind: flat-yaml
         namespace: micropubs
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: micropubs
 - kind: family
   name: predicates
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: predicates
     artifact_family: predicate_file
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.predicates.PredicatesFileDocument
+      doc_type: propstore.families.documents.predicates.PredicatesFileDocument
       placement:
         branch:
           policy: primary
@@ -3157,7 +3157,7 @@ contracts:
         kind: flat-yaml
         namespace: predicates
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: predicates
     metadata:
@@ -3168,12 +3168,12 @@ contracts:
       semantic: true
 - kind: family
   name: proposal_stances
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: proposal_stances
     artifact_family: proposal_stance_file
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.stances.StanceFileDocument
+      doc_type: propstore.families.documents.stances.StanceFileDocument
       placement:
         branch:
           fixed_branch: proposal/stances
@@ -3183,17 +3183,17 @@ contracts:
         kind: flat-yaml
         namespace: stances
         ref_field: source_claim
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: proposal_stances
 - kind: family
   name: rules
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: rules
     artifact_family: rule_file
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.rules.RulesFileDocument
+      doc_type: propstore.families.documents.rules.RulesFileDocument
       placement:
         branch:
           policy: primary
@@ -3202,7 +3202,7 @@ contracts:
         kind: flat-yaml
         namespace: rules
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: rules
     metadata:
@@ -3213,12 +3213,12 @@ contracts:
       semantic: true
 - kind: family
   name: source_claims
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: source_claims
     artifact_family: source_claims
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.sources.SourceClaimsDocument
+      doc_type: propstore.families.documents.sources.SourceClaimsDocument
       placement:
         branch:
           codec: safe_slug
@@ -3227,17 +3227,17 @@ contracts:
           template: source/{stem}
         filename: claims.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: source_claims
 - kind: family
   name: source_concepts
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: source_concepts
     artifact_family: source_concepts
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.sources.SourceConceptsDocument
+      doc_type: propstore.families.documents.sources.SourceConceptsDocument
       placement:
         branch:
           codec: safe_slug
@@ -3246,17 +3246,17 @@ contracts:
           template: source/{stem}
         filename: concepts.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: source_concepts
 - kind: family
   name: source_documents
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: source_documents
     artifact_family: source_document
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.sources.SourceDocument
+      doc_type: propstore.families.documents.sources.SourceDocument
       placement:
         branch:
           codec: safe_slug
@@ -3265,17 +3265,17 @@ contracts:
           template: source/{stem}
         filename: source.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: source_documents
 - kind: family
   name: source_finalize_reports
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: source_finalize_reports
     artifact_family: source_finalize_report
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.sources.SourceFinalizeReportDocument
+      doc_type: propstore.families.documents.sources.SourceFinalizeReportDocument
       placement:
         branch:
           codec: safe_slug
@@ -3286,17 +3286,17 @@ contracts:
         kind: template-file
         ref_field: name
         template: merge/finalize/{stem}.yaml
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: source_finalize_reports
 - kind: family
   name: source_justifications
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: source_justifications
     artifact_family: source_justifications
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
+      doc_type: propstore.families.documents.sources.SourceJustificationsDocument
       placement:
         branch:
           codec: safe_slug
@@ -3305,12 +3305,12 @@ contracts:
           template: source/{stem}
         filename: justifications.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: source_justifications
 - kind: family
   name: source_metadata
-  contract_version: 2026.04.26
+  contract_version: 2026.04.27
   body:
     accessor: source_metadata
     artifact_family: source_metadata
@@ -3324,17 +3324,17 @@ contracts:
           template: source/{stem}
         filename: metadata.json
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.26
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: source_metadata
 - kind: family
   name: source_micropubs
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: source_micropubs
     artifact_family: source_micropubs
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
+      doc_type: propstore.families.documents.micropubs.MicropublicationsFileDocument
       placement:
         branch:
           codec: safe_slug
@@ -3343,12 +3343,12 @@ contracts:
           template: source/{stem}
         filename: micropubs.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: source_micropubs
 - kind: family
   name: source_notes
-  contract_version: 2026.04.26
+  contract_version: 2026.04.27
   body:
     accessor: source_notes
     artifact_family: source_notes
@@ -3362,17 +3362,17 @@ contracts:
           template: source/{stem}
         filename: notes.md
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.26
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: source_notes
 - kind: family
   name: source_stances
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: source_stances
     artifact_family: source_stances
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.sources.SourceStancesDocument
+      doc_type: propstore.families.documents.sources.SourceStancesDocument
       placement:
         branch:
           codec: safe_slug
@@ -3381,17 +3381,17 @@ contracts:
           template: source/{stem}
         filename: stances.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: source_stances
 - kind: family
   name: sources
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: sources
     artifact_family: canonical_source
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.sources.SourceDocument
+      doc_type: propstore.families.documents.sources.SourceDocument
       placement:
         branch:
           policy: primary
@@ -3400,17 +3400,17 @@ contracts:
         kind: flat-yaml
         namespace: sources
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: sources
 - kind: family
   name: stances
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: stances
     artifact_family: stance_file
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.stances.StanceFileDocument
+      doc_type: propstore.families.documents.stances.StanceFileDocument
       placement:
         branch:
           policy: primary
@@ -3419,7 +3419,7 @@ contracts:
         kind: flat-yaml
         namespace: stances
         ref_field: source_claim
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: stances
     metadata:
@@ -3430,12 +3430,12 @@ contracts:
       semantic: true
 - kind: family
   name: worldlines
-  contract_version: 2026.04.24
+  contract_version: 2026.04.27
   body:
     accessor: worldlines
     artifact_family: worldline
     artifact_family_contract:
-      doc_type: propstore.artifacts.documents.worldlines.WorldlineDefinitionDocument
+      doc_type: propstore.families.documents.worldlines.WorldlineDefinitionDocument
       placement:
         branch:
           policy: current
@@ -3444,7 +3444,7 @@ contracts:
         kind: flat-yaml
         namespace: worldlines
         ref_field: name
-    artifact_family_contract_version: 2026.04.24
+    artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: worldlines
     metadata:
@@ -3563,4 +3563,4 @@ contracts:
     target_family: concept
 registry:
   name: semantic-family-registry
-  contract_version: 2026.04.19
+  contract_version: 2026.04.27

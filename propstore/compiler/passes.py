@@ -8,7 +8,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from propstore.artifacts.documents.claims import ClaimDocument
+from propstore.families.documents.claims import ClaimDocument
 from propstore.cel_checker import check_cel_expr
 from propstore.cel_types import CheckedCelExpr, checked_condition_set
 from propstore.claims import (

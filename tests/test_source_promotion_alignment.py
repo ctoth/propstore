@@ -32,7 +32,7 @@ from propstore.source import (
     promote_source_branch,
     source_branch_name,
 )
-from propstore.artifacts.documents.sources import (
+from propstore.families.documents.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,
     SourceFinalizeCalibrationDocument,
@@ -520,7 +520,7 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     assert "Claim whose stance targets a missing ref." not in initial_statements
 
     # Fix: remove the broken stance by overwriting source stances with empty set.
-    from propstore.artifacts.documents.sources import SourceStancesDocument
+    from propstore.families.documents.sources import SourceStancesDocument
     from propstore.source.common import source_branch_name as _branch_name
 
     repo.families.source_stances.save(

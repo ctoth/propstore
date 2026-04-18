@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from propstore.artifacts.documents.forms import (
+from propstore.families.documents.forms import (
     FormDocument,
 )
 from propstore.families.registry import FormRef

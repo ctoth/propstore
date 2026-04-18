@@ -4,11 +4,11 @@ from typing import get_type_hints
 
 import yaml
 
-from propstore.artifacts.documents.claims import ClaimDocument, ClaimsFileDocument
+from propstore.families.documents.claims import ClaimDocument, ClaimsFileDocument
 from propstore.claims import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage, to_algorithm_stage
 from propstore.core.row_types import ClaimRow
-from propstore.artifacts.documents.sources import SourceClaimDocument
+from propstore.families.documents.sources import SourceClaimDocument
 
 
 def test_algorithm_stage_annotations_cover_runtime_path() -> None:

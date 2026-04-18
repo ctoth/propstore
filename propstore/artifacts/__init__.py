@@ -1,2 +1,0 @@
-"""Propstore family schema package."""
-

@@ -9,7 +9,7 @@ import bridgman
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
-from propstore.artifacts.documents.claims import (
+from propstore.families.documents.claims import (
     ClaimTypeContract,
     ClaimUnitPolicyDeclaration,
     ClaimValueGroupDeclaration,

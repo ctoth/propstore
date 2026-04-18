@@ -15,7 +15,7 @@ from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PropstoreFami
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document, source_branch_name
-from propstore.artifacts.documents.sources import (
+from propstore.families.documents.sources import (
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
 )

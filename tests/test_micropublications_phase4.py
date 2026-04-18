@@ -6,7 +6,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from propstore.artifacts.documents.micropubs import MicropublicationDocument
+from propstore.families.documents.micropubs import MicropublicationDocument
 from quire.documents import convert_document_value
 from propstore.cli import cli
 from propstore.repository import Repository

@@ -156,7 +156,7 @@ def _build_predicate_document(
 ):
     """Construct a ``PredicateDocument`` with the supplied fields."""
 
-    from propstore.artifacts.documents.predicates import PredicateDocument
+    from propstore.families.documents.predicates import PredicateDocument
 
     return PredicateDocument(
         id=predicate_id,
@@ -172,7 +172,7 @@ def _build_registry(predicates):
 
     from propstore.grounding.predicates import PredicateRegistry
     from quire.documents import LoadedDocument
-    from propstore.artifacts.documents.predicates import PredicatesFileDocument
+    from propstore.families.documents.predicates import PredicatesFileDocument
     from propstore.predicate_files import LoadedPredicateFile
 
     file_doc = PredicatesFileDocument(predicates=tuple(predicates))

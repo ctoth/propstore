@@ -19,7 +19,7 @@ from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, dims_of_expr, DimensionalError
 
 from quire.documents import load_document_dir
-from propstore.artifacts.documents.claims import ClaimsFileDocument
+from propstore.families.documents.claims import ClaimsFileDocument
 from propstore.cel_checker import ConceptInfo, KindType, check_cel_expr
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.identity import normalize_canonical_concept_payload

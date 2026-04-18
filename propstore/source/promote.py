@@ -42,17 +42,17 @@ from propstore.families.registry import (
     MicropubsFileRef,
     StanceFileRef,
 )
-from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.documents.claims import ClaimsFileDocument
-from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.concepts import ConceptDocument
+from propstore.families.documents.claims import ClaimsFileDocument
+from propstore.families.documents.micropubs import MicropublicationsFileDocument
 from propstore.repository import Repository
 from quire.documents import convert_document_value
-from propstore.artifacts.documents.sources import (
+from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
     SourceDocument,
     SourceJustificationsDocument,
 )
-from propstore.artifacts.documents.stances import StanceFileDocument
+from propstore.families.documents.stances import StanceFileDocument
 
 from .common import (
     load_source_claims_document,

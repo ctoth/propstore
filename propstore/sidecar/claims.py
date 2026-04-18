@@ -33,8 +33,8 @@ from propstore.sidecar.claim_utils import (
     resolution_opinion_columns,
     resolve_claim_reference,
 )
-from propstore.artifacts.documents.sources import SourceJustificationsDocument
-from propstore.artifacts.documents.stances import StanceFileDocument
+from propstore.families.documents.sources import SourceJustificationsDocument
+from propstore.families.documents.stances import StanceFileDocument
 from propstore.stances import VALID_STANCE_TYPES
 
 if TYPE_CHECKING:

@@ -7,7 +7,7 @@ from propstore.families.registry import SourceRef
 from quire.documents import decode_document_path
 
 from .common import load_source_concepts_document
-from propstore.artifacts.documents.sources import (
+from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
     SourceConceptFormParametersDocument,
     SourceConceptRegistryMatchDocument,

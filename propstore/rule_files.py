@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from propstore.artifacts.documents.rules import RuleDocument, RulesFileDocument
+from propstore.families.documents.rules import RuleDocument, RulesFileDocument
 from quire.documents import LoadedDocument
 
 

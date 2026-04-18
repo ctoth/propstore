@@ -12,7 +12,7 @@ from propstore.cli import cli
 from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_path
 from propstore.source import normalize_source_claims_payload
-from propstore.artifacts.documents.sources import SourceClaimsDocument
+from propstore.families.documents.sources import SourceClaimsDocument
 
 
 @given(

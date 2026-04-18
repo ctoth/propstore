@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from propstore.artifacts.documents.contexts import ContextDocument
+from propstore.families.documents.contexts import ContextDocument
 from quire.documents import load_document_dir
 from propstore.context_types import (
     ContextInput,
