@@ -4,7 +4,7 @@ import pytest
 import yaml
 
 from propstore.identity import derive_concept_artifact_id
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
 from propstore.world import WorldModel
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
@@ -297,7 +297,7 @@ def claim_files(concept_dir):
         yaml.dump(normalize_claims_payload(beta), default_flow_style=False)
     )
 
-    from propstore.claims import load_claim_files
+    from tests.family_helpers import load_claim_files
     return load_claim_files(claims_dir)
 
 

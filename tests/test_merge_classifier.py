@@ -223,7 +223,8 @@ def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
 
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
-    from propstore.claims import claim_file_payload, load_claim_files
+    from propstore.claims import claim_file_payload
+    from tests.family_helpers import load_claim_files
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     all_claim_ids = {
@@ -255,7 +256,7 @@ def test_merge_commit_valid_claims(tmp_path):
 
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
-    from propstore.claims import load_claim_files
+    from tests.family_helpers import load_claim_files
     from propstore.compiler.context import build_compilation_context_from_repo
     from propstore.compiler.passes import validate_claims
 
@@ -379,7 +380,8 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
     left_ids: list[str],
     right_ids: list[str],
 ):
-    from propstore.claims import claim_file_payload, load_claim_files
+    from propstore.claims import claim_file_payload
+    from tests.family_helpers import load_claim_files
 
     assume(set(left_ids).isdisjoint(right_ids))
 

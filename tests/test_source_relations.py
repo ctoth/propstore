@@ -12,7 +12,7 @@ from click.testing import CliRunner
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.source import parameterization_group_merge_preview

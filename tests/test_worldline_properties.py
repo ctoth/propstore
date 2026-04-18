@@ -15,7 +15,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.world import HypotheticalWorld, WorldModel
 from propstore.worldline import WorldlineDefinition, run_worldline
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context

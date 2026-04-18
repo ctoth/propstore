@@ -476,7 +476,8 @@ def test_load_claim_files_from_git_tree(tmp_path):
         "claims/test_claims.yaml": yaml.dump(claim_data).encode(),
     }, "add claims")
 
-    from propstore.claims import claim_file_payload, load_claim_files
+    from propstore.claims import claim_file_payload
+    from tests.family_helpers import load_claim_files
     claim_files = load_claim_files(kr.tree() / "claims")
     assert len(claim_files) == 1
     assert claim_file_payload(claim_files[0])["claims"][0]["id"] == "claim1"
@@ -937,7 +938,7 @@ def _setup_git_knowledge_repo(tmp_path):
 def test_build_from_git(tmp_path):
     """pks build produces sidecar from git tree, keyed to commit hash."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
-    from propstore.sidecar.build import build_sidecar
+    from tests.family_helpers import build_sidecar
 
     hash_key = kr.head_sha()
     tree = repo.tree(commit=hash_key)
@@ -972,7 +973,7 @@ def test_build_from_git(tmp_path):
 def test_build_skips_when_unchanged(tmp_path):
     """Second build with same HEAD skips rebuild."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
-    from propstore.sidecar.build import build_sidecar
+    from tests.family_helpers import build_sidecar
 
     hash_key = kr.head_sha()
     tree = repo.tree(commit=hash_key)
@@ -995,7 +996,7 @@ def test_build_skips_when_unchanged(tmp_path):
 def test_build_rebuilds_on_new_commit(tmp_path):
     """New commit triggers sidecar rebuild."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
-    from propstore.sidecar.build import build_sidecar
+    from tests.family_helpers import build_sidecar
 
     hash_key1 = kr.head_sha()
     tree1 = repo.tree(commit=hash_key1)

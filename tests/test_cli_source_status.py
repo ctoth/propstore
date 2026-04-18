@@ -203,7 +203,7 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
     # can write the mirror + diagnostic rows; promote.
     finalize_source_branch(repo, source_name)
 
-    from propstore.sidecar.build import build_sidecar
+    from tests.family_helpers import build_sidecar
 
     head = repo.snapshot.head_sha()
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)

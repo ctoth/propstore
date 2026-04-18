@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.dimensions import dims_signature
 from propstore.identity import derive_concept_artifact_id
 from tests.conftest import normalize_concept_payloads

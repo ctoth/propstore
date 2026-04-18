@@ -4,7 +4,7 @@ import pytest
 import yaml
 
 from propstore.claim_graph import compute_claim_graph_justified_claims
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.world import ResolutionStrategy, WorldModel, resolve
 from propstore.world.value_resolver import ActiveClaimResolver
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context

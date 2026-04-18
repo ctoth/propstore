@@ -429,7 +429,7 @@ def test_promote_source_branch_partial_allows_valid_claims_blocks_invalid(
     # Build the primary-branch sidecar BEFORE promote. The sidecar must
     # exist for ``promote_source_branch`` to write mirror rows for blocked
     # claims into it.
-    from propstore.sidecar.build import build_sidecar
+    from tests.family_helpers import build_sidecar
 
     head = repo.snapshot.head_sha()
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)

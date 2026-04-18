@@ -10,7 +10,7 @@ from propstore.families.documents.micropubs import MicropublicationDocument
 from quire.documents import convert_document_value
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.world import WorldModel
 from propstore.world.types import Environment, ReasoningBackend, RenderPolicy
 

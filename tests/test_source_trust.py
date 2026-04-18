@@ -11,7 +11,7 @@ from hypothesis import strategies as st
 from propstore.core.row_types import coerce_claim_row
 from propstore.opinion import Opinion, discount, from_probability
 from propstore.praf import NoCalibration, p_arg_from_claim
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.world import WorldModel
