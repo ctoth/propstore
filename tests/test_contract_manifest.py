@@ -51,8 +51,16 @@ def test_contract_manifest_covers_documents_and_artifact_families() -> None:
 
     assert "document_schema:ConceptDocument" in keys
     assert "document_schema:ClaimsFileDocument" in keys
+    assert "document_schema:PredicatesFileDocument" in keys
+    assert "document_schema:RulesFileDocument" in keys
     assert "artifact_family:concept_file" in keys
     assert "artifact_family:source_document" in keys
+    assert "artifact_family:predicate_file" in keys
+    assert "artifact_family:rule_file" in keys
+    assert "semantic_family:concept" in keys
+    assert "semantic_family:claim" in keys
+    assert "semantic_family:predicate" in keys
+    assert "semantic_family:rule" in keys
     assert "foreign_key:claim_concept" in keys
     assert "foreign_key:concept_parameterization_canonical_claim" in keys
     assert "claim_type_contract:parameter" in keys
