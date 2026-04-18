@@ -5,7 +5,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.belief_set import Atom, Formula, conjunction, negate
-from propstore.belief_set.af_revision import (
+from argumentation.af_revision import (
     AFChangeKind,
     ExtensionRevisionState,
     baumann_2015_kernel_union_expand,
@@ -13,7 +13,7 @@ from propstore.belief_set.af_revision import (
     diller_2015_revise_by_framework,
     diller_2015_revise_by_formula,
 )
-from propstore.dung import ArgumentationFramework, grounded_extension, stable_extensions
+from argumentation.dung import ArgumentationFramework, grounded_extension, stable_extensions
 
 
 pytestmark = pytest.mark.property

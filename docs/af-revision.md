@@ -1,6 +1,6 @@
 # AF Revision
 
-`propstore.belief_set.af_revision` is the formal abstract-argumentation change
+`argumentation.af_revision` is the formal abstract-argumentation change
 surface for WS-B. It is distinct from `propstore.support_revision.af_adapter`,
 which only projects a support-incision state into argumentation-facing inputs.
 
@@ -35,4 +35,4 @@ checks exercise grounded-extension change classification.
 
 Do not cite `propstore.support_revision.af_adapter` as AF revision. It is a
 projection adapter for current accepted support atoms. Formal AF revision lives
-in `propstore.belief_set.af_revision`.
+in `argumentation.af_revision`.
