@@ -5,7 +5,7 @@ from typing import Any
 
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ConceptId, to_concept_id
-from propstore.core.environment import WorldStore, ParameterizationLookupStore
+from propstore.core.environment import WorldStore
 from propstore.core.row_types import coerce_claim_row, coerce_concept_row
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
@@ -50,14 +50,12 @@ def resolve_concept_name(world: WorldStore, name: str) -> ConceptId | None:
 def display_claim_id(world: WorldStore, claim_id: str | None) -> str | None:
     if claim_id is None:
         return None
-    getter = getattr(world, "get_claim", None)
-    if callable(getter):
-        claim = getter(claim_id)
-        if claim is not None:
-            row = coerce_claim_row(claim)
-            logical_value = row.primary_logical_value
-            if isinstance(logical_value, str) and logical_value:
-                return logical_value
+    claim = world.get_claim(claim_id)
+    if claim is not None:
+        row = coerce_claim_row(claim)
+        logical_value = row.primary_logical_value
+        if isinstance(logical_value, str) and logical_value:
+            return logical_value
     return claim_id
 
 
@@ -91,14 +89,9 @@ def pre_resolve_conflicts(
     from propstore.parameterization_walk import reachable_concepts
     from propstore.world import resolve
 
-    parameterizations_for = (
-        context.world.parameterizations_for
-        if isinstance(context.world, ParameterizationLookupStore)
-        else (lambda _concept_id: [])
-    )
     needs_check = reachable_concepts(
         {str(concept_id) for concept_id in target_map.values()},
-        parameterizations_for,
+        context.world.parameterizations_for,
     )
 
     for cid in needs_check:
@@ -369,15 +362,12 @@ def _resolve_chain_target(
     value_result: Any,
 ) -> WorldlineTargetValue | None:
     del value_result
-    chain_query = getattr(context.world, "chain_query", None)
-    if not callable(chain_query):
-        return None
     strategy_enum = context.policy.strategy if context.policy.strategy is not None else None
     chain_bindings: dict[str, Any] = {}
     if isinstance(context.query_world, HasBindings):
         chain_bindings = dict(context.query_world._bindings)
     try:
-        chain_result = chain_query(
+        chain_result = context.world.chain_query(
             concept_id,
             strategy=strategy_enum,
             **chain_bindings,
