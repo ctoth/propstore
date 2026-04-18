@@ -363,6 +363,19 @@ Status 2026-04-17: source status slice landed.
   - `logs/test-runs/cli-layer-source-status-20260417-175844.log` - 5 passed.
   - `uv run pyright propstore/source/status.py propstore/cli/source.py` - 0 errors.
 
+Status 2026-04-17: context workflow slice landed.
+
+- Added `propstore.context_workflows` with typed add requests, add reports,
+  list rows, and workflow failures.
+- Moved context parameter parsing, duplicate detection, document construction,
+  artifact save/sync, and list item projection out of `propstore.cli.context`.
+- Added owner coverage for structured writes, duplicate detection, malformed
+  parameters, dry-run behavior, and list rendering. Existing context CLI
+  integration checks remain green.
+- Verification:
+  - `logs/test-runs/cli-layer-context-workflows-20260417-181014.log` - 5 passed.
+  - `uv run pyright propstore/context_workflows.py propstore/cli/context.py` - 0 errors.
+
 ### Phase CLI-5 - Worldline, grounding, micropub, history extraction
 
 - Move worldline definition/request construction and materialization reporting
