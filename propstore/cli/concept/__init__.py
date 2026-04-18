@@ -156,7 +156,7 @@ def _require_snapshot(repo: Repository) -> RepositorySnapshot:
 
 
 def _artifact_source(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> str:
-    return repo.artifacts.address(family, ref).require_path()
+    return repo.families.by_artifact_family(family).address(ref).require_path()
 
 
 def _artifact_tree_path(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> Path:
@@ -177,10 +177,9 @@ def _claims_ref(claim_file: ClaimFileEntry) -> ClaimsFileRef:
 
 def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> ConceptDocument:
     payload = _normalize_concept_data(data)
-    return repo.artifacts.coerce(
-        CONCEPT_FILE_FAMILY,
+    return repo.families.concepts.coerce(
         payload,
-        source=_artifact_source(repo, CONCEPT_FILE_FAMILY, ref),
+        source=repo.families.concepts.address(ref).require_path(),
     )
 
 
@@ -190,7 +189,7 @@ def _canonical_concept_document(repo: Repository, ref: ConceptFileRef, data: dic
 
 
 def _claims_document(repo: Repository, ref: ClaimsFileRef, data: dict) -> ClaimsFileDocument:
-    return repo.artifacts.coerce(CLAIMS_FILE_FAMILY, data, source=_artifact_source(repo, CLAIMS_FILE_FAMILY, ref))
+    return repo.families.claims.coerce(data, source=repo.families.claims.address(ref).require_path())
 
 
 def _concept_artifact_payload(concept_entry: LoadedConcept) -> dict:
@@ -226,8 +225,8 @@ def _concept_display_handle(data: dict) -> str:
 
 def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | None:
     tree = repo.tree()
-    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref)
+    for ref in repo.families.concepts.list():
+        handle = repo.families.concepts.require_handle(ref)
         concept = LoadedConcept(
             filename=ref.name,
             source_path=tree / handle.address.require_path(),
@@ -318,8 +317,8 @@ def _validate_updated_concept(
     ref = _concept_ref(concept_entry)
     concepts = []
     tree = repo.tree()
-    for loaded_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, loaded_ref)
+    for loaded_ref in repo.families.concepts.list():
+        handle = repo.families.concepts.require_handle(loaded_ref)
         if loaded_ref == ref:
             concepts.append(
                 LoadedConcept(
@@ -344,13 +343,13 @@ def _validate_updated_concept(
     from propstore.compiler.references import build_claim_reference_lookup
 
     claim_files = [
-        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, claim_ref)
-        for claim_ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+        repo.families.claims.require_handle(claim_ref)
+        for claim_ref in repo.families.claims.list()
     ]
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.artifacts.list(FORM_FAMILY)
-        for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+        for form_ref in repo.families.forms.list()
+        for document in (repo.families.forms.require(form_ref),)
     }
     validation = validate_concepts(
         concepts,

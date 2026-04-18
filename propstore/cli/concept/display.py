@@ -14,7 +14,6 @@ from propstore.claims import (
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY
 from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
@@ -105,14 +104,14 @@ def search(obj: dict, query: str) -> None:
 def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
     """List concepts, optionally filtered."""
     repo: Repository = obj["repo"]
-    refs = repo.artifacts.list(CONCEPT_FILE_FAMILY)
+    refs = repo.families.concepts.list()
     if not refs:
         click.echo("No concepts directory found.")
         return
 
     tree = repo.tree()
     for ref in refs:
-        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref)
+        handle = repo.families.concepts.require_handle(ref)
         c = LoadedConcept(
             filename=ref.name,
             source_path=tree / handle.address.require_path(),
@@ -142,11 +141,11 @@ def categories(obj: dict, as_json: bool) -> None:
     """List all category concepts and their allowed values."""
     repo: Repository = obj["repo"]
     cat_data = {}
-    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref)
+    for ref in repo.families.concepts.list():
+        document = repo.families.concepts.require(ref)
         c = LoadedConcept(
             filename=ref.name,
-            source_path=repo.tree() / repo.artifacts.address(CONCEPT_FILE_FAMILY, ref).require_path(),
+            source_path=repo.tree() / repo.families.concepts.address(ref).require_path(),
             knowledge_root=repo.tree(),
             record=parse_concept_record_document(document),
             document=document,
@@ -201,11 +200,11 @@ def show(obj: dict, concept_id_or_name: str) -> None:
         except FileNotFoundError:
             click.echo(f"ERROR: Concept alignment '{concept_id_or_name}' not found", err=True)
             sys.exit(EXIT_ERROR)
-        click.echo(repo.artifacts.render(artifact))
+        click.echo(repo.families.concept_alignments.render(artifact))
         return
     concept_entry = _find_concept_entry(repo, concept_id_or_name)
     if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id_or_name}' not found", err=True)
         sys.exit(EXIT_ERROR)
     ref = _concept_ref(concept_entry)
-    click.echo(repo.artifacts.render(_concept_document(repo, ref, concept_entry.record.to_payload())))
+    click.echo(repo.families.concepts.render(_concept_document(repo, ref, concept_entry.record.to_payload())))
