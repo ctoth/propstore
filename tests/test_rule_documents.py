@@ -58,7 +58,7 @@ def term_documents() -> st.SearchStrategy:
     DeLP terms (Garcia & Simari 2004 §3, p.3-4) are either variables
     (uppercase identifiers that get ground via the Herbrand base) or
     constants. Constants here are the propstore `Scalar` union:
-    ``str | int | float | bool`` (cf. ``propstore.aspic.Scalar``).
+    ``str | int | float | bool`` (cf. ``argumentation.aspic.Scalar``).
     """
     from propstore.artifacts.documents.rules import TermDocument  # noqa: E402
 

@@ -27,7 +27,7 @@ class TermDocument(DocumentStruct):
     variables (uppercase identifiers that get ground over the Herbrand
     base, §3.1 p.4) or constants. Constants here use the propstore
     ``Scalar`` union ``str | int | float | bool`` (cf.
-    ``propstore.aspic.Scalar``).
+    ``argumentation.aspic.Scalar``).
 
     Attributes:
         kind: ``"var"`` for a variable term, ``"const"`` for a constant.

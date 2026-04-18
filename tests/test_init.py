@@ -43,7 +43,7 @@ class TestInit:
 
         preference = importlib.import_module("propstore.preference")
 
-        assert preference.strictly_weaker([1.0], [2.0], "elitist") is True
+        assert preference.claim_strength({"confidence": 0.8}) == [0.0, 1.0, 0.8]
 
     def test_root_exports_still_resolve_lazily(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Public package-root exports should remain available after lazy-loading."""

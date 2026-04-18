@@ -16,7 +16,7 @@ from propstore.claim_graph import (
     build_argumentation_framework,
     compute_claim_graph_justified_claims,
 )
-from propstore.dung import conflict_free, grounded_extension
+from argumentation.dung import conflict_free, grounded_extension
 from propstore.praf import build_praf
 from propstore.preference import claim_strength
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore

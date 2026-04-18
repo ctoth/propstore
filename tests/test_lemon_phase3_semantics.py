@@ -34,7 +34,7 @@ from propstore.core.lemon import (
     purposive_chain,
     validate_slot_bindings,
 )
-from propstore.dung import ArgumentationFramework
+from argumentation.dung import ArgumentationFramework
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
 

@@ -63,13 +63,13 @@ from gunray import schema as gunray_schema
 
 from collections.abc import Iterable
 
-from propstore.aspic import GroundAtom
+from argumentation.aspic import GroundAtom
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.artifacts.documents.rules import AtomDocument, TermDocument
-from propstore.preference import strict_partial_order_closure
+from argumentation.preference import strict_partial_order_closure
 from propstore.rule_files import LoadedRuleFile
 
-# ``gunray.schema.Scalar`` and ``propstore.aspic.Scalar`` are both
+# ``gunray.schema.Scalar`` and ``argumentation.aspic.Scalar`` are both
 # ``str | int | float | bool``; use the gunray alias here because the
 # grouped-facts dict is passed straight into ``gunray_schema.DefeasibleTheory``
 # and ``PredicateFacts`` is typed against gunray's ``FactTuple``.

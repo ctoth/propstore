@@ -146,7 +146,7 @@ def _make_bundle(
 # ---------------------------------------------------------------------------
 
 
-# Scalar strategy matches ``propstore.aspic.Scalar`` (and
+# Scalar strategy matches ``argumentation.aspic.Scalar`` (and
 # ``gunray.schema.Scalar``): ``str | int | float | bool``. Diller,
 # Borg, Bex 2025 §3 Definition 7: ground terms are first-order
 # constants; the Scalar union is propstore's concrete realisation.

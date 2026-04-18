@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.environment import StanceStore
-from propstore.dung import (
+from argumentation.dung import (
     ArgumentationFramework,
     grounded_extension,
     preferred_extensions,

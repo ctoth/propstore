@@ -75,7 +75,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 if TYPE_CHECKING:
-    from propstore.aspic import Literal, Rule
+    from argumentation.aspic import Literal, Rule
     from propstore.core.literal_keys import LiteralKey
     from propstore.grounding.bundle import GroundedRulesBundle
     from propstore.artifacts.documents.rules import RuleDocument
@@ -105,7 +105,7 @@ def _const(value):
 
     Garcia & Simari 2004 §3 (p.3): DeLP constants are drawn from the
     scalar universe; the propstore schema uses ``str | int | float |
-    bool`` (cf. ``propstore.aspic.Scalar``).
+    bool`` (cf. ``argumentation.aspic.Scalar``).
     """
 
     from propstore.artifacts.documents.rules import TermDocument
@@ -372,7 +372,7 @@ def test_literals_dict_extended_not_replaced(payload) -> None:
     remain reachable after grounding.
     """
 
-    from propstore.aspic import GroundAtom, Literal
+    from argumentation.aspic import GroundAtom, Literal
     from propstore.aspic_bridge import grounded_rules_to_rules
 
     bundle, _constants = payload
@@ -425,7 +425,7 @@ def test_delp_birds_fly_tweety_produces_one_rule_instance() -> None:
     ``(bird(tweety),)`` and whose consequent is ``flies(tweety)``.
     """
 
-    from propstore.aspic import GroundAtom, Literal
+    from argumentation.aspic import GroundAtom, Literal
     from propstore.aspic_bridge import grounded_rules_to_rules
 
     rule = _rule_doc(
@@ -565,7 +565,7 @@ def test_nullary_predicate_rule_produces_one_instance() -> None:
     variable-count-dependent.
     """
 
-    from propstore.aspic import GroundAtom, Literal
+    from argumentation.aspic import GroundAtom, Literal
     from propstore.aspic_bridge import grounded_rules_to_rules
 
     rule = _rule_doc(
@@ -600,7 +600,7 @@ def test_output_literals_include_grounded_atoms() -> None:
     the bridge's typed structural literal key.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.aspic_bridge import grounded_rules_to_rules
     from propstore.core.literal_keys import ground_key
 
@@ -642,7 +642,7 @@ def test_existing_claim_literals_preserved() -> None:
     look them up by claim id.
     """
 
-    from propstore.aspic import GroundAtom, Literal
+    from argumentation.aspic import GroundAtom, Literal
     from propstore.aspic_bridge import grounded_rules_to_rules
     from propstore.core.literal_keys import ground_key
 
@@ -682,7 +682,7 @@ def test_existing_claim_literals_preserved() -> None:
 def test_strict_rule_in_bundle_populates_strict_rules() -> None:
     """A ``kind='strict'`` RuleDocument becomes a strict ASPIC+ rule."""
 
-    from propstore.aspic import GroundAtom, Literal
+    from argumentation.aspic import GroundAtom, Literal
     from propstore.aspic_bridge import grounded_rules_to_rules
 
     rule = _rule_doc(
@@ -711,7 +711,7 @@ def test_strict_rule_in_bundle_populates_strict_rules() -> None:
 def test_defeater_rule_in_bundle_emits_undercutter_rule() -> None:
     """A defeater grounds to a negated rule-name literal that undercuts."""
 
-    from propstore.aspic import GroundAtom, Literal
+    from argumentation.aspic import GroundAtom, Literal
     from propstore.aspic_bridge import grounded_rules_to_rules
     from propstore.core.literal_keys import ground_key
 

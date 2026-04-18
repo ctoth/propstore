@@ -6,10 +6,10 @@ import json
 from collections.abc import Iterator
 
 from propstore.artifacts.documents.rules import AtomDocument
-from propstore.aspic import GroundAtom, KnowledgeBase, Literal, Rule, Scalar
+from argumentation.aspic import GroundAtom, KnowledgeBase, Literal, Rule, Scalar
 from propstore.core.literal_keys import LiteralKey, ground_key
 from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.preference import strict_partial_order_closure
+from argumentation.preference import strict_partial_order_closure
 
 _GroundFactKey = tuple[str, bool]
 

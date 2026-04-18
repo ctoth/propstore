@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from propstore.aspic import (
+from argumentation.aspic import (
     ContrarinessFn,
     GroundAtom,
     KnowledgeBase,
@@ -17,7 +17,9 @@ from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_a
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import ClaimLiteralKey, LiteralKey, claim_key
 from propstore.core.row_types import StanceRow, StanceRowInput, coerce_stance_row
-from propstore.preference import metadata_strength_vector, strict_partial_order_closure
+from argumentation.preference import strict_partial_order_closure
+
+from propstore.preference import metadata_strength_vector
 
 
 def _claim_attr(claim: ActiveClaim, key: str) -> Any:

@@ -42,7 +42,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
-from propstore.aspic import GroundAtom, Scalar
+from argumentation.aspic import GroundAtom, Scalar
 from propstore.rule_files import LoadedRuleFile
 
 if TYPE_CHECKING:

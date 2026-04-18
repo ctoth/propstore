@@ -29,7 +29,7 @@ evaluator; see report):
     non-commitment-discipline anchor for this pipeline.
 
     ``Scalar = str | int | float | bool`` (see
-    ``gunray.schema.Scalar`` and ``propstore.aspic.Scalar`` — both
+    ``gunray.schema.Scalar`` and ``argumentation.aspic.Scalar`` — both
     are the same union).
 
 Theoretical sources:
@@ -260,7 +260,7 @@ def ground_atom_tuples() -> st.SearchStrategy:
 
     @st.composite
     def _build(draw):
-        from propstore.aspic import GroundAtom
+        from argumentation.aspic import GroundAtom
 
         count = draw(st.integers(min_value=0, max_value=4))
         seen: set[tuple[str, tuple[str, ...]]] = set()
@@ -549,7 +549,7 @@ def test_grounder_delp_birds_fly_tweety() -> None:
       2025 §3.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.grounder import ground
 
     rule = _build_rule_document(
@@ -585,7 +585,7 @@ def test_grounder_multiple_facts_same_predicate_all_grounded() -> None:
     defeasibly-provable atoms: ``flies(tweety)`` and ``flies(opus)``.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.grounder import ground
 
     rule = _build_rule_document(
@@ -633,7 +633,7 @@ def test_grounder_policy_is_configurable() -> None:
 
     from gunray.schema import Policy
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.grounder import ground
 
     rule = _build_rule_document(
@@ -759,7 +759,7 @@ def test_ground_default_arguments_field_is_empty() -> None:
     ``return_arguments=True`` to incur the argument-enumeration cost.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.grounder import ground
 
     rule = _build_rule_document(
@@ -788,7 +788,7 @@ def test_ground_return_arguments_populates_tuple() -> None:
 
     import gunray
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.grounder import ground
 
     rule = _build_rule_document(
@@ -821,7 +821,7 @@ def test_ground_return_arguments_is_deterministic() -> None:
     theory yields the same argument tuple across invocations.
     """
 
-    from propstore.aspic import GroundAtom
+    from argumentation.aspic import GroundAtom
     from propstore.grounding.grounder import ground
 
     rule = _build_rule_document(

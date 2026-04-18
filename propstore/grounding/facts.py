@@ -51,7 +51,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from propstore.aspic import GroundAtom
+from argumentation.aspic import GroundAtom
 from propstore.core.concepts import LoadedConcept
 from propstore.grounding.predicates import (
     PredicateRegistry,

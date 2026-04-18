@@ -15,7 +15,7 @@ import pytest
 from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
-from propstore.aspic import (
+from argumentation.aspic import (
     Literal,
     GroundAtom,
     ContrarinessFn,
@@ -42,7 +42,7 @@ from propstore.aspic import (
     transposition_closure,
 )
 from propstore.core.justifications import CanonicalJustification
-from propstore.dung import (
+from argumentation.dung import (
     ArgumentationFramework,
     complete_extensions,
     grounded_extension,

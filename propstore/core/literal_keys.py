@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeAlias
 
-from propstore.aspic import GroundAtom, Scalar
+from argumentation.aspic import GroundAtom, Scalar
 
 
 @dataclass(frozen=True)

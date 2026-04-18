@@ -6,7 +6,7 @@ from enum import StrEnum
 from quire.documents import DocumentStruct
 from propstore.core.lemon.proto_roles import ProtoRoleBundle
 from propstore.core.lemon.references import OntologyReference
-from propstore.dung import (
+from argumentation.dung import (
     ArgumentationFramework,
     grounded_extension,
     preferred_extensions,

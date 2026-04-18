@@ -10,11 +10,11 @@ A bipolar argumentation framework BAF = (A, Def, Sup) extends a Dung AF with a s
 - **Def** — direct defeat (attack) relation (`frozenset[tuple[str, str]]`)
 - **Sup** — direct support relation (`frozenset[tuple[str, str]]`, default empty)
 
-The `BipolarArgumentationFramework` dataclass (`propstore/bipolar.py:10`) is frozen. Direct defeats and supports are immutable inputs; derived defeats are computed functionally from them.
+The `BipolarArgumentationFramework` dataclass (`argumentation/src/argumentation/bipolar.py:10`) is frozen. Direct defeats and supports are immutable inputs; derived defeats are computed functionally from them.
 
 ## Derived defeats
 
-Support relations generate new defeat paths that are not present in the original attack graph. These are computed by `cayrol_derived_defeats()` (`propstore/bipolar.py:73`), implementing Cayrol 2005 Definition 3.
+Support relations generate new defeat paths that are not present in the original attack graph. These are computed by `cayrol_derived_defeats()` (`argumentation/src/argumentation/bipolar.py:73`), implementing Cayrol 2005 Definition 3.
 
 ### Supported defeat (Def 3)
 
@@ -36,13 +36,13 @@ A - - - - derivedly defeats - - - -> C
 
 ### Fixpoint computation
 
-The algorithm (`propstore/bipolar.py:73`) computes derived defeats iteratively:
+The algorithm (`argumentation/src/argumentation/bipolar.py:73`) computes derived defeats iteratively:
 
 1. **Support reach**: compute the transitive closure of support successors for each argument. If A supports B and B supports C, then A support-reaches both B and C.
 2. **Iterate**: scan all working defeats. For each defeat, generate supported defeats (via support reach of the source) and indirect defeats (via support reach of the target). Add any new derived defeats to the working set.
 3. **Fixpoint**: repeat until no new defeats are discovered. Multi-pass iteration enables transitive chaining — e.g., A supports B, B defeats C, C supports D yields derived defeat (A, D) across two passes.
 
-The function returns only derived defeats, not the original direct defeats. `derived_set_defeats()` (`propstore/bipolar.py:125`) returns the union of both.
+The function returns only derived defeats, not the original direct defeats. `derived_set_defeats()` (`argumentation/src/argumentation/bipolar.py:125`) returns the union of both.
 
 ## Admissibility variants
 
