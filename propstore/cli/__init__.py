@@ -240,58 +240,29 @@ def checkout_cmd(ctx, commit):
 @click.pass_context
 def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
     """Promote committed stance proposals into source-of-truth storage."""
-    from propstore.artifacts.families import PROPOSAL_STANCE_FAMILY, STANCE_FILE_FAMILY
-    from propstore.artifacts.refs import STANCE_PROPOSAL_BRANCH, StanceFileRef
-    from propstore.proposals import stance_proposal_filename
+    from propstore.proposals import (
+        plan_stance_proposal_promotion,
+        promote_stance_proposals,
+    )
 
     repo: "Repository" = ctx.obj["repo"]
-
-    proposal_tip = repo.snapshot.branch_head(STANCE_PROPOSAL_BRANCH)
-    if proposal_tip is None:
-        click.echo(f"No {STANCE_PROPOSAL_BRANCH} branch found. Nothing to promote.")
+    plan = plan_stance_proposal_promotion(repo, path=path)
+    if not plan.has_branch:
+        click.echo(f"No {plan.branch} branch found. Nothing to promote.")
         return
 
-    available_refs = repo.artifacts.list(PROPOSAL_STANCE_FAMILY, branch=STANCE_PROPOSAL_BRANCH, commit=proposal_tip)
-    available_by_name = {
-        stance_proposal_filename(ref.source_claim): ref
-        for ref in available_refs
-    }
-    if path is not None:
-        requested_name = Path(path).name
-        if not requested_name.endswith(".yaml"):
-            requested_name = stance_proposal_filename(requested_name)
-        selected_refs = [available_by_name[requested_name]] if requested_name in available_by_name else []
-    else:
-        selected_refs = [available_by_name[name] for name in sorted(available_by_name)]
-
-    if not selected_refs:
-        click.echo(f"No stance proposal files found on {STANCE_PROPOSAL_BRANCH}.")
+    if not plan.items:
+        click.echo(f"No stance proposal files found on {plan.branch}.")
         return
 
-    # Show what will be moved
-    for ref in selected_refs:
-        name = stance_proposal_filename(ref.source_claim)
-        target_relpath = STANCE_FILE_FAMILY.resolve_ref(
-            repo,
-            StanceFileRef(ref.source_claim),
-        ).relpath
-        click.echo(f"  {STANCE_PROPOSAL_BRANCH}:stances/{name} -> {repo.root / target_relpath}")
+    for item in plan.items:
+        click.echo(f"  {item.source_relpath} -> {item.target_path}")
 
     if not yes:
         click.confirm("Promote these files?", abort=True)
 
-    moved = len(selected_refs)
-    if moved > 0:
-        with repo.artifacts.transact(
-            message=f"Promote {moved} stance proposal file(s) from {STANCE_PROPOSAL_BRANCH}",
-        ) as transaction:
-            for ref in selected_refs:
-                transaction.save(
-                    STANCE_FILE_FAMILY,
-                    StanceFileRef(ref.source_claim),
-                    repo.artifacts.require(PROPOSAL_STANCE_FAMILY, ref, commit=proposal_tip),
-                )
-                click.echo(f"  Promoted: {stance_proposal_filename(ref.source_claim)}")
-        repo.snapshot.sync_worktree()
+    result = promote_stance_proposals(repo, plan)
+    for item in plan.items:
+        click.echo(f"  Promoted: {item.filename}")
 
-    click.echo(f"\n{moved} file(s) promoted.")
+    click.echo(f"\n{result.moved} file(s) promoted.")
