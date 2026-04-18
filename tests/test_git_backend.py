@@ -8,7 +8,7 @@ import pytest
 
 from quire.git_store import GitStore as QuireGitStore
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
-from propstore.concept_ids import next_concept_id
+from propstore.concept_ids import next_concept_id, next_concept_id_for_git, record_concept_id_counter
 from propstore.storage import GitStore
 from tests.conftest import (
     make_concept_identity,
@@ -285,6 +285,21 @@ def test_next_concept_id_ignores_non_concept_ids(tmp_path):
     data = yaml.dump({"id": "something_else", "canonical_name": "foo"}).encode()
     kr.commit_files({"concepts/foo.yaml": data}, "add")
     assert next_concept_id(kr.tree() / "concepts") == 1
+
+
+def test_next_concept_id_uses_git_counter_ref_when_available(tmp_path):
+    kr = GitStore.init(tmp_path / "knowledge")
+    kr.commit_files(
+        {
+            "concepts/high.yaml": yaml.safe_dump(
+                make_concept_identity("concept99", canonical_name="high")
+            ).encode("utf-8"),
+        },
+        "add high concept",
+    )
+    record_concept_id_counter(kr, 8)
+
+    assert next_concept_id_for_git(kr, kr.tree() / "concepts") == 9
 
 
 # ── KnowledgePath: GitKnowledgePath ─────────────────────────────────

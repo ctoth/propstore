@@ -2,12 +2,19 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from propstore.artifacts.documents.concepts import ConceptIdScanDocument
 from quire.documents import DocumentSchemaError, decode_document_path
+from quire.refs import RefName
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 
+if TYPE_CHECKING:
+    from propstore.repository import Repository
+    from propstore.storage import GitStore
+
 _CONCEPT_ID_RE = re.compile(r"^concept(\d+)$")
+CONCEPT_ID_COUNTER_REF = RefName("refs/propstore/indexes/concept-id-counter")
 
 
 def _numeric_concept_id(scan_doc: ConceptIdScanDocument) -> int | None:
@@ -44,3 +51,42 @@ def next_concept_id(concepts_root: Path | KnowledgePath) -> int:
         if numeric_id is not None:
             max_id = max(max_id, numeric_id)
     return max_id + 1
+
+
+def next_concept_id_for_repo(repo: Repository) -> int:
+    if repo.git is None:
+        return next_concept_id(repo.tree() / "concepts")
+    return next_concept_id_for_git(repo.git, repo.tree() / "concepts")
+
+
+def next_concept_id_for_git(git: GitStore, concepts_root: Path | KnowledgePath) -> int:
+    counter = _read_concept_id_counter(git)
+    if counter is not None:
+        return counter + 1
+    return next_concept_id(concepts_root)
+
+
+def record_concept_id_for_repo(repo: Repository, numeric_id: int) -> None:
+    if repo.git is None:
+        return
+    record_concept_id_counter(repo.git, numeric_id)
+
+
+def record_concept_id_counter(git: GitStore, numeric_id: int) -> None:
+    current = _read_concept_id_counter(git)
+    if current is not None and current >= numeric_id:
+        return
+    git.write_blob_ref(CONCEPT_ID_COUNTER_REF, f"{numeric_id}\n".encode("ascii"))
+
+
+def _read_concept_id_counter(git: GitStore) -> int | None:
+    payload = git.read_blob_ref(CONCEPT_ID_COUNTER_REF)
+    if payload is None:
+        return None
+    try:
+        value = int(payload.decode("ascii").strip())
+    except ValueError:
+        return None
+    if value < 0:
+        return None
+    return value

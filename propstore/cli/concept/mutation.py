@@ -37,7 +37,7 @@ from propstore.core.concepts import (
     parse_concept_record_document,
 )
 from propstore.compiler.context import build_compilation_context_from_loaded
-from propstore.concept_ids import next_concept_id
+from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_for_repo
 from propstore.repository import Repository
 from propstore.core.concepts import load_concepts
 from propstore.validate_concepts import validate_concepts
@@ -114,7 +114,8 @@ def add(
         click.echo(f"ERROR: Concept file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
-    cid = f"concept{next_concept_id(repo.tree() / 'concepts')}"
+    numeric_concept_id = next_concept_id_for_repo(repo)
+    cid = f"concept{numeric_concept_id}"
 
     data = {
         "canonical_name": name,
@@ -180,6 +181,7 @@ def add(
         document,
         message=f"Add concept: {name} ({_concept_display_handle(concept_document_to_record_payload(document))})",
     )
+    record_concept_id_for_repo(repo, numeric_concept_id)
     snapshot.sync_worktree()
     click.echo(f"Created {filepath} with logical ID {_concept_display_handle(concept_document_to_record_payload(document))}")
 
