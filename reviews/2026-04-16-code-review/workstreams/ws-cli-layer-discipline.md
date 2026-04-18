@@ -505,6 +505,19 @@ Status 2026-04-17: concept sidecar workflow slice landed.
   - `logs/test-runs/cli-layer-concept-workflows-20260417-190335.log` - 7 passed.
   - `uv run pyright propstore/concepts.py propstore/cli/concept.py` - 0 errors.
 
+Status 2026-04-17: claim WorldModel lifecycle follow-up landed.
+
+- Added repo-level claim show/compare wrappers that use `WorldModel` directly
+  as a context manager in the claim owner layer.
+- Removed `open_world_model` ownership from `pks claim show` and
+  `pks claim compare`; those commands now render owner reports and map typed
+  owner failures.
+- Added owner coverage for missing-sidecar wrapper failures while keeping the
+  existing claim show CLI regressions green.
+- Verification:
+  - `logs/test-runs/cli-layer-claim-worldmodel-20260417-190628.log` - 10 passed.
+  - `uv run pyright propstore/claims.py propstore/cli/claim.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
