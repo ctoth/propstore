@@ -1,7 +1,6 @@
 """pks concept — subcommands for managing concepts."""
 from __future__ import annotations
 
-import sqlite3
 from copy import deepcopy
 import sys
 from datetime import date
@@ -340,32 +339,6 @@ def _validate_updated_concept(
         sys.exit(EXIT_VALIDATION)
     for w in validation.warnings:
         click.echo(f"WARNING: {w}", err=True)
-
-
-def _resolve_sidecar_concept_id(conn: sqlite3.Connection, handle: str) -> str:
-    conn.row_factory = sqlite3.Row
-    direct = conn.execute("SELECT id FROM concept WHERE id = ?", (handle,)).fetchone()
-    if direct is not None:
-        return str(direct["id"])
-    primary = conn.execute(
-        "SELECT id FROM concept WHERE primary_logical_id = ?",
-        (handle,),
-    ).fetchone()
-    if primary is not None:
-        return str(primary["id"])
-    canonical = conn.execute(
-        "SELECT id FROM concept WHERE canonical_name = ?",
-        (handle,),
-    ).fetchone()
-    if canonical is not None:
-        return str(canonical["id"])
-    alias = conn.execute(
-        "SELECT concept_id FROM alias WHERE alias_name = ?",
-        (handle,),
-    ).fetchone()
-    if alias is not None:
-        return str(alias["concept_id"])
-    raise click.ClickException(f"Concept '{handle}' not found")
 
 
 # ── concept add ──────────────────────────────────────────────────────
@@ -1120,27 +1093,26 @@ def proto_role_cmd(
 @click.pass_obj
 def search(obj: dict, query: str) -> None:
     """Search concepts via the FTS5 index over canonical_name, aliases, definition, and CEL conditions."""
-    repo: Repository = obj["repo"]
-    sidecar = repo.sidecar_path
+    from propstore.concepts import (
+        ConceptSearchRequest,
+        ConceptSidecarMissingError,
+        search_concepts,
+    )
 
-    if not sidecar.exists():
+    try:
+        report = search_concepts(
+            obj["repo"],
+            ConceptSearchRequest(query=query),
+        )
+    except ConceptSidecarMissingError as exc:
         raise click.ClickException(
             "concept search requires a built sidecar; run 'pks build' first"
-        )
+        ) from exc
 
-    import contextlib
-    conn = sqlite3.connect(sidecar)
-    with contextlib.closing(conn):
-        rows = conn.execute(
-            "SELECT concept.primary_logical_id, concept_fts.canonical_name, concept_fts.definition "
-            "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
-            "WHERE concept_fts MATCH ? LIMIT 20",
-            (query,),
-        ).fetchall()
-    if rows:
-        for logical_id, name, defn in rows:
-            snippet = (defn or "")[:80]
-            click.echo(f"  {logical_id}  {name}  — {snippet}")
+    if report.hits:
+        for hit in report.hits:
+            snippet = hit.definition[:80]
+            click.echo(f"  {hit.logical_id}  {hit.canonical_name}  — {snippet}")
     else:
         click.echo("No matches.")
 
@@ -1382,46 +1354,56 @@ def promote_cmd(obj: dict, cluster_id: str) -> None:
 @click.pass_obj
 def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_size: int) -> None:
     """Generate embeddings for concepts via litellm."""
-    if not concept_id and not embed_all:
-        click.echo("Error: provide a concept ID or use --all", err=True)
-        raise SystemExit(1)
+    from propstore.concepts import (
+        ConceptEmbedRequest,
+        ConceptEmbeddingModelError,
+        ConceptSidecarMissingError,
+        ConceptWorkflowError,
+        UnknownConceptError,
+        embed_concept_embeddings,
+    )
 
-    from propstore.embed import embed_concepts, _load_vec_extension, get_registered_models
-
-    repo: Repository = obj["repo"]
-    sidecar = repo.sidecar_path
-    if not sidecar.exists():
-        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
-        raise SystemExit(1)
-
-    import contextlib
-    conn = sqlite3.connect(sidecar)
-    with contextlib.closing(conn):
-        conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
-
-        ids = [_resolve_sidecar_concept_id(conn, concept_id)] if concept_id else None
-
+    def progress(model_name: str, done: int, total: int) -> None:
         if model == "all":
-            models = get_registered_models(conn)
-            if not models:
-                click.echo("Error: no models registered. Run embed with a specific model first.", err=True)
-                raise SystemExit(1)
-            for m in models:
-                click.echo(f"Embedding with {m['model_name']}...")
-                result = embed_concepts(
-                    conn, m["model_name"], concept_ids=ids, batch_size=batch_size,
-                    on_progress=lambda done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None
-                )
-                click.echo(f"  embedded={result['embedded']} skipped={result['skipped']} errors={result['errors']}")
-        else:
-            def progress(done: int, total: int) -> None:
-                click.echo(f"  {done}/{total} concepts embedded", err=True)
+            if done % batch_size == 0:
+                click.echo(f"  {done}/{total}", nl=False)
+            return
+        click.echo(f"  {done}/{total} concepts embedded", err=True)
 
-            result = embed_concepts(conn, model, concept_ids=ids, batch_size=batch_size, on_progress=progress)
-            click.echo(f"Embedded: {result['embedded']}, Skipped: {result['skipped']}, Errors: {result['errors']}")
+    try:
+        report = embed_concept_embeddings(
+            obj["repo"],
+            ConceptEmbedRequest(
+                concept_id=concept_id,
+                embed_all=embed_all,
+                model=model,
+                batch_size=batch_size,
+            ),
+            on_progress=progress,
+        )
+    except ConceptSidecarMissingError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        raise SystemExit(1)
+    except (ConceptEmbeddingModelError, ConceptWorkflowError, UnknownConceptError) as exc:
+        click.echo(f"Error: {exc}", err=True)
+        raise SystemExit(1)
 
-        conn.commit()
+    if model == "all":
+        for result in report.results:
+            click.echo(f"Embedding with {result.model_name}...")
+            click.echo(
+                f"  embedded={result.embedded} "
+                f"skipped={result.skipped} "
+                f"errors={result.errors}"
+            )
+        return
+
+    result = report.results[0]
+    click.echo(
+        f"Embedded: {result.embedded}, "
+        f"Skipped: {result.skipped}, "
+        f"Errors: {result.errors}"
+    )
 
 
 # ── concept similar ──────────────────────────────────────────────────
@@ -1435,50 +1417,41 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
 @click.pass_obj
 def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bool, disagree: bool) -> None:
     """Find similar concepts by embedding distance."""
-    from propstore.embed import (
-        find_similar_concepts, find_similar_concepts_agree,
-        find_similar_concepts_disagree, _load_vec_extension, get_registered_models,
+    from propstore.concepts import (
+        ConceptEmbeddingModelError,
+        ConceptSidecarMissingError,
+        ConceptSimilarRequest,
+        ConceptWorkflowError,
+        UnknownConceptError,
+        find_similar_concepts,
     )
 
-    repo: Repository = obj["repo"]
-    sidecar = repo.sidecar_path
-    if not sidecar.exists():
-        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
-        raise SystemExit(1)
-
-    conn = sqlite3.connect(sidecar)
-    conn.row_factory = sqlite3.Row
-    _load_vec_extension(conn)
-
     try:
-        if agree:
-            resolved_id = _resolve_sidecar_concept_id(conn, concept_id)
-            results = find_similar_concepts_agree(conn, resolved_id, top_k=top_k)
-        elif disagree:
-            resolved_id = _resolve_sidecar_concept_id(conn, concept_id)
-            results = find_similar_concepts_disagree(conn, resolved_id, top_k=top_k)
-        else:
-            if model is None:
-                models = get_registered_models(conn)
-                if not models:
-                    click.echo("Error: no embeddings found. Run 'pks concept embed' first.", err=True)
-                    raise SystemExit(1)
-                model = str(models[0]["model_name"])
-            resolved_id = _resolve_sidecar_concept_id(conn, concept_id)
-            results = find_similar_concepts(conn, resolved_id, model, top_k=top_k)
-    except ValueError as e:
-        click.echo(f"Error: {e}", err=True)
+        report = find_similar_concepts(
+            obj["repo"],
+            ConceptSimilarRequest(
+                concept_id=concept_id,
+                model=model,
+                top_k=top_k,
+                agree=agree,
+                disagree=disagree,
+            ),
+        )
+    except ConceptSidecarMissingError as exc:
+        click.echo(f"Error: {exc}", err=True)
         raise SystemExit(1)
-    finally:
-        conn.close()
+    except (ConceptEmbeddingModelError, ConceptWorkflowError, UnknownConceptError) as exc:
+        click.echo(f"Error: {exc}", err=True)
+        raise SystemExit(1)
 
-    if not results:
+    if not report.hits:
         click.echo("No similar concepts found.")
         return
 
-    for r in results:
-        dist = r.get("distance", 0)
-        cid = r.get("primary_logical_id") or r.get("id", "?")
-        name = r.get("canonical_name", "")
-        defn = (r.get("definition") or "")[:80]
-        click.echo(f"  {dist:.4f}  {cid}  {name}  — {defn}")
+    for hit in report.hits:
+        definition = hit.definition[:80]
+        click.echo(
+            f"  {hit.distance:.4f}  "
+            f"{hit.concept_id}  "
+            f"{hit.canonical_name}  — {definition}"
+        )

@@ -491,6 +491,20 @@ Status 2026-04-17: claim embedding and relation slice landed.
   - `logs/test-runs/cli-layer-claim-workflows-20260417-185735.log` - 6 passed.
   - `uv run pyright propstore/claims.py propstore/cli/claim.py` - 0 errors.
 
+Status 2026-04-17: concept sidecar workflow slice landed.
+
+- Added a typed `propstore.concepts` owner surface for user-facing concept
+  sidecar search, concept embedding, and concept similarity workflows.
+- Moved sidecar presence checks, SQLite connection lifecycle, concept-handle
+  resolution, registered-model selection, embedding dispatch, and similarity
+  query selection out of `propstore.cli.concept`.
+- Added owner coverage for search query ownership, embedding progress and
+  connection ownership, and similarity default-model resolution. Existing
+  `concept search` CLI regressions remain green.
+- Verification:
+  - `logs/test-runs/cli-layer-concept-workflows-20260417-190335.log` - 7 passed.
+  - `uv run pyright propstore/concepts.py propstore/cli/concept.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
