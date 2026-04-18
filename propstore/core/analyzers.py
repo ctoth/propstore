@@ -7,11 +7,7 @@ from dataclasses import dataclass
 
 from argumentation.bipolar import (
     BipolarArgumentationFramework,
-    c_preferred_extensions,
     cayrol_derived_defeats as _cayrol_derived_defeats_impl,
-    d_preferred_extensions,
-    s_preferred_extensions,
-    stable_extensions as bipolar_stable_extensions,
 )
 from propstore.conflict_detector import ConflictClass
 from propstore.core.claim_types import ClaimType, coerce_claim_type
@@ -33,13 +29,9 @@ from propstore.core.relation_types import (
     UNCONDITIONAL_ATTACK_TYPES,
 )
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
-from argumentation.dung import (
-    ArgumentationFramework,
-    grounded_extension,
-    preferred_extensions,
-    stable_extensions,
-)
+from argumentation.dung import ArgumentationFramework
 from argumentation.preference import defeat_holds
+from argumentation.semantics import extensions as argumentation_extensions
 
 from propstore.preference import claim_strength
 from propstore.probabilistic_relations import (
@@ -551,50 +543,40 @@ def analyze_claim_graph(
         ReasoningBackend.CLAIM_GRAPH,
         semantics,
     )
-    if normalized_semantics == ArgumentationSemantics.GROUNDED:
-        extensions = (
-            ExtensionResult(
-                name=normalized_semantics.value,
-                accepted_claim_ids=tuple(
-                    grounded_extension(shared.argumentation_framework)
-                ),
-            ),
+    if normalized_semantics in {
+        ArgumentationSemantics.D_PREFERRED,
+        ArgumentationSemantics.S_PREFERRED,
+        ArgumentationSemantics.C_PREFERRED,
+        ArgumentationSemantics.BIPOLAR_STABLE,
+    }:
+        extension_sets = argumentation_extensions(
+            shared.bipolar_framework,
+            semantics=normalized_semantics.value,
         )
-    elif normalized_semantics == ArgumentationSemantics.D_PREFERRED:
-        extensions = _extension_results(
-            normalized_semantics.value,
-            [frozenset(ext) for ext in d_preferred_extensions(shared.bipolar_framework)],
-        )
-    elif normalized_semantics == ArgumentationSemantics.S_PREFERRED:
-        extensions = _extension_results(
-            normalized_semantics.value,
-            [frozenset(ext) for ext in s_preferred_extensions(shared.bipolar_framework)],
-        )
-    elif normalized_semantics == ArgumentationSemantics.C_PREFERRED:
-        extensions = _extension_results(
-            normalized_semantics.value,
-            [frozenset(ext) for ext in c_preferred_extensions(shared.bipolar_framework)],
-        )
-    elif normalized_semantics == ArgumentationSemantics.BIPOLAR_STABLE:
-        extensions = _extension_results(
-            normalized_semantics.value,
-            [frozenset(ext) for ext in bipolar_stable_extensions(shared.bipolar_framework)],
-        )
-    elif normalized_semantics == ArgumentationSemantics.PREFERRED:
-        extensions = _extension_results(
-            normalized_semantics.value,
-            [frozenset(ext) for ext in preferred_extensions(shared.argumentation_framework)],
-        )
-    elif normalized_semantics == ArgumentationSemantics.STABLE:
-        extensions = _extension_results(
-            normalized_semantics.value,
-            [frozenset(ext) for ext in stable_extensions(shared.argumentation_framework)],
+    elif normalized_semantics in {
+        ArgumentationSemantics.GROUNDED,
+        ArgumentationSemantics.PREFERRED,
+        ArgumentationSemantics.STABLE,
+    }:
+        extension_sets = argumentation_extensions(
+            shared.argumentation_framework,
+            semantics=normalized_semantics.value,
         )
     else:
         raise ValueError(
             "claim_graph does not support semantics "
             f"'{normalized_semantics.value}'"
         )
+
+    if normalized_semantics == ArgumentationSemantics.GROUNDED:
+        extensions = (
+            ExtensionResult(
+                name=normalized_semantics.value,
+                accepted_claim_ids=tuple(extension_sets[0]),
+            ),
+        )
+    else:
+        extensions = _extension_results(normalized_semantics.value, extension_sets)
 
     projection = (
         None
