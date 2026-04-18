@@ -573,6 +573,22 @@ Status 2026-04-17: root CLI command split landed.
   - `logs/test-runs/cli-root-layout-20260417-195353.log` - 2 passed.
   - `uv run pyright propstore/cli/__init__.py propstore/cli/history_cmds.py propstore/cli/proposal_cmds.py` - 0 errors.
 
+Status 2026-04-17: worldline CLI split landed.
+
+- Kept `propstore.cli.worldline_cmds` as the `pks worldline` group and shared
+  option/helper module.
+- Moved `create`, `run`, and `refresh` adapters to
+  `propstore.cli.worldline_materialize_cmds`.
+- Moved `show`, `list`, and `diff` adapters to
+  `propstore.cli.worldline_display_cmds`.
+- Moved `delete` adapter to `propstore.cli.worldline_mutation_cmds`.
+- Added a layout guard preventing `@worldline.command` handlers from returning
+  to the group/common module.
+- Verification:
+  - `logs/test-runs/cli-worldline-split-20260417-195607.log` - 8 passed.
+  - `logs/test-runs/cli-worldline-layout-20260417-195709.log` - 3 passed.
+  - `uv run pyright propstore/cli/worldline_cmds.py propstore/cli/worldline_materialize_cmds.py propstore/cli/worldline_display_cmds.py propstore/cli/worldline_mutation_cmds.py propstore/cli/__init__.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
