@@ -181,7 +181,7 @@ wheels = [
 [[package]]
 name = "argumentation"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/argumentation?rev=a8582f6af9e83ad582ffb15a12f25dcb1e7dc9f0#a8582f6af9e83ad582ffb15a12f25dcb1e7dc9f0" }
+source = { git = "https://github.com/ctoth/argumentation?rev=48aadee0c7ed97e9be2a1f1260fc653fed4061bc#48aadee0c7ed97e9be2a1f1260fc653fed4061bc" }
 
 [[package]]
 name = "arrow"
@@ -1904,7 +1904,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "argumentation", git = "https://github.com/ctoth/argumentation?rev=a8582f6af9e83ad582ffb15a12f25dcb1e7dc9f0" },
+    { name = "argumentation", git = "https://github.com/ctoth/argumentation?rev=48aadee0c7ed97e9be2a1f1260fc653fed4061bc" },
     { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=9033d045b9c8076a13b3430a364416379312166b" },
     { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=c6401fa1ff562c437bad18e73422c9aefa2485b1" },
     { name = "click", specifier = ">=8.0" },
