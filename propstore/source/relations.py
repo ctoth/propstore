@@ -215,13 +215,13 @@ def commit_source_stance_proposal(
     claim_index = load_source_claim_reference_index(repo, source_name)
     existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(stances=())
     stances = list(existing.stances)
-    stance_type = coerce_stance_type(stance_type)
-    assert stance_type is not None
+    normalized_stance_type = coerce_stance_type(stance_type)
+    assert normalized_stance_type is not None
 
     stance = SourceStanceEntryDocument(
         source_claim=source_claim,
         target=target,
-        type=stance_type,
+        type=normalized_stance_type,
     )
     if strength is not None:
         stance = convert_document_value(

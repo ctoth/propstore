@@ -22,6 +22,7 @@ from propstore.core.claim_values import (
     SourceOrigin,
     SourceTrust,
 )
+from propstore.core.source_types import coerce_source_kind, coerce_source_origin_type
 from propstore.stances import StanceType, coerce_stance_type
 from propstore.core.id_types import (
     ClaimId,
@@ -34,6 +35,27 @@ from propstore.core.id_types import (
     to_context_id,
     to_justification_id,
 )
+
+
+def _require_claim_type(value: object) -> ClaimType:
+    claim_type = coerce_claim_type(value)
+    if claim_type is None:
+        raise KeyError("claim_type")
+    return claim_type
+
+
+def _require_concept_relationship_type(value: object) -> ConceptRelationshipType:
+    relation_type = coerce_concept_relationship_type(value)
+    if relation_type is None:
+        raise KeyError("relation_type")
+    return relation_type
+
+
+def _require_stance_type(value: object) -> StanceType:
+    stance_type = coerce_stance_type(value)
+    if stance_type is None:
+        raise KeyError("stance_type")
+    return stance_type
 
 
 @dataclass(frozen=True)
@@ -171,7 +193,7 @@ class RelationshipRow:
         return cls(
             source_id=str(row_map["source_id"]),
             target_id=str(row_map["target_id"]),
-            relation_type=coerce_concept_relationship_type(relation_type),
+            relation_type=_require_concept_relationship_type(relation_type),
             conditions_cel=(
                 None if row_map.get("conditions_cel") is None else str(row_map["conditions_cel"])
             ),
@@ -349,13 +371,17 @@ class ClaimRow:
         )
         flat_source = ClaimSource(
             source_id=(None if row_map.get("source_id") is None else str(row_map["source_id"])),
-            kind=(None if row_map.get("source_kind") is None else str(row_map["source_kind"])),
+            kind=(
+                None
+                if row_map.get("source_kind") is None
+                else coerce_source_kind(row_map["source_kind"])
+            ),
             slug=(None if row_map.get("source_slug") is None else str(row_map["source_slug"])),
             origin=SourceOrigin(
                 origin_type=(
                     None
                     if row_map.get("source_origin_type") is None
-                    else str(row_map["source_origin_type"])
+                    else coerce_source_origin_type(row_map["source_origin_type"])
                 ),
                 value=(
                     None
@@ -423,7 +449,7 @@ class ClaimRow:
             claim_type=(
                 None
                 if row_map.get("type", row_map.get("claim_type")) is None
-                else coerce_claim_type(row_map.get("type", row_map.get("claim_type")))
+                else _require_claim_type(row_map.get("type", row_map.get("claim_type")))
             ),
             concept_id=(
                 None if row_map.get("concept_id") is None else to_concept_id(row_map["concept_id"])
@@ -663,7 +689,7 @@ class StanceRow:
         return cls(
             claim_id=to_claim_id(row_map["claim_id"]),
             target_claim_id=to_claim_id(row_map["target_claim_id"]),
-            stance_type=coerce_stance_type(row_map["stance_type"]),
+            stance_type=_require_stance_type(row_map["stance_type"]),
             target_justification_id=(
                 None
                 if row_map.get("target_justification_id") is None

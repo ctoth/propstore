@@ -211,12 +211,12 @@ def commit_source_claim_proposal(
         )
     claims = restored
 
-    claim_type = coerce_claim_type(claim_type)
-    assert claim_type is not None
+    normalized_claim_type = coerce_claim_type(claim_type)
+    assert normalized_claim_type is not None
 
     claim_payload: dict[str, object] = {
         "id": claim_id,
-        "type": claim_type.value,
+        "type": normalized_claim_type.value,
         "context": context,
     }
     if statement is not None:

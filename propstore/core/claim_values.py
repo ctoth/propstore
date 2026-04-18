@@ -100,8 +100,13 @@ class SourceOrigin:
     def from_mapping(cls, data: Mapping[str, Any] | None) -> SourceOrigin | None:
         if data is None:
             return None
+        origin_type = data.get("type")
         origin = cls(
-            origin_type=_maybe_str(data.get("type")),
+            origin_type=(
+                None
+                if origin_type is None
+                else coerce_source_origin_type(origin_type)
+            ),
             value=_maybe_str(data.get("value")),
             retrieved=_maybe_str(data.get("retrieved")),
             content_ref=_maybe_str(data.get("content_ref")),
@@ -210,13 +215,16 @@ class ClaimSource:
         trust = SourceTrust.from_mapping(
             data.get("trust") if isinstance(data, Mapping) and isinstance(data.get("trust"), Mapping) else None
         )
+        kind = (
+            None
+            if not isinstance(data, Mapping) or data.get("kind") is None
+            else coerce_source_kind(data.get("kind"))
+        )
         source = cls(
             source_id=(
                 None if not isinstance(data, Mapping) else _maybe_str(data.get("id"))
             ),
-            kind=(
-                None if not isinstance(data, Mapping) else _maybe_str(data.get("kind"))
-            ),
+            kind=kind,
             slug=slug,
             origin=origin,
             trust=trust,
