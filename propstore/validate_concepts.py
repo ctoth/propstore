@@ -28,7 +28,7 @@ from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     VALID_CONCEPT_RELATIONSHIP_TYPES,
 )
-from propstore.form_utils import kind_type_from_form_name, load_form_path
+from propstore.form_utils import FormDefinition, kind_type_from_form_name, load_form_path
 from propstore.identity import (
     CONCEPT_ARTIFACT_ID_RE,
     CONCEPT_VERSION_ID_RE,
@@ -286,6 +286,7 @@ def validate_concepts(
     claims_dir: KnowledgePath | None = None,
     *,
     forms_dir: KnowledgePath | None = None,
+    form_registry: Mapping[str, FormDefinition] | None = None,
     claim_reference_lookup: Mapping[str, tuple[str, ...]] | None = None,
 ) -> ValidationResult:
     """Run all compiler contract validation checks.
@@ -295,6 +296,8 @@ def validate_concepts(
         claims_dir: Optional path to claims directory. When provided,
             canonical_claim references on parameterizations are validated
             against the claim IDs found in claim files.
+        form_registry: Preloaded form definitions. Repository workflows pass
+            this instead of loading from a forms directory.
         claim_reference_lookup: Preloaded claim reference lookup. Repository
             workflows pass this instead of enumerating a claims directory.
         forms_dir: Optional explicit forms root. When omitted, concepts must
@@ -314,6 +317,21 @@ def validate_concepts(
                 "validate_concepts requires forms_dir or knowledge_root metadata"
             )
         return c.knowledge_root / "forms"
+
+    def _form_definition(c: LoadedConcept, form_name: object) -> FormDefinition | None:
+        if not isinstance(form_name, str) or not form_name:
+            return None
+        if form_registry is not None:
+            return form_registry.get(form_name)
+        return load_form_path(_forms_dir(c), form_name)
+
+    def _form_exists(c: LoadedConcept, form_name: object) -> bool:
+        if not isinstance(form_name, str) or not form_name:
+            return False
+        if form_registry is not None:
+            return form_name in form_registry
+        forms_root = _forms_dir(c)
+        return (forms_root / f"{form_name}.yaml").exists()
 
     def _effective_dims(form_def) -> dict[str, int] | None:
         if form_def.dimensions is not None:
@@ -377,10 +395,7 @@ def validate_concepts(
         elif not isinstance(form, str):
             result.errors.append(f"{c.filename}: 'form' must be a string")
         else:
-            # Check that a matching form file exists
-            forms_dir = _forms_dir(c)
-            form_file = forms_dir / f"{form}.yaml"
-            if not form_file.exists():
+            if not _form_exists(c, form):
                 result.errors.append(
                     f"{c.filename}: form '{form}' has no matching file at forms/{form}.yaml")
 
@@ -391,8 +406,7 @@ def validate_concepts(
 
         # ── Form-aware parameter validation ──────────────────────
         if isinstance(form, str) and form:
-            forms_dir = _forms_dir(c)
-            form_def = load_form_path(forms_dir, form)
+            form_def = _form_definition(c, form)
             if form_def is not None:
                 # Category concepts must have values in form_parameters
                 if form == "category":
@@ -538,14 +552,13 @@ def validate_concepts(
                             f"must be quantity kind (is {input_kind.value})")
 
             # ── Dimensional compatibility (bridgman) ─────────────
-            forms_dir = _forms_dir(c)
-            output_form_def = load_form_path(forms_dir, data.get("form"))
+            output_form_def = _form_definition(c, data.get("form"))
             if output_form_def is not None and len(inputs) >= 2:
                 input_form_defs = []
                 for inp_id in inputs:
                     inp_c = id_to_concept.get(inp_id)
                     if inp_c is not None:
-                        inp_fd = load_form_path(forms_dir, inp_c.record.form)
+                        inp_fd = _form_definition(c, inp_c.record.form)
                         if inp_fd is not None:
                             input_form_defs.append(inp_fd)
                 if len(input_form_defs) == len(inputs) and input_form_defs:

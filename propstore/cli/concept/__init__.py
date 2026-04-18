@@ -19,13 +19,12 @@ from propstore.claims import (
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY, FORM_FAMILY
 from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
 )
 from propstore.artifacts.refs import ClaimsFileRef, ConceptFileRef
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from propstore.source import (
     align_sources,
     decide_alignment,
@@ -54,6 +53,7 @@ from propstore.repository import Repository
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.validate_concepts import validate_concepts
 from propstore.compiler.passes import validate_claims
+from propstore.form_utils import parse_form
 
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
 QUALIA_ROLES = ("formal", "constitutive", "telic", "agentive")
@@ -348,9 +348,14 @@ def _validate_updated_concept(
         repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, claim_ref)
         for claim_ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
     ]
+    form_registry = {
+        document.name: parse_form(document.name, document)
+        for form_ref in repo.artifacts.list(FORM_FAMILY)
+        for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+    }
     validation = validate_concepts(
         concepts,
-        forms_dir=SEMANTIC_FAMILIES.root_path("form", repo.tree()),
+        form_registry=form_registry,
         claim_reference_lookup=build_claim_reference_lookup(claim_files),
     )
     if not validation.ok:

@@ -15,7 +15,7 @@ from propstore.claims import (
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY, FORM_FAMILY
 from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
@@ -42,6 +42,7 @@ from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_fo
 from propstore.repository import Repository
 from propstore.validate_concepts import validate_concepts
 from propstore.compiler.passes import validate_claims
+from propstore.form_utils import parse_form
 from propstore.cli.concept import (
     PROTO_ROLE_KINDS,
     QUALIA_ROLES,
@@ -99,10 +100,8 @@ def add(
     if definition is None:
         definition = click.prompt("Definition")
     if form_name is None:
-        # List available forms
-        forms = repo.tree() / "forms"
-        if forms.exists():
-            available = sorted(f.stem for f in forms.iterdir() if f.suffix == ".yaml")
+        available = sorted(form_ref.name for form_ref in repo.artifacts.list(FORM_FAMILY))
+        if available:
             click.echo(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
 
@@ -176,7 +175,12 @@ def add(
         )
     )
 
-    result = validate_concepts(concepts, forms_dir=repo.tree() / "forms")
+    form_registry = {
+        document.name: parse_form(document.name, document)
+        for form_ref in repo.artifacts.list(FORM_FAMILY)
+        for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+    }
+    result = validate_concepts(concepts, form_registry=form_registry)
     if not result.ok:
         for e in result.errors:
             click.echo(f"ERROR: {e}", err=True)
@@ -351,7 +355,11 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     ]
     concept_validation = validate_concepts(
         [entry for _, _, entry in updated_concepts],
-        forms_dir=repo.tree() / "forms",
+        form_registry={
+            document.name: parse_form(document.name, document)
+            for form_ref in repo.artifacts.list(FORM_FAMILY)
+            for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+        },
         claim_reference_lookup=build_claim_reference_lookup(claim_files),
     )
     if not concept_validation.ok:
@@ -379,7 +387,11 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             ))
         compilation_context = build_compilation_context_from_loaded(
             [entry for _, _, entry in updated_concepts],
-            forms_dir=repo.tree() / "forms",
+            form_registry={
+                document.name: parse_form(document.name, document)
+                for form_ref in repo.artifacts.list(FORM_FAMILY)
+                for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+            },
             claim_files=[entry for _, entry in updated_claim_files],
         )
         claim_validation = validate_claims(
@@ -579,7 +591,11 @@ def link(
         )
     validation = validate_concepts(
         updated_concepts,
-        forms_dir=repo.tree() / "forms",
+        form_registry={
+            document.name: parse_form(document.name, document)
+            for form_ref in repo.artifacts.list(FORM_FAMILY)
+            for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+        },
         claim_reference_lookup=build_claim_reference_lookup([
             repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, claim_ref)
             for claim_ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
