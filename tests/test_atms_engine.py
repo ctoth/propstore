@@ -101,6 +101,9 @@ class _ATMSStore:
     def get_claim(self, claim_id: str) -> dict | None:
         return next((claim for claim in self._claims if claim["id"] == claim_id), None)
 
+    def resolve_claim(self, claim_id: str) -> str | None:
+        return claim_id if self.get_claim(claim_id) is not None else None
+
     def has_table(self, name: str) -> bool:
         return False
 
@@ -225,6 +228,9 @@ class _GraphOnlyATMSRuntime:
             }
             for edge in self.active_graph.compiled.parameterizations
         ]
+
+    def all_micropublications(self) -> list[dict]:
+        return []
 
     def is_param_compatible(self, conditions_cel: str | None) -> bool:
         return self._bound.is_param_compatible(conditions_cel)

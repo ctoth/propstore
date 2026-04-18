@@ -42,6 +42,7 @@ from propstore.core.micropublications import (
     coerce_active_micropublication,
 )
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness, ParameterizationEdge
+from propstore.conflict_detector.models import coerce_conflict_class
 from propstore.propagation import (
     ParameterizationEvaluationStatus,
     evaluate_parameterization,
@@ -116,6 +117,9 @@ class _ATMSRuntimeLike(Protocol):
 
     @property
     def all_parameterizations(self) -> Callable[[], list[ParameterizationRowInput]]: ...
+
+    @property
+    def all_micropublications(self) -> Callable[[], list[ActiveMicropublicationInput]]: ...
 
     @property
     def active_claims(self) -> Callable[[], list[ActiveClaim]]: ...
@@ -289,7 +293,7 @@ class _ATMSRuntime:
     conflicts: Callable[[], list[ConflictRowInput]]
     is_param_compatible: Callable[[str | None], bool]
     claim_support: Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]
-    concept_status: Callable[[str], str]
+    concept_status: Callable[[str], ValueStatus]
     replay: Callable[[tuple[QueryableAssumption, ...]], "_ATMSRuntime"]
 
     @property
@@ -360,7 +364,7 @@ def _conflict_witness_to_row(conflict: ConflictWitness) -> ConflictRow:
     return ConflictRow(
         claim_a_id=conflict.left_claim_id,
         claim_b_id=conflict.right_claim_id,
-        warning_class=conflict.kind,
+        warning_class=coerce_conflict_class(conflict.kind),
         attributes=dict(conflict.details),
     )
 
@@ -1734,12 +1738,9 @@ class ATMSEngine:
         )
 
     def _runtime_micropublications(self) -> tuple[ActiveMicropublication, ...]:
-        loader = vars(self._runtime).get("all_micropublications")
-        if not callable(loader):
-            return ()
         return tuple(
             coerce_active_micropublication(item)
-            for item in loader()
+            for item in self._runtime.all_micropublications()
         )
 
     def _visible_context_ids(self) -> tuple[ContextId, ...]:
