@@ -5,12 +5,10 @@ Single entry point. Subcommand groups registered from sibling modules.
 from __future__ import annotations
 
 from pathlib import Path
-import re
 import sys
 
 import click
 
-from propstore.artifacts import MERGE_MANIFEST_FAMILY, MergeManifestRef
 from propstore.artifacts.codecs import render_yaml_value
 from propstore.cli.concept import concept
 from propstore.cli.context import context
@@ -25,6 +23,7 @@ from propstore.cli.init import init
 from propstore.cli.merge_cmds import merge
 from propstore.cli.micropub import micropub
 from propstore.cli.repository_import_cmd import import_repository_cmd
+from propstore.repository_history import BranchNotFoundError, LogRecord, build_log_report
 from propstore.repository import Repository
 
 
@@ -80,112 +79,32 @@ cli.add_command(import_repository_cmd)
 
 # ── log command ─────────────────────────────────────────────────────
 
-_LOG_OPERATION_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"^Initialize knowledge repository$"), "init.repo"),
-    (re.compile(r"^Seed default forms$"), "init.forms"),
-    (re.compile(r"^Add concept:"), "concept.add"),
-    (re.compile(r"^Add alias "), "concept.alias_add"),
-    (re.compile(r"^Rename concept:"), "concept.rename"),
-    (re.compile(r"^Link "), "concept.link"),
-    (re.compile(r"^Add value "), "concept.value_add"),
-    (re.compile(r"^Add context:"), "context.add"),
-    (re.compile(r"^Add form:"), "form.add"),
-    (re.compile(r"^Remove form:"), "form.remove"),
-    (re.compile(r"^Import \d+ paper claim file\(s\)$"), "papers.import"),
-    (re.compile(r"^Create worldline:"), "worldline.create"),
-    (re.compile(r"^Materialize worldline:"), "worldline.materialize"),
-    (re.compile(r"^Delete worldline:"), "worldline.delete"),
-    (re.compile(r"^Promote \d+ stance proposal file\(s\) from "), "stances.promote"),
-    (re.compile(r"^Import .+ at [0-9a-f]{12}$"), "repo.import"),
-)
-
-
-def _classify_log_operation(message: str, parents: list[str]) -> str:
-    """Map a commit message to a stable operation label for `pks log`."""
-    if len(parents) > 1:
-        return "merge.commit"
-    for pattern, label in _LOG_OPERATION_PATTERNS:
-        if pattern.search(message):
-            return label
-    return "commit"
-
-
-def _load_merge_summary(repo: Repository, sha: str) -> dict[str, object] | None:
-    manifest = repo.artifacts.load(
-        MERGE_MANIFEST_FAMILY,
-        MergeManifestRef(),
-        commit=sha,
-    )
-    if manifest is None:
-        return None
-    merge = manifest.merge
-    argument_rows = tuple(merge.arguments)
-    materialized_count = sum(1 for row in argument_rows if row.materialized)
-    return {
-        "branch_a": merge.branch_a,
-        "branch_b": merge.branch_b,
-        "argument_count": len(argument_rows),
-        "materialized_argument_count": materialized_count,
-        "semantic_candidate_count": len(merge.semantic_candidate_details),
-    }
-
-
-def _build_log_record(repo: Repository, entry: dict[str, object], *, branch: str, show_files: bool) -> dict[str, object]:
-    message = str(entry["message"])
-    parents = [str(parent) for parent in entry.get("parents", [])]
-    operation = _classify_log_operation(message, parents)
-    record: dict[str, object] = {
-        "sha": str(entry["sha"]),
-        "time": str(entry["time"]),
-        "branch": branch,
-        "operation": operation,
-        "message": message,
-        "parents": parents,
-    }
-    if operation == "merge.commit":
-        merge_summary = _load_merge_summary(repo, record["sha"])
-        if merge_summary is not None:
-            record["merge"] = merge_summary
-    if show_files:
-        info = repo.snapshot.show_commit(record["sha"])
-        record["added"] = list(info.get("added", []))
-        record["modified"] = list(info.get("modified", []))
-        record["deleted"] = list(info.get("deleted", []))
-    return record
-
-
-def _render_text_log(records: list[dict[str, object]], *, show_files: bool) -> None:
+def _render_text_log(records: tuple[LogRecord, ...], *, show_files: bool) -> None:
     for record in records:
-        sha_short = str(record["sha"])[:8]
-        time_str = str(record["time"])
-        branch = str(record["branch"])
-        operation = str(record["operation"])
-        msg_first_line = str(record["message"]).split("\n")[0]
+        sha_short = record.sha[:8]
+        time_str = record.time
+        branch = record.branch
+        operation = record.operation
+        msg_first_line = record.message.split("\n")[0]
         click.echo(f"  {sha_short}  {time_str}  [{branch}]  {operation:<22}  {msg_first_line}")
-        parents = [str(parent) for parent in record.get("parents", [])]
+        parents = record.parents
         if len(parents) > 1:
             parent_list = ", ".join(parent[:8] for parent in parents)
             click.echo(f"    parents: {parent_list}")
-        merge_summary = record.get("merge")
-        if isinstance(merge_summary, dict):
-            branch_a = str(merge_summary.get("branch_a", "?"))
-            branch_b = str(merge_summary.get("branch_b", "?"))
-            argument_count = int(merge_summary.get("argument_count", 0))
-            materialized_count = int(merge_summary.get("materialized_argument_count", 0))
-            semantic_candidate_count = int(merge_summary.get("semantic_candidate_count", 0))
+        if record.merge is not None:
             click.echo(
                 "    merge: "
-                f"{branch_a} + {branch_b}; "
-                f"materialized={materialized_count}/{argument_count}; "
-                f"semantic_candidates={semantic_candidate_count}"
+                f"{record.merge.branch_a} + {record.merge.branch_b}; "
+                f"materialized={record.merge.materialized_argument_count}/{record.merge.argument_count}; "
+                f"semantic_candidates={record.merge.semantic_candidate_count}"
             )
         if not show_files:
             continue
-        for path in record.get("added", []):
+        for path in record.added:
             click.echo(f"    A {path}")
-        for path in record.get("modified", []):
+        for path in record.modified:
             click.echo(f"    M {path}")
-        for path in record.get("deleted", []):
+        for path in record.deleted:
             click.echo(f"    D {path}")
 
 
@@ -210,27 +129,22 @@ def _render_text_log(records: list[dict[str, object]], *, show_files: bool) -> N
 def log_cmd(ctx, count, branch_name, show_files, output_format):
     """Show knowledge repository history."""
     repo = ctx.obj["repo"]
-    snapshot = repo.snapshot
-    if branch_name is None:
-        branch_name = snapshot.current_branch_name() or snapshot.primary_branch_name()
-    if snapshot.branch_head(branch_name) is None:
-        raise click.ClickException(f"Branch not found: {branch_name}")
-    entries = snapshot.log(max_count=count, branch=branch_name)
-    if not entries:
+    try:
+        report = build_log_report(
+            repo,
+            count=count,
+            branch_name=branch_name,
+            show_files=show_files,
+        )
+    except BranchNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if not report.entries:
         click.echo("No history yet.")
         return
-    records = [
-        _build_log_record(repo, entry, branch=branch_name, show_files=show_files)
-        for entry in entries
-    ]
     if output_format == "yaml":
-        payload = {
-            "branch": branch_name,
-            "entries": records,
-        }
-        click.echo(render_yaml_value(payload))
+        click.echo(render_yaml_value(report.to_payload(show_files=show_files)))
         return
-    _render_text_log(records, show_files=show_files)
+    _render_text_log(report.entries, show_files=show_files)
 
 
 # ── diff command ─────────────────────────────────────────────────────
@@ -331,8 +245,9 @@ def checkout_cmd(ctx, commit):
 @click.pass_context
 def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
     """Promote committed stance proposals into source-of-truth storage."""
-    from propstore.artifacts import PROPOSAL_STANCE_FAMILY, STANCE_FILE_FAMILY, StanceFileRef
-    from propstore.proposals import STANCE_PROPOSAL_BRANCH, stance_proposal_filename
+    from propstore.artifacts.families import PROPOSAL_STANCE_FAMILY, STANCE_FILE_FAMILY
+    from propstore.artifacts.refs import STANCE_PROPOSAL_BRANCH, StanceFileRef
+    from propstore.proposals import stance_proposal_filename
 
     repo: "Repository" = ctx.obj["repo"]
     target_stances = repo.stances_dir

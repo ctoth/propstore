@@ -8,6 +8,11 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.repository_history import (
+    BranchNotFoundError,
+    build_log_report,
+    classify_log_operation,
+)
 from propstore.repository import Repository
 from propstore.storage.branch import create_branch
 from propstore.storage.merge_commit import create_merge_commit
@@ -152,6 +157,54 @@ def test_log_yaml_output(tmp_path: Path) -> None:
     assert entry["message"] == "Add concept: log_yaml (testing:log_yaml)"
     assert "concepts/log_yaml.yaml" in entry["added"]
     assert entry["parents"]
+
+
+def test_log_report_builds_structured_records(tmp_path: Path) -> None:
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    assert git is not None
+
+    git.commit_files(
+        {"concepts/log_report.yaml": b"canonical_name: log_report\n"},
+        "Add concept: log_report (testing:log_report)",
+    )
+
+    report = build_log_report(
+        repo,
+        count=1,
+        branch_name=None,
+        show_files=True,
+    )
+    payload = report.to_payload(show_files=True)
+
+    assert report.branch == "master"
+    assert len(report.entries) == 1
+    assert report.entries[0].operation == "concept.add"
+    assert payload["entries"][0]["added"] == ["concepts/log_report.yaml"]
+
+
+def test_log_report_rejects_missing_branch(tmp_path: Path) -> None:
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+
+    try:
+        build_log_report(
+            repo,
+            count=1,
+            branch_name="agent/missing",
+            show_files=False,
+        )
+    except BranchNotFoundError as exc:
+        assert str(exc) == "Branch not found: agent/missing"
+    else:
+        raise AssertionError("expected missing branch failure")
+
+
+def test_log_operation_classifier_identifies_merge_from_parents() -> None:
+    assert classify_log_operation("ordinary message", ("a", "b")) == "merge.commit"
+    assert classify_log_operation("Add form: score", ()) == "form.add"
+    assert classify_log_operation("ordinary message", ()) == "commit"
 
 
 def test_log_merge_summary_output(tmp_path: Path) -> None:

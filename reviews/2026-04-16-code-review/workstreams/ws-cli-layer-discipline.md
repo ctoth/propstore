@@ -410,6 +410,20 @@ Status 2026-04-17: micropub report slice landed.
   - `logs/test-runs/cli-layer-micropub-reports-20260417-180144.log` - 3 passed.
   - `uv run pyright propstore/micropubs.py propstore/cli/micropub.py` - 0 errors.
 
+Status 2026-04-17: log history report slice landed.
+
+- Added `propstore.repository_history` with typed log reports, log records,
+  merge summaries, operation classification, and branch-not-found failures.
+- Moved `pks log` operation classification, merge-manifest summary loading,
+  branch resolution, and structured record assembly out of `propstore.cli`.
+- Added owner coverage for structured log reports, missing branch failures, and
+  operation classification. Existing log CLI text/YAML tests remain green.
+- Fixed the merge-commit helper to import `ArtifactRepository`, the actual
+  artifact repository API used to prepare merge artifacts.
+- Verification:
+  - `logs/test-runs/cli-layer-log-history-20260417-180653.log` - 10 passed.
+  - `uv run pyright propstore/repository_history.py propstore/cli/__init__.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
