@@ -52,7 +52,6 @@ from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.concept_ids import next_concept_id
 from propstore.repository import Repository
 from propstore.storage.snapshot import RepositorySnapshot
-from propstore.core.concepts import load_concepts
 from propstore.validate_concepts import validate_concepts
 from propstore.compiler.passes import validate_claims
 
@@ -157,10 +156,6 @@ def _require_snapshot(repo: Repository) -> RepositorySnapshot:
     return repo.snapshot
 
 
-def _concepts_tree(repo: Repository) -> KnowledgePath:
-    return SEMANTIC_FAMILIES.root_path("concept", repo.tree())
-
-
 def _artifact_source(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> str:
     return repo.artifacts.address(family, ref).require_path()
 
@@ -231,9 +226,17 @@ def _concept_display_handle(data: dict) -> str:
 
 
 def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | None:
-    concepts = load_concepts(_concepts_tree(repo))
-    for concept in concepts:
-        if concept.filename == id_or_name:
+    tree = repo.tree()
+    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref)
+        concept = LoadedConcept(
+            filename=ref.name,
+            source_path=tree / handle.address.require_path(),
+            knowledge_root=tree,
+            record=parse_concept_record_document(handle.document),
+            document=handle.document,
+        )
+        if ref.name == id_or_name:
             return concept
         data = concept.record.to_payload()
         if data.get("canonical_name") == id_or_name:
@@ -315,19 +318,29 @@ def _validate_updated_concept(
 ) -> None:
     ref = _concept_ref(concept_entry)
     concepts = []
-    for loaded in load_concepts(_concepts_tree(repo)):
-        if _concept_ref(loaded) == ref:
+    tree = repo.tree()
+    for loaded_ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, loaded_ref)
+        if loaded_ref == ref:
             concepts.append(
                 LoadedConcept(
-                    filename=loaded.filename,
+                    filename=loaded_ref.name,
                     source_path=_artifact_knowledge_path(repo, CONCEPT_FILE_FAMILY, ref),
-                    knowledge_root=loaded.knowledge_root,
+                    knowledge_root=tree,
                     record=parse_concept_record_document(document),
                     document=document,
                 )
             )
             continue
-        concepts.append(loaded)
+        concepts.append(
+            LoadedConcept(
+                filename=loaded_ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_concept_record_document(handle.document),
+                document=handle.document,
+            )
+        )
 
     from propstore.compiler.references import build_claim_reference_lookup
 

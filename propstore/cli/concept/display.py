@@ -38,7 +38,6 @@ from propstore.core.concepts import (
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.concept_ids import next_concept_id
 from propstore.repository import Repository
-from propstore.core.concepts import load_concepts
 from propstore.validate_concepts import validate_concepts
 from propstore.compiler.passes import validate_claims
 from propstore.cli.concept import (
@@ -55,7 +54,6 @@ from propstore.cli.concept import (
     _concept_display_handle,
     _concept_document,
     _concept_ref,
-    _concepts_tree,
     _find_concept_entry,
     _first_lexical_sense,
     _normalize_concept_data,
@@ -108,13 +106,21 @@ def search(obj: dict, query: str) -> None:
 def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
     """List concepts, optionally filtered."""
     repo: Repository = obj["repo"]
-    concepts_tree = _concepts_tree(repo)
-    if not concepts_tree.exists():
+    refs = repo.artifacts.list(CONCEPT_FILE_FAMILY)
+    if not refs:
         click.echo("No concepts directory found.")
         return
 
-    concepts = load_concepts(concepts_tree)
-    for c in concepts:
+    tree = repo.tree()
+    for ref in refs:
+        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref)
+        c = LoadedConcept(
+            filename=ref.name,
+            source_path=tree / handle.address.require_path(),
+            knowledge_root=tree,
+            record=parse_concept_record_document(handle.document),
+            document=handle.document,
+        )
         d = c.record.to_payload()
         c_domain = d.get("domain", "")
         c_status = d.get("status", "")
@@ -136,10 +142,16 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
 def categories(obj: dict, as_json: bool) -> None:
     """List all category concepts and their allowed values."""
     repo: Repository = obj["repo"]
-    concepts = load_concepts(repo.tree() / "concepts")
-
     cat_data = {}
-    for c in concepts:
+    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref)
+        c = LoadedConcept(
+            filename=ref.name,
+            source_path=repo.tree() / repo.artifacts.address(CONCEPT_FILE_FAMILY, ref).require_path(),
+            knowledge_root=repo.tree(),
+            record=parse_concept_record_document(document),
+            document=document,
+        )
         data = c.record.to_payload()
         if data.get("form") != "category":
             continue
