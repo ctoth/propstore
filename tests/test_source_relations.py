@@ -1039,7 +1039,7 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
     source_doc = yaml.safe_load(repo.git.read_file("sources/demo.yaml"))
     assert source_doc["id"].startswith("tag:")
 
-    build_sidecar(repo.tree(), repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
     conn = sqlite3.connect(repo.sidecar_path)
     try:
         justification_ids = {
@@ -1224,4 +1224,3 @@ def test_source_promote_blocks_on_ambiguous_new_concept_slug_collision(tmp_path:
     )
     assert promote.exit_code != 0
     assert "novel concept" in promote.output
-

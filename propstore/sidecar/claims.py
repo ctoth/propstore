@@ -12,17 +12,16 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
 from propstore.claims import (
     LoadedClaimsFile,
     claim_file_claims,
+    claim_file_filename,
     claim_file_source_paper,
     claim_file_stage,
 )
-from quire.documents import decode_document_path
-from quire.tree_path import TreePath as KnowledgePath
 from propstore.sidecar.claim_utils import (
     claim_reference_map_from_conn,
     coerce_stance_resolution,
@@ -43,18 +42,12 @@ if TYPE_CHECKING:
     from propstore.sidecar.build import RawIdQuarantineRecord
 
 
-def populate_stances_from_files(
+def populate_stances(
     conn: sqlite3.Connection,
-    stances_root: KnowledgePath,
+    stance_entries: Iterable[tuple[str, StanceFileDocument]],
 ) -> int:
     """Read stance YAML files and insert them into normalized relation storage."""
-    if not stances_root.exists():
-        return 0
-    stance_entries = [
-        (entry.stem, decode_document_path(entry, StanceFileDocument))
-        for entry in stances_root.iterdir()
-        if entry.is_file() and entry.suffix == ".yaml"
-    ]
+    stance_entries = list(stance_entries)
     if not stance_entries:
         return 0
 
@@ -121,19 +114,12 @@ def populate_stances_from_files(
     return count
 
 
-def populate_authored_justifications_from_files(
+def populate_authored_justifications(
     conn: sqlite3.Connection,
-    justifications_root: KnowledgePath,
+    justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
 ) -> int:
     """Read authored justification YAML files and insert them into the sidecar."""
-    if not justifications_root.exists():
-        return 0
-
-    justification_entries = [
-        (entry.stem, decode_document_path(entry, SourceJustificationsDocument))
-        for entry in justifications_root.iterdir()
-        if entry.is_file() and entry.suffix == ".yaml"
-    ]
+    justification_entries = list(justification_entries)
     if not justification_entries:
         return 0
 
@@ -306,14 +292,14 @@ def populate_claims(
     # the semantic-bundle path (via ``SemanticClaim.filename``) and the
     # raw-claim-file path (via ``claim_file.filename``).
     file_stage_by_filename: dict[str, str | None] = {
-        claim_file.filename: claim_file_stage(claim_file)
+        claim_file_filename(claim_file): claim_file_stage(claim_file)
         for claim_file in reference_source
     }
 
     if semantic_bundle is not None:
         for semantic_file in semantic_bundle.semantic_files:
             file_stage = file_stage_by_filename.get(
-                semantic_file.normalized_entry.filename
+                claim_file_filename(semantic_file.normalized_entry)
             )
             for semantic_claim in semantic_file.claims:
                 claim_seq += 1

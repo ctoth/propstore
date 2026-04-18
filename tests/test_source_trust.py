@@ -196,7 +196,7 @@ def _seed_calibration_claim(repo: Repository) -> None:
         message="Seed calibration claims",
         branch="master",
     )
-    build_sidecar(repo.tree(), repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
 
 
 def test_source_finalize_derives_prior_base_rate_from_calibration_claims(tmp_path: Path) -> None:
@@ -313,7 +313,7 @@ def test_world_model_claim_rows_include_calibrated_source_prior(tmp_path: Path) 
     assert runner.invoke(cli, ["-C", str(repo.root), "source", "finalize", "demo"]).exit_code == 0
     assert runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"]).exit_code == 0
 
-    build_sidecar(repo.tree(), repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
     claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
     claim_id = claims_doc["claims"][0]["artifact_id"]
     wm = WorldModel(repo)

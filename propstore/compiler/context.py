@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, cast
 
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore.cel_checker import ConceptInfo
@@ -186,15 +186,16 @@ def concept_registry_for_context_payloads(
 
 def build_authored_concept_registry(
     concepts: list[Any] | list[LoadedConcept],
-    forms_dir: Path | KnowledgePath,
     *,
+    forms_dir: Path | KnowledgePath | None = None,
+    form_registry: Mapping[str, FormDefinition] | None = None,
     require_form_definition: bool = True,
 ) -> dict[str, dict[str, Any]]:
     """Build the canonical authored-concept lookup used by validators/builders."""
     from propstore.core.concepts import normalize_loaded_concepts
     from propstore.form_utils import load_form_path
 
-    forms_root = coerce_knowledge_path(forms_dir)
+    forms_root = None if forms_dir is None else coerce_knowledge_path(forms_dir)
     typed_concepts = (
         concepts
         if all(isinstance(concept, LoadedConcept) for concept in concepts)
@@ -206,7 +207,15 @@ def build_authored_concept_registry(
         enriched = record.to_payload()
         cid = str(record.artifact_id)
         enriched["_storage_id"] = cid
-        form_def = load_form_path(forms_root, record.form)
+        form_def = (
+            form_registry.get(record.form)
+            if form_registry is not None and record.form is not None
+            else (
+                None
+                if forms_root is None
+                else load_form_path(forms_root, record.form)
+            )
+        )
         if record.form:
             if form_def is None:
                 if require_form_definition:

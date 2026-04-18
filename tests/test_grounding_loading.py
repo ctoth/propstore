@@ -49,7 +49,7 @@ def test_build_grounded_bundle_rejects_rules_without_predicates(tmp_path) -> Non
 
 def test_world_model_grounding_bundle_uses_repo_knowledge_root_and_caches(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    build_sidecar(repo.tree(), repo.sidecar_path, force=True)
+    build_sidecar(repo, repo.sidecar_path, force=True)
 
     wm = WorldModel(repo)
     try:

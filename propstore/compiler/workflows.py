@@ -403,7 +403,7 @@ def build_repository(
 
     sidecar_path = Path(output) if output else repo.sidecar_path
     rebuilt = build_sidecar(
-        tree,
+        repo,
         sidecar_path,
         force=force,
         commit_hash=hash_key,

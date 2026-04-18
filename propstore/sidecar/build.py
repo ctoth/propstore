@@ -14,30 +14,37 @@ whether to show these rows. This implements the discipline declared in
 
 from __future__ import annotations
 
-import hashlib
 import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from quire.documents import load_document_dir
-from propstore.artifacts.documents.claims import ClaimsFileDocument
+from propstore.artifacts.families import (
+    CANONICAL_SOURCE_FAMILY,
+    CLAIMS_FILE_FAMILY,
+    CONCEPT_FILE_FAMILY,
+    CONTEXT_FAMILY,
+    FORM_FAMILY,
+    JUSTIFICATIONS_FILE_FAMILY,
+    MICROPUBS_FILE_FAMILY,
+    STANCE_FILE_FAMILY,
+)
 from propstore.claims import claim_file_claims, claim_file_filename, claim_file_source_paper
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
-    concept_registry_for_context,
 )
 from propstore.compiler.passes import compile_claim_files
-from propstore.form_utils import FormDefinition, load_all_forms_path
-from quire.tree_path import TreePath as KnowledgePath
+from propstore.context_types import LoadedContext, parse_context_record_document
+from propstore.core.concepts import LoadedConcept, parse_concept_record_document
+from propstore.form_utils import parse_form
 from propstore.sidecar.claims import (
     build_claim_fts_index,
-    populate_authored_justifications_from_files,
+    populate_authored_justifications,
     populate_claims,
     populate_conflicts,
     populate_raw_id_quarantine_records,
-    populate_stances_from_files,
+    populate_stances,
 )
 from propstore.sidecar.concepts import (
     build_concept_fts_index,
@@ -59,38 +66,12 @@ from propstore.sidecar.schema import (
 )
 from propstore.sidecar.micropublications import populate_micropublications
 from propstore.sidecar.sources import populate_sources
-from propstore.core.concepts import load_concepts
 from propstore.compiler.context import build_authored_concept_registry
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
     from propstore.compiler.ir import ClaimCompilationBundle
-
-_SEMANTIC_INPUT_VERSION = "semantic-input-v1"
-
-
-def _content_hash(knowledge_root: KnowledgePath) -> str:
-    import hashlib
-
-    h = hashlib.sha256()
-    h.update(_SEMANTIC_INPUT_VERSION.encode())
-    for subdir in ("concepts", "claims", "contexts", "forms", "justifications", "sources", "stances"):
-        subtree = knowledge_root / subdir
-        if not subtree.exists():
-            continue
-        for entry in subtree.iterdir():
-            if not entry.is_file() or entry.suffix != ".yaml":
-                continue
-            h.update(entry.stem.encode())
-            h.update(entry.read_bytes())
-
-    schema_dir = Path(__file__).parent.parent.parent / "schema" / "generated"
-    if schema_dir.exists():
-        for schema_path in sorted(schema_dir.glob("*.json")):
-            h.update(str(schema_path.name).encode())
-            h.update(schema_path.read_bytes())
-    return h.hexdigest()
-
+    from propstore.repository import Repository
 
 @dataclass(frozen=True)
 class RawIdQuarantineRecord:
@@ -139,6 +120,8 @@ class RawIdQuarantineRecord:
 
 def _synthesize_quarantine_id(filename: str, raw_id: str, seq: int) -> str:
     """Deterministic synthetic id for a raw-id-broken claim."""
+
+    import hashlib
 
     digest = hashlib.sha256(f"{filename}|{raw_id}|{seq}".encode()).hexdigest()
     return f"quarantine:raw_id:{digest[:32]}"
@@ -204,7 +187,7 @@ def _collect_raw_id_diagnostics(
 
 
 def build_sidecar(
-    knowledge_root: KnowledgePath,
+    repo: "Repository",
     sidecar_path: Path,
     force: bool = False,
     *,
@@ -212,13 +195,16 @@ def build_sidecar(
     compilation_context: CompilationContext | None = None,
     claim_bundle: ClaimCompilationBundle | None = None,
 ) -> bool:
-    """Build the SQLite sidecar from a knowledge tree."""
+    """Build the SQLite sidecar from repository artifact families."""
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    tree = repo.tree(commit=commit_hash)
 
     if commit_hash is not None:
         content_hash = commit_hash
     else:
-        content_hash = _content_hash(knowledge_root)
+        content_hash = repo.snapshot.head_sha()
+        if content_hash is None:
+            raise ValueError("build_sidecar requires a committed git repository or an explicit commit_hash")
     hash_path = sidecar_path.with_suffix(".hash")
 
     if not force and sidecar_path.exists() and hash_path.exists():
@@ -226,21 +212,44 @@ def build_sidecar(
         if existing_hash == content_hash:
             return False
 
-    form_registry = load_all_forms_path(knowledge_root / "forms")
-    concepts = load_concepts(knowledge_root / "concepts")
-    claim_files = (
-        load_document_dir(knowledge_root / "claims", ClaimsFileDocument)
-        if (knowledge_root / "claims").exists()
-        else None
-    )
     from propstore.context_types import loaded_contexts_to_lifting_system
-    from propstore.validate_contexts import load_contexts
 
-    context_files = (
-        load_contexts(knowledge_root / "contexts")
-        if (knowledge_root / "contexts").exists()
-        else None
-    )
+    form_registry = {
+        document.name: parse_form(document.name, document)
+        for form_ref in repo.artifacts.list(FORM_FAMILY, commit=commit_hash)
+        for document in (
+            repo.artifacts.require(FORM_FAMILY, form_ref, commit=commit_hash),
+        )
+    }
+    concepts = [
+        LoadedConcept(
+            filename=ref.name,
+            source_path=tree / handle.address.require_path(),
+            knowledge_root=tree,
+            record=parse_concept_record_document(handle.document),
+            document=handle.document,
+        )
+        for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=commit_hash)
+        for handle in (
+            repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref, commit=commit_hash),
+        )
+    ]
+    claim_files = [
+        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref, commit=commit_hash)
+        for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=commit_hash)
+    ]
+    context_files = [
+        LoadedContext(
+            filename=ref.name,
+            source_path=tree / handle.address.require_path(),
+            knowledge_root=tree,
+            record=parse_context_record_document(handle.document),
+        )
+        for ref in repo.artifacts.list(CONTEXT_FAMILY, commit=commit_hash)
+        for handle in (
+            repo.artifacts.require_handle(CONTEXT_FAMILY, ref, commit=commit_hash),
+        )
+    ]
     context_ids = {
         str(c.record.context_id)
         for c in (context_files or [])
@@ -250,16 +259,16 @@ def build_sidecar(
     if compilation_context is None:
         compilation_context = build_compilation_context_from_loaded(
             concepts,
-            forms_dir=knowledge_root / "forms",
-            claim_files=list(claim_files) if claim_files is not None else None,
+            form_registry=form_registry,
+            claim_files=list(claim_files) if claim_files else None,
             context_ids=context_ids,
         )
     concept_registry = build_authored_concept_registry(
         concepts,
-        knowledge_root / "forms",
+        form_registry=form_registry,
         require_form_definition=False,
     )
-    if claim_bundle is None and claim_files is not None:
+    if claim_bundle is None and claim_files:
         claim_bundle = compile_claim_files(
             list(claim_files),
             compilation_context,
@@ -271,7 +280,7 @@ def build_sidecar(
     normalized_claim_files = (
         list(claim_bundle.normalized_claim_files)
         if claim_bundle is not None
-        else claim_files
+        else (claim_files if claim_files else None)
     )
 
     embedding_snapshot = None
@@ -316,7 +325,20 @@ def build_sidecar(
         write_schema_metadata(conn)
         create_tables(conn)
         create_context_tables(conn)
-        populate_sources(conn, knowledge_root)
+        populate_sources(
+            conn,
+            (
+                (
+                    ref.name,
+                    repo.artifacts.require(
+                        CANONICAL_SOURCE_FAMILY,
+                        ref,
+                        commit=commit_hash,
+                    ),
+                )
+                for ref in repo.artifacts.list(CANONICAL_SOURCE_FAMILY, commit=commit_hash)
+            ),
+        )
         populate_forms(conn, form_registry)
         populate_concepts(conn, concepts, form_registry)
         populate_aliases(conn, concepts)
@@ -357,7 +379,20 @@ def build_sidecar(
             )
             build_claim_fts_index(conn, normalized_claim_files)
 
-        populate_micropublications(conn, knowledge_root / "micropubs")
+        populate_micropublications(
+            conn,
+            (
+                (
+                    ref.name,
+                    repo.artifacts.require(
+                        MICROPUBS_FILE_FAMILY,
+                        ref,
+                        commit=commit_hash,
+                    ),
+                )
+                for ref in repo.artifacts.list(MICROPUBS_FILE_FAMILY, commit=commit_hash)
+            ),
+        )
 
         if embedding_snapshot is not None:
             try:
@@ -374,8 +409,37 @@ def build_sidecar(
                 conn.row_factory = None
 
         if normalized_claim_files is not None:
-            populate_stances_from_files(conn, knowledge_root / "stances")
-            populate_authored_justifications_from_files(conn, knowledge_root / "justifications")
+            populate_stances(
+                conn,
+                (
+                    (
+                        ref.source_claim,
+                        repo.artifacts.require(
+                            STANCE_FILE_FAMILY,
+                            ref,
+                            commit=commit_hash,
+                        ),
+                    )
+                    for ref in repo.artifacts.list(STANCE_FILE_FAMILY, commit=commit_hash)
+                ),
+            )
+            populate_authored_justifications(
+                conn,
+                (
+                    (
+                        ref.name,
+                        repo.artifacts.require(
+                            JUSTIFICATIONS_FILE_FAMILY,
+                            ref,
+                            commit=commit_hash,
+                        ),
+                    )
+                    for ref in repo.artifacts.list(
+                        JUSTIFICATIONS_FILE_FAMILY,
+                        commit=commit_hash,
+                    )
+                ),
+            )
 
         conn.commit()
     except BaseException:
