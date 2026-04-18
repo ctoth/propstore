@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from propstore.artifacts.families import CONCEPT_FILE_FAMILY
 from propstore.core.concepts import parse_concept_record_document
 from propstore.identity import primary_logical_id
 from propstore.repository import Repository
@@ -23,8 +22,8 @@ class AliasExportEntry:
 
 def export_concept_aliases(repo: Repository) -> dict[str, AliasExportEntry]:
     aliases: dict[str, AliasExportEntry] = {}
-    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref)
+    for ref in repo.families.concepts.list():
+        document = repo.families.concepts.require(ref)
         data = parse_concept_record_document(document).to_payload()
         logical_id = primary_logical_id(data) or data.get("canonical_name", "")
         name = data.get("canonical_name", "")

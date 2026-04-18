@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from propstore.artifacts.families import CONCEPT_FILE_FAMILY, MERGE_MANIFEST_FAMILY
 from propstore.artifacts.refs import MergeManifestRef
 from propstore.repository import Repository
 
@@ -157,8 +156,7 @@ def _file_change_report(info: dict[str, object]) -> FileChangeReport:
 
 
 def _load_merge_summary(repo: Repository, sha: str) -> MergeLogSummary | None:
-    manifest = repo.artifacts.load(
-        MERGE_MANIFEST_FAMILY,
+    manifest = repo.families.merge_manifests.load(
         MergeManifestRef(),
         commit=sha,
     )
@@ -264,7 +262,7 @@ def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
     except KeyError as exc:
         raise CommitNotFoundError(f"Commit not found: {commit}") from exc
 
-    if not repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=commit):
+    if not repo.families.concepts.list(commit=commit):
         raise CommitHasNoConceptsError("No concepts found at that commit.")
 
     rebuilt = build_sidecar(
