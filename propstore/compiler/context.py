@@ -11,7 +11,6 @@ from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerc
 from propstore.cel_checker import ConceptInfo
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.claims import ClaimFileEntry
-from propstore.artifacts.families import CONCEPT_FILE_FAMILY, FORM_FAMILY
 from quire.references import (
     extend_reference_lookup,
     finalize_reference_lookup,
@@ -124,8 +123,8 @@ def build_compilation_context_from_repo(
         )
     tree = repo.tree(commit=commit)
     concepts: list[LoadedConcept] = []
-    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=commit):
-        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref, commit=commit)
+    for ref in repo.families.concepts.list(commit=commit):
+        handle = repo.families.concepts.require_handle(ref, commit=commit)
         concepts.append(
             LoadedConcept(
                 filename=ref.name,
@@ -137,8 +136,8 @@ def build_compilation_context_from_repo(
         )
 
     form_registry: dict[str, FormDefinition] = {}
-    for ref in repo.artifacts.list(FORM_FAMILY, commit=commit):
-        document = repo.artifacts.require(FORM_FAMILY, ref, commit=commit)
+    for ref in repo.families.forms.list(commit=commit):
+        document = repo.families.forms.require(ref, commit=commit)
         form_registry[document.name] = parse_form(document.name, document)
 
     return _build_context_from_concepts(
