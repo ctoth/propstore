@@ -6,12 +6,13 @@ from pathlib import Path
 from typing import Any
 
 import msgspec
+from quire.artifacts import ArtifactFamily as QuireArtifactFamily
 from quire.contracts import ContractEntry, ContractManifest
 from quire.versions import VersionId
 
 from propstore.artifacts.types import ArtifactFamily
 
-PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.18")
+PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.19")
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
     / "contract_manifests"
@@ -25,7 +26,7 @@ def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any], ...]:
     discovered = [
         value
         for value in vars(families).values()
-        if isinstance(value, ArtifactFamily)
+        if isinstance(value, QuireArtifactFamily)
     ]
     return tuple(sorted(discovered, key=lambda family: family.name))
 
@@ -114,16 +115,17 @@ def _family_contract(family: ArtifactFamily[Any, Any]) -> ContractEntry:
         contract_version=family.contract_version,
         body={
             "doc_type": f"{family.doc_type.__module__}.{family.doc_type.__qualname__}",
-            "has_coerce_payload": family.coerce_payload is not None,
-            "has_decode_bytes": family.decode_bytes is not None,
-            "has_encode_document": family.encode_document is not None,
-            "has_render_document": family.render_document is not None,
-            "has_document_payload": family.document_payload is not None,
-            "has_normalize_for_write": family.normalize_for_write is not None,
-            "has_validate_for_write": family.validate_for_write is not None,
-            "has_list_refs": family.list_refs is not None,
-            "has_ref_from_path": family.ref_from_path is not None,
-            "has_ref_from_loaded": family.ref_from_loaded is not None,
+            "resolve_ref": _callback_id(family.resolve_ref),
+            "coerce_payload": _callback_id(family.coerce_payload),
+            "decode_bytes": _callback_id(family.decode_bytes),
+            "encode_document": _callback_id(family.encode_document),
+            "render_document": _callback_id(family.render_document),
+            "document_payload": _callback_id(family.document_payload),
+            "normalize_for_write": _callback_id(family.normalize_for_write),
+            "validate_for_write": _callback_id(family.validate_for_write),
+            "list_refs": _callback_id(family.list_refs),
+            "ref_from_path": _callback_id(family.ref_from_path),
+            "ref_from_loaded": _callback_id(family.ref_from_loaded),
             "scan_type": (
                 None
                 if family.scan_type is None
@@ -131,6 +133,16 @@ def _family_contract(family: ArtifactFamily[Any, Any]) -> ContractEntry:
             ),
         },
     )
+
+
+def _callback_id(callback: object) -> str | None:
+    if callback is None:
+        return None
+    module = getattr(callback, "__module__", None)
+    qualname = getattr(callback, "__qualname__", None)
+    if module and qualname:
+        return f"{module}.{qualname}"
+    return repr(callback)
 
 
 def _render_type(value: object) -> str:
