@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from propstore.artifacts.codecs import encode_document
 from propstore.artifacts.families import PROPOSAL_STANCE_FAMILY
@@ -29,7 +29,7 @@ def stance_proposal_filename(source_claim_id: str) -> str:
 def stance_proposal_relpath(source_claim_id: str) -> str:
     """Return the repo-relative stance proposal path."""
     return PROPOSAL_STANCE_FAMILY.address_for(
-        object(),
+        cast("Repository", object()),
         StanceFileRef(source_claim_id),
     ).require_path()
 
@@ -37,7 +37,7 @@ def stance_proposal_relpath(source_claim_id: str) -> str:
 def stance_proposal_branch(repo: Repository | None = None) -> str:
     """Return the proposal branch declared by the stance proposal placement."""
     return PROPOSAL_STANCE_FAMILY.address_for(
-        object() if repo is None else repo,
+        cast("Repository", object()) if repo is None else repo,
         StanceFileRef("placeholder"),
     ).branch
 

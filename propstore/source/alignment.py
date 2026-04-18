@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from collections import Counter
 from itertools import product
-from typing import Any
+from typing import Any, cast
 
 from propstore.artifacts.families import CONCEPT_ALIGNMENT_FAMILY, CONCEPT_FILE_FAMILY
 from propstore.artifacts.identity import normalize_canonical_concept_payload
@@ -42,7 +42,7 @@ def alignment_slug(value: str) -> str:
 
 def concept_proposal_branch(repo: Repository | None = None) -> str:
     return CONCEPT_ALIGNMENT_FAMILY.address_for(
-        object() if repo is None else repo,
+        cast(Repository, object()) if repo is None else repo,
         ConceptAlignmentRef("placeholder"),
     ).branch
 

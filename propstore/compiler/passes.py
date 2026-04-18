@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -52,7 +53,7 @@ def _bind_claim(
     filename: str,
     source_paper: str,
     context: CompilationContext,
-    normalized_claim_files: list[ClaimFileEntry],
+    normalized_claim_files: Sequence[ClaimFileEntry],
 ) -> SemanticClaim:
     authored_claim = claim.to_payload()
     resolved_claim = copy.deepcopy(authored_claim)
@@ -149,7 +150,7 @@ def _bind_claim(
 
 
 def compile_claim_files(
-    claim_files: list[ClaimFileEntry],
+    claim_files: Sequence[ClaimFileEntry],
     context: CompilationContext,
     *,
     context_ids: set[str] | None = None,
@@ -411,7 +412,7 @@ def compile_claim_files(
 
 
 def validate_claims(
-    claim_files: list[ClaimFileEntry],
+    claim_files: Sequence[ClaimFileEntry],
     context: CompilationContext,
     context_ids: set[str] | None = None,
 ) -> ValidationResult:
