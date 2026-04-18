@@ -8,10 +8,9 @@ from pathlib import Path
 from propstore.artifacts.families import CONTEXT_FAMILY
 from propstore.artifacts.refs import ContextRef
 from propstore.artifacts.documents.contexts import ContextDocument
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from quire.documents import convert_document_value
+from propstore.context_types import LoadedContext, parse_context_record_document
 from propstore.repository import Repository
-from propstore.validate_contexts import load_contexts
 
 
 class ContextWorkflowError(Exception):
@@ -81,7 +80,7 @@ def add_context(
     ref = ContextRef(request.name)
     relpath = repo.artifacts.address(CONTEXT_FAMILY, ref).require_path()
     filepath = repo.root / relpath
-    if (repo.tree() / relpath).exists():
+    if repo.artifacts.load(CONTEXT_FAMILY, ref) is not None:
         raise ContextWorkflowError(f"Context file '{filepath}' already exists")
 
     source = (
@@ -117,7 +116,15 @@ def add_context(
 
 def list_context_items(repo: Repository) -> tuple[ContextListItem, ...]:
     items: list[ContextListItem] = []
-    for context in load_contexts(SEMANTIC_FAMILIES.root_path("context", repo.tree())):
+    tree = repo.tree()
+    for ref in repo.artifacts.list(CONTEXT_FAMILY):
+        handle = repo.artifacts.require_handle(CONTEXT_FAMILY, ref)
+        context = LoadedContext(
+            filename=ref.name,
+            source_path=tree / handle.address.require_path(),
+            knowledge_root=tree,
+            record=parse_context_record_document(handle.document),
+        )
         record = context.record
         context_id = context.filename if record.context_id is None else str(record.context_id)
         items.append(

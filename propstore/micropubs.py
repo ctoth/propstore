@@ -9,11 +9,14 @@ from propstore.artifacts.documents.micropubs import (
     MicropublicationDocument,
     MicropublicationsFileDocument,
 )
-from propstore.artifacts.families import MICROPUBS_FILE_FAMILY
+from propstore.artifacts.families import CONTEXT_FAMILY, MICROPUBS_FILE_FAMILY
 from propstore.artifacts.refs import MicropubsFileRef
-from propstore.context_types import loaded_contexts_to_lifting_system
+from propstore.context_types import (
+    LoadedContext,
+    loaded_contexts_to_lifting_system,
+    parse_context_record_document,
+)
 from propstore.repository import Repository
-from propstore.validate_contexts import load_contexts
 
 
 class MicropubNotFoundError(Exception):
@@ -64,7 +67,18 @@ def inspect_micropub_lift(
     target_context: str,
 ) -> MicropubLiftReport:
     entry = find_micropub(repo, artifact_id)
-    system = loaded_contexts_to_lifting_system(load_contexts(repo.tree() / "contexts"))
+    tree = repo.tree()
+    contexts = [
+        LoadedContext(
+            filename=ref.name,
+            source_path=tree / handle.address.require_path(),
+            knowledge_root=tree,
+            record=parse_context_record_document(handle.document),
+        )
+        for ref in repo.artifacts.list(CONTEXT_FAMILY)
+        for handle in (repo.artifacts.require_handle(CONTEXT_FAMILY, ref),)
+    ]
+    system = loaded_contexts_to_lifting_system(contexts)
     source_context = entry.document.context.id
     return MicropubLiftReport(
         artifact_id=artifact_id,

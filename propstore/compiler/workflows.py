@@ -7,23 +7,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, cast
+from typing import Literal
 
 from quire.documents import DocumentSchemaError
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY, FORM_FAMILY
+from propstore.artifacts.families import (
+    CLAIMS_FILE_FAMILY,
+    CONCEPT_FILE_FAMILY,
+    CONTEXT_FAMILY,
+    FORM_FAMILY,
+)
 from propstore.claims import claim_file_payload
 from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.compiler.passes import compile_claim_files, validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
+from propstore.context_types import LoadedContext, parse_context_record_document
 from propstore.core.concepts import LoadedConcept, parse_concept_record_document
 from propstore.diagnostics import ValidationResult
 from propstore.form_utils import parse_form
 from propstore.repository import Repository
 from propstore.validate_concepts import validate_concepts
-
-if TYPE_CHECKING:
-    from propstore.context_types import ContextInput
-
 
 WorkflowMessageLevel = Literal["warning", "error"]
 
@@ -185,20 +187,28 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
         claim_error_count = len(claim_result.errors)
 
     context_error_count = 0
-    if (tree / "contexts").exists():
-        from propstore.validate_contexts import load_contexts, validate_contexts
+    from propstore.validate_contexts import validate_contexts
 
-        try:
-            ctx_list = load_contexts(tree / "contexts")
-        except DocumentSchemaError as exc:
-            raise CompilerWorkflowError(
-                "Validation FAILED: 1 error(s)",
-                (WorkflowMessage("error", str(exc), "context"),),
-            ) from exc
-        if ctx_list:
-            ctx_result = validate_contexts(cast("list[ContextInput]", ctx_list))
-            messages.extend(_messages_from_result(ctx_result, scope="context"))
-            context_error_count = len(ctx_result.errors)
+    try:
+        ctx_list = [
+            LoadedContext(
+                filename=ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_context_record_document(handle.document),
+            )
+            for ref in repo.artifacts.list(CONTEXT_FAMILY)
+            for handle in (repo.artifacts.require_handle(CONTEXT_FAMILY, ref),)
+        ]
+    except DocumentSchemaError as exc:
+        raise CompilerWorkflowError(
+            "Validation FAILED: 1 error(s)",
+            (WorkflowMessage("error", str(exc), "context"),),
+        ) from exc
+    if ctx_list:
+        ctx_result = validate_contexts(ctx_list)
+        messages.extend(_messages_from_result(ctx_result, scope="context"))
+        context_error_count = len(ctx_result.errors)
 
     total_errors = (
         len(concept_result.errors)
@@ -318,32 +328,42 @@ def build_repository(
             ),
         )
 
-    from propstore.validate_contexts import load_contexts, validate_contexts
+    from propstore.validate_contexts import validate_contexts
 
     build_messages: list[WorkflowMessage] = []
     context_ids: set[str] = set()
-    if (tree / "contexts").exists():
-        try:
-            ctx_list = load_contexts(tree / "contexts")
-        except DocumentSchemaError as exc:
+    try:
+        ctx_list = [
+            LoadedContext(
+                filename=ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_context_record_document(handle.document),
+            )
+            for ref in repo.artifacts.list(CONTEXT_FAMILY, commit=hash_key)
+            for handle in (
+                repo.artifacts.require_handle(CONTEXT_FAMILY, ref, commit=hash_key),
+            )
+        ]
+    except DocumentSchemaError as exc:
+        raise CompilerWorkflowError(
+            "Build aborted: context validation failed.",
+            (WorkflowMessage("error", str(exc), "context"),),
+        ) from exc
+    if ctx_list:
+        ctx_result = validate_contexts(ctx_list)
+        context_messages = _messages_from_result(ctx_result, scope="context")
+        if not ctx_result.ok:
             raise CompilerWorkflowError(
                 "Build aborted: context validation failed.",
-                (WorkflowMessage("error", str(exc), "context"),),
-            ) from exc
-        if ctx_list:
-            ctx_result = validate_contexts(cast("list[ContextInput]", ctx_list))
-            context_messages = _messages_from_result(ctx_result, scope="context")
-            if not ctx_result.ok:
-                raise CompilerWorkflowError(
-                    "Build aborted: context validation failed.",
-                    context_messages,
-                )
-            build_messages.extend(context_messages)
-            context_ids = {
-                str(c.record.context_id)
-                for c in ctx_list
-                if c.record.context_id is not None
-            }
+                context_messages,
+            )
+        build_messages.extend(context_messages)
+        context_ids = {
+            str(c.record.context_id)
+            for c in ctx_list
+            if c.record.context_id is not None
+        }
 
     claim_files = None
     compilation_context = build_compilation_context_from_repo(
