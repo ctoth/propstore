@@ -8,19 +8,10 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.artifacts import (
-    CANONICAL_SOURCE_FAMILY,
-    CLAIMS_FILE_FAMILY,
-    CONCEPT_ALIGNMENT_FAMILY,
-    CONCEPT_FILE_FAMILY,
     CanonicalSourceRef,
     ClaimsFileRef,
     ConceptAlignmentRef,
     ConceptFileRef,
-    SOURCE_CLAIMS_FAMILY,
-    SOURCE_CONCEPTS_FAMILY,
-    SOURCE_DOCUMENT_FAMILY,
-    SOURCE_FINALIZE_REPORT_FAMILY,
-    SOURCE_STANCES_FAMILY,
     SourceRef,
 )
 from propstore.cli import cli
@@ -30,8 +21,8 @@ from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.identity import derive_concept_artifact_id
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source import (
-    CONCEPT_PROPOSAL_BRANCH,
     align_sources,
+    concept_proposal_branch,
     decide_alignment,
     finalize_source_branch,
     initial_source_document,
@@ -60,8 +51,7 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
         origin_type=SourceOriginType.MANUAL,
         origin_value=source_name,
     )
-    repo.artifacts.save(
-        SOURCE_DOCUMENT_FAMILY,
+    repo.families.source_documents.save(
         SourceRef(source_name),
         source_doc,
         message=f"Init source {source_name}",
@@ -72,8 +62,7 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
         SourceConceptsDocument,
         source=f"{branch}:concepts.yaml",
     )
-    repo.artifacts.save(
-        SOURCE_CONCEPTS_FAMILY,
+    repo.families.source_concepts.save(
         SourceRef(source_name),
         concepts_doc,
         message=f"Write concepts for {source_name}",
@@ -92,8 +81,7 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
         source_uri=source_doc.id,
         source_namespace=source_name,
     )
-    repo.artifacts.save(
-        SOURCE_CLAIMS_FAMILY,
+    repo.families.source_claims.save(
         SourceRef(source_name),
         normalized_claims,
         message=f"Write claims for {source_name}",
@@ -115,8 +103,7 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
             fallback_to_default_base_rate=True,
         ),
     )
-    repo.artifacts.save(
-        SOURCE_FINALIZE_REPORT_FAMILY,
+    repo.families.source_finalize_reports.save(
         SourceRef(source_name),
         report,
         message=f"Finalize {source_name}",
@@ -125,7 +112,7 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
 
 def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.snapshot.ensure_branch(CONCEPT_PROPOSAL_BRANCH)
+    repo.snapshot.ensure_branch(concept_proposal_branch(repo))
 
     _save_source(
         repo,
@@ -161,8 +148,7 @@ def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
         [source_branch_name("paper_a"), source_branch_name("paper_b")],
     )
     slug = artifact.id.split(":", 1)[1]
-    stored = repo.artifacts.require(
-        CONCEPT_ALIGNMENT_FAMILY,
+    stored = repo.families.concept_alignments.require(
         ConceptAlignmentRef(slug),
     )
     assert stored.to_payload() == artifact.to_payload()
@@ -171,8 +157,7 @@ def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     assert decided.decision.status == "decided"
 
     promoted = promote_alignment(repo, artifact.id)
-    promoted_concept = repo.artifacts.require(
-        CONCEPT_FILE_FAMILY,
+    promoted_concept = repo.families.concepts.require(
         ConceptFileRef("gravity"),
     )
     reloaded_alignment = load_alignment_artifact(repo, artifact.id)[1]
@@ -217,16 +202,13 @@ def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path
     commit_sha = promote_source_branch(repo, "paper_source")
 
     assert commit_sha
-    canonical_source = repo.artifacts.require(
-        CANONICAL_SOURCE_FAMILY,
+    canonical_source = repo.families.sources.require(
         CanonicalSourceRef("paper_source"),
     )
-    claims_file = repo.artifacts.require(
-        CLAIMS_FILE_FAMILY,
+    claims_file = repo.families.claims.require(
         ClaimsFileRef("paper_source"),
     )
-    concept_file = repo.artifacts.require(
-        CONCEPT_FILE_FAMILY,
+    concept_file = repo.families.concepts.require(
         ConceptFileRef("gravity"),
     )
 
@@ -450,8 +432,7 @@ def test_promote_source_branch_partial_allows_valid_claims_blocks_invalid(
     from propstore.sidecar.build import build_sidecar
 
     head = repo.snapshot.head_sha()
-    tree = repo.snapshot.tree(commit=head)
-    build_sidecar(tree, repo.sidecar_path, force=True, commit_hash=head)
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)
 
     # Promote must NOT raise under the new gate behavior.
     result = promote_source_branch(repo, source_name)
@@ -459,8 +440,7 @@ def test_promote_source_branch_partial_allows_valid_claims_blocks_invalid(
 
     # Valid claims land on primary branch via CLAIMS_FILE_FAMILY.
     # Correlate by statement text since source_local_id is stripped on promote.
-    claims_file = repo.artifacts.require(
-        CLAIMS_FILE_FAMILY,
+    claims_file = repo.families.claims.require(
         ClaimsFileRef(source_name),
     )
     promoted_statements = {
@@ -531,8 +511,7 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     promote_source_branch(repo, source_name)
 
     # Verify initial state: broken_source not yet promoted.
-    claims_file = repo.artifacts.require(
-        CLAIMS_FILE_FAMILY,
+    claims_file = repo.families.claims.require(
         ClaimsFileRef(source_name),
     )
     initial_statements = {
@@ -544,8 +523,7 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     from propstore.artifacts.documents.sources import SourceStancesDocument
     from propstore.source.common import source_branch_name as _branch_name
 
-    repo.artifacts.save(
-        SOURCE_STANCES_FAMILY,
+    repo.families.source_stances.save(
         SourceRef(source_name),
         SourceStancesDocument(stances=()),
         message=f"Remove broken stance from {source_name}",
@@ -556,8 +534,7 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     finalize_source_branch(repo, source_name)
     promote_source_branch(repo, source_name)
 
-    claims_file = repo.artifacts.require(
-        CLAIMS_FILE_FAMILY,
+    claims_file = repo.families.claims.require(
         ClaimsFileRef(source_name),
     )
     final_statements = {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.artifacts import SOURCE_DOCUMENT_FAMILY, SourceRef
+from propstore.artifacts import SourceRef
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document, source_branch_name
@@ -22,8 +22,7 @@ def test_snapshot_can_read_typed_document_from_branch(tmp_path: Path) -> None:
         origin_type=SourceOriginType.MANUAL,
         origin_value=source_name,
     )
-    repo.artifacts.save(
-        SOURCE_DOCUMENT_FAMILY,
+    repo.families.source_documents.save(
         SourceRef(source_name),
         source_doc,
         message=f"Init source {source_name}",
@@ -47,8 +46,7 @@ def test_snapshot_lists_directory_entries_with_relpaths(tmp_path: Path) -> None:
         origin_type=SourceOriginType.MANUAL,
         origin_value=source_name,
     )
-    repo.artifacts.save(
-        SOURCE_DOCUMENT_FAMILY,
+    repo.families.source_documents.save(
         SourceRef(source_name),
         source_doc,
         message=f"Init source {source_name}",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.artifacts import CONCEPT_FILE_FAMILY, ConceptFileRef
+from propstore.artifacts import ConceptFileRef
 from quire.documents import DocumentSchemaError
 from propstore.core.concepts import concept_document_to_payload, parse_concept_record_document
 from propstore.repository import Repository
@@ -103,8 +103,7 @@ def test_concept_document_round_trips_phase3_sense_semantics(tmp_path) -> None:
         }
     }
 
-    document = repo.artifacts.coerce(
-        CONCEPT_FILE_FAMILY,
+    document = repo.families.concepts.coerce(
         payload,
         source="concepts/measurement.yaml",
     )
@@ -141,8 +140,7 @@ def test_phase3_qualia_reference_requires_provenance(tmp_path) -> None:
     }
 
     with pytest.raises(DocumentSchemaError, match="provenance"):
-        repo.artifacts.coerce(
-            CONCEPT_FILE_FAMILY,
+        repo.families.concepts.coerce(
             payload,
             source="concepts/instrument.yaml",
         )
@@ -164,8 +162,7 @@ def test_phase3_proto_role_entailment_rejects_out_of_range_grade(tmp_path) -> No
     }
 
     with pytest.raises(DocumentSchemaError, match=r"\[0, 1\]"):
-        repo.artifacts.coerce(
-            CONCEPT_FILE_FAMILY,
+        repo.families.concepts.coerce(
             payload,
             source="concepts/bad-role.yaml",
         )
@@ -175,8 +172,7 @@ def test_concept_document_rejects_flat_pre_lemon_shape(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     with pytest.raises(DocumentSchemaError):
-        repo.artifacts.coerce(
-            CONCEPT_FILE_FAMILY,
+        repo.families.concepts.coerce(
             {
                 "canonical_name": "temperature",
                 "status": "accepted",
@@ -190,19 +186,17 @@ def test_concept_document_rejects_flat_pre_lemon_shape(tmp_path) -> None:
 def test_concept_document_round_trips_lemon_entry_and_reference(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     ref = ConceptFileRef("temperature")
-    document = repo.artifacts.coerce(
-        CONCEPT_FILE_FAMILY,
+    document = repo.families.concepts.coerce(
         _lemon_concept_payload(),
         source="concepts/temperature.yaml",
     )
 
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         ref,
         document,
         message="Write lemon concept",
     )
-    loaded = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref)
+    loaded = repo.families.concepts.require(ref)
 
     assert loaded.lexical_entry.canonical_form.written_rep == "temperature"
     assert loaded.lexical_entry.physical_dimension_form == "temperature"
@@ -211,8 +205,7 @@ def test_concept_document_round_trips_lemon_entry_and_reference(tmp_path) -> Non
 
 def test_lemon_concept_document_projects_record_at_boundary(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    document = repo.artifacts.coerce(
-        CONCEPT_FILE_FAMILY,
+    document = repo.families.concepts.coerce(
         _lemon_concept_payload(),
         source="concepts/temperature.yaml",
     )
