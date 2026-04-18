@@ -191,8 +191,7 @@ def align_sources(
     artifact = build_alignment_artifact(proposals, authority=repo.uri_authority)
     repo.snapshot.ensure_branch(concept_proposal_branch(repo))
     slug = artifact.id.split(":", 1)[1]
-    repo.artifacts.save(
-        CONCEPT_ALIGNMENT_FAMILY,
+    repo.families.concept_alignments.save(
         ConceptAlignmentRef(slug),
         artifact,
         message=f"Align concepts for {slug}",
@@ -205,10 +204,7 @@ def load_alignment_artifact(
     cluster_id: str,
 ) -> tuple[str, ConceptAlignmentArtifactDocument]:
     slug = cluster_id.split(":", 1)[1] if ":" in cluster_id else cluster_id
-    artifact = repo.artifacts.load(
-        CONCEPT_ALIGNMENT_FAMILY,
-        ConceptAlignmentRef(slug),
-    )
+    artifact = repo.families.concept_alignments.load(ConceptAlignmentRef(slug))
     if artifact is None:
         raise FileNotFoundError(cluster_id)
     return slug, artifact
@@ -221,8 +217,7 @@ def save_alignment_artifact(
     *,
     message: str,
 ) -> str:
-    return repo.artifacts.save(
-        CONCEPT_ALIGNMENT_FAMILY,
+    return repo.families.concept_alignments.save(
         ConceptAlignmentRef(slug),
         artifact,
         message=message,
@@ -281,10 +276,9 @@ def promote_alignment(
     document = convert_document_value(
         concept_doc,
         ConceptDocument,
-        source=repo.artifacts.address(CONCEPT_FILE_FAMILY, concept_ref).require_path(),
+        source=repo.families.concepts.family.address_for(repo, concept_ref).require_path(),
     )
-    repo.artifacts.save(
-        CONCEPT_FILE_FAMILY,
+    repo.families.concepts.save(
         concept_ref,
         document,
         message=f"Promote concept alignment {cluster_id}",

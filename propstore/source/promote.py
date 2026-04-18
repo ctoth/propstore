@@ -230,7 +230,7 @@ def resolve_source_concept_promotions(
         concept_documents[slug] = convert_document_value(
             concept_doc,
             ConceptDocument,
-            source=repo.artifacts.address(CONCEPT_FILE_FAMILY, concept_ref).require_path(),
+            source=repo.families.concepts.family.address_for(repo, concept_ref).require_path(),
         )
 
     return mapping, concept_documents
@@ -614,7 +614,7 @@ def promote_source_branch(
                 "stances": entries,
             },
             StanceFileDocument,
-            source=repo.artifacts.address(STANCE_FILE_FAMILY, stance_ref).require_path(),
+            source=repo.families.stances.family.address_for(repo, stance_ref).require_path(),
         )
 
     source_ref = CanonicalSourceRef(slug)
@@ -622,12 +622,12 @@ def promote_source_branch(
     promoted_source_document = convert_document_value(
         promoted_source_doc,
         SourceDocument,
-        source=repo.artifacts.address(CANONICAL_SOURCE_FAMILY, source_ref).require_path(),
+        source=repo.families.sources.family.address_for(repo, source_ref).require_path(),
     )
     promoted_claims_document = convert_document_value(
         promoted_claims_doc,
         ClaimsFileDocument,
-        source=repo.artifacts.address(CLAIMS_FILE_FAMILY, claims_ref).require_path(),
+        source=repo.families.claims.family.address_for(repo, claims_ref).require_path(),
     )
 
     with repo.artifacts.transact(
@@ -660,7 +660,10 @@ def promote_source_branch(
             promoted_justifications_document = convert_document_value(
                 promoted_justifications_doc,
                 SourceJustificationsDocument,
-                source=f"justifications/{slug}.yaml",
+                source=repo.families.justifications.family.address_for(
+                    repo,
+                    JustificationsFileRef(slug),
+                ).require_path(),
             )
             transaction.save(
                 JUSTIFICATIONS_FILE_FAMILY,
