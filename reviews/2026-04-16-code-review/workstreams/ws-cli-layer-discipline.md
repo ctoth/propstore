@@ -476,6 +476,21 @@ Status 2026-04-17: proposal promotion slice landed.
   - `logs/test-runs/cli-layer-proposal-promotion-20260417-185006.log` - 7 passed.
   - `uv run pyright propstore/proposals.py propstore/cli/__init__.py` - 0 errors.
 
+Status 2026-04-17: claim embedding and relation slice landed.
+
+- Added typed claim embedding, similarity, and relation request/report surfaces
+  to `propstore.claims`.
+- Moved sidecar connection lifecycle, vec extension loading, registered-model
+  selection, embedding dispatch, similarity search selection, relation
+  classification, and stance proposal commits out of `propstore.cli.claim`.
+- Added owner coverage for embedding progress/connection ownership, default
+  similarity model selection, single-claim proposal commits, and all-claims
+  summary reporting. Existing CLI connection-leak and proposal-branch
+  regressions remain green.
+- Verification:
+  - `logs/test-runs/cli-layer-claim-workflows-20260417-185735.log` - 6 passed.
+  - `uv run pyright propstore/claims.py propstore/cli/claim.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
