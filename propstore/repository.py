@@ -164,21 +164,17 @@ class Repository:
         """Create the directory structure and return a Repository."""
         # Initialize git first (sync_worktree in init only writes .gitignore)
         from propstore.storage import init_git_store
+        from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
+
         init_git_store(root)
         # Create dirs after git init so sync_worktree doesn't remove them
-        dirs = [
+        dirs = [root / semantic_root for semantic_root in SEMANTIC_FAMILIES.init_roots()]
+        dirs.extend([
             root / "concepts" / ".counters",
-            root / "claims",
-            root / "contexts",
-            root / "forms",
             root / "justifications",
-            root / "predicates",
-            root / "rules",
             root / "sidecar",
             root / "sources",
-            root / "stances",
-            root / "worldlines",
-        ]
+        ])
         for d in dirs:
             d.mkdir(parents=True, exist_ok=True)
         return cls(root)

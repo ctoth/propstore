@@ -13,6 +13,8 @@ from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.contexts import ContextDocument
 from propstore.artifacts.documents.forms import FormDocument
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
+from propstore.artifacts.documents.predicates import PredicatesFileDocument
+from propstore.artifacts.documents.rules import RulesFileDocument
 from propstore.artifacts.documents.worldlines import WorldlineDefinitionDocument
 from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.artifacts.refs import (
@@ -25,6 +27,8 @@ from propstore.artifacts.refs import (
     JustificationsFileRef,
     MicropubsFileRef,
     MergeManifestRef,
+    PredicateFileRef,
+    RuleFileRef,
     SourceRef,
     StanceFileRef,
     STANCE_PROPOSAL_BRANCH,
@@ -34,6 +38,8 @@ from propstore.artifacts.refs import (
     concept_alignment_relpath,
     concept_file_relpath,
     micropubs_file_relpath,
+    predicate_file_relpath,
+    rule_file_relpath,
     source_branch_name,
     source_claim_from_stance_path,
     source_finalize_relpath,
@@ -222,6 +228,20 @@ def _justifications_file_artifact(repo: Repository, ref: JustificationsFileRef) 
     return ResolvedArtifact(
         branch=_primary_branch(repo),
         relpath=justifications_file_relpath(ref.name),
+    )
+
+
+def _predicate_file_artifact(repo: Repository, ref: PredicateFileRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_primary_branch(repo),
+        relpath=predicate_file_relpath(ref.name),
+    )
+
+
+def _rule_file_artifact(repo: Repository, ref: RuleFileRef) -> ResolvedArtifact:
+    return ResolvedArtifact(
+        branch=_primary_branch(repo),
+        relpath=rule_file_relpath(ref.name),
     )
 
 
@@ -415,6 +435,58 @@ def _concept_file_ref_from_loaded(loaded: object) -> ConceptFileRef:
     )
 
 
+def _predicate_file_refs(
+    repo: Repository,
+    branch: str | None,
+    commit: str | None,
+) -> list[PredicateFileRef]:
+    return _list_yaml_refs_in_directory(
+        repo,
+        branch,
+        commit,
+        subdir="predicates",
+        ref_type=PredicateFileRef,
+    )
+
+
+def _predicate_file_ref_from_path(path: str | Path) -> PredicateFileRef:
+    return _yaml_path_ref(path, subdir="predicates", ref_type=PredicateFileRef)
+
+
+def _predicate_file_ref_from_loaded(loaded: object) -> PredicateFileRef:
+    return _ref_from_loaded_source_path(
+        loaded,
+        subdir="predicates",
+        ref_type=PredicateFileRef,
+    )
+
+
+def _rule_file_refs(
+    repo: Repository,
+    branch: str | None,
+    commit: str | None,
+) -> list[RuleFileRef]:
+    return _list_yaml_refs_in_directory(
+        repo,
+        branch,
+        commit,
+        subdir="rules",
+        ref_type=RuleFileRef,
+    )
+
+
+def _rule_file_ref_from_path(path: str | Path) -> RuleFileRef:
+    return _yaml_path_ref(path, subdir="rules", ref_type=RuleFileRef)
+
+
+def _rule_file_ref_from_loaded(loaded: object) -> RuleFileRef:
+    return _ref_from_loaded_source_path(
+        loaded,
+        subdir="rules",
+        ref_type=RuleFileRef,
+    )
+
+
 def _stance_file_ref_from_path(path: str | Path) -> StanceFileRef:
     return StanceFileRef(source_claim_from_stance_path(path))
 
@@ -596,6 +668,26 @@ JUSTIFICATIONS_FILE_FAMILY = ArtifactFamily["Repository", JustificationsFileRef,
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceJustificationsDocument,
     resolve_ref=_justifications_file_artifact,
+)
+
+PREDICATE_FILE_FAMILY = ArtifactFamily["Repository", PredicateFileRef, PredicatesFileDocument](
+    name="predicate_file",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    doc_type=PredicatesFileDocument,
+    resolve_ref=_predicate_file_artifact,
+    list_refs=_predicate_file_refs,
+    ref_from_path=_predicate_file_ref_from_path,
+    ref_from_loaded=_predicate_file_ref_from_loaded,
+)
+
+RULE_FILE_FAMILY = ArtifactFamily["Repository", RuleFileRef, RulesFileDocument](
+    name="rule_file",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    doc_type=RulesFileDocument,
+    resolve_ref=_rule_file_artifact,
+    list_refs=_rule_file_refs,
+    ref_from_path=_rule_file_ref_from_path,
+    ref_from_loaded=_rule_file_ref_from_loaded,
 )
 
 STANCE_FILE_FAMILY = ArtifactFamily["Repository", StanceFileRef, StanceFileDocument](

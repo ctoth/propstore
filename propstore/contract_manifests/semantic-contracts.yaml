@@ -157,6 +157,23 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
+  name: predicate_file
+  contract_version: 2026.04.20
+  body:
+    coerce_payload: null
+    decode_bytes: null
+    doc_type: propstore.artifacts.documents.predicates.PredicatesFileDocument
+    document_payload: null
+    encode_document: null
+    list_refs: propstore.artifacts.families._predicate_file_refs
+    normalize_for_write: null
+    ref_from_loaded: propstore.artifacts.families._predicate_file_ref_from_loaded
+    ref_from_path: propstore.artifacts.families._predicate_file_ref_from_path
+    render_document: null
+    resolve_ref: propstore.artifacts.families._predicate_file_artifact
+    scan_type: null
+    validate_for_write: null
+- kind: artifact_family
   name: proposal_stance_file
   contract_version: 2026.04.20
   body:
@@ -171,6 +188,23 @@ contracts:
     ref_from_path: propstore.artifacts.families._stance_file_ref_from_path
     render_document: null
     resolve_ref: propstore.artifacts.families._proposal_stance_artifact
+    scan_type: null
+    validate_for_write: null
+- kind: artifact_family
+  name: rule_file
+  contract_version: 2026.04.20
+  body:
+    coerce_payload: null
+    decode_bytes: null
+    doc_type: propstore.artifacts.documents.rules.RulesFileDocument
+    document_payload: null
+    encode_document: null
+    list_refs: propstore.artifacts.families._rule_file_refs
+    normalize_for_write: null
+    ref_from_loaded: propstore.artifacts.families._rule_file_ref_from_loaded
+    ref_from_path: propstore.artifacts.families._rule_file_ref_from_path
+    render_document: null
+    resolve_ref: propstore.artifacts.families._rule_file_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
@@ -2708,7 +2742,7 @@ contracts:
     module: propstore.artifacts.documents.worldlines
 - kind: foreign_key
   name: claim_concept
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: false
     required: true
@@ -2717,7 +2751,7 @@ contracts:
     target_family: concept
 - kind: foreign_key
   name: claim_concepts
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: true
     required: true
@@ -2726,7 +2760,7 @@ contracts:
     target_family: concept
 - kind: foreign_key
   name: claim_context
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: false
     required: true
@@ -2735,7 +2769,7 @@ contracts:
     target_family: context
 - kind: foreign_key
   name: claim_measurement_target_concept
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: false
     required: true
@@ -2744,7 +2778,7 @@ contracts:
     target_family: concept
 - kind: foreign_key
   name: claim_parameter_concept
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: false
     required: true
@@ -2753,7 +2787,7 @@ contracts:
     target_family: concept
 - kind: foreign_key
   name: claim_stance_target
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: false
     required: true
@@ -2762,7 +2796,7 @@ contracts:
     target_family: claim
 - kind: foreign_key
   name: claim_variable_concept
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: false
     required: true
@@ -2771,7 +2805,7 @@ contracts:
     target_family: concept
 - kind: foreign_key
   name: concept_form
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: false
     required: true
@@ -2780,7 +2814,7 @@ contracts:
     target_family: form
 - kind: foreign_key
   name: concept_parameterization_canonical_claim
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: false
     required: false
@@ -2789,7 +2823,7 @@ contracts:
     target_family: claim
 - kind: foreign_key
   name: concept_parameterization_input
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: true
     required: true
@@ -2798,7 +2832,7 @@ contracts:
     target_family: concept
 - kind: foreign_key
   name: concept_relationship_target
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: true
     required: true
@@ -2807,13 +2841,121 @@ contracts:
     target_family: concept
 - kind: foreign_key
   name: concept_replaced_by
-  contract_version: 2026.04.20
+  contract_version: 2026.04.22
   body:
     many: false
     required: false
     source_family: concept
     source_field: replaced_by
     target_family: concept
+- kind: semantic_family
+  name: claim
+  contract_version: 2026.04.22
+  body:
+    artifact_family: claims_file
+    collection_field: claims
+    document_type: propstore.artifacts.documents.claims.ClaimsFileDocument
+    foreign_keys:
+    - claim_concept
+    - claim_concepts
+    - claim_variable_concept
+    - claim_parameter_concept
+    - claim_measurement_target_concept
+    - claim_stance_target
+    - claim_context
+    import_order: 20
+    importable: true
+    init_directory: true
+    root: claims
+- kind: semantic_family
+  name: concept
+  contract_version: 2026.04.22
+  body:
+    artifact_family: concept_file
+    collection_field: null
+    document_type: propstore.artifacts.documents.concepts.ConceptDocument
+    foreign_keys:
+    - concept_parameterization_input
+    - concept_parameterization_canonical_claim
+    - concept_replaced_by
+    - concept_relationship_target
+    - concept_form
+    import_order: 10
+    importable: true
+    init_directory: true
+    root: concepts
+- kind: semantic_family
+  name: context
+  contract_version: 2026.04.22
+  body:
+    artifact_family: context
+    collection_field: null
+    document_type: propstore.artifacts.documents.contexts.ContextDocument
+    foreign_keys: []
+    import_order: 30
+    importable: true
+    init_directory: true
+    root: contexts
+- kind: semantic_family
+  name: form
+  contract_version: 2026.04.22
+  body:
+    artifact_family: form
+    collection_field: null
+    document_type: propstore.artifacts.documents.forms.FormDocument
+    foreign_keys: []
+    import_order: 30
+    importable: true
+    init_directory: true
+    root: forms
+- kind: semantic_family
+  name: predicate
+  contract_version: 2026.04.22
+  body:
+    artifact_family: predicate_file
+    collection_field: predicates
+    document_type: propstore.artifacts.documents.predicates.PredicatesFileDocument
+    foreign_keys: []
+    import_order: 40
+    importable: true
+    init_directory: true
+    root: predicates
+- kind: semantic_family
+  name: rule
+  contract_version: 2026.04.22
+  body:
+    artifact_family: rule_file
+    collection_field: rules
+    document_type: propstore.artifacts.documents.rules.RulesFileDocument
+    foreign_keys: []
+    import_order: 50
+    importable: true
+    init_directory: true
+    root: rules
+- kind: semantic_family
+  name: stance
+  contract_version: 2026.04.22
+  body:
+    artifact_family: stance_file
+    collection_field: stances
+    document_type: propstore.artifacts.documents.stances.StanceFileDocument
+    foreign_keys: []
+    import_order: 60
+    importable: true
+    init_directory: true
+    root: stances
+- kind: semantic_family
+  name: worldline
+  contract_version: 2026.04.22
+  body:
+    artifact_family: worldline
+    collection_field: null
+    document_type: propstore.artifacts.documents.worldlines.WorldlineDefinitionDocument
+    foreign_keys: []
+    import_order: 70
+    importable: true
+    init_directory: true
+    root: worldlines
 registry:
   name: semantic-family-registry
   contract_version: 2026.04.19
