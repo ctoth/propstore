@@ -518,6 +518,20 @@ Status 2026-04-17: claim WorldModel lifecycle follow-up landed.
   - `logs/test-runs/cli-layer-claim-worldmodel-20260417-190628.log` - 10 passed.
   - `uv run pyright propstore/claims.py propstore/cli/claim.py` - 0 errors.
 
+Status 2026-04-17: project initialization slice landed.
+
+- Added `propstore.project_init` as the owner for repository bootstrap,
+  packaged form/concept seed loading, typed seed artifact rendering, and the
+  initial seed commit.
+- Reduced `propstore.cli.init` to target-directory resolution, owner failure
+  mapping, and output rendering.
+- Added owner coverage for fresh initialization and already-initialized
+  reporting. Existing init CLI and git-backed initialization regressions remain
+  green.
+- Verification:
+  - `logs/test-runs/cli-layer-project-init-20260417-190937.log` - 15 passed.
+  - `uv run pyright propstore/project_init.py propstore/cli/init.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
