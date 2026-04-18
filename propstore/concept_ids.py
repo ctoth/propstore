@@ -4,7 +4,6 @@ import re
 from typing import TYPE_CHECKING
 
 from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.families import CONCEPT_FILE_FAMILY
 from quire.refs import RefName
 
 if TYPE_CHECKING:
@@ -36,8 +35,8 @@ def next_concept_id_for_repo(repo: Repository) -> int:
         if counter is not None:
             return counter + 1
     max_id = 0
-    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref)
+    for ref in repo.families.concepts.list():
+        document = repo.families.concepts.require(ref)
         numeric_id = _numeric_concept_id(document)
         if numeric_id is not None:
             max_id = max(max_id, numeric_id)
