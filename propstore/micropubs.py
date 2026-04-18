@@ -9,7 +9,6 @@ from propstore.artifacts.documents.micropubs import (
     MicropublicationDocument,
     MicropublicationsFileDocument,
 )
-from propstore.artifacts.families import CONTEXT_FAMILY, MICROPUBS_FILE_FAMILY
 from propstore.artifacts.refs import MicropubsFileRef
 from propstore.context_types import (
     LoadedContext,
@@ -38,15 +37,15 @@ class MicropubLiftReport:
 
 
 def load_micropub_bundle(repo: Repository, source: str) -> MicropublicationsFileDocument:
-    document = repo.artifacts.load(MICROPUBS_FILE_FAMILY, MicropubsFileRef(source))
+    document = repo.families.micropubs.load(MicropubsFileRef(source))
     if document is None:
         raise MicropubNotFoundError(f"Micropub bundle '{source}' not found.")
     return document
 
 
 def iter_micropubs(repo: Repository) -> Iterator[MicropubEntry]:
-    for ref in repo.artifacts.list(MICROPUBS_FILE_FAMILY):
-        document = repo.artifacts.load(MICROPUBS_FILE_FAMILY, ref)
+    for ref in repo.families.micropubs.list():
+        document = repo.families.micropubs.load(ref)
         if document is None:
             continue
         for entry in document.micropubs:
@@ -75,8 +74,8 @@ def inspect_micropub_lift(
             knowledge_root=tree,
             record=parse_context_record_document(handle.document),
         )
-        for ref in repo.artifacts.list(CONTEXT_FAMILY)
-        for handle in (repo.artifacts.require_handle(CONTEXT_FAMILY, ref),)
+        for ref in repo.families.contexts.list()
+        for handle in (repo.families.contexts.require_handle(ref),)
     ]
     system = loaded_contexts_to_lifting_system(contexts)
     source_context = entry.document.context.id
