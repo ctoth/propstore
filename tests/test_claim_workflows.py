@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import yaml
+import pytest
 
 import propstore.claims as claims_mod
 import propstore.embed as embed_mod
@@ -11,10 +12,13 @@ import propstore.relate as relate_mod
 from propstore.claims import (
     ClaimEmbedRequest,
     ClaimRelateRequest,
+    ClaimSidecarMissingError,
     ClaimSimilarRequest,
+    compare_algorithm_claims_from_repo,
     embed_claim_embeddings,
     find_similar_claims,
     relate_claims,
+    show_claim_from_repo,
 )
 from propstore.proposals import STANCE_PROPOSAL_BRANCH
 from propstore.repository import Repository
@@ -25,6 +29,19 @@ def _repo_with_sidecar(tmp_path: Path) -> Repository:
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
     repo.sidecar_path.touch()
     return repo
+
+
+def test_claim_repo_world_model_wrappers_report_missing_sidecar(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+
+    with pytest.raises(ClaimSidecarMissingError):
+        show_claim_from_repo(repo, "claim-a")
+
+    with pytest.raises(ClaimSidecarMissingError):
+        compare_algorithm_claims_from_repo(
+            repo,
+            claims_mod.ClaimCompareRequest("claim-a", "claim-b"),
+        )
 
 
 def test_embed_claim_embeddings_owns_connection_and_reports_progress(

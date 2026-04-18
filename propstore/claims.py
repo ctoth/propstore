@@ -187,6 +187,16 @@ def show_claim(
     )
 
 
+def show_claim_from_repo(repo: Repository, claim_id: str) -> ClaimShowReport:
+    from propstore.world import WorldModel
+
+    try:
+        with WorldModel(repo) as world:
+            return show_claim(world, claim_id)
+    except FileNotFoundError as exc:
+        raise ClaimSidecarMissingError("Sidecar not found. Run 'pks build' first.") from exc
+
+
 def compare_algorithm_claims(
     world: WorldModel,
     request: ClaimCompareRequest,
@@ -223,6 +233,19 @@ def compare_algorithm_claims(
         similarity=float(result.similarity),
         details=result.details,
     )
+
+
+def compare_algorithm_claims_from_repo(
+    repo: Repository,
+    request: ClaimCompareRequest,
+) -> ClaimCompareReport:
+    from propstore.world import WorldModel
+
+    try:
+        with WorldModel(repo) as world:
+            return compare_algorithm_claims(world, request)
+    except FileNotFoundError as exc:
+        raise ClaimSidecarMissingError("Sidecar not found. Run 'pks build' first.") from exc
 
 
 def _require_sidecar(repo: Repository) -> Path:

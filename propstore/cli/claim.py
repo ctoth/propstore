@@ -12,7 +12,7 @@ from pathlib import Path
 
 import click
 
-from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION, open_world_model
+from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.repository import Repository
 from propstore.artifacts.schema import DocumentSchemaError
 from propstore.knowledge_path import coerce_knowledge_path
@@ -28,15 +28,21 @@ def claim() -> None:
 @click.pass_obj
 def show(obj: dict, claim_id: str) -> None:
     """Display details of a single claim."""
-    from propstore.claims import UnknownClaimError, show_claim
+    from propstore.claims import (
+        ClaimSidecarMissingError,
+        UnknownClaimError,
+        show_claim_from_repo,
+    )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        try:
-            report = show_claim(wm, claim_id)
-        except UnknownClaimError:
-            click.echo(f"Claim '{claim_id}' not found.", err=True)
-            sys.exit(EXIT_ERROR)
+    try:
+        report = show_claim_from_repo(repo, claim_id)
+    except ClaimSidecarMissingError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(EXIT_ERROR)
+    except UnknownClaimError:
+        click.echo(f"Claim '{claim_id}' not found.", err=True)
+        sys.exit(EXIT_ERROR)
 
     if report.logical_id:
         click.echo(f"Logical ID: {report.logical_id}")
@@ -259,8 +265,9 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
     from propstore.claims import (
         ClaimCompareRequest,
         ClaimComparisonError,
+        ClaimSidecarMissingError,
         UnknownClaimError,
-        compare_algorithm_claims,
+        compare_algorithm_claims_from_repo,
     )
 
     repo: Repository = obj["repo"]
@@ -275,18 +282,20 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
             except ValueError:
                 click.echo(f"WARNING: Ignoring non-numeric binding: {b}", err=True)
 
-    with open_world_model(repo) as wm:
-        try:
-            result = compare_algorithm_claims(
-                wm,
-                ClaimCompareRequest(id_a, id_b, known_values or None),
-            )
-        except UnknownClaimError as exc:
-            click.echo(f"ERROR: Claim '{exc.claim_id}' not found.", err=True)
-            sys.exit(EXIT_ERROR)
-        except ClaimComparisonError as exc:
-            click.echo(f"ERROR: {exc}", err=True)
-            sys.exit(EXIT_ERROR)
+    try:
+        result = compare_algorithm_claims_from_repo(
+            repo,
+            ClaimCompareRequest(id_a, id_b, known_values or None),
+        )
+    except ClaimSidecarMissingError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(EXIT_ERROR)
+    except UnknownClaimError as exc:
+        click.echo(f"ERROR: Claim '{exc.claim_id}' not found.", err=True)
+        sys.exit(EXIT_ERROR)
+    except ClaimComparisonError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(EXIT_ERROR)
 
     click.echo(f"Tier:       {result.tier}")
     click.echo(f"Equivalent: {result.equivalent}")
