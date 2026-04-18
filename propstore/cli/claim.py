@@ -303,47 +303,47 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
 @click.pass_obj
 def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_size: int) -> None:
     """Generate embeddings for claims via litellm."""
-    if not claim_id and not embed_all:
-        click.echo("Error: provide a claim ID or use --all", err=True)
-        raise SystemExit(1)
-
-    from propstore.embed import embed_claims, _load_vec_extension, get_registered_models
+    from propstore.claims import (
+        ClaimEmbedRequest,
+        ClaimEmbeddingModelError,
+        ClaimSidecarMissingError,
+        ClaimWorkflowError,
+        embed_claim_embeddings,
+    )
 
     repo = obj["repo"]
-    sidecar = repo.sidecar_path
-    if not sidecar.exists():
-        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
+    try:
+        report = embed_claim_embeddings(
+            repo,
+            ClaimEmbedRequest(
+                claim_id=claim_id,
+                embed_all=embed_all,
+                model=model,
+                batch_size=batch_size,
+            ),
+            on_progress=(
+                (lambda model_name, done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None)
+                if model == "all"
+                else (lambda model_name, done, total: click.echo(f"  {done}/{total} claims embedded", err=True))
+            ),
+        )
+    except ClaimSidecarMissingError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        raise SystemExit(1)
+    except ClaimEmbeddingModelError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        raise SystemExit(1)
+    except ClaimWorkflowError as exc:
+        click.echo(f"Error: {exc}", err=True)
         raise SystemExit(1)
 
-    import contextlib
-    import sqlite3
-    conn = sqlite3.connect(sidecar)
-    with contextlib.closing(conn):
-        conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
-
-        ids = [claim_id] if claim_id else None
-
-        if model == "all":
-            models = get_registered_models(conn)
-            if not models:
-                click.echo("Error: no models registered. Run embed with a specific model first.", err=True)
-                raise SystemExit(1)
-            for m in models:
-                click.echo(f"Embedding with {m['model_name']}...")
-                result = embed_claims(
-                    conn, m["model_name"], claim_ids=ids, batch_size=batch_size,
-                    on_progress=lambda done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None
-                )
-                click.echo(f"  embedded={result['embedded']} skipped={result['skipped']} errors={result['errors']}")
-        else:
-            def progress(done: int, total: int) -> None:
-                click.echo(f"  {done}/{total} claims embedded", err=True)
-
-            result = embed_claims(conn, model, claim_ids=ids, batch_size=batch_size, on_progress=progress)
-            click.echo(f"Embedded: {result['embedded']}, Skipped: {result['skipped']}, Errors: {result['errors']}")
-
-        conn.commit()
+    if model == "all":
+        for result in report.results:
+            click.echo(f"Embedding with {result.model_name}...")
+            click.echo(f"  embedded={result.embedded} skipped={result.skipped} errors={result.errors}")
+    else:
+        result = report.results[0]
+        click.echo(f"Embedded: {result.embedded}, Skipped: {result.skipped}, Errors: {result.errors}")
 
 
 @claim.command()
@@ -355,48 +355,39 @@ def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_si
 @click.pass_obj
 def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool, disagree: bool) -> None:
     """Find similar claims by embedding distance."""
-    from propstore.embed import find_similar, find_similar_agree, find_similar_disagree, _load_vec_extension, get_registered_models
+    from propstore.claims import (
+        ClaimEmbeddingModelError,
+        ClaimSidecarMissingError,
+        ClaimSimilarRequest,
+        ClaimWorkflowError,
+        find_similar_claims,
+    )
 
     repo = obj["repo"]
-    sidecar = repo.sidecar_path
-    if not sidecar.exists():
-        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
-        raise SystemExit(1)
-
-    import sqlite3
-    conn = sqlite3.connect(sidecar)
-    conn.row_factory = sqlite3.Row
-    _load_vec_extension(conn)
-
     try:
-        if agree:
-            results = find_similar_agree(conn, claim_id, top_k=top_k)
-        elif disagree:
-            results = find_similar_disagree(conn, claim_id, top_k=top_k)
-        else:
-            if model is None:
-                models = get_registered_models(conn)
-                if not models:
-                    click.echo("Error: no embeddings found. Run 'pks claim embed' first.", err=True)
-                    raise SystemExit(1)
-                model = str(models[0]["model_name"])
-            results = find_similar(conn, claim_id, model, top_k=top_k)
-    except ValueError as e:
-        click.echo(f"Error: {e}", err=True)
+        report = find_similar_claims(
+            repo,
+            ClaimSimilarRequest(
+                claim_id=claim_id,
+                model=model,
+                top_k=top_k,
+                agree=agree,
+                disagree=disagree,
+            ),
+        )
+    except ClaimSidecarMissingError as exc:
+        click.echo(f"Error: {exc}", err=True)
         raise SystemExit(1)
-    finally:
-        conn.close()
+    except (ClaimEmbeddingModelError, ClaimWorkflowError) as exc:
+        click.echo(f"Error: {exc}", err=True)
+        raise SystemExit(1)
 
-    if not results:
+    if not report.hits:
         click.echo("No similar claims found.")
         return
 
-    for r in results:
-        dist = r.get("distance", 0)
-        cid = r.get("id", "?")
-        summary = r.get("auto_summary") or r.get("statement") or ""
-        paper = r.get("source_paper", "")
-        click.echo(f"  {dist:.4f}  {cid}  [{paper}]  {summary[:120]}")
+    for hit in report.hits:
+        click.echo(f"  {hit.distance:.4f}  {hit.claim_id}  [{hit.source_paper}]  {hit.summary[:120]}")
 
 
 @claim.command()
@@ -415,68 +406,67 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
     classifications as stance proposal files to the STANCE_PROPOSAL_BRANCH.
     The main branch is not mutated; promote proposals into source-of-truth
     storage with ``pks promote``."""
-    from propstore.proposals import STANCE_PROPOSAL_BRANCH, commit_stance_proposals
-    from propstore.relate import relate_claim, relate_all as relate_all_fn
-    from propstore.embed import _load_vec_extension
+    from propstore.claims import (
+        ClaimRelateRequest,
+        ClaimSidecarMissingError,
+        ClaimWorkflowError,
+        relate_claims,
+    )
 
     repo = obj["repo"]
     try:
-        repo.snapshot.head_sha()
-    except ValueError:
-        click.echo("Error: claim relate requires a git-backed repository.", err=True)
+        report = relate_claims(
+            repo,
+            ClaimRelateRequest(
+                claim_id=claim_id,
+                relate_all=relate_all_flag,
+                model=model,
+                embedding_model=embedding_model,
+                top_k=top_k,
+                concurrency=concurrency,
+            ),
+            on_progress=lambda done, total: (
+                click.echo(f"  {done}/{total} claims processed", err=True)
+                if done % 10 == 0 or done == total
+                else None
+            ),
+        )
+    except ClaimSidecarMissingError as exc:
+        click.echo(f"Error: {exc}", err=True)
         raise SystemExit(1)
-    sidecar = repo.sidecar_path
-    if not sidecar.exists():
-        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
+    except ClaimWorkflowError as exc:
+        click.echo(f"Error: {exc}", err=True)
         raise SystemExit(1)
 
-    import contextlib
-    import sqlite3
-    conn = sqlite3.connect(sidecar)
-    with contextlib.closing(conn):
-        conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
-
-        if claim_id and not relate_all_flag:
-            # Single claim
-            stances = relate_claim(conn, claim_id, model, embedding_model, top_k)
-
-            if stances:
-                commit_sha, relpaths = commit_stance_proposals(
-                    repo,
-                    {claim_id: stances},
-                    model,
-                )
-                for s in stances:
-                    click.echo(f"  {s['type']:12s} {s.get('strength', ''):8s} -> {s['target']}  {s.get('note', '')}")
+    if claim_id and not relate_all_flag:
+        if report.stances:
+            for stance in report.stances:
                 click.echo(
-                    f"\nCommitted {len(relpaths)} proposal file(s) to "
-                    f"{STANCE_PROPOSAL_BRANCH} at {commit_sha[:8]}"
+                    f"  {str(stance['type']):12s} "
+                    f"{str(stance.get('strength', '')):8s} "
+                    f"-> {stance['target']}  {stance.get('note', '')}"
                 )
-            else:
-                click.echo("No epistemic relationships found.")
-
-        elif relate_all_flag:
-            def progress(done, total):
-                if done % 10 == 0 or done == total:
-                    click.echo(f"  {done}/{total} claims processed", err=True)
-
-            result = relate_all_fn(conn, model, embedding_model, top_k, concurrency=concurrency,
-                                   on_progress=progress)
-
-            stances_by_claim = result.get("stances_by_claim", {})
-            if stances_by_claim:
-                commit_sha, relpaths = commit_stance_proposals(
-                    repo,
-                    stances_by_claim,
-                    model,
-                )
-                click.echo(
-                    f"Proposal commit: {commit_sha[:8]} on {STANCE_PROPOSAL_BRANCH} "
-                    f"({len(relpaths)} file(s))"
-                )
-
-            click.echo(f"\nProcessed: {result['claims_processed']}, Stances found: {result['stances_found']}, No relation: {result['no_relation']}")
+            assert report.commit_sha is not None
+            click.echo(
+                f"\nCommitted {len(report.relpaths)} proposal file(s) to "
+                f"{report.branch} at {report.commit_sha[:8]}"
+            )
         else:
-            click.echo("Error: provide a claim ID or use --all", err=True)
-            raise SystemExit(1)
+            click.echo("No epistemic relationships found.")
+        return
+
+    if relate_all_flag:
+        if report.commit_sha is not None:
+            click.echo(
+                f"Proposal commit: {report.commit_sha[:8]} on {report.branch} "
+                f"({len(report.relpaths)} file(s))"
+            )
+        click.echo(
+            f"\nProcessed: {report.claims_processed}, "
+            f"Stances found: {report.stances_found}, "
+            f"No relation: {report.no_relation}"
+        )
+        return
+
+    click.echo("Error: provide a claim ID or use --all", err=True)
+    raise SystemExit(1)
