@@ -14,6 +14,40 @@ class BranchNotFoundError(Exception):
     """Raised when a requested history branch does not exist."""
 
 
+class CommitNotFoundError(Exception):
+    """Raised when a requested commit does not exist."""
+
+
+class CommitHasNoConceptsError(Exception):
+    """Raised when a historical checkout target has no concepts tree."""
+
+
+@dataclass(frozen=True)
+class FileChangeReport:
+    added: tuple[str, ...]
+    modified: tuple[str, ...]
+    deleted: tuple[str, ...]
+
+    @property
+    def has_changes(self) -> bool:
+        return bool(self.added or self.modified or self.deleted)
+
+
+@dataclass(frozen=True)
+class CommitShowReport:
+    sha: str
+    author: str
+    time: str
+    message: str
+    changes: FileChangeReport
+
+
+@dataclass(frozen=True)
+class CheckoutReport:
+    commit: str
+    rebuilt: bool
+
+
 @dataclass(frozen=True)
 class MergeLogSummary:
     branch_a: str
@@ -114,6 +148,14 @@ def _string_tuple(value: object) -> tuple[str, ...]:
     return ()
 
 
+def _file_change_report(info: dict[str, object]) -> FileChangeReport:
+    return FileChangeReport(
+        added=_string_tuple(info.get("added", ())),
+        modified=_string_tuple(info.get("modified", ())),
+        deleted=_string_tuple(info.get("deleted", ())),
+    )
+
+
 def _load_merge_summary(repo: Repository, sha: str) -> MergeLogSummary | None:
     manifest = repo.artifacts.load(
         MERGE_MANIFEST_FAMILY,
@@ -150,9 +192,10 @@ def build_log_record(
     deleted: tuple[str, ...] = ()
     if show_files:
         info = repo.snapshot.show_commit(sha)
-        added = _string_tuple(info.get("added", ()))
-        modified = _string_tuple(info.get("modified", ()))
-        deleted = _string_tuple(info.get("deleted", ()))
+        changes = _file_change_report(info)
+        added = changes.added
+        modified = changes.modified
+        deleted = changes.deleted
     return LogRecord(
         sha=sha,
         time=str(entry["time"]),
@@ -193,3 +236,42 @@ def build_log_report(
             for entry in entries
         ),
     )
+
+
+def build_diff_report(repo: Repository, commit: str | None) -> FileChangeReport:
+    return _file_change_report(repo.snapshot.diff(commit1=commit))
+
+
+def build_commit_show_report(repo: Repository, commit: str) -> CommitShowReport:
+    try:
+        info = repo.snapshot.show_commit(commit)
+    except KeyError as exc:
+        raise CommitNotFoundError(f"Commit not found: {commit}") from exc
+    return CommitShowReport(
+        sha=str(info["sha"]),
+        author=str(info["author"]),
+        time=str(info["time"]),
+        message=str(info["message"]),
+        changes=_file_change_report(info),
+    )
+
+
+def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
+    from propstore.sidecar.build import build_sidecar
+
+    try:
+        repo.snapshot.show_commit(commit)
+    except KeyError as exc:
+        raise CommitNotFoundError(f"Commit not found: {commit}") from exc
+
+    tree = repo.snapshot.tree(commit=commit)
+    if not (tree / "concepts").exists():
+        raise CommitHasNoConceptsError("No concepts found at that commit.")
+
+    rebuilt = build_sidecar(
+        tree,
+        repo.sidecar_path,
+        force=True,
+        commit_hash=commit,
+    )
+    return CheckoutReport(commit=commit, rebuilt=rebuilt)
