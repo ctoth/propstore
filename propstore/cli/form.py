@@ -1,25 +1,25 @@
 """pks form — subcommands for managing form definitions."""
 from __future__ import annotations
 
-import json
 import sys
 
 import click
 
-from propstore.artifacts import FORM_FAMILY, FormRef
-from propstore.artifacts.documents.forms import FormDocument
 from propstore.artifacts.codecs import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.repository import Repository
-from propstore.artifacts.schema import DocumentSchemaError, convert_document_value
 from propstore.form_utils import (
+    FormAddRequest,
+    FormReferencedError,
     FormNotFoundError,
-    load_all_forms_path,
-    load_form_definition,
+    FormWorkflowError,
+    add_form,
+    format_dims_col,
+    list_form_items,
+    remove_form,
     show_form,
-    validate_form_files,
+    validate_forms,
 )
-from propstore.core.concepts import load_concepts
 
 
 @click.group()
@@ -42,59 +42,20 @@ def list_forms(obj: dict, dims_filter: str | None, show_dims_flag: bool) -> None
     With --dims M:1,L:1,T:-2: filter to forms matching those dimensions.
     """
     repo: Repository = obj["repo"]
-    forms_tree = repo.tree() / "forms"
-    if not forms_tree.exists():
+    items = list_form_items(repo, dims_filter=dims_filter)
+    if items is None:
         click.echo("No forms directory found.")
         return
 
-    registry = load_all_forms_path(forms_tree)
-
-    # Parse filter dimensions if provided
-    filter_dims: dict[str, int] | None = None
-    if dims_filter is not None:
-        filter_dims = _parse_dims_spec(dims_filter)
-
     show_dims = show_dims_flag or dims_filter is not None
-
-    for fd in sorted(registry.values(), key=lambda f: f.name):
-        if filter_dims is not None:
-            from bridgman import dims_equal
-            form_dims = fd.dimensions or ({} if fd.is_dimensionless else None)
-            if form_dims is None or not dims_equal(form_dims, filter_dims):
-                continue
-
-        unit = fd.unit_symbol or ""
+    for item in items:
+        unit = item.unit_symbol or ""
         unit_col = f"  [{unit}]" if unit else ""
         if show_dims:
-            dims_str = _format_dims_col(fd.dimensions, fd.is_dimensionless)
-            click.echo(f"  {fd.name:30s}{unit_col:10s}  {dims_str}")
+            dims_str = format_dims_col(item.dimensions, item.is_dimensionless)
+            click.echo(f"  {item.name:30s}{unit_col:10s}  {dims_str}")
         else:
-            click.echo(f"  {fd.name:30s}{unit_col}")
-
-
-def _parse_dims_spec(spec: str) -> dict[str, int]:
-    """Parse 'M:1,L:1,T:-2' into {'M': 1, 'L': 1, 'T': -2}."""
-    result: dict[str, int] = {}
-    for part in spec.split(","):
-        part = part.strip()
-        if ":" not in part:
-            continue
-        key, val = part.split(":", 1)
-        result[key.strip()] = int(val.strip())
-    return result
-
-
-def _format_dims_col(dimensions: dict[str, int] | None, is_dimensionless: bool) -> str:
-    """Format dimensions for display column."""
-    if dimensions is None:
-        return "(dimensionless)" if is_dimensionless else ""
-    if not dimensions or all(v == 0 for v in dimensions.values()):
-        return "(dimensionless)"
-    try:
-        from bridgman import format_dims
-        return format_dims(dimensions)
-    except ImportError:
-        return str(dimensions)
+            click.echo(f"  {item.name:30s}{unit_col}")
 
 
 # ── form show ────────────────────────────────────────────────────────
@@ -177,73 +138,28 @@ def add(
 ) -> None:
     """Add a new form definition."""
     repo: Repository = obj["repo"]
-    fdir = repo.forms_dir
-    path = fdir / f"{name}.yaml"
-    if (repo.tree() / "forms" / f"{name}.yaml").exists():
-        click.echo(f"ERROR: Form '{name}' already exists", err=True)
+    request = FormAddRequest(
+        name=name,
+        unit_symbol=unit_symbol,
+        qudt=qudt,
+        base=base,
+        dimensions_json=dimensions,
+        dimensionless=dimensionless,
+        common_alternatives_json=common_alternatives,
+        note=note,
+    )
+    try:
+        report = add_form(repo, request, dry_run=dry_run)
+    except FormWorkflowError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
 
-    # Parse dimensions JSON if provided
-    dims_parsed: dict | None = None
-    if dimensions is not None:
-        try:
-            dims_parsed = json.loads(dimensions)
-        except json.JSONDecodeError:
-            click.echo(f"ERROR: Invalid JSON for --dimensions: {dimensions}", err=True)
-            sys.exit(EXIT_ERROR)
-
-    # Determine dimensionless value
-    if dimensionless is not None:
-        is_dimless = dimensionless.lower() in ("true", "1", "yes")
-    elif dims_parsed is not None and len(dims_parsed) > 0:
-        is_dimless = False
-    else:
-        is_dimless = dims_parsed is not None and len(dims_parsed) == 0
-
-    data: dict[str, object] = {"name": name, "dimensionless": is_dimless}
-    if base is not None:
-        data["base"] = base
-    if unit_symbol is not None:
-        data["unit_symbol"] = unit_symbol
-    if qudt is not None:
-        data["qudt"] = qudt
-    if dims_parsed is not None:
-        data["dimensions"] = dims_parsed
-
-    # Parse common_alternatives JSON if provided
-    if common_alternatives is not None:
-        try:
-            data["common_alternatives"] = json.loads(common_alternatives)
-        except json.JSONDecodeError:
-            click.echo(f"ERROR: Invalid JSON for --common-alternatives: {common_alternatives}", err=True)
-            sys.exit(EXIT_ERROR)
-
-    if note is not None:
-        data["note"] = note
-
-    if dry_run:
-        click.echo(f"Would create {path}")
-        document = convert_document_value(
-            data,
-            FormDocument,
-            source=f"dry-run:forms/{name}.yaml",
-        )
-        click.echo(encode_document(document).decode("utf-8"))
+    if not report.created:
+        click.echo(f"Would create {report.path}")
+        click.echo(encode_document(report.document).decode("utf-8"))
         return
 
-    document = convert_document_value(
-        data,
-        FormDocument,
-        source=f"forms/{name}.yaml",
-    )
-    repo.artifacts.save(
-        FORM_FAMILY,
-        FormRef(name),
-        document,
-        message=f"Add form: {name}",
-    )
-    repo.snapshot.sync_worktree()
-    click.echo(f"Created {path}")
+    click.echo(f"Created {report.path}")
 
 
 # ── form remove ──────────────────────────────────────────────────────
@@ -256,41 +172,27 @@ def add(
 def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
     """Remove a form definition."""
     repo: Repository = obj["repo"]
-    forms_tree = repo.tree() / "forms"
-    path = repo.forms_dir / f"{name}.yaml"
-    semantic_path = forms_tree / f"{name}.yaml"
-    if not semantic_path.exists():
+    try:
+        report = remove_form(repo, name, force=force, dry_run=dry_run)
+    except FormNotFoundError:
         click.echo(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
-
-    # Check for concepts that reference this form
-    referencing: list[str] = []
-    for concept in load_concepts(repo.tree() / "concepts"):
-        if concept.record.form == name:
-            referencing.append(f"{concept.record.artifact_id} ({concept.filename})")
-
-    if referencing and not force:
-        click.echo(f"ERROR: Form '{name}' is referenced by {len(referencing)} concept(s):", err=True)
-        for ref in referencing:
+    except FormReferencedError as exc:
+        click.echo(f"ERROR: {exc}:", err=True)
+        for ref in exc.references:
             click.echo(f"  {ref}", err=True)
         click.echo("Use --force to remove anyway.", err=True)
         sys.exit(EXIT_ERROR)
 
-    if dry_run:
-        click.echo(f"Would remove {path}")
-        if referencing:
-            click.echo(f"  ({len(referencing)} concept(s) still reference this form)")
+    if not report.removed:
+        click.echo(f"Would remove {report.path}")
+        if report.references:
+            click.echo(f"  ({len(report.references)} concept(s) still reference this form)")
         return
 
-    repo.artifacts.delete(
-        FORM_FAMILY,
-        FormRef(name),
-        message=f"Remove form: {name}",
-    )
-    repo.snapshot.sync_worktree()
-    click.echo(f"Removed {path}")
-    if referencing:
-        click.echo(f"  WARNING: {len(referencing)} concept(s) still reference this form")
+    click.echo(f"Removed {report.path}")
+    if report.references:
+        click.echo(f"  WARNING: {len(report.references)} concept(s) still reference this form")
 
 
 # ── form validate ────────────────────────────────────────────────────
@@ -305,42 +207,19 @@ def validate(obj: dict, name: str | None) -> None:
     referenced by concepts actually exist.
     """
     repo: Repository = obj["repo"]
-    forms_tree = repo.tree() / "forms"
-    if not forms_tree.exists():
+    try:
+        report = validate_forms(repo, name)
+    except FormNotFoundError:
+        click.echo(f"ERROR: Form '{name}' not found", err=True)
+        sys.exit(EXIT_ERROR)
+
+    if report is None:
         click.echo("No forms directory found.")
         return
 
-    if name is not None:
-        path = forms_tree / f"{name}.yaml"
-        if not path.exists():
-            click.echo(f"ERROR: Form '{name}' not found", err=True)
-            sys.exit(EXIT_ERROR)
-
-    # Run unified form validation
-    form_result = validate_form_files(forms_tree)
-
-    # Check that concepts reference existing forms
-    all_forms = {
-        p.stem
-        for p in forms_tree.iterdir()
-        if p.is_file() and p.suffix == ".yaml"
-    }
-    concepts_tree = repo.tree() / "concepts"
-    if concepts_tree.exists():
-        for concept in load_concepts(concepts_tree):
-            ref = concept.record.form
-            if ref and ref not in all_forms:
-                form_result.errors.append(
-                    f"concept {concept.filename}: references missing form '{ref}'"
-                )
-
-    if not form_result.ok:
-        for e in form_result.errors:
+    if not report.ok:
+        for e in report.errors:
             click.echo(f"ERROR: {e}", err=True)
         sys.exit(EXIT_ERROR)
 
-    count = len([
-        p for p in forms_tree.iterdir()
-        if p.is_file() and p.suffix == ".yaml"
-    ])
-    click.echo(f"OK: {count} form(s) valid")
+    click.echo(f"OK: {report.count} form(s) valid")
