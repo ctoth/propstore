@@ -5,12 +5,11 @@ import datetime
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from propstore.artifacts.documents.forms import (
     FormDocument,
 )
-from propstore.artifacts.families import CONCEPT_FILE_FAMILY, FORM_FAMILY
 from propstore.artifacts.refs import FormRef
 from propstore.cel_checker import KindType
 from quire.documents import DocumentSchemaError, convert_document_value, decode_document_path
@@ -126,7 +125,7 @@ def show_form(
     name: str,
 ) -> FormShowReport:
     ref = FormRef(name)
-    document = repo.artifacts.load(FORM_FAMILY, ref)
+    document = repo.families.forms.load(ref)
     if document is None:
         raise FormNotFoundError(name)
 
@@ -196,7 +195,7 @@ def list_form_items(
     *,
     dims_filter: str | None,
 ) -> tuple[FormListItem, ...] | None:
-    refs = repo.artifacts.list(FORM_FAMILY)
+    refs = repo.families.forms.list()
     if not refs:
         return None
 
@@ -204,7 +203,7 @@ def list_form_items(
     items: list[FormListItem] = []
     forms: list[FormDefinition] = []
     for ref in refs:
-        document = repo.artifacts.require(FORM_FAMILY, ref)
+        document = repo.families.forms.require(ref)
         forms.append(parse_form(document.name, document))
     for form in sorted(forms, key=lambda item: item.name):
         if filter_dims is not None:
@@ -272,9 +271,9 @@ def _form_add_payload(request: FormAddRequest) -> dict[str, object]:
 
 def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> FormAddReport:
     ref = FormRef(request.name)
-    relpath = repo.artifacts.address(FORM_FAMILY, ref).require_path()
+    relpath = repo.families.forms.family.address_for(repo, ref).require_path()
     path = repo.root / relpath
-    if repo.artifacts.load(FORM_FAMILY, ref) is not None:
+    if repo.families.forms.load(ref) is not None:
         raise FormWorkflowError(f"Form '{request.name}' already exists")
 
     source = (
@@ -290,8 +289,7 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
     if dry_run:
         return FormAddReport(path=path, document=document, created=False)
 
-    repo.artifacts.save(
-        FORM_FAMILY,
+    repo.families.forms.save(
         ref,
         document,
         message=f"Add form: {request.name}",
@@ -302,8 +300,8 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
 
 def form_references(repo: Repository, name: str) -> tuple[str, ...]:
     references: list[str] = []
-    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref)
+    for ref in repo.families.concepts.list():
+        document = repo.families.concepts.require(ref)
         record = parse_concept_record_document(document)
         if record.form == name:
             references.append(f"{record.artifact_id} ({ref.name})")
@@ -318,9 +316,9 @@ def remove_form(
     dry_run: bool,
 ) -> FormRemoveReport:
     ref = FormRef(name)
-    relpath = repo.artifacts.address(FORM_FAMILY, ref).require_path()
+    relpath = repo.families.forms.family.address_for(repo, ref).require_path()
     path = repo.root / relpath
-    if repo.artifacts.load(FORM_FAMILY, ref) is None:
+    if repo.families.forms.load(ref) is None:
         raise FormNotFoundError(name)
 
     references = form_references(repo, name)
@@ -329,8 +327,7 @@ def remove_form(
     if dry_run:
         return FormRemoveReport(path=path, removed=False, references=references)
 
-    repo.artifacts.delete(
-        cast(Any, FORM_FAMILY),
+    repo.families.forms.delete(
         ref,
         message=f"Remove form: {name}",
     )
@@ -339,17 +336,17 @@ def remove_form(
 
 
 def validate_forms(repo: Repository, name: str | None = None) -> FormValidationReport | None:
-    refs = repo.artifacts.list(FORM_FAMILY)
+    refs = repo.families.forms.list()
     if not refs:
         return None
 
-    if name is not None and repo.artifacts.load(FORM_FAMILY, FormRef(name)) is None:
+    if name is not None and repo.families.forms.load(FormRef(name)) is None:
         raise FormNotFoundError(name)
 
     form_result = ValidationResult()
     all_forms = {ref.name for ref in refs}
     for ref in refs:
-        document = repo.artifacts.require(FORM_FAMILY, ref)
+        document = repo.families.forms.require(ref)
         dims = document.dimensions
         is_dimless = document.dimensionless
         has_unit = document.unit_symbol is not None
@@ -372,8 +369,8 @@ def validate_forms(repo: Repository, name: str | None = None) -> FormValidationR
                 f"{ref.name}: 'name' field ('{document.name}') does not match "
                 f"filename '{ref.name}'")
 
-    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-        record = parse_concept_record_document(repo.artifacts.require(CONCEPT_FILE_FAMILY, ref))
+    for ref in repo.families.concepts.list():
+        record = parse_concept_record_document(repo.families.concepts.require(ref))
         form_ref = record.form
         if form_ref and form_ref not in all_forms:
             form_result.errors.append(
