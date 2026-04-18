@@ -7,12 +7,10 @@ dimensions feature is built.
 """
 from __future__ import annotations
 
-import json
 import tempfile
 from pathlib import Path
 from typing import Any
 
-import jsonschema
 import pytest
 import yaml
 from hypothesis import given, assume, settings, HealthCheck
@@ -29,13 +27,6 @@ from propstore.unit_dimensions import clear_symbol_table, _symbol_table
 
 SI_BASE_DIMENSIONS = {"L", "M", "T", "I", "Theta", "N", "J"}
 
-FORM_SCHEMA_PATH = Path(__file__).parent.parent / "schema" / "generated" / "form.schema.json"
-
-
-def _load_schema() -> dict:
-    with open(FORM_SCHEMA_PATH) as f:
-        return json.load(f)
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -44,11 +35,6 @@ def _load_schema() -> dict:
 def forms_dir():
     """Return the real forms directory."""
     return Path(__file__).parent.parent / "propstore" / "_resources" / "forms"
-
-
-@pytest.fixture
-def form_schema() -> dict:
-    return _load_schema()
 
 
 def _write_form_yaml(directory: Path, name: str, data: dict) -> Path:
@@ -62,80 +48,77 @@ def _write_form_yaml(directory: Path, name: str, data: dict) -> Path:
 # ── Unit Tests ────────────────────────────────────────────────────────
 
 
-class TestDimensionsSchemaValidation:
-    """Test that the JSON schema correctly validates the dimensions field."""
+class TestDimensionsDocumentValidation:
+    """Test that the typed form document boundary validates dimensions."""
 
-    def test_form_with_dimensions_validates(self, form_schema: dict) -> None:
+    def test_form_with_dimensions_validates(self, tmp_path: Path) -> None:
         """Form with dimensions: {T: -1} validates as non-dimensionless."""
-        form_data = {
+        _write_form_yaml(tmp_path, "test_freq", {
             "name": "test_freq",
             "dimensionless": False,
             "unit_symbol": "Hz",
             "dimensions": {"T": -1},
-        }
-        # Should not raise
-        jsonschema.validate(form_data, form_schema)
+        })
+        assert validate_form_files(tmp_path).errors == []
 
-    def test_form_with_empty_dimensions_validates(self, form_schema: dict) -> None:
+    def test_form_with_empty_dimensions_validates(self, tmp_path: Path) -> None:
         """Form with dimensions: {} validates as dimensionless."""
-        form_data = {
+        _write_form_yaml(tmp_path, "test_ratio", {
             "name": "test_ratio",
             "dimensionless": True,
             "dimensions": {},
-        }
-        jsonschema.validate(form_data, form_schema)
+        })
+        assert validate_form_files(tmp_path).errors == []
 
     def test_dimensions_conflict_nonempty_but_dimensionless(self) -> None:
         """Form with dimensions: {T: -1} but dimensionless: true fails validation.
 
         A form cannot claim to be dimensionless while having non-empty dimensions.
-        This should be caught either by the schema or by validate_form_files.
-        Tested via TestDimensionsValidationLogic below.
+        This is caught by validate_form_files.
         """
         pass
 
     def test_form_without_dimensions_still_validates(
-        self, form_schema: dict
+        self, tmp_path: Path
     ) -> None:
-        """Backward compat: form with no dimensions field still validates."""
-        form_data = {
+        """Form with no dimensions field still validates."""
+        _write_form_yaml(tmp_path, "test_legacy", {
             "name": "test_legacy",
             "dimensionless": False,
             "unit_symbol": "Pa",
-        }
-        jsonschema.validate(form_data, form_schema)
+        })
+        assert validate_form_files(tmp_path).errors == []
 
     def test_dimensions_rejects_non_integer_exponent(
-        self, form_schema: dict
+        self, tmp_path: Path
     ) -> None:
         """Dimension exponents must be integers; floats should fail."""
-        form_data = {
+        _write_form_yaml(tmp_path, "test_bad_exp", {
             "name": "test_bad_exp",
             "dimensionless": False,
             "dimensions": {"T": -1.5},
-        }
-        with pytest.raises(jsonschema.ValidationError):
-            jsonschema.validate(form_data, form_schema)
+        })
+        assert validate_form_files(tmp_path).errors
 
-    def test_dimensions_rejects_invalid_key(self, form_schema: dict) -> None:
+    def test_dimensions_rejects_invalid_key(self, tmp_path: Path) -> None:
         """Dimension keys must be identifiers; '123' is invalid."""
-        form_data = {
+        _write_form_yaml(tmp_path, "test_bad_key", {
             "name": "test_bad_key",
             "dimensionless": False,
             "dimensions": {"123": 1},
-        }
-        with pytest.raises(jsonschema.ValidationError):
-            jsonschema.validate(form_data, form_schema)
+        })
+        result = validate_form_files(tmp_path)
+        assert result.errors
+        assert any("dimension key" in error for error in result.errors)
 
-    def test_dimensions_accepts_custom_key(self, form_schema: dict) -> None:
+    def test_dimensions_accepts_custom_key(self, tmp_path: Path) -> None:
         """Dimension keys can be any valid identifier, not just SI symbols."""
-        form_data = {
+        _write_form_yaml(tmp_path, "test_custom", {
             "name": "test_custom",
             "dimensionless": False,
             "dimensions": {"Currency": 1, "Quantity": -1},
-        }
-        # Should not raise
-        jsonschema.validate(form_data, form_schema)
+        })
+        assert validate_form_files(tmp_path).errors == []
 
 
 class TestDimensionsValidationLogic:
@@ -371,15 +354,14 @@ class TestDimensionsPropertyBased:
     def test_non_integer_exponents_rejected(
         self, exponent: Any,
     ) -> None:
-        """Dimension exponents must be integers; non-integers fail schema."""
-        schema = _load_schema()
-        form_data = {
+        """Dimension exponents must be integers; non-integers fail document validation."""
+        td = Path(tempfile.mkdtemp())
+        _write_form_yaml(td, "bad_exp", {
             "name": "bad_exp",
             "dimensionless": False,
             "dimensions": {"T": exponent},
-        }
-        with pytest.raises(jsonschema.ValidationError):
-            jsonschema.validate(form_data, schema)
+        })
+        assert validate_form_files(td).errors
 
     @given(key=st.text(min_size=1, max_size=10).filter(
         lambda k: not k or not k[0].isalpha() or not all(c.isalnum() or c == '_' for c in k)
@@ -390,14 +372,15 @@ class TestDimensionsPropertyBased:
     ) -> None:
         """Dimension keys must be valid identifiers (start with letter, alphanumeric/underscore)."""
         assume(len(key) > 0)
-        schema = _load_schema()
-        form_data = {
+        td = Path(tempfile.mkdtemp())
+        _write_form_yaml(td, "bad_key", {
             "name": "bad_key",
             "dimensionless": False,
             "dimensions": {key: 1},
-        }
-        with pytest.raises(jsonschema.ValidationError):
-            jsonschema.validate(form_data, schema)
+        })
+        result = validate_form_files(td)
+        assert result.errors
+        assert any("dimension key" in error for error in result.errors)
 
     @given(dimensions=_dimensions_strategy.filter(lambda d: len(d) > 0))
     @settings()

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from propstore.artifacts.codecs import convert_document, decode_document, document_to_payload, encode_document, render_document
 from propstore.artifacts.transaction import ArtifactTransaction, normalized_path
@@ -21,10 +21,10 @@ if TYPE_CHECKING:
     from propstore.repository import Repository
 
 
-class ArtifactStore:
+class ArtifactRepository:
     @classmethod
-    def for_git(cls, git: object) -> ArtifactStore:
-        return cls(SimpleNamespace(git=git))
+    def for_git(cls, git: object) -> ArtifactRepository:
+        return cls(cast("Repository", SimpleNamespace(git=git)))
 
     def __init__(self, repo: Repository) -> None:
         self._repo = repo
@@ -215,7 +215,7 @@ class ArtifactStore:
 
     def delete(
         self,
-        family: ArtifactFamily[TRef, object],
+        family: ArtifactFamily[TRef, TDoc],
         ref: TRef,
         *,
         message: str,

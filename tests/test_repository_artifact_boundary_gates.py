@@ -203,5 +203,6 @@ def test_core_concept_loading_does_not_decode_concept_documents_directly() -> No
         if any(isinstance(arg, ast.Name) and arg.id == "ConceptDocument" for arg in node.args):
             direct_decode_calls.append(node.lineno)
 
+    text = path.read_text(encoding="utf-8")
     assert direct_decode_calls == []
-    assert "CONCEPT_FILE_FAMILY" in path.read_text(encoding="utf-8")
+    assert "load_document_dir(concepts_root, ConceptDocument)" in text

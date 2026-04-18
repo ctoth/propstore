@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.contexts import ContextDocument
@@ -52,7 +53,12 @@ from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.artifacts.documents.merge import MergeManifestDocument
 
 if TYPE_CHECKING:
+    from propstore.artifacts.store import ArtifactRepository
+    from propstore.artifacts.types import ArtifactContext
     from propstore.repository import Repository
+
+
+TYamlRef = TypeVar("TYamlRef")
 
 
 def _source_artifact(repo: Repository, ref: SourceRef, relpath: str) -> ResolvedArtifact:
@@ -208,8 +214,8 @@ def _list_yaml_refs_in_directory(
     commit: str | None,
     *,
     subdir: str,
-    ref_type: type[WorldlineRef],
-) -> list[WorldlineRef]:
+    ref_type: Callable[[str], TYamlRef],
+) -> list[TYamlRef]:
     from propstore.storage.branch import branch_head
 
     target_commit = commit
@@ -224,7 +230,7 @@ def _list_yaml_refs_in_directory(
     if not directory.exists():
         return []
 
-    refs: list[WorldlineRef] = []
+    refs: list[TYamlRef] = []
     for entry in directory.iterdir():
         if not entry.is_file() or entry.suffix != ".yaml":
             continue
@@ -259,7 +265,7 @@ def _list_stance_refs_in_directory(
     return refs
 
 
-def _yaml_path_ref(path: str | Path, *, subdir: str, ref_type: type[WorldlineRef]) -> WorldlineRef:
+def _yaml_path_ref(path: str | Path, *, subdir: str, ref_type: Callable[[str], TYamlRef]) -> TYamlRef:
     normalized = str(path).replace("\\", "/")
     prefix = f"{subdir}/"
     if not normalized.startswith(prefix) or not normalized.endswith(".yaml"):
@@ -271,13 +277,28 @@ def _ref_from_loaded_source_path(
     loaded: object,
     *,
     subdir: str,
-    ref_type: type[WorldlineRef],
-) -> WorldlineRef:
+    ref_type: Callable[[str], TYamlRef],
+) -> TYamlRef:
     source_path = getattr(loaded, "source_path", None)
     if source_path is None:
         raise ValueError(f"loaded artifact does not have a source_path for {subdir}")
     rendered = source_path.as_posix() if hasattr(source_path, "as_posix") else str(source_path)
     return _yaml_path_ref(rendered, subdir=subdir, ref_type=ref_type)
+
+
+def _normalize_concept_for_write(
+    context: ArtifactContext[ConceptFileRef],
+    document: ConceptDocument,
+    store: ArtifactRepository,
+) -> ConceptDocument:
+    payload = store.payload(document)
+    if not isinstance(payload, dict):
+        raise TypeError(f"{context.branch}:{context.relpath}: expected concept payload mapping")
+    return store.coerce(
+        CONCEPT_FILE_FAMILY,
+        normalize_canonical_concept_payload(payload),
+        source=f"{context.branch}:{context.relpath}",
+    )
 
 
 SOURCE_DOCUMENT_FAMILY = ArtifactFamily[SourceRef, SourceDocument](
@@ -409,13 +430,7 @@ CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
     name="concept_file",
     doc_type=ConceptDocument,
     resolve_ref=_concept_file_artifact,
-    normalize_for_write=lambda context, document, store: store.coerce(
-        CONCEPT_FILE_FAMILY,
-        normalize_canonical_concept_payload(
-            store.payload(document),
-        ),
-        source=f"{context.branch}:{context.relpath}",
-    ),
+    normalize_for_write=_normalize_concept_for_write,
     list_refs=lambda repo, branch, commit: _list_yaml_refs_in_directory(
         repo,
         branch,

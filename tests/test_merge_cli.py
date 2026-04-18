@@ -10,8 +10,8 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.storage.branch import create_branch
-from propstore.storage.merge_classifier import build_merge_framework
-from propstore.storage.merge_report import summarize_merge_framework
+from propstore.merge.merge_classifier import build_merge_framework
+from propstore.merge.merge_report import summarize_merge_framework
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import normalize_claims_payload
 

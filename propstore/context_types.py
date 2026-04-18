@@ -17,7 +17,7 @@ from propstore.context_lifting import (
 )
 from propstore.core.id_types import ContextId, to_context_id
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
-from propstore.loaded import LoadedDocument, LoadedEntry
+from propstore.loaded import LoadedDocument
 
 
 @dataclass(frozen=True)
@@ -110,15 +110,6 @@ class LoadedContext:
         )
 
     @classmethod
-    def from_loaded_entry(cls, entry: LoadedEntry) -> LoadedContext:
-        return cls.from_payload(
-            filename=entry.filename,
-            source_path=entry.source_path,
-            knowledge_root=entry.knowledge_root,
-            data=entry.data,
-        )
-
-    @classmethod
     def from_loaded_document(
         cls,
         document: LoadedDocument[ContextDocument],
@@ -130,16 +121,8 @@ class LoadedContext:
             record=parse_context_record_document(document.document),
         )
 
-    def to_loaded_entry(self) -> LoadedEntry:
-        return LoadedEntry(
-            filename=self.filename,
-            source_path=self.source_path,
-            knowledge_root=self.knowledge_root,
-            data=self.record.to_payload(),
-        )
 
-
-ContextInput = LoadedContext | LoadedEntry
+ContextInput = LoadedContext
 
 
 def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
@@ -297,9 +280,7 @@ def parse_context_record_document(data: ContextDocument) -> ContextRecord:
 
 
 def coerce_loaded_context(context: ContextInput) -> LoadedContext:
-    if isinstance(context, LoadedContext):
-        return context
-    return LoadedContext.from_loaded_entry(context)
+    return context
 
 
 def coerce_loaded_contexts(contexts: Sequence[ContextInput]) -> list[LoadedContext]:

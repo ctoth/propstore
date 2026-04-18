@@ -15,7 +15,7 @@ from propstore.artifacts.identity import (
 )
 
 if TYPE_CHECKING:
-    from propstore.artifacts.store import ArtifactStore
+    from propstore.artifacts.store import ArtifactRepository
     from propstore.repository import Repository
 
 
@@ -348,7 +348,7 @@ def _normalize_imported_stance_write(
 
 
 def _normalize_import_writes(
-    store: ArtifactStore,
+    store: ArtifactRepository,
     writes: dict[str, bytes],
     *,
     repository_name: str,

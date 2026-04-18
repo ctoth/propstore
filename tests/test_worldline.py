@@ -53,9 +53,9 @@ class _FakeWorldlineRepo:
 
     @property
     def artifacts(self):
-        from propstore.artifacts import ArtifactStore
+        from propstore.artifacts import ArtifactRepository
 
-        return ArtifactStore(self)
+        return ArtifactRepository(self)
 
     @property
     def snapshot(self):

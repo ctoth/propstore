@@ -27,7 +27,7 @@ def export_concept_aliases(repo: Repository) -> dict[str, AliasExportEntry]:
 
     aliases: dict[str, AliasExportEntry] = {}
     for concept in load_concepts(concepts_root):
-        data = concept.data
+        data = concept.record.to_payload()
         logical_id = primary_logical_id(data) or data.get("canonical_name", "")
         name = data.get("canonical_name", "")
         for alias in data.get("aliases", []) or []:

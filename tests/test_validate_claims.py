@@ -79,6 +79,7 @@ from tests.conftest import (
     make_claim_identity,
     make_parameter_claim,
     make_concept_registry,
+    make_compilation_context,
     normalize_concept_payloads,
 )
 
@@ -188,7 +189,7 @@ class TestValidClaims:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_valid_equation_claim(self, claims_dir):
@@ -204,7 +205,7 @@ class TestValidClaims:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_valid_observation_claim(self, claims_dir):
@@ -217,7 +218,7 @@ class TestValidClaims:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_valid_model_claim(self, claims_dir):
@@ -234,7 +235,7 @@ class TestValidClaims:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_multiple_valid_claims(self, claims_dir):
@@ -258,7 +259,7 @@ class TestValidClaims:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
 
@@ -277,7 +278,7 @@ class TestClaimIdErrors:
         write_claim_file(claims_dir, "paper_b.yaml", data2)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("duplicate" in e.lower() for e in result.errors)
 
@@ -289,7 +290,7 @@ class TestClaimIdErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("format" in e.lower() for e in result.errors)
 
@@ -304,7 +305,7 @@ class TestConceptReferenceErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any(_concept_artifact("concept9999") in e for e in result.errors)
 
@@ -321,7 +322,7 @@ class TestConceptReferenceErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any(_concept_artifact("concept9999") in e for e in result.errors)
 
@@ -335,7 +336,7 @@ class TestConceptReferenceErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any(_concept_artifact("concept9999") in e for e in result.errors)
 
@@ -352,7 +353,7 @@ class TestConceptReferenceErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any(_concept_artifact("concept9999") in e for e in result.errors)
 
@@ -373,7 +374,7 @@ class TestProvenanceErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("provenance" in e.lower() for e in result.errors)
 
@@ -410,7 +411,7 @@ class TestParameterClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("allowed units" in e.lower() or "does not match" in e.lower()
                    for e in result.errors)
@@ -427,7 +428,7 @@ class TestParameterClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("value" in e.lower() for e in result.errors)
 
@@ -443,7 +444,7 @@ class TestParameterClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("unit" in e.lower() for e in result.errors)
 
@@ -460,7 +461,7 @@ class TestParameterClaimErrors:
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test.yaml", data)
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_parameter_missing_concept_error(self, claims_dir):
@@ -475,7 +476,7 @@ class TestParameterClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("concept" in e.lower() for e in result.errors)
 
@@ -495,7 +496,7 @@ class TestEquationClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("expression" in e.lower() for e in result.errors)
 
@@ -510,7 +511,7 @@ class TestEquationClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("variable" in e.lower() for e in result.errors)
 
@@ -530,7 +531,7 @@ class TestObservationClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("statement" in e.lower() for e in result.errors)
 
@@ -545,7 +546,7 @@ class TestObservationClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("concept" in e.lower() for e in result.errors)
 
@@ -566,7 +567,7 @@ class TestModelClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("name" in e.lower() for e in result.errors)
 
@@ -582,7 +583,7 @@ class TestModelClaimErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("equation" in e.lower() for e in result.errors)
 
@@ -605,7 +606,7 @@ class TestStanceGraphIntegrity:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("missing_claim" in e and "stance" in e.lower() for e in result.errors)
 
@@ -744,7 +745,7 @@ class TestDraftArtifactBoundary:
             },
         )
 
-        result = validate_claims([draft_file], make_concept_registry())
+        result = validate_claims([draft_file], make_compilation_context())
         # A draft stage alone must not produce a validation error. Any
         # residual error must not be the "draft artifacts are not accepted"
         # message from the old build-time gate.
@@ -769,7 +770,6 @@ class TestDraftArtifactBoundary:
         """
 
         from propstore.compiler.passes import compile_claim_files
-        from propstore.compiler.context import compilation_context_from_concept_registry
 
         draft_file = loaded_claim_file_from_payload(
             filename="draft_claims",
@@ -787,10 +787,7 @@ class TestDraftArtifactBoundary:
                 ],
             },
         )
-        context = compilation_context_from_concept_registry(
-            make_concept_registry(),
-            claim_files=[draft_file],
-        )
+        context = make_compilation_context(claim_files=[draft_file])
         bundle = compile_claim_files([draft_file], context)
 
         assert len(bundle.semantic_files) == 1
@@ -825,7 +822,7 @@ class TestDraftArtifactBoundary:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("parameter" in e.lower() for e in result.errors)
 
@@ -854,7 +851,7 @@ class TestCelErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, registry)
+        result = validate_claims(files, make_compilation_context(registry))
         assert not result.ok
         assert any("cel" in e.lower() or "structural" in e.lower() for e in result.errors)
 
@@ -868,7 +865,7 @@ class TestCelErrors:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("cel" in e.lower() or "undefined" in e.lower() for e in result.errors)
 
@@ -900,7 +897,7 @@ def test_valid_claims_always_pass(claim_id_num, value, page):
         path.write_text(yaml.dump(data, default_flow_style=False))
 
         files = load_claim_files(tmp_path)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Valid claim failed validation: {result.errors}"
 
 
@@ -924,7 +921,7 @@ class TestNamedValueFields:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_value_with_bounds_validates(self, claims_dir):
@@ -943,7 +940,7 @@ class TestNamedValueFields:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_value_with_uncertainty_validates(self, claims_dir):
@@ -962,7 +959,7 @@ class TestNamedValueFields:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_lower_bound_without_upper_bound_error(self, claims_dir):
@@ -980,7 +977,7 @@ class TestNamedValueFields:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("upper_bound" in e for e in result.errors)
 
@@ -999,7 +996,7 @@ class TestNamedValueFields:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("lower_bound" in e for e in result.errors)
 
@@ -1018,7 +1015,7 @@ class TestNamedValueFields:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("uncertainty" in e for e in result.errors)
 
@@ -1037,7 +1034,7 @@ class TestNamedValueFields:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("uncertainty_type" in e for e in result.errors)
 
@@ -1054,7 +1051,7 @@ class TestNamedValueFields:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("value" in e.lower() or "bound" in e.lower() for e in result.errors)
 
@@ -1073,7 +1070,7 @@ class TestNamedValueFields:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
 
@@ -1095,7 +1092,7 @@ class TestMeasurementClaimValidation:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_valid_measurement_claim(self, claims_dir):
@@ -1113,7 +1110,7 @@ class TestMeasurementClaimValidation:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_measurement_missing_target_concept_error(self, claims_dir):
@@ -1130,7 +1127,7 @@ class TestMeasurementClaimValidation:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("target_concept" in e for e in result.errors)
 
@@ -1148,7 +1145,7 @@ class TestMeasurementClaimValidation:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("measure" in e for e in result.errors)
 
@@ -1170,7 +1167,7 @@ class TestMeasurementClaimValidation:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     @pytest.mark.parametrize("measure", [
@@ -1192,7 +1189,7 @@ class TestMeasurementClaimValidation:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors for measure={measure}: {result.errors}"
 
 
@@ -1205,7 +1202,7 @@ class TestFormAwareUnitValidation:
     def _make_registry_with_forms(self, tmp_path):
         """Build a concept registry with form definitions available on disk."""
         from propstore.repository import Repository
-        from propstore.compiler.context import build_concept_registry
+        from propstore.compiler.context import build_compilation_context_from_repo
 
         knowledge = tmp_path / "knowledge"
         repo = Repository.init(knowledge)
@@ -1269,7 +1266,7 @@ class TestFormAwareUnitValidation:
         )
         repo.git.commit_files(adds, "Seed form-aware validation fixture")
         repo.git.sync_worktree()
-        return build_concept_registry(repo)
+        return build_compilation_context_from_repo(repo)
 
     def test_parameter_claim_hz_on_frequency_concept_validates(self, claims_dir, tmp_path):
         registry = self._make_registry_with_forms(tmp_path)
@@ -1372,7 +1369,7 @@ class TestFormAwareUnitValidation:
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, registry)
+        result = validate_claims(files, make_compilation_context(registry))
         assert not result.ok
         assert any("missing a loaded form definition" in e for e in result.errors)
 
@@ -1389,7 +1386,7 @@ class TestEmptyClaimFiles:
         write_claim_file(claims_dir, "empty_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_null_claims_validates(self, claims_dir):
@@ -1419,7 +1416,7 @@ class TestEmptyClaimFiles:
         write_claim_file(claims_dir, "valid_paper.yaml", valid_data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
 
@@ -1461,7 +1458,7 @@ class TestValidateAlgorithm:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_algorithm_mapping_variables_rejected_at_document_boundary(self, claims_dir):
@@ -1486,7 +1483,7 @@ class TestValidateAlgorithm:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("missing 'body'" in e for e in result.errors)
 
@@ -1500,7 +1497,7 @@ class TestValidateAlgorithm:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("parse error" in e for e in result.errors)
 
@@ -1514,7 +1511,7 @@ class TestValidateAlgorithm:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("missing 'variables'" in e for e in result.errors)
 
@@ -1531,7 +1528,7 @@ class TestValidateAlgorithm:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any("nonexistent concept" in e for e in result.errors)
 
@@ -1552,7 +1549,7 @@ def compute(x, ps, mystery):
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         # Should pass (no errors) but have warnings
         assert result.ok, f"Unexpected errors: {result.errors}"
         assert any("mystery" in w and "not declared" in w for w in result.warnings)
@@ -1571,7 +1568,7 @@ class TestClaimIdFormat:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         id_errors = [e for e in result.errors if "format" in e.lower() or "claimN" in e.lower()]
         assert not id_errors, f"Prefixed ID rejected: {id_errors}"
 
@@ -1582,7 +1579,7 @@ class TestClaimIdFormat:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         id_errors = [e for e in result.errors if "format" in e.lower() or "claimN" in e.lower()]
         assert not id_errors, f"Bare ID rejected: {id_errors}"
 
@@ -1598,7 +1595,7 @@ class TestClaimIdFormat:
             write_claim_file(claims_dir, "test_paper.yaml", data)
 
             files = load_claim_files(claims_dir)
-            result = validate_claims(files, make_concept_registry())
+            result = validate_claims(files, make_compilation_context())
             assert not result.ok, f"Bad ID '{bad_id}' was accepted"
 
     def test_source_with_hyphens_valid(self, claims_dir):
@@ -1610,7 +1607,7 @@ class TestClaimIdFormat:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         id_errors = [e for e in result.errors if "format" in e.lower()]
         assert not id_errors, f"Hyphenated source rejected: {id_errors}"
 
@@ -1649,7 +1646,7 @@ class TestValidateSingleFile:
         filepath = write_claim_file(tmp_path, "test.yaml", data)
 
         with pytest.raises(DocumentSchemaError, match="page"):
-            validate_single_claim_file(filepath, make_concept_registry())
+            validate_single_claim_file(filepath, make_compilation_context())
 
     def test_catches_missing_variables_on_equation(self, claims_dir, tmp_path):
         claim = {
@@ -1662,7 +1659,7 @@ class TestValidateSingleFile:
         data = make_claim_file_data([claim])
         filepath = write_claim_file(tmp_path, "test.yaml", data)
 
-        result = validate_single_claim_file(filepath, make_concept_registry())
+        result = validate_single_claim_file(filepath, make_compilation_context())
         assert not result.ok
         assert any("variables" in e.lower() for e in result.errors)
 
@@ -1671,7 +1668,7 @@ class TestValidateSingleFile:
         data = make_claim_file_data([claim])
         filepath = write_claim_file(tmp_path, "test.yaml", data)
 
-        result = validate_single_claim_file(filepath, make_concept_registry())
+        result = validate_single_claim_file(filepath, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
 
@@ -1687,7 +1684,7 @@ class TestNewClaimTypes:
         write_claim_file(claims_dir, "test.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         type_errors = [e for e in result.errors if "unrecognized type" in e]
         assert not type_errors, f"Mechanism type rejected: {type_errors}"
 
@@ -1699,7 +1696,7 @@ class TestNewClaimTypes:
         write_claim_file(claims_dir, "test.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         type_errors = [e for e in result.errors if "unrecognized type" in e]
         assert not type_errors, f"Comparison type rejected: {type_errors}"
 
@@ -1711,7 +1708,7 @@ class TestNewClaimTypes:
         write_claim_file(claims_dir, "test.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         type_errors = [e for e in result.errors if "unrecognized type" in e]
         assert not type_errors, f"Limitation type rejected: {type_errors}"
 
@@ -1774,7 +1771,7 @@ class TestSympyExceptNarrowing:
 
         files = load_claim_files(claims_dir)
         with pytest.raises(NameError, match="undefined_variable_bug"):
-            validate_claims(files, registry)
+            validate_claims(files, make_compilation_context(registry))
 
     def test_programming_error_in_unit_compatibility_check_propagates(
         self,
@@ -1795,7 +1792,7 @@ class TestSympyExceptNarrowing:
 
         files = load_claim_files(claims_dir)
         with pytest.raises(NameError, match="unit_translation_bug"):
-            validate_claims(files, make_concept_registry())
+            validate_claims(files, make_compilation_context())
 
 
 # ── Wrong error label bug (7C) ──────────────────────────────────────
@@ -1816,7 +1813,7 @@ class TestClaimTypeErrorLabels:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         # Must say the actual type, not "observation"
         assert any(f"{ctype} claim" in e for e in result.errors), (
@@ -1838,7 +1835,7 @@ class TestClaimTypeErrorLabels:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
+        result = validate_claims(files, make_compilation_context())
         assert not result.ok
         assert any(f"{ctype} claim" in e for e in result.errors), (
             f"Expected '{ctype} claim' in errors, got: {result.errors}"

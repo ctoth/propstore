@@ -27,7 +27,7 @@ from propstore.core.row_types import (
     coerce_stance_row,
 )
 from propstore.core.store_results import (
-    ArtifactStoreStats,
+    WorldStoreStats,
     ClaimSimilarityHit,
     ConceptSearchHit,
     ConceptSimilarityHit,
@@ -37,7 +37,7 @@ from propstore.identity import compute_claim_version_id, derive_concept_artifact
 from propstore.stances import StanceType
 from tests.conftest import create_world_model_schema, make_claim_identity, write_test_context
 from propstore.world import (
-    ArtifactStore,
+    WorldStore,
     BeliefSpace,
     BoundWorld,
     ChainResult,
@@ -542,7 +542,7 @@ def world(concept_dir, repo, claim_files):
 class TestWorldModelConstruction:
     def test_construct_from_repo(self, world):
         assert world is not None
-        assert isinstance(world, ArtifactStore)
+        assert isinstance(world, WorldStore)
 
     def test_raises_without_sidecar(self, tmp_path):
         from propstore.repository import Repository
@@ -925,7 +925,7 @@ class TestUnboundQueries:
 
     def test_stats(self, world):
         s = world.stats()
-        assert s == ArtifactStoreStats(
+        assert s == WorldStoreStats(
             concepts=7,
             claims=15,
             conflicts=s.conflicts,
@@ -1851,7 +1851,7 @@ class TestTransitiveConsistency:
         from propstore.core.concepts import load_concepts
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
+        concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
         records = detect_transitive_conflicts(
             conflict_claims_from_claim_files(claim_files),
             concept_registry,
@@ -1924,7 +1924,7 @@ class TestTransitiveConsistency:
         from propstore.core.concepts import load_concepts
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
+        concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
         records = detect_transitive_conflicts(
             conflict_claims_from_claim_files(claim_files),
             concept_registry,
@@ -1941,7 +1941,7 @@ class TestTransitiveConsistency:
         from propstore.claims import claim_file_payload, loaded_claim_file_from_payload
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
+        concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
 
         # Create modified claim_files where claim11 has compatible value
         modified_files = []
@@ -1980,7 +1980,7 @@ class TestTransitiveConsistency:
         from propstore.core.concepts import load_concepts
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
+        concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
         records = detect_transitive_conflicts(
             conflict_claims_from_claim_files(claim_files),
             concept_registry,
@@ -2544,7 +2544,7 @@ class TestFloatEqualityBugs:
         with patch("propstore.praf.build_praf") as mock_build, \
              patch("propstore.praf.compute_praf_acceptance", return_value=mock_praf_result):
             mock_build.return_value = MagicMock()
-            # WorldModel IS the ArtifactStore — pass it directly
+            # WorldModel IS the WorldStore — pass it directly
             winner_id, reason, probs = _resolve_praf(
                 target_claims, active_claims, world,
                 semantics="grounded", comparison="elitist",

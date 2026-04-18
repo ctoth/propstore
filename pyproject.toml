@@ -8,7 +8,6 @@ dependencies = [
     "linkml>=1.8",
     "msgspec>=0.19.0",
     "pyyaml>=6.0",
-    "jsonschema>=4.0",
     "lark>=1.2.2",
     "sympy>=1.14.0",
     "z3-solver>=4.12",

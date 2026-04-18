@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from propstore.artifacts.codecs import convert_document, document_to_payload
 from propstore.artifacts.types import ArtifactFamily, ResolvedArtifact, TDoc, TRef
@@ -50,7 +51,7 @@ class ArtifactTransaction:
         self._adds[relpath] = prepared.content
         self._deletes.discard(relpath)
 
-    def delete(self, family: ArtifactFamily[TRef, object], ref: TRef) -> None:
+    def delete(self, family: ArtifactFamily[TRef, TDoc], ref: TRef) -> None:
         self._ensure_open()
         _, resolved = self._resolved_target(family, ref)
         relpath = normalized_path(resolved.relpath)
@@ -80,7 +81,7 @@ class ArtifactTransaction:
         if self.branch is None:
             raise ValueError("artifact transaction has no target branch")
         self._commit_sha = self.repo.git.commit_batch(
-            adds=self._adds,
+            adds=cast(Mapping[str | Path, bytes], self._adds),
             deletes=sorted(self._deletes),
             message=self.message,
             branch=self.branch,
@@ -89,7 +90,7 @@ class ArtifactTransaction:
 
     def _resolved_target(
         self,
-        family: ArtifactFamily[TRef, object],
+        family: ArtifactFamily[TRef, TDoc],
         ref: TRef,
     ) -> tuple[str, ResolvedArtifact]:
         resolved = family.resolve_ref(self.repo, ref)

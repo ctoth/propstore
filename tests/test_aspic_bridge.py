@@ -1148,7 +1148,7 @@ class TestBridgeConcrete:
 
 
 class _MiniStore:
-    """Minimal ArtifactStore-compatible mock for build_aspic_projection tests.
+    """Minimal WorldStore-compatible mock for build_aspic_projection tests.
 
     Follows the _ProjectionStore pattern from test_structured_projection.py.
     """

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar, cast
 
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 
@@ -34,30 +34,4 @@ class LoadedDocument(Generic[TDocument]):
         self.knowledge_root = (
             None if knowledge_root is None else coerce_knowledge_path(knowledge_root)
         )
-        self.document = document
-
-
-class LoadedEntry(LoadedDocument[dict[str, Any]]):
-    """Backward-compatibility envelope for untyped document payloads."""
-
-    def __init__(
-        self,
-        filename: str,
-        source_path: KnowledgePath | Path | None = None,
-        data: dict[str, Any] | None = None,
-        knowledge_root: KnowledgePath | Path | None = None,
-    ) -> None:
-        super().__init__(
-            filename=filename,
-            source_path=source_path,
-            document={} if data is None else data,
-            knowledge_root=knowledge_root,
-        )
-
-    @property
-    def data(self) -> dict[str, Any]:
-        return self.document
-
-    @data.setter
-    def data(self, value: dict[str, Any]) -> None:
-        self.document = value
+        self.document = cast(TDocument, document)

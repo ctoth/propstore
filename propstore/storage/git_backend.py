@@ -11,7 +11,6 @@ work. The old location now re-exports this module.
 """
 from __future__ import annotations
 
-import re
 import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
@@ -19,29 +18,6 @@ from typing import Any
 
 from dulwich.objects import Blob, Tree, Commit
 from dulwich.repo import BaseRepo, MemoryRepo, Repo
-
-from propstore.artifacts.documents.concepts import ConceptIdScanDocument
-from propstore.artifacts.schema import decode_document_bytes
-
-_CONCEPT_ID_RE = re.compile(r"^concept(\d+)$")
-
-
-def _numeric_concept_id(scan_doc: ConceptIdScanDocument) -> int | None:
-    for logical_id in scan_doc.logical_ids:
-        if logical_id.namespace != "propstore":
-            continue
-        match = _CONCEPT_ID_RE.match(logical_id.value)
-        if match:
-            return int(match.group(1))
-
-    for candidate in (scan_doc.id, scan_doc.artifact_id):
-        if not isinstance(candidate, str):
-            continue
-        match = _CONCEPT_ID_RE.match(candidate)
-        if match:
-            return int(match.group(1))
-    return None
-
 
 def _normalize_path(path: str | Path) -> str:
     """Normalize a path to forward-slash posix form."""
@@ -376,28 +352,6 @@ class GitStore:
                 continue
             if rel not in git_paths:
                 disk_file.unlink()
-
-    # ── ID allocation ────────────────────────────────────────────────
-
-    def next_concept_id(self) -> int:
-        """Scan the git tree for the max concept ID and return max + 1."""
-        try:
-            names = self.list_dir("concepts")
-        except (FileNotFoundError, KeyError):
-            return 1
-        max_id = 0
-        for name in names:
-            if not name.endswith(".yaml"):
-                continue
-            try:
-                raw = self.read_file(f"concepts/{name}")
-                data = decode_document_bytes(raw, ConceptIdScanDocument, source=f"concepts/{name}")
-            except ValueError:
-                continue
-            numeric_id = _numeric_concept_id(data)
-            if numeric_id is not None:
-                max_id = max(max_id, numeric_id)
-        return max_id + 1
 
     # ── Diff / Show ──────────────────────────────────────────────────
 

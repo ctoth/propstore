@@ -19,7 +19,7 @@ from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.micropublications import ActiveMicropublication
 from propstore.core.store_results import (
-    ArtifactStoreStats,
+    WorldStoreStats,
     ClaimSimilarityHit,
     ConceptSearchHit,
     ConceptSimilarityHit,
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from propstore.context_lifting import LiftingSystem
 from propstore.world.resolution import resolve
 from propstore.world.types import (
-    ArtifactStore,
+    WorldStore,
     Environment,
     ChainResult,
     ChainStep,
@@ -188,7 +188,7 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
 }
 
 
-class WorldModel(ArtifactStore):
+class WorldModel(WorldStore):
     """Read-only reasoner over a compiled sidecar."""
 
     @classmethod
@@ -999,11 +999,11 @@ class WorldModel(ArtifactStore):
                 results.append(dict(row))
         return results
 
-    def stats(self) -> ArtifactStoreStats:
+    def stats(self) -> WorldStoreStats:
         concepts = self._conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0]
         claims = self._conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
         conflicts = self._conn.execute("SELECT COUNT(*) FROM conflict_witness").fetchone()[0]
-        return ArtifactStoreStats(
+        return WorldStoreStats(
             concepts=int(concepts),
             claims=int(claims),
             conflicts=int(conflicts),

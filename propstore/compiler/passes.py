@@ -7,22 +7,17 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Mapping
 
-import jsonschema
-
 from propstore.artifacts.documents.claims import ClaimDocument
 from propstore.cel_checker import check_cel_expr
 from propstore.cel_types import CheckedCelExpr, checked_condition_set
 from propstore.claims import (
     LoadedClaimsFile,
     claim_file_claims,
-    claim_file_payload,
     claim_file_source_paper,
     claim_file_stage,
     load_claim_file,
 )
 from propstore.compiler.claim_checks import (
-    _coerce_schema_numeric_strings,
-    _load_claim_schema,
     _validate_algorithm,
     _validate_equation,
     _validate_logical_ids,
@@ -35,8 +30,6 @@ from propstore.compiler.claim_checks import (
 from propstore.compiler.context import (
     CompilationContext,
     _build_claim_lookup,
-    compilation_context_from_concept_registry,
-    concept_registry_for_context,
 )
 from propstore.diagnostics import SemanticDiagnostic, ValidationResult
 from propstore.compiler.ir import (
@@ -261,12 +254,9 @@ def compile_claim_files(
     context_ids: set[str] | None = None,
 ) -> ClaimCompilationBundle:
     """Run normalization, binding, and semantic validation over claim files."""
-    from propstore.form_utils import json_safe
-
     normalized_claim_files = list(claim_files)
     claim_lookup = _build_claim_lookup(normalized_claim_files)
     effective_context = replace(context, claim_lookup=claim_lookup)
-    concept_registry = concept_registry_for_context(effective_context)
 
     diagnostics: list[SemanticDiagnostic] = []
     semantic_files: list[SemanticClaimFile] = []
@@ -279,13 +269,9 @@ def compile_claim_files(
             if isinstance(artifact_id, str) and artifact_id:
                 all_artifact_ids.add(artifact_id)
 
-    json_schema = _load_claim_schema()
-
     for original_file, normalized_file in zip(claim_files, normalized_claim_files, strict=False):
         file_diagnostics: list[SemanticDiagnostic] = []
         semantic_claims: list[SemanticClaim] = []
-        data = claim_file_payload(normalized_file)
-
         # Axis-1 finding 3.2 / ws-z-render-gates.md: draft files no longer
         # drop from the semantic bundle. They traverse the normal binding
         # path; the file-level draft marker rides through on
@@ -301,20 +287,6 @@ def compile_claim_files(
                         "claim file is marked stage='draft'; "
                         "render policy hides drafts by default"
                     ),
-                )
-            )
-
-        try:
-            jsonschema.validate(
-                _coerce_schema_numeric_strings(json_safe(data)),
-                json_schema,
-            )
-        except jsonschema.ValidationError as exc:
-            file_diagnostics.append(
-                SemanticDiagnostic(
-                    level="error",
-                    message=f"JSON Schema error: {exc.message}",
-                    filename=normalized_file.filename,
                 )
             )
 
@@ -511,7 +483,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    concept_registry,
+                    effective_context,
                     file_diagnostics,
                 )
             elif ctype == "equation":
@@ -519,7 +491,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    concept_registry,
+                    effective_context,
                     file_diagnostics,
                 )
             elif ctype == "observation":
@@ -527,7 +499,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    concept_registry,
+                    effective_context,
                     file_diagnostics,
                 )
             elif ctype == "model":
@@ -535,7 +507,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    concept_registry,
+                    effective_context,
                     file_diagnostics,
                 )
             elif ctype == "measurement":
@@ -543,7 +515,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    concept_registry,
+                    effective_context,
                     file_diagnostics,
                 )
             elif ctype == "algorithm":
@@ -551,7 +523,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    concept_registry,
+                    effective_context,
                     file_diagnostics,
                 )
             elif ctype in ("mechanism", "comparison", "limitation"):
@@ -559,7 +531,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    concept_registry,
+                    effective_context,
                     file_diagnostics,
                     claim_type=ctype,
                 )
@@ -598,25 +570,10 @@ def compile_claim_files(
 
 def validate_claims(
     claim_files: list[LoadedClaimsFile],
-    concept_registry: dict[str, dict] | CompilationContext,
+    context: CompilationContext,
     context_ids: set[str] | None = None,
 ) -> ValidationResult:
-    """Validate claim files against schema and compiler contract.
-
-    Args:
-        claim_files: loaded claim YAML files
-        concept_registry: legacy concept registry or compilation context
-        context_ids: set of valid context IDs (if None, skip context validation)
-    """
-    context = (
-        concept_registry
-        if isinstance(concept_registry, CompilationContext)
-        else compilation_context_from_concept_registry(
-            concept_registry,
-            claim_files=claim_files,
-            context_ids=context_ids,
-        )
-    )
+    """Validate claim files against schema and compiler contract."""
     bundle = compile_claim_files(
         claim_files,
         context,
@@ -627,8 +584,8 @@ def validate_claims(
 
 def validate_single_claim_file(
     filepath: Path,
-    concept_registry: dict[str, dict],
+    context: CompilationContext,
 ) -> ValidationResult:
     """Validate a single typed claims YAML file."""
     loaded = load_claim_file(filepath)
-    return validate_claims([loaded], concept_registry)
+    return validate_claims([loaded], context)

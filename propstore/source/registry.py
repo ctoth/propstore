@@ -26,7 +26,7 @@ def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, 
     concepts_by_artifact: dict[str, dict[str, Any]] = {}
     handle_to_artifact: dict[str, str] = {}
     for entry in load_concepts(concepts_root):
-        concept = dict(entry.data)
+        concept = dict(entry.record.to_payload())
         artifact_id = concept.get("artifact_id")
         if not isinstance(artifact_id, str) or not artifact_id:
             continue
@@ -57,8 +57,7 @@ def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
 
     docs: list[dict[str, Any]] = []
     for entry in load_concepts(concepts_root):
-        if isinstance(entry.data, dict):
-            docs.append(copy.deepcopy(entry.data))
+        docs.append(copy.deepcopy(entry.record.to_payload()))
     return docs
 
 

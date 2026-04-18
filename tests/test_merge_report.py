@@ -6,8 +6,8 @@ import yaml
 from propstore.identity import compute_claim_version_id
 from propstore.storage import GitStore
 from propstore.storage.branch import create_branch
-from propstore.storage.merge_classifier import build_merge_framework
-from propstore.storage.merge_report import summarize_merge_framework
+from propstore.merge.merge_classifier import build_merge_framework
+from propstore.merge.merge_report import summarize_merge_framework
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
 

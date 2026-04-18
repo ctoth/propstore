@@ -13,7 +13,7 @@ from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.activation import is_active_claim_active
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.claim_types import ClaimType
-from propstore.core.environment import ArtifactStore, ConceptCatalogStore
+from propstore.core.environment import WorldStore, ConceptCatalogStore
 from propstore.core.id_types import ConceptId, to_context_id
 from propstore.core.row_types import (
     ClaimRowInput,
@@ -198,7 +198,7 @@ class BoundWorld(BeliefSpace):
 
     def __init__(
         self,
-        world: ArtifactStore,
+        world: WorldStore,
         bindings: dict[str, Any] | None = None,
         context_id: str | None = None,
         lifting_system: LiftingSystem | None = None,

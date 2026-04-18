@@ -4,13 +4,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.artifacts import FORM_FAMILY
+from propstore.artifacts import (
+    CLAIMS_FILE_FAMILY,
+    CONCEPT_FILE_FAMILY,
+    CONTEXT_FAMILY,
+    FORM_FAMILY,
+    STANCE_FILE_FAMILY,
+)
 from propstore.artifacts.codecs import render_yaml_value
 from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
 )
 from propstore.cli.init import _seed_form_documents
+from propstore.artifacts.refs import ClaimsFileRef, ConceptFileRef, ContextRef, StanceFileRef
 from propstore.repository import Repository
 
 
@@ -159,19 +166,59 @@ def materialize_reasoning_demo(root: Path) -> Repository:
         ],
     }
 
+    with repo.artifacts.transact(message="Seed reasoning demo") as transaction:
+        for ref, payload in (
+            (ConceptFileRef("bird_class"), bird_class),
+            (ConceptFileRef("tweety"), tweety),
+            (ConceptFileRef("flight_score"), flight_score),
+        ):
+            transaction.save(
+                CONCEPT_FILE_FAMILY,
+                ref,
+                transaction.coerce(
+                    CONCEPT_FILE_FAMILY,
+                    payload,
+                    source=CONCEPT_FILE_FAMILY.resolve_ref(repo, ref).relpath,
+                ),
+            )
+        context_ref = ContextRef("demo")
+        transaction.save(
+            CONTEXT_FAMILY,
+            context_ref,
+            transaction.coerce(
+                CONTEXT_FAMILY,
+                {"id": "demo", "name": "Reasoning demo"},
+                source=CONTEXT_FAMILY.resolve_ref(repo, context_ref).relpath,
+            ),
+        )
+        claims_ref = ClaimsFileRef("reasoning_demo")
+        transaction.save(
+            CLAIMS_FILE_FAMILY,
+            claims_ref,
+            transaction.coerce(
+                CLAIMS_FILE_FAMILY,
+                claims_payload,
+                source=CLAIMS_FILE_FAMILY.resolve_ref(repo, claims_ref).relpath,
+            ),
+        )
+        for payload in (stance_against_yes, stance_against_no):
+            stance_ref = StanceFileRef(str(payload["source_claim"]))
+            transaction.save(
+                STANCE_FILE_FAMILY,
+                stance_ref,
+                transaction.coerce(
+                    STANCE_FILE_FAMILY,
+                    payload,
+                    source=STANCE_FILE_FAMILY.resolve_ref(repo, stance_ref).relpath,
+                ),
+            )
+
     repo.git.commit_files(
         {
-            "concepts/bird_class.yaml": render_yaml_value(bird_class).encode("utf-8"),
-            "concepts/tweety.yaml": render_yaml_value(tweety).encode("utf-8"),
-            "concepts/flight_score.yaml": render_yaml_value(flight_score).encode("utf-8"),
-            "contexts/demo.yaml": render_yaml_value({"id": "demo", "name": "Reasoning demo"}).encode("utf-8"),
-            "claims/reasoning_demo.yaml": render_yaml_value(claims_payload).encode("utf-8"),
             "predicates/reasoning_demo.yaml": render_yaml_value(predicates_payload).encode("utf-8"),
             "rules/reasoning_demo.yaml": render_yaml_value(rules_payload).encode("utf-8"),
-            "stances/claim_cannot_fly.yaml": render_yaml_value(stance_against_yes).encode("utf-8"),
-            "stances/claim_override.yaml": render_yaml_value(stance_against_no).encode("utf-8"),
         },
-        "Seed reasoning demo",
+        "Seed reasoning demo predicates and rules",
     )
     repo.git.sync_worktree()
     return repo

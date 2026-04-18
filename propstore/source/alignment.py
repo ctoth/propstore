@@ -273,14 +273,15 @@ def promote_alignment(
         },
         local_handle=local_handle,
     )
+    concept_ref = ConceptFileRef(local_handle)
     document = convert_document_value(
         concept_doc,
         ConceptDocument,
-        source=f"concepts/{local_handle}.yaml",
+        source=CONCEPT_FILE_FAMILY.resolve_ref(repo, concept_ref).relpath,
     )
     repo.artifacts.save(
         CONCEPT_FILE_FAMILY,
-        ConceptFileRef(local_handle),
+        concept_ref,
         document,
         message=f"Promote concept alignment {cluster_id}",
     )

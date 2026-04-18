@@ -5,7 +5,7 @@ from typing import Any
 
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ConceptId, to_concept_id
-from propstore.core.environment import ArtifactStore, ParameterizationLookupStore
+from propstore.core.environment import WorldStore, ParameterizationLookupStore
 from propstore.core.row_types import coerce_claim_row, coerce_concept_row
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
@@ -16,7 +16,7 @@ from propstore.worldline.trace import ResolutionTrace
 @dataclass
 class ResolutionContext:
     query_world: WorldlineBoundView
-    world: ArtifactStore
+    world: WorldStore
     override_values: dict[ConceptId, float | str]
     resolved_values: dict[ConceptId, ResolvedResult]
     policy: RenderPolicy
@@ -37,17 +37,17 @@ class ResolutionContext:
         return numeric_values
 
 
-def concept_name(world: ArtifactStore, concept_id: ConceptId | str) -> str:
+def concept_name(world: WorldStore, concept_id: ConceptId | str) -> str:
     concept = world.get_concept(concept_id)
     return coerce_concept_row(concept).canonical_name if concept else str(concept_id)
 
 
-def resolve_concept_name(world: ArtifactStore, name: str) -> ConceptId | None:
+def resolve_concept_name(world: WorldStore, name: str) -> ConceptId | None:
     resolved = world.resolve_concept(name)
     return None if resolved is None else to_concept_id(resolved)
 
 
-def display_claim_id(world: ArtifactStore, claim_id: str | None) -> str | None:
+def display_claim_id(world: WorldStore, claim_id: str | None) -> str | None:
     if claim_id is None:
         return None
     getter = getattr(world, "get_claim", None)

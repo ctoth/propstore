@@ -47,7 +47,8 @@ from propstore.core.concepts import (
     parse_concept_record_document,
 )
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
-from propstore.form_utils import load_form_path
+from propstore.compiler.context import build_compilation_context_from_loaded
+from propstore.concept_ids import next_concept_id
 from propstore.knowledge_path import KnowledgePath
 from propstore.repository import Repository
 from propstore.storage.snapshot import RepositorySnapshot
@@ -200,7 +201,7 @@ def _claims_document(repo: Repository, ref: ClaimsFileRef, data: dict) -> Claims
 def _concept_artifact_payload(concept_entry: LoadedConcept) -> dict:
     if concept_entry.document is not None:
         return concept_document_to_payload(concept_entry.document)
-    return _normalize_concept_data(concept_entry.data)
+    return _normalize_concept_data(concept_entry.record.to_payload())
 
 
 def _normalize_concept_data(
@@ -228,61 +229,22 @@ def _concept_display_handle(data: dict) -> str:
     return primary_logical_id(data) or data.get("canonical_name") or lexical_name or data.get("artifact_id") or "?"
 
 
-def _build_concept_registry(
-    concepts: list[LoadedConcept],
-    *,
-    forms_root: KnowledgePath,
-) -> dict[str, dict]:
-    registry: dict[str, dict] = {}
-    for concept_record in concepts:
-        data = deepcopy(concept_record.data)
-        form_name = data.get("form")
-        if isinstance(form_name, str) and form_name:
-            form_def = load_form_path(forms_root, form_name)
-            if form_def is None:
-                raise click.ClickException(
-                    f"concept '{data.get('artifact_id') or data.get('canonical_name') or concept_record.filename}' "
-                    f"references missing form definition '{form_name}'"
-                )
-            data["_form_definition"] = form_def
-        artifact_id = data.get("artifact_id")
-        if isinstance(artifact_id, str) and artifact_id:
-            registry[artifact_id] = data
-        canonical_name = data.get("canonical_name")
-        if isinstance(canonical_name, str) and canonical_name and canonical_name not in registry:
-            registry[canonical_name] = data
-        logical_ids = data.get("logical_ids")
-        if isinstance(logical_ids, list):
-            for entry in logical_ids:
-                if not isinstance(entry, dict):
-                    continue
-                formatted = format_logical_id(entry)
-                if formatted and formatted not in registry:
-                    registry[formatted] = data
-        aliases = data.get("aliases")
-        if isinstance(aliases, list):
-            for alias in aliases:
-                alias_name = alias.get("name") if isinstance(alias, dict) else None
-                if isinstance(alias_name, str) and alias_name and alias_name not in registry:
-                    registry[alias_name] = data
-    return registry
-
-
 def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | None:
     concepts = load_concepts(_concepts_tree(repo))
     for concept in concepts:
         if concept.filename == id_or_name:
             return concept
-        if concept.data.get("canonical_name") == id_or_name:
+        data = concept.record.to_payload()
+        if data.get("canonical_name") == id_or_name:
             return concept
-        if concept.data.get("artifact_id") == id_or_name:
+        if data.get("artifact_id") == id_or_name:
             return concept
-        logical_ids = concept.data.get("logical_ids")
+        logical_ids = data.get("logical_ids")
         if isinstance(logical_ids, list):
             for entry in logical_ids:
                 if isinstance(entry, dict) and format_logical_id(entry) == id_or_name:
                     return concept
-        aliases = concept.data.get("aliases")
+        aliases = data.get("aliases")
         if isinstance(aliases, list):
             for alias in aliases:
                 if isinstance(alias, dict) and alias.get("name") == id_or_name:
@@ -294,7 +256,7 @@ def _require_concept_artifact_id(repo: Repository, handle: str, *, label: str) -
     concept_entry = _find_concept_entry(repo, handle)
     if concept_entry is None:
         raise click.ClickException(f"{label} '{handle}' not found")
-    artifact_id = concept_entry.data.get("artifact_id")
+    artifact_id = concept_entry.record.to_payload().get("artifact_id")
     if not isinstance(artifact_id, str) or not artifact_id:
         raise click.ClickException(f"{label} '{handle}' does not have an artifact_id")
     return artifact_id
@@ -304,11 +266,12 @@ def _require_concept_reference(repo: Repository, handle: str, *, label: str) -> 
     concept_entry = _find_concept_entry(repo, handle)
     if concept_entry is None:
         raise click.ClickException(f"{label} '{handle}' not found")
-    artifact_id = concept_entry.data.get("artifact_id")
+    data = concept_entry.record.to_payload()
+    artifact_id = data.get("artifact_id")
     if not isinstance(artifact_id, str) or not artifact_id:
         raise click.ClickException(f"{label} '{handle}' does not have an artifact_id")
     reference: dict[str, str] = {"uri": artifact_id}
-    canonical_name = concept_entry.data.get("canonical_name")
+    canonical_name = data.get("canonical_name")
     if isinstance(canonical_name, str) and canonical_name:
         reference["label"] = canonical_name
     return reference
@@ -448,7 +411,7 @@ def add(
         click.echo(f"ERROR: Concept file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
-    cid = f"concept{snapshot.next_concept_id()}"
+    cid = f"concept{next_concept_id(repo.tree() / 'concepts')}"
 
     data = {
         "canonical_name": name,
@@ -538,13 +501,13 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
 
     ref = _concept_ref(concept_entry)
     filepath = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, ref)
-    data = deepcopy(concept_entry.data)
+    data = deepcopy(concept_entry.record.to_payload())
 
     # Warn if alias matches another concept's canonical_name
     for other_entry in load_concepts(_concepts_tree(repo)):
         if _concept_ref(other_entry) == ref:
             continue
-        if other_entry.data.get("canonical_name") == name:
+        if other_entry.record.to_payload().get("canonical_name") == name:
             click.echo(
                 f"WARNING: alias '{name}' matches canonical_name of "
                 f"concept '{other_entry.record.artifact_id}'", err=True)
@@ -600,7 +563,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     new_ref = ConceptFileRef(name)
 
     filepath = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, old_ref)
-    data = deepcopy(concept_entry.data)
+    data = deepcopy(concept_entry.record.to_payload())
     old_name = data.get("canonical_name", filepath.stem)
     new_path = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, new_ref)
     new_semantic_path = _artifact_knowledge_path(repo, CONCEPT_FILE_FAMILY, new_ref)
@@ -621,7 +584,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     changed_concept_refs: set[ConceptFileRef] = set()
     for concept_record in loaded_concepts:
         concept_ref = _concept_ref(concept_record)
-        concept_data = deepcopy(concept_record.data)
+        concept_data = deepcopy(concept_record.record.to_payload())
         local_handle = concept_record.filename
         updated_ref = concept_ref
         if concept_ref == old_ref:
@@ -675,11 +638,15 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                     data=claim_data,
                 ),
             ))
-        concept_registry = _build_concept_registry(
+        compilation_context = build_compilation_context_from_loaded(
             [entry for _, _, entry in updated_concepts],
-            forms_root=repo.tree() / "forms",
+            forms_dir=repo.tree() / "forms",
+            claim_files=[entry for _, entry in updated_claim_files],
         )
-        claim_validation = validate_claims([entry for _, entry in updated_claim_files], concept_registry)
+        claim_validation = validate_claims(
+            [entry for _, entry in updated_claim_files],
+            compilation_context,
+        )
         if not claim_validation.ok:
             for e in claim_validation.errors:
                 click.echo(f"ERROR: {e}", err=True)
@@ -693,14 +660,14 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                     CONCEPT_FILE_FAMILY,
                     old_ref,
                     new_ref,
-                    _concept_document(repo, updated_ref, updated_concept.data),
+                    _concept_document(repo, updated_ref, updated_concept.record.to_payload()),
                 )
                 continue
             if original_ref in changed_concept_refs:
                 transaction.save(
                     CONCEPT_FILE_FAMILY,
                     updated_ref,
-                    _concept_document(repo, updated_ref, updated_concept.data),
+                    _concept_document(repo, updated_ref, updated_concept.record.to_payload()),
                 )
 
         for claim_ref, updated_claim_file in updated_claim_files:
@@ -716,7 +683,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     click.echo(f"{old_name} -> {name}")
     click.echo(f"  {filepath} -> {new_path}")
     renamed_entry = next((entry for _, updated_ref, entry in updated_concepts if updated_ref == new_ref), None)
-    click.echo(f"  Logical ID: {_concept_display_handle(renamed_entry.data) if renamed_entry is not None else name}")
+    click.echo(f"  Logical ID: {_concept_display_handle(renamed_entry.record.to_payload()) if renamed_entry is not None else name}")
 
 
 # ── concept deprecate ────────────────────────────────────────────────
@@ -743,12 +710,12 @@ def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> No
         click.echo(f"ERROR: Replacement concept '{replaced_by}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
-    replacement_data = replacement_entry.data
+    replacement_data = replacement_entry.record.to_payload()
     if replacement_data.get("status") == "deprecated":
         click.echo(f"ERROR: Replacement concept '{replaced_by}' is itself deprecated", err=True)
         sys.exit(EXIT_ERROR)
 
-    data = deepcopy(concept_entry.data)
+    data = deepcopy(concept_entry.record.to_payload())
 
     if dry_run:
         click.echo(f"Would deprecate {_concept_display_handle(data)} ({filepath.stem})")
@@ -808,11 +775,12 @@ def link(
     if target_entry is None:
         click.echo(f"ERROR: Target concept '{target_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
-    target_artifact_id = target_entry.data.get("artifact_id")
+    target_data = target_entry.record.to_payload()
+    target_artifact_id = target_data.get("artifact_id")
     if not isinstance(target_artifact_id, str) or not target_artifact_id:
         raise click.ClickException(f"Target concept '{target_id}' does not have an artifact_id")
 
-    data = deepcopy(concept_entry.data)
+    data = deepcopy(concept_entry.record.to_payload())
 
     rel: dict[str, object] = {"type": rel_type, "target": target_artifact_id}
     if paper_source:
@@ -853,7 +821,7 @@ def link(
                 record=parse_concept_record(
                     concept_document_to_record_payload(updated_document)
                     if concept_path == filepath
-                    else concept_record.data,
+                    else concept_record.record.to_payload(),
                 ),
                 document=updated_document if concept_path == filepath else concept_record.document,
             )
@@ -876,11 +844,11 @@ def link(
         CONCEPT_FILE_FAMILY,
         ref,
         updated_document,
-        message=f"Link {_concept_display_handle(data)} {rel_type} {_concept_display_handle(target_entry.data)}",
+        message=f"Link {_concept_display_handle(data)} {rel_type} {_concept_display_handle(target_data)}",
     )
     snapshot.sync_worktree()
 
-    click.echo(f"Added {rel_type} -> {_concept_display_handle(target_entry.data)} on {_concept_display_handle(data)} ({filepath.stem})")
+    click.echo(f"Added {rel_type} -> {_concept_display_handle(target_data)} on {_concept_display_handle(data)} ({filepath.stem})")
 
 
 def _apply_proto_role_entailment(
@@ -1193,7 +1161,7 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
 
     concepts = load_concepts(concepts_tree)
     for c in concepts:
-        d = c.data
+        d = c.record.to_payload()
         c_domain = d.get("domain", "")
         c_status = d.get("status", "")
 
@@ -1223,7 +1191,7 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
     ref = _concept_ref(concept_entry)
     filepath = _artifact_tree_path(repo, CONCEPT_FILE_FAMILY, ref)
 
-    data = deepcopy(concept_entry.data)
+    data = deepcopy(concept_entry.record.to_payload())
 
     if data.get("form") != "category":
         click.echo(f"ERROR: '{concept_name}' is not a category concept (form={data.get('form')})", err=True)
@@ -1278,22 +1246,23 @@ def categories(obj: dict, as_json: bool) -> None:
 
     cat_data = {}
     for c in concepts:
-        if c.data.get("form") != "category":
+        data = c.record.to_payload()
+        if data.get("form") != "category":
             continue
-        raw_form_parameters = c.data.get("form_parameters")
+        raw_form_parameters = data.get("form_parameters")
         if raw_form_parameters is None:
             fp = {}
         elif isinstance(raw_form_parameters, dict):
             fp = raw_form_parameters
         else:
             click.echo(
-                f"ERROR: '{c.data.get('canonical_name')}' form_parameters must be a mapping",
+                f"ERROR: '{data.get('canonical_name')}' form_parameters must be a mapping",
                 err=True,
             )
             sys.exit(EXIT_ERROR)
         values = fp.get("values", [])
         extensible = fp.get("extensible", True)
-        cat_data[c.data["canonical_name"]] = {
+        cat_data[data["canonical_name"]] = {
             "values": values,
             "extensible": extensible,
         }
@@ -1334,7 +1303,7 @@ def show(obj: dict, concept_id_or_name: str) -> None:
         click.echo(f"ERROR: Concept '{concept_id_or_name}' not found", err=True)
         sys.exit(EXIT_ERROR)
     ref = _concept_ref(concept_entry)
-    click.echo(repo.artifacts.render(_concept_document(repo, ref, concept_entry.data)))
+    click.echo(repo.artifacts.render(_concept_document(repo, ref, concept_entry.record.to_payload())))
 
 
 @concept.command("align")

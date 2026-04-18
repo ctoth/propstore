@@ -8,14 +8,14 @@ from propstore.core.analyzers import (
     build_praf_from_shared_input,
     shared_analyzer_input_from_store,
 )
-from propstore.world.types import ArtifactStore
+from propstore.world.types import WorldStore
 
 if TYPE_CHECKING:
     from .engine import ProbabilisticAF
 
 
 def build_praf(
-    store: ArtifactStore,
+    store: WorldStore,
     active_claim_ids: set[str],
     *,
     comparison: str = "elitist",

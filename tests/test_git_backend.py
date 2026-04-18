@@ -7,6 +7,7 @@ import yaml
 import pytest
 
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
+from propstore.concept_ids import next_concept_id
 from propstore.storage import GitStore
 from tests.conftest import (
     make_concept_identity,
@@ -260,7 +261,7 @@ def test_read_file_at_commit(tmp_path):
 
 def test_next_concept_id_empty(tmp_path):
     kr = GitStore.init(tmp_path / "knowledge")
-    assert kr.next_concept_id() == 1
+    assert next_concept_id(kr.tree() / "concepts") == 1
 
 
 def test_next_concept_id_scans_tree(tmp_path):
@@ -271,14 +272,14 @@ def test_next_concept_id_scans_tree(tmp_path):
         "concepts/alpha.yaml": c3,
         "concepts/beta.yaml": c7,
     }, "add concepts")
-    assert kr.next_concept_id() == 8
+    assert next_concept_id(kr.tree() / "concepts") == 8
 
 
 def test_next_concept_id_ignores_non_concept_ids(tmp_path):
     kr = GitStore.init(tmp_path / "knowledge")
     data = yaml.dump({"id": "something_else", "canonical_name": "foo"}).encode()
     kr.commit_files({"concepts/foo.yaml": data}, "add")
-    assert kr.next_concept_id() == 1
+    assert next_concept_id(kr.tree() / "concepts") == 1
 
 
 # ── KnowledgePath: GitKnowledgePath ─────────────────────────────────

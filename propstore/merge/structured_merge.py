@@ -13,7 +13,7 @@ from propstore.stances import coerce_stance_type
 from propstore.artifacts.schema import decode_document_path
 from propstore.dung import ArgumentationFramework
 from propstore.knowledge_path import KnowledgePath
-from propstore.storage.merge_claims import MergeClaim
+from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.structured_projection import StructuredProjection, build_structured_projection

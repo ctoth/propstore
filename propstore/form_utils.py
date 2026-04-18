@@ -18,7 +18,6 @@ from propstore.core.concepts import load_concepts
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore import dimensions as dimension_api
 from propstore.diagnostics import ValidationResult
-from propstore.resources import load_resource_json
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -120,7 +119,6 @@ class FormShowReport:
 
 
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
-_form_schema_cache: dict[str, Any] | None = None
 
 
 def show_form(
@@ -270,14 +268,16 @@ def _form_add_payload(request: FormAddRequest) -> dict[str, object]:
 
 
 def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> FormAddReport:
-    path = repo.forms_dir / f"{request.name}.yaml"
-    if (repo.tree() / "forms" / f"{request.name}.yaml").exists():
+    ref = FormRef(request.name)
+    relpath = FORM_FAMILY.resolve_ref(repo, ref).relpath
+    path = repo.root / relpath
+    if (repo.tree() / relpath).exists():
         raise FormWorkflowError(f"Form '{request.name}' already exists")
 
     source = (
-        f"dry-run:forms/{request.name}.yaml"
+        f"dry-run:{relpath}"
         if dry_run
-        else f"forms/{request.name}.yaml"
+        else relpath
     )
     document = convert_document_value(
         _form_add_payload(request),
@@ -289,7 +289,7 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
 
     repo.artifacts.save(
         FORM_FAMILY,
-        FormRef(request.name),
+        ref,
         document,
         message=f"Add form: {request.name}",
     )
@@ -312,8 +312,10 @@ def remove_form(
     force: bool,
     dry_run: bool,
 ) -> FormRemoveReport:
-    path = repo.forms_dir / f"{name}.yaml"
-    if not (repo.tree() / "forms" / f"{name}.yaml").exists():
+    ref = FormRef(name)
+    relpath = FORM_FAMILY.resolve_ref(repo, ref).relpath
+    path = repo.root / relpath
+    if not (repo.tree() / relpath).exists():
         raise FormNotFoundError(name)
 
     references = form_references(repo, name)
@@ -324,7 +326,7 @@ def remove_form(
 
     repo.artifacts.delete(
         cast(Any, FORM_FAMILY),
-        FormRef(name),
+        ref,
         message=f"Remove form: {name}",
     )
     repo.snapshot.sync_worktree()
@@ -364,17 +366,6 @@ def validate_forms(repo: Repository, name: str | None = None) -> FormValidationR
 def clear_form_cache() -> None:
     """Clear the module-level form cache, forcing reload from disk on next access."""
     _form_cache.clear()
-
-
-def _load_form_schema() -> dict[str, Any]:
-    """Load the packaged form JSON schema, caching the result."""
-    global _form_schema_cache
-    if _form_schema_cache is None:
-        schema = load_resource_json("schemas/form.schema.json")
-        if not isinstance(schema, dict):
-            raise TypeError("schemas/form.schema.json must decode to a JSON object")
-        _form_schema_cache = schema
-    return _form_schema_cache
 
 
 def _path_cache_key(forms_dir: Path | KnowledgePath) -> str:
@@ -594,6 +585,12 @@ def validate_form_files(forms_dir: Path | KnowledgePath) -> ValidationResult:
         dims = document.dimensions
         is_dimless = document.dimensionless
         has_unit = document.unit_symbol is not None
+        if dims is not None:
+            for dimension_key in dims:
+                if not dimension_key.isidentifier():
+                    result.errors.append(
+                        f"{entry.stem}: dimension key '{dimension_key}' must be an identifier"
+                    )
         if dims is not None and len(dims) > 0 and is_dimless:
             result.errors.append(
                 f"{entry.stem}: non-empty dimensions conflicts with "

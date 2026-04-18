@@ -8,7 +8,7 @@ from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
 from propstore.cel_types import CelExpr, to_cel_expr
-from propstore.core.environment import ArtifactStore
+from propstore.core.environment import WorldStore
 from propstore.provenance import SupportEvidence
 from propstore.world.types import (
     ATMSConceptStabilityReport,
@@ -233,6 +233,6 @@ class FragilityATMSEngine(Protocol):
 
 @runtime_checkable
 class FragilityWorld(BeliefSpace, Protocol):
-    _store: ArtifactStore
+    _store: WorldStore
 
     def atms_engine(self) -> FragilityATMSEngine: ...

@@ -47,6 +47,8 @@ def _concept(local_id: str, *, form: str) -> tuple[str, dict]:
     data = {
         **make_concept_identity(local_id, domain="test", canonical_name=local_id),
         "canonical_name": local_id,
+        "status": "active",
+        "definition": local_id,
         "form": form,
     }
     return data["artifact_id"], data

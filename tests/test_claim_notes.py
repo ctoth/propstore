@@ -24,6 +24,7 @@ from tests.conftest import (
     make_claim_identity,
     make_parameter_claim,
     make_concept_registry,
+    make_compilation_context,
     normalize_claims_payload,
     normalize_concept_payloads,
     write_test_context,
@@ -130,8 +131,8 @@ class TestClaimNotesValidation:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         claim_files = load_claim_files(claims_dir)
-        registry = make_concept_registry()
-        result = validate_claims(claim_files, registry)
+        context = make_compilation_context()
+        result = validate_claims(claim_files, context)
         assert result.ok, f"Validation errors: {result.errors}"
 
     def test_claim_without_notes_validates(self, claims_dir):
@@ -144,8 +145,8 @@ class TestClaimNotesValidation:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         claim_files = load_claim_files(claims_dir)
-        registry = make_concept_registry()
-        result = validate_claims(claim_files, registry)
+        context = make_compilation_context()
+        result = validate_claims(claim_files, context)
         assert result.ok, f"Validation errors: {result.errors}"
 
     def test_notes_any_nonempty_string_valid(self, claims_dir):
@@ -168,8 +169,8 @@ class TestClaimNotesValidation:
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         claim_files = load_claim_files(claims_dir)
-        registry = make_concept_registry()
-        result = validate_claims(claim_files, registry)
+        context = make_compilation_context()
+        result = validate_claims(claim_files, context)
         assert result.ok, f"Validation errors: {result.errors}"
 
 
@@ -283,8 +284,8 @@ class TestClaimNotesProperties:
             write_claim_file(claims_dir, "test_paper.yaml", data)
 
             claim_files = load_claim_files(claims_dir)
-            registry = make_concept_registry()
-            result = validate_claims(claim_files, registry)
+            context = make_compilation_context()
+            result = validate_claims(claim_files, context)
             assert result.ok, f"Validation failed for notes={notes_text!r}: {result.errors}"
 
     @settings(deadline=None)

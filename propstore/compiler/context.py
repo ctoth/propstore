@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, cast
 
 from propstore.cel_checker import ConceptInfo
 from propstore.cel_registry import build_canonical_cel_registry
@@ -18,7 +18,6 @@ from propstore.core.concepts import (
     ConceptRecord,
     LoadedConcept,
     concept_reference_keys,
-    parse_concept_record,
 )
 from propstore.form_utils import FormDefinition, load_all_forms_path
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
@@ -163,7 +162,8 @@ def build_compilation_context_from_repo(
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     if repo is None:
-        return compilation_context_from_concept_registry(
+        return _build_context_from_concepts(
+            [],
             {},
             claim_files=claim_files,
             context_ids=context_ids,
@@ -173,54 +173,6 @@ def build_compilation_context_from_repo(
         repo.tree() / "forms",
         claim_files=claim_files,
         context_ids=context_ids,
-    )
-
-
-def compilation_context_from_concept_registry(
-    concept_registry: dict[str, dict[str, Any]],
-    *,
-    claim_files: list[LoadedClaimsFile] | None = None,
-    context_ids: set[str] | None = None,
-) -> CompilationContext:
-    """Adapt the old lookup-keyed concept registry into the canonical context."""
-
-    concepts_by_id: dict[str, ConceptRecord] = {}
-    concept_lookup: dict[str, list[str]] = {}
-    form_registry: dict[str, FormDefinition] = {}
-
-    for key, value in concept_registry.items():
-        if not isinstance(value, dict):
-            continue
-        raw_form_definition = value.get("_form_definition")
-        payload = dict(value)
-        if not payload.get("artifact_id") and isinstance(key, str) and key:
-            payload["artifact_id"] = key
-        try:
-            record = parse_concept_record(payload)
-        except ValueError:
-            continue
-        artifact_id = str(record.artifact_id)
-        concepts_by_id.setdefault(artifact_id, record)
-        _extend_lookup(concept_lookup, key, artifact_id)
-        for alias_key in concept_reference_keys(record):
-            _extend_lookup(concept_lookup, alias_key, artifact_id)
-        if isinstance(raw_form_definition, FormDefinition):
-            form_registry.setdefault(record.form, raw_form_definition)
-
-    finalized_lookup = _finalize_lookup(concept_lookup)
-    return CompilationContext(
-        form_registry=MappingProxyType(dict(form_registry)),
-        context_ids=frozenset(context_ids or set()),
-        concepts_by_id=MappingProxyType(dict(concepts_by_id)),
-        concept_lookup=finalized_lookup,
-        claim_lookup=(
-            MappingProxyType({})
-            if claim_files is None
-            else _build_claim_lookup(claim_files)
-        ),
-        cel_registry=_freeze_mapping(
-            build_canonical_cel_registry(concepts_by_id.values())
-        ),
     )
 
 
@@ -259,26 +211,6 @@ def concept_registry_for_context_payloads(
     return registry
 
 
-def build_concept_registry_from_paths(
-    concepts_dir: Path | KnowledgePath,
-    forms_dir: Path | KnowledgePath,
-) -> dict[str, dict[str, Any]]:
-    context = build_compilation_context_from_paths(concepts_dir, forms_dir)
-    return concept_registry_for_context(context)
-
-
-def build_concept_registry(repo: Repository | None) -> dict[str, dict[str, Any]]:
-    """Load concepts and build {concept_id: concept_data} mapping.
-
-    Args:
-        repo: A Repository object providing the semantic tree.
-    """
-    if repo is None:
-        return {}
-    context = build_compilation_context_from_repo(repo)
-    return concept_registry_for_context(context)
-
-
 def build_authored_concept_registry(
     concepts: list[Any] | list[LoadedConcept],
     forms_dir: Path | KnowledgePath,
@@ -293,7 +225,7 @@ def build_authored_concept_registry(
     typed_concepts = (
         concepts
         if all(isinstance(concept, LoadedConcept) for concept in concepts)
-        else normalize_loaded_concepts(concepts)
+        else normalize_loaded_concepts(cast(Any, concepts))
     )
     registry: dict[str, dict[str, Any]] = {}
     for concept in typed_concepts:
