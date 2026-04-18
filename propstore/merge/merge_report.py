@@ -4,8 +4,8 @@ from __future__ import annotations
 from collections import defaultdict
 
 from propstore.merge.merge_classifier import RepositoryMergeFramework
-from propstore.storage.merge_framework import enumerate_paf_completions
-from propstore.storage.paf_queries import (
+from argumentation.partial_af import enumerate_completions
+from argumentation.partial_af import (
     credulously_accepted_arguments,
     skeptically_accepted_arguments,
 )
@@ -94,7 +94,7 @@ def summarize_merge_framework(
             "ignorance": len(merge.framework.ignorance),
             "non_attack": len(merge.framework.non_attacks),
         },
-        "completion_count": len(enumerate_paf_completions(merge.framework)),
+        "completion_count": len(enumerate_completions(merge.framework)),
         "skeptical": skeptical,
         "credulous": credulous,
         "semantic_candidates": [list(group) for group in merge.semantic_candidates],

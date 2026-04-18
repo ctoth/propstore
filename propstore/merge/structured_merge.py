@@ -10,7 +10,7 @@ from typing import Any
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.core.row_types import StanceRow
 from propstore.stances import coerce_stance_type
-from propstore.dung import ArgumentationFramework
+from argumentation.dung import ArgumentationFramework
 from propstore.claims import claim_file_claims
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
@@ -295,7 +295,7 @@ def build_structured_merge_candidates(
     *,
     operator: str = "sum",
 ) -> list[ArgumentationFramework]:
-    from propstore.storage.paf_merge import (
+    from argumentation.partial_af import (
         leximax_merge_frameworks,
         max_merge_frameworks,
         sum_merge_frameworks,

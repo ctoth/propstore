@@ -13,6 +13,7 @@ dependencies = [
     "z3-solver>=4.12",
     "graphviz>=0.20",
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@9033d045b9c8076a13b3430a364416379312166b",
+    "argumentation @ git+https://github.com/ctoth/argumentation@72eca0656e2dab688438274838ff8823dbba5d46",
     "bridgman @ git+https://github.com/ctoth/bridgman@c6401fa1ff562c437bad18e73422c9aefa2485b1",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
@@ -57,9 +58,7 @@ strict = [
     "propstore/belief_set/iterated.py",
     "propstore/belief_set/language.py",
     "propstore/conflict_detector/models.py",
-    "propstore/dung.py",
     "propstore/opinion.py",
-    "propstore/aspic.py",
     "propstore/aspic_bridge.py",
 ]
 
