@@ -3,7 +3,6 @@
 from propstore.compiler.context import (
     CompilationContext,
     build_compilation_context_from_loaded,
-    build_compilation_context_from_paths,
     build_compilation_context_from_repo,
 )
 from propstore.compiler.ir import (
@@ -25,7 +24,6 @@ __all__ = [
     "SemanticDiagnostic",
     "SemanticStance",
     "build_compilation_context_from_loaded",
-    "build_compilation_context_from_paths",
     "build_compilation_context_from_repo",
     "compile_claim_files",
 ]
