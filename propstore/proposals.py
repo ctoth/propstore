@@ -12,10 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from propstore.artifacts.codecs import encode_document
-from propstore.artifacts.families import (
-    PROPOSAL_STANCE_FAMILY,
-    STANCE_FILE_FAMILY,
-)
+from propstore.artifacts.families import PROPOSAL_STANCE_FAMILY
 from propstore.artifacts.refs import StanceFileRef
 from propstore.artifacts.documents.stances import StanceFileDocument
 from quire.documents import convert_document_value
@@ -84,8 +81,7 @@ def plan_stance_proposal_promotion(
             items=(),
         )
 
-    available_refs = repo.artifacts.list(
-        PROPOSAL_STANCE_FAMILY,
+    available_refs = repo.families.proposal_stances.list(
         branch=proposal_branch,
         commit=proposal_tip,
     )
@@ -108,11 +104,11 @@ def plan_stance_proposal_promotion(
     items: list[StanceProposalPromotionItem] = []
     for ref in selected_refs:
         filename = stance_proposal_filename(ref.source_claim)
-        target_relpath = repo.artifacts.address(STANCE_FILE_FAMILY, StanceFileRef(ref.source_claim)).require_path()
+        target_relpath = repo.families.stances.address(StanceFileRef(ref.source_claim)).require_path()
         items.append(
             StanceProposalPromotionItem(
                 source_claim=ref.source_claim,
-                source_relpath=f"{proposal_branch}:{repo.artifacts.address(PROPOSAL_STANCE_FAMILY, ref).require_path()}",
+                source_relpath=f"{proposal_branch}:{repo.families.proposal_stances.address(ref).require_path()}",
                 target_path=repo.root / target_relpath,
                 filename=filename,
             )
@@ -132,19 +128,14 @@ def promote_stance_proposals(
     if moved > 0:
         if plan.proposal_tip is None:
             raise ValueError("stance proposal promotion requires a proposal tip")
-        with repo.artifacts.transact(
+        with repo.families.transact(
             message=f"Promote {moved} stance proposal file(s) from {plan.branch}",
         ) as transaction:
             for item in plan.items:
                 ref = StanceFileRef(item.source_claim)
-                transaction.save(
-                    STANCE_FILE_FAMILY,
+                transaction.stances.save(
                     ref,
-                    repo.artifacts.require(
-                        PROPOSAL_STANCE_FAMILY,
-                        ref,
-                        commit=plan.proposal_tip,
-                    ),
+                    repo.families.proposal_stances.require(ref, commit=plan.proposal_tip),
                 )
         repo.snapshot.sync_worktree()
     return StanceProposalPromotionResult(
@@ -188,7 +179,7 @@ def commit_stance_proposals(
         raise ValueError("stances_by_claim must not be empty")
 
     target_branch = stance_proposal_branch(repo) if branch is None else branch
-    with repo.artifacts.transact(
+    with repo.families.transact(
         message=(
             f"Record {len(stances_by_claim)} stance proposal file(s)"
             if len(stances_by_claim) != 1
@@ -199,12 +190,11 @@ def commit_stance_proposals(
         relpaths: list[str] = []
         for source_claim_id, stances in sorted(stances_by_claim.items()):
             ref = StanceFileRef(source_claim_id)
-            transaction.save(
-                PROPOSAL_STANCE_FAMILY,
+            transaction.proposal_stances.save(
                 ref,
                 build_stance_document(source_claim_id, stances, model_name),
             )
-            relpaths.append(repo.artifacts.address(PROPOSAL_STANCE_FAMILY, ref).require_path())
+            relpaths.append(repo.families.proposal_stances.address(ref).require_path())
     sha = transaction.commit_sha
     if sha is None:
         raise ValueError("stance proposal transaction did not produce a commit")

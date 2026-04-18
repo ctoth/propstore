@@ -583,9 +583,9 @@ class TestGenuineNoneStillWorks:
 class TestStanceProposalsUseBranchState:
 
     def test_stance_proposal_path_and_branch_are_git_native(self):
-        from propstore.proposals import STANCE_PROPOSAL_BRANCH, stance_proposal_relpath
+        from propstore.proposals import stance_proposal_branch, stance_proposal_relpath
 
-        assert STANCE_PROPOSAL_BRANCH == "proposal/stances"
+        assert stance_proposal_branch() == "proposal/stances"
         assert stance_proposal_relpath("paper:claim_a") == "stances/paper__claim_a.yaml"
 
 

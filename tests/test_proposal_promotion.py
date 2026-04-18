@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from propstore.proposals import (
-    STANCE_PROPOSAL_BRANCH,
     commit_stance_proposals,
     plan_stance_proposal_promotion,
     promote_stance_proposals,
+    stance_proposal_branch,
 )
 from propstore.repository import Repository
 
@@ -38,7 +38,7 @@ def test_stance_proposal_promotion_plan_selects_committed_proposals(tmp_path) ->
 
     plan = plan_stance_proposal_promotion(repo)
 
-    assert plan.branch == STANCE_PROPOSAL_BRANCH
+    assert plan.branch == stance_proposal_branch(repo)
     assert plan.proposal_tip is not None
     assert len(plan.items) == 1
     assert plan.items[0].source_claim == "claim_a"

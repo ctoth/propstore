@@ -1200,7 +1200,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
-    from propstore.proposals import STANCE_PROPOSAL_BRANCH, commit_stance_proposals
+    from propstore.proposals import commit_stance_proposals, stance_proposal_branch
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1220,7 +1220,8 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
         },
         "test-model",
     )
-    proposal_sha = git.branch_sha(STANCE_PROPOSAL_BRANCH)
+    proposal_branch = stance_proposal_branch(repo)
+    proposal_sha = git.branch_sha(proposal_branch)
     assert proposal_sha is not None
 
     def _boom(self, adds, deletes, message, branch="master"):
@@ -1243,7 +1244,7 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
-    from propstore.proposals import STANCE_PROPOSAL_BRANCH
+    from propstore.proposals import stance_proposal_branch
     import propstore.embed as embed_mod
     import propstore.relate as relate_mod
 
@@ -1271,9 +1272,10 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
         ["-C", str(root), "claim", "relate", "claim_a", "--model", "test-model"],
     )
     assert result.exit_code == 0, result.output
-    assert STANCE_PROPOSAL_BRANCH in result.output
+    proposal_branch = stance_proposal_branch(repo)
+    assert proposal_branch in result.output
 
-    proposal_sha = repo.git.branch_sha(STANCE_PROPOSAL_BRANCH)
+    proposal_sha = repo.git.branch_sha(proposal_branch)
     assert proposal_sha is not None
     data = yaml.safe_load(repo.git.read_file("stances/claim_a.yaml", commit=proposal_sha))
     assert data["source_claim"] == "claim_a"
