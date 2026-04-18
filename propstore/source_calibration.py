@@ -2,19 +2,41 @@
 
 from __future__ import annotations
 
-from propstore.repository import Repository
+from collections.abc import Mapping
+from typing import Any
+
 from propstore.artifacts.schema import convert_document_value
-from propstore.source.common import load_source_metadata, normalize_source_slug
 from propstore.artifacts.documents.sources import SourceDocument
 from propstore.provenance import ProvenanceStatus
+from propstore.repository import Repository
+from propstore.source.common import load_source_metadata, normalize_source_slug
+from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 
 
 def _optional_dict(value: object, field_name: str) -> dict[str, object]:
     if value is None:
         return {}
-    if not isinstance(value, dict):
+    if not isinstance(value, Mapping):
         raise ValueError(f"source trust field '{field_name}' must be a mapping")
     return dict(value)
+
+
+def _optional_string_list(value: object, field_name: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"source trust field '{field_name}' must be a list")
+    if not all(isinstance(item, str) for item in value):
+        raise ValueError(f"source trust field '{field_name}' must contain only strings")
+    return list(value)
+
+
+def _optional_float(value: object, field_name: str, default: float) -> float:
+    if value is None:
+        return default
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"source trust field '{field_name}' must be numeric")
+    return float(value)
 
 
 def _source_bindings(
@@ -57,8 +79,8 @@ def derive_source_trust(repo: Repository, source_doc: SourceDocument) -> SourceD
     )
     if "status" not in quality:
         quality["status"] = ProvenanceStatus.VACUOUS.value
-    derived_from = list(trust.get("derived_from") or [])
-    prior = float(trust.get("prior_base_rate", 0.5))
+    derived_from = _optional_string_list(trust.get("derived_from"), "derived_from")
+    prior = _optional_float(trust.get("prior_base_rate"), "prior_base_rate", 0.5)
     trust["status"] = trust.get("status") or ProvenanceStatus.DEFAULTED.value
 
     if not repo.sidecar_path.exists():
@@ -76,7 +98,7 @@ def derive_source_trust(repo: Repository, source_doc: SourceDocument) -> SourceD
             source_doc.metadata.name if source_doc.metadata is not None else source_doc.id
         )
         source_metadata = load_source_metadata(repo, source_name)
-        bindings = {
+        bindings: dict[str, Any] = {
             key: value
             for key, value in _source_bindings(source_doc, source_metadata).items()
             if wm.resolve_concept(key) is not None
@@ -94,17 +116,21 @@ def derive_source_trust(repo: Repository, source_doc: SourceDocument) -> SourceD
         resolved_prior: float | None = None
         resolved_from: list[str] = []
 
-        if getattr(resolved, "status", None) == "derived" and getattr(resolved, "value", None) is not None:
+        if (
+            isinstance(resolved, DerivedResult)
+            and resolved.status is ValueStatus.DERIVED
+            and resolved.value is not None
+        ):
             resolved_prior = float(resolved.value)
             resolved_from = [str(step.concept_id) for step in result.steps if getattr(step, "source", None) != "binding"]
-        elif getattr(resolved, "status", None) == "determined":
-            claims = list(getattr(resolved, "claims", []) or [])
+        elif isinstance(resolved, ValueResult) and resolved.status is ValueStatus.DETERMINED:
+            claims = list(resolved.claims)
             if claims:
                 claim = claims[0]
-                value = getattr(claim, "value", None)
+                value = claim.value
                 if isinstance(value, (int, float)):
                     resolved_prior = float(value)
-                    claim_id = getattr(claim, "artifact_id", None) or getattr(claim, "id", None)
+                    claim_id = claim.artifact_id
                     if isinstance(claim_id, str) and claim_id:
                         resolved_from = [claim_id]
 
