@@ -16,8 +16,8 @@ from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
 )
-from propstore.cli.init import _seed_form_documents
 from propstore.artifacts.refs import ClaimsFileRef, ConceptFileRef, ContextRef, StanceFileRef
+from propstore.project_init import _seed_form_documents
 from propstore.repository import Repository
 
 
@@ -35,6 +35,9 @@ def _initialize_repo(root: Path) -> Repository:
 def materialize_reasoning_demo(root: Path) -> Repository:
     """Create a git-backed demo repo that exercises grounding and ASPIC flows."""
     repo = _initialize_repo(root)
+    git = repo.git
+    if git is None:
+        raise RuntimeError("reasoning demo requires a git-backed repository")
 
     bird_class = normalize_canonical_concept_payload(
         {
@@ -213,12 +216,12 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                 ),
             )
 
-    repo.git.commit_files(
+    git.commit_files(
         {
             "predicates/reasoning_demo.yaml": render_yaml_value(predicates_payload).encode("utf-8"),
             "rules/reasoning_demo.yaml": render_yaml_value(rules_payload).encode("utf-8"),
         },
         "Seed reasoning demo predicates and rules",
     )
-    repo.git.sync_worktree()
+    git.sync_worktree()
     return repo
