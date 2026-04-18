@@ -26,7 +26,7 @@ def test_ic_merge_docs_exist_and_separate_assignment_selection() -> None:
 def test_af_revision_docs_exist_and_cite_af_surfaces() -> None:
     text = Path("docs/af-revision.md").read_text(encoding="utf-8")
 
-    assert "propstore.belief_set.af_revision" in text
+    assert "argumentation.af_revision" in text
     assert "Baumann" in text
     assert "Diller" in text
     assert "Cayrol" in text
