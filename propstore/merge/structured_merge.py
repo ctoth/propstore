@@ -10,14 +10,11 @@ from typing import Any
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.core.row_types import StanceRow
 from propstore.stances import coerce_stance_type
-from quire.documents import decode_document_path
 from propstore.dung import ArgumentationFramework
-from quire.tree_path import TreePath as KnowledgePath
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY, STANCE_FILE_FAMILY
 from propstore.claims import claim_file_claims
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
-from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.structured_projection import StructuredProjection, build_structured_projection
 
 
@@ -249,14 +246,10 @@ def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[StanceRow]:
     return rows
 
 
-def _file_stance_rows(stances_root: KnowledgePath) -> list[StanceRow]:
+def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[StanceRow]:
     rows: list[StanceRow] = []
-    if not stances_root.is_dir():
-        return rows
-    for entry in stances_root.iterdir():
-        if not entry.is_file() or entry.suffix != ".yaml":
-            continue
-        data = decode_document_path(entry, StanceFileDocument)
+    for ref in snapshot.repo.artifacts.list(STANCE_FILE_FAMILY, commit=commit):
+        data = snapshot.repo.artifacts.require(STANCE_FILE_FAMILY, ref, commit=commit)
         source_claim = _optional_string(data.source_claim)
         if source_claim is None:
             continue
@@ -269,9 +262,8 @@ def _file_stance_rows(stances_root: KnowledgePath) -> list[StanceRow]:
 
 def build_branch_structured_summary(snapshot: RepositorySnapshot, branch: str) -> BranchStructuredSummary:
     commit = snapshot.branch_head(branch)
-    tree = snapshot.tree(commit=commit)
     active_claims = _load_branch_claims(snapshot, commit)
-    raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(tree / "stances")
+    raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(snapshot, commit)
     stance_rows = _canonical_stance_rows(active_claims, raw_stance_rows)
     claim_ids = _summary_claim_ids(active_claims)
     claim_provenance = _summary_claim_provenance(active_claims)
