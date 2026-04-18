@@ -24,7 +24,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from propstore.artifacts.codes import attach_source_artifact_codes
+from propstore.artifact_codes import attach_source_artifact_codes
 from propstore.artifacts.identity import (
     normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
