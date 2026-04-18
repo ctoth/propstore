@@ -71,7 +71,7 @@ class _FakeWorldlineRepo:
     @cached_property
     def _family_store(self):
         from quire.family_store import DocumentFamilyStore
-        from propstore.artifacts.codecs import (
+        from propstore.document_codecs import (
             convert_document,
             decode_document,
             document_to_payload,
@@ -1349,7 +1349,7 @@ class TestSemanticCorePhase7Worldlines:
         self,
         monkeypatch,
     ):
-        from propstore.dung import ArgumentationFramework
+        from argumentation.dung import ArgumentationFramework
         from propstore.grounding.bundle import GroundedRulesBundle
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline

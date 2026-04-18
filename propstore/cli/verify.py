@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.artifacts.codecs import render_yaml_value
+from propstore.document_codecs import render_yaml_value
 from propstore.artifact_codes import verify_claim_tree
 from propstore.repository import Repository
 
