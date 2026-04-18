@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import click
 
 from propstore.cli.helpers import open_world_model
-from propstore.cli.world_cmds import (
+from propstore.cli.world import (
     _format_assumption_ids,
     _parse_bindings,
     _resolve_world_target,

@@ -19,7 +19,7 @@ from hypothesis import strategies as st
 from propstore.artifacts.schema import decode_document_path
 from propstore.identity import derive_concept_artifact_id
 from propstore.sidecar.build import build_sidecar
-from propstore.cli.worldline_cmds import _parse_kv_args
+from propstore.cli.worldline import _parse_kv_args
 from propstore.knowledge_path import GitKnowledgePath
 from propstore.storage import GitStore
 from propstore.world import Environment, RenderPolicy
@@ -1716,7 +1716,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_create
+        from propstore.cli.worldline.materialize import worldline_create
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -1746,7 +1746,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_create
+        from propstore.cli.worldline.materialize import worldline_create
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -1776,7 +1776,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_create
+        from propstore.cli.worldline.materialize import worldline_create
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -1807,7 +1807,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_create
+        from propstore.cli.worldline.materialize import worldline_create
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -1836,7 +1836,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_create
+        from propstore.cli.worldline.materialize import worldline_create
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -1866,7 +1866,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_create
+        from propstore.cli.worldline.materialize import worldline_create
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -1898,7 +1898,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_create
+        from propstore.cli.worldline.materialize import worldline_create
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -1930,7 +1930,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_create
+        from propstore.cli.worldline.materialize import worldline_create
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -1968,7 +1968,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_run
+        from propstore.cli.worldline.materialize import worldline_run
 
         # We just test that the flag is accepted by the parser.
         # The run command will fail because there's no sidecar, but it should
@@ -2009,7 +2009,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_run
+        from propstore.cli.worldline.materialize import worldline_run
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -2057,7 +2057,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_create
+        from propstore.cli.worldline.materialize import worldline_create
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -2089,7 +2089,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_run
+        from propstore.cli.worldline.materialize import worldline_run
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -2115,7 +2115,6 @@ class TestWorldlineCLIFlags:
                 dependencies={"claims": [], "stances": [], "contexts": []},
             )
 
-        monkeypatch.setattr("propstore.cli.worldline_cmds.WorldModel", _FakeWorldModel, raising=False)
         monkeypatch.setattr("propstore.world.WorldModel", _FakeWorldModel)
         monkeypatch.setattr("propstore.worldline.run_worldline", fake_run_worldline)
 
@@ -2148,7 +2147,7 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_show
+        from propstore.cli.worldline.display import worldline_show
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -2200,7 +2199,8 @@ class TestWorldlineCLIFlags:
         import click
         from click.testing import CliRunner
 
-        from propstore.cli.worldline_cmds import worldline_list, worldline_run, worldline_show
+        from propstore.cli.worldline.display import worldline_list, worldline_show
+        from propstore.cli.worldline.materialize import worldline_run
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
@@ -2237,7 +2237,6 @@ class TestWorldlineCLIFlags:
                 dependencies={"claims": ["claim:one"], "stances": [], "contexts": []},
             )
 
-        monkeypatch.setattr("propstore.cli.worldline_cmds.WorldModel", _FakeWorldModel, raising=False)
         monkeypatch.setattr("propstore.world.WorldModel", _FakeWorldModel)
         monkeypatch.setattr("propstore.worldline.run_worldline", fake_run_worldline)
         fake_repo = _FakeWorldlineRepo(wl_dir)

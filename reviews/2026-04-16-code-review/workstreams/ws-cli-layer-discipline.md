@@ -683,6 +683,30 @@ Status 2026-04-17: concept command families are split.
   - `logs/test-runs/cli-concept-split-20260417-202357.log` - 47 passed.
   - `uv run pyright propstore/cli/concept.py propstore/cli/concept_mutation_cmds.py propstore/cli/concept_display_cmds.py propstore/cli/concept_alignment_cmds.py propstore/cli/concept_embedding_cmds.py tests/test_cli_layout.py` - 0 errors.
 
+Status 2026-04-17: split CLI command families are packages.
+
+- Converted split CLI families with sibling command modules into packages:
+  `propstore.cli.world`, `propstore.cli.worldline`,
+  `propstore.cli.concept`, and `propstore.cli.source`.
+- Kept package `__init__.py` files as group/common modules only; concrete
+  command families now live in named sibling modules such as
+  `propstore.cli.world.query`, `propstore.cli.world.atms`,
+  `propstore.cli.worldline.materialize`, `propstore.cli.concept.mutation`,
+  and `propstore.cli.source.lifecycle`.
+- Finished the `pks source` split as a package and tightened its imports:
+  lifecycle commands own `init`/`finalize`/`promote`/`status`/`sync`, authoring
+  commands own notes/metadata writes, batch commands own batch ingestion, and
+  proposal commands own source-local proposal adapters.
+- Updated root lazy command registration, tests, and architecture discipline
+  docs to enforce the package shape for command families with siblings.
+- Verification:
+  - `uv run pks world --help` lists the packaged world command surface.
+  - `uv run pks worldline --help` lists the packaged worldline command surface.
+  - `uv run pks concept --help` lists the packaged concept command surface.
+  - `uv run pks source --help` lists the packaged source command surface.
+  - `logs/test-runs/cli-package-layout-20260417-204014.log` - 77 passed.
+  - `uv run pyright propstore/cli/__init__.py propstore/cli/world/__init__.py propstore/cli/world/query.py propstore/cli/world/reasoning.py propstore/cli/world/analysis.py propstore/cli/world/atms.py propstore/cli/world/revision.py propstore/cli/worldline/__init__.py propstore/cli/worldline/materialize.py propstore/cli/worldline/display.py propstore/cli/worldline/mutation.py propstore/cli/concept/__init__.py propstore/cli/concept/mutation.py propstore/cli/concept/display.py propstore/cli/concept/alignment.py propstore/cli/concept/embedding.py propstore/cli/source/__init__.py propstore/cli/source/authoring.py propstore/cli/source/batch.py propstore/cli/source/lifecycle.py propstore/cli/source/proposal.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.

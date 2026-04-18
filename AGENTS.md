@@ -39,4 +39,5 @@ CLI layer discipline:
 - When CLI behavior needs reusable logic, move it to the architectural owner module, update every caller, and delete the CLI-owned production path.
 - Owner-layer APIs extracted from CLI code should use typed request/report/failure objects or existing domain objects; they must not import Click, write to stdout/stderr, call `sys.exit`, or accept flag-shaped CLI inputs when a domain type exists.
 - The root CLI entry point must register commands lazily. Asking for one command must not import unrelated command families.
+- CLI command families with sibling modules should be packages. Put the Click group and shared CLI-only helpers in the package `__init__.py`; put each command family in a named sibling module inside that package.
 - Keep package `__init__.py` files shallow. Do not re-export merge, reasoning, or workflow surfaces from low-level packages when that forces circular or cross-layer imports.
