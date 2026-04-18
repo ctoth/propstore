@@ -1874,6 +1874,7 @@ dependencies = [
     { name = "msgspec" },
     { name = "pint" },
     { name = "pyyaml" },
+    { name = "quire" },
     { name = "sympy" },
     { name = "z3-solver" },
 ]
@@ -1909,6 +1910,7 @@ requires-dist = [
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "pint", specifier = ">=0.25.3" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "quire", git = "https://github.com/ctoth/quire?rev=2310543abb792a18be6789e19ca61d2215ad1102" },
     { name = "sqlite-vec", marker = "extra == 'embeddings'", specifier = ">=0.1" },
     { name = "sympy", specifier = ">=1.14.0" },
     { name = "z3-solver", specifier = ">=4.12" },
@@ -2304,6 +2306,16 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/05/10/f42c48fa5153204f42eaa945e8d1fd7c10d6296841dcb2447bf7da1be5c4/pyyaml_ft-8.0.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:052561b89d5b2a8e1289f326d060e794c21fa068aa11255fe71d65baf18a632e", size = 810403, upload-time = "2025-06-10T15:32:11.051Z" },
     { url = "https://files.pythonhosted.org/packages/d5/d2/e369064aa51009eb9245399fd8ad2c562bd0bcd392a00be44b2a824ded7c/pyyaml_ft-8.0.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:3bb4b927929b0cb162fb1605392a321e3333e48ce616cdcfa04a839271373255", size = 835581, upload-time = "2025-06-10T15:32:12.897Z" },
     { url = "https://files.pythonhosted.org/packages/c0/28/26534bed77109632a956977f60d8519049f545abc39215d086e33a61f1f2/pyyaml_ft-8.0.0-cp313-cp313t-win_amd64.whl", hash = "sha256:de04cfe9439565e32f178106c51dd6ca61afaa2907d143835d501d84703d3793", size = 171579, upload-time = "2025-06-10T15:32:14.34Z" },
+]
+
+[[package]]
+name = "quire"
+version = "0.1.0"
+source = { git = "https://github.com/ctoth/quire?rev=2310543abb792a18be6789e19ca61d2215ad1102#2310543abb792a18be6789e19ca61d2215ad1102" }
+dependencies = [
+    { name = "dulwich" },
+    { name = "msgspec" },
+    { name = "pyyaml" },
 ]
 
 [[package]]
