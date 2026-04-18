@@ -23,7 +23,7 @@ CONTRACT_MANIFEST_PATH = (
 
 
 def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any, Any], ...]:
-    from propstore.artifacts import families
+    import propstore.artifacts.families as families
 
     discovered = [
         value

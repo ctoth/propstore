@@ -6,7 +6,7 @@ from typing import Any
 
 import click
 
-from propstore.artifacts import WorldlineRef
+from propstore.artifacts.refs import WorldlineRef
 from propstore.repository import Repository
 from propstore.world.types import (
     ReasoningBackend,

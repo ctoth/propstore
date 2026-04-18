@@ -29,7 +29,8 @@ from propstore.artifacts.identity import (
     normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
 )
-from propstore.artifacts.indexes import (
+from propstore.claim_references import (
+    ClaimReferenceResolver,
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
@@ -41,7 +42,6 @@ from propstore.artifacts.refs import (
     MicropubsFileRef,
     StanceFileRef,
 )
-from propstore.artifacts.resolution import ClaimReferenceResolver
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from quire.family_store import DocumentFamilyStore
 
-from propstore.artifacts import (
+from propstore.artifacts.refs import (
     SourceRef,
     ClaimsFileRef,
     ConceptFileRef,
