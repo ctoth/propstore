@@ -64,19 +64,12 @@ def compute_claim_graph_justified_claims(
         ReasoningBackend.CLAIM_GRAPH,
         semantics,
     )
-    resolver = getattr(store, "resolve_claim", None)
     canonical_active_ids = {
-        (resolver(claim_id) or claim_id)
-        if callable(resolver)
-        else claim_id
+        store.resolve_claim(claim_id) or claim_id
         for claim_id in active_claim_ids
     }
     display_ids_by_canonical = {
-        (
-            (resolver(claim_id) or claim_id)
-            if callable(resolver)
-            else claim_id
-        ): claim_id
+        (store.resolve_claim(claim_id) or claim_id): claim_id
         for claim_id in active_claim_ids
     }
     result = analyze_claim_graph(

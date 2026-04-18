@@ -9,6 +9,9 @@ class SQLiteArgumentationStore:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
+    def resolve_claim(self, name: str) -> str | None:
+        return name
+
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
         if not claim_ids:
             return {}
