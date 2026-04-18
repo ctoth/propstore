@@ -13,8 +13,25 @@ def test_world_commands_live_outside_compiler_cmds() -> None:
 
     assert "@world.command" not in compiler_cmds
     assert "def world(" not in compiler_cmds
-    assert "@world.command" in world_cmds
+    assert "@world.command" not in world_cmds
     assert "def world(" in world_cmds
+    assert "from propstore.cli import world_query_cmds" in world_cmds
+
+
+def test_world_command_families_live_outside_group_module() -> None:
+    query_cmds = Path("propstore/cli/world_query_cmds.py").read_text(
+        encoding="utf-8"
+    )
+    reasoning_cmds = Path("propstore/cli/world_reasoning_cmds.py").read_text(
+        encoding="utf-8"
+    )
+    analysis_cmds = Path("propstore/cli/world_analysis_cmds.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert '@world.command("status")' in query_cmds
+    assert '@world.command("resolve")' in reasoning_cmds
+    assert '@world.command("fragility")' in analysis_cmds
 
 
 def test_world_atms_commands_live_outside_world_group_module() -> None:

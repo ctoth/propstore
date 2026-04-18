@@ -645,6 +645,24 @@ Status 2026-04-17: world revision commands are grouped and split.
   - `logs/test-runs/cli-world-revision-group-20260417-201634.log` - 17 passed.
   - `uv run pyright propstore/cli/world_cmds.py propstore/cli/world_revision_cmds.py propstore/cli/world_atms_cmds.py tests/test_cli_layout.py` - 0 errors.
 
+Status 2026-04-17: remaining world command families are split.
+
+- Reduced `propstore.cli.world_cmds` to the `pks world` group and shared
+  helpers.
+- Moved basic world query commands (`status`, `query`, `bind`, `explain`,
+  `algorithms`) to `propstore.cli.world_query_cmds`.
+- Moved reasoning commands (`derive`, `resolve`, `extensions`) to
+  `propstore.cli.world_reasoning_cmds`.
+- Moved analysis/report commands (`hypothetical`, `chain`, `export-graph`,
+  `sensitivity`, `fragility`, `check-consistency`) to
+  `propstore.cli.world_analysis_cmds`.
+- Added layout guards preventing `@world.command` handlers from returning to
+  the group/common module.
+- Verification:
+  - `uv run pks world --help` lists the split command families.
+  - `logs/test-runs/cli-world-family-split-20260417-202000.log` - 41 passed.
+  - `uv run pyright propstore/cli/world_cmds.py propstore/cli/world_query_cmds.py propstore/cli/world_reasoning_cmds.py propstore/cli/world_analysis_cmds.py propstore/cli/world_atms_cmds.py propstore/cli/world_revision_cmds.py tests/test_cli_layout.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
