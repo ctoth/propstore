@@ -5,13 +5,16 @@ import datetime
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from propstore.artifacts.documents.forms import (
     FormDocument,
 )
+from propstore.artifacts.families import FORM_FAMILY
+from propstore.artifacts.refs import FormRef
 from propstore.cel_checker import KindType
-from propstore.artifacts.schema import DocumentSchemaError, decode_document_path
+from propstore.artifacts.schema import DocumentSchemaError, convert_document_value, decode_document_path
+from propstore.core.concepts import load_concepts
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore import dimensions as dimension_api
 from propstore.diagnostics import ValidationResult
@@ -39,6 +42,60 @@ class FormNotFoundError(Exception):
     def __init__(self, name: str) -> None:
         super().__init__(f"Form '{name}' not found")
         self.name = name
+
+
+class FormWorkflowError(Exception):
+    """Raised when a form authoring workflow cannot complete."""
+
+
+class FormReferencedError(FormWorkflowError):
+    def __init__(self, name: str, references: tuple[str, ...]) -> None:
+        super().__init__(f"Form '{name}' is referenced by {len(references)} concept(s)")
+        self.references = references
+
+
+@dataclass(frozen=True)
+class FormListItem:
+    name: str
+    unit_symbol: str | None
+    dimensions: dict[str, int] | None
+    is_dimensionless: bool
+
+
+@dataclass(frozen=True)
+class FormAddRequest:
+    name: str
+    unit_symbol: str | None = None
+    qudt: str | None = None
+    base: str | None = None
+    dimensions_json: str | None = None
+    dimensionless: str | None = None
+    common_alternatives_json: str | None = None
+    note: str | None = None
+
+
+@dataclass(frozen=True)
+class FormAddReport:
+    path: Path
+    document: FormDocument
+    created: bool
+
+
+@dataclass(frozen=True)
+class FormRemoveReport:
+    path: Path
+    removed: bool
+    references: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class FormValidationReport:
+    count: int
+    errors: tuple[str, ...]
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors
 
 
 @dataclass(frozen=True)
@@ -108,6 +165,200 @@ def show_form(
         decompositions=decompositions,
         uses=uses,
     )
+
+
+def parse_dims_spec(spec: str) -> dict[str, int]:
+    """Parse a CLI dimension filter like ``M:1,L:1,T:-2``."""
+    result: dict[str, int] = {}
+    for part in spec.split(","):
+        part = part.strip()
+        if ":" not in part:
+            continue
+        key, val = part.split(":", 1)
+        result[key.strip()] = int(val.strip())
+    return result
+
+
+def format_dims_col(dimensions: dict[str, int] | None, is_dimensionless: bool) -> str:
+    """Format dimensions for the form list display column."""
+    if dimensions is None:
+        return "(dimensionless)" if is_dimensionless else ""
+    if not dimensions or all(v == 0 for v in dimensions.values()):
+        return "(dimensionless)"
+    try:
+        from bridgman import format_dims
+
+        return format_dims(dimensions)
+    except ImportError:
+        return str(dimensions)
+
+
+def list_form_items(
+    repo: Repository,
+    *,
+    dims_filter: str | None,
+) -> tuple[FormListItem, ...] | None:
+    forms_tree = repo.tree() / "forms"
+    if not forms_tree.exists():
+        return None
+
+    registry = load_all_forms_path(forms_tree)
+    filter_dims = parse_dims_spec(dims_filter) if dims_filter is not None else None
+    items: list[FormListItem] = []
+    for form in sorted(registry.values(), key=lambda item: item.name):
+        if filter_dims is not None:
+            from bridgman import dims_equal
+
+            form_dims = form.dimensions or ({} if form.is_dimensionless else None)
+            if form_dims is None or not dims_equal(form_dims, filter_dims):
+                continue
+        items.append(
+            FormListItem(
+                name=form.name,
+                unit_symbol=form.unit_symbol,
+                dimensions=form.dimensions,
+                is_dimensionless=form.is_dimensionless,
+            )
+        )
+    return tuple(items)
+
+
+def _parse_json_option(raw: str, *, option_name: str) -> object:
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise FormWorkflowError(f"Invalid JSON for {option_name}: {raw}") from exc
+
+
+def _form_add_payload(request: FormAddRequest) -> dict[str, object]:
+    dims_parsed: object | None = None
+    if request.dimensions_json is not None:
+        dims_parsed = _parse_json_option(
+            request.dimensions_json,
+            option_name="--dimensions",
+        )
+        if not isinstance(dims_parsed, dict):
+            raise FormWorkflowError("--dimensions must decode to a JSON object")
+
+    if request.dimensionless is not None:
+        is_dimless = request.dimensionless.lower() in ("true", "1", "yes")
+    elif isinstance(dims_parsed, dict) and len(dims_parsed) > 0:
+        is_dimless = False
+    else:
+        is_dimless = isinstance(dims_parsed, dict) and len(dims_parsed) == 0
+
+    data: dict[str, object] = {
+        "name": request.name,
+        "dimensionless": is_dimless,
+    }
+    if request.base is not None:
+        data["base"] = request.base
+    if request.unit_symbol is not None:
+        data["unit_symbol"] = request.unit_symbol
+    if request.qudt is not None:
+        data["qudt"] = request.qudt
+    if dims_parsed is not None:
+        data["dimensions"] = dims_parsed
+    if request.common_alternatives_json is not None:
+        data["common_alternatives"] = _parse_json_option(
+            request.common_alternatives_json,
+            option_name="--common-alternatives",
+        )
+    if request.note is not None:
+        data["note"] = request.note
+    return data
+
+
+def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> FormAddReport:
+    path = repo.forms_dir / f"{request.name}.yaml"
+    if (repo.tree() / "forms" / f"{request.name}.yaml").exists():
+        raise FormWorkflowError(f"Form '{request.name}' already exists")
+
+    source = (
+        f"dry-run:forms/{request.name}.yaml"
+        if dry_run
+        else f"forms/{request.name}.yaml"
+    )
+    document = convert_document_value(
+        _form_add_payload(request),
+        FormDocument,
+        source=source,
+    )
+    if dry_run:
+        return FormAddReport(path=path, document=document, created=False)
+
+    repo.artifacts.save(
+        FORM_FAMILY,
+        FormRef(request.name),
+        document,
+        message=f"Add form: {request.name}",
+    )
+    repo.snapshot.sync_worktree()
+    return FormAddReport(path=path, document=document, created=True)
+
+
+def form_references(repo: Repository, name: str) -> tuple[str, ...]:
+    references: list[str] = []
+    for concept in load_concepts(repo.tree() / "concepts"):
+        if concept.record.form == name:
+            references.append(f"{concept.record.artifact_id} ({concept.filename})")
+    return tuple(references)
+
+
+def remove_form(
+    repo: Repository,
+    name: str,
+    *,
+    force: bool,
+    dry_run: bool,
+) -> FormRemoveReport:
+    path = repo.forms_dir / f"{name}.yaml"
+    if not (repo.tree() / "forms" / f"{name}.yaml").exists():
+        raise FormNotFoundError(name)
+
+    references = form_references(repo, name)
+    if references and not force:
+        raise FormReferencedError(name, references)
+    if dry_run:
+        return FormRemoveReport(path=path, removed=False, references=references)
+
+    repo.artifacts.delete(
+        cast(Any, FORM_FAMILY),
+        FormRef(name),
+        message=f"Remove form: {name}",
+    )
+    repo.snapshot.sync_worktree()
+    return FormRemoveReport(path=path, removed=True, references=references)
+
+
+def validate_forms(repo: Repository, name: str | None = None) -> FormValidationReport | None:
+    forms_tree = repo.tree() / "forms"
+    if not forms_tree.exists():
+        return None
+
+    if name is not None and not (forms_tree / f"{name}.yaml").exists():
+        raise FormNotFoundError(name)
+
+    form_result = validate_form_files(forms_tree)
+    all_forms = {
+        p.stem
+        for p in forms_tree.iterdir()
+        if p.is_file() and p.suffix == ".yaml"
+    }
+    concepts_tree = repo.tree() / "concepts"
+    if concepts_tree.exists():
+        for concept in load_concepts(concepts_tree):
+            ref = concept.record.form
+            if ref and ref not in all_forms:
+                form_result.errors.append(
+                    f"concept {concept.filename}: references missing form '{ref}'"
+                )
+
+    count = len([
+        p for p in forms_tree.iterdir()
+        if p.is_file() and p.suffix == ".yaml"
+    ])
+    return FormValidationReport(count=count, errors=tuple(form_result.errors))
 
 
 def clear_form_cache() -> None:

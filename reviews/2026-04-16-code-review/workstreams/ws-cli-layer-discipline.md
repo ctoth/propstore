@@ -351,6 +351,19 @@ Status 2026-04-17: form show slice landed.
   - `logs/test-runs/cli-layer-form-show-20260417-174758.log` - 6 passed.
   - `uv run pyright propstore/form_utils.py` - 0 errors.
 
+Status 2026-04-17: form workflow slice landed.
+
+- Extended `propstore.form_utils` with typed list, add, remove, and validate
+  reports plus workflow failures.
+- Moved form dimension filtering, JSON option parsing, document construction,
+  artifact save/delete/sync, form-reference checks, and validation report
+  assembly out of `propstore.cli.form`.
+- Added owner and CLI coverage for add/list/validate/remove, malformed JSON,
+  missing forms, dry-run rendering, and dimension-filtered listing.
+- Verification:
+  - `logs/test-runs/cli-layer-form-workflows-20260417-181620.log` - 4 passed.
+  - `uv run pyright propstore/form_utils.py propstore/cli/form.py` - 0 errors.
+
 Status 2026-04-17: source status slice landed.
 
 - Added `propstore.source.status` with typed source-status states, rows, and
