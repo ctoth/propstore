@@ -10,15 +10,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from propstore.core.labels import Label
-from quire.documents import decode_document_path
 from propstore.identity import canonicalize_claim_for_version
-from quire.tree_path import TreePath as KnowledgePath
-from propstore.artifacts.documents.sources import (
-    SourceDocument,
-    SourceJustificationsDocument,
+from propstore.artifacts.families import (
+    CANONICAL_SOURCE_FAMILY,
+    CLAIMS_FILE_FAMILY,
+    JUSTIFICATIONS_FILE_FAMILY,
+    STANCE_FILE_FAMILY,
 )
-from propstore.artifacts.documents.stances import StanceFileDocument
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY
 from propstore.claims import claim_file_claims, claim_file_filename
 from propstore.uri import ni_uri_for_file
 
@@ -152,41 +150,27 @@ def _load_claim_index(repo: Repository, commit: str | None) -> tuple[dict[str, d
     return claims_by_id, claim_to_source_slug
 
 
-def _load_sources(tree: KnowledgePath) -> dict[str, dict[str, Any]]:
-    sources_root = tree / "sources"
-    if not sources_root.exists():
-        return {}
+def _load_sources(repo: Repository, commit: str | None) -> dict[str, dict[str, Any]]:
     return {
-        entry.stem: decode_document_path(entry, SourceDocument).to_payload()
-        for entry in sources_root.iterdir()
-        if entry.is_file() and entry.suffix == ".yaml"
+        ref.name: repo.artifacts.require(CANONICAL_SOURCE_FAMILY, ref, commit=commit).to_payload()
+        for ref in repo.artifacts.list(CANONICAL_SOURCE_FAMILY, commit=commit)
     }
 
 
-def _load_justifications(tree: KnowledgePath) -> dict[str, list[dict[str, Any]]]:
-    justifications_root = tree / "justifications"
-    if not justifications_root.exists():
-        return {}
+def _load_justifications(repo: Repository, commit: str | None) -> dict[str, list[dict[str, Any]]]:
     by_conclusion: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for entry in justifications_root.iterdir():
-        if not entry.is_file() or entry.suffix != ".yaml":
-            continue
-        doc = decode_document_path(entry, SourceJustificationsDocument)
+    for ref in repo.artifacts.list(JUSTIFICATIONS_FILE_FAMILY, commit=commit):
+        doc = repo.artifacts.require(JUSTIFICATIONS_FILE_FAMILY, ref, commit=commit)
         for justification in doc.justifications:
             if isinstance(justification.conclusion, str):
                 by_conclusion[justification.conclusion].append(copy.deepcopy(justification.to_payload()))
     return by_conclusion
 
 
-def _load_stances(tree: KnowledgePath) -> dict[str, list[dict[str, Any]]]:
-    stances_root = tree / "stances"
-    if not stances_root.exists():
-        return {}
+def _load_stances(repo: Repository, commit: str | None) -> dict[str, list[dict[str, Any]]]:
     by_source: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for entry in stances_root.iterdir():
-        if not entry.is_file() or entry.suffix != ".yaml":
-            continue
-        doc = decode_document_path(entry, StanceFileDocument)
+    for ref in repo.artifacts.list(STANCE_FILE_FAMILY, commit=commit):
+        doc = repo.artifacts.require(STANCE_FILE_FAMILY, ref, commit=commit)
         for stance in doc.stances:
             by_source[doc.source_claim].append(copy.deepcopy(stance.to_payload()))
     return by_source
@@ -233,11 +217,10 @@ def _verify_origin(repo: Repository, source_slug: str, source_doc: dict[str, Any
 
 
 def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = None) -> dict[str, Any]:
-    tree = repo.tree(commit=commit)
     claims_by_id, claim_to_source_slug = _load_claim_index(repo, commit)
-    sources_by_slug = _load_sources(tree)
-    justifications_by_conclusion = _load_justifications(tree)
-    stances_by_source = _load_stances(tree)
+    sources_by_slug = _load_sources(repo, commit)
+    justifications_by_conclusion = _load_justifications(repo, commit)
+    stances_by_source = _load_stances(repo, commit)
 
     claim_id = claim_ref
     if claim_id not in claims_by_id:
