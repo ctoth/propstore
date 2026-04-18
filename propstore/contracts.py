@@ -6,11 +6,9 @@ from pathlib import Path
 from typing import Any
 
 import msgspec
-from quire.artifacts import ArtifactFamily as QuireArtifactFamily
+from quire.artifacts import ArtifactFamily
 from quire.contracts import ContractEntry, ContractManifest
 from quire.versions import VersionId
-
-from propstore.artifacts.types import ArtifactFamily
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.19")
 CONTRACT_MANIFEST_PATH = (
@@ -20,13 +18,13 @@ CONTRACT_MANIFEST_PATH = (
 )
 
 
-def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any], ...]:
+def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any, Any], ...]:
     from propstore.artifacts import families
 
     discovered = [
         value
         for value in vars(families).values()
-        if isinstance(value, QuireArtifactFamily)
+        if isinstance(value, ArtifactFamily)
     ]
     return tuple(sorted(discovered, key=lambda family: family.name))
 
@@ -108,7 +106,7 @@ def _document_contract(document_type: type[msgspec.Struct]) -> ContractEntry:
     )
 
 
-def _family_contract(family: ArtifactFamily[Any, Any]) -> ContractEntry:
+def _family_contract(family: ArtifactFamily[Any, Any, Any]) -> ContractEntry:
     return ContractEntry(
         kind="artifact_family",
         name=family.name,

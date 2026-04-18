@@ -137,6 +137,30 @@ def test_git_storage_surface_is_not_named_repo_or_gitstore_shim() -> None:
     assert "KnowledgeRepo" not in contents
 
 
+def test_propstore_artifacts_do_not_reexport_quire_store_shims() -> None:
+    artifacts_init = ROOT / "propstore" / "artifacts" / "__init__.py"
+    artifacts_store = ROOT / "propstore" / "artifacts" / "store.py"
+    old_transaction = ROOT / "propstore" / "artifacts" / "transaction.py"
+    old_types = ROOT / "propstore" / "artifacts" / "types.py"
+
+    assert artifacts_store.exists()
+    assert not old_transaction.exists()
+    assert not old_types.exists()
+
+    init_contents = artifacts_init.read_text(encoding="utf-8")
+    assert "ArtifactRepository" not in init_contents
+    assert "ArtifactTransaction" not in init_contents
+    assert "ArtifactFamily" not in init_contents
+    assert "ArtifactContext" not in init_contents
+
+    store_classes = {
+        node.name
+        for node in ast.walk(_parse(artifacts_store))
+        if isinstance(node, ast.ClassDef)
+    }
+    assert "ArtifactRepository" not in store_classes
+
+
 def test_production_imports_do_not_use_propstore_repo_package() -> None:
     offenders: list[str] = []
     for path in _production_files():
