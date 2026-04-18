@@ -22,7 +22,7 @@ from propstore.sidecar.build import build_sidecar
 from propstore.cli.worldline import _parse_kv_args
 from quire.tree_path import GitTreePath as GitKnowledgePath
 from quire.git_store import GitStore
-from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
+from propstore.storage import init_git_store
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
@@ -54,7 +54,7 @@ class _FakeWorldlineRepo:
 
     @property
     def artifacts(self):
-        from propstore.artifacts.store import create_artifact_store
+        from propstore.artifacts.policy import create_artifact_store
 
         return create_artifact_store(self)
 

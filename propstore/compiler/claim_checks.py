@@ -15,6 +15,10 @@ import bridgman
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
 from propstore.compiler.context import CompilationContext
+from propstore.compiler.references import (
+    concept_exists,
+    concept_form_definition,
+)
 from propstore.diagnostics import SemanticDiagnostic
 from propstore.dimensions import can_convert_unit_to
 from propstore.form_utils import FormDefinition
@@ -351,36 +355,15 @@ def _has_concepts(context: CompilationContext) -> bool:
     return bool(context.concepts_by_id or context.concept_lookup)
 
 
-def _resolve_concept_id(
-    concept_ref: object,
-    context: CompilationContext,
-) -> str | None:
-    if not isinstance(concept_ref, str) or not concept_ref:
-        return None
-    candidates = context.concept_lookup.get(concept_ref, ())
-    if len(candidates) == 1:
-        return candidates[0]
-    if concept_ref in context.concepts_by_id:
-        return concept_ref
-    return None
-
-
 def _concept_exists(concept_ref: object, context: CompilationContext) -> bool:
-    return _resolve_concept_id(concept_ref, context) is not None
+    return concept_exists(concept_ref, context)
 
 
 def _concept_form_definition(
     concept_ref: object,
     context: CompilationContext,
 ) -> FormDefinition | None:
-    concept_id = _resolve_concept_id(concept_ref, context)
-    if concept_id is None:
-        return None
-    record = context.concepts_by_id.get(concept_id)
-    if record is None:
-        return None
-    form_definition = context.form_registry.get(record.form)
-    return form_definition if isinstance(form_definition, FormDefinition) else None
+    return concept_form_definition(concept_ref, context)
 
 
 def _validate_parameter(

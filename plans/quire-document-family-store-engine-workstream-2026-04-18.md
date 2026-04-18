@@ -49,6 +49,22 @@ quire GitStore / git-like backend protocol
 
 Quire must not import propstore.
 
+## Execution Status
+
+Status as of 2026-04-18:
+
+- quire owns the generic document-family store, transaction engine, artifact
+  metadata, refs, notes, contract checks, and git tree/path helpers.
+- propstore depends on the pushed `ctoth/quire` package and keeps only semantic
+  document schemas, family declarations, callbacks, branch policy, and
+  workflow behavior.
+- propstore has no artifact-store, transaction, type re-export, fake git owner,
+  or bare-git snapshot construction shim.
+- propstore artifact store construction is explicit policy wiring in
+  `propstore.artifacts.policy`.
+- checked-in semantic contracts include named callback identifiers, and
+  callback-body drift requires a contract-version bump.
+
 ## Phase 1: Define The Quire Store Boundary
 
 Add a new quire module, `quire.family_store`.
@@ -84,9 +100,8 @@ Tests first in quire:
 
 ## Phase 2: Move Generic Store Code Into Quire
 
-Move the generic behavior currently embodied by
-`propstore.artifacts.store.ArtifactRepository` into quire's
-`DocumentFamilyStore`.
+Move the generic behavior previously embodied by propstore's artifact
+repository implementation into quire's `DocumentFamilyStore`.
 
 Move the generic behavior currently embodied by
 `propstore.artifacts.transaction.ArtifactTransaction` into quire's
@@ -100,7 +115,7 @@ Do not move propstore semantic hooks, family declarations, or workflows.
 
 ## Phase 3: Replace Propstore Artifact Store Surface Directly
 
-Delete `propstore.artifacts.store.ArtifactRepository`.
+Delete propstore's generic artifact repository implementation.
 
 `Repository.artifacts` should return quire's
 `DocumentFamilyStore[Repository]` directly, constructed with propstore's

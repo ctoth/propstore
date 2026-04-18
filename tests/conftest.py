@@ -797,6 +797,7 @@ def make_concept_registry():
 def make_compilation_context(registry: dict[str, dict] | None = None, *, claim_files=None, context_ids=None):
     from propstore.cel_registry import build_canonical_cel_registry
     from propstore.compiler.context import CompilationContext
+    from propstore.compiler.references import build_claim_reference_lookup
     from propstore.core.concepts import concept_reference_keys, parse_concept_record
 
     source_registry = make_concept_registry() if registry is None else registry
@@ -832,7 +833,11 @@ def make_compilation_context(registry: dict[str, dict] | None = None, *, claim_f
             key: tuple(values)
             for key, values in concept_lookup.items()
         }),
-        claim_lookup=MappingProxyType({}),
+        claim_lookup=(
+            MappingProxyType({})
+            if claim_files is None
+            else build_claim_reference_lookup(list(claim_files))
+        ),
         cel_registry=MappingProxyType(dict(build_canonical_cel_registry(concepts_by_id.values()))),
     )
 

@@ -9,11 +9,12 @@ from typing import TYPE_CHECKING, Any, Mapping, cast
 
 from propstore.cel_checker import ConceptInfo
 from propstore.cel_registry import build_canonical_cel_registry
-from propstore.claims import (
-    LoadedClaimsFile,
-    claim_file_claims,
-    claim_file_source_paper,
+from propstore.claims import LoadedClaimsFile
+from quire.references import (
+    extend_reference_lookup,
+    finalize_reference_lookup,
 )
+from propstore.compiler.references import build_claim_reference_lookup
 from propstore.core.concepts import (
     ConceptRecord,
     LoadedConcept,
@@ -43,45 +44,8 @@ def _freeze_mapping(data: Mapping[str, Any]) -> Mapping[str, Any]:
     return MappingProxyType(dict(data))
 
 
-def _extend_lookup(
-    lookup: dict[str, list[str]],
-    key: str | None,
-    target_id: str,
-) -> None:
-    if not isinstance(key, str) or not key:
-        return
-    values = lookup.setdefault(key, [])
-    if target_id not in values:
-        values.append(target_id)
-
-
-def _finalize_lookup(lookup: dict[str, list[str]]) -> Mapping[str, tuple[str, ...]]:
-    return MappingProxyType({key: tuple(values) for key, values in lookup.items()})
-
-
 def _build_claim_lookup(claim_files: list[LoadedClaimsFile]) -> Mapping[str, tuple[str, ...]]:
-    from propstore.identity import normalize_identity_namespace, normalize_logical_value
-
-    lookup: dict[str, list[str]] = {}
-    for claim_file in claim_files:
-        source_paper = claim_file_source_paper(claim_file) or claim_file.filename
-        for claim in claim_file_claims(claim_file):
-            artifact_id = claim.artifact_id
-            if not isinstance(artifact_id, str) or not artifact_id:
-                continue
-            _extend_lookup(lookup, artifact_id, artifact_id)
-            raw_id = claim.id
-            if isinstance(raw_id, str) and raw_id:
-                _extend_lookup(lookup, raw_id, artifact_id)
-                _extend_lookup(
-                    lookup,
-                    f"{normalize_identity_namespace(str(source_paper))}:{normalize_logical_value(raw_id)}",
-                    artifact_id,
-                )
-            for logical_id in claim.logical_ids:
-                _extend_lookup(lookup, logical_id.formatted, artifact_id)
-                _extend_lookup(lookup, logical_id.value, artifact_id)
-    return _finalize_lookup(lookup)
+    return build_claim_reference_lookup(claim_files)
 
 
 def _build_context_from_concepts(
@@ -99,9 +63,9 @@ def _build_context_from_concepts(
         artifact_id = str(record.artifact_id)
         concepts_by_id[artifact_id] = record
         for key in concept_reference_keys(record):
-            _extend_lookup(concept_lookup, key, artifact_id)
+            extend_reference_lookup(concept_lookup, key, artifact_id)
 
-    finalized_lookup = _finalize_lookup(concept_lookup)
+    finalized_lookup = finalize_reference_lookup(concept_lookup)
     return CompilationContext(
         form_registry=_freeze_mapping(form_registry),
         context_ids=frozenset(context_ids or set()),

@@ -13,7 +13,7 @@ import re
 from dataclasses import dataclass, field
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Mapping
 
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, dims_of_expr, DimensionalError
@@ -41,6 +41,7 @@ from propstore.core.concepts import (
     load_concepts,
     normalize_loaded_concepts,
 )
+from propstore.compiler.references import build_claim_reference_lookup
 from propstore.diagnostics import ValidationResult
 
 if TYPE_CHECKING:
@@ -201,17 +202,15 @@ def _validate_lemon_document(
         )
 
 
-def _load_all_claim_ids(claims_dir: KnowledgePath | None) -> set[str]:
-    """Load all claim IDs from claim YAML files in the given directory."""
-    from propstore.claims import claim_file_claims, load_claim_files
+def _load_claim_reference_lookup(
+    claims_dir: KnowledgePath | None,
+) -> Mapping[str, tuple[str, ...]]:
+    """Load claim artifact and logical reference keys from claim YAML files."""
+    from propstore.claims import load_claim_files
 
-    claim_ids: set[str] = set()
-    for claim_file in load_claim_files(claims_dir):
-        for claim in claim_file_claims(claim_file):
-            cid = claim.artifact_id
-            if isinstance(cid, str) and cid:
-                claim_ids.add(cid)
-    return claim_ids
+    if claims_dir is None:
+        return {}
+    return build_claim_reference_lookup(list(load_claim_files(claims_dir)))
 
 
 def _validate_logical_ids(
@@ -316,10 +315,7 @@ def validate_concepts(
             return dict(form_def.dimensions)
         return {} if form_def.is_dimensionless else None
 
-    # Load claim IDs for canonical_claim validation
-    all_claim_ids: set[str] = set()
-    if claims_dir is not None:
-        all_claim_ids = _load_all_claim_ids(claims_dir)
+    claim_reference_lookup = _load_claim_reference_lookup(claims_dir)
 
     for c in concepts:
         data = c.record.to_payload()
@@ -650,10 +646,16 @@ def validate_concepts(
                     result.errors.append(
                         f"{c.filename}: canonical_claim '{canonical_claim}' "
                         f"cannot be validated (no claims directory provided)")
-                elif canonical_claim not in all_claim_ids:
-                    result.errors.append(
-                        f"{c.filename}: canonical_claim '{canonical_claim}' "
-                        f"not found in claim files")
+                else:
+                    claim_candidates = claim_reference_lookup.get(str(canonical_claim), ())
+                    if len(claim_candidates) == 0:
+                        result.errors.append(
+                            f"{c.filename}: canonical_claim '{canonical_claim}' "
+                            f"not found in claim files")
+                    elif len(claim_candidates) > 1:
+                        result.errors.append(
+                            f"{c.filename}: canonical_claim '{canonical_claim}' "
+                            f"is ambiguous in claim files")
 
             # Warning: missing sympy
             if not param.get("sympy"):

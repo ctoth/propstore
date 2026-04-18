@@ -139,11 +139,13 @@ def test_git_storage_surface_is_not_named_repo_or_gitstore_shim() -> None:
 
 def test_propstore_artifacts_do_not_reexport_quire_store_shims() -> None:
     artifacts_init = ROOT / "propstore" / "artifacts" / "__init__.py"
+    artifacts_policy = ROOT / "propstore" / "artifacts" / "policy.py"
     artifacts_store = ROOT / "propstore" / "artifacts" / "store.py"
     old_transaction = ROOT / "propstore" / "artifacts" / "transaction.py"
     old_types = ROOT / "propstore" / "artifacts" / "types.py"
 
-    assert artifacts_store.exists()
+    assert artifacts_policy.exists()
+    assert not artifacts_store.exists()
     assert not old_transaction.exists()
     assert not old_types.exists()
 
@@ -153,12 +155,12 @@ def test_propstore_artifacts_do_not_reexport_quire_store_shims() -> None:
     assert "ArtifactFamily" not in init_contents
     assert "ArtifactContext" not in init_contents
 
-    store_classes = {
+    policy_classes = {
         node.name
-        for node in ast.walk(_parse(artifacts_store))
+        for node in ast.walk(_parse(artifacts_policy))
         if isinstance(node, ast.ClassDef)
     }
-    assert "ArtifactRepository" not in store_classes
+    assert "ArtifactRepository" not in policy_classes
 
 
 def test_propstore_storage_snapshot_does_not_accept_bare_gitstore() -> None:
@@ -178,7 +180,7 @@ def test_propstore_storage_snapshot_does_not_accept_bare_gitstore() -> None:
 
 
 def test_propstore_artifact_store_has_only_repository_factory() -> None:
-    path = ROOT / "propstore" / "artifacts" / "store.py"
+    path = ROOT / "propstore" / "artifacts" / "policy.py"
     contents = path.read_text(encoding="utf-8")
 
     assert "_GitArtifactOwner" not in contents

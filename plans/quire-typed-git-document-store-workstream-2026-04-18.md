@@ -21,6 +21,22 @@ proposal at
 `C:\Users\Q\code\working\propstore\plans\typed-documentstore-and-semantic-families-proposal-2026-04-17.md`.
 Tests were not run while drafting this workstream.
 
+## Execution Status
+
+Status as of 2026-04-18:
+
+- `quire` is a pushed package and propstore depends on the pinned GitHub
+  commit.
+- quire owns `DocumentFamilyStore`, `DocumentFamilyTransaction`,
+  `ArtifactFamily`, refs, notes, tree paths, contract checks, and version
+  helpers.
+- propstore keeps semantic schemas, family declarations, callbacks, refs,
+  branch policy, and workflows.
+- propstore no longer has generic artifact-store, transaction, type re-export,
+  fake git owner, or bare-git snapshot construction paths.
+- semantic-family contract callbacks are named and checked into the manifest;
+  callback drift requires a version bump.
+
 ## Non-Negotiable Rules
 
 - `quire` must import no `propstore` modules.
@@ -50,7 +66,7 @@ Generic candidate surfaces:
 - `propstore/artifacts/schema.py`
 - `propstore/artifacts/codecs.py`
 - `propstore/artifacts/types.py`
-- `propstore/artifacts/store.py`
+- the former propstore generic artifact store module
 - `propstore/artifacts/transaction.py`
 
 Propstore-specific surfaces that must not move as generic package code:
@@ -128,7 +144,7 @@ propstore-owned and follows the substrate extraction.
 - loaded document envelopes
 - generic document codecs
 - `ArtifactFamily`, `ResolvedArtifact`, `ArtifactContext`,
-  `ArtifactRepository`, and `ArtifactTransaction`
+  `DocumentFamilyStore`, and `DocumentFamilyTransaction`
 - generated ref/note manifests
 - storage format version APIs
 - scan-aware API naming and tests

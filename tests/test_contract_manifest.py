@@ -10,6 +10,7 @@ from propstore.contracts import (
     CONTRACT_MANIFEST_PATH,
     build_propstore_contract_manifest,
     iter_artifact_families,
+    iter_semantic_foreign_keys,
 )
 
 
@@ -23,6 +24,16 @@ def test_every_artifact_family_has_contract_version() -> None:
     assert missing == []
 
 
+def test_every_semantic_foreign_key_has_contract_version() -> None:
+    missing = [
+        spec.name
+        for spec in iter_semantic_foreign_keys()
+        if spec.contract_version is None
+    ]
+
+    assert missing == []
+
+
 def test_contract_manifest_covers_documents_and_artifact_families() -> None:
     manifest = build_propstore_contract_manifest()
     keys = {entry.key for entry in manifest.contracts}
@@ -31,6 +42,21 @@ def test_contract_manifest_covers_documents_and_artifact_families() -> None:
     assert "document_schema:ClaimsFileDocument" in keys
     assert "artifact_family:concept_file" in keys
     assert "artifact_family:source_document" in keys
+    assert "foreign_key:claim_concept" in keys
+    assert "foreign_key:concept_parameterization_canonical_claim" in keys
+
+
+def test_artifact_family_contract_callbacks_are_named() -> None:
+    manifest = build_propstore_contract_manifest()
+    offenders = [
+        (entry.name, field, callback)
+        for entry in manifest.contracts
+        if entry.kind == "artifact_family"
+        for field, callback in entry.body.items()
+        if isinstance(callback, str) and "<lambda>" in callback
+    ]
+
+    assert offenders == []
 
 
 def test_checked_in_contract_manifest_is_current() -> None:
