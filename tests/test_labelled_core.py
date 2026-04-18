@@ -69,13 +69,26 @@ class _StubStore:
         return []
 
     def all_concepts(self) -> list[dict]:
-        return []
+        concept_ids = sorted({claim["concept_id"] for claim in self._claims} | {"concept3"})
+        return [
+            {"id": concept_id, "canonical_name": concept_id, "form": "structural"}
+            for concept_id in concept_ids
+        ]
 
     def explain(self, claim_id: str) -> list[StanceRowInput]:
         return []
 
     def get_claim(self, claim_id: str) -> dict | None:
         return next((claim for claim in self._claims if claim["id"] == claim_id), None)
+
+    def resolve_claim(self, claim_id: str) -> str | None:
+        return claim_id if self.get_claim(claim_id) is not None else None
+
+    def get_concept(self, concept_id: str) -> dict | None:
+        for concept in self.all_concepts():
+            if concept["id"] == concept_id:
+                return concept
+        return None
 
 
 def _make_bound(**bindings: object) -> BoundWorld:
