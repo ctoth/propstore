@@ -4,12 +4,12 @@ import hashlib
 import json
 
 from propstore.artifacts.codes import attach_source_artifact_codes
-from propstore.artifacts import (
-    ClaimReferenceResolver,
+from propstore.artifacts.indexes import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
-    SourceRef,
 )
+from propstore.artifacts.refs import SourceRef
+from propstore.artifacts.resolution import ClaimReferenceResolver
 from propstore.repository import Repository
 from quire.documents import convert_document_value
 from propstore.source_calibration import derive_source_trust

@@ -3,18 +3,10 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TypeVar
+from typing import TypeVar, cast
 
-from propstore.artifacts import SOURCE_DOCUMENT_FAMILY, SourceRef
-
-# Imported directly from ``propstore.artifacts.refs`` rather than via
-# ``propstore.artifacts`` so pyright can statically resolve the
-# re-exports in ``propstore.source.__init__``. ``propstore.artifacts``
-# exposes these names through a lazy ``__getattr__`` dispatch table,
-# which pyright types as ``object`` — transitive re-exports then fail
-# analysis even though the runtime binding is correct (WS-Z-gates
-# Phase 4 Deliverable 5: pyright cleanup).
-from propstore.artifacts.refs import normalize_source_slug
+from propstore.artifacts.families import SOURCE_DOCUMENT_FAMILY
+from propstore.artifacts.refs import SourceRef, normalize_source_slug
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.provenance import ProvenanceStatus
@@ -38,7 +30,7 @@ TDocument = TypeVar("TDocument")
 
 
 def source_branch_name(name: str) -> str:
-    return SOURCE_DOCUMENT_FAMILY.address_for(object(), SourceRef(name)).branch
+    return SOURCE_DOCUMENT_FAMILY.address_for(cast(Repository, object()), SourceRef(name)).branch
 
 
 def utc_now() -> str:

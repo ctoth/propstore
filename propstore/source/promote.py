@@ -25,12 +25,15 @@ from pathlib import Path
 from typing import Any
 
 from propstore.artifacts.codes import attach_source_artifact_codes
-from propstore.artifacts import (
-    ClaimReferenceResolver,
-    load_primary_branch_claim_reference_index,
+from propstore.artifacts.identity import (
     normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
+)
+from propstore.artifacts.indexes import (
+    load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
+)
+from propstore.artifacts.refs import (
     CanonicalSourceRef,
     ClaimsFileRef,
     ConceptFileRef,
@@ -38,6 +41,7 @@ from propstore.artifacts import (
     MicropubsFileRef,
     StanceFileRef,
 )
+from propstore.artifacts.resolution import ClaimReferenceResolver
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
