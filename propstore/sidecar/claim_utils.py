@@ -7,11 +7,12 @@ import json
 import logging
 import sqlite3
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Sequence
+from typing import Sequence
 
 from ast_equiv import canonical_dump
 
 from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_source_paper
+from propstore.compiler.ir import SemanticClaim
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.claim_types import ClaimType
 from propstore.dimensions import normalize_to_si
@@ -26,9 +27,6 @@ from propstore.identity import (
 )
 from propstore.sidecar.concept_utils import resolve_concept_reference
 from propstore.stances import VALID_STANCE_TYPES
-
-if TYPE_CHECKING:
-    from propstore.compiler.ir import SemanticClaim
 
 
 @dataclass(frozen=True)
@@ -504,7 +502,7 @@ def extract_deferred_stance_rows(
     *,
     source_paper: str,
 ) -> list[tuple]:
-    if hasattr(claim, "resolved_claim") and hasattr(claim, "stances"):
+    if isinstance(claim, SemanticClaim):
         semantic_claim = claim
         claim_data = semantic_claim.resolved_claim
         claim_id = (
@@ -585,7 +583,7 @@ def prepare_claim_insert_row(
 ) -> dict[str, object]:
     from propstore.description_generator import generate_description
 
-    if hasattr(claim, "resolved_claim") and hasattr(claim, "source_paper"):
+    if isinstance(claim, SemanticClaim):
         semantic_claim = claim
         normalized_claim = copy.deepcopy(semantic_claim.resolved_claim)
         effective_source_paper = str(source_paper or semantic_claim.source_paper)
