@@ -13,7 +13,7 @@ from quire.references import (
     build_reference_lookup,
 )
 
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
+from propstore.artifacts.families import semantic_foreign_keys
 from propstore.claims import (
     ClaimFileEntry,
     claim_file_claims,
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
-    return SEMANTIC_FAMILIES.foreign_keys()
+    return semantic_foreign_keys()
 
 
 def build_claim_reference_lookup(

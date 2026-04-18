@@ -9,8 +9,8 @@ from typing import Mapping
 from propstore.artifacts.codecs import decode_yaml_mapping
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.forms import FormDocument
+from propstore.artifacts.families import PropstoreFamily, semantic_init_roots, semantic_root_path
 from propstore.artifacts.refs import ConceptFileRef, FormRef
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from propstore.repository import Repository
 from quire.documents import convert_document_value
 
@@ -29,7 +29,7 @@ class ProjectInitReport:
 def initialize_project(root: Path) -> ProjectInitReport:
     """Initialize a project and seed packaged forms/concepts when needed."""
     paths = _project_paths(root)
-    if SEMANTIC_FAMILIES.root_path("concept", root).is_dir():
+    if semantic_root_path(PropstoreFamily.CONCEPTS.value, root).is_dir():
         return ProjectInitReport(root=root, initialized=False, paths=paths)
 
     repo = Repository.init(root)
@@ -51,9 +51,8 @@ def initialize_project(root: Path) -> ProjectInitReport:
 
 def _project_paths(root: Path) -> tuple[Path, ...]:
     semantic_paths = [
-        SEMANTIC_FAMILIES.root_path(name, root)
-        for name in SEMANTIC_FAMILIES.names()
-        if SEMANTIC_FAMILIES.by_name(name).init_directory
+        root / semantic_root
+        for semantic_root in semantic_init_roots()
     ]
     return (
         *semantic_paths,

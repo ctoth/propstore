@@ -6,7 +6,11 @@ from pathlib import Path
 
 from quire.documents import DocumentStruct, decode_document_bytes
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
+from propstore.artifacts.families import (
+    PropstoreFamily,
+    semantic_init_roots,
+    semantic_root_path,
+)
 from propstore.uri import DEFAULT_URI_AUTHORITY
 
 
@@ -34,15 +38,15 @@ class Repository:
 
     @property
     def concepts_dir(self) -> Path:
-        return SEMANTIC_FAMILIES.root_path("concept", self)
+        return semantic_root_path(PropstoreFamily.CONCEPTS.value, self)
 
     @property
     def claims_dir(self) -> Path:
-        return SEMANTIC_FAMILIES.root_path("claim", self)
+        return semantic_root_path(PropstoreFamily.CLAIMS.value, self)
 
     @property
     def forms_dir(self) -> Path:
-        return SEMANTIC_FAMILIES.root_path("form", self)
+        return semantic_root_path(PropstoreFamily.FORMS.value, self)
 
     @property
     def sidecar_dir(self) -> Path:
@@ -54,11 +58,11 @@ class Repository:
 
     @property
     def contexts_dir(self) -> Path:
-        return SEMANTIC_FAMILIES.root_path("context", self)
+        return semantic_root_path(PropstoreFamily.CONTEXTS.value, self)
 
     @property
     def stances_dir(self) -> Path:
-        return SEMANTIC_FAMILIES.root_path("stance", self)
+        return semantic_root_path(PropstoreFamily.STANCES.value, self)
 
     @property
     def justifications_dir(self) -> Path:
@@ -70,7 +74,7 @@ class Repository:
 
     @property
     def worldlines_dir(self) -> Path:
-        return SEMANTIC_FAMILIES.root_path("worldline", self)
+        return semantic_root_path(PropstoreFamily.WORLDLINES.value, self)
 
     @property
     def config_path(self) -> Path:
@@ -148,7 +152,7 @@ class Repository:
         current = (start or Path.cwd()).resolve()
         # If start itself has the knowledge structure (e.g. -C pointed at it,
         # or cwd is already the knowledge dir)
-        if SEMANTIC_FAMILIES.root_path("concept", current).is_dir():
+        if semantic_root_path(PropstoreFamily.CONCEPTS.value, current).is_dir():
             if is_git_repo(current):
                 return cls(current)
             raise RepositoryNotFound(
@@ -158,7 +162,7 @@ class Repository:
         # Walk up looking for knowledge/
         for ancestor in [current, *current.parents]:
             candidate = ancestor / "knowledge"
-            if candidate.is_dir() and SEMANTIC_FAMILIES.root_path("concept", candidate).is_dir():
+            if candidate.is_dir() and semantic_root_path(PropstoreFamily.CONCEPTS.value, candidate).is_dir():
                 if is_git_repo(candidate):
                     return cls(candidate)
         raise RepositoryNotFound(
@@ -176,9 +180,8 @@ class Repository:
         # Create dirs after git init so sync_worktree doesn't remove them
         repo = cls(root)
         dirs = [
-            SEMANTIC_FAMILIES.root_path(name, repo)
-            for name in SEMANTIC_FAMILIES.names()
-            if SEMANTIC_FAMILIES.by_name(name).init_directory
+            repo.root / root
+            for root in semantic_init_roots()
         ]
         dirs.extend([
             repo.concepts_dir / ".counters",
