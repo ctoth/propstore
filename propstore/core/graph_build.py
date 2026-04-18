@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from propstore.conflict_detector import ConflictClass
+from propstore.cel_types import to_cel_exprs
 from propstore.core.claim_types import ClaimType
 from propstore.core.environment import (
     ClaimCatalogStore,
@@ -23,6 +24,7 @@ from propstore.core.id_types import (
     to_concept_id,
     to_concept_ids,
 )
+from propstore.core.graph_relation_types import coerce_graph_relation_type
 from propstore.core.graph_types import (
     ClaimNode,
     CompiledWorldGraph,
@@ -75,6 +77,8 @@ def _row_provenance(
         extras["source_id"] = source_id or row.get("id")
         return ProvenanceRecord.from_mapping(extras)
 
+    if not isinstance(row, Mapping):
+        raise TypeError("non-claim provenance rows must be mappings")
     extras = dict(row)
     extras["source_table"] = source_table
     if source_id is not None:
@@ -91,7 +95,7 @@ def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
     )
 
 
-def _claim_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
+def _claim_attributes(row: ClaimRow) -> tuple[tuple[str, Any], ...]:
     claim_data: dict[str, Any] = dict(row.attributes)
     optional_fields = {
         "seq": row.seq,
@@ -276,7 +280,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                 RelationEdge(
                     source_id=row.source_id,
                     target_id=row.target_id,
-                    relation_type=row.relation_type,
+                    relation_type=coerce_graph_relation_type(row.relation_type.value),
                     provenance=_row_provenance(
                         row.to_dict(),
                         source_table="relationship",
@@ -311,7 +315,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                             else str(stance.target_claim_id)
                         ),
                     ),
-                    relation_type=stance.stance_type,
+                    relation_type=coerce_graph_relation_type(stance.stance_type.value),
                     provenance=_row_provenance(
                         stance.to_dict(),
                         source_table="relation_edge",
@@ -336,7 +340,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     formula=parameterization.formula,
                     sympy=parameterization.sympy,
                     exactness=parameterization.exactness,
-                    conditions=_parse_json_list(parameterization.conditions_cel),
+                    conditions=to_cel_exprs(_parse_json_list(parameterization.conditions_cel)),
                     provenance=_row_provenance(
                         {
                             **parameterization.attributes,
@@ -363,21 +367,25 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         sorted(
             (
                 ConflictWitness(
-                    left_claim_id=claim_display_ids.get(
-                        str(conflict.claim_a_id),
-                        (
-                            _display_claim_id(store, str(conflict.claim_a_id))
-                            if prefer_logical_claim_ids
-                            else str(conflict.claim_a_id)
-                        ),
+                    left_claim_id=to_claim_id(
+                        claim_display_ids.get(
+                            str(conflict.claim_a_id),
+                            (
+                                _display_claim_id(store, str(conflict.claim_a_id))
+                                if prefer_logical_claim_ids
+                                else str(conflict.claim_a_id)
+                            ),
+                        )
                     ),
-                    right_claim_id=claim_display_ids.get(
-                        str(conflict.claim_b_id),
-                        (
-                            _display_claim_id(store, str(conflict.claim_b_id))
-                            if prefer_logical_claim_ids
-                            else str(conflict.claim_b_id)
-                        ),
+                    right_claim_id=to_claim_id(
+                        claim_display_ids.get(
+                            str(conflict.claim_b_id),
+                            (
+                                _display_claim_id(store, str(conflict.claim_b_id))
+                                if prefer_logical_claim_ids
+                                else str(conflict.claim_b_id)
+                            ),
+                        )
                     ),
                     kind=(
                         warning_class.value
