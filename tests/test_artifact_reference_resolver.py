@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.artifacts import (
+from propstore.artifacts.refs import ClaimsFileRef, SourceRef
+from propstore.claim_references import (
     ClaimReferenceIndex,
     ClaimReferenceResolver,
-    ClaimsFileRef,
     ImportedClaimHandleIndex,
-    SourceRef,
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )

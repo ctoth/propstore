@@ -3,8 +3,8 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from propstore.artifacts import normalize_canonical_concept_payload
 from propstore.core.concepts import parse_concept_record_document
+from propstore.artifacts.identity import normalize_canonical_concept_payload
 from propstore.repository import Repository
 from propstore.parameterization_groups import build_groups
 

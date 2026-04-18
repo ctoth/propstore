@@ -4,8 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
-from propstore.artifacts import SourceRef
 from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument
+from propstore.artifacts.refs import SourceRef
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.artifacts.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository
