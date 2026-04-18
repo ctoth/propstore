@@ -6,9 +6,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from propstore.artifacts.semantic_families import (
+from propstore.artifacts.families import (
     PlannedSemanticWrite,
-    SEMANTIC_FAMILIES,
+    normalize_semantic_import_writes,
+    semantic_family_for_path,
+    semantic_import_roots,
 )
 
 if TYPE_CHECKING:
@@ -56,7 +58,7 @@ def _iter_semantic_paths(repository: Repository, *, commit: str) -> dict[str, by
         snapshot_file.relpath: snapshot_file.content
         for snapshot_file in repository.snapshot.files(
             commit=commit,
-            roots=SEMANTIC_FAMILIES.import_roots(),
+            roots=semantic_import_roots(),
         )
     }
 
@@ -82,7 +84,7 @@ def plan_repository_import(
     primary_branch = destination_repository.snapshot.primary_branch_name()
     repository_name = _infer_repository_name(source_repository)
     selected_branch = target_branch or f"import/{repository_name}"
-    writes, warnings = SEMANTIC_FAMILIES.normalize_import_writes(
+    writes, warnings = normalize_semantic_import_writes(
         destination_repository.families.store,
         _iter_semantic_paths(source_repository, commit=source_commit),
         repository_name=repository_name,
@@ -134,7 +136,7 @@ def commit_repository_import(
                 cast(Any, planned_write.document),
             )
         for path in plan.deletes:
-            semantic_family = SEMANTIC_FAMILIES.family_for_path(path)
+            semantic_family = semantic_family_for_path(path)
             bound_family = transaction.by_artifact_family(cast(Any, semantic_family.artifact_family))
             bound_family.delete(bound_family.ref_from_path(path))
     commit_sha = transaction.commit_sha

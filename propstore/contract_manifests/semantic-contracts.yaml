@@ -5,393 +5,486 @@ package:
 contracts:
 - kind: artifact_family
   name: canonical_source
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        policy: primary
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: sources
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.families._PrimaryYamlLayout.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: claims_file
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.claims.ClaimsFileDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.semantic_families._semantic_list_refs.<locals>.list_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.semantic_families._semantic_ref_from_loaded.<locals>.ref_from_loaded
-    ref_from_path: propstore.artifacts.semantic_families._semantic_ref_from_path.<locals>.ref_from_path
+    placement:
+      branch:
+        policy: primary
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: claims
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.semantic_families._semantic_resolve.<locals>.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: concept_alignment
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.source_alignment.ConceptAlignmentArtifactDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        fixed_branch: proposal/concepts
+        policy: fixed
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: merge/concepts
+      ref_field: slug
     render_document: null
-    resolve_ref: propstore.artifacts.families._concept_alignment_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: concept_file
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.concepts.ConceptDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.semantic_families._semantic_list_refs.<locals>.list_refs
-    normalize_for_write: propstore.artifacts.semantic_families._normalize_concept_for_write
-    ref_from_loaded: propstore.artifacts.semantic_families._semantic_ref_from_loaded.<locals>.ref_from_loaded
-    ref_from_path: propstore.artifacts.semantic_families._semantic_ref_from_path.<locals>.ref_from_path
+    normalize_for_write: propstore.artifacts.families._normalize_concept_for_write
+    placement:
+      branch:
+        policy: primary
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: concepts
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.semantic_families._semantic_resolve.<locals>.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: context
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.contexts.ContextDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.semantic_families._semantic_list_refs.<locals>.list_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.semantic_families._semantic_ref_from_loaded.<locals>.ref_from_loaded
-    ref_from_path: propstore.artifacts.semantic_families._semantic_ref_from_path.<locals>.ref_from_path
+    placement:
+      branch:
+        policy: current
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: contexts
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.semantic_families._semantic_resolve.<locals>.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: form
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.forms.FormDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.semantic_families._semantic_list_refs.<locals>.list_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.semantic_families._semantic_ref_from_loaded.<locals>.ref_from_loaded
-    ref_from_path: propstore.artifacts.semantic_families._semantic_ref_from_path.<locals>.ref_from_path
+    placement:
+      branch:
+        policy: current
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: forms
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.semantic_families._semantic_resolve.<locals>.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: justifications_file
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.families._PrimaryYamlLayout.list_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.families._PrimaryYamlLayout.ref_from_loaded
-    ref_from_path: propstore.artifacts.families._PrimaryYamlLayout.ref_from_path
+    placement:
+      branch:
+        policy: primary
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: justifications
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.families._PrimaryYamlLayout.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: merge_manifest
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.merge.MergeManifestDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        policy: primary
+      filename: merge/manifest.yaml
+      kind: singleton-file
     render_document: null
-    resolve_ref: propstore.artifacts.families._merge_manifest_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: micropubs_file
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.families._PrimaryYamlLayout.list_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.families._PrimaryYamlLayout.ref_from_loaded
-    ref_from_path: propstore.artifacts.families._PrimaryYamlLayout.ref_from_path
+    placement:
+      branch:
+        policy: primary
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: micropubs
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.families._PrimaryYamlLayout.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: predicate_file
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.predicates.PredicatesFileDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.semantic_families._semantic_list_refs.<locals>.list_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.semantic_families._semantic_ref_from_loaded.<locals>.ref_from_loaded
-    ref_from_path: propstore.artifacts.semantic_families._semantic_ref_from_path.<locals>.ref_from_path
+    placement:
+      branch:
+        policy: primary
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: predicates
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.semantic_families._semantic_resolve.<locals>.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: proposal_stance_file
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.stances.StanceFileDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.families._PrimaryYamlLayout.list_refs
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: propstore.artifacts.families._PrimaryYamlLayout.ref_from_path
+    placement:
+      branch:
+        fixed_branch: proposal/stances
+        policy: fixed
+      codec: colon_to_double_underscore
+      extension: .yaml
+      kind: flat-yaml
+      namespace: stances
+      ref_field: source_claim
     render_document: null
-    resolve_ref: propstore.artifacts.families._proposal_stance_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: rule_file
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.rules.RulesFileDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.semantic_families._semantic_list_refs.<locals>.list_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.semantic_families._semantic_ref_from_loaded.<locals>.ref_from_loaded
-    ref_from_path: propstore.artifacts.semantic_families._semantic_ref_from_path.<locals>.ref_from_path
+    placement:
+      branch:
+        policy: primary
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: rules
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.semantic_families._semantic_resolve.<locals>.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_claims
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceClaimsDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        codec: safe_slug
+        policy: template
+        ref_field: name
+        template: source/{stem}
+      filename: claims.yaml
+      kind: fixed-file
     render_document: null
-    resolve_ref: propstore.artifacts.families._source_claims_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_concepts
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceConceptsDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        codec: safe_slug
+        policy: template
+        ref_field: name
+        template: source/{stem}
+      filename: concepts.yaml
+      kind: fixed-file
     render_document: null
-    resolve_ref: propstore.artifacts.families._source_concepts_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_document
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        codec: safe_slug
+        policy: template
+        ref_field: name
+        template: source/{stem}
+      filename: source.yaml
+      kind: fixed-file
     render_document: null
-    resolve_ref: propstore.artifacts.families._source_document_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_finalize_report
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceFinalizeReportDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        codec: safe_slug
+        policy: template
+        ref_field: name
+        template: source/{stem}
+      codec: safe_slug
+      kind: template-file
+      ref_field: name
+      template: merge/finalize/{stem}.yaml
     render_document: null
-    resolve_ref: propstore.artifacts.families._source_finalize_report_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_justifications
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        codec: safe_slug
+        policy: template
+        ref_field: name
+        template: source/{stem}
+      filename: justifications.yaml
+      kind: fixed-file
     render_document: null
-    resolve_ref: propstore.artifacts.families._source_justifications_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_metadata
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: propstore.artifacts.families._coerce_json_mapping
     decode_bytes: propstore.artifacts.families._decode_json_mapping
     doc_type: builtins.dict
     document_payload: propstore.artifacts.families._identity_json_mapping
     encode_document: propstore.artifacts.families._encode_json_mapping
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        codec: safe_slug
+        policy: template
+        ref_field: name
+        template: source/{stem}
+      filename: metadata.json
+      kind: fixed-file
     render_document: propstore.artifacts.families._render_json_mapping
-    resolve_ref: propstore.artifacts.families._source_metadata_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_micropubs
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        codec: safe_slug
+        policy: template
+        ref_field: name
+        template: source/{stem}
+      filename: micropubs.yaml
+      kind: fixed-file
     render_document: null
-    resolve_ref: propstore.artifacts.families._source_micropubs_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_notes
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: propstore.artifacts.families._coerce_text_document
     decode_bytes: propstore.artifacts.families._decode_text_document
     doc_type: builtins.str
     document_payload: propstore.artifacts.families._identity_text_document
     encode_document: propstore.artifacts.families._encode_text_document
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        codec: safe_slug
+        policy: template
+        ref_field: name
+        template: source/{stem}
+      filename: notes.md
+      kind: fixed-file
     render_document: propstore.artifacts.families._identity_text_document
-    resolve_ref: propstore.artifacts.families._source_notes_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: source_stances
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.sources.SourceStancesDocument
     document_payload: null
     encode_document: null
-    list_refs: null
     normalize_for_write: null
-    ref_from_loaded: null
-    ref_from_path: null
+    placement:
+      branch:
+        codec: safe_slug
+        policy: template
+        ref_field: name
+        template: source/{stem}
+      filename: stances.yaml
+      kind: fixed-file
     render_document: null
-    resolve_ref: propstore.artifacts.families._source_stances_artifact
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: stance_file
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.stances.StanceFileDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.semantic_families._semantic_list_refs.<locals>.list_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.semantic_families._semantic_ref_from_loaded.<locals>.ref_from_loaded
-    ref_from_path: propstore.artifacts.semantic_families._semantic_ref_from_path.<locals>.ref_from_path
+    placement:
+      branch:
+        policy: primary
+      codec: colon_to_double_underscore
+      extension: .yaml
+      kind: flat-yaml
+      namespace: stances
+      ref_field: source_claim
     render_document: null
-    resolve_ref: propstore.artifacts.semantic_families._semantic_resolve.<locals>.resolve
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: worldline
-  contract_version: 2026.04.23
+  contract_version: 2026.04.24
   body:
     coerce_payload: null
     decode_bytes: null
     doc_type: propstore.artifacts.documents.worldlines.WorldlineDefinitionDocument
     document_payload: null
     encode_document: null
-    list_refs: propstore.artifacts.semantic_families._semantic_list_refs.<locals>.list_refs
     normalize_for_write: null
-    ref_from_loaded: propstore.artifacts.semantic_families._semantic_ref_from_loaded.<locals>.ref_from_loaded
-    ref_from_path: propstore.artifacts.semantic_families._semantic_ref_from_path.<locals>.ref_from_path
+    placement:
+      branch:
+        policy: current
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: worldlines
+      ref_field: name
     render_document: null
-    resolve_ref: propstore.artifacts.semantic_families._semantic_resolve.<locals>.resolve
     scan_type: null
     validate_for_write: null
 - kind: claim_type_contract
@@ -2740,6 +2833,626 @@ contracts:
       required: true
       type: str | None
     module: propstore.artifacts.documents.worldlines
+- kind: family-registry
+  name: propstore
+  contract_version: 2026.04.24
+  body:
+    families:
+    - contract_version: 2026.04.24
+      key: claims
+      name: claims
+    - contract_version: 2026.04.24
+      key: concepts
+      name: concepts
+    - contract_version: 2026.04.24
+      key: contexts
+      name: contexts
+    - contract_version: 2026.04.24
+      key: forms
+      name: forms
+    - contract_version: 2026.04.24
+      key: predicates
+      name: predicates
+    - contract_version: 2026.04.24
+      key: rules
+      name: rules
+    - contract_version: 2026.04.24
+      key: stances
+      name: stances
+    - contract_version: 2026.04.24
+      key: worldlines
+      name: worldlines
+    - contract_version: 2026.04.24
+      key: sources
+      name: sources
+    - contract_version: 2026.04.24
+      key: micropubs
+      name: micropubs
+    - contract_version: 2026.04.24
+      key: justifications
+      name: justifications
+    - contract_version: 2026.04.24
+      key: source_documents
+      name: source_documents
+    - contract_version: 2026.04.24
+      key: source_notes
+      name: source_notes
+    - contract_version: 2026.04.24
+      key: source_metadata
+      name: source_metadata
+    - contract_version: 2026.04.24
+      key: source_concepts
+      name: source_concepts
+    - contract_version: 2026.04.24
+      key: source_claims
+      name: source_claims
+    - contract_version: 2026.04.24
+      key: source_micropubs
+      name: source_micropubs
+    - contract_version: 2026.04.24
+      key: source_justifications
+      name: source_justifications
+    - contract_version: 2026.04.24
+      key: source_stances
+      name: source_stances
+    - contract_version: 2026.04.24
+      key: source_finalize_reports
+      name: source_finalize_reports
+    - contract_version: 2026.04.24
+      key: proposal_stances
+      name: proposal_stances
+    - contract_version: 2026.04.24
+      key: concept_alignments
+      name: concept_alignments
+    - contract_version: 2026.04.24
+      key: merge_manifests
+      name: merge_manifests
+- kind: family
+  name: claims
+  contract_version: 2026.04.24
+  body:
+    accessor: claims
+    artifact_family: claims_file
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.claims.ClaimsFileDocument
+      placement:
+        branch:
+          policy: primary
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: claims
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys:
+    - many: false
+      required: true
+      source_family: claim
+      source_field: concept
+      target_family: concept
+    - many: true
+      required: true
+      source_family: claim
+      source_field: concepts
+      target_family: concept
+    - many: false
+      required: true
+      source_family: claim
+      source_field: variables[].concept
+      target_family: concept
+    - many: false
+      required: true
+      source_family: claim
+      source_field: parameters[].concept
+      target_family: concept
+    - many: false
+      required: true
+      source_family: claim
+      source_field: target_concept
+      target_family: concept
+    - many: false
+      required: true
+      source_family: claim
+      source_field: stances[].target
+      target_family: claim
+    - many: false
+      required: true
+      source_family: claim
+      source_field: context
+      target_family: context
+    key: claims
+    metadata:
+      collection_field: claims
+      import_order: 20
+      importable: true
+      init_directory: true
+      semantic: true
+- kind: family
+  name: concept_alignments
+  contract_version: 2026.04.24
+  body:
+    accessor: concept_alignments
+    artifact_family: concept_alignment
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.source_alignment.ConceptAlignmentArtifactDocument
+      placement:
+        branch:
+          fixed_branch: proposal/concepts
+          policy: fixed
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: merge/concepts
+        ref_field: slug
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: concept_alignments
+- kind: family
+  name: concepts
+  contract_version: 2026.04.24
+  body:
+    accessor: concepts
+    artifact_family: concept_file
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.concepts.ConceptDocument
+      placement:
+        branch:
+          policy: primary
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: concepts
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys:
+    - many: true
+      required: true
+      source_family: concept
+      source_field: parameterization_relationships[].inputs[]
+      target_family: concept
+    - many: false
+      required: false
+      source_family: concept
+      source_field: parameterization_relationships[].canonical_claim
+      target_family: claim
+    - many: false
+      required: false
+      source_family: concept
+      source_field: replaced_by
+      target_family: concept
+    - many: true
+      required: true
+      source_family: concept
+      source_field: relationships[].target
+      target_family: concept
+    - many: false
+      required: true
+      source_family: concept
+      source_field: form
+      target_family: form
+    key: concepts
+    metadata:
+      collection_field: null
+      import_order: 10
+      importable: true
+      init_directory: true
+      semantic: true
+- kind: family
+  name: contexts
+  contract_version: 2026.04.24
+  body:
+    accessor: contexts
+    artifact_family: context
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.contexts.ContextDocument
+      placement:
+        branch:
+          policy: current
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: contexts
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: contexts
+    metadata:
+      collection_field: null
+      import_order: 30
+      importable: true
+      init_directory: true
+      semantic: true
+- kind: family
+  name: forms
+  contract_version: 2026.04.24
+  body:
+    accessor: forms
+    artifact_family: form
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.forms.FormDocument
+      placement:
+        branch:
+          policy: current
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: forms
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: forms
+    metadata:
+      collection_field: null
+      import_order: 30
+      importable: true
+      init_directory: true
+      semantic: true
+- kind: family
+  name: justifications
+  contract_version: 2026.04.24
+  body:
+    accessor: justifications
+    artifact_family: justifications_file
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
+      placement:
+        branch:
+          policy: primary
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: justifications
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: justifications
+- kind: family
+  name: merge_manifests
+  contract_version: 2026.04.24
+  body:
+    accessor: merge_manifests
+    artifact_family: merge_manifest
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.merge.MergeManifestDocument
+      placement:
+        branch:
+          policy: primary
+        filename: merge/manifest.yaml
+        kind: singleton-file
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: merge_manifests
+- kind: family
+  name: micropubs
+  contract_version: 2026.04.24
+  body:
+    accessor: micropubs
+    artifact_family: micropubs_file
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
+      placement:
+        branch:
+          policy: primary
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: micropubs
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: micropubs
+- kind: family
+  name: predicates
+  contract_version: 2026.04.24
+  body:
+    accessor: predicates
+    artifact_family: predicate_file
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.predicates.PredicatesFileDocument
+      placement:
+        branch:
+          policy: primary
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: predicates
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: predicates
+    metadata:
+      collection_field: predicates
+      import_order: 40
+      importable: true
+      init_directory: true
+      semantic: true
+- kind: family
+  name: proposal_stances
+  contract_version: 2026.04.24
+  body:
+    accessor: proposal_stances
+    artifact_family: proposal_stance_file
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.stances.StanceFileDocument
+      placement:
+        branch:
+          fixed_branch: proposal/stances
+          policy: fixed
+        codec: colon_to_double_underscore
+        extension: .yaml
+        kind: flat-yaml
+        namespace: stances
+        ref_field: source_claim
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: proposal_stances
+- kind: family
+  name: rules
+  contract_version: 2026.04.24
+  body:
+    accessor: rules
+    artifact_family: rule_file
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.rules.RulesFileDocument
+      placement:
+        branch:
+          policy: primary
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: rules
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: rules
+    metadata:
+      collection_field: rules
+      import_order: 50
+      importable: true
+      init_directory: true
+      semantic: true
+- kind: family
+  name: source_claims
+  contract_version: 2026.04.24
+  body:
+    accessor: source_claims
+    artifact_family: source_claims
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.sources.SourceClaimsDocument
+      placement:
+        branch:
+          codec: safe_slug
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: claims.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: source_claims
+- kind: family
+  name: source_concepts
+  contract_version: 2026.04.24
+  body:
+    accessor: source_concepts
+    artifact_family: source_concepts
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.sources.SourceConceptsDocument
+      placement:
+        branch:
+          codec: safe_slug
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: concepts.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: source_concepts
+- kind: family
+  name: source_documents
+  contract_version: 2026.04.24
+  body:
+    accessor: source_documents
+    artifact_family: source_document
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.sources.SourceDocument
+      placement:
+        branch:
+          codec: safe_slug
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: source.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: source_documents
+- kind: family
+  name: source_finalize_reports
+  contract_version: 2026.04.24
+  body:
+    accessor: source_finalize_reports
+    artifact_family: source_finalize_report
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.sources.SourceFinalizeReportDocument
+      placement:
+        branch:
+          codec: safe_slug
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        codec: safe_slug
+        kind: template-file
+        ref_field: name
+        template: merge/finalize/{stem}.yaml
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: source_finalize_reports
+- kind: family
+  name: source_justifications
+  contract_version: 2026.04.24
+  body:
+    accessor: source_justifications
+    artifact_family: source_justifications
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
+      placement:
+        branch:
+          codec: safe_slug
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: justifications.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: source_justifications
+- kind: family
+  name: source_metadata
+  contract_version: 2026.04.24
+  body:
+    accessor: source_metadata
+    artifact_family: source_metadata
+    artifact_family_contract:
+      doc_type: builtins.dict
+      placement:
+        branch:
+          codec: safe_slug
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: metadata.json
+        kind: fixed-file
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: source_metadata
+- kind: family
+  name: source_micropubs
+  contract_version: 2026.04.24
+  body:
+    accessor: source_micropubs
+    artifact_family: source_micropubs
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
+      placement:
+        branch:
+          codec: safe_slug
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: micropubs.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: source_micropubs
+- kind: family
+  name: source_notes
+  contract_version: 2026.04.24
+  body:
+    accessor: source_notes
+    artifact_family: source_notes
+    artifact_family_contract:
+      doc_type: builtins.str
+      placement:
+        branch:
+          codec: safe_slug
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: notes.md
+        kind: fixed-file
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: source_notes
+- kind: family
+  name: source_stances
+  contract_version: 2026.04.24
+  body:
+    accessor: source_stances
+    artifact_family: source_stances
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.sources.SourceStancesDocument
+      placement:
+        branch:
+          codec: safe_slug
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: stances.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: source_stances
+- kind: family
+  name: sources
+  contract_version: 2026.04.24
+  body:
+    accessor: sources
+    artifact_family: canonical_source
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.sources.SourceDocument
+      placement:
+        branch:
+          policy: primary
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: sources
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: sources
+- kind: family
+  name: stances
+  contract_version: 2026.04.24
+  body:
+    accessor: stances
+    artifact_family: stance_file
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.stances.StanceFileDocument
+      placement:
+        branch:
+          policy: primary
+        codec: colon_to_double_underscore
+        extension: .yaml
+        kind: flat-yaml
+        namespace: stances
+        ref_field: source_claim
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: stances
+    metadata:
+      collection_field: stances
+      import_order: 60
+      importable: true
+      init_directory: true
+      semantic: true
+- kind: family
+  name: worldlines
+  contract_version: 2026.04.24
+  body:
+    accessor: worldlines
+    artifact_family: worldline
+    artifact_family_contract:
+      doc_type: propstore.artifacts.documents.worldlines.WorldlineDefinitionDocument
+      placement:
+        branch:
+          policy: current
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: worldlines
+        ref_field: name
+    artifact_family_contract_version: 2026.04.24
+    foreign_keys: []
+    key: worldlines
+    metadata:
+      collection_field: null
+      import_order: 70
+      importable: true
+      init_directory: true
+      semantic: true
 - kind: foreign_key
   name: claim_concept
   contract_version: 2026.04.22
@@ -2848,146 +3561,6 @@ contracts:
     source_family: concept
     source_field: replaced_by
     target_family: concept
-- kind: semantic_family
-  name: claim
-  contract_version: 2026.04.23
-  body:
-    artifact_family: claims_file
-    branch_policy: primary
-    collection_field: claims
-    document_type: propstore.artifacts.documents.claims.ClaimsFileDocument
-    extension: .yaml
-    filename_codec: stem
-    foreign_keys:
-    - claim_concept
-    - claim_concepts
-    - claim_variable_concept
-    - claim_parameter_concept
-    - claim_measurement_target_concept
-    - claim_stance_target
-    - claim_context
-    import_order: 20
-    importable: true
-    init_directory: true
-    ref_type: propstore.artifacts.refs.ClaimsFileRef
-    root: claims
-- kind: semantic_family
-  name: concept
-  contract_version: 2026.04.23
-  body:
-    artifact_family: concept_file
-    branch_policy: primary
-    collection_field: null
-    document_type: propstore.artifacts.documents.concepts.ConceptDocument
-    extension: .yaml
-    filename_codec: stem
-    foreign_keys:
-    - concept_parameterization_input
-    - concept_parameterization_canonical_claim
-    - concept_replaced_by
-    - concept_relationship_target
-    - concept_form
-    import_order: 10
-    importable: true
-    init_directory: true
-    ref_type: propstore.artifacts.refs.ConceptFileRef
-    root: concepts
-- kind: semantic_family
-  name: context
-  contract_version: 2026.04.23
-  body:
-    artifact_family: context
-    branch_policy: current
-    collection_field: null
-    document_type: propstore.artifacts.documents.contexts.ContextDocument
-    extension: .yaml
-    filename_codec: stem
-    foreign_keys: []
-    import_order: 30
-    importable: true
-    init_directory: true
-    ref_type: propstore.artifacts.refs.ContextRef
-    root: contexts
-- kind: semantic_family
-  name: form
-  contract_version: 2026.04.23
-  body:
-    artifact_family: form
-    branch_policy: current
-    collection_field: null
-    document_type: propstore.artifacts.documents.forms.FormDocument
-    extension: .yaml
-    filename_codec: stem
-    foreign_keys: []
-    import_order: 30
-    importable: true
-    init_directory: true
-    ref_type: propstore.artifacts.refs.FormRef
-    root: forms
-- kind: semantic_family
-  name: predicate
-  contract_version: 2026.04.23
-  body:
-    artifact_family: predicate_file
-    branch_policy: primary
-    collection_field: predicates
-    document_type: propstore.artifacts.documents.predicates.PredicatesFileDocument
-    extension: .yaml
-    filename_codec: stem
-    foreign_keys: []
-    import_order: 40
-    importable: true
-    init_directory: true
-    ref_type: propstore.artifacts.refs.PredicateFileRef
-    root: predicates
-- kind: semantic_family
-  name: rule
-  contract_version: 2026.04.23
-  body:
-    artifact_family: rule_file
-    branch_policy: primary
-    collection_field: rules
-    document_type: propstore.artifacts.documents.rules.RulesFileDocument
-    extension: .yaml
-    filename_codec: stem
-    foreign_keys: []
-    import_order: 50
-    importable: true
-    init_directory: true
-    ref_type: propstore.artifacts.refs.RuleFileRef
-    root: rules
-- kind: semantic_family
-  name: stance
-  contract_version: 2026.04.23
-  body:
-    artifact_family: stance_file
-    branch_policy: primary
-    collection_field: stances
-    document_type: propstore.artifacts.documents.stances.StanceFileDocument
-    extension: .yaml
-    filename_codec: colon_to_double_underscore
-    foreign_keys: []
-    import_order: 60
-    importable: true
-    init_directory: true
-    ref_type: propstore.artifacts.refs.StanceFileRef
-    root: stances
-- kind: semantic_family
-  name: worldline
-  contract_version: 2026.04.23
-  body:
-    artifact_family: worldline
-    branch_policy: current
-    collection_field: null
-    document_type: propstore.artifacts.documents.worldlines.WorldlineDefinitionDocument
-    extension: .yaml
-    filename_codec: stem
-    foreign_keys: []
-    import_order: 70
-    importable: true
-    init_directory: true
-    ref_type: propstore.artifacts.refs.WorldlineRef
-    root: worldlines
 registry:
   name: semantic-family-registry
   contract_version: 2026.04.19
