@@ -542,6 +542,22 @@ Status 2026-04-17: init package experiment reverted.
   - `logs/test-runs/cli-init-flat-20260417-191616.log` - 15 passed.
   - `uv run pyright propstore/cli/init.py propstore/cli/__init__.py` - 0 errors.
 
+Status 2026-04-17: world CLI split landed.
+
+- Moved the `pks world` command group and its CLI-only render helpers from
+  `propstore.cli.compiler_cmds` to flat module `propstore.cli.world_cmds`.
+- Reduced `propstore.cli.compiler_cmds` to compiler-facing top-level commands:
+  `validate`, `build`, raw sidecar `query`, and `export-aliases`.
+- Updated root CLI registration so `world` is imported from
+  `propstore.cli.world_cmds`.
+- Added a layout guard preventing `@world.command` handlers from returning to
+  `compiler_cmds.py`.
+- Verification:
+  - `logs/test-runs/cli-world-split-20260417-192812.log` - 47 passed.
+  - `logs/test-runs/cli-world-split-revision-extensions-20260417-193018.log` - 15 passed.
+  - `logs/test-runs/cli-world-layout-20260417-193048.log` - 1 passed.
+  - `uv run pyright propstore/cli/compiler_cmds.py propstore/cli/world_cmds.py propstore/cli/__init__.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
