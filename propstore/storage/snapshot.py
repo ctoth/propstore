@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar
 
 from quire.documents import decode_document_bytes
 
@@ -44,10 +43,6 @@ def _branch_kind(name: str) -> str:
 
 
 class RepositorySnapshot:
-    @classmethod
-    def for_git(cls, git: Any) -> RepositorySnapshot:
-        return cls(cast("Repository", SimpleNamespace(git=git, tree=lambda commit=None: git.tree(commit=commit))))
-
     def __init__(self, repo: Repository) -> None:
         self._repo = repo
 

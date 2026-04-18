@@ -6,6 +6,7 @@ import yaml
 from propstore.identity import compute_claim_version_id
 from quire.git_store import GitStore
 from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
+from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import summarize_merge_framework
 from propstore.storage.snapshot import RepositorySnapshot
@@ -68,7 +69,9 @@ def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_
 
 
 def _snapshot(kr: GitStore) -> RepositorySnapshot:
-    return RepositorySnapshot.for_git(kr)
+    if kr.root is None:
+        raise ValueError("test snapshot requires a filesystem-backed git store")
+    return RepositorySnapshot(Repository(kr.root))
 
 
 def test_merge_report_surfaces_conflict_query_state(tmp_path):

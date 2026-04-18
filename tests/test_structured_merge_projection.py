@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import yaml
 from hypothesis import given, settings
@@ -9,6 +10,7 @@ from hypothesis import strategies as st
 
 from quire.git_store import GitStore
 from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
+from propstore.repository import Repository
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.merge.structured_merge import (
     build_branch_structured_summary,
@@ -53,7 +55,9 @@ def _obs_claim(cid: str, statement: str) -> dict:
 
 
 def _snapshot(kr: GitStore) -> RepositorySnapshot:
-    return RepositorySnapshot.for_git(kr)
+    if kr.root is None:
+        raise ValueError("test snapshot requires a filesystem-backed git store")
+    return RepositorySnapshot(Repository(kr.root))
 
 
 def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
@@ -224,51 +228,51 @@ def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_
 def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
     extra_targets: list[str],
 ):
-    kr = init_memory_git_store()
-    base_sha = kr.commit_files({}, "seed")
-    branch_name = "paper/out_of_scope"
-    kr.create_branch(branch_name, source_commit=base_sha)
+    with TemporaryDirectory() as temp_dir:
+        kr = init_git_store(Path(temp_dir) / "knowledge")
+        base_sha = kr.commit_files({}, "seed")
+        branch_name = "paper/out_of_scope"
+        kr.create_branch(branch_name, source_commit=base_sha)
 
-    base_claims = [
-        _obs_claim("claim_a", "A"),
-        _obs_claim("claim_b", "B"),
-    ]
-    in_scope_stances = [{"target": "claim_b", "type": "rebuts"}]
-    extra_stances = [
-        {"target": target, "type": "rebuts"}
-        for target in extra_targets
-    ]
+        base_claims = [
+            _obs_claim("claim_a", "A"),
+            _obs_claim("claim_b", "B"),
+        ]
+        extra_stances = [
+            {"target": target, "type": "rebuts"}
+            for target in extra_targets
+        ]
 
-    kr.commit_files(
-        {
-            "claims/claims.yaml": _claim_yaml(base_claims),
-            "stances/claim_a.yaml": _stance_yaml(
-                _artifact_id("claim_a"),
-                [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
-            ),
-        },
-        "left",
-    )
-    kr.commit_files(
-        {
-            "claims/claims.yaml": _claim_yaml(base_claims),
-            "stances/claim_a.yaml": _stance_yaml(
-                _artifact_id("claim_a"),
-                [{"target": _artifact_id("claim_b"), "type": "rebuts"}] + extra_stances,
-            ),
-        },
-        "right",
-        branch=branch_name,
-    )
+        kr.commit_files(
+            {
+                "claims/claims.yaml": _claim_yaml(base_claims),
+                "stances/claim_a.yaml": _stance_yaml(
+                    _artifact_id("claim_a"),
+                    [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
+                ),
+            },
+            "left",
+        )
+        kr.commit_files(
+            {
+                "claims/claims.yaml": _claim_yaml(base_claims),
+                "stances/claim_a.yaml": _stance_yaml(
+                    _artifact_id("claim_a"),
+                    [{"target": _artifact_id("claim_b"), "type": "rebuts"}] + extra_stances,
+                ),
+            },
+            "right",
+            branch=branch_name,
+        )
 
-    left_summary = build_branch_structured_summary(_snapshot(kr), "master")
-    right_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
+        left_summary = build_branch_structured_summary(_snapshot(kr), "master")
+        right_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
 
-    assert left_summary.claim_ids == right_summary.claim_ids
-    assert left_summary.claim_provenance == right_summary.claim_provenance
-    assert left_summary.content_signature == right_summary.content_signature
-    assert left_summary.stance_rows == right_summary.stance_rows
-    assert left_summary.projection.framework == right_summary.projection.framework
+        assert left_summary.claim_ids == right_summary.claim_ids
+        assert left_summary.claim_provenance == right_summary.claim_provenance
+        assert left_summary.content_signature == right_summary.content_signature
+        assert left_summary.stance_rows == right_summary.stance_rows
+        assert left_summary.projection.framework == right_summary.projection.framework
 
 
 @settings(
@@ -282,50 +286,50 @@ def test_branch_structured_summary_is_order_invariant(
     claim_order: tuple[str, ...],
     stance_order: tuple[str, ...],
 ):
-    kr = init_memory_git_store()
-    base_sha = kr.commit_files({}, "seed")
-    branch_name = "paper/order_invariant"
-    kr.create_branch(branch_name, source_commit=base_sha)
+    with TemporaryDirectory() as temp_dir:
+        kr = init_git_store(Path(temp_dir) / "knowledge")
+        base_sha = kr.commit_files({}, "seed")
+        branch_name = "paper/order_invariant"
+        kr.create_branch(branch_name, source_commit=base_sha)
 
-    claims_by_id = {
-        "claim_a": _obs_claim("claim_a", "A"),
-        "claim_b": _obs_claim("claim_b", "B"),
-        "claim_c": _obs_claim("claim_c", "C"),
-    }
-    stances = [{"target": target, "type": "rebuts"} for target in stance_order]
+        claims_by_id = {
+            "claim_a": _obs_claim("claim_a", "A"),
+            "claim_b": _obs_claim("claim_b", "B"),
+            "claim_c": _obs_claim("claim_c", "C"),
+        }
 
-    kr.commit_files(
-        {
-            "claims/claims.yaml": _claim_yaml([claims_by_id[claim_id] for claim_id in claim_order]),
-            "stances/claim_a.yaml": _stance_yaml(
-                _artifact_id("claim_a"),
-                [{"target": _artifact_id(target), "type": "rebuts"} for target in stance_order],
-            ),
-        },
-        "left",
-    )
-    kr.commit_files(
-        {
-            "claims/claims.yaml": _claim_yaml(
-                [claims_by_id["claim_c"], claims_by_id["claim_a"], claims_by_id["claim_b"]]
-            ),
-            "stances/claim_a.yaml": _stance_yaml(
-                _artifact_id("claim_a"),
-                [
-                    {"target": _artifact_id("claim_c"), "type": "rebuts"},
-                    {"target": _artifact_id("claim_b"), "type": "rebuts"},
-                ],
-            ),
-        },
-        "right",
-        branch=branch_name,
-    )
+        kr.commit_files(
+            {
+                "claims/claims.yaml": _claim_yaml([claims_by_id[claim_id] for claim_id in claim_order]),
+                "stances/claim_a.yaml": _stance_yaml(
+                    _artifact_id("claim_a"),
+                    [{"target": _artifact_id(target), "type": "rebuts"} for target in stance_order],
+                ),
+            },
+            "left",
+        )
+        kr.commit_files(
+            {
+                "claims/claims.yaml": _claim_yaml(
+                    [claims_by_id["claim_c"], claims_by_id["claim_a"], claims_by_id["claim_b"]]
+                ),
+                "stances/claim_a.yaml": _stance_yaml(
+                    _artifact_id("claim_a"),
+                    [
+                        {"target": _artifact_id("claim_c"), "type": "rebuts"},
+                        {"target": _artifact_id("claim_b"), "type": "rebuts"},
+                    ],
+                ),
+            },
+            "right",
+            branch=branch_name,
+        )
 
-    left_summary = build_branch_structured_summary(_snapshot(kr), "master")
-    right_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
+        left_summary = build_branch_structured_summary(_snapshot(kr), "master")
+        right_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
 
-    assert left_summary.claim_ids == right_summary.claim_ids
-    assert left_summary.claim_provenance == right_summary.claim_provenance
-    assert left_summary.content_signature == right_summary.content_signature
-    assert left_summary.stance_rows == right_summary.stance_rows
-    assert left_summary.projection.framework == right_summary.projection.framework
+        assert left_summary.claim_ids == right_summary.claim_ids
+        assert left_summary.claim_provenance == right_summary.claim_provenance
+        assert left_summary.content_signature == right_summary.content_signature
+        assert left_summary.stance_rows == right_summary.stance_rows
+        assert left_summary.projection.framework == right_summary.projection.framework

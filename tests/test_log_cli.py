@@ -221,7 +221,7 @@ def test_log_merge_summary_output(tmp_path: Path) -> None:
         branch="agent/demo",
     )
 
-    merge_sha = create_merge_commit(RepositorySnapshot.for_git(git), "master", "agent/demo")
+    merge_sha = create_merge_commit(repo.snapshot, "master", "agent/demo")
     assert merge_sha
 
     runner = CliRunner()

@@ -14,6 +14,7 @@ from __future__ import annotations
 import pytest
 
 from quire.git_store import GitStore
+from propstore.repository import Repository
 from propstore.storage import init_git_store
 from propstore.storage.snapshot import RepositorySnapshot
 
@@ -88,7 +89,7 @@ def test_create_branch_kinds(tmp_path):
     kr.create_branch("agent/bar")
     kr.create_branch("hypothesis/baz")
 
-    branches = {b.name: b for b in RepositorySnapshot.for_git(kr).list_branches()}
+    branches = {b.name: b for b in RepositorySnapshot(Repository(tmp_path / "knowledge")).list_branches()}
     assert branches["paper/foo"].kind == "paper"
     assert branches["agent/bar"].kind == "agent"
     assert branches["hypothesis/baz"].kind == "hypothesis"
