@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from propstore.artifacts.families import CONTEXT_FAMILY
 from propstore.artifacts.refs import ContextRef
 from propstore.artifacts.documents.contexts import ContextDocument
 from quire.documents import convert_document_value
@@ -78,9 +77,9 @@ def add_context(
     dry_run: bool,
 ) -> ContextAddReport:
     ref = ContextRef(request.name)
-    relpath = repo.artifacts.address(CONTEXT_FAMILY, ref).require_path()
+    relpath = repo.families.contexts.family.address_for(repo, ref).require_path()
     filepath = repo.root / relpath
-    if repo.artifacts.load(CONTEXT_FAMILY, ref) is not None:
+    if repo.families.contexts.load(ref) is not None:
         raise ContextWorkflowError(f"Context file '{filepath}' already exists")
 
     source = (
@@ -100,8 +99,7 @@ def add_context(
             created=False,
         )
 
-    repo.artifacts.save(
-        CONTEXT_FAMILY,
+    repo.families.contexts.save(
         ref,
         document,
         message=f"Add context: {request.name}",
@@ -117,8 +115,8 @@ def add_context(
 def list_context_items(repo: Repository) -> tuple[ContextListItem, ...]:
     items: list[ContextListItem] = []
     tree = repo.tree()
-    for ref in repo.artifacts.list(CONTEXT_FAMILY):
-        handle = repo.artifacts.require_handle(CONTEXT_FAMILY, ref)
+    for ref in repo.families.contexts.list():
+        handle = repo.families.contexts.require_handle(ref)
         context = LoadedContext(
             filename=ref.name,
             source_path=tree / handle.address.require_path(),
