@@ -23,10 +23,7 @@ from propstore.artifacts import (
 # which pyright types as ``object`` — transitive re-exports then fail
 # analysis even though the runtime binding is correct (WS-Z-gates
 # Phase 4 Deliverable 5: pyright cleanup).
-from propstore.artifacts.refs import (
-    normalize_source_slug,
-    source_branch_name,
-)
+from propstore.artifacts.refs import normalize_source_slug
 from propstore.artifacts.families import SOURCE_METADATA_FAMILY, SOURCE_NOTES_FAMILY
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
@@ -48,6 +45,10 @@ from propstore.artifacts.documents.sources import (
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
 
 TDocument = TypeVar("TDocument")
+
+
+def source_branch_name(name: str) -> str:
+    return f"source/{normalize_source_slug(name)}"
 
 
 def utc_now() -> str:

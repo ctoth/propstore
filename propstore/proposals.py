@@ -12,8 +12,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from propstore.artifacts.codecs import encode_document
-from propstore.artifacts.families import PROPOSAL_STANCE_FAMILY, STANCE_FILE_FAMILY
-from propstore.artifacts.refs import STANCE_PROPOSAL_BRANCH, StanceFileRef
+from propstore.artifacts.families import (
+    PROPOSAL_STANCE_FAMILY,
+    STANCE_FILE_FAMILY,
+    STANCE_PROPOSAL_BRANCH,
+)
+from propstore.artifacts.refs import StanceFileRef
 from propstore.artifacts.documents.stances import StanceFileDocument
 from quire.documents import convert_document_value
 

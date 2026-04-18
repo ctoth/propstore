@@ -19,6 +19,7 @@ from propstore.artifacts.families import (
     SOURCE_MICROPUBS_FAMILY,
     SOURCE_STANCES_FAMILY,
     STANCE_FILE_FAMILY,
+    STANCE_PROPOSAL_BRANCH,
     WORLDLINE_FAMILY,
 )
 from propstore.artifacts.identity import (
@@ -33,7 +34,6 @@ from propstore.artifacts.indexes import (
     load_source_claim_reference_index,
 )
 from propstore.artifacts.refs import (
-    STANCE_PROPOSAL_BRANCH,
     CanonicalSourceRef,
     ClaimsFileRef,
     ConceptAlignmentRef,
@@ -46,18 +46,7 @@ from propstore.artifacts.refs import (
     SourceRef,
     StanceFileRef,
     WorldlineRef,
-    canonical_source_relpath,
-    claims_file_relpath,
-    concept_alignment_relpath,
-    concept_file_relpath,
-    justifications_file_relpath,
-    merge_manifest_relpath,
-    micropubs_file_relpath,
     normalize_source_slug,
-    source_branch_name,
-    source_finalize_relpath,
-    stance_file_relpath,
-    worldline_relpath,
 )
 from propstore.artifacts.resolution import ClaimReferenceResolver, ImportedClaimHandleIndex
 
@@ -97,22 +86,11 @@ __all__ = [
     "WORLDLINE_FAMILY",
     "SourceRef",
     "WorldlineRef",
-    "canonical_source_relpath",
-    "claims_file_relpath",
-    "concept_alignment_relpath",
-    "concept_file_relpath",
-    "micropubs_file_relpath",
     "concept_reference_keys",
-    "justifications_file_relpath",
-    "merge_manifest_relpath",
     "build_source_claim_reference_index",
     "load_primary_branch_claim_reference_index",
     "load_source_claim_reference_index",
     "normalize_canonical_claim_payload",
     "normalize_canonical_concept_payload",
     "normalize_source_slug",
-    "source_branch_name",
-    "source_finalize_relpath",
-    "stance_file_relpath",
-    "worldline_relpath",
 ]
