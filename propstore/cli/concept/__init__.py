@@ -12,10 +12,10 @@ import click
 from quire.artifacts import ArtifactFamily
 from quire.tree_path import TreePath as KnowledgePath
 from propstore.claims import (
-    LoadedClaimsFile,
+    ClaimFileEntry,
+    claim_file_filename,
     claim_file_payload,
     loaded_claim_file_from_payload,
-    load_claim_files,
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
@@ -25,6 +25,7 @@ from propstore.artifacts.identity import (
     normalize_claim_file_payload,
 )
 from propstore.artifacts.refs import ClaimsFileRef, ConceptFileRef
+from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from propstore.source import (
     align_sources,
     decide_alignment,
@@ -157,11 +158,11 @@ def _require_snapshot(repo: Repository) -> RepositorySnapshot:
 
 
 def _concepts_tree(repo: Repository) -> KnowledgePath:
-    return repo.tree() / "concepts"
+    return SEMANTIC_FAMILIES.root_path("concept", repo.tree())
 
 
 def _artifact_source(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> str:
-    return repo.artifacts.resolve(family, ref).relpath
+    return repo.artifacts.address(family, ref).require_path()
 
 
 def _artifact_tree_path(repo: Repository, family: ArtifactFamily[Repository, TRef, TDoc], ref: TRef) -> Path:
@@ -176,8 +177,8 @@ def _concept_ref(concept_entry: LoadedConcept) -> ConceptFileRef:
     return ConceptFileRef(concept_entry.filename)
 
 
-def _claims_ref(claim_file: LoadedClaimsFile) -> ClaimsFileRef:
-    return ClaimsFileRef(claim_file.filename)
+def _claims_ref(claim_file: ClaimFileEntry) -> ClaimsFileRef:
+    return ClaimsFileRef(claim_file_filename(claim_file))
 
 
 def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> ConceptDocument:
@@ -328,10 +329,16 @@ def _validate_updated_concept(
             continue
         concepts.append(loaded)
 
+    from propstore.compiler.references import build_claim_reference_lookup
+
+    claim_files = [
+        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, claim_ref)
+        for claim_ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+    ]
     validation = validate_concepts(
         concepts,
-        claims_dir=(repo.tree() / "claims") if (repo.tree() / "claims").exists() else None,
-        forms_dir=repo.tree() / "forms",
+        forms_dir=SEMANTIC_FAMILIES.root_path("form", repo.tree()),
+        claim_reference_lookup=build_claim_reference_lookup(claim_files),
     )
     if not validation.ok:
         for e in validation.errors:

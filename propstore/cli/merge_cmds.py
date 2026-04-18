@@ -73,8 +73,8 @@ def merge_commit_cmd(
         "branch_a": branch_a,
         "branch_b": branch_b,
         "target_branch": resolved_target_branch,
-        "claims_path": CLAIMS_FILE_FAMILY.resolve_ref(repo, ClaimsFileRef("merged")).relpath,
-        "manifest_path": MERGE_MANIFEST_FAMILY.resolve_ref(repo, MergeManifestRef()).relpath,
+        "claims_path": repo.artifacts.address(CLAIMS_FILE_FAMILY, ClaimsFileRef("merged")).require_path(),
+        "manifest_path": repo.artifacts.address(MERGE_MANIFEST_FAMILY, MergeManifestRef()).require_path(),
         "commit_sha": commit_sha,
         "semantic_candidate_count": len(manifest.merge.semantic_candidate_details),
     }

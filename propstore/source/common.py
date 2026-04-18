@@ -48,7 +48,7 @@ TDocument = TypeVar("TDocument")
 
 
 def source_branch_name(name: str) -> str:
-    return f"source/{normalize_source_slug(name)}"
+    return SOURCE_DOCUMENT_FAMILY.address_for(object(), SourceRef(name)).branch
 
 
 def utc_now() -> str:

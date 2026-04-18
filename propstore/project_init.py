@@ -255,7 +255,7 @@ def _render_seed_form_files(
     rendered: dict[str | Path, bytes] = {}
     for ref, document in form_documents:
         prepared = repo.artifacts.prepare(FORM_FAMILY, ref, document)
-        rendered[prepared.resolved.relpath] = prepared.content
+        rendered[prepared.address.require_path()] = prepared.content
     return rendered
 
 
@@ -266,5 +266,5 @@ def _render_seed_concept_files(
     rendered: dict[str | Path, bytes] = {}
     for ref, document in concept_documents:
         prepared = repo.artifacts.prepare(CONCEPT_FILE_FAMILY, ref, document)
-        rendered[prepared.resolved.relpath] = prepared.content
+        rendered[prepared.address.require_path()] = prepared.content
     return rendered

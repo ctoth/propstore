@@ -21,7 +21,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from propstore.claims import claim_file_claims, claim_file_source_paper
+from quire.documents import load_document_dir
+from propstore.artifacts.documents.claims import ClaimsFileDocument
+from propstore.claims import claim_file_claims, claim_file_filename, claim_file_source_paper
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
     concept_registry_for_context,
@@ -58,7 +60,6 @@ from propstore.sidecar.schema import (
 from propstore.sidecar.micropublications import populate_micropublications
 from propstore.sidecar.sources import populate_sources
 from propstore.core.concepts import load_concepts
-from propstore.claims import load_claim_files
 from propstore.compiler.context import build_authored_concept_registry
 
 if TYPE_CHECKING:
@@ -170,7 +171,7 @@ def _collect_raw_id_diagnostics(
     records: list[RawIdQuarantineRecord] = []
     seq = 0
     for claim_file in claim_bundle.normalized_claim_files:
-        filename = claim_file.filename
+        filename = claim_file_filename(claim_file)
         if filename not in raw_id_filenames:
             # Still advance seq to stay stable across files? No — seq is
             # within-file. Restart per-file so synthetic ids are local.
@@ -228,7 +229,7 @@ def build_sidecar(
     form_registry = load_all_forms_path(knowledge_root / "forms")
     concepts = load_concepts(knowledge_root / "concepts")
     claim_files = (
-        load_claim_files(knowledge_root / "claims")
+        load_document_dir(knowledge_root / "claims", ClaimsFileDocument)
         if (knowledge_root / "claims").exists()
         else None
     )

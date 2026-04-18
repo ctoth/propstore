@@ -8,10 +8,10 @@ from pathlib import Path
 import click
 
 from propstore.claims import (
-    LoadedClaimsFile,
+    ClaimFileEntry,
     claim_file_payload,
+    claim_file_filename,
     loaded_claim_file_from_payload,
-    load_claim_files,
 )
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.artifacts.documents.concepts import ConceptDocument
@@ -37,6 +37,7 @@ from propstore.core.concepts import (
     parse_concept_record_document,
 )
 from propstore.compiler.context import build_compilation_context_from_loaded
+from propstore.compiler.references import build_claim_reference_lookup
 from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_for_repo
 from propstore.repository import Repository
 from propstore.core.concepts import load_concepts
@@ -313,19 +314,21 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             ),
         ))
 
-    claims_root = repo.tree() / "claims"
+    claim_files = [
+        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, claim_ref)
+        for claim_ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+    ]
     concept_validation = validate_concepts(
         [entry for _, _, entry in updated_concepts],
-        claims_dir=claims_root if claims_root.exists() else None,
         forms_dir=repo.tree() / "forms",
+        claim_reference_lookup=build_claim_reference_lookup(claim_files),
     )
     if not concept_validation.ok:
         for e in concept_validation.errors:
             click.echo(f"ERROR: {e}", err=True)
         click.echo("Rename validation failed. No changes written.", err=True)
         sys.exit(EXIT_VALIDATION)
-    claim_files = load_claim_files(claims_root) if claims_root.exists() else []
-    updated_claim_files: list[tuple[ClaimsFileRef, LoadedClaimsFile]] = []
+    updated_claim_files: list[tuple[ClaimsFileRef, ClaimFileEntry]] = []
     changed_claim_refs: set[ClaimsFileRef] = set()
     if claim_files:
         for claim_file in claim_files:
@@ -337,9 +340,9 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             updated_claim_files.append((
                 claim_ref,
                 loaded_claim_file_from_payload(
-                    filename=claim_file.filename,
+                    filename=claim_file_filename(claim_file),
                     source_path=_artifact_knowledge_path(repo, CLAIMS_FILE_FAMILY, claim_ref),
-                    knowledge_root=claim_file.knowledge_root,
+                    knowledge_root=repo.tree(),
                     data=claim_data,
                 ),
             ))
@@ -533,8 +536,11 @@ def link(
         )
     validation = validate_concepts(
         updated_concepts,
-        claims_dir=(repo.tree() / "claims") if (repo.tree() / "claims").exists() else None,
         forms_dir=repo.tree() / "forms",
+        claim_reference_lookup=build_claim_reference_lookup([
+            repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, claim_ref)
+            for claim_ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+        ]),
     )
     if not validation.ok:
         for e in validation.errors:

@@ -18,6 +18,8 @@ from propstore.artifacts.documents.sources import (
     SourceJustificationsDocument,
 )
 from propstore.artifacts.documents.stances import StanceFileDocument
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY
+from propstore.claims import claim_file_claims, claim_file_filename
 from propstore.uri import ni_uri_for_file
 
 if TYPE_CHECKING:
@@ -136,17 +138,12 @@ def attach_source_artifact_codes(
     return updated_source, updated_claims, updated_justifications, updated_stances
 
 
-def _load_claim_index(tree: KnowledgePath) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
-    from propstore.claims import claim_file_claims, load_claim_files
-
-    claims_root = tree / "claims"
-    if not claims_root.exists():
-        return {}, {}
-
+def _load_claim_index(repo: Repository, commit: str | None) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
     claims_by_id: dict[str, dict[str, Any]] = {}
     claim_to_source_slug: dict[str, str] = {}
-    for claim_file in load_claim_files(claims_root):
-        source_slug = claim_file.filename
+    for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=commit):
+        claim_file = repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref, commit=commit)
+        source_slug = claim_file_filename(claim_file)
         for claim in claim_file_claims(claim_file):
             claim_id = claim.artifact_id
             if isinstance(claim_id, str) and claim_id:
@@ -237,7 +234,7 @@ def _verify_origin(repo: Repository, source_slug: str, source_doc: dict[str, Any
 
 def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = None) -> dict[str, Any]:
     tree = repo.tree(commit=commit)
-    claims_by_id, claim_to_source_slug = _load_claim_index(tree)
+    claims_by_id, claim_to_source_slug = _load_claim_index(repo, commit)
     sources_by_slug = _load_sources(tree)
     justifications_by_conclusion = _load_justifications(tree)
     stances_by_source = _load_stances(tree)

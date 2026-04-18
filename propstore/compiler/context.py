@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Mapping, cast
 
 from propstore.cel_checker import ConceptInfo
 from propstore.cel_registry import build_canonical_cel_registry
-from propstore.claims import LoadedClaimsFile
+from propstore.claims import ClaimFileEntry
 from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from quire.references import (
     extend_reference_lookup,
@@ -45,7 +45,7 @@ def _freeze_mapping(data: Mapping[str, Any]) -> Mapping[str, Any]:
     return MappingProxyType(dict(data))
 
 
-def _build_claim_lookup(claim_files: list[LoadedClaimsFile]) -> Mapping[str, tuple[str, ...]]:
+def _build_claim_lookup(claim_files: list[ClaimFileEntry]) -> Mapping[str, tuple[str, ...]]:
     return build_claim_reference_lookup(claim_files)
 
 
@@ -53,7 +53,7 @@ def _build_context_from_concepts(
     concepts: list[LoadedConcept],
     form_registry: dict[str, FormDefinition],
     *,
-    claim_files: list[LoadedClaimsFile] | None,
+    claim_files: list[ClaimFileEntry] | None,
     context_ids: set[str] | None,
 ) -> CompilationContext:
     concepts_by_id: dict[str, ConceptRecord] = {}
@@ -87,7 +87,7 @@ def build_compilation_context_from_loaded(
     concepts: list[LoadedConcept],
     *,
     forms_dir: Path | KnowledgePath | None = None,
-    claim_files: list[LoadedClaimsFile] | None = None,
+    claim_files: list[ClaimFileEntry] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     form_registry = (
@@ -107,7 +107,7 @@ def build_compilation_context_from_paths(
     concepts_dir: Path | KnowledgePath,
     forms_dir: Path | KnowledgePath,
     *,
-    claim_files: list[LoadedClaimsFile] | None = None,
+    claim_files: list[ClaimFileEntry] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     concepts_root = coerce_knowledge_path(concepts_dir)
@@ -123,7 +123,7 @@ def build_compilation_context_from_paths(
 def build_compilation_context_from_repo(
     repo: Repository | None,
     *,
-    claim_files: list[LoadedClaimsFile] | None = None,
+    claim_files: list[ClaimFileEntry] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     if repo is None:

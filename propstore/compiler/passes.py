@@ -11,8 +11,9 @@ from propstore.artifacts.documents.claims import ClaimDocument
 from propstore.cel_checker import check_cel_expr
 from propstore.cel_types import CheckedCelExpr, checked_condition_set
 from propstore.claims import (
-    LoadedClaimsFile,
+    ClaimFileEntry,
     claim_file_claims,
+    claim_file_filename,
     claim_file_source_paper,
     claim_file_stage,
     load_claim_file,
@@ -51,7 +52,7 @@ def _bind_claim(
     filename: str,
     source_paper: str,
     context: CompilationContext,
-    normalized_claim_files: list[LoadedClaimsFile],
+    normalized_claim_files: list[ClaimFileEntry],
 ) -> SemanticClaim:
     authored_claim = claim.to_payload()
     resolved_claim = copy.deepcopy(authored_claim)
@@ -148,7 +149,7 @@ def _bind_claim(
 
 
 def compile_claim_files(
-    claim_files: list[LoadedClaimsFile],
+    claim_files: list[ClaimFileEntry],
     context: CompilationContext,
     *,
     context_ids: set[str] | None = None,
@@ -172,6 +173,8 @@ def compile_claim_files(
     for original_file, normalized_file in zip(claim_files, normalized_claim_files, strict=False):
         file_diagnostics: list[SemanticDiagnostic] = []
         semantic_claims: list[SemanticClaim] = []
+        filename = claim_file_filename(normalized_file)
+        source_paper = claim_file_source_paper(normalized_file)
         # Axis-1 finding 3.2 / ws-z-render-gates.md: draft files no longer
         # drop from the semantic bundle. They traverse the normal binding
         # path; the file-level draft marker rides through on
@@ -182,15 +185,13 @@ def compile_claim_files(
             file_diagnostics.append(
                 SemanticDiagnostic(
                     level="info",
-                    filename=normalized_file.filename,
+                    filename=filename,
                     message=(
                         "claim file is marked stage='draft'; "
                         "render policy hides drafts by default"
                     ),
                 )
             )
-
-        source_paper = claim_file_source_paper(normalized_file)
 
         for claim in claim_file_claims(normalized_file):
             raw_id = claim.id
@@ -203,14 +204,14 @@ def compile_claim_files(
                             "claim uses raw 'id' input "
                             "without canonical identity fields"
                         ),
-                        filename=normalized_file.filename,
+                        filename=filename,
                     )
                 )
                 continue
 
             semantic_claim = _bind_claim(
                 claim,
-                filename=normalized_file.filename,
+                filename=filename,
                 source_paper=source_paper,
                 context=effective_context,
                 normalized_claim_files=normalized_claim_files,
@@ -223,7 +224,7 @@ def compile_claim_files(
                 file_diagnostics.append(SemanticDiagnostic(
                     level="error",
                     message="claim missing 'artifact_id'",
-                    filename=normalized_file.filename,
+                    filename=filename,
                 ))
                 continue
 
@@ -234,11 +235,11 @@ def compile_claim_files(
                         f"duplicate claim artifact_id '{cid}' "
                         f"(also in {seen_artifact_ids[cid]})"
                     ),
-                    filename=normalized_file.filename,
+                    filename=filename,
                     artifact_id=cid,
                 ))
             else:
-                seen_artifact_ids[cid] = normalized_file.filename
+                seen_artifact_ids[cid] = filename
 
             if "id" in semantic_claim.resolved_claim:
                 file_diagnostics.append(SemanticDiagnostic(
@@ -247,7 +248,7 @@ def compile_claim_files(
                         f"claim '{cid}' uses raw 'id' input; "
                         "use artifact_id and logical_ids"
                     ),
-                    filename=normalized_file.filename,
+                    filename=filename,
                     artifact_id=cid,
                 ))
 
@@ -258,13 +259,13 @@ def compile_claim_files(
                         f"claim artifact_id '{cid}' does not match "
                         "required format ps:claim:<opaque-token>"
                     ),
-                    filename=normalized_file.filename,
+                    filename=filename,
                     artifact_id=cid,
                 ))
 
             _validate_logical_ids(
                 semantic_claim.resolved_claim.get("logical_ids"),
-                filename=normalized_file.filename,
+                filename=filename,
                 artifact_id=cid,
                 seen_logical_ids=seen_logical_ids,
                 diagnostics=file_diagnostics,
@@ -278,7 +279,7 @@ def compile_claim_files(
                         f"claim '{cid}' version_id must match "
                         "sha256:<64 hex chars>"
                     ),
-                    filename=normalized_file.filename,
+                    filename=filename,
                     artifact_id=cid,
                 ))
             else:
@@ -290,7 +291,7 @@ def compile_claim_files(
                             f"claim '{cid}' version_id mismatch "
                             f"(expected {expected_version_id})"
                         ),
-                        filename=normalized_file.filename,
+                        filename=filename,
                         artifact_id=cid,
                     ))
 
@@ -299,7 +300,7 @@ def compile_claim_files(
                 file_diagnostics.append(SemanticDiagnostic(
                     level="error",
                     message=f"claim '{cid}' missing provenance",
-                    filename=normalized_file.filename,
+                    filename=filename,
                     artifact_id=cid,
                 ))
             else:
@@ -307,14 +308,14 @@ def compile_claim_files(
                     file_diagnostics.append(SemanticDiagnostic(
                         level="error",
                         message=f"claim '{cid}' provenance missing 'paper'",
-                        filename=normalized_file.filename,
+                        filename=filename,
                         artifact_id=cid,
                     ))
                 if provenance.get("page") is None:
                     file_diagnostics.append(SemanticDiagnostic(
                         level="error",
                         message=f"claim '{cid}' provenance missing 'page'",
-                        filename=normalized_file.filename,
+                        filename=filename,
                         artifact_id=cid,
                     ))
 
@@ -328,7 +329,7 @@ def compile_claim_files(
                 file_diagnostics.append(SemanticDiagnostic(
                     level="error",
                     message=f"claim '{cid}' missing required context",
-                    filename=normalized_file.filename,
+                    filename=filename,
                     artifact_id=cid,
                 ))
             elif context_ids is not None and claim_context not in context_ids:
@@ -338,7 +339,7 @@ def compile_claim_files(
                         f"claim '{cid}' references nonexistent "
                         f"context '{claim_context}'"
                     ),
-                    filename=normalized_file.filename,
+                    filename=filename,
                     artifact_id=cid,
                 ))
 
@@ -354,7 +355,7 @@ def compile_claim_files(
                         file_diagnostics.append(SemanticDiagnostic(
                             level="error",
                             message=f"claim '{cid}' CEL error: {exc}",
-                            filename=normalized_file.filename,
+                            filename=filename,
                             artifact_id=cid,
                         ))
                         continue
@@ -366,7 +367,7 @@ def compile_claim_files(
                                 f"claim '{cid}' CEL warning: "
                                 f"{warning.message}"
                             ),
-                            filename=normalized_file.filename,
+                            filename=filename,
                             artifact_id=cid,
                         ))
                 if checked_conditions:
@@ -379,7 +380,7 @@ def compile_claim_files(
             validate_claim_semantics(
                 semantic_claim.resolved_claim,
                 cid,
-                normalized_file.filename,
+                filename,
                 effective_context,
                 file_diagnostics,
             )
@@ -387,7 +388,7 @@ def compile_claim_files(
             _validate_stances(
                 semantic_claim.resolved_claim,
                 cid,
-                normalized_file.filename,
+                filename,
                 all_artifact_ids,
                 file_diagnostics,
             )
@@ -410,7 +411,7 @@ def compile_claim_files(
 
 
 def validate_claims(
-    claim_files: list[LoadedClaimsFile],
+    claim_files: list[ClaimFileEntry],
     context: CompilationContext,
     context_ids: set[str] | None = None,
 ) -> ValidationResult:

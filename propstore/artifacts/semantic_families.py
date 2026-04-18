@@ -7,7 +7,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from quire.artifacts import ArtifactContext, ArtifactFamily, ResolvedArtifact
+from quire.artifacts import (
+    ArtifactContext,
+    ArtifactFamily,
+    BranchPlacement,
+    FlatYamlPlacement,
+    PathArtifactLocator,
+)
 from quire.family_store import DocumentFamilyStore
 from quire.references import ForeignKeySpec
 from quire.versions import VersionId
@@ -46,18 +52,58 @@ if TYPE_CHECKING:
 SEMANTIC_FAMILY_CONTRACT_VERSION = VersionId("2026.04.23")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 YAML_EXTENSION = ".yaml"
+PRIMARY_SEMANTIC_BRANCH = BranchPlacement(policy="primary")
+CURRENT_SEMANTIC_BRANCH = BranchPlacement(policy="current")
 
-
-def _default_branch(repo: Repository) -> str:
-    if repo.git is None:
-        raise ValueError("artifact operations require a git-backed repository")
-    return repo.git.current_branch_name() or repo.git.primary_branch_name()
-
-
-def _primary_branch(repo: Repository) -> str:
-    if repo.git is None:
-        raise ValueError("artifact operations require a git-backed repository")
-    return repo.git.primary_branch_name()
+CLAIM_PLACEMENT = FlatYamlPlacement["Repository", ClaimsFileRef](
+    namespace="claims",
+    ref_factory=ClaimsFileRef,
+    ref_field="name",
+    branch=PRIMARY_SEMANTIC_BRANCH,
+)
+CONCEPT_PLACEMENT = FlatYamlPlacement["Repository", ConceptFileRef](
+    namespace="concepts",
+    ref_factory=ConceptFileRef,
+    ref_field="name",
+    branch=PRIMARY_SEMANTIC_BRANCH,
+)
+CONTEXT_PLACEMENT = FlatYamlPlacement["Repository", ContextRef](
+    namespace="contexts",
+    ref_factory=ContextRef,
+    ref_field="name",
+    branch=CURRENT_SEMANTIC_BRANCH,
+)
+FORM_PLACEMENT = FlatYamlPlacement["Repository", FormRef](
+    namespace="forms",
+    ref_factory=FormRef,
+    ref_field="name",
+    branch=CURRENT_SEMANTIC_BRANCH,
+)
+PREDICATE_PLACEMENT = FlatYamlPlacement["Repository", PredicateFileRef](
+    namespace="predicates",
+    ref_factory=PredicateFileRef,
+    ref_field="name",
+    branch=PRIMARY_SEMANTIC_BRANCH,
+)
+RULE_PLACEMENT = FlatYamlPlacement["Repository", RuleFileRef](
+    namespace="rules",
+    ref_factory=RuleFileRef,
+    ref_field="name",
+    branch=PRIMARY_SEMANTIC_BRANCH,
+)
+STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceFileRef](
+    namespace="stances",
+    ref_factory=StanceFileRef,
+    ref_field="source_claim",
+    codec="colon_to_double_underscore",
+    branch=PRIMARY_SEMANTIC_BRANCH,
+)
+WORLDLINE_PLACEMENT = FlatYamlPlacement["Repository", WorldlineRef](
+    namespace="worldlines",
+    ref_factory=WorldlineRef,
+    ref_field="name",
+    branch=CURRENT_SEMANTIC_BRANCH,
+)
 
 
 @dataclass(frozen=True)
@@ -96,12 +142,8 @@ class SemanticFamilyDefinition:
     contract_version: VersionId
     artifact_family: ArtifactFamily[Any, Any, Any]
     document_type: type[object]
-    root: str
     ref_type: type[object]
     ref_field: str = "name"
-    extension: str = YAML_EXTENSION
-    branch_policy: str = "primary"
-    filename_codec: str = "stem"
     collection_field: str | None = None
     importable: bool = False
     import_order: int = 100
@@ -112,53 +154,35 @@ class SemanticFamilyDefinition:
     def contract_body(self) -> dict[str, object]:
         return {
             "artifact_family": self.artifact_family.name,
-            "branch_policy": self.branch_policy,
             "collection_field": self.collection_field,
             "document_type": f"{self.document_type.__module__}.{self.document_type.__qualname__}",
-            "extension": self.extension,
-            "filename_codec": self.filename_codec,
             "foreign_keys": tuple(spec.name for spec in self.foreign_keys),
             "import_order": self.import_order,
             "importable": self.importable,
             "init_directory": self.init_directory,
+            "placement": self.artifact_family.placement.contract_body(),
             "ref_type": f"{self.ref_type.__module__}.{self.ref_type.__qualname__}",
-            "root": self.root,
         }
 
-    def branch_name(self, repo: Repository) -> str:
-        if self.branch_policy == "current":
-            return _default_branch(repo)
-        if self.branch_policy == "primary":
-            return _primary_branch(repo)
-        raise ValueError(f"unknown semantic family branch policy: {self.branch_policy}")
+    @property
+    def root(self) -> str:
+        placement_body = self.artifact_family.placement.contract_body()
+        namespace = placement_body.get("namespace")
+        if not isinstance(namespace, str) or not namespace:
+            raise ValueError(f"semantic family {self.name!r} does not use a namespace placement")
+        return namespace
+
+    def address_path(self, repo: Repository, ref: object) -> str:
+        return self.artifact_family.address_for(repo, ref).require_path()
 
     def root_path(self, tree_or_repo: object) -> object:
+        root = self.root
         if isinstance(tree_or_repo, Path):
-            return tree_or_repo / self.root
+            return tree_or_repo / root
         root = getattr(tree_or_repo, "root", None)
         if isinstance(root, Path):
             return root / self.root
         return tree_or_repo / self.root  # type: ignore[operator]
-
-    def filename_stem(self, ref: object) -> str:
-        value = getattr(ref, self.ref_field)
-        if not isinstance(value, str) or not value:
-            raise ValueError(f"{self.name} ref field {self.ref_field!r} must be a non-empty string")
-        if self.filename_codec == "stem":
-            return value
-        if self.filename_codec == "colon_to_double_underscore":
-            return value.replace(":", "__")
-        raise ValueError(f"unknown semantic filename codec: {self.filename_codec}")
-
-    def ref_value_from_stem(self, stem: str) -> str:
-        if self.filename_codec == "stem":
-            return stem
-        if self.filename_codec == "colon_to_double_underscore":
-            return stem.replace("__", ":")
-        raise ValueError(f"unknown semantic filename codec: {self.filename_codec}")
-
-    def relpath(self, ref: object) -> str:
-        return f"{self.root}/{self.filename_stem(ref)}{self.extension}"
 
     def matches_path(self, path: str | Path) -> bool:
         try:
@@ -167,33 +191,11 @@ class SemanticFamilyDefinition:
             return False
         return True
 
-    def resolve(self, repo: Repository, ref: object) -> ResolvedArtifact:
-        return ResolvedArtifact(
-            branch=self.branch_name(repo),
-            relpath=self.relpath(ref),
-        )
-
     def ref_from_path(self, path: str | Path) -> object:
-        rendered = path.as_posix() if hasattr(path, "as_posix") else str(path)
-        normalized = rendered.replace("\\", "/")
-        parts = normalized.split("/")
-        try:
-            root_index = len(parts) - 1 - list(reversed(parts)).index(self.root)
-        except ValueError as exc:
-            raise ValueError(f"expected {self.root}/*{self.extension} path, got {normalized!r}") from exc
-        if root_index != len(parts) - 2:
-            raise ValueError(f"expected {self.root}/*{self.extension} path, got {normalized!r}")
-        filename = parts[-1]
-        if not filename.endswith(self.extension):
-            raise ValueError(f"expected {self.root}/*{self.extension} path, got {normalized!r}")
-        stem = filename.removesuffix(self.extension)
-        return self.ref_type(self.ref_value_from_stem(stem))
+        return self.artifact_family.placement.ref_from_locator(PathArtifactLocator(path))
 
     def ref_from_loaded(self, loaded: object) -> object:
-        source_path = getattr(loaded, "source_path", None)
-        if source_path is None:
-            raise ValueError(f"loaded artifact does not have a source_path for {self.name}")
-        return self.ref_from_path(source_path)
+        return self.artifact_family.placement.ref_from_loaded(loaded)
 
     def list_refs(
         self,
@@ -201,23 +203,12 @@ class SemanticFamilyDefinition:
         branch: str | None,
         commit: str | None,
     ) -> list[object]:
-        target_commit = commit
-        if repo.git is not None and target_commit is None:
-            target_commit = repo.git.branch_sha(branch or self.branch_name(repo))
-            if target_commit is None:
-                return []
-
-        tree = repo.tree(commit=target_commit)
-        directory = tree / self.root
-        if not directory.exists():
-            return []
-
-        refs: list[object] = []
-        for entry in directory.iterdir():
-            if not entry.is_file() or entry.suffix != self.extension:
-                continue
-            refs.append(self.ref_type(self.ref_value_from_stem(entry.stem)))
-        return refs
+        return self.artifact_family.placement.list_refs(
+            repo,
+            repo.git,
+            branch=branch,
+            commit=commit,
+        )
 
 
 @dataclass(frozen=True)
@@ -282,8 +273,8 @@ class SemanticFamilyRegistry:
     def root_path(self, name: str, tree_or_repo: object) -> object:
         return self.by_name(name).root_path(tree_or_repo)
 
-    def relpath(self, name: str, ref: object) -> str:
-        return self.by_name(name).relpath(ref)
+    def address_path(self, name: str, repo: Repository, ref: object) -> str:
+        return self.by_name(name).address_path(repo, ref)
 
     def list_refs(
         self,
@@ -333,11 +324,12 @@ def _planned_write(
     family = registry.family_for_path(path).artifact_family
     ref = store.ref_from_path(cast(Any, family), path)
     document = store.coerce(cast(Any, family), payload, source=path)
+    address = store.address(cast(Any, family), ref)
     return PlannedSemanticWrite(
         family=family,
         ref=ref,
         document=document,
-        relpath=store.resolve(cast(Any, family), ref).relpath,
+        relpath=address.require_path(),
     )
 
 
@@ -590,50 +582,19 @@ def _normalize_passthrough_batch(
     }
 
 
-def _semantic_definition(name: str) -> SemanticFamilyDefinition:
-    return SEMANTIC_FAMILIES.by_name(name)
-
-
-def _semantic_resolve(name: str) -> Callable[[Repository, object], ResolvedArtifact]:
-    def resolve(repo: Repository, ref: object) -> ResolvedArtifact:
-        return _semantic_definition(name).resolve(repo, ref)
-
-    return resolve
-
-
-def _semantic_list_refs(name: str) -> Callable[[Repository, str | None, str | None], list[object]]:
-    def list_refs(repo: Repository, branch: str | None, commit: str | None) -> list[object]:
-        return _semantic_definition(name).list_refs(repo, branch, commit)
-
-    return list_refs
-
-
-def _semantic_ref_from_path(name: str) -> Callable[[str | Path], object]:
-    def ref_from_path(path: str | Path) -> object:
-        return _semantic_definition(name).ref_from_path(path)
-
-    return ref_from_path
-
-
-def _semantic_ref_from_loaded(name: str) -> Callable[[object], object]:
-    def ref_from_loaded(loaded: object) -> object:
-        return _semantic_definition(name).ref_from_loaded(loaded)
-
-    return ref_from_loaded
-
-
 def _normalize_concept_for_write(
     context: ArtifactContext["Repository", ConceptFileRef],
     document: ConceptDocument,
     store: DocumentFamilyStore["Repository"],
 ) -> ConceptDocument:
     payload = store.payload(document)
+    source = f"{context.branch}:{context.require_path()}"
     if not isinstance(payload, dict):
-        raise TypeError(f"{context.branch}:{context.relpath}: expected concept payload mapping")
+        raise TypeError(f"{source}: expected concept payload mapping")
     return store.coerce(
         CONCEPT_FILE_FAMILY,
         normalize_canonical_concept_payload(payload),
-        source=f"{context.branch}:{context.relpath}",
+        source=source,
     )
 
 
@@ -641,81 +602,57 @@ CONTEXT_FAMILY = ArtifactFamily["Repository", ContextRef, ContextDocument](
     name="context",
     contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
     doc_type=ContextDocument,
-    resolve_ref=_semantic_resolve("context"),
-    ref_from_path=_semantic_ref_from_path("context"),
-    list_refs=_semantic_list_refs("context"),
-    ref_from_loaded=_semantic_ref_from_loaded("context"),
+    placement=CONTEXT_PLACEMENT,
 )
 
 FORM_FAMILY = ArtifactFamily["Repository", FormRef, FormDocument](
     name="form",
     contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
     doc_type=FormDocument,
-    resolve_ref=_semantic_resolve("form"),
-    ref_from_path=_semantic_ref_from_path("form"),
-    list_refs=_semantic_list_refs("form"),
-    ref_from_loaded=_semantic_ref_from_loaded("form"),
+    placement=FORM_PLACEMENT,
 )
 
 CLAIMS_FILE_FAMILY = ArtifactFamily["Repository", ClaimsFileRef, ClaimsFileDocument](
     name="claims_file",
     contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
     doc_type=ClaimsFileDocument,
-    resolve_ref=_semantic_resolve("claim"),
-    list_refs=_semantic_list_refs("claim"),
-    ref_from_path=_semantic_ref_from_path("claim"),
-    ref_from_loaded=_semantic_ref_from_loaded("claim"),
+    placement=CLAIM_PLACEMENT,
 )
 
 CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocument](
     name="concept_file",
     contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
     doc_type=ConceptDocument,
-    resolve_ref=_semantic_resolve("concept"),
+    placement=CONCEPT_PLACEMENT,
     normalize_for_write=_normalize_concept_for_write,
-    list_refs=_semantic_list_refs("concept"),
-    ref_from_path=_semantic_ref_from_path("concept"),
-    ref_from_loaded=_semantic_ref_from_loaded("concept"),
 )
 
 PREDICATE_FILE_FAMILY = ArtifactFamily["Repository", PredicateFileRef, PredicatesFileDocument](
     name="predicate_file",
     contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
     doc_type=PredicatesFileDocument,
-    resolve_ref=_semantic_resolve("predicate"),
-    list_refs=_semantic_list_refs("predicate"),
-    ref_from_path=_semantic_ref_from_path("predicate"),
-    ref_from_loaded=_semantic_ref_from_loaded("predicate"),
+    placement=PREDICATE_PLACEMENT,
 )
 
 RULE_FILE_FAMILY = ArtifactFamily["Repository", RuleFileRef, RulesFileDocument](
     name="rule_file",
     contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
     doc_type=RulesFileDocument,
-    resolve_ref=_semantic_resolve("rule"),
-    list_refs=_semantic_list_refs("rule"),
-    ref_from_path=_semantic_ref_from_path("rule"),
-    ref_from_loaded=_semantic_ref_from_loaded("rule"),
+    placement=RULE_PLACEMENT,
 )
 
 STANCE_FILE_FAMILY = ArtifactFamily["Repository", StanceFileRef, StanceFileDocument](
     name="stance_file",
     contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
     doc_type=StanceFileDocument,
-    resolve_ref=_semantic_resolve("stance"),
-    list_refs=_semantic_list_refs("stance"),
-    ref_from_path=_semantic_ref_from_path("stance"),
-    ref_from_loaded=_semantic_ref_from_loaded("stance"),
+    placement=STANCE_PLACEMENT,
 )
 
 WORLDLINE_FAMILY = ArtifactFamily["Repository", WorldlineRef, WorldlineDefinitionDocument](
     name="worldline",
     contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
     doc_type=WorldlineDefinitionDocument,
-    resolve_ref=_semantic_resolve("worldline"),
-    ref_from_path=_semantic_ref_from_path("worldline"),
-    list_refs=_semantic_list_refs("worldline"),
-    ref_from_loaded=_semantic_ref_from_loaded("worldline"),
+    placement=WORLDLINE_PLACEMENT,
 )
 
 
@@ -823,7 +760,6 @@ SEMANTIC_FAMILIES = SemanticFamilyRegistry(
             contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
             artifact_family=CLAIMS_FILE_FAMILY,
             document_type=ClaimsFileDocument,
-            root="claims",
             ref_type=ClaimsFileRef,
             collection_field="claims",
             importable=True,
@@ -836,7 +772,6 @@ SEMANTIC_FAMILIES = SemanticFamilyRegistry(
             contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
             artifact_family=CONCEPT_FILE_FAMILY,
             document_type=ConceptDocument,
-            root="concepts",
             ref_type=ConceptFileRef,
             importable=True,
             import_order=10,
@@ -848,9 +783,7 @@ SEMANTIC_FAMILIES = SemanticFamilyRegistry(
             contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
             artifact_family=CONTEXT_FAMILY,
             document_type=ContextDocument,
-            root="contexts",
             ref_type=ContextRef,
-            branch_policy="current",
             importable=True,
             import_order=30,
         ),
@@ -859,9 +792,7 @@ SEMANTIC_FAMILIES = SemanticFamilyRegistry(
             contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
             artifact_family=FORM_FAMILY,
             document_type=FormDocument,
-            root="forms",
             ref_type=FormRef,
-            branch_policy="current",
             importable=True,
             import_order=30,
         ),
@@ -870,7 +801,6 @@ SEMANTIC_FAMILIES = SemanticFamilyRegistry(
             contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
             artifact_family=PREDICATE_FILE_FAMILY,
             document_type=PredicatesFileDocument,
-            root="predicates",
             ref_type=PredicateFileRef,
             collection_field="predicates",
             importable=True,
@@ -881,7 +811,6 @@ SEMANTIC_FAMILIES = SemanticFamilyRegistry(
             contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
             artifact_family=RULE_FILE_FAMILY,
             document_type=RulesFileDocument,
-            root="rules",
             ref_type=RuleFileRef,
             collection_field="rules",
             importable=True,
@@ -892,10 +821,8 @@ SEMANTIC_FAMILIES = SemanticFamilyRegistry(
             contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
             artifact_family=STANCE_FILE_FAMILY,
             document_type=StanceFileDocument,
-            root="stances",
             ref_type=StanceFileRef,
             ref_field="source_claim",
-            filename_codec="colon_to_double_underscore",
             collection_field="stances",
             importable=True,
             import_order=60,
@@ -906,9 +833,7 @@ SEMANTIC_FAMILIES = SemanticFamilyRegistry(
             contract_version=SEMANTIC_FAMILY_CONTRACT_VERSION,
             artifact_family=WORLDLINE_FAMILY,
             document_type=WorldlineDefinitionDocument,
-            root="worldlines",
             ref_type=WorldlineRef,
-            branch_policy="current",
             importable=True,
             import_order=70,
         ),

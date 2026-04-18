@@ -8,6 +8,7 @@ from pathlib import Path
 from propstore.artifacts.families import CONTEXT_FAMILY
 from propstore.artifacts.refs import ContextRef
 from propstore.artifacts.documents.contexts import ContextDocument
+from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from quire.documents import convert_document_value
 from propstore.repository import Repository
 from propstore.validate_contexts import load_contexts
@@ -78,7 +79,7 @@ def add_context(
     dry_run: bool,
 ) -> ContextAddReport:
     ref = ContextRef(request.name)
-    relpath = CONTEXT_FAMILY.resolve_ref(repo, ref).relpath
+    relpath = repo.artifacts.address(CONTEXT_FAMILY, ref).require_path()
     filepath = repo.root / relpath
     if (repo.tree() / relpath).exists():
         raise ContextWorkflowError(f"Context file '{filepath}' already exists")
@@ -116,7 +117,7 @@ def add_context(
 
 def list_context_items(repo: Repository) -> tuple[ContextListItem, ...]:
     items: list[ContextListItem] = []
-    for context in load_contexts(repo.tree() / "contexts"):
+    for context in load_contexts(SEMANTIC_FAMILIES.root_path("context", repo.tree())):
         record = context.record
         context_id = context.filename if record.context_id is None else str(record.context_id)
         items.append(

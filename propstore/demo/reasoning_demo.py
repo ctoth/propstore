@@ -181,7 +181,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                 transaction.coerce(
                     CONCEPT_FILE_FAMILY,
                     payload,
-                    source=CONCEPT_FILE_FAMILY.resolve_ref(repo, ref).relpath,
+                    source=repo.artifacts.address(CONCEPT_FILE_FAMILY, ref).require_path(),
                 ),
             )
         context_ref = ContextRef("demo")
@@ -191,7 +191,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
             transaction.coerce(
                 CONTEXT_FAMILY,
                 {"id": "demo", "name": "Reasoning demo"},
-                source=CONTEXT_FAMILY.resolve_ref(repo, context_ref).relpath,
+                source=repo.artifacts.address(CONTEXT_FAMILY, context_ref).require_path(),
             ),
         )
         claims_ref = ClaimsFileRef("reasoning_demo")
@@ -201,7 +201,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
             transaction.coerce(
                 CLAIMS_FILE_FAMILY,
                 claims_payload,
-                source=CLAIMS_FILE_FAMILY.resolve_ref(repo, claims_ref).relpath,
+                source=repo.artifacts.address(CLAIMS_FILE_FAMILY, claims_ref).require_path(),
             ),
         )
         for payload in (stance_against_yes, stance_against_no):
@@ -212,7 +212,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                 transaction.coerce(
                     STANCE_FILE_FAMILY,
                     payload,
-                    source=STANCE_FILE_FAMILY.resolve_ref(repo, stance_ref).relpath,
+                    source=repo.artifacts.address(STANCE_FILE_FAMILY, stance_ref).require_path(),
                 ),
             )
 
