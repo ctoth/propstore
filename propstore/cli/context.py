@@ -5,13 +5,15 @@ import sys
 
 import click
 
-from propstore.artifacts import CONTEXT_FAMILY, ContextRef
 from propstore.artifacts.codecs import encode_document
-from propstore.artifacts.documents.contexts import ContextDocument
 from propstore.cli.helpers import EXIT_ERROR
+from propstore.context_workflows import (
+    ContextAddRequest,
+    ContextWorkflowError,
+    add_context,
+    list_context_items,
+)
 from propstore.repository import Repository
-from propstore.artifacts.schema import convert_document_value
-from propstore.validate_contexts import load_contexts
 
 
 @click.group()
@@ -38,64 +40,25 @@ def add(
 ) -> None:
     """Add a new context to the registry."""
     repo: Repository = obj["repo"]
-    contexts_dir = repo.contexts_dir
-    contexts_tree = repo.tree() / "contexts"
-
-    filepath = contexts_dir / f"{name}.yaml"
-    if (contexts_tree / f"{name}.yaml").exists():
-        click.echo(f"ERROR: Context file '{filepath}' already exists", err=True)
+    request = ContextAddRequest(
+        name=name,
+        description=description,
+        assumptions=assumption,
+        parameters=parameter,
+        perspective=perspective,
+    )
+    try:
+        report = add_context(repo, request, dry_run=dry_run)
+    except ContextWorkflowError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
 
-    parameters: dict[str, str] = {}
-    for raw_parameter in parameter:
-        key, sep, value = raw_parameter.partition("=")
-        if not sep or not key or not value:
-            click.echo(
-                f"ERROR: Context parameter '{raw_parameter}' must be KEY=VALUE",
-                err=True,
-            )
-            sys.exit(EXIT_ERROR)
-        parameters[key] = value
-
-    data: dict = {
-        "id": name,
-        "name": name,
-        "description": description,
-    }
-    structure: dict[str, object] = {}
-    if assumption:
-        structure["assumptions"] = list(assumption)
-    if parameters:
-        structure["parameters"] = parameters
-    if perspective:
-        structure["perspective"] = perspective
-    if structure:
-        data["structure"] = structure
-
-    if dry_run:
-        click.echo(f"Would create {filepath}")
-        document = convert_document_value(
-            data,
-            ContextDocument,
-            source=f"dry-run:contexts/{name}.yaml",
-        )
-        click.echo(encode_document(document).decode("utf-8"))
+    if not report.created:
+        click.echo(f"Would create {report.filepath}")
+        click.echo(encode_document(report.document).decode("utf-8"))
         return
 
-    document = convert_document_value(
-        data,
-        ContextDocument,
-        source=f"contexts/{name}.yaml",
-    )
-    repo.artifacts.save(
-        CONTEXT_FAMILY,
-        ContextRef(name),
-        document,
-        message=f"Add context: {name}",
-    )
-    repo.snapshot.sync_worktree()
-
-    click.echo(f"Created {filepath}")
+    click.echo(f"Created {report.filepath}")
 
 
 @context.command("list")
@@ -103,14 +66,11 @@ def add(
 def list_contexts(obj: dict) -> None:
     """List all registered contexts."""
     repo: Repository = obj["repo"]
-    contexts = load_contexts(repo.tree() / "contexts")
+    contexts = list_context_items(repo)
     if not contexts:
         click.echo("No contexts registered.")
         return
 
     for context in contexts:
-        record = context.record
-        cid = context.filename if record.context_id is None else str(record.context_id)
-        desc = record.description or ""
-        suffix = f" ({record.perspective})" if record.perspective else ""
-        click.echo(f"  {cid}{suffix} — {desc}")
+        suffix = f" ({context.perspective})" if context.perspective else ""
+        click.echo(f"  {context.context_id}{suffix} — {context.description}")
