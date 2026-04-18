@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 import yaml
@@ -11,6 +12,7 @@ from hypothesis import strategies as st
 from propstore.identity import compute_claim_version_id
 from quire.git_store import GitStore
 from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
+from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.storage.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
@@ -112,7 +114,9 @@ def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_
 
 
 def _snapshot(kr: GitStore) -> RepositorySnapshot:
-    return RepositorySnapshot.for_git(kr)
+    if kr.root is None:
+        raise ValueError("test snapshot requires a filesystem-backed git store")
+    return RepositorySnapshot(Repository(kr.root))
 
 
 def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
@@ -379,27 +383,29 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
 
     assume(set(left_ids).isdisjoint(right_ids))
 
-    kr = init_memory_git_store()
-    base_sha = kr.commit_files({}, "seed")
-    branch_name = "paper/property_preserve"
-    kr.create_branch(branch_name, source_commit=base_sha)
+    with TemporaryDirectory() as temp_dir:
+        root = Path(temp_dir) / "knowledge"
+        kr = init_git_store(root)
+        base_sha = kr.commit_files({}, "seed")
+        branch_name = "paper/property_preserve"
+        kr.create_branch(branch_name, source_commit=base_sha)
 
-    left_payload = _claims_commit_payload(left_ids, prefix="left")
-    right_payload = _claims_commit_payload(right_ids, prefix="right")
-    if left_payload:
-        kr.commit_files(left_payload, "left additions")
-    if right_payload:
-        kr.commit_files(right_payload, "right additions", branch=branch_name)
+        left_payload = _claims_commit_payload(left_ids, prefix="left")
+        right_payload = _claims_commit_payload(right_ids, prefix="right")
+        if left_payload:
+            kr.commit_files(left_payload, "left additions")
+        if right_payload:
+            kr.commit_files(right_payload, "right additions", branch=branch_name)
 
-    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
-    claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
-    merged_artifact_ids = {
-        claim["artifact_id"]
-        for claim_file in claim_files
-        for claim in claim_file_payload(claim_file).get("claims", [])
-    }
-    expected_artifact_ids = {
-        make_claim_identity(claim_id, namespace="test_paper")["artifact_id"]
-        for claim_id in [*left_ids, *right_ids]
-    }
-    assert merged_artifact_ids == expected_artifact_ids
+        merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
+        claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
+        merged_artifact_ids = {
+            claim["artifact_id"]
+            for claim_file in claim_files
+            for claim in claim_file_payload(claim_file).get("claims", [])
+        }
+        expected_artifact_ids = {
+            make_claim_identity(claim_id, namespace="test_paper")["artifact_id"]
+            for claim_id in [*left_ids, *right_ids]
+        }
+        assert merged_artifact_ids == expected_artifact_ids

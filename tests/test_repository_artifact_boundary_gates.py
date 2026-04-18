@@ -161,6 +161,32 @@ def test_propstore_artifacts_do_not_reexport_quire_store_shims() -> None:
     assert "ArtifactRepository" not in store_classes
 
 
+def test_propstore_storage_snapshot_does_not_accept_bare_gitstore() -> None:
+    path = ROOT / "propstore" / "storage" / "snapshot.py"
+    contents = path.read_text(encoding="utf-8")
+    tree = _parse(path)
+
+    assert "SimpleNamespace" not in contents
+    assert "for_git" not in contents
+
+    class_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
+    }
+    assert "RepositorySnapshot" in class_names
+
+
+def test_propstore_artifact_store_has_only_repository_factory() -> None:
+    path = ROOT / "propstore" / "artifacts" / "store.py"
+    contents = path.read_text(encoding="utf-8")
+
+    assert "_GitArtifactOwner" not in contents
+    assert "create_artifact_store_for_git" not in contents
+    assert "SimpleNamespace" not in contents
+    assert "def create_artifact_store(repo: Repository)" in contents
+
+
 def test_production_imports_do_not_use_propstore_repo_package() -> None:
     offenders: list[str] = []
     for path in _production_files():

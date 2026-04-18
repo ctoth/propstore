@@ -23,10 +23,10 @@ def create_merge_commit(
     target_branch: str | None = None,
 ) -> str:
     """Create a two-parent merge commit from the formal merge object."""
-    from propstore.artifacts.store import create_artifact_store_for_git
+    from propstore.artifacts.store import create_artifact_store
 
     kr = snapshot.git
-    artifacts = create_artifact_store_for_git(kr)
+    artifacts = create_artifact_store(snapshot.repo)
     if target_branch is None:
         target_branch = snapshot.primary_branch_name()
     merge = build_merge_framework(snapshot, branch_a, branch_b)
