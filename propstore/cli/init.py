@@ -1,5 +1,4 @@
-"""Click command for ``pks init``."""
-
+"""pks init - bootstrap a new propstore project."""
 from __future__ import annotations
 
 from pathlib import Path
