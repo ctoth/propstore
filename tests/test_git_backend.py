@@ -7,7 +7,8 @@ import yaml
 import pytest
 
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
-from propstore.concept_ids import next_concept_id, next_concept_id_for_git, record_concept_id_counter
+from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_counter
+from propstore.repository import Repository
 from quire.git_store import GitStore
 from propstore.storage import init_git_store, is_git_repo, open_git_store
 from tests.conftest import (
@@ -267,41 +268,50 @@ def test_read_file_at_commit(tmp_path):
 
 
 def test_next_concept_id_empty(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
-    assert next_concept_id(kr.tree() / "concepts") == 1
+    repo = Repository.init(tmp_path / "knowledge")
+    assert next_concept_id_for_repo(repo) == 1
 
 
 def test_next_concept_id_scans_tree(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
-    c3 = yaml.dump({"id": "concept3", "canonical_name": "alpha"}).encode()
-    c7 = yaml.dump({"id": "concept7", "canonical_name": "beta"}).encode()
-    kr.commit_files({
+    repo = Repository.init(tmp_path / "knowledge")
+    assert repo.git is not None
+    c3 = yaml.safe_dump(
+        _concept_payload("concept3", "alpha", domain="testing", form="scalar")
+    ).encode("utf-8")
+    c7 = yaml.safe_dump(
+        _concept_payload("concept7", "beta", domain="testing", form="scalar")
+    ).encode("utf-8")
+    repo.git.commit_files({
         "concepts/alpha.yaml": c3,
         "concepts/beta.yaml": c7,
     }, "add concepts")
-    assert next_concept_id(kr.tree() / "concepts") == 8
+    assert next_concept_id_for_repo(repo) == 8
 
 
 def test_next_concept_id_ignores_non_concept_ids(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
-    data = yaml.dump({"id": "something_else", "canonical_name": "foo"}).encode()
-    kr.commit_files({"concepts/foo.yaml": data}, "add")
-    assert next_concept_id(kr.tree() / "concepts") == 1
+    repo = Repository.init(tmp_path / "knowledge")
+    assert repo.git is not None
+    data = yaml.safe_dump(
+        _concept_payload("something_else", "foo", domain="testing", form="scalar")
+    ).encode("utf-8")
+    repo.git.commit_files({"concepts/foo.yaml": data}, "add")
+    assert next_concept_id_for_repo(repo) == 1
 
 
 def test_next_concept_id_uses_git_counter_ref_when_available(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
-    kr.commit_files(
+    repo = Repository.init(tmp_path / "knowledge")
+    assert repo.git is not None
+    repo.git.commit_files(
         {
             "concepts/high.yaml": yaml.safe_dump(
-                make_concept_identity("concept99", canonical_name="high")
+                _concept_payload("concept99", "high", domain="testing", form="scalar")
             ).encode("utf-8"),
         },
         "add high concept",
     )
-    record_concept_id_counter(kr, 8)
+    record_concept_id_counter(repo.git, 8)
 
-    assert next_concept_id_for_git(kr, kr.tree() / "concepts") == 9
+    assert next_concept_id_for_repo(repo) == 9
 
 
 # ── KnowledgePath: GitKnowledgePath ─────────────────────────────────
