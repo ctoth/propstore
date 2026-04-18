@@ -5,6 +5,8 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+import msgspec
+
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.families.documents.concepts import (
     ConceptAliasDocument,
@@ -24,13 +26,14 @@ from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     coerce_concept_relationship_type,
 )
-from quire.documents import load_document_dir, to_document_builtins
+from quire.documents import convert_document_value, load_document_dir, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (
     compute_concept_version_id,
     derive_concept_artifact_id,
     format_logical_id,
+    normalize_canonical_concept_payload,
     normalize_logical_value,
 )
 from quire.tree_path import TreePath as KnowledgePath
@@ -602,6 +605,39 @@ def concept_document_to_payload(data: ConceptDocument) -> dict[str, Any]:
     if data.replaced_by is not None:
         payload["replaced_by"] = data.replaced_by
     return payload
+
+
+def encode_concept_document(document: ConceptDocument) -> bytes:
+    return msgspec.yaml.encode(concept_document_to_payload(document))
+
+
+def render_concept_document(document: ConceptDocument) -> str:
+    return encode_concept_document(document).decode("utf-8").rstrip()
+
+
+def normalize_concept_document_for_write(
+    context: Any,
+    document: ConceptDocument,
+    store: Any,
+) -> ConceptDocument:
+    del store
+    source = f"{context.branch}:{context.require_path()}"
+    normalized_payload = normalize_canonical_concept_payload(
+        concept_document_to_payload(document)
+    )
+    normalized_document = convert_document_value(
+        normalized_payload,
+        ConceptDocument,
+        source=source,
+    )
+    document_payload = concept_document_to_payload(normalized_document)
+    validation_payload = normalize_canonical_concept_payload(document_payload)
+    document_payload["version_id"] = compute_concept_version_id(validation_payload)
+    return convert_document_value(
+        document_payload,
+        ConceptDocument,
+        source=source,
+    )
 
 
 def concept_document_to_record_payload(data: ConceptDocument) -> dict[str, Any]:

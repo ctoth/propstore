@@ -148,16 +148,7 @@ def test_propstore_artifacts_do_not_reexport_quire_store_shims() -> None:
     assert not artifacts_store.exists()
     assert not old_transaction.exists()
     assert not old_types.exists()
-
-    init_contents = artifacts_init.read_text(encoding="utf-8")
-    assert "ArtifactRepository" not in init_contents
-    assert "ArtifactTransaction" not in init_contents
-    assert "ArtifactFamily" not in init_contents
-    assert "ArtifactContext" not in init_contents
-    assert "CLAIMS_FILE_FAMILY" not in init_contents
-    assert "CONCEPT_FILE_FAMILY" not in init_contents
-    assert "SOURCE_DOCUMENT_FAMILY" not in init_contents
-    assert "PROPSTORE_FAMILY_REGISTRY" not in init_contents
+    assert not artifacts_init.exists()
 
 
 def test_propstore_storage_snapshot_does_not_accept_bare_gitstore() -> None:

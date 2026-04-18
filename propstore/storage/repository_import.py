@@ -7,10 +7,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from propstore.families.registry import (
-    PlannedSemanticWrite,
-    normalize_semantic_import_writes,
     semantic_family_for_path,
     semantic_import_roots,
+)
+from propstore.storage.repository_import_normalization import (
+    PlannedSemanticWrite,
+    normalize_semantic_import_writes,
 )
 
 if TYPE_CHECKING:
