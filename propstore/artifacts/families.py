@@ -5,6 +5,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from quire.versions import VersionId
+
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.contexts import ContextDocument
 from propstore.artifacts.documents.forms import FormDocument
@@ -59,6 +61,8 @@ if TYPE_CHECKING:
 
 
 TYamlRef = TypeVar("TYamlRef")
+
+ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.18")
 
 
 def _source_artifact(repo: Repository, ref: SourceRef, relpath: str) -> ResolvedArtifact:
@@ -303,12 +307,14 @@ def _normalize_concept_for_write(
 
 SOURCE_DOCUMENT_FAMILY = ArtifactFamily[SourceRef, SourceDocument](
     name="source_document",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "source.yaml"),
 )
 
 SOURCE_NOTES_FAMILY = ArtifactFamily[SourceRef, str](
     name="source_notes",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=str,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "notes.md"),
     coerce_payload=_coerce_text_document,
@@ -320,6 +326,7 @@ SOURCE_NOTES_FAMILY = ArtifactFamily[SourceRef, str](
 
 SOURCE_METADATA_FAMILY = ArtifactFamily[SourceRef, dict[str, Any]](
     name="source_metadata",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=dict,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "metadata.json"),
     coerce_payload=_coerce_json_mapping,
@@ -331,12 +338,14 @@ SOURCE_METADATA_FAMILY = ArtifactFamily[SourceRef, dict[str, Any]](
 
 SOURCE_CONCEPTS_FAMILY = ArtifactFamily[SourceRef, SourceConceptsDocument](
     name="source_concepts",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceConceptsDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "concepts.yaml"),
 )
 
 SOURCE_CLAIMS_FAMILY = ArtifactFamily[SourceRef, SourceClaimsDocument](
     name="source_claims",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceClaimsDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "claims.yaml"),
 )
@@ -344,30 +353,35 @@ SOURCE_CLAIMS_FAMILY = ArtifactFamily[SourceRef, SourceClaimsDocument](
 
 SOURCE_MICROPUBS_FAMILY = ArtifactFamily[SourceRef, MicropublicationsFileDocument](
     name="source_micropubs",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MicropublicationsFileDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "micropubs.yaml"),
 )
 
 SOURCE_JUSTIFICATIONS_FAMILY = ArtifactFamily[SourceRef, SourceJustificationsDocument](
     name="source_justifications",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceJustificationsDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "justifications.yaml"),
 )
 
 SOURCE_STANCES_FAMILY = ArtifactFamily[SourceRef, SourceStancesDocument](
     name="source_stances",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceStancesDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, "stances.yaml"),
 )
 
 SOURCE_FINALIZE_REPORT_FAMILY = ArtifactFamily[SourceRef, SourceFinalizeReportDocument](
     name="source_finalize_report",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceFinalizeReportDocument,
     resolve_ref=lambda repo, ref: _source_artifact(repo, ref, source_finalize_relpath(ref.name)),
 )
 
 CONTEXT_FAMILY = ArtifactFamily[ContextRef, ContextDocument](
     name="context",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ContextDocument,
     resolve_ref=_context_artifact,
     ref_from_path=lambda path: _yaml_path_ref(path, subdir="contexts", ref_type=ContextRef),
@@ -375,6 +389,7 @@ CONTEXT_FAMILY = ArtifactFamily[ContextRef, ContextDocument](
 
 FORM_FAMILY = ArtifactFamily[FormRef, FormDocument](
     name="form",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=FormDocument,
     resolve_ref=_form_artifact,
     ref_from_path=lambda path: _yaml_path_ref(path, subdir="forms", ref_type=FormRef),
@@ -382,12 +397,14 @@ FORM_FAMILY = ArtifactFamily[FormRef, FormDocument](
 
 CANONICAL_SOURCE_FAMILY = ArtifactFamily[CanonicalSourceRef, SourceDocument](
     name="canonical_source",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceDocument,
     resolve_ref=_canonical_source_artifact,
 )
 
 CLAIMS_FILE_FAMILY = ArtifactFamily[ClaimsFileRef, ClaimsFileDocument](
     name="claims_file",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ClaimsFileDocument,
     resolve_ref=_claims_file_artifact,
     list_refs=lambda repo, branch, commit: _list_yaml_refs_in_directory(
@@ -408,6 +425,7 @@ CLAIMS_FILE_FAMILY = ArtifactFamily[ClaimsFileRef, ClaimsFileDocument](
 
 MICROPUBS_FILE_FAMILY = ArtifactFamily[MicropubsFileRef, MicropublicationsFileDocument](
     name="micropubs_file",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MicropublicationsFileDocument,
     resolve_ref=_micropubs_file_artifact,
     list_refs=lambda repo, branch, commit: _list_yaml_refs_in_directory(
@@ -428,6 +446,7 @@ MICROPUBS_FILE_FAMILY = ArtifactFamily[MicropubsFileRef, MicropublicationsFileDo
 
 CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
     name="concept_file",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ConceptDocument,
     resolve_ref=_concept_file_artifact,
     normalize_for_write=_normalize_concept_for_write,
@@ -448,12 +467,14 @@ CONCEPT_FILE_FAMILY = ArtifactFamily[ConceptFileRef, ConceptDocument](
 
 JUSTIFICATIONS_FILE_FAMILY = ArtifactFamily[JustificationsFileRef, SourceJustificationsDocument](
     name="justifications_file",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceJustificationsDocument,
     resolve_ref=_justifications_file_artifact,
 )
 
 STANCE_FILE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
     name="stance_file",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=StanceFileDocument,
     resolve_ref=_stance_file_artifact,
     ref_from_path=lambda path: StanceFileRef(source_claim_from_stance_path(path)),
@@ -462,6 +483,7 @@ STANCE_FILE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
 
 PROPOSAL_STANCE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
     name="proposal_stance_file",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=StanceFileDocument,
     resolve_ref=_proposal_stance_artifact,
     ref_from_path=lambda path: StanceFileRef(source_claim_from_stance_path(path)),
@@ -474,18 +496,21 @@ PROPOSAL_STANCE_FAMILY = ArtifactFamily[StanceFileRef, StanceFileDocument](
 
 CONCEPT_ALIGNMENT_FAMILY = ArtifactFamily[ConceptAlignmentRef, ConceptAlignmentArtifactDocument](
     name="concept_alignment",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ConceptAlignmentArtifactDocument,
     resolve_ref=_concept_alignment_artifact,
 )
 
 MERGE_MANIFEST_FAMILY = ArtifactFamily[MergeManifestRef, MergeManifestDocument](
     name="merge_manifest",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MergeManifestDocument,
     resolve_ref=_merge_manifest_artifact,
 )
 
 WORLDLINE_FAMILY = ArtifactFamily[WorldlineRef, WorldlineDefinitionDocument](
     name="worldline",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=WorldlineDefinitionDocument,
     resolve_ref=_worldline_artifact,
     ref_from_path=lambda path: _yaml_path_ref(path, subdir="worldlines", ref_type=WorldlineRef),
