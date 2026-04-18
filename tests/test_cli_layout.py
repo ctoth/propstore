@@ -17,6 +17,17 @@ def test_world_commands_live_outside_compiler_cmds() -> None:
     assert "def world(" in world_cmds
 
 
+def test_world_atms_commands_live_outside_world_group_module() -> None:
+    world_cmds = Path("propstore/cli/world_cmds.py").read_text(encoding="utf-8")
+    atms_cmds = Path("propstore/cli/world_atms_cmds.py").read_text(encoding="utf-8")
+
+    assert '@world.command("atms-' not in world_cmds
+    assert '@world.group("atms"' in atms_cmds
+    assert '@atms.command("status")' in atms_cmds
+    assert '@atms.command("next-query")' in atms_cmds
+    assert "from propstore.cli import world_atms_cmds" in world_cmds
+
+
 def test_root_cli_only_registers_top_level_commands() -> None:
     root_cli = Path("propstore/cli/__init__.py").read_text(encoding="utf-8")
 

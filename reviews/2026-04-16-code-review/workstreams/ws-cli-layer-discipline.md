@@ -609,6 +609,24 @@ Status 2026-04-17: root CLI startup is lazy.
   - `logs/test-runs/storage-import-20260417-200216.log` - 2 passed.
   - `uv run pyright propstore/cli/__init__.py propstore/storage/__init__.py tests/test_cli_layout.py` - 0 errors.
 
+Status 2026-04-17: world ATMS commands are grouped and split.
+
+- Moved ATMS-oriented `pks world` adapters to
+  `propstore.cli.world_atms_cmds`.
+- Replaced the flat `pks world atms-*` surface with the grouped
+  `pks world atms ...` surface:
+  `status`, `context`, `verify`, `futures`, `why-out`, `stability`,
+  `relevance`, `interventions`, and `next-query`.
+- Updated tests and docs to the grouped command surface; no flat-command
+  aliases were retained.
+- Added a layout guard preventing ATMS command handlers from returning to
+  `propstore.cli.world_cmds`.
+- Verification:
+  - `uv run pks world atms --help` lists the ATMS subgroup commands.
+  - `uv run pks world atms-status --help` fails with "No such command".
+  - `logs/test-runs/cli-world-atms-group-20260417-201239.log` - 11 passed.
+  - `uv run pyright propstore/cli/world_cmds.py propstore/cli/world_atms_cmds.py tests/test_cli_layout.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.

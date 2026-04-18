@@ -871,31 +871,31 @@ uv run pks world extensions domain=speech --backend praf --praf-strategy mc
 
 All ATMS commands support [ATMS options](#atms-options).
 
-#### `pks world atms-status [ARGS]...`
+#### `pks world atms status [ARGS]...`
 
 Show ATMS-native claim status, support quality, and essential support.
 
 ```bash
-uv run pks world atms-status --context ctx_atms_tradition
+uv run pks world atms status --context ctx_atms_tradition
 ```
 
-#### `pks world atms-context [ARGS]...`
+#### `pks world atms context [ARGS]...`
 
 Show which ATMS-supported claims hold in the current bound environment.
 
 ```bash
-uv run pks world atms-context --context ctx_atms_tradition
+uv run pks world atms context --context ctx_atms_tradition
 ```
 
-#### `pks world atms-verify [ARGS]...`
+#### `pks world atms verify [ARGS]...`
 
 Run ATMS label self-checks for the current bound environment.
 
 ```bash
-uv run pks world atms-verify
+uv run pks world atms verify
 ```
 
-#### `pks world atms-futures TARGET [ARGS]...`
+#### `pks world atms futures TARGET [ARGS]...`
 
 Show bounded ATMS future environments for a claim or concept.
 
@@ -905,10 +905,10 @@ Show bounded ATMS future environments for a claim or concept.
 | `--limit` | INTEGER | 8 | Maximum number of future environments to inspect |
 
 ```bash
-uv run pks world atms-futures speech.pitch --queryable "domain=speech" --limit 4
+uv run pks world atms futures speech.pitch --queryable "domain=speech" --limit 4
 ```
 
-#### `pks world atms-stability TARGET [ARGS]...`
+#### `pks world atms stability TARGET [ARGS]...`
 
 Show bounded ATMS-native stability over the implemented future replay substrate.
 
@@ -918,10 +918,10 @@ Show bounded ATMS-native stability over the implemented future replay substrate.
 | `--limit` | INTEGER | 8 | Maximum number of future environments to inspect |
 
 ```bash
-uv run pks world atms-stability speech.pitch --queryable "domain=speech"
+uv run pks world atms stability speech.pitch --queryable "domain=speech"
 ```
 
-#### `pks world atms-relevance TARGET [ARGS]...`
+#### `pks world atms relevance TARGET [ARGS]...`
 
 Show which bounded queryables can flip an ATMS or concept status.
 
@@ -931,10 +931,10 @@ Show which bounded queryables can flip an ATMS or concept status.
 | `--limit` | INTEGER | 8 | Maximum number of future environments to inspect |
 
 ```bash
-uv run pks world atms-relevance speech.pitch --queryable "domain=speech"
+uv run pks world atms relevance speech.pitch --queryable "domain=speech"
 ```
 
-#### `pks world atms-interventions TARGET [ARGS]...`
+#### `pks world atms interventions TARGET [ARGS]...`
 
 Show bounded additive intervention plans for an ATMS claim or concept.
 
@@ -945,10 +945,10 @@ Show bounded additive intervention plans for an ATMS claim or concept.
 | `--limit` | INTEGER | 8 | Maximum number of future environments to inspect |
 
 ```bash
-uv run pks world atms-interventions speech.pitch --target-status IN --queryable "domain=speech"
+uv run pks world atms interventions speech.pitch --target-status IN --queryable "domain=speech"
 ```
 
-#### `pks world atms-next-query TARGET [ARGS]...`
+#### `pks world atms next-query TARGET [ARGS]...`
 
 Show next-query suggestions derived from bounded additive intervention plans.
 
@@ -959,10 +959,10 @@ Show next-query suggestions derived from bounded additive intervention plans.
 | `--limit` | INTEGER | 8 | Maximum number of future environments to inspect |
 
 ```bash
-uv run pks world atms-next-query speech.pitch --target-status IN --queryable "domain=speech"
+uv run pks world atms next-query speech.pitch --target-status IN --queryable "domain=speech"
 ```
 
-#### `pks world atms-why-out TARGET [ARGS]...`
+#### `pks world atms why-out TARGET [ARGS]...`
 
 Explain whether an ATMS OUT status is missing-support or nogood-pruned.
 
@@ -972,7 +972,7 @@ Explain whether an ATMS OUT status is missing-support or nogood-pruned.
 | `--limit` | INTEGER | 8 | Maximum number of future environments to inspect |
 
 ```bash
-uv run pks world atms-why-out speech.pitch --queryable "domain=speech"
+uv run pks world atms why-out speech.pitch --queryable "domain=speech"
 ```
 
 ---
@@ -1129,13 +1129,13 @@ Used by: `worldline create`, `worldline run`.
 
 ### ATMS Options
 
-Used by all `world atms-*` commands.
+Used by all `world atms` commands.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--context` | TEXT | -- | Context to scope the ATMS inspection |
 
-Commands that support future-environment exploration (`atms-futures`, `atms-stability`, `atms-relevance`, `atms-interventions`, `atms-next-query`, `atms-why-out`) additionally accept:
+Commands that support future-environment exploration (`atms futures`, `atms stability`, `atms relevance`, `atms interventions`, `atms next-query`, `atms why-out`) additionally accept:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

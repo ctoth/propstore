@@ -983,22 +983,22 @@ def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
         def close(self) -> None:
             return None
 
-    monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
     monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
 
     runner = CliRunner()
 
-    status_result = runner.invoke(cli, ["world", "atms-status", "x=1"])
+    status_result = runner.invoke(cli, ["world", "atms", "status", "x=1"])
     assert status_result.exit_code == 0, status_result.output
     assert "claim_exact: status=IN support_quality=exact" in status_result.output
     assert "claim_semantic: status=OUT support_quality=semantic_compatible" in status_result.output
 
-    context_result = runner.invoke(cli, ["world", "atms-context", "x=1"])
+    context_result = runner.invoke(cli, ["world", "atms", "context", "x=1"])
     assert context_result.exit_code == 0, context_result.output
     assert "claim_exact: status=IN" in context_result.output
     assert "claim_semantic" not in context_result.output
 
-    verify_result = runner.invoke(cli, ["world", "atms-verify", "x=1"])
+    verify_result = runner.invoke(cli, ["world", "atms", "verify", "x=1"])
     assert verify_result.exit_code == 0, verify_result.output
     assert "ATMS labels verified." in verify_result.output
 
@@ -1021,7 +1021,7 @@ def test_world_extensions_cli_rejects_atms_backend_explicitly(monkeypatch) -> No
         def close(self) -> None:
             return None
 
-    monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
     monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
 
     runner = CliRunner()
@@ -1754,26 +1754,26 @@ def test_atms_cli_surfaces_future_analysis(monkeypatch) -> None:
         def close(self) -> None:
             return None
 
-    monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
     monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
 
     runner = CliRunner()
 
     futures_result = runner.invoke(
         cli,
-        ["world", "atms-futures", "claim_future", "x=1", "--queryable", "y=2"],
+        ["world", "atms", "futures", "claim_future", "x=1", "--queryable", "y=2"],
     )
     why_out_result = runner.invoke(
         cli,
-        ["world", "atms-why-out", "claim_future", "x=1", "--queryable", "y=2"],
+        ["world", "atms", "why-out", "claim_future", "x=1", "--queryable", "y=2"],
     )
     stability_result = runner.invoke(
         cli,
-        ["world", "atms-stability", "claim_future", "x=1", "--queryable", "y=2", "--queryable", "z=3"],
+        ["world", "atms", "stability", "claim_future", "x=1", "--queryable", "y=2", "--queryable", "z=3"],
     )
     relevance_result = runner.invoke(
         cli,
-        ["world", "atms-relevance", "claim_future", "x=1", "--queryable", "y=2", "--queryable", "z=3"],
+        ["world", "atms", "relevance", "claim_future", "x=1", "--queryable", "y=2", "--queryable", "z=3"],
     )
 
     assert futures_result.exit_code == 0, futures_result.output
@@ -1832,18 +1832,18 @@ def test_atms_cli_surfaces_interventions_and_next_queries(monkeypatch) -> None:
         def close(self) -> None:
             return None
 
-    monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
     monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
 
     runner = CliRunner()
 
     interventions_result = runner.invoke(
         cli,
-        ["world", "atms-interventions", "claim_future", "x=1", "--target-status", "IN", "--queryable", "y=2", "--queryable", "z=3"],
+        ["world", "atms", "interventions", "claim_future", "x=1", "--target-status", "IN", "--queryable", "y=2", "--queryable", "z=3"],
     )
     next_query_result = runner.invoke(
         cli,
-        ["world", "atms-next-query", "claim_future", "x=1", "--target-status", "IN", "--queryable", "y=2", "--queryable", "z=3"],
+        ["world", "atms", "next-query", "claim_future", "x=1", "--target-status", "IN", "--queryable", "y=2", "--queryable", "z=3"],
     )
 
     assert interventions_result.exit_code == 0, interventions_result.output
