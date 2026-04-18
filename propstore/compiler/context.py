@@ -5,12 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Mapping, cast
+from typing import TYPE_CHECKING, Any, Mapping
 
+from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore.cel_checker import ConceptInfo
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.claims import ClaimFileEntry
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
+from propstore.artifacts.families import CONCEPT_FILE_FAMILY, FORM_FAMILY
 from quire.references import (
     extend_reference_lookup,
     finalize_reference_lookup,
@@ -20,10 +21,9 @@ from propstore.core.concepts import (
     ConceptRecord,
     LoadedConcept,
     concept_reference_keys,
+    parse_concept_record_document,
 )
-from propstore.form_utils import FormDefinition, load_all_forms_path
-from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
-from propstore.core.concepts import load_concepts
+from propstore.form_utils import FormDefinition, load_all_forms_path, parse_form
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -103,28 +103,12 @@ def build_compilation_context_from_loaded(
     )
 
 
-def build_compilation_context_from_paths(
-    concepts_dir: Path | KnowledgePath,
-    forms_dir: Path | KnowledgePath,
-    *,
-    claim_files: list[ClaimFileEntry] | None = None,
-    context_ids: set[str] | None = None,
-) -> CompilationContext:
-    concepts_root = coerce_knowledge_path(concepts_dir)
-    concepts = load_concepts(concepts_root)
-    return build_compilation_context_from_loaded(
-        concepts,
-        forms_dir=forms_dir,
-        claim_files=claim_files,
-        context_ids=context_ids,
-    )
-
-
 def build_compilation_context_from_repo(
     repo: Repository | None,
     *,
     claim_files: list[ClaimFileEntry] | None = None,
     context_ids: set[str] | None = None,
+    commit: str | None = None,
 ) -> CompilationContext:
     if repo is None:
         return _build_context_from_concepts(
@@ -133,9 +117,28 @@ def build_compilation_context_from_repo(
             claim_files=claim_files,
             context_ids=context_ids,
         )
-    return build_compilation_context_from_paths(
-        SEMANTIC_FAMILIES.root_path("concept", repo.tree()),
-        SEMANTIC_FAMILIES.root_path("form", repo.tree()),
+    tree = repo.tree(commit=commit)
+    concepts: list[LoadedConcept] = []
+    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=commit):
+        handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref, commit=commit)
+        concepts.append(
+            LoadedConcept(
+                filename=ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_concept_record_document(handle.document),
+                document=handle.document,
+            )
+        )
+
+    form_registry: dict[str, FormDefinition] = {}
+    for ref in repo.artifacts.list(FORM_FAMILY, commit=commit):
+        document = repo.artifacts.require(FORM_FAMILY, ref, commit=commit)
+        form_registry[document.name] = parse_form(document.name, document)
+
+    return _build_context_from_concepts(
+        concepts,
+        form_registry,
         claim_files=claim_files,
         context_ids=context_ids,
     )

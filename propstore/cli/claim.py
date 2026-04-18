@@ -93,37 +93,31 @@ def show(obj: dict, claim_id: str) -> None:
 @click.pass_obj
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
-    from propstore.compiler.context import build_compilation_context_from_paths
+    from propstore.compiler.context import (
+        build_compilation_context_from_loaded,
+        build_compilation_context_from_repo,
+    )
     from propstore.compiler.passes import validate_claims
-
-
-
-
-
+    from propstore.core.concepts import load_concepts
 
     repo: Repository = obj["repo"]
     claims_root = coerce_knowledge_path(Path(claims_path)) if claims_path else None
     concepts_override = Path(concepts_path) if concepts_path else None
-    concepts_root = (
-        coerce_knowledge_path(concepts_override)
-        if concepts_override
-        else SEMANTIC_FAMILIES.root_path("concept", repo.tree())
-    )
 
     if claims_root is not None and not claims_root.exists():
         click.echo(f"ERROR: Claims directory '{claims_root.as_posix()}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
-    if not concepts_root.exists():
-        click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
-        sys.exit(EXIT_ERROR)
 
-    forms_root = (
-        coerce_knowledge_path(concepts_override.parent / "forms")
-        if concepts_override is not None
-        else SEMANTIC_FAMILIES.root_path("form", repo.tree())
-    )
-    if not forms_root.exists():
-        forms_root = SEMANTIC_FAMILIES.root_path("form", repo.tree())
+    concepts_root = None
+    forms_root = None
+    if concepts_override is not None:
+        concepts_root = coerce_knowledge_path(concepts_override)
+        if not concepts_root.exists():
+            click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
+            sys.exit(EXIT_ERROR)
+        forms_root = coerce_knowledge_path(concepts_override.parent / "forms")
+        if not forms_root.exists():
+            forms_root = SEMANTIC_FAMILIES.root_path("form", repo.tree())
 
     try:
         if claims_root is None:
@@ -133,11 +127,14 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
             ]
         else:
             files = load_document_dir(claims_root, ClaimsFileDocument)
-        context = build_compilation_context_from_paths(
-            concepts_root,
-            forms_root,
-            claim_files=files,
-        )
+        if concepts_root is None:
+            context = build_compilation_context_from_repo(repo, claim_files=files)
+        else:
+            context = build_compilation_context_from_loaded(
+                load_concepts(concepts_root),
+                forms_dir=forms_root,
+                claim_files=files,
+            )
     except DocumentSchemaError as exc:
         click.echo(f"ERROR: {exc}", err=True)
         click.echo("Validation FAILED: 1 error(s)", err=True)
@@ -166,31 +163,34 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
 @click.pass_obj
 def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
     """Validate a single claims YAML file."""
-    from propstore.compiler.context import build_compilation_context_from_paths
+    from propstore.compiler.context import (
+        build_compilation_context_from_loaded,
+        build_compilation_context_from_repo,
+    )
     from propstore.compiler.passes import validate_single_claim_file
+    from propstore.core.concepts import load_concepts
 
     repo: Repository = obj["repo"]
     concepts_override = Path(concepts_path) if concepts_path else None
-    concepts_root = (
-        coerce_knowledge_path(concepts_override)
-        if concepts_override
-        else SEMANTIC_FAMILIES.root_path("concept", repo.tree())
-    )
-
-    if not concepts_root.exists():
-        click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
-        sys.exit(EXIT_ERROR)
-
-    forms_root = (
-        coerce_knowledge_path(concepts_override.parent / "forms")
-        if concepts_override is not None
-        else SEMANTIC_FAMILIES.root_path("form", repo.tree())
-    )
-    if not forms_root.exists():
-        forms_root = SEMANTIC_FAMILIES.root_path("form", repo.tree())
+    concepts_root = None
+    forms_root = None
+    if concepts_override is not None:
+        concepts_root = coerce_knowledge_path(concepts_override)
+        if not concepts_root.exists():
+            click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
+            sys.exit(EXIT_ERROR)
+        forms_root = coerce_knowledge_path(concepts_override.parent / "forms")
+        if not forms_root.exists():
+            forms_root = SEMANTIC_FAMILIES.root_path("form", repo.tree())
 
     try:
-        context = build_compilation_context_from_paths(concepts_root, forms_root)
+        if concepts_root is None:
+            context = build_compilation_context_from_repo(repo)
+        else:
+            context = build_compilation_context_from_loaded(
+                load_concepts(concepts_root),
+                forms_dir=forms_root,
+            )
         result = validate_single_claim_file(filepath, context)
     except DocumentSchemaError as exc:
         click.echo(f"ERROR: {exc}", err=True)

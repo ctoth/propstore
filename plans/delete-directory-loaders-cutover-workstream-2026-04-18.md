@@ -36,6 +36,8 @@ repo.artifacts.prepare(FAMILY, ref, document, ...)
 Delete production surfaces whose job is "given a directory/root/path, enumerate
 or load semantic artifacts" for all semantic families:
 
+- path-era compiler entrypoints that accept repository semantic directories,
+  including `build_compilation_context_from_paths`
 - claim directory loaders, including `load_claim_files`
 - concept directory loaders when used for repository-native semantic loading
 - context directory loaders when fed repository semantic roots
@@ -71,6 +73,8 @@ Path/file loading may remain only at explicit external IO boundaries, such as:
 - packaged seed-resource loading from package resource directories
 
 These boundaries must not become repository-native semantic loading paths.
+They must pass already-loaded typed documents into compiler APIs rather than
+calling repository-oriented path/context builders.
 
 ## Iterate
 

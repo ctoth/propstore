@@ -12,10 +12,7 @@ from typing import TYPE_CHECKING, Literal, cast
 from quire.documents import DocumentSchemaError
 from propstore.artifacts.families import CLAIMS_FILE_FAMILY
 from propstore.claims import claim_file_payload
-from propstore.compiler.context import (
-    build_compilation_context_from_paths,
-    build_compilation_context_from_repo,
-)
+from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.compiler.passes import compile_claim_files, validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
 from propstore.core.concepts import load_concepts
@@ -287,19 +284,19 @@ def build_repository(
             }
 
     claim_files = None
-    compilation_context = build_compilation_context_from_paths(
-        tree / "concepts",
-        tree / "forms",
+    compilation_context = build_compilation_context_from_repo(
+        repo,
         context_ids=context_ids,
+        commit=hash_key,
     )
     claim_bundle = None
     if files:
         try:
-            compilation_context = build_compilation_context_from_paths(
-                tree / "concepts",
-                tree / "forms",
+            compilation_context = build_compilation_context_from_repo(
+                repo,
                 claim_files=files,
                 context_ids=context_ids if context_ids else None,
+                commit=hash_key,
             )
             claim_bundle = compile_claim_files(
                 files,
