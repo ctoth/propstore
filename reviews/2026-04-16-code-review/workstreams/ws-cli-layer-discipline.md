@@ -398,6 +398,18 @@ Status 2026-04-17: grounding inspection slice landed.
   - `logs/test-runs/cli-layer-grounding-inspection-20260417-175618.log` - 7 passed.
   - `uv run pyright propstore/grounding/inspection.py propstore/cli/grounding_cmds.py` - 0 errors.
 
+Status 2026-04-17: micropub report slice landed.
+
+- Added `propstore.micropubs` with typed lookup failures, entry reports, and
+  lift reports.
+- Moved micropublication bundle lookup, artifact traversal, and context-lift
+  checks out of `propstore.cli.micropub`.
+- Added owner coverage for bundle lookup, entry lookup, liftable and
+  not-liftable reports, plus CLI coverage for bundle/show/lift rendering.
+- Verification:
+  - `logs/test-runs/cli-layer-micropub-reports-20260417-180144.log` - 3 passed.
+  - `uv run pyright propstore/micropubs.py propstore/cli/micropub.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
