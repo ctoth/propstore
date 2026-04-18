@@ -9,10 +9,10 @@ from typing import Mapping
 from propstore.artifacts.codecs import decode_yaml_mapping
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.forms import FormDocument
-from propstore.artifacts.families import CONCEPT_FILE_FAMILY, FORM_FAMILY
 from propstore.artifacts.refs import ConceptFileRef, FormRef
 from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from propstore.repository import Repository
+from quire.documents import convert_document_value
 
 
 class ProjectInitError(Exception):
@@ -76,7 +76,7 @@ def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, FormDocument]]
         form_documents.append(
             (
                 FormRef(form_path.stem),
-                repo.artifacts.coerce(FORM_FAMILY, payload, source=str(form_path)),
+                convert_document_value(payload, FormDocument, source=str(form_path)),
             )
         )
     return form_documents
@@ -237,9 +237,9 @@ def _seed_concept_documents(repo: Repository) -> list[tuple[ConceptFileRef, Conc
             concept_documents.append(
                 (
                     ref,
-                    repo.artifacts.coerce(
-                        CONCEPT_FILE_FAMILY,
+                    convert_document_value(
                         _seed_concept_payload(entry),
+                        ConceptDocument,
                         source=f"{seed_path}:{ref.name}",
                     ),
                 )
@@ -254,7 +254,7 @@ def _render_seed_form_files(
     """Render typed seed forms to repo-relative YAML blobs for one commit."""
     rendered: dict[str | Path, bytes] = {}
     for ref, document in form_documents:
-        prepared = repo.artifacts.prepare(FORM_FAMILY, ref, document)
+        prepared = repo.families.forms.prepare(ref, document)
         rendered[prepared.address.require_path()] = prepared.content
     return rendered
 
@@ -265,6 +265,6 @@ def _render_seed_concept_files(
 ) -> dict[str | Path, bytes]:
     rendered: dict[str | Path, bytes] = {}
     for ref, document in concept_documents:
-        prepared = repo.artifacts.prepare(CONCEPT_FILE_FAMILY, ref, document)
+        prepared = repo.families.concepts.prepare(ref, document)
         rendered[prepared.address.require_path()] = prepared.content
     return rendered
