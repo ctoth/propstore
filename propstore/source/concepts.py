@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.artifacts import SOURCE_CONCEPTS_FAMILY, SourceRef
+from propstore.artifacts import FORM_FAMILY, SOURCE_CONCEPTS_FAMILY, SourceRef
 from propstore.repository import Repository
 from quire.documents import decode_document_path
 
@@ -17,13 +17,7 @@ from .registry import primary_branch_concept_match
 
 
 def get_valid_form_names(repo: Repository) -> list[str] | None:
-    forms_tree = repo.tree() / "forms"
-    try:
-        if not forms_tree.exists():
-            return None
-    except (FileNotFoundError, OSError):
-        return None
-    names = sorted(f.stem for f in forms_tree.iterdir() if f.suffix == ".yaml")
+    names = sorted(ref.name for ref in repo.artifacts.list(FORM_FAMILY))
     return names if names else None
 
 

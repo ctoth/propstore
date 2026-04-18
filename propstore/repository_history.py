@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from propstore.artifacts.families import MERGE_MANIFEST_FAMILY
+from propstore.artifacts.families import CONCEPT_FILE_FAMILY, MERGE_MANIFEST_FAMILY
 from propstore.artifacts.refs import MergeManifestRef
 from propstore.repository import Repository
 
@@ -265,7 +265,7 @@ def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
         raise CommitNotFoundError(f"Commit not found: {commit}") from exc
 
     tree = repo.snapshot.tree(commit=commit)
-    if not (tree / "concepts").exists():
+    if not repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=commit):
         raise CommitHasNoConceptsError("No concepts found at that commit.")
 
     rebuilt = build_sidecar(

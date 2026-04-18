@@ -10,12 +10,11 @@ from typing import TYPE_CHECKING, Any, cast
 from propstore.artifacts.documents.forms import (
     FormDocument,
 )
-from propstore.artifacts.families import FORM_FAMILY
+from propstore.artifacts.families import CONCEPT_FILE_FAMILY, FORM_FAMILY
 from propstore.artifacts.refs import FormRef
-from propstore.artifacts.semantic_families import SEMANTIC_FAMILIES
 from propstore.cel_checker import KindType
 from quire.documents import DocumentSchemaError, convert_document_value, decode_document_path
-from propstore.core.concepts import load_concepts
+from propstore.core.concepts import parse_concept_record_document
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore import dimensions as dimension_api
 from propstore.diagnostics import ValidationResult
@@ -126,12 +125,12 @@ def show_form(
     repo: Repository,
     name: str,
 ) -> FormShowReport:
-    forms_tree = SEMANTIC_FAMILIES.root_path("form", repo.tree())
-    path = forms_tree / f"{name}.yaml"
-    if not path.exists():
+    ref = FormRef(name)
+    document = repo.artifacts.load(FORM_FAMILY, ref)
+    if document is None:
         raise FormNotFoundError(name)
 
-    form_def = load_form_path(forms_tree, name)
+    form_def = parse_form(document.name, document)
     decompositions: tuple[FormAlgebraDecomposition, ...] = ()
     uses: tuple[FormAlgebraUse, ...] = ()
     if repo.sidecar_path.exists():
@@ -159,7 +158,7 @@ def show_form(
             uses = ()
 
     return FormShowReport(
-        yaml_text=path.read_text(),
+        yaml_text=repo.artifacts.render(document),
         form=form_def,
         decompositions=decompositions,
         uses=uses,
@@ -197,14 +196,17 @@ def list_form_items(
     *,
     dims_filter: str | None,
 ) -> tuple[FormListItem, ...] | None:
-    forms_tree = SEMANTIC_FAMILIES.root_path("form", repo.tree())
-    if not forms_tree.exists():
+    refs = repo.artifacts.list(FORM_FAMILY)
+    if not refs:
         return None
 
-    registry = load_all_forms_path(forms_tree)
     filter_dims = parse_dims_spec(dims_filter) if dims_filter is not None else None
     items: list[FormListItem] = []
-    for form in sorted(registry.values(), key=lambda item: item.name):
+    forms: list[FormDefinition] = []
+    for ref in refs:
+        document = repo.artifacts.require(FORM_FAMILY, ref)
+        forms.append(parse_form(document.name, document))
+    for form in sorted(forms, key=lambda item: item.name):
         if filter_dims is not None:
             from bridgman import dims_equal
 
@@ -272,7 +274,7 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
     ref = FormRef(request.name)
     relpath = repo.artifacts.address(FORM_FAMILY, ref).require_path()
     path = repo.root / relpath
-    if (repo.tree() / relpath).exists():
+    if repo.artifacts.load(FORM_FAMILY, ref) is not None:
         raise FormWorkflowError(f"Form '{request.name}' already exists")
 
     source = (
@@ -300,9 +302,11 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
 
 def form_references(repo: Repository, name: str) -> tuple[str, ...]:
     references: list[str] = []
-    for concept in load_concepts(SEMANTIC_FAMILIES.root_path("concept", repo.tree())):
-        if concept.record.form == name:
-            references.append(f"{concept.record.artifact_id} ({concept.filename})")
+    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref)
+        record = parse_concept_record_document(document)
+        if record.form == name:
+            references.append(f"{record.artifact_id} ({ref.name})")
     return tuple(references)
 
 
@@ -316,7 +320,7 @@ def remove_form(
     ref = FormRef(name)
     relpath = repo.artifacts.address(FORM_FAMILY, ref).require_path()
     path = repo.root / relpath
-    if not (repo.tree() / relpath).exists():
+    if repo.artifacts.load(FORM_FAMILY, ref) is None:
         raise FormNotFoundError(name)
 
     references = form_references(repo, name)
@@ -335,33 +339,48 @@ def remove_form(
 
 
 def validate_forms(repo: Repository, name: str | None = None) -> FormValidationReport | None:
-    forms_tree = SEMANTIC_FAMILIES.root_path("form", repo.tree())
-    if not forms_tree.exists():
+    refs = repo.artifacts.list(FORM_FAMILY)
+    if not refs:
         return None
 
-    if name is not None and not (forms_tree / f"{name}.yaml").exists():
+    if name is not None and repo.artifacts.load(FORM_FAMILY, FormRef(name)) is None:
         raise FormNotFoundError(name)
 
-    form_result = validate_form_files(forms_tree)
-    all_forms = {
-        p.stem
-        for p in forms_tree.iterdir()
-        if p.is_file() and p.suffix == ".yaml"
-    }
-    concepts_tree = SEMANTIC_FAMILIES.root_path("concept", repo.tree())
-    if concepts_tree.exists():
-        for concept in load_concepts(concepts_tree):
-            ref = concept.record.form
-            if ref and ref not in all_forms:
-                form_result.errors.append(
-                    f"concept {concept.filename}: references missing form '{ref}'"
-                )
+    form_result = ValidationResult()
+    all_forms = {ref.name for ref in refs}
+    for ref in refs:
+        document = repo.artifacts.require(FORM_FAMILY, ref)
+        dims = document.dimensions
+        is_dimless = document.dimensionless
+        has_unit = document.unit_symbol is not None
+        if dims is not None:
+            for dimension_key in dims:
+                if not dimension_key or not dimension_key[0].isalpha() or not dimension_key.isidentifier():
+                    form_result.errors.append(
+                        f"{ref.name}: dimension key '{dimension_key}' must be an identifier"
+                    )
+        if dims is not None and len(dims) > 0 and is_dimless:
+            form_result.errors.append(
+                f"{ref.name}: non-empty dimensions conflicts with "
+                f"dimensionless=true")
+        if dims is not None and len(dims) == 0 and not is_dimless and has_unit:
+            form_result.errors.append(
+                f"{ref.name}: empty dimensions conflicts with "
+                f"dimensionless=false for a quantity with unit_symbol")
+        if document.name != ref.name:
+            form_result.errors.append(
+                f"{ref.name}: 'name' field ('{document.name}') does not match "
+                f"filename '{ref.name}'")
 
-    count = len([
-        p for p in forms_tree.iterdir()
-        if p.is_file() and p.suffix == ".yaml"
-    ])
-    return FormValidationReport(count=count, errors=tuple(form_result.errors))
+    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+        record = parse_concept_record_document(repo.artifacts.require(CONCEPT_FILE_FAMILY, ref))
+        form_ref = record.form
+        if form_ref and form_ref not in all_forms:
+            form_result.errors.append(
+                f"concept {ref.name}: references missing form '{form_ref}'"
+            )
+
+    return FormValidationReport(count=len(refs), errors=tuple(form_result.errors))
 
 
 def clear_form_cache() -> None:
