@@ -589,6 +589,26 @@ Status 2026-04-17: worldline CLI split landed.
   - `logs/test-runs/cli-worldline-layout-20260417-195709.log` - 3 passed.
   - `uv run pyright propstore/cli/worldline_cmds.py propstore/cli/worldline_materialize_cmds.py propstore/cli/worldline_display_cmds.py propstore/cli/worldline_mutation_cmds.py propstore/cli/__init__.py` - 0 errors.
 
+Status 2026-04-17: root CLI startup is lazy.
+
+- Replaced eager root command imports in `propstore.cli.__init__` with a lazy
+  command registry.
+- Added the `forms` alias through the same registry; `pks forms` now reaches
+  the form command group instead of crashing during unrelated command imports.
+- Removed eager merge/reasoning re-exports from `propstore.storage.__init__`
+  so low-level storage imports do not pull merge classification back through
+  partially initialized claim modules.
+- Captured the lazy root CLI and shallow package `__init__.py` discipline in
+  `AGENTS.md` and `CLAUDE.md`.
+- Verification:
+  - `uv run pks forms` prints the form command group help without traceback.
+  - `uv run pks forms list` lists repository forms.
+  - `uv run pks --help` lists top-level commands.
+  - `uv run pks concept --help` imports the concept group without circular import errors.
+  - `logs/test-runs/cli-startup-20260417-200201.log` - 7 passed.
+  - `logs/test-runs/storage-import-20260417-200216.log` - 2 passed.
+  - `uv run pyright propstore/cli/__init__.py propstore/storage/__init__.py tests/test_cli_layout.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
