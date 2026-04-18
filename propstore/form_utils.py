@@ -157,7 +157,7 @@ def show_form(
             uses = ()
 
     return FormShowReport(
-        yaml_text=repo.artifacts.render(document),
+        yaml_text=repo.families.forms.render(document),
         form=form_def,
         decompositions=decompositions,
         uses=uses,
@@ -271,7 +271,7 @@ def _form_add_payload(request: FormAddRequest) -> dict[str, object]:
 
 def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> FormAddReport:
     ref = FormRef(request.name)
-    relpath = repo.families.forms.family.address_for(repo, ref).require_path()
+    relpath = repo.families.forms.address(ref).require_path()
     path = repo.root / relpath
     if repo.families.forms.load(ref) is not None:
         raise FormWorkflowError(f"Form '{request.name}' already exists")
@@ -316,7 +316,7 @@ def remove_form(
     dry_run: bool,
 ) -> FormRemoveReport:
     ref = FormRef(name)
-    relpath = repo.families.forms.family.address_for(repo, ref).require_path()
+    relpath = repo.families.forms.address(ref).require_path()
     path = repo.root / relpath
     if repo.families.forms.load(ref) is None:
         raise FormNotFoundError(name)
