@@ -11,7 +11,6 @@ from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_ju
 from propstore.core.row_types import StanceRow
 from propstore.stances import coerce_stance_type
 from propstore.dung import ArgumentationFramework
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, STANCE_FILE_FAMILY
 from propstore.claims import claim_file_claims
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
@@ -223,9 +222,8 @@ def _canonical_stance_rows(
 
 def _load_branch_claims(snapshot: RepositorySnapshot, commit: str | None) -> list[MergeClaim]:
     active_claims: list[MergeClaim] = []
-    for ref in snapshot.repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=commit):
-        claim_file = snapshot.repo.artifacts.require_handle(
-            CLAIMS_FILE_FAMILY,
+    for ref in snapshot.repo.families.claims.list(commit=commit):
+        claim_file = snapshot.repo.families.claims.require_handle(
             ref,
             commit=commit,
         )
@@ -248,8 +246,8 @@ def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[StanceRow]:
 
 def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[StanceRow]:
     rows: list[StanceRow] = []
-    for ref in snapshot.repo.artifacts.list(STANCE_FILE_FAMILY, commit=commit):
-        data = snapshot.repo.artifacts.require(STANCE_FILE_FAMILY, ref, commit=commit)
+    for ref in snapshot.repo.families.stances.list(commit=commit):
+        data = snapshot.repo.families.stances.require(ref, commit=commit)
         source_claim = _optional_string(data.source_claim)
         if source_claim is None:
             continue
