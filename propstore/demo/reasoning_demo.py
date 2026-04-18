@@ -4,19 +4,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.artifacts import (
-    CLAIMS_FILE_FAMILY,
-    CONCEPT_FILE_FAMILY,
-    CONTEXT_FAMILY,
-    FORM_FAMILY,
-    STANCE_FILE_FAMILY,
-)
-from propstore.artifacts.codecs import render_yaml_value
 from propstore.artifacts.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
 )
-from propstore.artifacts.refs import ClaimsFileRef, ConceptFileRef, ContextRef, StanceFileRef
+from propstore.artifacts.refs import (
+    ClaimsFileRef,
+    ConceptFileRef,
+    ContextRef,
+    PredicateFileRef,
+    RuleFileRef,
+    StanceFileRef,
+)
 from propstore.project_init import _seed_form_documents
 from propstore.repository import Repository
 
@@ -25,9 +24,9 @@ def _initialize_repo(root: Path) -> Repository:
     repo = Repository.init(root)
     form_documents = _seed_form_documents(repo)
     if form_documents:
-        with repo.artifacts.transact(message="Seed default forms") as transaction:
+        with repo.families.transact(message="Seed default forms") as transaction:
             for ref, document in form_documents:
-                transaction.save(FORM_FAMILY, ref, document)
+                transaction.forms.save(ref, document)
         repo.snapshot.sync_worktree()
     return repo
 
@@ -169,59 +168,59 @@ def materialize_reasoning_demo(root: Path) -> Repository:
         ],
     }
 
-    with repo.artifacts.transact(message="Seed reasoning demo") as transaction:
+    with repo.families.transact(message="Seed reasoning demo") as transaction:
         for ref, payload in (
             (ConceptFileRef("bird_class"), bird_class),
             (ConceptFileRef("tweety"), tweety),
             (ConceptFileRef("flight_score"), flight_score),
         ):
-            transaction.save(
-                CONCEPT_FILE_FAMILY,
+            transaction.concepts.save(
                 ref,
-                transaction.coerce(
-                    CONCEPT_FILE_FAMILY,
+                transaction.concepts.coerce(
                     payload,
-                    source=repo.artifacts.address(CONCEPT_FILE_FAMILY, ref).require_path(),
+                    source=repo.families.concepts.address(ref).require_path(),
                 ),
             )
         context_ref = ContextRef("demo")
-        transaction.save(
-            CONTEXT_FAMILY,
+        transaction.contexts.save(
             context_ref,
-            transaction.coerce(
-                CONTEXT_FAMILY,
+            transaction.contexts.coerce(
                 {"id": "demo", "name": "Reasoning demo"},
-                source=repo.artifacts.address(CONTEXT_FAMILY, context_ref).require_path(),
+                source=repo.families.contexts.address(context_ref).require_path(),
             ),
         )
         claims_ref = ClaimsFileRef("reasoning_demo")
-        transaction.save(
-            CLAIMS_FILE_FAMILY,
+        transaction.claims.save(
             claims_ref,
-            transaction.coerce(
-                CLAIMS_FILE_FAMILY,
+            transaction.claims.coerce(
                 claims_payload,
-                source=repo.artifacts.address(CLAIMS_FILE_FAMILY, claims_ref).require_path(),
+                source=repo.families.claims.address(claims_ref).require_path(),
             ),
         )
         for payload in (stance_against_yes, stance_against_no):
             stance_ref = StanceFileRef(str(payload["source_claim"]))
-            transaction.save(
-                STANCE_FILE_FAMILY,
+            transaction.stances.save(
                 stance_ref,
-                transaction.coerce(
-                    STANCE_FILE_FAMILY,
+                transaction.stances.coerce(
                     payload,
-                    source=repo.artifacts.address(STANCE_FILE_FAMILY, stance_ref).require_path(),
+                    source=repo.families.stances.address(stance_ref).require_path(),
                 ),
             )
-
-    git.commit_files(
-        {
-            "predicates/reasoning_demo.yaml": render_yaml_value(predicates_payload).encode("utf-8"),
-            "rules/reasoning_demo.yaml": render_yaml_value(rules_payload).encode("utf-8"),
-        },
-        "Seed reasoning demo predicates and rules",
-    )
+        predicates_ref = PredicateFileRef("reasoning_demo")
+        transaction.predicates.save(
+            predicates_ref,
+            transaction.predicates.coerce(
+                predicates_payload,
+                source=repo.families.predicates.address(predicates_ref).require_path(),
+            ),
+        )
+        rules_ref = RuleFileRef("reasoning_demo")
+        transaction.rules.save(
+            rules_ref,
+            transaction.rules.coerce(
+                rules_payload,
+                source=repo.families.rules.address(rules_ref).require_path(),
+            ),
+        )
     git.sync_worktree()
     return repo
