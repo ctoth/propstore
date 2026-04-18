@@ -746,7 +746,7 @@ class WorldModel(WorldStore):
             f"WHERE core.id IN ({placeholders})",  # noqa: S608
             tuple(resolved_ids),
         )
-        return {row["id"]: row for row in rows}
+        return {str(row.claim_id): row for row in rows}
 
     def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
         if not claim_ids:
