@@ -12,7 +12,7 @@ from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.claim_types import ClaimType, coerce_claim_type
-from propstore.core.environment import ArtifactStore, Environment  # noqa: F401
+from propstore.core.environment import WorldStore, Environment  # noqa: F401
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import (
     AssumptionId,
@@ -29,7 +29,7 @@ from propstore.core.labels import (
     SupportQuality,
 )
 from propstore.core.store_results import (
-    ArtifactStoreStats,
+    WorldStoreStats,
     ClaimSimilarityHit,
     ConceptSearchHit,
     ConceptSimilarityHit,

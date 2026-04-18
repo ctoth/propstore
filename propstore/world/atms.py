@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, r
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.environment import ArtifactStore, MicropublicationCatalogStore
+from propstore.core.environment import WorldStore, MicropublicationCatalogStore
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.id_types import (
     AssumptionId,
@@ -140,7 +140,7 @@ class _ATMSRuntimeLike(Protocol):
 class _ATMSBoundLike(Protocol):
     _environment: Environment
     _active_graph: ActiveWorldGraph | None
-    _store: ArtifactStore
+    _store: WorldStore
     _lifting_system: LiftingSystem | None
     _policy: Any
 

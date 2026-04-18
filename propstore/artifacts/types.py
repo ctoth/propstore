@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 import msgspec
 
 if TYPE_CHECKING:
+    from propstore.artifacts.store import ArtifactRepository
     from propstore.repository import Repository
 
 TRef = TypeVar("TRef")
@@ -57,8 +58,8 @@ class ArtifactFamily(Generic[TRef, TDoc]):
     encode_document: Callable[[TDoc], bytes] | None = None
     render_document: Callable[[TDoc], str] | None = None
     document_payload: Callable[[TDoc], object] | None = None
-    normalize_for_write: Callable[[ArtifactContext[TRef], TDoc, object], TDoc] | None = None
-    validate_for_write: Callable[[ArtifactContext[TRef], TDoc, object], None] | None = None
+    normalize_for_write: Callable[[ArtifactContext[TRef], TDoc, ArtifactRepository], TDoc] | None = None
+    validate_for_write: Callable[[ArtifactContext[TRef], TDoc, ArtifactRepository], None] | None = None
     list_refs: Callable[[Repository, str | None, str | None], list[TRef]] | None = None
     ref_from_path: Callable[[str | Path], TRef] | None = None
     ref_from_loaded: Callable[[Any], TRef] | None = None

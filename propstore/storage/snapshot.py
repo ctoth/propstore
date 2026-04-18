@@ -59,9 +59,6 @@ class RepositorySnapshot:
     def branch_head(self, name: str) -> str | None:
         return branch_head(self.git, name)
 
-    def next_concept_id(self) -> int:
-        return self.git.next_concept_id()
-
     def ensure_branch(self, name: str, *, source_commit: str | None = None) -> str:
         tip = self.branch_head(name)
         if tip is not None:

@@ -7,88 +7,23 @@ pipeline migration.  Every function here appends to a
 
 from __future__ import annotations
 
-import json
 import re
-from pathlib import Path
 from typing import Any
 
-import jsonschema
 import bridgman
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
-from propstore.cel_checker import (
-    ConceptInfo,
-    KindType,
-    check_cel_expression,
-)
-from propstore.artifacts.identity import normalize_claim_file_payload
-from propstore.core.concepts import LoadedConcept
-from propstore.diagnostics import SemanticDiagnostic, ValidationResult
+from propstore.compiler.context import CompilationContext
+from propstore.diagnostics import SemanticDiagnostic
 from propstore.dimensions import can_convert_unit_to
-from propstore.form_utils import (
-    FormDefinition,
-    json_safe,
-    load_form_path,
-)
+from propstore.form_utils import FormDefinition
 from propstore.identity import (
-    CLAIM_ARTIFACT_ID_RE,
-    CLAIM_VERSION_ID_RE,
     LOGICAL_NAMESPACE_RE,
     LOGICAL_VALUE_RE,
-    compute_claim_version_id,
     format_logical_id,
 )
-from propstore.resources import load_resource_json
 from propstore.stances import VALID_STANCE_TYPES
-
-
-# ---------------------------------------------------------------------------
-# Schema cache
-# ---------------------------------------------------------------------------
-
-_claim_schema_cache: dict | None = None
-
-
-_SCHEMA_FLOAT_FIELDS = frozenset({
-    "value",
-    "lower_bound",
-    "upper_bound",
-    "uncertainty",
-})
-
-
-def _load_claim_schema() -> dict:
-    """Load the packaged claim JSON Schema, caching the result."""
-    global _claim_schema_cache
-    if _claim_schema_cache is None:
-        schema = load_resource_json("schemas/claim.schema.json")
-        if not isinstance(schema, dict):
-            raise TypeError("schemas/claim.schema.json must decode to a JSON object")
-        _claim_schema_cache = schema
-    return _claim_schema_cache
-
-
-def _coerce_schema_numeric_strings(value: object) -> object:
-    if isinstance(value, dict):
-        return {
-            key: _coerce_schema_numeric_strings(
-                _maybe_schema_float(item) if key in _SCHEMA_FLOAT_FIELDS else item
-            )
-            for key, item in value.items()
-        }
-    if isinstance(value, list):
-        return [_coerce_schema_numeric_strings(item) for item in value]
-    return value
-
-
-def _maybe_schema_float(value: object) -> object:
-    if not isinstance(value, str):
-        return value
-    try:
-        return float(value)
-    except ValueError:
-        return value
 
 
 # ---------------------------------------------------------------------------
@@ -412,11 +347,46 @@ def _validate_value_fields(
             ))
 
 
+def _has_concepts(context: CompilationContext) -> bool:
+    return bool(context.concepts_by_id or context.concept_lookup)
+
+
+def _resolve_concept_id(
+    concept_ref: object,
+    context: CompilationContext,
+) -> str | None:
+    if not isinstance(concept_ref, str) or not concept_ref:
+        return None
+    candidates = context.concept_lookup.get(concept_ref, ())
+    if len(candidates) == 1:
+        return candidates[0]
+    if concept_ref in context.concepts_by_id:
+        return concept_ref
+    return None
+
+
+def _concept_exists(concept_ref: object, context: CompilationContext) -> bool:
+    return _resolve_concept_id(concept_ref, context) is not None
+
+
+def _concept_form_definition(
+    concept_ref: object,
+    context: CompilationContext,
+) -> FormDefinition | None:
+    concept_id = _resolve_concept_id(concept_ref, context)
+    if concept_id is None:
+        return None
+    record = context.concepts_by_id.get(concept_id)
+    if record is None:
+        return None
+    form_definition = context.form_registry.get(record.form)
+    return form_definition if isinstance(form_definition, FormDefinition) else None
+
+
 def _validate_parameter(
     claim: dict, cid: str, filename: str,
-    concept_registry: dict[str, dict], diagnostics: list[SemanticDiagnostic],
+    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
 ) -> None:
-    concept_data: dict[str, Any] | None = None
     concept = claim.get("concept")
     if not concept:
         diagnostics.append(SemanticDiagnostic(
@@ -425,22 +395,18 @@ def _validate_parameter(
             filename=filename,
             artifact_id=cid,
         ))
-    elif concept_registry and concept not in concept_registry:
+    elif _has_concepts(context) and not _concept_exists(concept, context):
         diagnostics.append(SemanticDiagnostic(
             level="error",
             message=f"parameter claim '{cid}' references nonexistent concept '{concept}'",
             filename=filename,
             artifact_id=cid,
         ))
-    else:
-        concept_data = concept_registry.get(concept) if concept_registry else None
 
     _validate_value_fields(claim, cid, filename, "parameter", diagnostics)
 
     # Look up form definition before checking unit so we can auto-fill dimensionless.
-    form_def: FormDefinition | None = None
-    if concept_data is not None:
-        form_def = concept_data.get("_form_definition")
+    form_def = _concept_form_definition(concept, context)
 
     unit = claim.get("unit")
     if not unit:
@@ -454,7 +420,7 @@ def _validate_parameter(
                 filename=filename,
                 artifact_id=cid,
             ))
-    if unit and concept_data is not None:
+    if unit and _concept_exists(concept, context):
         if form_def is None:
             diagnostics.append(SemanticDiagnostic(
                 level="error",
@@ -521,7 +487,7 @@ def _validate_unit_against_form(
 
 def _validate_equation(
     claim: dict, cid: str, filename: str,
-    concept_registry: dict[str, dict], diagnostics: list[SemanticDiagnostic],
+    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
 ) -> None:
     expression = claim.get("expression")
     if not expression:
@@ -574,7 +540,7 @@ def _validate_equation(
         for var in variables:
             if isinstance(var, dict):
                 var_concept = var.get("concept")
-                if var_concept and var_concept not in concept_registry and concept_registry:
+                if var_concept and _has_concepts(context) and not _concept_exists(var_concept, context):
                     diagnostics.append(SemanticDiagnostic(
                         level="error",
                         message=(
@@ -598,10 +564,9 @@ def _validate_equation(
                     continue
                 var_concept = var.get("concept")
                 var_symbol = var.get("symbol")
-                if not var_concept or not concept_registry or var_concept not in concept_registry:
+                if not var_concept or not _has_concepts(context) or not _concept_exists(var_concept, context):
                     continue
-                concept_data = concept_registry[var_concept]
-                form_def = concept_data.get("_form_definition")
+                form_def = _concept_form_definition(var_concept, context)
                 if form_def is None:
                     continue
                 if form_def.dimensions is not None:
@@ -616,9 +581,8 @@ def _validate_equation(
 
             # Also scan sympy for concept IDs not declared in variables
             for cid_ref in re.findall(r'concept\d+', sympy_str):
-                if cid_ref not in dim_map and cid_ref in concept_registry:
-                    concept_data = concept_registry[cid_ref]
-                    form_def = concept_data.get("_form_definition")
+                if cid_ref not in dim_map and _concept_exists(cid_ref, context):
+                    form_def = _concept_form_definition(cid_ref, context)
                     if form_def is not None:
                         if form_def.dimensions is not None:
                             dim_map[cid_ref] = dict(form_def.dimensions)
@@ -655,7 +619,7 @@ def _validate_equation(
 
 def _validate_observation(
     claim: dict, cid: str, filename: str,
-    concept_registry: dict[str, dict], diagnostics: list[SemanticDiagnostic],
+    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
     claim_type: str = "observation",
 ) -> None:
     statement = claim.get("statement")
@@ -677,7 +641,7 @@ def _validate_observation(
         ))
     elif isinstance(concepts, list):
         for concept_id in concepts:
-            if concept_id not in concept_registry and concept_registry:
+            if _has_concepts(context) and not _concept_exists(concept_id, context):
                 diagnostics.append(SemanticDiagnostic(
                     level="error",
                     message=(
@@ -691,7 +655,7 @@ def _validate_observation(
 
 def _validate_model(
     claim: dict, cid: str, filename: str,
-    concept_registry: dict[str, dict], diagnostics: list[SemanticDiagnostic],
+    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
 ) -> None:
     name = claim.get("name")
     if not name:
@@ -723,7 +687,7 @@ def _validate_model(
         for param in parameters:
             if isinstance(param, dict):
                 param_concept = param.get("concept")
-                if param_concept and param_concept not in concept_registry and concept_registry:
+                if param_concept and _has_concepts(context) and not _concept_exists(param_concept, context):
                     diagnostics.append(SemanticDiagnostic(
                         level="error",
                         message=(
@@ -737,7 +701,7 @@ def _validate_model(
 
 def _validate_measurement(
     claim: dict, cid: str, filename: str,
-    concept_registry: dict[str, dict], diagnostics: list[SemanticDiagnostic],
+    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
 ) -> None:
     target_concept = claim.get("target_concept")
     if not target_concept:
@@ -747,7 +711,7 @@ def _validate_measurement(
             filename=filename,
             artifact_id=cid,
         ))
-    elif target_concept not in concept_registry and concept_registry:
+    elif _has_concepts(context) and not _concept_exists(target_concept, context):
         diagnostics.append(SemanticDiagnostic(
             level="error",
             message=f"measurement claim '{cid}' references nonexistent concept '{target_concept}'",
@@ -778,7 +742,7 @@ def _validate_measurement(
 
 def _validate_algorithm(
     claim: dict, cid: str, filename: str,
-    concept_registry: dict[str, dict], diagnostics: list[SemanticDiagnostic],
+    context: CompilationContext, diagnostics: list[SemanticDiagnostic],
 ) -> None:
     body = claim.get("body")
     tree = None
@@ -814,7 +778,7 @@ def _validate_algorithm(
         for var in variables:
             if isinstance(var, dict):
                 var_concept = var.get("concept")
-                if var_concept and var_concept not in concept_registry and concept_registry:
+                if var_concept and _has_concepts(context) and not _concept_exists(var_concept, context):
                     diagnostics.append(SemanticDiagnostic(
                         level="error",
                         message=(

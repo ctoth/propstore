@@ -19,12 +19,11 @@ from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
 from propstore.context_lifting import ContextReference, LiftingRule, LiftingSystem
 from propstore.context_types import LoadedContext, loaded_contexts_to_lifting_system, parse_context_record
-from propstore.loaded import LoadedEntry
 from propstore.sidecar.schema import create_context_tables, populate_contexts
 from propstore.validate_contexts import load_contexts, validate_contexts
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
-from tests.conftest import create_world_model_schema
+from tests.conftest import create_world_model_schema, make_compilation_context
 
 
 def write_context(ctx_dir: Path, name: str, data: dict) -> Path:
@@ -57,6 +56,18 @@ def make_context(
     if lifting_rules:
         payload["lifting_rules"] = lifting_rules
     return payload
+
+
+def loaded_context(
+    filename: str,
+    source_path: Path | None,
+    data: dict,
+) -> LoadedContext:
+    return LoadedContext.from_payload(
+        filename=filename,
+        source_path=source_path,
+        data=data,
+    )
 
 
 @pytest.mark.parametrize(
@@ -135,8 +146,8 @@ class TestLoadAndValidateContexts:
 
     def test_validate_structured_context_and_lifting_rule(self, tmp_path: Path) -> None:
         contexts = [
-            LoadedEntry("source", tmp_path / "source.yaml", make_context("ctx_source", "Source")),
-            LoadedEntry(
+            loaded_context("source", tmp_path / "source.yaml", make_context("ctx_source", "Source")),
+            loaded_context(
                 "target",
                 tmp_path / "target.yaml",
                 make_context(
@@ -163,7 +174,7 @@ class TestLoadAndValidateContexts:
 
     def test_lifting_rule_must_reference_existing_contexts(self, tmp_path: Path) -> None:
         contexts = [
-            LoadedEntry(
+            loaded_context(
                 "target",
                 tmp_path / "target.yaml",
                 make_context(
@@ -195,8 +206,8 @@ class TestLoadAndValidateContexts:
 class TestLiftingSystem:
     def test_lifting_system_has_no_ancestry_visibility(self) -> None:
         system = loaded_contexts_to_lifting_system([
-            LoadedEntry("root", None, make_context("ctx_root", "Root")),
-            LoadedEntry("child", None, make_context("ctx_child", "Child")),
+            loaded_context("root", None, make_context("ctx_root", "Root")),
+            loaded_context("child", None, make_context("ctx_child", "Child")),
         ])
 
         assert system.contexts_visible_from("ctx_child") == frozenset({"ctx_child"})
@@ -204,8 +215,8 @@ class TestLiftingSystem:
 
     def test_explicit_lifting_rule_controls_visibility(self) -> None:
         system = loaded_contexts_to_lifting_system([
-            LoadedEntry("root", None, make_context("ctx_root", "Root")),
-            LoadedEntry(
+            loaded_context("root", None, make_context("ctx_root", "Root")),
+            loaded_context(
                 "child",
                 None,
                 make_context(
@@ -243,8 +254,8 @@ class TestLiftingSystem:
         target_assumptions: list[str],
     ) -> None:
         system = loaded_contexts_to_lifting_system([
-            LoadedEntry("source", None, make_context("ctx_source", "Source", assumptions=source_assumptions)),
-            LoadedEntry("target", None, make_context("ctx_target", "Target", assumptions=target_assumptions)),
+            loaded_context("source", None, make_context("ctx_source", "Source", assumptions=source_assumptions)),
+            loaded_context("target", None, make_context("ctx_target", "Target", assumptions=target_assumptions)),
         ])
 
         effective = set(system.effective_assumptions("ctx_target"))
@@ -272,8 +283,8 @@ class TestContextSidecar:
         conn.row_factory = sqlite3.Row
         create_context_tables(conn)
         contexts = [
-            LoadedEntry("source", None, make_context("ctx_source", "Source")),
-            LoadedEntry(
+            loaded_context("source", None, make_context("ctx_source", "Source")),
+            loaded_context(
                 "target",
                 None,
                 make_context(
@@ -525,14 +536,19 @@ class TestContextCLIIntegration:
         )
         registry = {
             "c1": {
-                "id": "c1",
                 "artifact_id": "c1",
                 "canonical_name": "c1",
-                "kind_type": "structural",
+                "status": "accepted",
+                "definition": "c1",
+                "form": "category",
             },
         }
 
-        result = validate_claims([claim_file], registry, context_ids={"ctx_atms"})
+        result = validate_claims(
+            [claim_file],
+            make_compilation_context(registry),
+            context_ids={"ctx_atms"},
+        )
         context_errors = [error for error in result.errors if "context" in error.lower()]
 
         assert context_errors == []

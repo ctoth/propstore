@@ -12,7 +12,7 @@ from enum import Enum
 from itertools import product
 from typing import Any
 
-from propstore.storage.merge_claims import MergeClaim
+from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.merge_framework import PartialArgumentationFramework
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.z3_conditions import Z3TranslationError

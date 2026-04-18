@@ -18,7 +18,7 @@ from propstore.stances import StanceType
 # ---------------------------------------------------------------------------
 
 class _MockStore:
-    """Minimal ArtifactStore mock for PrAF integration tests."""
+    """Minimal WorldStore mock for PrAF integration tests."""
 
     def __init__(self, claims: list[dict], stances: list[dict]):
         self._claims = {c["id"]: c for c in claims}

@@ -10,8 +10,8 @@ from dulwich.objects import Blob, Commit
 from propstore.artifacts.families import CLAIMS_FILE_FAMILY, MERGE_MANIFEST_FAMILY
 from propstore.artifacts.refs import ClaimsFileRef, MergeManifestRef
 from propstore.storage.git_backend import _DEFAULT_AUTHOR, _ref_set
-from propstore.storage.merge_classifier import build_merge_framework
-from propstore.storage.merge_report import semantic_candidate_details
+from propstore.merge.merge_classifier import build_merge_framework
+from propstore.merge.merge_report import semantic_candidate_details
 
 if TYPE_CHECKING:
     from propstore.storage.snapshot import RepositorySnapshot
@@ -79,10 +79,11 @@ def create_merge_commit(
     for path in claim_paths:
         del merged_entries[path]
 
+    claims_ref = ClaimsFileRef("merged")
     claims_document = artifacts.coerce(
         CLAIMS_FILE_FAMILY,
         claims_payload,
-        source="claims/merged.yaml",
+        source=artifacts.resolve(CLAIMS_FILE_FAMILY, claims_ref).relpath,
     )
 
     manifest_payload = {
@@ -112,7 +113,7 @@ def create_merge_commit(
 
     prepared_claims = artifacts.prepare(
         CLAIMS_FILE_FAMILY,
-        ClaimsFileRef("merged"),
+        claims_ref,
         claims_document,
         branch=target_branch,
     )

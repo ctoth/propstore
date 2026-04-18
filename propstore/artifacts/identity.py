@@ -26,7 +26,7 @@ def normalize_claim_file_payload(
         if isinstance(source, dict) and isinstance(source.get("paper"), str)
         else (default_namespace or "source")
     )
-    namespace = normalize_identity_namespace(raw_namespace)
+    namespace = normalize_identity_namespace(raw_namespace if isinstance(raw_namespace, str) else str(raw_namespace))
 
     raw_claims = list(normalized_data.get("claims", []))
     local_handle_map: dict[str, str] = {}

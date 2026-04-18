@@ -29,8 +29,8 @@ def merge() -> None:
 @click.pass_context
 def merge_inspect(ctx: click.Context, branch_a: str, branch_b: str, semantics: str) -> None:
     """Inspect the formal merge framework between two branches."""
-    from propstore.storage.merge_classifier import build_merge_framework
-    from propstore.storage.merge_report import summarize_merge_framework
+    from propstore.merge.merge_classifier import build_merge_framework
+    from propstore.merge.merge_report import summarize_merge_framework
 
     repo = ctx.obj["repo"]
     merge_framework = build_merge_framework(repo.snapshot, branch_a, branch_b)

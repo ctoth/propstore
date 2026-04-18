@@ -19,14 +19,12 @@ from propstore.artifacts.documents.concepts import (
     ConceptRelationshipDocument,
     ParameterizationRelationshipDocument,
 )
-from propstore.artifacts.codecs import decode_document
-from propstore.artifacts.families import CONCEPT_FILE_FAMILY
 from propstore.core.concept_status import ConceptStatus, coerce_concept_status
 from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     coerce_concept_relationship_type,
 )
-from propstore.artifacts.schema import to_document_builtins
+from propstore.artifacts.schema import load_document_dir, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (
@@ -36,7 +34,7 @@ from propstore.identity import (
     normalize_logical_value,
 )
 from propstore.knowledge_path import KnowledgePath
-from propstore.loaded import LoadedDocument, LoadedEntry
+from propstore.loaded import LoadedDocument
 
 
 def _string_list(value: object) -> tuple[str, ...]:
@@ -317,18 +315,6 @@ class LoadedConcept:
     record: ConceptRecord
     document: ConceptDocument | None = None
     source_local_id: str | None = None
-
-    @property
-    def data(self) -> dict[str, Any]:
-        return self.record.to_payload()
-
-    def to_loaded_entry(self) -> LoadedEntry:
-        return LoadedEntry(
-            filename=self.filename,
-            source_path=self.source_path,
-            knowledge_root=self.knowledge_root,
-            data=self.record.to_payload(),
-        )
 
 
 def normalize_concept_payload(data: Mapping[str, Any]) -> dict[str, Any]:
@@ -795,25 +781,5 @@ def format_loaded_concept_logical_ids(record: ConceptRecord) -> list[dict[str, s
 def load_concepts(concepts_root: KnowledgePath | None) -> list[LoadedConcept]:
     """Load canonical concept artifacts from a concept subtree."""
 
-    if concepts_root is None or not concepts_root.is_dir():
-        return []
-    knowledge_root = concepts_root.parent if concepts_root.name else concepts_root
-    loaded_documents = [
-        LoadedDocument(
-            filename=entry.stem,
-            source_path=entry,
-            knowledge_root=knowledge_root,
-            document=(
-                CONCEPT_FILE_FAMILY.decode_bytes(entry.read_bytes(), entry.as_posix())
-                if CONCEPT_FILE_FAMILY.decode_bytes is not None
-                else decode_document(
-                    entry.read_bytes(),
-                    CONCEPT_FILE_FAMILY.doc_type,
-                    source=entry.as_posix(),
-                )
-            ),
-        )
-        for entry in concepts_root.iterdir()
-        if entry.is_file() and entry.suffix == ".yaml"
-    ]
+    loaded_documents = load_document_dir(concepts_root, ConceptDocument)
     return normalize_loaded_concepts(loaded_documents)

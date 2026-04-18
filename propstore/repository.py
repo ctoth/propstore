@@ -118,9 +118,9 @@ class Repository:
 
     @cached_property
     def artifacts(self):
-        from propstore.artifacts.store import ArtifactStore
+        from propstore.artifacts.store import ArtifactRepository
 
-        return ArtifactStore(self)
+        return ArtifactRepository(self)
 
     @cached_property
     def snapshot(self):

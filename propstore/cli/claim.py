@@ -85,7 +85,7 @@ def show(obj: dict, claim_id: str) -> None:
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
     from propstore.claims import load_claim_files
-    from propstore.compiler.context import build_concept_registry_from_paths
+    from propstore.compiler.context import build_compilation_context_from_paths
     from propstore.compiler.passes import validate_claims
 
 
@@ -115,7 +115,11 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
 
     try:
         files = load_claim_files(claims_root)
-        registry = build_concept_registry_from_paths(concepts_root, forms_root)
+        context = build_compilation_context_from_paths(
+            concepts_root,
+            forms_root,
+            claim_files=files,
+        )
     except DocumentSchemaError as exc:
         click.echo(f"ERROR: {exc}", err=True)
         click.echo("Validation FAILED: 1 error(s)", err=True)
@@ -124,7 +128,7 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
         click.echo("No claim files found.")
         return
 
-    result = validate_claims(files, registry)
+    result = validate_claims(files, context)
 
     for w in result.warnings:
         click.echo(f"WARNING: {w}", err=True)
@@ -144,7 +148,7 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
 @click.pass_obj
 def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
     """Validate a single claims YAML file."""
-    from propstore.compiler.context import build_concept_registry_from_paths
+    from propstore.compiler.context import build_compilation_context_from_paths
     from propstore.compiler.passes import validate_single_claim_file
 
     repo: Repository = obj["repo"]
@@ -164,8 +168,8 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
         forms_root = repo.tree() / "forms"
 
     try:
-        registry = build_concept_registry_from_paths(concepts_root, forms_root)
-        result = validate_single_claim_file(filepath, registry)
+        context = build_compilation_context_from_paths(concepts_root, forms_root)
+        result = validate_single_claim_file(filepath, context)
     except DocumentSchemaError as exc:
         click.echo(f"ERROR: {exc}", err=True)
         click.echo(f"FAILED: {filepath.name} (1 error(s))", err=True)

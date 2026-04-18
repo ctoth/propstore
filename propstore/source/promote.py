@@ -225,10 +225,11 @@ def resolve_source_concept_promotions(
         if parameterization_relationships:
             concept_doc["parameterization_relationships"] = parameterization_relationships
         concept_doc = normalize_canonical_concept_payload(concept_doc, local_handle=slug)
+        concept_ref = ConceptFileRef(slug)
         concept_documents[slug] = convert_document_value(
             concept_doc,
             ConceptDocument,
-            source=f"concepts/{slug}.yaml",
+            source=CONCEPT_FILE_FAMILY.resolve_ref(repo, concept_ref).relpath,
         )
 
     return mapping, concept_documents
@@ -605,24 +606,27 @@ def promote_source_branch(
             stances_by_source.setdefault(source_claim, []).append(stance)
 
     for source_claim, entries in stances_by_source.items():
+        stance_ref = StanceFileRef(source_claim)
         promoted_stance_documents[source_claim] = convert_document_value(
             {
                 "source_claim": source_claim,
                 "stances": entries,
             },
             StanceFileDocument,
-            source=f"stances/{source_claim.replace(':', '__')}.yaml",
+            source=STANCE_FILE_FAMILY.resolve_ref(repo, stance_ref).relpath,
         )
 
+    source_ref = CanonicalSourceRef(slug)
+    claims_ref = ClaimsFileRef(slug)
     promoted_source_document = convert_document_value(
         promoted_source_doc,
         SourceDocument,
-        source=f"sources/{slug}.yaml",
+        source=CANONICAL_SOURCE_FAMILY.resolve_ref(repo, source_ref).relpath,
     )
     promoted_claims_document = convert_document_value(
         promoted_claims_doc,
         ClaimsFileDocument,
-        source=f"claims/{slug}.yaml",
+        source=CLAIMS_FILE_FAMILY.resolve_ref(repo, claims_ref).relpath,
     )
 
     with repo.artifacts.transact(
@@ -631,12 +635,12 @@ def promote_source_branch(
     ) as transaction:
         transaction.save(
             CANONICAL_SOURCE_FAMILY,
-            CanonicalSourceRef(slug),
+            source_ref,
             promoted_source_document,
         )
         transaction.save(
             CLAIMS_FILE_FAMILY,
-            ClaimsFileRef(slug),
+            claims_ref,
             promoted_claims_document,
         )
         if promoted_micropubs_document is not None:

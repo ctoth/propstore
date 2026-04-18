@@ -11,7 +11,7 @@ from hypothesis import strategies as st
 from propstore.identity import compute_claim_version_id
 from propstore.storage import GitStore
 from propstore.storage.branch import create_branch
-from propstore.storage.merge_classifier import build_merge_framework
+from propstore.merge.merge_classifier import build_merge_framework
 from propstore.storage.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
@@ -252,12 +252,13 @@ def test_merge_commit_valid_claims(tmp_path):
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
     from propstore.claims import load_claim_files
+    from propstore.compiler.context import build_compilation_context_from_repo
     from propstore.compiler.passes import validate_claims
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     result = validate_claims(
         claim_files,
-        concept_registry={},
+        build_compilation_context_from_repo(None),
     )
     assert not result.errors
 

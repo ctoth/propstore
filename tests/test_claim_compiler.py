@@ -6,13 +6,13 @@ import yaml
 
 from propstore.compiler.context import (
     build_compilation_context_from_paths,
-    compilation_context_from_concept_registry,
 )
 from propstore.compiler.passes import compile_claim_files
 from propstore.claims import load_claim_files
 from propstore.sidecar.claim_utils import prepare_claim_insert_row
 from tests.conftest import (
     make_concept_registry,
+    make_compilation_context,
     make_parameter_claim,
     normalize_claims_payload,
     normalize_concept_payloads,
@@ -158,7 +158,7 @@ def test_prepare_claim_insert_row_matches_for_raw_and_semantic_claims(tmp_path):
 
     files = load_claim_files(claims_dir)
     registry = make_concept_registry()
-    context = compilation_context_from_concept_registry(registry, claim_files=files)
+    context = make_compilation_context(registry, claim_files=files)
     bundle = compile_claim_files(files, context)
 
     raw_row = prepare_claim_insert_row(

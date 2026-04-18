@@ -10,7 +10,7 @@ from typing import Any, Callable, Mapping, cast
 from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.environment import (
-    ArtifactStore,
+    WorldStore,
     ClaimCatalogStore,
     CompiledGraphStore,
     ConceptCatalogStore,
@@ -29,7 +29,7 @@ from propstore.core.graph_types import (
 )
 from propstore.core.micropublications import ActiveMicropublicationInput
 from propstore.core.store_results import (
-    ArtifactStoreStats,
+    WorldStoreStats,
     ClaimSimilarityHit,
     ConceptSearchHit,
     ConceptSimilarityHit,
@@ -116,7 +116,7 @@ def _compiled_graph_for_bound(base: BoundWorld) -> CompiledWorldGraph | None:
 
 @dataclass(frozen=True)
 class _ParameterizationCatalogAdapter:
-    base: ArtifactStore
+    base: WorldStore
 
     def all_concepts(self):
         return list(self.base.all_concepts())
@@ -235,7 +235,7 @@ def _synthetic_row(
 class _GraphOverlayStore:
     def __init__(
         self,
-        base_store: ArtifactStore,
+        base_store: WorldStore,
         *,
         claims: Sequence[ClaimRowInput],
         stances: list[StanceRow],
@@ -366,7 +366,7 @@ class _GraphOverlayStore:
             )
         )
 
-    def stats(self) -> ArtifactStoreStats:
+    def stats(self) -> WorldStoreStats:
         return self._base.stats()
 
     def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationRowInput]:

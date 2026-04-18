@@ -31,7 +31,7 @@ from propstore.core.labels import Label, SupportQuality
 from propstore.core.row_types import ClaimRowInput, ConceptRowInput, coerce_claim_row, coerce_concept_row
 from propstore.world.types import (
     ArgumentationSemantics,
-    ArtifactStore,
+    WorldStore,
     BeliefSpace,
     ClaimSupportView,
     HasActiveGraph,
@@ -120,7 +120,7 @@ def _resolution_claim_view(claim: ActiveClaim) -> _ResolutionClaimView:
     )
 
 
-def _display_claim_id(store: ArtifactStore | None, claim_id: str | None) -> str | None:
+def _display_claim_id(store: WorldStore | None, claim_id: str | None) -> str | None:
     if claim_id is None:
         return None
     if store is None:
@@ -220,7 +220,7 @@ def _normalized_form_parameters(concept: ConceptRowInput | None) -> Mapping[str,
 
 
 def _concept_integrity_constraints(
-    world: ArtifactStore,
+    world: WorldStore,
     concept_id: str,
 ) -> tuple[IntegrityConstraint, ...]:
     concept = world.get_concept(concept_id)
@@ -292,7 +292,7 @@ def _integrity_constraint_concept_ids(constraints: Sequence[IntegrityConstraint]
 
 
 def _cel_registry_for_concepts(
-    world: ArtifactStore,
+    world: WorldStore,
     concept_ids: Sequence[str],
 ) -> dict[str, ConceptInfo]:
     rows = [
@@ -305,7 +305,7 @@ def _cel_registry_for_concepts(
 
 
 def _enriched_policy_integrity_constraints(
-    world: ArtifactStore,
+    world: WorldStore,
     constraints: Sequence[IntegrityConstraint],
 ) -> tuple[IntegrityConstraint, ...]:
     concept_ids = sorted(_integrity_constraint_concept_ids(constraints))
@@ -331,7 +331,7 @@ def _build_global_assignment_selection_problem(
     active_claim_rows: Sequence[ActiveClaim],
     target_concept_id: str,
     *,
-    world: ArtifactStore,
+    world: WorldStore,
     policy: RenderPolicy | None,
 ) -> AssignmentSelectionProblem:
     branch_weights = None if policy is None else policy.branch_weights
@@ -409,7 +409,7 @@ def _resolve_assignment_selection_merge(
     active_claim_rows: Sequence[ActiveClaim],
     concept_id: str,
     *,
-    world: ArtifactStore,
+    world: WorldStore,
     policy: RenderPolicy | None = None,
 ) -> tuple[str | None, str | None]:
     from propstore.world.assignment_selection_merge import solve_assignment_selection_merge
@@ -460,7 +460,7 @@ def _resolve_assignment_selection_merge(
 def _resolve_claim_graph_argumentation(
     target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
     active_claims: Sequence[_ResolutionClaimView | ActiveClaim],
-    world: ArtifactStore,
+    world: WorldStore,
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
@@ -525,7 +525,7 @@ def _resolve_structured_argumentation(
     target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
     active_claim_rows: list[ActiveClaim],
     view: BeliefSpace,
-    world: ArtifactStore,
+    world: WorldStore,
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
@@ -611,7 +611,7 @@ def _resolve_aspic_argumentation(
     target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
     active_claim_rows: list[ActiveClaim],
     view: BeliefSpace,
-    world: ArtifactStore,
+    world: WorldStore,
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
@@ -632,7 +632,7 @@ def _resolve_aspic_argumentation(
 def _resolve_praf(
     target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
     active_claims: Sequence[_ResolutionClaimView | ActiveClaim],
-    world: ArtifactStore,
+    world: WorldStore,
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
@@ -798,7 +798,7 @@ def resolve(
     concept_id: str,
     strategy: ResolutionStrategy | None = None,
     *,
-    world: ArtifactStore | None = None,
+    world: WorldStore | None = None,
     overrides: dict[str, str] | None = None,
     reasoning_backend: ReasoningBackend | None = None,
     semantics: str | None = None,
@@ -960,10 +960,10 @@ def resolve(
         )
 
     winning_claim = next((claim for claim in active_views if claim.id == winner_id), None)
-    display_store: ArtifactStore | None
+    display_store: WorldStore | None
     if world is not None:
         display_store = world
-    elif isinstance(view, ArtifactStore):
+    elif isinstance(view, WorldStore):
         display_store = view
     else:
         display_store = None

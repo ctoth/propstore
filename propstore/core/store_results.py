@@ -1,4 +1,4 @@
-"""Named result types for ArtifactStore and related world-query surfaces."""
+"""Named result types for WorldStore and related world-query surfaces."""
 
 from __future__ import annotations
 
@@ -74,7 +74,7 @@ class ConceptSimilarityHit:
 
 
 @dataclass(frozen=True)
-class ArtifactStoreStats:
+class WorldStoreStats:
     concepts: int
     claims: int
     conflicts: int

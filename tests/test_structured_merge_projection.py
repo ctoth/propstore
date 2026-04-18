@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 from propstore.storage import GitStore
 from propstore.storage.branch import create_branch
 from propstore.storage.snapshot import RepositorySnapshot
-from propstore.storage.structured_merge import (
+from propstore.merge.structured_merge import (
     build_branch_structured_summary,
     build_structured_merge_candidates,
 )

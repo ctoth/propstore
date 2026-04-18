@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from propstore.core.environment import ArtifactStore, Environment
+from propstore.core.environment import WorldStore, Environment
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.world.types import BeliefSpace, RenderPolicy
 
@@ -27,7 +27,7 @@ class HasActiveGraph(Protocol):
     _active_graph: ActiveWorldGraph | None
 
 
-class WorldlineStore(ArtifactStore, Protocol):
+class WorldlineStore(WorldStore, Protocol):
     def bind(
         self,
         environment: Environment | None = None,

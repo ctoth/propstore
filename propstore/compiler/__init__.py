@@ -5,7 +5,6 @@ from propstore.compiler.context import (
     build_compilation_context_from_loaded,
     build_compilation_context_from_paths,
     build_compilation_context_from_repo,
-    compilation_context_from_concept_registry,
 )
 from propstore.compiler.ir import (
     ClaimCompilationBundle,
@@ -28,6 +27,5 @@ __all__ = [
     "build_compilation_context_from_loaded",
     "build_compilation_context_from_paths",
     "build_compilation_context_from_repo",
-    "compilation_context_from_concept_registry",
     "compile_claim_files",
 ]

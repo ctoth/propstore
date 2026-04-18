@@ -7,7 +7,7 @@ from propstore.conflict_detector.models import ConflictClass
 from propstore.conflict_detector.parameter_claims import (
     _detect_cross_class_parameter_conflicts,
 )
-from propstore.storage.merge_classifier import _DiffKind
+from propstore.merge.merge_classifier import _DiffKind
 from propstore.z3_conditions import SolverUnknown, SolverUnknownReason
 
 

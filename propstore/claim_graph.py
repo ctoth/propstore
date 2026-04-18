@@ -14,14 +14,14 @@ from propstore.core.analyzers import (
 from propstore.dung import ArgumentationFramework
 from propstore.world.types import (
     ArgumentationSemantics,
-    ArtifactStore,
+    WorldStore,
     ReasoningBackend,
     validate_backend_semantics,
 )
 
 
 def build_argumentation_framework(
-    store: ArtifactStore,
+    store: WorldStore,
     active_claim_ids: set[str],
     *,
     comparison: str = "elitist",
@@ -49,7 +49,7 @@ def build_argumentation_framework(
 
 
 def compute_claim_graph_justified_claims(
-    store: ArtifactStore,
+    store: WorldStore,
     active_claim_ids: set[str],
     *,
     semantics: str = "grounded",

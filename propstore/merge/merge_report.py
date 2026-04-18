@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from propstore.storage.merge_classifier import RepositoryMergeFramework
+from propstore.merge.merge_classifier import RepositoryMergeFramework
 from propstore.storage.merge_framework import enumerate_paf_completions
 from propstore.storage.paf_queries import (
     credulously_accepted_arguments,

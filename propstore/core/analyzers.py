@@ -47,7 +47,7 @@ from propstore.probabilistic_relations import (
     relation_map,
 )
 from propstore.core.environment import (
-    ArtifactStore,
+    WorldStore,
     CompiledGraphStore,
     ConflictStore,
     Environment,
@@ -205,7 +205,7 @@ def _conflict_witness_from_row(row: ConflictRowInput) -> ConflictWitness:
 
 
 def _minimal_compiled_graph(
-    store: ArtifactStore,
+    store: WorldStore,
     active_claim_ids: set[str],
 ) -> CompiledWorldGraph:
     claims = tuple(
@@ -230,7 +230,7 @@ def _minimal_compiled_graph(
 
 
 def _active_graph_from_store(
-    store: ArtifactStore,
+    store: WorldStore,
     active_claim_ids: set[str],
 ) -> ActiveWorldGraph:
     if isinstance(store, CompiledGraphStore):
@@ -473,7 +473,7 @@ def shared_analyzer_input_from_active_graph(
 
 
 def shared_analyzer_input_from_store(
-    store: ArtifactStore,
+    store: WorldStore,
     active_claim_ids: set[str],
     *,
     comparison: str = "elitist",

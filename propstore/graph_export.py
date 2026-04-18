@@ -18,7 +18,7 @@ from propstore.core.row_types import (
     coerce_relationship_row,
     coerce_stance_row,
 )
-from propstore.world import ArtifactStore, BeliefSpace
+from propstore.world import WorldStore, BeliefSpace
 
 if TYPE_CHECKING:
     from propstore.world import WorldModel
@@ -42,7 +42,7 @@ def _display_claim_id(claim_input) -> str:
     return str(claim.claim_id)
 
 
-def _display_claim_id_from_store(world: ArtifactStore, claim_id: str) -> str:
+def _display_claim_id_from_store(world: WorldStore, claim_id: str) -> str:
     getter = getattr(world, "get_claim", None)
     if callable(getter):
         claim = getter(claim_id)
@@ -157,7 +157,7 @@ def export_knowledge_graph(
 
 
 def build_knowledge_graph(
-    world: ArtifactStore,
+    world: WorldStore,
     bound: BeliefSpace | None = None,
     group_id: int | None = None,
 ) -> KnowledgeGraph:
@@ -165,7 +165,7 @@ def build_knowledge_graph(
 
     Parameters
     ----------
-    world : ArtifactStore
+    world : WorldStore
         The artifact store backed by the sidecar database.
     bound : BeliefSpace | None
         If provided, only active claims in this belief space are included.

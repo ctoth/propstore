@@ -77,14 +77,16 @@ def add_context(
     *,
     dry_run: bool,
 ) -> ContextAddReport:
-    filepath = repo.contexts_dir / f"{request.name}.yaml"
-    if (repo.tree() / "contexts" / f"{request.name}.yaml").exists():
+    ref = ContextRef(request.name)
+    relpath = CONTEXT_FAMILY.resolve_ref(repo, ref).relpath
+    filepath = repo.root / relpath
+    if (repo.tree() / relpath).exists():
         raise ContextWorkflowError(f"Context file '{filepath}' already exists")
 
     source = (
-        f"dry-run:contexts/{request.name}.yaml"
+        f"dry-run:{relpath}"
         if dry_run
-        else f"contexts/{request.name}.yaml"
+        else relpath
     )
     document = convert_document_value(
         _context_document_payload(request),
@@ -100,7 +102,7 @@ def add_context(
 
     repo.artifacts.save(
         CONTEXT_FAMILY,
-        ContextRef(request.name),
+        ref,
         document,
         message=f"Add context: {request.name}",
     )

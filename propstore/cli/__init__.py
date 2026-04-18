@@ -245,7 +245,6 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
     from propstore.proposals import stance_proposal_filename
 
     repo: "Repository" = ctx.obj["repo"]
-    target_stances = repo.stances_dir
 
     proposal_tip = repo.snapshot.branch_head(STANCE_PROPOSAL_BRANCH)
     if proposal_tip is None:
@@ -272,7 +271,11 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
     # Show what will be moved
     for ref in selected_refs:
         name = stance_proposal_filename(ref.source_claim)
-        click.echo(f"  {STANCE_PROPOSAL_BRANCH}:stances/{name} -> {target_stances / name}")
+        target_relpath = STANCE_FILE_FAMILY.resolve_ref(
+            repo,
+            StanceFileRef(ref.source_claim),
+        ).relpath
+        click.echo(f"  {STANCE_PROPOSAL_BRANCH}:stances/{name} -> {repo.root / target_relpath}")
 
     if not yes:
         click.confirm("Promote these files?", abort=True)
