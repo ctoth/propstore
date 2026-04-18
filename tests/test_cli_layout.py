@@ -28,6 +28,20 @@ def test_world_atms_commands_live_outside_world_group_module() -> None:
     assert "from propstore.cli import world_atms_cmds" in world_cmds
 
 
+def test_world_revision_commands_live_outside_world_group_module() -> None:
+    world_cmds = Path("propstore/cli/world_cmds.py").read_text(encoding="utf-8")
+    revision_cmds = Path("propstore/cli/world_revision_cmds.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert '@world.command("revision-' not in world_cmds
+    assert '@world.command("expand")' not in world_cmds
+    assert '@world.group("revision"' in revision_cmds
+    assert '@revision.command("base")' in revision_cmds
+    assert '@revision.command("revise")' in revision_cmds
+    assert "from propstore.cli import world_revision_cmds" in world_cmds
+
+
 def test_root_cli_only_registers_top_level_commands() -> None:
     root_cli = Path("propstore/cli/__init__.py").read_text(encoding="utf-8")
 
