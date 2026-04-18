@@ -6,6 +6,7 @@ from pathlib import Path
 import yaml
 import pytest
 
+from quire.git_store import GitStore as QuireGitStore
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
 from propstore.concept_ids import next_concept_id
 from propstore.storage import GitStore
@@ -13,6 +14,10 @@ from tests.conftest import (
     make_concept_identity,
     normalize_concept_payloads,
 )
+
+
+def test_propstore_gitstore_is_quire_backed():
+    assert issubclass(GitStore, QuireGitStore)
 
 
 def _concept_payload(
