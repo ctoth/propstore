@@ -266,7 +266,11 @@ def embed_claim_embeddings(
                     on_progress=(
                         None
                         if on_progress is None
-                        else lambda done, total, model_name=model_name: on_progress(model_name, done, total)
+                        else lambda done, total, model_name=model_name: on_progress(
+                            model_name,
+                            done,
+                            total,
+                        )
                     ),
                 )
                 reports.append(_claim_embed_model_report(model_name, result))
@@ -397,7 +401,9 @@ def relate_claims(
                 concurrency=request.concurrency,
                 on_progress=on_progress,
             )
-            stances_by_claim = _required_stances_by_claim(result.get("stances_by_claim"))
+            stances_by_claim = _required_stances_by_claim(
+                result.get("stances_by_claim", {})
+            )
             commit_sha: str | None = None
             relpaths: tuple[str, ...] = ()
             if stances_by_claim:
@@ -425,10 +431,10 @@ def _required_int(result: Mapping[str, object], key: str) -> int:
     return value
 
 
-def _required_stances_by_claim(value: object) -> dict[str, list[dict]]:
+def _required_stances_by_claim(value: object) -> dict[str, list[dict[str, object]]]:
     if not isinstance(value, Mapping):
         raise ClaimWorkflowError("expected stances_by_claim mapping")
-    stances_by_claim: dict[str, list[dict]] = {}
+    stances_by_claim: dict[str, list[dict[str, object]]] = {}
     for claim_id, stances in value.items():
         if not isinstance(claim_id, str) or not isinstance(stances, list):
             raise ClaimWorkflowError("expected stances_by_claim mapping of claim IDs to stance lists")
