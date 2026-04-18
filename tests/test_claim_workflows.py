@@ -20,7 +20,7 @@ from propstore.claims import (
     relate_claims,
     show_claim_from_repo,
 )
-from propstore.proposals import STANCE_PROPOSAL_BRANCH
+from propstore.proposals import stance_proposal_branch
 from propstore.repository import Repository
 
 
@@ -184,7 +184,7 @@ def test_relate_claims_commits_single_claim_proposals_to_branch(
         ),
     )
 
-    assert report.branch == STANCE_PROPOSAL_BRANCH
+    assert report.branch == stance_proposal_branch(repo)
     assert report.commit_sha is not None
     assert report.relpaths == ("stances/claim-a.yaml",)
     data = yaml.safe_load(
