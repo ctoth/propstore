@@ -59,6 +59,12 @@ class _FakeWorldlineRepo:
         return create_artifact_store(self)
 
     @property
+    def families(self):
+        from propstore.artifacts.families import PROPSTORE_FAMILY_REGISTRY
+
+        return PROPSTORE_FAMILY_REGISTRY.bind(self, self.artifacts)
+
+    @property
     def snapshot(self):
         from propstore.storage.snapshot import RepositorySnapshot
 

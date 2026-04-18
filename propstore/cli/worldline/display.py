@@ -5,7 +5,6 @@ import sys
 
 import click
 
-from propstore.artifacts import WORLDLINE_FAMILY
 from quire.documents import DocumentSchemaError
 from propstore.cli.helpers import open_world_model
 from propstore.cli.worldline import _load_worldline_definition, worldline
@@ -135,7 +134,7 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
 def worldline_list(obj: dict) -> None:
     """List all worldlines."""
     repo: Repository = obj["repo"]
-    refs = repo.artifacts.list(WORLDLINE_FAMILY)
+    refs = repo.families.worldlines.list()
     if not refs:
         click.echo("No worldlines.")
         return

@@ -6,7 +6,7 @@ from typing import Any
 
 import click
 
-from propstore.artifacts import WORLDLINE_FAMILY, WorldlineRef
+from propstore.artifacts import WorldlineRef
 from propstore.repository import Repository
 from propstore.world.types import (
     ReasoningBackend,
@@ -35,7 +35,7 @@ def worldline(obj: dict) -> None:
 def _load_worldline_definition(repo: Repository, name: str):
     from propstore.worldline import WorldlineDefinition
 
-    document = repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name))
+    document = repo.families.worldlines.load(WorldlineRef(name))
     if document is None:
         raise FileNotFoundError(name)
     return WorldlineDefinition.from_document(document)

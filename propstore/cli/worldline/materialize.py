@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from propstore.artifacts import WORLDLINE_FAMILY, WorldlineRef
+from propstore.artifacts import WorldlineRef
 from propstore.cli.helpers import open_world_model
 from propstore.cli.worldline import (
     _apply_reasoning_options,
@@ -43,8 +43,9 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     from propstore.worldline import WorldlineDefinition
 
     repo: Repository = obj["repo"]
-    address = repo.artifacts.address(WORLDLINE_FAMILY, WorldlineRef(name))
-    if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is not None:
+    ref = WorldlineRef(name)
+    address = repo.families.worldlines.family.address_for(repo, ref)
+    if repo.families.worldlines.load(ref) is not None:
         click.echo(
             f"ERROR: Worldline '{name}' already exists at {address.require_path()}",
             err=True,
@@ -96,9 +97,8 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
 
     wl = WorldlineDefinition.from_dict(definition)
 
-    repo.artifacts.save(
-        WORLDLINE_FAMILY,
-        WorldlineRef(name),
+    repo.families.worldlines.save(
+        ref,
         wl.to_document(),
         message=f"Create worldline: {name}",
     )
@@ -141,7 +141,8 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
     repo: Repository = obj["repo"]
 
     # If file exists, load it; otherwise create from CLI args
-    if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is not None:
+    ref = WorldlineRef(name)
+    if repo.families.worldlines.load(ref) is not None:
         wl = _load_worldline_definition(repo, name)
     else:
         if not targets:
@@ -196,9 +197,8 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
         result = run_worldline(wl, wm)
     wl.results = result
 
-    repo.artifacts.save(
-        WORLDLINE_FAMILY,
-        WorldlineRef(name),
+    repo.families.worldlines.save(
+        ref,
         wl.to_document(),
         message=f"Materialize worldline: {name}",
     )

@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from propstore.artifacts import WORLDLINE_FAMILY, WorldlineRef
+from propstore.artifacts import WorldlineRef
 from propstore.cli.worldline import worldline
 from propstore.repository import Repository
 
@@ -16,11 +16,10 @@ from propstore.repository import Repository
 def worldline_delete(obj: dict, name: str) -> None:
     """Delete a worldline."""
     repo: Repository = obj["repo"]
-    if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is None:
+    if repo.families.worldlines.load(WorldlineRef(name)) is None:
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)
-    repo.artifacts.delete(
-        WORLDLINE_FAMILY,
+    repo.families.worldlines.delete(
         WorldlineRef(name),
         message=f"Delete worldline: {name}",
     )
