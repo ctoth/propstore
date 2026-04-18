@@ -330,7 +330,7 @@ def test_loaded_predicate_file_from_loaded_document() -> None:
     Garcia & Simari 2004 §3 ``bird/1`` predicate is the payload.
     """
 
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.predicates import (  # noqa: E402
         PredicateDocument,
         PredicatesFileDocument,

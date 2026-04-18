@@ -478,7 +478,7 @@ def _rule_doc(rule_id: str, kind: str, head, *, body=()):
 
 def _rule_file(rules):
     from propstore.artifacts.documents.rules import RuleSourceDocument, RulesFileDocument
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.rule_files import LoadedRuleFile
 
     file_doc = RulesFileDocument(

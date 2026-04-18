@@ -12,7 +12,7 @@ from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.artifacts.schema import DocumentSchemaError, convert_document_value
+from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.artifacts.documents.contexts import ContextDocument
 from propstore.cel_checker import synthetic_category_concept
 from propstore.conflict_detector import ConflictClass

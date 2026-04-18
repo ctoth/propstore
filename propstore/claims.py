@@ -11,13 +11,13 @@ import sqlite3
 from typing import TYPE_CHECKING, Any, Mapping, TypeAlias
 
 from propstore.artifacts.documents.claims import ClaimDocument, ClaimsFileDocument
-from propstore.artifacts.schema import (
+from quire.documents import (
     convert_document_value,
     load_document,
     load_document_dir,
 )
-from propstore.knowledge_path import KnowledgePath
-from propstore.loaded import LoadedDocument
+from quire.tree_path import TreePath as KnowledgePath
+from quire.documents import LoadedDocument
 
 if TYPE_CHECKING:
     from propstore.repository import Repository

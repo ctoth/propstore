@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 from propstore.core.lemon.proto_roles import ProtoRoleBundle
 from propstore.core.lemon.references import OntologyReference
 from propstore.dung import (

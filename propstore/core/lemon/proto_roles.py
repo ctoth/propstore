@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Mapping
 
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 from propstore.provenance import Provenance
 
 

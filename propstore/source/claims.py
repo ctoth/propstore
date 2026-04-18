@@ -9,7 +9,7 @@ from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSo
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.artifacts.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository
-from propstore.artifacts.schema import convert_document_value, decode_document_path
+from quire.documents import convert_document_value, decode_document_path
 from propstore.identity import (
     compute_claim_version_id,
     derive_claim_artifact_id,

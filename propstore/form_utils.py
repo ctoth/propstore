@@ -13,9 +13,9 @@ from propstore.artifacts.documents.forms import (
 from propstore.artifacts.families import FORM_FAMILY
 from propstore.artifacts.refs import FormRef
 from propstore.cel_checker import KindType
-from propstore.artifacts.schema import DocumentSchemaError, convert_document_value, decode_document_path
+from quire.documents import DocumentSchemaError, convert_document_value, decode_document_path
 from propstore.core.concepts import load_concepts
-from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
+from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore import dimensions as dimension_api
 from propstore.diagnostics import ValidationResult
 

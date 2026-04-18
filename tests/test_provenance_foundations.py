@@ -13,7 +13,7 @@ from propstore.artifacts.documents.sources import (
     SourceTrustDocument,
     SourceTrustQualityDocument,
 )
-from propstore.artifacts.schema import DocumentSchemaError, convert_document_value
+from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.opinion import Opinion, consensus_pair
 from propstore.provenance import (
     PROVENANCE_NOTES_REF,

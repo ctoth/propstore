@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.cel_types import CelExpr
 from propstore.provenance import Provenance

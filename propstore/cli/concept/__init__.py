@@ -48,7 +48,7 @@ from propstore.core.concepts import (
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.concept_ids import next_concept_id
-from propstore.knowledge_path import KnowledgePath
+from quire.tree_path import TreePath as KnowledgePath
 from propstore.repository import Repository
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.core.concepts import load_concepts

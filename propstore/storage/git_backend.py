@@ -152,7 +152,7 @@ class GitStore:
 
     def tree(self, commit: str | None = None):
         """Return a read-only knowledge tree rooted at this repository."""
-        from propstore.knowledge_path import GitKnowledgePath
+        from quire.tree_path import GitTreePath as GitKnowledgePath
 
         return GitKnowledgePath(self, commit=commit)
 

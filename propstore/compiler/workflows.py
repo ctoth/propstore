@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
-from propstore.artifacts.schema import DocumentSchemaError
+from quire.documents import DocumentSchemaError
 from propstore.claims import claim_file_payload, load_claim_files
 from propstore.compiler.context import (
     build_compilation_context_from_paths,

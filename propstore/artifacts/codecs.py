@@ -6,7 +6,7 @@ from typing import Any, TypeVar
 
 import msgspec
 
-from propstore.artifacts.schema import convert_document_value, decode_document_bytes
+from quire.documents import convert_document_value, decode_document_bytes
 
 TDocument = TypeVar("TDocument")
 

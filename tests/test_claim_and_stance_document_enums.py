@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from propstore.artifacts.documents.claims import ClaimDocument, StanceDocument
 from propstore.core.claim_types import ClaimType
-from propstore.artifacts.schema import DocumentSchemaError, convert_document_value
+from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.artifacts.documents.sources import SourceClaimDocument, SourceStanceEntryDocument
 from propstore.artifacts.documents.stances import StanceEntryDocument
 from propstore.stances import StanceType

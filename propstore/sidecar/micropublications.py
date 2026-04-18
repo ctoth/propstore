@@ -6,8 +6,8 @@ import json
 import sqlite3
 
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
-from propstore.artifacts.schema import decode_document_path
-from propstore.knowledge_path import KnowledgePath
+from quire.documents import decode_document_path
+from quire.tree_path import TreePath as KnowledgePath
 from propstore.sidecar.claim_utils import claim_reference_map_from_conn, resolve_claim_reference
 
 

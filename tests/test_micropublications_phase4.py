@@ -7,7 +7,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.artifacts.documents.micropubs import MicropublicationDocument
-from propstore.artifacts.schema import convert_document_value
+from quire.documents import convert_document_value
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar

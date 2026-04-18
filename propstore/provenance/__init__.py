@@ -30,7 +30,7 @@ import msgspec
 from dulwich.notes import Notes
 from dulwich.repo import BaseRepo
 
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 
 
 def _utc_timestamp() -> str:

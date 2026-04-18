@@ -16,8 +16,8 @@ from propstore.context_lifting import (
     LiftingRule,
 )
 from propstore.core.id_types import ContextId, to_context_id
-from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
-from propstore.loaded import LoadedDocument
+from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
+from quire.documents import LoadedDocument
 
 
 @dataclass(frozen=True)

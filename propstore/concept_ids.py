@@ -4,8 +4,8 @@ import re
 from pathlib import Path
 
 from propstore.artifacts.documents.concepts import ConceptIdScanDocument
-from propstore.artifacts.schema import DocumentSchemaError, decode_document_path
-from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
+from quire.documents import DocumentSchemaError, decode_document_path
+from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 
 _CONCEPT_ID_RE = re.compile(r"^concept(\d+)$")
 

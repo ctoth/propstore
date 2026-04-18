@@ -20,7 +20,7 @@ from propstore.core.concepts import (
     concept_reference_keys,
 )
 from propstore.form_utils import FormDefinition, load_all_forms_path
-from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
+from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore.core.concepts import load_concepts
 
 if TYPE_CHECKING:

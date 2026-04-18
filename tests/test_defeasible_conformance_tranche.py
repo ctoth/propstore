@@ -368,7 +368,7 @@ def _build_rule_document(rule: SuiteRule, *, kind: str):
 
 
 def _build_rule_file(theory: SuiteTheory):
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.rules import RuleSourceDocument, RulesFileDocument
     from propstore.rule_files import LoadedRuleFile
 
@@ -408,7 +408,7 @@ def _build_fact_atoms(theory: SuiteTheory):
 
 def _build_registry(theory: SuiteTheory):
     from propstore.grounding.predicates import PredicateRegistry
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.predicates import (
         PredicateDocument,
         PredicatesFileDocument,

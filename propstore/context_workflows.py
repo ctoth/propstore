@@ -8,7 +8,7 @@ from pathlib import Path
 from propstore.artifacts.families import CONTEXT_FAMILY
 from propstore.artifacts.refs import ContextRef
 from propstore.artifacts.documents.contexts import ContextDocument
-from propstore.artifacts.schema import convert_document_value
+from quire.documents import convert_document_value
 from propstore.repository import Repository
 from propstore.validate_contexts import load_contexts
 

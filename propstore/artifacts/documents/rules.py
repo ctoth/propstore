@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 
 
 class TermDocument(DocumentStruct):

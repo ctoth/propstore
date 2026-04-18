@@ -11,7 +11,7 @@ from propstore.core.lemon.qualia import QualiaStructure
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import ConceptRelationshipType
 from propstore.core.exactness_types import Exactness
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 from propstore.provenance import Provenance
 
 

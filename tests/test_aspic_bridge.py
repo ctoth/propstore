@@ -679,7 +679,7 @@ class TestPreferenceConfig:
             RulesFileDocument,
             TermDocument,
         )
-        from propstore.loaded import LoadedDocument
+        from quire.documents import LoadedDocument
         from propstore.rule_files import LoadedRuleFile
 
         variable = TermDocument(kind="var", name="X")

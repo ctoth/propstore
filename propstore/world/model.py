@@ -32,7 +32,7 @@ from propstore.core.row_types import (
     RelationshipRow,
     StanceRow,
 )
-from propstore.knowledge_path import FilesystemKnowledgePath, KnowledgePath
+from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 
 if TYPE_CHECKING:

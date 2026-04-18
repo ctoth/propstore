@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from propstore.core.labels import Label
-from propstore.artifacts.schema import decode_document_path
+from quire.documents import decode_document_path
 from propstore.identity import canonicalize_claim_for_version
-from propstore.knowledge_path import KnowledgePath
+from quire.tree_path import TreePath as KnowledgePath
 from propstore.artifacts.documents.sources import (
     SourceDocument,
     SourceJustificationsDocument,

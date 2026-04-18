@@ -483,7 +483,7 @@ def test_loaded_rule_file_from_loaded_document() -> None:
         carried over from the underlying LoadedDocument
       - ``.rules`` property returning the underlying tuple unchanged
     """
-    from propstore.loaded import LoadedDocument
+    from quire.documents import LoadedDocument
     from propstore.artifacts.documents.rules import (  # noqa: E402
         AtomDocument,
         RuleDocument,

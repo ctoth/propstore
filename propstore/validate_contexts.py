@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from propstore.artifacts.documents.contexts import ContextDocument
-from propstore.artifacts.schema import load_document_dir
+from quire.documents import load_document_dir
 from propstore.context_types import (
     ContextInput,
     LoadedContext,
@@ -14,7 +14,7 @@ from propstore.diagnostics import ValidationResult
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from propstore.knowledge_path import KnowledgePath
+    from quire.tree_path import TreePath as KnowledgePath
 
 
 def load_contexts(contexts_dir: KnowledgePath | None) -> list[LoadedContext]:

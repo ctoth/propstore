@@ -14,7 +14,7 @@ from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, initialize
 
-from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
+from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
 from propstore.storage import GitStore
 
 # ── Strategies ──────────────────────────────────────────────────────

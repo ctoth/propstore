@@ -21,8 +21,8 @@ from propstore.claims import (
     claim_file_source_paper,
     claim_file_stage,
 )
-from propstore.artifacts.schema import decode_document_path
-from propstore.knowledge_path import KnowledgePath
+from quire.documents import decode_document_path
+from quire.tree_path import TreePath as KnowledgePath
 from propstore.sidecar.claim_utils import (
     claim_reference_map_from_conn,
     coerce_stance_resolution,

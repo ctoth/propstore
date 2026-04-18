@@ -38,7 +38,7 @@ idempotent under strict decoding.
 
 from __future__ import annotations
 
-from propstore.artifacts.schema import DocumentStruct
+from quire.documents import DocumentStruct
 
 
 class PredicateDocument(DocumentStruct):

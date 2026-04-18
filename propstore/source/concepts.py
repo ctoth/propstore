@@ -4,7 +4,7 @@ from pathlib import Path
 
 from propstore.artifacts import SOURCE_CONCEPTS_FAMILY, SourceRef
 from propstore.repository import Repository
-from propstore.artifacts.schema import decode_document_path
+from quire.documents import decode_document_path
 
 from .common import load_source_concepts_document
 from propstore.artifacts.documents.sources import (
