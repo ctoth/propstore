@@ -5,16 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar
 
-from propstore.artifacts import (
-    SOURCE_CLAIMS_FAMILY,
-    SOURCE_CONCEPTS_FAMILY,
-    SOURCE_DOCUMENT_FAMILY,
-    SOURCE_FINALIZE_REPORT_FAMILY,
-    SOURCE_JUSTIFICATIONS_FAMILY,
-    SOURCE_MICROPUBS_FAMILY,
-    SOURCE_STANCES_FAMILY,
-    SourceRef,
-)
+from propstore.artifacts import SOURCE_DOCUMENT_FAMILY, SourceRef
 
 # Imported directly from ``propstore.artifacts.refs`` rather than via
 # ``propstore.artifacts`` so pyright can statically resolve the
@@ -24,7 +15,6 @@ from propstore.artifacts import (
 # analysis even though the runtime binding is correct (WS-Z-gates
 # Phase 4 Deliverable 5: pyright cleanup).
 from propstore.artifacts.refs import normalize_source_slug
-from propstore.artifacts.families import SOURCE_METADATA_FAMILY, SOURCE_NOTES_FAMILY
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.provenance import ProvenanceStatus
@@ -121,8 +111,7 @@ def init_source_branch(
         origin_value=origin_value,
         content_file=content_file,
     )
-    repo.artifacts.save(
-        SOURCE_DOCUMENT_FAMILY,
+    repo.families.source_documents.save(
         SourceRef(name),
         source_doc,
         message=f"Initialize source {normalize_source_slug(name)}",
@@ -131,8 +120,7 @@ def init_source_branch(
 
 
 def commit_source_notes(repo: Repository, name: str, notes_file: Path) -> str:
-    return repo.artifacts.save(
-        SOURCE_NOTES_FAMILY,
+    return repo.families.source_notes.save(
         SourceRef(name),
         notes_file.read_text(encoding="utf-8"),
         message=f"Write notes for {normalize_source_slug(name)}",
@@ -141,8 +129,7 @@ def commit_source_notes(repo: Repository, name: str, notes_file: Path) -> str:
 
 def commit_source_metadata(repo: Repository, name: str, metadata_file: Path) -> str:
     loaded = json.loads(metadata_file.read_text(encoding="utf-8"))
-    return repo.artifacts.save(
-        SOURCE_METADATA_FAMILY,
+    return repo.families.source_metadata.save(
         SourceRef(name),
         loaded,
         message=f"Write metadata for {normalize_source_slug(name)}",
@@ -150,36 +137,36 @@ def commit_source_metadata(repo: Repository, name: str, metadata_file: Path) -> 
 
 
 def load_source_metadata(repo: Repository, name: str) -> dict[str, object] | None:
-    return repo.artifacts.load(SOURCE_METADATA_FAMILY, SourceRef(name))
+    return repo.families.source_metadata.load(SourceRef(name))
 
 
 def load_source_document(repo: Repository, name: str) -> SourceDocument:
     branch = source_branch_name(name)
-    document = repo.artifacts.load(SOURCE_DOCUMENT_FAMILY, SourceRef(name))
+    document = repo.families.source_documents.load(SourceRef(name))
     if document is None:
         raise ValueError(f"Source branch {branch!r} does not exist")
     return document
 
 
 def load_source_concepts_document(repo: Repository, name: str) -> SourceConceptsDocument | None:
-    return repo.artifacts.load(SOURCE_CONCEPTS_FAMILY, SourceRef(name))
+    return repo.families.source_concepts.load(SourceRef(name))
 
 
 def load_source_claims_document(repo: Repository, name: str) -> SourceClaimsDocument | None:
-    return repo.artifacts.load(SOURCE_CLAIMS_FAMILY, SourceRef(name))
+    return repo.families.source_claims.load(SourceRef(name))
 
 
 def load_source_micropubs_document(repo: Repository, name: str) -> MicropublicationsFileDocument | None:
-    return repo.artifacts.load(SOURCE_MICROPUBS_FAMILY, SourceRef(name))
+    return repo.families.source_micropubs.load(SourceRef(name))
 
 
 def load_source_justifications_document(repo: Repository, name: str) -> SourceJustificationsDocument | None:
-    return repo.artifacts.load(SOURCE_JUSTIFICATIONS_FAMILY, SourceRef(name))
+    return repo.families.source_justifications.load(SourceRef(name))
 
 
 def load_source_stances_document(repo: Repository, name: str) -> SourceStancesDocument | None:
-    return repo.artifacts.load(SOURCE_STANCES_FAMILY, SourceRef(name))
+    return repo.families.source_stances.load(SourceRef(name))
 
 
 def load_source_finalize_report(repo: Repository, name: str) -> SourceFinalizeReportDocument | None:
-    return repo.artifacts.load(SOURCE_FINALIZE_REPORT_FAMILY, SourceRef(name))
+    return repo.families.source_finalize_reports.load(SourceRef(name))
