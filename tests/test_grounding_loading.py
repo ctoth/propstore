@@ -12,7 +12,7 @@ from propstore.world import WorldModel
 def test_build_grounded_bundle_returns_explicit_empty_for_rule_free_repo(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
-    bundle = build_grounded_bundle(repo.tree())
+    bundle = build_grounded_bundle(repo)
 
     assert bundle == GroundedRulesBundle.empty()
 
@@ -39,7 +39,7 @@ def test_build_grounded_bundle_rejects_rules_without_predicates(tmp_path) -> Non
     )
 
     try:
-        build_grounded_bundle(repo.tree())
+        build_grounded_bundle(repo)
     except ValueError as exc:
         assert "rules/" in str(exc)
         assert "predicates/" in str(exc)
