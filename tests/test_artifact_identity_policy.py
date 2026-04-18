@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.artifacts.families import ConceptFileRef
+from propstore.families.registry import ConceptFileRef
 from propstore.identity import normalize_canonical_concept_payload
 from propstore.repository import Repository
 from propstore.identity import derive_concept_artifact_id

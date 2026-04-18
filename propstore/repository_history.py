@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from propstore.artifacts.families import MergeManifestRef
+from propstore.families.registry import MergeManifestRef
 from propstore.repository import Repository
 
 

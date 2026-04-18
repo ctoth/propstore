@@ -7,7 +7,7 @@ from pathlib import Path
 from quire.artifacts import ArtifactFamily
 from quire.references import ForeignKeySpec
 
-from propstore.artifacts.families import (
+from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY,
     PropstoreFamily,
     semantic_address_path,
@@ -71,7 +71,7 @@ def test_semantic_family_contract_includes_path_schema() -> None:
 
 
 def test_canonical_artifact_path_helpers_are_deleted() -> None:
-    import propstore.artifacts.families as artifact_families
+    import propstore.families.registry as artifact_families
 
     assert importlib.util.find_spec("propstore.artifacts.refs") is None
 

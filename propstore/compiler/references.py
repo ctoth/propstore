@@ -14,7 +14,7 @@ from quire.references import (
     build_reference_lookup,
 )
 
-from propstore.artifacts.families import semantic_foreign_keys
+from propstore.families.registry import semantic_foreign_keys
 from propstore.claims import (
     ClaimFileEntry,
     claim_file_claims,

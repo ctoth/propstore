@@ -9,7 +9,7 @@ from typing import Mapping
 from quire.documents import decode_yaml_mapping
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.artifacts.documents.forms import FormDocument
-from propstore.artifacts.families import (
+from propstore.families.registry import (
     ConceptFileRef,
     FormRef,
     PropstoreFamily,

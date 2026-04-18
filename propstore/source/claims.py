@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument
-from propstore.artifacts.families import SourceRef
+from propstore.families.registry import SourceRef
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.artifacts.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository

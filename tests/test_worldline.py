@@ -99,7 +99,7 @@ class _FakeWorldlineRepo:
 
     @cached_property
     def families(self):
-        from propstore.artifacts.families import PROPSTORE_FAMILY_REGISTRY
+        from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 
         return PROPSTORE_FAMILY_REGISTRY.bind(self, self._family_store)
 

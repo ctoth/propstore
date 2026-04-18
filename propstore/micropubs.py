@@ -9,7 +9,7 @@ from propstore.artifacts.documents.micropubs import (
     MicropublicationDocument,
     MicropublicationsFileDocument,
 )
-from propstore.artifacts.families import MicropubsFileRef
+from propstore.families.registry import MicropubsFileRef
 from propstore.context_types import (
     LoadedContext,
     loaded_contexts_to_lifting_system,
