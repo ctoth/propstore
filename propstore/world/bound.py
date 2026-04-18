@@ -13,8 +13,8 @@ from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.activation import is_active_claim_active
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.claim_types import ClaimType
-from propstore.core.environment import WorldStore, ConceptCatalogStore
-from propstore.core.id_types import ConceptId, to_context_id
+from propstore.core.environment import ConceptCatalogStore, WorldStore
+from propstore.core.id_types import ConceptId, to_claim_id, to_concept_id, to_context_id
 from propstore.core.row_types import (
     ClaimRowInput,
     ConflictRow,
@@ -34,6 +34,7 @@ from propstore.core.labels import (
     combine_labels,
     merge_labels,
 )
+from propstore.fragility_types import RankingPolicy
 from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
 from propstore.world.types import (
     ATMSConceptInterventionPlan,
@@ -177,9 +178,9 @@ def _recomputed_conflicts(
     )
     return [
         ConflictRow(
-            concept_id=record.concept_id,
-            claim_a_id=record.claim_a_id,
-            claim_b_id=record.claim_b_id,
+            concept_id=to_concept_id(record.concept_id),
+            claim_a_id=to_claim_id(record.claim_a_id),
+            claim_b_id=to_claim_id(record.claim_b_id),
             warning_class=record.warning_class,
             attributes={
                 "conditions_a": record.conditions_a,
@@ -271,23 +272,16 @@ class BoundWorld(BeliefSpace):
         )
 
     def _normalize_claim_id_set(self, claim_ids: Sequence[str]) -> set[str]:
-        resolver = getattr(self._store, "resolve_claim", None)
         normalized: set[str] = set()
         for claim_id in claim_ids:
-            resolved = (
-                resolver(str(claim_id))
-                if callable(resolver)
-                else None
-            )
+            resolved = self._store.resolve_claim(str(claim_id))
             normalized.add(resolved or str(claim_id))
         return normalized
 
     def _resolve_claim_lookup_id(self, claim_id: str) -> str:
-        resolver = getattr(self._store, "resolve_claim", None)
-        if callable(resolver):
-            resolved = resolver(claim_id)
-            if isinstance(resolved, str) and resolved:
-                return resolved
+        resolved = self._store.resolve_claim(claim_id)
+        if resolved:
+            return resolved
         return claim_id
 
     @staticmethod
@@ -316,7 +310,8 @@ class BoundWorld(BeliefSpace):
         if claim_id is not None and self._active_claim_id_set is not None:
             if claim_id in self._active_claim_id_set:
                 return True
-            if claim_id in self._inactive_claim_id_set:
+            inactive_claim_ids = self._inactive_claim_id_set or set()
+            if claim_id in inactive_claim_ids:
                 return False
 
         try:
@@ -379,28 +374,17 @@ class BoundWorld(BeliefSpace):
 
     def _concept_symbol_candidates(self, concept_id: ConceptId | str) -> list[str]:
         candidates: list[str] = []
-        getter = getattr(self._store, "get_concept", None)
-        if callable(getter):
-            concept_input = getter(str(concept_id))
-            concept = (
-                None
-                if concept_input is None
-                else coerce_concept_row(concept_input).to_dict()
-            )
-        elif not hasattr(self._store, "all_concepts"):
-            concept = None
-        else:
-            concept = next(
-                (
-                    coerce_concept_row(entry).to_dict()
-                    for entry in self._store.all_concepts()
-                    if (
-                        str(coerce_concept_row(entry).concept_id) == str(concept_id)
-                        or coerce_concept_row(entry).canonical_name == str(concept_id)
-                    )
-                ),
-                None,
-            )
+        concept_input = self._store.get_concept(str(concept_id))
+        concept = None if concept_input is None else coerce_concept_row(concept_input).to_dict()
+        if concept is None:
+            for entry in self._store.all_concepts():
+                row = coerce_concept_row(entry)
+                if (
+                    str(row.concept_id) == str(concept_id)
+                    or row.canonical_name == str(concept_id)
+                ):
+                    concept = row.to_dict()
+                    break
         if concept is None:
             return candidates
 
@@ -833,7 +817,7 @@ class BoundWorld(BeliefSpace):
         include_conflict: bool = True,
         include_grounding: bool = True,
         include_bridge: bool = True,
-        ranking_policy: str = "heuristic_roi",
+        ranking_policy: RankingPolicy = RankingPolicy.HEURISTIC_ROI,
         atms_limit: int = 8,
     ) -> "FragilityReport":
         """Rank intervention targets by fragility — what to inspect next."""
