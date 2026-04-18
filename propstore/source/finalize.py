@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from propstore.artifacts.codes import attach_source_artifact_codes
+from propstore.artifact_codes import attach_source_artifact_codes
 from propstore.artifacts.indexes import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
