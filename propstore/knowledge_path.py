@@ -200,8 +200,10 @@ class GitKnowledgePath(_BaseKnowledgePath):
 
     def cache_key(self) -> str:
         commit = self._commit or "WORKTREE"
-        repo_root = self._repo.root.resolve().as_posix()
-        return f"git:{repo_root}:{commit}:{self.as_posix()}"
+        repo_root = self._repo.root
+        if repo_root is None:
+            raise ValueError("GitKnowledgePath cache keys require a filesystem-backed GitStore")
+        return f"git:{repo_root.resolve().as_posix()}:{commit}:{self.as_posix()}"
 
 
 def coerce_knowledge_path(path: KnowledgePath | Path) -> KnowledgePath:
