@@ -9,7 +9,7 @@ import yaml
 from propstore.core.concept_relationship_types import ConceptRelationshipType
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.graph_relation_types import GraphRelationType
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context

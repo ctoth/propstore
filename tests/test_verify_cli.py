@@ -9,7 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.artifact_codes import attach_source_artifact_codes
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
 from tests.conftest import make_test_context_commit_entry

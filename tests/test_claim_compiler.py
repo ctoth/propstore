@@ -6,15 +6,12 @@ import yaml
 
 from quire.references import CrossFamilyReferenceIndex
 
-from propstore.compiler.context import (
-    build_compilation_context_from_paths,
-)
 from propstore.compiler.passes import compile_claim_files
 from propstore.compiler.references import (
     foreign_keys_from_context,
     iter_semantic_foreign_keys,
 )
-from propstore.claims import load_claim_files
+from tests.family_helpers import build_compilation_context_from_paths, load_claim_files
 from propstore.sidecar.claim_utils import prepare_claim_insert_row
 from tests.conftest import (
     make_concept_registry,

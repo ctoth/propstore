@@ -20,7 +20,7 @@ from hypothesis import strategies as st
 from quire.documents import decode_document_path
 from propstore.identity import derive_concept_artifact_id
 from propstore.repository import Repository
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.cli.worldline import _parse_kv_args
 from quire.tree_path import GitTreePath as GitKnowledgePath
 from quire.git_store import GitStore

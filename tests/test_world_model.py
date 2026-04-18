@@ -32,7 +32,7 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from propstore.stances import StanceType
 from tests.conftest import create_world_model_schema, make_claim_identity, write_test_context
@@ -525,7 +525,7 @@ def claim_files(concept_dir):
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
     (claims_dir / "test_paper_gamma.yaml").write_text(yaml.dump(gamma, default_flow_style=False))
 
-    from propstore.claims import load_claim_files
+    from tests.family_helpers import load_claim_files
     return load_claim_files(claims_dir)
 
 
@@ -2261,7 +2261,7 @@ def algo_claim_files(algo_concept_dir):
         yaml.dump(_normalize_claim_concept_refs(beta), default_flow_style=False)
     )
 
-    from propstore.claims import load_claim_files
+    from tests.family_helpers import load_claim_files
     return load_claim_files(claims_dir)
 
 

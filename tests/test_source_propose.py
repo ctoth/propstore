@@ -8,7 +8,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.sidecar.build import build_sidecar
+from tests.family_helpers import build_sidecar
 
 
 def _init_source(runner: CliRunner, repo: Repository, name: str = "demo"):
