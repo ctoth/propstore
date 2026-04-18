@@ -27,8 +27,8 @@ from pathlib import Path
 from typing import Any
 
 import msgspec
-from dulwich.notes import Notes
 from dulwich.repo import BaseRepo
+from quire.notes import NotesRef, read_git_note, write_git_note
 
 from quire.documents import DocumentStruct
 
@@ -38,6 +38,7 @@ def _utc_timestamp() -> str:
 
 
 PROVENANCE_NOTES_REF = b"refs/notes/provenance"
+PROVENANCE_NOTES = NotesRef("refs/notes/provenance")
 
 _CONTEXT = {
     "ps": "https://prop.store/ns#",
@@ -219,11 +220,13 @@ def write_provenance_note(
 ) -> bytes:
     """Attach a provenance named graph to a git object using git notes."""
 
-    notes = Notes(repo.object_store, repo.refs)
-    return notes.set_note(
+    return write_git_note(
+        repo,
+        PROVENANCE_NOTES,
         _object_sha_bytes(object_sha),
         encode_named_graph(provenance),
-        notes_ref=PROVENANCE_NOTES_REF,
+        author=b"propstore <propstore@example.com>",
+        committer=b"propstore <propstore@example.com>",
         message=b"Record provenance named graph",
     )
 
@@ -234,11 +237,7 @@ def read_provenance_note(
 ) -> Provenance | None:
     """Read a provenance named graph from the provenance notes ref."""
 
-    notes = Notes(repo.object_store, repo.refs)
-    payload = notes.get_note(
-        _object_sha_bytes(object_sha),
-        notes_ref=PROVENANCE_NOTES_REF,
-    )
+    payload = read_git_note(repo, PROVENANCE_NOTES, _object_sha_bytes(object_sha))
     if payload is None:
         return None
     return decode_named_graph(payload)
