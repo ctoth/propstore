@@ -558,6 +558,21 @@ Status 2026-04-17: world CLI split landed.
   - `logs/test-runs/cli-world-layout-20260417-193048.log` - 1 passed.
   - `uv run pyright propstore/cli/compiler_cmds.py propstore/cli/world_cmds.py propstore/cli/__init__.py` - 0 errors.
 
+Status 2026-04-17: root CLI command split landed.
+
+- Moved top-level repository history commands (`log`, `diff`, `show`,
+  `checkout`) from `propstore.cli.__init__` to `propstore.cli.history_cmds`.
+- Moved top-level stance proposal promotion command from
+  `propstore.cli.__init__` to `propstore.cli.proposal_cmds`.
+- Reduced `propstore.cli.__init__` to lazy repository setup and command
+  registration.
+- Added a layout guard preventing root command bodies from returning to
+  `propstore.cli.__init__`.
+- Verification:
+  - `logs/test-runs/cli-root-split-20260417-195308.log` - 16 passed.
+  - `logs/test-runs/cli-root-layout-20260417-195353.log` - 2 passed.
+  - `uv run pyright propstore/cli/__init__.py propstore/cli/history_cmds.py propstore/cli/proposal_cmds.py` - 0 errors.
+
 ### Phase CLI-6 - Discipline capture and enforcement
 
 - Update `AGENTS.md` and `CLAUDE.md` with the CLI adapter discipline.
