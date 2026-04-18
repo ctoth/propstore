@@ -9,15 +9,10 @@ from quire.git_store import (
     GitStore as QuireGitStore,
     GitStorePolicy,
     _commit_object,
-    _normalize_path,
     _ref_delete,
     _ref_get,
     _ref_set,
-    _repo_object,
     _set_symbolic_ref,
-    _symref_get,
-    _tree_add,
-    _tree_object,
 )
 
 _DEFAULT_AUTHOR = b"pks <pks@propstore>"
@@ -93,6 +88,3 @@ class GitStore(QuireGitStore):
     @classmethod
     def open(cls, root: Path) -> GitStore:
         return cls(Repo(str(root)), root)
-
-    def _build_tree_from_flat(self, entries: dict[str, bytes], store: Any = None):
-        return super()._build_tree_from_flat(entries)
