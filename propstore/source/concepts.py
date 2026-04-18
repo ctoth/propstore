@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.artifacts import FORM_FAMILY, SOURCE_CONCEPTS_FAMILY, SourceRef
+from propstore.artifacts import SourceRef
 from propstore.repository import Repository
 from quire.documents import decode_document_path
 
@@ -17,7 +17,7 @@ from .registry import primary_branch_concept_match
 
 
 def get_valid_form_names(repo: Repository) -> list[str] | None:
-    names = sorted(ref.name for ref in repo.artifacts.list(FORM_FAMILY))
+    names = sorted(ref.name for ref in repo.families.forms.list())
     return names if names else None
 
 
@@ -73,8 +73,7 @@ def normalize_source_concepts_document(
 def commit_source_concepts_batch(repo: Repository, source_name: str, concepts_file: Path) -> str:
     loaded = decode_document_path(concepts_file, SourceConceptsDocument)
     normalized = normalize_source_concepts_document(repo, loaded)
-    return repo.artifacts.save(
-        SOURCE_CONCEPTS_FAMILY,
+    return repo.families.source_concepts.save(
         SourceRef(source_name),
         normalized,
         message=f"Write concepts for {source_name}",
@@ -102,8 +101,7 @@ def commit_source_concept_proposal(
     )
     concepts.append(entry)
     doc = normalize_source_concepts_document(repo, SourceConceptsDocument(concepts=tuple(concepts)))
-    repo.artifacts.save(
-        SOURCE_CONCEPTS_FAMILY,
+    repo.families.source_concepts.save(
         SourceRef(source_name),
         doc,
         message=f"Propose concepts for {source_name}",
