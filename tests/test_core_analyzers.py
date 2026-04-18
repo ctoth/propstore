@@ -7,7 +7,7 @@ import pytest
 from propstore.claim_graph import compute_claim_graph_justified_claims
 from propstore.praf import build_praf
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph, RelationEdge
-from propstore.praf import compute_praf_acceptance
+from argumentation.probabilistic import compute_probabilistic_acceptance
 from tests.conftest import create_argumentation_schema, insert_claim, insert_conflict, insert_stance
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 
@@ -100,9 +100,9 @@ def test_shared_claim_graph_analyzer_matches_current_grounded(conn: sqlite3.Conn
 
 
 def test_shared_claim_graph_analyzer_uses_grounded_over_defeats_only() -> None:
-    from propstore.bipolar import BipolarArgumentationFramework
+    from argumentation.bipolar import BipolarArgumentationFramework
     from propstore.core.analyzers import SharedAnalyzerInput, analyze_claim_graph
-    from propstore.dung import ArgumentationFramework
+    from argumentation.dung import ArgumentationFramework
 
     shared = SharedAnalyzerInput(
         active_graph=None,  # type: ignore[arg-type]
@@ -200,8 +200,8 @@ def test_shared_praf_analyzer_matches_current_acceptance(conn: sqlite3.Connectio
         strategy="exact_enum",
         target_claim_ids=("c1", "c2"),
     )
-    expected_result = compute_praf_acceptance(
-        build_praf(store, {"c1", "c2"}),
+    expected_result = compute_probabilistic_acceptance(
+        build_praf(store, {"c1", "c2"}).kernel,
         semantics="grounded",
         strategy="exact_enum",
     )

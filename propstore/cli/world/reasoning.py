@@ -292,12 +292,12 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             sys.exit(2)
 
         if backend == ReasoningBackend.PRAF:
+            from argumentation.probabilistic import compute_probabilistic_acceptance
             from propstore.praf import build_praf
-            from propstore.praf import compute_praf_acceptance
 
             praf = build_praf(wm, claim_ids, comparison=set_comparison)
-            praf_result = compute_praf_acceptance(
-                praf, semantics=semantics,
+            praf_result = compute_probabilistic_acceptance(
+                praf.kernel, semantics=semantics,
                 strategy=praf_strategy,
                 query_kind="argument_acceptance",
                 inference_mode="credulous",

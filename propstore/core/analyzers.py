@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from propstore.bipolar import (
+from argumentation.bipolar import (
     BipolarArgumentationFramework,
     c_preferred_extensions,
     cayrol_derived_defeats as _cayrol_derived_defeats_impl,
@@ -33,13 +33,15 @@ from propstore.core.relation_types import (
     UNCONDITIONAL_ATTACK_TYPES,
 )
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
-from propstore.dung import (
+from argumentation.dung import (
     ArgumentationFramework,
     grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
-from propstore.preference import claim_strength, defeat_holds
+from argumentation.preference import defeat_holds
+
+from propstore.preference import claim_strength
 from propstore.probabilistic_relations import (
     ClaimGraphRelations,
     ProbabilisticRelation,
@@ -609,7 +611,8 @@ def analyze_claim_graph(
 
 
 def build_praf_from_shared_input(shared: SharedAnalyzerInput):
-    from propstore.praf import NoCalibration, ProbabilisticAF, p_arg_from_claim
+    from argumentation.probabilistic import ProbabilisticAF
+    from propstore.praf import NoCalibration, PropstorePrAF, p_arg_from_claim
 
     p_args = {}
     omitted_arguments = {}
@@ -670,13 +673,25 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
     def keep_relation(relation):
         return relation.source in active_args and relation.target in active_args and relation.edge not in missing_relation_edges
 
-    return ProbabilisticAF(
+    p_defeats = {edge: opinion for edge, opinion in direct_defeat_map.items() if calibrated_edge(edge)}
+    p_attacks = {edge: opinion for edge, opinion in attack_map.items() if calibrated_edge(edge)}
+    p_supports = {edge: opinion for edge, opinion in support_map.items() if calibrated_edge(edge)}
+    kernel = ProbabilisticAF(
         framework=framework,
-        p_args=p_args,
-        p_defeats={edge: opinion for edge, opinion in direct_defeat_map.items() if calibrated_edge(edge)},
-        p_attacks={edge: opinion for edge, opinion in attack_map.items() if calibrated_edge(edge)},
+        p_args={arg: opinion.expectation() for arg, opinion in p_args.items()},
+        p_defeats={edge: opinion.expectation() for edge, opinion in p_defeats.items()},
+        p_attacks={edge: opinion.expectation() for edge, opinion in p_attacks.items()},
         supports=supports,
-        p_supports={edge: opinion for edge, opinion in support_map.items() if calibrated_edge(edge)},
+        p_supports={edge: opinion.expectation() for edge, opinion in p_supports.items()},
+        base_defeats=base_defeats,
+    )
+    return PropstorePrAF(
+        kernel=kernel,
+        p_args=p_args,
+        p_defeats=p_defeats,
+        p_attacks=p_attacks,
+        supports=supports,
+        p_supports=p_supports,
         base_defeats=base_defeats,
         attack_relations=tuple(relation for relation in shared.relations.attack_relations if keep_relation(relation)),
         support_relations=tuple(relation for relation in shared.relations.support_relations if keep_relation(relation)),
@@ -702,11 +717,11 @@ def analyze_praf(
     rng_seed: int | None = None,
     target_claim_ids: tuple[str, ...] | list[str] | set[str] | None = None,
 ) -> AnalyzerResult:
-    from propstore.praf import compute_praf_acceptance
+    from argumentation.probabilistic import compute_probabilistic_acceptance
 
     praf = build_praf_from_shared_input(shared)
-    praf_result = compute_praf_acceptance(
-        praf,
+    praf_result = compute_probabilistic_acceptance(
+        praf.kernel,
         semantics=semantics,
         strategy=strategy,
         query_kind=query_kind,

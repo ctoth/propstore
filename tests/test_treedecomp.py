@@ -13,8 +13,8 @@ import math
 
 import pytest
 
-from propstore.dung import ArgumentationFramework, grounded_extension
-from propstore.opinion import Opinion
+from argumentation.dung import ArgumentationFramework, grounded_extension
+from argumentation.probabilistic import ProbabilisticAF, compute_probabilistic_acceptance
 
 
 # ---------------------------------------------------------------------------
@@ -29,9 +29,6 @@ def _make_praf(
     per_defeat: dict[tuple[str, str], float] | None = None,
 ):
     """Build a ProbabilisticAF with given or uniform probabilities."""
-    from propstore.praf import ProbabilisticAF
-    from propstore.opinion import from_probability
-
     af = ArgumentationFramework(
         arguments=frozenset(args),
         defeats=frozenset(defeats),
@@ -39,13 +36,11 @@ def _make_praf(
     p_args = {}
     per_arg_map = {} if per_arg is None else per_arg
     for a in args:
-        p = per_arg_map.get(a, p_arg)
-        p_args[a] = from_probability(p, 1000) if p < 1.0 else Opinion.dogmatic_true()
+        p_args[a] = per_arg_map.get(a, p_arg)
     p_defeats_dict = {}
     per_defeat_map = {} if per_defeat is None else per_defeat
     for d in defeats:
-        p = per_defeat_map.get(d, p_defeat)
-        p_defeats_dict[d] = from_probability(p, 1000) if p < 1.0 else Opinion.dogmatic_true()
+        p_defeats_dict[d] = per_defeat_map.get(d, p_defeat)
     return ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats_dict)
 
 
@@ -55,7 +50,7 @@ def _make_praf(
 class TestTreewidthEstimation:
     def test_treewidth_estimation_empty(self):
         """Empty graph has treewidth 0."""
-        from propstore.praf.treedecomp import estimate_treewidth
+        from argumentation.probabilistic_treedecomp import estimate_treewidth
 
         af = ArgumentationFramework(
             arguments=frozenset(), defeats=frozenset()
@@ -70,7 +65,7 @@ class TestTreewidthEstimation:
 
         Cite: 'Path graphs have treewidth 1 (standard result).'
         """
-        from propstore.praf.treedecomp import estimate_treewidth
+        from argumentation.probabilistic_treedecomp import estimate_treewidth
 
         # a -> b -> c -> d (path)
         af = ArgumentationFramework(
@@ -88,7 +83,7 @@ class TestTreewidthEstimation:
 
         Cite: 'Complete graph K_n has treewidth n-1.'
         """
-        from propstore.praf.treedecomp import estimate_treewidth
+        from argumentation.probabilistic_treedecomp import estimate_treewidth
 
         nodes = {"a", "b", "c", "d"}
         # All pairs attack each other
@@ -109,7 +104,7 @@ class TestTreewidthEstimation:
     # ---------------------------------------------------------------
     def test_treewidth_estimation_tree(self):
         """Tree graph has treewidth 1."""
-        from propstore.praf.treedecomp import estimate_treewidth
+        from argumentation.probabilistic_treedecomp import estimate_treewidth
 
         # Star-shaped tree: a attacks b, c, d
         af = ArgumentationFramework(
@@ -125,7 +120,7 @@ class TestTreewidthEstimation:
 # ===================================================================
 class TestNiceTreeDecomposition:
     def _get_nice_td(self, af):
-        from propstore.praf.treedecomp import (
+        from argumentation.probabilistic_treedecomp import (
             compute_tree_decomposition,
             to_nice_tree_decomposition,
         )
@@ -194,7 +189,7 @@ class TestNiceTreeDecomposition:
 
     def test_compute_tree_decomposition_rejects_disconnected_framework(self):
         """Public TD construction must not silently return a disconnected forest."""
-        from propstore.praf.treedecomp import compute_tree_decomposition
+        from argumentation.probabilistic_treedecomp import compute_tree_decomposition
 
         af = ArgumentationFramework(
             arguments=frozenset({"a", "b", "c", "d"}),
@@ -206,7 +201,7 @@ class TestNiceTreeDecomposition:
 
     def test_validate_tree_decomposition_rejects_running_intersection_violation(self):
         """Validator must catch bags containing the same vertex in disconnected regions."""
-        from propstore.praf.treedecomp import TreeDecomposition, validate_tree_decomposition
+        from argumentation.probabilistic_treedecomp import TreeDecomposition, validate_tree_decomposition
 
         af = ArgumentationFramework(
             arguments=frozenset({"a", "b", "c"}),
@@ -232,7 +227,7 @@ class TestNiceTreeDecomposition:
 
     def test_compute_tree_decomposition_matches_review_counterexample_fix(self):
         """The review's concrete AF should now yield a valid connected decomposition."""
-        from propstore.praf.treedecomp import (
+        from argumentation.probabilistic_treedecomp import (
             compute_tree_decomposition,
             to_nice_tree_decomposition,
             validate_tree_decomposition,
@@ -272,12 +267,12 @@ class TestDPAgreesBruteForce:
     """
 
     def _cross_validate(self, praf, semantics="grounded", tol=1e-6):
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
-        dp_result = compute_praf_acceptance(
+        dp_result = compute_probabilistic_acceptance(
             praf, semantics=semantics, strategy="exact_dp"
         )
-        bf_result = compute_praf_acceptance(
+        bf_result = compute_probabilistic_acceptance(
             praf, semantics=semantics, strategy="exact_enum"
         )
         for arg in praf.framework.arguments:
@@ -366,7 +361,7 @@ class TestDPAgreesBruteForce:
 
     def test_review_counterexample_matches_exact_enumeration(self):
         """The review's grounded mismatch example must agree with exact enumeration."""
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         praf = _make_praf(
             {"0", "1", "2", "3", "4"},
@@ -384,12 +379,12 @@ class TestDPAgreesBruteForce:
             p_arg=0.5,
             p_defeat=0.5,
         )
-        dp_result = compute_praf_acceptance(
+        dp_result = compute_probabilistic_acceptance(
             praf,
             semantics="grounded",
             strategy="exact_dp",
         )
-        bf_result = compute_praf_acceptance(
+        bf_result = compute_probabilistic_acceptance(
             praf,
             semantics="grounded",
             strategy="exact_enum",
@@ -416,17 +411,17 @@ class TestDPAgreesMC:
 
         Per Li et al. (2012, p.8): MC and exact should converge.
         """
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         praf = _make_praf(
             {"a", "b", "c"},
             {("a", "b"), ("b", "c")},
             p_defeat=0.7,
         )
-        dp_result = compute_praf_acceptance(
+        dp_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
-        mc_result = compute_praf_acceptance(
+        mc_result = compute_probabilistic_acceptance(
             praf,
             semantics="grounded",
             strategy="mc",
@@ -452,7 +447,7 @@ class TestDPDeterministic:
         (classical AF), the algorithm must return 1.0 for every σ-extension and
         accepted argument, 0.0 for non-extensions.'
         """
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         af = ArgumentationFramework(
             arguments=frozenset({"a", "b", "c"}),
@@ -460,7 +455,7 @@ class TestDPDeterministic:
         )
         praf = _make_praf({"a", "b", "c"}, {("a", "b"), ("b", "c")})
 
-        dp_result = compute_praf_acceptance(
+        dp_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
         ext = grounded_extension(af)
@@ -485,7 +480,7 @@ class TestDPKnownExample:
         Defeats: (a,b), (b,a), (c,d), (d,c) — all P_D = 1.0
         P_PrAF({a}) should be 0.8 (acceptance under grounded semantics).
         """
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         praf = _make_praf(
             {"a", "b", "c", "d"},
@@ -494,10 +489,10 @@ class TestDPKnownExample:
             p_defeat=1.0,
         )
         # Cross-validate DP vs brute-force
-        dp_result = compute_praf_acceptance(
+        dp_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
-        bf_result = compute_praf_acceptance(
+        bf_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_enum"
         )
         # Both should agree
@@ -525,7 +520,7 @@ class TestDPWitness:
         exists. With uncertain (a,b), b should sometimes be undecided
         (grounded = empty) when the attack doesn't realize.
         """
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         # a -> b. P_D((a,b)) = 0.5. P_A = 1.0 for both.
         # When (a,b) exists: grounded = {a}, b is out.
@@ -537,10 +532,10 @@ class TestDPWitness:
             per_defeat={("a", "b"): 0.5},
         )
 
-        dp_result = compute_praf_acceptance(
+        dp_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
-        bf_result = compute_praf_acceptance(
+        bf_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_enum"
         )
         # Cross-validate
@@ -562,12 +557,12 @@ class TestDPWitness:
         Per Popescu & Wallner (2024, p.6-7): argument with no attackers
         cannot be labelled out — witness would be empty.
         """
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         # Isolated argument 'a' with no defeats.
         # Must always be in the grounded extension.
         praf = _make_praf({"a"}, set())
-        dp_result = compute_praf_acceptance(
+        dp_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
         assert abs(dp_result.acceptance_probs["a"] - 1.0) < 1e-9
@@ -579,14 +574,14 @@ class TestDPWitness:
 class TestHybridDispatch:
     def test_hybrid_dispatch_selects_exact_dp_when_supported(self):
         """Auto should route to exact-DP on low-treewidth grounded defeat-only PrAFs."""
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         # Build a path graph with 20 nodes (treewidth 1)
         args = {f"a{i}" for i in range(20)}
         defeats = {(f"a{i}", f"a{i+1}") for i in range(19)}
         praf = _make_praf(args, defeats, p_defeat=0.7)
 
-        result = compute_praf_acceptance(
+        result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="auto"
         )
         assert result.strategy_used == "exact_dp"
@@ -599,7 +594,7 @@ class TestHybridDispatch:
 
         Per plan Section 2.4: large or high-treewidth → MC.
         """
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         # Build a near-complete graph with 20 nodes (high treewidth)
         args = {f"a{i}" for i in range(20)}
@@ -610,7 +605,7 @@ class TestHybridDispatch:
                     defeats.add((f"a{i}", f"a{j}"))
         praf = _make_praf(args, defeats, p_defeat=0.7)
 
-        result = compute_praf_acceptance(
+        result = compute_probabilistic_acceptance(
             praf,
             semantics="grounded",
             strategy="auto",
@@ -626,25 +621,25 @@ class TestHybridDispatch:
 class TestDPSemantics:
     def test_dp_grounded_vs_preferred(self):
         """Grounded exact-DP works, but preferred must be rejected by the public surface."""
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         praf = _make_praf(
             {"a", "b", "c"},
             {("a", "b"), ("b", "c"), ("c", "a")},
             p_defeat=0.6,
         )
-        gr_result = compute_praf_acceptance(
+        gr_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
         with pytest.raises(ValueError, match="exact_dp only supports grounded semantics"):
-            compute_praf_acceptance(
+            compute_probabilistic_acceptance(
                 praf, semantics="preferred", strategy="exact_dp"
             )
 
         for arg in praf.framework.arguments:
             assert 0.0 <= gr_result.acceptance_probs[arg] <= 1.0
 
-        bf_gr = compute_praf_acceptance(
+        bf_gr = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_enum"
         )
         for arg in praf.framework.arguments:
@@ -672,17 +667,17 @@ class TestWitnessMechanism:
         Per Popescu & Wallner (2024, p.6-7): witness mechanism ensures
         B labelled O only when the attack (A,B) is realized.
         """
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         praf = _make_praf(
             {"A", "B"},
             {("A", "B")},
             per_defeat={("A", "B"): 0.5},
         )
-        dp_result = compute_praf_acceptance(
+        dp_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
-        bf_result = compute_praf_acceptance(
+        bf_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_enum"
         )
         # Cross-validate at 1e-9
@@ -706,17 +701,17 @@ class TestWitnessMechanism:
         Per Popescu & Wallner (2024, p.6-7): witness mechanism correctly
         handles multiple potential witnesses.
         """
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         praf = _make_praf(
             {"A", "B", "C"},
             {("A", "C"), ("B", "C")},
             per_defeat={("A", "C"): 0.3, ("B", "C"): 0.4},
         )
-        dp_result = compute_praf_acceptance(
+        dp_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
-        bf_result = compute_praf_acceptance(
+        bf_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_enum"
         )
         # Cross-validate at 1e-9
@@ -735,7 +730,7 @@ class TestWitnessMechanism:
         Per Popescu & Wallner (2024, Theorem 7, p.5): table size per bag
         is bounded by 3^k (three possible labels per argument in bag).
         """
-        from propstore.praf.treedecomp import (
+        from argumentation.probabilistic_treedecomp import (
             compute_exact_dp,
             compute_tree_decomposition,
             to_nice_tree_decomposition,
@@ -762,7 +757,7 @@ class TestWitnessMechanism:
 
         Tolerance: 1e-9 (MANDATORY per prompt).
         """
-        from propstore.praf import compute_praf_acceptance
+        from argumentation.probabilistic import compute_probabilistic_acceptance
 
         topologies = {
             "chain4": (
@@ -787,10 +782,10 @@ class TestWitnessMechanism:
         for topo_name, (args, defeats) in topologies.items():
             for pd in p_d_values:
                 praf = _make_praf(args, defeats, p_defeat=pd)
-                dp_result = compute_praf_acceptance(
+                dp_result = compute_probabilistic_acceptance(
                     praf, semantics="grounded", strategy="exact_dp"
                 )
-                bf_result = compute_praf_acceptance(
+                bf_result = compute_probabilistic_acceptance(
                     praf, semantics="grounded", strategy="exact_enum"
                 )
                 for arg in args:
@@ -800,3 +795,4 @@ class TestWitnessMechanism:
                         f"Topology {topo_name}, P_D={pd}, arg={arg}: "
                         f"DP={dp_p:.12f}, BF={bf_p:.12f}"
                     )
+

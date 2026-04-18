@@ -2516,9 +2516,9 @@ class TestFloatEqualityBugs:
 
     def test_praf_resolution_float_tie_detection(self, world):
         """Two claims with acceptance probs differing by ~1e-12 should tie."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
 
-        from propstore.praf import PrAFResult
+        from argumentation.probabilistic import PrAFResult
         from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_praf
 
@@ -2541,9 +2541,7 @@ class TestFloatEqualityBugs:
             semantics="grounded",
         )
 
-        with patch("propstore.praf.build_praf") as mock_build, \
-             patch("propstore.praf.compute_praf_acceptance", return_value=mock_praf_result):
-            mock_build.return_value = MagicMock()
+        with patch("argumentation.probabilistic.compute_probabilistic_acceptance", return_value=mock_praf_result):
             # WorldModel IS the WorldStore — pass it directly
             winner_id, reason, probs = _resolve_praf(
                 target_claims, active_claims, world,

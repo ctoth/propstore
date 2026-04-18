@@ -10,9 +10,8 @@ import random
 
 import pytest
 
-from propstore.dung import ArgumentationFramework
-from propstore.opinion import Opinion, from_probability
-from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+from argumentation.dung import ArgumentationFramework
+from argumentation.probabilistic import ProbabilisticAF, compute_probabilistic_acceptance
 
 
 def _regression_praf() -> ProbabilisticAF:
@@ -39,26 +38,26 @@ def _regression_praf() -> ProbabilisticAF:
     return ProbabilisticAF(
         framework=af,
         p_args={
-            "A": from_probability(0.833333, 10),
-            "B": from_probability(0.833333, 10),
-            "C": from_probability(0.5, 10),
-            "D": from_probability(0.666667, 10),
-            "E": Opinion.dogmatic_true(),
-            "F": from_probability(0.666667, 10),
+            "A": 0.833333,
+            "B": 0.833333,
+            "C": 0.5,
+            "D": 0.666667,
+            "E": 1.0,
+            "F": 0.666667,
         },
         p_defeats={
-            ("F", "D"): from_probability(0.416667, 10),
-            ("E", "B"): from_probability(0.75, 10),
-            ("E", "D"): from_probability(0.75, 10),
-            ("B", "C"): from_probability(0.583333, 10),
-            ("C", "C"): Opinion.dogmatic_true(),
-            ("C", "D"): from_probability(0.583333, 10),
-            ("D", "A"): from_probability(0.583333, 10),
-            ("F", "A"): Opinion.dogmatic_true(),
-            ("D", "E"): from_probability(0.583333, 10),
-            ("F", "B"): Opinion.dogmatic_true(),
-            ("B", "E"): from_probability(0.583333, 10),
-            ("B", "D"): from_probability(0.583333, 10),
+            ("F", "D"): 0.416667,
+            ("E", "B"): 0.75,
+            ("E", "D"): 0.75,
+            ("B", "C"): 0.583333,
+            ("C", "C"): 1.0,
+            ("C", "D"): 0.583333,
+            ("D", "A"): 0.583333,
+            ("F", "A"): 1.0,
+            ("D", "E"): 0.583333,
+            ("F", "B"): 1.0,
+            ("B", "E"): 0.583333,
+            ("B", "D"): 0.583333,
         },
     )
 
@@ -79,20 +78,10 @@ def _random_praf(seed: int) -> ProbabilisticAF:
     af = ArgumentationFramework(arguments=frozenset(args), defeats=frozenset(defeats))
     p_args = {}
     for arg in args:
-        probability = rng.choice([1.0, 0.9, 0.7, 0.5])
-        p_args[arg] = (
-            Opinion.dogmatic_true()
-            if probability == 1.0
-            else from_probability(probability, 10)
-        )
+        p_args[arg] = rng.choice([1.0, 0.9, 0.7, 0.5])
     p_defeats = {}
     for edge in defeats:
-        probability = rng.choice([1.0, 0.8, 0.6, 0.4])
-        p_defeats[edge] = (
-            Opinion.dogmatic_true()
-            if probability == 1.0
-            else from_probability(probability, 10)
-    )
+        p_defeats[edge] = rng.choice([1.0, 0.8, 0.6, 0.4])
     return ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
 
@@ -111,8 +100,8 @@ def test_exact_dp_matches_exact_enum_under_repeated_randomized_differential_runs
     """Public exact routing must agree with exact enumeration on bounded instances."""
     for seed in range(20):
         praf = _random_praf(seed)
-        exact = compute_praf_acceptance(praf, semantics="grounded", strategy="exact_enum")
-        routed = compute_praf_acceptance(praf, semantics="grounded", strategy="exact_dp")
+        exact = compute_probabilistic_acceptance(praf, semantics="grounded", strategy="exact_enum")
+        routed = compute_probabilistic_acceptance(praf, semantics="grounded", strategy="exact_dp")
 
         assert routed.strategy_used == "exact_dp"
         _assert_acceptance_close(routed.acceptance_probs, exact.acceptance_probs)
@@ -121,11 +110,11 @@ def test_exact_dp_matches_exact_enum_under_repeated_randomized_differential_runs
 def test_exact_dp_history_independence():
     """Prior exact evaluations must not change the result of a later exact query."""
     unrelated = _random_praf(999)
-    compute_praf_acceptance(unrelated, semantics="grounded", strategy="exact_dp")
+    compute_probabilistic_acceptance(unrelated, semantics="grounded", strategy="exact_dp")
 
     praf = _regression_praf()
-    exact = compute_praf_acceptance(praf, semantics="grounded", strategy="exact_enum")
-    routed = compute_praf_acceptance(praf, semantics="grounded", strategy="exact_dp")
+    exact = compute_probabilistic_acceptance(praf, semantics="grounded", strategy="exact_enum")
+    routed = compute_probabilistic_acceptance(praf, semantics="grounded", strategy="exact_dp")
 
     assert routed.strategy_used == "exact_dp"
     _assert_acceptance_close(routed.acceptance_probs, exact.acceptance_probs)
