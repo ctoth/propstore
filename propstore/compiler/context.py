@@ -87,17 +87,22 @@ def build_compilation_context_from_loaded(
     concepts: list[LoadedConcept],
     *,
     forms_dir: Path | KnowledgePath | None = None,
+    form_registry: dict[str, FormDefinition] | None = None,
     claim_files: list[ClaimFileEntry] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
-    form_registry = (
-        {}
-        if forms_dir is None
-        else load_all_forms_path(coerce_knowledge_path(forms_dir))
+    resolved_form_registry = (
+        dict(form_registry)
+        if form_registry is not None
+        else (
+            {}
+            if forms_dir is None
+            else load_all_forms_path(coerce_knowledge_path(forms_dir))
+        )
     )
     return _build_context_from_concepts(
         concepts,
-        form_registry,
+        resolved_form_registry,
         claim_files=claim_files,
         context_ids=context_ids,
     )

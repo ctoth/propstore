@@ -10,13 +10,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
 from quire.documents import DocumentSchemaError
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY, FORM_FAMILY
 from propstore.claims import claim_file_payload
 from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.compiler.passes import compile_claim_files, validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
 from propstore.core.concepts import LoadedConcept, parse_concept_record_document
-from propstore.form_utils import validate_form_files
+from propstore.diagnostics import ValidationResult
+from propstore.form_utils import parse_form
 from propstore.repository import Repository
 from propstore.validate_concepts import validate_concepts
 
@@ -126,7 +127,35 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
 
     messages: list[WorkflowMessage] = []
 
-    form_result = validate_form_files(tree / "forms")
+    form_result = ValidationResult()
+    form_registry = {
+        document.name: parse_form(document.name, document)
+        for form_ref in repo.artifacts.list(FORM_FAMILY)
+        for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+    }
+    for form_ref in repo.artifacts.list(FORM_FAMILY):
+        document = repo.artifacts.require(FORM_FAMILY, form_ref)
+        dims = document.dimensions
+        is_dimless = document.dimensionless
+        has_unit = document.unit_symbol is not None
+        if dims is not None:
+            for dimension_key in dims:
+                if not dimension_key or not dimension_key[0].isalpha() or not dimension_key.isidentifier():
+                    form_result.errors.append(
+                        f"{form_ref.name}: dimension key '{dimension_key}' must be an identifier"
+                    )
+        if dims is not None and len(dims) > 0 and is_dimless:
+            form_result.errors.append(
+                f"{form_ref.name}: non-empty dimensions conflicts with dimensionless=true"
+            )
+        if dims is not None and len(dims) == 0 and not is_dimless and has_unit:
+            form_result.errors.append(
+                f"{form_ref.name}: empty dimensions conflicts with dimensionless=false for a quantity with unit_symbol"
+            )
+        if document.name != form_ref.name:
+            form_result.errors.append(
+                f"{form_ref.name}: 'name' field ('{document.name}') does not match filename '{form_ref.name}'"
+            )
     messages.extend(_messages_from_result(form_result, scope="form"))
 
     files = [
@@ -136,7 +165,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
 
     concept_result = validate_concepts(
         concepts,
-        forms_dir=tree / "forms",
+        form_registry=form_registry,
         claim_reference_lookup=build_claim_reference_lookup(files),
     )
     messages.extend(_messages_from_result(concept_result))
@@ -235,7 +264,35 @@ def build_repository(
             no_concepts=True,
         )
 
-    form_result = validate_form_files(tree / "forms")
+    form_result = ValidationResult()
+    form_registry = {
+        document.name: parse_form(document.name, document)
+        for form_ref in repo.artifacts.list(FORM_FAMILY, commit=hash_key)
+        for document in (repo.artifacts.require(FORM_FAMILY, form_ref, commit=hash_key),)
+    }
+    for form_ref in repo.artifacts.list(FORM_FAMILY, commit=hash_key):
+        document = repo.artifacts.require(FORM_FAMILY, form_ref, commit=hash_key)
+        dims = document.dimensions
+        is_dimless = document.dimensionless
+        has_unit = document.unit_symbol is not None
+        if dims is not None:
+            for dimension_key in dims:
+                if not dimension_key or not dimension_key[0].isalpha() or not dimension_key.isidentifier():
+                    form_result.errors.append(
+                        f"{form_ref.name}: dimension key '{dimension_key}' must be an identifier"
+                    )
+        if dims is not None and len(dims) > 0 and is_dimless:
+            form_result.errors.append(
+                f"{form_ref.name}: non-empty dimensions conflicts with dimensionless=true"
+            )
+        if dims is not None and len(dims) == 0 and not is_dimless and has_unit:
+            form_result.errors.append(
+                f"{form_ref.name}: empty dimensions conflicts with dimensionless=false for a quantity with unit_symbol"
+            )
+        if document.name != form_ref.name:
+            form_result.errors.append(
+                f"{form_ref.name}: 'name' field ('{document.name}') does not match filename '{form_ref.name}'"
+            )
     if not form_result.ok:
         raise CompilerWorkflowError(
             "Build aborted: form validation failed.",
@@ -249,7 +306,7 @@ def build_repository(
 
     concept_result = validate_concepts(
         concepts,
-        forms_dir=tree / "forms",
+        form_registry=form_registry,
         claim_reference_lookup=build_claim_reference_lookup(files),
     )
     if not concept_result.ok:
