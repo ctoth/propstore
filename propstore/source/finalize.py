@@ -6,14 +6,8 @@ import json
 from propstore.artifacts.codes import attach_source_artifact_codes
 from propstore.artifacts import (
     ClaimReferenceResolver,
-    SOURCE_CLAIMS_FAMILY,
-    SOURCE_DOCUMENT_FAMILY,
-    SOURCE_FINALIZE_REPORT_FAMILY,
-    SOURCE_JUSTIFICATIONS_FAMILY,
-    SOURCE_MICROPUBS_FAMILY,
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
-    SOURCE_STANCES_FAMILY,
     SourceRef,
 )
 from propstore.repository import Repository
@@ -168,7 +162,7 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
         claims_doc=claims_doc,
     )
     micropub_status = "complete" if micropubs_doc is not None else "empty"
-    with repo.artifacts.transact(
+    with repo.families.transact(
         message=f"Finalize {source_slug}",
         branch=source_branch_name(source_name),
     ) as transaction:
@@ -180,8 +174,7 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
                 None if justifications_doc is None else justifications_doc.to_payload(),
                 None if stances_doc is None else stances_doc.to_payload(),
             )
-            transaction.save(
-                SOURCE_DOCUMENT_FAMILY,
+            transaction.source_documents.save(
                 ref,
                 convert_document_value(
                     updated_source,
@@ -190,8 +183,7 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
                 ),
             )
             if updated_claims.get("claims"):
-                transaction.save(
-                    SOURCE_CLAIMS_FAMILY,
+                transaction.source_claims.save(
                     ref,
                     convert_document_value(
                         updated_claims,
@@ -200,8 +192,7 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
                     ),
                 )
             if updated_justifications.get("justifications"):
-                transaction.save(
-                    SOURCE_JUSTIFICATIONS_FAMILY,
+                transaction.source_justifications.save(
                     ref,
                     convert_document_value(
                         updated_justifications,
@@ -210,8 +201,7 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
                     ),
                 )
             if updated_stances.get("stances"):
-                transaction.save(
-                    SOURCE_STANCES_FAMILY,
+                transaction.source_stances.save(
                     ref,
                     convert_document_value(
                         updated_stances,
@@ -220,8 +210,7 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
                     ),
                 )
             if micropubs_doc is not None:
-                transaction.save(
-                    SOURCE_MICROPUBS_FAMILY,
+                transaction.source_micropubs.save(
                     ref,
                     micropubs_doc,
                 )
@@ -250,7 +239,7 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
             SourceFinalizeReportDocument,
             source=f"{source_branch_name(source_name)}:merge/finalize",
         )
-        transaction.save(SOURCE_FINALIZE_REPORT_FAMILY, ref, report)
+        transaction.source_finalize_reports.save(ref, report)
     if transaction.commit_sha is None:
         raise ValueError("source finalize transaction did not produce a commit")
     return transaction.commit_sha
