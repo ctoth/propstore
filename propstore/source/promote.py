@@ -34,7 +34,7 @@ from propstore.claim_references import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
-from propstore.artifacts.refs import (
+from propstore.artifacts.families import (
     CanonicalSourceRef,
     ClaimsFileRef,
     ConceptFileRef,

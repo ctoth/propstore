@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.artifacts.refs import ConceptFileRef
+from propstore.artifacts.families import ConceptFileRef
 from quire.documents import DocumentSchemaError
 from propstore.core.concepts import concept_document_to_payload, parse_concept_record_document
 from propstore.repository import Repository

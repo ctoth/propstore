@@ -19,7 +19,7 @@ from propstore.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
 )
-from propstore.artifacts.refs import ClaimsFileRef, ConceptFileRef
+from propstore.artifacts.families import ClaimsFileRef, ConceptFileRef
 from propstore.source import (
     align_sources,
     decide_alignment,

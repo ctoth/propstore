@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.claim_references import ClaimReferenceIndex, load_source_claim_reference_index
-from propstore.artifacts.refs import SourceRef
+from propstore.artifacts.families import SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_path
 from propstore.stances import StanceType, coerce_stance_type

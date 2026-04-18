@@ -5,8 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar, cast
 
-from propstore.artifacts.families import SOURCE_DOCUMENT_FAMILY
-from propstore.artifacts.refs import SourceRef, normalize_source_slug
+from propstore.artifacts.families import SOURCE_DOCUMENT_FAMILY, SourceRef
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.provenance import ProvenanceStatus
@@ -27,6 +26,12 @@ from propstore.artifacts.documents.sources import (
 from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
 
 TDocument = TypeVar("TDocument")
+
+
+def normalize_source_slug(name: str) -> str:
+    cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in name.strip())
+    cleaned = cleaned.strip("._-")
+    return cleaned or "source"
 
 
 def source_branch_name(name: str) -> str:

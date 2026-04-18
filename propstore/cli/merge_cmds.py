@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.artifacts.refs import (
+from propstore.artifacts.families import (
     ClaimsFileRef,
     MergeManifestRef,
 )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import importlib.util
 from pathlib import Path
 
 from quire.artifacts import ArtifactFamily
@@ -71,13 +72,13 @@ def test_semantic_family_contract_includes_path_schema() -> None:
 
 def test_canonical_artifact_path_helpers_are_deleted() -> None:
     import propstore.artifacts.families as artifact_families
-    import propstore.artifacts.refs as artifact_refs
 
-    refs_source = inspect.getsource(artifact_refs)
+    assert importlib.util.find_spec("propstore.artifacts.refs") is None
+
     families_source = inspect.getsource(artifact_families)
     joined = "_".join
 
-    deleted_ref_helpers = (
+    deleted_helpers = (
         "worldline_relpath",
         "canonical_source_relpath",
         joined(("claims", "file", "relpath")),
@@ -89,8 +90,8 @@ def test_canonical_artifact_path_helpers_are_deleted() -> None:
         "stance_file_relpath",
         "source_claim_from_stance_path",
     )
-    for helper in deleted_ref_helpers:
-        assert f"def {helper}" not in refs_source
+    for helper in deleted_helpers:
+        assert f"def {helper}" not in families_source
 
     deleted_family_helpers = (
         "_context_artifact",

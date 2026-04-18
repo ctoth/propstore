@@ -5,9 +5,13 @@ from collections import Counter
 from itertools import product
 from typing import Any, cast
 
-from propstore.artifacts.families import CONCEPT_ALIGNMENT_FAMILY, CONCEPT_FILE_FAMILY
+from propstore.artifacts.families import (
+    CONCEPT_ALIGNMENT_FAMILY,
+    CONCEPT_FILE_FAMILY,
+    ConceptAlignmentRef,
+    ConceptFileRef,
+)
 from propstore.identity import normalize_canonical_concept_payload
-from propstore.artifacts.refs import ConceptAlignmentRef, ConceptFileRef
 from propstore.artifacts.documents.concepts import ConceptDocument
 from propstore.repository import Repository
 from quire.documents import convert_document_value
