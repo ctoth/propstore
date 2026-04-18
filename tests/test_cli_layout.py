@@ -23,3 +23,25 @@ def test_root_cli_only_registers_top_level_commands() -> None:
     assert "@cli.command()" not in root_cli
     assert "from propstore.cli.history_cmds import" in root_cli
     assert "from propstore.cli.proposal_cmds import" in root_cli
+
+
+def test_worldline_commands_live_outside_group_module() -> None:
+    group_module = Path("propstore/cli/worldline_cmds.py").read_text(encoding="utf-8")
+    materialize = Path("propstore/cli/worldline_materialize_cmds.py").read_text(
+        encoding="utf-8"
+    )
+    display = Path("propstore/cli/worldline_display_cmds.py").read_text(
+        encoding="utf-8"
+    )
+    mutation = Path("propstore/cli/worldline_mutation_cmds.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "@worldline.command" not in group_module
+    assert "def worldline_create(" in materialize
+    assert "def worldline_run(" in materialize
+    assert "def worldline_refresh(" in materialize
+    assert "def worldline_show(" in display
+    assert "def worldline_list(" in display
+    assert "def worldline_diff(" in display
+    assert "def worldline_delete(" in mutation

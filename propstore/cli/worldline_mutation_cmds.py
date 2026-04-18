@@ -1,0 +1,29 @@
+"""Worldline mutation CLI commands."""
+from __future__ import annotations
+
+import sys
+
+import click
+
+from propstore.artifacts import WORLDLINE_FAMILY, WorldlineRef
+from propstore.cli.worldline_cmds import worldline
+from propstore.repository import Repository
+
+
+@worldline.command("delete")
+@click.argument("name")
+@click.pass_obj
+def worldline_delete(obj: dict, name: str) -> None:
+    """Delete a worldline."""
+    repo: Repository = obj["repo"]
+    if repo.artifacts.load(WORLDLINE_FAMILY, WorldlineRef(name)) is None:
+        click.echo(f"ERROR: Worldline '{name}' not found", err=True)
+        sys.exit(1)
+    repo.artifacts.delete(
+        WORLDLINE_FAMILY,
+        WorldlineRef(name),
+        message=f"Delete worldline: {name}",
+    )
+    repo.snapshot.sync_worktree()
+    click.echo(f"Deleted worldline '{name}'")
+
