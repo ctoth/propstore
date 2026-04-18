@@ -22,7 +22,7 @@ from quire.documents import load_document_dir
 from propstore.artifacts.documents.claims import ClaimsFileDocument
 from propstore.cel_checker import ConceptInfo, KindType, check_cel_expr
 from propstore.cel_registry import build_canonical_cel_registry
-from propstore.artifacts.identity import normalize_canonical_concept_payload
+from propstore.identity import normalize_canonical_concept_payload
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,

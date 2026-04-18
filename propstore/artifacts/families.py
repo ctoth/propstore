@@ -41,13 +41,13 @@ from propstore.artifacts.documents.sources import (
 )
 from propstore.artifacts.documents.stances import StanceFileDocument
 from propstore.artifacts.documents.worldlines import WorldlineDefinitionDocument
-from propstore.artifacts.identity import (
+from propstore.identity import (
     concept_reference_keys,
     normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
 )
-from propstore.artifacts.resolution import ImportedClaimHandleIndex
+from propstore.claim_references import ImportedClaimHandleIndex
 from propstore.artifacts.refs import (
     CanonicalSourceRef,
     ClaimsFileRef,
