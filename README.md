@@ -9,7 +9,7 @@ Compiler and reasoning backend for structured scientific claims.
 ```text
 Layer 6: Agent Workflow    — extract-claims, reconcile, relate, adjudicate
 Layer 5: Render            — resolution strategies, world queries, worldlines, hypotheticals
-Layer 4: Argumentation     — Dung AF, ASPIC+, PrAF, bipolar, ATMS
+Layer 4: Argumentation     — external formal kernels, propstore adapters, PrAF, ATMS
 Layer 3: Heuristic         — embeddings, LLM stance classification (proposals only)
 Layer 2: Theory / Typing   — forms, dimensions, CEL type-checking, Z3 conditions
 Layer 1: Source Storage    — claims, concepts, contexts, stances, provenance (immutable)
@@ -71,14 +71,17 @@ propstore ships multiple reasoning backends at different abstraction levels, sel
 
 | Backend | What it does | Key files |
 |---------|-------------|-----------|
-| `claim_graph` | Dung AF over active claim rows with heuristic metadata preferences. Default backend. | `claim_graph.py`, `dung.py`, `dung_z3.py` |
-| `aspic` | Full ASPIC+ argument construction: recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack (Def 8), last-link/weakest-link preference defeat (Defs 19-21). | `aspic_bridge.py`, `aspic.py` |
-| `praf` | Probabilistic argumentation: MC sampling with Agresti-Coull stopping (Li et al. 2012), DF-QuAD gradual semantics (Freedman et al. 2025), optional COH enforcement (Hunter & Thimm 2017) | `praf/__init__.py`, `praf/engine.py`, `praf/projection.py`, `praf/dfquad.py`, `praf/treedecomp.py` |
+| `claim_graph` | Dung AF over active claim rows with heuristic metadata preferences. Default backend. | `claim_graph.py`, external `argumentation.dung` / `argumentation.dung_z3` |
+| `aspic` | Full ASPIC+ argument construction: recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack (Def 8), last-link/weakest-link preference defeat (Defs 19-21). | `aspic_bridge/`, external `argumentation.aspic` |
+| `praf` | Probabilistic argumentation: opinion/calibration projection in propstore, then float-valued PrAF algorithms from `argumentation.probabilistic` with MC sampling, exact enumeration, exact-DP, and DF-QuAD gradual semantics. | `praf/engine.py`, `praf/projection.py`, external `argumentation.probabilistic` |
 | `atms` | ATMS label propagation and bounded replay over the active belief space (de Kleer 1986). Does not expose Dung extensions — use ATMS-native commands instead. | `world/atms.py` |
 
 Additional argumentation infrastructure:
 
-- **Bipolar argumentation** (`bipolar.py`) — Cayrol 2005 derived defeats with fixpoint, d/s/c-admissibility, stable extensions
+- **Bipolar argumentation** (`argumentation.bipolar`) — Cayrol 2005 derived defeats with fixpoint, d/s/c-admissibility, stable extensions
+- **Partial AFs and semantic merge** (`argumentation.partial_af`) — completion enumeration, skeptical/credulous completion queries, and Sum/Max/Leximax exact merge operators
+- **AF revision** (`argumentation.af_revision`) — Baumann/Diller/Cayrol finite AF-level change operators
+- **Generic semantics dispatch** (`argumentation.semantics`) — set-returning dispatch over Dung, bipolar, and partial AF dataclasses
 - **Subjective logic** (`opinion.py`) — Jøsang 2001 Opinion = (b,d,u,a) with consensus fusion, discounting, negation, conjunction, disjunction, ordering, uncertainty maximization
 - **Calibration** (`calibrate.py`) — Temperature scaling (Guo et al. 2017), corpus CDF calibration, evidence-to-opinion mapping (Sensoy et al. 2018), ECE
 - **Decision criteria** — Pignistic (default), Hurwicz, lower/upper bound per Denoeux 2019, selectable via `--decision-criterion`
@@ -330,6 +333,7 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 - [Data Model](docs/data-model.md) — concepts, forms, claim types, conditions, stances, contexts
 - [Argumentation](docs/argumentation.md) — reasoning backends, conflict detection, ATMS overview
 - [Structured Argumentation (ASPIC+)](docs/structured-argumentation.md) — recursive argument construction, three-type attack, preference defeat
+- [Argumentation Package Boundary](docs/argumentation-package-boundary.md) — implemented split between the reusable `argumentation` kernel and propstore adapters
 - [Probabilistic Argumentation (PrAF)](docs/probabilistic-argumentation.md) — MC sampling, Agresti-Coull stopping, DF-QuAD gradual semantics
 - [Subjective Logic and Calibration](docs/subjective-logic.md) — Opinion algebra, temperature scaling, evidence-to-opinion mapping, decision criteria
 - [ATMS](docs/atms.md) — assumption-based truth maintenance, label propagation, bounded replay, interventions

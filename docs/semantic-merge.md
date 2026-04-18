@@ -21,11 +21,9 @@ The storage layer exposes these public merge modules:
 
 | Module | What it does |
 |---|---|
-| `propstore/storage/merge_framework.py` | `PartialArgumentationFramework`, completion enumeration, exact per-pair edit distance |
+| `argumentation.partial_af` | `PartialArgumentationFramework`, completion enumeration, exact per-pair edit distance, exact AF merge operators, skeptical and credulous completion queries |
 | `propstore/storage/merge_classifier.py` | `MergeArgument`, `RepositoryMergeFramework`, `build_merge_framework()` — direct storage emission of the formal merge object |
 | `propstore/storage/merge_commit.py` | `create_merge_commit()` — two-parent storage merge built from the formal merge object |
-| `propstore/storage/paf_merge.py` | exact `consensual_expand()`, `sum_merge_frameworks()`, `max_merge_frameworks()`, `leximax_merge_frameworks()` |
-| `propstore/storage/paf_queries.py` | skeptical and credulous completion queries |
 | `propstore/storage/merge_report.py` | storage-facing summary/report helper over merge frameworks |
 | `propstore/storage/structured_merge.py` | branch-local structured summaries via ASPIC projection, then exact merge candidates over those summaries |
 
@@ -100,7 +98,7 @@ The internal left-v-right conflict check still uses the existing conflict detect
 
 ## Partial Framework Kernel
 
-`propstore/storage/merge_framework.py`
+`argumentation.partial_af`
 
 ### `PartialArgumentationFramework`
 
@@ -114,7 +112,7 @@ Construction fails if the partition is incomplete or overlapping.
 
 ### Completions
 
-`enumerate_paf_completions()` returns every Dung AF produced by resolving each ignorance pair either as attack or non-attack.
+`enumerate_completions()` returns every Dung AF produced by resolving each ignorance pair either as attack or non-attack.
 
 This is exact and intended for tiny merge objects and exact tests, not large-scale approximate inference.
 
@@ -124,7 +122,7 @@ This is exact and intended for tiny merge objects and exact tests, not large-sca
 
 ## Exact Merge Operators
 
-`propstore/storage/paf_merge.py`
+`argumentation.partial_af`
 
 ### `consensual_expand()`
 
@@ -150,7 +148,7 @@ These operators currently target tiny AF profiles and are intended as exact merg
 
 ## Completion Queries
 
-`propstore/storage/paf_queries.py`
+`argumentation.partial_af`
 
 ### `skeptically_accepted_arguments()`
 
