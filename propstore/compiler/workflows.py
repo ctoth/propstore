@@ -10,12 +10,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
 from quire.documents import DocumentSchemaError
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY
+from propstore.artifacts.families import CLAIMS_FILE_FAMILY, CONCEPT_FILE_FAMILY
 from propstore.claims import claim_file_payload
 from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.compiler.passes import compile_claim_files, validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
-from propstore.core.concepts import load_concepts
+from propstore.core.concepts import LoadedConcept, parse_concept_record_document
 from propstore.form_utils import validate_form_files
 from propstore.repository import Repository
 from propstore.validate_concepts import validate_concepts
@@ -98,17 +98,19 @@ def _messages_from_result(result, *, scope: str | None = None) -> tuple[Workflow
 
 def validate_repository(repo: Repository) -> RepositoryValidationReport:
     tree = repo.tree()
-    concepts_root = tree / "concepts"
-    if not concepts_root.exists():
-        return RepositoryValidationReport(
-            concept_count=0,
-            claim_file_count=0,
-            messages=(),
-            no_concepts=True,
-        )
-
     try:
-        concepts = load_concepts(concepts_root)
+        concepts: list[LoadedConcept] = []
+        for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
+            handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref)
+            concepts.append(
+                LoadedConcept(
+                    filename=ref.name,
+                    source_path=tree / handle.address.require_path(),
+                    knowledge_root=tree,
+                    record=parse_concept_record_document(handle.document),
+                    document=handle.document,
+                )
+            )
     except DocumentSchemaError as exc:
         raise CompilerWorkflowError(
             "Validation FAILED: 1 error(s)",
@@ -200,20 +202,23 @@ def build_repository(
     hash_key = repo.snapshot.head_sha()
     tree = repo.snapshot.tree(commit=hash_key)
 
-    concepts_root = tree / "concepts"
-    if not concepts_root.exists():
-        return RepositoryBuildReport(
-            concept_count=0,
-            claim_count=0,
-            conflict_count=0,
-            phi_node_count=0,
-            warning_count=0,
-            rebuilt=False,
-            no_concepts=True,
-        )
-
     try:
-        concepts = load_concepts(concepts_root)
+        concepts: list[LoadedConcept] = []
+        for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=hash_key):
+            handle = repo.artifacts.require_handle(
+                CONCEPT_FILE_FAMILY,
+                ref,
+                commit=hash_key,
+            )
+            concepts.append(
+                LoadedConcept(
+                    filename=ref.name,
+                    source_path=tree / handle.address.require_path(),
+                    knowledge_root=tree,
+                    record=parse_concept_record_document(handle.document),
+                    document=handle.document,
+                )
+            )
     except DocumentSchemaError as exc:
         raise CompilerWorkflowError(
             "Build aborted: schema validation failed.",
