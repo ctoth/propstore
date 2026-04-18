@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from propstore.artifacts.families import CONCEPT_FILE_FAMILY
 from propstore.artifacts import normalize_canonical_concept_payload
 from propstore.core.concepts import parse_concept_record_document
 from propstore.repository import Repository
@@ -30,8 +29,8 @@ def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, 
 
     concepts_by_artifact: dict[str, dict[str, Any]] = {}
     handle_to_artifact: dict[str, str] = {}
-    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=primary_tip):
-        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref, commit=primary_tip)
+    for ref in repo.families.concepts.list(commit=primary_tip):
+        document = repo.families.concepts.require(ref, commit=primary_tip)
         concept = dict(parse_concept_record_document(document).to_payload())
         artifact_id = concept.get("artifact_id")
         if not isinstance(artifact_id, str) or not artifact_id:
@@ -55,8 +54,8 @@ def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
         return []
 
     docs: list[dict[str, Any]] = []
-    for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=primary_tip):
-        document = repo.artifacts.require(CONCEPT_FILE_FAMILY, ref, commit=primary_tip)
+    for ref in repo.families.concepts.list(commit=primary_tip):
+        document = repo.families.concepts.require(ref, commit=primary_tip)
         docs.append(copy.deepcopy(parse_concept_record_document(document).to_payload()))
     return docs
 

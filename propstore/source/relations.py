@@ -4,8 +4,6 @@ from pathlib import Path
 
 from propstore.artifacts import (
     ClaimReferenceIndex,
-    SOURCE_JUSTIFICATIONS_FAMILY,
-    SOURCE_STANCES_FAMILY,
     load_source_claim_reference_index,
     SourceRef,
 )
@@ -87,8 +85,7 @@ def commit_source_justifications_batch(
         raw,
         claim_index=claim_index,
     )
-    return repo.artifacts.save(
-        SOURCE_JUSTIFICATIONS_FAMILY,
+    return repo.families.source_justifications.save(
         SourceRef(source_name),
         normalized,
         message=f"Write justifications for {normalize_source_slug(source_name)}",
@@ -147,8 +144,7 @@ def commit_source_stances_batch(
         raw,
         claim_index=claim_index,
     )
-    return repo.artifacts.save(
-        SOURCE_STANCES_FAMILY,
+    return repo.families.source_stances.save(
         SourceRef(source_name),
         normalized,
         message=f"Write stances for {normalize_source_slug(source_name)}",
@@ -188,8 +184,7 @@ def commit_source_justification_proposal(
         claim_index=claim_index,
     )
 
-    repo.artifacts.save(
-        SOURCE_JUSTIFICATIONS_FAMILY,
+    repo.families.source_justifications.save(
         SourceRef(source_name),
         normalized,
         message=f"Propose justification for {normalize_source_slug(source_name)}",
@@ -241,8 +236,7 @@ def commit_source_stance_proposal(
         claim_index=claim_index,
     )
 
-    repo.artifacts.save(
-        SOURCE_STANCES_FAMILY,
+    repo.families.source_stances.save(
         SourceRef(source_name),
         normalized,
         message=f"Propose stance for {normalize_source_slug(source_name)}",

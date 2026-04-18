@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from propstore.artifacts import SOURCE_CLAIMS_FAMILY, SourceRef
+from propstore.artifacts import SourceRef
 from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.artifacts.documents.sources import SourceProvenanceDocument
@@ -164,8 +164,7 @@ def commit_source_claims_batch(
         source_uri=source_doc.id or source_tag_uri(repo, source_name),
         source_namespace=normalize_source_slug(source_name),
     )
-    return repo.artifacts.save(
-        SOURCE_CLAIMS_FAMILY,
+    return repo.families.source_claims.save(
         SourceRef(source_name),
         normalized,
         message=f"Write claims for {normalize_source_slug(source_name)}",
@@ -251,8 +250,7 @@ def commit_source_claim_proposal(
         source_namespace=normalize_source_slug(source_name),
     )
 
-    repo.artifacts.save(
-        SOURCE_CLAIMS_FAMILY,
+    repo.families.source_claims.save(
         SourceRef(source_name),
         normalized,
         message=f"Propose claim for {normalize_source_slug(source_name)}",
