@@ -71,7 +71,7 @@ class _FakeWorldlineRepo:
     @cached_property
     def _family_store(self):
         from quire.family_store import DocumentFamilyStore
-        from propstore.document_codecs import (
+        from quire.documents import (
             convert_document,
             decode_document,
             document_to_payload,

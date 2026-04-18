@@ -11,7 +11,7 @@ from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from propstore.document_codecs import encode_document
+from quire.documents import encode_document
 from propstore.artifacts.families import PROPOSAL_STANCE_FAMILY
 from propstore.artifacts.families import StanceFileRef
 from propstore.artifacts.documents.stances import StanceFileDocument

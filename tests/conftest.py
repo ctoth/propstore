@@ -14,7 +14,7 @@ from types import MappingProxyType
 
 from hypothesis import settings
 
-from propstore.document_codecs import convert_document
+from quire.documents import convert_document_value as convert_document
 from propstore.artifacts.families import CONCEPT_FILE_FAMILY
 from propstore.identity import normalize_canonical_concept_payload
 from propstore.cel_checker import KindType

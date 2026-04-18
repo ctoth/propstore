@@ -124,30 +124,10 @@ class Repository:
     @cached_property
     def _family_store(self):
         from quire.family_store import DocumentFamilyStore
-        from propstore.document_codecs import (
-            convert_document,
-            decode_document,
-            document_to_payload,
-            encode_document,
-            render_document,
-        )
 
         return DocumentFamilyStore(
             owner=self,
             backend=self.git,
-            convert_document=lambda payload, document_type, source: convert_document(
-                payload,
-                document_type,
-                source=source,
-            ),
-            decode_document=lambda payload, document_type, source: decode_document(
-                payload,
-                document_type,
-                source=source,
-            ),
-            encode_document=encode_document,
-            render_document_value=render_document,
-            document_to_payload=document_to_payload,
         )
 
     @cached_property
