@@ -6,13 +6,12 @@ from types import SimpleNamespace
 from quire.family_store import DocumentFamilyStore
 
 from propstore.artifacts import (
-    PROPSTORE_FAMILY_REGISTRY,
-    PropstoreFamily,
     SourceRef,
     ClaimsFileRef,
     ConceptFileRef,
     WorldlineRef,
 )
+from propstore.artifacts.families import PROPSTORE_FAMILY_REGISTRY, PropstoreFamily
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document, source_branch_name

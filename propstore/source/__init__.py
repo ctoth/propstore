@@ -8,7 +8,7 @@ from .alignment import (
     promote_alignment,
     save_alignment_artifact,
 )
-from propstore.artifacts import (
+from propstore.artifacts.indexes import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )

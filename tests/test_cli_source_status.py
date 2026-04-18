@@ -206,8 +206,7 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
     from propstore.sidecar.build import build_sidecar
 
     head = repo.snapshot.head_sha()
-    tree = repo.snapshot.tree(commit=head)
-    build_sidecar(tree, repo.sidecar_path, force=True, commit_hash=head)
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)
     promote_source_branch(repo, source_name)
 
     return repo, source_name
