@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from click.testing import CliRunner
+
+from propstore.cli import cli
+
 
 def test_world_commands_live_outside_compiler_cmds() -> None:
     compiler_cmds = Path("propstore/cli/compiler_cmds.py").read_text(encoding="utf-8")
@@ -16,13 +20,25 @@ def test_world_commands_live_outside_compiler_cmds() -> None:
 def test_root_cli_only_registers_top_level_commands() -> None:
     root_cli = Path("propstore/cli/__init__.py").read_text(encoding="utf-8")
 
+    assert "class _LazyCLIGroup" in root_cli
+    assert "import_module(module_name)" in root_cli
+    assert "cli.add_command" not in root_cli
+    assert "from propstore.cli.concept import" not in root_cli
+    assert "from propstore.cli.form import" not in root_cli
     assert '@cli.command("log")' not in root_cli
     assert '@cli.command("diff")' not in root_cli
     assert '@cli.command("show")' not in root_cli
     assert '@cli.command("checkout")' not in root_cli
     assert "@cli.command()" not in root_cli
-    assert "from propstore.cli.history_cmds import" in root_cli
-    assert "from propstore.cli.proposal_cmds import" in root_cli
+
+
+def test_forms_alias_does_not_trigger_startup_traceback() -> None:
+    result = CliRunner().invoke(cli, ["forms"])
+
+    assert result.exit_code == 2
+    assert "Manage form definitions." in result.output
+    assert "Commands:" in result.output
+    assert "Traceback" not in result.output
 
 
 def test_worldline_commands_live_outside_group_module() -> None:

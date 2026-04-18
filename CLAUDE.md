@@ -54,6 +54,14 @@ exists. Render workflows accept a `RenderPolicy`; the CLI may construct that
 policy from flags, but owner modules do not reconstruct it from command-line
 booleans.
 
+The root CLI entry point stays lazy: registering or asking for one command must
+not import unrelated command families. Add commands through the lazy registry in
+`propstore.cli.__init__`, and keep command aliases there rather than by eager
+module imports. Package `__init__.py` files also stay shallow. Do not re-export
+merge, reasoning, or workflow surfaces from low-level packages when that would
+force circular or cross-layer imports; import those concrete modules at the
+call site that owns the behavior.
+
 ## Literature Grounding
 
 See `papers/index.md` for the full collection with descriptions and tags. Each paper directory contains `notes.md` with detailed extraction, `claims.yaml` where extracted, and cross-references via `reconcile`.
