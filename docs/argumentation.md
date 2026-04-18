@@ -63,31 +63,31 @@ The `atms` backend does not expose Dung extensions. `pks world extensions --back
 
 ```bash
 # Show ATMS status, support quality, and essential support
-pks world atms-status domain=argumentation
+pks world atms status domain=argumentation
 
 # Show which exactly supported claims hold in the current bound environment
-pks world atms-context domain=argumentation
+pks world atms context domain=argumentation
 
 # Run ATMS label self-checks
-pks world atms-verify domain=argumentation
+pks world atms verify domain=argumentation
 
 # Show bounded future environments for a claim or concept
-pks world atms-futures claim_id domain=argumentation --queryable framework=general
+pks world atms futures claim_id domain=argumentation --queryable framework=general
 
 # Explain whether an OUT status is missing support or nogood-pruned
-pks world atms-why-out claim_id domain=argumentation --queryable framework=general
+pks world atms why-out claim_id domain=argumentation --queryable framework=general
 
 # Show bounded stability and witness futures
-pks world atms-stability claim_id domain=argumentation --queryable framework=general
+pks world atms stability claim_id domain=argumentation --queryable framework=general
 
 # Show which queryables matter, with witness flips
-pks world atms-relevance claim_id domain=argumentation --queryable framework=general
+pks world atms relevance claim_id domain=argumentation --queryable framework=general
 
 # Show bounded additive intervention plans over declared queryables
-pks world atms-interventions claim_id domain=argumentation --target-status IN --queryable framework=general
+pks world atms interventions claim_id domain=argumentation --target-status IN --queryable framework=general
 
 # Show next-query suggestions derived from actual minimal intervention plans
-pks world atms-next-query claim_id domain=argumentation --target-status IN --queryable framework=general
+pks world atms next-query claim_id domain=argumentation --target-status IN --queryable framework=general
 ```
 
 ### Capabilities by layer

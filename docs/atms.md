@@ -168,19 +168,19 @@ A canonical micropublication is represented as an ATMS node whose antecedents ar
 
 ## CLI Usage
 
-All ATMS commands are under `pks world atms-*`. They accept bindings as positional arguments (e.g., `domain=argumentation`) and `--context TEXT` for context scoping.
+All ATMS commands are under `pks world atms`. They accept bindings as positional arguments (e.g., `domain=argumentation`) and `--context TEXT` for context scoping.
 
 ### Status and inspection
 
 ```bash
 # Show ATMS-native claim status, support quality, and essential support
-pks world atms-status domain=argumentation
+pks world atms status domain=argumentation
 
 # Show only claims with exact ATMS support in the current bound environment
-pks world atms-context domain=argumentation
+pks world atms context domain=argumentation
 
 # Run ATMS label self-checks (consistency, minimality, soundness, completeness)
-pks world atms-verify domain=argumentation
+pks world atms verify domain=argumentation
 ```
 
 ### Future analysis
@@ -188,31 +188,31 @@ pks world atms-verify domain=argumentation
 ```bash
 # Show bounded future environments for a claim
 # Requires --queryable to declare what future assumptions to explore
-pks world atms-futures claim_id domain=argumentation --queryable framework=general
+pks world atms futures claim_id domain=argumentation --queryable framework=general
 
 # Explain whether an OUT status is missing support or nogood-pruned
-pks world atms-why-out claim_id domain=argumentation --queryable framework=general
+pks world atms why-out claim_id domain=argumentation --queryable framework=general
 ```
 
 ### Stability and relevance
 
 ```bash
 # Is this claim's status stable across all bounded consistent futures?
-pks world atms-stability claim_id domain=argumentation --queryable framework=general
+pks world atms stability claim_id domain=argumentation --queryable framework=general
 
 # Which queryables can flip this claim's status? With witness pairs.
-pks world atms-relevance claim_id domain=argumentation --queryable framework=general
+pks world atms relevance claim_id domain=argumentation --queryable framework=general
 ```
 
 ### Intervention planning
 
 ```bash
 # Minimal additive queryable sets that reach target status
-pks world atms-interventions claim_id domain=argumentation \
+pks world atms interventions claim_id domain=argumentation \
     --target-status IN --queryable framework=general
 
 # Next-query suggestions ranked by impact
-pks world atms-next-query claim_id domain=argumentation \
+pks world atms next-query claim_id domain=argumentation \
     --target-status IN --queryable framework=general
 ```
 

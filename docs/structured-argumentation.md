@@ -273,7 +273,7 @@ Backward chaining and the ATMS backend answer different questions:
 - **Backward chaining** answers "what arguments support or attack this specific claim?" — it constructs the local argument structure.
 - **ATMS stability/relevance** answers "will this claim's status change under future observations?" — it tracks assumption dependencies.
 
-They are complementary. Use `query_claim()` to understand the argumentation structure around a claim. Use `atms-stability` and `atms-relevance` to understand how robust that status is under uncertainty.
+They are complementary. Use `query_claim()` to understand the argumentation structure around a claim. Use `pks world atms stability` and `pks world atms relevance` to understand how robust that status is under uncertainty.
 
 ### Architecture
 

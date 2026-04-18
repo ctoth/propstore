@@ -1028,7 +1028,7 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
     def _unexpected_claim_graph(*args, **kwargs):
         raise AssertionError("claim_graph path should not run for --backend aspic")
 
-    monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
     monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
     monkeypatch.setattr(
         "propstore.claim_graph.compute_claim_graph_justified_claims",
@@ -1112,7 +1112,7 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
             "arg:target_b": "target_b",
         }
 
-    monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
     monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
     monkeypatch.setattr(
         "propstore.relation_analysis.stance_summary",
