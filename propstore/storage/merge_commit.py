@@ -5,7 +5,6 @@ import time
 from collections import Counter
 from typing import TYPE_CHECKING
 
-from propstore.artifacts.families import CLAIMS_FILE_FAMILY, MERGE_MANIFEST_FAMILY
 from propstore.artifacts.refs import ClaimsFileRef, MergeManifestRef
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import semantic_candidate_details
@@ -23,10 +22,8 @@ def create_merge_commit(
     target_branch: str | None = None,
 ) -> str:
     """Create a two-parent merge commit from the formal merge object."""
-    from propstore.artifacts.policy import create_artifact_store
-
     kr = snapshot.git
-    artifacts = create_artifact_store(snapshot.repo)
+    families = snapshot.repo.families
     if target_branch is None:
         target_branch = snapshot.primary_branch_name()
     merge = build_merge_framework(snapshot, branch_a, branch_b)
@@ -70,10 +67,9 @@ def create_merge_commit(
         del merged_entries[path]
 
     claims_ref = ClaimsFileRef("merged")
-    claims_document = artifacts.coerce(
-        CLAIMS_FILE_FAMILY,
+    claims_document = families.claims.coerce(
         claims_payload,
-        source=artifacts.address(CLAIMS_FILE_FAMILY, claims_ref).require_path(),
+        source=families.claims.address(claims_ref).require_path(),
     )
 
     manifest_payload = {
@@ -95,21 +91,19 @@ def create_merge_commit(
             "semantic_candidate_details": semantic_candidate_details(merge),
         }
     }
-    manifest_document = artifacts.coerce(
-        MERGE_MANIFEST_FAMILY,
+    manifest_ref = MergeManifestRef()
+    manifest_document = families.merge_manifests.coerce(
         manifest_payload,
-        source="merge/manifest.yaml",
+        source=families.merge_manifests.address(manifest_ref).require_path(),
     )
 
-    prepared_claims = artifacts.prepare(
-        CLAIMS_FILE_FAMILY,
+    prepared_claims = families.claims.prepare(
         claims_ref,
         claims_document,
         branch=target_branch,
     )
-    prepared_manifest = artifacts.prepare(
-        MERGE_MANIFEST_FAMILY,
-        MergeManifestRef(),
+    prepared_manifest = families.merge_manifests.prepare(
+        manifest_ref,
         manifest_document,
         branch=target_branch,
     )
