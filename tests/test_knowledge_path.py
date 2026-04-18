@@ -4,7 +4,8 @@ from pathlib import Path
 
 from propstore.repository import Repository
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
-from propstore.storage import GitStore
+from quire.git_store import GitStore
+from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
 
 
 def test_filesystem_knowledge_path_basic_traversal(tmp_path: Path) -> None:
@@ -33,7 +34,7 @@ def test_filesystem_knowledge_path_basic_traversal(tmp_path: Path) -> None:
 
 def test_git_knowledge_path_basic_traversal(tmp_path: Path) -> None:
     root = tmp_path / "knowledge"
-    repo = GitStore.init(root)
+    repo = init_git_store(root)
     repo.commit_files({"claims/paper.yaml": b"claims: []\n"}, "add claims")
 
     tree = GitKnowledgePath(repo)
@@ -56,7 +57,7 @@ def test_git_knowledge_path_basic_traversal(tmp_path: Path) -> None:
 
 def test_knowledge_path_parity_between_git_and_filesystem(tmp_path: Path) -> None:
     root = tmp_path / "knowledge"
-    repo = GitStore.init(root)
+    repo = init_git_store(root)
     repo.commit_files(
         {
             "concepts/alpha.yaml": b"id: concept1\n",
@@ -83,7 +84,7 @@ def test_knowledge_path_parity_between_git_and_filesystem(tmp_path: Path) -> Non
 
 def test_repository_tree_uses_git_head_for_git_backed_repos(tmp_path: Path) -> None:
     root = tmp_path / "knowledge"
-    repo = GitStore.init(root)
+    repo = init_git_store(root)
     repository = Repository(root)
 
     repo.commit_files({"concepts/alpha.yaml": b"id: concept1\n"}, "v1")
@@ -103,7 +104,7 @@ def test_repository_tree_uses_git_head_for_git_backed_repos(tmp_path: Path) -> N
 
 def test_repository_tree_ignores_uncommitted_worktree_edits_for_git_backed_repos(tmp_path: Path) -> None:
     root = tmp_path / "knowledge"
-    repo = GitStore.init(root)
+    repo = init_git_store(root)
     repository = Repository(root)
 
     repo.commit_files({"concepts/alpha.yaml": b"id: concept1\n"}, "v1")

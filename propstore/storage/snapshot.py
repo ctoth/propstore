@@ -6,11 +6,10 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from quire.documents import decode_document_bytes
-from propstore.storage.branch import BranchInfo, branch_head, create_branch, delete_branch, list_branches, merge_base
 
 if TYPE_CHECKING:
+    from quire.git_store import GitStore
     from propstore.repository import Repository
-    from propstore.storage.git_backend import GitStore
 
 TDocument = TypeVar("TDocument")
 
@@ -26,6 +25,22 @@ class SnapshotDirEntry:
 class SnapshotFile:
     relpath: str
     content: bytes
+
+
+@dataclass(frozen=True)
+class BranchInfo:
+    name: str
+    tip_sha: str
+    kind: str
+    parent_branch: str = ""
+    created_at: int = 0
+
+
+def _branch_kind(name: str) -> str:
+    for prefix in ("paper/", "source/", "agent/", "hypothesis/"):
+        if name.startswith(prefix):
+            return prefix.rstrip("/")
+    return "workspace"
 
 
 class RepositorySnapshot:
@@ -57,19 +72,28 @@ class RepositorySnapshot:
         return self.git.head_sha()
 
     def branch_head(self, name: str) -> str | None:
-        return branch_head(self.git, name)
+        return self.git.branch_sha(name)
 
     def ensure_branch(self, name: str, *, source_commit: str | None = None) -> str:
         tip = self.branch_head(name)
         if tip is not None:
             return tip
-        return create_branch(self.git, name, source_commit=source_commit)
+        return self.git.create_branch(name, source_commit=source_commit)
 
     def delete_branch(self, name: str) -> None:
-        delete_branch(self.git, name)
+        self.git.delete_branch(name)
 
     def list_branches(self) -> list[BranchInfo]:
-        return list_branches(self.git)
+        return [
+            BranchInfo(
+                name=branch.name,
+                tip_sha=branch.tip_sha,
+                kind=_branch_kind(branch.name),
+                parent_branch=branch.parent_branch,
+                created_at=branch.created_at,
+            )
+            for branch in self.git.list_branches()
+        ]
 
     def tree(self, commit: str | None = None):
         return self._repo.tree(commit=commit)
@@ -159,4 +183,4 @@ class RepositorySnapshot:
         return self.git.diff_commits(commit1, commit2)
 
     def merge_base(self, branch_a: str, branch_b: str) -> str:
-        return merge_base(self.git, branch_a, branch_b)
+        return self.git.merge_base(branch_a, branch_b)

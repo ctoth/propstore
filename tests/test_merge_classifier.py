@@ -9,8 +9,8 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.identity import compute_claim_version_id
-from propstore.storage import GitStore
-from propstore.storage.branch import create_branch
+from quire.git_store import GitStore
+from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.storage.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
@@ -116,13 +116,13 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 
 def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/base.yaml": _claim_yaml([_obs_claim("claim1", "Base", ["concept_x"])])},
         "seed",
     )
     branch_name = "paper/test"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
 
@@ -132,7 +132,7 @@ def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
 
 
 def test_syntax_independence_claim_order(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     claim_a = _obs_claim("claimA", "A", ["concept_a"])
     claim_b = _obs_claim("claimB", "B", ["concept_b"])
     base_sha = kr.commit_files(
@@ -140,7 +140,7 @@ def test_syntax_independence_claim_order(tmp_path):
         "seed",
     )
     branch_name = "paper/reorder"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([claim_b, claim_a])},
@@ -156,14 +156,14 @@ def test_syntax_independence_claim_order(tmp_path):
 
 
 def test_syntax_independence_filename(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     claims = [_obs_claim("claimA", "Observation A", ["concept_a"])]
     base_sha = kr.commit_files(
         {"claims/original.yaml": _claim_yaml(claims)},
         "seed",
     )
     branch_name = "paper/rename"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_batch(
         adds={"claims/renamed.yaml": _claim_yaml(claims)},
@@ -177,17 +177,18 @@ def test_syntax_independence_filename(tmp_path):
 
 
 def test_merge_commit_has_two_parents(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/base.yaml": _claim_yaml([_obs_claim("claim1", "Base", ["concept_x"])])},
         "seed",
     )
     branch_name = "paper/merge_test"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
         {"claims/left.yaml": _claim_yaml([_obs_claim("claimL", "Left", ["concept_a"])])},
         "left",
     )
+    left_sha = kr.branch_sha("master")
     kr.commit_files(
         {"claims/right.yaml": _claim_yaml([_obs_claim("claimR", "Right", ["concept_b"])])},
         "right",
@@ -195,18 +196,17 @@ def test_merge_commit_has_two_parents(tmp_path):
     )
 
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
-    commit_obj = kr._repo[merge_sha.encode()]
-    assert len(commit_obj.parents) == 2
+    assert kr.commit_parent_shas(merge_sha) == [left_sha, kr.branch_sha(branch_name)]
 
 
 def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/base.yaml": _claim_yaml([_obs_claim("claim1", "Base", ["concept_x"])])},
         "seed",
     )
     branch_name = "paper/preserve"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
         {"claims/left.yaml": _claim_yaml([_obs_claim("claimL", "Left only", ["concept_a"])])},
         "left",
@@ -232,13 +232,13 @@ def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
 
 
 def test_merge_commit_valid_claims(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/base.yaml": _claim_yaml([_obs_claim("claim1", "Base", ["concept_x"])])},
         "seed",
     )
     branch_name = "paper/valid"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
         {"claims/left.yaml": _claim_yaml([_obs_claim("claimL", "Left", ["concept_a"])])},
         "left",
@@ -264,13 +264,13 @@ def test_merge_commit_valid_claims(tmp_path):
 
 
 def test_conflict_merge_is_deterministic(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
     )
     branch_name = "paper/conflict"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
         "left",
@@ -284,16 +284,14 @@ def test_conflict_merge_is_deterministic(tmp_path):
     merge_sha_a = create_merge_commit(_snapshot(kr), "master", branch_name, target_branch="merge_a")
     merge_sha_b = create_merge_commit(_snapshot(kr), "master", branch_name, target_branch="merge_b")
 
-    commit_a = kr._repo[merge_sha_a.encode()]
-    commit_b = kr._repo[merge_sha_b.encode()]
-    assert commit_a.tree == commit_b.tree
+    assert kr.flat_tree_entries(merge_sha_a) == kr.flat_tree_entries(merge_sha_b)
 
 
 def test_same_logical_id_different_artifacts_merge_as_conflicting_alternatives(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/logical_conflict"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     shared_logical_ids = [{"namespace": "shared_paper", "value": "claim1"}]
     left_claim = _param_claim("claim1", "concept_x", 300.0)
@@ -322,13 +320,13 @@ def test_same_logical_id_different_artifacts_merge_as_conflicting_alternatives(t
 
 
 def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
     )
     branch_name = "paper/conflict"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
         "left",
@@ -381,10 +379,10 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
 
     assume(set(left_ids).isdisjoint(right_ids))
 
-    kr = GitStore.init_memory()
+    kr = init_memory_git_store()
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/property_preserve"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     left_payload = _claims_commit_payload(left_ids, prefix="left")
     right_payload = _claims_commit_payload(right_ids, prefix="right")

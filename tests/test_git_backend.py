@@ -6,18 +6,20 @@ from pathlib import Path
 import yaml
 import pytest
 
-from quire.git_store import GitStore as QuireGitStore
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
 from propstore.concept_ids import next_concept_id, next_concept_id_for_git, record_concept_id_counter
-from propstore.storage import GitStore
+from quire.git_store import GitStore
+from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
 from tests.conftest import (
     make_concept_identity,
     normalize_concept_payloads,
 )
 
 
-def test_propstore_gitstore_is_quire_backed():
-    assert issubclass(GitStore, QuireGitStore)
+def test_propstore_storage_does_not_export_gitstore_shim():
+    import propstore.storage as storage
+
+    assert not hasattr(storage, "GitStore")
 
 
 def _concept_payload(
@@ -44,7 +46,7 @@ def _concept_payload(
 
 
 def test_init_creates_repo(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     assert (tmp_path / "knowledge" / ".git").is_dir()
     assert (tmp_path / "knowledge" / ".gitignore").exists()
     gitignore = (tmp_path / "knowledge" / ".gitignore").read_text()
@@ -54,15 +56,15 @@ def test_init_creates_repo(tmp_path):
 
 def test_is_repo(tmp_path):
     root = tmp_path / "knowledge"
-    assert not GitStore.is_repo(root)
-    GitStore.init(root)
-    assert GitStore.is_repo(root)
+    assert not is_git_repo(root)
+    init_git_store(root)
+    assert is_git_repo(root)
 
 
 def test_open_existing(tmp_path):
     root = tmp_path / "knowledge"
-    GitStore.init(root)
-    kr = GitStore.open(root)
+    init_git_store(root)
+    kr = open_git_store(root)
     assert kr is not None
 
 
@@ -70,7 +72,7 @@ def test_open_existing(tmp_path):
 
 
 def test_commit_and_read(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     content = b"x: 1\n"
     sha = kr.commit_files({"a.yaml": content}, "add a")
     assert isinstance(sha, str)
@@ -79,21 +81,21 @@ def test_commit_and_read(tmp_path):
 
 
 def test_commit_nested_path(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     content = b"name: test\n"
     kr.commit_files({"concepts/test_concept.yaml": content}, "add concept")
     assert kr.read_file("concepts/test_concept.yaml") == content
 
 
 def test_read_nonexistent_raises(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
     with pytest.raises(FileNotFoundError):
         kr.read_file("nonexistent.yaml")
 
 
 def test_commit_overwrites_existing(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"v: 1\n"}, "v1")
     kr.commit_files({"a.yaml": b"v: 2\n"}, "v2")
     assert kr.read_file("a.yaml") == b"v: 2\n"
@@ -103,7 +105,7 @@ def test_commit_overwrites_existing(tmp_path):
 
 
 def test_list_dir(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({
         "concepts/alpha.yaml": b"id: concept1\n",
         "concepts/beta.yaml": b"id: concept2\n",
@@ -116,13 +118,13 @@ def test_list_dir(tmp_path):
 
 
 def test_list_dir_empty(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
     assert kr.list_dir("concepts") == []
 
 
 def test_list_dir_no_commits(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     assert kr.list_dir("concepts") == []
 
 
@@ -130,7 +132,7 @@ def test_list_dir_no_commits(tmp_path):
 
 
 def test_commit_deletes(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n", "b.yaml": b"y: 2\n"}, "add")
     kr.commit_deletes(["a.yaml"], "remove a")
     with pytest.raises(FileNotFoundError):
@@ -142,7 +144,7 @@ def test_commit_deletes(tmp_path):
 
 
 def test_commit_batch(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({
         "old.yaml": b"old: true\n",
         "keep.yaml": b"keep: true\n",
@@ -169,7 +171,7 @@ def test_commit_batch(tmp_path):
 
 def test_sync_worktree(tmp_path):
     root = tmp_path / "knowledge"
-    kr = GitStore.init(root)
+    kr = init_git_store(root)
     kr.commit_files({
         "concepts/foo.yaml": b"id: concept1\ncanonical_name: foo\n",
     }, "add foo")
@@ -182,7 +184,7 @@ def test_sync_worktree(tmp_path):
 
 def test_sync_worktree_removes_deleted(tmp_path):
     root = tmp_path / "knowledge"
-    kr = GitStore.init(root)
+    kr = init_git_store(root)
     kr.commit_files({"a.yaml": b"x: 1\n"}, "add")
     kr.sync_worktree()
     assert (root / "a.yaml").exists()
@@ -194,7 +196,7 @@ def test_sync_worktree_removes_deleted(tmp_path):
 
 def test_sync_worktree_preserves_ignored_sidecar_artifacts(tmp_path):
     root = tmp_path / "knowledge"
-    kr = GitStore.init(root)
+    kr = init_git_store(root)
     kr.commit_files({"concepts/foo.yaml": b"id: concept1\ncanonical_name: foo\n"}, "add foo")
     kr.sync_worktree()
 
@@ -216,7 +218,7 @@ def test_sync_worktree_preserves_ignored_sidecar_artifacts(tmp_path):
 
 
 def test_log(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"v: 1\n"}, "first")
     kr.commit_files({"a.yaml": b"v: 2\n"}, "second")
 
@@ -231,14 +233,14 @@ def test_log(tmp_path):
 
 
 def test_log_empty_repo(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     # init creates a .gitignore commit
     history = kr.log()
     assert len(history) == 1
 
 
 def test_head_sha(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     sha1 = kr.head_sha()
     assert sha1 is not None
     assert len(sha1) == 40
@@ -252,7 +254,7 @@ def test_head_sha(tmp_path):
 
 
 def test_read_file_at_commit(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"v: 1\n"}, "v1")
     sha1 = kr.head_sha()
     kr.commit_files({"a.yaml": b"v: 2\n"}, "v2")
@@ -265,12 +267,12 @@ def test_read_file_at_commit(tmp_path):
 
 
 def test_next_concept_id_empty(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     assert next_concept_id(kr.tree() / "concepts") == 1
 
 
 def test_next_concept_id_scans_tree(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     c3 = yaml.dump({"id": "concept3", "canonical_name": "alpha"}).encode()
     c7 = yaml.dump({"id": "concept7", "canonical_name": "beta"}).encode()
     kr.commit_files({
@@ -281,14 +283,14 @@ def test_next_concept_id_scans_tree(tmp_path):
 
 
 def test_next_concept_id_ignores_non_concept_ids(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     data = yaml.dump({"id": "something_else", "canonical_name": "foo"}).encode()
     kr.commit_files({"concepts/foo.yaml": data}, "add")
     assert next_concept_id(kr.tree() / "concepts") == 1
 
 
 def test_next_concept_id_uses_git_counter_ref_when_available(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files(
         {
             "concepts/high.yaml": yaml.safe_dump(
@@ -306,7 +308,7 @@ def test_next_concept_id_uses_git_counter_ref_when_available(tmp_path):
 
 
 def test_git_knowledge_path_iterdir(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({
         "concepts/a.yaml": b"id: concept1\n",
         "concepts/b.yaml": b"id: concept2\n",
@@ -322,7 +324,7 @@ def test_git_knowledge_path_iterdir(tmp_path):
 
 
 def test_git_knowledge_path_read_bytes(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"concepts/foo.yaml": b"id: concept1\n"}, "add")
 
     tree = GitKnowledgePath(kr)
@@ -331,7 +333,7 @@ def test_git_knowledge_path_read_bytes(tmp_path):
 
 
 def test_git_knowledge_path_exists(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"concepts/a.yaml": b"x: 1\n"}, "add")
 
     tree = GitKnowledgePath(kr)
@@ -340,7 +342,7 @@ def test_git_knowledge_path_exists(tmp_path):
 
 
 def test_git_knowledge_path_at_commit(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"concepts/a.yaml": b"v: 1\n"}, "v1")
     sha1 = kr.head_sha()
     kr.commit_files({"concepts/a.yaml": b"v: 2\n"}, "v2")
@@ -395,7 +397,7 @@ def test_filesystem_knowledge_path_exists(tmp_path):
 def test_knowledge_path_equivalence(tmp_path):
     """GitKnowledgePath and FilesystemKnowledgePath produce identical output after sync."""
     root = tmp_path / "knowledge"
-    kr = GitStore.init(root)
+    kr = init_git_store(root)
     kr.commit_files({
         "concepts/alpha.yaml": b"id: concept1\ncanonical_name: alpha\n",
         "concepts/beta.yaml": b"id: concept2\ncanonical_name: beta\n",
@@ -424,7 +426,7 @@ def test_knowledge_path_equivalence(tmp_path):
 
 def test_load_concepts_from_git_tree(tmp_path):
     """load_concepts() works from a committed git-backed knowledge path."""
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     concept_data = _concept_payload(
         "concept1",
         "test_concept",
@@ -446,7 +448,7 @@ def test_load_concepts_from_git_tree(tmp_path):
 
 def test_load_claim_files_from_git_tree(tmp_path):
     """load_claim_files() works from a committed git-backed knowledge path."""
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     claim_data = {
         "source": {"paper": "test"},
         "claims": [
@@ -474,7 +476,7 @@ def test_load_claim_files_from_git_tree(tmp_path):
 
 def test_load_contexts_from_git_tree(tmp_path):
     """load_contexts() works from a committed git-backed knowledge path."""
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     context_data = {
         "id": "ctx1",
         "name": "Test Context",
@@ -892,7 +894,7 @@ def _setup_git_knowledge_repo(tmp_path):
     from propstore.repository import Repository
 
     root = tmp_path / "knowledge"
-    kr = GitStore.init(root)
+    kr = init_git_store(root)
 
     # Seed forms directory on disk (forms are package resources, loaded from filesystem)
     forms_dir = root / "forms"
@@ -1284,7 +1286,7 @@ def test_init_creates_git_repo(tmp_path):
     assert (root / ".git").is_dir()
 
     # Should have commits (gitignore + forms)
-    kr = GitStore.open(root)
+    kr = open_git_store(root)
     history = kr.log(max_count=10)
     assert len(history) >= 2  # .gitignore init + forms seed
 
@@ -1293,7 +1295,7 @@ def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(tmp_pat
     """Seed forms should not appear on disk if the git seed commit fails."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.storage import GitStore
+    from quire.git_store import GitStore
 
     original_commit_files = GitStore.commit_files
 
@@ -1329,7 +1331,7 @@ def test_repository_find_rejects_non_git_knowledge_dir(tmp_path):
 
 def test_diff_shows_changes(tmp_path):
     """diff_commits() returns correct added/modified/deleted between two commits."""
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({
         "concepts/alpha.yaml": b"id: concept1\n",
         "concepts/beta.yaml": b"id: concept2\n",
@@ -1352,7 +1354,7 @@ def test_diff_shows_changes(tmp_path):
 
 def test_show_commit(tmp_path):
     """show_commit() returns correct sha, message, and file changes."""
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"concepts/a.yaml": b"v: 1\n"}, "add concept a")
     sha = kr.head_sha()
 

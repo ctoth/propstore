@@ -80,7 +80,6 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
     source_claim_ids: list[str],
     stale_claim_ids: list[str],
 ):
-    from propstore.storage.branch import create_branch
     from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     assume(set(source_claim_ids).isdisjoint(stale_claim_ids))
@@ -88,7 +87,7 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
     destination = _init_project(tmp_path / f"dest_{uuid4().hex}")
     destination_git = destination.git
     assert destination_git is not None
-    create_branch(destination_git, "import/repo-b")
+    destination_git.create_branch("import/repo-b")
     if stale_claim_ids:
         destination_git.commit_files(
             {
@@ -113,9 +112,9 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
     first_result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
     second_result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
 
-    first_tree = destination_git._repo[first_result.commit_sha.encode()].tree
-    second_tree = destination_git._repo[second_result.commit_sha.encode()].tree
-    assert first_tree == second_tree
+    assert destination_git.flat_tree_entries(first_result.commit_sha) == destination_git.flat_tree_entries(
+        second_result.commit_sha
+    )
 
     imported_claim_paths = set(destination_git.list_dir("claims", commit=second_result.commit_sha))
     assert imported_claim_paths == {f"{claim_id}.yaml" for claim_id in sorted(source_claim_ids)}
@@ -289,7 +288,6 @@ def test_plan_repository_import_limits_to_semantic_tree_and_excludes_sidecar(tmp
 
 
 def test_commit_repository_import_writes_commit_to_target_branch_and_returns_result(tmp_path):
-    from propstore.storage.branch import branch_head
     from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
@@ -310,7 +308,7 @@ def test_commit_repository_import_writes_commit_to_target_branch_and_returns_res
 
     plan = plan_repository_import(destination, source.root.parent)
     result = commit_repository_import(destination, plan)
-    imported_tip = branch_head(destination_git, plan.target_branch)
+    imported_tip = destination_git.branch_sha(plan.target_branch)
 
     assert imported_tip == result.commit_sha
     assert imported_tip != master_before
@@ -384,13 +382,12 @@ def test_commit_repository_import_auto_syncs_master_but_not_other_branches(tmp_p
 
 
 def test_plan_repository_import_deletes_paths_missing_from_latest_source_snapshot(tmp_path):
-    from propstore.storage.branch import create_branch
     from propstore.storage.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
     assert destination_git is not None
-    create_branch(destination_git, "import/repo-b")
+    destination_git.create_branch("import/repo-b")
     destination_git.commit_files(
         {
             "claims/stale.yaml": _raw_claim_yaml("stale"),

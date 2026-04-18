@@ -7,8 +7,8 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.storage import GitStore
-from propstore.storage.branch import create_branch
+from quire.git_store import GitStore
+from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.merge.structured_merge import (
     build_branch_structured_summary,
@@ -57,7 +57,7 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 
 def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files(
         {
             "claims/claims.yaml": _claim_yaml([
@@ -102,10 +102,10 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
 
 
 def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/structured"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     adds: dict[str | Path, bytes] = {
         "claims/claims.yaml": _claim_yaml([
@@ -129,7 +129,7 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
 
 
 def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files(
         {
             "claims/claims.yaml": _claim_yaml([
@@ -154,10 +154,10 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
 
 
 def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/local-only"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
         {
@@ -190,7 +190,7 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
 
 
 def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files(
         {
             "claims/claims.yaml": _claim_yaml([
@@ -224,10 +224,10 @@ def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_
 def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
     extra_targets: list[str],
 ):
-    kr = GitStore.init_memory()
+    kr = init_memory_git_store()
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/out_of_scope"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     base_claims = [
         _obs_claim("claim_a", "A"),
@@ -282,10 +282,10 @@ def test_branch_structured_summary_is_order_invariant(
     claim_order: tuple[str, ...],
     stance_order: tuple[str, ...],
 ):
-    kr = GitStore.init_memory()
+    kr = init_memory_git_store()
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/order_invariant"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     claims_by_id = {
         "claim_a": _obs_claim("claim_a", "A"),

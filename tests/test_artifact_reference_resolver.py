@@ -17,7 +17,6 @@ from propstore.artifacts.documents.claims import ClaimDocument, ClaimLogicalIdDo
 from propstore.artifacts.documents.contexts import ContextReferenceDocument
 from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
-from propstore.storage.branch import create_branch
 from propstore.artifacts.documents.sources import SourceClaimDocument, SourceClaimsDocument
 from propstore.artifacts.documents.sources import SourceProvenanceDocument
 from propstore.source.common import source_branch_name
@@ -25,7 +24,7 @@ from propstore.source.common import source_branch_name
 
 def test_load_source_claim_reference_index_reads_source_claim_artifacts(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    create_branch(repo.git, source_branch_name("paper"))
+    repo.git.create_branch(source_branch_name("paper"))
 
     repo.artifacts.save(
         SOURCE_CLAIMS_FAMILY,

@@ -5,8 +5,8 @@ import yaml
 
 import propstore.storage as repo_module
 from propstore.identity import compute_claim_version_id
-from propstore.storage import GitStore
-from propstore.storage.branch import create_branch
+from quire.git_store import GitStore
+from propstore.storage import init_git_store, init_memory_git_store, is_git_repo, open_git_store
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.storage.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
@@ -93,13 +93,13 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 
 def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
     )
     branch_name = "paper/conflict"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
@@ -126,13 +126,13 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
 
 
 def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
     )
     branch_name = "paper/phi"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
         {
@@ -166,13 +166,13 @@ def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
 def test_build_merge_framework_compatible_one_sided_modification_emits_single_argument(
     tmp_path,
 ):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
     )
     branch_name = "paper/compat"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 999.0)])},
@@ -192,13 +192,13 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
 
 
 def test_create_merge_commit_keeps_divergent_same_artifact_versions_out_of_materialized_claims(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
     )
     branch_name = "paper/provenance"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
@@ -239,10 +239,10 @@ def test_repo_public_merge_surface_excludes_bridge_helpers() -> None:
 
 
 def test_create_merge_commit_records_semantic_candidates_in_manifest(tmp_path):
-    kr = GitStore.init(tmp_path / "knowledge")
+    kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/candidates"
-    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.create_branch(branch_name, source_commit=base_sha)
 
     left_claim = {
         "id": "claim_a",
