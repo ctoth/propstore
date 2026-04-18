@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -44,7 +45,7 @@ def _freeze_mapping(data: Mapping[str, Any]) -> Mapping[str, Any]:
     return MappingProxyType(dict(data))
 
 
-def _build_claim_lookup(claim_files: list[ClaimFileEntry]) -> Mapping[str, tuple[str, ...]]:
+def _build_claim_lookup(claim_files: Sequence[ClaimFileEntry]) -> Mapping[str, tuple[str, ...]]:
     return build_claim_reference_lookup(claim_files)
 
 
@@ -52,7 +53,7 @@ def _build_context_from_concepts(
     concepts: list[LoadedConcept],
     form_registry: dict[str, FormDefinition],
     *,
-    claim_files: list[ClaimFileEntry] | None,
+    claim_files: Sequence[ClaimFileEntry] | None,
     context_ids: set[str] | None,
 ) -> CompilationContext:
     concepts_by_id: dict[str, ConceptRecord] = {}
@@ -87,7 +88,7 @@ def build_compilation_context_from_loaded(
     *,
     forms_dir: Path | KnowledgePath | None = None,
     form_registry: dict[str, FormDefinition] | None = None,
-    claim_files: list[ClaimFileEntry] | None = None,
+    claim_files: Sequence[ClaimFileEntry] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     resolved_form_registry = (
@@ -110,7 +111,7 @@ def build_compilation_context_from_loaded(
 def build_compilation_context_from_repo(
     repo: Repository | None,
     *,
-    claim_files: list[ClaimFileEntry] | None = None,
+    claim_files: Sequence[ClaimFileEntry] | None = None,
     context_ids: set[str] | None = None,
     commit: str | None = None,
 ) -> CompilationContext:

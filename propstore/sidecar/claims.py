@@ -16,7 +16,7 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
 from propstore.claims import (
-    LoadedClaimsFile,
+    ClaimFileEntry,
     claim_file_claims,
     claim_file_filename,
     claim_file_source_paper,
@@ -264,7 +264,7 @@ def populate_raw_id_quarantine_records(
 
 def populate_claims(
     conn: sqlite3.Connection,
-    claim_files: Sequence[LoadedClaimsFile],
+    claim_files: Sequence[ClaimFileEntry],
     concept_registry: dict | None = None,
     *,
     form_registry: dict | None = None,
@@ -322,8 +322,9 @@ def populate_claims(
                 )
     else:
         for claim_file in claim_files:
-            source_paper = claim_file_source_paper(claim_file) or claim_file.filename
-            file_stage = file_stage_by_filename.get(claim_file.filename)
+            filename = claim_file_filename(claim_file)
+            source_paper = claim_file_source_paper(claim_file) or filename
+            file_stage = file_stage_by_filename.get(filename)
             for claim in claim_file_claims(claim_file):
                 authored_claim = claim.to_payload()
                 claim_seq += 1
@@ -351,7 +352,7 @@ def populate_claims(
 
 def populate_conflicts(
     conn: sqlite3.Connection,
-    claim_files: Sequence[LoadedClaimsFile],
+    claim_files: Sequence[ClaimFileEntry],
     concept_registry: dict,
     cel_registry: dict,
     lifting_system=None,
@@ -391,7 +392,7 @@ def populate_conflicts(
         )
 
 
-def build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[LoadedClaimsFile]) -> None:
+def build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[ClaimFileEntry]) -> None:
     """Build the FTS5 index over claim statements, conditions, and expressions."""
     for claim_file in claim_files:
         for claim in claim_file_claims(claim_file):

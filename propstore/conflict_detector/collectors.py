@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import Any
 
-from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_source_paper
+from propstore.claims import ClaimFileEntry, claim_file_claims, claim_file_source_paper
 from propstore.equation_comparison import equation_signature
 
 from .models import ConflictClaim
@@ -27,7 +27,7 @@ def conflict_claim_from_payload(
 
 
 def conflict_claims_from_claim_files(
-    claim_files: Sequence[LoadedClaimsFile],
+    claim_files: Sequence[ClaimFileEntry],
 ) -> list[ConflictClaim]:
     claims: list[ConflictClaim] = []
     for claim_file in claim_files:

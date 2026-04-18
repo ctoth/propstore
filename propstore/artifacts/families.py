@@ -821,14 +821,14 @@ def semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
     return tuple(sorted(specs, key=lambda spec: spec.name))
 
 
-def semantic_root_path(name: str, tree_or_repo: object) -> object:
+def semantic_root_path(name: str, tree_or_repo: object) -> Path:
     root = _semantic_root(semantic_family_by_name(name))
     if isinstance(tree_or_repo, Path):
         return tree_or_repo / root
     repo_root = getattr(tree_or_repo, "root", None)
     if isinstance(repo_root, Path):
         return repo_root / root
-    return tree_or_repo / root  # type: ignore[operator]
+    raise TypeError(f"cannot resolve semantic root for {type(tree_or_repo).__name__}")
 
 
 def semantic_address_path(name: str, repo: Repository, ref: object) -> str:

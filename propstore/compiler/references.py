@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Mapping, cast
 
@@ -33,7 +34,7 @@ def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
 
 
 def build_claim_reference_lookup(
-    claim_files: list[ClaimFileEntry],
+    claim_files: Sequence[ClaimFileEntry],
 ) -> Mapping[str, tuple[str, ...]]:
     lookup = build_reference_lookup(
         (
@@ -170,7 +171,7 @@ def resolve_concept_reference(
 def resolve_claim_reference(
     claim_ref: object,
     context: CompilationContext,
-    normalized_claim_files: list[ClaimFileEntry],
+    normalized_claim_files: Sequence[ClaimFileEntry],
 ) -> ReferenceResolution | None:
     return foreign_keys_from_context(context).family("claim").resolve(
         claim_ref,
@@ -185,7 +186,7 @@ def resolve_claim_reference(
 def _claim_match_kind(
     raw_text: str,
     resolved_id: str,
-    normalized_claim_files: list[ClaimFileEntry],
+    normalized_claim_files: Sequence[ClaimFileEntry],
 ) -> tuple[str | None, str | None]:
     if raw_text == resolved_id:
         return "artifact_id", raw_text
