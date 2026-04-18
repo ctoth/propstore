@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from propstore.families.registry import ContextRef
-from propstore.artifacts.documents.contexts import ContextDocument
+from propstore.families.documents.contexts import ContextDocument
 from quire.documents import convert_document_value
 from propstore.context_types import LoadedContext, parse_context_record_document
 from propstore.repository import Repository

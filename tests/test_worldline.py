@@ -434,7 +434,7 @@ class TestWorldlineDefinition:
     def test_worldline_definition_from_file(self, worldline_yaml_file):
         """Can load a WorldlineDefinition from a typed YAML document."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.artifacts.documents.worldlines import WorldlineDefinitionDocument
+        from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 
         document = decode_document_path(worldline_yaml_file, WorldlineDefinitionDocument)
         wl = WorldlineDefinition.from_document(document)
@@ -442,7 +442,7 @@ class TestWorldlineDefinition:
 
     def test_worldline_definition_from_file_rejects_unknown_fields(self, tmp_path):
         from propstore.worldline import WorldlineDefinition
-        from propstore.artifacts.documents.worldlines import WorldlineDefinitionDocument
+        from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 
         path = tmp_path / "worldlines" / "bad.yaml"
         path.parent.mkdir(parents=True, exist_ok=True)

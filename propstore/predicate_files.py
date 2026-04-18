@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from propstore.artifacts.documents.predicates import (
+from propstore.families.documents.predicates import (
     PredicateDocument,
     PredicatesFileDocument,
 )

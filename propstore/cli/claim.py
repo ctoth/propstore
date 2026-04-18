@@ -14,7 +14,7 @@ import click
 
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.repository import Repository
-from propstore.artifacts.documents.claims import ClaimsFileDocument
+from propstore.families.documents.claims import ClaimsFileDocument
 from quire.documents import DocumentSchemaError, load_document_dir
 from quire.tree_path import coerce_tree_path as coerce_knowledge_path
 

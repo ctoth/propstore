@@ -24,13 +24,13 @@ from .common import (
     source_branch_name,
     source_tag_uri,
 )
-from propstore.artifacts.documents.sources import (
+from propstore.families.documents.sources import (
     SourceClaimsDocument,
     SourceFinalizeReportDocument,
     SourceJustificationsDocument,
     SourceStancesDocument,
 )
-from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationsFileDocument
 from .registry import preview_source_parameterization_group_merges
 
 

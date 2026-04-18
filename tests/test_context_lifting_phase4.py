@@ -4,8 +4,8 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from propstore.artifacts.documents.claims import ClaimDocument, IstPropositionDocument
-from propstore.artifacts.documents.contexts import ContextDocument
+from propstore.families.documents.claims import ClaimDocument, IstPropositionDocument
+from propstore.families.documents.contexts import ContextDocument
 from quire.documents import DocumentSchemaError, convert_document_value
 
 

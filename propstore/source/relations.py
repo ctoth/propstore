@@ -14,7 +14,7 @@ from .common import (
     normalize_source_slug,
     source_branch_name,
 )
-from propstore.artifacts.documents.sources import (
+from propstore.families.documents.sources import (
     ExtractionProvenanceDocument,
     SourceJustificationDocument,
     SourceJustificationsDocument,

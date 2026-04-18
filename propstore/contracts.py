@@ -12,9 +12,9 @@ from quire.references import ForeignKeySpec
 from quire.versions import VersionId
 
 if TYPE_CHECKING:
-    from propstore.artifacts.documents.claims import ClaimTypeContract
+    from propstore.families.documents.claims import ClaimTypeContract
 
-PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.19")
+PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.27")
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
     / "contract_manifests"
@@ -40,7 +40,7 @@ def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
 
 
 def iter_claim_type_contracts() -> tuple["ClaimTypeContract", ...]:
-    from propstore.artifacts.documents.claims import (
+    from propstore.families.documents.claims import (
         iter_claim_type_contracts as iter_contracts,
     )
 
@@ -48,7 +48,7 @@ def iter_claim_type_contracts() -> tuple["ClaimTypeContract", ...]:
 
 
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
-    from propstore.artifacts.documents import (
+    from propstore.families.documents import (
         claims,
         concepts,
         contexts,

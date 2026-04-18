@@ -6,7 +6,7 @@ import json
 import sqlite3
 from collections.abc import Iterable
 
-from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationsFileDocument
 from propstore.sidecar.claim_utils import claim_reference_map_from_conn, resolve_claim_reference
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 
-from propstore.artifacts.documents.rules import AtomDocument
+from propstore.families.documents.rules import AtomDocument
 from argumentation.aspic import GroundAtom, KnowledgeBase, Literal, Rule, Scalar
 from propstore.core.literal_keys import LiteralKey, ground_key
 from propstore.grounding.bundle import GroundedRulesBundle

@@ -459,25 +459,25 @@ class TestConflictInterventions:
 
 
 def _var(name: str):
-    from propstore.artifacts.documents.rules import TermDocument
+    from propstore.families.documents.rules import TermDocument
 
     return TermDocument(kind="var", name=name)
 
 
 def _atom(predicate: str, terms=(), *, negated: bool = False):
-    from propstore.artifacts.documents.rules import AtomDocument
+    from propstore.families.documents.rules import AtomDocument
 
     return AtomDocument(predicate=predicate, terms=tuple(terms), negated=negated)
 
 
 def _rule_doc(rule_id: str, kind: str, head, *, body=()):
-    from propstore.artifacts.documents.rules import RuleDocument
+    from propstore.families.documents.rules import RuleDocument
 
     return RuleDocument(id=rule_id, kind=kind, head=head, body=tuple(body))
 
 
 def _rule_file(rules):
-    from propstore.artifacts.documents.rules import RuleSourceDocument, RulesFileDocument
+    from propstore.families.documents.rules import RuleSourceDocument, RulesFileDocument
     from quire.documents import LoadedDocument
     from propstore.rule_files import LoadedRuleFile
 

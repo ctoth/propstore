@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterator
 
-from propstore.artifacts.documents.micropubs import (
+from propstore.families.documents.micropubs import (
     MicropublicationDocument,
     MicropublicationsFileDocument,
 )

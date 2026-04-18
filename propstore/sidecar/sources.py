@@ -6,7 +6,7 @@ import json
 import sqlite3
 from collections.abc import Iterable
 
-from propstore.artifacts.documents.sources import SourceDocument
+from propstore.families.documents.sources import SourceDocument
 
 
 def populate_sources(conn: sqlite3.Connection, sources: Iterable[tuple[str, SourceDocument]]) -> None:

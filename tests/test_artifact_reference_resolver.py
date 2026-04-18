@@ -10,12 +10,12 @@ from propstore.claim_references import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
-from propstore.artifacts.documents.claims import ClaimDocument, ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
-from propstore.artifacts.documents.contexts import ContextReferenceDocument
+from propstore.families.documents.claims import ClaimDocument, ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
+from propstore.families.documents.contexts import ContextReferenceDocument
 from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
-from propstore.artifacts.documents.sources import SourceClaimDocument, SourceClaimsDocument
-from propstore.artifacts.documents.sources import SourceProvenanceDocument
+from propstore.families.documents.sources import SourceClaimDocument, SourceClaimsDocument
+from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.source.common import source_branch_name
 
 

@@ -29,8 +29,8 @@ Theoretical sources:
       ranges variables over.
 
 DocumentStruct conventions mirrored from
-``propstore.artifacts.documents.rules`` and
-``propstore.artifacts.documents.claims``: ``msgspec.Struct`` with
+``propstore.families.documents.rules`` and
+``propstore.families.documents.claims``: ``msgspec.Struct`` with
 ``kw_only=True, forbid_unknown_fields=True``, list-valued fields use
 ``tuple[T, ...] = ()``, and round-tripping through ``msgspec.yaml`` is
 idempotent under strict decoding.
@@ -83,7 +83,7 @@ class PredicatesFileDocument(DocumentStruct):
     """Top-level envelope for an authored predicates YAML file.
 
     Mirrors the ``RulesFileDocument`` envelope shape from
-    ``propstore.artifacts.documents.rules``: a flat ordered tuple of
+    ``propstore.families.documents.rules``: a flat ordered tuple of
     predicate declarations. Order is preserved across YAML round-trip
     because Diller, Borg, Bex 2025 §3 builds the Datalog schema in
     declaration order — authored order is the only stable way to anchor

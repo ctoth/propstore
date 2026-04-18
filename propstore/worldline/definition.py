@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.artifacts.documents.worldlines import (
+from propstore.families.documents.worldlines import (
     WorldlineDefinitionDocument,
     WorldlineInputsDocument,
     WorldlinePolicyDocument,

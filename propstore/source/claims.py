@@ -4,10 +4,10 @@ import hashlib
 import json
 from pathlib import Path
 
-from propstore.artifacts.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument
+from propstore.families.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.families.registry import SourceRef
 from propstore.core.claim_types import ClaimType, coerce_claim_type
-from propstore.artifacts.documents.sources import SourceProvenanceDocument
+from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_path
 from propstore.identity import (
@@ -24,7 +24,7 @@ from .common import (
     source_branch_name,
     source_tag_uri,
 )
-from propstore.artifacts.documents.sources import ExtractionProvenanceDocument, SourceClaimDocument, SourceClaimsDocument
+from propstore.families.documents.sources import ExtractionProvenanceDocument, SourceClaimDocument, SourceClaimsDocument
 
 
 def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:

@@ -13,8 +13,8 @@ from propstore.claims import (
     claim_file_payload,
     loaded_claim_file_from_payload,
 )
-from propstore.artifacts.documents.claims import ClaimsFileDocument
-from propstore.artifacts.documents.concepts import ConceptDocument
+from propstore.families.documents.claims import ClaimsFileDocument
+from propstore.families.documents.concepts import ConceptDocument
 from propstore.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,

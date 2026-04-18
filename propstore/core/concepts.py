@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from propstore.cel_types import CelExpr, to_cel_exprs
-from propstore.artifacts.documents.concepts import (
+from propstore.families.documents.concepts import (
     ConceptAliasDocument,
     ConceptDocument,
     ConceptFormParametersDocument,

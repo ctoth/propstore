@@ -335,7 +335,7 @@ def _assert_sections(
 
 
 def _build_term_document(term: Variable | Constant):
-    from propstore.artifacts.documents.rules import TermDocument
+    from propstore.families.documents.rules import TermDocument
 
     if isinstance(term, Variable):
         return TermDocument(kind="var", name=term.name, value=None)
@@ -345,7 +345,7 @@ def _build_term_document(term: Variable | Constant):
 
 
 def _build_atom_document(atom_text: str):
-    from propstore.artifacts.documents.rules import AtomDocument
+    from propstore.families.documents.rules import AtomDocument
 
     parsed = parse_atom_text(atom_text)
     predicate, negated = _decode_gunray_predicate_token(parsed.predicate)
@@ -357,7 +357,7 @@ def _build_atom_document(atom_text: str):
 
 
 def _build_rule_document(rule: SuiteRule, *, kind: str):
-    from propstore.artifacts.documents.rules import RuleDocument
+    from propstore.families.documents.rules import RuleDocument
 
     return RuleDocument(
         id=rule.id,
@@ -369,7 +369,7 @@ def _build_rule_document(rule: SuiteRule, *, kind: str):
 
 def _build_rule_file(theory: SuiteTheory):
     from quire.documents import LoadedDocument
-    from propstore.artifacts.documents.rules import RuleSourceDocument, RulesFileDocument
+    from propstore.families.documents.rules import RuleSourceDocument, RulesFileDocument
     from propstore.rule_files import LoadedRuleFile
 
     rule_documents = [
@@ -409,7 +409,7 @@ def _build_fact_atoms(theory: SuiteTheory):
 def _build_registry(theory: SuiteTheory):
     from propstore.grounding.predicates import PredicateRegistry
     from quire.documents import LoadedDocument
-    from propstore.artifacts.documents.predicates import (
+    from propstore.families.documents.predicates import (
         PredicateDocument,
         PredicatesFileDocument,
     )

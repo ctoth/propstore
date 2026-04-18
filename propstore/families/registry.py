@@ -24,16 +24,16 @@ from quire.references import ForeignKeySpec
 from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
-from propstore.artifacts.documents.claims import ClaimsFileDocument
-from propstore.artifacts.documents.concepts import ConceptDocument
-from propstore.artifacts.documents.contexts import ContextDocument
-from propstore.artifacts.documents.forms import FormDocument
-from propstore.artifacts.documents.merge import MergeManifestDocument
-from propstore.artifacts.documents.micropubs import MicropublicationsFileDocument
-from propstore.artifacts.documents.predicates import PredicatesFileDocument
-from propstore.artifacts.documents.rules import RulesFileDocument
-from propstore.artifacts.documents.source_alignment import ConceptAlignmentArtifactDocument
-from propstore.artifacts.documents.sources import (
+from propstore.families.documents.claims import ClaimsFileDocument
+from propstore.families.documents.concepts import ConceptDocument
+from propstore.families.documents.contexts import ContextDocument
+from propstore.families.documents.forms import FormDocument
+from propstore.families.documents.merge import MergeManifestDocument
+from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.predicates import PredicatesFileDocument
+from propstore.families.documents.rules import RulesFileDocument
+from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
+from propstore.families.documents.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,
     SourceDocument,
@@ -41,8 +41,8 @@ from propstore.artifacts.documents.sources import (
     SourceJustificationsDocument,
     SourceStancesDocument,
 )
-from propstore.artifacts.documents.stances import StanceFileDocument
-from propstore.artifacts.documents.worldlines import WorldlineDefinitionDocument
+from propstore.families.documents.stances import StanceFileDocument
+from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 from propstore.core.concepts import concept_document_to_payload
 from propstore.identity import (
     concept_reference_keys,
@@ -54,6 +54,62 @@ from propstore.claim_references import ImportedClaimHandleIndex
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
+
+    @dataclass(frozen=True)
+    class SourceRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class ContextRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class FormRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class WorldlineRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class CanonicalSourceRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class ClaimsFileRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class MicropubsFileRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class ConceptFileRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class JustificationsFileRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class PredicateFileRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class RuleFileRef:
+        name: str
+
+    @dataclass(frozen=True)
+    class StanceFileRef:
+        source_claim: str
+
+    @dataclass(frozen=True)
+    class ConceptAlignmentRef:
+        slug: str
+
+    @dataclass(frozen=True)
+    class MergeManifestRef:
+        pass
 
 
 class PropstoreFamily(str, Enum):
@@ -82,26 +138,27 @@ class PropstoreFamily(str, Enum):
     MERGE_MANIFESTS = "merge_manifests"
 
 
-SourceRef = single_field_ref_type("SourceRef", "name", module=__name__)
-ContextRef = single_field_ref_type("ContextRef", "name", module=__name__)
-FormRef = single_field_ref_type("FormRef", "name", module=__name__)
-WorldlineRef = single_field_ref_type("WorldlineRef", "name", module=__name__)
-CanonicalSourceRef = single_field_ref_type("CanonicalSourceRef", "name", module=__name__)
-ClaimsFileRef = single_field_ref_type("ClaimsFileRef", "name", module=__name__)
-MicropubsFileRef = single_field_ref_type("MicropubsFileRef", "name", module=__name__)
-ConceptFileRef = single_field_ref_type("ConceptFileRef", "name", module=__name__)
-JustificationsFileRef = single_field_ref_type("JustificationsFileRef", "name", module=__name__)
-PredicateFileRef = single_field_ref_type("PredicateFileRef", "name", module=__name__)
-RuleFileRef = single_field_ref_type("RuleFileRef", "name", module=__name__)
-StanceFileRef = single_field_ref_type("StanceFileRef", "source_claim", module=__name__)
-ConceptAlignmentRef = single_field_ref_type("ConceptAlignmentRef", "slug", module=__name__)
-MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
+if not TYPE_CHECKING:
+    SourceRef = single_field_ref_type("SourceRef", "name", module=__name__)
+    ContextRef = single_field_ref_type("ContextRef", "name", module=__name__)
+    FormRef = single_field_ref_type("FormRef", "name", module=__name__)
+    WorldlineRef = single_field_ref_type("WorldlineRef", "name", module=__name__)
+    CanonicalSourceRef = single_field_ref_type("CanonicalSourceRef", "name", module=__name__)
+    ClaimsFileRef = single_field_ref_type("ClaimsFileRef", "name", module=__name__)
+    MicropubsFileRef = single_field_ref_type("MicropubsFileRef", "name", module=__name__)
+    ConceptFileRef = single_field_ref_type("ConceptFileRef", "name", module=__name__)
+    JustificationsFileRef = single_field_ref_type("JustificationsFileRef", "name", module=__name__)
+    PredicateFileRef = single_field_ref_type("PredicateFileRef", "name", module=__name__)
+    RuleFileRef = single_field_ref_type("RuleFileRef", "name", module=__name__)
+    StanceFileRef = single_field_ref_type("StanceFileRef", "source_claim", module=__name__)
+    ConceptAlignmentRef = single_field_ref_type("ConceptAlignmentRef", "slug", module=__name__)
+    MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
 
 
-ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.24")
-CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.26")
-SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.26")
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.26")
+ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
+CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
+SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.27")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")

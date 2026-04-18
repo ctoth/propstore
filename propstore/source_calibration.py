@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from quire.documents import convert_document_value
-from propstore.artifacts.documents.sources import SourceDocument
+from propstore.families.documents.sources import SourceDocument
 from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
 from propstore.source.common import load_source_metadata, normalize_source_slug

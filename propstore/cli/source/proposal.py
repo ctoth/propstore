@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.artifacts.documents.sources import SourceConceptFormParametersDocument
+from propstore.families.documents.sources import SourceConceptFormParametersDocument
 from propstore.core.claim_types import coerce_claim_type
 from propstore.repository import Repository
 from propstore.stances import coerce_stance_type

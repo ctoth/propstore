@@ -43,7 +43,7 @@ from hypothesis import strategies as st
 #
 # Strategies live in this file per the chunk constraint: no conftest.py,
 # no shared helper module. Every strategy closes over deferred imports so
-# the file parses without `propstore.artifacts.documents.predicates`.
+# the file parses without `propstore.families.documents.predicates`.
 
 
 _PREDICATE_ID_HEAD = st.sampled_from(
@@ -110,7 +110,7 @@ def predicate_documents() -> st.SearchStrategy:
     ``claim.condition:...``); ``description`` is a free-text annotation.
     """
 
-    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
 
     @st.composite
     def _build(draw: st.DrawFn) -> "PredicateDocument":
@@ -151,7 +151,7 @@ def predicates_file_documents() -> st.SearchStrategy:
     way to anchor authoring intent across re-encoding.
     """
 
-    from propstore.artifacts.documents.predicates import PredicatesFileDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicatesFileDocument  # noqa: E402
 
     return st.builds(
         PredicatesFileDocument,
@@ -172,7 +172,7 @@ def test_predicate_document_yaml_round_trip(doc) -> None:
     Datalog grounder can rely on the declarations across pipeline runs).
     """
 
-    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=PredicateDocument, strict=True)
@@ -189,7 +189,7 @@ def test_predicates_file_document_yaml_round_trip(doc) -> None:
     must re-encode to a payload that decodes back to an equal document.
     """
 
-    from propstore.artifacts.documents.predicates import PredicatesFileDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicatesFileDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=PredicatesFileDocument, strict=True)
@@ -236,7 +236,7 @@ def test_predicate_document_unknown_field_rejected() -> None:
     silently dropping mystery fields would let typos pass.
     """
 
-    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
 
     yaml_with_extra = b"""
 id: bird
@@ -257,7 +257,7 @@ def test_predicate_document_example_birds() -> None:
     PredicateDocument surface from drifting silently.
     """
 
-    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
 
     yaml_text = b"""
 id: bird
@@ -284,7 +284,7 @@ def test_predicate_document_nullary() -> None:
     Datalog programs.
     """
 
-    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
 
     yaml_text = b"""
 id: raining
@@ -308,7 +308,7 @@ def test_predicate_document_omits_optional_fields() -> None:
     documentation are layered on top.
     """
 
-    from propstore.artifacts.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
 
     yaml_text = b"""
 id: flies
@@ -331,7 +331,7 @@ def test_loaded_predicate_file_from_loaded_document() -> None:
     """
 
     from quire.documents import LoadedDocument
-    from propstore.artifacts.documents.predicates import (  # noqa: E402
+    from propstore.families.documents.predicates import (  # noqa: E402
         PredicateDocument,
         PredicatesFileDocument,
     )
@@ -369,7 +369,7 @@ def test_predicates_file_document_preserves_order(file_doc) -> None:
     silently scramble.
     """
 
-    from propstore.artifacts.documents.predicates import PredicatesFileDocument  # noqa: E402
+    from propstore.families.documents.predicates import PredicatesFileDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(file_doc)
     decoded = msgspec.yaml.decode(encoded, type=PredicatesFileDocument, strict=True)

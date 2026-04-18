@@ -8,8 +8,8 @@ from dulwich.repo import MemoryRepo
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.artifacts.documents.claims import OpinionDocument, ResolutionDocument
-from propstore.artifacts.documents.sources import (
+from propstore.families.documents.claims import OpinionDocument, ResolutionDocument
+from propstore.families.documents.sources import (
     SourceTrustDocument,
     SourceTrustQualityDocument,
 )

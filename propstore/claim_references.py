@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from propstore.artifacts.documents.claims import ClaimLogicalIdDocument
-from propstore.artifacts.documents.sources import SourceClaimsDocument
+from propstore.families.documents.claims import ClaimLogicalIdDocument
+from propstore.families.documents.sources import SourceClaimsDocument
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
