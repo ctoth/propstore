@@ -11,6 +11,16 @@ from .common import normalize_source_slug
 from propstore.artifacts.documents.sources import SourceConceptsDocument
 
 
+def _derived_concept_artifact_id(handle: str) -> str:
+    artifact_id = normalize_canonical_concept_payload(
+        {"canonical_name": handle},
+        local_handle=normalize_source_slug(handle),
+    )["artifact_id"]
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raise ValueError("normalized concept payload did not produce an artifact_id")
+    return artifact_id
+
+
 def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
     from propstore.core.concepts import load_concepts
 
@@ -99,10 +109,7 @@ def projected_source_concepts(
                     break
         handle_seed = str(entry.proposed_name or entry.local_name or "concept")
         if artifact_id is None:
-            artifact_id = normalize_canonical_concept_payload(
-                {"canonical_name": handle_seed},
-                local_handle=normalize_source_slug(handle_seed),
-            )["artifact_id"]
+            artifact_id = _derived_concept_artifact_id(handle_seed)
 
         projected_entry = {
             "artifact_id": artifact_id,
@@ -129,10 +136,7 @@ def projected_source_concepts(
                     continue
                 artifact_id = local_handle_to_artifact.get(input_ref) or primary_handle_to_artifact.get(input_ref)
                 if artifact_id is None:
-                    artifact_id = normalize_canonical_concept_payload(
-                        {"canonical_name": input_ref},
-                        local_handle=normalize_source_slug(input_ref),
-                    )["artifact_id"]
+                    artifact_id = _derived_concept_artifact_id(input_ref)
                 inputs.append(artifact_id)
             resolved["inputs"] = inputs
             params.append(resolved)
