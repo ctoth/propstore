@@ -99,8 +99,9 @@ MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
 
 
 ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.24")
-CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.25")
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.25")
+CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.26")
+SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.26")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.26")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
@@ -361,7 +362,7 @@ SOURCE_DOCUMENT_FAMILY = ArtifactFamily["Repository", SourceRef, SourceDocument]
 
 SOURCE_NOTES_FAMILY = ArtifactFamily["Repository", SourceRef, str](
     name="source_notes",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=str,
     placement=SOURCE_NOTES_PLACEMENT,
     coerce_payload=_coerce_text_document,
@@ -373,7 +374,7 @@ SOURCE_NOTES_FAMILY = ArtifactFamily["Repository", SourceRef, str](
 
 SOURCE_METADATA_FAMILY = ArtifactFamily["Repository", SourceRef, dict[str, Any]](
     name="source_metadata",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=dict,
     placement=SOURCE_METADATA_PLACEMENT,
     coerce_payload=_coerce_json_mapping,
