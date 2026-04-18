@@ -10,12 +10,6 @@ from pathlib import Path
 from typing import Literal
 
 from quire.documents import DocumentSchemaError
-from propstore.artifacts.families import (
-    CLAIMS_FILE_FAMILY,
-    CONCEPT_FILE_FAMILY,
-    CONTEXT_FAMILY,
-    FORM_FAMILY,
-)
 from propstore.claims import claim_file_payload
 from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.compiler.passes import compile_claim_files, validate_claims
@@ -103,8 +97,8 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
     tree = repo.tree()
     try:
         concepts: list[LoadedConcept] = []
-        for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY):
-            handle = repo.artifacts.require_handle(CONCEPT_FILE_FAMILY, ref)
+        for ref in repo.families.concepts.list():
+            handle = repo.families.concepts.require_handle(ref)
             concepts.append(
                 LoadedConcept(
                     filename=ref.name,
@@ -132,11 +126,11 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
     form_result = ValidationResult()
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.artifacts.list(FORM_FAMILY)
-        for document in (repo.artifacts.require(FORM_FAMILY, form_ref),)
+        for form_ref in repo.families.forms.list()
+        for document in (repo.families.forms.require(form_ref),)
     }
-    for form_ref in repo.artifacts.list(FORM_FAMILY):
-        document = repo.artifacts.require(FORM_FAMILY, form_ref)
+    for form_ref in repo.families.forms.list():
+        document = repo.families.forms.require(form_ref)
         dims = document.dimensions
         is_dimless = document.dimensionless
         has_unit = document.unit_symbol is not None
@@ -161,8 +155,8 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
     messages.extend(_messages_from_result(form_result, scope="form"))
 
     files = [
-        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref)
-        for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY)
+        repo.families.claims.require_handle(ref)
+        for ref in repo.families.claims.list()
     ]
 
     concept_result = validate_concepts(
@@ -197,8 +191,8 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
                 knowledge_root=tree,
                 record=parse_context_record_document(handle.document),
             )
-            for ref in repo.artifacts.list(CONTEXT_FAMILY)
-            for handle in (repo.artifacts.require_handle(CONTEXT_FAMILY, ref),)
+            for ref in repo.families.contexts.list()
+            for handle in (repo.families.contexts.require_handle(ref),)
         ]
     except DocumentSchemaError as exc:
         raise CompilerWorkflowError(
@@ -243,9 +237,8 @@ def build_repository(
 
     try:
         concepts: list[LoadedConcept] = []
-        for ref in repo.artifacts.list(CONCEPT_FILE_FAMILY, commit=hash_key):
-            handle = repo.artifacts.require_handle(
-                CONCEPT_FILE_FAMILY,
+        for ref in repo.families.concepts.list(commit=hash_key):
+            handle = repo.families.concepts.require_handle(
                 ref,
                 commit=hash_key,
             )
@@ -277,11 +270,11 @@ def build_repository(
     form_result = ValidationResult()
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.artifacts.list(FORM_FAMILY, commit=hash_key)
-        for document in (repo.artifacts.require(FORM_FAMILY, form_ref, commit=hash_key),)
+        for form_ref in repo.families.forms.list(commit=hash_key)
+        for document in (repo.families.forms.require(form_ref, commit=hash_key),)
     }
-    for form_ref in repo.artifacts.list(FORM_FAMILY, commit=hash_key):
-        document = repo.artifacts.require(FORM_FAMILY, form_ref, commit=hash_key)
+    for form_ref in repo.families.forms.list(commit=hash_key):
+        document = repo.families.forms.require(form_ref, commit=hash_key)
         dims = document.dimensions
         is_dimless = document.dimensionless
         has_unit = document.unit_symbol is not None
@@ -310,8 +303,8 @@ def build_repository(
         )
 
     files = [
-        repo.artifacts.require_handle(CLAIMS_FILE_FAMILY, ref, commit=hash_key)
-        for ref in repo.artifacts.list(CLAIMS_FILE_FAMILY, commit=hash_key)
+        repo.families.claims.require_handle(ref, commit=hash_key)
+        for ref in repo.families.claims.list(commit=hash_key)
     ]
 
     concept_result = validate_concepts(
@@ -340,9 +333,9 @@ def build_repository(
                 knowledge_root=tree,
                 record=parse_context_record_document(handle.document),
             )
-            for ref in repo.artifacts.list(CONTEXT_FAMILY, commit=hash_key)
+            for ref in repo.families.contexts.list(commit=hash_key)
             for handle in (
-                repo.artifacts.require_handle(CONTEXT_FAMILY, ref, commit=hash_key),
+                repo.families.contexts.require_handle(ref, commit=hash_key),
             )
         ]
     except DocumentSchemaError as exc:
