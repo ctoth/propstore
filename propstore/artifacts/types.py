@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import msgspec
+from quire.versions import VersionId
 
 if TYPE_CHECKING:
     from propstore.artifacts.store import ArtifactRepository
@@ -51,6 +52,7 @@ class PreparedArtifact(Generic[TRef, TDoc]):
 @dataclass(frozen=True)
 class ArtifactFamily(Generic[TRef, TDoc]):
     name: str
+    contract_version: VersionId
     doc_type: type[TDoc]
     resolve_ref: Callable[[Repository, TRef], ResolvedArtifact]
     coerce_payload: Callable[[object, str], TDoc] | None = None

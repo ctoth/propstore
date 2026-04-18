@@ -1,0 +1,2516 @@
+format_version: 1
+package:
+  name: propstore
+  version: 0.1.0
+contracts:
+- kind: artifact_family
+  name: canonical_source
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.sources.SourceDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: claims_file
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.claims.ClaimsFileDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: true
+    has_normalize_for_write: false
+    has_ref_from_loaded: true
+    has_ref_from_path: true
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: concept_alignment
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.source_alignment.ConceptAlignmentArtifactDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: concept_file
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.concepts.ConceptDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: true
+    has_normalize_for_write: true
+    has_ref_from_loaded: true
+    has_ref_from_path: true
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: context
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.contexts.ContextDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: true
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: form
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.forms.FormDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: true
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: justifications_file
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: merge_manifest
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.merge.MergeManifestDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: micropubs_file
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: true
+    has_normalize_for_write: false
+    has_ref_from_loaded: true
+    has_ref_from_path: true
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: proposal_stance_file
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.stances.StanceFileDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: true
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: true
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: source_claims
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.sources.SourceClaimsDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: source_concepts
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.sources.SourceConceptsDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: source_document
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.sources.SourceDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: source_finalize_report
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.sources.SourceFinalizeReportDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: source_justifications
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.sources.SourceJustificationsDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: source_metadata
+  contract_version: 2026.04.18
+  body:
+    doc_type: builtins.dict
+    has_coerce_payload: true
+    has_decode_bytes: true
+    has_document_payload: true
+    has_encode_document: true
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: true
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: source_micropubs
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.micropubs.MicropublicationsFileDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: source_notes
+  contract_version: 2026.04.18
+  body:
+    doc_type: builtins.str
+    has_coerce_payload: true
+    has_decode_bytes: true
+    has_document_payload: true
+    has_encode_document: true
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: true
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: source_stances
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.sources.SourceStancesDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: false
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: false
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: stance_file
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.stances.StanceFileDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: true
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: true
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: artifact_family
+  name: worldline
+  contract_version: 2026.04.18
+  body:
+    doc_type: propstore.artifacts.documents.worldlines.WorldlineDefinitionDocument
+    has_coerce_payload: false
+    has_decode_bytes: false
+    has_document_payload: false
+    has_encode_document: false
+    has_list_refs: true
+    has_normalize_for_write: false
+    has_ref_from_loaded: false
+    has_ref_from_path: true
+    has_render_document: false
+    has_validate_for_write: false
+    scan_type: null
+- kind: document_schema
+  name: AlignmentArgumentDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str
+    - name: source
+      required: true
+      type: str
+    - name: local_handle
+      required: true
+      type: str
+    - name: proposed_name
+      required: true
+      type: str
+    - name: proposed_uri
+      required: true
+      type: str
+    - name: definition
+      required: true
+      type: str
+    - name: form
+      required: true
+      type: str
+    module: propstore.artifacts.documents.source_alignment
+- kind: document_schema
+  name: AlignmentDecisionDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: status
+      required: true
+      type: str
+    - name: accepted
+      required: true
+      type: tuple[str, ...]
+    - name: rejected
+      required: true
+      type: tuple[str, ...]
+    - name: promoted_concept
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.source_alignment
+- kind: document_schema
+  name: AlignmentFrameworkDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: attacks
+      required: true
+      type: tuple[tuple[str, str], ...]
+    - name: ignorance
+      required: true
+      type: tuple[tuple[str, str], ...]
+    - name: non_attacks
+      required: true
+      type: tuple[tuple[str, str], ...]
+    module: propstore.artifacts.documents.source_alignment
+- kind: document_schema
+  name: AlignmentQueriesDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: skeptical_acceptance
+      required: true
+      type: tuple[str, ...]
+    - name: credulous_acceptance
+      required: true
+      type: tuple[str, ...]
+    - name: operator_scores
+      required: true
+      type: dict[str, dict[str, int]]
+    module: propstore.artifacts.documents.source_alignment
+- kind: document_schema
+  name: AtomDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: predicate
+      required: true
+      type: str
+    - name: terms
+      required: true
+      type: tuple[TermDocument, ...]
+    - name: negated
+      required: true
+      type: bool
+    module: propstore.artifacts.documents.rules
+- kind: document_schema
+  name: AtomicPropositionDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: type
+      required: true
+      type: ClaimType
+    - name: body
+      required: true
+      type: str | None
+    - name: concept
+      required: true
+      type: str | None
+    - name: concepts
+      required: true
+      type: tuple[str, ...]
+    - name: conditions
+      required: true
+      type: tuple[CelExpr, ...]
+    - name: confidence
+      required: true
+      type: float | int | None
+    - name: equations
+      required: true
+      type: tuple[str, ...]
+    - name: expression
+      required: true
+      type: str | None
+    - name: fit
+      required: true
+      type: FitStatisticsDocument | None
+    - name: listener_population
+      required: true
+      type: str | None
+    - name: lower_bound
+      required: true
+      type: float | int | None
+    - name: measure
+      required: true
+      type: str | None
+    - name: methodology
+      required: true
+      type: str | None
+    - name: name
+      required: true
+      type: str | None
+    - name: notes
+      required: true
+      type: str | None
+    - name: parameters
+      required: true
+      type: tuple[ParameterBindingDocument, ...]
+    - name: sample_size
+      required: true
+      type: int | None
+    - name: stage
+      required: true
+      type: AlgorithmStage | None
+    - name: statement
+      required: true
+      type: str | None
+    - name: sympy
+      required: true
+      type: str | None
+    - name: target_concept
+      required: true
+      type: str | None
+    - name: uncertainty
+      required: true
+      type: float | int | None
+    - name: uncertainty_type
+      required: true
+      type: str | None
+    - name: unit
+      required: true
+      type: str | None
+    - name: upper_bound
+      required: true
+      type: float | int | None
+    - name: value
+      required: true
+      type: float | int | None
+    - name: variables
+      required: true
+      type: tuple[VariableBindingDocument, ...]
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: ClaimDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: context
+      required: true
+      type: ContextReferenceDocument
+    - name: proposition
+      required: true
+      type: AtomicPropositionDocument | IstPropositionDocument | None
+    - name: artifact_id
+      required: true
+      type: str | None
+    - name: artifact_code
+      required: true
+      type: str | None
+    - name: logical_ids
+      required: true
+      type: tuple[ClaimLogicalIdDocument, ...]
+    - name: version_id
+      required: true
+      type: str | None
+    - name: type
+      required: true
+      type: ClaimType | None
+    - name: provenance
+      required: true
+      type: ProvenanceDocument | None
+    - name: id
+      required: true
+      type: str | None
+    - name: body
+      required: true
+      type: str | None
+    - name: concept
+      required: true
+      type: str | None
+    - name: concepts
+      required: true
+      type: tuple[str, ...]
+    - name: conditions
+      required: true
+      type: tuple[CelExpr, ...]
+    - name: confidence
+      required: true
+      type: float | int | None
+    - name: equations
+      required: true
+      type: tuple[str, ...]
+    - name: expression
+      required: true
+      type: str | None
+    - name: fit
+      required: true
+      type: FitStatisticsDocument | None
+    - name: listener_population
+      required: true
+      type: str | None
+    - name: lower_bound
+      required: true
+      type: float | int | None
+    - name: measure
+      required: true
+      type: str | None
+    - name: methodology
+      required: true
+      type: str | None
+    - name: name
+      required: true
+      type: str | None
+    - name: notes
+      required: true
+      type: str | None
+    - name: parameters
+      required: true
+      type: tuple[ParameterBindingDocument, ...]
+    - name: sample_size
+      required: true
+      type: int | None
+    - name: stage
+      required: true
+      type: AlgorithmStage | None
+    - name: stances
+      required: true
+      type: tuple[StanceDocument, ...]
+    - name: statement
+      required: true
+      type: str | None
+    - name: sympy
+      required: true
+      type: str | None
+    - name: target_concept
+      required: true
+      type: str | None
+    - name: uncertainty
+      required: true
+      type: float | int | None
+    - name: uncertainty_type
+      required: true
+      type: str | None
+    - name: unit
+      required: true
+      type: str | None
+    - name: upper_bound
+      required: true
+      type: float | int | None
+    - name: value
+      required: true
+      type: float | int | None
+    - name: variables
+      required: true
+      type: tuple[VariableBindingDocument, ...]
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: ClaimLogicalIdDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: namespace
+      required: true
+      type: str
+    - name: value
+      required: true
+      type: str
+    - name: confidence
+      required: true
+      type: float | int | None
+    - name: pass_number
+      required: true
+      type: int | None
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: ClaimSourceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: paper
+      required: true
+      type: str
+    - name: extraction_date
+      required: true
+      type: str | None
+    - name: extraction_model
+      required: true
+      type: str | None
+    - name: extraction_prompt_hash
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: ClaimsFileDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: source
+      required: true
+      type: ClaimSourceDocument
+    - name: claims
+      required: true
+      type: tuple[ClaimDocument, ...]
+    - name: stage
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: ConceptAliasDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: name
+      required: true
+      type: str
+    - name: source
+      required: true
+      type: str | None
+    - name: note
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: ConceptAlignmentArtifactDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: kind
+      required: true
+      type: str
+    - name: id
+      required: true
+      type: str
+    - name: sources
+      required: true
+      type: tuple[str, ...]
+    - name: arguments
+      required: true
+      type: tuple[AlignmentArgumentDocument, ...]
+    - name: framework
+      required: true
+      type: AlignmentFrameworkDocument
+    - name: queries
+      required: true
+      type: AlignmentQueriesDocument
+    - name: decision
+      required: true
+      type: AlignmentDecisionDocument
+    module: propstore.artifacts.documents.source_alignment
+- kind: document_schema
+  name: ConceptDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: status
+      required: true
+      type: ConceptStatus
+    - name: ontology_reference
+      required: true
+      type: OntologyReferenceDocument
+    - name: lexical_entry
+      required: true
+      type: LexicalEntryDocument
+    - name: artifact_id
+      required: true
+      type: str | None
+    - name: logical_ids
+      required: true
+      type: tuple[ConceptLogicalIdDocument, ...]
+    - name: version_id
+      required: true
+      type: str | None
+    - name: aliases
+      required: true
+      type: tuple[ConceptAliasDocument, ...]
+    - name: created_date
+      required: true
+      type: str | None
+    - name: definition_source
+      required: true
+      type: str | None
+    - name: domain
+      required: true
+      type: str | None
+    - name: form_parameters
+      required: true
+      type: ConceptFormParametersDocument | None
+    - name: last_modified
+      required: true
+      type: str | None
+    - name: notes
+      required: true
+      type: str | None
+    - name: parameterization_relationships
+      required: true
+      type: tuple[ParameterizationRelationshipDocument, ...]
+    - name: range
+      required: true
+      type: tuple[float, float] | None
+    - name: relationships
+      required: true
+      type: tuple[ConceptRelationshipDocument, ...]
+    - name: replaced_by
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: ConceptFormParametersDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: construction
+      required: true
+      type: str | None
+    - name: extensible
+      required: true
+      type: bool | None
+    - name: note
+      required: true
+      type: str | None
+    - name: reference
+      required: true
+      type: str | None
+    - name: values
+      required: true
+      type: tuple[str, ...] | None
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: ConceptIdScanDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str | None
+    - name: artifact_id
+      required: true
+      type: str | None
+    - name: logical_ids
+      required: true
+      type: tuple[ConceptLogicalIdDocument, ...]
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: ConceptLogicalIdDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: namespace
+      required: true
+      type: str
+    - name: value
+      required: true
+      type: str
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: ConceptRelationshipDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: type
+      required: true
+      type: ConceptRelationshipType
+    - name: target
+      required: true
+      type: str
+    - name: source
+      required: true
+      type: str | None
+    - name: conditions
+      required: true
+      type: tuple[CelExpr, ...]
+    - name: note
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: ContextDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str
+    - name: name
+      required: true
+      type: str
+    - name: description
+      required: true
+      type: str | None
+    - name: structure
+      required: true
+      type: ContextStructureDocument
+    - name: lifting_rules
+      required: true
+      type: tuple[LiftingRuleDocument, ...]
+    module: propstore.artifacts.documents.contexts
+- kind: document_schema
+  name: ContextReferenceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str
+    module: propstore.artifacts.documents.contexts
+- kind: document_schema
+  name: ContextStructureDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: assumptions
+      required: true
+      type: tuple[CelExpr, ...]
+    - name: parameters
+      required: true
+      type: Mapping[str, str]
+    - name: perspective
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.contexts
+- kind: document_schema
+  name: ExtractionProvenanceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: reader
+      required: true
+      type: str | None
+    - name: method
+      required: true
+      type: str | None
+    - name: timestamp
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: FitStatisticsDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: r
+      required: true
+      type: float | int | None
+    - name: r_sd
+      required: true
+      type: float | int | None
+    - name: slope
+      required: true
+      type: float | int | None
+    - name: slope_sd
+      required: true
+      type: float | int | None
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: FormAlternativeDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: unit
+      required: true
+      type: str
+    - name: type
+      required: true
+      type: str
+    - name: multiplier
+      required: true
+      type: float
+    - name: offset
+      required: true
+      type: float
+    - name: base
+      required: true
+      type: float
+    - name: divisor
+      required: true
+      type: float
+    - name: reference
+      required: true
+      type: float
+    module: propstore.artifacts.documents.forms
+- kind: document_schema
+  name: FormDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: name
+      required: true
+      type: str
+    - name: dimensionless
+      required: true
+      type: bool
+    - name: base
+      required: true
+      type: str | None
+    - name: unit_symbol
+      required: true
+      type: str | None
+    - name: qudt
+      required: true
+      type: str | None
+    - name: parameters
+      required: true
+      type: dict[str, Any]
+    - name: common_alternatives
+      required: true
+      type: tuple[FormAlternativeDocument, ...]
+    - name: kind
+      required: true
+      type: str | None
+    - name: note
+      required: true
+      type: str | None
+    - name: dimensions
+      required: true
+      type: dict[str, int] | None
+    - name: extra_units
+      required: true
+      type: tuple[FormExtraUnitDocument, ...]
+    module: propstore.artifacts.documents.forms
+- kind: document_schema
+  name: FormExtraUnitDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: symbol
+      required: true
+      type: str
+    - name: dimensions
+      required: true
+      type: dict[str, int]
+    module: propstore.artifacts.documents.forms
+- kind: document_schema
+  name: IstPropositionDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: context
+      required: true
+      type: ContextReferenceDocument
+    - name: proposition
+      required: true
+      type: AtomicPropositionDocument | IstPropositionDocument
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: LexicalEntryDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: identifier
+      required: true
+      type: str
+    - name: canonical_form
+      required: true
+      type: LexicalFormDocument
+    - name: senses
+      required: true
+      type: tuple[LexicalSenseDocument, ...]
+    - name: physical_dimension_form
+      required: true
+      type: str
+    - name: other_forms
+      required: true
+      type: tuple[LexicalFormDocument, ...]
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: LexicalFormDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: written_rep
+      required: true
+      type: str
+    - name: language
+      required: true
+      type: str
+    - name: phonetic_rep
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: LexicalSenseDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: reference
+      required: true
+      type: OntologyReferenceDocument
+    - name: usage
+      required: true
+      type: str | None
+    - name: provenance
+      required: true
+      type: Provenance | None
+    - name: qualia
+      required: true
+      type: QualiaStructure | None
+    - name: description_kind
+      required: true
+      type: DescriptionKind | None
+    - name: role_bundles
+      required: true
+      type: dict[str, ProtoRoleBundle] | None
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: LiftingRuleDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str
+    - name: source
+      required: true
+      type: str
+    - name: target
+      required: true
+      type: str
+    - name: conditions
+      required: true
+      type: tuple[CelExpr, ...]
+    - name: mode
+      required: true
+      type: LiftingMode
+    - name: justification
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.contexts
+- kind: document_schema
+  name: MergeManifestArgumentDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: claim_id
+      required: true
+      type: str
+    - name: artifact_id
+      required: true
+      type: str
+    - name: logical_id
+      required: true
+      type: str
+    - name: canonical_claim_id
+      required: true
+      type: str | None
+    - name: branch_origins
+      required: true
+      type: tuple[str, ...]
+    - name: materialized
+      required: true
+      type: bool
+    module: propstore.artifacts.documents.merge
+- kind: document_schema
+  name: MergeManifestDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: merge
+      required: true
+      type: MergeManifestPayloadDocument
+    module: propstore.artifacts.documents.merge
+- kind: document_schema
+  name: MergeManifestPayloadDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: branch_a
+      required: true
+      type: str
+    - name: branch_b
+      required: true
+      type: str
+    - name: arguments
+      required: true
+      type: tuple[MergeManifestArgumentDocument, ...]
+    - name: semantic_candidates
+      required: true
+      type: tuple[tuple[str, ...], ...]
+    - name: semantic_candidate_details
+      required: true
+      type: tuple[MergeSemanticCandidateDetailDocument, ...]
+    module: propstore.artifacts.documents.merge
+- kind: document_schema
+  name: MergeSemanticCandidateArgumentDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: claim_id
+      required: true
+      type: str
+    - name: logical_id
+      required: true
+      type: str
+    - name: artifact_id
+      required: true
+      type: str
+    - name: branch_origins
+      required: true
+      type: tuple[str, ...]
+    - name: source_paper
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.merge
+- kind: document_schema
+  name: MergeSemanticCandidateDetailDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: claim_ids
+      required: true
+      type: tuple[str, ...]
+    - name: logical_ids
+      required: true
+      type: tuple[str, ...]
+    - name: artifact_ids
+      required: true
+      type: tuple[str, ...]
+    - name: arguments
+      required: true
+      type: tuple[MergeSemanticCandidateArgumentDocument, ...]
+    module: propstore.artifacts.documents.merge
+- kind: document_schema
+  name: MicropublicationDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: artifact_id
+      required: true
+      type: str
+    - name: context
+      required: true
+      type: ContextReferenceDocument
+    - name: claims
+      required: true
+      type: tuple[str, ...]
+    - name: version_id
+      required: true
+      type: str | None
+    - name: evidence
+      required: true
+      type: tuple[MicropublicationEvidenceDocument, ...]
+    - name: assumptions
+      required: true
+      type: tuple[str, ...]
+    - name: stance
+      required: true
+      type: StanceType | None
+    - name: provenance
+      required: true
+      type: ProvenanceDocument | None
+    - name: source
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.micropubs
+- kind: document_schema
+  name: MicropublicationEvidenceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: kind
+      required: true
+      type: str
+    - name: reference
+      required: true
+      type: str
+    module: propstore.artifacts.documents.micropubs
+- kind: document_schema
+  name: MicropublicationsFileDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: micropubs
+      required: true
+      type: tuple[MicropublicationDocument, ...]
+    - name: source
+      required: true
+      type: ClaimSourceDocument | None
+    module: propstore.artifacts.documents.micropubs
+- kind: document_schema
+  name: OntologyReferenceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: uri
+      required: true
+      type: str
+    - name: label
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: OpinionDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: b
+      required: true
+      type: float | int
+    - name: d
+      required: true
+      type: float | int
+    - name: u
+      required: true
+      type: float | int
+    - name: a
+      required: true
+      type: float | int
+    - name: provenance
+      required: true
+      type: Provenance
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: ParameterBindingDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: name
+      required: true
+      type: str
+    - name: concept
+      required: true
+      type: str
+    - name: note
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: ParameterizationRelationshipDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: inputs
+      required: true
+      type: tuple[str, ...]
+    - name: formula
+      required: true
+      type: str | None
+    - name: exactness
+      required: true
+      type: Exactness | None
+    - name: source
+      required: true
+      type: str | None
+    - name: bidirectional
+      required: true
+      type: bool | None
+    - name: sympy
+      required: true
+      type: str | None
+    - name: conditions
+      required: true
+      type: tuple[CelExpr, ...]
+    - name: note
+      required: true
+      type: str | None
+    - name: canonical_claim
+      required: true
+      type: str | None
+    - name: fit_statistics
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.concepts
+- kind: document_schema
+  name: PredicateDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str
+    - name: arity
+      required: true
+      type: int
+    - name: arg_types
+      required: true
+      type: tuple[str, ...]
+    - name: derived_from
+      required: true
+      type: str | None
+    - name: description
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.predicates
+- kind: document_schema
+  name: PredicatesFileDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: predicates
+      required: true
+      type: tuple[PredicateDocument, ...]
+    module: propstore.artifacts.documents.predicates
+- kind: document_schema
+  name: ProvenanceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: page
+      required: true
+      type: int
+    - name: paper
+      required: true
+      type: str | None
+    - name: date
+      required: true
+      type: str | None
+    - name: figure
+      required: true
+      type: str | None
+    - name: quote_fragment
+      required: true
+      type: str | None
+    - name: section
+      required: true
+      type: str | None
+    - name: table
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: ResolutionDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: method
+      required: true
+      type: str
+    - name: embedding_distance
+      required: true
+      type: float | int | None
+    - name: embedding_model
+      required: true
+      type: str | None
+    - name: model
+      required: true
+      type: str | None
+    - name: pass_number
+      required: true
+      type: int | None
+    - name: confidence
+      required: true
+      type: float | int | None
+    - name: opinion
+      required: true
+      type: OpinionDocument | None
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: RuleDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str
+    - name: kind
+      required: true
+      type: Literal['strict', 'defeasible', 'defeater']
+    - name: head
+      required: true
+      type: AtomDocument
+    - name: body
+      required: true
+      type: tuple[AtomDocument, ...]
+    module: propstore.artifacts.documents.rules
+- kind: document_schema
+  name: RuleSourceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: paper
+      required: true
+      type: str
+    module: propstore.artifacts.documents.rules
+- kind: document_schema
+  name: RulesFileDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: source
+      required: true
+      type: RuleSourceDocument
+    - name: rules
+      required: true
+      type: tuple[RuleDocument, ...]
+    - name: superiority
+      required: true
+      type: tuple[tuple[str, str], ...]
+    module: propstore.artifacts.documents.rules
+- kind: document_schema
+  name: SourceAttackTargetDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: target_claim
+      required: true
+      type: str | None
+    - name: target_justification_id
+      required: true
+      type: str | None
+    - name: target_premise_index
+      required: true
+      type: int | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceClaimDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: artifact_id
+      required: true
+      type: str | None
+    - name: logical_ids
+      required: true
+      type: tuple[ClaimLogicalIdDocument, ...]
+    - name: version_id
+      required: true
+      type: str | None
+    - name: type
+      required: true
+      type: ClaimType | None
+    - name: provenance
+      required: true
+      type: SourceProvenanceDocument | None
+    - name: id
+      required: true
+      type: str | None
+    - name: body
+      required: true
+      type: str | None
+    - name: concept
+      required: true
+      type: str | None
+    - name: concepts
+      required: true
+      type: tuple[str, ...]
+    - name: conditions
+      required: true
+      type: tuple[CelExpr, ...]
+    - name: context
+      required: true
+      type: str | None
+    - name: equations
+      required: true
+      type: tuple[str, ...]
+    - name: expression
+      required: true
+      type: str | None
+    - name: fit
+      required: true
+      type: FitStatisticsDocument | None
+    - name: listener_population
+      required: true
+      type: str | None
+    - name: lower_bound
+      required: true
+      type: float | int | None
+    - name: measure
+      required: true
+      type: str | None
+    - name: methodology
+      required: true
+      type: str | None
+    - name: name
+      required: true
+      type: str | None
+    - name: notes
+      required: true
+      type: str | None
+    - name: parameters
+      required: true
+      type: tuple[ParameterBindingDocument, ...]
+    - name: sample_size
+      required: true
+      type: int | None
+    - name: stage
+      required: true
+      type: AlgorithmStage | None
+    - name: stances
+      required: true
+      type: tuple[StanceDocument, ...]
+    - name: statement
+      required: true
+      type: str | None
+    - name: sympy
+      required: true
+      type: str | None
+    - name: target_concept
+      required: true
+      type: str | None
+    - name: uncertainty
+      required: true
+      type: float | int | None
+    - name: uncertainty_type
+      required: true
+      type: str | None
+    - name: unit
+      required: true
+      type: str | None
+    - name: upper_bound
+      required: true
+      type: float | int | None
+    - name: value
+      required: true
+      type: float | int | None
+    - name: variables
+      required: true
+      type: tuple[VariableBindingDocument, ...]
+    - name: source_local_id
+      required: true
+      type: str | None
+    - name: artifact_code
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceClaimsDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: claims
+      required: true
+      type: tuple[SourceClaimDocument, ...]
+    - name: source
+      required: true
+      type: ClaimSourceDocument | None
+    - name: produced_by
+      required: true
+      type: ExtractionProvenanceDocument | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceConceptAliasDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: name
+      required: true
+      type: str
+    - name: source
+      required: true
+      type: str | None
+    - name: note
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceConceptEntryDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: local_name
+      required: true
+      type: str | None
+    - name: proposed_name
+      required: true
+      type: str | None
+    - name: definition
+      required: true
+      type: str | None
+    - name: form
+      required: true
+      type: str | None
+    - name: aliases
+      required: true
+      type: tuple[SourceConceptAliasDocument, ...]
+    - name: form_parameters
+      required: true
+      type: SourceConceptFormParametersDocument | None
+    - name: parameterization_relationships
+      required: true
+      type: tuple[SourceParameterizationRelationshipDocument, ...]
+    - name: status
+      required: true
+      type: str | None
+    - name: registry_match
+      required: true
+      type: SourceConceptRegistryMatchDocument | None
+    - name: artifact_code
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceConceptFormParametersDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: construction
+      required: true
+      type: str | None
+    - name: extensible
+      required: true
+      type: bool | None
+    - name: note
+      required: true
+      type: str | None
+    - name: reference
+      required: true
+      type: str | None
+    - name: values
+      required: true
+      type: tuple[str, ...] | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceConceptRegistryMatchDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: artifact_id
+      required: true
+      type: str
+    - name: canonical_name
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceConceptsDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: concepts
+      required: true
+      type: tuple[SourceConceptEntryDocument, ...]
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str
+    - name: kind
+      required: true
+      type: SourceKind
+    - name: origin
+      required: true
+      type: SourceOriginDocument
+    - name: trust
+      required: true
+      type: SourceTrustDocument
+    - name: metadata
+      required: true
+      type: SourceMetadataDocument | None
+    - name: artifact_code
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceFinalizeCalibrationDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: prior_base_rate_status
+      required: true
+      type: str
+    - name: source_quality_status
+      required: true
+      type: str
+    - name: fallback_to_default_base_rate
+      required: true
+      type: bool
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceFinalizeReportDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: kind
+      required: true
+      type: str
+    - name: source
+      required: true
+      type: str
+    - name: status
+      required: true
+      type: str
+    - name: artifact_code_status
+      required: true
+      type: str
+    - name: calibration
+      required: true
+      type: SourceFinalizeCalibrationDocument
+    - name: micropub_status
+      required: true
+      type: str
+    - name: claim_reference_errors
+      required: true
+      type: tuple[str, ...]
+    - name: justification_reference_errors
+      required: true
+      type: tuple[str, ...]
+    - name: stance_reference_errors
+      required: true
+      type: tuple[str, ...]
+    - name: concept_alignment_candidates
+      required: true
+      type: tuple[str, ...]
+    - name: parameterization_group_merges
+      required: true
+      type: tuple[SourceParameterizationGroupMergeDocument, ...]
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceJustificationDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str | None
+    - name: conclusion
+      required: true
+      type: str | None
+    - name: premises
+      required: true
+      type: tuple[str, ...]
+    - name: rule_kind
+      required: true
+      type: str | None
+    - name: rule_strength
+      required: true
+      type: str | None
+    - name: provenance
+      required: true
+      type: SourceProvenanceDocument | None
+    - name: attack_target
+      required: true
+      type: SourceAttackTargetDocument | None
+    - name: artifact_code
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceJustificationsDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: justifications
+      required: true
+      type: tuple[SourceJustificationDocument, ...]
+    - name: source
+      required: true
+      type: ClaimSourceDocument | None
+    - name: produced_by
+      required: true
+      type: ExtractionProvenanceDocument | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceMetadataDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: name
+      required: true
+      type: str
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceOriginDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: type
+      required: true
+      type: SourceOriginType
+    - name: value
+      required: true
+      type: str
+    - name: retrieved
+      required: true
+      type: str | None
+    - name: content_ref
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceParameterizationGroupMergeDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: merged_group
+      required: true
+      type: tuple[str, ...]
+    - name: previous_groups
+      required: true
+      type: tuple[tuple[str, ...], ...]
+    - name: introduced_by
+      required: true
+      type: tuple[str, ...]
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceParameterizationRelationshipDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: inputs
+      required: true
+      type: tuple[str, ...]
+    - name: formula
+      required: true
+      type: str | None
+    - name: sympy
+      required: true
+      type: str | None
+    - name: exactness
+      required: true
+      type: Exactness | None
+    - name: source
+      required: true
+      type: str | None
+    - name: bidirectional
+      required: true
+      type: bool | None
+    - name: conditions
+      required: true
+      type: tuple[CelExpr, ...]
+    - name: note
+      required: true
+      type: str | None
+    - name: canonical_claim
+      required: true
+      type: str | None
+    - name: fit_statistics
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceProvenanceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: paper
+      required: true
+      type: str | None
+    - name: page
+      required: true
+      type: int | None
+    - name: figure
+      required: true
+      type: str | None
+    - name: quote_fragment
+      required: true
+      type: str | None
+    - name: section
+      required: true
+      type: str | None
+    - name: table
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceStanceEntryDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: source_claim
+      required: true
+      type: str | None
+    - name: target
+      required: true
+      type: str | None
+    - name: type
+      required: true
+      type: StanceType | None
+    - name: strength
+      required: true
+      type: str | None
+    - name: note
+      required: true
+      type: str | None
+    - name: conditions_differ
+      required: true
+      type: str | None
+    - name: resolution
+      required: true
+      type: ResolutionDocument | None
+    - name: target_justification_id
+      required: true
+      type: str | None
+    - name: artifact_code
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceStancesDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: stances
+      required: true
+      type: tuple[SourceStanceEntryDocument, ...]
+    - name: source
+      required: true
+      type: ClaimSourceDocument | None
+    - name: produced_by
+      required: true
+      type: ExtractionProvenanceDocument | None
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceTrustDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: status
+      required: true
+      type: ProvenanceStatus
+    - name: prior_base_rate
+      required: true
+      type: float | int | None
+    - name: quality
+      required: true
+      type: SourceTrustQualityDocument | None
+    - name: derived_from
+      required: true
+      type: tuple[str, ...]
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: SourceTrustQualityDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: status
+      required: true
+      type: ProvenanceStatus
+    - name: b
+      required: true
+      type: float | int
+    - name: d
+      required: true
+      type: float | int
+    - name: u
+      required: true
+      type: float | int
+    - name: a
+      required: true
+      type: float | int
+    module: propstore.artifacts.documents.sources
+- kind: document_schema
+  name: StanceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: type
+      required: true
+      type: StanceType
+    - name: target
+      required: true
+      type: str
+    - name: conditions_differ
+      required: true
+      type: str | None
+    - name: note
+      required: true
+      type: str | None
+    - name: resolution
+      required: true
+      type: ResolutionDocument | None
+    - name: strength
+      required: true
+      type: str | None
+    - name: target_justification_id
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: StanceEntryDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: source_claim
+      required: true
+      type: str | None
+    - name: target
+      required: true
+      type: str | None
+    - name: type
+      required: true
+      type: StanceType | None
+    - name: strength
+      required: true
+      type: str | None
+    - name: note
+      required: true
+      type: str | None
+    - name: conditions_differ
+      required: true
+      type: str | None
+    - name: resolution
+      required: true
+      type: ResolutionDocument | None
+    - name: target_justification_id
+      required: true
+      type: str | None
+    - name: artifact_code
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.stances
+- kind: document_schema
+  name: StanceFileDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: source_claim
+      required: true
+      type: str
+    - name: stances
+      required: true
+      type: tuple[StanceEntryDocument, ...]
+    - name: classification_model
+      required: true
+      type: str | None
+    - name: classification_date
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.stances
+- kind: document_schema
+  name: TermDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: kind
+      required: true
+      type: Literal['var', 'const']
+    - name: name
+      required: true
+      type: str | None
+    - name: value
+      required: true
+      type: str | int | float | bool | None
+    module: propstore.artifacts.documents.rules
+- kind: document_schema
+  name: VariableBindingDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: concept
+      required: true
+      type: str
+    - name: symbol
+      required: true
+      type: str | None
+    - name: role
+      required: true
+      type: str | None
+    - name: name
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.claims
+- kind: document_schema
+  name: WorldlineAssumptionDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: assumption_id
+      required: true
+      type: str
+    - name: kind
+      required: true
+      type: str
+    - name: source
+      required: true
+      type: str
+    - name: cel
+      required: true
+      type: CelExpr
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineDefinitionDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str
+    - name: targets
+      required: true
+      type: tuple[str, ...]
+    - name: name
+      required: true
+      type: str
+    - name: created
+      required: true
+      type: str
+    - name: inputs
+      required: true
+      type: WorldlineInputsDocument | None
+    - name: policy
+      required: true
+      type: WorldlinePolicyDocument | None
+    - name: revision
+      required: true
+      type: WorldlineRevisionQueryDocument | None
+    - name: results
+      required: true
+      type: WorldlineResultDocument | None
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineDependenciesDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: claims
+      required: true
+      type: tuple[str, ...]
+    - name: stances
+      required: true
+      type: tuple[str, ...]
+    - name: contexts
+      required: true
+      type: tuple[str, ...]
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineInputSourceDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: source
+      required: true
+      type: str
+    - name: value
+      required: true
+      type: float | str | None
+    - name: claim_id
+      required: true
+      type: str | None
+    - name: formula
+      required: true
+      type: str | None
+    - name: reason
+      required: true
+      type: str | None
+    - name: strategy
+      required: true
+      type: str | None
+    - name: inputs_used
+      required: true
+      type: dict[str, WorldlineInputSourceDocument]
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineInputsDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: bindings
+      required: true
+      type: dict[str, Any]
+    - name: context_id
+      required: true
+      type: str | None
+    - name: effective_assumptions
+      required: true
+      type: tuple[CelExpr, ...]
+    - name: assumptions
+      required: true
+      type: tuple[WorldlineAssumptionDocument, ...]
+    - name: overrides
+      required: true
+      type: dict[str, float | str]
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlinePolicyDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: reasoning_backend
+      required: true
+      type: str | None
+    - name: strategy
+      required: true
+      type: str | None
+    - name: semantics
+      required: true
+      type: str | None
+    - name: comparison
+      required: true
+      type: str | None
+    - name: link
+      required: true
+      type: str | None
+    - name: decision_criterion
+      required: true
+      type: str | None
+    - name: pessimism_index
+      required: true
+      type: float | None
+    - name: show_uncertainty_interval
+      required: true
+      type: bool | None
+    - name: praf_strategy
+      required: true
+      type: str | None
+    - name: praf_mc_epsilon
+      required: true
+      type: float | None
+    - name: praf_mc_confidence
+      required: true
+      type: float | None
+    - name: praf_treewidth_cutoff
+      required: true
+      type: int | None
+    - name: praf_mc_seed
+      required: true
+      type: int | None
+    - name: merge_operator
+      required: true
+      type: str | None
+    - name: branch_filter
+      required: true
+      type: tuple[str, ...] | None
+    - name: branch_weights
+      required: true
+      type: dict[str, float] | None
+    - name: integrity_constraints
+      required: true
+      type: tuple[dict[str, Any], ...]
+    - name: future_queryables
+      required: true
+      type: tuple[str, ...]
+    - name: future_limit
+      required: true
+      type: int | None
+    - name: overrides
+      required: true
+      type: dict[str, str]
+    - name: concept_strategies
+      required: true
+      type: dict[str, str]
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineResultDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: computed
+      required: true
+      type: str
+    - name: content_hash
+      required: true
+      type: str
+    - name: values
+      required: true
+      type: dict[str, WorldlineTargetValueDocument]
+    - name: dependencies
+      required: true
+      type: WorldlineDependenciesDocument
+    - name: steps
+      required: true
+      type: tuple[WorldlineStepDocument, ...]
+    - name: sensitivity
+      required: true
+      type: dict[str, Any] | None
+    - name: argumentation
+      required: true
+      type: dict[str, Any] | None
+    - name: revision
+      required: true
+      type: WorldlineRevisionStateDocument | None
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineRevisionAtomDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: kind
+      required: true
+      type: str
+    - name: id
+      required: true
+      type: str | None
+    - name: atom_id
+      required: true
+      type: str | None
+    - name: value
+      required: true
+      type: float | str | None
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineRevisionQueryDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: operation
+      required: true
+      type: str
+    - name: atom
+      required: true
+      type: WorldlineRevisionAtomDocument | None
+    - name: target
+      required: true
+      type: str | None
+    - name: conflicts
+      required: true
+      type: dict[str, tuple[str, ...]]
+    - name: operator
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineRevisionResultDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: accepted_atom_ids
+      required: true
+      type: tuple[str, ...]
+    - name: rejected_atom_ids
+      required: true
+      type: tuple[str, ...]
+    - name: incision_set
+      required: true
+      type: tuple[str, ...]
+    - name: explanation
+      required: true
+      type: dict[str, Any] | None
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineRevisionStateDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: operation
+      required: true
+      type: str
+    - name: input_atom_id
+      required: true
+      type: str | None
+    - name: target_atom_ids
+      required: true
+      type: tuple[str, ...]
+    - name: result
+      required: true
+      type: WorldlineRevisionResultDocument | None
+    - name: state
+      required: true
+      type: dict[str, Any] | None
+    - name: status
+      required: true
+      type: str | None
+    - name: error
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineStepDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: concept
+      required: true
+      type: str
+    - name: source
+      required: true
+      type: str
+    - name: value
+      required: true
+      type: float | str | None
+    - name: claim_id
+      required: true
+      type: str | None
+    - name: strategy
+      required: true
+      type: str | None
+    - name: reason
+      required: true
+      type: str | None
+    - name: formula
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineTargetValueDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: status
+      required: true
+      type: str
+    - name: value
+      required: true
+      type: float | str | None
+    - name: source
+      required: true
+      type: str | None
+    - name: reason
+      required: true
+      type: str | None
+    - name: claim_id
+      required: true
+      type: str | None
+    - name: winning_claim_id
+      required: true
+      type: str | None
+    - name: claim_type
+      required: true
+      type: str | None
+    - name: statement
+      required: true
+      type: str | None
+    - name: expression
+      required: true
+      type: str | None
+    - name: body
+      required: true
+      type: str | None
+    - name: name
+      required: true
+      type: str | None
+    - name: canonical_ast
+      required: true
+      type: str | None
+    - name: variables
+      required: true
+      type: tuple[WorldlineVariableRefDocument, ...] | dict[str, str]
+    - name: formula
+      required: true
+      type: str | None
+    - name: strategy
+      required: true
+      type: str | None
+    - name: inputs_used
+      required: true
+      type: dict[str, WorldlineInputSourceDocument]
+    module: propstore.artifacts.documents.worldlines
+- kind: document_schema
+  name: WorldlineVariableRefDocument
+  contract_version: 2026.04.18
+  body:
+    fields:
+    - name: name
+      required: true
+      type: str | None
+    - name: symbol
+      required: true
+      type: str | None
+    - name: concept_id
+      required: true
+      type: str | None
+    - name: value
+      required: true
+      type: str | None
+    module: propstore.artifacts.documents.worldlines
+registry:
+  name: semantic-family-registry
+  contract_version: 2026.04.18
