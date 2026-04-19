@@ -117,6 +117,7 @@ def test_repository_import_uses_committed_semantic_snapshot_only(
     plan = plan_repository_import(destination, source.root.parent)
     result = commit_repository_import(destination, plan)
 
+    full_committed_paths = set(destination.git.flat_tree_entries(result.commit_sha))
     imported_paths = {
         snapshot_file.relpath
         for snapshot_file in destination.snapshot.files(
@@ -129,6 +130,9 @@ def test_repository_import_uses_committed_semantic_snapshot_only(
     assert "README.md" not in plan.touched_paths
     assert "sidecar/propstore.sqlite" not in plan.touched_paths
     assert "claims/uncommitted.yaml" not in plan.touched_paths
+    assert "README.md" not in full_committed_paths
+    assert "sidecar/propstore.sqlite" not in full_committed_paths
+    assert "claims/uncommitted.yaml" not in full_committed_paths
     assert result.source_commit == source_git.head_sha()
 
 
