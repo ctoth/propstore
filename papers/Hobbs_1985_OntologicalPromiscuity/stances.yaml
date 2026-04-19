@@ -1,0 +1,63 @@
+source:
+  paper: Hobbs_1985_OntologicalPromiscuity
+
+stances:
+  - source_claim: claim15
+    target: "Halpin_2010_OwlSameAsIsntSame:claim1"
+    type: supports
+    strength: strong
+    note: "Hobbs's Platonic-level distinctness between Evening-Star and Morning-Star (they are rw-identical but not Platonic-identical) is the 1985 logical-form precursor to Halpin's critique that owl:sameAs commits to full Leibnizian indiscernibility. Both argue unrestricted identity is too strong for intensional/referentially-opaque contexts."
+
+  - source_claim: claim8
+    target: "Halpin_2010_OwlSameAsIsntSame:claim2"
+    type: supports
+    strength: strong
+    note: "Hobbs's restriction of rw-identical substitution to referentially transparent argument positions is formally the same move Halpin observes Linked Data requires: substitutivity fails in referentially opaque contexts (belief, quotation, temporal indexing). Hobbs provides the 1985 logical-form analog of the identity-context problem Halpin re-raises for the Semantic Web."
+
+  - source_claim: claim15
+    target: "Halpin_2010_OwlSameAsIsntSame:claim3"
+    type: explains
+    strength: moderate
+    note: "Hobbs's two-tier identity (Platonic-distinct but rw-identical) explains why Halpin's identity-as-spectrum finding (5 levels of identity distinction) is needed: once reference and real-world existence are separated, co-referring entities can stand in many weaker relations than strict identity — Hobbs's rw-identical is one node on that spectrum."
+
+  - source_claim: claim8
+    target: "Raad_2019_SameAsProblemSurvey:claim5"
+    type: supports
+    strength: strong
+    note: "Hobbs's rw-identical with substitution restricted to transparent positions is a 1985 logical-form precursor to Raad's notion of contextual identity (same properties within a defined context, may differ outside). Both refuse global substitutability and localize identity-like reasoning to specified axis-and-context combinations."
+
+  - source_claim: claim21
+    target: "Raad_2019_SameAsProblemSurvey:claim11"
+    type: supports
+    strength: moderate
+    note: "Hobbs acknowledges rw-identical reasoning is 'very cumbersome' compared to ordinary equality; Raad observes alternative identity predicates suffer adoption problems because the community continues to use owl:sameAs loosely. Both observe the same cost: refined identity relations are harder to use than plain identity, which drags adoption."
+
+  - source_claim: claim1
+    target: "Melo_2013_NotQuiteSameIdentity:claim3"
+    type: explains
+    strength: moderate
+    note: "Hobbs's axiom-3 split of a predication into condition (p'(e,...)) and its real-world assertion (Exist(e)) formally explains why Melo's observation holds: publishers use sameAs to express a relationship at the condition/representational level without committing to full real-world identity — the same structural move Hobbs formalizes."
+
+  - source_claim: claim5
+    target: "Halpin_2010_OwlSameAsIsntSame:claim4"
+    type: supports
+    strength: moderate
+    note: "Hobbs's Platonic universe admits possible and impossible entities without forcing global identity (ES and MS coexist as distinct Platonic entities that happen to be rw-identical). Halpin's sim:claimsIdentical is non-transitive for the same kind of reason: without transitive global identity, local disagreements about identity don't propagate errors."
+
+  - source_claim: claim9
+    target: "Ghidini_2001_LocalModelsSemanticsContextual:claim3"
+    type: supports
+    strength: moderate
+    note: "Hobbs's ontological-promiscuity move — admit entities whose real-world existence is not asserted — is the single-predication analog of Ghidini's partial-object contexts that can leave propositions undetermined. Both refuse to require complete truth-assignment at the representational level and localize commitment via separate predicates/operators."
+
+  - source_claim: claim10
+    target: "Ghidini_2001_LocalModelsSemanticsContextual:claim4"
+    type: supports
+    strength: moderate
+    note: "Hobbs's primed predicates give higher predications (tense, modality, propositional attitudes) a handle for grasping a predication as a first-class entity — a single-predication precursor to Ghidini's cross-context consequence where assumptions in one context constrain conclusions in another. Both make the predication/context a first-class object that other reasoning can grasp."
+
+  - source_claim: claim7
+    target: "Beek_2018_SameAs.ccClosure500MOwl:claim13"
+    type: explains
+    strength: moderate
+    note: "Beek observes that transitive closure of owl:sameAs propagates identity errors (conflating Einstein, countries, and empty strings). Hobbs's rw-identical preserves only Exist-equivalence, not arbitrary-property-equivalence, and substitution is restricted to transparent positions — the 1985 logical-form explanation for why unrestricted transitive sameAs closure must fail in practice."
