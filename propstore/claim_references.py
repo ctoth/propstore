@@ -162,7 +162,7 @@ def load_primary_branch_claim_reference_index(repo: Repository) -> ClaimReferenc
     logical_to_artifact: dict[str, str] = {}
     artifact_ids: set[str] = set()
 
-    for ref in repo.families.claims.list():
+    for ref in repo.families.claims.iter():
         claim_file = repo.families.claims.require(ref)
         for claim in claim_file.claims:
             artifact_id = claim.artifact_id

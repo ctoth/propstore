@@ -302,19 +302,19 @@ def build_merge_framework(
     base_idx = _index_claims(
         [
             snapshot.repo.families.claims.require_handle(ref, commit=base_sha)
-            for ref in snapshot.repo.families.claims.list(commit=base_sha)
+            for ref in snapshot.repo.families.claims.iter(commit=base_sha)
         ]
     )
     left_idx = _index_claims(
         [
             snapshot.repo.families.claims.require_handle(ref, commit=left_sha)
-            for ref in snapshot.repo.families.claims.list(commit=left_sha)
+            for ref in snapshot.repo.families.claims.iter(commit=left_sha)
         ]
     )
     right_idx = _index_claims(
         [
             snapshot.repo.families.claims.require_handle(ref, commit=right_sha)
-            for ref in snapshot.repo.families.claims.list(commit=right_sha)
+            for ref in snapshot.repo.families.claims.iter(commit=right_sha)
         ]
     )
     canonical_groups = _canonical_claim_groups(base_idx, left_idx, right_idx)

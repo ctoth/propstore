@@ -125,7 +125,7 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
         if claims_root is None:
             files = [
                 repo.families.claims.require_handle(ref)
-                for ref in repo.families.claims.list()
+                for ref in repo.families.claims.iter()
             ]
         else:
             files = load_document_dir(claims_root, ClaimsFileDocument)
@@ -233,7 +233,7 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
     repo: Repository = obj["repo"]
     files = [
         repo.families.claims.require_handle(ref)
-        for ref in repo.families.claims.list()
+        for ref in repo.families.claims.iter()
     ]
     if not files:
         click.echo("No claim files found.")

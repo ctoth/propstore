@@ -81,7 +81,7 @@ def plan_stance_proposal_promotion(
             items=(),
         )
 
-    available_refs = repo.families.proposal_stances.list(
+    available_refs = repo.families.proposal_stances.iter(
         branch=proposal_branch,
         commit=proposal_tip,
     )

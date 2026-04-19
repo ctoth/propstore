@@ -97,7 +97,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
     tree = repo.tree()
     try:
         concepts: list[LoadedConcept] = []
-        for ref in repo.families.concepts.list():
+        for ref in repo.families.concepts.iter():
             handle = repo.families.concepts.require_handle(ref)
             concepts.append(
                 LoadedConcept(
@@ -126,10 +126,10 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
     form_result = ValidationResult()
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.families.forms.list()
+        for form_ref in repo.families.forms.iter()
         for document in (repo.families.forms.require(form_ref),)
     }
-    for form_ref in repo.families.forms.list():
+    for form_ref in repo.families.forms.iter():
         document = repo.families.forms.require(form_ref)
         dims = document.dimensions
         is_dimless = document.dimensionless
@@ -156,7 +156,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
 
     files = [
         repo.families.claims.require_handle(ref)
-        for ref in repo.families.claims.list()
+        for ref in repo.families.claims.iter()
     ]
 
     concept_result = validate_concepts(
@@ -191,7 +191,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
                 knowledge_root=tree,
                 record=parse_context_record_document(handle.document),
             )
-            for ref in repo.families.contexts.list()
+            for ref in repo.families.contexts.iter()
             for handle in (repo.families.contexts.require_handle(ref),)
         ]
     except DocumentSchemaError as exc:
@@ -237,7 +237,7 @@ def build_repository(
 
     try:
         concepts: list[LoadedConcept] = []
-        for ref in repo.families.concepts.list(commit=hash_key):
+        for ref in repo.families.concepts.iter(commit=hash_key):
             handle = repo.families.concepts.require_handle(
                 ref,
                 commit=hash_key,
@@ -270,10 +270,10 @@ def build_repository(
     form_result = ValidationResult()
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.families.forms.list(commit=hash_key)
+        for form_ref in repo.families.forms.iter(commit=hash_key)
         for document in (repo.families.forms.require(form_ref, commit=hash_key),)
     }
-    for form_ref in repo.families.forms.list(commit=hash_key):
+    for form_ref in repo.families.forms.iter(commit=hash_key):
         document = repo.families.forms.require(form_ref, commit=hash_key)
         dims = document.dimensions
         is_dimless = document.dimensionless
@@ -304,7 +304,7 @@ def build_repository(
 
     files = [
         repo.families.claims.require_handle(ref, commit=hash_key)
-        for ref in repo.families.claims.list(commit=hash_key)
+        for ref in repo.families.claims.iter(commit=hash_key)
     ]
 
     concept_result = validate_concepts(
@@ -333,7 +333,7 @@ def build_repository(
                 knowledge_root=tree,
                 record=parse_context_record_document(handle.document),
             )
-            for ref in repo.families.contexts.list(commit=hash_key)
+            for ref in repo.families.contexts.iter(commit=hash_key)
             for handle in (
                 repo.families.contexts.require_handle(ref, commit=hash_key),
             )

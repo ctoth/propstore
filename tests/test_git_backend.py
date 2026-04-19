@@ -102,31 +102,31 @@ def test_commit_overwrites_existing(tmp_path):
     assert kr.read_file("a.yaml") == b"v: 2\n"
 
 
-# ── list_dir ────────────────────────────────────────────────────────
+# ── iter_dir ────────────────────────────────────────────────────────
 
 
-def test_list_dir(tmp_path):
+def test_iter_dir(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({
         "concepts/alpha.yaml": b"id: concept1\n",
         "concepts/beta.yaml": b"id: concept2\n",
         "claims/paper1.yaml": b"claims: []\n",
     }, "add files")
-    concepts = kr.list_dir("concepts")
+    concepts = list(kr.iter_dir("concepts"))
     assert sorted(concepts) == ["alpha.yaml", "beta.yaml"]
-    claims = kr.list_dir("claims")
+    claims = list(kr.iter_dir("claims"))
     assert claims == ["paper1.yaml"]
 
 
-def test_list_dir_empty(tmp_path):
+def test_iter_dir_empty(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
-    assert kr.list_dir("concepts") == []
+    assert list(kr.iter_dir("concepts")) == []
 
 
-def test_list_dir_no_commits(tmp_path):
+def test_iter_dir_no_commits(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
-    assert kr.list_dir("concepts") == []
+    assert list(kr.iter_dir("concepts")) == []
 
 
 # ── commit_deletes ──────────────────────────────────────────────────
@@ -1153,8 +1153,8 @@ def test_concept_rename_atomic(tmp_path):
     assert commits_after == commits_before + 1
 
     # Old file gone, new file present
-    assert "new_name.yaml" in git.list_dir("concepts")
-    assert "old_name.yaml" not in git.list_dir("concepts")
+    assert "new_name.yaml" in git.iter_dir("concepts")
+    assert "old_name.yaml" not in git.iter_dir("concepts")
 
 
 def test_promote_commits(tmp_path):
@@ -1193,7 +1193,7 @@ def test_promote_commits(tmp_path):
     assert commits_after == commits_before + 1
 
     # Stance file is now in master git state
-    assert "claim_a.yaml" in git.list_dir("stances")
+    assert "claim_a.yaml" in git.iter_dir("stances")
 
 
 def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkeypatch):

@@ -36,7 +36,7 @@ def build_grounded_bundle(
             knowledge_root=tree,
             document=handle.document,
         )
-        for ref in repo.families.predicates.list(commit=commit)
+        for ref in repo.families.predicates.iter(commit=commit)
         for handle in (
             repo.families.predicates.require_handle(ref, commit=commit),
         )
@@ -48,7 +48,7 @@ def build_grounded_bundle(
             knowledge_root=tree,
             document=handle.document,
         )
-        for ref in repo.families.rules.list(commit=commit)
+        for ref in repo.families.rules.iter(commit=commit)
         for handle in (
             repo.families.rules.require_handle(ref, commit=commit),
         )
@@ -71,7 +71,7 @@ def build_grounded_bundle(
             record=parse_concept_record_document(handle.document),
             document=handle.document,
         )
-        for ref in repo.families.concepts.list(commit=commit)
+        for ref in repo.families.concepts.iter(commit=commit)
         for handle in (
             repo.families.concepts.require_handle(ref, commit=commit),
         )

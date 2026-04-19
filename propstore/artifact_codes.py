@@ -127,7 +127,7 @@ def attach_source_artifact_codes(
 def _load_claim_index(repo: Repository, commit: str | None) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
     claims_by_id: dict[str, dict[str, Any]] = {}
     claim_to_source_slug: dict[str, str] = {}
-    for ref in repo.families.claims.list(commit=commit):
+    for ref in repo.families.claims.iter(commit=commit):
         claim_file = repo.families.claims.require_handle(ref, commit=commit)
         source_slug = claim_file_filename(claim_file)
         for claim in claim_file_claims(claim_file):
@@ -141,13 +141,13 @@ def _load_claim_index(repo: Repository, commit: str | None) -> tuple[dict[str, d
 def _load_sources(repo: Repository, commit: str | None) -> dict[str, dict[str, Any]]:
     return {
         ref.name: repo.families.sources.require(ref, commit=commit).to_payload()
-        for ref in repo.families.sources.list(commit=commit)
+        for ref in repo.families.sources.iter(commit=commit)
     }
 
 
 def _load_justifications(repo: Repository, commit: str | None) -> dict[str, list[dict[str, Any]]]:
     by_conclusion: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for ref in repo.families.justifications.list(commit=commit):
+    for ref in repo.families.justifications.iter(commit=commit):
         doc = repo.families.justifications.require(ref, commit=commit)
         for justification in doc.justifications:
             if isinstance(justification.conclusion, str):
@@ -157,7 +157,7 @@ def _load_justifications(repo: Repository, commit: str | None) -> dict[str, list
 
 def _load_stances(repo: Repository, commit: str | None) -> dict[str, list[dict[str, Any]]]:
     by_source: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for ref in repo.families.stances.list(commit=commit):
+    for ref in repo.families.stances.iter(commit=commit):
         doc = repo.families.stances.require(ref, commit=commit)
         for stance in doc.stances:
             by_source[doc.source_claim].append(copy.deepcopy(stance.to_payload()))

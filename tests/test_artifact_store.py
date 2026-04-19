@@ -35,7 +35,7 @@ def test_repository_exposes_bound_family_registry(tmp_path: Path) -> None:
     assert repo.families.registry is PROPSTORE_FAMILY_REGISTRY
     assert repo.families.by_key(PropstoreFamily.CLAIMS).family.name == "claims_file"
     assert repo.families.by_name("claims").family.name == "claims_file"
-    assert repo.families.claims.list() == []
+    assert list(repo.families.claims.iter()) == []
 
 
 def test_artifact_transaction_is_quire_family_transaction(tmp_path: Path) -> None:
@@ -134,7 +134,7 @@ def test_artifact_store_roundtrips_and_lists_worldlines(tmp_path: Path) -> None:
 
     assert commit_sha
     loaded = repo.families.worldlines.require(WorldlineRef("demo_worldline"))
-    listed = repo.families.worldlines.list()
+    listed = list(repo.families.worldlines.iter())
 
     assert WorldlineDefinition.from_document(loaded) == definition
     assert listed == [WorldlineRef("demo_worldline")]

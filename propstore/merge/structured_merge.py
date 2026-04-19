@@ -222,7 +222,7 @@ def _canonical_stance_rows(
 
 def _load_branch_claims(snapshot: RepositorySnapshot, commit: str | None) -> list[MergeClaim]:
     active_claims: list[MergeClaim] = []
-    for ref in snapshot.repo.families.claims.list(commit=commit):
+    for ref in snapshot.repo.families.claims.iter(commit=commit):
         claim_file = snapshot.repo.families.claims.require_handle(
             ref,
             commit=commit,
@@ -246,7 +246,7 @@ def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[StanceRow]:
 
 def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[StanceRow]:
     rows: list[StanceRow] = []
-    for ref in snapshot.repo.families.stances.list(commit=commit):
+    for ref in snapshot.repo.families.stances.iter(commit=commit):
         data = snapshot.repo.families.stances.require(ref, commit=commit)
         source_claim = _optional_string(data.source_claim)
         if source_claim is None:

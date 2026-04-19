@@ -99,7 +99,7 @@ def search(obj: dict, query: str) -> None:
 def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
     """List concepts, optionally filtered."""
     repo: Repository = obj["repo"]
-    refs = repo.families.concepts.list()
+    refs = list(repo.families.concepts.iter())
     if not refs:
         click.echo("No concepts directory found.")
         return
@@ -136,7 +136,7 @@ def categories(obj: dict, as_json: bool) -> None:
     """List all category concepts and their allowed values."""
     repo: Repository = obj["repo"]
     cat_data = {}
-    for ref in repo.families.concepts.list():
+    for ref in repo.families.concepts.iter():
         document = repo.families.concepts.require(ref)
         c = LoadedConcept(
             filename=ref.name,

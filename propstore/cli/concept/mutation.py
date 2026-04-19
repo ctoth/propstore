@@ -94,7 +94,7 @@ def add(
     if definition is None:
         definition = click.prompt("Definition")
     if form_name is None:
-        available = sorted(form_ref.name for form_ref in repo.families.forms.list())
+        available = sorted(form_ref.name for form_ref in repo.families.forms.iter())
         if available:
             click.echo(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
@@ -148,7 +148,7 @@ def add(
 
     tree = repo.tree()
     concepts: list[LoadedConcept] = []
-    for existing_ref in repo.families.concepts.list():
+    for existing_ref in repo.families.concepts.iter():
         handle = repo.families.concepts.require_handle(existing_ref)
         concepts.append(
             LoadedConcept(
@@ -171,7 +171,7 @@ def add(
 
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.families.forms.list()
+        for form_ref in repo.families.forms.iter()
         for document in (repo.families.forms.require(form_ref),)
     }
     result = validate_concepts(concepts, form_registry=form_registry)
@@ -218,7 +218,7 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
 
     # Warn if alias matches another concept's canonical_name
     tree = repo.tree()
-    for other_ref in repo.families.concepts.list():
+    for other_ref in repo.families.concepts.iter():
         if other_ref == ref:
             continue
         other_document = repo.families.concepts.require(other_ref)
@@ -302,7 +302,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
 
     tree = repo.tree()
     loaded_concepts: list[LoadedConcept] = []
-    for loaded_ref in repo.families.concepts.list():
+    for loaded_ref in repo.families.concepts.iter():
         handle = repo.families.concepts.require_handle(loaded_ref)
         loaded_concepts.append(
             LoadedConcept(
@@ -343,13 +343,13 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
 
     claim_files = [
         repo.families.claims.require_handle(claim_ref)
-        for claim_ref in repo.families.claims.list()
+        for claim_ref in repo.families.claims.iter()
     ]
     concept_validation = validate_concepts(
         [entry for _, _, entry in updated_concepts],
         form_registry={
             document.name: parse_form(document.name, document)
-            for form_ref in repo.families.forms.list()
+            for form_ref in repo.families.forms.iter()
             for document in (repo.families.forms.require(form_ref),)
         },
         claim_reference_lookup=build_claim_reference_lookup(claim_files),
@@ -381,7 +381,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             [entry for _, _, entry in updated_concepts],
             form_registry={
                 document.name: parse_form(document.name, document)
-                for form_ref in repo.families.forms.list()
+                for form_ref in repo.families.forms.iter()
                 for document in (repo.families.forms.require(form_ref),)
             },
             claim_files=[entry for _, entry in updated_claim_files],
@@ -542,7 +542,7 @@ def link(
 
     tree = repo.tree()
     concepts: list[LoadedConcept] = []
-    for loaded_ref in repo.families.concepts.list():
+    for loaded_ref in repo.families.concepts.iter():
         handle = repo.families.concepts.require_handle(loaded_ref)
         concepts.append(
             LoadedConcept(
@@ -574,12 +574,12 @@ def link(
         updated_concepts,
         form_registry={
             document.name: parse_form(document.name, document)
-            for form_ref in repo.families.forms.list()
+            for form_ref in repo.families.forms.iter()
             for document in (repo.families.forms.require(form_ref),)
         },
         claim_reference_lookup=build_claim_reference_lookup([
             repo.families.claims.require_handle(claim_ref)
-            for claim_ref in repo.families.claims.list()
+            for claim_ref in repo.families.claims.iter()
         ]),
     )
     if not validation.ok:

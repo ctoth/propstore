@@ -124,7 +124,7 @@ def build_compilation_context_from_repo(
         )
     tree = repo.tree(commit=commit)
     concepts: list[LoadedConcept] = []
-    for ref in repo.families.concepts.list(commit=commit):
+    for ref in repo.families.concepts.iter(commit=commit):
         handle = repo.families.concepts.require_handle(ref, commit=commit)
         concepts.append(
             LoadedConcept(
@@ -137,7 +137,7 @@ def build_compilation_context_from_repo(
         )
 
     form_registry: dict[str, FormDefinition] = {}
-    for ref in repo.families.forms.list(commit=commit):
+    for ref in repo.families.forms.iter(commit=commit):
         document = repo.families.forms.require(ref, commit=commit)
         form_registry[document.name] = parse_form(document.name, document)
 
