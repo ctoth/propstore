@@ -21,8 +21,8 @@ def transform_file(path: Path) -> bool:
         text,
     )
 
-    # --- Rule G: stateful test in test_git_properties.py ---
-    # TestKnowledgeRepo.settings = settings(max_examples=20, stateful_step_count=10, deadline=None, ...)
+    # --- Rule G: stateful tests ---
+    # Some stateful test classes assign settings after class creation.
     text = re.sub(
         r'(\.settings = settings\()max_examples=\d+,\s*',
         r'\1',
