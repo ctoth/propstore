@@ -14,7 +14,7 @@ from quire.artifacts import (
     SingletonFilePlacement,
     TemplateFilePlacement,
 )
-from quire.families import FamilyDefinition, FamilyRegistry
+from quire.families import FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
 from quire.documents import (
     coerce_json_mapping,
     coerce_text_document,
@@ -50,6 +50,21 @@ from propstore.families.documents.sources import (
 )
 from propstore.families.documents.stances import StanceFileDocument
 from propstore.families.documents.worldlines import WorldlineDefinitionDocument
+from propstore.families.identity.claims import (
+    CLAIM_SOURCE_LOCAL_FIELDS,
+    CLAIM_VERSION_ID_EXCLUDED_FIELDS,
+    canonicalize_claim_for_version,
+    compute_claim_version_id,
+    derive_claim_artifact_id,
+    normalize_canonical_claim_payload,
+)
+from propstore.families.identity.concepts import (
+    CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
+    canonicalize_concept_for_version,
+    compute_concept_version_id,
+    derive_concept_artifact_id,
+    normalize_canonical_concept_payload,
+)
 from propstore.core.concepts import (
     concept_document_to_payload,
     encode_concept_document,
@@ -162,8 +177,9 @@ if not TYPE_CHECKING:
 
 ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
 CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
+IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
 SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.28")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.29")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
@@ -175,6 +191,34 @@ SOURCE_BRANCH = BranchPlacement(
 )
 PROPOSAL_STANCE_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/stances")
 PROPOSAL_CONCEPT_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/concepts")
+
+
+def _callable_id(callback: object) -> str:
+    module = getattr(callback, "__module__", None)
+    qualname = getattr(callback, "__qualname__", None)
+    if not module or not qualname:
+        raise TypeError(f"identity policy callback is not named: {callback!r}")
+    return f"{module}.{qualname}"
+
+
+CLAIM_IDENTITY_POLICY = FamilyIdentityPolicy(
+    artifact_id_function=_callable_id(derive_claim_artifact_id),
+    version_id_function=_callable_id(compute_claim_version_id),
+    canonical_payload_function=_callable_id(canonicalize_claim_for_version),
+    normalize_payload_function=_callable_id(normalize_canonical_claim_payload),
+    logical_id_fields=("logical_ids",),
+    version_excluded_fields=CLAIM_VERSION_ID_EXCLUDED_FIELDS,
+    source_local_fields=CLAIM_SOURCE_LOCAL_FIELDS,
+)
+
+CONCEPT_IDENTITY_POLICY = FamilyIdentityPolicy(
+    artifact_id_function=_callable_id(derive_concept_artifact_id),
+    version_id_function=_callable_id(compute_concept_version_id),
+    canonical_payload_function=_callable_id(canonicalize_concept_for_version),
+    normalize_payload_function=_callable_id(normalize_canonical_concept_payload),
+    logical_id_fields=("logical_ids",),
+    version_excluded_fields=CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
+)
 
 CLAIM_PLACEMENT = FlatYamlPlacement["Repository", ClaimsFileRef](
     namespace=PropstoreFamily.CLAIMS.value,
@@ -576,17 +620,19 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.CLAIMS,
             name=PropstoreFamily.CLAIMS.value,
-            contract_version=CLAIMS_FILE_FAMILY.contract_version,
+            contract_version=IDENTITY_POLICY_FAMILY_CONTRACT_VERSION,
             artifact_family=CLAIMS_FILE_FAMILY,
             foreign_keys=CLAIM_FOREIGN_KEYS,
+            identity_policy=CLAIM_IDENTITY_POLICY,
             metadata=_semantic_metadata(importable=True, import_order=20, collection_field="claims"),
         ),
         FamilyDefinition(
             key=PropstoreFamily.CONCEPTS,
             name=PropstoreFamily.CONCEPTS.value,
-            contract_version=CONCEPT_FILE_FAMILY.contract_version,
+            contract_version=IDENTITY_POLICY_FAMILY_CONTRACT_VERSION,
             artifact_family=CONCEPT_FILE_FAMILY,
             foreign_keys=CONCEPT_FOREIGN_KEYS,
+            identity_policy=CONCEPT_IDENTITY_POLICY,
             metadata=_semantic_metadata(importable=True, import_order=10),
         ),
         FamilyDefinition(
