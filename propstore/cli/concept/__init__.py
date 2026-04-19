@@ -204,7 +204,7 @@ def _concept_display_handle(data: dict) -> str:
 
 def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | None:
     tree = repo.tree()
-    for ref in repo.families.concepts.list():
+    for ref in repo.families.concepts.iter():
         handle = repo.families.concepts.require_handle(ref)
         concept = LoadedConcept(
             filename=ref.name,
@@ -296,7 +296,7 @@ def _validate_updated_concept(
     ref = _concept_ref(concept_entry)
     concepts = []
     tree = repo.tree()
-    for loaded_ref in repo.families.concepts.list():
+    for loaded_ref in repo.families.concepts.iter():
         handle = repo.families.concepts.require_handle(loaded_ref)
         if loaded_ref == ref:
             concepts.append(
@@ -323,11 +323,11 @@ def _validate_updated_concept(
 
     claim_files = [
         repo.families.claims.require_handle(claim_ref)
-        for claim_ref in repo.families.claims.list()
+        for claim_ref in repo.families.claims.iter()
     ]
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.families.forms.list()
+        for form_ref in repo.families.forms.iter()
         for document in (repo.families.forms.require(form_ref),)
     }
     validation = validate_concepts(

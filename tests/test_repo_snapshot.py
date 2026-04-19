@@ -55,6 +55,6 @@ def test_snapshot_lists_directory_entries_with_relpaths(tmp_path: Path) -> None:
     tip = repo.snapshot.branch_head(branch)
     assert tip is not None
 
-    relpaths = {entry.relpath for entry in repo.snapshot.list_dir_entries("", commit=tip)}
+    relpaths = {entry.relpath for entry in repo.snapshot.iter_dir_entries("", commit=tip)}
     assert ".gitignore" in relpaths
     assert "source.yaml" in relpaths

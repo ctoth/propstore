@@ -85,13 +85,13 @@ def inspect_grounding_surface(repo: "Repository") -> GroundingSurface:
         predicate_files=tuple(
             sorted(
                 f"{ref.name}.yaml"
-                for ref in repo.families.predicates.list()
+                for ref in repo.families.predicates.iter()
             )
         ),
         rule_files=tuple(
             sorted(
                 f"{ref.name}.yaml"
-                for ref in repo.families.rules.list()
+                for ref in repo.families.rules.iter()
             )
         ),
     )

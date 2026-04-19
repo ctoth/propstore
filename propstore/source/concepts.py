@@ -17,7 +17,7 @@ from .registry import primary_branch_concept_match
 
 
 def get_valid_form_names(repo: Repository) -> list[str] | None:
-    names = sorted(ref.name for ref in repo.families.forms.list())
+    names = sorted(ref.name for ref in repo.families.forms.iter())
     return names if names else None
 
 

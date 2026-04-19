@@ -115,7 +115,7 @@ def add_context(
 def list_context_items(repo: Repository) -> tuple[ContextListItem, ...]:
     items: list[ContextListItem] = []
     tree = repo.tree()
-    for ref in repo.families.contexts.list():
+    for ref in repo.families.contexts.iter():
         handle = repo.families.contexts.require_handle(ref)
         context = LoadedContext(
             filename=ref.name,

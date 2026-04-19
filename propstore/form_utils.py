@@ -195,7 +195,7 @@ def list_form_items(
     *,
     dims_filter: str | None,
 ) -> tuple[FormListItem, ...] | None:
-    refs = repo.families.forms.list()
+    refs = list(repo.families.forms.iter())
     if not refs:
         return None
 
@@ -300,7 +300,7 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
 
 def form_references(repo: Repository, name: str) -> tuple[str, ...]:
     references: list[str] = []
-    for ref in repo.families.concepts.list():
+    for ref in repo.families.concepts.iter():
         document = repo.families.concepts.require(ref)
         record = parse_concept_record_document(document)
         if record.form == name:
@@ -336,7 +336,7 @@ def remove_form(
 
 
 def validate_forms(repo: Repository, name: str | None = None) -> FormValidationReport | None:
-    refs = repo.families.forms.list()
+    refs = list(repo.families.forms.iter())
     if not refs:
         return None
 
@@ -369,7 +369,7 @@ def validate_forms(repo: Repository, name: str | None = None) -> FormValidationR
                 f"{ref.name}: 'name' field ('{document.name}') does not match "
                 f"filename '{ref.name}'")
 
-    for ref in repo.families.concepts.list():
+    for ref in repo.families.concepts.iter():
         record = parse_concept_record_document(repo.families.concepts.require(ref))
         form_ref = record.form
         if form_ref and form_ref not in all_forms:

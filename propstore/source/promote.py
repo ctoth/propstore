@@ -701,7 +701,7 @@ def sync_source_branch(
     destination.mkdir(parents=True, exist_ok=True)
 
     def copy_tree(relpath: str = "") -> None:
-        for entry in repo.snapshot.list_dir_entries(relpath, commit=tip):
+        for entry in repo.snapshot.iter_dir_entries(relpath, commit=tip):
             target = destination / Path(*entry.relpath.split("/"))
             if entry.is_dir:
                 target.mkdir(parents=True, exist_ok=True)

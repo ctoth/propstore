@@ -44,7 +44,7 @@ def test_create_branch_from_master(tmp_path):
 
     Propstore spec Phase 1: name.create_branch(source_commit=None)
     defaults to current branch tip. The new branch must appear in
-    list_branches() and its tip must equal master's HEAD.
+    iter_branches() and its tip must equal master's HEAD.
     """
     kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
@@ -52,7 +52,7 @@ def test_create_branch_from_master(tmp_path):
 
     kr.create_branch("paper/test")
 
-    branches = kr.list_branches()
+    branches = kr.iter_branches()
     branch_names = [b.name for b in branches]
     assert "paper/test" in branch_names
     assert kr.branch_sha("paper/test") == master_sha
@@ -89,7 +89,7 @@ def test_create_branch_kinds(tmp_path):
     kr.create_branch("agent/bar")
     kr.create_branch("hypothesis/baz")
 
-    branches = {b.name: b for b in RepositorySnapshot(Repository(tmp_path / "knowledge")).list_branches()}
+    branches = {b.name: b for b in RepositorySnapshot(Repository(tmp_path / "knowledge")).iter_branches()}
     assert branches["paper/foo"].kind == "paper"
     assert branches["agent/bar"].kind == "agent"
     assert branches["hypothesis/baz"].kind == "hypothesis"
@@ -99,7 +99,7 @@ def test_delete_branch(tmp_path):
     """Deleting a branch removes it from list and nullifies its head.
 
     Basic CRUD: after deletion, the branch must not appear in
-    list_branches() and branch_head() must return None.
+    iter_branches() and branch_head() must return None.
     """
     kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
@@ -107,7 +107,7 @@ def test_delete_branch(tmp_path):
 
     kr.delete_branch("paper/ephemeral")
 
-    branch_names = [b.name for b in kr.list_branches()]
+    branch_names = [b.name for b in kr.iter_branches()]
     assert "paper/ephemeral" not in branch_names
     assert kr.branch_sha("paper/ephemeral") is None
 
@@ -123,7 +123,7 @@ def test_delete_current_head_branch_refused(tmp_path):
         kr.delete_branch("paper/active")
 
 
-def test_list_branches_includes_master(tmp_path):
+def test_iter_branches_includes_master(tmp_path):
     """A fresh repo with one commit must list master as a branch.
 
     Master is always present — it is the default epistemic state
@@ -132,7 +132,7 @@ def test_list_branches_includes_master(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
 
-    branches = kr.list_branches()
+    branches = kr.iter_branches()
     branch_names = [b.name for b in branches]
     assert "master" in branch_names
 
@@ -340,7 +340,7 @@ def test_merge_base_prefers_nearer_common_ancestor_over_older_one(tmp_path):
 def test_existing_api_unchanged(tmp_path):
     """GitStore public API works identically when imported from propstore.storage.
 
-    All existing operations (init, commit_files, read_file, list_dir,
+    All existing operations (init, commit_files, read_file, iter_dir,
     head_sha, log) must work without a branch parameter, defaulting to
     the current HEAD branch. This ensures the Phase 1 refactor does not break any
     existing callers.
@@ -361,8 +361,8 @@ def test_existing_api_unchanged(tmp_path):
     with pytest.raises(FileNotFoundError):
         kr.read_file("b.yaml", commit=master_tip)
 
-    # list_dir works
-    entries = kr.list_dir(".")
+    # iter_dir works
+    entries = kr.iter_dir(".")
     assert "b.yaml" in entries
 
     # head_sha works

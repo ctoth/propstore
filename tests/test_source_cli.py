@@ -19,7 +19,7 @@ def test_source_branch_kind_is_detected(tmp_path: Path) -> None:
 
     repo.git.create_branch("source/test-source")
 
-    branches = {branch.name: branch for branch in repo.snapshot.list_branches()}
+    branches = {branch.name: branch for branch in repo.snapshot.iter_branches()}
     assert branches["source/test-source"].kind == "source"
 
 
@@ -781,7 +781,7 @@ def test_propose_concept_values_survive_finalize_and_promote(tmp_path: Path) -> 
 
     # Check that the concept landed on master with values intact
     master_tip = repo.git.branch_sha("master")
-    concept_files = repo.git.list_dir("concepts", commit=master_tip)
+    concept_files = list(repo.git.iter_dir("concepts", commit=master_tip))
     severity_file = [f for f in concept_files if "severity" in f]
     assert severity_file, f"No severity concept file found on master. Files: {concept_files}"
     concept_data = yaml.safe_load(repo.git.read_file(f"concepts/{severity_file[0]}", commit=master_tip))

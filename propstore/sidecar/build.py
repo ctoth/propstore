@@ -206,7 +206,7 @@ def build_sidecar(
 
     form_registry = {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.families.forms.list(commit=commit_hash)
+        for form_ref in repo.families.forms.iter(commit=commit_hash)
         for document in (
             repo.families.forms.require(form_ref, commit=commit_hash),
         )
@@ -219,14 +219,14 @@ def build_sidecar(
             record=parse_concept_record_document(handle.document),
             document=handle.document,
         )
-        for ref in repo.families.concepts.list(commit=commit_hash)
+        for ref in repo.families.concepts.iter(commit=commit_hash)
         for handle in (
             repo.families.concepts.require_handle(ref, commit=commit_hash),
         )
     ]
     claim_files = [
         repo.families.claims.require_handle(ref, commit=commit_hash)
-        for ref in repo.families.claims.list(commit=commit_hash)
+        for ref in repo.families.claims.iter(commit=commit_hash)
     ]
     context_files = [
         LoadedContext(
@@ -235,7 +235,7 @@ def build_sidecar(
             knowledge_root=tree,
             record=parse_context_record_document(handle.document),
         )
-        for ref in repo.families.contexts.list(commit=commit_hash)
+        for ref in repo.families.contexts.iter(commit=commit_hash)
         for handle in (
             repo.families.contexts.require_handle(ref, commit=commit_hash),
         )
@@ -322,7 +322,7 @@ def build_sidecar(
                     ref.name,
                     repo.families.sources.require(ref, commit=commit_hash),
                 )
-                for ref in repo.families.sources.list(commit=commit_hash)
+                for ref in repo.families.sources.iter(commit=commit_hash)
             ),
         )
         populate_forms(conn, form_registry)
@@ -372,7 +372,7 @@ def build_sidecar(
                     ref.name,
                     repo.families.micropubs.require(ref, commit=commit_hash),
                 )
-                for ref in repo.families.micropubs.list(commit=commit_hash)
+                for ref in repo.families.micropubs.iter(commit=commit_hash)
             ),
         )
 
@@ -398,7 +398,7 @@ def build_sidecar(
                         ref.source_claim,
                         repo.families.stances.require(ref, commit=commit_hash),
                     )
-                    for ref in repo.families.stances.list(commit=commit_hash)
+                    for ref in repo.families.stances.iter(commit=commit_hash)
                 ),
             )
             populate_authored_justifications(
@@ -408,7 +408,7 @@ def build_sidecar(
                         ref.name,
                         repo.families.justifications.require(ref, commit=commit_hash),
                     )
-                    for ref in repo.families.justifications.list(commit=commit_hash)
+                    for ref in repo.families.justifications.iter(commit=commit_hash)
                 ),
             )
 

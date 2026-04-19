@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Iterator, TypeVar
 
 from quire.documents import decode_document_bytes
 
@@ -78,17 +78,15 @@ class RepositorySnapshot:
     def delete_branch(self, name: str) -> None:
         self.git.delete_branch(name)
 
-    def list_branches(self) -> list[BranchInfo]:
-        return [
-            BranchInfo(
+    def iter_branches(self) -> Iterator[BranchInfo]:
+        for branch in self.git.iter_branches():
+            yield BranchInfo(
                 name=branch.name,
                 tip_sha=branch.tip_sha,
                 kind=_branch_kind(branch.name),
                 parent_branch=branch.parent_branch,
                 created_at=branch.created_at,
             )
-            for branch in self.git.list_branches()
-        ]
 
     def tree(self, commit: str | None = None):
         return self._repo.tree(commit=commit)
@@ -125,16 +123,14 @@ class RepositorySnapshot:
             return None
         return decode_document_bytes(payload, document_type, source=source_label)
 
-    def list_dir(self, subdir: str | Path, *, commit: str | None = None) -> list[str]:
-        return self.git.list_dir(subdir, commit=commit)
+    def iter_dir(self, subdir: str | Path, *, commit: str | None = None) -> Iterator[str]:
+        return self.git.iter_dir(subdir, commit=commit)
 
-    def list_dir_entries(self, subdir: str | Path, *, commit: str | None = None) -> list[SnapshotDirEntry]:
+    def iter_dir_entries(self, subdir: str | Path, *, commit: str | None = None) -> Iterator[SnapshotDirEntry]:
         prefix = str(subdir).replace("\\", "/").strip("/")
-        entries: list[SnapshotDirEntry] = []
-        for name, is_dir in self.git.list_dir_entries(subdir, commit=commit):
+        for name, is_dir in self.git.iter_dir_entries(subdir, commit=commit):
             relpath = f"{prefix}/{name}" if prefix else name
-            entries.append(SnapshotDirEntry(name=name, relpath=relpath, is_dir=is_dir))
-        return entries
+            yield SnapshotDirEntry(name=name, relpath=relpath, is_dir=is_dir)
 
     def files(
         self,

@@ -44,7 +44,7 @@ def load_micropub_bundle(repo: Repository, source: str) -> MicropublicationsFile
 
 
 def iter_micropubs(repo: Repository) -> Iterator[MicropubEntry]:
-    for ref in repo.families.micropubs.list():
+    for ref in repo.families.micropubs.iter():
         document = repo.families.micropubs.load(ref)
         if document is None:
             continue
@@ -74,7 +74,7 @@ def inspect_micropub_lift(
             knowledge_root=tree,
             record=parse_context_record_document(handle.document),
         )
-        for ref in repo.families.contexts.list()
+        for ref in repo.families.contexts.iter()
         for handle in (repo.families.contexts.require_handle(ref),)
     ]
     system = loaded_contexts_to_lifting_system(contexts)

@@ -35,7 +35,7 @@ def next_concept_id_for_repo(repo: Repository) -> int:
         if counter is not None:
             return counter + 1
     max_id = 0
-    for ref in repo.families.concepts.list():
+    for ref in repo.families.concepts.iter():
         document = repo.families.concepts.require(ref)
         numeric_id = _numeric_concept_id(document)
         if numeric_id is not None:

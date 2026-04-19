@@ -134,7 +134,7 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
 def worldline_list(obj: dict) -> None:
     """List all worldlines."""
     repo: Repository = obj["repo"]
-    refs = repo.families.worldlines.list()
+    refs = list(repo.families.worldlines.iter())
     if not refs:
         click.echo("No worldlines.")
         return

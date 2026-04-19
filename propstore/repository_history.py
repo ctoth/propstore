@@ -262,7 +262,7 @@ def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
     except KeyError as exc:
         raise CommitNotFoundError(f"Commit not found: {commit}") from exc
 
-    if not repo.families.concepts.list(commit=commit):
+    if not any(repo.families.concepts.iter(commit=commit)):
         raise CommitHasNoConceptsError("No concepts found at that commit.")
 
     rebuilt = build_sidecar(

@@ -116,7 +116,7 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
         second_result.commit_sha
     )
 
-    imported_claim_paths = set(destination_git.list_dir("claims", commit=second_result.commit_sha))
+    imported_claim_paths = set(destination_git.iter_dir("claims", commit=second_result.commit_sha))
     assert imported_claim_paths == {f"{claim_id}.yaml" for claim_id in sorted(source_claim_ids)}
     for claim_id in stale_claim_ids:
         with pytest.raises(FileNotFoundError):

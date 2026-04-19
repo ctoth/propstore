@@ -54,7 +54,7 @@ def test_stance_proposal_promotion_commits_to_master(tmp_path) -> None:
     result = promote_stance_proposals(repo, plan)
 
     assert result.moved == 1
-    assert "claim_a.yaml" in repo.git.list_dir("stances")
+    assert "claim_a.yaml" in repo.git.iter_dir("stances")
 
 
 def test_stance_proposal_promotion_reports_missing_branch(tmp_path) -> None:
