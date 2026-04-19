@@ -79,6 +79,8 @@ New gaps are added to `docs/gaps.md` when observed; closures happen in the same 
 ## Technical Conventions
 
 - `uv run` for all Python execution
+- Pyright package check: `uv run pyright propstore`
+- Do not use bare `uv run pyright` as the project gate; it also analyzes generated schema, scripts, and tests outside the configured package surface
 - `pks` CLI for all propstore operations
 - Tests: `powershell -File scripts/run_logged_pytest.ps1 tests/`
 - Build: `uv run pks build`

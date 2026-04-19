@@ -7,6 +7,10 @@ Canonical usage:
 - `sh ./scripts/run_logged_pytest.sh tests/test_init.py`
 - `sh ./scripts/run_logged_pytest.sh --label artifact-store tests/test_artifact_store.py tests/test_import_repo.py`
 
+For Pyright, check the package surface with `uv run pyright propstore`.
+Do not use bare `uv run pyright` as the project gate; it also analyzes generated
+schema, scripts, and tests that are not part of the configured package surface.
+
 In this project:
 - Prefer explicit domain objects over loose payloads.
 - Decoded YAML/JSON/SQLite rows may be `dict` only at the IO boundary. Convert them immediately and do not pass them through the core semantic pipeline as domain objects.
