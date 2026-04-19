@@ -22,6 +22,13 @@ from quire.documents import load_document_dir
 from propstore.families.documents.claims import ClaimsFileDocument
 from propstore.cel_checker import ConceptInfo, KindType, check_cel_expr
 from propstore.cel_registry import build_canonical_cel_registry
+from propstore.families.identity.logical_ids import (
+    CONCEPT_ARTIFACT_ID_RE,
+    CONCEPT_VERSION_ID_RE,
+    LOGICAL_NAMESPACE_RE,
+    LOGICAL_VALUE_RE,
+    format_logical_id,
+)
 from propstore.identity import normalize_canonical_concept_payload
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import (
@@ -29,14 +36,7 @@ from propstore.core.concept_relationship_types import (
     VALID_CONCEPT_RELATIONSHIP_TYPES,
 )
 from propstore.form_utils import FormDefinition, kind_type_from_form_name, load_form_path
-from propstore.identity import (
-    CONCEPT_ARTIFACT_ID_RE,
-    CONCEPT_VERSION_ID_RE,
-    LOGICAL_NAMESPACE_RE,
-    LOGICAL_VALUE_RE,
-    compute_concept_version_id,
-    format_logical_id,
-)
+from propstore.identity import compute_concept_version_id
 from propstore.core.concepts import (
     LoadedConcept,
     concept_document_to_payload,

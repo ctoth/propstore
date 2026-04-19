@@ -5,58 +5,17 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
-import re
 from typing import Any
 
 from quire.hashing import canonical_json_sha256
 
-
-CLAIM_ARTIFACT_ID_RE = re.compile(r"^ps:claim:[A-Za-z0-9][A-Za-z0-9._-]*$")
-CLAIM_VERSION_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-CONCEPT_ARTIFACT_ID_RE = re.compile(r"^ps:concept:[A-Za-z0-9][A-Za-z0-9._-]*$")
-CONCEPT_VERSION_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-LOGICAL_NAMESPACE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-LOGICAL_VALUE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
-
-_LOGICAL_CLAIM_ID_RE = re.compile(
-    r"^(?P<namespace>[A-Za-z0-9][A-Za-z0-9._-]*):(?P<value>[A-Za-z0-9][A-Za-z0-9._/-]*)$"
-)
-
-
-def parse_claim_id(cid: str) -> tuple[str | None, str]:
-    """Split a logical claim ID into ``(namespace, local_id)``."""
-    match = _LOGICAL_CLAIM_ID_RE.match(cid)
-    if match is None:
-        return None, cid
-    return match.group("namespace"), match.group("value")
-
-
-def normalize_identity_namespace(value: str) -> str:
-    """Return a valid logical-id namespace token."""
-    normalized = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
-    normalized = normalized.strip("._-")
-    if not normalized:
-        return "source"
-    if not normalized[0].isalnum():
-        normalized = f"ns_{normalized}"
-    return normalized
-
-
-def normalize_logical_value(value: str) -> str:
-    """Return a valid logical-id value token."""
-    normalized = re.sub(r"[^A-Za-z0-9._/-]+", "_", value.strip())
-    normalized = normalized.strip("._/-")
-    if not normalized:
-        return "item"
-    if not normalized[0].isalnum():
-        normalized = f"id_{normalized}"
-    return normalized
+from propstore.families.identity import logical_ids as _logical_ids
 
 
 def derive_claim_artifact_id(namespace: str, value: str) -> str:
     """Derive a deterministic claim artifact ID from a logical handle."""
-    normalized_namespace = normalize_identity_namespace(namespace)
-    normalized_value = normalize_logical_value(value)
+    normalized_namespace = _logical_ids.normalize_identity_namespace(namespace)
+    normalized_value = _logical_ids.normalize_logical_value(value)
     digest = hashlib.sha256(
         f"{normalized_namespace}:{normalized_value}".encode("utf-8")
     ).hexdigest()[:16]
@@ -65,34 +24,12 @@ def derive_claim_artifact_id(namespace: str, value: str) -> str:
 
 def derive_concept_artifact_id(namespace: str, value: str) -> str:
     """Derive a deterministic concept artifact ID from a logical handle."""
-    normalized_namespace = normalize_identity_namespace(namespace)
-    normalized_value = normalize_logical_value(value)
+    normalized_namespace = _logical_ids.normalize_identity_namespace(namespace)
+    normalized_value = _logical_ids.normalize_logical_value(value)
     digest = hashlib.sha256(
         f"{normalized_namespace}:{normalized_value}".encode("utf-8")
     ).hexdigest()[:16]
     return f"ps:concept:{digest}"
-
-
-def format_logical_id(entry: dict[str, Any]) -> str | None:
-    """Return ``namespace:value`` for a logical-id entry."""
-    namespace = entry.get("namespace")
-    value = entry.get("value")
-    if not isinstance(namespace, str) or not isinstance(value, str):
-        return None
-    if not namespace or not value:
-        return None
-    return f"{namespace}:{value}"
-
-
-def primary_logical_id(claim: dict[str, Any]) -> str | None:
-    """Return the primary user-facing logical ID for a claim."""
-    logical_ids = claim.get("logical_ids")
-    if not isinstance(logical_ids, list) or not logical_ids:
-        return None
-    first = logical_ids[0]
-    if not isinstance(first, dict):
-        return None
-    return format_logical_id(first)
 
 
 def canonicalize_claim_for_version(claim: dict[str, Any]) -> dict[str, Any]:
@@ -234,7 +171,7 @@ def normalize_claim_file_payload(
         if isinstance(source, dict) and isinstance(source.get("paper"), str)
         else (default_namespace or "source")
     )
-    namespace = normalize_identity_namespace(raw_namespace if isinstance(raw_namespace, str) else str(raw_namespace))
+    namespace = _logical_ids.normalize_identity_namespace(raw_namespace if isinstance(raw_namespace, str) else str(raw_namespace))
 
     raw_claims = list(normalized_data.get("claims", []))
     local_handle_map: dict[str, str] = {}
@@ -250,7 +187,7 @@ def normalize_claim_file_payload(
         logical_ids = normalized.get("logical_ids")
 
         if not isinstance(logical_ids, list) or not logical_ids:
-            logical_value = normalize_logical_value(str(raw_id or f"claim{index}"))
+            logical_value = _logical_ids.normalize_logical_value(str(raw_id or f"claim{index}"))
             normalized["logical_ids"] = [{"namespace": namespace, "value": logical_value}]
         else:
             cleaned_logical_ids: list[dict[str, str]] = []
@@ -263,12 +200,12 @@ def normalize_claim_file_payload(
                     continue
                 cleaned_logical_ids.append(
                     {
-                        "namespace": normalize_identity_namespace(entry_namespace),
-                        "value": normalize_logical_value(entry_value),
+                        "namespace": _logical_ids.normalize_identity_namespace(entry_namespace),
+                        "value": _logical_ids.normalize_logical_value(entry_value),
                     }
                 )
             if not cleaned_logical_ids:
-                logical_value = normalize_logical_value(str(raw_id or f"claim{index}"))
+                logical_value = _logical_ids.normalize_logical_value(str(raw_id or f"claim{index}"))
                 cleaned_logical_ids = [{"namespace": namespace, "value": logical_value}]
             normalized["logical_ids"] = cleaned_logical_ids
 
@@ -362,7 +299,7 @@ def normalize_canonical_concept_payload(
     if default_form is not None and not isinstance(dimension_form, str):
         dimension_form = default_form
 
-    propstore_handle = normalize_logical_value(
+    propstore_handle = _logical_ids.normalize_logical_value(
         local_handle or _concept_local_handle(normalized, fallback=str(raw_id or effective_name))
     )
     artifact_id = normalized.get("artifact_id")
@@ -425,7 +362,7 @@ def concept_reference_keys(data: dict[str, Any], *, raw_id: str | None = None) -
         if not isinstance(entry, dict):
             continue
         add(entry.get("value"))
-        formatted = format_logical_id(entry)
+        formatted = _logical_ids.format_logical_id(entry)
         if formatted is not None:
             reference_keys.add(formatted)
     for alias in data.get("aliases", []) or []:
@@ -443,11 +380,11 @@ def _concept_local_handle(data: dict[str, Any], *, fallback: str | None = None) 
             namespace = entry.get("namespace")
             value = entry.get("value")
             if namespace == "propstore" and isinstance(value, str) and value:
-                return normalize_logical_value(value)
+                return _logical_ids.normalize_logical_value(value)
     raw_id = data.get("id")
     if isinstance(raw_id, str) and raw_id:
-        return normalize_logical_value(raw_id)
-    return normalize_logical_value(fallback or data.get("canonical_name") or "concept")
+        return _logical_ids.normalize_logical_value(raw_id)
+    return _logical_ids.normalize_logical_value(fallback or data.get("canonical_name") or "concept")
 
 
 def _primary_logical_namespace(logical_ids: object) -> str | None:
@@ -470,11 +407,11 @@ def _concept_logical_ids(
     existing: object = None,
 ) -> list[dict[str, str]]:
     primary = {
-        "namespace": normalize_identity_namespace(domain or "propstore"),
-        "value": normalize_logical_value(canonical_name),
+        "namespace": _logical_ids.normalize_identity_namespace(domain or "propstore"),
+        "value": _logical_ids.normalize_logical_value(canonical_name),
     }
     logical_ids = [primary]
-    seen = {format_logical_id(primary)}
+    seen = {_logical_ids.format_logical_id(primary)}
     if isinstance(existing, list):
         for entry in existing:
             if not isinstance(entry, dict):
@@ -484,18 +421,18 @@ def _concept_logical_ids(
             if not isinstance(namespace, str) or not isinstance(value, str):
                 continue
             normalized = {
-                "namespace": normalize_identity_namespace(namespace),
-                "value": normalize_logical_value(value),
+                "namespace": _logical_ids.normalize_identity_namespace(namespace),
+                "value": _logical_ids.normalize_logical_value(value),
             }
-            formatted = format_logical_id(normalized)
+            formatted = _logical_ids.format_logical_id(normalized)
             if formatted is None or formatted in seen:
                 continue
             if normalized["namespace"] == primary["namespace"]:
                 continue
             logical_ids.append(normalized)
             seen.add(formatted)
-    propstore_entry = {"namespace": "propstore", "value": normalize_logical_value(local_handle)}
-    formatted_propstore = format_logical_id(propstore_entry)
+    propstore_entry = {"namespace": "propstore", "value": _logical_ids.normalize_logical_value(local_handle)}
+    formatted_propstore = _logical_ids.format_logical_id(propstore_entry)
     if formatted_propstore is not None and formatted_propstore not in seen:
         logical_ids.append(propstore_entry)
     return logical_ids

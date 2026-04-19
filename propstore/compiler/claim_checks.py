@@ -23,7 +23,7 @@ from propstore.compiler.references import (
 from propstore.diagnostics import SemanticDiagnostic
 from propstore.dimensions import can_convert_unit_to
 from propstore.form_utils import FormDefinition
-from propstore.identity import (
+from propstore.families.identity.logical_ids import (
     LOGICAL_NAMESPACE_RE,
     LOGICAL_VALUE_RE,
     format_logical_id,
@@ -874,4 +874,3 @@ def _validate_unit_against_form(
                 filename=filename,
                 artifact_id=cid,
             ))
-

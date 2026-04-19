@@ -16,10 +16,10 @@ import pytest
 import yaml
 
 from propstore.identity import derive_concept_artifact_id
+from propstore.families.identity.logical_ids import parse_claim_id
 from quire.documents import DocumentSchemaError
 from propstore.claims import loaded_claim_file_from_payload
 from tests.family_helpers import load_claim_files
-from propstore.identity import parse_claim_id
 from propstore.compiler.passes import (
     validate_claims,
     validate_single_claim_file,

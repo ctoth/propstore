@@ -40,9 +40,11 @@ from propstore.compiler.ir import (
     SemanticClaimFile,
     SemanticStance,
 )
-from propstore.identity import (
+from propstore.families.identity.logical_ids import (
     CLAIM_ARTIFACT_ID_RE,
     CLAIM_VERSION_ID_RE,
+)
+from propstore.identity import (
     compute_claim_version_id,
 )
 
