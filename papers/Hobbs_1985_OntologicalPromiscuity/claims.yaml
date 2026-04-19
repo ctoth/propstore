@@ -1,0 +1,326 @@
+source:
+  paper: Hobbs_1985_OntologicalPromiscuity
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "For every n-ary natural-language predicate p there is an (n+1)-ary primed predicate p' such that p(x1,...,xn) is equivalent to the existence of an eventuality e with p'(e, x1,...,xn) and Exist(e)."
+    concepts:
+      - nominalization_operator
+      - eventuality
+      - existence_predicate
+      - flat_logical_form
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 63
+      section: "2 The Logical Notation"
+      quote_fragment: "(∀x1,...,xn) p(x1,...,xn) ≡ (∃e) Exist(e) ∧ p'(e, x1,...,xn)"
+
+  - id: claim2
+    type: observation
+    statement: "A predicate p is transparent in its nth argument x iff p(...,x,...) implies Exist(x); otherwise the predicate is opaque in that argument."
+    concepts:
+      - predicate_transparency
+      - existence_predicate
+      - nominalization_operator
+    conditions:
+      - "predicate_transparency in ['transparent', 'opaque']"
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 63
+      section: "2 The Logical Notation"
+      quote_fragment: "if a predicate p is transparent in its nth argument x, this can be encoded by the axiom (∀e,...,x,...) p'(e,...,x,...) ∧ Exist(e) ⊃ Exist(x)"
+
+  - id: claim3
+    type: observation
+    statement: "In the absence of a transparency axiom, predicates are assumed opaque by default."
+    concepts:
+      - predicate_transparency
+    conditions:
+      - "predicate_transparency == 'opaque'"
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 63
+      section: "2 The Logical Notation"
+      quote_fragment: "In the absence of such axioms, predicates are assumed to be opaque."
+
+  - id: claim4
+    type: observation
+    statement: "The logical form of a natural-language sentence is a conjunction of atomic predications with outermost existential quantifiers, containing no functions, functionals, nested quantifiers, disjunctions, negations, or modal or intensional operators."
+    concepts:
+      - flat_logical_form
+      - naive_compositionality
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 62
+      section: "1 Motivation"
+      quote_fragment: "the logical form of natural language sentences will be a conjunction of atomic predications in which all variables are existentially quantified with the widest possible scope. ... There will be no functions, functionals, nested quantifiers, disjunctions, negations, or modal or intensional operators."
+
+  - id: claim5
+    type: observation
+    statement: "The universe of discourse is a Platonic universe containing every entity that can be referred to by a noun phrase, including possible, impossible, nonexistent, and abstract entities, regardless of whether they exist in the real world."
+    concepts:
+      - platonic_universe
+      - ontological_promiscuity
+      - existence_predicate
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 62
+      section: "1 Motivation"
+      quote_fragment: "we take our model to be a Platonic universe which contains everything that can be spoken of - objects, events, states, conditions - whether they exist in the real world or not."
+
+  - id: claim6
+    type: observation
+    statement: "rw-identical is a reflexive, symmetric, transitive relation on the Platonic universe."
+    concepts:
+      - rw_identical_relation
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 67
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "Axioms will express the fact that rw-identical is an equivalence relation"
+
+  - id: claim7
+    type: observation
+    statement: "If two entities are rw-identical then they have the same real-world existence status: Exist(e1) holds iff Exist(e2) holds."
+    concepts:
+      - rw_identical_relation
+      - existence_predicate
+      - leibniz_substitutivity
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 67
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "the following axiom, together with axiom (17), would express Leibniz's Law: (∀e1,e2) rw-identical(e1,e2) ⊃ (Exist(e1) ≡ Exist(e2))"
+
+  - id: claim8
+    type: observation
+    statement: "Substitution under rw-identical is restricted to referentially transparent argument positions and yields an rw-identical (not identical) eventuality as the result."
+    concepts:
+      - rw_identical_relation
+      - predicate_transparency
+      - leibniz_substitutivity
+    conditions:
+      - "predicate_transparency == 'transparent'"
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 67
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "Substitution of 'rw-identicals' in a condition results not in the same condition but in an 'rw-identical' condition."
+
+  - id: claim9
+    type: mechanism
+    statement: "Expanding the ontology to admit nonexistent and impossible entities lets the logical notation remain first-order, nonintensional, and syntactically simple: complexity moves from the notation into the universe of discourse, trading ontological profligacy for uniform rule shape at the discourse-interpretation level."
+    concepts:
+      - ontological_promiscuity
+      - flat_logical_form
+      - naive_compositionality
+      - platonic_universe
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 61
+      section: "1 Motivation"
+      quote_fragment: "simplicity by minimizing the complexity of the rules in the system. It turns out this can be achieved by multiplying kinds of entities"
+
+  - id: claim10
+    type: mechanism
+    statement: "Primed predicates give higher predications a handle (the eventuality argument e) by which tense, modality, causation, propositional attitudes, pronominal reference, and nominalization can grasp a predication as a first-class entity."
+    concepts:
+      - nominalization_operator
+      - eventuality
+      - flat_logical_form
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 62
+      section: "2 The Logical Notation"
+      quote_fragment: "The effect of this notational maneuver is to provide handles by which various predications can be grasped by higher predications."
+
+  - id: claim11
+    type: observation
+    statement: "The de re / de dicto distinction is represented by the presence or absence of a conjunct know(J, R) ∧ wh'(R, S) expressing the agent's contextually-determined identification of the referent, rather than by scope disambiguation."
+    concepts:
+      - belief_report_reading
+      - wh_placeholder
+    conditions:
+      - "belief_report_reading in ['de_re', 'de_dicto']"
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 65
+      section: "4 De Re and De Dicto Belief Reports"
+      quote_fragment: "a de re belief report would be represented as a conjunction of two beliefs, one for the main predication and the other expressing knowledge of the essential property"
+
+  - id: claim12
+    type: mechanism
+    statement: "Knowledge of the identity of an embedded referent in a belief report is a conversational implicature, not part of the literal meaning — so a de re reading can be appropriate even when no identification conjunct holds (e.g., 'John believes someone at the next table is a spy' when John cannot identify which Rotary-Club member)."
+    concepts:
+      - belief_report_reading
+      - wh_placeholder
+    conditions:
+      - "belief_report_reading == 'de_re'"
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 65
+      section: "4 De Re and De Dicto Belief Reports"
+      quote_fragment: "the conjuncts know(J, R) and wh'(R, S) are not part of what we want in the initial logical form of the sentence, but only a very common conversational implicature"
+
+  - id: claim13
+    type: observation
+    statement: "Eventualities must be individuated at very fine grain: coextensive-but-non-definitionally-equivalent predicates yield non-identical eventualities, so 'John is almost a man' does not entail 'John is almost a mammal' even when man ⊂ mammal."
+    concepts:
+      - eventuality
+      - opaque_adverbial
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 64
+      section: "3 Opaque Adverbials"
+      quote_fragment: "We can say 'John is almost a man' without wishing to imply 'John is almost a mammal,' so we would not want to say that John's being a man is the same condition as his being a mammal."
+
+  - id: claim14
+    type: observation
+    statement: "Opaque adverbials such as 'almost' can be represented as unary predicates over eventualities (almost'(E) ∧ man'(E, J)) rather than as functionals from predicates to predicates, preserving the flat first-order form."
+    concepts:
+      - opaque_adverbial
+      - nominalization_operator
+      - eventuality
+      - flat_logical_form
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 64
+      section: "3 Opaque Adverbials"
+      quote_fragment: "The sentence would be represented almost'(E) ∧ man'(E, J)"
+
+  - id: claim15
+    type: observation
+    statement: "In the Platonic universe Evening-Star and Morning-Star are distinct entities that are rw-identical, not identical; the Fregean puzzle dissolves because intersubstitutivity requires rw-identical and is restricted to transparent positions."
+    concepts:
+      - rw_identical_relation
+      - platonic_universe
+      - leibniz_substitutivity
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 66
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "in the Platonic universe, the Morning Star and the Evening Star are different entities. It just happens that in the real world they are identical."
+
+  - id: claim16
+    type: mechanism
+    statement: "The abstract-object function α(entity, cognizer, condition) returns distinct values for distinct describing conditions even when the actual entity and cognizer are fixed, blocking unwanted intersubstitutivity of co-referring noun phrases in intensional contexts."
+    concepts:
+      - abstract_object_function
+      - belief_report_reading
+      - leibniz_substitutivity
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 68
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "different abstract objects must correspond to the condition Q1 of being the Evening Star and the condition Q2 of being the Morning Star"
+
+  - id: claim17
+    type: comparison
+    statement: "Against Quinean ontological parsimony, Hobbs argues that simplicity of inference rules — not minimality of entity kinds — is the relevant simplicity criterion; multiplying entity kinds so that anything noun-phrase-referable is an entity achieves rule-level simplicity."
+    concepts:
+      - ontological_promiscuity
+      - platonic_universe
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 61
+      section: "1 Motivation"
+      quote_fragment: "Minimizing kinds of entities is not the only way to achieve simplicity in a theory. The aim in this enterprise is to achieve simplicity by minimizing the complexity of the rules in the system."
+
+  - id: claim18
+    type: comparison
+    statement: "Against Reichenbach-style functional treatment of opaque adverbials (almost: Predicate → Predicate), Hobbs shows that a suitably rich finite model lets any such functional F be replaced by a predicate q such that F(p)(x) iff (∃e) q(e) ∧ p'(e, x), preserving first-order flatness."
+    concepts:
+      - opaque_adverbial
+      - flat_logical_form
+      - nominalization_operator
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 64
+      section: "3 Opaque Adverbials"
+      quote_fragment: "We can construct a model in which for every functional F there is a corresponding equivalent predicate q"
+
+  - id: claim19
+    type: comparison
+    statement: "Against scope-ambiguity treatments of the de re / de dicto distinction (Quine 1956), Hobbs argues these fail the case where John believes someone is a spy without any identifying knowledge; ontological promiscuity plus wh'-placeholder handle the continuum of partial identification more directly."
+    concepts:
+      - belief_report_reading
+      - wh_placeholder
+      - ontological_promiscuity
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 65
+      section: "4 De Re and De Dicto Belief Reports"
+      quote_fragment: "It is not obvious for example that (8) could not cover the case where there is an individual such that John believes him to be a spy but has never seen him and knows absolutely nothing else about him"
+
+  - id: claim20
+    type: comparison
+    statement: "Against Montagovian always-intensional reference, Hobbs argues meaning postulates for extensional equivalence are unnecessary if metonymic reinterpretation to abstract objects is treated as an irregular, on-demand phenomenon rather than a systematic feature of every noun phrase."
+    concepts:
+      - abstract_object_function
+      - naive_compositionality
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 67
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "intensional and extensional predicates must be distinguished explicitly, and noun phrases in intensional contexts are systematically interpreted metonymically"
+
+  - id: claim21
+    type: limitation
+    statement: "Reasoning about equality in the Hobbs notation is translated into reasoning about rw-identical, which is very cumbersome compared to ordinary substitution; common equality inferences become harder to execute."
+    concepts:
+      - rw_identical_relation
+      - leibniz_substitutivity
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 67
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "The very common problems involving reasoning about equality, which can be done efficiently, are thus translated into problems involving reasoning about the predicate rw-identical, which is very cumbersome."
+
+  - id: claim22
+    type: limitation
+    statement: "The metonymic third approach (abstract-object function α) makes noun-phrase interpretation depend on its embedding context — intensional contexts trigger metonymic reinterpretation while extensional contexts do not — partially violating the naive compositionality the paper otherwise preserves."
+    concepts:
+      - abstract_object_function
+      - naive_compositionality
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 68
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "It thus violates, though not seriously, the naive compositionality that I have been at so many pains to preserve."
+
+  - id: claim23
+    type: limitation
+    statement: "The quantifier problem (universal quantification, existential-in-universal scope) is not handled in this paper; Hobbs addresses only opaque adverbials, de re/de dicto, and identity, deferring quantifiers to Hobbs 1983."
+    concepts:
+      - flat_logical_form
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 63
+      section: "2 The Logical Notation"
+      quote_fragment: "I have described a solution to the quantifier problem elsewhere (Hobbs, 1983). ... In this paper I will address only the other three problems in detail."
+
+  - id: claim24
+    type: observation
+    statement: "Sentences describing merely-possible individuals do not violate the Law of the Excluded Middle in this notation: married(S) abbreviates (∃E) married'(E, S) ∧ Exist(E), so both married(S) and unmarried(S) can be false if S lacks real-world existence, and the primed predicates alone never raise excluded-middle problems."
+    concepts:
+      - existence_predicate
+      - nominalization_operator
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 65
+      section: "4 De Re and De Dicto Belief Reports"
+      quote_fragment: "married(S) is really just an abbreviation for married'(E,S) ∧ Exist(E). This is false, for the existence of E in the real world would imply the existence of S. So married(S) is also false. But its falsity has nothing to do with S's marital status, only his existential status."
+
+  - id: claim25
+    type: mechanism
+    statement: "Semantics is the relation between language and the world, so choosing a theory of the world already isomorphic to how natural language carves it up makes semantics nearly trivial; this is the position Hobbs's ontological promiscuity operationalizes."
+    concepts:
+      - ontological_promiscuity
+      - naive_compositionality
+      - platonic_universe
+    provenance:
+      paper: Hobbs_1985_OntologicalPromiscuity
+      page: 68
+      section: "6 The Role of Semantics"
+      quote_fragment: "if one can assume a theory of the world that is isomorphic to the way we talk about it ... then semantics becomes nearly trivial"

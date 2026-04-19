@@ -1,0 +1,149 @@
+source:
+  paper: Hobbs_1985_OntologicalPromiscuity
+
+justifications:
+  - id: just1
+    conclusion: claim4
+    premises:
+      - claim9
+      - claim25
+    rule_kind: causal_explanation
+    provenance:
+      page: 61
+      section: "1 Motivation"
+      quote_fragment: "Minimizing kinds of entities is not the only way to achieve simplicity in a theory. The aim in this enterprise is to achieve simplicity by minimizing the complexity of the rules in the system. It turns out this can be achieved by multiplying kinds of entities"
+
+  - id: just2
+    conclusion: claim9
+    premises:
+      - claim17
+    rule_kind: comparison_based_inference
+    provenance:
+      page: 61
+      section: "1 Motivation"
+      quote_fragment: "Quine has been the greatest exponent of ontological chastity. ... But he goes on to say that 'simplicity ... is not a clear and unambiguous idea'"
+
+  - id: just3
+    conclusion: claim9
+    premises:
+      - claim25
+    rule_kind: causal_explanation
+    provenance:
+      page: 68
+      section: "6 The Role of Semantics"
+      quote_fragment: "What I have been doing in this paper, in fact, is an effort to work out the details in such a theory. In this case, semantics becomes very nearly trivial."
+
+  - id: just4
+    conclusion: claim24
+    premises:
+      - claim1
+      - claim5
+    rule_kind: definition_application
+    provenance:
+      page: 65
+      section: "4 De Re and De Dicto Belief Reports"
+      quote_fragment: "By axiom (3), married(S) is really just an abbreviation for married'(E,S) ∧ Exist(E). This is false, for the existence of E in the real world would imply the existence of S."
+
+  - id: just5
+    conclusion: claim15
+    premises:
+      - claim6
+      - claim7
+      - claim8
+    rule_kind: causal_explanation
+    provenance:
+      page: 67
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "The fact that ES and MS are identical in the real world (call this relation rw-identical) must be stated explicitly ... Substitution of 'rw-identicals' in a condition results not in the same condition but in an 'rw-identical' condition."
+
+  - id: just6
+    conclusion: claim11
+    premises:
+      - claim19
+    rule_kind: comparison_based_inference
+    provenance:
+      page: 65
+      section: "4 De Re and De Dicto Belief Reports"
+      quote_fragment: "It is not obvious for example that (8) could not cover the case where there is an individual such that John believes him to be a spy but has never seen him ... In fact, the notation we propose takes (8) to be the most neutral representation."
+
+  - id: just7
+    conclusion: claim11
+    premises:
+      - claim12
+    rule_kind: causal_explanation
+    provenance:
+      page: 65
+      section: "4 De Re and De Dicto Belief Reports"
+      quote_fragment: "It seems then that the conjuncts know(J, R) and wh'(R, S) are not part of what we want in the initial logical form of the sentence, but only a very common conversational implicature."
+
+  - id: just8
+    conclusion: claim14
+    premises:
+      - claim18
+    rule_kind: comparison_based_inference
+    provenance:
+      page: 64
+      section: "3 Opaque Adverbials"
+      quote_fragment: "The existence of the model shows that this condition is not necessarily contradictory. ... The fact that we can define such a predicate q in a moderately rich model means that we are licensed to treat opaque adverbials as properties of events and conditions."
+
+  - id: just9
+    conclusion: claim13
+    premises:
+      - claim14
+    rule_kind: scope_limitation
+    provenance:
+      page: 64
+      section: "3 Opaque Adverbials"
+      quote_fragment: "We can say 'John is almost a man' without wishing to imply 'John is almost a mammal,' so we would not want to say that John's being a man is the same condition as his being a mammal. We are forced, though not unwillingly, into a position of individuating eventualities according to very fine-grained criteria."
+
+  - id: just10
+    conclusion: claim1
+    premises:
+      - claim10
+      - claim9
+    rule_kind: causal_explanation
+    provenance:
+      page: 62
+      section: "2 The Logical Notation"
+      quote_fragment: "The effect of this notational maneuver is to provide handles by which various predications can be grasped by higher predications. ... Corresponding to every n-ary predicate p there will be an n+1-ary predicate p' whose first argument can be thought of as the condition that holds when p is true of the subsequent arguments."
+
+  - id: just11
+    conclusion: claim22
+    premises:
+      - claim16
+    rule_kind: scope_limitation
+    provenance:
+      page: 68
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "The difficulty with this approach is that it makes the interpretation of noun phrases dependent on their embedding context ... It thus violates, though not seriously, the naive compositionality that I have been at so many pains to preserve."
+
+  - id: just12
+    conclusion: claim21
+    premises:
+      - claim6
+      - claim8
+    rule_kind: scope_limitation
+    provenance:
+      page: 67
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "The very common problems involving reasoning about equality, which can be done efficiently, are thus translated into problems involving reasoning about the predicate rw-identical, which is very cumbersome."
+
+  - id: just13
+    conclusion: claim16
+    premises:
+      - claim20
+    rule_kind: comparison_based_inference
+    provenance:
+      page: 67
+      section: "5 Identity in Belief Contexts"
+      quote_fragment: "In a Montagovian approach, 'the Evening Star' would be taken to refer to the intension of the Evening Star ... It would be easy enough in our framework to implement these approaches."
+
+  - id: just14
+    conclusion: claim3
+    premises:
+      - claim2
+    rule_kind: definition_application
+    provenance:
+      page: 63
+      section: "2 The Logical Notation"
+      quote_fragment: "In the absence of such axioms, predicates are assumed to be opaque."
