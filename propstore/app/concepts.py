@@ -207,7 +207,9 @@ def find_similar_concepts(
         if request.agree:
             rows = find_similar_concepts_agree(conn, resolved_id, top_k=request.top_k)
         elif request.disagree:
-            rows = find_similar_concepts_disagree(conn, resolved_id, top_k=request.top_k)
+            rows = find_similar_concepts_disagree(
+                conn, resolved_id, top_k=request.top_k
+            )
         else:
             model = request.model
             if model is None:

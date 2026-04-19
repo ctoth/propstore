@@ -11,17 +11,21 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
-from propstore.core.graph_types import ActiveWorldGraph
-from propstore.core.environment import StanceStore
 from argumentation.dung import (
     ArgumentationFramework,
     grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
-from propstore.grounding.bundle import GroundedRulesBundle
+
+from propstore.core.active_claims import (
+    ActiveClaimInput,
+    coerce_active_claims,
+)
+from propstore.core.environment import StanceStore
+from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.labels import Label, SupportQuality
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.types import (
     ArgumentationSemantics,
     ReasoningBackend,
@@ -74,6 +78,7 @@ def build_structured_projection(
     ``GroundedRulesBundle.empty()`` internally.
     """
     from propstore.aspic_bridge import build_aspic_projection
+
     return build_aspic_projection(
         store,
         coerce_active_claims(active_claims),
@@ -104,6 +109,5 @@ def compute_structured_justified_arguments(
     if normalized_semantics == ArgumentationSemantics.STABLE:
         return [frozenset(ext) for ext in stable_extensions(projection.framework)]
     raise ValueError(
-        f"{backend.value} does not support semantics "
-        f"'{normalized_semantics.value}'"
+        f"{backend.value} does not support semantics '{normalized_semantics.value}'"
     )

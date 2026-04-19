@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import propstore.concepts as concepts_mod
+import propstore.app.concepts as concepts_mod
 import propstore.embed as embed_mod
-from propstore.concepts import (
+from propstore.app.concepts import (
     ConceptEmbedRequest,
     ConceptSearchRequest,
     ConceptSimilarRequest,

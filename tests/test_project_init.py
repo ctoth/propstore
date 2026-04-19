@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.project_init import initialize_project
+from propstore.app.project_init import initialize_project
 
 
 def test_initialize_project_seeds_packaged_artifacts(tmp_path: Path) -> None:

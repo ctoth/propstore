@@ -66,7 +66,7 @@ from propstore.cli.concept import (
 @click.pass_obj
 def search(obj: dict, query: str) -> None:
     """Search concepts via the FTS5 index over canonical_name, aliases, definition, and CEL conditions."""
-    from propstore.concepts import (
+    from propstore.app.concepts import (
         ConceptSearchRequest,
         ConceptSidecarMissingError,
         search_concepts,
