@@ -19,3 +19,4 @@ main.py
 **/*.pdf
 /notes/
 /notes-*.md
+/knowledge/
