@@ -13,7 +13,7 @@ from propstore.core.concepts import (
     normalize_loaded_concepts,
 )
 from propstore.document_schema import load_document
-from propstore.identity import compute_concept_version_id
+from propstore.families.identity.concepts import compute_concept_version_id
 from propstore.sidecar.build import build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 

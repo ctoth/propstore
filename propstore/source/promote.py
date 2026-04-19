@@ -26,7 +26,7 @@ from typing import Any
 
 from propstore.artifact_codes import attach_source_artifact_codes
 from propstore.families.identity.claims import normalize_canonical_claim_payload
-from propstore.identity import normalize_canonical_concept_payload
+from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.claim_references import (
     ClaimReferenceResolver,
     load_primary_branch_claim_reference_index,

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.families.identity.claims import normalize_claim_file_payload
-from propstore.identity import (
+from propstore.families.identity.concepts import (
     normalize_canonical_concept_payload,
 )
 from propstore.families.registry import (

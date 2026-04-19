@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from propstore.families.registry import ConceptFileRef
-from propstore.identity import normalize_canonical_concept_payload
+from propstore.families.identity.concepts import (
+    derive_concept_artifact_id,
+    normalize_canonical_concept_payload,
+)
 from propstore.repository import Repository
-from propstore.identity import derive_concept_artifact_id
 
 
 def test_normalize_canonical_concept_payload_preserves_propstore_handle_and_updates_primary_identity() -> None:

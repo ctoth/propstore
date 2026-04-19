@@ -7,7 +7,7 @@ import yaml
 
 from tests.family_helpers import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
-from propstore.identity import derive_concept_artifact_id
+from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.world import WorldModel
 from tests.conftest import (
     create_world_model_schema,

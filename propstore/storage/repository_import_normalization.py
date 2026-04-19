@@ -22,7 +22,7 @@ from propstore.families.identity.claims import (
     normalize_canonical_claim_payload,
     normalize_claim_file_payload,
 )
-from propstore.identity import (
+from propstore.families.identity.concepts import (
     concept_reference_keys,
     normalize_canonical_concept_payload,
 )

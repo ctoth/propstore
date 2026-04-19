@@ -17,8 +17,10 @@ from propstore.families.registry import (
 from propstore.cli import cli
 from propstore.repository import Repository
 from quire.documents import convert_document_value
-from propstore.identity import normalize_canonical_concept_payload
-from propstore.identity import derive_concept_artifact_id
+from propstore.families.identity.concepts import (
+    derive_concept_artifact_id,
+    normalize_canonical_concept_payload,
+)
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source import (
     align_sources,
@@ -239,8 +241,6 @@ def _init_cli_source(runner: CliRunner, repo: Repository, name: str) -> None:
 
 def _seed_master_concept_via_git(repo: Repository, name: str) -> str:
     """Seed a canonical concept on master so source claims can resolve to it."""
-
-    from propstore.identity import derive_concept_artifact_id
 
     concept = normalize_canonical_concept_payload(
         {

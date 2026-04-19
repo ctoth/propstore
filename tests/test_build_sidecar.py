@@ -16,7 +16,7 @@ from quire.documents import DocumentSchemaError
 from propstore.repository import Repository
 from tests.family_helpers import build_sidecar as _build_sidecar
 from propstore.families.identity.claims import compute_claim_version_id
-from propstore.identity import derive_concept_artifact_id
+from propstore.families.identity.concepts import derive_concept_artifact_id
 from tests.conftest import (
     make_claim_identity,
     normalize_claims_payload,
