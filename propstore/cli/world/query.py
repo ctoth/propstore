@@ -11,6 +11,10 @@ from propstore.app.world import (
     AppWorldConceptQueryRequest,
     AppWorldExplainRequest,
     AppWorldStatusRequest,
+    UnknownClaimError,
+    UnknownConceptError,
+    WorldBindActiveReport,
+    WorldBindConceptReport,
     WorldLifecycleOptions,
     parse_world_binding_args,
     world_algorithms as run_world_algorithms,
@@ -23,12 +27,6 @@ from propstore.cli.world import (
     world,
 )
 from propstore.repository import Repository
-from propstore.world.queries import (
-    UnknownClaimError,
-    UnknownConceptError,
-    WorldBindActiveReport,
-    WorldBindConceptReport,
-)
 
 
 def _lifecycle_options(

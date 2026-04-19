@@ -4,7 +4,7 @@ from click.testing import CliRunner
 
 from quire.documents import render_yaml_value
 from propstore.cli import cli
-from propstore.micropubs import (
+from propstore.app.micropubs import (
     MicropubNotFoundError,
     find_micropub,
     inspect_micropub_lift,

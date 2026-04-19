@@ -2,18 +2,34 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import TypeAlias, TypeGuard
 
+from quire.documents import DocumentSchemaError
 from propstore.app.world import WorldSidecarMissingError, open_app_world_model
 from propstore.families.registry import WorldlineRef
 from propstore.repository import Repository
 from propstore.world.types import (
     ReasoningBackend,
+    cli_argumentation_semantics_values,
     normalize_argumentation_semantics,
     validate_backend_semantics,
 )
 from propstore.worldline import WorldlineDefinition, WorldlineResult
+
+
+JsonValue: TypeAlias = (
+    str
+    | int
+    | float
+    | bool
+    | None
+    | Mapping[str, "JsonValue"]
+    | Sequence["JsonValue"]
+)
+JsonObject: TypeAlias = Mapping[str, JsonValue]
 
 
 class WorldlineAppError(Exception):
@@ -37,6 +53,56 @@ class WorldlineValidationError(WorldlineAppError):
     pass
 
 
+def _is_json_value(value: object) -> TypeGuard[JsonValue]:
+    if value is None or isinstance(value, str | int | float | bool):
+        return True
+    if isinstance(value, Mapping):
+        return all(
+            isinstance(key, str) and _is_json_value(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
+        return all(_is_json_value(item) for item in value)
+    return False
+
+
+def _coerce_json_object(value: object, *, field_name: str) -> dict[str, JsonValue]:
+    if not isinstance(value, Mapping):
+        raise WorldlineValidationError(f"{field_name} must be a JSON object")
+    result: dict[str, JsonValue] = {}
+    for key, item in value.items():
+        if not isinstance(key, str):
+            raise WorldlineValidationError(f"{field_name} keys must be strings")
+        if not _is_json_value(item):
+            raise WorldlineValidationError(f"{field_name}.{key} is not JSON-serializable")
+        result[key] = item
+    return result
+
+
+def parse_worldline_revision_atom(raw: str | None) -> JsonObject | None:
+    if raw is None:
+        return None
+    try:
+        loaded: object = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise WorldlineValidationError(f"Invalid --revision-atom JSON: {exc}") from exc
+    return _coerce_json_object(loaded, field_name="--revision-atom")
+
+
+def coerce_worldline_cli_value(value: object) -> JsonValue:
+    if _is_json_value(value):
+        return value
+    return str(value)
+
+
+def reasoning_backend_values() -> tuple[str, ...]:
+    return tuple(backend.value for backend in ReasoningBackend)
+
+
+def argumentation_semantics_values() -> tuple[str, ...]:
+    return cli_argumentation_semantics_values()
+
+
 @dataclass(frozen=True)
 class WorldlinePolicyOptions:
     strategy: str | None = None
@@ -55,7 +121,7 @@ class WorldlinePolicyOptions:
 @dataclass(frozen=True)
 class WorldlineRevisionOptions:
     operation: str | None = None
-    atom: Mapping[str, Any] | None = None
+    atom: JsonObject | None = None
     target: str | None = None
     conflicts: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
     operator: str | None = None
@@ -64,7 +130,7 @@ class WorldlineRevisionOptions:
 @dataclass(frozen=True)
 class WorldlineCreateRequest:
     name: str
-    bindings: Mapping[str, Any]
+    bindings: JsonObject
     overrides: Mapping[str, float | str]
     targets: tuple[str, ...]
     context_id: str | None = None
@@ -75,7 +141,7 @@ class WorldlineCreateRequest:
 @dataclass(frozen=True)
 class WorldlineRunRequest:
     name: str
-    bindings: Mapping[str, Any]
+    bindings: JsonObject
     overrides: Mapping[str, float | str]
     targets: tuple[str, ...]
     context_id: str | None = None
@@ -95,6 +161,64 @@ class WorldlineRunReport:
     result: WorldlineResult
 
 
+@dataclass(frozen=True)
+class WorldlineShowRequest:
+    name: str
+    check_staleness: bool = False
+
+
+@dataclass(frozen=True)
+class WorldlineShowReport:
+    definition: WorldlineDefinition
+    stale: bool | None = None
+    staleness_unavailable: bool = False
+
+
+@dataclass(frozen=True)
+class WorldlineListEntry:
+    name: str
+    status: str | None = None
+    targets: tuple[str, ...] = ()
+    error: str | None = None
+
+
+@dataclass(frozen=True)
+class WorldlineListReport:
+    entries: tuple[WorldlineListEntry, ...]
+
+
+@dataclass(frozen=True)
+class WorldlineDiffRequest:
+    left_name: str
+    right_name: str
+
+
+@dataclass(frozen=True)
+class WorldlineInputDifference:
+    label: str
+    left: JsonObject
+    right: JsonObject
+
+
+@dataclass(frozen=True)
+class WorldlineValueDifference:
+    target: str
+    left_value: float | str | None
+    left_status: str
+    right_value: float | str | None
+    right_status: str
+
+
+@dataclass(frozen=True)
+class WorldlineDiffReport:
+    left_id: str
+    right_id: str
+    input_differences: tuple[WorldlineInputDifference, ...]
+    value_differences: tuple[WorldlineValueDifference, ...]
+    only_left_dependencies: tuple[str, ...]
+    only_right_dependencies: tuple[str, ...]
+
+
 def load_worldline_definition(repo: Repository, name: str) -> WorldlineDefinition:
     document = repo.families.worldlines.load(WorldlineRef(name))
     if document is None:
@@ -102,9 +226,116 @@ def load_worldline_definition(repo: Repository, name: str) -> WorldlineDefinitio
     return WorldlineDefinition.from_document(document)
 
 
+def show_worldline(
+    repo: Repository,
+    request: WorldlineShowRequest,
+) -> WorldlineShowReport:
+    definition = load_worldline_definition(repo, request.name)
+    if not request.check_staleness:
+        return WorldlineShowReport(definition=definition)
+    try:
+        stale = worldline_is_stale(repo, request.name)
+    except WorldSidecarMissingError:
+        return WorldlineShowReport(
+            definition=definition,
+            stale=None,
+            staleness_unavailable=True,
+        )
+    return WorldlineShowReport(definition=definition, stale=stale)
+
+
+def list_worldlines(repo: Repository) -> WorldlineListReport:
+    entries: list[WorldlineListEntry] = []
+    for ref in repo.families.worldlines.iter():
+        try:
+            definition = load_worldline_definition(repo, ref.name)
+        except DocumentSchemaError as exc:
+            entries.append(WorldlineListEntry(name=ref.name, error=str(exc)))
+        except ValueError as exc:
+            entries.append(WorldlineListEntry(name=ref.name, error=str(exc)))
+        else:
+            status = "materialized" if definition.results else "pending"
+            entries.append(
+                WorldlineListEntry(
+                    name=definition.id,
+                    status=status,
+                    targets=tuple(definition.targets),
+                )
+            )
+    return WorldlineListReport(entries=tuple(entries))
+
+
+def diff_worldlines(
+    repo: Repository,
+    request: WorldlineDiffRequest,
+) -> WorldlineDiffReport:
+    left = load_worldline_definition(repo, request.left_name)
+    right = load_worldline_definition(repo, request.right_name)
+    if left.results is None or right.results is None:
+        raise WorldlineValidationError("Both worldlines must be materialized first")
+
+    input_differences: list[WorldlineInputDifference] = []
+    left_bindings = _coerce_json_object(
+        dict(left.inputs.environment.bindings),
+        field_name="left bindings",
+    )
+    right_bindings = _coerce_json_object(
+        dict(right.inputs.environment.bindings),
+        field_name="right bindings",
+    )
+    if left_bindings != right_bindings:
+        input_differences.append(
+            WorldlineInputDifference(
+                label="Bindings",
+                left=left_bindings,
+                right=right_bindings,
+            )
+        )
+
+    left_overrides = _coerce_json_object(dict(left.inputs.overrides), field_name="left overrides")
+    right_overrides = _coerce_json_object(dict(right.inputs.overrides), field_name="right overrides")
+    if left_overrides != right_overrides:
+        input_differences.append(
+            WorldlineInputDifference(
+                label="Overrides",
+                left=left_overrides,
+                right=right_overrides,
+            )
+        )
+
+    value_differences: list[WorldlineValueDifference] = []
+    all_targets = set(left.results.values.keys()) | set(right.results.values.keys())
+    for target in sorted(all_targets):
+        left_value = left.results.values.get(target)
+        right_value = right.results.values.get(target)
+        left_raw = None if left_value is None else left_value.value
+        right_raw = None if right_value is None else right_value.value
+        if left_raw != right_raw:
+            value_differences.append(
+                WorldlineValueDifference(
+                    target=target,
+                    left_value=left_raw,
+                    left_status="absent" if left_value is None else left_value.status,
+                    right_value=right_raw,
+                    right_status="absent" if right_value is None else right_value.status,
+                )
+            )
+
+    left_deps = set(left.results.dependencies.claims)
+    right_deps = set(right.results.dependencies.claims)
+    return WorldlineDiffReport(
+        left_id=left.id,
+        right_id=right.id,
+        input_differences=tuple(input_differences),
+        value_differences=tuple(value_differences),
+        only_left_dependencies=tuple(sorted(left_deps - right_deps)),
+        only_right_dependencies=tuple(sorted(right_deps - left_deps)),
+    )
+
+
 def build_worldline_policy_dict(
     options: WorldlinePolicyOptions,
-) -> dict[str, Any] | None:
+) -> dict[str, JsonValue] | None:
     try:
         normalized_backend, normalized_semantics = validate_backend_semantics(
             options.reasoning_backend,
@@ -113,7 +344,7 @@ def build_worldline_policy_dict(
     except ValueError as exc:
         raise WorldlineValidationError(str(exc)) from exc
 
-    policy: dict[str, Any] = {}
+    policy: dict[str, JsonValue] = {}
     if options.strategy:
         policy["strategy"] = options.strategy
     if normalized_backend != ReasoningBackend.CLAIM_GRAPH:
@@ -141,7 +372,7 @@ def build_worldline_policy_dict(
 
 def build_worldline_revision_dict(
     options: WorldlineRevisionOptions,
-) -> dict[str, Any] | None:
+) -> dict[str, JsonValue] | None:
     if options.operation is None:
         return None
     if options.operation in {"expand", "revise", "iterated_revise"} and options.atom is None:
@@ -151,7 +382,7 @@ def build_worldline_revision_dict(
     if options.operation == "iterated_revise" and options.operator is None:
         raise WorldlineValidationError("--revision-operator is required for iterated_revise")
 
-    revision: dict[str, Any] = {"operation": options.operation}
+    revision: dict[str, JsonValue] = {"operation": options.operation}
     if options.atom is not None:
         revision["atom"] = dict(options.atom)
     if options.target is not None:
@@ -169,13 +400,13 @@ def build_worldline_revision_dict(
 def _definition_from_request(
     request: WorldlineCreateRequest | WorldlineRunRequest,
 ) -> WorldlineDefinition:
-    definition: dict[str, Any] = {
+    definition: dict[str, JsonValue] = {
         "id": request.name,
         "name": request.name,
         "targets": list(request.targets),
     }
 
-    inputs: dict[str, Any] = {}
+    inputs: dict[str, JsonValue] = {}
     if request.bindings:
         inputs["bindings"] = dict(request.bindings)
     if request.overrides:

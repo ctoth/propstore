@@ -2,11 +2,29 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
 
 import click
 
-from propstore.app.world import open_app_world_model, parse_world_binding_args
+from propstore.app.world import parse_world_binding_args
+from propstore.app.world_revision import (
+    AppIteratedReviseRequest,
+    AppRevisionContractRequest,
+    AppRevisionExpandRequest,
+    AppRevisionExplainRequest,
+    AppRevisionReviseRequest,
+    AppRevisionWorldRequest,
+    RevisionAtomDisplay,
+    WorldRevisionValidationError,
+    revision_atom_display,
+    world_revision_base as run_world_revision_base,
+    world_revision_contract as run_world_revision_contract,
+    world_revision_entrenchment as run_world_revision_entrenchment,
+    world_revision_epistemic_state as run_world_revision_epistemic_state,
+    world_revision_expand as run_world_revision_expand,
+    world_revision_explain as run_world_revision_explain,
+    world_revision_iterated_revise as run_world_revision_iterated_revise,
+    world_revision_revise as run_world_revision_revise,
+)
 from propstore.cli.world import (
     _format_assumption_ids,
     world,
@@ -19,38 +37,18 @@ def revision() -> None:
     """Inspect and run scoped revision operations."""
 
 
-def _format_revision_payload(payload: dict) -> str:
-    claim_type = payload.get("type")
-    concept_id = payload.get("concept_id")
-    value = payload.get("value")
-    unit = payload.get("unit")
+def _format_revision_payload(payload: RevisionAtomDisplay) -> str:
     parts: list[str] = []
-    if claim_type:
-        parts.append(f"type={claim_type}")
-    if concept_id:
-        parts.append(f"concept={concept_id}")
-    if value is not None:
-        if unit:
-            parts.append(f"value={value} {unit}")
+    if payload.claim_type:
+        parts.append(f"type={payload.claim_type}")
+    if payload.concept_id:
+        parts.append(f"concept={payload.concept_id}")
+    if payload.value is not None:
+        if payload.unit:
+            parts.append(f"value={payload.value} {payload.unit}")
         else:
-            parts.append(f"value={value}")
+            parts.append(f"value={payload.value}")
     return " ".join(parts)
-
-
-def _revision_atom_display_id(atom_id: str, *, payload: Mapping[str, object] | None = None) -> str:
-    if payload is not None:
-        logical_id = payload.get("logical_id") or payload.get("primary_logical_id")
-        if isinstance(logical_id, str) and logical_id:
-            return f"claim:{logical_id.split(':', 1)[1] if ':' in logical_id else logical_id}"
-        logical_ids = payload.get("logical_ids")
-        if isinstance(logical_ids, list):
-            for entry in logical_ids:
-                if not isinstance(entry, Mapping):
-                    continue
-                value = entry.get("value")
-                if isinstance(value, str) and value:
-                    return f"claim:{value}"
-    return atom_id
 
 
 def _format_revision_assumption(assumption) -> str:
@@ -149,41 +147,26 @@ def _emit_iterated_revision(result, previous_state, next_state, *, operator: str
 @click.pass_obj
 def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Show the current revision-facing belief base for a scoped world."""
-    from propstore.support_revision.state import is_assumption_atom, is_claim_atom
-    from propstore.support_revision.workflows import (
-        RevisionWorldRequest,
-        revision_base,
+    repo: Repository = obj["repo"]
+    bindings, _ = parse_world_binding_args(args)
+    base = run_world_revision_base(
+        repo,
+        AppRevisionWorldRequest(bindings=bindings, context=context),
     )
 
-    repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        base = revision_base(wm, RevisionWorldRequest(bindings, context))
+    click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
+    for atom in base.atoms:
+        display = revision_atom_display(atom)
+        details = _format_revision_payload(display)
+        if details:
+            click.echo(f"  {display.display_id}: {details}")
+        else:
+            click.echo(f"  {display.display_id}")
 
-        click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
-        for atom in base.atoms:
-            if is_claim_atom(atom):
-                payload = atom.claim.to_dict()
-            elif is_assumption_atom(atom):
-                payload = {
-                    "assumption_id": atom.assumption.assumption_id,
-                    "cel": atom.assumption.cel,
-                    "kind": atom.assumption.kind,
-                    "source": atom.assumption.source,
-                }
-            else:
-                raise TypeError(f"unsupported revision atom: {type(atom).__name__}")
-            details = _format_revision_payload(payload)
-            atom_display_id = _revision_atom_display_id(atom.atom_id, payload=payload)
-            if details:
-                click.echo(f"  {atom_display_id}: {details}")
-            else:
-                click.echo(f"  {atom_display_id}")
-
-        if base.assumptions:
-            click.echo("Assumptions:")
-            for assumption in base.assumptions:
-                click.echo(f"  {_format_revision_assumption(assumption)}")
+    if base.assumptions:
+        click.echo("Assumptions:")
+        for assumption in base.assumptions:
+            click.echo(f"  {_format_revision_assumption(assumption)}")
 
 
 @revision.command("entrenchment")
@@ -192,28 +175,25 @@ def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -
 @click.pass_obj
 def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Show the current deterministic entrenchment ordering for a scoped world."""
-    from propstore.support_revision.workflows import (
-        RevisionWorldRequest,
-        revision_entrenchment,
+    repo: Repository = obj["repo"]
+    bindings, _ = parse_world_binding_args(args)
+    report = run_world_revision_entrenchment(
+        repo,
+        AppRevisionWorldRequest(bindings=bindings, context=context),
     )
 
-    repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        report = revision_entrenchment(wm, RevisionWorldRequest(bindings, context))
-
-        click.echo(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
-        for rank, atom_id in enumerate(report.ranked_atom_ids, start=1):
-            reason = report.reasons.get(atom_id)
-            support_count = 0 if reason is None or reason.support_count is None else reason.support_count
-            essential_support = () if reason is None else reason.essential_support
-            override = None if reason is None else reason.override_priority
-            click.echo(
-                f"  {rank}. {atom_id} "
-                f"support_count={support_count} "
-                f"essential_support={_format_assumption_ids(essential_support)} "
-                f"override={override}"
-            )
+    click.echo(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
+    for rank, atom_id in enumerate(report.ranked_atom_ids, start=1):
+        reason = report.reasons.get(atom_id)
+        support_count = 0 if reason is None or reason.support_count is None else reason.support_count
+        essential_support = () if reason is None else reason.essential_support
+        override = None if reason is None else reason.override_priority
+        click.echo(
+            f"  {rank}. {atom_id} "
+            f"support_count={support_count} "
+            f"essential_support={_format_assumption_ids(essential_support)} "
+            f"override={override}"
+        )
 
 
 @revision.command("expand")
@@ -223,20 +203,16 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str |
 @click.pass_obj
 def world_expand(obj: dict, args: tuple[str, ...], atom_json: str, context: str | None) -> None:
     """Expand the scoped revision belief base without mutating source YAML."""
-    from propstore.support_revision.workflows import (
-        RevisionWorldRequest,
-        expand_revision,
-    )
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        result = expand_revision(
-            wm,
-            RevisionWorldRequest(bindings, context),
-            _parse_revision_atom_json(atom_json),
-        )
-        _emit_revision_result(result)
+    bindings, _ = parse_world_binding_args(args)
+    result = run_world_revision_expand(
+        repo,
+        AppRevisionExpandRequest(
+            world=AppRevisionWorldRequest(bindings=bindings, context=context),
+            atom=_parse_revision_atom_json(atom_json),
+        ),
+    )
+    _emit_revision_result(result)
 
 
 @revision.command("contract")
@@ -246,20 +222,16 @@ def world_expand(obj: dict, args: tuple[str, ...], atom_json: str, context: str 
 @click.pass_obj
 def world_contract(obj: dict, args: tuple[str, ...], targets: tuple[str, ...], context: str | None) -> None:
     """Contract the scoped revision belief base without mutating source YAML."""
-    from propstore.support_revision.workflows import (
-        RevisionWorldRequest,
-        contract_revision,
-    )
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        result = contract_revision(
-            wm,
-            RevisionWorldRequest(bindings, context),
-            targets,
-        )
-        _emit_revision_result(result)
+    bindings, _ = parse_world_binding_args(args)
+    result = run_world_revision_contract(
+        repo,
+        AppRevisionContractRequest(
+            world=AppRevisionWorldRequest(bindings=bindings, context=context),
+            targets=targets,
+        ),
+    )
+    _emit_revision_result(result)
 
 
 @revision.command("revise")
@@ -276,21 +248,17 @@ def world_revise(
     context: str | None,
 ) -> None:
     """Revise the scoped belief base without mutating source YAML."""
-    from propstore.support_revision.workflows import (
-        RevisionWorldRequest,
-        revise_world,
-    )
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        result = revise_world(
-            wm,
-            RevisionWorldRequest(bindings, context),
-            _parse_revision_atom_json(atom_json),
-            conflicts,
-        )
-        _emit_revision_result(result)
+    bindings, _ = parse_world_binding_args(args)
+    result = run_world_revision_revise(
+        repo,
+        AppRevisionReviseRequest(
+            world=AppRevisionWorldRequest(bindings=bindings, context=context),
+            atom=_parse_revision_atom_json(atom_json),
+            conflicts=conflicts,
+        ),
+    )
+    _emit_revision_result(result)
 
 
 @revision.command("explain")
@@ -311,40 +279,23 @@ def world_revision_explain(
     context: str | None,
 ) -> None:
     """Explain one revision operation over the current scoped world."""
-    from propstore.support_revision.workflows import (
-        RevisionWorldRequest,
-        explain_revision_operation,
-    )
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-
-        if operation == "expand":
-            if atom_json is None:
-                raise click.ClickException("--atom is required for --operation expand")
-            atom = _parse_revision_atom_json(atom_json)
-        elif operation == "contract":
-            if not targets:
-                raise click.ClickException("--target is required for --operation contract")
-            atom = None
-        else:
-            if atom_json is None:
-                raise click.ClickException("--atom is required for --operation revise")
-            atom = _parse_revision_atom_json(atom_json)
-
-        try:
-            explanation = explain_revision_operation(
-                wm,
-                RevisionWorldRequest(bindings, context),
+    bindings, _ = parse_world_binding_args(args)
+    atom = None if atom_json is None else _parse_revision_atom_json(atom_json)
+    try:
+        explanation = run_world_revision_explain(
+            repo,
+            AppRevisionExplainRequest(
+                world=AppRevisionWorldRequest(bindings=bindings, context=context),
                 operation=operation,
                 atom=atom,
                 targets=targets,
                 conflicts=conflicts,
-            )
-        except ValueError as exc:
-            raise click.ClickException(str(exc)) from exc
-        _emit_revision_explanation(explanation)
+            ),
+        )
+    except WorldRevisionValidationError as exc:
+        raise click.ClickException(str(exc)) from exc
+    _emit_revision_explanation(explanation)
 
 
 @revision.command("iterated-state")
@@ -353,16 +304,13 @@ def world_revision_explain(
 @click.pass_obj
 def world_iterated_state(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Inspect the current explicit iterated revision state for a scoped world."""
-    from propstore.support_revision.workflows import (
-        RevisionWorldRequest,
-        epistemic_state,
-    )
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        state = epistemic_state(wm, RevisionWorldRequest(bindings, context))
-        _emit_epistemic_state(state)
+    bindings, _ = parse_world_binding_args(args)
+    state = run_world_revision_epistemic_state(
+        repo,
+        AppRevisionWorldRequest(bindings=bindings, context=context),
+    )
+    _emit_epistemic_state(state)
 
 
 @revision.command("iterated-revise")
@@ -381,24 +329,20 @@ def world_iterated_revise(
     context: str | None,
 ) -> None:
     """Run one iterated revision episode and print the next explicit state."""
-    from propstore.support_revision.workflows import (
-        RevisionWorldRequest,
-        iterated_revise_world,
-    )
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        report = iterated_revise_world(
-            wm,
-            RevisionWorldRequest(bindings, context),
+    bindings, _ = parse_world_binding_args(args)
+    report = run_world_revision_iterated_revise(
+        repo,
+        AppIteratedReviseRequest(
+            world=AppRevisionWorldRequest(bindings=bindings, context=context),
             atom=_parse_revision_atom_json(atom_json),
             conflicts=conflicts,
             operator=operator,
-        )
-        _emit_iterated_revision(
-            report.result,
-            report.previous_state,
-            report.next_state,
-            operator=report.operator,
-        )
+        ),
+    )
+    _emit_iterated_revision(
+        report.result,
+        report.previous_state,
+        report.next_state,
+        operator=report.operator,
+    )

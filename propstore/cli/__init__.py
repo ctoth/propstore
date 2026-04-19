@@ -4,9 +4,12 @@ from __future__ import annotations
 from importlib import import_module
 from pathlib import Path
 import sys
-from typing import Any
+from typing import TYPE_CHECKING
 
 import click
+
+if TYPE_CHECKING:
+    from propstore.repository import Repository
 
 _COMMANDS: dict[str, tuple[str, str, str]] = {
     "build": ("propstore.cli.compiler_cmds", "build", "Validate, build sidecar, and run conflict detection."),
@@ -45,9 +48,9 @@ _COMMAND_ALIASES = {
 class _LazyRepository:
     def __init__(self, start: Path | None) -> None:
         self._start = start
-        self._repo: Any | None = None
+        self._repo: Repository | None = None
 
-    def _resolve(self) -> Any:
+    def _resolve(self) -> Repository:
         if self._repo is None:
             from propstore.repository import Repository
 
@@ -59,13 +62,6 @@ class _LazyRepository:
 
 
 class _LazyCLIGroup(click.Group):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.commands.update({
-            name: click.Command(name, help=spec[2])
-            for name, spec in _COMMANDS.items()
-        })
-
     def list_commands(self, ctx: click.Context) -> list[str]:
         return sorted(_COMMANDS)
 
@@ -103,3 +99,9 @@ def cli(ctx: click.Context, directory: str | None) -> None:
         ctx.obj["start"] = start
         return
     ctx.obj["repo"] = _LazyRepository(start)
+
+
+cli.commands.update({
+    name: click.Command(name, help=spec[2])
+    for name, spec in _COMMANDS.items()
+})

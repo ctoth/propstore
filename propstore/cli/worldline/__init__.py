@@ -1,24 +1,27 @@
 """pks worldline — CLI commands for materialized query artifacts."""
 from __future__ import annotations
 
-from typing import Any
-
 import click
 
-from propstore.world.types import (
-    ReasoningBackend,
-    cli_argumentation_semantics_values,
+from propstore.app.worldlines import (
+    JsonObject,
+    argumentation_semantics_values,
+    coerce_worldline_cli_value,
+    reasoning_backend_values,
 )
 
 
-def _parse_kv_args(args: tuple[str, ...]) -> dict[str, Any]:
+def _parse_kv_args(args: tuple[str, ...]) -> JsonObject:
     """Parse key=value arguments into a dict with type coercion."""
     from propstore.cli.helpers import parse_kv_pairs
 
     parsed, remaining = parse_kv_pairs(args, coerce=True)
     for r in remaining:
         click.echo(f"WARNING: ignoring argument without '=': {r}", err=True)
-    return parsed
+    return {
+        key: coerce_worldline_cli_value(value)
+        for key, value in parsed.items()
+    }
 
 
 @click.group()
@@ -30,10 +33,10 @@ def worldline(obj: dict) -> None:
 # Shared click options for reasoning backend configuration.
 _REASONING_OPTIONS = [
     click.option("--reasoning-backend", "reasoning_backend", default="claim_graph",
-                 type=click.Choice(tuple(backend.value for backend in ReasoningBackend)),
+                 type=click.Choice(reasoning_backend_values()),
                  help="Argumentation backend (default: claim_graph)"),
     click.option("--semantics", default="grounded",
-                 type=click.Choice(cli_argumentation_semantics_values()),
+                 type=click.Choice(argumentation_semantics_values()),
                  help="Argumentation semantics (default: grounded)"),
     click.option("--set-comparison", "set_comparison", default="elitist",
                  type=click.Choice(["elitist", "democratic"]),

@@ -1,20 +1,22 @@
 """Reasoning-oriented ``pks world`` command adapters."""
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, cast
 import sys
 
 import click
 
+from propstore.app.world_reasoning import (
+    AppWorldExtensionsRequest,
+    WorldExtensionsClaimLine,
+    WorldExtensionsUnsupportedBackend,
+    world_extensions as run_world_extensions,
+)
 from propstore.app.world import (
     AppWorldDeriveRequest,
     AppWorldResolveRequest,
     WorldLifecycleOptions,
-    bind_world,
-    open_app_world_model,
+    WorldResolveError,
     parse_world_binding_args,
-    resolve_world_target,
     world_derive as run_world_derive,
     world_resolve as run_world_resolve,
 )
@@ -22,12 +24,6 @@ from propstore.cli.world import (
     world,
 )
 from propstore.repository import Repository
-from propstore.world.queries import WorldResolveError
-
-if TYPE_CHECKING:
-    from propstore.core.active_claims import ActiveClaim
-    from propstore.core.graph_types import ActiveWorldGraph
-    from propstore.core.labels import Label, SupportQuality
 
 
 @world.command("derive")
@@ -251,263 +247,126 @@ def world_extensions(obj: dict, args: tuple[str, ...],
 
     Usage: pks world extensions domain=example --semantics grounded
     """
-    from propstore.relation_analysis import stance_summary
-    from propstore.world import ReasoningBackend
-    from propstore.world.types import normalize_reasoning_backend
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        from propstore.core.active_claims import coerce_active_claims
+    bindings, _ = parse_world_binding_args(args)
+    try:
+        report = run_world_extensions(
+            repo,
+            AppWorldExtensionsRequest(
+                bindings=bindings,
+                backend=backend_name,
+                semantics=semantics,
+                set_comparison=set_comparison,
+                context=context,
+                praf_strategy=praf_strategy,
+                praf_epsilon=praf_epsilon,
+                praf_confidence=praf_confidence,
+                praf_seed=praf_seed,
+            ),
+        )
+    except WorldExtensionsUnsupportedBackend as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(2)
 
-        bindings, _ = parse_world_binding_args(args)
-        bound = bind_world(wm, bindings, context_id=context)
-        active = coerce_active_claims(bound.active_claims())
-        if not active:
-            click.echo("No active claims for given bindings.")
-            return
+    if report is None:
+        click.echo("No active claims for given bindings.")
+        return
 
-        claim_ids = {str(claim.claim_id) for claim in active}
-        backend = normalize_reasoning_backend(backend_name)
+    claim_map = {claim.claim_id: claim for claim in report.active_claims}
+    summary = report.stance_summary
 
-        if backend == ReasoningBackend.ATMS:
+    click.echo(f"Backend: {report.backend}")
+    click.echo(f"Semantics: {report.semantics}")
+    if report.backend == "praf":
+        click.echo(f"Strategy used: {report.strategy_used}")
+        if report.samples is not None:
+            click.echo(f"MC samples: {report.samples}")
+        click.echo(f"Active claims: {len(report.active_claims)}")
+        click.echo(
+            f"Stances: {summary.total_stances} total, "
+            f"{summary.included_as_attacks} included as attacks"
+        )
+        click.echo("\nAcceptance probabilities:")
+        for probability in report.acceptance_probabilities:
             click.echo(
-                "ERROR: backend 'atms' does not expose Dung extensions; "
-                "use worldline or resolve with reasoning_backend=atms instead.",
-                err=True,
+                f"  {_claim_label(probability.claim_id, claim_map)}  "
+                f"P(accepted) = {probability.probability:.4f}"
             )
-            sys.exit(2)
+        return
 
-        if backend == ReasoningBackend.PRAF:
-            from argumentation.probabilistic import compute_probabilistic_acceptance
-            from propstore.praf import build_praf
+    click.echo(f"Set comparison: {report.set_comparison}")
+    click.echo(f"Active claims: {len(report.active_claims)}")
+    click.echo(
+        f"Stances: {summary.total_stances} total, "
+        f"{summary.included_as_attacks} included as attacks, "
+        f"{summary.vacuous_count} vacuous, "
+        f"{summary.excluded_non_attack} non-attack"
+    )
+    if summary.models:
+        click.echo(f"Models: {', '.join(summary.models)}")
 
-            praf = build_praf(wm, claim_ids, comparison=set_comparison)
-            praf_result = compute_probabilistic_acceptance(
-                praf.kernel, semantics=semantics,
-                strategy=praf_strategy,
-                query_kind="argument_acceptance",
-                inference_mode="credulous",
-                mc_epsilon=praf_epsilon,
-                mc_confidence=praf_confidence,
-                rng_seed=praf_seed,
-            )
-            summary = stance_summary(wm, claim_ids)
-            click.echo(f"Backend: {backend.value}")
-            click.echo(f"Semantics: {semantics}")
-            click.echo(f"Strategy used: {praf_result.strategy_used}")
-            if praf_result.samples is not None:
-                click.echo(f"MC samples: {praf_result.samples}")
-            click.echo(f"Active claims: {len(claim_ids)}")
-            click.echo(f"Stances: {summary['total_stances']} total, "
-                       f"{summary['included_as_attacks']} included as attacks")
-            click.echo("\nAcceptance probabilities:")
-            claim_map = {str(claim.claim_id): claim for claim in active}
-            acceptance_probs = (
-                {}
-                if praf_result.acceptance_probs is None
-                else praf_result.acceptance_probs
-            )
-            for cid, prob in sorted(
-                acceptance_probs.items(),
-                key=lambda x: -x[1],
-            ):
-                c = claim_map.get(cid)
-                label = cid
-                if c:
-                    value = c.value
-                    concept_id_val = None if c.concept_id is None else str(c.concept_id)
-                    if concept_id_val:
-                        concept = wm.get_concept(concept_id_val)
-                        if concept is None:
-                            cname = concept_id_val
-                        else:
-                            from propstore.core.row_types import coerce_concept_row
+    if semantics == "grounded":
+        accepted = set(report.accepted_claim_ids)
+        accepted_groups = _group_by_type(accepted, claim_map)
+        click.echo(f"Accepted ({len(accepted)} claims):")
+        for claim_type, claim_ids in sorted(accepted_groups.items()):
+            click.echo(f"  {claim_type} ({len(claim_ids)}):")
+            for claim_id in claim_ids:
+                click.echo(f"    {_claim_label(claim_id, claim_map)}")
 
-                            cname = coerce_concept_row(concept).canonical_name
-                        if value is not None:
-                            label = f"{cid}: {cname} = {value}"
-                        else:
-                            label = f"{cid}: {cname}"
-                click.echo(f"  {label}  P(accepted) = {prob:.4f}")
-            return
+        if report.defeated_claims:
+            click.echo(f"Defeated ({len(report.defeated_claims)} claims):")
+            for defeated in report.defeated_claims:
+                click.echo(f"  {_claim_label(defeated.claim_id, claim_map)}")
+                if defeated.defeater_claim_ids:
+                    by = ", ".join(defeated.defeater_claim_ids)
+                    click.echo(f"    defeated by: {by}")
+        return
 
-        if backend == ReasoningBackend.CLAIM_GRAPH:
-            from propstore.claim_graph import (
-                build_argumentation_framework,
-                compute_claim_graph_justified_claims,
-            )
-
-            result = compute_claim_graph_justified_claims(
-                wm, claim_ids,
-                semantics=semantics,
-                comparison=set_comparison,
-            )
-            af = build_argumentation_framework(
-                wm, claim_ids,
-                comparison=set_comparison,
-            )
-            arg_to_claim = {cid: cid for cid in claim_ids}
-        elif backend == ReasoningBackend.ASPIC:
-            from propstore.structured_projection import (
-                build_structured_projection,
-                compute_structured_justified_arguments,
-            )
-            from propstore.grounding.bundle import GroundedRulesBundle
-
-            grounding_bundle = GroundedRulesBundle.empty()
-            bundle_getter = getattr(wm, "grounding_bundle", None)
-            if callable(bundle_getter):
-                typed_bundle_getter = cast(
-                    Callable[[], GroundedRulesBundle],
-                    bundle_getter,
-                )
-                grounding_bundle = typed_bundle_getter()
-
-            aspic_projection = build_structured_projection(
-                wm,
-                active,
-                bundle=grounding_bundle,
-                support_metadata=_support_metadata_for(bound, active),
-                comparison=set_comparison,
-                active_graph=_active_graph_for(bound),
-            )
-            result = compute_structured_justified_arguments(
-                aspic_projection,
-                semantics=semantics,
-                backend=ReasoningBackend.ASPIC,
-            )
-            af = aspic_projection.framework
-            arg_to_claim = dict(aspic_projection.argument_to_claim_id)
-        else:
-            raise NotImplementedError(f"Unknown backend: {backend.value}")
-
-        summary = stance_summary(wm, claim_ids)
-        click.echo(f"Backend: {backend.value}")
-        click.echo(f"Semantics: {semantics}")
-        click.echo(f"Set comparison: {set_comparison}")
-        click.echo(f"Active claims: {len(claim_ids)}")
-        click.echo(f"Stances: {summary['total_stances']} total, "
-                   f"{summary['included_as_attacks']} included as attacks, "
-                   f"{summary['vacuous_count']} vacuous, "
-                   f"{summary['excluded_non_attack']} non-attack")
-        if summary["models"]:
-            click.echo(f"Models: {', '.join(summary['models'])}")
-
-        claim_map = {str(claim.claim_id): claim for claim in active}
-
-        def _claim_label(cid: str) -> str:
-            """Format a claim for display: id (type) concept = value."""
-            c = claim_map.get(cid)
-            if c is None:
-                return cid
-            ctype = c.claim_type or "?"
-            concept_id = None if c.concept_id is None else str(c.concept_id)
-            value = c.value
-            cname = None
-            if concept_id:
-                concept = wm.get_concept(concept_id)
-                if concept:
-                    from propstore.core.row_types import coerce_concept_row
-
-                    cname = coerce_concept_row(concept).canonical_name
-            if ctype == "parameter" and value is not None:
-                return f"{cid}: {cname} = {value}"
-            if ctype == "equation":
-                expr = c.expression or ""
-                return f"{cid}: {expr}" if expr else f"{cid} ({ctype})"
-            if ctype in ("observation", "limitation", "mechanism", "comparison"):
-                stmt = c.statement or c.description or ""
-                if len(stmt) > 60:
-                    stmt = stmt[:57] + "..."
-                return f"{cid}: {stmt}" if stmt else f"{cid} ({ctype})"
-            if value is not None:
-                return f"{cid}: {cname} = {value}" if cname else f"{cid} = {value}"
-            return f"{cid} ({ctype})"
-
-        def _group_by_type(cids: set[str]) -> dict[str, list[str]]:
-            groups: dict[str, list[str]] = {}
-            for cid in sorted(cids):
-                c = claim_map.get(cid)
-                ctype = c.claim_type if c and c.claim_type else "unknown"
-                groups.setdefault(ctype, []).append(cid)
-            return groups
-
-        if semantics == "grounded":
-            if backend == ReasoningBackend.ASPIC:
-                assert isinstance(result, frozenset)
-                justified_claims = {
-                    claim_id
-                    for arg_id in result
-                    if (claim_id := arg_to_claim.get(arg_id)) is not None
-                }
-            else:
-                assert isinstance(result, frozenset)
-                justified_claims = set(result)
-
-            defeated = claim_ids - justified_claims
-            defeaters_map: dict[str, list[str]] = {}
-            for src, tgt in af.defeats:
-                src_claim = arg_to_claim.get(src, src)
-                tgt_claim = arg_to_claim.get(tgt, tgt)
-                if tgt_claim in defeated:
-                    defeaters_map.setdefault(tgt_claim, []).append(src_claim)
-
-            accepted_groups = _group_by_type(justified_claims)
-            click.echo(f"Accepted ({len(justified_claims)} claims):")
-            for ctype, cids in sorted(accepted_groups.items()):
-                click.echo(f"  {ctype} ({len(cids)}):")
-                for cid in cids:
-                    click.echo(f"    {_claim_label(cid)}")
-
-            if defeated:
-                click.echo(f"Defeated ({len(defeated)} claims):")
-                for cid in sorted(defeated):
-                    defeaters = defeaters_map.get(cid, [])
-                    if defeaters:
-                        by = ", ".join(sorted(defeaters))
-                        click.echo(f"  {_claim_label(cid)}")
-                        click.echo(f"    defeated by: {by}")
-                    else:
-                        click.echo(f"  {_claim_label(cid)}")
-        else:
-            assert isinstance(result, list)
-            click.echo(f"Extensions ({len(result)}):")
-            for i, ext in enumerate(result):
-                ext_claims = (
-                    {
-                        claim_id
-                        for arg_id in ext
-                        if (claim_id := arg_to_claim.get(arg_id)) is not None
-                    }
-                    if backend == ReasoningBackend.ASPIC
-                    else set(ext)
-                )
-                click.echo(f"  Extension {i + 1} ({len(ext_claims)} claims):")
-                groups = _group_by_type(ext_claims)
-                for ctype, cids in sorted(groups.items()):
-                    click.echo(f"    {ctype}:")
-                    for cid in cids:
-                        click.echo(f"      {_claim_label(cid)}")
+    click.echo(f"Extensions ({len(report.extensions)}):")
+    for index, extension in enumerate(report.extensions):
+        claim_ids = set(extension.claim_ids)
+        click.echo(f"  Extension {index + 1} ({len(claim_ids)} claims):")
+        groups = _group_by_type(claim_ids, claim_map)
+        for claim_type, grouped_claim_ids in sorted(groups.items()):
+            click.echo(f"    {claim_type}:")
+            for claim_id in grouped_claim_ids:
+                click.echo(f"      {_claim_label(claim_id, claim_map)}")
 
 
-def _support_metadata_for(
-    bound: object,
-    active_claims: Sequence["ActiveClaim"],
-) -> dict[str, tuple[Label | None, SupportQuality]]:
-    from propstore.world.types import ClaimSupportView
+def _claim_label(
+    claim_id: str,
+    claim_map: dict[str, WorldExtensionsClaimLine],
+) -> str:
+    claim = claim_map.get(claim_id)
+    if claim is None:
+        return claim_id
 
-    if not isinstance(bound, ClaimSupportView):
-        return {}
+    claim_type = claim.claim_type or "unknown"
+    if claim_type == "parameter" and claim.value is not None:
+        return f"{claim_id}: {claim.concept_name} = {claim.value}"
+    if claim_type == "equation":
+        expr = claim.expression or ""
+        return f"{claim_id}: {expr}" if expr else f"{claim_id} ({claim_type})"
+    if claim_type in ("observation", "limitation", "mechanism", "comparison"):
+        stmt = claim.statement or claim.description or ""
+        if len(stmt) > 60:
+            stmt = stmt[:57] + "..."
+        return f"{claim_id}: {stmt}" if stmt else f"{claim_id} ({claim_type})"
+    if claim.value is not None:
+        if claim.concept_name:
+            return f"{claim_id}: {claim.concept_name} = {claim.value}"
+        return f"{claim_id} = {claim.value}"
+    return f"{claim_id} ({claim_type})"
 
-    support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
-    for claim in active_claims:
-        support_metadata[str(claim.claim_id)] = bound.claim_support(claim)
-    return support_metadata
 
-
-def _active_graph_for(bound: object) -> ActiveWorldGraph | None:
-    from propstore.world.types import HasActiveGraph
-
-    if isinstance(bound, HasActiveGraph):
-        return bound._active_graph
-    return None
+def _group_by_type(
+    claim_ids: set[str],
+    claim_map: dict[str, WorldExtensionsClaimLine],
+) -> dict[str, list[str]]:
+    groups: dict[str, list[str]] = {}
+    for claim_id in sorted(claim_ids):
+        claim = claim_map.get(claim_id)
+        claim_type = claim.claim_type if claim is not None else "unknown"
+        groups.setdefault(claim_type or "unknown", []).append(claim_id)
+    return groups

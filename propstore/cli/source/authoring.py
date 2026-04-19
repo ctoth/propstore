@@ -6,12 +6,12 @@ from pathlib import Path
 
 import click
 
-from propstore.repository import Repository
-from propstore.source import (
-    commit_source_metadata,
-    commit_source_notes,
-    source_branch_name,
+from propstore.app.sources import (
+    SourceBatchRequest,
+    write_source_metadata,
+    write_source_notes,
 )
+from propstore.repository import Repository
 from propstore.cli.source import source
 
 
@@ -21,8 +21,11 @@ from propstore.cli.source import source
 @click.pass_obj
 def write_notes(obj: dict, name: str, file_path: Path) -> None:
     repo: Repository = obj["repo"]
-    commit_source_notes(repo, name, file_path)
-    click.echo(f"Wrote notes to {source_branch_name(name)}")
+    report = write_source_notes(
+        repo,
+        SourceBatchRequest(name=name, batch_file=file_path),
+    )
+    click.echo(f"Wrote notes to {report.branch}")
 
 
 @source.command("write-metadata")
@@ -31,5 +34,8 @@ def write_notes(obj: dict, name: str, file_path: Path) -> None:
 @click.pass_obj
 def write_metadata(obj: dict, name: str, file_path: Path) -> None:
     repo: Repository = obj["repo"]
-    commit_source_metadata(repo, name, file_path)
-    click.echo(f"Wrote metadata to {source_branch_name(name)}")
+    report = write_source_metadata(
+        repo,
+        SourceBatchRequest(name=name, batch_file=file_path),
+    )
+    click.echo(f"Wrote metadata to {report.branch}")

@@ -6,21 +6,21 @@ from pathlib import Path
 
 import click
 
-from propstore.core.source_types import (
-    coerce_source_kind,
-    coerce_source_origin_type,
-)
-from propstore.provenance import stamp_file
-from propstore.repository import Repository
-from propstore.source import (
-    finalize_source_branch,
-    init_source_branch,
-    inspect_source_status,
-    promote_source_branch,
-    sync_source_branch,
-    source_branch_name,
+from propstore.app.sources import (
+    SourceInitRequest,
+    SourceNamedRequest,
+    SourcePromoteRequest,
+    SourceStampProvenanceRequest,
     SourceStatusState,
+    SourceSyncRequest,
+    finalize_source,
+    init_source,
+    inspect_source,
+    promote_source,
+    stamp_source_provenance,
+    sync_source,
 )
+from propstore.repository import Repository
 from propstore.cli.source import source
 
 
@@ -41,19 +41,19 @@ def source_init(
 ) -> None:
     repo: Repository = obj["repo"]
     try:
-        source_kind = coerce_source_kind(kind_name)
-        source_origin_type = coerce_source_origin_type(origin_type)
+        report = init_source(
+            repo,
+            SourceInitRequest(
+                name=name,
+                kind=kind_name,
+                origin_type=origin_type,
+                origin_value=origin_value,
+                content_file=content_file,
+            ),
+        )
     except (TypeError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
-    branch = init_source_branch(
-        repo,
-        name,
-        kind=source_kind,
-        origin_type=source_origin_type,
-        origin_value=origin_value,
-        content_file=content_file,
-    )
-    click.echo(f"Initialized {branch}")
+    click.echo(f"Initialized {report.branch}")
 
 
 @source.command("finalize")
@@ -62,10 +62,10 @@ def source_init(
 def finalize(obj: dict, name: str) -> None:
     repo: Repository = obj["repo"]
     try:
-        finalize_source_branch(repo, name)
+        report = finalize_source(repo, SourceNamedRequest(name=name))
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Finalized {source_branch_name(name)}")
+    click.echo(f"Finalized {report.branch}")
 
 
 @source.command("promote")
@@ -90,45 +90,21 @@ def promote(obj: dict, name: str, strict: bool) -> None:
     re-promote.
     """
 
-    import sys
-
     repo: Repository = obj["repo"]
     try:
-        promote_source_branch(repo, name, strict=strict)
+        report = promote_source(repo, SourcePromoteRequest(name=name, strict=strict))
     except ValueError as exc:
         # When strict=True OR when all items were blocked, promote raises.
         # Preserve the ClickException path so exit code is non-zero.
         raise click.ClickException(str(exc)) from exc
 
-    # Count promoted vs blocked via the finalize report for user-visible
-    # reporting. This re-reads state but avoids plumbing a new return type
-    # through ``promote_source_branch`` in this phase.
-    from propstore.source.common import load_source_finalize_report
-    from propstore.source.common import load_source_claims_document
-
-    claims_doc = load_source_claims_document(repo, name)
-    report = load_source_finalize_report(repo, name)
-    total_claims = len(claims_doc.claims) if claims_doc is not None else 0
-    blocked_count = 0
-    if report is not None:
-        blocked_count = (
-            len(report.claim_reference_errors)
-            + len(report.justification_reference_errors)
-            + len(report.stance_reference_errors)
-        )
-        # The error lists can reference the same claim multiple times;
-        # the important user-visible detail is "some were blocked", not
-        # exact cardinality. Clamp to total.
-        blocked_count = min(blocked_count, total_claims)
-    promoted_count = max(0, total_claims - blocked_count)
-
-    if blocked_count > 0:
+    if report.blocked_count > 0:
         click.echo(
-            f"Promoted {promoted_count} of {total_claims} claims to master "
-            f"({blocked_count} blocked; see build_diagnostics)."
+            f"Promoted {report.promoted_count} of {report.total_claims} claims to master "
+            f"({report.blocked_count} blocked; see build_diagnostics)."
         )
     else:
-        click.echo(f"Promoted {source_branch_name(name)} to master")
+        click.echo(f"Promoted {report.branch} to master")
 
 
 @source.command("status")
@@ -149,7 +125,7 @@ def source_status(obj: dict, name: str) -> None:
     round trip through ``pks source promote --strict`` or a CLI rerun.
     """
     repo: Repository = obj["repo"]
-    report = inspect_source_status(repo, name)
+    report = inspect_source(repo, SourceNamedRequest(name=name))
     if report.state is SourceStatusState.SIDECAR_MISSING:
         click.echo("No sidecar built yet — run 'pks build' first.")
         return
@@ -182,10 +158,13 @@ def source_status(obj: dict, name: str) -> None:
 def sync(obj: dict, name: str, output_dir: Path | None) -> None:
     repo: Repository = obj["repo"]
     try:
-        destination = sync_source_branch(repo, name, output_dir=output_dir)
+        report = sync_source(
+            repo,
+            SourceSyncRequest(name=name, output_dir=output_dir),
+        )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Synchronized {source_branch_name(name)} to {destination}")
+    click.echo(f"Synchronized {report.branch} to {report.destination}")
 
 
 @source.command("stamp-provenance")
@@ -206,5 +185,12 @@ def stamp_provenance(
     DEPRECATED: Use --reader/--method flags on add-claim, add-justification,
     add-stance instead. Provenance is now stored on the source branch directly.
     """
-    stamp_file(file_path, agent=agent, skill=skill_name, plugin_version=plugin_version)
-    click.echo(f"Stamped provenance on {file_path}")
+    stamped_path = stamp_source_provenance(
+        SourceStampProvenanceRequest(
+            file_path=file_path,
+            agent=agent,
+            skill_name=skill_name,
+            plugin_version=plugin_version,
+        )
+    )
+    click.echo(f"Stamped provenance on {stamped_path}")

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import click
 
-from propstore.proposals import (
-    plan_stance_proposal_promotion,
-    promote_stance_proposals,
+from propstore.app.proposals import (
+    ProposalPromotionRequest,
+    plan_proposal_promotion,
+    promote_proposals,
 )
 
 
@@ -17,7 +18,7 @@ from propstore.proposals import (
 def promote_cmd(ctx: click.Context, path: str | None, yes: bool) -> None:
     """Promote committed stance proposals into source-of-truth storage."""
     repo = ctx.obj["repo"]
-    plan = plan_stance_proposal_promotion(repo, path=path)
+    plan = plan_proposal_promotion(repo, ProposalPromotionRequest(path=path))
     if not plan.has_branch:
         click.echo(f"No {plan.branch} branch found. Nothing to promote.")
         return
@@ -32,7 +33,7 @@ def promote_cmd(ctx: click.Context, path: str | None, yes: bool) -> None:
     if not yes:
         click.confirm("Promote these files?", abort=True)
 
-    result = promote_stance_proposals(repo, plan)
+    result = promote_proposals(repo, plan)
     for item in plan.items:
         click.echo(f"  Promoted: {item.filename}")
 

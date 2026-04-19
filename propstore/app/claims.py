@@ -10,6 +10,7 @@ from typing import Mapping
 
 from propstore.repository import Repository
 from propstore.world import WorldModel
+from quire.tree_path import TreePath as KnowledgePath
 
 
 class ClaimWorkflowError(Exception):
@@ -31,6 +32,14 @@ class ClaimSidecarMissingError(ClaimWorkflowError):
 
 
 class ClaimEmbeddingModelError(ClaimWorkflowError):
+    pass
+
+
+class ClaimPathError(ClaimWorkflowError):
+    pass
+
+
+class ClaimValidationDocumentError(ClaimWorkflowError):
     pass
 
 
@@ -68,6 +77,52 @@ class ClaimCompareReport:
     equivalent: object
     similarity: float
     details: object
+
+
+@dataclass(frozen=True)
+class ClaimValidationRequest:
+    claims_path: Path | None = None
+    concepts_path: Path | None = None
+
+
+@dataclass(frozen=True)
+class ClaimValidateFileRequest:
+    filepath: Path
+    concepts_path: Path | None = None
+
+
+@dataclass(frozen=True)
+class ClaimValidationReport:
+    file_count: int
+    warnings: tuple[str, ...]
+    errors: tuple[str, ...]
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors
+
+
+@dataclass(frozen=True)
+class ClaimConflictsRequest:
+    concept: str | None = None
+    warning_class: str | None = None
+
+
+@dataclass(frozen=True)
+class ClaimConflictLine:
+    warning_class: str
+    concept_id: str
+    claim_a_id: str
+    claim_b_id: str
+    value_a: object
+    value_b: object
+    derivation_chain: object
+
+
+@dataclass(frozen=True)
+class ClaimConflictsReport:
+    file_count: int
+    conflicts: tuple[ClaimConflictLine, ...]
 
 
 @dataclass(frozen=True)
@@ -234,6 +289,166 @@ def compare_algorithm_claims_from_repo(
         raise ClaimSidecarMissingError(
             "Sidecar not found. Run 'pks build' first."
         ) from exc
+
+
+def validate_claim_files(
+    repo: Repository,
+    request: ClaimValidationRequest,
+) -> ClaimValidationReport:
+    from quire.documents import DocumentSchemaError, load_document_dir
+    from quire.tree_path import coerce_tree_path as coerce_knowledge_path
+
+    from propstore.compiler.context import (
+        build_compilation_context_from_loaded,
+        build_compilation_context_from_repo,
+    )
+    from propstore.compiler.passes import validate_claims
+    from propstore.core.concepts import load_concepts
+    from propstore.families.documents.claims import ClaimsFileDocument
+
+    claims_root = (
+        coerce_knowledge_path(request.claims_path)
+        if request.claims_path is not None
+        else None
+    )
+    concepts_root, forms_root = _concept_override_roots(request.concepts_path)
+
+    if claims_root is not None and not claims_root.exists():
+        raise ClaimPathError(
+            f"Claims directory '{claims_root.as_posix()}' does not exist"
+        )
+
+    try:
+        if claims_root is None:
+            files = [
+                repo.families.claims.require_handle(ref)
+                for ref in repo.families.claims.iter()
+            ]
+        else:
+            files = load_document_dir(claims_root, ClaimsFileDocument)
+        if concepts_root is None:
+            context = build_compilation_context_from_repo(repo, claim_files=files)
+        else:
+            context = build_compilation_context_from_loaded(
+                load_concepts(concepts_root),
+                forms_dir=forms_root,
+                claim_files=files,
+            )
+    except DocumentSchemaError as exc:
+        raise ClaimValidationDocumentError(str(exc)) from exc
+
+    if not files:
+        return ClaimValidationReport(file_count=0, warnings=(), errors=())
+
+    result = validate_claims(files, context)
+    return ClaimValidationReport(
+        file_count=len(files),
+        warnings=tuple(str(warning) for warning in result.warnings),
+        errors=tuple(str(error) for error in result.errors),
+    )
+
+
+def validate_claim_file(
+    repo: Repository,
+    request: ClaimValidateFileRequest,
+) -> ClaimValidationReport:
+    from quire.documents import DocumentSchemaError
+
+    from propstore.compiler.context import (
+        build_compilation_context_from_loaded,
+        build_compilation_context_from_repo,
+    )
+    from propstore.compiler.passes import validate_single_claim_file
+    from propstore.core.concepts import load_concepts
+
+    concepts_root, forms_root = _concept_override_roots(request.concepts_path)
+    try:
+        if concepts_root is None:
+            context = build_compilation_context_from_repo(repo)
+        else:
+            context = build_compilation_context_from_loaded(
+                load_concepts(concepts_root),
+                forms_dir=forms_root,
+            )
+        result = validate_single_claim_file(request.filepath, context)
+    except DocumentSchemaError as exc:
+        raise ClaimValidationDocumentError(str(exc)) from exc
+
+    return ClaimValidationReport(
+        file_count=1,
+        warnings=tuple(str(warning) for warning in result.warnings),
+        errors=tuple(str(error) for error in result.errors),
+    )
+
+
+def detect_claim_conflicts(
+    repo: Repository,
+    request: ClaimConflictsRequest,
+) -> ClaimConflictsReport:
+    from propstore.compiler.context import (
+        build_compilation_context_from_repo,
+        concept_registry_for_context,
+    )
+    from propstore.conflict_detector import ConflictClass, detect_conflicts
+    from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+
+    files = [
+        repo.families.claims.require_handle(ref)
+        for ref in repo.families.claims.iter()
+    ]
+    if not files:
+        return ClaimConflictsReport(file_count=0, conflicts=())
+
+    context = build_compilation_context_from_repo(repo, claim_files=list(files))
+    registry = concept_registry_for_context(context)
+    records = detect_conflicts(
+        conflict_claims_from_claim_files(files),
+        registry,
+        context.cel_registry,
+    )
+    if request.concept:
+        records = [record for record in records if record.concept_id == request.concept]
+    if request.warning_class:
+        requested_class = ConflictClass(request.warning_class)
+        records = [
+            record for record in records if record.warning_class == requested_class
+        ]
+    return ClaimConflictsReport(
+        file_count=len(files),
+        conflicts=tuple(
+            ClaimConflictLine(
+                warning_class=record.warning_class.value,
+                concept_id=str(record.concept_id),
+                claim_a_id=str(record.claim_a_id),
+                claim_b_id=str(record.claim_b_id),
+                value_a=record.value_a,
+                value_b=record.value_b,
+                derivation_chain=record.derivation_chain,
+            )
+            for record in records
+        ),
+    )
+
+
+def _concept_override_roots(
+    concepts_path: Path | None,
+) -> tuple[KnowledgePath | None, KnowledgePath | None]:
+    from quire.tree_path import coerce_tree_path as coerce_knowledge_path
+
+    if concepts_path is None:
+        return None, None
+    concepts_root = coerce_knowledge_path(concepts_path)
+    if not concepts_root.exists():
+        raise ClaimPathError(
+            f"Concepts directory '{concepts_root.as_posix()}' does not exist"
+        )
+    forms_root = coerce_knowledge_path(concepts_path.parent / "forms")
+    if not forms_root.exists():
+        raise ClaimPathError(
+            "Concepts override requires sibling forms directory "
+            f"'{forms_root.as_posix()}'"
+        )
+    return concepts_root, forms_root
 
 
 def _require_sidecar(repo: Repository) -> Path:

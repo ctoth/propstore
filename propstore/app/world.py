@@ -31,11 +31,23 @@ from propstore.world.queries import (
     WorldResolveRequest,
     WorldStatusReport,
     WorldStatusRequest,
+    UnknownClaimError,
+    UnknownConceptError,
+    WorldBindActiveReport,
+    WorldBindConceptReport,
+    WorldResolveError,
+    WorldHypotheticalReport,
+    WorldHypotheticalRequest,
+    WorldHypotheticalSyntheticClaimSpec,
+    WorldChainReport,
+    WorldChainRequest,
     derive_world_value,
+    diff_hypothetical_world,
     explain_world_claim,
     get_world_status,
     list_world_algorithms,
     query_bound_world,
+    query_world_chain,
     query_world_concept,
     resolve_world_value,
 )
@@ -115,6 +127,53 @@ class AppWorldResolveRequest:
     praf_confidence: float = 0.95
     praf_seed: int | None = None
     lifecycle: WorldLifecycleOptions = field(default_factory=WorldLifecycleOptions)
+
+
+@dataclass(frozen=True)
+class AppWorldHypotheticalRequest:
+    bindings: Mapping[str, str]
+    remove_claim_ids: tuple[str, ...] = ()
+    add_claims: tuple[WorldHypotheticalSyntheticClaimSpec, ...] = ()
+
+
+@dataclass(frozen=True)
+class AppWorldChainRequest:
+    concept_id: str
+    bindings: Mapping[str, str]
+    strategy: str | None = None
+    lifecycle: WorldLifecycleOptions = field(default_factory=WorldLifecycleOptions)
+
+
+@dataclass(frozen=True)
+class AppWorldExportGraphRequest:
+    bindings: Mapping[str, str]
+    group_id: int | None = None
+
+
+@dataclass(frozen=True)
+class AppWorldSensitivityRequest:
+    concept_id: str
+    bindings: Mapping[str, str]
+
+
+@dataclass(frozen=True)
+class AppWorldFragilityRequest:
+    bindings: Mapping[str, str]
+    context_id: str | None = None
+    concept_id: str | None = None
+    top_k: int = 20
+    include_atms: bool = True
+    include_discovery: bool = True
+    include_conflict: bool = True
+    include_grounding: bool = True
+    include_bridge: bool = True
+    ranking_policy: str = "heuristic_roi"
+
+
+@dataclass(frozen=True)
+class AppWorldConsistencyRequest:
+    bindings: Mapping[str, str]
+    transitive: bool = False
 
 
 def lifecycle_policy(
@@ -297,5 +356,111 @@ def world_resolve(
                 concept_id=request.concept_id,
                 bindings=request.bindings,
                 policy=policy,
+            ),
+        )
+
+
+def world_hypothetical(
+    repo: Repository,
+    request: AppWorldHypotheticalRequest,
+) -> WorldHypotheticalReport:
+    with open_app_world_model(repo) as world:
+        return diff_hypothetical_world(
+            world,
+            WorldHypotheticalRequest(
+                bindings=request.bindings,
+                remove_claim_ids=request.remove_claim_ids,
+                add_claims=request.add_claims,
+            ),
+        )
+
+
+def world_chain(
+    repo: Repository,
+    request: AppWorldChainRequest,
+) -> WorldChainReport:
+    # Chain currently does not consume RenderPolicy, but constructing the
+    # policy here keeps lifecycle option validation in the app layer.
+    _ = lifecycle_policy(request.lifecycle)
+    with open_app_world_model(repo) as world:
+        return query_world_chain(
+            world,
+            WorldChainRequest(
+                concept_id=request.concept_id,
+                bindings=request.bindings,
+                strategy=request.strategy,
+            ),
+        )
+
+
+def world_export_graph(
+    repo: Repository,
+    request: AppWorldExportGraphRequest,
+):
+    from propstore.graph_export import GraphExportRequest, export_knowledge_graph
+
+    with open_app_world_model(repo) as world:
+        return export_knowledge_graph(
+            world,
+            GraphExportRequest(bindings=request.bindings, group_id=request.group_id),
+        )
+
+
+def world_sensitivity(
+    repo: Repository,
+    request: AppWorldSensitivityRequest,
+):
+    from propstore.sensitivity import SensitivityRequest, query_sensitivity
+
+    with open_app_world_model(repo) as world:
+        return query_sensitivity(
+            world,
+            SensitivityRequest(
+                concept_id=request.concept_id,
+                bindings=request.bindings,
+            ),
+        )
+
+
+def world_fragility(
+    repo: Repository,
+    request: AppWorldFragilityRequest,
+):
+    from propstore.fragility import FragilityRequest, query_fragility
+
+    with open_app_world_model(repo) as world:
+        return query_fragility(
+            world,
+            FragilityRequest(
+                bindings=request.bindings,
+                context_id=request.context_id,
+                concept_id=request.concept_id,
+                top_k=request.top_k,
+                include_atms=request.include_atms,
+                include_discovery=request.include_discovery,
+                include_conflict=request.include_conflict,
+                include_grounding=request.include_grounding,
+                include_bridge=request.include_bridge,
+                ranking_policy=request.ranking_policy,
+            ),
+        )
+
+
+def world_consistency(
+    repo: Repository,
+    request: AppWorldConsistencyRequest,
+):
+    from propstore.world.consistency import (
+        WorldConsistencyRequest,
+        check_world_consistency,
+    )
+
+    with open_app_world_model(repo) as world:
+        return check_world_consistency(
+            repo,
+            world,
+            WorldConsistencyRequest(
+                bindings=request.bindings,
+                transitive=request.transitive,
             ),
         )

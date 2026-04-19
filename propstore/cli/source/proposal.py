@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import click
 
-from propstore.families.documents.sources import SourceConceptFormParametersDocument
-from propstore.core.claim_types import coerce_claim_type
-from propstore.repository import Repository
-from propstore.stances import coerce_stance_type
-from propstore.source import (
-    commit_source_claim_proposal,
-    commit_source_concept_proposal,
-    commit_source_justification_proposal,
-    commit_source_stance_proposal,
+from propstore.app.sources import (
+    SourceAppError,
+    SourceClaimProposalRequest,
+    SourceConceptProposalRequest,
+    SourceJustificationProposalRequest,
+    SourceStanceProposalRequest,
+    propose_source_claim,
+    propose_source_concept,
+    propose_source_justification,
+    propose_source_stance,
 )
+from propstore.repository import Repository
 from propstore.cli.source import source
 
 
@@ -34,39 +36,27 @@ def propose_concept(
     values: str | None,
     closed: bool,
 ) -> None:
-    if closed and form_name != "category":
-        raise click.ClickException("--closed is only valid with --form=category")
-    if values is not None and form_name != "category":
-        raise click.ClickException("--values is only valid with --form=category")
     repo: Repository = obj["repo"]
     try:
-        form_parameters: SourceConceptFormParametersDocument | None = None
-        if values is not None:
-            value_list = tuple(v.strip() for v in values.split(",") if v.strip())
-            form_parameters = SourceConceptFormParametersDocument(
-                values=value_list,
-                extensible=False if closed else None,
-            )
-        elif closed:
-            form_parameters = SourceConceptFormParametersDocument(extensible=False)
-        info = commit_source_concept_proposal(
+        report = propose_source_concept(
             repo,
-            name,
-            local_name=concept_name,
-            definition=definition,
-            form=form_name,
-            form_parameters=form_parameters,
+            SourceConceptProposalRequest(
+                source_name=name,
+                concept_name=concept_name,
+                definition=definition,
+                form_name=form_name,
+                values=values,
+                closed=closed,
+            ),
         )
-    except ValueError as exc:
+    except (SourceAppError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
-    status = info.status or "proposed"
-    if status == "linked":
-        match = info.registry_match
-        canonical = concept_name if match is None or match.canonical_name is None else match.canonical_name
-        artifact_id = "" if match is None else match.artifact_id
+    if report.status == "linked":
+        canonical = report.linked_canonical_name or concept_name
+        artifact_id = report.linked_artifact_id or ""
         click.echo(f"Linked '{concept_name}' \u2192 existing '{canonical}' ({artifact_id})")
     else:
-        click.echo(f"Proposed new concept '{concept_name}' (form: {info.form or form_name})")
+        click.echo(f"Proposed new concept '{concept_name}' (form: {report.form_name})")
 
 
 @source.command("propose-claim")
@@ -94,26 +84,24 @@ def propose_claim(
 ) -> None:
     repo: Repository = obj["repo"]
     try:
-        typed_claim_type = coerce_claim_type(claim_type)
-        if typed_claim_type is None:
-            raise ValueError("claim type is required")
-        entry = commit_source_claim_proposal(
+        report = propose_source_claim(
             repo,
-            name,
-            claim_id=claim_id,
-            claim_type=typed_claim_type,
-            statement=statement,
-            concept=concept,
-            value=value,
-            unit=unit,
-            context=context,
-            page=page,
+            SourceClaimProposalRequest(
+                source_name=name,
+                claim_id=claim_id,
+                claim_type=claim_type,
+                statement=statement,
+                concept=concept,
+                value=value,
+                unit=unit,
+                context=context,
+                page=page,
+            ),
         )
-    except ValueError as exc:
+    except (SourceAppError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
-    artifact_id = "" if entry.artifact_id is None else entry.artifact_id
     click.echo(
-        f"Proposed claim '{claim_id}' (type: {typed_claim_type.value}, artifact: {artifact_id})"
+        f"Proposed claim '{claim_id}' (type: {report.claim_type}, artifact: {report.artifact_id})"
     )
 
 
@@ -135,22 +123,25 @@ def propose_justification(
     page: int | None,
 ) -> None:
     repo: Repository = obj["repo"]
-    premises_list = [p.strip() for p in premises.split(",") if p.strip()]
     try:
-        entry = commit_source_justification_proposal(
+        report = propose_source_justification(
             repo,
-            name,
-            just_id=just_id,
-            conclusion=conclusion,
-            premises=premises_list,
-            rule_kind=rule_kind,
-            page=page,
+            SourceJustificationProposalRequest(
+                source_name=name,
+                justification_id=just_id,
+                conclusion=conclusion,
+                premises=premises,
+                rule_kind=rule_kind,
+                page=page,
+            ),
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    resolved_premises = ", ".join(entry.premises or tuple(premises_list))
-    resolved_conclusion = entry.conclusion or conclusion
-    click.echo(f"Proposed justification '{just_id}' ({rule_kind}: {resolved_premises} \u2192 {resolved_conclusion})")
+    resolved_premises = ", ".join(report.premises)
+    click.echo(
+        f"Proposed justification '{just_id}' "
+        f"({report.rule_kind}: {resolved_premises} \u2192 {report.conclusion})"
+    )
 
 
 @source.command("propose-stance")
@@ -172,18 +163,19 @@ def propose_stance(
 ) -> None:
     repo: Repository = obj["repo"]
     try:
-        typed_stance_type = coerce_stance_type(stance_type)
-        if typed_stance_type is None:
-            raise ValueError("stance type is required")
-        entry = commit_source_stance_proposal(
+        report = propose_source_stance(
             repo,
-            name,
-            source_claim=source_claim,
-            target=target,
-            stance_type=typed_stance_type,
-            strength=strength,
-            note=note,
+            SourceStanceProposalRequest(
+                source_name=name,
+                source_claim=source_claim,
+                target=target,
+                stance_type=stance_type,
+                strength=strength,
+                note=note,
+            ),
         )
-    except ValueError as exc:
+    except (SourceAppError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Proposed stance: '{source_claim}' {typed_stance_type.value} '{target}'")
+    click.echo(
+        f"Proposed stance: '{source_claim}' {report.stance_type} '{report.target}'"
+    )

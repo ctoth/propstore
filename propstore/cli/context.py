@@ -7,7 +7,7 @@ import click
 
 from quire.documents import encode_document
 from propstore.cli.helpers import EXIT_ERROR
-from propstore.context_workflows import (
+from propstore.app.contexts import (
     ContextAddRequest,
     ContextWorkflowError,
     add_context,

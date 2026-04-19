@@ -1,7 +1,6 @@
 """Worldline create, run, and refresh CLI commands."""
 from __future__ import annotations
 
-import json
 import sys
 
 import click
@@ -15,6 +14,7 @@ from propstore.app.worldlines import (
     WorldlineValidationError,
     create_worldline as run_create_worldline,
     materialize_worldline,
+    parse_worldline_revision_atom,
 )
 from propstore.cli.worldline import (
     _apply_reasoning_options,
@@ -23,18 +23,6 @@ from propstore.cli.worldline import (
     worldline,
 )
 from propstore.repository import Repository
-
-
-def _parse_revision_atom(raw: str | None) -> dict[str, object] | None:
-    if raw is None:
-        return None
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise click.ClickException(f"Invalid --revision-atom JSON: {exc}") from exc
-    if not isinstance(parsed, dict):
-        raise click.ClickException("--revision-atom must decode to a JSON object")
-    return parsed
 
 
 def _parse_revision_conflicts(raw_conflicts: tuple[str, ...]) -> dict[str, tuple[str, ...]]:
@@ -91,7 +79,7 @@ def _revision_options(
 ) -> WorldlineRevisionOptions:
     return WorldlineRevisionOptions(
         operation=revision_operation,
-        atom=_parse_revision_atom(revision_atom),
+        atom=parse_worldline_revision_atom(revision_atom),
         target=revision_target,
         conflicts=_parse_revision_conflicts(revision_conflicts),
         operator=revision_operator,
@@ -101,10 +89,19 @@ def _revision_options(
 def _coerce_override_values(overrides: tuple[str, ...]) -> dict[str, float | str]:
     override_dict: dict[str, float | str] = {}
     for key, value in _parse_kv_args(overrides).items():
-        try:
-            override_dict[key] = float(value)
-        except (TypeError, ValueError):
+        if isinstance(value, bool):
             override_dict[key] = str(value)
+            continue
+        if isinstance(value, int | float):
+            override_dict[key] = float(value)
+            continue
+        if isinstance(value, str):
+            try:
+                override_dict[key] = float(value)
+            except ValueError:
+                override_dict[key] = value
+            continue
+        override_dict[key] = str(value)
     return override_dict
 
 

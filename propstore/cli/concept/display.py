@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.source import (
-    load_alignment_artifact,
-)
 from propstore.app.concepts import (
-    _concept_display_handle,
-    _concept_document,
-    _concept_ref,
-    _find_concept_entry,
-)
-from propstore.cli.helpers import EXIT_ERROR
-from propstore.core.concepts import (
-    LoadedConcept,
-    parse_concept_record_document,
+    ConceptDisplayError,
+    ConceptListRequest,
+    ConceptSearchRequest,
+    ConceptShowRequest,
+    ConceptSidecarMissingError,
+    UnknownConceptError,
+    list_concept_categories,
+    list_concepts as run_list_concepts,
+    search_concepts,
+    show_concept,
 )
 from propstore.repository import Repository
 from propstore.cli.concept import (
@@ -29,12 +25,6 @@ from propstore.cli.concept import (
 @click.pass_obj
 def search(obj: dict, query: str) -> None:
     """Search concepts via the FTS5 index over canonical_name, aliases, definition, and CEL conditions."""
-    from propstore.app.concepts import (
-        ConceptSearchRequest,
-        ConceptSidecarMissingError,
-        search_concepts,
-    )
-
     try:
         report = search_concepts(
             obj["repo"],
@@ -62,31 +52,16 @@ def search(obj: dict, query: str) -> None:
 def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
     """List concepts, optionally filtered."""
     repo: Repository = obj["repo"]
-    refs = list(repo.families.concepts.iter())
-    if not refs:
+    report = run_list_concepts(
+        repo,
+        ConceptListRequest(domain=domain, status=status),
+    )
+    if not report.concepts_found:
         click.echo("No concepts directory found.")
         return
 
-    tree = repo.tree()
-    for ref in refs:
-        handle = repo.families.concepts.require_handle(ref)
-        c = LoadedConcept(
-            filename=ref.name,
-            source_path=tree / handle.address.require_path(),
-            knowledge_root=tree,
-            record=parse_concept_record_document(handle.document),
-            document=handle.document,
-        )
-        d = c.record.to_payload()
-        c_domain = d.get("domain", "")
-        c_status = d.get("status", "")
-
-        if domain and c_domain != domain:
-            continue
-        if status and c_status != status:
-            continue
-
-        click.echo(f"  {_concept_display_handle(d):30s} {d.get('canonical_name', '?'):30s} [{c_status}]")
+    for entry in report.entries:
+        click.echo(f"  {entry.handle:30s} {entry.canonical_name:30s} [{entry.status}]")
 
 
 # ── concept add-value ────────────────────────────────────────────────
@@ -98,50 +73,24 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
 def categories(obj: dict, as_json: bool) -> None:
     """List all category concepts and their allowed values."""
     repo: Repository = obj["repo"]
-    cat_data = {}
-    for ref in repo.families.concepts.iter():
-        document = repo.families.concepts.require(ref)
-        c = LoadedConcept(
-            filename=ref.name,
-            source_path=repo.tree() / repo.families.concepts.address(ref).require_path(),
-            knowledge_root=repo.tree(),
-            record=parse_concept_record_document(document),
-            document=document,
-        )
-        data = c.record.to_payload()
-        if data.get("form") != "category":
-            continue
-        raw_form_parameters = data.get("form_parameters")
-        if raw_form_parameters is None:
-            fp = {}
-        elif isinstance(raw_form_parameters, dict):
-            fp = raw_form_parameters
-        else:
-            click.echo(
-                f"ERROR: '{data.get('canonical_name')}' form_parameters must be a mapping",
-                err=True,
-            )
-            sys.exit(EXIT_ERROR)
-        values = fp.get("values", [])
-        extensible = fp.get("extensible", True)
-        cat_data[data["canonical_name"]] = {
-            "values": values,
-            "extensible": extensible,
-        }
+    try:
+        report = list_concept_categories(repo)
+    except ConceptDisplayError as exc:
+        raise click.ClickException(str(exc)) from exc
 
     if as_json:
         import json
-        click.echo(json.dumps(cat_data, indent=2))
+        click.echo(json.dumps(report.as_dict(), indent=2))
         return
 
-    if not cat_data:
+    if not report.entries:
         click.echo("No category concepts found.")
         return
 
-    for name, info in sorted(cat_data.items()):
-        ext = " (extensible)" if info["extensible"] else ""
-        vals = ", ".join(info["values"])
-        click.echo(f"{name}{ext}: {vals}")
+    for entry in sorted(report.entries, key=lambda item: item.canonical_name):
+        ext = " (extensible)" if entry.extensible else ""
+        vals = ", ".join(entry.values)
+        click.echo(f"{entry.canonical_name}{ext}: {vals}")
 
 
 # ── concept show ─────────────────────────────────────────────────────
@@ -152,17 +101,15 @@ def categories(obj: dict, as_json: bool) -> None:
 def show(obj: dict, concept_id_or_name: str) -> None:
     """Show full concept YAML."""
     repo: Repository = obj["repo"]
-    if concept_id_or_name.startswith("align:"):
-        try:
-            _, artifact = load_alignment_artifact(repo, concept_id_or_name)
-        except FileNotFoundError:
-            click.echo(f"ERROR: Concept alignment '{concept_id_or_name}' not found", err=True)
-            sys.exit(EXIT_ERROR)
-        click.echo(repo.families.concept_alignments.render(artifact))
-        return
-    concept_entry = _find_concept_entry(repo, concept_id_or_name)
-    if concept_entry is None:
-        click.echo(f"ERROR: Concept '{concept_id_or_name}' not found", err=True)
-        sys.exit(EXIT_ERROR)
-    ref = _concept_ref(concept_entry)
-    click.echo(repo.families.concepts.render(_concept_document(repo, ref, concept_entry.record.to_payload())))
+    try:
+        report = show_concept(
+            repo,
+            ConceptShowRequest(concept_id_or_name=concept_id_or_name),
+        )
+    except UnknownConceptError as exc:
+        if concept_id_or_name.startswith("align:"):
+            raise click.ClickException(
+                f"Concept alignment '{concept_id_or_name}' not found"
+            ) from exc
+        raise click.ClickException(f"Concept '{concept_id_or_name}' not found") from exc
+    click.echo(report.rendered)
