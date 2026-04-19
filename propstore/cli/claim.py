@@ -15,24 +15,29 @@ import click
 from propstore.app.claims import (
     ClaimCompareRequest,
     ClaimComparisonError,
+    ClaimConflictsRequest,
     ClaimEmbedRequest,
     ClaimEmbeddingModelError,
+    ClaimPathError,
     ClaimRelateRequest,
     ClaimSidecarMissingError,
     ClaimSimilarRequest,
+    ClaimValidateFileRequest,
+    ClaimValidationDocumentError,
+    ClaimValidationRequest,
     ClaimWorkflowError,
     UnknownClaimError,
     compare_algorithm_claims_from_repo,
+    detect_claim_conflicts,
     embed_claim_embeddings,
     find_similar_claims,
     relate_claims,
     show_claim_from_repo,
+    validate_claim_file,
+    validate_claim_files,
 )
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.repository import Repository
-from propstore.families.documents.claims import ClaimsFileDocument
-from quire.documents import DocumentSchemaError, load_document_dir
-from quire.tree_path import coerce_tree_path as coerce_knowledge_path
 
 
 @click.group()
@@ -101,71 +106,38 @@ def show(obj: dict, claim_id: str) -> None:
 @click.pass_obj
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
-    from propstore.compiler.context import (
-        build_compilation_context_from_loaded,
-        build_compilation_context_from_repo,
-    )
-    from propstore.compiler.passes import validate_claims
-    from propstore.core.concepts import load_concepts
-
     repo: Repository = obj["repo"]
-    claims_root = coerce_knowledge_path(Path(claims_path)) if claims_path else None
-    concepts_override = Path(concepts_path) if concepts_path else None
-
-    if claims_root is not None and not claims_root.exists():
-        click.echo(f"ERROR: Claims directory '{claims_root.as_posix()}' does not exist", err=True)
-        sys.exit(EXIT_ERROR)
-
-    concepts_root = None
-    forms_root = None
-    if concepts_override is not None:
-        concepts_root = coerce_knowledge_path(concepts_override)
-        if not concepts_root.exists():
-            click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
-            sys.exit(EXIT_ERROR)
-        forms_root = coerce_knowledge_path(concepts_override.parent / "forms")
-        if not forms_root.exists():
-            click.echo(
-                f"ERROR: Concepts override requires sibling forms directory '{forms_root.as_posix()}'",
-                err=True,
-            )
-            sys.exit(EXIT_ERROR)
-
     try:
-        if claims_root is None:
-            files = [
-                repo.families.claims.require_handle(ref)
-                for ref in repo.families.claims.iter()
-            ]
-        else:
-            files = load_document_dir(claims_root, ClaimsFileDocument)
-        if concepts_root is None:
-            context = build_compilation_context_from_repo(repo, claim_files=files)
-        else:
-            context = build_compilation_context_from_loaded(
-                load_concepts(concepts_root),
-                forms_dir=forms_root,
-                claim_files=files,
-            )
-    except DocumentSchemaError as exc:
+        report = validate_claim_files(
+            repo,
+            ClaimValidationRequest(
+                claims_path=None if claims_path is None else Path(claims_path),
+                concepts_path=None if concepts_path is None else Path(concepts_path),
+            ),
+        )
+    except ClaimPathError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(EXIT_ERROR)
+    except ClaimValidationDocumentError as exc:
         click.echo(f"ERROR: {exc}", err=True)
         click.echo("Validation FAILED: 1 error(s)", err=True)
         sys.exit(EXIT_VALIDATION)
-    if not files:
+    if report.file_count == 0:
         click.echo("No claim files found.")
         return
 
-    result = validate_claims(files, context)
+    for warning in report.warnings:
+        click.echo(f"WARNING: {warning}", err=True)
+    for error in report.errors:
+        click.echo(f"ERROR: {error}", err=True)
 
-    for w in result.warnings:
-        click.echo(f"WARNING: {w}", err=True)
-    for e in result.errors:
-        click.echo(f"ERROR: {e}", err=True)
-
-    if result.ok:
-        click.echo(f"Validation passed: {len(files)} claim file(s), {len(result.warnings)} warning(s)")
+    if report.ok:
+        click.echo(
+            f"Validation passed: {report.file_count} claim file(s), "
+            f"{len(report.warnings)} warning(s)"
+        )
     else:
-        click.echo(f"Validation FAILED: {len(result.errors)} error(s)", err=True)
+        click.echo(f"Validation FAILED: {len(report.errors)} error(s)", err=True)
         sys.exit(EXIT_VALIDATION)
 
 
@@ -175,53 +147,32 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
 @click.pass_obj
 def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
     """Validate a single claims YAML file."""
-    from propstore.compiler.context import (
-        build_compilation_context_from_loaded,
-        build_compilation_context_from_repo,
-    )
-    from propstore.compiler.passes import validate_single_claim_file
-    from propstore.core.concepts import load_concepts
-
     repo: Repository = obj["repo"]
-    concepts_override = Path(concepts_path) if concepts_path else None
-    concepts_root = None
-    forms_root = None
-    if concepts_override is not None:
-        concepts_root = coerce_knowledge_path(concepts_override)
-        if not concepts_root.exists():
-            click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
-            sys.exit(EXIT_ERROR)
-        forms_root = coerce_knowledge_path(concepts_override.parent / "forms")
-        if not forms_root.exists():
-            click.echo(
-                f"ERROR: Concepts override requires sibling forms directory '{forms_root.as_posix()}'",
-                err=True,
-            )
-            sys.exit(EXIT_ERROR)
-
     try:
-        if concepts_root is None:
-            context = build_compilation_context_from_repo(repo)
-        else:
-            context = build_compilation_context_from_loaded(
-                load_concepts(concepts_root),
-                forms_dir=forms_root,
-            )
-        result = validate_single_claim_file(filepath, context)
-    except DocumentSchemaError as exc:
+        report = validate_claim_file(
+            repo,
+            ClaimValidateFileRequest(
+                filepath=filepath,
+                concepts_path=None if concepts_path is None else Path(concepts_path),
+            ),
+        )
+    except ClaimPathError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(EXIT_ERROR)
+    except ClaimValidationDocumentError as exc:
         click.echo(f"ERROR: {exc}", err=True)
         click.echo(f"FAILED: {filepath.name} (1 error(s))", err=True)
         sys.exit(EXIT_VALIDATION)
 
-    for w in result.warnings:
-        click.echo(f"WARNING: {w}", err=True)
-    for e in result.errors:
-        click.echo(f"ERROR: {e}", err=True)
+    for warning in report.warnings:
+        click.echo(f"WARNING: {warning}", err=True)
+    for error in report.errors:
+        click.echo(f"ERROR: {error}", err=True)
 
-    if result.ok:
-        click.echo(f"Valid: {filepath.name} ({len(result.warnings)} warning(s))")
+    if report.ok:
+        click.echo(f"Valid: {filepath.name} ({len(report.warnings)} warning(s))")
     else:
-        click.echo(f"FAILED: {filepath.name} ({len(result.errors)} error(s))", err=True)
+        click.echo(f"FAILED: {filepath.name} ({len(report.errors)} error(s))", err=True)
         sys.exit(EXIT_VALIDATION)
 
 
@@ -233,50 +184,29 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
 @click.pass_obj
 def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None:
     """Detect and report claim conflicts."""
-    from propstore.conflict_detector import ConflictClass, detect_conflicts
-    from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-    from propstore.compiler.context import (
-        build_compilation_context_from_repo,
-        concept_registry_for_context,
-    )
-
     repo: Repository = obj["repo"]
-    files = [
-        repo.families.claims.require_handle(ref)
-        for ref in repo.families.claims.iter()
-    ]
-    if not files:
+    report = detect_claim_conflicts(
+        repo,
+        ClaimConflictsRequest(concept=concept, warning_class=warning_class),
+    )
+    if report.file_count == 0:
         click.echo("No claim files found.")
         return
 
-    context = build_compilation_context_from_repo(repo, claim_files=list(files))
-    registry = concept_registry_for_context(context)
-    records = detect_conflicts(
-        conflict_claims_from_claim_files(files),
-        registry,
-        context.cel_registry,
-    )
-
-    # Filter
-    if concept:
-        records = [r for r in records if r.concept_id == concept]
-    if warning_class:
-        records = [r for r in records if r.warning_class == ConflictClass(warning_class)]
-
-    if not records:
+    if not report.conflicts:
         click.echo("No conflicts found.")
         return
 
-    for r in records:
+    for conflict in report.conflicts:
         click.echo(
-            f"  {r.warning_class.value:16s} concept={r.concept_id} "
-            f"{r.claim_a_id} vs {r.claim_b_id}  "
-            f"({r.value_a} vs {r.value_b})"
+            f"  {conflict.warning_class:16s} concept={conflict.concept_id} "
+            f"{conflict.claim_a_id} vs {conflict.claim_b_id}  "
+            f"({conflict.value_a} vs {conflict.value_b})"
         )
-        if r.derivation_chain:
-            click.echo(f"    chain: {r.derivation_chain}")
+        if conflict.derivation_chain:
+            click.echo(f"    chain: {conflict.derivation_chain}")
 
-    click.echo(f"\n{len(records)} conflict(s) found.")
+    click.echo(f"\n{len(report.conflicts)} conflict(s) found.")
 
 
 @claim.command()

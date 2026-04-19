@@ -8,10 +8,20 @@ from pathlib import Path
 import click
 
 from propstore.app.world import (
+    AppWorldChainRequest,
+    AppWorldConsistencyRequest,
+    AppWorldExportGraphRequest,
+    AppWorldFragilityRequest,
+    AppWorldHypotheticalRequest,
+    AppWorldSensitivityRequest,
     WorldLifecycleOptions,
-    lifecycle_policy,
-    open_app_world_model,
     parse_world_binding_args,
+    world_chain as run_world_chain,
+    world_consistency as run_world_consistency,
+    world_export_graph as run_world_export_graph,
+    world_fragility as run_world_fragility,
+    world_hypothetical as run_world_hypothetical,
+    world_sensitivity as run_world_sensitivity,
 )
 from propstore.cli.world import world
 from propstore.repository import Repository
@@ -19,7 +29,7 @@ from propstore.repository import Repository
 
 def _parse_hypothetical_add(add_json: str | None):
     """Parse the CLI JSON payload for ``world hypothetical --add``."""
-    from propstore.world.queries import WorldHypotheticalSyntheticClaimSpec
+    from propstore.app.world import WorldHypotheticalSyntheticClaimSpec
 
     if add_json is None:
         return ()
@@ -77,22 +87,16 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
 
     Usage: pks world hypothetical domain=example --remove claim2
     """
-    from propstore.world.queries import (
-        WorldHypotheticalRequest,
-        diff_hypothetical_world,
-    )
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        report = diff_hypothetical_world(
-            wm,
-            WorldHypotheticalRequest(
-                bindings=bindings,
-                remove_claim_ids=tuple(remove),
-                add_claims=_parse_hypothetical_add(add_json),
-            ),
-        )
+    bindings, _ = parse_world_binding_args(args)
+    report = run_world_hypothetical(
+        repo,
+        AppWorldHypotheticalRequest(
+            bindings=bindings,
+            remove_claim_ids=tuple(remove),
+            add_claims=_parse_hypothetical_add(add_json),
+        ),
+    )
 
     if not report.changes:
         click.echo("No changes detected.")
@@ -145,35 +149,21 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world chain concept5 domain=example --strategy sample_size
     """
-    from propstore.world.queries import WorldChainRequest, query_world_chain
-
-    # The flags do not change the chain traversal shape today — chain_query
-    # reads parameterization + relationship state, not lifecycle-filtered
-    # claim sets. The flags are accepted here so users can pipe the same
-    # invocation across `pks world ...` subcommands without per-subcommand
-    # option divergence; build/render-time policy work already applies at
-    # the store layer via ``WorldModel.claims_with_policy``. When a
-    # future chain implementation threads a ``RenderPolicy``, this helper
-    # remains the construction site.
-    _ = lifecycle_policy(
-        WorldLifecycleOptions(
-            include_drafts=include_drafts,
-            include_blocked=include_blocked,
-            show_quarantined=show_quarantined,
-        )
-    )
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        report = query_world_chain(
-            wm,
-            WorldChainRequest(
-                concept_id=concept_id,
-                bindings=bindings,
-                strategy=strategy,
+    bindings, _ = parse_world_binding_args(args)
+    report = run_world_chain(
+        repo,
+        AppWorldChainRequest(
+            concept_id=concept_id,
+            bindings=bindings,
+            strategy=strategy,
+            lifecycle=WorldLifecycleOptions(
+                include_drafts=include_drafts,
+                include_blocked=include_blocked,
+                show_quarantined=show_quarantined,
             ),
-        )
+        ),
+    )
 
     click.echo(f"Target: {_format_chain_concept(report.target)}")
     click.echo(f"Result: {report.status}")
@@ -199,15 +189,12 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
 
     Usage: pks world export-graph domain=example --format dot --output graph.dot
     """
-    from propstore.graph_export import GraphExportRequest, export_knowledge_graph
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        report = export_knowledge_graph(
-            wm,
-            GraphExportRequest(bindings=bindings, group_id=group_id),
-        )
+    bindings, _ = parse_world_binding_args(args)
+    report = run_world_export_graph(
+        repo,
+        AppWorldExportGraphRequest(bindings=bindings, group_id=group_id),
+    )
 
     if fmt == "json":
         output = json.dumps(report.graph.to_json(), indent=2)
@@ -232,16 +219,13 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world sensitivity concept5 domain=example
     """
-    from propstore.sensitivity import SensitivityRequest, query_sensitivity
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        report = query_sensitivity(
-            wm,
-            SensitivityRequest(concept_id=concept_id, bindings=bindings),
-        )
-        result = report.result
+    bindings, _ = parse_world_binding_args(args)
+    report = run_world_sensitivity(
+        repo,
+        AppWorldSensitivityRequest(concept_id=concept_id, bindings=bindings),
+    )
+    result = report.result
 
     if result is None:
         click.echo(f"No sensitivity analysis available for {report.concept_id}.")
@@ -301,26 +285,23 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
                     skip_grounding: bool, skip_bridge: bool,
                     ranking_policy: str, fmt: str) -> None:
     """Rank intervention targets by fragility — what to inspect next."""
-    from propstore.fragility import FragilityRequest, query_fragility
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, context_id = parse_world_binding_args(args)
-        report = query_fragility(
-            wm,
-            FragilityRequest(
-                bindings=bindings,
-                context_id=context_id,
-                concept_id=concept_id,
-                top_k=top_k,
-                include_atms=not skip_atms,
-                include_discovery=not skip_discovery,
-                include_conflict=not skip_conflict,
-                include_grounding=not skip_grounding,
-                include_bridge=not skip_bridge,
-                ranking_policy=ranking_policy,
-            ),
-        )
+    bindings, context_id = parse_world_binding_args(args)
+    report = run_world_fragility(
+        repo,
+        AppWorldFragilityRequest(
+            bindings=bindings,
+            context_id=context_id,
+            concept_id=concept_id,
+            top_k=top_k,
+            include_atms=not skip_atms,
+            include_discovery=not skip_discovery,
+            include_conflict=not skip_conflict,
+            include_grounding=not skip_grounding,
+            include_bridge=not skip_bridge,
+            ranking_policy=ranking_policy,
+        ),
+    )
 
     if fmt == "json":
         result_dict = {
@@ -395,19 +376,12 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
     Usage: pks world check-consistency domain=example
            pks world check-consistency --transitive
     """
-    from propstore.world.consistency import (
-        WorldConsistencyRequest,
-        check_world_consistency,
-    )
-
     repo: Repository = obj["repo"]
-    with open_app_world_model(repo) as wm:
-        bindings, _ = parse_world_binding_args(args)
-        report = check_world_consistency(
-            repo,
-            wm,
-            WorldConsistencyRequest(bindings=bindings, transitive=transitive),
-        )
+    bindings, _ = parse_world_binding_args(args)
+    report = run_world_consistency(
+        repo,
+        AppWorldConsistencyRequest(bindings=bindings, transitive=transitive),
+    )
 
     if report.transitive:
         if not report.conflicts:

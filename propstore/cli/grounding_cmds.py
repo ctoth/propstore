@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import click
 
-from propstore.grounding.inspection import (
+from propstore.app.grounding import (
     GroundingInspectionError,
     inspect_grounding_arguments,
     inspect_grounding_query,

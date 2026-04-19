@@ -7,7 +7,7 @@ import sys
 import click
 
 from quire.documents import render_yaml_value
-from propstore.micropubs import (
+from propstore.app.micropubs import (
     MicropubNotFoundError,
     find_micropub,
     inspect_micropub_lift,

@@ -81,6 +81,10 @@ class ConceptValidationError(ConceptWorkflowError):
         self.warnings = warnings
 
 
+class ConceptDisplayError(ConceptWorkflowError):
+    pass
+
+
 @dataclass(frozen=True)
 class ConceptSearchRequest:
     query: str
@@ -97,6 +101,92 @@ class ConceptSearchHit:
 @dataclass(frozen=True)
 class ConceptSearchReport:
     hits: tuple[ConceptSearchHit, ...]
+
+
+@dataclass(frozen=True)
+class ConceptListRequest:
+    domain: str | None = None
+    status: str | None = None
+
+
+@dataclass(frozen=True)
+class ConceptListEntry:
+    handle: str
+    canonical_name: str
+    status: str
+
+
+@dataclass(frozen=True)
+class ConceptListReport:
+    concepts_found: bool
+    entries: tuple[ConceptListEntry, ...]
+
+
+@dataclass(frozen=True)
+class ConceptCategoryEntry:
+    canonical_name: str
+    values: tuple[str, ...]
+    extensible: bool
+
+
+@dataclass(frozen=True)
+class ConceptCategoriesReport:
+    entries: tuple[ConceptCategoryEntry, ...]
+
+    def as_dict(self) -> dict[str, dict[str, object]]:
+        return {
+            entry.canonical_name: {
+                "values": list(entry.values),
+                "extensible": entry.extensible,
+            }
+            for entry in self.entries
+        }
+
+
+@dataclass(frozen=True)
+class ConceptShowRequest:
+    concept_id_or_name: str
+
+
+@dataclass(frozen=True)
+class ConceptShowReport:
+    rendered: str
+
+
+@dataclass(frozen=True)
+class ConceptAlignmentBuildRequest:
+    sources: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ConceptAlignmentQueryRequest:
+    cluster_id: str
+    mode: str = "credulous"
+    operator: str | None = None
+
+
+@dataclass(frozen=True)
+class ConceptAlignmentDecisionRequest:
+    cluster_id: str
+    accepted: tuple[str, ...]
+    rejected: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ConceptAlignmentReport:
+    alignment_id: str
+
+
+@dataclass(frozen=True)
+class ConceptAlignmentQueryScore:
+    argument_id: str
+    score: object
+
+
+@dataclass(frozen=True)
+class ConceptAlignmentQueryReport:
+    accepted_argument_ids: tuple[str, ...] = ()
+    scores: tuple[ConceptAlignmentQueryScore, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -259,6 +349,153 @@ def search_concepts(
             for row in rows
         )
     )
+
+
+def list_concepts(
+    repo: Repository,
+    request: ConceptListRequest,
+) -> ConceptListReport:
+    refs = list(repo.families.concepts.iter())
+    if not refs:
+        return ConceptListReport(concepts_found=False, entries=())
+
+    entries: list[ConceptListEntry] = []
+    for concept_entry in _loaded_concepts(repo):
+        data = concept_entry.record.to_payload()
+        concept_domain = str(data.get("domain", ""))
+        concept_status = str(data.get("status", ""))
+        if request.domain and concept_domain != request.domain:
+            continue
+        if request.status and concept_status != request.status:
+            continue
+        entries.append(
+            ConceptListEntry(
+                handle=_concept_display_handle(data),
+                canonical_name=str(data.get("canonical_name", "?")),
+                status=concept_status,
+            )
+        )
+    return ConceptListReport(concepts_found=True, entries=tuple(entries))
+
+
+def list_concept_categories(repo: Repository) -> ConceptCategoriesReport:
+    entries: list[ConceptCategoryEntry] = []
+    for concept_entry in _loaded_concepts(repo):
+        data = concept_entry.record.to_payload()
+        if data.get("form") != "category":
+            continue
+        raw_form_parameters = data.get("form_parameters")
+        if raw_form_parameters is None:
+            form_parameters: Mapping[str, object] = {}
+        elif isinstance(raw_form_parameters, Mapping):
+            form_parameters = raw_form_parameters
+        else:
+            raise ConceptDisplayError(
+                f"'{data.get('canonical_name')}' form_parameters must be a mapping"
+            )
+        raw_values = form_parameters.get("values", [])
+        values = (
+            tuple(str(value) for value in raw_values)
+            if isinstance(raw_values, list)
+            else ()
+        )
+        entries.append(
+            ConceptCategoryEntry(
+                canonical_name=str(data["canonical_name"]),
+                values=values,
+                extensible=bool(form_parameters.get("extensible", True)),
+            )
+        )
+    return ConceptCategoriesReport(entries=tuple(entries))
+
+
+def show_concept(
+    repo: Repository,
+    request: ConceptShowRequest,
+) -> ConceptShowReport:
+    from propstore.source import load_alignment_artifact
+
+    handle = request.concept_id_or_name
+    if handle.startswith("align:"):
+        try:
+            _, artifact = load_alignment_artifact(repo, handle)
+        except FileNotFoundError as exc:
+            raise UnknownConceptError(handle) from exc
+        return ConceptShowReport(
+            rendered=repo.families.concept_alignments.render(artifact)
+        )
+
+    concept_entry = _find_concept_entry(repo, handle)
+    if concept_entry is None:
+        raise UnknownConceptError(handle)
+    ref = _concept_ref(concept_entry)
+    document = _concept_document(repo, ref, concept_entry.record.to_payload())
+    return ConceptShowReport(rendered=repo.families.concepts.render(document))
+
+
+def build_concept_alignment(
+    repo: Repository,
+    request: ConceptAlignmentBuildRequest,
+) -> ConceptAlignmentReport:
+    from propstore.source import align_sources
+
+    artifact = align_sources(repo, list(request.sources))
+    return ConceptAlignmentReport(alignment_id=artifact.id)
+
+
+def query_concept_alignment(
+    repo: Repository,
+    request: ConceptAlignmentQueryRequest,
+) -> ConceptAlignmentQueryReport:
+    from propstore.source import load_alignment_artifact
+
+    try:
+        _, artifact = load_alignment_artifact(repo, request.cluster_id)
+    except FileNotFoundError as exc:
+        raise ConceptDisplayError(
+            f"Concept alignment '{request.cluster_id}' not found"
+        ) from exc
+    if request.operator is not None:
+        scores = artifact.queries.operator_scores.get(request.operator, {})
+        return ConceptAlignmentQueryReport(
+            scores=tuple(
+                ConceptAlignmentQueryScore(argument_id=str(argument_id), score=score)
+                for argument_id, score in sorted(scores.items())
+            )
+        )
+    accepted = (
+        artifact.queries.skeptical_acceptance
+        if request.mode == "skeptical"
+        else artifact.queries.credulous_acceptance
+    )
+    return ConceptAlignmentQueryReport(
+        accepted_argument_ids=tuple(str(argument_id) for argument_id in accepted)
+    )
+
+
+def decide_concept_alignment(
+    repo: Repository,
+    request: ConceptAlignmentDecisionRequest,
+) -> ConceptAlignmentReport:
+    from propstore.source import decide_alignment
+
+    updated = decide_alignment(
+        repo,
+        request.cluster_id,
+        accept=list(request.accepted),
+        reject=list(request.rejected),
+    )
+    return ConceptAlignmentReport(alignment_id=updated.id)
+
+
+def promote_concept_alignment(
+    repo: Repository,
+    cluster_id: str,
+) -> ConceptAlignmentReport:
+    from propstore.source import promote_alignment
+
+    updated = promote_alignment(repo, cluster_id)
+    return ConceptAlignmentReport(alignment_id=updated.id)
 
 
 def embed_concept_embeddings(

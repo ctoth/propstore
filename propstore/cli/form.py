@@ -8,7 +8,7 @@ import click
 from quire.documents import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.repository import Repository
-from propstore.form_utils import (
+from propstore.app.forms import (
     FormAddRequest,
     FormReferencedError,
     FormNotFoundError,

@@ -10,6 +10,15 @@ import sys
 
 import click
 
+from propstore.app.compiler import (
+    CompilerWorkflowError,
+    SidecarQueryError,
+    SidecarQueryRequest,
+    build_repository,
+    export_aliases as run_export_aliases,
+    query_sidecar,
+    validate_repository,
+)
 from propstore.cli.helpers import EXIT_VALIDATION
 from propstore.repository import Repository
 
@@ -26,11 +35,6 @@ def _emit_workflow_messages(messages) -> None:
 @click.pass_obj
 def validate(obj: dict) -> None:
     """Validate all concepts and claims. Runs CEL type-checking."""
-    from propstore.compiler.workflows import (
-        CompilerWorkflowError,
-        validate_repository,
-    )
-
     repo: Repository = obj["repo"]
     try:
         report = validate_repository(repo)
@@ -59,8 +63,6 @@ def validate(obj: dict) -> None:
 @click.pass_obj
 def build(obj: dict, output: str | None, force: bool) -> None:
     """Validate everything, build sidecar, run conflict detection."""
-    from propstore.compiler.workflows import CompilerWorkflowError, build_repository
-
     repo: Repository = obj["repo"]
     try:
         report = build_repository(repo, output=output, force=force)
@@ -99,11 +101,9 @@ def build(obj: dict, output: str | None, force: bool) -> None:
 @click.pass_obj
 def query(obj: dict, sql: str) -> None:
     """Run raw SQL against the sidecar SQLite."""
-    from propstore.sidecar.query import SidecarQueryError, query_sidecar
-
     repo: Repository = obj["repo"]
     try:
-        result = query_sidecar(repo, sql)
+        result = query_sidecar(repo, SidecarQueryRequest(sql=sql))
     except FileNotFoundError:
         click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
         sys.exit(1)
@@ -125,11 +125,9 @@ def query(obj: dict, sql: str) -> None:
 @click.pass_obj
 def export_aliases(obj: dict, fmt: str) -> None:
     """Export the alias lookup table."""
-    from propstore.core.aliases import export_concept_aliases
-
     repo: Repository = obj["repo"]
     try:
-        aliases = export_concept_aliases(repo)
+        aliases = run_export_aliases(repo)
     except FileNotFoundError:
         click.echo("ERROR: No concepts directory.", err=True)
         sys.exit(1)

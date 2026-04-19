@@ -5,12 +5,14 @@ import sys
 
 import click
 
-from quire.documents import DocumentSchemaError
-from propstore.app.world import WorldSidecarMissingError
 from propstore.app.worldlines import (
+    WorldlineDiffRequest,
+    WorldlineShowRequest,
+    WorldlineValidationError,
     WorldlineNotFoundError,
-    load_worldline_definition,
-    worldline_is_stale,
+    diff_worldlines,
+    list_worldlines,
+    show_worldline,
 )
 from propstore.cli.worldline import worldline
 from propstore.repository import Repository
@@ -24,10 +26,11 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     """Show a worldline's results."""
     repo: Repository = obj["repo"]
     try:
-        wl = load_worldline_definition(repo, name)
+        report = show_worldline(repo, WorldlineShowRequest(name=name, check_staleness=check))
     except WorldlineNotFoundError:
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)
+    wl = report.definition
 
     click.echo(f"Worldline: {wl.name or wl.id}")
     if wl.inputs.environment.bindings:
@@ -55,15 +58,12 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     click.echo(f"  Computed: {wl.results.computed}")
 
     if check:
-        try:
-            stale = worldline_is_stale(repo, name)
-        except WorldSidecarMissingError:
+        if report.staleness_unavailable:
             click.echo("  ? Cannot check staleness — sidecar not found")
+        elif report.stale:
+            click.echo("  ⚠ STALE — upstream dependencies have changed")
         else:
-            if stale:
-                click.echo("  ⚠ STALE — upstream dependencies have changed")
-            else:
-                click.echo("  ✓ Fresh — dependencies unchanged")
+            click.echo("  ✓ Fresh — dependencies unchanged")
 
     click.echo("Results:")
     for target, val in wl.results.values.items():
@@ -138,23 +138,20 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
 def worldline_list(obj: dict) -> None:
     """List all worldlines."""
     repo: Repository = obj["repo"]
-    refs = list(repo.families.worldlines.iter())
-    if not refs:
+    report = list_worldlines(repo)
+    if not report.entries:
         click.echo("No worldlines.")
         return
 
-    for ref in refs:
-        try:
-            wl = load_worldline_definition(repo, ref.name)
-            status = "materialized" if wl.results else "pending"
-            targets = ", ".join(wl.targets[:3])
-            if len(wl.targets) > 3:
-                targets += f" (+{len(wl.targets) - 3})"
-            click.echo(f"  {wl.id}: {status} → {targets}")
-        except DocumentSchemaError as e:
-            click.echo(f"  {ref.name}: ERROR — {e}")
-        except Exception as e:
-            click.echo(f"  {ref.name}: ERROR — {e}")
+    for entry in report.entries:
+        if entry.error is not None:
+            click.echo(f"  {entry.name}: ERROR — {entry.error}")
+            continue
+        status = entry.status or "pending"
+        targets = ", ".join(entry.targets[:3])
+        if len(entry.targets) > 3:
+            targets += f" (+{len(entry.targets) - 3})"
+        click.echo(f"  {entry.name}: {status} → {targets}")
 
 
 @worldline.command("diff")
@@ -165,55 +162,34 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
     """Compare two worldlines side by side."""
     repo: Repository = obj["repo"]
     try:
-        wl_a = load_worldline_definition(repo, name_a)
-    except WorldlineNotFoundError:
-        click.echo(f"ERROR: Worldline '{name_a}' not found", err=True)
-        sys.exit(1)
-    try:
-        wl_b = load_worldline_definition(repo, name_b)
-    except WorldlineNotFoundError:
-        click.echo(f"ERROR: Worldline '{name_b}' not found", err=True)
-        sys.exit(1)
-
-    if wl_a.results is None or wl_b.results is None:
-        click.echo("ERROR: Both worldlines must be materialized first", err=True)
-        sys.exit(1)
-
-    click.echo(f"Comparing: {wl_a.id} vs {wl_b.id}")
-
-    # Show input differences
-    if wl_a.inputs.environment.bindings != wl_b.inputs.environment.bindings:
-        click.echo(
-            f"  Bindings: {dict(wl_a.inputs.environment.bindings)} vs "
-            f"{dict(wl_b.inputs.environment.bindings)}"
+        report = diff_worldlines(
+            repo,
+            WorldlineDiffRequest(left_name=name_a, right_name=name_b),
         )
-    if wl_a.inputs.overrides != wl_b.inputs.overrides:
-        click.echo(f"  Overrides: {wl_a.inputs.overrides} vs {wl_b.inputs.overrides}")
+    except WorldlineNotFoundError as exc:
+        click.echo(f"ERROR: Worldline '{exc.name}' not found", err=True)
+        sys.exit(1)
+    except WorldlineValidationError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(1)
 
-    # Show value differences
-    all_targets = set(wl_a.results.values.keys()) | set(wl_b.results.values.keys())
-    any_diff = False
-    for target in sorted(all_targets):
-        val_a = wl_a.results.values.get(target)
-        val_b = wl_b.results.values.get(target)
-        v_a = None if val_a is None else val_a.value
-        v_b = None if val_b is None else val_b.value
-        if v_a != v_b:
-            any_diff = True
-            s_a = "absent" if val_a is None else val_a.status
-            s_b = "absent" if val_b is None else val_b.status
-            click.echo(f"  {target}: {v_a} ({s_a}) → {v_b} ({s_b})")
+    click.echo(f"Comparing: {report.left_id} vs {report.right_id}")
 
-    if not any_diff:
+    for difference in report.input_differences:
+        click.echo(f"  {difference.label}: {dict(difference.left)} vs {dict(difference.right)}")
+
+    for difference in report.value_differences:
+        click.echo(
+            f"  {difference.target}: "
+            f"{difference.left_value} ({difference.left_status}) → "
+            f"{difference.right_value} ({difference.right_status})"
+        )
+
+    if not report.value_differences:
         click.echo("  No value differences.")
 
-    # Show dependency differences
-    deps_a = set(wl_a.results.dependencies.claims)
-    deps_b = set(wl_b.results.dependencies.claims)
-    only_a = deps_a - deps_b
-    only_b = deps_b - deps_a
-    if only_a:
-        click.echo(f"  Only in {wl_a.id}: {', '.join(sorted(only_a))}")
-    if only_b:
-        click.echo(f"  Only in {wl_b.id}: {', '.join(sorted(only_b))}")
+    if report.only_left_dependencies:
+        click.echo(f"  Only in {report.left_id}: {', '.join(report.only_left_dependencies)}")
+    if report.only_right_dependencies:
+        click.echo(f"  Only in {report.right_id}: {', '.join(report.only_right_dependencies)}")
 

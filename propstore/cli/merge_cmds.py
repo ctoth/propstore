@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import click
 
-from propstore.families.registry import (
-    ClaimsFileRef,
-    MergeManifestRef,
+from propstore.app.merge import (
+    MergeCommitRequest,
+    MergeInspectRequest,
+    commit_merge,
+    inspect_merge,
 )
 from quire.documents import render_yaml_value
 
@@ -27,13 +29,16 @@ def merge() -> None:
 @click.pass_context
 def merge_inspect(ctx: click.Context, branch_a: str, branch_b: str, semantics: str) -> None:
     """Inspect the formal merge framework between two branches."""
-    from propstore.merge.merge_classifier import build_merge_framework
-    from propstore.merge.merge_report import summarize_merge_framework
-
     repo = ctx.obj["repo"]
-    merge_framework = build_merge_framework(repo.snapshot, branch_a, branch_b)
-    summary = summarize_merge_framework(merge_framework, semantics=semantics)
-    click.echo(render_yaml_value(summary))
+    report = inspect_merge(
+        repo,
+        MergeInspectRequest(
+            branch_a=branch_a,
+            branch_b=branch_b,
+            semantics=semantics,
+        ),
+    )
+    click.echo(render_yaml_value(report.payload))
 
 
 @merge.command("commit")
@@ -50,29 +55,14 @@ def merge_commit_cmd(
     target_branch: str | None,
 ) -> None:
     """Create a storage merge commit from the formal merge framework."""
-    from propstore.storage.merge_commit import create_merge_commit
-
     repo = ctx.obj["repo"]
-    resolved_target_branch = target_branch or repo.snapshot.primary_branch_name()
-    commit_sha = create_merge_commit(
-        repo.snapshot,
-        branch_a,
-        branch_b,
-        message=message,
-        target_branch=resolved_target_branch,
+    report = commit_merge(
+        repo,
+        MergeCommitRequest(
+            branch_a=branch_a,
+            branch_b=branch_b,
+            message=message,
+            target_branch=target_branch,
+        ),
     )
-    manifest = repo.families.merge_manifests.require(
-        MergeManifestRef(),
-        commit=commit_sha,
-    )
-    payload = {
-        "surface": "storage_merge_commit",
-        "branch_a": branch_a,
-        "branch_b": branch_b,
-        "target_branch": resolved_target_branch,
-        "claims_path": repo.families.claims.family.address_for(repo, ClaimsFileRef("merged")).require_path(),
-        "manifest_path": repo.families.merge_manifests.family.address_for(repo, MergeManifestRef()).require_path(),
-        "commit_sha": commit_sha,
-        "semantic_candidate_count": len(manifest.merge.semantic_candidate_details),
-    }
-    click.echo(render_yaml_value(payload))
+    click.echo(render_yaml_value(report.payload))

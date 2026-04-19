@@ -1,13 +1,12 @@
 """CLI command for committed-snapshot repository import."""
 from __future__ import annotations
 
-from dataclasses import asdict
 from pathlib import Path
 
 import click
 
+from propstore.app.repository_import import RepositoryImportError, import_repository
 from quire.documents import render_yaml_value
-from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
 
 @click.command("import-repository")
@@ -24,10 +23,12 @@ def import_repository_cmd(
     """Import a source repository's committed semantic tree onto a destination branch."""
     repo = ctx.obj["repo"]
     try:
-        repo.snapshot.head_sha()
-    except ValueError as exc:
-        raise click.ClickException("import-repository requires a git-backed repository") from exc
-
-    plan = plan_repository_import(repo, source_repository, target_branch=target_branch)
-    result = commit_repository_import(repo, plan, message=message)
-    click.echo(render_yaml_value(asdict(result)))
+        result = import_repository(
+            repo,
+            source_repository,
+            target_branch=target_branch,
+            message=message,
+        )
+    except RepositoryImportError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(render_yaml_value(result))

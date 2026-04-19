@@ -6,15 +6,15 @@ from pathlib import Path
 
 import click
 
-from propstore.repository import Repository
-from propstore.source import (
-    commit_source_claims_batch,
-    commit_source_concepts_batch,
-    commit_source_justifications_batch,
-    commit_source_stances_batch,
-    source_branch_name,
+from propstore.app.sources import (
+    SourceBatchRequest,
+    add_source_claims_batch,
+    add_source_concepts_batch,
+    add_source_justifications_batch,
+    add_source_stances_batch,
 )
-from propstore.cli.source import _auto_finalize_source_branch, source
+from propstore.repository import Repository
+from propstore.cli.source import source
 
 
 @source.command("add-concepts")
@@ -24,11 +24,14 @@ from propstore.cli.source import _auto_finalize_source_branch, source
 def add_concepts(obj: dict, name: str, batch_file: Path) -> None:
     repo: Repository = obj["repo"]
     try:
-        commit_source_concepts_batch(repo, name, batch_file)
+        report = add_source_concepts_batch(
+            repo,
+            SourceBatchRequest(name=name, batch_file=batch_file),
+        )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Wrote concepts to {source_branch_name(name)}")
-    _auto_finalize_source_branch(repo, name)
+    click.echo(f"Wrote concepts to {report.branch}")
+    click.echo(f"Auto-finalized {report.auto_finalized_branch}")
 
 
 @source.command("add-claim")
@@ -40,11 +43,19 @@ def add_concepts(obj: dict, name: str, batch_file: Path) -> None:
 def add_claim(obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None) -> None:
     repo: Repository = obj["repo"]
     try:
-        commit_source_claims_batch(repo, name, batch_file, reader=reader, method=method)
+        report = add_source_claims_batch(
+            repo,
+            SourceBatchRequest(
+                name=name,
+                batch_file=batch_file,
+                reader=reader,
+                method=method,
+            ),
+        )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Wrote claims to {source_branch_name(name)}")
-    _auto_finalize_source_branch(repo, name)
+    click.echo(f"Wrote claims to {report.branch}")
+    click.echo(f"Auto-finalized {report.auto_finalized_branch}")
 
 
 @source.command("add-justification")
@@ -56,11 +67,19 @@ def add_claim(obj: dict, name: str, batch_file: Path, reader: str | None, method
 def add_justification(obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None) -> None:
     repo: Repository = obj["repo"]
     try:
-        commit_source_justifications_batch(repo, name, batch_file, reader=reader, method=method)
+        report = add_source_justifications_batch(
+            repo,
+            SourceBatchRequest(
+                name=name,
+                batch_file=batch_file,
+                reader=reader,
+                method=method,
+            ),
+        )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Wrote justifications to {source_branch_name(name)}")
-    _auto_finalize_source_branch(repo, name)
+    click.echo(f"Wrote justifications to {report.branch}")
+    click.echo(f"Auto-finalized {report.auto_finalized_branch}")
 
 
 @source.command("add-stance")
@@ -72,8 +91,16 @@ def add_justification(obj: dict, name: str, batch_file: Path, reader: str | None
 def add_stance(obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None) -> None:
     repo: Repository = obj["repo"]
     try:
-        commit_source_stances_batch(repo, name, batch_file, reader=reader, method=method)
+        report = add_source_stances_batch(
+            repo,
+            SourceBatchRequest(
+                name=name,
+                batch_file=batch_file,
+                reader=reader,
+                method=method,
+            ),
+        )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Wrote stances to {source_branch_name(name)}")
-    _auto_finalize_source_branch(repo, name)
+    click.echo(f"Wrote stances to {report.branch}")
+    click.echo(f"Auto-finalized {report.auto_finalized_branch}")

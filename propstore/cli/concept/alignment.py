@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.source import (
-    align_sources,
-    decide_alignment,
-    load_alignment_artifact,
-    promote_alignment,
+from propstore.app.concepts import (
+    ConceptAlignmentBuildRequest,
+    ConceptAlignmentDecisionRequest,
+    ConceptAlignmentQueryRequest,
+    ConceptDisplayError,
+    build_concept_alignment,
+    decide_concept_alignment,
+    promote_concept_alignment,
+    query_concept_alignment,
 )
-from propstore.cli.helpers import EXIT_ERROR
 from propstore.repository import Repository
 from propstore.cli.concept import (
     concept,
@@ -24,8 +25,11 @@ from propstore.cli.concept import (
 def align_cmd(obj: dict, first_source: str, extra_sources: tuple[str, ...]) -> None:
     """Build and persist a concept-alignment artifact from source branches."""
     repo: Repository = obj["repo"]
-    artifact = align_sources(repo, [first_source, *extra_sources])
-    click.echo(f"Created {artifact.id}")
+    report = build_concept_alignment(
+        repo,
+        ConceptAlignmentBuildRequest(sources=(first_source, *extra_sources)),
+    )
+    click.echo(f"Created {report.alignment_id}")
 
 
 @concept.command("query")
@@ -37,23 +41,23 @@ def query_alignment(obj: dict, cluster_id: str, mode: str, operator: str | None)
     """Query an alignment artifact."""
     repo: Repository = obj["repo"]
     try:
-        _, artifact = load_alignment_artifact(repo, cluster_id)
-    except FileNotFoundError:
-        click.echo(f"ERROR: Concept alignment '{cluster_id}' not found", err=True)
-        sys.exit(EXIT_ERROR)
+        report = query_concept_alignment(
+            repo,
+            ConceptAlignmentQueryRequest(
+                cluster_id=cluster_id,
+                mode=mode,
+                operator=operator,
+            ),
+        )
+    except ConceptDisplayError as exc:
+        raise click.ClickException(str(exc)) from exc
 
     if operator is not None:
-        scores = artifact.queries.operator_scores.get(operator, {})
-        for argument_id, score in sorted(scores.items()):
-            click.echo(f"{argument_id}\t{score}")
+        for score in report.scores:
+            click.echo(f"{score.argument_id}\t{score.score}")
         return
 
-    accepted = (
-        artifact.queries.skeptical_acceptance
-        if mode == "skeptical"
-        else artifact.queries.credulous_acceptance
-    )
-    for argument_id in accepted:
+    for argument_id in report.accepted_argument_ids:
         click.echo(argument_id)
 
 
@@ -65,8 +69,15 @@ def query_alignment(obj: dict, cluster_id: str, mode: str, operator: str | None)
 def decide_cmd(obj: dict, cluster_id: str, accepted: tuple[str, ...], rejected: tuple[str, ...]) -> None:
     """Persist accepted and rejected alternatives for an alignment artifact."""
     repo: Repository = obj["repo"]
-    updated = decide_alignment(repo, cluster_id, accept=list(accepted), reject=list(rejected))
-    click.echo(f"Updated {updated.id}")
+    report = decide_concept_alignment(
+        repo,
+        ConceptAlignmentDecisionRequest(
+            cluster_id=cluster_id,
+            accepted=accepted,
+            rejected=rejected,
+        ),
+    )
+    click.echo(f"Updated {report.alignment_id}")
 
 
 @concept.command("promote")
@@ -76,8 +87,7 @@ def promote_cmd(obj: dict, cluster_id: str) -> None:
     """Promote an accepted alignment alternative into the canonical concept registry."""
     repo: Repository = obj["repo"]
     try:
-        updated = promote_alignment(repo, cluster_id)
+        report = promote_concept_alignment(repo, cluster_id)
     except ValueError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
-        sys.exit(EXIT_ERROR)
-    click.echo(f"Promoted {updated.id}")
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"Promoted {report.alignment_id}")
