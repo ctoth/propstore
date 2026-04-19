@@ -12,6 +12,7 @@ from pathlib import Path
 
 import click
 
+from propstore.app.claims import ClaimCompareRequest, ClaimEmbedRequest, ClaimRelateRequest, ClaimSimilarRequest, compare_algorithm_claims_from_repo, embed_claim_embeddings, find_similar_claims, relate_claims, show_claim_from_repo
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.repository import Repository
 from propstore.families.documents.claims import ClaimsFileDocument
@@ -32,7 +33,6 @@ def show(obj: dict, claim_id: str) -> None:
     from propstore.claims import (
         ClaimSidecarMissingError,
         UnknownClaimError,
-        show_claim_from_repo,
     )
 
     repo: Repository = obj["repo"]
@@ -277,11 +277,9 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
 def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
     """Compare two algorithm claims for equivalence."""
     from propstore.claims import (
-        ClaimCompareRequest,
         ClaimComparisonError,
         ClaimSidecarMissingError,
         UnknownClaimError,
-        compare_algorithm_claims_from_repo,
     )
 
     repo: Repository = obj["repo"]
@@ -327,11 +325,9 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
 def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_size: int) -> None:
     """Generate embeddings for claims via litellm."""
     from propstore.claims import (
-        ClaimEmbedRequest,
         ClaimEmbeddingModelError,
         ClaimSidecarMissingError,
         ClaimWorkflowError,
-        embed_claim_embeddings,
     )
 
     repo = obj["repo"]
@@ -381,9 +377,7 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
     from propstore.claims import (
         ClaimEmbeddingModelError,
         ClaimSidecarMissingError,
-        ClaimSimilarRequest,
         ClaimWorkflowError,
-        find_similar_claims,
     )
 
     repo = obj["repo"]
@@ -430,10 +424,8 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
     The main branch is not mutated; promote proposals into source-of-truth
     storage with ``pks promote``."""
     from propstore.claims import (
-        ClaimRelateRequest,
         ClaimSidecarMissingError,
         ClaimWorkflowError,
-        relate_claims,
     )
 
     repo = obj["repo"]
