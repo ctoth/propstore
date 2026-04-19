@@ -9,7 +9,7 @@ import yaml
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
-from propstore.identity import compute_claim_version_id
+from propstore.families.identity.claims import compute_claim_version_id
 from quire.git_store import GitStore
 from propstore.storage import init_git_store
 from propstore.repository import Repository

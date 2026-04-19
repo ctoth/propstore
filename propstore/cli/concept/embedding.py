@@ -14,11 +14,9 @@ from propstore.claims import (
 )
 from propstore.families.documents.claims import ClaimsFileDocument
 from propstore.families.documents.concepts import ConceptDocument
+from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id
-from propstore.identity import (
-    normalize_canonical_concept_payload,
-    normalize_claim_file_payload,
-)
+from propstore.identity import normalize_canonical_concept_payload
 from propstore.families.registry import ClaimsFileRef, ConceptFileRef
 from propstore.source import (
     align_sources,

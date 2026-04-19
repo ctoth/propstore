@@ -4,7 +4,7 @@ from __future__ import annotations
 import yaml
 
 import propstore.storage as repo_module
-from propstore.identity import compute_claim_version_id
+from propstore.families.identity.claims import compute_claim_version_id
 from quire.git_store import GitStore
 from propstore.storage import init_git_store
 from propstore.repository import Repository

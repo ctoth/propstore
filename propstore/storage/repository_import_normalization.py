@@ -18,11 +18,13 @@ from propstore.families.registry import (
     semantic_family_for_path,
     semantic_import_families,
 )
+from propstore.families.identity.claims import (
+    normalize_canonical_claim_payload,
+    normalize_claim_file_payload,
+)
 from propstore.identity import (
     concept_reference_keys,
-    normalize_canonical_claim_payload,
     normalize_canonical_concept_payload,
-    normalize_claim_file_payload,
 )
 
 if TYPE_CHECKING:

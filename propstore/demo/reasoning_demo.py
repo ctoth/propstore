@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.identity import (
     normalize_canonical_concept_payload,
-    normalize_claim_file_payload,
 )
 from propstore.families.registry import (
     ClaimsFileRef,
