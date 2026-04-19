@@ -34,7 +34,7 @@ from propstore.core.store_results import (
 )
 from tests.family_helpers import build_sidecar
 from propstore.families.identity.claims import compute_claim_version_id
-from propstore.identity import derive_concept_artifact_id
+from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.stances import StanceType
 from tests.conftest import create_world_model_schema, make_claim_identity, write_test_context
 from propstore.world import (

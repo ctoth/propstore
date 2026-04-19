@@ -29,14 +29,16 @@ from propstore.families.identity.logical_ids import (
     LOGICAL_VALUE_RE,
     format_logical_id,
 )
-from propstore.identity import normalize_canonical_concept_payload
+from propstore.families.identity.concepts import (
+    compute_concept_version_id,
+    normalize_canonical_concept_payload,
+)
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     VALID_CONCEPT_RELATIONSHIP_TYPES,
 )
 from propstore.form_utils import FormDefinition, kind_type_from_form_name, load_form_path
-from propstore.identity import compute_concept_version_id
 from propstore.core.concepts import (
     LoadedConcept,
     concept_document_to_payload,

@@ -18,7 +18,7 @@ import yaml
 
 from tests.family_helpers import build_sidecar
 from propstore.dimensions import dims_signature
-from propstore.identity import derive_concept_artifact_id
+from propstore.families.identity.concepts import derive_concept_artifact_id
 from tests.conftest import normalize_concept_payloads
 
 

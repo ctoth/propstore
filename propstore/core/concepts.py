@@ -29,12 +29,12 @@ from propstore.core.concept_relationship_types import (
 from quire.documents import convert_document_value, load_document_dir, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
-from propstore.families.identity.logical_ids import format_logical_id, normalize_logical_value
-from propstore.identity import (
+from propstore.families.identity.concepts import (
     compute_concept_version_id,
     derive_concept_artifact_id,
     normalize_canonical_concept_payload,
 )
+from propstore.families.identity.logical_ids import format_logical_id, normalize_logical_value
 from quire.tree_path import TreePath as KnowledgePath
 from quire.documents import LoadedDocument
 

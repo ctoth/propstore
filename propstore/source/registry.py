@@ -4,7 +4,7 @@ import copy
 from typing import Any
 
 from propstore.core.concepts import parse_concept_record_document
-from propstore.identity import normalize_canonical_concept_payload
+from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.repository import Repository
 from propstore.parameterization_groups import build_groups
 

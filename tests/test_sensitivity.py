@@ -3,7 +3,7 @@
 import pytest
 import yaml
 
-from propstore.identity import derive_concept_artifact_id
+from propstore.families.identity.concepts import derive_concept_artifact_id
 from tests.family_helpers import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
 from propstore.world import WorldModel

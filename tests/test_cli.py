@@ -20,7 +20,7 @@ from propstore.form_utils import show_form
 from propstore.repository import Repository
 from propstore.sensitivity import SensitivityRequest, query_sensitivity
 from propstore.families.identity.claims import compute_claim_version_id
-from propstore.identity import derive_concept_artifact_id
+from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.world import RenderPolicy, ResolutionStrategy, WorldModel
 from propstore.world.consistency import (
     WorldConsistencyRequest,

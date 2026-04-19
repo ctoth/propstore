@@ -15,7 +15,7 @@ Tests the compiler contract checks that JSON Schema can't express:
 import pytest
 import yaml
 
-from propstore.identity import derive_concept_artifact_id
+from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.families.identity.logical_ids import parse_claim_id
 from quire.documents import DocumentSchemaError
 from propstore.claims import loaded_claim_file_from_payload

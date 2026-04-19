@@ -11,7 +11,7 @@ from propstore.families.registry import (
     ConceptAlignmentRef,
     ConceptFileRef,
 )
-from propstore.identity import normalize_canonical_concept_payload
+from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.families.documents.concepts import ConceptDocument
 from propstore.repository import Repository
 from quire.documents import convert_document_value
