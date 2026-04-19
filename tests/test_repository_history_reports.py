@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore.repository import Repository
-from propstore.repository_history import (
+from propstore.app.repository_history import (
     CommitNotFoundError,
     build_commit_show_report,
     build_diff_report,

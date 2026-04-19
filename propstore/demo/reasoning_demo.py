@@ -16,7 +16,7 @@ from propstore.families.registry import (
     RuleFileRef,
     StanceFileRef,
 )
-from propstore.project_init import _seed_form_documents
+from propstore.app.project_init import _seed_form_documents
 from propstore.repository import Repository
 
 

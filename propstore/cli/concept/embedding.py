@@ -71,7 +71,7 @@ from propstore.cli.concept import (
 @click.pass_obj
 def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_size: int) -> None:
     """Generate embeddings for concepts via litellm."""
-    from propstore.concepts import (
+    from propstore.app.concepts import (
         ConceptEmbedRequest,
         ConceptEmbeddingModelError,
         ConceptSidecarMissingError,
@@ -134,7 +134,7 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
 @click.pass_obj
 def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bool, disagree: bool) -> None:
     """Find similar concepts by embedding distance."""
-    from propstore.concepts import (
+    from propstore.app.concepts import (
         ConceptEmbeddingModelError,
         ConceptSidecarMissingError,
         ConceptSimilarRequest,

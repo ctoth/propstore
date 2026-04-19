@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from propstore.project_init import ProjectInitError, initialize_project
+from propstore.app.project_init import ProjectInitError, initialize_project
 
 
 @click.command()

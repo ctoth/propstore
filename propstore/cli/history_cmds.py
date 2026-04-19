@@ -5,7 +5,7 @@ from __future__ import annotations
 import click
 
 from quire.documents import render_yaml_value
-from propstore.repository_history import (
+from propstore.app.repository_history import (
     BranchNotFoundError,
     CommitHasNoConceptsError,
     CommitNotFoundError,

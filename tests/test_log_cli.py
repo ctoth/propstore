@@ -8,7 +8,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
-from propstore.repository_history import (
+from propstore.app.repository_history import (
     BranchNotFoundError,
     build_log_report,
     classify_log_operation,
