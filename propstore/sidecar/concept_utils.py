@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import hashlib
 
-from propstore.identity import (
-    compute_concept_version_id,
+from propstore.families.identity.logical_ids import (
     format_logical_id,
     primary_logical_id,
 )
+from propstore.identity import compute_concept_version_id
 
 
 def concept_content_hash(data: dict) -> str:

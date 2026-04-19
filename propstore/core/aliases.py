@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from propstore.core.concepts import parse_concept_record_document
-from propstore.identity import primary_logical_id
+from propstore.families.identity.logical_ids import primary_logical_id
 from propstore.repository import Repository
 
 

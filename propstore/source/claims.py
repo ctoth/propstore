@@ -10,10 +10,10 @@ from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_path
+from propstore.families.identity.logical_ids import normalize_logical_value
 from propstore.identity import (
     compute_claim_version_id,
     derive_claim_artifact_id,
-    normalize_logical_value,
 )
 
 from .common import (

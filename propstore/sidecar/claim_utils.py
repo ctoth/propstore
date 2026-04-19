@@ -21,14 +21,16 @@ from propstore.compiler.ir import SemanticClaim
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.claim_types import ClaimType
 from propstore.dimensions import normalize_to_si
-from propstore.form_utils import FormDefinition
-from propstore.identity import (
-    compute_claim_version_id,
-    derive_claim_artifact_id,
+from propstore.families.identity.logical_ids import (
     format_logical_id,
     normalize_identity_namespace,
     normalize_logical_value,
     primary_logical_id,
+)
+from propstore.form_utils import FormDefinition
+from propstore.identity import (
+    compute_claim_version_id,
+    derive_claim_artifact_id,
 )
 from propstore.sidecar.concept_utils import resolve_concept_reference
 from propstore.stances import VALID_STANCE_TYPES

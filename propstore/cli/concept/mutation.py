@@ -15,6 +15,7 @@ from propstore.claims import (
 )
 from propstore.families.documents.claims import ClaimsFileDocument
 from propstore.families.documents.concepts import ConceptDocument
+from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id
 from propstore.identity import (
     normalize_canonical_concept_payload,
     normalize_claim_file_payload,
@@ -27,7 +28,6 @@ from propstore.source import (
     promote_alignment,
 )
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
-from propstore.identity import format_logical_id, primary_logical_id
 from propstore.core.concepts import (
     LoadedConcept,
     concept_document_to_payload,
