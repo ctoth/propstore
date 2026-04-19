@@ -253,3 +253,51 @@ def test_core_concept_loading_does_not_decode_concept_documents_directly() -> No
     text = path.read_text(encoding="utf-8")
     assert direct_decode_calls == []
     assert "load_document_dir(concepts_root, ConceptDocument)" in text
+
+
+def test_old_propstore_identity_surface_is_deleted() -> None:
+    assert not (PROPSTORE / "identity.py").exists()
+
+    offenders = [
+        _relative(path)
+        for path in _production_files()
+        if _imports_module(_parse(path), "propstore.identity")
+    ]
+
+    assert offenders == []
+
+
+def test_claim_and_concept_identity_policy_is_family_owned() -> None:
+    from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PropstoreFamily
+
+    claim_policy = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.CLAIMS).identity_policy
+    concept_policy = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.CONCEPTS).identity_policy
+
+    assert claim_policy is not None
+    assert concept_policy is not None
+    assert claim_policy.artifact_id_function == (
+        "propstore.families.identity.claims.derive_claim_artifact_id"
+    )
+    assert claim_policy.version_id_function == (
+        "propstore.families.identity.claims.compute_claim_version_id"
+    )
+    assert concept_policy.artifact_id_function == (
+        "propstore.families.identity.concepts.derive_concept_artifact_id"
+    )
+    assert concept_policy.version_id_function == (
+        "propstore.families.identity.concepts.compute_concept_version_id"
+    )
+
+
+def test_artifact_codes_do_not_own_claim_identity_canonicalization() -> None:
+    path = PROPSTORE / "artifact_codes.py"
+    tree = _parse(path)
+    defined_functions = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+    }
+
+    assert "canonicalize_claim_for_version" not in defined_functions
+    assert "derive_claim_artifact_id" not in defined_functions
+    assert _imports_module(tree, "propstore.families.identity.claims")
