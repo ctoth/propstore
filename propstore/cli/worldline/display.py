@@ -6,8 +6,13 @@ import sys
 import click
 
 from quire.documents import DocumentSchemaError
-from propstore.cli.helpers import open_world_model
-from propstore.cli.worldline import _load_worldline_definition, worldline
+from propstore.app.world import WorldSidecarMissingError
+from propstore.app.worldlines import (
+    WorldlineNotFoundError,
+    load_worldline_definition,
+    worldline_is_stale,
+)
+from propstore.cli.worldline import worldline
 from propstore.repository import Repository
 
 
@@ -19,8 +24,8 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     """Show a worldline's results."""
     repo: Repository = obj["repo"]
     try:
-        wl = _load_worldline_definition(repo, name)
-    except FileNotFoundError:
+        wl = load_worldline_definition(repo, name)
+    except WorldlineNotFoundError:
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)
 
@@ -51,9 +56,8 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
 
     if check:
         try:
-            with open_world_model(repo) as wm:
-                stale = wl.is_stale(wm)
-        except SystemExit:
+            stale = worldline_is_stale(repo, name)
+        except WorldSidecarMissingError:
             click.echo("  ? Cannot check staleness — sidecar not found")
         else:
             if stale:
@@ -141,7 +145,7 @@ def worldline_list(obj: dict) -> None:
 
     for ref in refs:
         try:
-            wl = _load_worldline_definition(repo, ref.name)
+            wl = load_worldline_definition(repo, ref.name)
             status = "materialized" if wl.results else "pending"
             targets = ", ".join(wl.targets[:3])
             if len(wl.targets) > 3:
@@ -161,13 +165,13 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
     """Compare two worldlines side by side."""
     repo: Repository = obj["repo"]
     try:
-        wl_a = _load_worldline_definition(repo, name_a)
-    except FileNotFoundError:
+        wl_a = load_worldline_definition(repo, name_a)
+    except WorldlineNotFoundError:
         click.echo(f"ERROR: Worldline '{name_a}' not found", err=True)
         sys.exit(1)
     try:
-        wl_b = _load_worldline_definition(repo, name_b)
-    except FileNotFoundError:
+        wl_b = load_worldline_definition(repo, name_b)
+    except WorldlineNotFoundError:
         click.echo(f"ERROR: Worldline '{name_b}' not found", err=True)
         sys.exit(1)
 

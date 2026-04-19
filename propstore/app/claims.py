@@ -1,10 +1,37 @@
+from __future__ import annotations
+
+import contextlib
 from collections.abc import Callable
 from dataclasses import dataclass
+import json
+from pathlib import Path
+import sqlite3
 from typing import Mapping
 
-from propstore.claims import ClaimComparisonError, ClaimEmbeddingModelError, ClaimSidecarMissingError, ClaimWorkflowError, UnknownClaimError, _algorithm_variables, _require_sidecar, _required_int, _required_stances_by_claim
 from propstore.repository import Repository
 from propstore.world import WorldModel
+
+
+class ClaimWorkflowError(Exception):
+    """Base class for expected claim workflow failures."""
+
+
+class UnknownClaimError(ClaimWorkflowError):
+    def __init__(self, claim_id: str) -> None:
+        super().__init__(f"Claim '{claim_id}' not found.")
+        self.claim_id = claim_id
+
+
+class ClaimComparisonError(ClaimWorkflowError):
+    pass
+
+
+class ClaimSidecarMissingError(ClaimWorkflowError):
+    pass
+
+
+class ClaimEmbeddingModelError(ClaimWorkflowError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -207,6 +234,52 @@ def compare_algorithm_claims_from_repo(
         raise ClaimSidecarMissingError(
             "Sidecar not found. Run 'pks build' first."
         ) from exc
+
+
+def _require_sidecar(repo: Repository) -> Path:
+    sidecar = repo.sidecar_path
+    if not sidecar.exists():
+        raise ClaimSidecarMissingError("sidecar not found. Run 'pks build' first.")
+    return sidecar
+
+
+def _required_int(result: Mapping[str, object], key: str) -> int:
+    value = result[key]
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ClaimWorkflowError(f"expected integer field '{key}'")
+    return value
+
+
+def _required_stances_by_claim(value: object) -> dict[str, list[dict[str, object]]]:
+    if not isinstance(value, Mapping):
+        raise ClaimWorkflowError("expected stances_by_claim mapping")
+    stances_by_claim: dict[str, list[dict[str, object]]] = {}
+    for claim_id, stances in value.items():
+        if not isinstance(claim_id, str) or not isinstance(stances, list):
+            raise ClaimWorkflowError(
+                "expected stances_by_claim mapping of claim IDs to stance lists"
+            )
+        if not all(isinstance(stance, dict) for stance in stances):
+            raise ClaimWorkflowError("expected stance entries to be mappings")
+        stances_by_claim[claim_id] = stances
+    return stances_by_claim
+
+
+def _algorithm_variables(claim: Mapping[str, object]) -> dict[str, str]:
+    variables_json = claim.get("variables_json")
+    if not variables_json:
+        return {}
+    variables = json.loads(str(variables_json))
+    if not isinstance(variables, list):
+        raise ValueError("algorithm variables must be stored as a list of bindings")
+    result: dict[str, str] = {}
+    for variable in variables:
+        if isinstance(variable, dict):
+            name = variable.get("name") or variable.get("symbol")
+            concept = variable.get("concept", "")
+            if name:
+                result[str(name)] = str(concept)
+    return result
 
 
 def _claim_embed_model_report(

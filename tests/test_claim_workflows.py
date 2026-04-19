@@ -6,10 +6,8 @@ from unittest.mock import MagicMock
 import yaml
 import pytest
 
-import propstore.claims as claims_mod
-import propstore.embed as embed_mod
-import propstore.relate as relate_mod
-from propstore.claims import (
+import propstore.app.claims as claims_app
+from propstore.app.claims import (
     ClaimEmbedRequest,
     ClaimRelateRequest,
     ClaimSidecarMissingError,
@@ -20,6 +18,8 @@ from propstore.claims import (
     relate_claims,
     show_claim_from_repo,
 )
+import propstore.embed as embed_mod
+import propstore.relate as relate_mod
 from propstore.proposals import stance_proposal_branch
 from propstore.repository import Repository
 
@@ -40,7 +40,7 @@ def test_claim_repo_world_model_wrappers_report_missing_sidecar(tmp_path: Path) 
     with pytest.raises(ClaimSidecarMissingError):
         compare_algorithm_claims_from_repo(
             repo,
-            claims_mod.ClaimCompareRequest("claim-a", "claim-b"),
+            claims_app.ClaimCompareRequest("claim-a", "claim-b"),
         )
 
 
@@ -66,7 +66,7 @@ def test_embed_claim_embeddings_owns_connection_and_reports_progress(
             on_progress(3, 5)
         return {"embedded": 3, "skipped": 1, "errors": 0}
 
-    monkeypatch.setattr(claims_mod.sqlite3, "connect", lambda path: conn)
+    monkeypatch.setattr(claims_app.sqlite3, "connect", lambda path: conn)
     monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn_arg: None)
     monkeypatch.setattr(embed_mod, "embed_claims", fake_embed_claims)
     progress: list[tuple[str, int, int]] = []
@@ -118,7 +118,7 @@ def test_find_similar_claims_uses_registered_default_model_and_closes(
             }
         ]
 
-    monkeypatch.setattr(claims_mod.sqlite3, "connect", lambda path: conn)
+    monkeypatch.setattr(claims_app.sqlite3, "connect", lambda path: conn)
     monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn_arg: None)
     monkeypatch.setattr(
         embed_mod,

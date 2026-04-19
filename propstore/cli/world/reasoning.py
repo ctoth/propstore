@@ -7,15 +7,22 @@ import sys
 
 import click
 
-from propstore.cli.helpers import open_world_model
+from propstore.app.world import (
+    AppWorldDeriveRequest,
+    AppWorldResolveRequest,
+    WorldLifecycleOptions,
+    bind_world,
+    open_app_world_model,
+    parse_world_binding_args,
+    resolve_world_target,
+    world_derive as run_world_derive,
+    world_resolve as run_world_resolve,
+)
 from propstore.cli.world import (
-    _bind_world,
-    _lifecycle_policy,
-    _parse_bindings,
-    _resolve_world_target,
     world,
 )
 from propstore.repository import Repository
+from propstore.world.queries import WorldResolveError
 
 if TYPE_CHECKING:
     from propstore.core.active_claims import ActiveClaim
@@ -66,20 +73,20 @@ def world_derive(
 
     Usage: pks world derive concept5 domain=example --include-drafts
     """
-    from propstore.world.queries import WorldDeriveRequest, derive_world_value
-
     repo: Repository = obj["repo"]
-    policy = _lifecycle_policy(include_drafts, include_blocked, show_quarantined)
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
-        report = derive_world_value(
-            wm,
-            WorldDeriveRequest(
-                concept_id=concept_id,
-                bindings=bindings,
-                policy=policy,
+    bindings, _ = parse_world_binding_args(args)
+    report = run_world_derive(
+        repo,
+        AppWorldDeriveRequest(
+            concept_id=concept_id,
+            bindings=bindings,
+            lifecycle=WorldLifecycleOptions(
+                include_drafts=include_drafts,
+                include_blocked=include_blocked,
+                show_quarantined=show_quarantined,
             ),
-        )
+        ),
+    )
 
     click.echo(f"{report.concept_id}: {report.status}")
     if report.value is not None:
@@ -166,56 +173,35 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world resolve concept1 domain=example --strategy argumentation
     """
-    from propstore.world import (
-        RenderPolicy,
-        ResolutionStrategy,
-    )
-    from propstore.world.queries import (
-        WorldResolveError,
-        WorldResolveRequest,
-        resolve_world_value,
-    )
-    from propstore.world.types import normalize_argumentation_semantics
-
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
-        resolved = _resolve_world_target(wm, concept_id)
-        strat = ResolutionStrategy(strategy)
-        overrides_dict = {resolved: override_id} if override_id else None
-        from propstore.world.types import normalize_reasoning_backend
-
-        backend = normalize_reasoning_backend(reasoning_backend)
-
-        policy = RenderPolicy(
-            reasoning_backend=backend,
-            strategy=strat,
-            semantics=normalize_argumentation_semantics(semantics),
-            comparison=set_comparison,
-            decision_criterion=decision_criterion,
-            pessimism_index=pessimism_index,
-            praf_strategy=praf_strategy,
-            praf_mc_epsilon=praf_epsilon,
-            praf_mc_confidence=praf_confidence,
-            praf_mc_seed=praf_seed,
-            overrides={} if overrides_dict is None else overrides_dict,
-            include_drafts=include_drafts,
-            include_blocked=include_blocked,
-            show_quarantined=show_quarantined,
-        )
-
-        try:
-            report = resolve_world_value(
-                wm,
-                WorldResolveRequest(
-                    concept_id=concept_id,
-                    bindings=bindings,
-                    policy=policy,
+    bindings, _ = parse_world_binding_args(args)
+    try:
+        report = run_world_resolve(
+            repo,
+            AppWorldResolveRequest(
+                concept_id=concept_id,
+                bindings=bindings,
+                strategy=strategy,
+                override_id=override_id,
+                semantics=semantics,
+                set_comparison=set_comparison,
+                decision_criterion=decision_criterion,
+                pessimism_index=pessimism_index,
+                reasoning_backend=reasoning_backend,
+                praf_strategy=praf_strategy,
+                praf_epsilon=praf_epsilon,
+                praf_confidence=praf_confidence,
+                praf_seed=praf_seed,
+                lifecycle=WorldLifecycleOptions(
+                    include_drafts=include_drafts,
+                    include_blocked=include_blocked,
+                    show_quarantined=show_quarantined,
                 ),
-            )
-        except WorldResolveError as e:
-            click.echo(f"ERROR: {e}", err=True)
-            sys.exit(1)
+            ),
+        )
+    except WorldResolveError as e:
+        click.echo(f"ERROR: {e}", err=True)
+        sys.exit(1)
 
     click.echo(f"{report.concept_display_id}: {report.status}")
     if report.value is not None:
@@ -266,15 +252,15 @@ def world_extensions(obj: dict, args: tuple[str, ...],
     Usage: pks world extensions domain=example --semantics grounded
     """
     from propstore.relation_analysis import stance_summary
-    from propstore.world import ReasoningBackend, WorldModel
+    from propstore.world import ReasoningBackend
     from propstore.world.types import normalize_reasoning_backend
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
+    with open_app_world_model(repo) as wm:
         from propstore.core.active_claims import coerce_active_claims
 
-        bindings, _ = _parse_bindings(args)
-        bound = _bind_world(wm, bindings, context_id=context)
+        bindings, _ = parse_world_binding_args(args)
+        bound = bind_world(wm, bindings, context_id=context)
         active = coerce_active_claims(bound.active_claims())
         if not active:
             click.echo("No active claims for given bindings.")

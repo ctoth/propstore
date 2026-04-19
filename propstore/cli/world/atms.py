@@ -8,11 +8,13 @@ from typing import TYPE_CHECKING
 
 import click
 
-from propstore.cli.helpers import open_world_model
+from propstore.app.world import (
+    open_app_world_model,
+    parse_world_binding_args,
+    resolve_world_target,
+)
 from propstore.cli.world import (
     _format_assumption_ids,
-    _parse_bindings,
-    _resolve_world_target,
     world,
 )
 from propstore.repository import Repository
@@ -36,8 +38,8 @@ def _open_atms_world(
 ):
     from propstore.world.atms_workflows import ATMSBindRequest, bind_atms_world
 
-    with open_world_model(repo) as wm:
-        bindings, concept_id = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, concept_id = parse_world_binding_args(args)
         bound = bind_atms_world(wm, ATMSBindRequest(bindings, context))
         yield wm, bound, bindings, concept_id
 
@@ -68,7 +70,7 @@ def world_atms_status(obj: dict, args: tuple[str, ...], context: str | None) -> 
     with _open_atms_world(repo, args, context=context) as (wm, bound, _bindings, concept_id):
         resolved = None
         if concept_id:
-            resolved = _resolve_world_target(wm, concept_id)
+            resolved = resolve_world_target(wm, concept_id)
         active_claims = sorted(bound.active_claims(resolved), key=lambda claim: str(claim.claim_id))
         if not active_claims:
             click.echo("No active claims for the current ATMS view.")
@@ -100,7 +102,7 @@ def world_atms_context(obj: dict, args: tuple[str, ...], context: str | None) ->
 
         claim_ids = bound.claims_in_environment(environment_key)
         if concept_id:
-            resolved = _resolve_world_target(wm, concept_id)
+            resolved = resolve_world_target(wm, concept_id)
             allowed = {
                 str(claim.claim_id)
                 for claim in bound.active_claims(resolved)
@@ -183,7 +185,7 @@ def world_atms_futures(
                 )
             return
 
-        resolved = _resolve_world_target(wm, target)
+        resolved = resolve_world_target(wm, target)
         concept_report = bound.concept_future_statuses(resolved, parsed_queryables, limit=limit)
         if not concept_report:
             click.echo("No active claims for the requested ATMS future view.")
@@ -239,7 +241,7 @@ def world_atms_why_out(
             click.echo(f"  reason: {report['reason']}")
             return
 
-        resolved = _resolve_world_target(wm, target)
+        resolved = resolve_world_target(wm, target)
         concept_report = bound.why_concept_out(resolved, parsed_queryables, limit=limit)
         click.echo(
                 f"{resolved}: value_status={concept_report['value_status']} "
@@ -289,7 +291,7 @@ def world_atms_stability(
                 )
             return
 
-        resolved = _resolve_world_target(wm, target)
+        resolved = resolve_world_target(wm, target)
         report = bound.concept_stability(resolved, parsed_queryables, limit=limit)
         click.echo(
             f"{resolved}: value_status={report['current_status']} "
@@ -341,7 +343,7 @@ def world_atms_relevance(
                     )
             return
 
-        resolved = _resolve_world_target(wm, target)
+        resolved = resolve_world_target(wm, target)
         report = bound.concept_relevance(resolved, parsed_queryables, limit=limit)
         click.echo(
             f"{resolved}: current_status={report['current_status']} "
@@ -401,7 +403,7 @@ def world_atms_interventions(
                 )
             return
 
-        resolved = _resolve_world_target(wm, target)
+        resolved = resolve_world_target(wm, target)
         try:
             typed_target_status = coerce_value_status(target_status)
         except ValueError as exc:
@@ -466,7 +468,7 @@ def world_atms_next_query(
                 )
             return
 
-        resolved = _resolve_world_target(wm, target)
+        resolved = resolve_world_target(wm, target)
         try:
             typed_target_status = coerce_value_status(target_status)
         except ValueError as exc:

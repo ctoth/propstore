@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from propstore.families.registry import WorldlineRef
+from propstore.app.worldlines import WorldlineNotFoundError, delete_worldline as run_delete_worldline
 from propstore.cli.worldline import worldline
 from propstore.repository import Repository
 
@@ -16,13 +16,10 @@ from propstore.repository import Repository
 def worldline_delete(obj: dict, name: str) -> None:
     """Delete a worldline."""
     repo: Repository = obj["repo"]
-    if repo.families.worldlines.load(WorldlineRef(name)) is None:
+    try:
+        run_delete_worldline(repo, name)
+    except WorldlineNotFoundError:
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)
-    repo.families.worldlines.delete(
-        WorldlineRef(name),
-        message=f"Delete worldline: {name}",
-    )
-    repo.snapshot.sync_worktree()
     click.echo(f"Deleted worldline '{name}'")
 

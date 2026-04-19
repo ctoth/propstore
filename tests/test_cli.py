@@ -12,7 +12,12 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from propstore.claims import ClaimCompareRequest, ClaimComparisonError, compare_algorithm_claims, show_claim
+from propstore.app.claims import (
+    ClaimCompareRequest,
+    ClaimComparisonError,
+    compare_algorithm_claims,
+    show_claim,
+)
 from propstore.cli import cli
 from propstore.fragility import FragilityRequest, query_fragility
 from propstore.graph_export import GraphExportRequest, export_knowledge_graph

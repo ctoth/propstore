@@ -1,22 +1,111 @@
 """Worldline create, run, and refresh CLI commands."""
 from __future__ import annotations
 
+import json
 import sys
 
 import click
 
-from propstore.families.registry import WorldlineRef
-from propstore.cli.helpers import open_world_model
+from propstore.app.worldlines import (
+    WorldlineAlreadyExistsError,
+    WorldlineCreateRequest,
+    WorldlinePolicyOptions,
+    WorldlineRevisionOptions,
+    WorldlineRunRequest,
+    WorldlineValidationError,
+    create_worldline as run_create_worldline,
+    materialize_worldline,
+)
 from propstore.cli.worldline import (
     _apply_reasoning_options,
     _apply_revision_options,
-    _build_policy_dict,
-    _build_revision_dict,
-    _load_worldline_definition,
     _parse_kv_args,
     worldline,
 )
 from propstore.repository import Repository
+
+
+def _parse_revision_atom(raw: str | None) -> dict[str, object] | None:
+    if raw is None:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(f"Invalid --revision-atom JSON: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise click.ClickException("--revision-atom must decode to a JSON object")
+    return parsed
+
+
+def _parse_revision_conflicts(raw_conflicts: tuple[str, ...]) -> dict[str, tuple[str, ...]]:
+    conflicts: dict[str, tuple[str, ...]] = {}
+    for entry in raw_conflicts:
+        atom_id, sep, targets = entry.partition("=")
+        if not sep:
+            raise click.ClickException(
+                "Invalid --revision-conflict; expected atom_id=target[,target...]",
+            )
+        parsed_targets = tuple(
+            target.strip()
+            for target in targets.split(",")
+            if target.strip()
+        )
+        conflicts[str(atom_id)] = parsed_targets
+    return conflicts
+
+
+def _policy_options(
+    strategy: str | None,
+    reasoning_backend: str,
+    semantics: str,
+    set_comparison: str,
+    link_principle: str,
+    decision_criterion: str,
+    pessimism_index: float,
+    praf_strategy: str,
+    praf_epsilon: float,
+    praf_confidence: float,
+    praf_seed: int | None,
+) -> WorldlinePolicyOptions:
+    return WorldlinePolicyOptions(
+        strategy=strategy,
+        reasoning_backend=reasoning_backend,
+        semantics=semantics,
+        set_comparison=set_comparison,
+        link_principle=link_principle,
+        decision_criterion=decision_criterion,
+        pessimism_index=pessimism_index,
+        praf_strategy=praf_strategy,
+        praf_epsilon=praf_epsilon,
+        praf_confidence=praf_confidence,
+        praf_seed=praf_seed,
+    )
+
+
+def _revision_options(
+    revision_operation: str | None,
+    revision_atom: str | None,
+    revision_target: str | None,
+    revision_conflicts: tuple[str, ...],
+    revision_operator: str | None,
+) -> WorldlineRevisionOptions:
+    return WorldlineRevisionOptions(
+        operation=revision_operation,
+        atom=_parse_revision_atom(revision_atom),
+        target=revision_target,
+        conflicts=_parse_revision_conflicts(revision_conflicts),
+        operator=revision_operator,
+    )
+
+
+def _coerce_override_values(overrides: tuple[str, ...]) -> dict[str, float | str]:
+    override_dict: dict[str, float | str] = {}
+    for key, value in _parse_kv_args(overrides).items():
+        try:
+            override_dict[key] = float(value)
+        except (TypeError, ValueError):
+            override_dict[key] = str(value)
+    return override_dict
 
 
 @worldline.command("create")
@@ -40,71 +129,45 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
                      revision_atom: str | None, revision_target: str | None,
                      revision_conflicts: tuple[str, ...], revision_operator: str | None) -> None:
     """Create a worldline definition (question only, no results yet)."""
-    from propstore.worldline import WorldlineDefinition
-
     repo: Repository = obj["repo"]
-    ref = WorldlineRef(name)
-    address = repo.families.worldlines.family.address_for(repo, ref)
-    if repo.families.worldlines.load(ref) is not None:
-        click.echo(
-            f"ERROR: Worldline '{name}' already exists at {address.require_path()}",
-            err=True,
+    try:
+        report = run_create_worldline(
+            repo,
+            WorldlineCreateRequest(
+                name=name,
+                bindings=_parse_kv_args(bindings),
+                overrides=_coerce_override_values(overrides),
+                targets=tuple(targets),
+                context_id=context,
+                policy=_policy_options(
+                    strategy,
+                    reasoning_backend,
+                    semantics,
+                    set_comparison,
+                    link_principle,
+                    decision_criterion,
+                    pessimism_index,
+                    praf_strategy,
+                    praf_epsilon,
+                    praf_confidence,
+                    praf_seed,
+                ),
+                revision=_revision_options(
+                    revision_operation,
+                    revision_atom,
+                    revision_target,
+                    revision_conflicts,
+                    revision_operator,
+                ),
+            ),
         )
+    except WorldlineAlreadyExistsError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
         sys.exit(1)
+    except WorldlineValidationError as exc:
+        raise click.ClickException(str(exc)) from exc
 
-    bind_dict = _parse_kv_args(bindings)
-    override_dict: dict[str, float | str] = {}
-    for k, v in _parse_kv_args(overrides).items():
-        try:
-            override_dict[k] = float(v)
-        except ValueError:
-            override_dict[k] = v
-
-    definition = {
-        "id": name,
-        "name": name,
-        "targets": list(targets),
-    }
-
-    inputs: dict = {}
-    if bind_dict:
-        inputs["bindings"] = bind_dict
-    if override_dict:
-        inputs["overrides"] = override_dict
-    if context:
-        inputs["context_id"] = context
-    if inputs:
-        definition["inputs"] = inputs
-
-    policy = _build_policy_dict(
-        strategy, reasoning_backend, semantics, set_comparison,
-        link_principle,
-        decision_criterion, pessimism_index, praf_strategy,
-        praf_epsilon, praf_confidence, praf_seed,
-    )
-    if policy:
-        definition["policy"] = policy
-
-    revision = _build_revision_dict(
-        revision_operation,
-        revision_atom,
-        revision_target,
-        revision_conflicts,
-        revision_operator,
-    )
-    if revision:
-        definition["revision"] = revision
-
-    wl = WorldlineDefinition.from_dict(definition)
-
-    repo.families.worldlines.save(
-        ref,
-        wl.to_document(),
-        message=f"Create worldline: {name}",
-    )
-    repo.snapshot.sync_worktree()
-
-    click.echo(f"Created worldline '{name}' at {address.require_path()}")
+    click.echo(f"Created worldline '{report.name}' at {report.path}")
 
 
 @worldline.command("run")
@@ -136,74 +199,43 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
     in which case they are used to construct and persist a fresh definition
     before the first materialization.
     """
-    from propstore.worldline import WorldlineDefinition, run_worldline
-
     repo: Repository = obj["repo"]
-
-    # If file exists, load it; otherwise create from CLI args
-    ref = WorldlineRef(name)
-    if repo.families.worldlines.load(ref) is not None:
-        wl = _load_worldline_definition(repo, name)
-    else:
-        if not targets:
-            click.echo("ERROR: --target required when creating a new worldline", err=True)
-            sys.exit(1)
-
-        bind_dict = _parse_kv_args(bindings)
-        override_dict: dict[str, float | str] = {}
-        for k, v in _parse_kv_args(overrides).items():
-            try:
-                override_dict[k] = float(v)
-            except ValueError:
-                override_dict[k] = v
-
-        definition: dict = {
-            "id": name,
-            "name": name,
-            "targets": list(targets),
-        }
-        inputs: dict = {}
-        if bind_dict:
-            inputs["bindings"] = bind_dict
-        if override_dict:
-            inputs["overrides"] = override_dict
-        if context:
-            inputs["context_id"] = context
-        if inputs:
-            definition["inputs"] = inputs
-
-        policy = _build_policy_dict(
-            strategy, reasoning_backend, semantics, set_comparison,
-            link_principle,
-            decision_criterion, pessimism_index, praf_strategy,
-            praf_epsilon, praf_confidence, praf_seed,
+    try:
+        report = materialize_worldline(
+            repo,
+            WorldlineRunRequest(
+                name=name,
+                bindings=_parse_kv_args(bindings),
+                overrides=_coerce_override_values(overrides),
+                targets=tuple(targets),
+                context_id=context,
+                policy=_policy_options(
+                    strategy,
+                    reasoning_backend,
+                    semantics,
+                    set_comparison,
+                    link_principle,
+                    decision_criterion,
+                    pessimism_index,
+                    praf_strategy,
+                    praf_epsilon,
+                    praf_confidence,
+                    praf_seed,
+                ),
+                revision=_revision_options(
+                    revision_operation,
+                    revision_atom,
+                    revision_target,
+                    revision_conflicts,
+                    revision_operator,
+                ),
+            ),
         )
-        if policy:
-            definition["policy"] = policy
+    except WorldlineValidationError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(1)
 
-        revision = _build_revision_dict(
-            revision_operation,
-            revision_atom,
-            revision_target,
-            revision_conflicts,
-            revision_operator,
-        )
-        if revision:
-            definition["revision"] = revision
-
-        wl = WorldlineDefinition.from_dict(definition)
-
-    with open_world_model(repo) as wm:
-        result = run_worldline(wl, wm)
-    wl.results = result
-
-    repo.families.worldlines.save(
-        ref,
-        wl.to_document(),
-        message=f"Materialize worldline: {name}",
-    )
-    repo.snapshot.sync_worktree()
-
+    result = report.result
     click.echo(f"Worldline '{name}' materialized ({len(result.values)} targets)")
     for target, val in result.values.items():
         status = val.status

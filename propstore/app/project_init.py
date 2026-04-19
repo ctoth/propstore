@@ -17,6 +17,7 @@ from propstore.families.registry import (
     semantic_root_path,
 )
 from propstore.repository import Repository
+from propstore.resources import _get_resource
 from quire.documents import convert_document_value
 
 
@@ -70,16 +71,23 @@ def _project_paths(root: Path) -> tuple[Path, ...]:
 def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, FormDocument]]:
     """Return typed default forms ready for artifact-store persistence."""
     form_documents: list[tuple[FormRef, FormDocument]] = []
-    package_forms_dir = Path(__file__).resolve().parent / "_resources" / "forms"
+    package_forms_dir = _get_resource("forms")
     if not package_forms_dir.is_dir():
         raise ProjectInitError(
             f"init requires packaged form resources at {package_forms_dir}"
         )
-    for form_path in sorted(package_forms_dir.glob("*.yaml")):
+    for form_path in sorted(
+        (
+            child
+            for child in package_forms_dir.iterdir()
+            if child.is_file() and child.name.endswith(".yaml")
+        ),
+        key=lambda path: path.name,
+    ):
         payload = decode_yaml_mapping(form_path.read_bytes(), source=str(form_path))
         form_documents.append(
             (
-                FormRef(form_path.stem),
+                FormRef(form_path.name.removesuffix(".yaml")),
                 convert_document_value(payload, FormDocument, source=str(form_path)),
             )
         )
@@ -224,12 +232,19 @@ def _seed_concept_payload(entry: dict[str, object]) -> dict[str, object]:
 
 def _seed_concept_documents(repo: Repository) -> list[tuple[ConceptFileRef, ConceptDocument]]:
     concept_documents: list[tuple[ConceptFileRef, ConceptDocument]] = []
-    package_concepts_dir = Path(__file__).resolve().parent / "_resources" / "concepts"
+    package_concepts_dir = _get_resource("concepts")
     if not package_concepts_dir.is_dir():
         raise ProjectInitError(
             f"init requires packaged concept resources at {package_concepts_dir}"
         )
-    for seed_path in sorted(package_concepts_dir.glob("*.yaml")):
+    for seed_path in sorted(
+        (
+            child
+            for child in package_concepts_dir.iterdir()
+            if child.is_file() and child.name.endswith(".yaml")
+        ),
+        key=lambda path: path.name,
+    ):
         resource = decode_yaml_mapping(seed_path.read_bytes(), source=str(seed_path))
         entries = resource.get("concepts")
         if not isinstance(entries, list):

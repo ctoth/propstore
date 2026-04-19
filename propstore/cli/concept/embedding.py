@@ -1,62 +1,8 @@
 from __future__ import annotations
 
-from copy import deepcopy
-import sys
-from datetime import date
-from pathlib import Path
-
 import click
 
-from propstore.claims import (
-    LoadedClaimsFile,
-    claim_file_payload,
-    loaded_claim_file_from_payload,
-)
-from propstore.families.documents.claims import ClaimsFileDocument
-from propstore.families.documents.concepts import ConceptDocument
-from propstore.families.identity.claims import normalize_claim_file_payload
-from propstore.families.identity.concepts import normalize_canonical_concept_payload
-from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id
-from propstore.families.registry import ClaimsFileRef, ConceptFileRef
-from propstore.source import (
-    align_sources,
-    decide_alignment,
-    load_alignment_artifact,
-    promote_alignment,
-)
-from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
-from propstore.core.concepts import (
-    LoadedConcept,
-    concept_document_to_payload,
-    concept_document_to_record_payload,
-    parse_concept_record,
-    parse_concept_record_document,
-)
-from propstore.compiler.context import build_compilation_context_from_loaded
-from propstore.repository import Repository
-from propstore.validate_concepts import validate_concepts
-from propstore.compiler.passes import validate_claims
 from propstore.cli.concept import (
-    PROTO_ROLE_KINDS,
-    QUALIA_ROLES,
-    RELATIONSHIP_TYPES,
-    _canonical_concept_document,
-    _claims_document,
-    _claims_ref,
-    _concept_artifact_payload,
-    _concept_display_handle,
-    _concept_document,
-    _concept_ref,
-    _find_concept_entry,
-    _first_lexical_sense,
-    _normalize_concept_data,
-    _provenance_payload,
-    _require_concept_artifact_id,
-    _require_concept_reference,
-    _require_snapshot,
-    _rewrite_claim_conditions,
-    _rewrite_concept_conditions,
-    _validate_updated_concept,
     concept,
 )
 
