@@ -2835,13 +2835,13 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: family-registry
   name: propstore
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     families:
-    - contract_version: 2026.04.27
+    - contract_version: 2026.04.29
       key: claims
       name: claims
-    - contract_version: 2026.04.28
+    - contract_version: 2026.04.29
       key: concepts
       name: concepts
     - contract_version: 2026.04.27
@@ -2909,7 +2909,7 @@ contracts:
       name: merge_manifests
 - kind: family
   name: claims
-  contract_version: 2026.04.27
+  contract_version: 2026.04.29
   body:
     accessor: claims
     artifact_family: claims_file
@@ -2960,6 +2960,22 @@ contracts:
       source_family: claim
       source_field: context
       target_family: context
+    identity_policy:
+      artifact_id_function: propstore.families.identity.claims.derive_claim_artifact_id
+      canonical_payload_function: propstore.families.identity.claims.canonicalize_claim_for_version
+      logical_id_fields:
+      - logical_ids
+      normalize_payload_function: propstore.families.identity.claims.normalize_canonical_claim_payload
+      source_local_fields:
+      - id
+      - source_local_id
+      - artifact_code
+      version_excluded_fields:
+      - artifact_id
+      - version_id
+      - id
+      - source_local_id
+      version_id_function: propstore.families.identity.claims.compute_claim_version_id
     key: claims
     metadata:
       collection_field: claims
@@ -2989,7 +3005,7 @@ contracts:
     key: concept_alignments
 - kind: family
   name: concepts
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     accessor: concepts
     artifact_family: concept_file
@@ -3030,6 +3046,18 @@ contracts:
       source_family: concept
       source_field: form
       target_family: form
+    identity_policy:
+      artifact_id_function: propstore.families.identity.concepts.derive_concept_artifact_id
+      canonical_payload_function: propstore.families.identity.concepts.canonicalize_concept_for_version
+      logical_id_fields:
+      - logical_ids
+      normalize_payload_function: propstore.families.identity.concepts.normalize_canonical_concept_payload
+      source_local_fields: []
+      version_excluded_fields:
+      - artifact_id
+      - version_id
+      - id
+      version_id_function: propstore.families.identity.concepts.compute_concept_version_id
     key: concepts
     metadata:
       collection_field: null
@@ -3563,4 +3591,4 @@ contracts:
     target_family: concept
 registry:
   name: propstore
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
