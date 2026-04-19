@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import copy
-import hashlib
-import json
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+from quire.hashing import canonical_json_sha256
 
 from propstore.core.labels import Label
 from propstore.identity import canonicalize_claim_for_version
@@ -19,13 +19,7 @@ if TYPE_CHECKING:
 
 
 def _hash_payload(payload: dict[str, Any]) -> str:
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
-    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+    return canonical_json_sha256(payload)
 
 
 def source_artifact_code(source_doc: dict[str, Any]) -> str:
