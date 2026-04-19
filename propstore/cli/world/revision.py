@@ -6,10 +6,9 @@ from collections.abc import Mapping
 
 import click
 
-from propstore.cli.helpers import open_world_model
+from propstore.app.world import open_app_world_model, parse_world_binding_args
 from propstore.cli.world import (
     _format_assumption_ids,
-    _parse_bindings,
     world,
 )
 from propstore.repository import Repository
@@ -157,8 +156,8 @@ def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         base = revision_base(wm, RevisionWorldRequest(bindings, context))
 
         click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
@@ -199,8 +198,8 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str |
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         report = revision_entrenchment(wm, RevisionWorldRequest(bindings, context))
 
         click.echo(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
@@ -230,8 +229,8 @@ def world_expand(obj: dict, args: tuple[str, ...], atom_json: str, context: str 
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         result = expand_revision(
             wm,
             RevisionWorldRequest(bindings, context),
@@ -253,8 +252,8 @@ def world_contract(obj: dict, args: tuple[str, ...], targets: tuple[str, ...], c
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         result = contract_revision(
             wm,
             RevisionWorldRequest(bindings, context),
@@ -283,8 +282,8 @@ def world_revise(
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         result = revise_world(
             wm,
             RevisionWorldRequest(bindings, context),
@@ -318,8 +317,8 @@ def world_revision_explain(
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
 
         if operation == "expand":
             if atom_json is None:
@@ -360,8 +359,8 @@ def world_iterated_state(obj: dict, args: tuple[str, ...], context: str | None) 
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         state = epistemic_state(wm, RevisionWorldRequest(bindings, context))
         _emit_epistemic_state(state)
 
@@ -388,8 +387,8 @@ def world_iterated_revise(
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         report = iterated_revise_world(
             wm,
             RevisionWorldRequest(bindings, context),

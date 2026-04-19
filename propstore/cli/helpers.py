@@ -1,36 +1,6 @@
 """Shared helpers for CLI subcommands."""
 from __future__ import annotations
 
-import sys
-from contextlib import contextmanager
-
-import click
-
-
-# ── WorldModel helpers ────────────────────────────────────────────────
-
-@contextmanager
-def open_world_model(repo):
-    """Open WorldModel, exit with error if sidecar not found.
-
-    Usage::
-
-        with open_world_model(repo) as wm:
-            ...  # wm is auto-closed on exit
-    """
-    from propstore.world import WorldModel
-
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-    try:
-        yield wm
-    finally:
-        wm.close()
-
-
 # ── Key=value parsing ────────────────────────────────────────────────
 
 def parse_kv_pairs(

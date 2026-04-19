@@ -7,8 +7,13 @@ from pathlib import Path
 
 import click
 
-from propstore.cli.helpers import open_world_model
-from propstore.cli.world import _lifecycle_policy, _parse_bindings, world
+from propstore.app.world import (
+    WorldLifecycleOptions,
+    lifecycle_policy,
+    open_app_world_model,
+    parse_world_binding_args,
+)
+from propstore.cli.world import world
 from propstore.repository import Repository
 
 
@@ -78,8 +83,8 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         report = diff_hypothetical_world(
             wm,
             WorldHypotheticalRequest(
@@ -150,11 +155,17 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
     # the store layer via ``WorldModel.claims_with_policy``. When a
     # future chain implementation threads a ``RenderPolicy``, this helper
     # remains the construction site.
-    _ = _lifecycle_policy(include_drafts, include_blocked, show_quarantined)
+    _ = lifecycle_policy(
+        WorldLifecycleOptions(
+            include_drafts=include_drafts,
+            include_blocked=include_blocked,
+            show_quarantined=show_quarantined,
+        )
+    )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         report = query_world_chain(
             wm,
             WorldChainRequest(
@@ -191,8 +202,8 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
     from propstore.graph_export import GraphExportRequest, export_knowledge_graph
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         report = export_knowledge_graph(
             wm,
             GraphExportRequest(bindings=bindings, group_id=group_id),
@@ -224,8 +235,8 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
     from propstore.sensitivity import SensitivityRequest, query_sensitivity
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         report = query_sensitivity(
             wm,
             SensitivityRequest(concept_id=concept_id, bindings=bindings),
@@ -293,8 +304,8 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
     from propstore.fragility import FragilityRequest, query_fragility
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, context_id = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, context_id = parse_world_binding_args(args)
         report = query_fragility(
             wm,
             FragilityRequest(
@@ -390,8 +401,8 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
     )
 
     repo: Repository = obj["repo"]
-    with open_world_model(repo) as wm:
-        bindings, _ = _parse_bindings(args)
+    with open_app_world_model(repo) as wm:
+        bindings, _ = parse_world_binding_args(args)
         report = check_world_consistency(
             repo,
             wm,

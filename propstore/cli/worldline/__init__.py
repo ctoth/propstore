@@ -1,18 +1,13 @@
 """pks worldline — CLI commands for materialized query artifacts."""
 from __future__ import annotations
 
-import json
 from typing import Any
 
 import click
 
-from propstore.families.registry import WorldlineRef
-from propstore.repository import Repository
 from propstore.world.types import (
     ReasoningBackend,
     cli_argumentation_semantics_values,
-    normalize_argumentation_semantics,
-    validate_backend_semantics,
 )
 
 
@@ -30,65 +25,6 @@ def _parse_kv_args(args: tuple[str, ...]) -> dict[str, Any]:
 @click.pass_obj
 def worldline(obj: dict) -> None:
     """Materialized query artifacts — traced paths through the knowledge space."""
-
-
-def _load_worldline_definition(repo: Repository, name: str):
-    from propstore.worldline import WorldlineDefinition
-
-    document = repo.families.worldlines.load(WorldlineRef(name))
-    if document is None:
-        raise FileNotFoundError(name)
-    return WorldlineDefinition.from_document(document)
-
-
-def _build_policy_dict(
-    strategy: str | None,
-    reasoning_backend: str,
-    semantics: str,
-    set_comparison: str,
-    link_principle: str,
-    decision_criterion: str,
-    pessimism_index: float,
-    praf_strategy: str,
-    praf_epsilon: float,
-    praf_confidence: float,
-    praf_seed: int | None,
-) -> dict[str, Any] | None:
-    """Build a policy dict from CLI flags, omitting defaults.
-
-    Returns None if no policy fields differ from RenderPolicy defaults.
-    """
-    try:
-        normalized_backend, normalized_semantics = validate_backend_semantics(
-            reasoning_backend,
-            semantics,
-        )
-    except ValueError as exc:
-        raise click.ClickException(str(exc)) from exc
-    policy: dict[str, Any] = {}
-    if strategy:
-        policy["strategy"] = strategy
-    if normalized_backend != ReasoningBackend.CLAIM_GRAPH:
-        policy["reasoning_backend"] = normalized_backend.value
-    if normalized_semantics != normalize_argumentation_semantics("grounded"):
-        policy["semantics"] = normalized_semantics.value
-    if set_comparison != "elitist":
-        policy["comparison"] = set_comparison
-    if link_principle != "last":
-        policy["link"] = link_principle
-    if decision_criterion != "pignistic":
-        policy["decision_criterion"] = decision_criterion
-    if pessimism_index != 0.5:
-        policy["pessimism_index"] = pessimism_index
-    if praf_strategy != "auto":
-        policy["praf_strategy"] = praf_strategy
-    if praf_epsilon != 0.01:
-        policy["praf_mc_epsilon"] = praf_epsilon
-    if praf_confidence != 0.95:
-        policy["praf_mc_confidence"] = praf_confidence
-    if praf_seed is not None:
-        policy["praf_mc_seed"] = praf_seed
-    return policy or None
 
 
 # Shared click options for reasoning backend configuration.
@@ -149,65 +85,6 @@ def _apply_revision_options(func):
     for option in reversed(_REVISION_OPTIONS):
         func = option(func)
     return func
-
-
-def _parse_revision_atom(raw: str | None) -> dict[str, Any] | None:
-    if raw is None:
-        return None
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise click.ClickException(f"Invalid --revision-atom JSON: {exc}") from exc
-    if not isinstance(parsed, dict):
-        raise click.ClickException("--revision-atom must decode to a JSON object")
-    return parsed
-
-
-def _parse_revision_conflicts(raw_conflicts: tuple[str, ...]) -> dict[str, list[str]]:
-    conflicts: dict[str, list[str]] = {}
-    for entry in raw_conflicts:
-        atom_id, sep, targets = entry.partition("=")
-        if not sep:
-            raise click.ClickException(
-                "Invalid --revision-conflict; expected atom_id=target[,target...]",
-            )
-        parsed_targets = [target.strip() for target in targets.split(",") if target.strip()]
-        conflicts[str(atom_id)] = parsed_targets
-    return conflicts
-
-
-def _build_revision_dict(
-    revision_operation: str | None,
-    revision_atom: str | None,
-    revision_target: str | None,
-    revision_conflicts: tuple[str, ...],
-    revision_operator: str | None,
-) -> dict[str, Any] | None:
-    if revision_operation is None:
-        return None
-
-    parsed_atom = _parse_revision_atom(revision_atom)
-    parsed_conflicts = _parse_revision_conflicts(revision_conflicts)
-
-    if revision_operation in {"expand", "revise", "iterated_revise"} and parsed_atom is None:
-        raise click.ClickException(f"--revision-atom is required for {revision_operation}")
-    if revision_operation == "contract" and revision_target is None:
-        raise click.ClickException("--revision-target is required for contract")
-    if revision_operation == "iterated_revise" and revision_operator is None:
-        raise click.ClickException("--revision-operator is required for iterated_revise")
-
-    revision: dict[str, Any] = {
-        "operation": revision_operation,
-    }
-    if parsed_atom is not None:
-        revision["atom"] = parsed_atom
-    if revision_target is not None:
-        revision["target"] = revision_target
-    if parsed_conflicts:
-        revision["conflicts"] = parsed_conflicts
-    if revision_operator is not None:
-        revision["operator"] = revision_operator
-    return revision
 
 
 # Import command modules after the group and shared decorators are defined.

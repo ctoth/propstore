@@ -12,7 +12,22 @@ from pathlib import Path
 
 import click
 
-from propstore.app.claims import ClaimCompareRequest, ClaimEmbedRequest, ClaimRelateRequest, ClaimSimilarRequest, compare_algorithm_claims_from_repo, embed_claim_embeddings, find_similar_claims, relate_claims, show_claim_from_repo
+from propstore.app.claims import (
+    ClaimCompareRequest,
+    ClaimComparisonError,
+    ClaimEmbedRequest,
+    ClaimEmbeddingModelError,
+    ClaimRelateRequest,
+    ClaimSidecarMissingError,
+    ClaimSimilarRequest,
+    ClaimWorkflowError,
+    UnknownClaimError,
+    compare_algorithm_claims_from_repo,
+    embed_claim_embeddings,
+    find_similar_claims,
+    relate_claims,
+    show_claim_from_repo,
+)
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.repository import Repository
 from propstore.families.documents.claims import ClaimsFileDocument
@@ -30,11 +45,6 @@ def claim() -> None:
 @click.pass_obj
 def show(obj: dict, claim_id: str) -> None:
     """Display details of a single claim."""
-    from propstore.claims import (
-        ClaimSidecarMissingError,
-        UnknownClaimError,
-    )
-
     repo: Repository = obj["repo"]
     try:
         report = show_claim_from_repo(repo, claim_id)
@@ -276,12 +286,6 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
 @click.pass_obj
 def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
     """Compare two algorithm claims for equivalence."""
-    from propstore.claims import (
-        ClaimComparisonError,
-        ClaimSidecarMissingError,
-        UnknownClaimError,
-    )
-
     repo: Repository = obj["repo"]
 
     known_values: dict[str, float] | None = None
@@ -324,12 +328,6 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
 @click.pass_obj
 def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_size: int) -> None:
     """Generate embeddings for claims via litellm."""
-    from propstore.claims import (
-        ClaimEmbeddingModelError,
-        ClaimSidecarMissingError,
-        ClaimWorkflowError,
-    )
-
     repo = obj["repo"]
     try:
         report = embed_claim_embeddings(
@@ -374,12 +372,6 @@ def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_si
 @click.pass_obj
 def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool, disagree: bool) -> None:
     """Find similar claims by embedding distance."""
-    from propstore.claims import (
-        ClaimEmbeddingModelError,
-        ClaimSidecarMissingError,
-        ClaimWorkflowError,
-    )
-
     repo = obj["repo"]
     try:
         report = find_similar_claims(
@@ -423,11 +415,6 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
     classifications as stance proposal files to the stance proposal placement branch.
     The main branch is not mutated; promote proposals into source-of-truth
     storage with ``pks promote``."""
-    from propstore.claims import (
-        ClaimSidecarMissingError,
-        ClaimWorkflowError,
-    )
-
     repo = obj["repo"]
     try:
         report = relate_claims(
