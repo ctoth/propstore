@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import hashlib
-import json
 
 from propstore.artifact_codes import attach_source_artifact_codes
+from quire.hashing import canonical_json_sha256
 from propstore.claim_references import (
     ClaimReferenceResolver,
     load_primary_branch_claim_reference_index,
@@ -40,13 +40,7 @@ def _stable_micropub_artifact_id(source_id: str, claim_id: str) -> str:
 
 
 def _micropub_version_id(payload: dict[str, object]) -> str:
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
-    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+    return canonical_json_sha256(payload)
 
 
 def _compose_source_micropubs(

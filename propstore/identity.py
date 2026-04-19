@@ -8,6 +8,8 @@ import json
 import re
 from typing import Any
 
+from quire.hashing import canonical_json_sha256
+
 
 CLAIM_ARTIFACT_ID_RE = re.compile(r"^ps:claim:[A-Za-z0-9][A-Za-z0-9._-]*$")
 CLAIM_VERSION_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -201,9 +203,7 @@ def claim_version_payload_json(claim: dict[str, Any]) -> str:
 
 def compute_claim_version_id(claim: dict[str, Any]) -> str:
     """Compute the immutable version identifier for a claim payload."""
-    payload = claim_version_payload_json(claim)
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
-    return f"sha256:{digest}"
+    return canonical_json_sha256(canonicalize_claim_for_version(claim))
 
 
 def concept_version_payload_json(concept: dict[str, Any]) -> str:
@@ -219,9 +219,7 @@ def concept_version_payload_json(concept: dict[str, Any]) -> str:
 
 def compute_concept_version_id(concept: dict[str, Any]) -> str:
     """Compute the immutable version identifier for a concept payload."""
-    payload = concept_version_payload_json(concept)
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
-    return f"sha256:{digest}"
+    return canonical_json_sha256(canonicalize_concept_for_version(concept))
 
 
 def normalize_claim_file_payload(
