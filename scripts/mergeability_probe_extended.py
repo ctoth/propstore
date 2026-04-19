@@ -8,7 +8,7 @@ from typing import Any
 import yaml
 
 from propstore.cli.repository import Repository
-from propstore.identity import normalize_claim_file_payload
+from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_report import semantic_candidate_details

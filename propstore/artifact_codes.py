@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from quire.hashing import canonical_json_sha256
 
 from propstore.core.labels import Label
-from propstore.identity import canonicalize_claim_for_version
+from propstore.families.identity.claims import canonicalize_claim_for_version
 from propstore.claims import claim_file_claims, claim_file_filename
 from propstore.uri import ni_uri_for_file
 

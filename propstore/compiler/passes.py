@@ -44,9 +44,7 @@ from propstore.families.identity.logical_ids import (
     CLAIM_ARTIFACT_ID_RE,
     CLAIM_VERSION_ID_RE,
 )
-from propstore.identity import (
-    compute_claim_version_id,
-)
+from propstore.families.identity.claims import compute_claim_version_id
 
 
 def _bind_claim(

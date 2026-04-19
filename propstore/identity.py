@@ -12,16 +12,6 @@ from quire.hashing import canonical_json_sha256
 from propstore.families.identity import logical_ids as _logical_ids
 
 
-def derive_claim_artifact_id(namespace: str, value: str) -> str:
-    """Derive a deterministic claim artifact ID from a logical handle."""
-    normalized_namespace = _logical_ids.normalize_identity_namespace(namespace)
-    normalized_value = _logical_ids.normalize_logical_value(value)
-    digest = hashlib.sha256(
-        f"{normalized_namespace}:{normalized_value}".encode("utf-8")
-    ).hexdigest()[:16]
-    return f"ps:claim:{digest}"
-
-
 def derive_concept_artifact_id(namespace: str, value: str) -> str:
     """Derive a deterministic concept artifact ID from a logical handle."""
     normalized_namespace = _logical_ids.normalize_identity_namespace(namespace)
@@ -30,49 +20,6 @@ def derive_concept_artifact_id(namespace: str, value: str) -> str:
         f"{normalized_namespace}:{normalized_value}".encode("utf-8")
     ).hexdigest()[:16]
     return f"ps:concept:{digest}"
-
-
-def canonicalize_claim_for_version(claim: dict[str, Any]) -> dict[str, Any]:
-    """Normalize a claim into deterministic canonical content for hashing."""
-    canonical = copy.deepcopy(claim)
-    canonical.pop("artifact_id", None)
-    canonical.pop("version_id", None)
-    canonical.pop("id", None)
-    canonical.pop("source_local_id", None)
-
-    logical_ids = canonical.get("logical_ids")
-    if isinstance(logical_ids, list):
-        normalized_handles: list[dict[str, str]] = []
-        for entry in logical_ids:
-            if not isinstance(entry, dict):
-                continue
-            namespace = entry.get("namespace")
-            value = entry.get("value")
-            if isinstance(namespace, str) and isinstance(value, str):
-                normalized_handles.append({
-                    "namespace": namespace,
-                    "value": value,
-                })
-        canonical["logical_ids"] = sorted(
-            normalized_handles,
-            key=lambda item: (item["namespace"], item["value"]),
-        )
-
-    conditions = canonical.get("conditions")
-    if isinstance(conditions, list):
-        canonical["conditions"] = sorted(
-            condition for condition in conditions if isinstance(condition, str)
-        )
-
-    stances = canonical.get("stances")
-    if isinstance(stances, list):
-        normalized_stances = [stance for stance in stances if isinstance(stance, dict)]
-        canonical["stances"] = sorted(
-            normalized_stances,
-            key=lambda stance: json.dumps(stance, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
-        )
-
-    return canonical
 
 
 def canonicalize_concept_for_version(concept: dict[str, Any]) -> dict[str, Any]:
@@ -127,22 +74,6 @@ def canonicalize_concept_for_version(concept: dict[str, Any]) -> dict[str, Any]:
     return canonical
 
 
-def claim_version_payload_json(claim: dict[str, Any]) -> str:
-    """Serialize canonical claim content for version hashing."""
-    canonical = canonicalize_claim_for_version(claim)
-    return json.dumps(
-        canonical,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-
-
-def compute_claim_version_id(claim: dict[str, Any]) -> str:
-    """Compute the immutable version identifier for a claim payload."""
-    return canonical_json_sha256(canonicalize_claim_for_version(claim))
-
-
 def concept_version_payload_json(concept: dict[str, Any]) -> str:
     """Serialize canonical concept content for version hashing."""
     canonical = canonicalize_concept_for_version(concept)
@@ -157,104 +88,6 @@ def concept_version_payload_json(concept: dict[str, Any]) -> str:
 def compute_concept_version_id(concept: dict[str, Any]) -> str:
     """Compute the immutable version identifier for a concept payload."""
     return canonical_json_sha256(canonicalize_concept_for_version(concept))
-
-
-def normalize_claim_file_payload(
-    data: dict[str, Any],
-    *,
-    default_namespace: str | None = None,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    normalized_data = dict(data)
-    source = normalized_data.get("source")
-    raw_namespace = (
-        source.get("paper")
-        if isinstance(source, dict) and isinstance(source.get("paper"), str)
-        else (default_namespace or "source")
-    )
-    namespace = _logical_ids.normalize_identity_namespace(raw_namespace if isinstance(raw_namespace, str) else str(raw_namespace))
-
-    raw_claims = list(normalized_data.get("claims", []))
-    local_handle_map: dict[str, str] = {}
-    normalized_claims: list[Any] = []
-    for index, claim in enumerate(raw_claims, start=1):
-        if not isinstance(claim, dict):
-            normalized_claims.append(claim)
-            continue
-
-        normalized = dict(claim)
-        raw_id = normalized.pop("id", None)
-        artifact_id = normalized.get("artifact_id")
-        logical_ids = normalized.get("logical_ids")
-
-        if not isinstance(logical_ids, list) or not logical_ids:
-            logical_value = _logical_ids.normalize_logical_value(str(raw_id or f"claim{index}"))
-            normalized["logical_ids"] = [{"namespace": namespace, "value": logical_value}]
-        else:
-            cleaned_logical_ids: list[dict[str, str]] = []
-            for entry in logical_ids:
-                if not isinstance(entry, dict):
-                    continue
-                entry_namespace = entry.get("namespace")
-                entry_value = entry.get("value")
-                if not isinstance(entry_namespace, str) or not isinstance(entry_value, str):
-                    continue
-                cleaned_logical_ids.append(
-                    {
-                        "namespace": _logical_ids.normalize_identity_namespace(entry_namespace),
-                        "value": _logical_ids.normalize_logical_value(entry_value),
-                    }
-                )
-            if not cleaned_logical_ids:
-                logical_value = _logical_ids.normalize_logical_value(str(raw_id or f"claim{index}"))
-                cleaned_logical_ids = [{"namespace": namespace, "value": logical_value}]
-            normalized["logical_ids"] = cleaned_logical_ids
-
-        primary_entry = normalized["logical_ids"][0]
-        primary_namespace = str(primary_entry["namespace"])
-        primary_value = str(primary_entry["value"])
-        if not isinstance(artifact_id, str) or not artifact_id:
-            artifact_id = derive_claim_artifact_id(primary_namespace, primary_value)
-            normalized["artifact_id"] = artifact_id
-
-        if isinstance(raw_id, str) and raw_id:
-            local_handle_map[raw_id] = artifact_id
-        local_handle_map[primary_value] = artifact_id
-        normalized_claims.append(normalized)
-
-    for index, normalized in enumerate(normalized_claims):
-        if not isinstance(normalized, dict):
-            continue
-        stances = normalized.get("stances")
-        if isinstance(stances, list):
-            rewritten_stances = []
-            for stance in stances:
-                if not isinstance(stance, dict):
-                    rewritten_stances.append(stance)
-                    continue
-                rewritten = dict(stance)
-                target = rewritten.get("target")
-                if isinstance(target, str) and target in local_handle_map:
-                    rewritten["target"] = local_handle_map[target]
-                rewritten_stances.append(rewritten)
-            normalized["stances"] = rewritten_stances
-        normalized["version_id"] = compute_claim_version_id(normalized)
-        normalized_claims[index] = normalized
-
-    normalized_data["claims"] = normalized_claims
-    return normalized_data, local_handle_map
-
-
-def normalize_canonical_claim_payload(
-    data: dict[str, Any],
-    *,
-    strip_source_local: bool = False,
-) -> dict[str, Any]:
-    normalized = copy.deepcopy(data)
-    if strip_source_local:
-        for field in ("id", "source_local_id", "artifact_code"):
-            normalized.pop(field, None)
-    normalized["version_id"] = compute_claim_version_id(normalized)
-    return normalized
 
 
 def normalize_canonical_concept_payload(
