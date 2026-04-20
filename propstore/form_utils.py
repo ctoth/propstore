@@ -7,16 +7,20 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from propstore.families.documents.forms import (
+from propstore.families.forms.documents import (
     FormDocument,
+)
+from propstore.families.forms.passes import run_form_pipeline
+from propstore.families.forms.stages import (
+    FormCheckedRegistry,
+    LoadedForm,
 )
 from propstore.families.registry import FormRef
 from propstore.cel_checker import KindType
-from quire.documents import DocumentSchemaError, convert_document_value, decode_document_path
+from quire.documents import convert_document_value, decode_document_path
 from propstore.core.concepts import parse_concept_record_document
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore import dimensions as dimension_api
-from propstore.diagnostics import ValidationResult
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -343,41 +347,29 @@ def validate_forms(repo: Repository, name: str | None = None) -> FormValidationR
     if name is not None and repo.families.forms.load(FormRef(name)) is None:
         raise FormNotFoundError(name)
 
-    form_result = ValidationResult()
+    form_result = run_form_pipeline(
+        [
+            LoadedForm(filename=ref.name, document=repo.families.forms.require(ref))
+            for ref in refs
+        ]
+    )
+    errors = [error.render() for error in form_result.errors]
+    form_registry = (
+        form_result.output.registry
+        if isinstance(form_result.output, FormCheckedRegistry)
+        else {}
+    )
     all_forms = {ref.name for ref in refs}
-    for ref in refs:
-        document = repo.families.forms.require(ref)
-        dims = document.dimensions
-        is_dimless = document.dimensionless
-        has_unit = document.unit_symbol is not None
-        if dims is not None:
-            for dimension_key in dims:
-                if not dimension_key or not dimension_key[0].isalpha() or not dimension_key.isidentifier():
-                    form_result.errors.append(
-                        f"{ref.name}: dimension key '{dimension_key}' must be an identifier"
-                    )
-        if dims is not None and len(dims) > 0 and is_dimless:
-            form_result.errors.append(
-                f"{ref.name}: non-empty dimensions conflicts with "
-                f"dimensionless=true")
-        if dims is not None and len(dims) == 0 and not is_dimless and has_unit:
-            form_result.errors.append(
-                f"{ref.name}: empty dimensions conflicts with "
-                f"dimensionless=false for a quantity with unit_symbol")
-        if document.name != ref.name:
-            form_result.errors.append(
-                f"{ref.name}: 'name' field ('{document.name}') does not match "
-                f"filename '{ref.name}'")
 
     for ref in repo.families.concepts.iter():
         record = parse_concept_record_document(repo.families.concepts.require(ref))
         form_ref = record.form
-        if form_ref and form_ref not in all_forms:
-            form_result.errors.append(
+        if form_ref and form_ref not in form_registry and form_ref not in all_forms:
+            errors.append(
                 f"concept {ref.name}: references missing form '{form_ref}'"
             )
 
-    return FormValidationReport(count=len(refs), errors=tuple(form_result.errors))
+    return FormValidationReport(count=len(refs), errors=tuple(errors))
 
 
 def clear_form_cache() -> None:
@@ -579,47 +571,3 @@ def allowed_units_from_form_definition(form_definition: FormDocument) -> set[str
             allowed.add(alt.unit)
 
     return allowed
-
-
-def validate_form_files(forms_dir: Path | KnowledgePath) -> ValidationResult:
-    """Validate all form YAML files against the typed document schema."""
-
-    result = ValidationResult()
-    forms_root = coerce_knowledge_path(forms_dir)
-    if not forms_root.exists():
-        return result
-
-    for entry in forms_root.iterdir():
-        if not entry.is_file() or entry.suffix != ".yaml":
-            continue
-
-        try:
-            document = decode_document_path(entry, FormDocument)
-        except DocumentSchemaError as exc:
-            result.errors.append(str(exc))
-            continue
-
-        dims = document.dimensions
-        is_dimless = document.dimensionless
-        has_unit = document.unit_symbol is not None
-        if dims is not None:
-            for dimension_key in dims:
-                if not dimension_key or not dimension_key[0].isalpha() or not dimension_key.isidentifier():
-                    result.errors.append(
-                        f"{entry.stem}: dimension key '{dimension_key}' must be an identifier"
-                    )
-        if dims is not None and len(dims) > 0 and is_dimless:
-            result.errors.append(
-                f"{entry.stem}: non-empty dimensions conflicts with "
-                f"dimensionless=true")
-        if dims is not None and len(dims) == 0 and not is_dimless and has_unit:
-            result.errors.append(
-                f"{entry.stem}: empty dimensions conflicts with "
-                f"dimensionless=false for a quantity with unit_symbol")
-
-        if document.name != entry.stem:
-            result.errors.append(
-                f"{entry.stem}: 'name' field ('{document.name}') does not match "
-                f"filename '{entry.stem}'")
-
-    return result

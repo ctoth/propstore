@@ -11,7 +11,7 @@ from .models import ConflictClass, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.context_lifting import LiftingSystem
-    from propstore.form_utils import FormDefinition
+    from propstore.families.forms.stages import FormDefinition
     from propstore.conflict_detector.models import ConflictClaim
 
 

@@ -115,7 +115,7 @@ contracts:
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.forms.FormDocument
+    doc_type: propstore.families.forms.documents.FormDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -1275,7 +1275,7 @@ contracts:
     - name: reference
       required: true
       type: float
-    module: propstore.families.documents.forms
+    module: propstore.families.forms.documents
 - kind: document_schema
   name: FormDocument
   contract_version: 2026.04.27
@@ -1314,7 +1314,7 @@ contracts:
     - name: extra_units
       required: true
       type: tuple[FormExtraUnitDocument, ...]
-    module: propstore.families.documents.forms
+    module: propstore.families.forms.documents
 - kind: document_schema
   name: FormExtraUnitDocument
   contract_version: 2026.04.27
@@ -1326,7 +1326,7 @@ contracts:
     - name: dimensions
       required: true
       type: dict[str, int]
-    module: propstore.families.documents.forms
+    module: propstore.families.forms.documents
 - kind: document_schema
   name: IstPropositionDocument
   contract_version: 2026.04.27
@@ -3097,7 +3097,7 @@ contracts:
     accessor: forms
     artifact_family: form
     artifact_family_contract:
-      doc_type: propstore.families.documents.forms.FormDocument
+      doc_type: propstore.families.forms.documents.FormDocument
       placement:
         branch:
           policy: current
@@ -3589,6 +3589,125 @@ contracts:
     source_family: concept
     source_field: replaced_by
     target_family: concept
+- kind: semantic_pass
+  name: context.identity
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.contexts.passes.ContextIdentityPass
+    diagnostic_codes: []
+    family: contexts
+    input_stage: context.normalized
+    output_stage: context.normalized
+    required_context: []
+- kind: semantic_pass
+  name: context.lifting.binding
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.contexts.passes.ContextLiftingBindingPass
+    diagnostic_codes: []
+    family: contexts
+    input_stage: context.normalized
+    output_stage: context.bound
+    required_context: []
+- kind: semantic_pass
+  name: context.lifting.graph
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.contexts.passes.ContextLiftingGraphPass
+    diagnostic_codes: []
+    family: contexts
+    input_stage: context.bound
+    output_stage: context.checked
+    required_context: []
+- kind: semantic_pass
+  name: context.normalize
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.contexts.passes.ContextNormalizePass
+    diagnostic_codes: []
+    family: contexts
+    input_stage: context.authored
+    output_stage: context.normalized
+    required_context: []
+- kind: semantic_pass
+  name: form.dimension.policy
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.forms.passes.FormDimensionPolicyPass
+    diagnostic_codes: []
+    family: forms
+    input_stage: form.normalized
+    output_stage: form.normalized
+    required_context: []
+- kind: semantic_pass
+  name: form.normalize
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.forms.passes.FormNormalizePass
+    diagnostic_codes: []
+    family: forms
+    input_stage: form.authored
+    output_stage: form.normalized
+    required_context: []
+- kind: semantic_pass
+  name: form.registry
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.forms.passes.FormRegistryPass
+    diagnostic_codes: []
+    family: forms
+    input_stage: form.normalized
+    output_stage: form.checked
+    required_context: []
+- kind: semantic_stage
+  name: context.authored
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.contexts.stages.ContextAuthoredSet
+    family: contexts
+    invariants: []
+- kind: semantic_stage
+  name: context.bound
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.contexts.stages.ContextBoundGraph
+    family: contexts
+    invariants: []
+- kind: semantic_stage
+  name: context.checked
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.contexts.stages.ContextCheckedGraph
+    family: contexts
+    invariants: []
+- kind: semantic_stage
+  name: context.normalized
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.contexts.stages.ContextNormalizedSet
+    family: contexts
+    invariants: []
+- kind: semantic_stage
+  name: form.authored
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.forms.stages.FormAuthoredSet
+    family: forms
+    invariants: []
+- kind: semantic_stage
+  name: form.checked
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.forms.stages.FormCheckedRegistry
+    family: forms
+    invariants: []
+- kind: semantic_stage
+  name: form.normalized
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.forms.stages.FormNormalizedRegistry
+    family: forms
+    invariants: []
 registry:
   name: propstore
   contract_version: 2026.04.29

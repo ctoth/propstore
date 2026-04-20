@@ -30,7 +30,8 @@ from propstore.families.contexts.stages import (
     parse_context_record_document,
 )
 from propstore.core.concepts import LoadedConcept, parse_concept_record_document
-from propstore.form_utils import parse_form
+from propstore.families.forms.passes import run_form_pipeline
+from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.sidecar.claims import (
     build_claim_fts_index,
     populate_authored_justifications,
@@ -207,13 +208,19 @@ def build_sidecar(
 
     from propstore.families.contexts.stages import loaded_contexts_to_lifting_system
 
-    form_registry = {
-        document.name: parse_form(document.name, document)
-        for form_ref in repo.families.forms.iter(commit=commit_hash)
-        for document in (
-            repo.families.forms.require(form_ref, commit=commit_hash),
-        )
-    }
+    form_result = run_form_pipeline(
+        [
+            LoadedForm(
+                filename=form_ref.name,
+                document=repo.families.forms.require(form_ref, commit=commit_hash),
+            )
+            for form_ref in repo.families.forms.iter(commit=commit_hash)
+        ]
+    )
+    if not form_result.ok or not isinstance(form_result.output, FormCheckedRegistry):
+        errors = ", ".join(error.render() for error in form_result.errors)
+        raise ValueError(f"form validation failed: {errors}")
+    form_registry = form_result.output.registry
     concepts = [
         LoadedConcept(
             filename=ref.name,

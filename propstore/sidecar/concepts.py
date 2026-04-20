@@ -10,7 +10,7 @@ from ast_equiv.canonicalizer import AlgorithmParseError
 
 from propstore.core.concepts import ConceptRecord, LoadedConcept
 from propstore.dimensions import verify_form_algebra_dimensions
-from propstore.form_utils import (
+from propstore.families.forms.stages import (
     FormDefinition,
     kind_value_from_form_name,
 )

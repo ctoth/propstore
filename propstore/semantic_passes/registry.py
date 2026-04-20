@@ -41,6 +41,13 @@ class PipelineRegistry:
         self._passes[declared_family].append(pass_class)
         self._names[declared_family].add(pass_class.name)
 
+    def registered_passes(self) -> tuple[type[Any], ...]:
+        return tuple(
+            pass_class
+            for family in sorted(self._passes, key=lambda item: item.value)
+            for pass_class in self._passes[family]
+        )
+
     def pipeline(
         self,
         *,

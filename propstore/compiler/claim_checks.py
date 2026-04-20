@@ -22,7 +22,7 @@ from propstore.compiler.references import (
 )
 from propstore.diagnostics import SemanticDiagnostic
 from propstore.dimensions import can_convert_unit_to
-from propstore.form_utils import FormDefinition
+from propstore.families.forms.stages import FormDefinition
 from propstore.families.identity.logical_ids import (
     LOGICAL_NAMESPACE_RE,
     LOGICAL_VALUE_RE,

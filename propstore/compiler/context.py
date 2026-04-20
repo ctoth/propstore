@@ -23,7 +23,11 @@ from propstore.core.concepts import (
     concept_reference_keys,
     parse_concept_record_document,
 )
-from propstore.form_utils import FormDefinition, load_all_forms_path, parse_form
+from propstore.families.forms.stages import (
+    FormDefinition,
+    load_all_forms_path,
+    parse_form,
+)
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -193,7 +197,7 @@ def build_authored_concept_registry(
 ) -> dict[str, dict[str, Any]]:
     """Build the canonical authored-concept lookup used by validators/builders."""
     from propstore.core.concepts import normalize_loaded_concepts
-    from propstore.form_utils import load_form_path
+    from propstore.families.forms.stages import load_form_path
 
     forms_root = None if forms_dir is None else coerce_knowledge_path(forms_dir)
     typed_concepts = (

@@ -38,7 +38,7 @@ from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id
 from propstore.families.registry import ClaimsFileRef, ConceptFileRef
-from propstore.form_utils import FormDefinition, parse_form
+from propstore.families.forms.stages import FormDefinition, parse_form
 from propstore.validate_concepts import validate_concepts
 
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))

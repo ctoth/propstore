@@ -1,7 +1,7 @@
 """Physical dimension and unit conversion helpers.
 
-This module owns Pint, SI conversion, and dimensional algebra. Linguistic form
-loading stays in ``propstore.form_utils``; lemon lexical forms stay in
+This module owns Pint, SI conversion, and dimensional algebra. Semantic form
+loading stays in ``propstore.families.forms``; lemon lexical forms stay in
 ``propstore.core.lemon.forms``.
 """
 from __future__ import annotations

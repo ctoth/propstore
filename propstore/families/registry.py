@@ -34,7 +34,7 @@ from propstore.families.addresses import SemanticFamilyAddress
 from propstore.families.documents.claims import ClaimsFileDocument
 from propstore.families.documents.concepts import ConceptDocument
 from propstore.families.contexts.documents import ContextDocument
-from propstore.families.documents.forms import FormDocument
+from propstore.families.forms.documents import FormDocument
 from propstore.families.documents.merge import MergeManifestDocument
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
 from propstore.families.documents.predicates import PredicatesFileDocument

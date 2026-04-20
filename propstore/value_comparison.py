@@ -6,7 +6,7 @@ from typing import Any
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from propstore.form_utils import FormDefinition
+    from propstore.families.forms.stages import FormDefinition
 
 DEFAULT_TOLERANCE = 1e-9
 
