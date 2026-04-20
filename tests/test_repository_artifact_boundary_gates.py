@@ -236,7 +236,7 @@ def test_current_docs_do_not_name_deleted_repo_storage_surface() -> None:
 
 
 def test_core_concept_loading_does_not_decode_concept_documents_directly() -> None:
-    path = ROOT / "propstore" / "core" / "concepts.py"
+    path = ROOT / "propstore" / "families" / "concepts" / "stages.py"
     tree = _parse(path)
 
     direct_decode_calls: list[int] = []
