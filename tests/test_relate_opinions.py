@@ -246,6 +246,7 @@ class TestStanceYamlRoundTrip:
 class TestSidecarPopulatesOpinionColumns:
     def test_opinion_columns_from_stance_yaml(self, tmp_path):
         from propstore.sidecar.claims import populate_stances
+        from propstore.sidecar.passes import compile_authored_stance_sidecar_rows
 
         conn = sqlite3.connect(":memory:")
         conn.row_factory = sqlite3.Row
@@ -333,7 +334,13 @@ class TestSidecarPopulatesOpinionColumns:
         stance_path.write_text(yaml.dump(stance_data))
         stance_document = decode_document_path(stance_path, StanceFileDocument)
 
-        populate_stances(conn, [("c1", stance_document)])
+        populate_stances(
+            conn,
+            compile_authored_stance_sidecar_rows(
+                [("c1", stance_document)],
+                {"c1": "c1", "c2": "c2", "test:c1": "c1", "test:c2": "c2"},
+            ),
+        )
 
         row = conn.execute(
             "SELECT * FROM relation_edge WHERE source_kind='claim' AND target_kind='claim' AND source_id='c1'"
@@ -352,6 +359,7 @@ class TestSidecarPopulatesOpinionColumns:
 class TestSidecarHandlesOldFormatYaml:
     def test_missing_opinion_fields_become_null(self, tmp_path):
         from propstore.sidecar.claims import populate_stances
+        from propstore.sidecar.passes import compile_authored_stance_sidecar_rows
 
         conn = sqlite3.connect(":memory:")
         conn.row_factory = sqlite3.Row
@@ -439,7 +447,13 @@ class TestSidecarHandlesOldFormatYaml:
         stance_path.write_text(yaml.dump(stance_data))
         stance_document = decode_document_path(stance_path, StanceFileDocument)
 
-        populate_stances(conn, [("c1", stance_document)])
+        populate_stances(
+            conn,
+            compile_authored_stance_sidecar_rows(
+                [("c1", stance_document)],
+                {"c1": "c1", "c2": "c2", "test:c1": "c1", "test:c2": "c2"},
+            ),
+        )
 
         row = conn.execute(
             "SELECT * FROM relation_edge WHERE source_kind='claim' AND target_kind='claim' AND source_id='c1'"

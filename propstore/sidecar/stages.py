@@ -33,6 +33,21 @@ class ClaimSidecarRows:
 
 
 @dataclass(frozen=True)
+class JustificationInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ConflictWitnessInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ClaimFtsInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
 class FormInsertRow:
     values: tuple[Any, ...]
 

@@ -3,14 +3,25 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+from collections.abc import Iterable, Sequence
 
 from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
 
-from propstore.claims import claim_file_filename, claim_file_stage
+from propstore.claims import (
+    ClaimFileEntry,
+    claim_file_claims,
+    claim_file_filename,
+    claim_file_stage,
+)
+from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
+from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
+from propstore.families.documents.sources import SourceJustificationsDocument
+from propstore.families.documents.stances import StanceFileDocument
 from propstore.families.forms.stages import (
     FormDefinition,
     kind_value_from_form_name,
@@ -24,6 +35,7 @@ from propstore.sidecar.claim_utils import (
 )
 from propstore.sidecar.stages import (
     ClaimInsertRow,
+    ClaimFtsInsertRow,
     ClaimSidecarRows,
     ClaimStanceInsertRow,
     ConceptAliasInsertRow,
@@ -33,10 +45,18 @@ from propstore.sidecar.stages import (
     ConceptParameterizationInsertRow,
     ConceptRelationshipInsertRow,
     ConceptSidecarRows,
+    ConflictWitnessInsertRow,
     FormAlgebraInsertRow,
     FormInsertRow,
+    JustificationInsertRow,
     RelationEdgeInsertRow,
 )
+from propstore.sidecar.claim_utils import (
+    coerce_stance_resolution,
+    resolution_opinion_columns,
+    resolve_claim_reference,
+)
+from propstore.stances import VALID_STANCE_TYPES
 
 
 def _concept_symbol_candidates(record: ConceptRecord) -> tuple[str, ...]:
@@ -372,3 +392,200 @@ def compile_claim_sidecar_rows(
         claim_rows=tuple(claim_rows),
         stance_rows=tuple(stance_rows),
     )
+
+
+def compile_claim_reference_map(
+    claim_files: Sequence[ClaimFileEntry],
+) -> dict[str, str]:
+    return collect_claim_reference_map(claim_files)
+
+
+def compile_authored_stance_sidecar_rows(
+    stance_entries: Iterable[tuple[str, StanceFileDocument]],
+    claim_reference_map: dict[str, str],
+) -> tuple[ClaimStanceInsertRow, ...]:
+    valid_claims = set(claim_reference_map.values())
+    rows: list[ClaimStanceInsertRow] = []
+
+    for filename, data in stance_entries:
+        source_claim = resolve_claim_reference(
+            data.source_claim,
+            claim_reference_map,
+        ) or ""
+        if source_claim not in valid_claims:
+            raise sqlite3.IntegrityError(
+                f"stance file {filename} references nonexistent source claim "
+                f"'{source_claim}'"
+            )
+
+        for index, stance in enumerate(data.stances, start=1):
+            stance_payload = stance.to_payload()
+            target = resolve_claim_reference(
+                stance.target or "",
+                claim_reference_map,
+            ) or ""
+            stance_type = stance_payload.get("type") or ""
+            if target not in valid_claims:
+                raise sqlite3.IntegrityError(
+                    f"stance file {filename} references nonexistent target claim "
+                    f"'{target}'"
+                )
+            if stance_type not in VALID_STANCE_TYPES:
+                raise ValueError(
+                    f"stance file {filename} uses unrecognized stance type "
+                    f"'{stance_type}'"
+                )
+
+            resolution = coerce_stance_resolution(
+                stance_payload.get("resolution"),
+                f"stance file {filename} stance #{index}",
+            )
+            opinion_columns = resolution_opinion_columns(resolution)
+            rows.append(
+                ClaimStanceInsertRow(
+                    (
+                        source_claim,
+                        target,
+                        stance_type,
+                        stance.target_justification_id,
+                        stance.strength,
+                        stance.conditions_differ,
+                        stance.note,
+                        resolution.get("method"),
+                        resolution.get("model"),
+                        resolution.get("embedding_model"),
+                        resolution.get("embedding_distance"),
+                        resolution.get("pass_number"),
+                        resolution.get("confidence"),
+                        opinion_columns[0],
+                        opinion_columns[1],
+                        opinion_columns[2],
+                        opinion_columns[3],
+                    )
+                )
+            )
+    return tuple(rows)
+
+
+def compile_authored_justification_sidecar_rows(
+    justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
+    claim_reference_map: dict[str, str],
+) -> tuple[JustificationInsertRow, ...]:
+    valid_claims = set(claim_reference_map.values())
+    rows: list[JustificationInsertRow] = []
+
+    for filename, data in justification_entries:
+        for index, justification in enumerate(data.justifications, start=1):
+            justification_payload = justification.to_payload()
+            justification_id = justification.id
+            conclusion = resolve_claim_reference(
+                justification.conclusion,
+                claim_reference_map,
+            )
+            if not isinstance(justification_id, str) or not justification_id:
+                raise ValueError(
+                    f"justification file {filename} entry #{index} missing id"
+                )
+            if not isinstance(conclusion, str) or conclusion not in valid_claims:
+                raise sqlite3.IntegrityError(
+                    f"justification file {filename} entry #{index} references "
+                    f"nonexistent conclusion '{conclusion}'"
+                )
+            resolved_premises = [
+                resolve_claim_reference(premise, claim_reference_map)
+                for premise in justification.premises
+            ]
+            if any(
+                not isinstance(premise, str) or premise not in valid_claims
+                for premise in resolved_premises
+            ):
+                raise sqlite3.IntegrityError(
+                    f"justification file {filename} entry #{index} references "
+                    "nonexistent premise"
+                )
+
+            provenance = justification_payload.get("provenance")
+            attack_target = justification_payload.get("attack_target")
+            provenance_payload: dict[str, object] = {}
+            if isinstance(provenance, dict):
+                provenance_payload.update(provenance)
+            if isinstance(attack_target, dict):
+                provenance_payload["attack_target"] = attack_target
+
+            rows.append(
+                JustificationInsertRow(
+                    (
+                        justification_id,
+                        str(justification.rule_kind or "reported_claim"),
+                        conclusion,
+                        json.dumps(resolved_premises),
+                        None,
+                        None,
+                        json.dumps(provenance_payload)
+                        if provenance_payload
+                        else None,
+                        str(justification.rule_strength or "defeasible"),
+                    )
+                )
+            )
+    return tuple(rows)
+
+
+def compile_conflict_sidecar_rows(
+    claim_files: Sequence[ClaimFileEntry],
+    concept_registry: dict,
+    cel_registry: dict,
+    lifting_system=None,
+) -> tuple[ConflictWitnessInsertRow, ...]:
+    conflict_claims = conflict_claims_from_claim_files(claim_files)
+    records = detect_conflicts(
+        conflict_claims,
+        concept_registry,
+        cel_registry,
+        lifting_system=lifting_system,
+    )
+    records.extend(
+        detect_transitive_conflicts(
+            conflict_claims,
+            concept_registry,
+            lifting_system=lifting_system,
+        )
+    )
+    return tuple(
+        ConflictWitnessInsertRow(
+            (
+                record.concept_id,
+                record.claim_a_id,
+                record.claim_b_id,
+                record.warning_class.value,
+                json.dumps(record.conditions_a),
+                json.dumps(record.conditions_b),
+                record.value_a,
+                record.value_b,
+                record.derivation_chain,
+            )
+        )
+        for record in records
+    )
+
+
+def compile_claim_fts_rows(
+    claim_files: Sequence[ClaimFileEntry],
+) -> tuple[ClaimFtsInsertRow, ...]:
+    rows: list[ClaimFtsInsertRow] = []
+    for claim_file in claim_files:
+        for claim in claim_file_claims(claim_file):
+            claim_id = claim.artifact_id
+            if not isinstance(claim_id, str) or not claim_id:
+                continue
+            rows.append(
+                ClaimFtsInsertRow(
+                    (
+                        claim_id,
+                        claim.statement or "",
+                        " ".join(list(claim.conditions)),
+                        claim.expression or "",
+                    )
+                )
+            )
+    return tuple(rows)
