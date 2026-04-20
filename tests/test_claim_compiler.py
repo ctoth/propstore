@@ -142,7 +142,7 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
 
     assert semantic_claim.concept_ref is not None
     assert semantic_claim.concept_ref.matched_by == "alias"
-    assert semantic_claim.concept_ref.resolved_id == semantic_claim.resolved_claim["concept"]
+    assert semantic_claim.concept_ref.resolved_id == semantic_claim.resolved_claim.concept
     assert semantic_claim.stances[0].target_ref.matched_by == "logical_id"
     assert semantic_claim.stances[0].target_ref.resolved_id == target_claim_id
 

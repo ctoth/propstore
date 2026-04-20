@@ -11,6 +11,7 @@ from typing import Any
 from propstore.families.claims.documents import ClaimDocument
 from propstore.cel_checker import check_cel_expr
 from propstore.cel_types import CheckedCelExpr, checked_condition_set
+from quire.documents import convert_document_value
 from propstore.claims import (
     ClaimFileEntry,
     claim_file_claims,
@@ -148,7 +149,11 @@ def _bind_claim(
         artifact_id=claim.artifact_id if isinstance(claim.artifact_id, str) else None,
         claim_type=claim.type if isinstance(claim.type, str) else None,
         authored_claim=authored_claim,
-        resolved_claim=resolved_claim,
+        resolved_claim=convert_document_value(
+            resolved_claim,
+            ClaimDocument,
+            source=filename,
+        ),
         concept_ref=concept_ref,
         target_concept_ref=target_concept_ref,
         concept_refs=tuple(concept_refs),
@@ -227,8 +232,9 @@ def compile_claim_files(
                 normalized_claim_files=normalized_claim_files,
             )
             semantic_claims.append(semantic_claim)
+            resolved_claim = semantic_claim.resolved_claim.to_payload()
 
-            cid = semantic_claim.resolved_claim.get("artifact_id")
+            cid = resolved_claim.get("artifact_id")
 
             if not cid:
                 file_diagnostics.append(SemanticDiagnostic(
@@ -251,7 +257,7 @@ def compile_claim_files(
             else:
                 seen_artifact_ids[cid] = filename
 
-            if "id" in semantic_claim.resolved_claim:
+            if "id" in resolved_claim:
                 file_diagnostics.append(SemanticDiagnostic(
                     level="error",
                     message=(
@@ -274,14 +280,14 @@ def compile_claim_files(
                 ))
 
             _validate_logical_ids(
-                semantic_claim.resolved_claim.get("logical_ids"),
+                resolved_claim.get("logical_ids"),
                 filename=filename,
                 artifact_id=cid,
                 seen_logical_ids=seen_logical_ids,
                 diagnostics=file_diagnostics,
             )
 
-            version_id = semantic_claim.resolved_claim.get("version_id")
+            version_id = resolved_claim.get("version_id")
             if not isinstance(version_id, str) or not CLAIM_VERSION_ID_RE.match(version_id):
                 file_diagnostics.append(SemanticDiagnostic(
                     level="error",
@@ -305,7 +311,7 @@ def compile_claim_files(
                         artifact_id=cid,
                     ))
 
-            provenance = semantic_claim.resolved_claim.get("provenance")
+            provenance = resolved_claim.get("provenance")
             if not provenance or not isinstance(provenance, dict):
                 file_diagnostics.append(SemanticDiagnostic(
                     level="error",
@@ -329,7 +335,7 @@ def compile_claim_files(
                         artifact_id=cid,
                     ))
 
-            raw_claim_context = semantic_claim.resolved_claim.get("context")
+            raw_claim_context = resolved_claim.get("context")
             claim_context = (
                 raw_claim_context.get("id")
                 if isinstance(raw_claim_context, dict)
@@ -353,7 +359,7 @@ def compile_claim_files(
                     artifact_id=cid,
                 ))
 
-            conditions = semantic_claim.resolved_claim.get("conditions")
+            conditions = resolved_claim.get("conditions")
             if conditions and isinstance(conditions, list):
                 checked_conditions: list[CheckedCelExpr] = []
                 for cel_expr in conditions:
@@ -388,7 +394,7 @@ def compile_claim_files(
                     semantic_claims[-1] = semantic_claim
 
             validate_claim_semantics(
-                semantic_claim.resolved_claim,
+                resolved_claim,
                 cid,
                 filename,
                 effective_context,
@@ -396,7 +402,7 @@ def compile_claim_files(
             )
 
             _validate_stances(
-                semantic_claim.resolved_claim,
+                resolved_claim,
                 cid,
                 filename,
                 all_artifact_ids,

@@ -511,7 +511,7 @@ def extract_deferred_stance_rows(
 ) -> list[tuple]:
     if isinstance(claim, SemanticClaim):
         semantic_claim = claim
-        claim_data = semantic_claim.resolved_claim
+        claim_data = semantic_claim.resolved_claim.to_payload()
         claim_id = (
             claim_data.get("artifact_id")
             if isinstance(claim_data.get("artifact_id"), str)
@@ -592,7 +592,7 @@ def prepare_claim_insert_row(
 
     if isinstance(claim, SemanticClaim):
         semantic_claim = claim
-        normalized_claim = copy.deepcopy(semantic_claim.resolved_claim)
+        normalized_claim = copy.deepcopy(semantic_claim.resolved_claim.to_payload())
         effective_source_paper = str(source_paper or semantic_claim.source_paper)
     else:
         effective_registry = {} if concept_registry is None else concept_registry
