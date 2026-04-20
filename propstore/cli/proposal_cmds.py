@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.proposals import (
     ProposalPromotionRequest,
     plan_proposal_promotion,
@@ -20,21 +22,21 @@ def promote_cmd(ctx: click.Context, path: str | None, yes: bool) -> None:
     repo = ctx.obj["repo"]
     plan = plan_proposal_promotion(repo, ProposalPromotionRequest(path=path))
     if not plan.has_branch:
-        click.echo(f"No {plan.branch} branch found. Nothing to promote.")
+        emit(f"No {plan.branch} branch found. Nothing to promote.")
         return
 
     if not plan.items:
-        click.echo(f"No stance proposal files found on {plan.branch}.")
+        emit(f"No stance proposal files found on {plan.branch}.")
         return
 
     for item in plan.items:
-        click.echo(f"  {item.source_relpath} -> {item.target_path}")
+        emit(f"  {item.source_relpath} -> {item.target_path}")
 
     if not yes:
         click.confirm("Promote these files?", abort=True)
 
     result = promote_proposals(repo, plan)
     for item in plan.items:
-        click.echo(f"  Promoted: {item.filename}")
+        emit(f"  Promoted: {item.filename}")
 
-    click.echo(f"\n{result.moved} file(s) promoted.")
+    emit(f"\n{result.moved} file(s) promoted.")

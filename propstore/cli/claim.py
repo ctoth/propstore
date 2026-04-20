@@ -12,6 +12,8 @@ from pathlib import Path
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.claims import (
     ClaimCompareRequest,
     ClaimComparisonError,
@@ -54,26 +56,26 @@ def show(obj: dict, claim_id: str) -> None:
     try:
         report = show_claim_from_repo(repo, claim_id)
     except ClaimSidecarMissingError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
     except UnknownClaimError:
-        click.echo(f"Claim '{claim_id}' not found.", err=True)
+        emit(f"Claim '{claim_id}' not found.", err=True)
         sys.exit(EXIT_ERROR)
 
     if report.logical_id:
-        click.echo(f"Logical ID: {report.logical_id}")
-    click.echo(f"Artifact ID: {report.artifact_id}")
+        emit(f"Logical ID: {report.logical_id}")
+    emit(f"Artifact ID: {report.artifact_id}")
     if report.version_id:
-        click.echo(f"Version ID: {report.version_id}")
+        emit(f"Version ID: {report.version_id}")
     if report.concept_id:
-        click.echo(f"  concept: {report.concept_id}")
+        emit(f"  concept: {report.concept_id}")
     if report.claim_type:
-        click.echo(f"  type: {report.claim_type}")
+        emit(f"  type: {report.claim_type}")
     if report.value is not None:
-        click.echo(f"  value: {report.value} {report.unit}".rstrip())
+        emit(f"  value: {report.value} {report.unit}".rstrip())
         if report.value_si is not None and report.value_si != report.value:
             si_label = f"{report.value_si} {report.canonical_unit}".rstrip()
-            click.echo(f"  value (SI): {si_label}")
+            emit(f"  value (SI): {si_label}")
     if report.lower_bound is not None:
         si_part = (
             f" -> {report.lower_bound_si}"
@@ -81,7 +83,7 @@ def show(obj: dict, claim_id: str) -> None:
             and report.lower_bound_si != report.lower_bound
             else ""
         )
-        click.echo(f"  lower_bound: {report.lower_bound}{si_part}")
+        emit(f"  lower_bound: {report.lower_bound}{si_part}")
     if report.upper_bound is not None:
         si_part = (
             f" -> {report.upper_bound_si}"
@@ -89,15 +91,15 @@ def show(obj: dict, claim_id: str) -> None:
             and report.upper_bound_si != report.upper_bound
             else ""
         )
-        click.echo(f"  upper_bound: {report.upper_bound}{si_part}")
+        emit(f"  upper_bound: {report.upper_bound}{si_part}")
     if report.uncertainty is not None:
-        click.echo(f"  uncertainty: {report.uncertainty}")
+        emit(f"  uncertainty: {report.uncertainty}")
     if report.sample_size is not None:
-        click.echo(f"  sample_size: {report.sample_size}")
+        emit(f"  sample_size: {report.sample_size}")
     if report.source_paper:
-        click.echo(f"  source: {report.source_paper}")
+        emit(f"  source: {report.source_paper}")
     if report.conditions_cel:
-        click.echo(f"  conditions: {report.conditions_cel}")
+        emit(f"  conditions: {report.conditions_cel}")
 
 
 @claim.command()
@@ -116,28 +118,28 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
             ),
         )
     except ClaimPathError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
     except ClaimValidationDocumentError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
-        click.echo("Validation FAILED: 1 error(s)", err=True)
+        emit(f"ERROR: {exc}", err=True)
+        emit("Validation FAILED: 1 error(s)", err=True)
         sys.exit(EXIT_VALIDATION)
     if report.file_count == 0:
-        click.echo("No claim files found.")
+        emit("No claim files found.")
         return
 
     for warning in report.warnings:
-        click.echo(f"WARNING: {warning}", err=True)
+        emit(f"WARNING: {warning}", err=True)
     for error in report.errors:
-        click.echo(f"ERROR: {error}", err=True)
+        emit(f"ERROR: {error}", err=True)
 
     if report.ok:
-        click.echo(
+        emit(
             f"Validation passed: {report.file_count} claim file(s), "
             f"{len(report.warnings)} warning(s)"
         )
     else:
-        click.echo(f"Validation FAILED: {len(report.errors)} error(s)", err=True)
+        emit(f"Validation FAILED: {len(report.errors)} error(s)", err=True)
         sys.exit(EXIT_VALIDATION)
 
 
@@ -157,22 +159,22 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
             ),
         )
     except ClaimPathError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
     except ClaimValidationDocumentError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
-        click.echo(f"FAILED: {filepath.name} (1 error(s))", err=True)
+        emit(f"ERROR: {exc}", err=True)
+        emit(f"FAILED: {filepath.name} (1 error(s))", err=True)
         sys.exit(EXIT_VALIDATION)
 
     for warning in report.warnings:
-        click.echo(f"WARNING: {warning}", err=True)
+        emit(f"WARNING: {warning}", err=True)
     for error in report.errors:
-        click.echo(f"ERROR: {error}", err=True)
+        emit(f"ERROR: {error}", err=True)
 
     if report.ok:
-        click.echo(f"Valid: {filepath.name} ({len(report.warnings)} warning(s))")
+        emit(f"Valid: {filepath.name} ({len(report.warnings)} warning(s))")
     else:
-        click.echo(f"FAILED: {filepath.name} ({len(report.errors)} error(s))", err=True)
+        emit(f"FAILED: {filepath.name} ({len(report.errors)} error(s))", err=True)
         sys.exit(EXIT_VALIDATION)
 
 
@@ -190,23 +192,23 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
         ClaimConflictsRequest(concept=concept, warning_class=warning_class),
     )
     if report.file_count == 0:
-        click.echo("No claim files found.")
+        emit("No claim files found.")
         return
 
     if not report.conflicts:
-        click.echo("No conflicts found.")
+        emit("No conflicts found.")
         return
 
     for conflict in report.conflicts:
-        click.echo(
+        emit(
             f"  {conflict.warning_class:16s} concept={conflict.concept_id} "
             f"{conflict.claim_a_id} vs {conflict.claim_b_id}  "
             f"({conflict.value_a} vs {conflict.value_b})"
         )
         if conflict.derivation_chain:
-            click.echo(f"    chain: {conflict.derivation_chain}")
+            emit(f"    chain: {conflict.derivation_chain}")
 
-    click.echo(f"\n{len(report.conflicts)} conflict(s) found.")
+    emit(f"\n{len(report.conflicts)} conflict(s) found.")
 
 
 @claim.command()
@@ -226,7 +228,7 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
             try:
                 known_values[key] = float(value)
             except ValueError:
-                click.echo(f"WARNING: Ignoring non-numeric binding: {b}", err=True)
+                emit(f"WARNING: Ignoring non-numeric binding: {b}", err=True)
 
     try:
         result = compare_algorithm_claims_from_repo(
@@ -234,20 +236,20 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
             ClaimCompareRequest(id_a, id_b, known_values or None),
         )
     except ClaimSidecarMissingError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
     except UnknownClaimError as exc:
-        click.echo(f"ERROR: Claim '{exc.claim_id}' not found.", err=True)
+        emit(f"ERROR: Claim '{exc.claim_id}' not found.", err=True)
         sys.exit(EXIT_ERROR)
     except ClaimComparisonError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
 
-    click.echo(f"Tier:       {result.tier}")
-    click.echo(f"Equivalent: {result.equivalent}")
-    click.echo(f"Similarity: {result.similarity:.4f}")
+    emit(f"Tier:       {result.tier}")
+    emit(f"Equivalent: {result.equivalent}")
+    emit(f"Similarity: {result.similarity:.4f}")
     if result.details:
-        click.echo(f"Details:    {result.details}")
+        emit(f"Details:    {result.details}")
 
 
 @claim.command()
@@ -269,28 +271,28 @@ def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_si
                 batch_size=batch_size,
             ),
             on_progress=(
-                (lambda model_name, done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None)
+                (lambda model_name, done, total: emit(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None)
                 if model == "all"
-                else (lambda model_name, done, total: click.echo(f"  {done}/{total} claims embedded", err=True))
+                else (lambda model_name, done, total: emit(f"  {done}/{total} claims embedded", err=True))
             ),
         )
     except ClaimSidecarMissingError as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
     except ClaimEmbeddingModelError as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
     except ClaimWorkflowError as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
 
     if model == "all":
         for result in report.results:
-            click.echo(f"Embedding with {result.model_name}...")
-            click.echo(f"  embedded={result.embedded} skipped={result.skipped} errors={result.errors}")
+            emit(f"Embedding with {result.model_name}...")
+            emit(f"  embedded={result.embedded} skipped={result.skipped} errors={result.errors}")
     else:
         result = report.results[0]
-        click.echo(f"Embedded: {result.embedded}, Skipped: {result.skipped}, Errors: {result.errors}")
+        emit(f"Embedded: {result.embedded}, Skipped: {result.skipped}, Errors: {result.errors}")
 
 
 @claim.command()
@@ -315,18 +317,18 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
             ),
         )
     except ClaimSidecarMissingError as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
     except (ClaimEmbeddingModelError, ClaimWorkflowError) as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
 
     if not report.hits:
-        click.echo("No similar claims found.")
+        emit("No similar claims found.")
         return
 
     for hit in report.hits:
-        click.echo(f"  {hit.distance:.4f}  {hit.claim_id}  [{hit.source_paper}]  {hit.summary[:120]}")
+        emit(f"  {hit.distance:.4f}  {hit.claim_id}  [{hit.source_paper}]  {hit.summary[:120]}")
 
 
 @claim.command()
@@ -358,47 +360,47 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
                 concurrency=concurrency,
             ),
             on_progress=lambda done, total: (
-                click.echo(f"  {done}/{total} claims processed", err=True)
+                emit(f"  {done}/{total} claims processed", err=True)
                 if done % 10 == 0 or done == total
                 else None
             ),
         )
     except ClaimSidecarMissingError as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
     except ClaimWorkflowError as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
 
     if claim_id and not relate_all_flag:
         if report.stances:
             for stance in report.stances:
-                click.echo(
+                emit(
                     f"  {str(stance['type']):12s} "
                     f"{str(stance.get('strength', '')):8s} "
                     f"-> {stance['target']}  {stance.get('note', '')}"
                 )
             assert report.commit_sha is not None
-            click.echo(
+            emit(
                 f"\nCommitted {len(report.relpaths)} proposal file(s) to "
                 f"{report.branch} at {report.commit_sha[:8]}"
             )
         else:
-            click.echo("No epistemic relationships found.")
+            emit("No epistemic relationships found.")
         return
 
     if relate_all_flag:
         if report.commit_sha is not None:
-            click.echo(
+            emit(
                 f"Proposal commit: {report.commit_sha[:8]} on {report.branch} "
                 f"({len(report.relpaths)} file(s))"
             )
-        click.echo(
+        emit(
             f"\nProcessed: {report.claims_processed}, "
             f"Stances found: {report.stances_found}, "
             f"No relation: {report.no_relation}"
         )
         return
 
-    click.echo("Error: provide a claim ID or use --all", err=True)
+    emit("Error: provide a claim ID or use --all", err=True)
     raise SystemExit(1)

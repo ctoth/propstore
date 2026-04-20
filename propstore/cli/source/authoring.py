@@ -6,6 +6,8 @@ from pathlib import Path
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.sources import (
     SourceBatchRequest,
     write_source_metadata,
@@ -25,7 +27,7 @@ def write_notes(obj: dict, name: str, file_path: Path) -> None:
         repo,
         SourceBatchRequest(name=name, batch_file=file_path),
     )
-    click.echo(f"Wrote notes to {report.branch}")
+    emit(f"Wrote notes to {report.branch}")
 
 
 @source.command("write-metadata")
@@ -38,4 +40,4 @@ def write_metadata(obj: dict, name: str, file_path: Path) -> None:
         repo,
         SourceBatchRequest(name=name, batch_file=file_path),
     )
-    click.echo(f"Wrote metadata to {report.branch}")
+    emit(f"Wrote metadata to {report.branch}")

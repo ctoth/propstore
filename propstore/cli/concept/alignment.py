@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.concepts import (
     ConceptAlignmentBuildRequest,
     ConceptAlignmentDecisionRequest,
@@ -29,7 +31,7 @@ def align_cmd(obj: dict, first_source: str, extra_sources: tuple[str, ...]) -> N
         repo,
         ConceptAlignmentBuildRequest(sources=(first_source, *extra_sources)),
     )
-    click.echo(f"Created {report.alignment_id}")
+    emit(f"Created {report.alignment_id}")
 
 
 @concept.command("query")
@@ -54,11 +56,11 @@ def query_alignment(obj: dict, cluster_id: str, mode: str, operator: str | None)
 
     if operator is not None:
         for score in report.scores:
-            click.echo(f"{score.argument_id}\t{score.score}")
+            emit(f"{score.argument_id}\t{score.score}")
         return
 
     for argument_id in report.accepted_argument_ids:
-        click.echo(argument_id)
+        emit(argument_id)
 
 
 @concept.command("decide")
@@ -77,7 +79,7 @@ def decide_cmd(obj: dict, cluster_id: str, accepted: tuple[str, ...], rejected: 
             rejected=rejected,
         ),
     )
-    click.echo(f"Updated {report.alignment_id}")
+    emit(f"Updated {report.alignment_id}")
 
 
 @concept.command("promote")
@@ -90,4 +92,4 @@ def promote_cmd(obj: dict, cluster_id: str) -> None:
         report = promote_concept_alignment(repo, cluster_id)
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Promoted {report.alignment_id}")
+    emit(f"Promoted {report.alignment_id}")

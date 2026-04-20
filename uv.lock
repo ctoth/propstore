@@ -1881,6 +1881,7 @@ dependencies = [
     { name = "pint" },
     { name = "pyyaml" },
     { name = "quire" },
+    { name = "rich" },
     { name = "sympy" },
     { name = "z3-solver" },
 ]
@@ -1918,6 +1919,7 @@ requires-dist = [
     { name = "pint", specifier = ">=0.25.3" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "quire", editable = "../quire" },
+    { name = "rich", specifier = ">=13.7" },
     { name = "sqlite-vec", marker = "extra == 'embeddings'", specifier = ">=0.1" },
     { name = "sympy", specifier = ">=1.14.0" },
     { name = "z3-solver", specifier = ">=4.12" },

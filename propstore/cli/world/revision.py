@@ -5,6 +5,8 @@ import json
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.world import parse_world_binding_args
 from propstore.app.world_revision import (
     AppIteratedReviseRequest,
@@ -69,71 +71,71 @@ def _parse_revision_atom_json(atom_json: str) -> dict:
 
 
 def _emit_revision_result(result) -> None:
-    click.echo(f"Accepted ({len(result.accepted_atom_ids)} atoms):")
+    emit(f"Accepted ({len(result.accepted_atom_ids)} atoms):")
     for atom_id in result.accepted_atom_ids:
-        click.echo(f"  {atom_id}")
+        emit(f"  {atom_id}")
 
-    click.echo(f"Rejected ({len(result.rejected_atom_ids)} atoms):")
+    emit(f"Rejected ({len(result.rejected_atom_ids)} atoms):")
     for atom_id in result.rejected_atom_ids:
-        click.echo(f"  {atom_id}")
+        emit(f"  {atom_id}")
 
-    click.echo(f"Incision set: {', '.join(result.incision_set) if result.incision_set else '(none)'}")
+    emit(f"Incision set: {', '.join(result.incision_set) if result.incision_set else '(none)'}")
 
 
 def _emit_revision_explanation(explanation) -> None:
-    click.echo(f"Accepted ({len(explanation.accepted_atom_ids)} atoms):")
+    emit(f"Accepted ({len(explanation.accepted_atom_ids)} atoms):")
     for atom_id in explanation.accepted_atom_ids:
-        click.echo(f"  {atom_id}")
+        emit(f"  {atom_id}")
 
-    click.echo(f"Rejected ({len(explanation.rejected_atom_ids)} atoms):")
+    emit(f"Rejected ({len(explanation.rejected_atom_ids)} atoms):")
     for atom_id in explanation.rejected_atom_ids:
-        click.echo(f"  {atom_id}")
+        emit(f"  {atom_id}")
 
     incision = explanation.incision_set
-    click.echo(f"Incision set: {', '.join(incision) if incision else '(none)'}")
-    click.echo("Atoms:")
+    emit(f"Incision set: {', '.join(incision) if incision else '(none)'}")
+    emit("Atoms:")
     for atom_id, detail in explanation.atoms.items():
         line = f"  {atom_id}: status={detail.status} reason={detail.reason}"
         ranking = detail.ranking
         if ranking is not None:
             line += f" support_count={ranking.support_count or 0}"
-        click.echo(line)
+        emit(line)
 
 
 def _emit_epistemic_state(state) -> None:
-    click.echo(f"Iterated state ({len(state.accepted_atom_ids)} accepted atoms)")
-    click.echo(f"History length: {len(state.history)}")
-    click.echo("Ranking:")
+    emit(f"Iterated state ({len(state.accepted_atom_ids)} accepted atoms)")
+    emit(f"History length: {len(state.history)}")
+    emit("Ranking:")
     for rank, atom_id in enumerate(state.ranked_atom_ids, start=1):
-        click.echo(f"  {rank}. {atom_id}")
+        emit(f"  {rank}. {atom_id}")
 
 
 def _emit_iterated_revision(result, previous_state, next_state, *, operator: str) -> None:
-    click.echo(f"Operator: {operator}")
+    emit(f"Operator: {operator}")
     _emit_revision_result(result)
-    click.echo(f"Next state ({len(next_state.accepted_atom_ids)} accepted atoms)")
-    click.echo(f"History length: {len(next_state.history)}")
-    click.echo("Ranking:")
+    emit(f"Next state ({len(next_state.accepted_atom_ids)} accepted atoms)")
+    emit(f"History length: {len(next_state.history)}")
+    emit("Ranking:")
     for rank, atom_id in enumerate(next_state.ranked_atom_ids, start=1):
-        click.echo(f"  {rank}. {atom_id}")
-    click.echo("Ranking delta:")
+        emit(f"  {rank}. {atom_id}")
+    emit("Ranking delta:")
     previous_ranking = previous_state.ranking
     for atom_id in next_state.ranked_atom_ids:
         old_rank = previous_ranking.get(atom_id)
         new_rank = next_state.ranking.get(atom_id)
         if old_rank is None:
-            click.echo(f"  + {atom_id}: new at rank {new_rank}")
+            emit(f"  + {atom_id}: new at rank {new_rank}")
         elif old_rank != new_rank:
-            click.echo(f"  ~ {atom_id}: {old_rank} -> {new_rank}")
+            emit(f"  ~ {atom_id}: {old_rank} -> {new_rank}")
     for atom_id, old_rank in previous_ranking.items():
         if atom_id not in next_state.ranking:
-            click.echo(f"  - {atom_id}: dropped from rank {old_rank}")
-    click.echo("History:")
+            emit(f"  - {atom_id}: dropped from rank {old_rank}")
+    emit("History:")
     last_episode = next_state.history[-1] if next_state.history else None
     if last_episode is None:
-        click.echo("  (empty)")
+        emit("  (empty)")
     else:
-        click.echo(
+        emit(
             f"  {last_episode.operator}: input={last_episode.input_atom_id} "
             f"targets={list(last_episode.target_atom_ids)} "
             f"accepted={len(last_episode.accepted_atom_ids)} "
@@ -154,19 +156,19 @@ def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -
         AppRevisionWorldRequest(bindings=bindings, context=context),
     )
 
-    click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
+    emit(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
     for atom in base.atoms:
         display = revision_atom_display(atom)
         details = _format_revision_payload(display)
         if details:
-            click.echo(f"  {display.display_id}: {details}")
+            emit(f"  {display.display_id}: {details}")
         else:
-            click.echo(f"  {display.display_id}")
+            emit(f"  {display.display_id}")
 
     if base.assumptions:
-        click.echo("Assumptions:")
+        emit("Assumptions:")
         for assumption in base.assumptions:
-            click.echo(f"  {_format_revision_assumption(assumption)}")
+            emit(f"  {_format_revision_assumption(assumption)}")
 
 
 @revision.command("entrenchment")
@@ -182,13 +184,13 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str |
         AppRevisionWorldRequest(bindings=bindings, context=context),
     )
 
-    click.echo(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
+    emit(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
     for rank, atom_id in enumerate(report.ranked_atom_ids, start=1):
         reason = report.reasons.get(atom_id)
         support_count = 0 if reason is None or reason.support_count is None else reason.support_count
         essential_support = () if reason is None else reason.essential_support
         override = None if reason is None else reason.override_priority
-        click.echo(
+        emit(
             f"  {rank}. {atom_id} "
             f"support_count={support_count} "
             f"essential_support={_format_assumption_ids(essential_support)} "

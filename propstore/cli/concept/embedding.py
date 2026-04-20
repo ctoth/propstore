@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.cli.concept import (
     concept,
 )
@@ -29,9 +31,9 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
     def progress(model_name: str, done: int, total: int) -> None:
         if model == "all":
             if done % batch_size == 0:
-                click.echo(f"  {done}/{total}", nl=False)
+                emit(f"  {done}/{total}", nl=False)
             return
-        click.echo(f"  {done}/{total} concepts embedded", err=True)
+        emit(f"  {done}/{total} concepts embedded", err=True)
 
     try:
         report = embed_concept_embeddings(
@@ -45,16 +47,16 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
             on_progress=progress,
         )
     except ConceptSidecarMissingError as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
     except (ConceptEmbeddingModelError, ConceptWorkflowError, UnknownConceptError) as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
 
     if model == "all":
         for result in report.results:
-            click.echo(f"Embedding with {result.model_name}...")
-            click.echo(
+            emit(f"Embedding with {result.model_name}...")
+            emit(
                 f"  embedded={result.embedded} "
                 f"skipped={result.skipped} "
                 f"errors={result.errors}"
@@ -62,7 +64,7 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
         return
 
     result = report.results[0]
-    click.echo(
+    emit(
         f"Embedded: {result.embedded}, "
         f"Skipped: {result.skipped}, "
         f"Errors: {result.errors}"
@@ -101,19 +103,19 @@ def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bo
             ),
         )
     except ConceptSidecarMissingError as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
     except (ConceptEmbeddingModelError, ConceptWorkflowError, UnknownConceptError) as exc:
-        click.echo(f"Error: {exc}", err=True)
+        emit(f"Error: {exc}", err=True)
         raise SystemExit(1)
 
     if not report.hits:
-        click.echo("No similar concepts found.")
+        emit("No similar concepts found.")
         return
 
     for hit in report.hits:
         definition = hit.definition[:80]
-        click.echo(
+        emit(
             f"  {hit.distance:.4f}  "
             f"{hit.concept_id}  "
             f"{hit.canonical_name}  — {definition}"

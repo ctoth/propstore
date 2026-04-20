@@ -5,6 +5,8 @@ import sys
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.world_atms import (
     AppAtmsInterventionRequest,
     AppAtmsTargetRequest,
@@ -49,16 +51,16 @@ def world_atms_status_command(
     repo: Repository = obj["repo"]
     report = world_atms_status(repo, AppAtmsViewRequest(args=args, context=context))
     if not report.claims:
-        click.echo("No active claims for the current ATMS view.")
+        emit("No active claims for the current ATMS view.")
         return
 
     for claim in report.claims:
-        click.echo(
+        emit(
             f"{claim.claim_id}: status={claim.status} "
             f"support_quality={claim.support_quality} "
             f"essential_support={_format_assumption_ids(claim.essential_support)}"
         )
-        click.echo(f"  reason: {claim.reason}")
+        emit(f"  reason: {claim.reason}")
 
 
 @atms.command("context")
@@ -73,14 +75,14 @@ def world_atms_context_command(
     """Show which ATMS-supported claims hold in the current bound environment."""
     repo: Repository = obj["repo"]
     report = world_atms_context(repo, AppAtmsViewRequest(args=args, context=context))
-    click.echo(f"Environment: {_format_assumption_ids(report.environment)}")
+    emit(f"Environment: {_format_assumption_ids(report.environment)}")
 
     if not report.claims:
-        click.echo("No claims have exact ATMS support in the current environment.")
+        emit("No claims have exact ATMS support in the current environment.")
         return
 
     for claim in report.claims:
-        click.echo(
+        emit(
             f"{claim.claim_id}: status={claim.status} "
             f"essential_support={_format_assumption_ids(claim.essential_support)}"
         )
@@ -99,15 +101,15 @@ def world_atms_verify_command(
     repo: Repository = obj["repo"]
     report = world_atms_verify(repo, AppAtmsViewRequest(args=args, context=context))
     if report.ok:
-        click.echo("ATMS labels verified.")
+        emit("ATMS labels verified.")
         return
 
     for section_name, errors in report.sections.items():
         if not errors:
             continue
-        click.echo(f"{section_name}:")
+        emit(f"{section_name}:")
         for error in errors:
-            click.echo(f"  {error}")
+            emit(f"  {error}")
 
     sys.exit(2)
 
@@ -156,7 +158,7 @@ def world_atms_futures_command(
         return
 
     if not report.claims:
-        click.echo("No active claims for the requested ATMS future view.")
+        emit("No active claims for the requested ATMS future view.")
         return
     for claim_report in report.claims:
         _render_future_report(claim_report)
@@ -201,22 +203,22 @@ def world_atms_why_out_command(
         ),
     )
     if isinstance(report, AtmsClaimWhyOutReport):
-        click.echo(
+        emit(
             f"{report.target}: out_kind={report.out_kind} "
             f"future_activatable={report.future_activatable}"
         )
-        click.echo(
+        emit(
             f"  candidate_queryables={_format_assumption_ids(report.candidate_queryables)}"
         )
-        click.echo(f"  reason: {report.reason}")
+        emit(f"  reason: {report.reason}")
         return
 
-    click.echo(
+    emit(
         f"{report.target}: value_status={report.value_status} "
         f"supported_claim_ids={_format_assumption_ids(report.supported_claim_ids)}"
     )
     for claim_report in report.claim_reasons:
-        click.echo(
+        emit(
             f"  {claim_report.target}: out_kind={claim_report.out_kind} "
             f"future_activatable={claim_report.future_activatable}"
         )
@@ -261,15 +263,15 @@ def world_atms_stability_command(
             context=context,
         ),
     )
-    click.echo(
+    emit(
         f"{report.target}: status={report.current_status} "
         f"stable={report.stable} "
         f"consistent_futures={report.consistent_future_count}"
     )
     if not report.witnesses:
-        click.echo("  no bounded consistent future flips the status")
+        emit("  no bounded consistent future flips the status")
     for witness in report.witnesses:
-        click.echo(
+        emit(
             f"  witness [{', '.join(witness.queryable_cels)}] -> {witness.status}"
         )
 
@@ -313,12 +315,12 @@ def world_atms_relevance_command(
             context=context,
         ),
     )
-    click.echo(
+    emit(
         f"{report.target}: current_status={report.current_status} "
         f"relevant_queryables={_format_assumption_ids(report.relevant_queryables)}"
     )
     for pair in report.witness_pairs:
-        click.echo(
+        emit(
             f"  {pair.queryable_cel}: "
             f"[{', '.join(pair.without_queryables)}] -> {pair.without_status}; "
             f"[{', '.join(pair.with_queryables)}] -> {pair.with_status}"
@@ -356,8 +358,8 @@ def world_atms_interventions_command(
 ) -> None:
     """Show bounded additive intervention plans for an ATMS claim or concept."""
     repo: Repository = obj["repo"]
-    click.echo("bounded additive plans over declared queryables")
-    click.echo("not revision/contraction")
+    emit("bounded additive plans over declared queryables")
+    emit("not revision/contraction")
 
     try:
         report = world_atms_interventions(
@@ -375,7 +377,7 @@ def world_atms_interventions_command(
         raise click.ClickException(str(exc)) from exc
 
     for plan in report.plans:
-        click.echo(f"  plan [{', '.join(plan.queryable_cels)}] -> {plan.result_status}")
+        emit(f"  plan [{', '.join(plan.queryable_cels)}] -> {plan.result_status}")
 
 
 @atms.command("next-query")
@@ -409,7 +411,7 @@ def world_atms_next_query_command(
 ) -> None:
     """Show next-query suggestions derived from bounded additive intervention plans."""
     repo: Repository = obj["repo"]
-    click.echo("derived from bounded additive intervention plans")
+    emit("derived from bounded additive intervention plans")
 
     try:
         report = world_atms_next_query(
@@ -427,7 +429,7 @@ def world_atms_next_query_command(
         raise click.ClickException(str(exc)) from exc
 
     for suggestion in report.suggestions:
-        click.echo(
+        emit(
             f"  {suggestion.queryable_cel}: "
             f"coverage={suggestion.plan_count} "
             f"smallest_plan_size={suggestion.smallest_plan_size}"
@@ -435,10 +437,10 @@ def world_atms_next_query_command(
 
 
 def _render_future_report(report: AtmsClaimFutureReport) -> None:
-    click.echo(
+    emit(
         f"{report.target}: current_status={report.current_status} "
         f"could_become_in={report.could_become_in} "
         f"could_become_out={report.could_become_out}"
     )
     for future in report.futures:
-        click.echo(f"  future [{', '.join(future.queryable_cels)}] -> {future.status}")
+        emit(f"  future [{', '.join(future.queryable_cels)}] -> {future.status}")

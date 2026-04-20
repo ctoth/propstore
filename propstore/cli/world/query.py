@@ -5,6 +5,8 @@ import sys
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.world import (
     AppWorldAlgorithmsRequest,
     AppWorldBindRequest,
@@ -83,11 +85,11 @@ def world_status(
     repo: Repository = obj["repo"]
     lifecycle = _lifecycle_options(include_drafts, include_blocked, show_quarantined)
     report = run_world_status(repo, AppWorldStatusRequest(lifecycle=lifecycle))
-    click.echo(f"Concepts: {report.concept_count}")
-    click.echo(f"Claims:   {report.visible_claim_count}")
-    click.echo(f"Conflicts: {report.conflict_count}")
+    emit(f"Concepts: {report.concept_count}")
+    emit(f"Claims:   {report.visible_claim_count}")
+    emit(f"Conflicts: {report.conflict_count}")
     if lifecycle.show_quarantined:
-        click.echo(f"Diagnostics: {report.diagnostic_count}")
+        emit(f"Diagnostics: {report.diagnostic_count}")
 
 
 @world.command("query")
@@ -140,21 +142,21 @@ def world_query(
             AppWorldConceptQueryRequest(target=concept_id, lifecycle=lifecycle),
         )
     except UnknownConceptError:
-        click.echo(f"Unknown concept: {concept_id}", err=True)
+        emit(f"Unknown concept: {concept_id}", err=True)
         sys.exit(1)
 
-    click.echo(f"{report.canonical_name} ({report.concept_display_id})")
+    emit(f"{report.canonical_name} ({report.concept_display_id})")
     if not report.claims:
-        click.echo("  (no claims)")
+        emit("  (no claims)")
     for claim in report.claims:
-        click.echo(
+        emit(
             f"  {claim.display_id}: {claim.claim_type} "
             f"{claim.value_display} conditions={claim.conditions}"
         )
     if lifecycle.show_quarantined and report.diagnostics:
-        click.echo("Diagnostics:")
+        emit("Diagnostics:")
         for diagnostic in report.diagnostics:
-            click.echo(
+            emit(
                 f"  {diagnostic.target} "
                 f"[{diagnostic.diagnostic_kind}] {diagnostic.message}"
             )
@@ -178,18 +180,18 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
     )
 
     if isinstance(report, WorldBindConceptReport):
-        click.echo(f"{report.concept_display_id}: {report.status}")
+        emit(f"{report.concept_display_id}: {report.status}")
         for claim in report.claims:
-            click.echo(
+            emit(
                 f"  {claim.display_id}: {claim.value_display} "
                 f"source={claim.source}"
             )
         return
 
     assert isinstance(report, WorldBindActiveReport)
-    click.echo(f"Active claims: {report.active_claim_count}")
+    emit(f"Active claims: {report.active_claim_count}")
     for claim in report.claims:
-        click.echo(
+        emit(
             f"  {claim.display_id}: {claim.concept_display_id} "
             f"{claim.value_display} conditions={claim.conditions}"
         )
@@ -204,19 +206,19 @@ def world_explain(obj: dict, claim_id: str) -> None:
     try:
         report = run_world_explain(repo, AppWorldExplainRequest(claim_id=claim_id))
     except UnknownClaimError:
-        click.echo(f"Unknown claim: {claim_id}", err=True)
+        emit(f"Unknown claim: {claim_id}", err=True)
         sys.exit(1)
 
-    click.echo(
+    emit(
         f"{report.claim_display_id}: {report.claim_type} "
         f"concept={report.concept_display_id} "
         f"value={report.value}"
     )
     if not report.stances:
-        click.echo("  (no stances)")
+        emit("  (no stances)")
     for stance in report.stances:
         indent = "    " if stance.nested else "  "
-        click.echo(
+        emit(
             f"{indent}{stance.source_display_id} "
             f"{stance.stance_type} -> {stance.target_display_id}"
             f" (strength={stance.strength}, note={stance.note})"
@@ -236,16 +238,16 @@ def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
     )
 
     if not report.algorithms:
-        click.echo("No algorithm claims found.")
+        emit("No algorithm claims found.")
         return
 
     # Table header
-    click.echo(f"{'ID':<20} {'Name':<30} {'Stage':<15} {'Concept(s)'}")
-    click.echo("-" * 80)
+    emit(f"{'ID':<20} {'Name':<30} {'Stage':<15} {'Concept(s)'}")
+    emit("-" * 80)
     for claim in report.algorithms:
-        click.echo(
+        emit(
             f"{claim.claim_id:<20} {claim.name:<30} "
             f"{claim.stage:<15} {claim.concept_id}"
         )
 
-    click.echo(f"\n{len(report.algorithms)} algorithm claim(s).")
+    emit(f"\n{len(report.algorithms)} algorithm claim(s).")

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from quire.documents import render_yaml_value
 from propstore.app.verify import verify_claim_tree
 from propstore.repository import Repository
@@ -24,4 +26,4 @@ def verify_tree(obj: dict, claim_ref: str, commit: str | None) -> None:
         report = verify_claim_tree(repo, claim_ref, commit=commit)
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(render_yaml_value(report))
+    emit(render_yaml_value(report))

@@ -5,6 +5,8 @@ from pathlib import Path
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.repository_import import RepositoryImportError, import_repository
 from quire.documents import render_yaml_value
 
@@ -31,4 +33,4 @@ def import_repository_cmd(
         )
     except RepositoryImportError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(render_yaml_value(result))
+    emit(render_yaml_value(result))
