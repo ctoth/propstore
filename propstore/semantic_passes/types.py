@@ -45,6 +45,15 @@ class PassDiagnostic:
             return f"{': '.join(prefix)}: {self.message}"
         return self.message
 
+    def __str__(self) -> str:
+        return self.render()
+
+    def lower(self) -> str:
+        return self.render().lower()
+
+    def __contains__(self, item: str) -> bool:
+        return item in self.render()
+
 
 T = TypeVar("T")
 

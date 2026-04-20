@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Literal
 
 import bridgman
 
@@ -24,8 +24,8 @@ from propstore.compiler.references import (
     concept_exists,
     concept_form_definition,
 )
-from propstore.diagnostics import SemanticDiagnostic
 from propstore.dimensions import can_convert_unit_to
+from propstore.families.claims.passes.diagnostics import claim_diagnostic
 from propstore.families.forms.stages import FormDefinition
 from propstore.families.identity.logical_ids import (
     LOGICAL_NAMESPACE_RE,
@@ -33,6 +33,7 @@ from propstore.families.identity.logical_ids import (
     format_logical_id,
 )
 from propstore.stances import VALID_STANCE_TYPES
+from propstore.semantic_passes.types import PassDiagnostic
 
 
 # ---------------------------------------------------------------------------
@@ -41,15 +42,15 @@ from propstore.stances import VALID_STANCE_TYPES
 
 
 def _record(
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
     *,
-    level: str = "error",
+    level: Literal["info", "warning", "error"] = "error",
     message: str,
     filename: str,
     artifact_id: str | None = None,
 ) -> None:
     diagnostics.append(
-        SemanticDiagnostic(
+        claim_diagnostic(
             level=level,
             message=message,
             filename=filename,
@@ -64,11 +65,11 @@ def _validate_logical_ids(
     filename: str,
     artifact_id: str,
     seen_logical_ids: dict[str, str],
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
 ) -> set[str]:
     formatted_ids: set[str] = set()
     if not isinstance(logical_ids, list) or not logical_ids:
-        diagnostics.append(SemanticDiagnostic(
+        diagnostics.append(claim_diagnostic(
             level="error",
             message=f"claim '{artifact_id}' must define a non-empty logical_ids list",
             filename=filename,
@@ -78,7 +79,7 @@ def _validate_logical_ids(
 
     for index, entry in enumerate(logical_ids, start=1):
         if not isinstance(entry, dict):
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=f"claim '{artifact_id}' logical_ids entry #{index} must be a mapping",
                 filename=filename,
@@ -89,7 +90,7 @@ def _validate_logical_ids(
         namespace = entry.get("namespace")
         value = entry.get("value")
         if not isinstance(namespace, str) or not LOGICAL_NAMESPACE_RE.match(namespace):
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"claim '{artifact_id}' logical_ids entry #{index} "
@@ -100,7 +101,7 @@ def _validate_logical_ids(
             ))
             continue
         if not isinstance(value, str) or not LOGICAL_VALUE_RE.match(value):
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"claim '{artifact_id}' logical_ids entry #{index} "
@@ -113,7 +114,7 @@ def _validate_logical_ids(
 
         formatted = format_logical_id(entry)
         if formatted is None:
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"claim '{artifact_id}' logical_ids entry #{index} "
@@ -124,7 +125,7 @@ def _validate_logical_ids(
             ))
             continue
         if formatted in formatted_ids:
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=f"claim '{artifact_id}' duplicates logical ID '{formatted}'",
                 filename=filename,
@@ -132,7 +133,7 @@ def _validate_logical_ids(
             ))
             continue
         if formatted in seen_logical_ids:
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"duplicate logical ID '{formatted}' "
@@ -153,11 +154,11 @@ def _validate_stances(
     cid: str,
     filename: str,
     extant_claim_ids: set[str],
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
 ) -> None:
     stances = claim.get("stances") or []
     if not isinstance(stances, list):
-        diagnostics.append(SemanticDiagnostic(
+        diagnostics.append(claim_diagnostic(
             level="error",
             message=f"claim '{cid}' stances must be a list",
             filename=filename,
@@ -167,7 +168,7 @@ def _validate_stances(
 
     for index, stance in enumerate(stances, start=1):
         if not isinstance(stance, dict):
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=f"claim '{cid}' stance #{index} must be a mapping",
                 filename=filename,
@@ -179,14 +180,14 @@ def _validate_stances(
         target_claim_id = stance.get("target")
 
         if not stance_type:
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=f"claim '{cid}' stance #{index} missing type",
                 filename=filename,
                 artifact_id=cid,
             ))
         elif stance_type not in VALID_STANCE_TYPES:
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"claim '{cid}' stance #{index} uses unrecognized "
@@ -197,14 +198,14 @@ def _validate_stances(
             ))
 
         if not target_claim_id:
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=f"claim '{cid}' stance #{index} missing target",
                 filename=filename,
                 artifact_id=cid,
             ))
         elif target_claim_id not in extant_claim_ids:
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"claim '{cid}' stance #{index} references "
@@ -217,7 +218,7 @@ def _validate_stances(
         target_justification_id = stance.get("target_justification_id")
         if target_justification_id is not None:
             if not isinstance(target_justification_id, str) or not target_justification_id:
-                diagnostics.append(SemanticDiagnostic(
+                diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"claim '{cid}' stance #{index} "
@@ -229,7 +230,7 @@ def _validate_stances(
 
         conditions_differ = stance.get("conditions_differ")
         if conditions_differ is not None and not isinstance(conditions_differ, str):
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"claim '{cid}' stance #{index} "
@@ -242,7 +243,7 @@ def _validate_stances(
         resolution = stance.get("resolution")
         if resolution is not None:
             if not isinstance(resolution, dict):
-                diagnostics.append(SemanticDiagnostic(
+                diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"claim '{cid}' stance #{index} "
@@ -255,7 +256,7 @@ def _validate_stances(
 
             method = resolution.get("method")
             if not isinstance(method, str) or not method:
-                diagnostics.append(SemanticDiagnostic(
+                diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"claim '{cid}' stance #{index} "
@@ -268,7 +269,7 @@ def _validate_stances(
 
 def _validate_value_fields(
     claim: dict, cid: str, filename: str,
-    label: str, diagnostics: list[SemanticDiagnostic],
+    label: str, diagnostics: list[PassDiagnostic],
     value_group: ClaimValueGroupDeclaration,
 ) -> None:
     """Validate value, bounds, and uncertainty fields shared by parameter and measurement claims."""
@@ -281,7 +282,7 @@ def _validate_value_fields(
     has_upper = upper_bound is not None
 
     if not has_value and not has_lower and not has_upper:
-        diagnostics.append(SemanticDiagnostic(
+        diagnostics.append(claim_diagnostic(
             level="error",
             message=(
                 f"{label} claim '{cid}' missing '{value_group.value_field}' "
@@ -293,7 +294,7 @@ def _validate_value_fields(
         ))
 
     if has_lower and not has_upper:
-        diagnostics.append(SemanticDiagnostic(
+        diagnostics.append(claim_diagnostic(
             level="error",
             message=(
                 f"{label} claim '{cid}' has {value_group.lower_bound_field} "
@@ -303,7 +304,7 @@ def _validate_value_fields(
             artifact_id=cid,
         ))
     if has_upper and not has_lower:
-        diagnostics.append(SemanticDiagnostic(
+        diagnostics.append(claim_diagnostic(
             level="error",
             message=(
                 f"{label} claim '{cid}' has {value_group.upper_bound_field} "
@@ -318,7 +319,7 @@ def _validate_value_fields(
             lb = float(lower_bound)
         except (TypeError, ValueError):
             lb = None
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"{label} claim '{cid}' has non-numeric "
@@ -331,7 +332,7 @@ def _validate_value_fields(
             ub = float(upper_bound)
         except (TypeError, ValueError):
             ub = None
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"{label} claim '{cid}' has non-numeric "
@@ -341,7 +342,7 @@ def _validate_value_fields(
                 artifact_id=cid,
             ))
         if lb is not None and ub is not None and lb > ub:
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"{label} claim '{cid}' {value_group.lower_bound_field} "
@@ -357,7 +358,7 @@ def _validate_value_fields(
     has_uncertainty_type = uncertainty_type is not None
 
     if has_uncertainty_type and not has_uncertainty:
-        diagnostics.append(SemanticDiagnostic(
+        diagnostics.append(claim_diagnostic(
             level="error",
             message=(
                 f"{label} claim '{cid}' has {value_group.uncertainty_type_field} "
@@ -367,7 +368,7 @@ def _validate_value_fields(
             artifact_id=cid,
         ))
     if has_uncertainty and not has_uncertainty_type:
-        diagnostics.append(SemanticDiagnostic(
+        diagnostics.append(claim_diagnostic(
             level="error",
             message=(
                 f"{label} claim '{cid}' has {value_group.uncertainty_field} "
@@ -382,7 +383,7 @@ def _validate_value_fields(
             uval = float(uncertainty)
         except (TypeError, ValueError):
             uval = None
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"{label} claim '{cid}' has non-numeric "
@@ -392,7 +393,7 @@ def _validate_value_fields(
                 artifact_id=cid,
             ))
         if uval is not None and uval < 0:
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"{label} claim '{cid}' "
@@ -423,7 +424,7 @@ def validate_claim_semantics(
     cid: str,
     filename: str,
     context: CompilationContext,
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
 ) -> None:
     contract = claim_type_contract_for(claim.get("type"))
     if contract is None:
@@ -444,7 +445,7 @@ def _validate_claim_contract(
     cid: str,
     filename: str,
     context: CompilationContext,
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
     contract: ClaimTypeContract,
 ) -> None:
     label = contract.claim_type.value
@@ -508,7 +509,7 @@ def _validate_concept_reference_declaration(
     cid: str,
     filename: str,
     context: CompilationContext,
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
     label: str,
     *,
     field: str,
@@ -569,7 +570,7 @@ def _validate_unit_policy(
     cid: str,
     filename: str,
     context: CompilationContext,
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
     label: str,
     unit_policy: ClaimUnitPolicyDeclaration,
 ) -> None:
@@ -624,7 +625,7 @@ def _run_claim_semantic_checks(
     cid: str,
     filename: str,
     context: CompilationContext,
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
     contract: ClaimTypeContract,
 ) -> None:
     algorithm_tree: Any = None
@@ -661,7 +662,7 @@ def _validate_equation_sympy_generation(
     claim: dict,
     cid: str,
     filename: str,
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
 ) -> None:
     from propstore.sympy_generator import generate_sympy_with_error
 
@@ -701,7 +702,7 @@ def _validate_equation_dimensional_consistency(
     cid: str,
     filename: str,
     context: CompilationContext,
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
 ) -> None:
     sympy_str = claim.get("sympy")
     variables = claim.get("variables")
@@ -777,7 +778,7 @@ def _validate_algorithm_parse(
     claim: dict,
     cid: str,
     filename: str,
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
 ) -> Any:
     body = claim.get("body")
     if not body:
@@ -799,7 +800,7 @@ def _validate_algorithm_unbound_names(
     cid: str,
     filename: str,
     context: CompilationContext,
-    diagnostics: list[SemanticDiagnostic],
+    diagnostics: list[PassDiagnostic],
     tree: Any,
 ) -> None:
     variables = claim.get("variables")
@@ -832,7 +833,7 @@ def _validate_algorithm_unbound_names(
 
 def _validate_unit_against_form(
     unit: str, form_def: FormDefinition, cid: str, concept: str,
-    filename: str, diagnostics: list[SemanticDiagnostic],
+    filename: str, diagnostics: list[PassDiagnostic],
 ) -> None:
     """Check a claim unit against the concept's form definition.
 
@@ -850,7 +851,7 @@ def _validate_unit_against_form(
         unit_dims = resolve_unit_dimensions(unit)
         if unit_dims is not None:
             if not dimensions_compatible(unit_dims, form_dims):
-                diagnostics.append(SemanticDiagnostic(
+                diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"parameter claim '{cid}' unit '{unit}' has dimensions "
@@ -869,7 +870,7 @@ def _validate_unit_against_form(
         if unit not in form_def.allowed_units:
             if can_convert_unit_to(unit, form_def.unit_symbol):
                 return
-            diagnostics.append(SemanticDiagnostic(
+            diagnostics.append(claim_diagnostic(
                 level="error",
                 message=(
                     f"parameter claim '{cid}' unit '{unit}' does not match "

@@ -27,9 +27,7 @@ from propstore.repository import Repository
 def _emit_workflow_messages(messages) -> None:
     for message in messages:
         label = message.level.upper()
-        if message.scope:
-            label = f"{label} ({message.scope})"
-        emit_error(f"{label}: {message.text}")
+        emit_error(f"{label} ({message.family.value}): {message.render()}")
 
 
 @click.command()

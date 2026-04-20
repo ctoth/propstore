@@ -10,7 +10,6 @@ from propstore.compiler.ir import (
     ResolvedReference,
     SemanticClaim,
     SemanticClaimFile,
-    SemanticDiagnostic,
     SemanticStance,
 )
 __all__ = [
@@ -19,7 +18,6 @@ __all__ = [
     "ResolvedReference",
     "SemanticClaim",
     "SemanticClaimFile",
-    "SemanticDiagnostic",
     "SemanticStance",
     "build_compilation_context_from_loaded",
     "build_compilation_context_from_repo",
