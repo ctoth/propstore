@@ -204,7 +204,7 @@ class TestFormAlgebraExceptionVisibility:
         def _boom(*_args, **_kwargs):
             raise RuntimeError("rewrite boom")
 
-        monkeypatch.setattr("propstore.sidecar.concepts.rewrite_parameterization_symbols", _boom)
+        monkeypatch.setattr("propstore.sidecar.passes.rewrite_parameterization_symbols", _boom)
 
         with pytest.raises(RuntimeError, match="rewrite boom"):
             build_sidecar(knowledge, sidecar, force=True)
@@ -221,7 +221,7 @@ class TestFormAlgebraExceptionVisibility:
         def _boom(*_args, **_kwargs):
             raise RuntimeError("canonical boom")
 
-        monkeypatch.setattr("propstore.sidecar.concepts.canonical_dump", _boom)
+        monkeypatch.setattr("propstore.sidecar.passes.canonical_dump", _boom)
 
         with pytest.raises(RuntimeError, match="canonical boom"):
             build_sidecar(knowledge, sidecar, force=True)
