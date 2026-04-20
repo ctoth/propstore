@@ -33,6 +33,64 @@ class ClaimSidecarRows:
 
 
 @dataclass(frozen=True)
+class FormInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ConceptInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ConceptAliasInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ConceptRelationshipInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class RelationEdgeInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ConceptParameterizationInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ConceptParameterizationGroupInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class FormAlgebraInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ConceptFtsInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ConceptSidecarRows:
+    form_rows: tuple[FormInsertRow, ...]
+    concept_rows: tuple[ConceptInsertRow, ...]
+    alias_rows: tuple[ConceptAliasInsertRow, ...]
+    relationship_rows: tuple[ConceptRelationshipInsertRow, ...]
+    relation_edge_rows: tuple[RelationEdgeInsertRow, ...]
+    parameterization_rows: tuple[ConceptParameterizationInsertRow, ...]
+    parameterization_group_rows: tuple[ConceptParameterizationGroupInsertRow, ...]
+    form_algebra_rows: tuple[FormAlgebraInsertRow, ...]
+    concept_fts_rows: tuple[ConceptFtsInsertRow, ...]
+
+
+@dataclass(frozen=True)
 class RepositoryCheckedBundle:
     concepts: list[LoadedConcept]
     form_registry: dict[str, FormDefinition]
