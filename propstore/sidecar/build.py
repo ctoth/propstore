@@ -38,18 +38,12 @@ from propstore.sidecar.claims import (
     populate_raw_id_quarantine_records,
     populate_stances,
 )
-from propstore.sidecar.passes import compile_claim_sidecar_rows
-from propstore.sidecar.stages import RepositoryCheckedBundle
-from propstore.sidecar.concepts import (
-    build_concept_fts_index,
-    populate_aliases,
-    populate_concepts,
-    populate_form_algebra,
-    populate_forms,
-    populate_parameterization_groups,
-    populate_parameterizations,
-    populate_relationships,
+from propstore.sidecar.passes import (
+    compile_claim_sidecar_rows,
+    compile_concept_sidecar_rows,
 )
+from propstore.sidecar.stages import RepositoryCheckedBundle
+from propstore.sidecar.concepts import populate_concept_sidecar_rows
 from propstore.sidecar.schema import (
     create_claim_tables,
     create_micropublication_tables,
@@ -250,22 +244,13 @@ def build_sidecar(
                 for ref in repo.families.sources.iter(commit=commit_hash)
             ),
         )
-        populate_forms(conn, repository_checked_bundle.form_registry)
-        populate_concepts(
+        populate_concept_sidecar_rows(
             conn,
-            repository_checked_bundle.concepts,
-            repository_checked_bundle.form_registry,
+            compile_concept_sidecar_rows(
+                repository_checked_bundle.concepts,
+                repository_checked_bundle.form_registry,
+            ),
         )
-        populate_aliases(conn, repository_checked_bundle.concepts)
-        populate_relationships(conn, repository_checked_bundle.concepts)
-        populate_parameterizations(conn, repository_checked_bundle.concepts)
-        populate_parameterization_groups(conn, repository_checked_bundle.concepts)
-        populate_form_algebra(
-            conn,
-            repository_checked_bundle.concepts,
-            repository_checked_bundle.form_registry,
-        )
-        build_concept_fts_index(conn, repository_checked_bundle.concepts)
         create_claim_tables(conn)
         create_micropublication_tables(conn)
 
