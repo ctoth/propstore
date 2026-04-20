@@ -268,6 +268,17 @@ def compile_claim_files(
                     filename=filename,
                     artifact_id=cid,
                 ))
+            if "artifact_code" in resolved_claim:
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message=(
+                        f"claim '{cid}' uses source-local field "
+                        "'artifact_code'; canonical claims must be promoted "
+                        "through the source pipeline"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                ))
 
             if not CLAIM_ARTIFACT_ID_RE.match(cid):
                 file_diagnostics.append(SemanticDiagnostic(
