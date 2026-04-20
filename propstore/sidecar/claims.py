@@ -10,169 +10,24 @@ at build) — no data is refused; the render layer decides what to show.
 
 from __future__ import annotations
 
-import json
 import sqlite3
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claims import (
-    ClaimFileEntry,
-    claim_file_claims,
-)
 from propstore.sidecar.claim_utils import (
-    claim_reference_map_from_conn,
-    coerce_stance_resolution,
     insert_claim_row,
     insert_claim_stance_row,
-    resolution_opinion_columns,
-    resolve_claim_reference,
 )
-from propstore.sidecar.stages import ClaimSidecarRows
-from propstore.families.documents.sources import SourceJustificationsDocument
-from propstore.families.documents.stances import StanceFileDocument
-from propstore.stances import VALID_STANCE_TYPES
+from propstore.sidecar.stages import (
+    ClaimFtsInsertRow,
+    ClaimSidecarRows,
+    ClaimStanceInsertRow,
+    ConflictWitnessInsertRow,
+    JustificationInsertRow,
+)
 
 if TYPE_CHECKING:
     from propstore.families.claims.stages import RawIdQuarantineRecord
-
-
-def populate_stances(
-    conn: sqlite3.Connection,
-    stance_entries: Iterable[tuple[str, StanceFileDocument]],
-) -> int:
-    """Read stance YAML files and insert them into normalized relation storage."""
-    stance_entries = list(stance_entries)
-    if not stance_entries:
-        return 0
-
-    claim_reference_map = claim_reference_map_from_conn(conn)
-    valid_claims = set(claim_reference_map.values())
-    count = 0
-
-    for filename, data in stance_entries:
-        source_claim = resolve_claim_reference(
-            data.source_claim,
-            claim_reference_map,
-        ) or ""
-        if source_claim not in valid_claims:
-            raise sqlite3.IntegrityError(
-                f"stance file {filename} references nonexistent source claim '{source_claim}'"
-            )
-
-        for index, stance in enumerate(data.stances, start=1):
-            stance_payload = stance.to_payload()
-            target = resolve_claim_reference(
-                stance.target or "",
-                claim_reference_map,
-            ) or ""
-            stance_type = stance.type or ""
-            if target not in valid_claims:
-                raise sqlite3.IntegrityError(
-                    f"stance file {filename} references nonexistent target claim '{target}'"
-                )
-            if stance_type not in VALID_STANCE_TYPES:
-                raise ValueError(
-                    f"stance file {filename} uses unrecognized stance type '{stance_type}'"
-                )
-
-            resolution = coerce_stance_resolution(
-                stance_payload.get("resolution"),
-                f"stance file {filename} stance #{index}",
-            )
-            opinion_columns = resolution_opinion_columns(resolution)
-            conditions_differ = stance.conditions_differ
-
-            insert_claim_stance_row(
-                conn,
-                (
-                    source_claim,
-                    target,
-                    stance_type,
-                    stance.target_justification_id,
-                    stance.strength,
-                    conditions_differ,
-                    stance.note,
-                    resolution.get("method"),
-                    resolution.get("model"),
-                    resolution.get("embedding_model"),
-                    resolution.get("embedding_distance"),
-                    resolution.get("pass_number"),
-                    resolution.get("confidence"),
-                    opinion_columns[0],
-                    opinion_columns[1],
-                    opinion_columns[2],
-                    opinion_columns[3],
-                ),
-            )
-            count += 1
-    return count
-
-
-def populate_authored_justifications(
-    conn: sqlite3.Connection,
-    justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
-) -> int:
-    """Read authored justification YAML files and insert them into the sidecar."""
-    justification_entries = list(justification_entries)
-    if not justification_entries:
-        return 0
-
-    claim_reference_map = claim_reference_map_from_conn(conn)
-    valid_claims = set(claim_reference_map.values())
-    count = 0
-
-    for filename, data in justification_entries:
-        for index, justification in enumerate(data.justifications, start=1):
-            justification_payload = justification.to_payload()
-            justification_id = justification.id
-            conclusion = resolve_claim_reference(
-                justification.conclusion,
-                claim_reference_map,
-            )
-            if not isinstance(justification_id, str) or not justification_id:
-                raise ValueError(f"justification file {filename} entry #{index} missing id")
-            if not isinstance(conclusion, str) or conclusion not in valid_claims:
-                raise sqlite3.IntegrityError(
-                    f"justification file {filename} entry #{index} references nonexistent conclusion '{conclusion}'"
-                )
-            resolved_premises = [
-                resolve_claim_reference(premise, claim_reference_map)
-                for premise in justification.premises
-            ]
-            if any(
-                not isinstance(premise, str) or premise not in valid_claims
-                for premise in resolved_premises
-            ):
-                raise sqlite3.IntegrityError(
-                    f"justification file {filename} entry #{index} references nonexistent premise"
-                )
-
-            provenance = justification_payload.get("provenance")
-            attack_target = justification_payload.get("attack_target")
-            provenance_payload: dict[str, object] = {}
-            if isinstance(provenance, dict):
-                provenance_payload.update(provenance)
-            if isinstance(attack_target, dict):
-                provenance_payload["attack_target"] = attack_target
-
-            conn.execute(
-                "INSERT OR IGNORE INTO justification "
-                "(id, justification_kind, conclusion_claim_id, premise_claim_ids, "
-                "source_relation_type, source_claim_id, provenance_json, rule_strength) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    justification_id,
-                    str(justification.rule_kind or "reported_claim"),
-                    conclusion,
-                    json.dumps(resolved_premises),
-                    None,
-                    None,
-                    json.dumps(provenance_payload) if provenance_payload else None,
-                    str(justification.rule_strength or "defeasible"),
-                ),
-            )
-            count += 1
-    return count
 
 
 def populate_raw_id_quarantine_records(
@@ -275,62 +130,48 @@ def populate_claims(
         insert_claim_stance_row(conn, stance_row.values)
 
 
+def populate_stances(
+    conn: sqlite3.Connection,
+    rows: Sequence[ClaimStanceInsertRow],
+) -> None:
+    for row in rows:
+        insert_claim_stance_row(conn, row.values)
+
+
+def populate_authored_justifications(
+    conn: sqlite3.Connection,
+    rows: Sequence[JustificationInsertRow],
+) -> None:
+    for row in rows:
+        conn.execute(
+            "INSERT OR IGNORE INTO justification "
+            "(id, justification_kind, conclusion_claim_id, premise_claim_ids, "
+            "source_relation_type, source_claim_id, provenance_json, rule_strength) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            row.values,
+        )
+
+
 def populate_conflicts(
     conn: sqlite3.Connection,
-    claim_files: Sequence[ClaimFileEntry],
-    concept_registry: dict,
-    cel_registry: dict,
-    lifting_system=None,
+    rows: Sequence[ConflictWitnessInsertRow],
 ) -> None:
-    from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
-    from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-
-    conflict_claims = conflict_claims_from_claim_files(claim_files)
-    records = detect_conflicts(
-        conflict_claims,
-        concept_registry,
-        cel_registry,
-        lifting_system=lifting_system,
-    )
-    transitive_records = detect_transitive_conflicts(
-        conflict_claims,
-        concept_registry,
-        lifting_system=lifting_system,
-    )
-    records.extend(transitive_records)
-    for record in records:
+    for row in rows:
         conn.execute(
             "INSERT INTO conflict_witness (concept_id, claim_a_id, claim_b_id, "
             "warning_class, conditions_a, conditions_b, value_a, value_b, "
             "derivation_chain) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                record.concept_id,
-                record.claim_a_id,
-                record.claim_b_id,
-                record.warning_class.value,
-                json.dumps(record.conditions_a),
-                json.dumps(record.conditions_b),
-                record.value_a,
-                record.value_b,
-                record.derivation_chain,
-            ),
+            row.values,
         )
 
 
-def build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[ClaimFileEntry]) -> None:
-    """Build the FTS5 index over claim statements, conditions, and expressions."""
-    for claim_file in claim_files:
-        for claim in claim_file_claims(claim_file):
-            claim_id = claim.artifact_id
-            if not isinstance(claim_id, str) or not claim_id:
-                continue
-            statement = claim.statement or ""
-            expression = claim.expression or ""
-            conditions = list(claim.conditions)
-            conditions_text = " ".join(conditions)
-
-            conn.execute(
-                "INSERT INTO claim_fts (claim_id, statement, conditions, expression) "
-                "VALUES (?, ?, ?, ?)",
-                (claim_id, statement, conditions_text, expression),
-            )
+def populate_claim_fts_rows(
+    conn: sqlite3.Connection,
+    rows: Sequence[ClaimFtsInsertRow],
+) -> None:
+    for row in rows:
+        conn.execute(
+            "INSERT INTO claim_fts (claim_id, statement, conditions, expression) "
+            "VALUES (?, ?, ?, ?)",
+            row.values,
+        )

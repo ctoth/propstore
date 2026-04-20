@@ -31,15 +31,20 @@ from propstore.families.concepts.stages import LoadedConcept, parse_concept_reco
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.sidecar.claims import (
-    build_claim_fts_index,
     populate_authored_justifications,
+    populate_claim_fts_rows,
     populate_claims,
     populate_conflicts,
     populate_raw_id_quarantine_records,
     populate_stances,
 )
 from propstore.sidecar.passes import (
+    compile_authored_justification_sidecar_rows,
+    compile_authored_stance_sidecar_rows,
     compile_claim_sidecar_rows,
+    compile_claim_fts_rows,
+    compile_claim_reference_map,
+    compile_conflict_sidecar_rows,
     compile_concept_sidecar_rows,
 )
 from propstore.sidecar.stages import RepositoryCheckedBundle
@@ -282,14 +287,18 @@ def build_sidecar(
             )
             populate_conflicts(
                 conn,
-                list(repository_checked_bundle.normalized_claim_files),
-                repository_checked_bundle.concept_registry,
-                dict(repository_checked_bundle.compilation_context.cel_registry),
-                lifting_system=lifting_system,
+                compile_conflict_sidecar_rows(
+                    list(repository_checked_bundle.normalized_claim_files),
+                    repository_checked_bundle.concept_registry,
+                    dict(repository_checked_bundle.compilation_context.cel_registry),
+                    lifting_system=lifting_system,
+                ),
             )
-            build_claim_fts_index(
+            populate_claim_fts_rows(
                 conn,
-                repository_checked_bundle.normalized_claim_files,
+                compile_claim_fts_rows(
+                    repository_checked_bundle.normalized_claim_files,
+                ),
             )
 
         populate_micropublications(
@@ -318,24 +327,38 @@ def build_sidecar(
                 conn.row_factory = None
 
         if normalized_claim_files is not None:
+            claim_reference_map = compile_claim_reference_map(
+                repository_checked_bundle.normalized_claim_files or (),
+            )
             populate_stances(
                 conn,
-                (
+                compile_authored_stance_sidecar_rows(
                     (
-                        ref.source_claim,
-                        repo.families.stances.require(ref, commit=commit_hash),
-                    )
-                    for ref in repo.families.stances.iter(commit=commit_hash)
+                        (
+                            ref.source_claim,
+                            repo.families.stances.require(ref, commit=commit_hash),
+                        )
+                        for ref in repo.families.stances.iter(commit=commit_hash)
+                    ),
+                    claim_reference_map,
                 ),
             )
             populate_authored_justifications(
                 conn,
-                (
+                compile_authored_justification_sidecar_rows(
                     (
-                        ref.name,
-                        repo.families.justifications.require(ref, commit=commit_hash),
-                    )
-                    for ref in repo.families.justifications.iter(commit=commit_hash)
+                        (
+                            ref.name,
+                            repo.families.justifications.require(
+                                ref,
+                                commit=commit_hash,
+                            ),
+                        )
+                        for ref in repo.families.justifications.iter(
+                            commit=commit_hash
+                        )
+                    ),
+                    claim_reference_map,
                 ),
             )
 
