@@ -46,7 +46,9 @@ from propstore.sidecar.passes import (
     compile_claim_reference_map,
     compile_conflict_sidecar_rows,
     compile_concept_sidecar_rows,
+    compile_context_sidecar_rows,
     compile_micropublication_sidecar_rows,
+    compile_source_sidecar_rows,
 )
 from propstore.sidecar.stages import RepositoryCheckedBundle
 from propstore.sidecar.concepts import populate_concept_sidecar_rows
@@ -242,12 +244,14 @@ def build_sidecar(
         create_context_tables(conn)
         populate_sources(
             conn,
-            (
+            compile_source_sidecar_rows(
                 (
-                    ref.name,
-                    repo.families.sources.require(ref, commit=commit_hash),
+                    (
+                        ref.name,
+                        repo.families.sources.require(ref, commit=commit_hash),
+                    )
+                    for ref in repo.families.sources.iter(commit=commit_hash)
                 )
-                for ref in repo.families.sources.iter(commit=commit_hash)
             ),
         )
         populate_concept_sidecar_rows(
@@ -262,7 +266,12 @@ def build_sidecar(
         claim_reference_map: dict[str, str] = {}
 
         if repository_checked_bundle.context_files:
-            populate_contexts(conn, repository_checked_bundle.context_files)
+            populate_contexts(
+                conn,
+                compile_context_sidecar_rows(
+                    repository_checked_bundle.context_files,
+                ),
+            )
 
         if repository_checked_bundle.normalized_claim_files is not None:
             checked_claims = repository_checked_bundle.claim_checked_bundle
