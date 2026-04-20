@@ -10,6 +10,7 @@ from quire.references import ReferenceResolution as ResolvedReference
 from propstore.cel_types import CheckedCelConditionSet
 from propstore.claims import ClaimFileEntry
 from propstore.diagnostics import SemanticDiagnostic, ValidationResult, diagnostics_to_validation_result
+from propstore.families.claims.documents import ClaimDocument
 
 
 @dataclass(frozen=True)
@@ -29,7 +30,7 @@ class SemanticClaim:
     artifact_id: str | None
     claim_type: str | None
     authored_claim: dict[str, Any]
-    resolved_claim: dict[str, Any]
+    resolved_claim: ClaimDocument
     concept_ref: ResolvedReference | None = None
     target_concept_ref: ResolvedReference | None = None
     concept_refs: tuple[ResolvedReference, ...] = ()
