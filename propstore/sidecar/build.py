@@ -46,6 +46,7 @@ from propstore.sidecar.passes import (
     compile_claim_reference_map,
     compile_conflict_sidecar_rows,
     compile_concept_sidecar_rows,
+    compile_micropublication_sidecar_rows,
 )
 from propstore.sidecar.stages import RepositoryCheckedBundle
 from propstore.sidecar.concepts import populate_concept_sidecar_rows
@@ -258,6 +259,7 @@ def build_sidecar(
         )
         create_claim_tables(conn)
         create_micropublication_tables(conn)
+        claim_reference_map: dict[str, str] = {}
 
         if repository_checked_bundle.context_files:
             populate_contexts(conn, repository_checked_bundle.context_files)
@@ -266,6 +268,9 @@ def build_sidecar(
             checked_claims = repository_checked_bundle.claim_checked_bundle
             if checked_claims is None:
                 raise ValueError("checked claim bundle is required to populate claims")
+            claim_reference_map = compile_claim_reference_map(
+                repository_checked_bundle.normalized_claim_files,
+            )
             populate_claims(
                 conn,
                 compile_claim_sidecar_rows(
@@ -303,12 +308,15 @@ def build_sidecar(
 
         populate_micropublications(
             conn,
-            (
+            compile_micropublication_sidecar_rows(
                 (
-                    ref.name,
-                    repo.families.micropubs.require(ref, commit=commit_hash),
-                )
-                for ref in repo.families.micropubs.iter(commit=commit_hash)
+                    (
+                        ref.name,
+                        repo.families.micropubs.require(ref, commit=commit_hash),
+                    )
+                    for ref in repo.families.micropubs.iter(commit=commit_hash)
+                ),
+                claim_reference_map,
             ),
         )
 
@@ -327,9 +335,6 @@ def build_sidecar(
                 conn.row_factory = None
 
         if normalized_claim_files is not None:
-            claim_reference_map = compile_claim_reference_map(
-                repository_checked_bundle.normalized_claim_files or (),
-            )
             populate_stances(
                 conn,
                 compile_authored_stance_sidecar_rows(

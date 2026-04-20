@@ -22,7 +22,6 @@ from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stag
 from propstore.core.claim_types import ClaimType
 from propstore.dimensions import normalize_to_si
 from propstore.families.identity.logical_ids import (
-    format_logical_id,
     normalize_identity_namespace,
     normalize_logical_value,
     primary_logical_id,
@@ -151,42 +150,6 @@ def insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> None
             stance_row[16],
         ),
     )
-
-
-def claim_reference_map_from_conn(conn: sqlite3.Connection) -> dict[str, str]:
-    rows = conn.execute(
-        "SELECT id, primary_logical_id, logical_ids_json FROM claim_core"
-    ).fetchall()
-    reference_map: dict[str, str] = {}
-    for row in rows:
-        claim_id = row[0]
-        if not isinstance(claim_id, str) or not claim_id:
-            continue
-        reference_map[claim_id] = claim_id
-        primary_logical_id = row[1]
-        if isinstance(primary_logical_id, str) and primary_logical_id:
-            reference_map[primary_logical_id] = claim_id
-            if ":" in primary_logical_id:
-                reference_map[primary_logical_id.split(":", 1)[1]] = claim_id
-        logical_ids_json = row[2]
-        if not isinstance(logical_ids_json, str) or not logical_ids_json:
-            continue
-        try:
-            logical_ids = json.loads(logical_ids_json)
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(logical_ids, list):
-            continue
-        for logical_id in logical_ids:
-            if not isinstance(logical_id, dict):
-                continue
-            formatted = format_logical_id(logical_id)
-            if formatted:
-                reference_map[formatted] = claim_id
-            value = logical_id.get("value")
-            if isinstance(value, str) and value:
-                reference_map[value] = claim_id
-    return reference_map
 
 
 def collect_claim_reference_map(claim_files: Sequence[ClaimFileEntry]) -> dict[str, str]:
