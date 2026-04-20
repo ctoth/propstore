@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 from propstore.claims import ClaimFileEntry
-from propstore.families.claims.stages import ClaimCheckedBundle, RawIdQuarantineRecord
+from propstore.families.claims.stages import ClaimCheckedBundle
 from propstore.families.concepts.stages import LoadedConcept
 from propstore.families.contexts.stages import LoadedContext
 from propstore.families.forms.stages import FormDefinition
@@ -45,6 +45,22 @@ class ConflictWitnessInsertRow:
 @dataclass(frozen=True)
 class ClaimFtsInsertRow:
     values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class RawIdQuarantineClaimInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class BuildDiagnosticInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class RawIdQuarantineSidecarRows:
+    claim_rows: tuple[RawIdQuarantineClaimInsertRow, ...]
+    diagnostic_rows: tuple[BuildDiagnosticInsertRow, ...]
 
 
 @dataclass(frozen=True)
@@ -171,7 +187,7 @@ class SidecarBuildPlan:
     concept_rows: ConceptSidecarRows
     context_rows: ContextSidecarRows
     claim_rows: ClaimSidecarRows | None
-    raw_id_quarantine_records: tuple[RawIdQuarantineRecord, ...]
+    raw_id_quarantine_rows: RawIdQuarantineSidecarRows
     conflict_rows: tuple[ConflictWitnessInsertRow, ...]
     claim_fts_rows: tuple[ClaimFtsInsertRow, ...]
     micropublication_rows: MicropublicationSidecarRows

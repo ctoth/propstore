@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
 
 from propstore.sidecar.claim_utils import (
     insert_claim_row,
@@ -24,40 +23,15 @@ from propstore.sidecar.stages import (
     ClaimStanceInsertRow,
     ConflictWitnessInsertRow,
     JustificationInsertRow,
+    RawIdQuarantineSidecarRows,
 )
-
-if TYPE_CHECKING:
-    from propstore.families.claims.stages import RawIdQuarantineRecord
 
 
 def populate_raw_id_quarantine_records(
     conn: sqlite3.Connection,
-    records: Sequence[RawIdQuarantineRecord],
+    rows: RawIdQuarantineSidecarRows,
 ) -> None:
-    """Write stub claim_core + build_diagnostics rows for raw-id-broken claims.
-
-    Per ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
-    axis-1 finding 3.1: the former all-or-nothing abort on raw-id inputs
-    becomes a per-claim quarantine. Each record yields:
-
-    - One ``claim_core`` row with ``id=<synthetic>``,
-      ``build_status='blocked'``, and minimal required fields. The
-      synthetic id scheme and basis are recorded in ``detail_json`` on
-      the paired diagnostic row for traceability (CLAUDE.md
-      honest-ignorance discipline — do not hide that the id is synthetic).
-    - One ``build_diagnostics`` row with
-      ``diagnostic_kind='raw_id_input'``, ``blocking=1``,
-      ``severity='error'``, ``claim_id=<synthetic>``.
-
-    Render-policy filters hide ``build_status='blocked'`` rows by default
-    (phase 4).
-    """
-
-    for record in records:
-        # Stub claim_core row — minimal required columns; FK nullable fields
-        # left NULL. The existing ``insert_claim_row`` helper expects a full
-        # payload dict and pushes to three payload tables; for a pure
-        # quarantine row we only need the core row. Use a direct INSERT.
+    for row in rows.claim_rows:
         conn.execute(
             """
             INSERT INTO claim_core (
@@ -68,28 +42,9 @@ def populate_raw_id_quarantine_records(
                 promotion_status
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                record.synthetic_id,
-                "",
-                "[]",
-                "",
-                "",
-                record.seq,
-                "quarantine",
-                None,
-                None,
-                record.source_paper,
-                record.source_paper,
-                0,
-                None,
-                None,
-                "ordinary",
-                None,
-                "blocked",
-                None,
-                None,
-            ),
+            row.values,
         )
+    for row in rows.diagnostic_rows:
         conn.execute(
             """
             INSERT INTO build_diagnostics (
@@ -97,17 +52,7 @@ def populate_raw_id_quarantine_records(
                 severity, blocking, message, file, detail_json
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                record.synthetic_id,
-                "claim",
-                record.raw_id,
-                "raw_id_input",
-                "error",
-                1,
-                record.message,
-                record.filename,
-                record.detail_json,
-            ),
+            row.values,
         )
 
 

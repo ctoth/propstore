@@ -271,10 +271,10 @@ def build_sidecar(
         if sidecar_plan.claim_rows is not None:
             populate_claims(conn, sidecar_plan.claim_rows)
 
-            if sidecar_plan.raw_id_quarantine_records:
+            if sidecar_plan.raw_id_quarantine_rows.claim_rows:
                 populate_raw_id_quarantine_records(
                     conn,
-                    sidecar_plan.raw_id_quarantine_records,
+                    sidecar_plan.raw_id_quarantine_rows,
                 )
 
             populate_conflicts(conn, sidecar_plan.conflict_rows)
