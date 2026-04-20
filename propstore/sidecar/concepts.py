@@ -8,7 +8,7 @@ import sqlite3
 from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
 
-from propstore.core.concepts import ConceptRecord, LoadedConcept
+from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
 from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.forms.stages import (
     FormDefinition,

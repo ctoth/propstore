@@ -52,7 +52,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from argumentation.aspic import GroundAtom
-from propstore.core.concepts import LoadedConcept
+from propstore.families.concepts.stages import LoadedConcept
 from propstore.grounding.predicates import (
     PredicateRegistry,
     parse_derived_from,
@@ -101,7 +101,7 @@ def extract_facts(
 
     Args:
         concepts: Sequence of ``LoadedConcept`` envelopes as produced
-            by ``propstore.core.concepts.load_concepts`` and consumed
+            by ``propstore.families.concepts.stages.load_concepts`` and consumed
             by the sidecar build pipeline.
         registry: ``PredicateRegistry`` providing predicate
             declarations and their ``derived_from`` DSL strings.

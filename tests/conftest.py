@@ -17,7 +17,7 @@ from hypothesis import settings
 from quire.documents import convert_document_value as convert_document
 from propstore.families.registry import CONCEPT_FILE_FAMILY
 from propstore.cel_checker import KindType
-from propstore.core.concepts import concept_document_to_record_payload
+from propstore.families.concepts.stages import concept_document_to_record_payload
 from propstore.families.identity.claims import (
     compute_claim_version_id,
     derive_claim_artifact_id,
@@ -802,7 +802,7 @@ def make_compilation_context(registry: dict[str, dict] | None = None, *, claim_f
     from propstore.cel_registry import build_canonical_cel_registry
     from propstore.compiler.context import CompilationContext
     from propstore.compiler.references import build_claim_reference_lookup
-    from propstore.core.concepts import concept_reference_keys, parse_concept_record
+    from propstore.families.concepts.stages import concept_reference_keys, parse_concept_record
 
     source_registry = make_concept_registry() if registry is None else registry
     concepts_by_id = {}

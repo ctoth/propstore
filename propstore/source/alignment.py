@@ -12,7 +12,7 @@ from propstore.families.registry import (
     ConceptFileRef,
 )
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
-from propstore.families.documents.concepts import ConceptDocument
+from propstore.families.concepts.documents import ConceptDocument
 from propstore.repository import Repository
 from quire.documents import convert_document_value
 from argumentation.partial_af import PartialArgumentationFramework

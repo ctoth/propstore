@@ -18,7 +18,7 @@ from propstore.families.forms.stages import (
 from propstore.families.registry import FormRef
 from propstore.cel_checker import KindType
 from quire.documents import convert_document_value, decode_document_path
-from propstore.core.concepts import parse_concept_record_document
+from propstore.families.concepts.stages import parse_concept_record_document
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore import dimensions as dimension_api
 

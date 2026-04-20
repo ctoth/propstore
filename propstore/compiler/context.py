@@ -17,7 +17,7 @@ from quire.references import (
     finalize_reference_lookup,
 )
 from propstore.compiler.references import build_claim_reference_lookup
-from propstore.core.concepts import (
+from propstore.families.concepts.stages import (
     ConceptRecord,
     LoadedConcept,
     concept_reference_keys,
@@ -196,7 +196,7 @@ def build_authored_concept_registry(
     require_form_definition: bool = True,
 ) -> dict[str, dict[str, Any]]:
     """Build the canonical authored-concept lookup used by validators/builders."""
-    from propstore.core.concepts import normalize_loaded_concepts
+    from propstore.families.concepts.stages import normalize_loaded_concepts
     from propstore.families.forms.stages import load_form_path
 
     forms_root = None if forms_dir is None else coerce_knowledge_path(forms_dir)

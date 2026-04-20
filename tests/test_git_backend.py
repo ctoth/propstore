@@ -448,7 +448,7 @@ def test_load_concepts_from_git_tree(tmp_path):
         "concepts/test_concept.yaml": yaml.dump(concept_data).encode(),
     }, "add concept")
 
-    from propstore.core.concepts import load_concepts
+    from propstore.families.concepts.stages import load_concepts
     concepts = load_concepts(kr.tree() / "concepts")
     assert len(concepts) == 1
     assert concepts[0].record.primary_logical_id == "testing:test_concept"

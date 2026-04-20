@@ -40,7 +40,7 @@ from propstore.families.registry import (
     MicropubsFileRef,
     StanceFileRef,
 )
-from propstore.families.documents.concepts import ConceptDocument
+from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.documents.claims import ClaimsFileDocument
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
 from propstore.repository import Repository

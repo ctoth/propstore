@@ -3,12 +3,13 @@
 from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 import msgspec
 
 from propstore.cel_types import CelExpr, to_cel_exprs
-from propstore.families.documents.concepts import (
+from propstore.families.concepts.documents import (
     ConceptAliasDocument,
     ConceptDocument,
     ConceptFormParametersDocument,
@@ -37,6 +38,13 @@ from propstore.families.identity.concepts import (
 from propstore.families.identity.logical_ids import format_logical_id, normalize_logical_value
 from quire.tree_path import TreePath as KnowledgePath
 from quire.documents import LoadedDocument
+
+
+class ConceptStage(StrEnum):
+    AUTHORED = "concept.authored"
+    NORMALIZED = "concept.normalized"
+    BOUND = "concept.bound"
+    CHECKED = "concept.checked"
 
 
 def _string_list(value: object) -> tuple[str, ...]:
@@ -317,6 +325,28 @@ class LoadedConcept:
     record: ConceptRecord
     document: ConceptDocument | None = None
     source_local_id: str | None = None
+
+
+@dataclass(frozen=True)
+class ConceptAuthoredSet:
+    concepts: tuple[LoadedConcept, ...]
+
+
+@dataclass(frozen=True)
+class ConceptNormalizedSet:
+    concepts: tuple[LoadedConcept, ...]
+
+
+@dataclass(frozen=True)
+class ConceptBoundRegistry:
+    concepts: tuple[LoadedConcept, ...]
+    registry: dict[str, dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class ConceptCheckedRegistry:
+    concepts: tuple[LoadedConcept, ...]
+    registry: dict[str, dict[str, Any]]
 
 
 def normalize_concept_payload(data: Mapping[str, Any]) -> dict[str, Any]:

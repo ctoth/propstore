@@ -92,7 +92,7 @@ def _build_concept_record(canonical_name: str, relationships):
     without invoking the heavier ``parse_concept_record`` normaliser.
     """
 
-    from propstore.core.concepts import ConceptRecord
+    from propstore.families.concepts.stages import ConceptRecord
     from propstore.core.id_types import to_concept_id
     from propstore.core.id_types import LogicalId
 
@@ -117,7 +117,7 @@ def _build_loaded_concept(canonical_name: str, relationships):
     ``load_concepts``; the extractor must accept the same shape.
     """
 
-    from propstore.core.concepts import LoadedConcept
+    from propstore.families.concepts.stages import LoadedConcept
 
     record = _build_concept_record(canonical_name, relationships)
     return LoadedConcept(
@@ -137,7 +137,7 @@ def _build_concept_relationship(relation: str, target: str):
     graph).
     """
 
-    from propstore.core.concepts import ConceptRelationship
+    from propstore.families.concepts.stages import ConceptRelationship
     from propstore.core.id_types import to_concept_id
 
     return ConceptRelationship(
@@ -190,7 +190,7 @@ def concept_relationship_graphs() -> st.SearchStrategy:
     """Strategy producing small concept relationship graphs.
 
     Each element is a ``Sequence[LoadedConcept]``, mirroring the shape
-    that ``propstore.core.concepts.load_concepts`` produces and that
+    that ``propstore.families.concepts.stages.load_concepts`` produces and that
     ``propstore.sidecar.build`` passes through the build pipeline.
     Each generated concept carries zero or more outgoing
     ``ConceptRelationship`` edges drawn from a small fixed pool of

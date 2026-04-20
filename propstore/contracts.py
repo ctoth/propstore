@@ -49,17 +49,26 @@ def iter_claim_type_contracts() -> tuple["ClaimTypeContract", ...]:
 
 
 def iter_semantic_pass_classes() -> tuple[type[Any], ...]:
+    from propstore.families.concepts.passes import register_concept_pipeline
     from propstore.families.contexts.passes import register_context_pipeline
     from propstore.families.forms.passes import register_form_pipeline
     from propstore.semantic_passes.registry import PipelineRegistry
 
     registry = PipelineRegistry()
+    register_concept_pipeline(registry)
     register_context_pipeline(registry)
     register_form_pipeline(registry)
     return registry.registered_passes()
 
 
 def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[str, ...]], ...]:
+    from propstore.families.concepts.stages import (
+        ConceptAuthoredSet,
+        ConceptBoundRegistry,
+        ConceptCheckedRegistry,
+        ConceptNormalizedSet,
+        ConceptStage,
+    )
     from propstore.families.contexts.stages import (
         ContextAuthoredSet,
         ContextBoundGraph,
@@ -75,6 +84,10 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
     )
 
     return (
+        (ConceptStage.AUTHORED.value, "concepts", ConceptAuthoredSet, ()),
+        (ConceptStage.NORMALIZED.value, "concepts", ConceptNormalizedSet, ()),
+        (ConceptStage.BOUND.value, "concepts", ConceptBoundRegistry, ()),
+        (ConceptStage.CHECKED.value, "concepts", ConceptCheckedRegistry, ()),
         (ContextStage.AUTHORED.value, "contexts", ContextAuthoredSet, ()),
         (ContextStage.NORMALIZED.value, "contexts", ContextNormalizedSet, ()),
         (ContextStage.BOUND.value, "contexts", ContextBoundGraph, ()),
@@ -88,7 +101,6 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.documents import (
         claims,
-        concepts,
         merge,
         micropubs,
         predicates,
@@ -98,6 +110,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         stances,
         worldlines,
     )
+    from propstore.families.concepts import documents as concepts
     from propstore.families.contexts import documents as contexts
     from propstore.families.forms import documents as forms
 

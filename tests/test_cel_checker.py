@@ -27,7 +27,7 @@ from propstore.cel_registry import (
     build_canonical_cel_registry,
     build_store_cel_registry,
 )
-from propstore.core.concepts import ConceptRecord, parse_concept_record
+from propstore.families.concepts.stages import ConceptRecord, parse_concept_record
 from propstore.core.row_types import ConceptRow
 
 
