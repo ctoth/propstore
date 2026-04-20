@@ -10,9 +10,11 @@ from propstore.families.registry import (
     semantic_family_for_path,
     semantic_import_roots,
 )
-from propstore.storage.repository_import_normalization import (
+from propstore.source.passes import run_source_import_pipeline
+from propstore.source.stages import (
     PlannedSemanticWrite,
-    normalize_semantic_import_writes,
+    SourceImportAuthoredWrites,
+    SourceImportNormalizedWrites,
 )
 
 if TYPE_CHECKING:
@@ -86,11 +88,19 @@ def plan_repository_import(
     primary_branch = destination_repository.snapshot.primary_branch_name()
     repository_name = _infer_repository_name(source_repository)
     selected_branch = target_branch or f"import/{repository_name}"
-    writes, warnings = normalize_semantic_import_writes(
-        destination_repository.families.store,
-        _iter_semantic_paths(source_repository, commit=source_commit),
-        repository_name=repository_name,
+    import_pipeline_result = run_source_import_pipeline(
+        SourceImportAuthoredWrites(
+            store=destination_repository.families.store,
+            writes=_iter_semantic_paths(source_repository, commit=source_commit),
+            repository_name=repository_name,
+        )
     )
+    if not isinstance(import_pipeline_result.output, SourceImportNormalizedWrites):
+        errors = ", ".join(error.render() for error in import_pipeline_result.errors)
+        raise ValueError(f"Repository import normalization failed: {errors}")
+    normalized_import = import_pipeline_result.output
+    writes = normalized_import.writes
+    warnings = list(normalized_import.warnings)
 
     existing_paths: set[str] = set()
     existing_branch_sha = destination_repository.snapshot.branch_head(selected_branch)

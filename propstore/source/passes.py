@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from quire.artifacts import ArtifactFamily
 from quire.documents import decode_yaml_mapping
 from quire.family_store import DocumentFamilyStore
 
-from propstore.claim_references import ImportedClaimHandleIndex
 from propstore.families.addresses import SemanticFamilyAddress
 from propstore.families.registry import (
     PropstoreFamily,
@@ -26,25 +23,19 @@ from propstore.families.identity.concepts import (
     concept_reference_keys,
     normalize_canonical_concept_payload,
 )
+from propstore.semantic_passes.registry import PipelineRegistry
+from propstore.semantic_passes.runner import run_pipeline
+from propstore.semantic_passes.types import PassResult, PipelineResult
+from propstore.source.stages import (
+    PlannedSemanticWrite,
+    SourceImportAuthoredWrites,
+    SourceImportNormalizedWrites,
+    SourceImportState,
+    SourceStage,
+)
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
-
-
-@dataclass(frozen=True)
-class PlannedSemanticWrite:
-    family: ArtifactFamily[Any, Any, Any]
-    ref: object
-    document: object
-    relpath: SemanticFamilyAddress
-
-
-@dataclass
-class SemanticImportState:
-    repository_name: str
-    concept_ref_map: dict[str, str] = field(default_factory=dict)
-    local_handle_index: ImportedClaimHandleIndex = field(default_factory=ImportedClaimHandleIndex)
-    warnings: list[str] = field(default_factory=list)
 
 
 SemanticImportBatch = Callable[
@@ -52,7 +43,7 @@ SemanticImportBatch = Callable[
         DocumentFamilyStore["Repository"],
         Sequence[str],
         Mapping[str, bytes],
-        SemanticImportState,
+        SourceImportState,
     ],
     Mapping[str, PlannedSemanticWrite],
 ]
@@ -194,7 +185,7 @@ def _normalize_concept_batch(
     store: DocumentFamilyStore["Repository"],
     paths: Sequence[str],
     writes: Mapping[str, bytes],
-    state: SemanticImportState,
+    state: SourceImportState,
 ) -> Mapping[str, PlannedSemanticWrite]:
     seeded: dict[str, PlannedSemanticWrite] = {}
     for path in paths:
@@ -233,7 +224,7 @@ def _normalize_claim_batch(
     store: DocumentFamilyStore["Repository"],
     paths: Sequence[str],
     writes: Mapping[str, bytes],
-    state: SemanticImportState,
+    state: SourceImportState,
 ) -> Mapping[str, PlannedSemanticWrite]:
     normalized: dict[str, PlannedSemanticWrite] = {}
     for path in paths:
@@ -257,7 +248,7 @@ def _normalize_stance_batch(
     store: DocumentFamilyStore["Repository"],
     paths: Sequence[str],
     writes: Mapping[str, bytes],
-    state: SemanticImportState,
+    state: SourceImportState,
 ) -> Mapping[str, PlannedSemanticWrite]:
     return {
         path: _planned_write(
@@ -273,7 +264,7 @@ def _normalize_passthrough_batch(
     store: DocumentFamilyStore["Repository"],
     paths: Sequence[str],
     writes: Mapping[str, bytes],
-    state: SemanticImportState,
+    state: SourceImportState,
 ) -> Mapping[str, PlannedSemanticWrite]:
     del state
     return {
@@ -289,14 +280,14 @@ _SEMANTIC_IMPORT_NORMALIZERS: Mapping[PropstoreFamily, SemanticImportBatch] = {
 }
 
 
-def normalize_semantic_import_writes(
+def _normalize_semantic_import_writes(
     store: DocumentFamilyStore["Repository"],
     writes: Mapping[str, bytes],
     *,
     repository_name: str,
-) -> tuple[dict[str, PlannedSemanticWrite], list[str]]:
+) -> SourceImportNormalizedWrites:
     normalized: dict[str, PlannedSemanticWrite] = {}
-    state = SemanticImportState(repository_name=repository_name)
+    state = SourceImportState(repository_name=repository_name)
     for family in semantic_import_families():
         family_paths = [
             path
@@ -307,4 +298,47 @@ def normalize_semantic_import_writes(
             continue
         normalizer = _SEMANTIC_IMPORT_NORMALIZERS.get(cast(PropstoreFamily, family.key), _normalize_passthrough_batch)
         normalized.update(normalizer(store, family_paths, writes, state))
-    return normalized, list(state.warnings)
+    return SourceImportNormalizedWrites(
+        writes=normalized,
+        warnings=tuple(state.warnings),
+    )
+
+
+class SourceImportNormalizePass:
+    family = PropstoreFamily.SOURCES
+    name = "source.import.normalize"
+    input_stage = SourceStage.IMPORT_AUTHORED
+    output_stage = SourceStage.IMPORT_NORMALIZED
+
+    def run(
+        self,
+        value: SourceImportAuthoredWrites,
+        context: object,
+    ) -> PassResult[SourceImportNormalizedWrites]:
+        del context
+        return PassResult(
+            output=_normalize_semantic_import_writes(
+                value.store,
+                value.writes,
+                repository_name=value.repository_name,
+            )
+        )
+
+
+def register_source_import_pipeline(registry: PipelineRegistry) -> None:
+    registry.register(SourceImportNormalizePass, family=PropstoreFamily.SOURCES)
+
+
+def run_source_import_pipeline(
+    authored: SourceImportAuthoredWrites,
+) -> PipelineResult[object]:
+    registry = PipelineRegistry()
+    register_source_import_pipeline(registry)
+    return run_pipeline(
+        authored,
+        family=PropstoreFamily.SOURCES,
+        start_stage=SourceStage.IMPORT_AUTHORED,
+        target_stage=SourceStage.IMPORT_NORMALIZED,
+        registry=registry,
+        context=None,
+    )
