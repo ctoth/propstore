@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 from propstore.claims import ClaimFileEntry
-from propstore.families.claims.stages import ClaimCheckedBundle
+from propstore.families.claims.stages import ClaimCheckedBundle, RawIdQuarantineRecord
 from propstore.families.concepts.stages import LoadedConcept
 from propstore.families.contexts.stages import LoadedContext
 from propstore.families.forms.stages import FormDefinition
@@ -163,3 +163,17 @@ class RepositoryCheckedBundle:
     concept_registry: dict
     claim_checked_bundle: ClaimCheckedBundle | None
     normalized_claim_files: tuple[ClaimFileEntry, ...] | None
+
+
+@dataclass(frozen=True)
+class SidecarBuildPlan:
+    source_rows: SourceSidecarRows
+    concept_rows: ConceptSidecarRows
+    context_rows: ContextSidecarRows
+    claim_rows: ClaimSidecarRows | None
+    raw_id_quarantine_records: tuple[RawIdQuarantineRecord, ...]
+    conflict_rows: tuple[ConflictWitnessInsertRow, ...]
+    claim_fts_rows: tuple[ClaimFtsInsertRow, ...]
+    micropublication_rows: MicropublicationSidecarRows
+    stance_rows: tuple[ClaimStanceInsertRow, ...]
+    justification_rows: tuple[JustificationInsertRow, ...]
