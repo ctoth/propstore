@@ -38,6 +38,7 @@ from propstore.sidecar.claims import (
     populate_raw_id_quarantine_records,
     populate_stances,
 )
+from propstore.sidecar.passes import compile_claim_sidecar_rows
 from propstore.sidecar.concepts import (
     build_concept_fts_index,
     populate_aliases,
@@ -249,12 +250,15 @@ def build_sidecar(
             populate_contexts(conn, context_files)
 
         if normalized_claim_files is not None:
+            if claim_bundle is None:
+                raise ValueError("checked claim bundle is required to populate claims")
             populate_claims(
                 conn,
-                normalized_claim_files,
-                concept_registry,
-                form_registry=form_registry,
-                semantic_bundle=claim_bundle,
+                compile_claim_sidecar_rows(
+                    claim_bundle,
+                    concept_registry,
+                    form_registry=form_registry,
+                ),
             )
 
             if raw_id_quarantine_records:
