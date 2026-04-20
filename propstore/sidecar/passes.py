@@ -20,8 +20,12 @@ from propstore.conflict_detector.collectors import conflict_claims_from_claim_fi
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
+from propstore.families.contexts.stages import LoadedContext, coerce_loaded_contexts
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
-from propstore.families.documents.sources import SourceJustificationsDocument
+from propstore.families.documents.sources import (
+    SourceDocument,
+    SourceJustificationsDocument,
+)
 from propstore.families.documents.stances import StanceFileDocument
 from propstore.families.forms.stages import (
     FormDefinition,
@@ -41,6 +45,10 @@ from propstore.sidecar.stages import (
     ClaimStanceInsertRow,
     ConceptAliasInsertRow,
     ConceptFtsInsertRow,
+    ContextAssumptionInsertRow,
+    ContextInsertRow,
+    ContextLiftingRuleInsertRow,
+    ContextSidecarRows,
     ConceptInsertRow,
     ConceptParameterizationGroupInsertRow,
     ConceptParameterizationInsertRow,
@@ -54,6 +62,8 @@ from propstore.sidecar.stages import (
     MicropublicationInsertRow,
     MicropublicationSidecarRows,
     RelationEdgeInsertRow,
+    SourceInsertRow,
+    SourceSidecarRows,
 )
 from propstore.sidecar.claim_utils import (
     coerce_stance_resolution,
@@ -65,6 +75,92 @@ from propstore.stances import VALID_STANCE_TYPES
 
 def _concept_symbol_candidates(record: ConceptRecord) -> tuple[str, ...]:
     return record.reference_keys()
+
+
+def compile_source_sidecar_rows(
+    sources: Iterable[tuple[str, SourceDocument]],
+) -> SourceSidecarRows:
+    rows: list[SourceInsertRow] = []
+    for slug, source_doc in sources:
+        origin = source_doc.origin
+        trust = source_doc.trust
+        rows.append(
+            SourceInsertRow(
+                (
+                    slug,
+                    str(source_doc.id or slug),
+                    source_doc.kind.value,
+                    origin.type.value,
+                    origin.value,
+                    origin.retrieved,
+                    origin.content_ref,
+                    trust.prior_base_rate,
+                    None
+                    if trust.quality is None
+                    else json.dumps(trust.quality.to_payload()),
+                    None
+                    if not trust.derived_from
+                    else json.dumps(list(trust.derived_from)),
+                    source_doc.artifact_code,
+                )
+            )
+        )
+    return SourceSidecarRows(source_rows=tuple(rows))
+
+
+def compile_context_sidecar_rows(
+    contexts: Sequence[LoadedContext],
+) -> ContextSidecarRows:
+    context_rows: list[ContextInsertRow] = []
+    assumption_rows: list[ContextAssumptionInsertRow] = []
+    lifting_rule_rows: list[ContextLiftingRuleInsertRow] = []
+
+    for context in coerce_loaded_contexts(contexts):
+        record = context.record
+        if record.context_id is None:
+            continue
+        context_id = str(record.context_id)
+
+        context_rows.append(
+            ContextInsertRow(
+                (
+                    context_id,
+                    record.name or "",
+                    record.description,
+                    json.dumps(dict(record.parameters), sort_keys=True)
+                    if record.parameters
+                    else None,
+                    record.perspective,
+                )
+            )
+        )
+
+        for seq, assumption in enumerate(record.assumptions, 1):
+            assumption_rows.append(
+                ContextAssumptionInsertRow((context_id, assumption, seq))
+            )
+
+        for rule in record.lifting_rules:
+            lifting_rule_rows.append(
+                ContextLiftingRuleInsertRow(
+                    (
+                        rule.id,
+                        str(rule.source.id),
+                        str(rule.target.id),
+                        json.dumps(list(rule.conditions), sort_keys=True)
+                        if rule.conditions
+                        else None,
+                        rule.mode.value,
+                        rule.justification,
+                    )
+                )
+            )
+
+    return ContextSidecarRows(
+        context_rows=tuple(context_rows),
+        assumption_rows=tuple(assumption_rows),
+        lifting_rule_rows=tuple(lifting_rule_rows),
+    )
 
 
 def compile_concept_sidecar_rows(

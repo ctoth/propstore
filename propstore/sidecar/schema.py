@@ -42,9 +42,8 @@ principle).
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Sequence
 
-from propstore.families.contexts.stages import LoadedContext, coerce_loaded_contexts
+from propstore.sidecar.stages import ContextSidecarRows
 
 SCHEMA_VERSION = 3
 SIDECAR_META_KEY = "sidecar"
@@ -271,58 +270,34 @@ def create_micropublication_tables(conn: sqlite3.Connection) -> None:
 
 def populate_contexts(
     conn: sqlite3.Connection,
-    contexts: Sequence[LoadedContext],
+    rows: ContextSidecarRows,
 ) -> None:
-    import json
-
-    typed_contexts = coerce_loaded_contexts(contexts)
-    for context in typed_contexts:
-        record = context.record
-        if record.context_id is None:
-            continue
-        context_id = str(record.context_id)
-
+    for row in rows.context_rows:
         conn.execute(
             """
             INSERT INTO context (id, name, description, parameters_json, perspective)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (
-                context_id,
-                record.name or "",
-                record.description,
-                json.dumps(dict(record.parameters), sort_keys=True)
-                if record.parameters
-                else None,
-                record.perspective,
-            ),
+            row.values,
         )
 
-        for seq, assumption in enumerate(record.assumptions, 1):
-            conn.execute(
-                "INSERT INTO context_assumption (context_id, assumption_cel, seq) VALUES (?, ?, ?)",
-                (context_id, assumption, seq),
-            )
+    for row in rows.assumption_rows:
+        conn.execute(
+            "INSERT INTO context_assumption (context_id, assumption_cel, seq) "
+            "VALUES (?, ?, ?)",
+            row.values,
+        )
 
-        for rule in record.lifting_rules:
-            conn.execute(
-                """
-                INSERT INTO context_lifting_rule (
-                    id, source_context_id, target_context_id,
-                    conditions_cel, mode, justification
-                ) VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    rule.id,
-                    str(rule.source.id),
-                    str(rule.target.id),
-                    json.dumps(list(rule.conditions), sort_keys=True)
-                    if rule.conditions
-                    else None,
-                    rule.mode.value,
-                    rule.justification,
-                ),
-            )
+    for row in rows.lifting_rule_rows:
+        conn.execute(
+            """
+            INSERT INTO context_lifting_rule (
+                id, source_context_id, target_context_id,
+                conditions_cel, mode, justification
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            row.values,
+        )
 
 
 def create_claim_tables(conn: sqlite3.Connection) -> None:

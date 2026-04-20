@@ -64,6 +64,38 @@ class MicropublicationSidecarRows:
 
 
 @dataclass(frozen=True)
+class SourceInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class SourceSidecarRows:
+    source_rows: tuple[SourceInsertRow, ...]
+
+
+@dataclass(frozen=True)
+class ContextInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ContextAssumptionInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ContextLiftingRuleInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class ContextSidecarRows:
+    context_rows: tuple[ContextInsertRow, ...]
+    assumption_rows: tuple[ContextAssumptionInsertRow, ...]
+    lifting_rule_rows: tuple[ContextLiftingRuleInsertRow, ...]
+
+
+@dataclass(frozen=True)
 class FormInsertRow:
     values: tuple[Any, ...]
 
