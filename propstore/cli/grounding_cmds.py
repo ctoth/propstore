@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_section
 
 from propstore.app.grounding import (
     GroundingInspectionError,
@@ -52,19 +52,15 @@ def grounding_show(obj: dict) -> None:
     except GroundingInspectionError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    emit(f"Facts ({len(report.facts)}):")
-    if not report.facts:
-        emit("  <empty>")
-    else:
-        for fact in report.facts:
-            emit(f"  {fact}")
+    emit_section(
+        f"Facts ({len(report.facts)}):",
+        report.facts if report.facts else ("<empty>",),
+    )
 
-    emit(f"Grounded rules ({len(report.rules)}):")
-    if not report.rules:
-        emit("  <empty>")
-    else:
-        for rule in report.rules:
-            emit(f"  {rule.text}")
+    emit_section(
+        f"Grounded rules ({len(report.rules)}):",
+        (rule.text for rule in report.rules) if report.rules else ("<empty>",),
+    )
 
     emit("Sections:")
     for section, lines in report.sections:
@@ -102,9 +98,7 @@ def grounding_arguments(obj: dict) -> None:
     except GroundingInspectionError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    emit(f"Arguments ({len(report.arguments)}):")
-    if not report.arguments:
-        emit("  <empty>")
-        return
-    for argument in report.arguments:
-        emit(f"  {argument}")
+    emit_section(
+        f"Arguments ({len(report.arguments)}):",
+        report.arguments if report.arguments else ("<empty>",),
+    )

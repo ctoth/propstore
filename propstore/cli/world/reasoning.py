@@ -1,11 +1,10 @@
 """Reasoning-oriented ``pks world`` command adapters."""
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.helpers import fail
+from propstore.cli.output import emit, emit_table
 
 from propstore.app.world_reasoning import (
     AppWorldExtensionsRequest,
@@ -197,9 +196,8 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                 ),
             ),
         )
-    except WorldResolveError as e:
-        emit(f"ERROR: {e}", err=True)
-        sys.exit(1)
+    except WorldResolveError as exc:
+        fail(exc)
 
     emit(f"{report.concept_display_id}: {report.status}")
     if report.value is not None:
@@ -212,8 +210,14 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         emit(f"  reason: {report.reason}")
     if report.acceptance_probs:
         emit("  acceptance_probs:")
-        for probability in report.acceptance_probs:
-            emit(f"    {probability.claim_id}: {probability.probability:.4f}")
+        emit_table(
+            ("Claim", "Probability"),
+            [
+                (probability.claim_id, f"{probability.probability:.4f}")
+                for probability in report.acceptance_probs
+            ],
+            indent="    ",
+        )
 
 
 @world.command("extensions")
@@ -267,8 +271,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             ),
         )
     except WorldExtensionsUnsupportedBackend as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(2)
+        fail(exc, exit_code=2)
 
     if report is None:
         emit("No active claims for given bindings.")
@@ -289,11 +292,16 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             f"{summary.included_as_attacks} included as attacks"
         )
         emit("\nAcceptance probabilities:")
-        for probability in report.acceptance_probabilities:
-            emit(
-                f"  {_claim_label(probability.claim_id, claim_map)}  "
-                f"P(accepted) = {probability.probability:.4f}"
-            )
+        emit_table(
+            ("Claim", "P(accepted)"),
+            [
+                (
+                    _claim_label(probability.claim_id, claim_map),
+                    f"{probability.probability:.4f}",
+                )
+                for probability in report.acceptance_probabilities
+            ],
+        )
         return
 
     emit(f"Set comparison: {report.set_comparison}")

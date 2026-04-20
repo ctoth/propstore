@@ -6,11 +6,10 @@ and alias export.
 from __future__ import annotations
 
 import json
-import sys
 
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_error, emit_success
 
 from propstore.app.compiler import (
     CompilerWorkflowError,
@@ -21,7 +20,7 @@ from propstore.app.compiler import (
     query_sidecar,
     validate_repository,
 )
-from propstore.cli.helpers import EXIT_VALIDATION
+from propstore.cli.helpers import EXIT_VALIDATION, exit_with_code, fail
 from propstore.repository import Repository
 
 
@@ -30,7 +29,7 @@ def _emit_workflow_messages(messages) -> None:
         label = message.level.upper()
         if message.scope:
             label = f"{label} ({message.scope})"
-        emit(f"{label}: {message.text}", err=True)
+        emit_error(f"{label}: {message.text}")
 
 
 @click.command()
@@ -42,8 +41,8 @@ def validate(obj: dict) -> None:
         report = validate_repository(repo)
     except CompilerWorkflowError as exc:
         _emit_workflow_messages(exc.messages)
-        emit(exc.summary, err=True)
-        sys.exit(EXIT_VALIDATION)
+        emit_error(exc.summary)
+        exit_with_code(EXIT_VALIDATION)
 
     if report.no_concepts:
         emit("No concept files found.")
@@ -51,12 +50,12 @@ def validate(obj: dict) -> None:
 
     _emit_workflow_messages(report.messages)
     if report.ok:
-        emit(
+        emit_success(
             f"Validation passed: {report.concept_count} concept(s), "
             f"{report.claim_file_count} claim file(s)")
     else:
-        emit(f"Validation FAILED: {len(report.errors)} error(s)", err=True)
-        sys.exit(EXIT_VALIDATION)
+        emit_error(f"Validation FAILED: {len(report.errors)} error(s)")
+        exit_with_code(EXIT_VALIDATION)
 
 
 @click.command()
@@ -70,8 +69,8 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         report = build_repository(repo, output=output, force=force)
     except CompilerWorkflowError as exc:
         _emit_workflow_messages(exc.messages)
-        emit(exc.summary, err=True)
-        sys.exit(EXIT_VALIDATION)
+        emit_error(exc.summary)
+        exit_with_code(EXIT_VALIDATION)
 
     if report.no_concepts:
         emit("No concept files found.")
@@ -107,11 +106,9 @@ def query(obj: dict, sql: str) -> None:
     try:
         result = query_sidecar(repo, SidecarQueryRequest(sql=sql))
     except FileNotFoundError:
-        emit("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
+        fail("Sidecar not found. Run 'pks build' first.")
     except SidecarQueryError as exc:
-        emit(f"SQL error: {exc}", err=True)
-        sys.exit(1)
+        fail(f"SQL error: {exc}")
 
     if not result.rows:
         emit("(no results)")
@@ -131,8 +128,7 @@ def export_aliases(obj: dict, fmt: str) -> None:
     try:
         aliases = run_export_aliases(repo)
     except FileNotFoundError:
-        emit("ERROR: No concepts directory.", err=True)
-        sys.exit(1)
+        fail("No concepts directory.")
 
     if fmt == "json":
         emit(json.dumps(
@@ -142,4 +138,3 @@ def export_aliases(obj: dict, fmt: str) -> None:
     else:
         for alias_name, info in sorted(aliases.items()):
             emit(f"{alias_name} -> {info.logical_id} ({info.name})")
-

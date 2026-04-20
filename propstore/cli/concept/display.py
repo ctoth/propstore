@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_table
 
 from propstore.app.concepts import (
     ConceptDisplayError,
@@ -62,8 +62,13 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
         emit("No concepts directory found.")
         return
 
-    for entry in report.entries:
-        emit(f"  {entry.handle:30s} {entry.canonical_name:30s} [{entry.status}]")
+    emit_table(
+        ("Handle", "Canonical name", "Status"),
+        [
+            (entry.handle, entry.canonical_name, f"[{entry.status}]")
+            for entry in report.entries
+        ],
+    )
 
 
 # ── concept add-value ────────────────────────────────────────────────

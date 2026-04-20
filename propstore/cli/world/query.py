@@ -1,11 +1,10 @@
 """Basic ``pks world`` query command adapters."""
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.helpers import fail
+from propstore.cli.output import emit, emit_table
 
 from propstore.app.world import (
     AppWorldAlgorithmsRequest,
@@ -142,8 +141,7 @@ def world_query(
             AppWorldConceptQueryRequest(target=concept_id, lifecycle=lifecycle),
         )
     except UnknownConceptError:
-        emit(f"Unknown concept: {concept_id}", err=True)
-        sys.exit(1)
+        fail(f"Unknown concept: {concept_id}")
 
     emit(f"{report.canonical_name} ({report.concept_display_id})")
     if not report.claims:
@@ -206,8 +204,7 @@ def world_explain(obj: dict, claim_id: str) -> None:
     try:
         report = run_world_explain(repo, AppWorldExplainRequest(claim_id=claim_id))
     except UnknownClaimError:
-        emit(f"Unknown claim: {claim_id}", err=True)
-        sys.exit(1)
+        fail(f"Unknown claim: {claim_id}")
 
     emit(
         f"{report.claim_display_id}: {report.claim_type} "
@@ -241,13 +238,12 @@ def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
         emit("No algorithm claims found.")
         return
 
-    # Table header
-    emit(f"{'ID':<20} {'Name':<30} {'Stage':<15} {'Concept(s)'}")
-    emit("-" * 80)
-    for claim in report.algorithms:
-        emit(
-            f"{claim.claim_id:<20} {claim.name:<30} "
-            f"{claim.stage:<15} {claim.concept_id}"
-        )
+    emit_table(
+        ("ID", "Name", "Stage", "Concept(s)"),
+        [
+            (claim.claim_id, claim.name, claim.stage, claim.concept_id)
+            for claim in report.algorithms
+        ],
+    )
 
     emit(f"\n{len(report.algorithms)} algorithm claim(s).")

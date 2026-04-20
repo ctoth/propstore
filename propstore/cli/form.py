@@ -1,14 +1,12 @@
 """pks form — subcommands for managing form definitions."""
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_error, emit_section, emit_success
 
 from quire.documents import encode_document
-from propstore.cli.helpers import EXIT_ERROR
+from propstore.cli.helpers import EXIT_ERROR, exit_with_code, fail
 from propstore.repository import Repository
 from propstore.app.forms import (
     FormAddRequest,
@@ -77,8 +75,7 @@ def show(obj: dict, name: str) -> None:
     try:
         report = show_form(repo, name)
     except FormNotFoundError:
-        emit(f"ERROR: Form '{name}' not found", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(f"Form '{name}' not found")
     emit(report.yaml_text)
 
     form_def = report.form
@@ -153,15 +150,14 @@ def add(
     try:
         report = add_form(repo, request, dry_run=dry_run)
     except FormWorkflowError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(exc)
 
     if not report.created:
         emit(f"Would create {report.path}")
         emit(encode_document(report.document).decode("utf-8"))
         return
 
-    emit(f"Created {report.path}")
+    emit_success(f"Created {report.path}")
 
 
 # ── form remove ──────────────────────────────────────────────────────
@@ -177,14 +173,12 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
     try:
         report = remove_form(repo, name, force=force, dry_run=dry_run)
     except FormNotFoundError:
-        emit(f"ERROR: Form '{name}' not found", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(f"Form '{name}' not found")
     except FormReferencedError as exc:
-        emit(f"ERROR: {exc}:", err=True)
-        for ref in exc.references:
-            emit(f"  {ref}", err=True)
-        emit("Use --force to remove anyway.", err=True)
-        sys.exit(EXIT_ERROR)
+        emit_error(f"ERROR: {exc}:")
+        emit_section("", exc.references, err=True)
+        emit_error("Use --force to remove anyway.")
+        exit_with_code(EXIT_ERROR)
 
     if not report.removed:
         emit(f"Would remove {report.path}")
@@ -192,7 +186,7 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
             emit(f"  ({len(report.references)} concept(s) still reference this form)")
         return
 
-    emit(f"Removed {report.path}")
+    emit_success(f"Removed {report.path}")
     if report.references:
         emit(f"  WARNING: {len(report.references)} concept(s) still reference this form")
 
@@ -212,8 +206,7 @@ def validate(obj: dict, name: str | None) -> None:
     try:
         report = validate_forms(repo, name)
     except FormNotFoundError:
-        emit(f"ERROR: Form '{name}' not found", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(f"Form '{name}' not found")
 
     if report is None:
         emit("No forms directory found.")
@@ -221,7 +214,7 @@ def validate(obj: dict, name: str | None) -> None:
 
     if not report.ok:
         for e in report.errors:
-            emit(f"ERROR: {e}", err=True)
-        sys.exit(EXIT_ERROR)
+            emit_error(f"ERROR: {e}")
+        exit_with_code(EXIT_ERROR)
 
     emit(f"OK: {report.count} form(s) valid")

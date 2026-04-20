@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_table
 
 from propstore.app.world import (
     AppWorldChainRequest,
@@ -256,12 +256,19 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
         emit(f"Output value: {result.output_value}")
         emit(f"Inputs: {result.input_values}")
         emit("")
-        emit(f"{'Input':<25} {'Partial':>12} {'Elasticity':>12}")
-        emit("-" * 51)
-        for e in result.entries:
-            pval = f"{e.partial_derivative_value:.6g}" if e.partial_derivative_value is not None else "N/A"
-            elast = f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A"
-            emit(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
+        emit_table(
+            ("Input", "Partial", "Elasticity"),
+            [
+                (
+                    e.input_concept_id,
+                    f"{e.partial_derivative_value:.6g}"
+                    if e.partial_derivative_value is not None
+                    else "N/A",
+                    f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A",
+                )
+                for e in result.entries
+            ],
+        )
 
 
 @world.command("fragility")
@@ -331,16 +338,22 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
         emit(f"Fragility Analysis (top {top_k}, ranking={ranking_policy})")
         emit("=" * 60)
         emit("")
-        emit(
-            f"{'Rank':>4}  {'Score':>5}  {'ROI':>5}  {'Cost':>4}  {'Family':<10} {'Kind':<20} {'Intervention'}"
+        emit_table(
+            ("Rank", "Score", "ROI", "Cost", "Family", "Kind", "Intervention"),
+            [
+                (
+                    index,
+                    f"{item.local_fragility:.2f}",
+                    f"{item.roi:.2f}",
+                    item.target.cost_tier,
+                    item.target.family,
+                    item.target.kind,
+                    item.target.intervention_id,
+                )
+                for index, item in enumerate(report.interventions, 1)
+            ],
+            show_header_when_empty=True,
         )
-        for i, item in enumerate(report.interventions, 1):
-            roi = f"{item.roi:.2f}"
-            cost = str(item.target.cost_tier)
-            emit(
-                f"{i:>4}  {item.local_fragility:>5.2f}  {roi:>5}  {cost:>4}  "
-                f"{item.target.family:<10} {item.target.kind:<20} {item.target.intervention_id}"
-            )
         emit("")
         emit(f"World fragility: {report.world_fragility:.2f}")
 
