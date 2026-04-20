@@ -51,7 +51,6 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.documents import (
         claims,
         concepts,
-        contexts,
         forms,
         merge,
         micropubs,
@@ -62,6 +61,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         stances,
         worldlines,
     )
+    from propstore.families.contexts import documents as contexts
 
     modules = (
         claims,

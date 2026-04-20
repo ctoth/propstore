@@ -10,7 +10,7 @@ from propstore.families.documents.micropubs import (
     MicropublicationsFileDocument,
 )
 from propstore.families.registry import MicropubsFileRef
-from propstore.context_types import (
+from propstore.families.contexts.stages import (
     LoadedContext,
     loaded_contexts_to_lifting_system,
     parse_context_record_document,

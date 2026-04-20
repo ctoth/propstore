@@ -11,7 +11,7 @@ from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
 from quire.documents import DocumentStruct
 from quire.versions import VersionId
-from propstore.families.documents.contexts import ContextReferenceDocument
+from propstore.families.contexts.documents import ContextReferenceDocument
 from propstore.provenance import Provenance
 from propstore.stances import StanceType
 
