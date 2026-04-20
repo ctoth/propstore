@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_success, emit_table
 
 from propstore.app.proposals import (
     ProposalPromotionRequest,
@@ -29,14 +29,16 @@ def promote_cmd(ctx: click.Context, path: str | None, yes: bool) -> None:
         emit(f"No stance proposal files found on {plan.branch}.")
         return
 
-    for item in plan.items:
-        emit(f"  {item.source_relpath} -> {item.target_path}")
+    emit_table(
+        ("SOURCE", "TARGET"),
+        [(item.source_relpath, item.target_path) for item in plan.items],
+    )
 
     if not yes:
         click.confirm("Promote these files?", abort=True)
 
     result = promote_proposals(repo, plan)
     for item in plan.items:
-        emit(f"  Promoted: {item.filename}")
+        emit_success(f"  Promoted: {item.filename}")
 
-    emit(f"\n{result.moved} file(s) promoted.")
+    emit_success(f"\n{result.moved} file(s) promoted.")
