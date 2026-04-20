@@ -12,7 +12,7 @@ from quire.references import ForeignKeySpec
 from quire.versions import VersionId
 
 if TYPE_CHECKING:
-    from propstore.families.documents.claims import ClaimTypeContract
+    from propstore.families.claims.documents import ClaimTypeContract
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.27")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
@@ -41,7 +41,7 @@ def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
 
 
 def iter_claim_type_contracts() -> tuple["ClaimTypeContract", ...]:
-    from propstore.families.documents.claims import (
+    from propstore.families.claims.documents import (
         iter_claim_type_contracts as iter_contracts,
     )
 
@@ -49,12 +49,14 @@ def iter_claim_type_contracts() -> tuple["ClaimTypeContract", ...]:
 
 
 def iter_semantic_pass_classes() -> tuple[type[Any], ...]:
+    from propstore.families.claims.passes import register_claim_pipeline
     from propstore.families.concepts.passes import register_concept_pipeline
     from propstore.families.contexts.passes import register_context_pipeline
     from propstore.families.forms.passes import register_form_pipeline
     from propstore.semantic_passes.registry import PipelineRegistry
 
     registry = PipelineRegistry()
+    register_claim_pipeline(registry)
     register_concept_pipeline(registry)
     register_context_pipeline(registry)
     register_form_pipeline(registry)
@@ -62,6 +64,11 @@ def iter_semantic_pass_classes() -> tuple[type[Any], ...]:
 
 
 def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[str, ...]], ...]:
+    from propstore.families.claims.stages import (
+        ClaimAuthoredFiles,
+        ClaimCheckedBundle,
+        ClaimStage,
+    )
     from propstore.families.concepts.stages import (
         ConceptAuthoredSet,
         ConceptBoundRegistry,
@@ -84,6 +91,8 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
     )
 
     return (
+        (ClaimStage.AUTHORED.value, "claims", ClaimAuthoredFiles, ()),
+        (ClaimStage.CHECKED.value, "claims", ClaimCheckedBundle, ()),
         (ConceptStage.AUTHORED.value, "concepts", ConceptAuthoredSet, ()),
         (ConceptStage.NORMALIZED.value, "concepts", ConceptNormalizedSet, ()),
         (ConceptStage.BOUND.value, "concepts", ConceptBoundRegistry, ()),
@@ -100,7 +109,6 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
 
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.documents import (
-        claims,
         merge,
         micropubs,
         predicates,
@@ -110,6 +118,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         stances,
         worldlines,
     )
+    from propstore.families.claims import documents as claims
     from propstore.families.concepts import documents as concepts
     from propstore.families.contexts import documents as contexts
     from propstore.families.forms import documents as forms

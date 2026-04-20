@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from propstore.families.documents.claims import ClaimDocument
+from propstore.families.claims.documents import ClaimDocument
 from propstore.families.identity.logical_ids import format_logical_id
 
 

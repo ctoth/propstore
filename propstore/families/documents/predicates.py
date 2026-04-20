@@ -30,7 +30,7 @@ Theoretical sources:
 
 DocumentStruct conventions mirrored from
 ``propstore.families.documents.rules`` and
-``propstore.families.documents.claims``: ``msgspec.Struct`` with
+``propstore.families.claims.documents``: ``msgspec.Struct`` with
 ``kw_only=True, forbid_unknown_fields=True``, list-valued fields use
 ``tuple[T, ...] = ()``, and round-tripping through ``msgspec.yaml`` is
 idempotent under strict decoding.

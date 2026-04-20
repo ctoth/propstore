@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from propstore.families.documents.claims import ClaimLogicalIdDocument, ClaimSourceDocument
+from propstore.families.claims.documents import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.families.registry import SourceRef
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.families.documents.sources import SourceProvenanceDocument

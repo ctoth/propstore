@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from propstore.families.documents.claims import ClaimSourceDocument, ProvenanceDocument
+from propstore.families.claims.documents import ClaimSourceDocument, ProvenanceDocument
 from propstore.families.contexts.documents import ContextReferenceDocument
 from quire.documents import DocumentStruct
 from propstore.stances import StanceType

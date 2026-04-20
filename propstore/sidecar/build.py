@@ -24,7 +24,8 @@ from propstore.claims import claim_file_claims, claim_file_filename, claim_file_
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
 )
-from propstore.compiler.passes import compile_claim_files
+from propstore.families.claims.passes import run_claim_pipeline
+from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
 from propstore.families.contexts.stages import (
     LoadedContext,
     parse_context_record_document,
@@ -269,11 +270,17 @@ def build_sidecar(
         require_form_definition=False,
     )
     if claim_bundle is None and claim_files:
-        claim_bundle = compile_claim_files(
-            list(claim_files),
-            compilation_context,
-            context_ids=context_ids if context_ids else None,
+        claim_pipeline_result = run_claim_pipeline(
+            ClaimAuthoredFiles.from_sequence(
+                list(claim_files),
+                compilation_context,
+                context_ids=context_ids if context_ids else None,
+            )
         )
+        if not isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
+            errors = ", ".join(error.render() for error in claim_pipeline_result.errors)
+            raise ValueError(f"claim validation failed: {errors}")
+        claim_bundle = claim_pipeline_result.output.bundle
     raw_id_quarantine_records: list[RawIdQuarantineRecord] = (
         _collect_raw_id_diagnostics(claim_bundle) if claim_bundle is not None else []
     )

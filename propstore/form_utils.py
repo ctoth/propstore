@@ -3,16 +3,18 @@ from __future__ import annotations
 
 import datetime
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from propstore import dimensions as dimension_api
 from propstore.families.forms.documents import (
     FormDocument,
 )
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import (
     FormCheckedRegistry,
+    FormDefinition,
     LoadedForm,
 )
 from propstore.families.registry import FormRef
@@ -20,24 +22,9 @@ from propstore.cel_checker import KindType
 from quire.documents import convert_document_value, decode_document_path
 from propstore.families.concepts.stages import parse_concept_record_document
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
-from propstore import dimensions as dimension_api
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
-
-
-@dataclass
-class FormDefinition:
-    """Structured representation of a loaded form YAML file."""
-    name: str
-    kind: KindType
-    unit_symbol: str | None = None
-    allowed_units: set[str] = field(default_factory=set)
-    is_dimensionless: bool = False
-    parameters: dict[str, Any] = field(default_factory=dict)
-    dimensions: dict[str, int] | None = None
-    extra_units: tuple[dimension_api.ExtraUnitDefinition, ...] = ()
-    conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
 
 
 class FormNotFoundError(Exception):

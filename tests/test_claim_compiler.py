@@ -6,7 +6,7 @@ import yaml
 
 from quire.references import CrossFamilyReferenceIndex
 
-from propstore.compiler.passes import compile_claim_files
+from propstore.families.claims.passes import compile_claim_files
 from propstore.compiler.references import (
     foreign_keys_from_context,
     iter_semantic_foreign_keys,

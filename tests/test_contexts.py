@@ -525,7 +525,7 @@ class TestContextCLIIntegration:
 
     def test_claim_validation_accepts_context_reference_document_shape(self, tmp_path: Path) -> None:
         from propstore.claims import loaded_claim_file_from_payload
-        from propstore.compiler.passes import validate_claims
+        from propstore.families.claims.passes import validate_claims
 
         claim_file = loaded_claim_file_from_payload(
             filename="claims",
