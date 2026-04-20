@@ -10,9 +10,13 @@ import bridgman
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
 from propstore.families.claims.documents import (
+    AlgorithmParseCheck,
+    AlgorithmUnboundNamesCheck,
     ClaimTypeContract,
     ClaimUnitPolicyDeclaration,
     ClaimValueGroupDeclaration,
+    DimensionalConsistencyCheck,
+    SympyGenerationCheck,
     claim_type_contract_for,
 )
 from propstore.compiler.context import CompilationContext
@@ -625,9 +629,9 @@ def _run_claim_semantic_checks(
 ) -> None:
     algorithm_tree: Any = None
     for check in contract.semantic_checks:
-        if check == "sympy_generation":
+        if check is SympyGenerationCheck:
             _validate_equation_sympy_generation(claim, cid, filename, diagnostics)
-        elif check == "dimensional_consistency":
+        elif check is DimensionalConsistencyCheck:
             _validate_equation_dimensional_consistency(
                 claim,
                 cid,
@@ -635,14 +639,14 @@ def _run_claim_semantic_checks(
                 context,
                 diagnostics,
             )
-        elif check == "algorithm_parse":
+        elif check is AlgorithmParseCheck:
             algorithm_tree = _validate_algorithm_parse(
                 claim,
                 cid,
                 filename,
                 diagnostics,
             )
-        elif check == "algorithm_unbound_names":
+        elif check is AlgorithmUnboundNamesCheck:
             _validate_algorithm_unbound_names(
                 claim,
                 cid,

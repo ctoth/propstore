@@ -502,8 +502,10 @@ contracts:
     required_fields:
     - body
     semantic_checks:
-    - algorithm_parse
-    - algorithm_unbound_names
+    - class: propstore.families.claims.documents.AlgorithmParseCheck
+      name: algorithm_parse
+    - class: propstore.families.claims.documents.AlgorithmUnboundNamesCheck
+      name: algorithm_unbound_names
     unit_policy: null
     value_group: null
 - kind: claim_type_contract
@@ -538,8 +540,10 @@ contracts:
     required_fields:
     - expression
     semantic_checks:
-    - sympy_generation
-    - dimensional_consistency
+    - class: propstore.families.claims.documents.SympyGenerationCheck
+      name: sympy_generation
+    - class: propstore.families.claims.documents.DimensionalConsistencyCheck
+      name: dimensional_consistency
     unit_policy: null
     value_group: null
 - kind: claim_type_contract
@@ -650,7 +654,8 @@ contracts:
     required_fields:
     - concept
     semantic_checks:
-    - unit_form_compatibility
+    - class: propstore.families.claims.documents.UnitFormCompatibilityCheck
+      name: unit_form_compatibility
     unit_policy:
       dimensionless_default_unit: '1'
       form_concept_field: concept

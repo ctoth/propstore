@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
@@ -67,6 +67,37 @@ class ClaimUnitPolicyDeclaration:
         }
 
 
+class ClaimSemanticCheck:
+    name: ClassVar[str]
+
+    @classmethod
+    def contract_body(cls) -> dict[str, str]:
+        return {
+            "name": cls.name,
+            "class": f"{cls.__module__}.{cls.__qualname__}",
+        }
+
+
+class UnitFormCompatibilityCheck(ClaimSemanticCheck):
+    name = "unit_form_compatibility"
+
+
+class SympyGenerationCheck(ClaimSemanticCheck):
+    name = "sympy_generation"
+
+
+class DimensionalConsistencyCheck(ClaimSemanticCheck):
+    name = "dimensional_consistency"
+
+
+class AlgorithmParseCheck(ClaimSemanticCheck):
+    name = "algorithm_parse"
+
+
+class AlgorithmUnboundNamesCheck(ClaimSemanticCheck):
+    name = "algorithm_unbound_names"
+
+
 @dataclass(frozen=True)
 class ClaimTypeContract:
     claim_type: ClaimType
@@ -75,7 +106,7 @@ class ClaimTypeContract:
     concept_references: tuple[ClaimFieldReferenceDeclaration, ...] = ()
     value_group: ClaimValueGroupDeclaration | None = None
     unit_policy: ClaimUnitPolicyDeclaration | None = None
-    semantic_checks: tuple[str, ...] = ()
+    semantic_checks: tuple[type[ClaimSemanticCheck], ...] = ()
     contract_version: VersionId = CLAIM_TYPE_CONTRACT_VERSION
 
     def contract_body(self) -> dict[str, object]:
@@ -97,7 +128,10 @@ class ClaimTypeContract:
                 if self.unit_policy is None
                 else self.unit_policy.contract_body()
             ),
-            "semantic_checks": self.semantic_checks,
+            "semantic_checks": tuple(
+                semantic_check.contract_body()
+                for semantic_check in self.semantic_checks
+            ),
         }
 
 
@@ -127,14 +161,14 @@ CLAIM_TYPE_CONTRACTS: dict[ClaimType, ClaimTypeContract] = {
             dimensionless_default_unit="1",
             form_concept_field="concept",
         ),
-        semantic_checks=("unit_form_compatibility",),
+        semantic_checks=(UnitFormCompatibilityCheck,),
     ),
     ClaimType.EQUATION: ClaimTypeContract(
         claim_type=ClaimType.EQUATION,
         required_fields=("expression",),
         nonempty_fields=("variables",),
         concept_references=(_VARIABLE_CONCEPT_REFERENCE,),
-        semantic_checks=("sympy_generation", "dimensional_consistency"),
+        semantic_checks=(SympyGenerationCheck, DimensionalConsistencyCheck),
     ),
     ClaimType.OBSERVATION: ClaimTypeContract(
         claim_type=ClaimType.OBSERVATION,
@@ -180,7 +214,7 @@ CLAIM_TYPE_CONTRACTS: dict[ClaimType, ClaimTypeContract] = {
         required_fields=("body",),
         nonempty_fields=("variables",),
         concept_references=(_VARIABLE_CONCEPT_REFERENCE,),
-        semantic_checks=("algorithm_parse", "algorithm_unbound_names"),
+        semantic_checks=(AlgorithmParseCheck, AlgorithmUnboundNamesCheck),
     ),
 }
 
