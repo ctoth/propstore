@@ -497,7 +497,7 @@ def test_load_contexts_from_git_tree(tmp_path):
         "contexts/test_context.yaml": yaml.dump(context_data).encode(),
     }, "add context")
 
-    from propstore.validate_contexts import load_contexts
+    from propstore.families.contexts import load_contexts
     contexts = load_contexts(kr.tree() / "contexts")
     assert len(contexts) == 1
     assert str(contexts[0].record.context_id) == "ctx1"

@@ -25,7 +25,10 @@ from propstore.compiler.context import (
     build_compilation_context_from_loaded,
 )
 from propstore.compiler.passes import compile_claim_files
-from propstore.context_types import LoadedContext, parse_context_record_document
+from propstore.families.contexts.stages import (
+    LoadedContext,
+    parse_context_record_document,
+)
 from propstore.core.concepts import LoadedConcept, parse_concept_record_document
 from propstore.form_utils import parse_form
 from propstore.sidecar.claims import (
@@ -202,7 +205,7 @@ def build_sidecar(
         if existing_hash == content_hash:
             return False
 
-    from propstore.context_types import loaded_contexts_to_lifting_system
+    from propstore.families.contexts.stages import loaded_contexts_to_lifting_system
 
     form_registry = {
         document.name: parse_form(document.name, document)

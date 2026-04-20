@@ -94,7 +94,7 @@ contracts:
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.contexts.ContextDocument
+    doc_type: propstore.families.contexts.documents.ContextDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -1191,7 +1191,7 @@ contracts:
     - name: lifting_rules
       required: true
       type: tuple[LiftingRuleDocument, ...]
-    module: propstore.families.documents.contexts
+    module: propstore.families.contexts.documents
 - kind: document_schema
   name: ContextReferenceDocument
   contract_version: 2026.04.27
@@ -1200,7 +1200,7 @@ contracts:
     - name: id
       required: true
       type: str
-    module: propstore.families.documents.contexts
+    module: propstore.families.contexts.documents
 - kind: document_schema
   name: ContextStructureDocument
   contract_version: 2026.04.27
@@ -1215,7 +1215,7 @@ contracts:
     - name: perspective
       required: true
       type: str | None
-    module: propstore.families.documents.contexts
+    module: propstore.families.contexts.documents
 - kind: document_schema
   name: ExtractionProvenanceDocument
   contract_version: 2026.04.27
@@ -1422,7 +1422,7 @@ contracts:
     - name: justification
       required: true
       type: str | None
-    module: propstore.families.documents.contexts
+    module: propstore.families.contexts.documents
 - kind: document_schema
   name: MergeManifestArgumentDocument
   contract_version: 2026.04.27
@@ -3072,7 +3072,7 @@ contracts:
     accessor: contexts
     artifact_family: context
     artifact_family_contract:
-      doc_type: propstore.families.documents.contexts.ContextDocument
+      doc_type: propstore.families.contexts.documents.ContextDocument
       placement:
         branch:
           policy: current

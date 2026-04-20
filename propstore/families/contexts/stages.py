@@ -1,4 +1,4 @@
-"""Canonical context dataclasses and context-boundary coercion."""
+"""Context semantic stage objects and context-boundary coercion."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from propstore.families.documents.contexts import ContextDocument
+from propstore.families.contexts.documents import ContextDocument
 from propstore.cel_types import to_cel_exprs
 from propstore.context_lifting import (
     ContextReference,
@@ -18,6 +18,14 @@ from propstore.context_lifting import (
 from propstore.core.id_types import ContextId, to_context_id
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from quire.documents import LoadedDocument
+from enum import StrEnum
+
+
+class ContextStage(StrEnum):
+    AUTHORED = "context.authored"
+    NORMALIZED = "context.normalized"
+    BOUND = "context.bound"
+    CHECKED = "context.checked"
 
 
 @dataclass(frozen=True)
@@ -123,6 +131,28 @@ class LoadedContext:
 
 
 ContextInput = LoadedContext
+
+
+@dataclass(frozen=True)
+class ContextAuthoredSet:
+    contexts: tuple[ContextInput, ...]
+
+
+@dataclass(frozen=True)
+class ContextNormalizedSet:
+    contexts: tuple[LoadedContext, ...]
+
+
+@dataclass(frozen=True)
+class ContextBoundGraph:
+    contexts: tuple[LoadedContext, ...]
+    lifting_system: LiftingSystem
+
+
+@dataclass(frozen=True)
+class ContextCheckedGraph:
+    contexts: tuple[LoadedContext, ...]
+    lifting_system: LiftingSystem
 
 
 def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:

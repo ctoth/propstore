@@ -13,14 +13,19 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from quire.documents import DocumentSchemaError, convert_document_value
-from propstore.families.documents.contexts import ContextDocument
+from propstore.families.contexts.documents import ContextDocument
 from propstore.cel_checker import synthetic_category_concept
 from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
 from propstore.context_lifting import ContextReference, LiftingRule, LiftingSystem
-from propstore.context_types import LoadedContext, loaded_contexts_to_lifting_system, parse_context_record
+from propstore.families.contexts import load_contexts
+from propstore.families.contexts.passes import run_context_pipeline
+from propstore.families.contexts.stages import (
+    LoadedContext,
+    loaded_contexts_to_lifting_system,
+    parse_context_record,
+)
 from propstore.sidecar.schema import create_context_tables, populate_contexts
-from propstore.validate_contexts import load_contexts, validate_contexts
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from tests.conftest import create_world_model_schema, make_compilation_context
@@ -168,9 +173,9 @@ class TestLoadAndValidateContexts:
             ),
         ]
 
-        result = validate_contexts(contexts)
+        result = run_context_pipeline(contexts)
 
-        assert result.ok, result.errors
+        assert result.ok, tuple(error.render() for error in result.errors)
 
     def test_lifting_rule_must_reference_existing_contexts(self, tmp_path: Path) -> None:
         contexts = [
@@ -189,10 +194,13 @@ class TestLoadAndValidateContexts:
             ),
         ]
 
-        result = validate_contexts(contexts)
+        result = run_context_pipeline(contexts)
 
         assert not result.ok
-        assert any("nonexistent source context" in error for error in result.errors)
+        assert any(
+            "nonexistent source context" in error.render()
+            for error in result.errors
+        )
 
     @pytest.mark.parametrize("field", ["inherits", "excludes"])
     def test_visibility_inheritance_fields_are_rejected_at_document_boundary(self, field: str) -> None:

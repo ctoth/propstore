@@ -14,7 +14,12 @@ from propstore.claims import claim_file_payload
 from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.compiler.passes import compile_claim_files, validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
-from propstore.context_types import LoadedContext, parse_context_record_document
+from propstore.families.contexts.passes import run_context_pipeline
+from propstore.families.contexts.stages import (
+    ContextCheckedGraph,
+    LoadedContext,
+    parse_context_record_document,
+)
 from propstore.core.concepts import LoadedConcept, parse_concept_record_document
 from propstore.diagnostics import ValidationResult
 from propstore.form_utils import parse_form
@@ -90,6 +95,19 @@ def _messages_from_result(result, *, scope: str | None = None) -> tuple[Workflow
     messages: list[WorkflowMessage] = []
     messages.extend(WorkflowMessage("warning", str(warning), scope) for warning in result.warnings)
     messages.extend(WorkflowMessage("error", str(error), scope) for error in result.errors)
+    return tuple(messages)
+
+
+def _messages_from_pipeline_result(result, *, scope: str | None = None) -> tuple[WorkflowMessage, ...]:
+    messages: list[WorkflowMessage] = []
+    messages.extend(
+        WorkflowMessage("warning", warning.render(), scope)
+        for warning in result.warnings
+    )
+    messages.extend(
+        WorkflowMessage("error", error.render(), scope)
+        for error in result.errors
+    )
     return tuple(messages)
 
 
@@ -181,8 +199,6 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
         claim_error_count = len(claim_result.errors)
 
     context_error_count = 0
-    from propstore.validate_contexts import validate_contexts
-
     try:
         ctx_list = [
             LoadedContext(
@@ -200,8 +216,8 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
             (WorkflowMessage("error", str(exc), "context"),),
         ) from exc
     if ctx_list:
-        ctx_result = validate_contexts(ctx_list)
-        messages.extend(_messages_from_result(ctx_result, scope="context"))
+        ctx_result = run_context_pipeline(ctx_list)
+        messages.extend(_messages_from_pipeline_result(ctx_result, scope="context"))
         context_error_count = len(ctx_result.errors)
 
     total_errors = (
@@ -321,8 +337,6 @@ def build_repository(
             ),
         )
 
-    from propstore.validate_contexts import validate_contexts
-
     build_messages: list[WorkflowMessage] = []
     context_ids: set[str] = set()
     try:
@@ -344,9 +358,9 @@ def build_repository(
             (WorkflowMessage("error", str(exc), "context"),),
         ) from exc
     if ctx_list:
-        ctx_result = validate_contexts(ctx_list)
-        context_messages = _messages_from_result(ctx_result, scope="context")
-        if not ctx_result.ok:
+        ctx_result = run_context_pipeline(ctx_list)
+        context_messages = _messages_from_pipeline_result(ctx_result, scope="context")
+        if not ctx_result.ok or not isinstance(ctx_result.output, ContextCheckedGraph):
             raise CompilerWorkflowError(
                 "Build aborted: context validation failed.",
                 context_messages,
@@ -354,7 +368,7 @@ def build_repository(
         build_messages.extend(context_messages)
         context_ids = {
             str(c.record.context_id)
-            for c in ctx_list
+            for c in ctx_result.output.contexts
             if c.record.context_id is not None
         }
 
