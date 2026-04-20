@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.concepts import (
     ConceptDisplayError,
     ConceptListRequest,
@@ -38,9 +40,9 @@ def search(obj: dict, query: str) -> None:
     if report.hits:
         for hit in report.hits:
             snippet = hit.definition[:80]
-            click.echo(f"  {hit.logical_id}  {hit.canonical_name}  — {snippet}")
+            emit(f"  {hit.logical_id}  {hit.canonical_name}  — {snippet}")
     else:
-        click.echo("No matches.")
+        emit("No matches.")
 
 
 # ── concept list ─────────────────────────────────────────────────────
@@ -57,11 +59,11 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
         ConceptListRequest(domain=domain, status=status),
     )
     if not report.concepts_found:
-        click.echo("No concepts directory found.")
+        emit("No concepts directory found.")
         return
 
     for entry in report.entries:
-        click.echo(f"  {entry.handle:30s} {entry.canonical_name:30s} [{entry.status}]")
+        emit(f"  {entry.handle:30s} {entry.canonical_name:30s} [{entry.status}]")
 
 
 # ── concept add-value ────────────────────────────────────────────────
@@ -80,17 +82,17 @@ def categories(obj: dict, as_json: bool) -> None:
 
     if as_json:
         import json
-        click.echo(json.dumps(report.as_dict(), indent=2))
+        emit(json.dumps(report.as_dict(), indent=2))
         return
 
     if not report.entries:
-        click.echo("No category concepts found.")
+        emit("No category concepts found.")
         return
 
     for entry in sorted(report.entries, key=lambda item: item.canonical_name):
         ext = " (extensible)" if entry.extensible else ""
         vals = ", ".join(entry.values)
-        click.echo(f"{entry.canonical_name}{ext}: {vals}")
+        emit(f"{entry.canonical_name}{ext}: {vals}")
 
 
 # ── concept show ─────────────────────────────────────────────────────
@@ -112,4 +114,4 @@ def show(obj: dict, concept_id_or_name: str) -> None:
                 f"Concept alignment '{concept_id_or_name}' not found"
             ) from exc
         raise click.ClickException(f"Concept '{concept_id_or_name}' not found") from exc
-    click.echo(report.rendered)
+    emit(report.rendered)

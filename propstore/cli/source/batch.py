@@ -6,6 +6,8 @@ from pathlib import Path
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.sources import (
     SourceBatchRequest,
     add_source_claims_batch,
@@ -30,8 +32,8 @@ def add_concepts(obj: dict, name: str, batch_file: Path) -> None:
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Wrote concepts to {report.branch}")
-    click.echo(f"Auto-finalized {report.auto_finalized_branch}")
+    emit(f"Wrote concepts to {report.branch}")
+    emit(f"Auto-finalized {report.auto_finalized_branch}")
 
 
 @source.command("add-claim")
@@ -54,8 +56,8 @@ def add_claim(obj: dict, name: str, batch_file: Path, reader: str | None, method
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Wrote claims to {report.branch}")
-    click.echo(f"Auto-finalized {report.auto_finalized_branch}")
+    emit(f"Wrote claims to {report.branch}")
+    emit(f"Auto-finalized {report.auto_finalized_branch}")
 
 
 @source.command("add-justification")
@@ -78,8 +80,8 @@ def add_justification(obj: dict, name: str, batch_file: Path, reader: str | None
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Wrote justifications to {report.branch}")
-    click.echo(f"Auto-finalized {report.auto_finalized_branch}")
+    emit(f"Wrote justifications to {report.branch}")
+    emit(f"Auto-finalized {report.auto_finalized_branch}")
 
 
 @source.command("add-stance")
@@ -102,5 +104,5 @@ def add_stance(obj: dict, name: str, batch_file: Path, reader: str | None, metho
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Wrote stances to {report.branch}")
-    click.echo(f"Auto-finalized {report.auto_finalized_branch}")
+    emit(f"Wrote stances to {report.branch}")
+    emit(f"Auto-finalized {report.auto_finalized_branch}")

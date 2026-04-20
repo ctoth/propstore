@@ -5,6 +5,8 @@ import sys
 
 import click
 
+from propstore.cli.output import emit
+
 from quire.documents import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.repository import Repository
@@ -44,7 +46,7 @@ def list_forms(obj: dict, dims_filter: str | None, show_dims_flag: bool) -> None
     repo: Repository = obj["repo"]
     items = list_form_items(repo, dims_filter=dims_filter)
     if items is None:
-        click.echo("No forms directory found.")
+        emit("No forms directory found.")
         return
 
     show_dims = show_dims_flag or dims_filter is not None
@@ -53,9 +55,9 @@ def list_forms(obj: dict, dims_filter: str | None, show_dims_flag: bool) -> None
         unit_col = f"  [{unit}]" if unit else ""
         if show_dims:
             dims_str = format_dims_col(item.dimensions, item.is_dimensionless)
-            click.echo(f"  {item.name:30s}{unit_col:10s}  {dims_str}")
+            emit(f"  {item.name:30s}{unit_col:10s}  {dims_str}")
         else:
-            click.echo(f"  {item.name:30s}{unit_col}")
+            emit(f"  {item.name:30s}{unit_col}")
 
 
 # ── form show ────────────────────────────────────────────────────────
@@ -75,40 +77,40 @@ def show(obj: dict, name: str) -> None:
     try:
         report = show_form(repo, name)
     except FormNotFoundError:
-        click.echo(f"ERROR: Form '{name}' not found", err=True)
+        emit(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
-    click.echo(report.yaml_text)
+    emit(report.yaml_text)
 
     form_def = report.form
     if form_def and form_def.conversions:
-        click.echo("Unit Conversions:")
+        emit("Unit Conversions:")
         si = form_def.unit_symbol or "SI"
         for conv in form_def.conversions.values():
             if conv.type == "multiplicative":
-                click.echo(f"  {conv.unit} \u2192 {si}  (\u00d7{conv.multiplier:g})")
+                emit(f"  {conv.unit} \u2192 {si}  (\u00d7{conv.multiplier:g})")
             elif conv.type == "affine":
-                click.echo(f"  {conv.unit} \u2192 {si}  (\u00d7{conv.multiplier:g} + {conv.offset:g}, affine)")
+                emit(f"  {conv.unit} \u2192 {si}  (\u00d7{conv.multiplier:g} + {conv.offset:g}, affine)")
             elif conv.type == "logarithmic":
-                click.echo(f"  {conv.unit} \u2192 {si}  (logarithmic, ref={conv.reference:g})")
+                emit(f"  {conv.unit} \u2192 {si}  (logarithmic, ref={conv.reference:g})")
             else:
-                click.echo(f"  {conv.unit} \u2192 {si}  ({conv.type})")
+                emit(f"  {conv.unit} \u2192 {si}  ({conv.type})")
 
     if report.decompositions or report.uses:
-        click.echo("---")
-        click.echo("# Form Algebra (derived from concept parameterizations)")
+        emit("---")
+        emit("# Form Algebra (derived from concept parameterizations)")
     if report.decompositions:
-        click.echo("decompositions:")
+        emit("decompositions:")
         for entry in report.decompositions:
-            click.echo(f"  - {name} = {' * '.join(entry.input_forms)}")
+            emit(f"  - {name} = {' * '.join(entry.input_forms)}")
             if entry.source_formula:
-                click.echo(
+                emit(
                     f"    from: {entry.source_formula} "
                     f"({entry.source_concept_id})"
                 )
     if report.uses:
-        click.echo("used_in:")
+        emit("used_in:")
         for entry in report.uses:
-            click.echo(f"  - {entry.output_form} = {' * '.join(entry.input_forms)}")
+            emit(f"  - {entry.output_form} = {' * '.join(entry.input_forms)}")
 
 
 # ── form add ─────────────────────────────────────────────────────────
@@ -151,15 +153,15 @@ def add(
     try:
         report = add_form(repo, request, dry_run=dry_run)
     except FormWorkflowError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
 
     if not report.created:
-        click.echo(f"Would create {report.path}")
-        click.echo(encode_document(report.document).decode("utf-8"))
+        emit(f"Would create {report.path}")
+        emit(encode_document(report.document).decode("utf-8"))
         return
 
-    click.echo(f"Created {report.path}")
+    emit(f"Created {report.path}")
 
 
 # ── form remove ──────────────────────────────────────────────────────
@@ -175,24 +177,24 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
     try:
         report = remove_form(repo, name, force=force, dry_run=dry_run)
     except FormNotFoundError:
-        click.echo(f"ERROR: Form '{name}' not found", err=True)
+        emit(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
     except FormReferencedError as exc:
-        click.echo(f"ERROR: {exc}:", err=True)
+        emit(f"ERROR: {exc}:", err=True)
         for ref in exc.references:
-            click.echo(f"  {ref}", err=True)
-        click.echo("Use --force to remove anyway.", err=True)
+            emit(f"  {ref}", err=True)
+        emit("Use --force to remove anyway.", err=True)
         sys.exit(EXIT_ERROR)
 
     if not report.removed:
-        click.echo(f"Would remove {report.path}")
+        emit(f"Would remove {report.path}")
         if report.references:
-            click.echo(f"  ({len(report.references)} concept(s) still reference this form)")
+            emit(f"  ({len(report.references)} concept(s) still reference this form)")
         return
 
-    click.echo(f"Removed {report.path}")
+    emit(f"Removed {report.path}")
     if report.references:
-        click.echo(f"  WARNING: {len(report.references)} concept(s) still reference this form")
+        emit(f"  WARNING: {len(report.references)} concept(s) still reference this form")
 
 
 # ── form validate ────────────────────────────────────────────────────
@@ -210,16 +212,16 @@ def validate(obj: dict, name: str | None) -> None:
     try:
         report = validate_forms(repo, name)
     except FormNotFoundError:
-        click.echo(f"ERROR: Form '{name}' not found", err=True)
+        emit(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
     if report is None:
-        click.echo("No forms directory found.")
+        emit("No forms directory found.")
         return
 
     if not report.ok:
         for e in report.errors:
-            click.echo(f"ERROR: {e}", err=True)
+            emit(f"ERROR: {e}", err=True)
         sys.exit(EXIT_ERROR)
 
-    click.echo(f"OK: {report.count} form(s) valid")
+    emit(f"OK: {report.count} form(s) valid")

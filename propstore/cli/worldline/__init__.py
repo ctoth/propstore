@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.worldlines import (
     JsonObject,
     argumentation_semantics_values,
@@ -17,7 +19,7 @@ def _parse_kv_args(args: tuple[str, ...]) -> JsonObject:
 
     parsed, remaining = parse_kv_pairs(args, coerce=True)
     for r in remaining:
-        click.echo(f"WARNING: ignoring argument without '=': {r}", err=True)
+        emit(f"WARNING: ignoring argument without '=': {r}", err=True)
     return {
         key: coerce_worldline_cli_value(value)
         for key, value in parsed.items()

@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.grounding import (
     GroundingInspectionError,
     inspect_grounding_arguments,
@@ -30,15 +32,15 @@ def grounding_status(obj: dict) -> None:
     except GroundingInspectionError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    click.echo(f"Predicate files: {len(report.surface.predicate_files)}")
-    click.echo(f"Rule files: {len(report.surface.rule_files)}")
-    click.echo(f"Grounding surface: {report.surface_state}")
+    emit(f"Predicate files: {len(report.surface.predicate_files)}")
+    emit(f"Rule files: {len(report.surface.rule_files)}")
+    emit(f"Grounding surface: {report.surface_state}")
     if report.message is not None:
-        click.echo(report.message)
+        emit(report.message)
         return
-    click.echo(f"Facts: {report.facts_count}")
+    emit(f"Facts: {report.facts_count}")
     for section, count in report.section_counts:
-        click.echo(f"  {section}: {count}")
+        emit(f"  {section}: {count}")
 
 
 @grounding.command("show")
@@ -50,28 +52,28 @@ def grounding_show(obj: dict) -> None:
     except GroundingInspectionError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    click.echo(f"Facts ({len(report.facts)}):")
+    emit(f"Facts ({len(report.facts)}):")
     if not report.facts:
-        click.echo("  <empty>")
+        emit("  <empty>")
     else:
         for fact in report.facts:
-            click.echo(f"  {fact}")
+            emit(f"  {fact}")
 
-    click.echo(f"Grounded rules ({len(report.rules)}):")
+    emit(f"Grounded rules ({len(report.rules)}):")
     if not report.rules:
-        click.echo("  <empty>")
+        emit("  <empty>")
     else:
         for rule in report.rules:
-            click.echo(f"  {rule.text}")
+            emit(f"  {rule.text}")
 
-    click.echo("Sections:")
+    emit("Sections:")
     for section, lines in report.sections:
-        click.echo(f"  {section}:")
+        emit(f"  {section}:")
         if not lines:
-            click.echo("    <empty>")
+            emit("    <empty>")
             continue
         for line in lines:
-            click.echo(f"    {line}")
+            emit(f"    {line}")
 
 
 @grounding.command("query")
@@ -84,11 +86,11 @@ def grounding_query(obj: dict, atom: str) -> None:
     except GroundingInspectionError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    click.echo(f"{report.atom!r}")
+    emit(f"{report.atom!r}")
     if report.matched_sections:
-        click.echo(f"  status: {', '.join(report.matched_sections)}")
+        emit(f"  status: {', '.join(report.matched_sections)}")
         return
-    click.echo("  status: absent")
+    emit("  status: absent")
 
 
 @grounding.command("arguments")
@@ -100,9 +102,9 @@ def grounding_arguments(obj: dict) -> None:
     except GroundingInspectionError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    click.echo(f"Arguments ({len(report.arguments)}):")
+    emit(f"Arguments ({len(report.arguments)}):")
     if not report.arguments:
-        click.echo("  <empty>")
+        emit("  <empty>")
         return
     for argument in report.arguments:
-        click.echo(f"  {argument}")
+        emit(f"  {argument}")

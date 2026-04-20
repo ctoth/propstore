@@ -6,6 +6,8 @@ from pathlib import Path
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.sources import (
     SourceInitRequest,
     SourceNamedRequest,
@@ -53,7 +55,7 @@ def source_init(
         )
     except (TypeError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Initialized {report.branch}")
+    emit(f"Initialized {report.branch}")
 
 
 @source.command("finalize")
@@ -65,7 +67,7 @@ def finalize(obj: dict, name: str) -> None:
         report = finalize_source(repo, SourceNamedRequest(name=name))
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Finalized {report.branch}")
+    emit(f"Finalized {report.branch}")
 
 
 @source.command("promote")
@@ -99,12 +101,12 @@ def promote(obj: dict, name: str, strict: bool) -> None:
         raise click.ClickException(str(exc)) from exc
 
     if report.blocked_count > 0:
-        click.echo(
+        emit(
             f"Promoted {report.promoted_count} of {report.total_claims} claims to master "
             f"({report.blocked_count} blocked; see build_diagnostics)."
         )
     else:
-        click.echo(f"Promoted {report.branch} to master")
+        emit(f"Promoted {report.branch} to master")
 
 
 @source.command("status")
@@ -127,26 +129,26 @@ def source_status(obj: dict, name: str) -> None:
     repo: Repository = obj["repo"]
     report = inspect_source(repo, SourceNamedRequest(name=name))
     if report.state is SourceStatusState.SIDECAR_MISSING:
-        click.echo("No sidecar built yet — run 'pks build' first.")
+        emit("No sidecar built yet — run 'pks build' first.")
         return
     if report.state is SourceStatusState.CLAIM_CORE_MISSING:
-        click.echo("No claim_core table — sidecar schema may predate phase 3.")
+        emit("No claim_core table — sidecar schema may predate phase 3.")
         return
     if report.state is SourceStatusState.NO_ROWS:
-        click.echo(f"No promotion-status rows for {report.branch}.")
+        emit(f"No promotion-status rows for {report.branch}.")
         return
 
     # Tabular text output follows the style established by `pks log`
     # (propstore/cli/__init__.py:155-187).
     header = f"{'CLAIM ID':<40}  {'STATUS':<10}  MESSAGE"
-    click.echo(header)
-    click.echo("-" * len(header))
+    emit(header)
+    emit("-" * len(header))
     for row in report.rows:
         if not row.diagnostics:
-            click.echo(f"{row.claim_id:<40}  {row.promotion_status:<10}  (no diagnostic)")
+            emit(f"{row.claim_id:<40}  {row.promotion_status:<10}  (no diagnostic)")
             continue
         for diag in row.diagnostics:
-            click.echo(
+            emit(
                 f"{row.claim_id:<40}  {row.promotion_status:<10}  [{diag.kind}] {diag.message}"
             )
 
@@ -164,7 +166,7 @@ def sync(obj: dict, name: str, output_dir: Path | None) -> None:
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(f"Synchronized {report.branch} to {report.destination}")
+    emit(f"Synchronized {report.branch} to {report.destination}")
 
 
 @source.command("stamp-provenance")
@@ -193,4 +195,4 @@ def stamp_provenance(
             plugin_version=plugin_version,
         )
     )
-    click.echo(f"Stamped provenance on {stamped_path}")
+    emit(f"Stamped provenance on {stamped_path}")

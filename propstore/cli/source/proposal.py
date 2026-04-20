@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.sources import (
     SourceAppError,
     SourceClaimProposalRequest,
@@ -54,9 +56,9 @@ def propose_concept(
     if report.status == "linked":
         canonical = report.linked_canonical_name or concept_name
         artifact_id = report.linked_artifact_id or ""
-        click.echo(f"Linked '{concept_name}' \u2192 existing '{canonical}' ({artifact_id})")
+        emit(f"Linked '{concept_name}' \u2192 existing '{canonical}' ({artifact_id})")
     else:
-        click.echo(f"Proposed new concept '{concept_name}' (form: {report.form_name})")
+        emit(f"Proposed new concept '{concept_name}' (form: {report.form_name})")
 
 
 @source.command("propose-claim")
@@ -100,7 +102,7 @@ def propose_claim(
         )
     except (SourceAppError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(
+    emit(
         f"Proposed claim '{claim_id}' (type: {report.claim_type}, artifact: {report.artifact_id})"
     )
 
@@ -138,7 +140,7 @@ def propose_justification(
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     resolved_premises = ", ".join(report.premises)
-    click.echo(
+    emit(
         f"Proposed justification '{just_id}' "
         f"({report.rule_kind}: {resolved_premises} \u2192 {report.conclusion})"
     )
@@ -176,6 +178,6 @@ def propose_stance(
         )
     except (SourceAppError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(
+    emit(
         f"Proposed stance: '{source_claim}' {report.stance_type} '{report.target}'"
     )

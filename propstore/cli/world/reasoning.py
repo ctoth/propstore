@@ -5,6 +5,8 @@ import sys
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.world_reasoning import (
     AppWorldExtensionsRequest,
     WorldExtensionsClaimLine,
@@ -84,15 +86,15 @@ def world_derive(
         ),
     )
 
-    click.echo(f"{report.concept_id}: {report.status}")
+    emit(f"{report.concept_id}: {report.status}")
     if report.value is not None:
-        click.echo(f"  value: {report.value}")
+        emit(f"  value: {report.value}")
     if report.formula:
-        click.echo(f"  formula: {report.formula}")
+        emit(f"  formula: {report.formula}")
     if report.input_values:
-        click.echo(f"  inputs: {report.input_values}")
+        emit(f"  inputs: {report.input_values}")
     if report.exactness:
-        click.echo(f"  exactness: {report.exactness}")
+        emit(f"  exactness: {report.exactness}")
 
 
 @world.command("resolve")
@@ -196,22 +198,22 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
             ),
         )
     except WorldResolveError as e:
-        click.echo(f"ERROR: {e}", err=True)
+        emit(f"ERROR: {e}", err=True)
         sys.exit(1)
 
-    click.echo(f"{report.concept_display_id}: {report.status}")
+    emit(f"{report.concept_display_id}: {report.status}")
     if report.value is not None:
-        click.echo(f"  value: {report.value}")
+        emit(f"  value: {report.value}")
     if report.winning_claim_display_id:
-        click.echo(f"  winner: {report.winning_claim_display_id}")
+        emit(f"  winner: {report.winning_claim_display_id}")
     if report.strategy:
-        click.echo(f"  strategy: {report.strategy}")
+        emit(f"  strategy: {report.strategy}")
     if report.reason:
-        click.echo(f"  reason: {report.reason}")
+        emit(f"  reason: {report.reason}")
     if report.acceptance_probs:
-        click.echo("  acceptance_probs:")
+        emit("  acceptance_probs:")
         for probability in report.acceptance_probs:
-            click.echo(f"    {probability.claim_id}: {probability.probability:.4f}")
+            emit(f"    {probability.claim_id}: {probability.probability:.4f}")
 
 
 @world.command("extensions")
@@ -265,73 +267,73 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             ),
         )
     except WorldExtensionsUnsupportedBackend as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(2)
 
     if report is None:
-        click.echo("No active claims for given bindings.")
+        emit("No active claims for given bindings.")
         return
 
     claim_map = {claim.claim_id: claim for claim in report.active_claims}
     summary = report.stance_summary
 
-    click.echo(f"Backend: {report.backend}")
-    click.echo(f"Semantics: {report.semantics}")
+    emit(f"Backend: {report.backend}")
+    emit(f"Semantics: {report.semantics}")
     if report.backend == "praf":
-        click.echo(f"Strategy used: {report.strategy_used}")
+        emit(f"Strategy used: {report.strategy_used}")
         if report.samples is not None:
-            click.echo(f"MC samples: {report.samples}")
-        click.echo(f"Active claims: {len(report.active_claims)}")
-        click.echo(
+            emit(f"MC samples: {report.samples}")
+        emit(f"Active claims: {len(report.active_claims)}")
+        emit(
             f"Stances: {summary.total_stances} total, "
             f"{summary.included_as_attacks} included as attacks"
         )
-        click.echo("\nAcceptance probabilities:")
+        emit("\nAcceptance probabilities:")
         for probability in report.acceptance_probabilities:
-            click.echo(
+            emit(
                 f"  {_claim_label(probability.claim_id, claim_map)}  "
                 f"P(accepted) = {probability.probability:.4f}"
             )
         return
 
-    click.echo(f"Set comparison: {report.set_comparison}")
-    click.echo(f"Active claims: {len(report.active_claims)}")
-    click.echo(
+    emit(f"Set comparison: {report.set_comparison}")
+    emit(f"Active claims: {len(report.active_claims)}")
+    emit(
         f"Stances: {summary.total_stances} total, "
         f"{summary.included_as_attacks} included as attacks, "
         f"{summary.vacuous_count} vacuous, "
         f"{summary.excluded_non_attack} non-attack"
     )
     if summary.models:
-        click.echo(f"Models: {', '.join(summary.models)}")
+        emit(f"Models: {', '.join(summary.models)}")
 
     if semantics == "grounded":
         accepted = set(report.accepted_claim_ids)
         accepted_groups = _group_by_type(accepted, claim_map)
-        click.echo(f"Accepted ({len(accepted)} claims):")
+        emit(f"Accepted ({len(accepted)} claims):")
         for claim_type, claim_ids in sorted(accepted_groups.items()):
-            click.echo(f"  {claim_type} ({len(claim_ids)}):")
+            emit(f"  {claim_type} ({len(claim_ids)}):")
             for claim_id in claim_ids:
-                click.echo(f"    {_claim_label(claim_id, claim_map)}")
+                emit(f"    {_claim_label(claim_id, claim_map)}")
 
         if report.defeated_claims:
-            click.echo(f"Defeated ({len(report.defeated_claims)} claims):")
+            emit(f"Defeated ({len(report.defeated_claims)} claims):")
             for defeated in report.defeated_claims:
-                click.echo(f"  {_claim_label(defeated.claim_id, claim_map)}")
+                emit(f"  {_claim_label(defeated.claim_id, claim_map)}")
                 if defeated.defeater_claim_ids:
                     by = ", ".join(defeated.defeater_claim_ids)
-                    click.echo(f"    defeated by: {by}")
+                    emit(f"    defeated by: {by}")
         return
 
-    click.echo(f"Extensions ({len(report.extensions)}):")
+    emit(f"Extensions ({len(report.extensions)}):")
     for index, extension in enumerate(report.extensions):
         claim_ids = set(extension.claim_ids)
-        click.echo(f"  Extension {index + 1} ({len(claim_ids)} claims):")
+        emit(f"  Extension {index + 1} ({len(claim_ids)} claims):")
         groups = _group_by_type(claim_ids, claim_map)
         for claim_type, grouped_claim_ids in sorted(groups.items()):
-            click.echo(f"    {claim_type}:")
+            emit(f"    {claim_type}:")
             for claim_id in grouped_claim_ids:
-                click.echo(f"      {_claim_label(claim_id, claim_map)}")
+                emit(f"      {_claim_label(claim_id, claim_map)}")
 
 
 def _claim_label(

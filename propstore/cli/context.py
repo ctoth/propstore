@@ -5,6 +5,8 @@ import sys
 
 import click
 
+from propstore.cli.output import emit
+
 from quire.documents import encode_document
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.app.contexts import (
@@ -50,15 +52,15 @@ def add(
     try:
         report = add_context(repo, request, dry_run=dry_run)
     except ContextWorkflowError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
 
     if not report.created:
-        click.echo(f"Would create {report.filepath}")
-        click.echo(encode_document(report.document).decode("utf-8"))
+        emit(f"Would create {report.filepath}")
+        emit(encode_document(report.document).decode("utf-8"))
         return
 
-    click.echo(f"Created {report.filepath}")
+    emit(f"Created {report.filepath}")
 
 
 @context.command("list")
@@ -68,9 +70,9 @@ def list_contexts(obj: dict) -> None:
     repo: Repository = obj["repo"]
     contexts = list_context_items(repo)
     if not contexts:
-        click.echo("No contexts registered.")
+        emit("No contexts registered.")
         return
 
     for context in contexts:
         suffix = f" ({context.perspective})" if context.perspective else ""
-        click.echo(f"  {context.context_id}{suffix} — {context.description}")
+        emit(f"  {context.context_id}{suffix} — {context.description}")

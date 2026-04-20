@@ -5,6 +5,8 @@ import sys
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.worldlines import (
     WorldlineAlreadyExistsError,
     WorldlineCreateRequest,
@@ -159,12 +161,12 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
             ),
         )
     except WorldlineAlreadyExistsError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(1)
     except WorldlineValidationError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    click.echo(f"Created worldline '{report.name}' at {report.path}")
+    emit(f"Created worldline '{report.name}' at {report.path}")
 
 
 @worldline.command("run")
@@ -229,20 +231,20 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
             ),
         )
     except WorldlineValidationError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         sys.exit(1)
 
     result = report.result
-    click.echo(f"Worldline '{name}' materialized ({len(result.values)} targets)")
+    emit(f"Worldline '{name}' materialized ({len(result.values)} targets)")
     for target, val in result.values.items():
         status = val.status
         value = val.value
         source = val.source or ""
         if value is not None:
-            click.echo(f"  {target}: {value} ({status}, {source})")
+            emit(f"  {target}: {value} ({status}, {source})")
         else:
             reason = val.reason or ""
-            click.echo(f"  {target}: {status} — {reason}")
+            emit(f"  {target}: {status} — {reason}")
 
 
 @worldline.command("refresh")

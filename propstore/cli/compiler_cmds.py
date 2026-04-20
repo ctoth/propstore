@@ -10,6 +10,8 @@ import sys
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.compiler import (
     CompilerWorkflowError,
     SidecarQueryError,
@@ -28,7 +30,7 @@ def _emit_workflow_messages(messages) -> None:
         label = message.level.upper()
         if message.scope:
             label = f"{label} ({message.scope})"
-        click.echo(f"{label}: {message.text}", err=True)
+        emit(f"{label}: {message.text}", err=True)
 
 
 @click.command()
@@ -40,20 +42,20 @@ def validate(obj: dict) -> None:
         report = validate_repository(repo)
     except CompilerWorkflowError as exc:
         _emit_workflow_messages(exc.messages)
-        click.echo(exc.summary, err=True)
+        emit(exc.summary, err=True)
         sys.exit(EXIT_VALIDATION)
 
     if report.no_concepts:
-        click.echo("No concept files found.")
+        emit("No concept files found.")
         return
 
     _emit_workflow_messages(report.messages)
     if report.ok:
-        click.echo(
+        emit(
             f"Validation passed: {report.concept_count} concept(s), "
             f"{report.claim_file_count} claim file(s)")
     else:
-        click.echo(f"Validation FAILED: {len(report.errors)} error(s)", err=True)
+        emit(f"Validation FAILED: {len(report.errors)} error(s)", err=True)
         sys.exit(EXIT_VALIDATION)
 
 
@@ -68,29 +70,29 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         report = build_repository(repo, output=output, force=force)
     except CompilerWorkflowError as exc:
         _emit_workflow_messages(exc.messages)
-        click.echo(exc.summary, err=True)
+        emit(exc.summary, err=True)
         sys.exit(EXIT_VALIDATION)
 
     if report.no_concepts:
-        click.echo("No concept files found.")
+        emit("No concept files found.")
         return
 
     _emit_workflow_messages(report.messages)
     for conflict in report.conflicts:
-        click.echo(
+        emit(
             f"  {conflict.warning_class}: {conflict.concept_id} "
             f"({conflict.claim_a_id} vs {conflict.claim_b_id})",
             err=True,
         )
     for group in report.phi_groups:
-        click.echo(
+        emit(
             f"  {group.key} — {len(group.claim_ids)} branches: "
             f"{', '.join(group.claim_ids)}",
             err=True,
         )
 
     status = "rebuilt" if report.rebuilt else "unchanged"
-    click.echo(
+    emit(
         f"Build {status}: {report.concept_count} concepts, "
         f"{report.claim_count} claims, {report.conflict_count} conflicts, "
         f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings")
@@ -105,18 +107,18 @@ def query(obj: dict, sql: str) -> None:
     try:
         result = query_sidecar(repo, SidecarQueryRequest(sql=sql))
     except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        emit("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
         sys.exit(1)
     except SidecarQueryError as exc:
-        click.echo(f"SQL error: {exc}", err=True)
+        emit(f"SQL error: {exc}", err=True)
         sys.exit(1)
 
     if not result.rows:
-        click.echo("(no results)")
+        emit("(no results)")
         return
-    click.echo("\t".join(result.columns))
+    emit("\t".join(result.columns))
     for row in result.rows:
-        click.echo("\t".join(row))
+        emit("\t".join(row))
 
 
 @click.command("export-aliases")
@@ -129,15 +131,15 @@ def export_aliases(obj: dict, fmt: str) -> None:
     try:
         aliases = run_export_aliases(repo)
     except FileNotFoundError:
-        click.echo("ERROR: No concepts directory.", err=True)
+        emit("ERROR: No concepts directory.", err=True)
         sys.exit(1)
 
     if fmt == "json":
-        click.echo(json.dumps(
+        emit(json.dumps(
             {alias: entry.to_dict() for alias, entry in aliases.items()},
             indent=2,
         ))
     else:
         for alias_name, info in sorted(aliases.items()):
-            click.echo(f"{alias_name} -> {info.logical_id} ({info.name})")
+            emit(f"{alias_name} -> {info.logical_id} ({info.name})")
 

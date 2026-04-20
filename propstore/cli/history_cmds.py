@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from quire.documents import render_yaml_value
 from propstore.app.repository_history import (
     BranchNotFoundError,
@@ -24,16 +26,16 @@ def _render_text_log(records: tuple[LogRecord, ...], *, show_files: bool) -> Non
         branch = record.branch
         operation = record.operation
         msg_first_line = record.message.split("\n")[0]
-        click.echo(
+        emit(
             f"  {sha_short}  {time_str}  "
             f"[{branch}]  {operation:<22}  {msg_first_line}"
         )
         parents = record.parents
         if len(parents) > 1:
             parent_list = ", ".join(parent[:8] for parent in parents)
-            click.echo(f"    parents: {parent_list}")
+            emit(f"    parents: {parent_list}")
         if record.merge is not None:
-            click.echo(
+            emit(
                 "    merge: "
                 f"{record.merge.branch_a} + {record.merge.branch_b}; "
                 f"materialized={record.merge.materialized_argument_count}/"
@@ -43,11 +45,11 @@ def _render_text_log(records: tuple[LogRecord, ...], *, show_files: bool) -> Non
         if not show_files:
             continue
         for path in record.added:
-            click.echo(f"    A {path}")
+            emit(f"    A {path}")
         for path in record.modified:
-            click.echo(f"    M {path}")
+            emit(f"    M {path}")
         for path in record.deleted:
-            click.echo(f"    D {path}")
+            emit(f"    D {path}")
 
 
 @click.command("log")
@@ -81,10 +83,10 @@ def log_cmd(ctx: click.Context, count: int, branch_name: str | None, show_files:
     except BranchNotFoundError as exc:
         raise click.ClickException(str(exc)) from exc
     if not report.entries:
-        click.echo("No history yet.")
+        emit("No history yet.")
         return
     if output_format == "yaml":
-        click.echo(render_yaml_value(report.to_payload(show_files=show_files)))
+        emit(render_yaml_value(report.to_payload(show_files=show_files)))
         return
     _render_text_log(report.entries, show_files=show_files)
 
@@ -97,13 +99,13 @@ def diff_cmd(ctx: click.Context, commit: str | None) -> None:
     repo = ctx.obj["repo"]
     report = build_diff_report(repo, commit)
     for path in report.added:
-        click.echo(f"  Added: {path}")
+        emit(f"  Added: {path}")
     for path in report.modified:
-        click.echo(f"  Modified: {path}")
+        emit(f"  Modified: {path}")
     for path in report.deleted:
-        click.echo(f"  Deleted: {path}")
+        emit(f"  Deleted: {path}")
     if not report.has_changes:
-        click.echo("No changes.")
+        emit("No changes.")
 
 
 @click.command("show")
@@ -115,20 +117,20 @@ def show_cmd(ctx: click.Context, commit: str) -> None:
     try:
         report = build_commit_show_report(repo, commit)
     except CommitNotFoundError:
-        click.echo(f"Commit not found: {commit}")
+        emit(f"Commit not found: {commit}")
         return
-    click.echo(f"  Commit: {report.sha[:8]}")
-    click.echo(f"  Author: {report.author}")
-    click.echo(f"  Date: {report.time}")
-    click.echo(f"  Message: {report.message}")
-    click.echo()
-    click.echo("  Files:")
+    emit(f"  Commit: {report.sha[:8]}")
+    emit(f"  Author: {report.author}")
+    emit(f"  Date: {report.time}")
+    emit(f"  Message: {report.message}")
+    emit()
+    emit("  Files:")
     for path in report.changes.added:
-        click.echo(f"    A {path}")
+        emit(f"    A {path}")
     for path in report.changes.modified:
-        click.echo(f"    M {path}")
+        emit(f"    M {path}")
     for path in report.changes.deleted:
-        click.echo(f"    D {path}")
+        emit(f"    D {path}")
 
 
 @click.command("checkout")
@@ -147,13 +149,13 @@ def checkout_cmd(ctx: click.Context, commit: str) -> None:
     try:
         report = checkout_commit(repo, commit)
     except CommitNotFoundError:
-        click.echo(f"Commit not found: {commit}")
+        emit(f"Commit not found: {commit}")
         return
     except CommitHasNoConceptsError:
-        click.echo("No concepts found at that commit.")
+        emit("No concepts found at that commit.")
         return
 
     if report.rebuilt:
-        click.echo(f"Sidecar built from commit {commit[:8]}.")
+        emit(f"Sidecar built from commit {commit[:8]}.")
     else:
-        click.echo(f"Sidecar already at commit {commit[:8]}.")
+        emit(f"Sidecar already at commit {commit[:8]}.")

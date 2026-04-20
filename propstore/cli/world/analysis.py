@@ -7,6 +7,8 @@ from pathlib import Path
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.world import (
     AppWorldChainRequest,
     AppWorldConsistencyRequest,
@@ -99,10 +101,10 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
     )
 
     if not report.changes:
-        click.echo("No changes detected.")
+        emit("No changes detected.")
     else:
         for change in report.changes:
-            click.echo(
+            emit(
                 f"{change.concept_display_id}: "
                 f"{change.base_status} → {change.hypothetical_status}"
             )
@@ -165,13 +167,13 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
         ),
     )
 
-    click.echo(f"Target: {_format_chain_concept(report.target)}")
-    click.echo(f"Result: {report.status}")
+    emit(f"Target: {_format_chain_concept(report.target)}")
+    emit(f"Result: {report.status}")
     if report.value is not None:
-        click.echo(f"  value: {report.value}")
-    click.echo(f"Steps ({len(report.steps)}):")
+        emit(f"  value: {report.value}")
+    emit(f"Steps ({len(report.steps)}):")
     for step in report.steps:
-        click.echo(
+        emit(
             f"  {_format_chain_concept(step.concept)}: {step.value} ({step.source})"
         )
 
@@ -203,9 +205,9 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
 
     if output_file:
         Path(output_file).write_text(output)
-        click.echo(f"Graph written to {output_file}")
+        emit(f"Graph written to {output_file}")
     else:
-        click.echo(output)
+        emit(output)
 
 
 @world.command("sensitivity")
@@ -228,7 +230,7 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
     result = report.result
 
     if result is None:
-        click.echo(f"No sensitivity analysis available for {report.concept_id}.")
+        emit(f"No sensitivity analysis available for {report.concept_id}.")
         return
 
     if fmt == "json":
@@ -247,19 +249,19 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
                 for e in result.entries
             ],
         }
-        click.echo(json.dumps(data, indent=2))
+        emit(json.dumps(data, indent=2))
     else:
-        click.echo(f"Sensitivity: {report.concept_id}")
-        click.echo(f"Formula: {result.formula}")
-        click.echo(f"Output value: {result.output_value}")
-        click.echo(f"Inputs: {result.input_values}")
-        click.echo("")
-        click.echo(f"{'Input':<25} {'Partial':>12} {'Elasticity':>12}")
-        click.echo("-" * 51)
+        emit(f"Sensitivity: {report.concept_id}")
+        emit(f"Formula: {result.formula}")
+        emit(f"Output value: {result.output_value}")
+        emit(f"Inputs: {result.input_values}")
+        emit("")
+        emit(f"{'Input':<25} {'Partial':>12} {'Elasticity':>12}")
+        emit("-" * 51)
         for e in result.entries:
             pval = f"{e.partial_derivative_value:.6g}" if e.partial_derivative_value is not None else "N/A"
             elast = f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A"
-            click.echo(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
+            emit(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
 
 
 @world.command("fragility")
@@ -324,28 +326,28 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
             ],
             "interactions": [asdict(i) for i in report.interactions],
         }
-        click.echo(json.dumps(result_dict, indent=2))
+        emit(json.dumps(result_dict, indent=2))
     else:
-        click.echo(f"Fragility Analysis (top {top_k}, ranking={ranking_policy})")
-        click.echo("=" * 60)
-        click.echo("")
-        click.echo(
+        emit(f"Fragility Analysis (top {top_k}, ranking={ranking_policy})")
+        emit("=" * 60)
+        emit("")
+        emit(
             f"{'Rank':>4}  {'Score':>5}  {'ROI':>5}  {'Cost':>4}  {'Family':<10} {'Kind':<20} {'Intervention'}"
         )
         for i, item in enumerate(report.interventions, 1):
             roi = f"{item.roi:.2f}"
             cost = str(item.target.cost_tier)
-            click.echo(
+            emit(
                 f"{i:>4}  {item.local_fragility:>5.2f}  {roi:>5}  {cost:>4}  "
                 f"{item.target.family:<10} {item.target.kind:<20} {item.target.intervention_id}"
             )
-        click.echo("")
-        click.echo(f"World fragility: {report.world_fragility:.2f}")
+        emit("")
+        emit(f"World fragility: {report.world_fragility:.2f}")
 
         # Display interactions if present
         if report.interactions:
-            click.echo("")
-            click.echo("Interactions:")
+            emit("")
+            emit("Interactions:")
             for inter in report.interactions:
                 itype = inter.interaction_type
                 a_id = inter.intervention_a_id
@@ -362,7 +364,7 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
                 else:
                     desc = "unknown (no ATMS data)"
                 concept_str = f" for {', '.join(concepts)}" if concepts else ""
-                click.echo(f"  {a_id} + {b_id}: {desc}{concept_str}")
+                emit(f"  {a_id} + {b_id}: {desc}{concept_str}")
 
 
 @world.command("check-consistency")
@@ -385,24 +387,24 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
 
     if report.transitive:
         if not report.conflicts:
-            click.echo("No transitive conflicts found.")
+            emit("No transitive conflicts found.")
         else:
-            click.echo(f"Found {len(report.conflicts)} transitive conflict(s):")
+            emit(f"Found {len(report.conflicts)} transitive conflict(s):")
             for conflict in report.conflicts:
-                click.echo(
+                emit(
                     f"  {conflict.concept_id}: "
                     f"{conflict.value_a} vs {conflict.value_b}"
                 )
                 if conflict.derivation_chain:
-                    click.echo(f"    chain: {conflict.derivation_chain}")
+                    emit(f"    chain: {conflict.derivation_chain}")
         return
 
     if not report.conflicts:
-        click.echo("No conflicts under current bindings.")
+        emit("No conflicts under current bindings.")
     else:
-        click.echo(f"Found {len(report.conflicts)} conflict(s):")
+        emit(f"Found {len(report.conflicts)} conflict(s):")
         for conflict in report.conflicts:
-            click.echo(
+            emit(
                 f"  {conflict.concept_id}: {conflict.warning_class} "
                 f"({conflict.claim_a_id} vs {conflict.claim_b_id})"
             )

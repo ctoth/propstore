@@ -5,6 +5,8 @@ from pathlib import Path
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.project_init import ProjectInitError, initialize_project
 
 
@@ -31,9 +33,9 @@ def init(obj: dict, directory: str) -> None:
         raise click.ClickException(str(exc)) from exc
 
     if not report.initialized:
-        click.echo(f"Already initialized: {report.root}")
+        emit(f"Already initialized: {report.root}")
         return
 
-    click.echo(f"Initialized propstore project at {report.root}/")
+    emit(f"Initialized propstore project at {report.root}/")
     for path in report.paths:
-        click.echo(f"  {path}/")
+        emit(f"  {path}/")

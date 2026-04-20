@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.merge import (
     MergeCommitRequest,
     MergeInspectRequest,
@@ -38,7 +40,7 @@ def merge_inspect(ctx: click.Context, branch_a: str, branch_b: str, semantics: s
             semantics=semantics,
         ),
     )
-    click.echo(render_yaml_value(report.payload))
+    emit(render_yaml_value(report.payload))
 
 
 @merge.command("commit")
@@ -65,4 +67,4 @@ def merge_commit_cmd(
             target_branch=target_branch,
         ),
     )
-    click.echo(render_yaml_value(report.payload))
+    emit(render_yaml_value(report.payload))

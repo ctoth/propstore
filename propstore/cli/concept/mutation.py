@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.output import emit
+
 from propstore.app.concepts import (
     ConceptAddRequest,
     ConceptAddValueRequest,
@@ -37,9 +39,9 @@ from propstore.repository import Repository
 
 def _render_mutation_report(report: ConceptMutationReport) -> None:
     for warning in report.warnings:
-        click.echo(f"WARNING: {warning}", err=True)
+        emit(f"WARNING: {warning}", err=True)
     for line in report.lines:
-        click.echo(line)
+        emit(line)
 
 
 def _run_mutation(action) -> None:
@@ -47,13 +49,13 @@ def _run_mutation(action) -> None:
         report = action()
     except ConceptValidationError as exc:
         for warning in exc.warnings:
-            click.echo(f"WARNING: {warning}", err=True)
+            emit(f"WARNING: {warning}", err=True)
         for error in exc.errors:
-            click.echo(f"ERROR: {error}", err=True)
-        click.echo(str(exc), err=True)
+            emit(f"ERROR: {error}", err=True)
+        emit(str(exc), err=True)
         raise SystemExit(EXIT_VALIDATION)
     except ConceptMutationError as exc:
-        click.echo(f"ERROR: {exc}", err=True)
+        emit(f"ERROR: {exc}", err=True)
         raise SystemExit(EXIT_ERROR)
     _render_mutation_report(report)
 
@@ -102,7 +104,7 @@ def add(
     if form_name is None:
         available = sorted(form_ref.name for form_ref in repo.families.forms.iter())
         if available:
-            click.echo(f"Available forms: {', '.join(available)}")
+            emit(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
     if definition is None or form_name is None:
         raise click.ClickException("definition and form are required")

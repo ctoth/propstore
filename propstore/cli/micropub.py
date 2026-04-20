@@ -6,6 +6,8 @@ import sys
 
 import click
 
+from propstore.cli.output import emit
+
 from quire.documents import render_yaml_value
 from propstore.app.micropubs import (
     MicropubNotFoundError,
@@ -31,9 +33,9 @@ def bundle(obj: dict, source: str) -> None:
     try:
         document = load_micropub_bundle(repo, source)
     except MicropubNotFoundError as exc:
-        click.echo(str(exc), err=True)
+        emit(str(exc), err=True)
         sys.exit(EXIT_ERROR)
-    click.echo(render_yaml_value(document.to_payload()).rstrip())
+    emit(render_yaml_value(document.to_payload()).rstrip())
 
 
 @micropub.command("show")
@@ -45,9 +47,9 @@ def show(obj: dict, artifact_id: str) -> None:
     try:
         entry = find_micropub(repo, artifact_id)
     except MicropubNotFoundError as exc:
-        click.echo(str(exc), err=True)
+        emit(str(exc), err=True)
         sys.exit(EXIT_ERROR)
-    click.echo(render_yaml_value(entry.document.to_payload()).rstrip())
+    emit(render_yaml_value(entry.document.to_payload()).rstrip())
 
 
 @micropub.command("lift")
@@ -64,13 +66,13 @@ def lift(obj: dict, artifact_id: str, target_context: str) -> None:
             target_context=target_context,
         )
     except MicropubNotFoundError as exc:
-        click.echo(str(exc), err=True)
+        emit(str(exc), err=True)
         sys.exit(EXIT_ERROR)
     if not report.liftable:
-        click.echo(
+        emit(
             f"not liftable: {report.artifact_id} {report.source_context} -> {report.target_context}"
         )
         sys.exit(EXIT_ERROR)
-    click.echo(
+    emit(
         f"liftable: {report.artifact_id} {report.source_context} -> {report.target_context}"
     )
