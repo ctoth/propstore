@@ -6,7 +6,8 @@ import yaml
 
 from quire.references import CrossFamilyReferenceIndex
 
-from propstore.families.claims.passes import compile_claim_files
+from propstore.families.claims.passes import compile_claim_files, run_claim_pipeline
+from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
 from propstore.compiler.references import (
     foreign_keys_from_context,
     iter_semantic_foreign_keys,
@@ -264,3 +265,12 @@ def test_compile_claim_files_rejects_raw_id_only_claims(tmp_path):
     assert not bundle.ok
     messages = [diagnostic.message for diagnostic in bundle.diagnostics if diagnostic.is_error]
     assert any("raw 'id' input" in message for message in messages)
+
+    pipeline_result = run_claim_pipeline(
+        ClaimAuthoredFiles.from_sequence(files, context)
+    )
+    assert isinstance(pipeline_result.output, ClaimCheckedBundle)
+    records = pipeline_result.output.raw_id_quarantine_records
+    assert len(records) == 1
+    assert records[0].raw_id == "claim1"
+    assert records[0].synthetic_id.startswith("quarantine:raw_id:")

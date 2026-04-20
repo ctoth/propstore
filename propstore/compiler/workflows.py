@@ -359,6 +359,7 @@ def build_repository(
         context_ids=context_ids,
         commit=hash_key,
     )
+    claim_checked_bundle: ClaimCheckedBundle | None = None
     claim_bundle = None
     if files:
         try:
@@ -380,7 +381,8 @@ def build_repository(
                     "Build aborted: claim validation failed.",
                     _messages_from_pipeline_result(claim_pipeline_result),
                 )
-            claim_bundle = claim_pipeline_result.output.bundle
+            claim_checked_bundle = claim_pipeline_result.output
+            claim_bundle = claim_checked_bundle.bundle
             claim_result = claim_bundle.to_validation_result()
             if not claim_result.ok:
                 raise CompilerWorkflowError(
@@ -404,7 +406,7 @@ def build_repository(
         force=force,
         commit_hash=hash_key,
         compilation_context=compilation_context,
-        claim_bundle=claim_bundle,
+        claim_checked_bundle=claim_checked_bundle,
     )
 
     warning_count = len(concept_result.warnings)

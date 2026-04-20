@@ -49,6 +49,7 @@ from propstore.families.claims.stages import (
     ClaimAuthoredFiles,
     ClaimCheckedBundle,
     ClaimStage,
+    RawIdQuarantineRecord,
 )
 from propstore.families.registry import PropstoreFamily
 from propstore.semantic_passes.registry import PipelineRegistry
@@ -426,6 +427,60 @@ def compile_claim_files(
     )
 
 
+def _synthesize_quarantine_id(filename: str, raw_id: str, seq: int) -> str:
+    import hashlib
+
+    digest = hashlib.sha256(f"{filename}|{raw_id}|{seq}".encode()).hexdigest()
+    return f"quarantine:raw_id:{digest[:32]}"
+
+
+def _collect_raw_id_quarantine_records(
+    claim_bundle: ClaimCompilationBundle,
+) -> tuple[RawIdQuarantineRecord, ...]:
+    raw_id_filenames = {
+        diagnostic.filename
+        for diagnostic in claim_bundle.diagnostics
+        if diagnostic.is_error and "raw 'id' input" in diagnostic.message
+    }
+    if not raw_id_filenames:
+        return ()
+
+    records: list[RawIdQuarantineRecord] = []
+    seq = 0
+    for claim_file in claim_bundle.normalized_claim_files:
+        filename = claim_file_filename(claim_file)
+        if filename not in raw_id_filenames:
+            continue
+        source_paper = claim_file_source_paper(claim_file) or filename
+        for file_seq, claim in enumerate(claim_file_claims(claim_file), start=1):
+            raw_id = claim.id
+            artifact_id = claim.artifact_id
+            if (
+                isinstance(raw_id, str)
+                and raw_id
+                and not (isinstance(artifact_id, str) and artifact_id)
+            ):
+                seq += 1
+                records.append(
+                    RawIdQuarantineRecord(
+                        filename=filename,
+                        source_paper=str(source_paper),
+                        raw_id=raw_id,
+                        seq=seq,
+                        synthetic_id=_synthesize_quarantine_id(
+                            filename,
+                            raw_id,
+                            file_seq,
+                        ),
+                        message=(
+                            "claim uses raw 'id' input "
+                            "without canonical identity fields"
+                        ),
+                    )
+                )
+    return tuple(records)
+
+
 def validate_claims(
     claim_files: Sequence[ClaimFileEntry],
     context: CompilationContext,
@@ -470,7 +525,10 @@ class ClaimCompilePass:
             ),
         )
         return PassResult(
-            output=ClaimCheckedBundle(bundle=bundle),
+            output=ClaimCheckedBundle(
+                bundle=bundle,
+                raw_id_quarantine_records=_collect_raw_id_quarantine_records(bundle),
+            ),
             diagnostics=tuple(_pass_diagnostic(item) for item in bundle.diagnostics),
         )
 
