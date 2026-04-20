@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from propstore.families.claims.documents import (
+    ClaimSemanticCheck,
     claim_type_contract_for,
     iter_claim_type_contracts,
 )
@@ -17,6 +18,10 @@ def test_parameter_contract_declares_value_unit_and_concept_reference() -> None:
     assert contract.unit_policy.required is True
     assert contract.unit_policy.dimensionless_default_unit == "1"
     assert contract.unit_policy.form_concept_field == "concept"
+    assert all(
+        issubclass(semantic_check, ClaimSemanticCheck)
+        for semantic_check in contract.semantic_checks
+    )
     assert [reference.field for reference in contract.concept_references] == ["concept"]
 
 
