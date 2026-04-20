@@ -64,6 +64,7 @@ from .common import (
     source_branch_name,
 )
 from .registry import load_primary_branch_concepts
+from .stages import SourcePromotionPlan
 
 
 def rewrite_claim_concept_refs(
@@ -625,42 +626,81 @@ def promote_source_branch(
         ClaimsFileDocument,
         source=repo.families.claims.address(claims_ref).require_path(),
     )
+    promoted_concept_plan_documents = {
+        ConceptFileRef(concept_slug): concept_document
+        for concept_slug, concept_document in promoted_concept_documents.items()
+    }
+    if promoted_justifications_doc.get("justifications"):
+        promoted_justifications_ref: JustificationsFileRef | None = JustificationsFileRef(slug)
+        promoted_justifications_document = convert_document_value(
+            promoted_justifications_doc,
+            SourceJustificationsDocument,
+            source=repo.families.justifications.address(promoted_justifications_ref).require_path(),
+        )
+    else:
+        promoted_justifications_ref = None
+        promoted_justifications_document = None
+    promotion_plan = SourcePromotionPlan(
+        source_name=source_name,
+        slug=slug,
+        source_branch=source_branch_name(source_name),
+        source_ref=source_ref,
+        claims_ref=claims_ref,
+        promoted_source_document=promoted_source_document,
+        promoted_claims_document=promoted_claims_document,
+        promoted_micropubs_ref=(
+            MicropubsFileRef(slug)
+            if promoted_micropubs_document is not None
+            else None
+        ),
+        promoted_micropubs_document=promoted_micropubs_document,
+        promoted_concept_documents=promoted_concept_plan_documents,
+        promoted_justifications_ref=promoted_justifications_ref,
+        promoted_justifications_document=promoted_justifications_document,
+        promoted_stance_documents={
+            StanceFileRef(source_claim): stance_document
+            for source_claim, stance_document in promoted_stance_documents.items()
+        },
+        blocked_claims=tuple(blocked_claims),
+        blocked_reasons=blocked_reasons,
+    )
 
     with repo.families.transact(
         message=f"Promote source {slug}",
         branch=repo.snapshot.primary_branch_name(),
     ) as transaction:
         transaction.sources.save(
-            source_ref,
-            promoted_source_document,
+            promotion_plan.source_ref,
+            promotion_plan.promoted_source_document,
         )
         transaction.claims.save(
-            claims_ref,
-            promoted_claims_document,
+            promotion_plan.claims_ref,
+            promotion_plan.promoted_claims_document,
         )
-        if promoted_micropubs_document is not None:
+        if (
+            promotion_plan.promoted_micropubs_ref is not None
+            and promotion_plan.promoted_micropubs_document is not None
+        ):
             transaction.micropubs.save(
-                MicropubsFileRef(slug),
-                promoted_micropubs_document,
+                promotion_plan.promoted_micropubs_ref,
+                promotion_plan.promoted_micropubs_document,
             )
-        for concept_slug, concept_document in promoted_concept_documents.items():
+        for concept_ref, concept_document in promotion_plan.promoted_concept_documents.items():
             transaction.concepts.save(
-                ConceptFileRef(concept_slug),
+                concept_ref,
                 concept_document,
             )
-        if promoted_justifications_doc.get("justifications"):
-            promoted_justifications_document = convert_document_value(
-                promoted_justifications_doc,
-                SourceJustificationsDocument,
-                source=repo.families.justifications.address(JustificationsFileRef(slug)).require_path(),
-            )
+        if (
+            promotion_plan.promoted_justifications_ref is not None
+            and promotion_plan.promoted_justifications_document is not None
+        ):
             transaction.justifications.save(
-                JustificationsFileRef(slug),
-                promoted_justifications_document,
+                promotion_plan.promoted_justifications_ref,
+                promotion_plan.promoted_justifications_document,
             )
-        for source_claim, stance_document in promoted_stance_documents.items():
+        for stance_ref, stance_document in promotion_plan.promoted_stance_documents.items():
             transaction.stances.save(
-                StanceFileRef(source_claim),
+                stance_ref,
                 stance_document,
             )
     sha = transaction.commit_sha
@@ -671,13 +711,13 @@ def promote_source_branch(
     # Mirror blocked claims into the sidecar so the render layer can
     # surface them under opt-in policy flags (phase 4). If the sidecar
     # does not exist, this is a no-op.
-    if blocked_claims:
+    if promotion_plan.blocked_claims:
         _write_promotion_blocked_sidecar_rows(
             repo.sidecar_path,
-            source_branch_name(source_name),
-            slug,
-            blocked_claims,
-            blocked_reasons,
+            promotion_plan.source_branch,
+            promotion_plan.slug,
+            promotion_plan.blocked_claims,
+            promotion_plan.blocked_reasons,
         )
 
     return sha

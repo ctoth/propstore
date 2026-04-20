@@ -295,6 +295,18 @@ class TestClaimIdErrors:
         assert not result.ok
         assert any("format" in e.lower() for e in result.errors)
 
+    def test_source_local_artifact_code_rejected_at_canonical_boundary(self, claims_dir):
+        claim = make_parameter_claim("claim1", "concept1", 440.0, "Hz")
+        claim["artifact_code"] = "ps:artifact:test"
+        claim["version_id"] = attach_claim_version_id(claim)["version_id"]
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_compilation_context())
+        assert not result.ok
+        assert any("source-local field 'artifact_code'" in e for e in result.errors)
+
 
 # ── Concept reference errors ─────────────────────────────────────────
 
