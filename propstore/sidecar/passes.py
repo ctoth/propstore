@@ -30,6 +30,7 @@ from propstore.families.documents.sources import (
     SourceDocument,
     SourceJustificationsDocument,
 )
+from propstore.families.claims.stages import RawIdQuarantineRecord
 from propstore.families.documents.stances import StanceFileDocument
 from propstore.families.forms.stages import (
     FormDefinition,
@@ -65,6 +66,9 @@ from propstore.sidecar.stages import (
     MicropublicationClaimInsertRow,
     MicropublicationInsertRow,
     MicropublicationSidecarRows,
+    BuildDiagnosticInsertRow,
+    RawIdQuarantineClaimInsertRow,
+    RawIdQuarantineSidecarRows,
     RelationEdgeInsertRow,
     RepositoryCheckedBundle,
     SidecarBuildPlan,
@@ -697,6 +701,60 @@ def compile_claim_fts_rows(
     return tuple(rows)
 
 
+def compile_raw_id_quarantine_sidecar_rows(
+    records: Sequence[RawIdQuarantineRecord],
+) -> RawIdQuarantineSidecarRows:
+    claim_rows: list[RawIdQuarantineClaimInsertRow] = []
+    diagnostic_rows: list[BuildDiagnosticInsertRow] = []
+
+    for record in records:
+        claim_rows.append(
+            RawIdQuarantineClaimInsertRow(
+                (
+                    record.synthetic_id,
+                    "",
+                    "[]",
+                    "",
+                    "",
+                    record.seq,
+                    "quarantine",
+                    None,
+                    None,
+                    record.source_paper,
+                    record.source_paper,
+                    0,
+                    None,
+                    None,
+                    "ordinary",
+                    None,
+                    "blocked",
+                    None,
+                    None,
+                )
+            )
+        )
+        diagnostic_rows.append(
+            BuildDiagnosticInsertRow(
+                (
+                    record.synthetic_id,
+                    "claim",
+                    record.raw_id,
+                    "raw_id_input",
+                    "error",
+                    1,
+                    record.message,
+                    record.filename,
+                    record.detail_json,
+                )
+            )
+        )
+
+    return RawIdQuarantineSidecarRows(
+        claim_rows=tuple(claim_rows),
+        diagnostic_rows=tuple(diagnostic_rows),
+    )
+
+
 def compile_micropublication_sidecar_rows(
     micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
     claim_reference_map: dict[str, str],
@@ -763,7 +821,7 @@ def compile_sidecar_build_plan(
     micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
 ) -> SidecarBuildPlan:
     claim_rows: ClaimSidecarRows | None = None
-    raw_id_quarantine_records = ()
+    raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(())
     conflict_rows: tuple[ConflictWitnessInsertRow, ...] = ()
     claim_fts_rows: tuple[ClaimFtsInsertRow, ...] = ()
     stance_rows: tuple[ClaimStanceInsertRow, ...] = ()
@@ -781,7 +839,9 @@ def compile_sidecar_build_plan(
             repository_checked_bundle.concept_registry,
             form_registry=repository_checked_bundle.form_registry,
         )
-        raw_id_quarantine_records = checked_claims.raw_id_quarantine_records
+        raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(
+            checked_claims.raw_id_quarantine_records
+        )
         lifting_system = (
             loaded_contexts_to_lifting_system(
                 list(repository_checked_bundle.context_files)
@@ -815,7 +875,7 @@ def compile_sidecar_build_plan(
             repository_checked_bundle.context_files,
         ),
         claim_rows=claim_rows,
-        raw_id_quarantine_records=tuple(raw_id_quarantine_records),
+        raw_id_quarantine_rows=raw_id_quarantine_rows,
         conflict_rows=conflict_rows,
         claim_fts_rows=claim_fts_rows,
         micropublication_rows=compile_micropublication_sidecar_rows(
