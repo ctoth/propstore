@@ -39,7 +39,7 @@ from propstore.stances import VALID_STANCE_TYPES
 
 if TYPE_CHECKING:
     from propstore.compiler.ir import ClaimCompilationBundle
-    from propstore.sidecar.build import RawIdQuarantineRecord
+    from propstore.families.claims.stages import RawIdQuarantineRecord
 
 
 def populate_stances(

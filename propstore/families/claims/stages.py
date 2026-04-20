@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -40,3 +41,29 @@ class ClaimAuthoredFiles:
 @dataclass(frozen=True)
 class ClaimCheckedBundle:
     bundle: ClaimCompilationBundle
+    raw_id_quarantine_records: tuple[RawIdQuarantineRecord, ...] = ()
+
+
+@dataclass(frozen=True)
+class RawIdQuarantineRecord:
+    filename: str
+    source_paper: str
+    raw_id: str
+    seq: int
+    synthetic_id: str
+    message: str
+
+    @property
+    def detail_json(self) -> str:
+        return json.dumps(
+            {
+                "synthetic_id_basis": {
+                    "scheme": "sha256(filename|raw_id|seq)",
+                    "filename": self.filename,
+                    "raw_id": self.raw_id,
+                    "seq": self.seq,
+                    "prefix": "quarantine:raw_id:",
+                },
+            },
+            sort_keys=True,
+        )
