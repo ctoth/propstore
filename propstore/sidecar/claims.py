@@ -18,27 +18,21 @@ from typing import TYPE_CHECKING
 from propstore.claims import (
     ClaimFileEntry,
     claim_file_claims,
-    claim_file_filename,
-    claim_file_source_paper,
-    claim_file_stage,
 )
 from propstore.sidecar.claim_utils import (
     claim_reference_map_from_conn,
     coerce_stance_resolution,
-    collect_claim_reference_map,
-    extract_deferred_stance_rows,
     insert_claim_row,
     insert_claim_stance_row,
-    prepare_claim_insert_row,
     resolution_opinion_columns,
     resolve_claim_reference,
 )
+from propstore.sidecar.stages import ClaimSidecarRows
 from propstore.families.documents.sources import SourceJustificationsDocument
 from propstore.families.documents.stances import StanceFileDocument
 from propstore.stances import VALID_STANCE_TYPES
 
 if TYPE_CHECKING:
-    from propstore.compiler.ir import ClaimCompilationBundle
     from propstore.families.claims.stages import RawIdQuarantineRecord
 
 
@@ -264,13 +258,9 @@ def populate_raw_id_quarantine_records(
 
 def populate_claims(
     conn: sqlite3.Connection,
-    claim_files: Sequence[ClaimFileEntry],
-    concept_registry: dict | None = None,
-    *,
-    form_registry: dict | None = None,
-    semantic_bundle: ClaimCompilationBundle | None = None,
+    rows: ClaimSidecarRows,
 ) -> None:
-    """Populate normalized claim storage from authored claim files.
+    """Populate normalized claim storage from compiled sidecar rows.
 
     Schema-v3 behavior (``reviews/2026-04-16-code-review/workstreams/
     ws-z-render-gates.md`` finding 3.2): the file-level ``stage`` marker
@@ -279,75 +269,10 @@ def populate_claims(
     (phase 4) decides visibility.
     """
 
-    claim_seq = 0
-    deferred_stances: list[tuple] = []
-    reference_source = (
-        list(semantic_bundle.normalized_claim_files)
-        if semantic_bundle is not None
-        else list(claim_files)
-    )
-    claim_reference_map = collect_claim_reference_map(reference_source)
-    # Filename → file-level stage marker. Used to annotate ``claim_core.stage``
-    # on every row for the file (draft, final, or NULL). Consulted both on
-    # the semantic-bundle path (via ``SemanticClaim.filename``) and the
-    # raw-claim-file path (via ``claim_file.filename``).
-    file_stage_by_filename: dict[str, str | None] = {
-        claim_file_filename(claim_file): claim_file_stage(claim_file)
-        for claim_file in reference_source
-    }
-
-    if semantic_bundle is not None:
-        for semantic_file in semantic_bundle.semantic_files:
-            file_stage = file_stage_by_filename.get(
-                claim_file_filename(semantic_file.normalized_entry)
-            )
-            for semantic_claim in semantic_file.claims:
-                claim_seq += 1
-                row = prepare_claim_insert_row(
-                    semantic_claim,
-                    semantic_claim.source_paper,
-                    claim_seq=claim_seq,
-                    concept_registry=concept_registry,
-                    form_registry=form_registry,
-                )
-                if file_stage is not None:
-                    row["stage"] = file_stage
-                insert_claim_row(conn, row)
-                deferred_stances.extend(
-                    extract_deferred_stance_rows(
-                        semantic_claim,
-                        claim_reference_map,
-                        source_paper=semantic_claim.source_paper,
-                    )
-                )
-    else:
-        for claim_file in claim_files:
-            filename = claim_file_filename(claim_file)
-            source_paper = claim_file_source_paper(claim_file) or filename
-            file_stage = file_stage_by_filename.get(filename)
-            for claim in claim_file_claims(claim_file):
-                authored_claim = claim.to_payload()
-                claim_seq += 1
-                row = prepare_claim_insert_row(
-                    authored_claim,
-                    source_paper,
-                    claim_seq=claim_seq,
-                    concept_registry=concept_registry,
-                    form_registry=form_registry,
-                )
-                if file_stage is not None:
-                    row["stage"] = file_stage
-                insert_claim_row(conn, row)
-                deferred_stances.extend(
-                    extract_deferred_stance_rows(
-                        authored_claim,
-                        claim_reference_map,
-                        source_paper=source_paper,
-                    )
-                )
-
-    for stance_row in deferred_stances:
-        insert_claim_stance_row(conn, stance_row)
+    for row in rows.claim_rows:
+        insert_claim_row(conn, row.values)
+    for stance_row in rows.stance_rows:
+        insert_claim_stance_row(conn, stance_row.values)
 
 
 def populate_conflicts(
