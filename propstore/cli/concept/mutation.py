@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_error, emit_warning
 
 from propstore.app.concepts import (
     ConceptAddRequest,
@@ -33,13 +33,13 @@ from propstore.app.concepts import (
 from propstore.cli.concept import (
     concept,
 )
-from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
+from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION, exit_with_code, fail
 from propstore.repository import Repository
 
 
 def _render_mutation_report(report: ConceptMutationReport) -> None:
     for warning in report.warnings:
-        emit(f"WARNING: {warning}", err=True)
+        emit_warning(f"WARNING: {warning}")
     for line in report.lines:
         emit(line)
 
@@ -49,14 +49,13 @@ def _run_mutation(action) -> None:
         report = action()
     except ConceptValidationError as exc:
         for warning in exc.warnings:
-            emit(f"WARNING: {warning}", err=True)
+            emit_warning(f"WARNING: {warning}")
         for error in exc.errors:
-            emit(f"ERROR: {error}", err=True)
-        emit(str(exc), err=True)
-        raise SystemExit(EXIT_VALIDATION)
+            emit_error(f"ERROR: {error}")
+        emit_error(str(exc))
+        exit_with_code(EXIT_VALIDATION)
     except ConceptMutationError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        raise SystemExit(EXIT_ERROR)
+        fail(exc, exit_code=EXIT_ERROR)
     _render_mutation_report(report)
 
 # ── concept add ──────────────────────────────────────────────────────

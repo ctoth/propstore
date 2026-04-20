@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.helpers import fail
 from propstore.cli.output import emit
 
 from propstore.cli.concept import (
@@ -47,11 +48,9 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
             on_progress=progress,
         )
     except ConceptSidecarMissingError as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
     except (ConceptEmbeddingModelError, ConceptWorkflowError, UnknownConceptError) as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
 
     if model == "all":
         for result in report.results:
@@ -103,11 +102,9 @@ def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bo
             ),
         )
     except ConceptSidecarMissingError as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
     except (ConceptEmbeddingModelError, ConceptWorkflowError, UnknownConceptError) as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
 
     if not report.hits:
         emit("No similar concepts found.")

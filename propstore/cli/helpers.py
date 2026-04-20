@@ -1,6 +1,10 @@
 """Shared helpers for CLI subcommands."""
 from __future__ import annotations
 
+from typing import NoReturn
+
+import click
+
 # ── Key=value parsing ────────────────────────────────────────────────
 
 def parse_kv_pairs(
@@ -60,3 +64,19 @@ def _coerce_cli_scalar(value: str) -> object:
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_VALIDATION = 2
+
+
+class PropstoreClickError(click.ClickException):
+    """Click-rendered CLI failure with an explicit exit code."""
+
+    def __init__(self, message: object, *, exit_code: int = EXIT_ERROR) -> None:
+        super().__init__(str(message))
+        self.exit_code = exit_code
+
+
+def fail(message: object, *, exit_code: int = EXIT_ERROR) -> NoReturn:
+    raise PropstoreClickError(message, exit_code=exit_code)
+
+
+def exit_with_code(code: int) -> NoReturn:
+    raise click.exceptions.Exit(code)

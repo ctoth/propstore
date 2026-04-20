@@ -1,14 +1,12 @@
 """pks context — subcommands for managing contexts."""
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_success
 
 from quire.documents import encode_document
-from propstore.cli.helpers import EXIT_ERROR
+from propstore.cli.helpers import fail
 from propstore.app.contexts import (
     ContextAddRequest,
     ContextWorkflowError,
@@ -52,15 +50,14 @@ def add(
     try:
         report = add_context(repo, request, dry_run=dry_run)
     except ContextWorkflowError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(exc)
 
     if not report.created:
         emit(f"Would create {report.filepath}")
         emit(encode_document(report.document).decode("utf-8"))
         return
 
-    emit(f"Created {report.filepath}")
+    emit_success(f"Created {report.filepath}")
 
 
 @context.command("list")

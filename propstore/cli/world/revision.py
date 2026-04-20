@@ -5,7 +5,7 @@ import json
 
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_section, emit_table
 
 from propstore.app.world import parse_world_binding_args
 from propstore.app.world_revision import (
@@ -71,14 +71,8 @@ def _parse_revision_atom_json(atom_json: str) -> dict:
 
 
 def _emit_revision_result(result) -> None:
-    emit(f"Accepted ({len(result.accepted_atom_ids)} atoms):")
-    for atom_id in result.accepted_atom_ids:
-        emit(f"  {atom_id}")
-
-    emit(f"Rejected ({len(result.rejected_atom_ids)} atoms):")
-    for atom_id in result.rejected_atom_ids:
-        emit(f"  {atom_id}")
-
+    emit_section(f"Accepted ({len(result.accepted_atom_ids)} atoms):", result.accepted_atom_ids)
+    emit_section(f"Rejected ({len(result.rejected_atom_ids)} atoms):", result.rejected_atom_ids)
     emit(f"Incision set: {', '.join(result.incision_set) if result.incision_set else '(none)'}")
 
 
@@ -105,9 +99,10 @@ def _emit_revision_explanation(explanation) -> None:
 def _emit_epistemic_state(state) -> None:
     emit(f"Iterated state ({len(state.accepted_atom_ids)} accepted atoms)")
     emit(f"History length: {len(state.history)}")
-    emit("Ranking:")
-    for rank, atom_id in enumerate(state.ranked_atom_ids, start=1):
-        emit(f"  {rank}. {atom_id}")
+    emit_section(
+        "Ranking:",
+        (f"{rank}. {atom_id}" for rank, atom_id in enumerate(state.ranked_atom_ids, start=1)),
+    )
 
 
 def _emit_iterated_revision(result, previous_state, next_state, *, operator: str) -> None:
@@ -115,9 +110,10 @@ def _emit_iterated_revision(result, previous_state, next_state, *, operator: str
     _emit_revision_result(result)
     emit(f"Next state ({len(next_state.accepted_atom_ids)} accepted atoms)")
     emit(f"History length: {len(next_state.history)}")
-    emit("Ranking:")
-    for rank, atom_id in enumerate(next_state.ranked_atom_ids, start=1):
-        emit(f"  {rank}. {atom_id}")
+    emit_section(
+        "Ranking:",
+        (f"{rank}. {atom_id}" for rank, atom_id in enumerate(next_state.ranked_atom_ids, start=1)),
+    )
     emit("Ranking delta:")
     previous_ranking = previous_state.ranking
     for atom_id in next_state.ranked_atom_ids:
@@ -166,9 +162,10 @@ def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -
             emit(f"  {display.display_id}")
 
     if base.assumptions:
-        emit("Assumptions:")
-        for assumption in base.assumptions:
-            emit(f"  {_format_revision_assumption(assumption)}")
+        emit_section(
+            "Assumptions:",
+            (_format_revision_assumption(assumption) for assumption in base.assumptions),
+        )
 
 
 @revision.command("entrenchment")
@@ -185,17 +182,22 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str |
     )
 
     emit(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
+    rows: list[tuple[int, str, int, str, object]] = []
     for rank, atom_id in enumerate(report.ranked_atom_ids, start=1):
         reason = report.reasons.get(atom_id)
         support_count = 0 if reason is None or reason.support_count is None else reason.support_count
         essential_support = () if reason is None else reason.essential_support
         override = None if reason is None else reason.override_priority
-        emit(
-            f"  {rank}. {atom_id} "
-            f"support_count={support_count} "
-            f"essential_support={_format_assumption_ids(essential_support)} "
-            f"override={override}"
+        rows.append(
+            (
+                rank,
+                atom_id,
+                support_count,
+                _format_assumption_ids(essential_support),
+                override,
+            )
         )
+    emit_table(("Rank", "Atom", "Support", "Essential support", "Override"), rows, indent="  ")
 
 
 @revision.command("expand")

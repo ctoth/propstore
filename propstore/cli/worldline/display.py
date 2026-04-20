@@ -1,11 +1,10 @@
 """Worldline display CLI commands."""
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.helpers import fail
+from propstore.cli.output import emit, emit_section
 
 from propstore.app.worldlines import (
     WorldlineDiffRequest,
@@ -17,6 +16,11 @@ from propstore.app.worldlines import (
     show_worldline,
 )
 from propstore.cli.worldline import worldline
+from propstore.cli.worldline.rendering import (
+    derivation_trace_lines,
+    sensitivity_lines,
+    target_value_lines,
+)
 from propstore.repository import Repository
 
 
@@ -30,8 +34,7 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     try:
         report = show_worldline(repo, WorldlineShowRequest(name=name, check_staleness=check))
     except WorldlineNotFoundError:
-        emit(f"ERROR: Worldline '{name}' not found", err=True)
-        sys.exit(1)
+        fail(f"Worldline '{name}' not found")
     wl = report.definition
 
     emit(f"Worldline: {wl.name or wl.id}")
@@ -67,46 +70,17 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
         else:
             emit("  ✓ Fresh — dependencies unchanged")
 
-    emit("Results:")
-    for target, val in wl.results.values.items():
-        status = val.status
-        value = val.value
-        source = val.source or ""
-        if value is not None:
-            line = f"  {target}: {value} ({status}, {source})"
-            if val.formula:
-                line += f" via {val.formula}"
-            if val.winning_claim_id:
-                line += f" [winner: {val.winning_claim_id}]"
-            emit(line)
-        else:
-            reason = val.reason or ""
-            emit(f"  {target}: {status} — {reason}")
+    emit_section(
+        "Results:",
+        target_value_lines(wl.results.values, include_details=True),
+    )
 
     if wl.results.steps:
-        emit("Derivation trace:")
-        for step in wl.results.steps:
-            source = step.source
-            value = step.value
-            concept = step.concept
-            extra = ""
-            if step.claim_id:
-                extra = f" [claim: {step.claim_id}]"
-            if step.formula:
-                extra = f" via {step.formula}"
-            emit(f"  {concept} = {value} ({source}){extra}")
+        emit_section("Derivation trace:", derivation_trace_lines(wl.results))
 
-    if wl.results.sensitivity:
-        emit("Sensitivity:")
-        for concept, outcome in wl.results.sensitivity.targets.items():
-            if outcome.error is not None:
-                emit(f"  {concept}: ERROR — {outcome.error}")
-                continue
-            for entry in outcome.entries:
-                elast = entry.elasticity
-                deriv = entry.partial_derivative
-                inp = entry.input_name
-                emit(f"  {concept}: d/d({inp}) = {deriv}, elasticity = {elast}")
+    sensitivity = tuple(sensitivity_lines(wl.results))
+    if sensitivity:
+        emit_section("Sensitivity:", sensitivity)
 
     if wl.results.argumentation:
         defeated = wl.results.argumentation.defeated
@@ -169,11 +143,9 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
             WorldlineDiffRequest(left_name=name_a, right_name=name_b),
         )
     except WorldlineNotFoundError as exc:
-        emit(f"ERROR: Worldline '{exc.name}' not found", err=True)
-        sys.exit(1)
+        fail(f"Worldline '{exc.name}' not found")
     except WorldlineValidationError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(1)
+        fail(exc)
 
     emit(f"Comparing: {report.left_id} vs {report.right_id}")
 
@@ -194,4 +166,3 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
         emit(f"  Only in {report.left_id}: {', '.join(report.only_left_dependencies)}")
     if report.only_right_dependencies:
         emit(f"  Only in {report.right_id}: {', '.join(report.only_right_dependencies)}")
-

@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_yaml
 
-from quire.documents import render_yaml_value
 from propstore.app.micropubs import (
     MicropubNotFoundError,
     find_micropub,
@@ -16,7 +13,7 @@ from propstore.app.micropubs import (
     load_micropub_bundle,
 )
 from propstore.repository import Repository
-from propstore.cli.helpers import EXIT_ERROR
+from propstore.cli.helpers import exit_with_code, fail
 
 
 @click.group()
@@ -33,9 +30,8 @@ def bundle(obj: dict, source: str) -> None:
     try:
         document = load_micropub_bundle(repo, source)
     except MicropubNotFoundError as exc:
-        emit(str(exc), err=True)
-        sys.exit(EXIT_ERROR)
-    emit(render_yaml_value(document.to_payload()).rstrip())
+        fail(exc)
+    emit_yaml(document.to_payload())
 
 
 @micropub.command("show")
@@ -47,9 +43,8 @@ def show(obj: dict, artifact_id: str) -> None:
     try:
         entry = find_micropub(repo, artifact_id)
     except MicropubNotFoundError as exc:
-        emit(str(exc), err=True)
-        sys.exit(EXIT_ERROR)
-    emit(render_yaml_value(entry.document.to_payload()).rstrip())
+        fail(exc)
+    emit_yaml(entry.document.to_payload())
 
 
 @micropub.command("lift")
@@ -66,13 +61,12 @@ def lift(obj: dict, artifact_id: str, target_context: str) -> None:
             target_context=target_context,
         )
     except MicropubNotFoundError as exc:
-        emit(str(exc), err=True)
-        sys.exit(EXIT_ERROR)
+        fail(exc)
     if not report.liftable:
         emit(
             f"not liftable: {report.artifact_id} {report.source_context} -> {report.target_context}"
         )
-        sys.exit(EXIT_ERROR)
+        exit_with_code(1)
     emit(
         f"liftable: {report.artifact_id} {report.source_context} -> {report.target_context}"
     )

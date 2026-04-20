@@ -7,12 +7,11 @@ parameter conflicts), compare (algorithm claim equivalence), embed
 and relate (LLM-assisted epistemic relationship classification)."""
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_error, emit_success, emit_warning
 
 from propstore.app.claims import (
     ClaimCompareRequest,
@@ -38,7 +37,7 @@ from propstore.app.claims import (
     validate_claim_file,
     validate_claim_files,
 )
-from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
+from propstore.cli.helpers import EXIT_VALIDATION, exit_with_code, fail
 from propstore.repository import Repository
 
 
@@ -56,11 +55,9 @@ def show(obj: dict, claim_id: str) -> None:
     try:
         report = show_claim_from_repo(repo, claim_id)
     except ClaimSidecarMissingError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(exc)
     except UnknownClaimError:
-        emit(f"Claim '{claim_id}' not found.", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(f"Claim '{claim_id}' not found.")
 
     if report.logical_id:
         emit(f"Logical ID: {report.logical_id}")
@@ -118,29 +115,28 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
             ),
         )
     except ClaimPathError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(exc)
     except ClaimValidationDocumentError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        emit("Validation FAILED: 1 error(s)", err=True)
-        sys.exit(EXIT_VALIDATION)
+        emit_error(f"ERROR: {exc}")
+        emit_error("Validation FAILED: 1 error(s)")
+        exit_with_code(EXIT_VALIDATION)
     if report.file_count == 0:
         emit("No claim files found.")
         return
 
     for warning in report.warnings:
-        emit(f"WARNING: {warning}", err=True)
+        emit_warning(f"WARNING: {warning}")
     for error in report.errors:
-        emit(f"ERROR: {error}", err=True)
+        emit_error(f"ERROR: {error}")
 
     if report.ok:
-        emit(
+        emit_success(
             f"Validation passed: {report.file_count} claim file(s), "
             f"{len(report.warnings)} warning(s)"
         )
     else:
-        emit(f"Validation FAILED: {len(report.errors)} error(s)", err=True)
-        sys.exit(EXIT_VALIDATION)
+        emit_error(f"Validation FAILED: {len(report.errors)} error(s)")
+        exit_with_code(EXIT_VALIDATION)
 
 
 @claim.command("validate-file")
@@ -159,23 +155,22 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
             ),
         )
     except ClaimPathError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(exc)
     except ClaimValidationDocumentError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        emit(f"FAILED: {filepath.name} (1 error(s))", err=True)
-        sys.exit(EXIT_VALIDATION)
+        emit_error(f"ERROR: {exc}")
+        emit_error(f"FAILED: {filepath.name} (1 error(s))")
+        exit_with_code(EXIT_VALIDATION)
 
     for warning in report.warnings:
-        emit(f"WARNING: {warning}", err=True)
+        emit_warning(f"WARNING: {warning}")
     for error in report.errors:
-        emit(f"ERROR: {error}", err=True)
+        emit_error(f"ERROR: {error}")
 
     if report.ok:
-        emit(f"Valid: {filepath.name} ({len(report.warnings)} warning(s))")
+        emit_success(f"Valid: {filepath.name} ({len(report.warnings)} warning(s))")
     else:
-        emit(f"FAILED: {filepath.name} ({len(report.errors)} error(s))", err=True)
-        sys.exit(EXIT_VALIDATION)
+        emit_error(f"FAILED: {filepath.name} ({len(report.errors)} error(s))")
+        exit_with_code(EXIT_VALIDATION)
 
 
 @claim.command()
@@ -228,7 +223,7 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
             try:
                 known_values[key] = float(value)
             except ValueError:
-                emit(f"WARNING: Ignoring non-numeric binding: {b}", err=True)
+                emit_warning(f"WARNING: Ignoring non-numeric binding: {b}")
 
     try:
         result = compare_algorithm_claims_from_repo(
@@ -236,14 +231,11 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
             ClaimCompareRequest(id_a, id_b, known_values or None),
         )
     except ClaimSidecarMissingError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(exc)
     except UnknownClaimError as exc:
-        emit(f"ERROR: Claim '{exc.claim_id}' not found.", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(f"Claim '{exc.claim_id}' not found.")
     except ClaimComparisonError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(EXIT_ERROR)
+        fail(exc)
 
     emit(f"Tier:       {result.tier}")
     emit(f"Equivalent: {result.equivalent}")
@@ -277,14 +269,11 @@ def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_si
             ),
         )
     except ClaimSidecarMissingError as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
     except ClaimEmbeddingModelError as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
     except ClaimWorkflowError as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
 
     if model == "all":
         for result in report.results:
@@ -317,11 +306,9 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
             ),
         )
     except ClaimSidecarMissingError as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
     except (ClaimEmbeddingModelError, ClaimWorkflowError) as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
 
     if not report.hits:
         emit("No similar claims found.")
@@ -366,11 +353,9 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
             ),
         )
     except ClaimSidecarMissingError as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
     except ClaimWorkflowError as exc:
-        emit(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        fail(exc)
 
     if claim_id and not relate_all_flag:
         if report.stances:
@@ -402,5 +387,4 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
         )
         return
 
-    emit("Error: provide a claim ID or use --all", err=True)
-    raise SystemExit(1)
+    fail("provide a claim ID or use --all")

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.output import emit, emit_yaml
 
-from quire.documents import render_yaml_value
 from propstore.app.repository_history import (
     BranchNotFoundError,
     CommitHasNoConceptsError,
@@ -86,7 +85,7 @@ def log_cmd(ctx: click.Context, count: int, branch_name: str | None, show_files:
         emit("No history yet.")
         return
     if output_format == "yaml":
-        emit(render_yaml_value(report.to_payload(show_files=show_files)))
+        emit_yaml(report.to_payload(show_files=show_files))
         return
     _render_text_log(report.entries, show_files=show_files)
 

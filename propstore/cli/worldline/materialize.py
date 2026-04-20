@@ -1,11 +1,10 @@
 """Worldline create, run, and refresh CLI commands."""
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.helpers import fail
+from propstore.cli.output import emit_section, emit_success
 
 from propstore.app.worldlines import (
     WorldlineAlreadyExistsError,
@@ -24,6 +23,7 @@ from propstore.cli.worldline import (
     _parse_kv_args,
     worldline,
 )
+from propstore.cli.worldline.rendering import target_value_lines
 from propstore.repository import Repository
 
 
@@ -161,12 +161,11 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
             ),
         )
     except WorldlineAlreadyExistsError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(1)
+        fail(exc)
     except WorldlineValidationError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    emit(f"Created worldline '{report.name}' at {report.path}")
+    emit_success(f"Created worldline '{report.name}' at {report.path}")
 
 
 @worldline.command("run")
@@ -231,20 +230,14 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
             ),
         )
     except WorldlineValidationError as exc:
-        emit(f"ERROR: {exc}", err=True)
-        sys.exit(1)
+        fail(exc)
 
     result = report.result
-    emit(f"Worldline '{name}' materialized ({len(result.values)} targets)")
-    for target, val in result.values.items():
-        status = val.status
-        value = val.value
-        source = val.source or ""
-        if value is not None:
-            emit(f"  {target}: {value} ({status}, {source})")
-        else:
-            reason = val.reason or ""
-            emit(f"  {target}: {status} — {reason}")
+    emit_success(f"Worldline '{name}' materialized ({len(result.values)} targets)")
+    emit_section(
+        "",
+        target_value_lines(result.values, include_details=False),
+    )
 
 
 @worldline.command("refresh")
@@ -264,4 +257,3 @@ def worldline_refresh(obj: dict, name: str) -> None:
         revision_operation=None, revision_atom=None, revision_target=None,
         revision_conflicts=(), revision_operator=None,
     )
-

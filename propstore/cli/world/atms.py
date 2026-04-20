@@ -1,11 +1,10 @@
 """ATMS-oriented ``pks world`` command adapters."""
 from __future__ import annotations
 
-import sys
-
 import click
 
-from propstore.cli.output import emit
+from propstore.cli.helpers import exit_with_code
+from propstore.cli.output import emit, emit_section
 
 from propstore.app.world_atms import (
     AppAtmsInterventionRequest,
@@ -107,11 +106,9 @@ def world_atms_verify_command(
     for section_name, errors in report.sections.items():
         if not errors:
             continue
-        emit(f"{section_name}:")
-        for error in errors:
-            emit(f"  {error}")
+        emit_section(f"{section_name}:", errors)
 
-    sys.exit(2)
+    exit_with_code(2)
 
 
 @atms.command("futures")
@@ -270,10 +267,13 @@ def world_atms_stability_command(
     )
     if not report.witnesses:
         emit("  no bounded consistent future flips the status")
-    for witness in report.witnesses:
-        emit(
-            f"  witness [{', '.join(witness.queryable_cels)}] -> {witness.status}"
-        )
+    emit_section(
+        "",
+        (
+            f"witness [{', '.join(witness.queryable_cels)}] -> {witness.status}"
+            for witness in report.witnesses
+        ),
+    )
 
 
 @atms.command("relevance")
@@ -376,8 +376,13 @@ def world_atms_interventions_command(
     except WorldAtmsValidationError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    for plan in report.plans:
-        emit(f"  plan [{', '.join(plan.queryable_cels)}] -> {plan.result_status}")
+    emit_section(
+        "",
+        (
+            f"plan [{', '.join(plan.queryable_cels)}] -> {plan.result_status}"
+            for plan in report.plans
+        ),
+    )
 
 
 @atms.command("next-query")
@@ -428,12 +433,15 @@ def world_atms_next_query_command(
     except WorldAtmsValidationError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    for suggestion in report.suggestions:
-        emit(
-            f"  {suggestion.queryable_cel}: "
+    emit_section(
+        "",
+        (
+            f"{suggestion.queryable_cel}: "
             f"coverage={suggestion.plan_count} "
             f"smallest_plan_size={suggestion.smallest_plan_size}"
-        )
+            for suggestion in report.suggestions
+        ),
+    )
 
 
 def _render_future_report(report: AtmsClaimFutureReport) -> None:
@@ -442,5 +450,10 @@ def _render_future_report(report: AtmsClaimFutureReport) -> None:
         f"could_become_in={report.could_become_in} "
         f"could_become_out={report.could_become_out}"
     )
-    for future in report.futures:
-        emit(f"  future [{', '.join(future.queryable_cels)}] -> {future.status}")
+    emit_section(
+        "",
+        (
+            f"future [{', '.join(future.queryable_cels)}] -> {future.status}"
+            for future in report.futures
+        ),
+    )
