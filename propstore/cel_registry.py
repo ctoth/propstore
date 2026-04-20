@@ -9,7 +9,7 @@ from typing import Any
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.core.concepts import ConceptRecord
 from propstore.core.row_types import ConceptRow
-from propstore.form_utils import kind_type_from_form_name
+from propstore.families.forms.stages import kind_type_from_form_name
 
 
 def _category_metadata(form_parameters: Mapping[str, Any]) -> tuple[list[str], bool]:

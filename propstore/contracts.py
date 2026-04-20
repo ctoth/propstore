@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from propstore.families.documents.claims import ClaimTypeContract
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.27")
+SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
     / "contract_manifests"
@@ -47,11 +48,47 @@ def iter_claim_type_contracts() -> tuple["ClaimTypeContract", ...]:
     return iter_contracts()
 
 
+def iter_semantic_pass_classes() -> tuple[type[Any], ...]:
+    from propstore.families.contexts.passes import register_context_pipeline
+    from propstore.families.forms.passes import register_form_pipeline
+    from propstore.semantic_passes.registry import PipelineRegistry
+
+    registry = PipelineRegistry()
+    register_context_pipeline(registry)
+    register_form_pipeline(registry)
+    return registry.registered_passes()
+
+
+def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[str, ...]], ...]:
+    from propstore.families.contexts.stages import (
+        ContextAuthoredSet,
+        ContextBoundGraph,
+        ContextCheckedGraph,
+        ContextNormalizedSet,
+        ContextStage,
+    )
+    from propstore.families.forms.stages import (
+        FormAuthoredSet,
+        FormCheckedRegistry,
+        FormNormalizedRegistry,
+        FormStage,
+    )
+
+    return (
+        (ContextStage.AUTHORED.value, "contexts", ContextAuthoredSet, ()),
+        (ContextStage.NORMALIZED.value, "contexts", ContextNormalizedSet, ()),
+        (ContextStage.BOUND.value, "contexts", ContextBoundGraph, ()),
+        (ContextStage.CHECKED.value, "contexts", ContextCheckedGraph, ()),
+        (FormStage.AUTHORED.value, "forms", FormAuthoredSet, ()),
+        (FormStage.NORMALIZED.value, "forms", FormNormalizedRegistry, ()),
+        (FormStage.CHECKED.value, "forms", FormCheckedRegistry, ()),
+    )
+
+
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.documents import (
         claims,
         concepts,
-        forms,
         merge,
         micropubs,
         predicates,
@@ -62,6 +99,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         worldlines,
     )
     from propstore.families.contexts import documents as contexts
+    from propstore.families.forms import documents as forms
 
     modules = (
         claims,
@@ -99,6 +137,8 @@ def build_propstore_contract_manifest() -> ContractManifest:
     contracts.extend(_family_contract(family) for family in iter_artifact_families())
     contracts.extend(_foreign_key_contract(spec) for spec in iter_semantic_foreign_keys())
     contracts.extend(_claim_type_contract(contract) for contract in iter_claim_type_contracts())
+    contracts.extend(_semantic_stage_contract(*contract) for contract in iter_semantic_stage_contracts())
+    contracts.extend(_semantic_pass_contract(pass_class) for pass_class in iter_semantic_pass_classes())
     return ContractManifest(
         format_version=1,
         package_name="propstore",
@@ -167,6 +207,40 @@ def _claim_type_contract(contract: "ClaimTypeContract") -> ContractEntry:
         name=contract.claim_type.value,
         contract_version=contract.contract_version,
         body=contract.contract_body(),
+    )
+
+
+def _semantic_stage_contract(
+    name: str,
+    family: str,
+    stage_class: type[Any],
+    invariants: tuple[str, ...],
+) -> ContractEntry:
+    return ContractEntry(
+        kind="semantic_stage",
+        name=name,
+        contract_version=SEMANTIC_PASS_CONTRACT_VERSION,
+        body={
+            "family": family,
+            "class": f"{stage_class.__module__}.{stage_class.__qualname__}",
+            "invariants": invariants,
+        },
+    )
+
+
+def _semantic_pass_contract(pass_class: type[Any]) -> ContractEntry:
+    return ContractEntry(
+        kind="semantic_pass",
+        name=pass_class.name,
+        contract_version=SEMANTIC_PASS_CONTRACT_VERSION,
+        body={
+            "family": pass_class.family.value,
+            "input_stage": pass_class.input_stage.value,
+            "output_stage": pass_class.output_stage.value,
+            "class": f"{pass_class.__module__}.{pass_class.__qualname__}",
+            "diagnostic_codes": (),
+            "required_context": (),
+        },
     )
 
 

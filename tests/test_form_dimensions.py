@@ -16,16 +16,36 @@ import yaml
 from hypothesis import given, assume, settings, HealthCheck
 from hypothesis import strategies as st
 
-from propstore.form_utils import (
+from quire.documents import DocumentSchemaError
+from propstore.families.forms import load_form_documents
+from propstore.families.forms.passes import run_form_pipeline
+from propstore.families.forms.stages import (
     FormDefinition,
     load_form,
-    validate_form_files,
 )
 from propstore.unit_dimensions import clear_symbol_table, _symbol_table
 
 # ── Constants ─────────────────────────────────────────────────────────
 
 SI_BASE_DIMENSIONS = {"L", "M", "T", "I", "Theta", "N", "J"}
+
+
+class _FormValidationResult:
+    def __init__(self, errors: tuple[str, ...]) -> None:
+        self.errors = list(errors)
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors
+
+
+def validate_form_files(forms_dir: Path) -> _FormValidationResult:
+    try:
+        forms = load_form_documents(forms_dir)
+    except DocumentSchemaError as exc:
+        return _FormValidationResult((str(exc),))
+    result = run_form_pipeline(forms)
+    return _FormValidationResult(tuple(error.render() for error in result.errors))
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────

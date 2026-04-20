@@ -8,7 +8,7 @@ from typing import Mapping
 
 from quire.documents import decode_yaml_mapping
 from propstore.families.documents.concepts import ConceptDocument
-from propstore.families.documents.forms import FormDocument
+from propstore.families.forms.documents import FormDocument
 from propstore.families.registry import (
     ConceptFileRef,
     FormRef,

@@ -31,7 +31,7 @@ from propstore.families.identity.claims import (
     compute_claim_version_id,
     derive_claim_artifact_id,
 )
-from propstore.form_utils import FormDefinition
+from propstore.families.forms.stages import FormDefinition
 from propstore.sidecar.concept_utils import resolve_concept_reference
 from propstore.stances import VALID_STANCE_TYPES
 

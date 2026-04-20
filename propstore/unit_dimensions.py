@@ -66,7 +66,7 @@ def register_form_units(forms_dir: Path) -> None:
     Called during validation/build to make form-declared units available
     for dimensional analysis.
     """
-    from propstore.form_utils import load_all_forms
+    from propstore.families.forms.stages import load_all_forms
 
     table = _get_symbol_table()
     for form_def in load_all_forms(forms_dir).values():

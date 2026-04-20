@@ -23,7 +23,7 @@ from .context import _classify_pair_context, _claim_context
 from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.form_utils import FormDefinition
+    from propstore.families.forms.stages import FormDefinition
     from propstore.context_lifting import LiftingSystem
 
 
