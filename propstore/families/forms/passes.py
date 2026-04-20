@@ -71,7 +71,11 @@ class FormDimensionPolicyPass:
                                 self.name,
                             )
                         )
-            if dims is not None and len(dims) > 0 and is_dimless:
+            if (
+                dims is not None
+                and any(exponent != 0 for exponent in dims.values())
+                and is_dimless
+            ):
                 diagnostics.append(
                     _error(
                         "form.dimensionless.non_empty_dimensions",

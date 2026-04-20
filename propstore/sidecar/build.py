@@ -39,6 +39,7 @@ from propstore.sidecar.claims import (
     populate_stances,
 )
 from propstore.sidecar.passes import compile_claim_sidecar_rows
+from propstore.sidecar.stages import RepositoryCheckedBundle
 from propstore.sidecar.concepts import (
     build_concept_fts_index,
     populate_aliases,
@@ -182,6 +183,20 @@ def build_sidecar(
         if claim_bundle is not None
         else (claim_files if claim_files else None)
     )
+    repository_checked_bundle = RepositoryCheckedBundle(
+        concepts=concepts,
+        form_registry=form_registry,
+        context_files=tuple(context_files),
+        context_ids=frozenset(context_ids),
+        compilation_context=compilation_context,
+        concept_registry=concept_registry,
+        claim_checked_bundle=claim_checked_bundle,
+        normalized_claim_files=(
+            None
+            if normalized_claim_files is None
+            else tuple(normalized_claim_files)
+        ),
+    )
 
     embedding_snapshot = None
     if sidecar_path.exists():
@@ -235,29 +250,38 @@ def build_sidecar(
                 for ref in repo.families.sources.iter(commit=commit_hash)
             ),
         )
-        populate_forms(conn, form_registry)
-        populate_concepts(conn, concepts, form_registry)
-        populate_aliases(conn, concepts)
-        populate_relationships(conn, concepts)
-        populate_parameterizations(conn, concepts)
-        populate_parameterization_groups(conn, concepts)
-        populate_form_algebra(conn, concepts, form_registry)
-        build_concept_fts_index(conn, concepts)
+        populate_forms(conn, repository_checked_bundle.form_registry)
+        populate_concepts(
+            conn,
+            repository_checked_bundle.concepts,
+            repository_checked_bundle.form_registry,
+        )
+        populate_aliases(conn, repository_checked_bundle.concepts)
+        populate_relationships(conn, repository_checked_bundle.concepts)
+        populate_parameterizations(conn, repository_checked_bundle.concepts)
+        populate_parameterization_groups(conn, repository_checked_bundle.concepts)
+        populate_form_algebra(
+            conn,
+            repository_checked_bundle.concepts,
+            repository_checked_bundle.form_registry,
+        )
+        build_concept_fts_index(conn, repository_checked_bundle.concepts)
         create_claim_tables(conn)
         create_micropublication_tables(conn)
 
-        if context_files:
-            populate_contexts(conn, context_files)
+        if repository_checked_bundle.context_files:
+            populate_contexts(conn, repository_checked_bundle.context_files)
 
-        if normalized_claim_files is not None:
-            if claim_bundle is None:
+        if repository_checked_bundle.normalized_claim_files is not None:
+            checked_claims = repository_checked_bundle.claim_checked_bundle
+            if checked_claims is None:
                 raise ValueError("checked claim bundle is required to populate claims")
             populate_claims(
                 conn,
                 compile_claim_sidecar_rows(
-                    claim_bundle,
-                    concept_registry,
-                    form_registry=form_registry,
+                    checked_claims.bundle,
+                    repository_checked_bundle.concept_registry,
+                    form_registry=repository_checked_bundle.form_registry,
                 ),
             )
 
@@ -265,18 +289,23 @@ def build_sidecar(
                 populate_raw_id_quarantine_records(conn, raw_id_quarantine_records)
 
             lifting_system = (
-                loaded_contexts_to_lifting_system(list(context_files))
-                if context_files
+                loaded_contexts_to_lifting_system(
+                    list(repository_checked_bundle.context_files)
+                )
+                if repository_checked_bundle.context_files
                 else None
             )
             populate_conflicts(
                 conn,
-                normalized_claim_files,
-                concept_registry,
-                dict(compilation_context.cel_registry),
+                list(repository_checked_bundle.normalized_claim_files),
+                repository_checked_bundle.concept_registry,
+                dict(repository_checked_bundle.compilation_context.cel_registry),
                 lifting_system=lifting_system,
             )
-            build_claim_fts_index(conn, normalized_claim_files)
+            build_claim_fts_index(
+                conn,
+                repository_checked_bundle.normalized_claim_files,
+            )
 
         populate_micropublications(
             conn,
