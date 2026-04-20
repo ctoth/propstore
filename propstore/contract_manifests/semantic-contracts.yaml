@@ -73,10 +73,10 @@ contracts:
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.concepts.ConceptDocument
-    document_payload: propstore.core.concepts.concept_document_to_payload
-    encode_document: propstore.core.concepts.encode_concept_document
-    normalize_for_write: propstore.core.concepts.normalize_concept_document_for_write
+    doc_type: propstore.families.concepts.documents.ConceptDocument
+    document_payload: propstore.families.concepts.stages.concept_document_to_payload
+    encode_document: propstore.families.concepts.stages.encode_concept_document
+    normalize_for_write: propstore.families.concepts.stages.normalize_concept_document_for_write
     placement:
       branch:
         policy: primary
@@ -85,7 +85,7 @@ contracts:
       kind: flat-yaml
       namespace: concepts
       ref_field: name
-    render_document: propstore.core.concepts.render_concept_document
+    render_document: propstore.families.concepts.stages.render_concept_document
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
@@ -1017,7 +1017,7 @@ contracts:
     - name: note
       required: true
       type: str | None
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptAlignmentArtifactDocument
   contract_version: 2026.04.27
@@ -1101,7 +1101,7 @@ contracts:
     - name: replaced_by
       required: true
       type: str | None
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptFormParametersDocument
   contract_version: 2026.04.27
@@ -1122,7 +1122,7 @@ contracts:
     - name: values
       required: true
       type: tuple[str, ...] | None
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptIdScanDocument
   contract_version: 2026.04.27
@@ -1137,7 +1137,7 @@ contracts:
     - name: logical_ids
       required: true
       type: tuple[ConceptLogicalIdDocument, ...]
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptLogicalIdDocument
   contract_version: 2026.04.27
@@ -1149,7 +1149,7 @@ contracts:
     - name: value
       required: true
       type: str
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptRelationshipDocument
   contract_version: 2026.04.27
@@ -1170,7 +1170,7 @@ contracts:
     - name: note
       required: true
       type: str | None
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: ContextDocument
   contract_version: 2026.04.27
@@ -1359,7 +1359,7 @@ contracts:
     - name: other_forms
       required: true
       type: tuple[LexicalFormDocument, ...]
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: LexicalFormDocument
   contract_version: 2026.04.27
@@ -1374,7 +1374,7 @@ contracts:
     - name: phonetic_rep
       required: true
       type: str | None
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: LexicalSenseDocument
   contract_version: 2026.04.27
@@ -1398,7 +1398,7 @@ contracts:
     - name: role_bundles
       required: true
       type: dict[str, ProtoRoleBundle] | None
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: LiftingRuleDocument
   contract_version: 2026.04.27
@@ -1584,7 +1584,7 @@ contracts:
     - name: label
       required: true
       type: str | None
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: OpinionDocument
   contract_version: 2026.04.27
@@ -1656,7 +1656,7 @@ contracts:
     - name: fit_statistics
       required: true
       type: str | None
-    module: propstore.families.documents.concepts
+    module: propstore.families.concepts.documents
 - kind: document_schema
   name: PredicateDocument
   contract_version: 2026.04.27
@@ -3010,7 +3010,7 @@ contracts:
     accessor: concepts
     artifact_family: concept_file
     artifact_family_contract:
-      doc_type: propstore.families.documents.concepts.ConceptDocument
+      doc_type: propstore.families.concepts.documents.ConceptDocument
       placement:
         branch:
           policy: primary
@@ -3590,6 +3590,36 @@ contracts:
     source_field: replaced_by
     target_family: concept
 - kind: semantic_pass
+  name: concept.identity
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.concepts.passes.ConceptIdentityPass
+    diagnostic_codes: []
+    family: concepts
+    input_stage: concept.normalized
+    output_stage: concept.bound
+    required_context: []
+- kind: semantic_pass
+  name: concept.normalize
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.concepts.passes.ConceptNormalizePass
+    diagnostic_codes: []
+    family: concepts
+    input_stage: concept.authored
+    output_stage: concept.normalized
+    required_context: []
+- kind: semantic_pass
+  name: concept.semantic.check
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.concepts.passes.ConceptSemanticCheckPass
+    diagnostic_codes: []
+    family: concepts
+    input_stage: concept.bound
+    output_stage: concept.checked
+    required_context: []
+- kind: semantic_pass
   name: context.identity
   contract_version: 2026.04.20
   body:
@@ -3659,6 +3689,34 @@ contracts:
     input_stage: form.normalized
     output_stage: form.checked
     required_context: []
+- kind: semantic_stage
+  name: concept.authored
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.concepts.stages.ConceptAuthoredSet
+    family: concepts
+    invariants: []
+- kind: semantic_stage
+  name: concept.bound
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.concepts.stages.ConceptBoundRegistry
+    family: concepts
+    invariants: []
+- kind: semantic_stage
+  name: concept.checked
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.concepts.stages.ConceptCheckedRegistry
+    family: concepts
+    invariants: []
+- kind: semantic_stage
+  name: concept.normalized
+  contract_version: 2026.04.20
+  body:
+    class: propstore.families.concepts.stages.ConceptNormalizedSet
+    family: concepts
+    invariants: []
 - kind: semantic_stage
   name: context.authored
   contract_version: 2026.04.20

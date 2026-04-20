@@ -21,7 +21,7 @@ from propstore.claims import (
     claim_file_filename,
     claim_file_source_paper,
 )
-from propstore.core.concepts import ConceptRecord
+from propstore.families.concepts.stages import ConceptRecord
 from propstore.families.identity.logical_ids import normalize_identity_namespace, normalize_logical_value
 from propstore.families.forms.stages import FormDefinition
 

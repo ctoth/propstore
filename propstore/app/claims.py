@@ -303,7 +303,7 @@ def validate_claim_files(
         build_compilation_context_from_repo,
     )
     from propstore.compiler.passes import validate_claims
-    from propstore.core.concepts import load_concepts
+    from propstore.families.concepts.stages import load_concepts
     from propstore.families.documents.claims import ClaimsFileDocument
 
     claims_root = (
@@ -359,7 +359,7 @@ def validate_claim_file(
         build_compilation_context_from_repo,
     )
     from propstore.compiler.passes import validate_single_claim_file
-    from propstore.core.concepts import load_concepts
+    from propstore.families.concepts.stages import load_concepts
 
     concepts_root, forms_root = _concept_override_roots(request.concepts_path)
     try:

@@ -25,7 +25,11 @@ from propstore.compiler.passes import validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
 from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_for_repo
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
-from propstore.core.concepts import (
+from propstore.families.concepts.passes import (
+    ConceptPipelineContext,
+    run_concept_pipeline,
+)
+from propstore.families.concepts.stages import (
     LoadedConcept,
     concept_document_to_payload,
     concept_document_to_record_payload,
@@ -33,13 +37,13 @@ from propstore.core.concepts import (
     parse_concept_record_document,
 )
 from propstore.families.documents.claims import ClaimsFileDocument
-from propstore.families.documents.concepts import ConceptDocument
+from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id
 from propstore.families.registry import ClaimsFileRef, ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
-from propstore.validate_concepts import validate_concepts
+from propstore.semantic_passes.types import PipelineResult
 
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
 QUALIA_ROLES = ("formal", "constitutive", "telic", "agentive")
@@ -971,9 +975,33 @@ def _raise_validation_failure(
     if not result.ok:
         raise ConceptValidationError(
             message,
-            errors=tuple(str(error) for error in result.errors),
-            warnings=tuple(str(warning) for warning in result.warnings),
+            errors=tuple(_render_diagnostic(error) for error in result.errors),
+            warnings=tuple(_render_diagnostic(warning) for warning in result.warnings),
         )
+
+
+def _render_diagnostic(diagnostic: object) -> str:
+    render = getattr(diagnostic, "render", None)
+    if callable(render):
+        return str(render())
+    return str(diagnostic)
+
+
+def _run_concept_validation(
+    repo: Repository,
+    concepts: list[LoadedConcept],
+) -> PipelineResult[object]:
+    claim_files = [
+        repo.families.claims.require_handle(claim_ref)
+        for claim_ref in repo.families.claims.iter()
+    ]
+    return run_concept_pipeline(
+        concepts,
+        context=ConceptPipelineContext(
+            form_registry=_form_registry(repo),
+            claim_reference_lookup=build_claim_reference_lookup(claim_files),
+        ),
+    )
 
 
 def _validate_updated_concept(
@@ -1007,17 +1035,9 @@ def _validate_updated_concept(
             )
         )
 
-    claim_files = [
-        repo.families.claims.require_handle(claim_ref)
-        for claim_ref in repo.families.claims.iter()
-    ]
-    validation = validate_concepts(
-        concepts,
-        form_registry=_form_registry(repo),
-        claim_reference_lookup=build_claim_reference_lookup(claim_files),
-    )
+    validation = _run_concept_validation(repo, concepts)
     _raise_validation_failure(validation)
-    return tuple(str(warning) for warning in validation.warnings)
+    return tuple(_render_diagnostic(warning) for warning in validation.warnings)
 
 
 def _apply_proto_role_entailment(
@@ -1091,9 +1111,9 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
         )
     )
 
-    result = validate_concepts(concepts, form_registry=_form_registry(repo))
+    result = _run_concept_validation(repo, concepts)
     _raise_validation_failure(result)
-    warnings = tuple(str(warning) for warning in result.warnings)
+    warnings = tuple(_render_diagnostic(warning) for warning in result.warnings)
 
     repo.families.concepts.save(
         ref,
@@ -1244,16 +1264,18 @@ def rename_concept(
         repo.families.claims.require_handle(claim_ref)
         for claim_ref in repo.families.claims.iter()
     ]
-    concept_validation = validate_concepts(
+    concept_validation = _run_concept_validation(
+        repo,
         [entry for _, _, entry in updated_concepts],
-        form_registry=_form_registry(repo),
-        claim_reference_lookup=build_claim_reference_lookup(claim_files),
     )
     _raise_validation_failure(
         concept_validation,
         message="Rename validation failed. No changes written.",
     )
-    warnings = [str(warning) for warning in concept_validation.warnings]
+    warnings = [
+        _render_diagnostic(warning)
+        for warning in concept_validation.warnings
+    ]
 
     updated_claim_files: list[tuple[ClaimsFileRef, ClaimFileEntry]] = []
     changed_claim_refs: set[ClaimsFileRef] = set()
@@ -1469,18 +1491,9 @@ def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutat
             )
         )
 
-    validation = validate_concepts(
-        updated_concepts,
-        form_registry=_form_registry(repo),
-        claim_reference_lookup=build_claim_reference_lookup(
-            [
-                repo.families.claims.require_handle(claim_ref)
-                for claim_ref in repo.families.claims.iter()
-            ]
-        ),
-    )
+    validation = _run_concept_validation(repo, updated_concepts)
     _raise_validation_failure(validation)
-    warnings = tuple(str(warning) for warning in validation.warnings)
+    warnings = tuple(_render_diagnostic(warning) for warning in validation.warnings)
 
     repo.families.concepts.save(
         ref,

@@ -43,14 +43,23 @@ from propstore.families.forms.stages import (
     kind_type_from_form_name,
     load_form_path,
 )
-from propstore.core.concepts import (
+from propstore.families.concepts.stages import (
+    ConceptAuthoredSet,
+    ConceptBoundRegistry,
+    ConceptCheckedRegistry,
+    ConceptNormalizedSet,
+    ConceptStage,
     LoadedConcept,
     concept_document_to_payload,
     load_concepts,
     normalize_loaded_concepts,
+    concept_payload_registry,
 )
 from propstore.compiler.references import build_claim_reference_lookup
-from propstore.diagnostics import ValidationResult
+from propstore.families.registry import PropstoreFamily
+from propstore.semantic_passes.registry import PipelineRegistry
+from propstore.semantic_passes.runner import run_pipeline
+from propstore.semantic_passes.types import PassDiagnostic, PassResult, PipelineResult
 
 if TYPE_CHECKING:
     from quire.tree_path import TreePath as KnowledgePath
@@ -63,6 +72,16 @@ _TYPE_RELATIONSHIPS = {
     ConceptRelationshipType.IS_A,
     ConceptRelationshipType.KIND_OF,
 }
+
+
+@dataclass
+class _ConceptCheckResult:
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors
 
 
 def _concept_reference_keys(concept: LoadedConcept) -> set[str]:
@@ -110,7 +129,7 @@ def _validate_reference_exists(
     field: str,
     reference_uri: str,
     reference_index: dict[str, LoadedConcept],
-    result: ValidationResult,
+    result: _ConceptCheckResult,
 ) -> LoadedConcept | None:
     target = reference_index.get(reference_uri)
     if target is None:
@@ -124,7 +143,7 @@ def _validate_phase3_lemon_references(
     concept: LoadedConcept,
     *,
     reference_index: dict[str, LoadedConcept],
-    result: ValidationResult,
+    result: _ConceptCheckResult,
 ) -> None:
     document = concept.document
     if document is None:
@@ -187,7 +206,7 @@ def _validate_phase3_lemon_references(
 def _validate_lemon_document(
     concept: LoadedConcept,
     *,
-    result: ValidationResult,
+    result: _ConceptCheckResult,
 ) -> None:
     document = concept.document
     if document is None:
@@ -227,7 +246,7 @@ def _validate_logical_ids(
     filename: str,
     artifact_id: str,
     seen_logical_ids: dict[str, str],
-    result: ValidationResult,
+    result: _ConceptCheckResult,
 ) -> set[str]:
     formatted_ids: set[str] = set()
     if not isinstance(logical_ids, list) or not logical_ids:
@@ -282,19 +301,19 @@ def _validate_logical_ids(
 
 
 def normalize_concept_record(data: dict) -> dict:
-    from propstore.core.concepts import normalize_concept_payload
+    from propstore.families.concepts.stages import normalize_concept_payload
 
     return normalize_concept_payload(data)
 
 
-def validate_concepts(
+def _check_concepts(
     concepts: list[LoadedConcept],
     claims_dir: KnowledgePath | None = None,
     *,
     forms_dir: KnowledgePath | None = None,
     form_registry: Mapping[str, FormDefinition] | None = None,
     claim_reference_lookup: Mapping[str, tuple[str, ...]] | None = None,
-) -> ValidationResult:
+) -> _ConceptCheckResult:
     """Run all compiler contract validation checks.
 
     Args:
@@ -310,7 +329,7 @@ def validate_concepts(
             carry ``knowledge_root`` metadata so the validator can resolve
             ``knowledge_root / "forms"`` without guessing from local paths.
     """
-    result = ValidationResult()
+    result = _ConceptCheckResult()
     id_to_concept: dict[str, LoadedConcept] = {}
     seen_logical_ids: dict[str, str] = {}
     cel_registry: dict[str, ConceptInfo] | None = None
@@ -320,7 +339,7 @@ def validate_concepts(
             return forms_dir
         if c.knowledge_root is None:
             raise TypeError(
-                "validate_concepts requires forms_dir or knowledge_root metadata"
+                "concept pipeline requires forms_dir or knowledge_root metadata"
             )
         return c.knowledge_root / "forms"
 
@@ -714,3 +733,130 @@ def validate_concepts(
             )
 
     return result
+
+
+@dataclass(frozen=True)
+class ConceptPipelineContext:
+    claims_dir: KnowledgePath | None = None
+    forms_dir: KnowledgePath | None = None
+    form_registry: Mapping[str, FormDefinition] | None = None
+    claim_reference_lookup: Mapping[str, tuple[str, ...]] | None = None
+
+
+class ConceptNormalizePass:
+    family = PropstoreFamily.CONCEPTS
+    name = "concept.normalize"
+    input_stage = ConceptStage.AUTHORED
+    output_stage = ConceptStage.NORMALIZED
+
+    def run(
+        self,
+        value: ConceptAuthoredSet,
+        context: object,
+    ) -> PassResult[ConceptNormalizedSet]:
+        return PassResult.ok(
+            ConceptNormalizedSet(concepts=tuple(value.concepts))
+        )
+
+
+class ConceptIdentityPass:
+    family = PropstoreFamily.CONCEPTS
+    name = "concept.identity"
+    input_stage = ConceptStage.NORMALIZED
+    output_stage = ConceptStage.BOUND
+
+    def run(
+        self,
+        value: ConceptNormalizedSet,
+        context: object,
+    ) -> PassResult[ConceptBoundRegistry]:
+        return PassResult.ok(
+            ConceptBoundRegistry(
+                concepts=value.concepts,
+                registry=concept_payload_registry(value.concepts),
+            )
+        )
+
+
+class ConceptSemanticCheckPass:
+    family = PropstoreFamily.CONCEPTS
+    name = "concept.semantic.check"
+    input_stage = ConceptStage.BOUND
+    output_stage = ConceptStage.CHECKED
+
+    def run(
+        self,
+        value: ConceptBoundRegistry,
+        context: object,
+    ) -> PassResult[ConceptCheckedRegistry]:
+        pipeline_context = (
+            context
+            if isinstance(context, ConceptPipelineContext)
+            else ConceptPipelineContext()
+        )
+        checked = _check_concepts(
+            list(value.concepts),
+            claims_dir=pipeline_context.claims_dir,
+            forms_dir=pipeline_context.forms_dir,
+            form_registry=pipeline_context.form_registry,
+            claim_reference_lookup=pipeline_context.claim_reference_lookup,
+        )
+        diagnostics = [
+            _diagnostic("warning", "concept.warning", warning)
+            for warning in checked.warnings
+        ]
+        diagnostics.extend(
+            _diagnostic("error", "concept.error", error)
+            for error in checked.errors
+        )
+        return PassResult(
+            output=ConceptCheckedRegistry(
+                concepts=value.concepts,
+                registry=value.registry,
+            ),
+            diagnostics=tuple(diagnostics),
+        )
+
+
+def register_concept_pipeline(registry: PipelineRegistry) -> None:
+    registry.register(ConceptNormalizePass, family=PropstoreFamily.CONCEPTS)
+    registry.register(ConceptIdentityPass, family=PropstoreFamily.CONCEPTS)
+    registry.register(ConceptSemanticCheckPass, family=PropstoreFamily.CONCEPTS)
+
+
+def run_concept_pipeline(
+    concepts: tuple[LoadedConcept, ...] | list[LoadedConcept],
+    *,
+    target_stage: ConceptStage = ConceptStage.CHECKED,
+    context: ConceptPipelineContext | None = None,
+) -> PipelineResult[object]:
+    registry = PipelineRegistry()
+    register_concept_pipeline(registry)
+    return run_pipeline(
+        ConceptAuthoredSet(concepts=tuple(concepts)),
+        family=PropstoreFamily.CONCEPTS,
+        start_stage=ConceptStage.AUTHORED,
+        target_stage=target_stage,
+        registry=registry,
+        context=context or ConceptPipelineContext(),
+    )
+
+
+def _diagnostic(
+    level: str,
+    code: str,
+    message: str,
+) -> PassDiagnostic:
+    filename = None
+    detail = message
+    if ": " in message:
+        filename, detail = message.split(": ", 1)
+    return PassDiagnostic(
+        level="warning" if level == "warning" else "error",
+        code=code,
+        message=detail,
+        family=PropstoreFamily.CONCEPTS,
+        stage=ConceptStage.CHECKED,
+        filename=filename,
+        pass_name="concept.semantic.check",
+    )

@@ -14,17 +14,24 @@ from propstore.claims import claim_file_payload
 from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.compiler.passes import compile_claim_files, validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
+from propstore.families.concepts.passes import (
+    ConceptPipelineContext,
+    run_concept_pipeline,
+)
 from propstore.families.contexts.passes import run_context_pipeline
 from propstore.families.contexts.stages import (
     ContextCheckedGraph,
     LoadedContext,
     parse_context_record_document,
 )
-from propstore.core.concepts import LoadedConcept, parse_concept_record_document
+from propstore.families.concepts.stages import (
+    ConceptCheckedRegistry,
+    LoadedConcept,
+    parse_concept_record_document,
+)
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.repository import Repository
-from propstore.validate_concepts import validate_concepts
 
 WorkflowMessageLevel = Literal["warning", "error"]
 
@@ -158,12 +165,14 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
         for ref in repo.families.claims.iter()
     ]
 
-    concept_result = validate_concepts(
+    concept_result = run_concept_pipeline(
         concepts,
-        form_registry=form_registry,
-        claim_reference_lookup=build_claim_reference_lookup(files),
+        context=ConceptPipelineContext(
+            form_registry=form_registry,
+            claim_reference_lookup=build_claim_reference_lookup(files),
+        ),
     )
-    messages.extend(_messages_from_result(concept_result))
+    messages.extend(_messages_from_pipeline_result(concept_result))
 
     claim_error_count = 0
     claim_file_count = len(files)
@@ -284,18 +293,17 @@ def build_repository(
         for ref in repo.families.claims.iter(commit=hash_key)
     ]
 
-    concept_result = validate_concepts(
+    concept_result = run_concept_pipeline(
         concepts,
-        form_registry=form_registry,
-        claim_reference_lookup=build_claim_reference_lookup(files),
+        context=ConceptPipelineContext(
+            form_registry=form_registry,
+            claim_reference_lookup=build_claim_reference_lookup(files),
+        ),
     )
-    if not concept_result.ok:
+    if not concept_result.ok or not isinstance(concept_result.output, ConceptCheckedRegistry):
         raise CompilerWorkflowError(
             "Build aborted: concept validation failed.",
-            tuple(
-                WorkflowMessage("error", str(error))
-                for error in concept_result.errors
-            ),
+            _messages_from_pipeline_result(concept_result),
         )
 
     build_messages: list[WorkflowMessage] = []

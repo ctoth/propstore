@@ -1849,7 +1849,7 @@ class TestTransitiveConsistency:
         """Build sidecar with claim11, call detect_transitive_conflicts, verify PARAM_CONFLICT for concept5."""
         from propstore.conflict_detector import detect_transitive_conflicts
         from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-        from propstore.core.concepts import load_concepts
+        from propstore.families.concepts.stages import load_concepts
 
         concepts = load_concepts(concept_dir)
         concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
@@ -1922,7 +1922,7 @@ class TestTransitiveConsistency:
         """Verify derivation_chain field is populated when transitive conflicts exist."""
         from propstore.conflict_detector import detect_transitive_conflicts
         from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-        from propstore.core.concepts import load_concepts
+        from propstore.families.concepts.stages import load_concepts
 
         concepts = load_concepts(concept_dir)
         concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
@@ -1938,7 +1938,7 @@ class TestTransitiveConsistency:
         """If claim11's value matches derived (e.g. 0.2), no conflict emitted."""
         from propstore.conflict_detector import detect_transitive_conflicts
         from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-        from propstore.core.concepts import load_concepts
+        from propstore.families.concepts.stages import load_concepts
         from propstore.claims import claim_file_payload, loaded_claim_file_from_payload
 
         concepts = load_concepts(concept_dir)
@@ -1978,7 +1978,7 @@ class TestTransitiveConsistency:
         """Conflict only under bindings where all claims are active."""
         from propstore.conflict_detector import detect_transitive_conflicts
         from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-        from propstore.core.concepts import load_concepts
+        from propstore.families.concepts.stages import load_concepts
 
         concepts = load_concepts(concept_dir)
         concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}

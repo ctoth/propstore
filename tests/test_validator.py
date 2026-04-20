@@ -19,15 +19,51 @@ import yaml
 
 from propstore.core.concept_status import ConceptStatus
 from quire.documents import DocumentSchemaError
-from propstore.core.concepts import LoadedConcept, parse_concept_record
-from propstore.core.concepts import load_concepts
-from propstore.validate_concepts import validate_concepts
+from propstore.families.concepts.passes import (
+    ConceptPipelineContext,
+    run_concept_pipeline,
+)
+from propstore.families.concepts.stages import LoadedConcept, parse_concept_record
+from propstore.families.concepts.stages import load_concepts
 from tests.conftest import (
     attach_concept_version_id,
     make_concept_identity,
     normalize_claims_payload,
     normalize_concept_payloads,
 )
+
+
+class _ConceptValidationResult:
+    def __init__(self, errors: tuple[str, ...], warnings: tuple[str, ...]) -> None:
+        self.errors = list(errors)
+        self.warnings = list(warnings)
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors
+
+
+def validate_concepts(
+    concepts,
+    claims_dir=None,
+    *,
+    forms_dir=None,
+    form_registry=None,
+    claim_reference_lookup=None,
+) -> _ConceptValidationResult:
+    result = run_concept_pipeline(
+        concepts,
+        context=ConceptPipelineContext(
+            claims_dir=claims_dir,
+            forms_dir=forms_dir,
+            form_registry=form_registry,
+            claim_reference_lookup=claim_reference_lookup,
+        ),
+    )
+    return _ConceptValidationResult(
+        tuple(error.render() for error in result.errors),
+        tuple(warning.render() for warning in result.warnings),
+    )
 
 
 def provenance_payload() -> dict[str, object]:
@@ -1135,7 +1171,7 @@ class TestSympyExceptNarrowing:
         write_concept(concept_dir, "concept_c.yaml", c3)
 
         # Monkeypatch verify_expr to raise a programming error
-        import propstore.validate_concepts as val_mod
+        import propstore.families.concepts.passes as val_mod
 
         def _boom(*args, **kwargs):
             raise NameError("undefined_variable_bug")

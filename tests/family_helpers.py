@@ -12,7 +12,7 @@ from quire.git_store import GitStore
 
 from propstore.claims import LoadedClaimsFile, load_claim_file
 from propstore.compiler.context import build_compilation_context_from_loaded
-from propstore.core.concepts import load_concepts
+from propstore.families.concepts.stages import load_concepts
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar as _build_sidecar
 from propstore.storage import is_git_repo

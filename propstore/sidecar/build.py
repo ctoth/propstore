@@ -29,7 +29,7 @@ from propstore.families.contexts.stages import (
     LoadedContext,
     parse_context_record_document,
 )
-from propstore.core.concepts import LoadedConcept, parse_concept_record_document
+from propstore.families.concepts.stages import LoadedConcept, parse_concept_record_document
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.sidecar.claims import (

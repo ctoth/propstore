@@ -4,7 +4,7 @@ import pytest
 
 from propstore.families.registry import ConceptFileRef
 from quire.documents import DocumentSchemaError
-from propstore.core.concepts import concept_document_to_payload, parse_concept_record_document
+from propstore.families.concepts.stages import concept_document_to_payload, parse_concept_record_document
 from propstore.repository import Repository
 
 

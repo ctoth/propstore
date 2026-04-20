@@ -32,7 +32,7 @@ from quire.versions import VersionId
 
 from propstore.families.addresses import SemanticFamilyAddress
 from propstore.families.documents.claims import ClaimsFileDocument
-from propstore.families.documents.concepts import ConceptDocument
+from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.documents import ContextDocument
 from propstore.families.forms.documents import FormDocument
 from propstore.families.documents.merge import MergeManifestDocument
@@ -65,7 +65,7 @@ from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
     normalize_canonical_concept_payload,
 )
-from propstore.core.concepts import (
+from propstore.families.concepts.stages import (
     concept_document_to_payload,
     encode_concept_document,
     normalize_concept_document_for_write,

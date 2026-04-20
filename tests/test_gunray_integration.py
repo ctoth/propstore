@@ -96,7 +96,7 @@ def _build_concept_relationship(relation: str, target: str):
     relation and ``target`` against its target string.
     """
 
-    from propstore.core.concepts import ConceptRelationship
+    from propstore.families.concepts.stages import ConceptRelationship
     from propstore.core.id_types import to_concept_id
 
     return ConceptRelationship(
@@ -117,7 +117,7 @@ def _build_loaded_concept(canonical_name: str, relationships):
     ``relationships`` carry test-meaningful content.
     """
 
-    from propstore.core.concepts import ConceptRecord, LoadedConcept
+    from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
     from propstore.core.id_types import LogicalId, to_concept_id
 
     artifact_id = to_concept_id(f"ps:concept:{canonical_name}")

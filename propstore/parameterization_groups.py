@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from propstore.core.concepts import ConceptRecord, LoadedConcept
+from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
 
 
 ConceptGroupInput = ConceptRecord | LoadedConcept | Mapping[str, Any]
