@@ -10,7 +10,7 @@ from propstore.claim_references import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
-from propstore.families.documents.claims import ClaimDocument, ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
+from propstore.families.claims.documents import ClaimDocument, ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
 from propstore.families.contexts.documents import ContextReferenceDocument
 from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType

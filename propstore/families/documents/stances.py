@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from propstore.families.documents.claims import ResolutionDocument
+from propstore.families.claims.documents import ResolutionDocument
 from quire.documents import DocumentStruct
 from propstore.stances import StanceType
 

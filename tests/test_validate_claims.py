@@ -20,7 +20,7 @@ from propstore.families.identity.logical_ids import parse_claim_id
 from quire.documents import DocumentSchemaError
 from propstore.claims import loaded_claim_file_from_payload
 from tests.family_helpers import load_claim_files
-from propstore.compiler.passes import (
+from propstore.families.claims.passes import (
     validate_claims,
     validate_single_claim_file,
 )
@@ -770,7 +770,7 @@ class TestDraftArtifactBoundary:
         prior behavior replaced ``claims`` with ``tuple()``).
         """
 
-        from propstore.compiler.passes import compile_claim_files
+        from propstore.families.claims.passes import compile_claim_files
 
         draft_file = loaded_claim_file_from_payload(
             filename="draft_claims",

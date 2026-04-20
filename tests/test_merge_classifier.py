@@ -258,7 +258,7 @@ def test_merge_commit_valid_claims(tmp_path):
 
     from tests.family_helpers import load_claim_files
     from propstore.compiler.context import build_compilation_context_from_repo
-    from propstore.compiler.passes import validate_claims
+    from propstore.families.claims.passes import validate_claims
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     result = validate_claims(

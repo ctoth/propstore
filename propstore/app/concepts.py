@@ -21,7 +21,7 @@ from propstore.claims import (
     loaded_claim_file_from_payload,
 )
 from propstore.compiler.context import build_compilation_context_from_loaded
-from propstore.compiler.passes import validate_claims
+from propstore.families.claims.passes import validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
 from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_for_repo
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
@@ -36,7 +36,7 @@ from propstore.families.concepts.stages import (
     parse_concept_record,
     parse_concept_record_document,
 )
-from propstore.families.documents.claims import ClaimsFileDocument
+from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload

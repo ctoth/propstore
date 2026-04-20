@@ -31,7 +31,7 @@ from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
 from propstore.families.addresses import SemanticFamilyAddress
-from propstore.families.documents.claims import ClaimsFileDocument
+from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.documents import ContextDocument
 from propstore.families.forms.documents import FormDocument

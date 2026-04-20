@@ -8,7 +8,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from propstore.families.documents.claims import ClaimDocument
+from propstore.families.claims.documents import ClaimDocument
 from propstore.cel_checker import check_cel_expr
 from propstore.cel_types import CheckedCelExpr, checked_condition_set
 from propstore.claims import (
@@ -19,7 +19,7 @@ from propstore.claims import (
     claim_file_stage,
     load_claim_file,
 )
-from propstore.compiler.claim_checks import (
+from propstore.families.claims.passes.checks import (
     _validate_logical_ids,
     _validate_stances,
     validate_claim_semantics,
@@ -44,6 +44,15 @@ from propstore.families.identity.logical_ids import (
     CLAIM_ARTIFACT_ID_RE,
     CLAIM_VERSION_ID_RE,
 )
+from propstore.families.claims.stages import (
+    ClaimAuthoredFiles,
+    ClaimCheckedBundle,
+    ClaimStage,
+)
+from propstore.families.registry import PropstoreFamily
+from propstore.semantic_passes.registry import PipelineRegistry
+from propstore.semantic_passes.runner import run_pipeline
+from propstore.semantic_passes.types import PassDiagnostic, PassResult, PipelineResult
 from propstore.families.identity.claims import compute_claim_version_id
 
 
@@ -432,3 +441,61 @@ def validate_single_claim_file(
     """Validate a single typed claims YAML file."""
     loaded = load_claim_file(filepath)
     return validate_claims([loaded], context)
+
+
+class ClaimCompilePass:
+    family = PropstoreFamily.CLAIMS
+    name = "claim.compile"
+    input_stage = ClaimStage.AUTHORED
+    output_stage = ClaimStage.CHECKED
+
+    def run(
+        self,
+        value: ClaimAuthoredFiles,
+        context: object,
+    ) -> PassResult[ClaimCheckedBundle]:
+        bundle = compile_claim_files(
+            value.claim_files,
+            value.context,
+            context_ids=(
+                None
+                if value.context_ids is None
+                else set(value.context_ids)
+            ),
+        )
+        return PassResult(
+            output=ClaimCheckedBundle(bundle=bundle),
+            diagnostics=tuple(_pass_diagnostic(item) for item in bundle.diagnostics),
+        )
+
+
+def register_claim_pipeline(registry: PipelineRegistry) -> None:
+    registry.register(ClaimCompilePass, family=PropstoreFamily.CLAIMS)
+
+
+def run_claim_pipeline(
+    authored: ClaimAuthoredFiles,
+) -> PipelineResult[object]:
+    registry = PipelineRegistry()
+    register_claim_pipeline(registry)
+    return run_pipeline(
+        authored,
+        family=PropstoreFamily.CLAIMS,
+        start_stage=ClaimStage.AUTHORED,
+        target_stage=ClaimStage.CHECKED,
+        registry=registry,
+        context=None,
+    )
+
+
+def _pass_diagnostic(diagnostic: SemanticDiagnostic) -> PassDiagnostic:
+    return PassDiagnostic(
+        level="error" if diagnostic.is_error else "warning",
+        code=f"claim.{diagnostic.level}",
+        message=diagnostic.message,
+        family=PropstoreFamily.CLAIMS,
+        stage=ClaimStage.CHECKED,
+        filename=diagnostic.filename,
+        artifact_id=diagnostic.artifact_id,
+        pass_name="claim.compile",
+    )

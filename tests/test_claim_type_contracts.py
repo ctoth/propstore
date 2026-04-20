@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.families.documents.claims import (
+from propstore.families.claims.documents import (
     claim_type_contract_for,
     iter_claim_type_contracts,
 )

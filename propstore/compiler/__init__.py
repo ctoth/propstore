@@ -13,8 +13,6 @@ from propstore.compiler.ir import (
     SemanticDiagnostic,
     SemanticStance,
 )
-from propstore.compiler.passes import compile_claim_files
-
 __all__ = [
     "ClaimCompilationBundle",
     "CompilationContext",
@@ -25,5 +23,4 @@ __all__ = [
     "SemanticStance",
     "build_compilation_context_from_loaded",
     "build_compilation_context_from_repo",
-    "compile_claim_files",
 ]

@@ -302,9 +302,9 @@ def validate_claim_files(
         build_compilation_context_from_loaded,
         build_compilation_context_from_repo,
     )
-    from propstore.compiler.passes import validate_claims
+    from propstore.families.claims.passes import validate_claims
     from propstore.families.concepts.stages import load_concepts
-    from propstore.families.documents.claims import ClaimsFileDocument
+    from propstore.families.claims.documents import ClaimsFileDocument
 
     claims_root = (
         coerce_knowledge_path(request.claims_path)
@@ -358,7 +358,7 @@ def validate_claim_file(
         build_compilation_context_from_loaded,
         build_compilation_context_from_repo,
     )
-    from propstore.compiler.passes import validate_single_claim_file
+    from propstore.families.claims.passes import validate_single_claim_file
     from propstore.families.concepts.stages import load_concepts
 
     concepts_root, forms_root = _concept_override_roots(request.concepts_path)

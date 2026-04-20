@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.families.documents.claims import ClaimDocument, StanceDocument
+from propstore.families.claims.documents import ClaimDocument, StanceDocument
 from propstore.core.claim_types import ClaimType
 from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.families.documents.sources import SourceClaimDocument, SourceStanceEntryDocument

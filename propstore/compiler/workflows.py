@@ -12,8 +12,9 @@ from typing import Literal
 from quire.documents import DocumentSchemaError
 from propstore.claims import claim_file_payload
 from propstore.compiler.context import build_compilation_context_from_repo
-from propstore.compiler.passes import compile_claim_files, validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
+from propstore.families.claims.passes import run_claim_pipeline
+from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
 from propstore.families.concepts.passes import (
     ConceptPipelineContext,
     run_concept_pipeline,
@@ -179,14 +180,25 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
     if files:
         try:
             context = build_compilation_context_from_repo(repo, claim_files=files)
-            claim_result = validate_claims(files, context)
+            claim_pipeline_result = run_claim_pipeline(
+                ClaimAuthoredFiles.from_sequence(files, context)
+            )
+            claim_result = (
+                claim_pipeline_result.output.bundle.to_validation_result()
+                if isinstance(claim_pipeline_result.output, ClaimCheckedBundle)
+                else None
+            )
         except DocumentSchemaError as exc:
             raise CompilerWorkflowError(
                 "Validation FAILED: 1 error(s)",
                 (WorkflowMessage("error", str(exc)),),
             ) from exc
-        messages.extend(_messages_from_result(claim_result))
-        claim_error_count = len(claim_result.errors)
+        if claim_result is not None:
+            messages.extend(_messages_from_result(claim_result))
+            claim_error_count = len(claim_result.errors)
+        else:
+            messages.extend(_messages_from_pipeline_result(claim_pipeline_result))
+            claim_error_count = len(claim_pipeline_result.errors)
 
     context_error_count = 0
     try:
@@ -356,11 +368,19 @@ def build_repository(
                 context_ids=context_ids if context_ids else None,
                 commit=hash_key,
             )
-            claim_bundle = compile_claim_files(
-                files,
-                compilation_context,
-                context_ids=context_ids if context_ids else None,
+            claim_pipeline_result = run_claim_pipeline(
+                ClaimAuthoredFiles.from_sequence(
+                    files,
+                    compilation_context,
+                    context_ids=context_ids if context_ids else None,
+                )
             )
+            if not isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
+                raise CompilerWorkflowError(
+                    "Build aborted: claim validation failed.",
+                    _messages_from_pipeline_result(claim_pipeline_result),
+                )
+            claim_bundle = claim_pipeline_result.output.bundle
             claim_result = claim_bundle.to_validation_result()
             if not claim_result.ok:
                 raise CompilerWorkflowError(

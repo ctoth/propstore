@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, TypeAlias
 
 from quire.artifacts import ArtifactHandle
-from propstore.families.documents.claims import ClaimDocument, ClaimsFileDocument
+from propstore.families.claims.documents import ClaimDocument, ClaimsFileDocument
 from propstore.families.registry import ClaimsFileRef
 from quire.documents import (
     convert_document_value,

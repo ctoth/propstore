@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from propstore.families.documents.claims import ClaimLogicalIdDocument
+from propstore.families.claims.documents import ClaimLogicalIdDocument
 from propstore.families.documents.sources import SourceClaimsDocument
 
 if TYPE_CHECKING:
