@@ -38,18 +38,7 @@ from propstore.sidecar.claims import (
     populate_raw_id_quarantine_records,
     populate_stances,
 )
-from propstore.sidecar.passes import (
-    compile_authored_justification_sidecar_rows,
-    compile_authored_stance_sidecar_rows,
-    compile_claim_sidecar_rows,
-    compile_claim_fts_rows,
-    compile_claim_reference_map,
-    compile_conflict_sidecar_rows,
-    compile_concept_sidecar_rows,
-    compile_context_sidecar_rows,
-    compile_micropublication_sidecar_rows,
-    compile_source_sidecar_rows,
-)
+from propstore.sidecar.passes import compile_sidecar_build_plan
 from propstore.sidecar.stages import RepositoryCheckedBundle
 from propstore.sidecar.concepts import populate_concept_sidecar_rows
 from propstore.sidecar.schema import (
@@ -93,8 +82,6 @@ def build_sidecar(
         existing_hash = hash_path.read_text().strip()
         if existing_hash == content_hash:
             return False
-
-    from propstore.families.contexts.stages import loaded_contexts_to_lifting_system
 
     form_result = run_form_pipeline(
         [
@@ -161,11 +148,6 @@ def build_sidecar(
         if claim_checked_bundle is None
         else claim_checked_bundle.bundle
     )
-    raw_id_quarantine_records = (
-        ()
-        if claim_checked_bundle is None
-        else claim_checked_bundle.raw_id_quarantine_records
-    )
     if claim_bundle is None and claim_files:
         claim_pipeline_result = run_claim_pipeline(
             ClaimAuthoredFiles.from_sequence(
@@ -179,7 +161,6 @@ def build_sidecar(
             raise ValueError(f"claim validation failed: {errors}")
         claim_checked_bundle = claim_pipeline_result.output
         claim_bundle = claim_checked_bundle.bundle
-        raw_id_quarantine_records = claim_checked_bundle.raw_id_quarantine_records
     normalized_claim_files = (
         list(claim_bundle.normalized_claim_files)
         if claim_bundle is not None
@@ -197,6 +178,37 @@ def build_sidecar(
             None
             if normalized_claim_files is None
             else tuple(normalized_claim_files)
+        ),
+    )
+    sidecar_plan = compile_sidecar_build_plan(
+        repository_checked_bundle,
+        source_entries=(
+            (
+                ref.name,
+                repo.families.sources.require(ref, commit=commit_hash),
+            )
+            for ref in repo.families.sources.iter(commit=commit_hash)
+        ),
+        stance_entries=(
+            (
+                ref.source_claim,
+                repo.families.stances.require(ref, commit=commit_hash),
+            )
+            for ref in repo.families.stances.iter(commit=commit_hash)
+        ),
+        justification_entries=(
+            (
+                ref.name,
+                repo.families.justifications.require(ref, commit=commit_hash),
+            )
+            for ref in repo.families.justifications.iter(commit=commit_hash)
+        ),
+        micropub_files=(
+            (
+                ref.name,
+                repo.families.micropubs.require(ref, commit=commit_hash),
+            )
+            for ref in repo.families.micropubs.iter(commit=commit_hash)
         ),
     )
 
@@ -244,90 +256,31 @@ def build_sidecar(
         create_context_tables(conn)
         populate_sources(
             conn,
-            compile_source_sidecar_rows(
-                (
-                    (
-                        ref.name,
-                        repo.families.sources.require(ref, commit=commit_hash),
-                    )
-                    for ref in repo.families.sources.iter(commit=commit_hash)
-                )
-            ),
+            sidecar_plan.source_rows,
         )
         populate_concept_sidecar_rows(
             conn,
-            compile_concept_sidecar_rows(
-                repository_checked_bundle.concepts,
-                repository_checked_bundle.form_registry,
-            ),
+            sidecar_plan.concept_rows,
         )
         create_claim_tables(conn)
         create_micropublication_tables(conn)
-        claim_reference_map: dict[str, str] = {}
 
-        if repository_checked_bundle.context_files:
-            populate_contexts(
-                conn,
-                compile_context_sidecar_rows(
-                    repository_checked_bundle.context_files,
-                ),
-            )
+        if sidecar_plan.context_rows.context_rows:
+            populate_contexts(conn, sidecar_plan.context_rows)
 
-        if repository_checked_bundle.normalized_claim_files is not None:
-            checked_claims = repository_checked_bundle.claim_checked_bundle
-            if checked_claims is None:
-                raise ValueError("checked claim bundle is required to populate claims")
-            claim_reference_map = compile_claim_reference_map(
-                repository_checked_bundle.normalized_claim_files,
-            )
-            populate_claims(
-                conn,
-                compile_claim_sidecar_rows(
-                    checked_claims.bundle,
-                    repository_checked_bundle.concept_registry,
-                    form_registry=repository_checked_bundle.form_registry,
-                ),
-            )
+        if sidecar_plan.claim_rows is not None:
+            populate_claims(conn, sidecar_plan.claim_rows)
 
-            if raw_id_quarantine_records:
-                populate_raw_id_quarantine_records(conn, raw_id_quarantine_records)
-
-            lifting_system = (
-                loaded_contexts_to_lifting_system(
-                    list(repository_checked_bundle.context_files)
+            if sidecar_plan.raw_id_quarantine_records:
+                populate_raw_id_quarantine_records(
+                    conn,
+                    sidecar_plan.raw_id_quarantine_records,
                 )
-                if repository_checked_bundle.context_files
-                else None
-            )
-            populate_conflicts(
-                conn,
-                compile_conflict_sidecar_rows(
-                    list(repository_checked_bundle.normalized_claim_files),
-                    repository_checked_bundle.concept_registry,
-                    dict(repository_checked_bundle.compilation_context.cel_registry),
-                    lifting_system=lifting_system,
-                ),
-            )
-            populate_claim_fts_rows(
-                conn,
-                compile_claim_fts_rows(
-                    repository_checked_bundle.normalized_claim_files,
-                ),
-            )
 
-        populate_micropublications(
-            conn,
-            compile_micropublication_sidecar_rows(
-                (
-                    (
-                        ref.name,
-                        repo.families.micropubs.require(ref, commit=commit_hash),
-                    )
-                    for ref in repo.families.micropubs.iter(commit=commit_hash)
-                ),
-                claim_reference_map,
-            ),
-        )
+            populate_conflicts(conn, sidecar_plan.conflict_rows)
+            populate_claim_fts_rows(conn, sidecar_plan.claim_fts_rows)
+
+        populate_micropublications(conn, sidecar_plan.micropublication_rows)
 
         if embedding_snapshot is not None:
             try:
@@ -343,37 +296,11 @@ def build_sidecar(
                 print(f"Warning: embedding restore failed: {exc}", file=sys.stderr)
                 conn.row_factory = None
 
-        if normalized_claim_files is not None:
-            populate_stances(
-                conn,
-                compile_authored_stance_sidecar_rows(
-                    (
-                        (
-                            ref.source_claim,
-                            repo.families.stances.require(ref, commit=commit_hash),
-                        )
-                        for ref in repo.families.stances.iter(commit=commit_hash)
-                    ),
-                    claim_reference_map,
-                ),
-            )
+        if sidecar_plan.claim_rows is not None:
+            populate_stances(conn, sidecar_plan.stance_rows)
             populate_authored_justifications(
                 conn,
-                compile_authored_justification_sidecar_rows(
-                    (
-                        (
-                            ref.name,
-                            repo.families.justifications.require(
-                                ref,
-                                commit=commit_hash,
-                            ),
-                        )
-                        for ref in repo.families.justifications.iter(
-                            commit=commit_hash
-                        )
-                    ),
-                    claim_reference_map,
-                ),
+                sidecar_plan.justification_rows,
             )
 
         conn.commit()

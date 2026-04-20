@@ -20,7 +20,11 @@ from propstore.conflict_detector.collectors import conflict_claims_from_claim_fi
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
-from propstore.families.contexts.stages import LoadedContext, coerce_loaded_contexts
+from propstore.families.contexts.stages import (
+    LoadedContext,
+    coerce_loaded_contexts,
+    loaded_contexts_to_lifting_system,
+)
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
 from propstore.families.documents.sources import (
     SourceDocument,
@@ -62,6 +66,8 @@ from propstore.sidecar.stages import (
     MicropublicationInsertRow,
     MicropublicationSidecarRows,
     RelationEdgeInsertRow,
+    RepositoryCheckedBundle,
+    SidecarBuildPlan,
     SourceInsertRow,
     SourceSidecarRows,
 )
@@ -745,4 +751,77 @@ def compile_micropublication_sidecar_rows(
     return MicropublicationSidecarRows(
         micropublication_rows=tuple(micropublication_rows),
         claim_rows=tuple(claim_rows),
+    )
+
+
+def compile_sidecar_build_plan(
+    repository_checked_bundle: RepositoryCheckedBundle,
+    *,
+    source_entries: Iterable[tuple[str, SourceDocument]],
+    stance_entries: Iterable[tuple[str, StanceFileDocument]],
+    justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
+    micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
+) -> SidecarBuildPlan:
+    claim_rows: ClaimSidecarRows | None = None
+    raw_id_quarantine_records = ()
+    conflict_rows: tuple[ConflictWitnessInsertRow, ...] = ()
+    claim_fts_rows: tuple[ClaimFtsInsertRow, ...] = ()
+    stance_rows: tuple[ClaimStanceInsertRow, ...] = ()
+    justification_rows: tuple[JustificationInsertRow, ...] = ()
+    claim_reference_map: dict[str, str] = {}
+
+    if repository_checked_bundle.normalized_claim_files is not None:
+        checked_claims = repository_checked_bundle.claim_checked_bundle
+        if checked_claims is None:
+            raise ValueError("checked claim bundle is required to populate claims")
+        normalized_claim_files = repository_checked_bundle.normalized_claim_files
+        claim_reference_map = compile_claim_reference_map(normalized_claim_files)
+        claim_rows = compile_claim_sidecar_rows(
+            checked_claims.bundle,
+            repository_checked_bundle.concept_registry,
+            form_registry=repository_checked_bundle.form_registry,
+        )
+        raw_id_quarantine_records = checked_claims.raw_id_quarantine_records
+        lifting_system = (
+            loaded_contexts_to_lifting_system(
+                list(repository_checked_bundle.context_files)
+            )
+            if repository_checked_bundle.context_files
+            else None
+        )
+        conflict_rows = compile_conflict_sidecar_rows(
+            list(normalized_claim_files),
+            repository_checked_bundle.concept_registry,
+            dict(repository_checked_bundle.compilation_context.cel_registry),
+            lifting_system=lifting_system,
+        )
+        claim_fts_rows = compile_claim_fts_rows(normalized_claim_files)
+        stance_rows = compile_authored_stance_sidecar_rows(
+            stance_entries,
+            claim_reference_map,
+        )
+        justification_rows = compile_authored_justification_sidecar_rows(
+            justification_entries,
+            claim_reference_map,
+        )
+
+    return SidecarBuildPlan(
+        source_rows=compile_source_sidecar_rows(source_entries),
+        concept_rows=compile_concept_sidecar_rows(
+            repository_checked_bundle.concepts,
+            repository_checked_bundle.form_registry,
+        ),
+        context_rows=compile_context_sidecar_rows(
+            repository_checked_bundle.context_files,
+        ),
+        claim_rows=claim_rows,
+        raw_id_quarantine_records=tuple(raw_id_quarantine_records),
+        conflict_rows=conflict_rows,
+        claim_fts_rows=claim_fts_rows,
+        micropublication_rows=compile_micropublication_sidecar_rows(
+            micropub_files,
+            claim_reference_map,
+        ),
+        stance_rows=stance_rows,
+        justification_rows=justification_rows,
     )
