@@ -33,7 +33,6 @@ from propstore.compiler.references import (
     resolve_claim_reference,
     resolve_concept_reference,
 )
-from propstore.diagnostics import SemanticDiagnostic, ValidationResult
 from propstore.compiler.ir import (
     ClaimCompilationBundle,
     ResolvedReference,
@@ -52,6 +51,7 @@ from propstore.families.claims.stages import (
     RawIdQuarantineRecord,
 )
 from propstore.families.registry import PropstoreFamily
+from propstore.families.claims.passes.diagnostics import claim_diagnostic
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassDiagnostic, PassResult, PipelineResult
@@ -175,7 +175,7 @@ def compile_claim_files(
     claim_lookup = _build_claim_lookup(normalized_claim_files)
     effective_context = replace(context, claim_lookup=claim_lookup)
 
-    diagnostics: list[SemanticDiagnostic] = []
+    diagnostics: list[PassDiagnostic] = []
     semantic_files: list[SemanticClaimFile] = []
     seen_artifact_ids: dict[str, str] = {}
     seen_logical_ids: dict[str, str] = {}
@@ -187,7 +187,7 @@ def compile_claim_files(
                 all_artifact_ids.add(artifact_id)
 
     for original_file, normalized_file in zip(claim_files, normalized_claim_files, strict=False):
-        file_diagnostics: list[SemanticDiagnostic] = []
+        file_diagnostics: list[PassDiagnostic] = []
         semantic_claims: list[SemanticClaim] = []
         filename = claim_file_filename(normalized_file)
         source_paper = claim_file_source_paper(normalized_file)
@@ -199,7 +199,7 @@ def compile_claim_files(
         # callers that want to flag drafts can still see them.
         if claim_file_stage(normalized_file) == "draft":
             file_diagnostics.append(
-                SemanticDiagnostic(
+                claim_diagnostic(
                     level="info",
                     filename=filename,
                     message=(
@@ -214,7 +214,7 @@ def compile_claim_files(
             artifact_id = claim.artifact_id
             if isinstance(raw_id, str) and raw_id and not artifact_id:
                 file_diagnostics.append(
-                    SemanticDiagnostic(
+                    claim_diagnostic(
                         level="error",
                         message=(
                             "claim uses raw 'id' input "
@@ -238,7 +238,7 @@ def compile_claim_files(
             cid = resolved_claim.get("artifact_id")
 
             if not cid:
-                file_diagnostics.append(SemanticDiagnostic(
+                file_diagnostics.append(claim_diagnostic(
                     level="error",
                     message="claim missing 'artifact_id'",
                     filename=filename,
@@ -246,7 +246,7 @@ def compile_claim_files(
                 continue
 
             if cid in seen_artifact_ids:
-                file_diagnostics.append(SemanticDiagnostic(
+                file_diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"duplicate claim artifact_id '{cid}' "
@@ -259,7 +259,7 @@ def compile_claim_files(
                 seen_artifact_ids[cid] = filename
 
             if "id" in resolved_claim:
-                file_diagnostics.append(SemanticDiagnostic(
+                file_diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"claim '{cid}' uses raw 'id' input; "
@@ -269,7 +269,7 @@ def compile_claim_files(
                     artifact_id=cid,
                 ))
             if "artifact_code" in resolved_claim:
-                file_diagnostics.append(SemanticDiagnostic(
+                file_diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"claim '{cid}' uses source-local field "
@@ -281,7 +281,7 @@ def compile_claim_files(
                 ))
 
             if not CLAIM_ARTIFACT_ID_RE.match(cid):
-                file_diagnostics.append(SemanticDiagnostic(
+                file_diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"claim artifact_id '{cid}' does not match "
@@ -301,7 +301,7 @@ def compile_claim_files(
 
             version_id = resolved_claim.get("version_id")
             if not isinstance(version_id, str) or not CLAIM_VERSION_ID_RE.match(version_id):
-                file_diagnostics.append(SemanticDiagnostic(
+                file_diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"claim '{cid}' version_id must match "
@@ -313,7 +313,7 @@ def compile_claim_files(
             else:
                 expected_version_id = compute_claim_version_id(semantic_claim.authored_claim)
                 if version_id != expected_version_id:
-                    file_diagnostics.append(SemanticDiagnostic(
+                    file_diagnostics.append(claim_diagnostic(
                         level="error",
                         message=(
                             f"claim '{cid}' version_id mismatch "
@@ -325,7 +325,7 @@ def compile_claim_files(
 
             provenance = resolved_claim.get("provenance")
             if not provenance or not isinstance(provenance, dict):
-                file_diagnostics.append(SemanticDiagnostic(
+                file_diagnostics.append(claim_diagnostic(
                     level="error",
                     message=f"claim '{cid}' missing provenance",
                     filename=filename,
@@ -333,14 +333,14 @@ def compile_claim_files(
                 ))
             else:
                 if not provenance.get("paper"):
-                    file_diagnostics.append(SemanticDiagnostic(
+                    file_diagnostics.append(claim_diagnostic(
                         level="error",
                         message=f"claim '{cid}' provenance missing 'paper'",
                         filename=filename,
                         artifact_id=cid,
                     ))
                 if provenance.get("page") is None:
-                    file_diagnostics.append(SemanticDiagnostic(
+                    file_diagnostics.append(claim_diagnostic(
                         level="error",
                         message=f"claim '{cid}' provenance missing 'page'",
                         filename=filename,
@@ -354,14 +354,14 @@ def compile_claim_files(
                 else raw_claim_context
             )
             if not isinstance(claim_context, str) or not claim_context:
-                file_diagnostics.append(SemanticDiagnostic(
+                file_diagnostics.append(claim_diagnostic(
                     level="error",
                     message=f"claim '{cid}' missing required context",
                     filename=filename,
                     artifact_id=cid,
                 ))
             elif context_ids is not None and claim_context not in context_ids:
-                file_diagnostics.append(SemanticDiagnostic(
+                file_diagnostics.append(claim_diagnostic(
                     level="error",
                     message=(
                         f"claim '{cid}' references nonexistent "
@@ -380,7 +380,7 @@ def compile_claim_files(
                     try:
                         checked = check_cel_expr(cel_expr, effective_context.cel_registry)
                     except ValueError as exc:
-                        file_diagnostics.append(SemanticDiagnostic(
+                        file_diagnostics.append(claim_diagnostic(
                             level="error",
                             message=f"claim '{cid}' CEL error: {exc}",
                             filename=filename,
@@ -389,7 +389,7 @@ def compile_claim_files(
                         continue
                     checked_conditions.append(checked)
                     for warning in checked.warnings:
-                        file_diagnostics.append(SemanticDiagnostic(
+                        file_diagnostics.append(claim_diagnostic(
                             level="warning",
                             message=(
                                 f"claim '{cid}' CEL warning: "
@@ -496,20 +496,21 @@ def validate_claims(
     claim_files: Sequence[ClaimFileEntry],
     context: CompilationContext,
     context_ids: set[str] | None = None,
-) -> ValidationResult:
+) -> PipelineResult[object]:
     """Validate claim files against schema and compiler contract."""
-    bundle = compile_claim_files(
-        claim_files,
-        context,
-        context_ids=context_ids,
+    return run_claim_pipeline(
+        ClaimAuthoredFiles.from_sequence(
+            claim_files,
+            context,
+            context_ids=context_ids,
+        )
     )
-    return bundle.to_validation_result()
 
 
 def validate_single_claim_file(
     filepath: Path,
     context: CompilationContext,
-) -> ValidationResult:
+) -> PipelineResult[object]:
     """Validate a single typed claims YAML file."""
     loaded = load_claim_file(filepath)
     return validate_claims([loaded], context)
@@ -540,7 +541,7 @@ class ClaimCompilePass:
                 bundle=bundle,
                 raw_id_quarantine_records=_collect_raw_id_quarantine_records(bundle),
             ),
-            diagnostics=tuple(_pass_diagnostic(item) for item in bundle.diagnostics),
+            diagnostics=bundle.diagnostics,
         )
 
 
@@ -560,17 +561,4 @@ def run_claim_pipeline(
         target_stage=ClaimStage.CHECKED,
         registry=registry,
         context=None,
-    )
-
-
-def _pass_diagnostic(diagnostic: SemanticDiagnostic) -> PassDiagnostic:
-    return PassDiagnostic(
-        level="error" if diagnostic.is_error else "warning",
-        code=f"claim.{diagnostic.level}",
-        message=diagnostic.message,
-        family=PropstoreFamily.CLAIMS,
-        stage=ClaimStage.CHECKED,
-        filename=diagnostic.filename,
-        artifact_id=diagnostic.artifact_id,
-        pass_name="claim.compile",
     )

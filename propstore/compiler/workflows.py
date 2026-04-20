@@ -7,14 +7,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 
 from quire.documents import DocumentSchemaError
 from propstore.claims import claim_file_payload
 from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.compiler.references import build_claim_reference_lookup
 from propstore.families.claims.passes import run_claim_pipeline
-from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
+from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle, ClaimStage
 from propstore.families.concepts.passes import (
     ConceptPipelineContext,
     run_concept_pipeline,
@@ -22,48 +21,43 @@ from propstore.families.concepts.passes import (
 from propstore.families.contexts.passes import run_context_pipeline
 from propstore.families.contexts.stages import (
     ContextCheckedGraph,
+    ContextStage,
     LoadedContext,
     parse_context_record_document,
 )
 from propstore.families.concepts.stages import (
     ConceptCheckedRegistry,
+    ConceptStage,
     LoadedConcept,
     parse_concept_record_document,
 )
 from propstore.families.forms.passes import run_form_pipeline
-from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
+from propstore.families.forms.stages import FormCheckedRegistry, FormStage, LoadedForm
+from propstore.families.registry import PropstoreFamily
 from propstore.repository import Repository
-
-WorkflowMessageLevel = Literal["warning", "error"]
-
-
-@dataclass(frozen=True)
-class WorkflowMessage:
-    level: WorkflowMessageLevel
-    text: str
-    scope: str | None = None
+from propstore.semantic_passes.types import PassDiagnostic
 
 
 class CompilerWorkflowError(Exception):
-    def __init__(self, summary: str, messages: tuple[WorkflowMessage, ...]) -> None:
+    def __init__(self, summary: str, messages: tuple[PassDiagnostic, ...]) -> None:
         super().__init__(summary)
         self.summary = summary
         self.messages = messages
 
 
 @dataclass(frozen=True)
-class RepositoryValidationReport:
+class RepositoryValidationSummary:
     concept_count: int
     claim_file_count: int
-    messages: tuple[WorkflowMessage, ...]
+    messages: tuple[PassDiagnostic, ...]
     no_concepts: bool = False
 
     @property
-    def errors(self) -> tuple[WorkflowMessage, ...]:
+    def errors(self) -> tuple[PassDiagnostic, ...]:
         return tuple(message for message in self.messages if message.level == "error")
 
     @property
-    def warnings(self) -> tuple[WorkflowMessage, ...]:
+    def warnings(self) -> tuple[PassDiagnostic, ...]:
         return tuple(message for message in self.messages if message.level == "warning")
 
     @property
@@ -95,31 +89,31 @@ class RepositoryBuildReport:
     rebuilt: bool
     conflicts: tuple[BuildConflictLine, ...] = ()
     phi_groups: tuple[BuildPhiGroup, ...] = ()
-    messages: tuple[WorkflowMessage, ...] = ()
+    messages: tuple[PassDiagnostic, ...] = ()
     no_concepts: bool = False
 
 
-def _messages_from_result(result, *, scope: str | None = None) -> tuple[WorkflowMessage, ...]:
-    messages: list[WorkflowMessage] = []
-    messages.extend(WorkflowMessage("warning", str(warning), scope) for warning in result.warnings)
-    messages.extend(WorkflowMessage("error", str(error), scope) for error in result.errors)
-    return tuple(messages)
-
-
-def _messages_from_pipeline_result(result, *, scope: str | None = None) -> tuple[WorkflowMessage, ...]:
-    messages: list[WorkflowMessage] = []
-    messages.extend(
-        WorkflowMessage("warning", warning.render(), scope)
-        for warning in result.warnings
+def _workflow_diagnostic(
+    family: PropstoreFamily,
+    stage,
+    message: str,
+    *,
+    code: str = "workflow.error",
+) -> PassDiagnostic:
+    return PassDiagnostic(
+        level="error",
+        code=code,
+        message=message,
+        family=family,
+        stage=stage,
     )
-    messages.extend(
-        WorkflowMessage("error", error.render(), scope)
-        for error in result.errors
-    )
-    return tuple(messages)
 
 
-def validate_repository(repo: Repository) -> RepositoryValidationReport:
+def _messages_from_pipeline_result(result) -> tuple[PassDiagnostic, ...]:
+    return tuple(result.diagnostics)
+
+
+def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     tree = repo.tree()
     try:
         concepts: list[LoadedConcept] = []
@@ -137,24 +131,30 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
     except DocumentSchemaError as exc:
         raise CompilerWorkflowError(
             "Validation FAILED: 1 error(s)",
-            (WorkflowMessage("error", str(exc)),),
+            (
+                _workflow_diagnostic(
+                    PropstoreFamily.CONCEPTS,
+                    ConceptStage.AUTHORED,
+                    str(exc),
+                ),
+            ),
         ) from exc
     if not concepts:
-        return RepositoryValidationReport(
+        return RepositoryValidationSummary(
             concept_count=0,
             claim_file_count=0,
             messages=(),
             no_concepts=True,
         )
 
-    messages: list[WorkflowMessage] = []
+    messages: list[PassDiagnostic] = []
 
     form_files = [
         LoadedForm(filename=form_ref.name, document=repo.families.forms.require(form_ref))
         for form_ref in repo.families.forms.iter()
     ]
     form_result = run_form_pipeline(form_files)
-    messages.extend(_messages_from_pipeline_result(form_result, scope="form"))
+    messages.extend(_messages_from_pipeline_result(form_result))
     form_registry = (
         form_result.output.registry
         if isinstance(form_result.output, FormCheckedRegistry)
@@ -183,22 +183,19 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
             claim_pipeline_result = run_claim_pipeline(
                 ClaimAuthoredFiles.from_sequence(files, context)
             )
-            claim_result = (
-                claim_pipeline_result.output.bundle.to_validation_result()
-                if isinstance(claim_pipeline_result.output, ClaimCheckedBundle)
-                else None
-            )
         except DocumentSchemaError as exc:
             raise CompilerWorkflowError(
                 "Validation FAILED: 1 error(s)",
-                (WorkflowMessage("error", str(exc)),),
+                (
+                    _workflow_diagnostic(
+                        PropstoreFamily.CLAIMS,
+                        ClaimStage.AUTHORED,
+                        str(exc),
+                    ),
+                ),
             ) from exc
-        if claim_result is not None:
-            messages.extend(_messages_from_result(claim_result))
-            claim_error_count = len(claim_result.errors)
-        else:
-            messages.extend(_messages_from_pipeline_result(claim_pipeline_result))
-            claim_error_count = len(claim_pipeline_result.errors)
+        messages.extend(_messages_from_pipeline_result(claim_pipeline_result))
+        claim_error_count = len(claim_pipeline_result.errors)
 
     context_error_count = 0
     try:
@@ -215,11 +212,17 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
     except DocumentSchemaError as exc:
         raise CompilerWorkflowError(
             "Validation FAILED: 1 error(s)",
-            (WorkflowMessage("error", str(exc), "context"),),
+            (
+                _workflow_diagnostic(
+                    PropstoreFamily.CONTEXTS,
+                    ContextStage.AUTHORED,
+                    str(exc),
+                ),
+            ),
         ) from exc
     if ctx_list:
         ctx_result = run_context_pipeline(ctx_list)
-        messages.extend(_messages_from_pipeline_result(ctx_result, scope="context"))
+        messages.extend(_messages_from_pipeline_result(ctx_result))
         context_error_count = len(ctx_result.errors)
 
     total_errors = (
@@ -229,13 +232,13 @@ def validate_repository(repo: Repository) -> RepositoryValidationReport:
         + context_error_count
     )
     if total_errors:
-        return RepositoryValidationReport(
+        return RepositoryValidationSummary(
             concept_count=len(concepts),
             claim_file_count=claim_file_count,
             messages=tuple(messages),
         )
 
-    return RepositoryValidationReport(
+    return RepositoryValidationSummary(
         concept_count=len(concepts),
         claim_file_count=claim_file_count,
         messages=tuple(messages),
@@ -272,7 +275,13 @@ def build_repository(
     except DocumentSchemaError as exc:
         raise CompilerWorkflowError(
             "Build aborted: schema validation failed.",
-            (WorkflowMessage("error", str(exc)),),
+            (
+                _workflow_diagnostic(
+                    PropstoreFamily.CONCEPTS,
+                    ConceptStage.AUTHORED,
+                    str(exc),
+                ),
+            ),
         ) from exc
     if not concepts:
         return RepositoryBuildReport(
@@ -296,7 +305,7 @@ def build_repository(
     if not form_result.ok or not isinstance(form_result.output, FormCheckedRegistry):
         raise CompilerWorkflowError(
             "Build aborted: form validation failed.",
-            _messages_from_pipeline_result(form_result, scope="form"),
+            _messages_from_pipeline_result(form_result),
         )
     form_registry = form_result.output.registry
 
@@ -318,7 +327,7 @@ def build_repository(
             _messages_from_pipeline_result(concept_result),
         )
 
-    build_messages: list[WorkflowMessage] = []
+    build_messages: list[PassDiagnostic] = []
     context_ids: set[str] = set()
     try:
         ctx_list = [
@@ -336,11 +345,17 @@ def build_repository(
     except DocumentSchemaError as exc:
         raise CompilerWorkflowError(
             "Build aborted: context validation failed.",
-            (WorkflowMessage("error", str(exc), "context"),),
+            (
+                _workflow_diagnostic(
+                    PropstoreFamily.CONTEXTS,
+                    ContextStage.AUTHORED,
+                    str(exc),
+                ),
+            ),
         ) from exc
     if ctx_list:
         ctx_result = run_context_pipeline(ctx_list)
-        context_messages = _messages_from_pipeline_result(ctx_result, scope="context")
+        context_messages = _messages_from_pipeline_result(ctx_result)
         if not ctx_result.ok or not isinstance(ctx_result.output, ContextCheckedGraph):
             raise CompilerWorkflowError(
                 "Build aborted: context validation failed.",
@@ -360,7 +375,6 @@ def build_repository(
         commit=hash_key,
     )
     claim_checked_bundle: ClaimCheckedBundle | None = None
-    claim_bundle = None
     if files:
         try:
             compilation_context = build_compilation_context_from_repo(
@@ -381,22 +395,23 @@ def build_repository(
                     "Build aborted: claim validation failed.",
                     _messages_from_pipeline_result(claim_pipeline_result),
                 )
-            claim_checked_bundle = claim_pipeline_result.output
-            claim_bundle = claim_checked_bundle.bundle
-            claim_result = claim_bundle.to_validation_result()
-            if not claim_result.ok:
+            if claim_pipeline_result.errors:
                 raise CompilerWorkflowError(
                     "Build aborted: claim validation failed.",
-                    tuple(
-                        WorkflowMessage("error", str(error))
-                        for error in claim_result.errors
-                    ),
-                )
+                    _messages_from_pipeline_result(claim_pipeline_result),
+            )
+            claim_checked_bundle = claim_pipeline_result.output
             claim_files = files
         except DocumentSchemaError as exc:
             raise CompilerWorkflowError(
                 "Build aborted: claim validation failed.",
-                (WorkflowMessage("error", str(exc)),),
+                (
+                    _workflow_diagnostic(
+                        PropstoreFamily.CLAIMS,
+                        ClaimStage.AUTHORED,
+                        str(exc),
+                    ),
+                ),
             ) from exc
 
     sidecar_path = Path(output) if output else repo.sidecar_path

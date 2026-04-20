@@ -731,9 +731,9 @@ class TestDraftArtifactBoundary:
         axis-1 finding 3.2: the former build-time drop of draft files —
         which replaced their claims with an empty tuple — becomes a
         render-time policy filter. Draft claims traverse the same binding
-        path as final claims; the SemanticDiagnostic survives as
-        ``level='info'``, not ``level='error'``. ``validate_claims``
-        returns ``ok=True`` because an info diagnostic is not an error.
+        path as final claims; the PassDiagnostic survives as
+        ``code='claim.info'``, not an error. ``validate_claims`` returns
+        ``ok=True`` because the diagnostic is non-blocking.
 
         Inversion of the prior
         ``test_draft_claim_file_rejected_from_final_validation`` assertion.

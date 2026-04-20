@@ -9,8 +9,8 @@ from quire.references import ReferenceResolution as ResolvedReference
 
 from propstore.cel_types import CheckedCelConditionSet
 from propstore.claims import ClaimFileEntry
-from propstore.diagnostics import SemanticDiagnostic, ValidationResult, diagnostics_to_validation_result
 from propstore.families.claims.documents import ClaimDocument
+from propstore.semantic_passes.types import PassDiagnostic
 
 
 @dataclass(frozen=True)
@@ -56,11 +56,8 @@ class ClaimCompilationBundle:
     context: Any
     normalized_claim_files: tuple[ClaimFileEntry, ...]
     semantic_files: tuple[SemanticClaimFile, ...]
-    diagnostics: tuple[SemanticDiagnostic, ...] = field(default_factory=tuple)
+    diagnostics: tuple[PassDiagnostic, ...] = field(default_factory=tuple)
 
     @property
     def ok(self) -> bool:
         return all(not diagnostic.is_error for diagnostic in self.diagnostics)
-
-    def to_validation_result(self) -> ValidationResult:
-        return diagnostics_to_validation_result(list(self.diagnostics))

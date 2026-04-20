@@ -312,7 +312,9 @@ class TestContextSidecar:
             ),
         ]
 
-        populate_contexts(conn, contexts)
+        from propstore.sidecar.passes import compile_context_sidecar_rows
+
+        populate_contexts(conn, compile_context_sidecar_rows(contexts))
 
         row = conn.execute("SELECT * FROM context WHERE id='ctx_target'").fetchone()
         assert json.loads(row["parameters_json"]) == {"domain": "speech"}
