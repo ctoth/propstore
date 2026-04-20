@@ -48,6 +48,22 @@ class ClaimFtsInsertRow:
 
 
 @dataclass(frozen=True)
+class MicropublicationInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class MicropublicationClaimInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class MicropublicationSidecarRows:
+    micropublication_rows: tuple[MicropublicationInsertRow, ...]
+    claim_rows: tuple[MicropublicationClaimInsertRow, ...]
+
+
+@dataclass(frozen=True)
 class FormInsertRow:
     values: tuple[Any, ...]
 
