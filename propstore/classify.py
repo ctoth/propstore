@@ -18,10 +18,12 @@ import asyncio
 import importlib
 import json
 import logging
+from dataclasses import dataclass
 
 from propstore.calibrate import categorical_to_opinion
 from propstore.opinion import Opinion
-from propstore.stances import VALID_STANCE_TYPES
+from propstore.provenance import Provenance, ProvenanceStatus
+from propstore.stances import VALID_STANCE_TYPES, StanceType
 
 
 def _require_litellm():
@@ -73,6 +75,55 @@ Respond with ONLY a JSON object (no markdown, no explanation):
 
 
 _ENRICHMENT_THRESHOLD_DEFAULT = 0.75
+
+
+@dataclass(frozen=True)
+class ClassifiedStance:
+    stance_type: StanceType
+    opinion: Opinion
+    note: str = ""
+    conditions_differ: str | None = None
+
+
+def _vacuous_classifier_opinion(operation: str) -> Opinion:
+    return Opinion.vacuous(
+        provenance=Provenance(
+            status=ProvenanceStatus.VACUOUS,
+            witnesses=(),
+            operations=(operation,),
+        ),
+    )
+
+
+def classify_stance_from_llm_output(raw: dict) -> ClassifiedStance:
+    """Classify a single LLM stance payload into an explicit domain object.
+
+    Per Jøsang 2001, p.8, Def. 9, classifier failures are represented as a
+    vacuous opinion rather than a fabricated negative or reverse stance.
+    """
+    if raw.get("type") == "error":
+        return ClassifiedStance(
+            stance_type=StanceType.ABSTAIN,
+            opinion=_vacuous_classifier_opinion("stance_classification_error"),
+            note=str(raw.get("note", "")),
+            conditions_differ=raw.get("conditions_differ"),
+        )
+
+    stance_type = StanceType.NONE
+    raw_type = raw.get("type")
+    if raw_type in VALID_STANCE_TYPES:
+        stance_type = StanceType(str(raw_type))
+
+    if stance_type is StanceType.NONE:
+        opinion = _vacuous_classifier_opinion("stance_classification_none")
+    else:
+        opinion = categorical_to_opinion(str(raw.get("strength", "moderate")), 1)
+    return ClassifiedStance(
+        stance_type=stance_type,
+        opinion=opinion,
+        note=str(raw.get("note", "")),
+        conditions_differ=raw.get("conditions_differ"),
+    )
 
 
 def build_enrichment_context(
