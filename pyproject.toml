@@ -88,5 +88,6 @@ dev = [
     "hypothesis>=6.0",
     "rope>=1.14.0",
     "libcst>=1.8.6",
+    "import-linter>=2.11",
 ]
 
