@@ -14,7 +14,7 @@ from quire.git_store import GitStore
 from propstore.storage import init_git_store
 from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
-from propstore.storage.merge_commit import create_merge_commit
+from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
 
