@@ -134,6 +134,32 @@ def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
     conn.commit()
 
 
+def _record_embedding_restore_diagnostic(
+    conn: sqlite3.Connection,
+    exc: Exception,
+) -> None:
+    create_build_diagnostics_table(conn)
+    conn.execute(
+        """
+        INSERT INTO build_diagnostics (
+            claim_id, source_kind, source_ref, diagnostic_kind,
+            severity, blocking, message, file, detail_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            None,
+            "embedding",
+            "restore",
+            "embedding_restore",
+            "warning",
+            0,
+            f"embedding restore failed: {exc}",
+            None,
+            None,
+        ),
+    )
+
+
 def _record_form_diagnostics(
     conn: sqlite3.Connection,
     diagnostics: tuple[PassDiagnostic, ...],
@@ -505,10 +531,11 @@ def build_sidecar(
                 _load_vec_extension(conn)
                 restore_embeddings(conn, embedding_snapshot)
                 conn.row_factory = None
-            except (ImportError, Exception) as exc:
-                import sys
-
-                print(f"Warning: embedding restore failed: {exc}", file=sys.stderr)
+            except ImportError as exc:
+                _record_embedding_restore_diagnostic(conn, exc)
+                conn.row_factory = None
+            except Exception as exc:
+                _record_embedding_restore_diagnostic(conn, exc)
                 conn.row_factory = None
 
         if sidecar_plan.claim_rows is not None:
