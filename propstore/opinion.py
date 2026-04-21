@@ -72,6 +72,11 @@ class Opinion:
         """Alias for ``u`` (uncertainty component)."""
         return self.u
 
+    @property
+    def base_rate(self) -> float:
+        """Alias for ``a`` (base rate / atomicity component)."""
+        return self.a
+
     # --- Special constructors ---
 
     def with_provenance(self, provenance: Provenance) -> Opinion:

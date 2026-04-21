@@ -13,10 +13,16 @@ import math
 import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import StrEnum
 
 from propstore.opinion import Opinion, from_evidence, from_probability
-from propstore.provenance import Provenance, ProvenanceStatus, compose_provenance
+from propstore.provenance import (
+    Provenance,
+    ProvenanceStatus,
+    ProvenanceWitness,
+    compose_provenance,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +137,12 @@ class CorpusCalibrator:
     # claim truth — it measures distributional similarity, not ground truth.
     _MAX_N_EFF = 50
 
-    def __init__(self, reference_distances: list[float]) -> None:
+    def __init__(
+        self,
+        reference_distances: list[float],
+        *,
+        corpus_base_rate: float = 0.5,
+    ) -> None:
         """Build CDF from reference corpus of pairwise distances.
 
         Args:
@@ -140,8 +151,36 @@ class CorpusCalibrator:
         """
         if not reference_distances:
             raise ValueError("Need at least one reference distance")
+        if corpus_base_rate <= 0.0 or corpus_base_rate >= 1.0:
+            raise ValueError("corpus_base_rate must be in the open interval (0, 1)")
         self._sorted = sorted(reference_distances)
         self._n = len(self._sorted)
+        self._base_rate = corpus_base_rate
+
+    @classmethod
+    def from_cdf(
+        cls,
+        corpus_cdf: list[float],
+        *,
+        corpus_base_rate: float = 0.5,
+    ) -> CorpusCalibrator:
+        return cls(corpus_cdf, corpus_base_rate=corpus_base_rate)
+
+    def _provenance(self) -> Provenance:
+        return Provenance(
+            status=ProvenanceStatus.CALIBRATED,
+            witnesses=(
+                ProvenanceWitness(
+                    asserter="propstore.calibrate.CorpusCalibrator",
+                    timestamp=datetime.now(timezone.utc).strftime(
+                        "%Y-%m-%dT%H:%M:%SZ",
+                    ),
+                    source_artifact_code="corpus_cdf_calibration",
+                    method="corpus_cdf_calibration",
+                ),
+            ),
+            operations=("corpus_cdf_calibration",),
+        )
 
     def percentile(self, distance: float) -> float:
         """Return percentile rank of distance within corpus [0.0, 1.0].
@@ -190,7 +229,7 @@ class CorpusCalibrator:
 
         return min(float(local_count) * corpus_confidence, float(self._MAX_N_EFF))
 
-    def to_opinion(self, distance: float) -> Opinion:
+    def to_opinion(self, raw_score: float) -> Opinion:
         """Convert distance to opinion via corpus calibration.
 
         The effective sample size is based on local CDF density — how many
@@ -202,9 +241,14 @@ class CorpusCalibrator:
         Per Josang 2001 (p.20-21, Def 12): evidence maps to opinion via
             b = r/(r+s+W), d = s/(r+s+W), u = W/(r+s+W).
         """
-        p = 1.0 - self.percentile(distance)  # similarity = 1 - percentile
-        n_eff = self._effective_sample_size(distance)
-        return from_probability(p, n_eff)
+        p = 1.0 - self.percentile(raw_score)  # similarity = 1 - percentile
+        n_eff = self._effective_sample_size(raw_score)
+        return from_probability(
+            p,
+            n_eff,
+            self._base_rate,
+            provenance=self._provenance(),
+        )
 
 
 # ---------------------------------------------------------------------------
