@@ -1437,7 +1437,7 @@ def test_show_missing_commit_returns_validation_error(tmp_path):
     result = runner.invoke(cli, ["-C", str(root), "show", "missing"])
     assert result.exit_code == 2
     assert "Commit not found: missing" in result.stderr
-    assert "Commit not found: missing" not in result.output
+    assert "Commit not found: missing" not in result.stdout
 
 
 def test_checkout_builds_from_historical(tmp_path):
@@ -1525,7 +1525,7 @@ def test_checkout_missing_commit_returns_validation_error(tmp_path):
     result = runner.invoke(cli, ["-C", str(root), "checkout", "missing"])
     assert result.exit_code == 2
     assert "Commit not found: missing" in result.stderr
-    assert "Commit not found: missing" not in result.output
+    assert "Commit not found: missing" not in result.stdout
 
 
 def test_checkout_commit_without_concepts_returns_validation_error(tmp_path):
@@ -1557,7 +1557,7 @@ def test_checkout_commit_without_concepts_returns_validation_error(tmp_path):
     result = runner.invoke(cli, ["-C", str(root), "checkout", sha])
     assert result.exit_code == 2
     assert "No concepts found at that commit." in result.stderr
-    assert "No concepts found at that commit." not in result.output
+    assert "No concepts found at that commit." not in result.stdout
 
 
 def test_validate_reads_git_head_not_worktree(tmp_path):
