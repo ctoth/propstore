@@ -42,6 +42,7 @@ from propstore.sidecar.passes import compile_sidecar_build_plan
 from propstore.sidecar.stages import RepositoryCheckedBundle
 from propstore.sidecar.concepts import populate_concept_sidecar_rows
 from propstore.sidecar.schema import (
+    create_build_diagnostics_table,
     create_claim_tables,
     create_micropublication_tables,
     create_context_tables,
@@ -56,6 +57,36 @@ from propstore.compiler.context import build_authored_concept_registry
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
     from propstore.repository import Repository
+
+
+def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
+    """Persist a build-exception diagnostic instead of deleting the sidecar.
+
+    Rule 5 from the render-gates workstream keeps build failures inspectable at
+    render time; the partial sidecar is evidence, not trash to unlink.
+    """
+    create_build_diagnostics_table(conn)
+    conn.execute(
+        """
+        INSERT INTO build_diagnostics (
+            claim_id, source_kind, source_ref, diagnostic_kind,
+            severity, blocking, message, file, detail_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            None,
+            "sidecar_build",
+            None,
+            "build_exception",
+            "error",
+            1,
+            str(exc),
+            None,
+            None,
+        ),
+    )
+    conn.commit()
+
 
 def build_sidecar(
     repo: "Repository",
@@ -304,10 +335,12 @@ def build_sidecar(
             )
 
         conn.commit()
-    except BaseException:
+    except Exception as exc:
+        try:
+            _record_build_exception(conn, exc)
+        except Exception as diagnostic_error:
+            exc.add_note(f"failed to record build diagnostic: {diagnostic_error}")
         conn.close()
-        if sidecar_path.exists():
-            sidecar_path.unlink()
         raise
     conn.close()
 
