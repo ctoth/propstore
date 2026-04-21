@@ -109,6 +109,26 @@ def classify_stance_from_llm_output(raw: dict) -> ClassifiedStance:
             conditions_differ=raw.get("conditions_differ"),
         )
 
+    confidence = raw.get("confidence")
+    if confidence is None and isinstance(raw.get("resolution"), dict):
+        confidence = raw["resolution"].get("confidence")
+    try:
+        confidence_value = None if confidence is None else float(confidence)
+    except (TypeError, ValueError):
+        confidence_value = None
+    if confidence_value is None or confidence_value <= 0.0:
+        operation = (
+            "stance_classification_missing_confidence"
+            if confidence_value is None
+            else "stance_classification_zero_confidence"
+        )
+        return ClassifiedStance(
+            stance_type=StanceType.ABSTAIN,
+            opinion=_vacuous_classifier_opinion(operation),
+            note=str(raw.get("note", "")),
+            conditions_differ=raw.get("conditions_differ"),
+        )
+
     stance_type = StanceType.NONE
     raw_type = raw.get("type")
     if raw_type in VALID_STANCE_TYPES:
