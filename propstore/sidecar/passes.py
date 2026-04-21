@@ -616,8 +616,22 @@ def compile_authored_justification_sidecar_rows(
     justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
     claim_reference_map: dict[str, str],
 ) -> tuple[JustificationInsertRow, ...]:
+    rows, diagnostics = _compile_authored_justification_sidecar_rows_with_diagnostics(
+        justification_entries,
+        claim_reference_map,
+    )
+    if diagnostics:
+        raise sqlite3.IntegrityError(diagnostics[0].message)
+    return rows
+
+
+def _compile_authored_justification_sidecar_rows_with_diagnostics(
+    justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
+    claim_reference_map: dict[str, str],
+) -> tuple[tuple[JustificationInsertRow, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_reference_map.values())
     rows: list[JustificationInsertRow] = []
+    diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, data in justification_entries:
         for index, justification in enumerate(data.justifications, start=1):
@@ -632,10 +646,20 @@ def compile_authored_justification_sidecar_rows(
                     f"justification file {filename} entry #{index} missing id"
                 )
             if not isinstance(conclusion, str) or conclusion not in valid_claims:
-                raise sqlite3.IntegrityError(
+                message = (
                     f"justification file {filename} entry #{index} references "
                     f"nonexistent conclusion '{conclusion}'"
                 )
+                diagnostics.append(
+                    QuarantineDiagnostic(
+                        artifact_id=conclusion or justification.conclusion or filename,
+                        kind="justification",
+                        diagnostic_kind="justification_validation",
+                        message=message,
+                        file=filename,
+                    )
+                )
+                continue
             resolved_premises = [
                 resolve_claim_reference(premise, claim_reference_map)
                 for premise in justification.premises
@@ -673,7 +697,7 @@ def compile_authored_justification_sidecar_rows(
                     )
                 )
             )
-    return tuple(rows)
+    return tuple(rows), tuple(diagnostics)
 
 
 def compile_conflict_sidecar_rows(
@@ -892,15 +916,20 @@ def compile_sidecar_build_plan(
             lifting_system=lifting_system,
         )
         claim_fts_rows = compile_claim_fts_rows(normalized_claim_files)
-        stance_rows, quarantine_diagnostics = (
+        stance_rows, stance_quarantine_diagnostics = (
             _compile_authored_stance_sidecar_rows_with_diagnostics(
                 stance_entries,
                 claim_reference_map,
             )
         )
-        justification_rows = compile_authored_justification_sidecar_rows(
-            justification_entries,
-            claim_reference_map,
+        justification_rows, justification_quarantine_diagnostics = (
+            _compile_authored_justification_sidecar_rows_with_diagnostics(
+                justification_entries,
+                claim_reference_map,
+            )
+        )
+        quarantine_diagnostics = (
+            stance_quarantine_diagnostics + justification_quarantine_diagnostics
         )
 
     return SidecarBuildPlan(

@@ -57,6 +57,10 @@ def test_justification_missing_conclusion_quarantines_not_raises(
                 claim_payload,
                 sort_keys=False,
             ).encode(),
+            "contexts/ctx_test.yaml": yaml.dump(
+                {"id": "ctx_test", "name": "Test context"},
+                sort_keys=False,
+            ).encode(),
             "justifications/bad_conclusion.yaml": yaml.dump(
                 {
                     "justifications": [
