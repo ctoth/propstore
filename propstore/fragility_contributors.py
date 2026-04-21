@@ -400,6 +400,13 @@ _SECTION_FRAGILITY = {
 }
 
 
+def _coefficient_provenance_notes(*, formula: str, citation: str) -> tuple[str, ...]:
+    return (
+        "status=vacuous; "
+        f"fragility coefficient heuristic; formula={formula}; citation={citation}",
+    )
+
+
 def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
     _strict_rules, defeasible_rules, _literals = grounded_rules_to_rules(bundle, {})
     dependency_counts: dict[tuple[str, bool, tuple[object, ...]], int] = {}
@@ -439,6 +446,15 @@ def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
                         family=InterventionFamily.GROUNDING,
                         source_ids=(predicate_id, row_key),
                         subject_concept_ids=(),
+                        notes=_coefficient_provenance_notes(
+                            formula=(
+                                "section_weight + 0.1 * min(antecedent_dependency_count, 3)"
+                            ),
+                            citation=(
+                                "Garcia-Simari 2004 Section 4 four-valued DeLP answer "
+                                "categories; uncalibrated runtime heuristic"
+                            ),
+                        ),
                     ),
                     payload=GroundFactTarget(
                         section=section_name,
@@ -492,6 +508,13 @@ def collect_grounded_rule_interventions(bundle) -> tuple[RankedIntervention, ...
                 family=InterventionFamily.GROUNDING,
                 source_ids=(rule.name,),
                 subject_concept_ids=(),
+                notes=_coefficient_provenance_notes(
+                    formula="0.3 + 0.1 * antecedent_count + 0.25 * min(undercut_count, 2)",
+                    citation=(
+                        "Modgil-Prakken 2018 ASPIC+ rule and undercut structure; "
+                        "uncalibrated runtime heuristic"
+                    ),
+                ),
             ),
             payload=GroundedRuleTarget(
                 rule_name=rule.name,
@@ -564,6 +587,13 @@ def collect_bridge_undercut_interventions(
                 family=InterventionFamily.BRIDGE,
                 source_ids=(rule.name,),
                 subject_concept_ids=(),
+                notes=_coefficient_provenance_notes(
+                    formula="0.3 + 0.25 * min(attack_count, 2) + 0.35 * min(defeat_count, 2)",
+                    citation=(
+                        "Modgil-Prakken 2018 ASPIC+ attack/defeat distinction; "
+                        "uncalibrated runtime heuristic"
+                    ),
+                ),
             ),
             payload=BridgeUndercutTarget(
                 defeater_rule_name=defeater_name,
