@@ -3,10 +3,11 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from itertools import combinations
-from typing import Any
+from typing import Any, overload
 
-from propstore.core.id_types import AssumptionId
 from propstore.core.active_claims import coerce_active_claim
+from propstore.core.anytime import EnumerationExceeded
+from propstore.core.id_types import AssumptionId
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import RevisionAtomDetail
 from propstore.support_revision.state import (
@@ -254,11 +255,52 @@ def _find_existing_atom(base: BeliefBase, revision_input: str) -> BeliefAtom | N
     return None
 
 
+@overload
 def _choose_incision_set(
     base: BeliefBase,
     target_ids: Sequence[str],
     entrenchment: EntrenchmentReport,
-) -> tuple[str, ...]:
+) -> tuple[str, ...]: ...
+
+
+@overload
+def _choose_incision_set(
+    base: BeliefBase,
+    target_ids: Sequence[str],
+    entrenchment: EntrenchmentReport,
+    *,
+    max_candidates: None,
+) -> tuple[str, ...]: ...
+
+
+@overload
+def _choose_incision_set(
+    base: BeliefBase,
+    target_ids: Sequence[str],
+    entrenchment: EntrenchmentReport,
+    *,
+    max_candidates: int,
+) -> tuple[str, ...] | EnumerationExceeded: ...
+
+
+def _choose_incision_set(
+    base: BeliefBase,
+    target_ids: Sequence[str],
+    entrenchment: EntrenchmentReport,
+    *,
+    max_candidates: int | None = None,
+) -> tuple[str, ...] | EnumerationExceeded:
+    """Choose a support incision set with an anytime candidate ceiling.
+
+    Zilberstein 1996 frames resource-bounded search as returning a partial
+    result when exhaustive optimization is interrupted. This exact hitting-set
+    search reports that interruption explicitly instead of silently continuing
+    into exponential work.
+    """
+
+    if max_candidates is not None and max_candidates < 0:
+        raise ValueError("max_candidates must be non-negative")
+
     support_sets: list[tuple[AssumptionId, ...]] = [
         tuple(support_set)
         for target_id in target_ids
@@ -273,8 +315,15 @@ def _choose_incision_set(
 
     best_combo: tuple[AssumptionId, ...] | None = None
     best_score: tuple[int, int, tuple[AssumptionId, ...]] | None = None
+    examined = 0
     for size in range(1, len(candidates) + 1):
         for combo in combinations(candidates, size):
+            if max_candidates is not None and examined >= max_candidates:
+                return EnumerationExceeded(
+                    partial_count=examined,
+                    max_candidates=max_candidates,
+                )
+            examined += 1
             combo_set = set(combo)
             if not all(any(assumption_id in combo_set for assumption_id in support_set) for support_set in support_sets):
                 continue
