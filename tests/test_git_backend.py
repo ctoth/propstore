@@ -1424,6 +1424,22 @@ def test_show_cli(tmp_path):
     assert "Author:" in result.output
 
 
+def test_show_missing_commit_returns_validation_error(tmp_path):
+    """pks show <missing> must fail loudly instead of returning success."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.repository import Repository
+
+    root = tmp_path / "knowledge"
+    Repository.init(root)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "show", "missing"])
+    assert result.exit_code == 2
+    assert "Commit not found: missing" in result.stderr
+    assert "Commit not found: missing" not in result.output
+
+
 def test_checkout_builds_from_historical(tmp_path):
     """pks checkout <v1_sha> builds sidecar from v1 data."""
     import shutil
@@ -1494,6 +1510,22 @@ def test_checkout_builds_from_historical(tmp_path):
         canonical_name="test_freq_v1",
     )["artifact_id"]
     assert rows[0][1] == "test_freq_v1"
+
+
+def test_checkout_missing_commit_returns_validation_error(tmp_path):
+    """pks checkout <missing> must fail loudly instead of returning success."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.repository import Repository
+
+    root = tmp_path / "knowledge"
+    Repository.init(root)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "checkout", "missing"])
+    assert result.exit_code == 2
+    assert "Commit not found: missing" in result.stderr
+    assert "Commit not found: missing" not in result.output
 
 
 def test_validate_reads_git_head_not_worktree(tmp_path):
