@@ -174,15 +174,14 @@ def build_enrichment_context(
     return " ".join(parts)
 
 
-def _build_error_pair(
-    claim_a_id: str,
-    claim_b_id: str,
+def _build_error_stance(
+    target_id: str,
     model_name: str,
     embedding_model: str | None,
     embedding_distance: float | None,
     note: str,
-) -> list[dict]:
-    """Build a pair of error stances (forward + reverse)."""
+) -> dict:
+    """Build a single error stance without inferring an unobserved direction."""
     base = {
         "type": "error",
         "strength": "weak",
@@ -196,8 +195,32 @@ def _build_error_pair(
             "confidence": 0.0,
         },
     }
-    forward = {**base, "target": claim_b_id}
-    reverse = {**base, "target": claim_a_id}
+    return {**base, "target": target_id}
+
+
+def _build_error_pair(
+    claim_a_id: str,
+    claim_b_id: str,
+    model_name: str,
+    embedding_model: str | None,
+    embedding_distance: float | None,
+    note: str,
+) -> list[dict]:
+    """Build a pair of error stances when both directions failed equally."""
+    forward = _build_error_stance(
+        claim_b_id,
+        model_name,
+        embedding_model,
+        embedding_distance,
+        note,
+    )
+    reverse = _build_error_stance(
+        claim_a_id,
+        model_name,
+        embedding_model,
+        embedding_distance,
+        note,
+    )
     return [forward, reverse]
 
 
@@ -317,7 +340,15 @@ async def classify_stance_async(
     try:
         result = json.loads(text)
     except json.JSONDecodeError:
-        return _build_error_pair(claim_a["id"], claim_b["id"], model_name, embedding_model, embedding_distance, "JSON parse failed")
+        return [
+            _build_error_stance(
+                claim_b["id"],
+                model_name,
+                embedding_model,
+                embedding_distance,
+                "JSON parse failed",
+            )
+        ]
 
     # Extract forward and reverse from bidirectional response
     forward_raw = result.get("forward", result)  # fallback: treat whole response as forward
