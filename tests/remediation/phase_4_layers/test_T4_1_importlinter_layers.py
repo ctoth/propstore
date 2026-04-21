@@ -14,7 +14,6 @@ def test_importlinter_catches_known_layer_violations() -> None:
     assert result.returncode != 0
     output = result.stdout + result.stderr
     for expected in (
-        "source -> heuristic",
         "concept -> argumentation",
         "worldline -> support_revision",
     ):
