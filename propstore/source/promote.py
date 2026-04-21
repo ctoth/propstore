@@ -21,7 +21,7 @@ from __future__ import annotations
 import copy
 import json
 import sqlite3
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from propstore.artifact_codes import attach_source_artifact_codes
@@ -739,10 +739,11 @@ def sync_source_branch(
         papers_root = repo.root.parent / "papers"
         destination = papers_root / normalize_source_slug(source_name)
     destination.mkdir(parents=True, exist_ok=True)
+    destination_root = destination.resolve()
 
     def copy_tree(relpath: str = "") -> None:
         for entry in repo.snapshot.iter_dir_entries(relpath, commit=tip):
-            target = destination / Path(*entry.relpath.split("/"))
+            target = _source_sync_target_path(destination_root, entry.relpath)
             if entry.is_dir:
                 target.mkdir(parents=True, exist_ok=True)
                 copy_tree(entry.relpath)
@@ -752,3 +753,27 @@ def sync_source_branch(
 
     copy_tree("")
     return destination
+
+
+def _source_sync_target_path(destination_root: Path, relpath: str) -> Path:
+    """Resolve a source-sync relpath under ``destination_root``.
+
+    Zip Slip (Snyk Security, 2018) is the relevant path-traversal pattern:
+    never trust archive or snapshot entry paths until they have been proven
+    relative to the intended extraction root.
+    """
+    normalized_relpath = relpath.replace("\\", "/")
+    posix_relpath = PurePosixPath(normalized_relpath)
+    windows_relpath = PureWindowsPath(relpath)
+    if (
+        posix_relpath.is_absolute()
+        or windows_relpath.is_absolute()
+        or ".." in posix_relpath.parts
+    ):
+        raise ValueError(f"path escapes output_dir: {relpath}")
+    target = (destination_root / Path(*posix_relpath.parts)).resolve()
+    try:
+        target.relative_to(destination_root)
+    except ValueError as exc:
+        raise ValueError(f"path escapes output_dir: {relpath}") from exc
+    return target
