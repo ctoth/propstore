@@ -196,7 +196,7 @@ def claim_graph(draw, min_claims=2, max_claims=5):
     for _ in range(n_attacks):
         source = draw(st.sampled_from(ids))
         target = draw(st.sampled_from([cid for cid in ids if cid != source]))
-        stance_type = draw(st.sampled_from(["rebuts", "contradicts", "supersedes", "undermines"]))
+        stance_type = draw(st.sampled_from(["rebuts", "supersedes", "undermines"]))
         stances.append({
             "claim_id": source,
             "target_claim_id": target,
@@ -347,7 +347,7 @@ class TestStancesToContrariness:
     @given(claim_graph())
     @settings(deadline=None)
     def test_rebuts_produce_contradictories(self, graph):
-        """rebuts/contradicts stances produce symmetric contradictories.
+        """rebuts stances produce symmetric contradictories.
 
         Modgil & Prakken 2018, Def 2 (p.8): contradictories are symmetric.
         """
@@ -356,7 +356,7 @@ class TestStancesToContrariness:
         _strict, defeasible = justifications_to_rules(justifications, literals)
         cfn = stances_to_contrariness(stances, literals, defeasible)
         for stance in stances:
-            if stance["stance_type"] in ("rebuts", "contradicts"):
+            if stance["stance_type"] == "rebuts":
                 tgt = literals[claim_key(stance["target_claim_id"])]
                 src = literals[claim_key(stance["claim_id"])]
                 assert cfn.is_contradictory(src, tgt), (
