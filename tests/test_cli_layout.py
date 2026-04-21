@@ -65,6 +65,7 @@ def test_root_cli_only_registers_top_level_commands() -> None:
     assert "class _LazyCLIGroup" in root_cli
     assert "import_module(module_name)" in root_cli
     assert "cli.add_command" not in root_cli
+    assert "cli.commands.update" not in root_cli
     assert "from propstore.cli.concept import" not in root_cli
     assert "from propstore.cli.form import" not in root_cli
     assert '@cli.command("log")' not in root_cli
