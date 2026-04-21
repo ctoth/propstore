@@ -19,7 +19,7 @@ from propstore.core.literal_keys import ClaimLiteralKey, LiteralKey, claim_key
 from propstore.core.row_types import StanceRow, StanceRowInput, coerce_stance_row
 from argumentation.preference import strict_partial_order_closure
 
-from propstore.preference import metadata_strength_vector
+from propstore.preference import MetadataStrengthVector, metadata_strength_vector
 
 
 def _claim_attr(claim: ActiveClaim, key: str) -> Any:
@@ -213,12 +213,19 @@ def claims_to_kb(
     return KnowledgeBase(axioms=frozenset(axioms), premises=frozenset(premises))
 
 
-def _component_wise_dominates(a: list[float], b: list[float]) -> bool:
+def _component_wise_dominates(
+    a: MetadataStrengthVector,
+    b: MetadataStrengthVector,
+) -> bool:
     """True when ``a`` is strictly weaker than ``b`` under Pareto domination."""
 
-    if len(a) != len(b):
+    if a.is_vacuous or b.is_vacuous:
         return False
-    return all(ai <= bi for ai, bi in zip(a, b)) and any(ai < bi for ai, bi in zip(a, b))
+    if len(a.dimensions) != len(b.dimensions):
+        return False
+    return all(ai <= bi for ai, bi in zip(a.dimensions, b.dimensions)) and any(
+        ai < bi for ai, bi in zip(a.dimensions, b.dimensions)
+    )
 
 
 def _transitive_closure(

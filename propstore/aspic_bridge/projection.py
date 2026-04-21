@@ -103,7 +103,7 @@ def csaf_to_projection(
             strength = 0.0
         else:
             vector = claim_strength(claim)
-            strength = statistics.mean(vector) if vector else 0.0
+            strength = 0.0 if vector.is_vacuous else statistics.mean(vector.dimensions)
 
         if isinstance(argument, PremiseArg):
             justification_id = (
