@@ -10,9 +10,9 @@ from propstore.claim_references import (
     load_source_claim_reference_index,
 )
 from propstore.families.registry import SourceRef
+from propstore.heuristic.source_trust import derive_source_document_trust
 from propstore.repository import Repository
 from quire.documents import convert_document_value
-from propstore.source_calibration import derive_source_trust
 
 from .common import (
     load_source_claims_document,
@@ -97,7 +97,7 @@ def _compose_source_micropubs(
 
 
 def finalize_source_branch(repo: Repository, source_name: str) -> str:
-    source_doc = derive_source_trust(repo, load_source_document(repo, source_name))
+    source_doc = derive_source_document_trust(repo, load_source_document(repo, source_name))
     claims_doc = load_source_claims_document(repo, source_name)
     justifications_doc = load_source_justifications_document(repo, source_name)
     stances_doc = load_source_stances_document(repo, source_name)
