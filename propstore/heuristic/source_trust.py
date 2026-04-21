@@ -1,4 +1,4 @@
-"""Source-level trust calibration derived from repository calibration claims."""
+"""Source-level trust heuristics and repository calibration."""
 
 from __future__ import annotations
 
@@ -6,11 +6,23 @@ from collections.abc import Mapping
 from typing import Any
 
 from quire.documents import convert_document_value
+
 from propstore.families.documents.sources import SourceDocument
+from propstore.opinion import Opinion, consensus
 from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
 from propstore.source.common import load_source_metadata, normalize_source_slug
 from propstore.world.types import DerivedResult, ValueResult, ValueStatus
+
+
+def derive_source_trust(*, prior: Opinion, chain_opinion: Opinion) -> Opinion:
+    """Combine caller prior and source-chain trust by Jøsang consensus.
+
+    Jøsang 2001 (§4.1) combines independent opinions by consensus rather than
+    choosing one source of trust and discarding the other.
+    """
+
+    return consensus(prior, chain_opinion)
 
 
 def _optional_dict(value: object, field_name: str) -> dict[str, object]:
@@ -62,7 +74,7 @@ def _source_bindings(
     return bindings
 
 
-def derive_source_trust(repo: Repository, source_doc: SourceDocument) -> SourceDocument:
+def derive_source_document_trust(repo: Repository, source_doc: SourceDocument) -> SourceDocument:
     updated = source_doc.to_payload()
     trust = _optional_dict(updated.get("trust"), "trust")
     raw_quality = trust.get("quality")
