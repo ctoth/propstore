@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
 from propstore.source import SourceStatusState, source_branch_name
 
@@ -44,6 +45,7 @@ class SourceStampProvenanceRequest:
     file_path: Path
     agent: str
     skill_name: str
+    status: ProvenanceStatus
     plugin_version: str | None = None
 
 
@@ -237,6 +239,7 @@ def stamp_source_provenance(request: SourceStampProvenanceRequest) -> Path:
         request.file_path,
         agent=request.agent,
         skill=request.skill_name,
+        status=request.status,
         plugin_version=request.plugin_version,
     )
     return request.file_path

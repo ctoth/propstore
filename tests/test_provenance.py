@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.provenance import stamp_file
+from propstore.provenance import ProvenanceStatus, stamp_file
 
 
 def test_stamp_yaml_file(tmp_path: Path) -> None:
@@ -19,6 +19,7 @@ def test_stamp_yaml_file(tmp_path: Path) -> None:
         yaml_file,
         agent="claude-opus-4-6",
         skill="paper-reader",
+        status=ProvenanceStatus.STATED,
         plugin_version="1.0.0",
         timestamp="2026-04-07T12:00:00Z",
     )
@@ -28,6 +29,7 @@ def test_stamp_yaml_file(tmp_path: Path) -> None:
     assert "produced_by:" in content
     assert 'agent: "claude-opus-4-6"' in content
     assert 'skill: "paper-reader"' in content
+    assert 'status: "stated"' in content
     assert 'plugin_version: "1.0.0"' in content
     assert 'timestamp: "2026-04-07T12:00:00Z"' in content
 
@@ -44,6 +46,7 @@ def test_stamp_md_file(tmp_path: Path) -> None:
         md_file,
         agent="claude-opus-4-6",
         skill="paper-reader",
+        status=ProvenanceStatus.STATED,
         timestamp="2026-04-07T12:00:00Z",
     )
 
@@ -52,6 +55,7 @@ def test_stamp_md_file(tmp_path: Path) -> None:
     assert "produced_by:" in content
     assert 'agent: "claude-opus-4-6"' in content
     assert 'skill: "paper-reader"' in content
+    assert 'status: "stated"' in content
     assert 'timestamp: "2026-04-07T12:00:00Z"' in content
     # Frontmatter should still be intact
     assert "title: Test Paper" in content
@@ -70,6 +74,7 @@ def test_stamp_idempotent(tmp_path: Path) -> None:
         yaml_file,
         agent="claude-opus-4-6",
         skill="paper-reader",
+        status=ProvenanceStatus.STATED,
         timestamp="2026-04-07T12:00:00Z",
     )
 
@@ -78,6 +83,7 @@ def test_stamp_idempotent(tmp_path: Path) -> None:
         yaml_file,
         agent="claude-opus-4-6",
         skill="extract-claims",
+        status=ProvenanceStatus.CALIBRATED,
         timestamp="2026-04-07T13:00:00Z",
     )
 
@@ -86,6 +92,7 @@ def test_stamp_idempotent(tmp_path: Path) -> None:
     assert content.count("produced_by:") == 1
     # Should have the UPDATED values
     assert 'skill: "extract-claims"' in content
+    assert 'status: "calibrated"' in content
     assert 'timestamp: "2026-04-07T13:00:00Z"' in content
 
 
@@ -98,6 +105,7 @@ def test_stamp_md_no_frontmatter(tmp_path: Path) -> None:
         md_file,
         agent="claude-opus-4-6",
         skill="paper-reader",
+        status=ProvenanceStatus.STATED,
         timestamp="2026-04-07T12:00:00Z",
     )
 
@@ -106,5 +114,6 @@ def test_stamp_md_no_frontmatter(tmp_path: Path) -> None:
     assert content.startswith("---\n")
     assert "produced_by:" in content
     assert 'agent: "claude-opus-4-6"' in content
+    assert 'status: "stated"' in content
     # Original content should still be there
     assert "# Just a heading" in content
