@@ -42,6 +42,10 @@ class SourceStatusReport:
     rows: tuple[SourceStatusRow, ...] = ()
 
 
+def _escape_sql_like(value: str) -> str:
+    return value.replace("!", "!!").replace("%", "!%").replace("_", "!_")
+
+
 def inspect_source_status(repo: Repository, name: str) -> SourceStatusReport:
     branch = source_branch_name(name)
     if not repo.sidecar_path.exists():
@@ -77,7 +81,7 @@ def inspect_source_status(repo: Repository, name: str) -> SourceStatusReport:
 
         diagnostics_by_claim: dict[str, list[SourceStatusDiagnostic]] = {}
         if has_diagnostics:
-            like_pattern = f"{branch}:%"
+            like_pattern = f"{_escape_sql_like(branch)}:%"
             diag_rows = conn.execute(
                 """
                 SELECT claim_id, source_ref, diagnostic_kind, blocking, message
@@ -86,7 +90,7 @@ def inspect_source_status(repo: Repository, name: str) -> SourceStatusReport:
                   AND (claim_id IN (
                     SELECT id FROM claim_core
                     WHERE branch = ? AND promotion_status IS NOT NULL
-                  ) OR source_ref LIKE ?)
+                  ) OR source_ref LIKE ? ESCAPE '!')
                 ORDER BY id
                 """,
                 (branch, like_pattern),
