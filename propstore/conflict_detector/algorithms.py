@@ -6,7 +6,7 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from ast_equiv import compare as ast_compare
+from ast_equiv import Tier, compare as ast_compare
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 
 from .collectors import _collect_algorithm_claims
@@ -52,7 +52,7 @@ def detect_algorithm_conflicts(
                         exc,
                     )
                     continue
-                if result.equivalent and result.tier <= 2:
+                if result.equivalent and result.tier in {Tier.CANONICAL, Tier.BYTECODE}:
                     continue
 
                 conditions_a = sorted(claim_a.conditions)
