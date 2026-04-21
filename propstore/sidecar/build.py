@@ -109,6 +109,25 @@ def _record_form_diagnostics(
         )
 
 
+def _record_claim_diagnostics(
+    conn: sqlite3.Connection,
+    diagnostics: tuple[PassDiagnostic, ...],
+) -> None:
+    if not diagnostics:
+        return
+    writer = QuarantinableWriter(conn)
+    for diagnostic in diagnostics:
+        if not diagnostic.is_error:
+            continue
+        writer.quarantine(
+            artifact_id=diagnostic.artifact_id or diagnostic.filename or "unknown",
+            kind="claim",
+            diagnostic_kind="claim_validation",
+            message=diagnostic.render(),
+            file=diagnostic.filename,
+        )
+
+
 def build_sidecar(
     repo: "Repository",
     sidecar_path: Path,
@@ -201,6 +220,7 @@ def build_sidecar(
         if claim_checked_bundle is None
         else claim_checked_bundle.bundle
     )
+    claim_diagnostics: tuple[PassDiagnostic, ...] = ()
     if claim_bundle is None and claim_files:
         claim_pipeline_result = run_claim_pipeline(
             ClaimAuthoredFiles.from_sequence(
@@ -210,14 +230,14 @@ def build_sidecar(
             )
         )
         if not isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
-            errors = ", ".join(error.render() for error in claim_pipeline_result.errors)
-            raise ValueError(f"claim validation failed: {errors}")
-        claim_checked_bundle = claim_pipeline_result.output
-        claim_bundle = claim_checked_bundle.bundle
+            claim_diagnostics = claim_pipeline_result.diagnostics
+        else:
+            claim_checked_bundle = claim_pipeline_result.output
+            claim_bundle = claim_checked_bundle.bundle
     normalized_claim_files = (
         list(claim_bundle.normalized_claim_files)
         if claim_bundle is not None
-        else (claim_files if claim_files else None)
+        else None
     )
     repository_checked_bundle = RepositoryCheckedBundle(
         concepts=concepts,
@@ -317,6 +337,7 @@ def build_sidecar(
         )
         create_claim_tables(conn)
         _record_form_diagnostics(conn, form_diagnostics)
+        _record_claim_diagnostics(conn, claim_diagnostics)
         create_micropublication_tables(conn)
 
         if sidecar_plan.context_rows.context_rows:
