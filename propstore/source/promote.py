@@ -75,6 +75,10 @@ class SourceConceptPromotionResolution:
     blocked_concept_refs: dict[str, str]
 
 
+def _source_concept_ref_requires_mapping(value: str) -> bool:
+    return not (value.startswith("ps:concept:") or value.startswith("tag:"))
+
+
 def rewrite_claim_concept_refs(
     claim: dict[str, Any],
     concept_map: dict[str, str],
@@ -86,7 +90,7 @@ def rewrite_claim_concept_refs(
     def resolve(value: object) -> object:
         if not isinstance(value, str):
             return value
-        if value.startswith("ps:concept:") or value.startswith("tag:"):
+        if not _source_concept_ref_requires_mapping(value):
             return value
         resolved = concept_map.get(value)
         if resolved is None:
@@ -304,6 +308,7 @@ def _compute_blocked_claim_artifact_ids(
     resolver: ClaimReferenceResolver,
     source_claim_index,
     *,
+    concept_map: dict[str, str],
     blocked_concept_refs: dict[str, str] | None = None,
 ) -> tuple[set[str], dict[str, list[tuple[str, str]]]]:
     """Identify source-branch claims blocked from promotion by per-item errors.
@@ -342,6 +347,12 @@ def _compute_blocked_claim_artifact_ids(
             continue
         for concept_ref in _source_claim_concept_refs(claim):
             detail = blocked_concept_refs.get(concept_ref)
+            if (
+                detail is None
+                and _source_concept_ref_requires_mapping(concept_ref)
+                and concept_ref not in concept_map
+            ):
+                detail = f"unresolved concept mappings: {concept_ref}"
             if detail is not None:
                 _record(
                     artifact_id,
@@ -541,6 +552,7 @@ def promote_source_branch(
         stances_doc,
         resolver,
         source_claim_index,
+        concept_map=concept_map,
         blocked_concept_refs=concept_resolution.blocked_concept_refs,
     )
 
