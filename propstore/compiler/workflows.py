@@ -294,6 +294,7 @@ def build_repository(
             no_concepts=True,
         )
 
+    build_messages: list[PassDiagnostic] = []
     form_files = [
         LoadedForm(
             filename=form_ref.name,
@@ -302,11 +303,13 @@ def build_repository(
         for form_ref in repo.families.forms.iter(commit=hash_key)
     ]
     form_result = run_form_pipeline(form_files)
-    if not form_result.ok or not isinstance(form_result.output, FormCheckedRegistry):
+    form_messages = _messages_from_pipeline_result(form_result)
+    if not isinstance(form_result.output, FormCheckedRegistry):
         raise CompilerWorkflowError(
             "Build aborted: form validation failed.",
-            _messages_from_pipeline_result(form_result),
+            form_messages,
         )
+    build_messages.extend(form_messages)
     form_registry = form_result.output.registry
 
     files = [
@@ -327,7 +330,6 @@ def build_repository(
             _messages_from_pipeline_result(concept_result),
         )
 
-    build_messages: list[PassDiagnostic] = []
     context_ids: set[str] = set()
     try:
         ctx_list = [
