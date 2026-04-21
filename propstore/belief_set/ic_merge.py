@@ -3,9 +3,11 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import overload
 
 from propstore.belief_set.core import BeliefSet
 from propstore.belief_set.language import Formula, World
+from propstore.core.anytime import EnumerationExceeded
 
 
 class ICMergeOperator(StrEnum):
@@ -69,15 +71,66 @@ def _score_world(
     raise ValueError(f"Unsupported IC merge operator: {operator}")
 
 
-def _distance_to_formula(world: World, formula: Formula, signature: frozenset[str]) -> float:
-    models = tuple(
-        candidate
-        for candidate in BeliefSet.all_worlds(signature)
-        if formula.evaluate(candidate)
-    )
-    if not models:
+@overload
+def _distance_to_formula(world: World, formula: Formula, signature: frozenset[str]) -> float: ...
+
+
+@overload
+def _distance_to_formula(
+    world: World,
+    formula: Formula,
+    signature: frozenset[str],
+    *,
+    max_candidates: None,
+) -> float: ...
+
+
+@overload
+def _distance_to_formula(
+    world: World,
+    formula: Formula,
+    signature: frozenset[str],
+    *,
+    max_candidates: int,
+) -> float | EnumerationExceeded: ...
+
+
+def _distance_to_formula(
+    world: World,
+    formula: Formula,
+    signature: frozenset[str],
+    *,
+    max_candidates: int | None = None,
+) -> float | EnumerationExceeded:
+    """Return finite Hamming distance with an anytime candidate ceiling.
+
+    Zilberstein 1996 frames bounded exact search as an anytime computation:
+    if the candidate-world scan is interrupted before exactness is proven, the
+    unvisited model space is reported as vacuous rather than approximated.
+    """
+
+    if max_candidates is not None and max_candidates < 0:
+        raise ValueError("max_candidates must be non-negative")
+
+    best_distance: int | None = None
+    examined = 0
+    for candidate in BeliefSet.all_worlds(signature):
+        if max_candidates is not None and examined >= max_candidates:
+            return EnumerationExceeded(
+                partial_count=examined,
+                max_candidates=max_candidates,
+            )
+        examined += 1
+        if not formula.evaluate(candidate):
+            continue
+        distance = _hamming(world, candidate)
+        if best_distance is None or distance < best_distance:
+            best_distance = distance
+            if best_distance == 0:
+                return 0.0
+    if best_distance is None:
         return math.inf
-    return float(min(_hamming(world, model) for model in models))
+    return float(best_distance)
 
 
 def _hamming(left: World, right: World) -> int:
