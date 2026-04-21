@@ -11,6 +11,7 @@ from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_a
 from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.labels import Label, SupportQuality
+from propstore.core.literal_keys import ClaimLiteralKey
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.preference import claim_strength
 from propstore.structured_projection import StructuredArgument, StructuredProjection
@@ -19,6 +20,7 @@ from propstore.world.types import SupportMetadata
 from .build import build_bridge_csaf
 from .extract import _extract_justifications, _extract_stance_rows
 from .grounding import _typed_scalar_key
+from .translate import claims_to_literals
 
 _STRICT_RULE_STRENGTH = 1.0
 _DEFEASIBLE_RULE_STRENGTH = 0.7
@@ -85,8 +87,12 @@ def csaf_to_projection(
     if support_metadata is not None:
         metadata = support_metadata
     normalized_claims = coerce_active_claims(active_claims)
-    claim_id_set = {str(claim.claim_id) for claim in normalized_claims}
     claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
+    claim_literal_ids = {
+        literal: str(key.claim_id)
+        for key, literal in claims_to_literals(normalized_claims).items()
+        if isinstance(key, ClaimLiteralKey)
+    }
 
     projected_args: list[StructuredArgument] = []
     projected_arg_ids: set[str] = set()
@@ -96,11 +102,7 @@ def csaf_to_projection(
     for argument in csaf.arguments:
         conclusion = conc(argument)
         arg_id = csaf.arg_to_id[argument]
-        claim_id = (
-            conclusion.atom.predicate
-            if conclusion.atom.predicate in claim_id_set and not conclusion.negated
-            else None
-        )
+        claim_id = claim_literal_ids.get(conclusion)
         claim = None if claim_id is None else claim_by_id[claim_id]
 
         top = top_rule(argument)
@@ -113,9 +115,9 @@ def csaf_to_projection(
 
         attackable_kind = "base_claim" if isinstance(argument, PremiseArg) else "inference_rule"
         premise_claim_ids = tuple(
-            premise_literal.atom.predicate
+            claim_literal_ids[premise_literal]
             for premise_literal in prem(argument)
-            if premise_literal.atom.predicate in claim_id_set
+            if premise_literal in claim_literal_ids
         )
         subargument_ids = tuple(
             csaf.arg_to_id[sub_argument]
@@ -145,9 +147,9 @@ def csaf_to_projection(
             )
 
         dependency_claim_ids = tuple(
-            premise_literal.atom.predicate
+            claim_literal_ids[premise_literal]
             for premise_literal in prem(argument)
-            if premise_literal.atom.predicate in claim_id_set
+            if premise_literal in claim_literal_ids
         )
 
         if claim_id is not None and claim_id in metadata:
