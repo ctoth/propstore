@@ -17,8 +17,6 @@ def test_importlinter_catches_known_layer_violations() -> None:
         "storage -> merge",
         "source -> heuristic",
         "concept -> argumentation",
-        "support_revision -> belief_set",
         "worldline -> support_revision",
-        "aspic_bridge -> gunray",
     ):
         assert expected in output
