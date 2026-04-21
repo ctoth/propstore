@@ -1,0 +1,93 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default' -> deadline=None
+rootdir: C:\Users\Q\code\propstore
+configfile: pyproject.toml
+plugins: hypothesis-6.152.1, cov-7.1.0, timeout-2.4.0, xdist-3.8.0
+timeout: 300.0s
+timeout method: thread
+timeout func_only: False
+created: 16/16 workers
+16 workers [38 items]
+
+scheduling tests via WorkStealingScheduling
+
+tests/test_quire_consumer_contracts.py::test_source_documents_with_same_path_are_isolated_by_source_branch 
+tests/test_source_claims.py::test_promoted_claims_conform_to_master_schema 
+tests/test_source_cli.py::test_source_add_concepts_batch_preserves_inventory_fields 
+tests/test_source_relations.py::test_source_promote_blocks_on_ambiguous_new_concept_slug_collision 
+tests/test_source_claims.py::test_source_add_claim_batch_normalizes_claims 
+tests/test_source_cli.py::test_source_write_notes_commits_only_to_source_branch 
+tests/test_source_cli.py::test_propose_concept_values_rejected_for_non_category 
+tests/test_source_cli.py::test_propose_concept_category_with_values 
+tests/test_source_relations.py::test_source_add_justification_batch_rewrites_local_claim_ids 
+tests/test_source_cli.py::test_source_authoring_build_verify_and_worldline_flow 
+tests/test_source_cli.py::test_propose_concept_values_survive_finalize_and_promote 
+tests/test_source_cli.py::test_propose_concept_reports_proposed_status 
+tests/test_source_relations.py::test_source_add_stance_auto_finalize_is_advisory_on_validation_issues 
+tests/test_source_cli.py::test_source_init_creates_source_branch_and_source_yaml 
+tests/test_source_relations.py::test_source_add_justification_rewrites_all_local_references 
+tests/test_source_cli.py::test_source_sync_materializes_branch_to_papers_workspace 
+[gw7] [  2%] PASSED tests/test_source_cli.py::test_propose_concept_values_rejected_for_non_category 
+[gw1] [  5%] PASSED tests/test_source_cli.py::test_source_init_creates_source_branch_and_source_yaml 
+tests/test_source_cli.py::test_propose_concept_category_without_values_still_works 
+tests/test_source_cli.py::test_source_init_uses_repo_uri_authority_and_content_file 
+[gw2] [  7%] PASSED tests/test_source_cli.py::test_source_write_notes_commits_only_to_source_branch 
+tests/test_source_cli.py::test_source_write_metadata_commits_json_to_source_branch 
+[gw5] [ 10%] PASSED tests/test_source_cli.py::test_propose_concept_reports_proposed_status 
+tests/test_source_cli.py::test_propose_concept_rejects_invalid_form 
+[gw4] [ 13%] PASSED tests/test_source_cli.py::test_source_sync_materializes_branch_to_papers_workspace 
+tests/test_source_cli.py::test_propose_concept_reports_linked_status 
+[gw6] [ 15%] PASSED tests/test_source_cli.py::test_propose_concept_category_with_values 
+tests/test_source_cli.py::test_propose_concept_category_with_values_and_closed 
+[gw10] [ 18%] PASSED tests/test_source_claims.py::test_source_add_claim_batch_normalizes_claims 
+tests/test_source_claims.py::test_source_add_claim_auto_finalizes 
+[gw1] [ 21%] PASSED tests/test_source_cli.py::test_source_init_uses_repo_uri_authority_and_content_file 
+tests/test_source_relations.py::test_source_add_claim_rejects_unknown_concept_reference 
+[gw3] [ 23%] PASSED tests/test_source_cli.py::test_source_add_concepts_batch_preserves_inventory_fields 
+tests/test_source_cli.py::test_source_add_concepts_auto_finalize_runtime_error_propagates 
+[gw7] [ 26%] PASSED tests/test_source_cli.py::test_propose_concept_category_without_values_still_works 
+tests/test_source_claims.py::test_source_finalize_writes_report 
+[gw2] [ 28%] PASSED tests/test_source_cli.py::test_source_write_metadata_commits_json_to_source_branch 
+tests/test_source_relations.py::test_source_finalize_blocks_on_unresolved_cross_source_stance_target 
+[gw5] [ 31%] PASSED tests/test_source_cli.py::test_propose_concept_rejects_invalid_form 
+tests/test_source_relations.py::test_parameterization_group_merge_preview_is_order_invariant 
+[gw3] [ 34%] PASSED tests/test_source_cli.py::test_source_add_concepts_auto_finalize_runtime_error_propagates 
+[gw6] [ 36%] PASSED tests/test_source_cli.py::test_propose_concept_category_with_values_and_closed 
+tests/test_artifact_store.py::test_artifact_transaction_writes_multiple_source_artifacts 
+[gw4] [ 39%] PASSED tests/test_source_cli.py::test_propose_concept_reports_linked_status 
+tests/test_source_relations.py::test_source_promote_materializes_unique_proposed_concepts 
+[gw8] [ 42%] PASSED tests/test_source_cli.py::test_propose_concept_values_survive_finalize_and_promote 
+tests/test_source_cli.py::test_add_concepts_batch_rejects_invalid_form 
+[gw1] [ 44%] PASSED tests/test_source_relations.py::test_source_add_claim_rejects_unknown_concept_reference 
+[gw11] [ 47%] PASSED tests/test_source_claims.py::test_promoted_claims_conform_to_master_schema 
+tests/test_source_claims.py::test_claims_document_produced_by_roundtrip 
+[gw10] [ 50%] PASSED tests/test_source_claims.py::test_source_add_claim_auto_finalizes 
+[gw15] [ 52%] PASSED tests/test_source_relations.py::test_source_promote_blocks_on_ambiguous_new_concept_slug_collision 
+tests/test_artifact_store.py::test_artifact_store_roundtrips_source_document 
+[gw11] [ 55%] PASSED tests/test_source_claims.py::test_claims_document_produced_by_roundtrip 
+[gw7] [ 57%] PASSED tests/test_source_claims.py::test_source_finalize_writes_report 
+[gw12] [ 60%] PASSED tests/test_source_relations.py::test_source_add_justification_batch_rewrites_local_claim_ids 
+[gw13] [ 63%] PASSED tests/test_source_relations.py::test_source_add_stance_auto_finalize_is_advisory_on_validation_issues 
+tests/test_source_relations.py::test_source_add_stance_batch_rewrites_local_targets_and_preserves_cross_source_refs 
+tests/test_source_relations.py::test_source_finalize_reports_parameterization_group_merges 
+[gw5] [ 65%] PASSED tests/test_source_relations.py::test_parameterization_group_merge_preview_is_order_invariant 
+[gw6] [ 68%] PASSED tests/test_artifact_store.py::test_artifact_transaction_writes_multiple_source_artifacts 
+[gw15] [ 71%] PASSED tests/test_artifact_store.py::test_artifact_store_roundtrips_source_document 
+[gw8] [ 73%] PASSED tests/test_source_cli.py::test_add_concepts_batch_rejects_invalid_form 
+[gw2] [ 76%] PASSED tests/test_source_relations.py::test_source_finalize_blocks_on_unresolved_cross_source_stance_target 
+[gw12] [ 78%] PASSED tests/test_source_relations.py::test_source_add_stance_batch_rewrites_local_targets_and_preserves_cross_source_refs 
+[gw13] [ 81%] PASSED tests/test_source_relations.py::test_source_finalize_reports_parameterization_group_merges 
+[gw4] [ 84%] PASSED tests/test_source_relations.py::test_source_promote_materializes_unique_proposed_concepts 
+[gw9] [ 86%] PASSED tests/test_source_cli.py::test_source_authoring_build_verify_and_worldline_flow 
+tests/test_source_claims.py::test_normalized_source_claim_ids_are_content_stable 
+[gw9] [ 89%] PASSED tests/test_source_claims.py::test_normalized_source_claim_ids_are_content_stable 
+[gw0] [ 92%] PASSED tests/test_quire_consumer_contracts.py::test_source_documents_with_same_path_are_isolated_by_source_branch 
+tests/test_source_cli.py::test_source_branch_kind_is_detected 
+[gw0] [ 94%] PASSED tests/test_source_cli.py::test_source_branch_kind_is_detected 
+[gw14] [ 97%] PASSED tests/test_source_relations.py::test_source_add_justification_rewrites_all_local_references 
+tests/test_source_relations.py::test_source_promote_writes_master_claims_stances_sources_and_justifications 
+[gw14] [100%] PASSED tests/test_source_relations.py::test_source_promote_writes_master_claims_stances_sources_and_justifications 
+
+============================= 38 passed in 34.24s =============================

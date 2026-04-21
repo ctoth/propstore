@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
@@ -13,6 +14,7 @@ from quire.artifacts import (
     FlatYamlPlacement,
     SingletonFilePlacement,
     TemplateFilePlacement,
+    encode_ref_value,
 )
 from quire.families import FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
 from quire.documents import (
@@ -183,7 +185,31 @@ PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.29")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
-SOURCE_BRANCH = BranchPlacement(
+
+
+class SourceBranchPlacement(BranchPlacement):
+    def branch_name(self, owner: object, ref: object | None = None) -> str:
+        if ref is None:
+            raise ValueError("source branch placement requires a ref")
+        value = getattr(ref, self.ref_field)
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"ref field {self.ref_field!r} must be a non-empty string")
+        safe_stem = encode_ref_value(value, self.codec)
+        stem = safe_stem
+        if safe_stem != value:
+            digest = hashlib.sha1(value.encode("utf-8")).hexdigest()[:12]
+            stem = f"{safe_stem}--{digest}"
+        if not self.template:
+            raise ValueError("source branch placement requires a template")
+        return self.template.format(value=stem, stem=stem)
+
+    def contract_body(self) -> dict[str, object]:
+        body = super().contract_body()
+        body["collision_suffix"] = "sha1-12"
+        return body
+
+
+SOURCE_BRANCH = SourceBranchPlacement(
     policy="template",
     template="source/{stem}",
     ref_field="name",
