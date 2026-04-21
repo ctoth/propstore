@@ -745,7 +745,7 @@ class TestBuild:
         assert result.exit_code == 0, result.output
         assert sidecar.exists()
 
-    def test_refuses_on_validation_failure(self, workspace: Path) -> None:
+    def test_build_records_validation_failure_diagnostics(self, workspace: Path) -> None:
         bad = workspace / "knowledge" / "concepts" / "broken.yaml"
         bad.write_text(yaml.dump({
             "id": "concept1",  # duplicate
@@ -758,8 +758,28 @@ class TestBuild:
         runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
-        assert result.exit_code != 0
-        assert not sidecar.exists()
+        assert result.exit_code == 0, result.output
+        assert sidecar.exists()
+        conn = sqlite3.connect(sidecar)
+        try:
+            diagnostic_rows = conn.execute(
+                """
+                SELECT source_kind, source_ref, diagnostic_kind, severity, blocking, message
+                FROM build_diagnostics
+                WHERE diagnostic_kind = 'concept_validation'
+                """
+            ).fetchall()
+        finally:
+            conn.close()
+        assert diagnostic_rows
+        assert diagnostic_rows[0][:5] == (
+            "concept",
+            "broken",
+            "concept_validation",
+            "error",
+            1,
+        )
+        assert "Object contains unknown field `canonical_name`" in diagnostic_rows[0][5]
 
 
 class TestClaimValidate:
