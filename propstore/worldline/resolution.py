@@ -87,7 +87,7 @@ def pre_resolve_conflicts(
     trace: ResolutionTrace,
 ) -> None:
     from propstore.parameterization_walk import reachable_concepts
-    from propstore.world import resolve
+    from propstore.world.resolution import resolve
 
     needs_check = reachable_concepts(
         {str(concept_id) for concept_id in target_map.values()},
@@ -283,7 +283,7 @@ def _resolve_conflict_target(
     trace: ResolutionTrace,
     value_result: Any,
 ) -> WorldlineTargetValue | None:
-    from propstore.world import resolve
+    from propstore.world.resolution import resolve
 
     if value_result.status != "conflicted" or context.policy.strategy is None:
         return None
@@ -515,7 +515,7 @@ def _resolve_conflict_input(
     seen: set[ConceptId],
     value_result: Any,
 ) -> WorldlineInputSource | None:
-    from propstore.world import resolve
+    from propstore.world.resolution import resolve
 
     del seen
     if value_result.status != "conflicted" or context.policy.strategy is None:
