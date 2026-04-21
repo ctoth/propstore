@@ -660,18 +660,37 @@ def _compile_authored_justification_sidecar_rows_with_diagnostics(
                     )
                 )
                 continue
-            resolved_premises = [
-                resolve_claim_reference(premise, claim_reference_map)
-                for premise in justification.premises
-            ]
-            if any(
-                not isinstance(premise, str) or premise not in valid_claims
-                for premise in resolved_premises
-            ):
-                raise sqlite3.IntegrityError(
+            resolved_premises: list[str] = []
+            missing_premise_ref: str | None = None
+            for premise in justification.premises:
+                resolved_premise = resolve_claim_reference(premise, claim_reference_map)
+                if (
+                    not isinstance(resolved_premise, str)
+                    or resolved_premise not in valid_claims
+                ):
+                    if isinstance(resolved_premise, str) and resolved_premise:
+                        missing_premise_ref = resolved_premise
+                    elif isinstance(premise, str) and premise:
+                        missing_premise_ref = premise
+                    else:
+                        missing_premise_ref = filename
+                    break
+                resolved_premises.append(resolved_premise)
+            if missing_premise_ref is not None:
+                message = (
                     f"justification file {filename} entry #{index} references "
-                    "nonexistent premise"
+                    f"nonexistent premise '{missing_premise_ref}'"
                 )
+                diagnostics.append(
+                    QuarantineDiagnostic(
+                        artifact_id=missing_premise_ref,
+                        kind="justification",
+                        diagnostic_kind="justification_validation",
+                        message=message,
+                        file=filename,
+                    )
+                )
+                continue
 
             provenance = justification_payload.get("provenance")
             attack_target = justification_payload.get("attack_target")
