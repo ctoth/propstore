@@ -138,7 +138,7 @@ def translate_to_theory(
             schema_rule = gunray_schema.Rule(
                 id=rule_doc.id,
                 head=_stringify_atom(rule_doc.head),
-                body=[_stringify_atom(atom) for atom in rule_doc.body],
+                body=tuple(_stringify_atom(atom) for atom in rule_doc.body),
             )
             if rule_doc.kind == "strict":
                 strict_rules.append(schema_rule)
@@ -175,21 +175,21 @@ def translate_to_theory(
     # / ``tuple(row)`` before asserting membership.
     return gunray_schema.DefeasibleTheory(
         facts=grouped_facts,
-        strict_rules=strict_rules,
-        defeasible_rules=defeasible_rules,
-        defeaters=defeaters,
+        strict_rules=tuple(strict_rules),
+        defeasible_rules=tuple(defeasible_rules),
+        defeaters=tuple(defeaters),
         superiority=_normalise_superiority(
             authored_superiority,
             non_strict_rule_ids,
         ),
-        conflicts=[],
+        conflicts=(),
     )
 
 
 def _normalise_superiority(
     authored_pairs: list[tuple[str, str]],
     non_strict_rule_ids: set[str],
-) -> list[tuple[str, str]]:
+) -> tuple[tuple[str, str], ...]:
     """Validate and close authored DeLP superiority pairs.
 
     Authored pairs are oriented ``(superior, inferior)``. The shared
@@ -198,7 +198,7 @@ def _normalise_superiority(
     """
 
     if not authored_pairs:
-        return []
+        return ()
 
     for superior, inferior in authored_pairs:
         missing = {
@@ -217,13 +217,13 @@ def _normalise_superiority(
         (inferior, superior)
         for superior, inferior in authored_pairs
     )
-    return [
+    return tuple(
         (stronger, weaker)
         for weaker, stronger in sorted(
             closed,
             key=lambda pair: (str(pair[1]), str(pair[0])),
         )
-    ]
+    )
 
 
 def _stringify_atom(atom: AtomDocument) -> str:

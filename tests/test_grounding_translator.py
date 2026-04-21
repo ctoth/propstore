@@ -16,11 +16,11 @@ Target output format (verified by runtime inspection of
             -- ``dict[str, Iterable[tuple[Scalar, ...]]]`` where
             ``Scalar = str | int | float | bool``. Keyed by predicate
             name; each value is an iterable of argument tuples.
-        strict_rules: list[Rule]
-        defeasible_rules: list[Rule]
-        defeaters: list[Rule]
-        superiority: list[tuple[str, str]]
-        conflicts: list[tuple[str, str]]
+        strict_rules: tuple[Rule, ...]
+        defeasible_rules: tuple[Rule, ...]
+        defeaters: tuple[Rule, ...]
+        superiority: tuple[tuple[str, str], ...]
+        conflicts: tuple[tuple[str, str], ...]
 
     ``gunray.schema.Rule`` is a dataclass with three fields:
 
@@ -420,8 +420,8 @@ def test_translate_preserves_rule_count(rule_files, facts) -> None:
         + len(theory.defeaters)
     )
     assert total_output_rules == input_rule_count
-    assert theory.superiority == []
-    assert theory.conflicts == []
+    assert theory.superiority == ()
+    assert theory.conflicts == ()
 
 
 @given(
@@ -568,11 +568,11 @@ def test_translate_empty_inputs_produces_empty_theory() -> None:
     theory = translate_to_theory([], (), _bird_registry())
 
     assert isinstance(theory, schema.DefeasibleTheory)
-    assert theory.defeasible_rules == []
-    assert theory.strict_rules == []
-    assert theory.defeaters == []
-    assert theory.superiority == []
-    assert theory.conflicts == []
+    assert theory.defeasible_rules == ()
+    assert theory.strict_rules == ()
+    assert theory.defeaters == ()
+    assert theory.superiority == ()
+    assert theory.conflicts == ()
     # facts is a dict keyed by predicate; empty input means no keys
     # carry any rows.
     total_rows = sum(len(list(rows)) for rows in theory.facts.values())
@@ -686,8 +686,8 @@ def test_translate_strict_rule_populates_strict_rules() -> None:
 
     theory = translate_to_theory([rule_file], (), _bird_registry())
     assert [rule.id for rule in theory.strict_rules] == ["strict_bird"]
-    assert theory.defeasible_rules == []
-    assert theory.defeaters == []
+    assert theory.defeasible_rules == ()
+    assert theory.defeaters == ()
 
 
 def test_translate_defeater_rule_populates_defeaters() -> None:
@@ -705,8 +705,8 @@ def test_translate_defeater_rule_populates_defeaters() -> None:
 
     theory = translate_to_theory([rule_file], (), _bird_registry())
     assert [rule.id for rule in theory.defeaters] == ["defeater_penguin"]
-    assert theory.strict_rules == []
-    assert theory.defeasible_rules == []
+    assert theory.strict_rules == ()
+    assert theory.defeasible_rules == ()
 
 
 def test_translate_strongly_negated_head_preserves_surface_negation() -> None:
@@ -751,7 +751,7 @@ def test_translate_strongly_negated_body_atom_preserves_surface_negation() -> No
 
     theory = translate_to_theory([rule_file], (), _bird_registry())
 
-    assert theory.defeasible_rules[0].body == ["~bird(X)"]
+    assert theory.defeasible_rules[0].body == ("~bird(X)",)
     assert parse_atom_text(theory.defeasible_rules[0].body[0]).predicate == "~bird"
 
 
@@ -796,7 +796,7 @@ def test_translate_preserves_authored_superiority_pairs() -> None:
 
     theory = translate_to_theory([rule_file], (), _bird_registry())
 
-    assert theory.superiority == [("r2", "r1")]
+    assert theory.superiority == (("r2", "r1"),)
 
 
 def test_translate_string_constant_round_trips_control_characters() -> None:
