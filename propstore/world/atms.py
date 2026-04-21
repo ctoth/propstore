@@ -511,7 +511,14 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
 class ATMSEngine:
     """Global exact-support propagation engine for one bound world."""
 
-    def __init__(self, bound: _ATMSRuntimeLike | _ATMSBoundLike) -> None:
+    def __init__(
+        self,
+        bound: _ATMSRuntimeLike | _ATMSBoundLike,
+        *,
+        max_build_iterations: int = 10_000,
+    ) -> None:
+        if max_build_iterations < 0:
+            raise ValueError("max_build_iterations must be non-negative")
         runtime: _ATMSRuntimeLike | _ATMSRuntime
         if _is_runtime_like(bound):
             runtime = bound
@@ -530,7 +537,7 @@ class ATMSEngine:
         self._all_parameterizations = tuple(self._sorted_parameterizations())
         self.nogoods = NogoodSet()
         self._nogood_provenance: dict[EnvironmentKey, tuple[ATMSNogoodProvenanceDetail, ...]] = {}
-        self._build()
+        self._build(max_iterations=max_build_iterations)
 
     def claim_label(self, claim_id: str) -> Label | None:
         node_id = self._claim_node_ids.get(claim_id)
@@ -1266,13 +1273,22 @@ class ATMSEngine:
                 result["why_out"] = why_out
         return result
 
-    def _build(self) -> None:
+    def _build(self, *, max_iterations: int) -> None:
         self._build_assumption_nodes()
         self._build_context_nodes()
         self._build_claim_nodes_and_justifications()
         self._build_micropublication_nodes_and_justifications()
 
+        iteration_count = 0
         while True:
+            if iteration_count >= max_iterations:
+                # Zilberstein 1996: bounded exact computation must surface the
+                # interrupted remainder as vacuous instead of assuming convergence.
+                raise EnumerationExceeded(
+                    partial_count=iteration_count,
+                    max_candidates=max_iterations,
+                )
+            iteration_count += 1
             self._propagate_labels()
             added_justifications = self._materialize_parameterization_justifications()
             updated_nogoods = self._update_nogoods()
