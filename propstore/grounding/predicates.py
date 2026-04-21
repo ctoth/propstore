@@ -37,6 +37,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
+from propstore.cel_checker import KindType
 from propstore.families.documents.predicates import PredicateDocument
 from propstore.predicate_files import LoadedPredicateFile
 
@@ -63,6 +64,16 @@ class PredicateArityMismatchError(ValueError):
     predicate arity. Garcia & Simari 2004 §3.2 enforces the same
     invariant at the Herbrand-base level — a predicate symbol used at
     the wrong arity has no grounding semantics.
+    """
+
+
+class PredicateArgKindError(ValueError):
+    """Raised when a ground atom argument disagrees with its declaration.
+
+    Diller, Borg, Bex 2025 §3 gives predicates typed argument vectors;
+    §4 makes ground substitutions well-defined only when atom terms
+    respect those vectors. Arity alone is not enough: a ``quantity``
+    position cannot be satisfied by a ``timepoint`` term.
     """
 
 
@@ -127,6 +138,24 @@ class DerivedFromSpec:
     target: str | None = None
     attribute: str | None = None
     condition: str | None = None
+
+
+PredicateArgumentType = str | KindType
+
+
+@dataclass(frozen=True)
+class PredicateAtom:
+    """Ground atom shape validated against the predicate declaration set.
+
+    ``arguments`` carries the concrete term tuple and ``argument_types``
+    carries the per-position type observed by the caller. The registry
+    compares that observed vector with ``PredicateDocument.arg_types``
+    rather than accepting arity-only atoms.
+    """
+
+    predicate_id: str
+    arguments: tuple[object, ...] = ()
+    argument_types: tuple[PredicateArgumentType, ...] = ()
 
 
 def parse_derived_from(spec: str) -> DerivedFromSpec:
@@ -328,32 +357,57 @@ class PredicateRegistry:
                 f"predicate {predicate_id!r} is not registered"
             ) from exc
 
-    def validate_atom(self, predicate_id: str, arity: int) -> None:
-        """Verify that an atom's arity matches its declared signature.
+    def validate_atom(self, atom: PredicateAtom) -> None:
+        """Verify that an atom matches its declared typed signature.
 
         Diller, Borg, Bex 2025 §4: ground substitutions are
         well-defined only when the atom's term-tuple length equals the
-        declared predicate arity. Garcia & Simari 2004 §3.2 enforces
-        the same invariant at the Herbrand-base level. Returns
-        cleanly (no return value) when the arities agree.
+        declared predicate arity and every term satisfies the declared
+        typed argument vector. Garcia & Simari 2004 §3.2 enforces the
+        same arity invariant at the Herbrand-base level. Returns
+        cleanly (no return value) when the atom is well typed.
 
         Args:
-            predicate_id: The predicate name the atom uses.
-            arity: The observed term-tuple length to validate.
+            atom: The predicate id, term tuple, and observed argument
+                type vector to validate.
 
         Raises:
-            PredicateNotRegisteredError: when ``predicate_id`` is not
+            PredicateNotRegisteredError: when ``atom.predicate_id`` is not
                 in the registry (delegated from ``lookup``).
             PredicateArityMismatchError: when the observed arity does
                 not match the declared arity.
+            PredicateArgKindError: when an observed argument type does
+                not match the declaration.
         """
 
-        declaration = self.lookup(predicate_id)
+        declaration = self.lookup(atom.predicate_id)
+        arity = len(atom.arguments)
         if declaration.arity != arity:
             raise PredicateArityMismatchError(
-                f"predicate {predicate_id!r} declared with arity "
+                f"predicate {atom.predicate_id!r} declared with arity "
                 f"{declaration.arity}, atom uses arity {arity}"
             )
+        if len(declaration.arg_types) != declaration.arity:
+            raise PredicateArityMismatchError(
+                f"predicate {atom.predicate_id!r} declared with arity "
+                f"{declaration.arity}, but has {len(declaration.arg_types)} "
+                "argument type(s)"
+            )
+        if len(atom.argument_types) != arity:
+            raise PredicateArgKindError(
+                f"predicate {atom.predicate_id!r} atom has arity {arity}, "
+                f"but carries {len(atom.argument_types)} argument type(s)"
+            )
+        for index, (expected, observed) in enumerate(
+            zip(declaration.arg_types, atom.argument_types),
+            start=1,
+        ):
+            if _normalize_argument_type(expected) != _normalize_argument_type(observed):
+                raise PredicateArgKindError(
+                    f"predicate {atom.predicate_id!r} argument {index} "
+                    f"declared as {_format_argument_type(expected)!r}, atom uses "
+                    f"{_format_argument_type(observed)!r}"
+                )
 
     def all_predicates(self) -> tuple[PredicateDocument, ...]:
         """Return every registered declaration as an immutable tuple.
@@ -366,3 +420,15 @@ class PredicateRegistry:
         """
 
         return self._predicates
+
+
+def _normalize_argument_type(value: PredicateArgumentType) -> str:
+    if isinstance(value, KindType):
+        return value.value
+    return value.strip().lower()
+
+
+def _format_argument_type(value: PredicateArgumentType) -> str:
+    if isinstance(value, KindType):
+        return value.value
+    return value

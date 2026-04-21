@@ -239,13 +239,18 @@ def test_registry_validate_atom_rejects_wrong_arity(docs, wrong_arity) -> None:
     because they exercise the accept path covered by the next test.
     """
 
-    from propstore.grounding.predicates import PredicateRegistry  # noqa: E402
+    from propstore.grounding.predicates import PredicateAtom, PredicateRegistry  # noqa: E402
 
     registry = PredicateRegistry.from_files(loaded_predicate_files_from(docs))
     target = docs[0]
     assume(wrong_arity != target.arity)
+    atom = PredicateAtom(
+        predicate_id=target.id,
+        arguments=tuple(f"arg_{index}" for index in range(wrong_arity)),
+        argument_types=tuple("Concept" for _ in range(wrong_arity)),
+    )
     with pytest.raises(Exception):
-        registry.validate_atom(target.id, wrong_arity)
+        registry.validate_atom(atom)
 
 
 @given(
@@ -268,12 +273,18 @@ def test_registry_validate_atom_accepts_matching_arity(docs) -> None:
     declared and observed arities agree.
     """
 
-    from propstore.grounding.predicates import PredicateRegistry  # noqa: E402
+    from propstore.grounding.predicates import PredicateAtom, PredicateRegistry  # noqa: E402
 
     registry = PredicateRegistry.from_files(loaded_predicate_files_from(docs))
     for doc in docs:
         # Should not raise.
-        registry.validate_atom(doc.id, doc.arity)
+        registry.validate_atom(
+            PredicateAtom(
+                predicate_id=doc.id,
+                arguments=tuple(f"arg_{index}" for index in range(doc.arity)),
+                argument_types=doc.arg_types,
+            )
+        )
 
 
 @given(
