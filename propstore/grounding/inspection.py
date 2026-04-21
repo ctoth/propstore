@@ -14,8 +14,7 @@ from argumentation.aspic import GroundAtom, Scalar
 from propstore.grounding.loading import build_grounded_bundle
 
 if TYPE_CHECKING:
-    from gunray import Argument
-    from gunray.types import GroundDefeasibleRule
+    from gunray import Argument, GroundDefeasibleRule
 
     from propstore.grounding.bundle import GroundedRulesBundle
     from propstore.repository import Repository
