@@ -87,6 +87,24 @@ def test_dead_prefixed_error_helper_is_removed() -> None:
     assert not Path("propstore/cli/output/errors.py").exists()
 
 
+def test_cli_only_world_arg_parsers_live_in_cli_layer() -> None:
+    app_world = Path("propstore/app/world.py").read_text(encoding="utf-8")
+    app_world_atms = Path("propstore/app/world_atms.py").read_text(encoding="utf-8")
+    app_worldlines = Path("propstore/app/worldlines.py").read_text(encoding="utf-8")
+    cli_world = Path("propstore/cli/world/__init__.py").read_text(encoding="utf-8")
+    cli_worldline = Path("propstore/cli/worldline/__init__.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "def parse_world_binding_args(" not in app_world
+    assert "WorldBindingParseError" not in app_world
+    assert "parse_world_binding_args" not in app_world_atms
+    assert "args: tuple[str, ...]" not in app_world_atms
+    assert "def coerce_worldline_cli_value(" not in app_worldlines
+    assert "def parse_world_binding_args(" in cli_world
+    assert "def coerce_worldline_cli_value(" in cli_worldline
+
+
 def test_worldline_commands_live_outside_group_module() -> None:
     group_module = Path("propstore/cli/worldline/__init__.py").read_text(encoding="utf-8")
     materialize = Path("propstore/cli/worldline/materialize.py").read_text(
