@@ -18,7 +18,7 @@ dependencies = [
     "bridgman @ git+https://github.com/ctoth/bridgman@c6401fa1ff562c437bad18e73422c9aefa2485b1",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
-    "gunray @ git+https://github.com/ctoth/gunray@3ea1a00e414cbd445f40d4b2e7f1d7f58dd9756c",
+    "gunray",
     "quire",
 ]
 
@@ -78,6 +78,7 @@ markers = [
 
 [tool.uv.sources]
 formal-argumentation = { path = "../argumentation", editable = true }
+gunray = { path = "../gunray", editable = true }
 quire = { path = "../quire", editable = true }
 
 [dependency-groups]
@@ -91,4 +92,3 @@ dev = [
     "libcst>=1.8.6",
     "import-linter>=2.11",
 ]
-
