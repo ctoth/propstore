@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import click
 
+from propstore.cli.helpers import fail
 from propstore.cli.output import emit, emit_yaml
 
 from propstore.app.repository_history import (
@@ -115,9 +116,8 @@ def show_cmd(ctx: click.Context, commit: str) -> None:
     repo = ctx.obj["repo"]
     try:
         report = build_commit_show_report(repo, commit)
-    except CommitNotFoundError:
-        emit(f"Commit not found: {commit}")
-        return
+    except CommitNotFoundError as exc:
+        fail(exc, exit_code=2)
     emit(f"  Commit: {report.sha[:8]}")
     emit(f"  Author: {report.author}")
     emit(f"  Date: {report.time}")
@@ -147,12 +147,8 @@ def checkout_cmd(ctx: click.Context, commit: str) -> None:
 
     try:
         report = checkout_commit(repo, commit)
-    except CommitNotFoundError:
-        emit(f"Commit not found: {commit}")
-        return
-    except CommitHasNoConceptsError:
-        emit("No concepts found at that commit.")
-        return
+    except (CommitNotFoundError, CommitHasNoConceptsError) as exc:
+        fail(exc, exit_code=2)
 
     if report.rebuilt:
         emit(f"Sidecar built from commit {commit[:8]}.")
