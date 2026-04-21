@@ -134,10 +134,20 @@ def classify_stance_from_llm_output(raw: dict) -> ClassifiedStance:
     if raw_type in VALID_STANCE_TYPES:
         stance_type = StanceType(str(raw_type))
 
-    if stance_type is StanceType.NONE:
+    if stance_type is StanceType.NONE or stance_type is StanceType.ABSTAIN:
         opinion = _vacuous_classifier_opinion("stance_classification_none")
     else:
-        opinion = categorical_to_opinion(str(raw.get("strength", "moderate")), 1)
+        strength = raw.get("strength")
+        if strength is None:
+            return ClassifiedStance(
+                stance_type=StanceType.ABSTAIN,
+                opinion=_vacuous_classifier_opinion(
+                    "stance_classification_missing_strength",
+                ),
+                note=str(raw.get("note", "")),
+                conditions_differ=raw.get("conditions_differ"),
+            )
+        opinion = categorical_to_opinion(str(strength), 1)
     return ClassifiedStance(
         stance_type=stance_type,
         opinion=opinion,
