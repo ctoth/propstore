@@ -397,7 +397,7 @@ def build_repository(
         }
     build_messages.extend(context_messages)
 
-    claim_files = None
+    claim_files = files if files else None
     claim_messages = list(claim_schema_messages)
     compilation_context = build_compilation_context_from_loaded(
         concepts,
@@ -421,13 +421,8 @@ def build_repository(
                 )
             )
             claim_messages.extend(_messages_from_pipeline_result(claim_pipeline_result))
-            if not isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
-                raise CompilerWorkflowError(
-                    "Build aborted: claim validation failed.",
-                    tuple(claim_messages),
-                )
-            claim_checked_bundle = claim_pipeline_result.output
-            claim_files = files
+            if isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
+                claim_checked_bundle = claim_pipeline_result.output
         except DocumentSchemaError as exc:
             raise CompilerWorkflowError(
                 "Build aborted: claim validation failed.",
