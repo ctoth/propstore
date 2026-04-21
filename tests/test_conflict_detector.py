@@ -10,6 +10,8 @@ Tests the classification of same-concept claim pairs:
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from hypothesis import given, strategies as st, settings
 
@@ -867,6 +869,43 @@ class TestAlgorithmConflicts:
         records = detect_conflicts([cf], make_concept_registry())
         algo_records = [r for r in records if r.concept_id == "concept1"]
         assert len(algo_records) == 0
+
+    def test_algorithm_sympy_tier_still_conflicts(self, monkeypatch):
+        """SymPy-only equivalence is not enough to suppress a conflict."""
+        from ast_equiv import Tier
+        from propstore.conflict_detector import algorithms
+
+        claims = [
+            _make_algorithm_claim(
+                "algo1",
+                "def compute(x):\n    return x / 2 + x / 2",
+                [{"name": "x", "concept": "concept1"}],
+                concept="concept1",
+            ),
+            _make_algorithm_claim(
+                "algo2",
+                "def calc(val):\n    return val",
+                [{"name": "val", "concept": "concept1"}],
+                concept="concept1",
+            ),
+        ]
+        cf = make_claim_file(claims)
+        monkeypatch.setattr(
+            algorithms,
+            "ast_compare",
+            lambda *_args, **_kwargs: SimpleNamespace(
+                equivalent=True,
+                tier=Tier.SYMPY,
+                similarity=1.0,
+            ),
+        )
+
+        records = detect_conflicts([cf], make_concept_registry())
+
+        algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
+        assert len(algo_records) == 1
+        assert algo_records[0].concept_id == "concept1"
+        assert f"tier:{Tier.SYMPY}" in algo_records[0].derivation_chain
 
     def test_algorithm_different_conflict(self):
         """Two genuinely different algorithm claims for same concept -> conflict detected."""
