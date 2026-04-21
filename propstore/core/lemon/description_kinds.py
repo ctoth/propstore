@@ -6,12 +6,6 @@ from enum import StrEnum
 from quire.documents import DocumentStruct
 from propstore.core.lemon.proto_roles import ProtoRoleBundle
 from propstore.core.lemon.references import OntologyReference
-from argumentation.dung import (
-    ArgumentationFramework,
-    grounded_extension,
-    preferred_extensions,
-    stable_extensions,
-)
 from propstore.provenance import Provenance
 
 
@@ -88,28 +82,23 @@ class MergeArgument(DocumentStruct):
 
 
 @dataclass(frozen=True, slots=True)
-class CoreferenceQuery:
+class DescriptionKindMergeProtocol:
     merge_arguments: tuple[MergeArgument, ...]
-    framework: ArgumentationFramework
+    attacks: tuple[tuple[str, str], ...] = ()
 
-    def clusters(self, *, semantics: str = "grounded") -> tuple[frozenset[str], ...]:
-        if semantics == "grounded":
-            extensions = (grounded_extension(self.framework),)
-        elif semantics == "preferred":
-            extensions = tuple(preferred_extensions(self.framework))
-        elif semantics == "stable":
-            extensions = tuple(stable_extensions(self.framework))
-        else:
-            raise ValueError(f"unknown coreference semantics: {semantics}")
+    @property
+    def argument_ids(self) -> frozenset[str]:
+        return frozenset(argument.argument_id for argument in self.merge_arguments)
 
-        by_id = {argument.argument_id: argument for argument in self.merge_arguments}
-        clusters = {
-            frozenset(by_id[argument_id].description_claim_ids)
-            for extension in extensions
-            for argument_id in extension
-            if argument_id in by_id
+    def __post_init__(self) -> None:
+        unknown = {
+            argument_id
+            for attack in self.attacks
+            for argument_id in attack
+            if argument_id not in self.argument_ids
         }
-        return tuple(sorted(clusters, key=lambda cluster: tuple(sorted(cluster))))
+        if unknown:
+            raise ValueError(f"coreference attacks reference unknown arguments: {sorted(unknown)!r}")
 
 
 def coreference_argument(
@@ -124,29 +113,6 @@ def coreference_argument(
         description_claim_ids=(first.claim_id, second.claim_id),
         supports=(first.claim_id, second.claim_id),
         provenance=provenance,
-    )
-
-
-def coreference_query(
-    merge_arguments: tuple[MergeArgument, ...],
-    *,
-    attacks: tuple[tuple[str, str], ...] = (),
-) -> CoreferenceQuery:
-    argument_ids = frozenset(argument.argument_id for argument in merge_arguments)
-    unknown = {
-        argument_id
-        for attack in attacks
-        for argument_id in attack
-        if argument_id not in argument_ids
-    }
-    if unknown:
-        raise ValueError(f"coreference attacks reference unknown arguments: {sorted(unknown)!r}")
-    return CoreferenceQuery(
-        merge_arguments=merge_arguments,
-        framework=ArgumentationFramework(
-            arguments=argument_ids,
-            defeats=frozenset(attacks),
-        ),
     )
 
 
