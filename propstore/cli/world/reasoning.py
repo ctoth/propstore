@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.cli.helpers import fail
+from propstore.cli.helpers import EXIT_VALIDATION, fail
 from propstore.cli.output import emit, emit_table
 
 from propstore.app.world_reasoning import (
@@ -271,7 +271,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             ),
         )
     except WorldExtensionsUnsupportedBackend as exc:
-        fail(exc, exit_code=2)
+        fail(exc, exit_code=EXIT_VALIDATION)
 
     if report is None:
         emit("No active claims for given bindings.")
