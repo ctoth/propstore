@@ -12,16 +12,17 @@ observed concept values rather than full belief-base model semantics.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from itertools import product
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, overload
 
 from propstore.cel_checker import (
     check_cel_expr,
     scope_cel_registry,
 )
 from propstore.cel_types import CheckedCelExpr
+from propstore.core.anytime import EnumerationExceeded
 from propstore.world.types import (
     AssignmentSelectionProblem,
     AssignmentSelectionResult,
@@ -83,8 +84,43 @@ def _score_sort_key(score: float | tuple[float, ...]) -> tuple[float, ...]:
     return (score,)
 
 
-def enumerate_candidate_assignments(problem: AssignmentSelectionProblem) -> tuple[MergeAssignment, ...]:
-    """Enumerate discrete candidate assignments from observed source values."""
+@overload
+def enumerate_candidate_assignments(
+    problem: AssignmentSelectionProblem,
+) -> tuple[MergeAssignment, ...]: ...
+
+
+@overload
+def enumerate_candidate_assignments(
+    problem: AssignmentSelectionProblem,
+    *,
+    max_candidates: None,
+) -> tuple[MergeAssignment, ...]: ...
+
+
+@overload
+def enumerate_candidate_assignments(
+    problem: AssignmentSelectionProblem,
+    *,
+    max_candidates: int,
+) -> tuple[MergeAssignment, ...] | EnumerationExceeded: ...
+
+
+def enumerate_candidate_assignments(
+    problem: AssignmentSelectionProblem,
+    *,
+    max_candidates: int | None = None,
+) -> tuple[MergeAssignment, ...] | EnumerationExceeded:
+    """Enumerate observed assignments with an anytime candidate ceiling.
+
+    Zilberstein 1996 treats resource-bounded enumeration as an anytime
+    computation: once the caller-supplied bound is exceeded, return the
+    exact amount completed and mark the unenumerated remainder vacuous.
+    """
+
+    if max_candidates is not None and max_candidates < 0:
+        raise ValueError("max_candidates must be non-negative")
+
     domains: list[list[Any]] = []
     for concept_id in problem.concept_ids:
         values: list[Any] = []
@@ -100,6 +136,11 @@ def enumerate_candidate_assignments(problem: AssignmentSelectionProblem) -> tupl
 
     result: list[MergeAssignment] = []
     for choice in product(*domains):
+        if max_candidates is not None and len(result) >= max_candidates:
+            return EnumerationExceeded(
+                partial_count=len(result),
+                max_candidates=max_candidates,
+            )
         assignment = MergeAssignment(
             values={
                 concept_id: value
