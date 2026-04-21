@@ -180,8 +180,9 @@ if not TYPE_CHECKING:
 ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
 CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
 IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
-SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.29")
+SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.30")
+SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.30")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.30")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
@@ -410,7 +411,7 @@ WORLDLINE_FAMILY = ArtifactFamily["Repository", WorldlineRef, WorldlineDefinitio
 
 SOURCE_DOCUMENT_FAMILY = ArtifactFamily["Repository", SourceRef, SourceDocument](
     name="source_document",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceDocument,
     placement=SOURCE_DOCUMENT_PLACEMENT,
 )
@@ -441,14 +442,14 @@ SOURCE_METADATA_FAMILY = ArtifactFamily["Repository", SourceRef, dict[str, Any]]
 
 SOURCE_CONCEPTS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceConceptsDocument](
     name="source_concepts",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceConceptsDocument,
     placement=SOURCE_CONCEPTS_PLACEMENT,
 )
 
 SOURCE_CLAIMS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceClaimsDocument](
     name="source_claims",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceClaimsDocument,
     placement=SOURCE_CLAIMS_PLACEMENT,
 )
@@ -456,28 +457,28 @@ SOURCE_CLAIMS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceClaimsDocum
 
 SOURCE_MICROPUBS_FAMILY = ArtifactFamily["Repository", SourceRef, MicropublicationsFileDocument](
     name="source_micropubs",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MicropublicationsFileDocument,
     placement=SOURCE_MICROPUBS_PLACEMENT,
 )
 
 SOURCE_JUSTIFICATIONS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceJustificationsDocument](
     name="source_justifications",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceJustificationsDocument,
     placement=SOURCE_JUSTIFICATIONS_PLACEMENT,
 )
 
 SOURCE_STANCES_FAMILY = ArtifactFamily["Repository", SourceRef, SourceStancesDocument](
     name="source_stances",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceStancesDocument,
     placement=SOURCE_STANCES_PLACEMENT,
 )
 
 SOURCE_FINALIZE_REPORT_FAMILY = ArtifactFamily["Repository", SourceRef, SourceFinalizeReportDocument](
     name="source_finalize_report",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceFinalizeReportDocument,
     placement=SOURCE_FINALIZE_REPORT_PLACEMENT,
 )
