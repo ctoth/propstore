@@ -360,11 +360,10 @@ def apply_exception_defeats_to_csaf(
         (csaf.arg_to_id[attacker], csaf.arg_to_id[target])
         for attacker, target in extra_defeats
     )
-    existing_attacks = csaf.framework.attacks or frozenset()
     framework = ArgumentationFramework(
         arguments=csaf.framework.arguments,
         defeats=csaf.framework.defeats | defeat_ids,
-        attacks=existing_attacks | defeat_ids,
+        attacks=csaf.framework.attacks,
     )
     return replace(
         csaf,
