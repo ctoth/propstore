@@ -1528,6 +1528,38 @@ def test_checkout_missing_commit_returns_validation_error(tmp_path):
     assert "Commit not found: missing" not in result.output
 
 
+def test_checkout_commit_without_concepts_returns_validation_error(tmp_path):
+    """pks checkout <sha> must fail when the historical tree has no concepts."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    repo.git.commit_files(
+        {
+            "forms/frequency.yaml": yaml.dump(
+                {
+                    "name": "frequency",
+                    "dimensionless": False,
+                    "unit_symbol": "Hz",
+                    "dimensions": {"T": -1},
+                },
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        "forms only",
+    )
+    sha = repo.git.head_sha()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "checkout", sha])
+    assert result.exit_code == 2
+    assert "No concepts found at that commit." in result.stderr
+    assert "No concepts found at that commit." not in result.output
+
+
 def test_validate_reads_git_head_not_worktree(tmp_path):
     """pks validate must ignore uncommitted semantic edits in the worktree."""
     from click.testing import CliRunner
