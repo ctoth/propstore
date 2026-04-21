@@ -173,6 +173,13 @@ def test_world_atms_uses_named_validation_exit_code() -> None:
     assert "EXIT_VALIDATION" in atms
 
 
+def test_world_reasoning_uses_named_validation_exit_code() -> None:
+    reasoning = Path("propstore/cli/world/reasoning.py").read_text(encoding="utf-8")
+
+    assert "exit_code=2" not in reasoning
+    assert "EXIT_VALIDATION" in reasoning
+
+
 def test_source_commands_live_in_source_package() -> None:
     group_module = Path("propstore/cli/source/__init__.py").read_text(encoding="utf-8")
     authoring = Path("propstore/cli/source/authoring.py").read_text(encoding="utf-8")
