@@ -263,7 +263,7 @@ def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_si
                 batch_size=batch_size,
             ),
             on_progress=(
-                (lambda model_name, done, total: emit(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None)
+                (lambda model_name, done, total: emit(f"  {done}/{total}") if done % batch_size == 0 or done == total else None)
                 if model == "all"
                 else (lambda model_name, done, total: emit(f"  {done}/{total} claims embedded", err=True))
             ),
