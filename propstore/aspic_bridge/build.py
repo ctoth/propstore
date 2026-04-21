@@ -8,14 +8,17 @@ from collections.abc import Sequence
 from argumentation.aspic import (
     Argument,
     ArgumentationSystem,
+    Attack,
     CSAF,
     ContrarinessFn,
     GroundAtom,
     KnowledgeBase,
     Literal,
+    PremiseArg,
     PreferenceConfig,
     Rule,
     build_arguments,
+    conc,
     compute_attacks,
     compute_defeats,
     transposition_closure,
@@ -38,6 +41,7 @@ from .translate import (
     claims_to_kb,
     claims_to_literals,
     justifications_to_rules,
+    preference_sensitive_stance_pairs,
     stances_to_contrariness,
 )
 
@@ -89,6 +93,24 @@ def _build_language(
     return frozenset(language)
 
 
+def _transposition_contrariness(
+    contrariness: ContrarinessFn,
+    preference_sensitive_pairs: frozenset[tuple[Literal, Literal]],
+) -> ContrarinessFn:
+    if not preference_sensitive_pairs:
+        return contrariness
+
+    return ContrarinessFn(
+        contradictories=frozenset(
+            (left, right)
+            for left, right in contrariness.contradictories
+            if (left, right) not in preference_sensitive_pairs
+            and (right, left) not in preference_sensitive_pairs
+        ),
+        contraries=contrariness.contraries,
+    )
+
+
 def compile_bridge_context(
     active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
@@ -123,7 +145,12 @@ def compile_bridge_context(
     )
 
     language = _build_language(literals, strict_rules, defeasible_rules, kb)
-    closed_strict = transposition_closure(strict_rules, language, contrariness)
+    stance_pairs = preference_sensitive_stance_pairs(stances, literals)
+    closed_strict = transposition_closure(
+        strict_rules,
+        language,
+        _transposition_contrariness(contrariness, stance_pairs),
+    )
     language = _build_language(literals, closed_strict, defeasible_rules, kb)
 
     pref = build_preference_config(
@@ -152,6 +179,41 @@ def compile_bridge_context(
     )
 
 
+def _targeted_literal_for_directional_filter(attack: Attack) -> Literal | None:
+    if attack.kind == "undermining":
+        if not isinstance(attack.target_sub, PremiseArg):
+            return None
+        return attack.target_sub.premise
+    if attack.kind == "rebutting":
+        return conc(attack.target_sub)
+    return None
+
+
+def _filter_preference_sensitive_stance_attacks(
+    attacks: frozenset[Attack],
+    directed_pairs: frozenset[tuple[Literal, Literal]],
+) -> frozenset[Attack]:
+    if not directed_pairs:
+        return attacks
+
+    filtered: set[Attack] = set()
+    for attack in attacks:
+        target_literal = _targeted_literal_for_directional_filter(attack)
+        if target_literal is None:
+            filtered.add(attack)
+            continue
+
+        attacker_literal = conc(attack.attacker)
+        if (
+            (target_literal, attacker_literal) in directed_pairs
+            and (attacker_literal, target_literal) not in directed_pairs
+        ):
+            continue
+        filtered.add(attack)
+
+    return frozenset(filtered)
+
+
 def build_bridge_csaf(
     active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
@@ -174,6 +236,10 @@ def build_bridge_csaf(
 
     arguments = build_arguments(compiled.system, compiled.kb)
     attacks = compute_attacks(arguments, compiled.system)
+    attacks = _filter_preference_sensitive_stance_attacks(
+        attacks,
+        preference_sensitive_stance_pairs(stances, compiled.literals),
+    )
     defeat_attacks = compute_defeats(
         attacks,
         arguments,

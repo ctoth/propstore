@@ -22,7 +22,8 @@ from propstore.core.literal_keys import LiteralKey, claim_key, ground_key
 from propstore.core.row_types import StanceRowInput
 from propstore.grounding.bundle import GroundedRulesBundle
 
-from .build import compile_bridge_context
+from .build import _filter_preference_sensitive_stance_attacks, compile_bridge_context
+from .translate import preference_sensitive_stance_pairs
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,10 @@ def query_claim(
         max_depth=max_depth,
     )
     attacks = compute_attacks(arguments, compiled.system)
+    attacks = _filter_preference_sensitive_stance_attacks(
+        attacks,
+        preference_sensitive_stance_pairs(stances, compiled.literals),
+    )
     defeat_attacks = compute_defeats(
         attacks,
         arguments,

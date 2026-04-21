@@ -133,7 +133,7 @@ def stances_to_contrariness(
             contradictory_pairs.add((src, tgt))
             contradictory_pairs.add((tgt, src))
         elif stance.stance_type in ("supersedes", "undermines"):
-            contrary_pairs.add((src, tgt))
+            contradictory_pairs.add((src, tgt))
         elif stance.stance_type == "undercuts":
             target_justification_id = stance.target_justification_id
             matching_rules = [
@@ -177,6 +177,26 @@ def stances_to_contrariness(
         contradictories=frozenset(contradictory_pairs),
         contraries=frozenset(contrary_pairs),
     )
+
+
+def preference_sensitive_stance_pairs(
+    stances: Sequence[StanceRowInput],
+    literals: dict[LiteralKey, Literal],
+) -> frozenset[tuple[Literal, Literal]]:
+    pairs: set[tuple[Literal, Literal]] = set()
+    for stance_input in stances:
+        stance = _coerce_bridge_stance_row(stance_input)
+        if stance.stance_type not in ("supersedes", "undermines"):
+            continue
+        src_key = claim_key(stance.claim_id)
+        tgt_key = claim_key(stance.target_claim_id)
+        if src_key not in literals or tgt_key not in literals:
+            continue
+        src = literals[src_key]
+        tgt = literals[tgt_key]
+        if src != tgt:
+            pairs.add((src, tgt))
+    return frozenset(pairs)
 
 
 def claims_to_kb(
@@ -306,5 +326,6 @@ __all__ = [
     "claims_to_kb",
     "claims_to_literals",
     "justifications_to_rules",
+    "preference_sensitive_stance_pairs",
     "stances_to_contrariness",
 ]

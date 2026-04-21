@@ -275,7 +275,7 @@ def test_structured_projection_does_not_treat_context_scope_as_unconditional() -
     assert projection.arguments[0].support_quality == SupportQuality.EXACT
 
 
-def test_structured_projection_support_induces_additional_defeat_path() -> None:
+def test_structured_projection_support_induces_additional_defeat_path_under_weakest_link() -> None:
     store = _ProjectionStore(
         claims=[
             {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
@@ -292,6 +292,7 @@ def test_structured_projection_support_induces_additional_defeat_path() -> None:
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
+        link="weakest",
     )
 
     # Find the supporter's base argument ID (bridge uses sequential IDs)
