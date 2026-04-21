@@ -13,22 +13,6 @@ from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 def test_stance_file_missing_source_claim_quarantines_not_raises(
     tmp_path: Path,
 ) -> None:
-    claim_payload = normalize_claims_payload(
-        {
-            "source": {"paper": "stance_source"},
-            "claims": [
-                {
-                    "id": "target_claim",
-                    "type": "parameter",
-                    "concept": "concept1",
-                    "value": 200.0,
-                    "unit": "Hz",
-                    "provenance": {"paper": "stance_source", "page": 1},
-                },
-            ],
-        }
-    )
-    target_claim_id = claim_payload["claims"][0]["artifact_id"]
     concept_payload = normalize_concept_payloads(
         [
             {
@@ -42,6 +26,21 @@ def test_stance_file_missing_source_claim_quarantines_not_raises(
         ],
         default_domain="speech",
     )[0]
+    claim_payload = normalize_claims_payload(
+        {
+            "source": {"paper": "stance_source"},
+            "claims": [
+                {
+                    "id": "target_claim",
+                    "type": "observation",
+                    "statement": "Fundamental frequency was observed.",
+                    "concepts": [concept_payload["artifact_id"]],
+                    "provenance": {"paper": "stance_source", "page": 1},
+                },
+            ],
+        }
+    )
+    target_claim_id = claim_payload["claims"][0]["artifact_id"]
     repo = Repository.init(tmp_path / "knowledge")
     repo.git.commit_files(
         {
@@ -55,6 +54,10 @@ def test_stance_file_missing_source_claim_quarantines_not_raises(
             ).encode(),
             "claims/stance_source.yaml": yaml.dump(
                 claim_payload,
+                sort_keys=False,
+            ).encode(),
+            "contexts/ctx_test.yaml": yaml.dump(
+                {"id": "ctx_test", "name": "Test context"},
                 sort_keys=False,
             ).encode(),
             "stances/ps__claim__missing.yaml": yaml.dump(

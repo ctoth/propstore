@@ -69,6 +69,7 @@ from propstore.sidecar.stages import (
     BuildDiagnosticInsertRow,
     RawIdQuarantineClaimInsertRow,
     RawIdQuarantineSidecarRows,
+    QuarantineDiagnostic,
     RelationEdgeInsertRow,
     RepositoryCheckedBundle,
     SidecarBuildPlan,
@@ -514,8 +515,22 @@ def compile_authored_stance_sidecar_rows(
     stance_entries: Iterable[tuple[str, StanceFileDocument]],
     claim_reference_map: dict[str, str],
 ) -> tuple[ClaimStanceInsertRow, ...]:
+    rows, diagnostics = _compile_authored_stance_sidecar_rows_with_diagnostics(
+        stance_entries,
+        claim_reference_map,
+    )
+    if diagnostics:
+        raise sqlite3.IntegrityError(diagnostics[0].message)
+    return rows
+
+
+def _compile_authored_stance_sidecar_rows_with_diagnostics(
+    stance_entries: Iterable[tuple[str, StanceFileDocument]],
+    claim_reference_map: dict[str, str],
+) -> tuple[tuple[ClaimStanceInsertRow, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_reference_map.values())
     rows: list[ClaimStanceInsertRow] = []
+    diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, data in stance_entries:
         source_claim = resolve_claim_reference(
@@ -523,10 +538,20 @@ def compile_authored_stance_sidecar_rows(
             claim_reference_map,
         ) or ""
         if source_claim not in valid_claims:
-            raise sqlite3.IntegrityError(
+            message = (
                 f"stance file {filename} references nonexistent source claim "
                 f"'{source_claim}'"
             )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=source_claim or data.source_claim or filename,
+                    kind="stance",
+                    diagnostic_kind="stance_validation",
+                    message=message,
+                    file=filename,
+                )
+            )
+            continue
 
         for index, stance in enumerate(data.stances, start=1):
             stance_payload = stance.to_payload()
@@ -574,7 +599,7 @@ def compile_authored_stance_sidecar_rows(
                     )
                 )
             )
-    return tuple(rows)
+    return tuple(rows), tuple(diagnostics)
 
 
 def compile_authored_justification_sidecar_rows(
@@ -826,6 +851,7 @@ def compile_sidecar_build_plan(
     claim_fts_rows: tuple[ClaimFtsInsertRow, ...] = ()
     stance_rows: tuple[ClaimStanceInsertRow, ...] = ()
     justification_rows: tuple[JustificationInsertRow, ...] = ()
+    quarantine_diagnostics: tuple[QuarantineDiagnostic, ...] = ()
     claim_reference_map: dict[str, str] = {}
 
     if repository_checked_bundle.normalized_claim_files is not None:
@@ -856,9 +882,11 @@ def compile_sidecar_build_plan(
             lifting_system=lifting_system,
         )
         claim_fts_rows = compile_claim_fts_rows(normalized_claim_files)
-        stance_rows = compile_authored_stance_sidecar_rows(
-            stance_entries,
-            claim_reference_map,
+        stance_rows, quarantine_diagnostics = (
+            _compile_authored_stance_sidecar_rows_with_diagnostics(
+                stance_entries,
+                claim_reference_map,
+            )
         )
         justification_rows = compile_authored_justification_sidecar_rows(
             justification_entries,
@@ -884,4 +912,5 @@ def compile_sidecar_build_plan(
         ),
         stance_rows=stance_rows,
         justification_rows=justification_rows,
+        quarantine_diagnostics=quarantine_diagnostics,
     )

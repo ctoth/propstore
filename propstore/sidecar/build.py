@@ -55,6 +55,7 @@ from propstore.sidecar.quarantine import QuarantinableWriter
 from propstore.sidecar.sources import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.types import PassDiagnostic
+from propstore.sidecar.stages import QuarantineDiagnostic
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
@@ -125,6 +126,23 @@ def _record_claim_diagnostics(
             diagnostic_kind="claim_validation",
             message=diagnostic.render(),
             file=diagnostic.filename,
+        )
+
+
+def _record_quarantine_diagnostics(
+    conn: sqlite3.Connection,
+    diagnostics: tuple[QuarantineDiagnostic, ...],
+) -> None:
+    if not diagnostics:
+        return
+    writer = QuarantinableWriter(conn)
+    for diagnostic in diagnostics:
+        writer.quarantine(
+            artifact_id=diagnostic.artifact_id,
+            kind=diagnostic.kind,
+            diagnostic_kind=diagnostic.diagnostic_kind,
+            message=diagnostic.message,
+            file=diagnostic.file,
         )
 
 
@@ -338,6 +356,7 @@ def build_sidecar(
         create_claim_tables(conn)
         _record_form_diagnostics(conn, form_diagnostics)
         _record_claim_diagnostics(conn, claim_diagnostics)
+        _record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
         create_micropublication_tables(conn)
 
         if sidecar_plan.context_rows.context_rows:
