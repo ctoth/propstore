@@ -159,6 +159,13 @@ def test_concept_add_uses_owner_form_listing() -> None:
     assert "list_form_items" in mutation
 
 
+def test_micropub_lift_uses_named_error_exit_code() -> None:
+    micropub = Path("propstore/cli/micropub.py").read_text(encoding="utf-8")
+
+    assert "exit_with_code(1)" not in micropub
+    assert "EXIT_ERROR" in micropub
+
+
 def test_source_commands_live_in_source_package() -> None:
     group_module = Path("propstore/cli/source/__init__.py").read_text(encoding="utf-8")
     authoring = Path("propstore/cli/source/authoring.py").read_text(encoding="utf-8")
