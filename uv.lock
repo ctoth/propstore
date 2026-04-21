@@ -179,11 +179,6 @@ wheels = [
 ]
 
 [[package]]
-name = "argumentation"
-version = "0.1.0"
-source = { git = "https://github.com/ctoth/argumentation?rev=82774afa2753d7dd27a850b5a24f7d78a2747c89#82774afa2753d7dd27a850b5a24f7d78a2747c89" }
-
-[[package]]
 name = "arrow"
 version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -683,6 +678,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/82/99/b4de7e39e8eaf8207ba1a8fa2241dd98b2ba72ae6e16960d8351736d8702/flexparser-0.4.tar.gz", hash = "sha256:266d98905595be2ccc5da964fe0a2c3526fbbffdc45b65b3146d75db992ef6b2", size = 31799, upload-time = "2024-11-07T02:00:56.249Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fe/5e/3be305568fe5f34448807976dc82fc151d76c3e0e03958f34770286278c1/flexparser-0.4-py3-none-any.whl", hash = "sha256:3738b456192dcb3e15620f324c447721023c0293f6af9955b481e91d00179846", size = 27625, upload-time = "2024-11-07T02:00:54.523Z" },
+]
+
+[[package]]
+name = "formal-argumentation"
+version = "0.1.0"
+source = { editable = "../argumentation" }
+
+[package.metadata]
+requires-dist = [{ name = "z3-solver", marker = "extra == 'z3'", specifier = ">=4.12" }]
+provides-extras = ["z3"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.0" },
+    { name = "pyright", specifier = ">=1.1.390" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-timeout", specifier = ">=2.3" },
+    { name = "z3-solver", specifier = ">=4.12" },
 ]
 
 [[package]]
@@ -1976,11 +1989,11 @@ name = "propstore"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "argumentation" },
     { name = "ast-equiv" },
     { name = "bridgman" },
     { name = "click" },
     { name = "dulwich" },
+    { name = "formal-argumentation" },
     { name = "graphviz" },
     { name = "gunray" },
     { name = "lark" },
@@ -2014,11 +2027,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "argumentation", git = "https://github.com/ctoth/argumentation?rev=82774afa2753d7dd27a850b5a24f7d78a2747c89" },
     { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=9033d045b9c8076a13b3430a364416379312166b" },
     { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=c6401fa1ff562c437bad18e73422c9aefa2485b1" },
     { name = "click", specifier = ">=8.0" },
     { name = "dulwich", specifier = ">=1.1.0" },
+    { name = "formal-argumentation", editable = "../argumentation" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray?rev=3ea1a00e414cbd445f40d4b2e7f1d7f58dd9756c" },
     { name = "lark", specifier = ">=1.2.2" },
