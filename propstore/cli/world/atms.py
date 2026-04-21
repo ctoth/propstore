@@ -27,6 +27,7 @@ from propstore.app.world_atms import (
 )
 from propstore.cli.world import (
     _format_assumption_ids,
+    parse_world_binding_args,
     world,
 )
 from propstore.repository import Repository
@@ -35,6 +36,15 @@ from propstore.repository import Repository
 @world.group("atms", no_args_is_help=True)
 def atms() -> None:
     """Inspect ATMS-backed world state."""
+
+
+def _view_request(args: tuple[str, ...], context: str | None) -> AppAtmsViewRequest:
+    bindings, concept_id = parse_world_binding_args(args)
+    return AppAtmsViewRequest(
+        bindings=bindings,
+        concept_id=concept_id,
+        context=context,
+    )
 
 
 @atms.command("status")
@@ -48,7 +58,7 @@ def world_atms_status_command(
 ) -> None:
     """Show ATMS-native claim status, support quality, and essential support."""
     repo: Repository = obj["repo"]
-    report = world_atms_status(repo, AppAtmsViewRequest(args=args, context=context))
+    report = world_atms_status(repo, _view_request(args, context))
     if not report.claims:
         emit("No active claims for the current ATMS view.")
         return
@@ -73,7 +83,7 @@ def world_atms_context_command(
 ) -> None:
     """Show which ATMS-supported claims hold in the current bound environment."""
     repo: Repository = obj["repo"]
-    report = world_atms_context(repo, AppAtmsViewRequest(args=args, context=context))
+    report = world_atms_context(repo, _view_request(args, context))
     emit(f"Environment: {_format_assumption_ids(report.environment)}")
 
     if not report.claims:
@@ -98,7 +108,7 @@ def world_atms_verify_command(
 ) -> None:
     """Run ATMS label self-checks for the current bound environment."""
     repo: Repository = obj["repo"]
-    report = world_atms_verify(repo, AppAtmsViewRequest(args=args, context=context))
+    report = world_atms_verify(repo, _view_request(args, context))
     if report.ok:
         emit("ATMS labels verified.")
         return
@@ -140,11 +150,12 @@ def world_atms_futures_command(
 ) -> None:
     """Show bounded ATMS future environments for a claim or concept."""
     repo: Repository = obj["repo"]
+    bindings, _ = parse_world_binding_args(args)
     report = world_atms_futures(
         repo,
         AppAtmsTargetRequest(
             target=target,
-            args=args,
+            bindings=bindings,
             queryables=queryables,
             limit=limit,
             context=context,
@@ -189,11 +200,12 @@ def world_atms_why_out_command(
 ) -> None:
     """Explain whether an ATMS OUT status is missing-support or nogood-pruned."""
     repo: Repository = obj["repo"]
+    bindings, _ = parse_world_binding_args(args)
     report = world_atms_why_out(
         repo,
         AppAtmsTargetRequest(
             target=target,
-            args=args,
+            bindings=bindings,
             queryables=queryables,
             limit=limit,
             context=context,
@@ -250,11 +262,12 @@ def world_atms_stability_command(
 ) -> None:
     """Show bounded ATMS-native stability over the implemented future replay substrate."""
     repo: Repository = obj["repo"]
+    bindings, _ = parse_world_binding_args(args)
     report = world_atms_stability(
         repo,
         AppAtmsTargetRequest(
             target=target,
-            args=args,
+            bindings=bindings,
             queryables=queryables,
             limit=limit,
             context=context,
@@ -305,11 +318,12 @@ def world_atms_relevance_command(
 ) -> None:
     """Show which bounded queryables can flip an ATMS or concept status."""
     repo: Repository = obj["repo"]
+    bindings, _ = parse_world_binding_args(args)
     report = world_atms_relevance(
         repo,
         AppAtmsTargetRequest(
             target=target,
-            args=args,
+            bindings=bindings,
             queryables=queryables,
             limit=limit,
             context=context,
@@ -362,11 +376,12 @@ def world_atms_interventions_command(
     emit("not revision/contraction")
 
     try:
+        bindings, _ = parse_world_binding_args(args)
         report = world_atms_interventions(
             repo,
             AppAtmsInterventionRequest(
                 target=target,
-                args=args,
+                bindings=bindings,
                 target_status=target_status,
                 queryables=queryables,
                 limit=limit,
@@ -419,11 +434,12 @@ def world_atms_next_query_command(
     emit("derived from bounded additive intervention plans")
 
     try:
+        bindings, _ = parse_world_binding_args(args)
         report = world_atms_next_query(
             repo,
             AppAtmsInterventionRequest(
                 target=target,
-                args=args,
+                bindings=bindings,
                 target_status=target_status,
                 queryables=queryables,
                 limit=limit,

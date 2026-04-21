@@ -17,7 +17,6 @@ from propstore.app.world import (
     AppWorldHypotheticalRequest,
     AppWorldSensitivityRequest,
     WorldLifecycleOptions,
-    parse_world_binding_args,
     world_chain as run_world_chain,
     world_consistency as run_world_consistency,
     world_export_graph as run_world_export_graph,
@@ -25,7 +24,7 @@ from propstore.app.world import (
     world_hypothetical as run_world_hypothetical,
     world_sensitivity as run_world_sensitivity,
 )
-from propstore.cli.world import world
+from propstore.cli.world import parse_world_binding_args, world
 from propstore.repository import Repository
 
 

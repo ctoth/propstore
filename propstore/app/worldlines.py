@@ -89,12 +89,6 @@ def parse_worldline_revision_atom(raw: str | None) -> JsonObject | None:
     return _coerce_json_object(loaded, field_name="--revision-atom")
 
 
-def coerce_worldline_cli_value(value: object) -> JsonValue:
-    if _is_json_value(value):
-        return value
-    return str(value)
-
-
 def reasoning_backend_values() -> tuple[str, ...]:
     return tuple(backend.value for backend in ReasoningBackend)
 

@@ -7,7 +7,6 @@ import click
 
 from propstore.cli.output import emit, emit_section, emit_table
 
-from propstore.app.world import parse_world_binding_args
 from propstore.app.world_revision import (
     AppIteratedReviseRequest,
     AppRevisionContractRequest,
@@ -29,6 +28,7 @@ from propstore.app.world_revision import (
 )
 from propstore.cli.world import (
     _format_assumption_ids,
+    parse_world_binding_args,
     world,
 )
 from propstore.repository import Repository

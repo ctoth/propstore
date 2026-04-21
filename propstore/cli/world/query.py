@@ -17,7 +17,6 @@ from propstore.app.world import (
     WorldBindActiveReport,
     WorldBindConceptReport,
     WorldLifecycleOptions,
-    parse_world_binding_args,
     world_algorithms as run_world_algorithms,
     world_bind as run_world_bind,
     world_concept_query,
@@ -25,6 +24,7 @@ from propstore.app.world import (
     world_status as run_world_status,
 )
 from propstore.cli.world import (
+    parse_world_binding_args,
     world,
 )
 from propstore.repository import Repository
