@@ -8,9 +8,9 @@ from propstore.core.lemon import (
     AllenRelation,
     CausalAccount,
     CausalConnectionAssertion,
-    CoreferenceQuery,
     DescriptionClaim,
     DescriptionKind,
+    DescriptionKindMergeProtocol,
     DescriptionTemporalAnchor,
     GradedEntailment,
     LexicalSense,
@@ -26,7 +26,6 @@ from propstore.core.lemon import (
     TypeConstraint,
     causal_transitivity_allowed,
     coerce_via_qualia,
-    coreference_query,
     coreference_argument,
     description_temporal_relation,
     predicted_subject_role,
@@ -35,6 +34,7 @@ from propstore.core.lemon import (
     validate_slot_bindings,
 )
 from argumentation.dung import ArgumentationFramework
+from propstore.merge.description_kinds import CoreferenceQuery, coreference_query
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
 
@@ -310,6 +310,7 @@ def test_coreference_query_is_dung_argumentation_with_policy_dependent_clusters(
     )
 
     assert isinstance(query, CoreferenceQuery)
+    assert isinstance(query.protocol, DescriptionKindMergeProtocol)
     assert isinstance(query.framework, ArgumentationFramework)
     assert query.merge_arguments == (first_second, first_rival)
     assert query.clusters(semantics="grounded") == ()
