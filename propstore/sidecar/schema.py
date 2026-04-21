@@ -300,6 +300,27 @@ def populate_contexts(
         )
 
 
+def create_build_diagnostics_table(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS build_diagnostics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            claim_id TEXT,
+            source_kind TEXT NOT NULL,
+            source_ref TEXT,
+            diagnostic_kind TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            blocking INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            file TEXT,
+            detail_json TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_build_diagnostics_claim ON build_diagnostics(claim_id);
+        CREATE INDEX IF NOT EXISTS idx_build_diagnostics_kind ON build_diagnostics(diagnostic_kind);
+        CREATE INDEX IF NOT EXISTS idx_build_diagnostics_source ON build_diagnostics(source_kind, source_ref);
+    """)
+
+
 def create_claim_tables(conn: sqlite3.Connection) -> None:
     """Create the claim, payload, witness, and build-diagnostics tables.
 
