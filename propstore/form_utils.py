@@ -16,6 +16,8 @@ from propstore.families.forms.stages import (
     FormCheckedRegistry,
     FormDefinition,
     LoadedForm,
+    _form_cache,
+    clear_form_cache,
 )
 from propstore.families.registry import FormRef
 from propstore.cel_checker import KindType
@@ -106,9 +108,6 @@ class FormShowReport:
     form: FormDefinition | None
     decompositions: tuple[FormAlgebraDecomposition, ...] = ()
     uses: tuple[FormAlgebraUse, ...] = ()
-
-
-_form_cache: dict[tuple[str, str], FormDefinition | None] = {}
 
 
 def show_form(
@@ -357,11 +356,6 @@ def validate_forms(repo: Repository, name: str | None = None) -> FormValidationR
             )
 
     return FormValidationReport(count=len(refs), errors=tuple(errors))
-
-
-def clear_form_cache() -> None:
-    """Clear the module-level form cache, forcing reload from disk on next access."""
-    _form_cache.clear()
 
 
 def _path_cache_key(forms_dir: Path | KnowledgePath) -> str:
