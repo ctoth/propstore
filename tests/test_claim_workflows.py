@@ -66,7 +66,7 @@ def test_embed_claim_embeddings_owns_connection_and_reports_progress(
             on_progress(3, 5)
         return {"embedded": 3, "skipped": 1, "errors": 0}
 
-    monkeypatch.setattr(claims_app.sqlite3, "connect", lambda path: conn)
+    monkeypatch.setattr(claims_app, "connect_sidecar", lambda path: conn)
     monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn_arg: None)
     monkeypatch.setattr(embed_mod, "embed_claims", fake_embed_claims)
     progress: list[tuple[str, int, int]] = []
@@ -118,7 +118,7 @@ def test_find_similar_claims_uses_registered_default_model_and_closes(
             }
         ]
 
-    monkeypatch.setattr(claims_app.sqlite3, "connect", lambda path: conn)
+    monkeypatch.setattr(claims_app, "connect_sidecar", lambda path: conn)
     monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn_arg: None)
     monkeypatch.setattr(
         embed_mod,

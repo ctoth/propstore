@@ -1,0 +1,23 @@
+from __future__ import annotations
+
+import sqlite3
+from os import PathLike
+
+SIDECAR_BUSY_TIMEOUT_MS = 30_000
+
+
+def connect_sidecar(path: str | PathLike[str]) -> sqlite3.Connection:
+    conn = sqlite3.connect(path)
+    try:
+        configure_sidecar_connection(conn)
+    except Exception:
+        conn.close()
+        raise
+    return conn
+
+
+def configure_sidecar_connection(conn: sqlite3.Connection) -> sqlite3.Connection:
+    conn.execute(f"PRAGMA busy_timeout = {SIDECAR_BUSY_TIMEOUT_MS}")
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    return conn

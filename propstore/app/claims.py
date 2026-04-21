@@ -9,6 +9,7 @@ import sqlite3
 from typing import Mapping
 
 from propstore.repository import Repository
+from propstore.sidecar.sqlite import connect_sidecar
 from propstore.world import WorldModel
 from quire.tree_path import TreePath as KnowledgePath
 
@@ -522,7 +523,7 @@ def embed_claim_embeddings(
     sidecar = _require_sidecar(repo)
     ids = [request.claim_id] if request.claim_id else None
     reports: list[ClaimEmbedModelReport] = []
-    conn = sqlite3.connect(sidecar)
+    conn = connect_sidecar(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         _load_vec_extension(conn)
@@ -580,7 +581,7 @@ def find_similar_claims(
     )
 
     sidecar = _require_sidecar(repo)
-    conn = sqlite3.connect(sidecar)
+    conn = connect_sidecar(sidecar)
     conn.row_factory = sqlite3.Row
     _load_vec_extension(conn)
     try:
@@ -634,7 +635,7 @@ def relate_claims(
         ) from exc
     sidecar = _require_sidecar(repo)
 
-    conn = sqlite3.connect(sidecar)
+    conn = connect_sidecar(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         _load_vec_extension(conn)

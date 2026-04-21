@@ -43,6 +43,7 @@ from propstore.families.identity.concepts import normalize_canonical_concept_pay
 from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id
 from propstore.families.registry import ClaimsFileRef, ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
+from propstore.sidecar.sqlite import connect_sidecar
 from propstore.semantic_passes.types import PipelineResult
 
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
@@ -335,7 +336,7 @@ def search_concepts(
     request: ConceptSearchRequest,
 ) -> ConceptSearchReport:
     sidecar = _require_sidecar(repo)
-    conn = sqlite3.connect(sidecar)
+    conn = connect_sidecar(sidecar)
     with contextlib.closing(conn):
         rows = conn.execute(
             "SELECT concept.primary_logical_id, concept_fts.canonical_name, concept_fts.definition "
@@ -519,7 +520,7 @@ def embed_concept_embeddings(
 
     sidecar = _require_sidecar(repo)
     reports: list[ConceptEmbedModelReport] = []
-    conn = sqlite3.connect(sidecar)
+    conn = connect_sidecar(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         _load_vec_extension(conn)
@@ -583,7 +584,7 @@ def find_similar_concepts(
     )
 
     sidecar = _require_sidecar(repo)
-    conn = sqlite3.connect(sidecar)
+    conn = connect_sidecar(sidecar)
     conn.row_factory = sqlite3.Row
     _load_vec_extension(conn)
 

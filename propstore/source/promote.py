@@ -45,6 +45,7 @@ from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
 from propstore.repository import Repository
+from propstore.sidecar.sqlite import connect_sidecar
 from quire.documents import convert_document_value
 from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
@@ -426,9 +427,8 @@ def _write_promotion_blocked_sidecar_rows(
     if not sidecar_path.exists():
         return
 
-    conn = sqlite3.connect(sidecar_path)
+    conn = connect_sidecar(sidecar_path)
     try:
-        conn.execute("PRAGMA foreign_keys=ON")
         for claim in blocked_claims:
             artifact_id = claim.artifact_id
             if not isinstance(artifact_id, str) or not artifact_id:

@@ -34,6 +34,7 @@ from propstore.core.row_types import (
 )
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
+from propstore.sidecar.sqlite import connect_sidecar
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -215,7 +216,7 @@ class WorldModel(WorldStore):
             raise FileNotFoundError(
                 f"Sidecar not found at {resolved}. Run 'pks build' first."
             )
-        self._conn = sqlite3.connect(resolved)
+        self._conn = connect_sidecar(resolved)
         self._conn.row_factory = sqlite3.Row
         knowledge_root = FilesystemKnowledgePath.from_filesystem_path(
             resolved.parent.parent
