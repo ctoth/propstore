@@ -1137,6 +1137,52 @@ class TestTransitiveContextSemantics:
 
 
 class TestAlgorithmExceptionHandling:
+    @pytest.mark.parametrize(
+        "exc",
+        [
+            pytest.param("algorithm_parse", id="algorithm-parse"),
+            pytest.param("recursion", id="recursion"),
+        ],
+    )
+    def test_ast_equiv_recoverable_errors_skipped(self, exc):
+        """Recoverable ast-equiv failures should skip the pair, not crash."""
+        from unittest.mock import patch
+        from ast_equiv import AlgorithmParseError
+        from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
+
+        cf = make_claim_file([
+            {
+                "id": "alg1",
+                "type": "algorithm",
+                "concept": "concept_algo",
+                "body": "x + 1",
+                "variables": [{"name": "x", "concept": "input"}],
+            },
+            {
+                "id": "alg2",
+                "type": "algorithm",
+                "concept": "concept_algo",
+                "body": "x + 2",
+                "variables": [{"name": "x", "concept": "input"}],
+            },
+        ])
+        registry = {"concept_algo": ConceptInfo(
+            id="concept_algo", canonical_name="concept_algo", kind=KindType.QUANTITY,
+        )}
+        side_effect = (
+            AlgorithmParseError("bad algorithm")
+            if exc == "algorithm_parse"
+            else RecursionError("deep ast")
+        )
+
+        with patch(
+            "propstore.conflict_detector.algorithms.ast_compare",
+            side_effect=side_effect,
+        ):
+            records = detect_algorithm_conflicts(cf, registry)
+
+        assert records == []
+
     def test_value_error_skipped(self):
         """ValueError from ast_compare should skip the pair, not crash."""
         from unittest.mock import patch
