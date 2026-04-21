@@ -59,6 +59,7 @@ def create_merge_commit(
     families = snapshot.repo.families
     if target_branch is None:
         target_branch = snapshot.primary_branch_name()
+    target_expected_head = snapshot.branch_head(target_branch)
     merge = build_merge_framework(snapshot, branch_a, branch_b)
 
     left_sha = snapshot.branch_head(branch_a)
@@ -155,4 +156,5 @@ def create_merge_commit(
         message or f"Merge {branch_a} and {branch_b}",
         parents=[left_sha, right_sha],
         branch=target_branch,
+        expected_head=target_expected_head,
     )
