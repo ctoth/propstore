@@ -14,6 +14,7 @@ whether to show these rows. This implements the discipline declared in
 
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -56,11 +57,20 @@ from propstore.sidecar.quarantine import QuarantinableWriter
 from propstore.sidecar.sources import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.types import PassDiagnostic
+import propstore.sidecar.schema as sidecar_schema
 from propstore.sidecar.stages import QuarantineDiagnostic
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
     from propstore.repository import Repository
+
+
+def _sidecar_content_hash(source_revision: str) -> str:
+    payload = (
+        f"schema_version:{sidecar_schema.SCHEMA_VERSION}\n"
+        f"source_revision:{source_revision}\n"
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
@@ -221,11 +231,12 @@ def build_sidecar(
     tree = repo.tree(commit=commit_hash)
 
     if commit_hash is not None:
-        content_hash = commit_hash
+        source_revision = commit_hash
     else:
-        content_hash = repo.snapshot.head_sha()
-        if content_hash is None:
+        source_revision = repo.snapshot.head_sha()
+        if source_revision is None:
             raise ValueError("build_sidecar requires a committed git repository or an explicit commit_hash")
+    content_hash = _sidecar_content_hash(source_revision)
     hash_path = sidecar_path.with_suffix(".hash")
 
     if not force and sidecar_path.exists() and hash_path.exists():

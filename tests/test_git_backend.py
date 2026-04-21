@@ -9,6 +9,7 @@ import pytest
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
 from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_counter
 from propstore.repository import Repository
+from propstore.sidecar.build import _sidecar_content_hash
 from quire.git_store import GitStore
 from propstore.storage import init_git_store, is_git_repo, open_git_store
 from tests.conftest import (
@@ -936,7 +937,7 @@ def _setup_git_knowledge_repo(tmp_path):
 
 
 def test_build_from_git(tmp_path):
-    """pks build produces sidecar from git tree, keyed to commit hash."""
+    """pks build produces sidecar from git tree, keyed to source and schema."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
     from tests.family_helpers import build_sidecar
 
@@ -949,12 +950,12 @@ def test_build_from_git(tmp_path):
     )
     assert rebuilt is True
 
-    # .hash file contains commit sha, not content hash
+    # .hash file includes the source revision and the sidecar schema version.
     hash_path = repo.sidecar_path.with_suffix(".hash")
     assert hash_path.exists()
     stored_hash = hash_path.read_text().strip()
-    assert stored_hash == hash_key
-    assert len(stored_hash) == 40
+    assert stored_hash == _sidecar_content_hash(hash_key)
+    assert len(stored_hash) == 64
 
     # Sidecar sqlite exists and contains concept data
     import sqlite3
@@ -1031,9 +1032,9 @@ def test_build_rebuilds_on_new_commit(tmp_path):
     )
     assert rebuilt2 is True
 
-    # Hash file now contains new commit sha
+    # Hash file now reflects the new source revision under the current schema.
     hash_path = repo.sidecar_path.with_suffix(".hash")
-    assert hash_path.read_text().strip() == hash_key2
+    assert hash_path.read_text().strip() == _sidecar_content_hash(hash_key2)
 
     # Sidecar has both concepts
     import sqlite3
@@ -1481,7 +1482,7 @@ def test_checkout_builds_from_historical(tmp_path):
     # Verify sidecar contains only v1 data
     hash_path = repo.sidecar_path.with_suffix(".hash")
     assert hash_path.exists()
-    assert hash_path.read_text().strip() == v1_sha
+    assert hash_path.read_text().strip() == _sidecar_content_hash(v1_sha)
 
     conn = sqlite3.connect(repo.sidecar_path)
     rows = conn.execute("SELECT id, canonical_name FROM concept").fetchall()
