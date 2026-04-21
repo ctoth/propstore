@@ -10,6 +10,7 @@ import pytest
 from argumentation.dung import ArgumentationFramework, grounded_extension, preferred_extensions
 from argumentation.probabilistic import ProbabilisticAF as ArgumentationProbabilisticAF
 from propstore.opinion import Opinion, from_probability
+from propstore.preference import claim_strength
 
 
 def _probability(value: float | Opinion) -> float:
@@ -535,7 +536,12 @@ def test_build_praf_from_store():
     from unittest.mock import patch
 
     with patch("propstore.core.analyzers.defeat_holds", return_value=True), \
-         patch("propstore.core.analyzers.claim_strength", return_value=[1.0]):
+         patch(
+             "propstore.core.analyzers.claim_strength",
+             return_value=claim_strength(
+                 {"sample_size": 1, "uncertainty": 0.5, "confidence": 0.5}
+             ),
+         ):
         praf = build_praf(store, {"c1", "c2"})
 
     assert isinstance(praf, PropstorePrAF)

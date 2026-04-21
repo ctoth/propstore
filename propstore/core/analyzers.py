@@ -408,7 +408,12 @@ def _collect_claim_graph_relations(
         if stance_type in _PREFERENCE_TYPES:
             attacker_strength = claim_strength(claims_by_id[source_id])
             target_strength = claim_strength(claims_by_id[target_id])
-            if defeat_holds(stance_type, attacker_strength, target_strength, comparison):
+            if defeat_holds(
+                stance_type,
+                list(attacker_strength.dimensions),
+                list(target_strength.dimensions),
+                comparison,
+            ):
                 direct_defeats.add((source_id, target_id))
                 if not isinstance(attack_opinion, NoCalibration):
                     direct_defeat_relations.append(
