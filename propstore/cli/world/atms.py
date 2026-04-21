@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.cli.helpers import exit_with_code
+from propstore.cli.helpers import EXIT_VALIDATION, exit_with_code
 from propstore.cli.output import emit, emit_section
 
 from propstore.app.world_atms import (
@@ -118,7 +118,7 @@ def world_atms_verify_command(
             continue
         emit_section(f"{section_name}:", errors)
 
-    exit_with_code(2)
+    exit_with_code(EXIT_VALIDATION)
 
 
 @atms.command("futures")
