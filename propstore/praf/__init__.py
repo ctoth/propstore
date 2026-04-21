@@ -2,6 +2,7 @@
 
 from .engine import (
     NoCalibration,
+    PreferenceLayerError,
     PropstorePrAF,
     enforce_coh,
     p_arg_from_claim,
@@ -14,6 +15,7 @@ from .projection import build_praf
 
 __all__ = [
     "NoCalibration",
+    "PreferenceLayerError",
     "PropstorePrAF",
     "build_praf",
     "enforce_coh",
