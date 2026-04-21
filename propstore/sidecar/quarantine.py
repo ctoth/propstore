@@ -63,6 +63,23 @@ class QuarantinableWriter:
             )
         return Written(artifact_id=artifact_id, kind=kind)
 
+    def quarantine(
+        self,
+        *,
+        artifact_id: str,
+        kind: str,
+        diagnostic_kind: str,
+        message: str,
+        file: str | None = None,
+    ) -> Quarantined:
+        return self._quarantine(
+            artifact_id=artifact_id,
+            kind=kind,
+            diagnostic_kind=diagnostic_kind,
+            message=message,
+            file=file,
+        )
+
     def _quarantine(
         self,
         *,

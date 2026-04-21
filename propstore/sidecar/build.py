@@ -51,8 +51,10 @@ from propstore.sidecar.schema import (
     write_schema_metadata,
 )
 from propstore.sidecar.micropublications import populate_micropublications
+from propstore.sidecar.quarantine import QuarantinableWriter
 from propstore.sidecar.sources import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
+from propstore.semantic_passes.types import PassDiagnostic
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
@@ -86,6 +88,25 @@ def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
         ),
     )
     conn.commit()
+
+
+def _record_form_diagnostics(
+    conn: sqlite3.Connection,
+    diagnostics: tuple[PassDiagnostic, ...],
+) -> None:
+    if not diagnostics:
+        return
+    writer = QuarantinableWriter(conn)
+    for diagnostic in diagnostics:
+        if not diagnostic.is_error:
+            continue
+        writer.quarantine(
+            artifact_id=diagnostic.filename or diagnostic.artifact_id or "unknown",
+            kind="form",
+            diagnostic_kind="form_validation",
+            message=diagnostic.render(),
+            file=diagnostic.filename,
+        )
 
 
 def build_sidecar(
@@ -123,10 +144,11 @@ def build_sidecar(
             for form_ref in repo.families.forms.iter(commit=commit_hash)
         ]
     )
-    if not form_result.ok or not isinstance(form_result.output, FormCheckedRegistry):
+    if not isinstance(form_result.output, FormCheckedRegistry):
         errors = ", ".join(error.render() for error in form_result.errors)
         raise ValueError(f"form validation failed: {errors}")
     form_registry = form_result.output.registry
+    form_diagnostics = form_result.diagnostics
     concepts = [
         LoadedConcept(
             filename=ref.name,
@@ -294,6 +316,7 @@ def build_sidecar(
             sidecar_plan.concept_rows,
         )
         create_claim_tables(conn)
+        _record_form_diagnostics(conn, form_diagnostics)
         create_micropublication_tables(conn)
 
         if sidecar_plan.context_rows.context_rows:
