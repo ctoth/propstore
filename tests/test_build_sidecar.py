@@ -1509,7 +1509,12 @@ class TestClaimStanceTable:
         finally:
             conn.close()
 
-    def test_invalid_inline_stance_target_raises(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_invalid_inline_stance_target_quarantines(
+        self,
+        concept_dir,
+        knowledge_reader,
+        sidecar_path,
+    ):
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
@@ -1539,8 +1544,37 @@ class TestClaimStanceTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        with pytest.raises(sqlite3.IntegrityError, match="nonexistent target claim"):
-            build_sidecar(knowledge_reader, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
+
+        conn = sqlite3.connect(sidecar_path)
+        try:
+            relation_rows = conn.execute(
+                """
+                SELECT source_id, target_id
+                FROM relation_edge
+                WHERE source_kind = 'claim' AND target_kind = 'claim'
+                """
+            ).fetchall()
+            diagnostics = conn.execute(
+                """
+                SELECT source_kind, source_ref, diagnostic_kind, severity, blocking, message
+                FROM build_diagnostics
+                WHERE diagnostic_kind = 'stance_validation'
+                """
+            ).fetchall()
+        finally:
+            conn.close()
+
+        assert relation_rows == []
+        assert diagnostics
+        assert diagnostics[0][:5] == (
+            "stance",
+            "missing_claim",
+            "stance_validation",
+            "error",
+            1,
+        )
+        assert "references nonexistent target claim" in diagnostics[0][5]
 
     def test_invalid_inline_stance_type_raises(self, concept_dir, knowledge_reader, sidecar_path):
         claims_dir = concept_dir.parent / "claims"

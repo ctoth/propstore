@@ -40,7 +40,7 @@ from propstore.parameterization_groups import build_groups
 from propstore.propagation import rewrite_parameterization_symbols
 from propstore.sidecar.claim_utils import (
     collect_claim_reference_map,
-    extract_deferred_stance_rows,
+    extract_deferred_stance_rows_with_diagnostics,
     prepare_claim_insert_row,
 )
 from propstore.sidecar.stages import (
@@ -466,6 +466,7 @@ def compile_claim_sidecar_rows(
     claim_seq = 0
     claim_rows: list[ClaimInsertRow] = []
     stance_rows: list[ClaimStanceInsertRow] = []
+    quarantine_diagnostics: list[QuarantineDiagnostic] = []
     claim_reference_map = collect_claim_reference_map(
         claim_bundle.normalized_claim_files
     )
@@ -490,18 +491,23 @@ def compile_claim_sidecar_rows(
             if file_stage is not None:
                 row["stage"] = file_stage
             claim_rows.append(ClaimInsertRow(row))
-            stance_rows.extend(
-                ClaimStanceInsertRow(values)
-                for values in extract_deferred_stance_rows(
+            deferred_stance_rows, deferred_stance_diagnostics = (
+                extract_deferred_stance_rows_with_diagnostics(
                     semantic_claim,
                     claim_reference_map,
                     source_paper=semantic_claim.source_paper,
                 )
             )
+            stance_rows.extend(
+                ClaimStanceInsertRow(values)
+                for values in deferred_stance_rows
+            )
+            quarantine_diagnostics.extend(deferred_stance_diagnostics)
 
     return ClaimSidecarRows(
         claim_rows=tuple(claim_rows),
         stance_rows=tuple(stance_rows),
+        quarantine_diagnostics=tuple(quarantine_diagnostics),
     )
 
 
@@ -957,6 +963,7 @@ def compile_sidecar_build_plan(
             repository_checked_bundle.concept_registry,
             form_registry=repository_checked_bundle.form_registry,
         )
+        quarantine_diagnostics = claim_rows.quarantine_diagnostics
         raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(
             checked_claims.raw_id_quarantine_records
         )
@@ -987,7 +994,9 @@ def compile_sidecar_build_plan(
             )
         )
         quarantine_diagnostics = (
-            stance_quarantine_diagnostics + justification_quarantine_diagnostics
+            quarantine_diagnostics
+            + stance_quarantine_diagnostics
+            + justification_quarantine_diagnostics
         )
 
     micropublication_rows, micropublication_quarantine_diagnostics = (

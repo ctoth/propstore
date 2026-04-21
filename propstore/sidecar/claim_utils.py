@@ -32,6 +32,7 @@ from propstore.families.identity.claims import (
 )
 from propstore.families.forms.stages import FormDefinition
 from propstore.sidecar.concept_utils import resolve_concept_reference
+from propstore.sidecar.stages import QuarantineDiagnostic
 from propstore.stances import VALID_STANCE_TYPES
 
 
@@ -466,14 +467,16 @@ def resolve_algorithm_storage(
     return body, canonical_ast, variables_json, algorithm_stage
 
 
-def extract_deferred_stance_rows(
+def extract_deferred_stance_rows_with_diagnostics(
     claim: dict | SemanticClaim,
     claim_reference_map: dict[str, str],
     *,
     source_paper: str,
-) -> list[tuple]:
+) -> tuple[list[tuple], tuple[QuarantineDiagnostic, ...]]:
+    filename: str | None = None
     if isinstance(claim, SemanticClaim):
         semantic_claim = claim
+        filename = semantic_claim.filename
         claim_data = semantic_claim.resolved_claim.to_payload()
         claim_id = (
             claim_data.get("artifact_id")
@@ -506,16 +509,42 @@ def extract_deferred_stance_rows(
             stance_inputs.append((stance, target_claim_id))
 
     rows: list[tuple] = []
+    diagnostics: list[QuarantineDiagnostic] = []
+    valid_claim_ids = set(claim_reference_map.values())
     for stance, target_claim_id in stance_inputs:
         stance_type = stance.get("type")
         if not target_claim_id or not stance_type:
             continue
         if stance_type not in VALID_STANCE_TYPES:
-            raise ValueError(f"claim '{claim_id}' uses unrecognized stance type '{stance_type}'")
-        if target_claim_id not in claim_reference_map.values():
-            raise sqlite3.IntegrityError(
-                f"claim '{claim_id}' references nonexistent target claim '{target_claim_id}'"
+            message = (
+                f"claim '{claim_id}' uses unrecognized stance type "
+                f"'{stance_type}'"
             )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=str(claim_id or target_claim_id),
+                    kind="stance",
+                    diagnostic_kind="stance_validation",
+                    message=message,
+                    file=filename,
+                )
+            )
+            continue
+        if target_claim_id not in valid_claim_ids:
+            message = (
+                f"claim '{claim_id}' references nonexistent target claim "
+                f"'{target_claim_id}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=str(target_claim_id),
+                    kind="stance",
+                    diagnostic_kind="stance_validation",
+                    message=message,
+                    file=filename,
+                )
+            )
+            continue
         resolution = coerce_stance_resolution(
             stance.get("resolution"),
             f"claim '{claim_id}' stance targeting '{target_claim_id}'",
@@ -540,7 +569,7 @@ def extract_deferred_stance_rows(
             opinion_columns[2],
             opinion_columns[3],
         ))
-    return rows
+    return rows, tuple(diagnostics)
 
 
 def prepare_claim_insert_row(
