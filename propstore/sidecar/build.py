@@ -18,6 +18,7 @@ import hashlib
 import os
 import sqlite3
 import tempfile
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -67,6 +68,9 @@ if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
     from propstore.repository import Repository
 
+_SIDECAR_PUBLISH_LOCKS_LOCK = threading.Lock()
+_SIDECAR_PUBLISH_LOCKS: dict[Path, threading.Lock] = {}
+
 
 def _sidecar_content_hash(source_revision: str) -> str:
     payload = (
@@ -99,6 +103,16 @@ def _new_temp_sidecar_path(sidecar_path: Path) -> Path:
     temp_path = Path(temp_name)
     temp_path.unlink()
     return temp_path
+
+
+def _publish_lock_for_sidecar(sidecar_path: Path) -> threading.Lock:
+    key = sidecar_path.resolve()
+    with _SIDECAR_PUBLISH_LOCKS_LOCK:
+        lock = _SIDECAR_PUBLISH_LOCKS.get(key)
+        if lock is None:
+            lock = threading.Lock()
+            _SIDECAR_PUBLISH_LOCKS[key] = lock
+        return lock
 
 
 def _checkpoint_and_close(conn: sqlite3.Connection) -> None:
@@ -557,15 +571,17 @@ def build_sidecar(
         if had_existing_sidecar:
             _cleanup_sidecar_artifacts(temp_sidecar_path)
         else:
-            temp_sidecar_path.replace(sidecar_path)
+            with _publish_lock_for_sidecar(sidecar_path):
+                temp_sidecar_path.replace(sidecar_path)
             _cleanup_sidecar_artifacts(temp_sidecar_path)
         raise
 
     _checkpoint_and_close(conn)
     temp_hash_path.write_text(content_hash)
     try:
-        temp_sidecar_path.replace(sidecar_path)
-        temp_hash_path.replace(hash_path)
+        with _publish_lock_for_sidecar(sidecar_path):
+            temp_sidecar_path.replace(sidecar_path)
+            temp_hash_path.replace(hash_path)
     except Exception:
         _cleanup_sidecar_artifacts(temp_sidecar_path)
         temp_hash_path.unlink(missing_ok=True)
