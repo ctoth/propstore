@@ -75,6 +75,25 @@ def _praf_provenance(status: ProvenanceStatus, operation: str) -> Provenance:
     return Provenance(status=status, witnesses=(), operations=(operation,))
 
 
+def _defeat_summary_opinion(probability: float) -> Opinion:
+    p = max(0.0, min(1.0, float(probability)))
+    provenance = _praf_provenance(
+        ProvenanceStatus.CALIBRATED,
+        "defeat_distribution_variance",
+    )
+    variance = p * (1.0 - p)
+    if variance <= 1e-12:
+        return Opinion(p, 1.0 - p, 0.0, 0.5, provenance)
+
+    dogmatic = Opinion(p, 1.0 - p, 0.0, 0.5)
+    max_uncertainty = dogmatic.maximize_uncertainty().u
+    normalized_variance = min(1.0, variance / 0.25)
+    uncertainty = max_uncertainty * normalized_variance
+    belief = p - 0.5 * uncertainty
+    disbelief = 1.0 - belief - uncertainty
+    return Opinion(belief, disbelief, uncertainty, 0.5, provenance)
+
+
 def _missing_calibration(reason: str, *missing_fields: str) -> NoCalibration:
     return NoCalibration(
         reason=reason,
@@ -377,7 +396,7 @@ def summarize_defeat_relations(
                 kind=kind,
                 source=edge[0],
                 target=edge[1],
-                opinion=Opinion(probability, 1.0 - probability, 0.0, 0.5),
+                opinion=_defeat_summary_opinion(probability),
                 row=None,
                 derived_from=(),
             )
