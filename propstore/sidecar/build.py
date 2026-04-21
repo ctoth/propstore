@@ -39,7 +39,7 @@ from propstore.sidecar.claims import (
     populate_stances,
 )
 from propstore.sidecar.passes import compile_sidecar_build_plan
-from propstore.sidecar.stages import RepositoryCheckedBundle
+from propstore.sidecar.stages import ContextSidecarRows, RepositoryCheckedBundle
 from propstore.sidecar.concepts import populate_concept_sidecar_rows
 from propstore.sidecar.schema import (
     create_build_diagnostics_table,
@@ -165,6 +165,22 @@ def _record_context_diagnostics(
             message=diagnostic.render(),
             file=diagnostic.filename,
         )
+
+
+def _filter_invalid_context_lifting_rows(
+    rows: ContextSidecarRows,
+) -> ContextSidecarRows:
+    context_ids = {row.values[0] for row in rows.context_rows}
+    valid_lifting_rows = tuple(
+        row
+        for row in rows.lifting_rule_rows
+        if row.values[1] in context_ids and row.values[2] in context_ids
+    )
+    return ContextSidecarRows(
+        context_rows=rows.context_rows,
+        assumption_rows=rows.assumption_rows,
+        lifting_rule_rows=valid_lifting_rows,
+    )
 
 
 def _record_quarantine_diagnostics(
@@ -403,8 +419,13 @@ def build_sidecar(
         _record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
         create_micropublication_tables(conn)
 
-        if sidecar_plan.context_rows.context_rows:
-            populate_contexts(conn, sidecar_plan.context_rows)
+        context_rows = (
+            _filter_invalid_context_lifting_rows(sidecar_plan.context_rows)
+            if context_diagnostics
+            else sidecar_plan.context_rows
+        )
+        if context_rows.context_rows:
+            populate_contexts(conn, context_rows)
 
         if sidecar_plan.claim_rows is not None:
             populate_claims(conn, sidecar_plan.claim_rows)
