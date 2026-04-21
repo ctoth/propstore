@@ -83,6 +83,10 @@ def test_forms_alias_does_not_trigger_startup_traceback() -> None:
     assert "Traceback" not in result.output
 
 
+def test_dead_prefixed_error_helper_is_removed() -> None:
+    assert not Path("propstore/cli/output/errors.py").exists()
+
+
 def test_worldline_commands_live_outside_group_module() -> None:
     group_module = Path("propstore/cli/worldline/__init__.py").read_text(encoding="utf-8")
     materialize = Path("propstore/cli/worldline/materialize.py").read_text(
