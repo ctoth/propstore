@@ -11,6 +11,7 @@ which does not exist yet — all tests should fail with ImportError initially.
 import sqlite3
 from functools import cached_property
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -1736,6 +1737,40 @@ class TestSilentExceptionLogging:
 
 class TestWorldlineCLIFlags:
     """Worldline CLI must expose all reasoning backend options (Phase 6)."""
+
+    def test_refresh_uses_run_option_defaults_as_single_source(self, monkeypatch):
+        """pks worldline refresh must not duplicate run's option defaults."""
+        from click.testing import CliRunner
+
+        import propstore.cli.worldline.materialize as materialize_module
+        from propstore.cli.worldline.materialize import worldline_refresh, worldline_run
+
+        semantics_option = next(
+            param for param in worldline_run.params
+            if param.name == "semantics"
+        )
+        monkeypatch.setattr(semantics_option, "default", "preferred")
+
+        captured = {}
+
+        def fake_materialize_worldline(repo, request):
+            captured["request"] = request
+            return SimpleNamespace(result=SimpleNamespace(values={}))
+
+        monkeypatch.setattr(
+            materialize_module,
+            "materialize_worldline",
+            fake_materialize_worldline,
+        )
+
+        result = CliRunner().invoke(
+            worldline_refresh,
+            ["demo"],
+            obj={"repo": object()},
+        )
+
+        assert result.exit_code == 0, result.output
+        assert captured["request"].policy.semantics == "preferred"
 
     def test_create_reasoning_backend_flag(self, tmp_path):
         """--reasoning-backend aspic must be accepted and stored in policy."""
