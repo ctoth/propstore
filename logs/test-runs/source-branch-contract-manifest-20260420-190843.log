@@ -1,0 +1,109 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default' -> deadline=None
+rootdir: C:\Users\Q\code\propstore
+configfile: pyproject.toml
+plugins: hypothesis-6.152.1, cov-7.1.0, timeout-2.4.0, xdist-3.8.0
+timeout: 300.0s
+timeout method: thread
+timeout func_only: False
+created: 16/16 workers
+16 workers [8 items]
+
+scheduling tests via WorkStealingScheduling
+
+tests/test_contract_manifest.py::test_contract_manifest_changes_require_version_bumps_against_head 
+tests/test_contract_manifest.py::test_every_artifact_family_has_contract_version 
+tests/test_contract_manifest.py::test_checked_in_contract_manifest_is_current 
+tests/test_contract_manifest.py::test_every_claim_type_contract_has_contract_version 
+tests/test_contract_manifest.py::test_artifact_family_contract_callbacks_are_named 
+tests/test_contract_manifest.py::test_contract_manifest_covers_documents_and_artifact_families 
+tests/test_contract_manifest.py::test_claim_and_concept_family_contracts_include_identity_policy 
+tests/test_contract_manifest.py::test_every_semantic_foreign_key_has_contract_version 
+[gw9] [ 12%] PASSED tests/test_contract_manifest.py::test_every_semantic_foreign_key_has_contract_version 
+[gw8] [ 25%] PASSED tests/test_contract_manifest.py::test_every_artifact_family_has_contract_version 
+[gw10] [ 37%] PASSED tests/test_contract_manifest.py::test_every_claim_type_contract_has_contract_version 
+[gw13] [ 50%] PASSED tests/test_contract_manifest.py::test_claim_and_concept_family_contracts_include_identity_policy 
+[gw12] [ 62%] PASSED tests/test_contract_manifest.py::test_artifact_family_contract_callbacks_are_named 
+[gw11] [ 75%] PASSED tests/test_contract_manifest.py::test_contract_manifest_covers_documents_and_artifact_families 
+[gw14] [ 87%] PASSED tests/test_contract_manifest.py::test_checked_in_contract_manifest_is_current 
+[gw15] [100%] FAILED tests/test_contract_manifest.py::test_contract_manifest_changes_require_version_bumps_against_head 
+
+================================== FAILURES ===================================
+______ test_contract_manifest_changes_require_version_bumps_against_head ______
+[gw15] win32 -- Python 3.13.5 C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+
+    def test_contract_manifest_changes_require_version_bumps_against_head() -> None:
+        relative_path = Path(CONTRACT_MANIFEST_PATH).relative_to(Path.cwd()).as_posix()
+        result = subprocess.run(
+            ["git", "show", f"HEAD:{relative_path}"],
+            check=False,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            pytest.skip("checked-in contract manifest is not available from git HEAD")
+    
+        try:
+            previous = ContractManifest.from_yaml(result.stdout)
+        except ValueError as exc:
+            pytest.skip(f"HEAD contract manifest predates current Quire manifest invariants: {exc}")
+        current = build_propstore_contract_manifest()
+    
+>       check_contract_manifest(previous, current)
+
+tests\test_contract_manifest.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+previous = ContractManifest(format_version=1, package_name='propstore', package_version='0.1.0', contracts=(ContractEntry(kind='a...nts': []})), registry_name='propstore', registry_contract_version=VersionId(value='2026.04.29'), compatible_changes=())
+current = ContractManifest(format_version=1, package_name='propstore', package_version='0.1.0', contracts=(ContractEntry(kind='a...nts': []})), registry_name='propstore', registry_contract_version=VersionId(value='2026.04.29'), compatible_changes=())
+
+    def check_contract_manifest(
+        previous: ContractManifest,
+        current: ContractManifest,
+    ) -> ContractCheckReport:
+        previous_entries = {entry.key: entry for entry in previous.contracts}
+        current_entries = {entry.key: entry for entry in current.contracts}
+        markers = {
+            (marker.contract, str(marker.contract_version))
+            for marker in current.compatible_changes
+        }
+    
+        bumped: list[str] = []
+        compatible: list[str] = []
+        failed: list[str] = []
+        unchanged: list[str] = []
+    
+        for key in sorted(previous_entries.keys() & current_entries.keys()):
+            old = previous_entries[key]
+            new = current_entries[key]
+            if old.body == new.body and old.contract_version == new.contract_version:
+                unchanged.append(key)
+                continue
+            if old.contract_version != new.contract_version:
+                bumped.append(key)
+                continue
+            if (key, str(new.contract_version)) in markers:
+                compatible.append(key)
+                continue
+            failed.append(key)
+    
+        report = ContractCheckReport(
+            bumped=tuple(bumped),
+            compatible=tuple(compatible),
+            failed=tuple(failed),
+            unchanged=tuple(unchanged),
+            added=tuple(sorted(current_entries.keys() - previous_entries.keys())),
+            removed=tuple(sorted(previous_entries.keys() - current_entries.keys())),
+        )
+        if report.failed:
+>           raise ContractManifestError(
+                "Contract body changed without version bump or compatibility marker: "
+                + ", ".join(report.failed)
+            )
+E           quire.contracts.ContractManifestError: Contract body changed without version bump or compatibility marker: family-registry:propstore
+
+.venv\Lib\site-packages\quire\contracts.py:228: ContractManifestError
+=========================== short test summary info ===========================
+FAILED tests/test_contract_manifest.py::test_contract_manifest_changes_require_version_bumps_against_head - quire.contracts.ContractManifestError: Contract body changed without version bump or compatibility marker: family-registry:propstore
+========================= 1 failed, 7 passed in 4.43s =========================

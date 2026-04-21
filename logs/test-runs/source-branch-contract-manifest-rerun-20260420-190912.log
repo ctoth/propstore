@@ -1,0 +1,33 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default' -> deadline=None
+rootdir: C:\Users\Q\code\propstore
+configfile: pyproject.toml
+plugins: hypothesis-6.152.1, cov-7.1.0, timeout-2.4.0, xdist-3.8.0
+timeout: 300.0s
+timeout method: thread
+timeout func_only: False
+created: 16/16 workers
+16 workers [8 items]
+
+scheduling tests via WorkStealingScheduling
+
+tests/test_contract_manifest.py::test_contract_manifest_changes_require_version_bumps_against_head 
+tests/test_contract_manifest.py::test_every_semantic_foreign_key_has_contract_version 
+tests/test_contract_manifest.py::test_contract_manifest_covers_documents_and_artifact_families 
+tests/test_contract_manifest.py::test_every_artifact_family_has_contract_version 
+tests/test_contract_manifest.py::test_claim_and_concept_family_contracts_include_identity_policy 
+tests/test_contract_manifest.py::test_artifact_family_contract_callbacks_are_named 
+tests/test_contract_manifest.py::test_checked_in_contract_manifest_is_current 
+tests/test_contract_manifest.py::test_every_claim_type_contract_has_contract_version 
+[gw8] [ 12%] PASSED tests/test_contract_manifest.py::test_every_artifact_family_has_contract_version 
+[gw9] [ 25%] PASSED tests/test_contract_manifest.py::test_every_semantic_foreign_key_has_contract_version 
+[gw10] [ 37%] PASSED tests/test_contract_manifest.py::test_every_claim_type_contract_has_contract_version 
+[gw11] [ 50%] PASSED tests/test_contract_manifest.py::test_contract_manifest_covers_documents_and_artifact_families 
+[gw13] [ 62%] PASSED tests/test_contract_manifest.py::test_claim_and_concept_family_contracts_include_identity_policy 
+[gw12] [ 75%] PASSED tests/test_contract_manifest.py::test_artifact_family_contract_callbacks_are_named 
+[gw14] [ 87%] PASSED tests/test_contract_manifest.py::test_checked_in_contract_manifest_is_current 
+[gw15] [100%] PASSED tests/test_contract_manifest.py::test_contract_manifest_changes_require_version_bumps_against_head 
+
+============================== 8 passed in 4.21s ==============================
