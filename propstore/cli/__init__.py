@@ -99,9 +99,3 @@ def cli(ctx: click.Context, directory: str | None) -> None:
         ctx.obj["start"] = start
         return
     ctx.obj["repo"] = _LazyRepository(start)
-
-
-cli.commands.update({
-    name: click.Command(name, help=spec[2])
-    for name, spec in _COMMANDS.items()
-})

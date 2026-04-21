@@ -8,6 +8,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+import click
 import pytest
 import yaml
 from click.testing import CliRunner
@@ -1932,7 +1933,7 @@ class TestPromoteCommandExists:
 
     def test_promote_is_registered_command(self):
         """The 'promote' command must be registered on the top-level CLI group."""
-        command_names = [cmd for cmd in cli.commands]
+        command_names = cli.list_commands(click.Context(cli))
         assert "promote" in command_names, (
             f"'promote' not found in CLI commands: {sorted(command_names)}. "
             "A promote command is needed to move proposals into source-of-truth storage."
