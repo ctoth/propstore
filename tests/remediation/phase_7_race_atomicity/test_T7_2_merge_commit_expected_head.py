@@ -48,8 +48,10 @@ def test_merge_commit_rejects_target_branch_moved_before_materialization(tmp_pat
         "right",
         branch=branch_name,
     )
+    snapshot = _snapshot(kr)
+    snapshot_git = snapshot.git
     racing_sha: str | None = None
-    original_commit_flat_tree = kr.commit_flat_tree
+    original_commit_flat_tree = snapshot_git.commit_flat_tree
 
     def race_before_materialization(*args: object, **kwargs: object) -> str:
         nonlocal racing_sha
@@ -57,10 +59,10 @@ def test_merge_commit_rejects_target_branch_moved_before_materialization(tmp_pat
             racing_sha = kr.commit_files({"claims/race.yaml": _claim_yaml("race", "Race")}, "race")
         return original_commit_flat_tree(*args, **kwargs)
 
-    monkeypatch.setattr(kr, "commit_flat_tree", race_before_materialization)
+    monkeypatch.setattr(snapshot_git, "commit_flat_tree", race_before_materialization)
 
     with pytest.raises(ValueError, match="head mismatch"):
-        create_merge_commit(_snapshot(kr), "master", branch_name)
+        create_merge_commit(snapshot, "master", branch_name)
 
     assert racing_sha is not None
     assert kr.branch_sha("master") == racing_sha
