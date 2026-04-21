@@ -38,7 +38,7 @@ def promote_cmd(ctx: click.Context, path: str | None, yes: bool) -> None:
         click.confirm("Promote these files?", abort=True)
 
     result = promote_proposals(repo, plan)
-    for item in plan.items:
+    for item in result.promoted_items:
         emit_success(f"  Promoted: {item.filename}")
 
-    emit_success(f"\n{result.moved} file(s) promoted.")
+    emit_success(f"\nPromoted {result.moved} of {len(plan.items)} file(s).")
