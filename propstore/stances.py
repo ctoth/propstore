@@ -12,6 +12,7 @@ class StanceType(StrEnum):
     SUPPORTS = "supports"
     EXPLAINS = "explains"
     SUPERSEDES = "supersedes"
+    ABSTAIN = "abstain"
     NONE = "none"
 
 
