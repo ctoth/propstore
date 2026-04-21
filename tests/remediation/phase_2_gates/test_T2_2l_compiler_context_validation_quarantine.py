@@ -70,7 +70,7 @@ def test_build_repository_context_schema_error_quarantines_not_raises(
     assert diagnostic_rows
     assert diagnostic_rows[0][:5] == (
         "context",
-        "ctx_missing_name.yaml",
+        "ctx_missing_name",
         "context_validation",
         "error",
         1,

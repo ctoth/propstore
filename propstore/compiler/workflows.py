@@ -333,44 +333,47 @@ def build_repository(
     build_messages.extend(concept_messages)
 
     context_ids: set[str] = set()
-    try:
-        ctx_list = [
+    ctx_list: list[LoadedContext] = []
+    context_messages: list[PassDiagnostic] = []
+    for ref in repo.families.contexts.iter(commit=hash_key):
+        try:
+            handle = repo.families.contexts.require_handle(ref, commit=hash_key)
+        except DocumentSchemaError as exc:
+            context_messages.append(
+                PassDiagnostic(
+                    level="error",
+                    code="context.schema",
+                    message=str(exc),
+                    family=PropstoreFamily.CONTEXTS,
+                    stage=ContextStage.AUTHORED,
+                    filename=ref.name,
+                    artifact_id=ref.name,
+                    pass_name="compiler.build_repository",
+                )
+            )
+            continue
+        ctx_list.append(
             LoadedContext(
                 filename=ref.name,
                 source_path=tree / handle.address.require_path(),
                 knowledge_root=tree,
                 record=parse_context_record_document(handle.document),
             )
-            for ref in repo.families.contexts.iter(commit=hash_key)
-            for handle in (
-                repo.families.contexts.require_handle(ref, commit=hash_key),
-            )
-        ]
-    except DocumentSchemaError as exc:
-        raise CompilerWorkflowError(
-            "Build aborted: context validation failed.",
-            (
-                _workflow_diagnostic(
-                    PropstoreFamily.CONTEXTS,
-                    ContextStage.AUTHORED,
-                    str(exc),
-                ),
-            ),
-        ) from exc
+        )
     if ctx_list:
         ctx_result = run_context_pipeline(ctx_list)
-        context_messages = _messages_from_pipeline_result(ctx_result)
-        if not ctx_result.ok or not isinstance(ctx_result.output, ContextCheckedGraph):
+        context_messages.extend(_messages_from_pipeline_result(ctx_result))
+        if not isinstance(ctx_result.output, ContextCheckedGraph):
             raise CompilerWorkflowError(
                 "Build aborted: context validation failed.",
-                context_messages,
+                tuple(context_messages),
             )
-        build_messages.extend(context_messages)
         context_ids = {
             str(c.record.context_id)
             for c in ctx_result.output.contexts
             if c.record.context_id is not None
         }
+    build_messages.extend(context_messages)
 
     claim_files = None
     compilation_context = build_compilation_context_from_repo(
@@ -424,6 +427,8 @@ def build_repository(
         compilation_context=compilation_context,
         claim_checked_bundle=claim_checked_bundle,
         concept_diagnostics=concept_messages,
+        context_files=tuple(ctx_list),
+        context_diagnostics=tuple(context_messages),
     )
 
     warning_count = len(concept_result.warnings)

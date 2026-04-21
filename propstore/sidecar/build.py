@@ -148,6 +148,25 @@ def _record_concept_diagnostics(
         )
 
 
+def _record_context_diagnostics(
+    conn: sqlite3.Connection,
+    diagnostics: tuple[PassDiagnostic, ...],
+) -> None:
+    if not diagnostics:
+        return
+    writer = QuarantinableWriter(conn)
+    for diagnostic in diagnostics:
+        if not diagnostic.is_error:
+            continue
+        writer.quarantine(
+            artifact_id=diagnostic.artifact_id or diagnostic.filename or "unknown",
+            kind="context",
+            diagnostic_kind="context_validation",
+            message=diagnostic.render(),
+            file=diagnostic.filename,
+        )
+
+
 def _record_quarantine_diagnostics(
     conn: sqlite3.Connection,
     diagnostics: tuple[QuarantineDiagnostic, ...],
@@ -174,6 +193,8 @@ def build_sidecar(
     compilation_context: CompilationContext | None = None,
     claim_checked_bundle: ClaimCheckedBundle | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
+    context_files: tuple[LoadedContext, ...] | None = None,
+    context_diagnostics: tuple[PassDiagnostic, ...] = (),
 ) -> bool:
     """Build the SQLite sidecar from repository artifact families."""
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
@@ -223,18 +244,19 @@ def build_sidecar(
         repo.families.claims.require_handle(ref, commit=commit_hash)
         for ref in repo.families.claims.iter(commit=commit_hash)
     ]
-    context_files = [
-        LoadedContext(
-            filename=ref.name,
-            source_path=tree / handle.address.require_path(),
-            knowledge_root=tree,
-            record=parse_context_record_document(handle.document),
+    if context_files is None:
+        context_files = tuple(
+            LoadedContext(
+                filename=ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_context_record_document(handle.document),
+            )
+            for ref in repo.families.contexts.iter(commit=commit_hash)
+            for handle in (
+                repo.families.contexts.require_handle(ref, commit=commit_hash),
+            )
         )
-        for ref in repo.families.contexts.iter(commit=commit_hash)
-        for handle in (
-            repo.families.contexts.require_handle(ref, commit=commit_hash),
-        )
-    ]
     context_ids = {
         str(c.record.context_id)
         for c in (context_files or [])
@@ -376,6 +398,7 @@ def build_sidecar(
         create_claim_tables(conn)
         _record_form_diagnostics(conn, form_diagnostics)
         _record_concept_diagnostics(conn, concept_diagnostics)
+        _record_context_diagnostics(conn, context_diagnostics)
         _record_claim_diagnostics(conn, claim_diagnostics)
         _record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
         create_micropublication_tables(conn)
