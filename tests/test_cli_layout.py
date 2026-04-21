@@ -166,6 +166,13 @@ def test_micropub_lift_uses_named_error_exit_code() -> None:
     assert "EXIT_ERROR" in micropub
 
 
+def test_world_atms_uses_named_validation_exit_code() -> None:
+    atms = Path("propstore/cli/world/atms.py").read_text(encoding="utf-8")
+
+    assert "exit_with_code(2)" not in atms
+    assert "EXIT_VALIDATION" in atms
+
+
 def test_source_commands_live_in_source_package() -> None:
     group_module = Path("propstore/cli/source/__init__.py").read_text(encoding="utf-8")
     authoring = Path("propstore/cli/source/authoring.py").read_text(encoding="utf-8")
