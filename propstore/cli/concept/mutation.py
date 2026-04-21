@@ -30,6 +30,7 @@ from propstore.app.concepts import (
     rename_concept,
     set_concept_description_kind,
 )
+from propstore.app.forms import list_form_items
 from propstore.cli.concept import (
     concept,
 )
@@ -101,7 +102,7 @@ def add(
     if definition is None:
         definition = click.prompt("Definition")
     if form_name is None:
-        available = sorted(form_ref.name for form_ref in repo.families.forms.iter())
+        available = tuple(item.name for item in (list_form_items(repo, dims_filter=None) or ()))
         if available:
             emit(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
