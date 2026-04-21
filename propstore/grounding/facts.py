@@ -54,6 +54,7 @@ from collections.abc import Sequence
 from argumentation.aspic import GroundAtom
 from propstore.families.concepts.stages import LoadedConcept
 from propstore.grounding.predicates import (
+    PredicateAtom,
     PredicateRegistry,
     parse_derived_from,
 )
@@ -137,7 +138,13 @@ def extract_facts(
         # Phase 1 concept-relation materialisation yields exactly one
         # source-side constant per matched edge. Reject declarations
         # whose arity disagrees instead of emitting a wrong-shaped atom.
-        registry.validate_atom(predicate.id, 1)
+        registry.validate_atom(
+            PredicateAtom(
+                predicate_id=predicate.id,
+                arguments=("__concept__",),
+                argument_types=tuple(predicate.arg_types),
+            )
+        )
 
         spec_relation = spec.relation
         spec_target = spec.target
