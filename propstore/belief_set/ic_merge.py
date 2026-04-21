@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections import OrderedDict
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import overload
@@ -19,6 +20,20 @@ class ICMergeOperator(StrEnum):
 class ICMergeOutcome:
     belief_set: BeliefSet
     scored_worlds: tuple[tuple[World, float | tuple[float, ...]], ...]
+
+
+@dataclass(slots=True)
+class _DistanceFormulaCacheEntry:
+    formula: Formula
+    models: tuple[World, ...]
+    distances: dict[World, float]
+
+
+_DISTANCE_FORMULA_CACHE_MAX_SIZE = 128
+_DISTANCE_FORMULA_CACHE: OrderedDict[
+    tuple[int, frozenset[str]],
+    _DistanceFormulaCacheEntry,
+] = OrderedDict()
 
 
 def merge_belief_profile(
@@ -107,15 +122,31 @@ def _distance_to_formula(
     Zilberstein 1996 frames bounded exact search as an anytime computation:
     if the candidate-world scan is interrupted before exactness is proven, the
     unvisited model space is reported as vacuous rather than approximated.
+
+    Konieczny and Pino Pérez 2002 IC merging repeatedly evaluates distances to
+    the same profile formulas across candidate worlds; uncapped exact calls
+    therefore memoize each formula's model set and per-world distances.
     """
 
     if max_candidates is not None and max_candidates < 0:
         raise ValueError("max_candidates must be non-negative")
 
+    if max_candidates is None:
+        entry = _distance_formula_cache_entry(formula, signature)
+        cached_distance = entry.distances.get(world)
+        if cached_distance is not None:
+            return cached_distance
+        if not entry.models:
+            entry.distances[world] = math.inf
+            return math.inf
+        distance = float(min(_hamming(world, model) for model in entry.models))
+        entry.distances[world] = distance
+        return distance
+
     best_distance: int | None = None
     examined = 0
     for candidate in BeliefSet.all_worlds(signature):
-        if max_candidates is not None and examined >= max_candidates:
+        if examined >= max_candidates:
             return EnumerationExceeded(
                 partial_count=examined,
                 max_candidates=max_candidates,
@@ -131,6 +162,35 @@ def _distance_to_formula(
     if best_distance is None:
         return math.inf
     return float(best_distance)
+
+
+def _distance_formula_cache_entry(
+    formula: Formula,
+    signature: frozenset[str],
+) -> _DistanceFormulaCacheEntry:
+    key = (id(formula), signature)
+    cached = _DISTANCE_FORMULA_CACHE.get(key)
+    if cached is not None and cached.formula is formula:
+        _DISTANCE_FORMULA_CACHE.move_to_end(key)
+        return cached
+
+    models = tuple(
+        candidate
+        for candidate in BeliefSet.all_worlds(signature)
+        if formula.evaluate(candidate)
+    )
+    entry = _DistanceFormulaCacheEntry(
+        formula=formula,
+        models=models,
+        distances={},
+    )
+    _DISTANCE_FORMULA_CACHE[key] = entry
+    _DISTANCE_FORMULA_CACHE.move_to_end(key)
+    while len(_DISTANCE_FORMULA_CACHE) > _DISTANCE_FORMULA_CACHE_MAX_SIZE:
+        # The entry holds a strong formula reference, so id reuse cannot alias a
+        # later formula while the cache entry remains live.
+        _DISTANCE_FORMULA_CACHE.popitem(last=False)
+    return entry
 
 
 def _hamming(left: World, right: World) -> int:
