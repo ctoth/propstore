@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from enum import StrEnum
@@ -357,9 +358,13 @@ def apply_exception_defeats_to_csaf(
                     _arguments_concluding(csaf, justification_claim)
                 )
             if not attacker_arguments:
-                raise ValueError(
-                    "CKR exception has no ASPIC argument for its justification claims"
+                warnings.warn(
+                    "CKR exception has no ASPIC argument for its justification claims; "
+                    "skipping that exception",
+                    UserWarning,
+                    stacklevel=2,
                 )
+                continue
             for attacker in attacker_arguments:
                 for target in target_arguments:
                     if attacker != target:
