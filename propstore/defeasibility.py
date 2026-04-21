@@ -42,6 +42,7 @@ CelScalar: TypeAlias = str | int | float | bool
 class DecidabilityStatus(StrEnum):
     DECIDABLE = "decidable"
     INCOMPLETE_SOUND = "incomplete_sound"
+    AUTHORING_UNBOUND = "authoring_unbound"
 
 
 class ClaimApplicability(StrEnum):
@@ -52,6 +53,11 @@ class ClaimApplicability(StrEnum):
 
 class ExceptionPolicyIssueKind(StrEnum):
     MULTIPLE_APPLICABLE_EXCEPTIONS = "multiple_applicable_exceptions"
+
+
+class PatternSelectionStatus(StrEnum):
+    INCOMPLETE_SOUND = "incomplete_sound"
+    AUTHORING_UNBOUND = "authoring_unbound"
 
 
 class ExceptionPatternSolver(Protocol):
@@ -258,7 +264,8 @@ def evaluate_contextual_claim(
 
     applied: list[JustifiableException] = []
     defeats: list[ExceptionDefeat] = []
-    saw_unknown = False
+    saw_incomplete = False
+    saw_authoring_unbound = False
 
     for exception in _candidate_exceptions(use, exceptions, lifting_rules):
         if exception.target_claim != use.claim:
@@ -270,8 +277,11 @@ def evaluate_contextual_claim(
             use,
             solver,
         )
-        if pattern_result is None:
-            saw_unknown = True
+        if pattern_result is PatternSelectionStatus.AUTHORING_UNBOUND:
+            saw_authoring_unbound = True
+            continue
+        if pattern_result is PatternSelectionStatus.INCOMPLETE_SOUND:
+            saw_incomplete = True
             continue
         if not pattern_result:
             continue
@@ -295,13 +305,15 @@ def evaluate_contextual_claim(
 
     if applied:
         applicability = ClaimApplicability.EXCEPTED
-    elif saw_unknown:
+    elif saw_incomplete or saw_authoring_unbound:
         applicability = ClaimApplicability.UNKNOWN
     else:
         applicability = ClaimApplicability.HOLDS
 
     decidability_status = DecidabilityStatus.DECIDABLE
-    if saw_unknown or any(
+    if saw_authoring_unbound:
+        decidability_status = DecidabilityStatus.AUTHORING_UNBOUND
+    elif saw_incomplete or any(
         exception.decidability_status is DecidabilityStatus.INCOMPLETE_SOUND
         for exception in applied
     ):
@@ -404,7 +416,7 @@ def _pattern_selects_use(
     pattern: CelExpr,
     use: ContextualClaimUse,
     solver: ExceptionPatternSolver | None,
-) -> bool | None:
+) -> bool | PatternSelectionStatus:
     source = str(pattern).strip()
     lowered = source.lower()
     if lowered == "true":
@@ -415,23 +427,23 @@ def _pattern_selects_use(
     bindings = use.binding_map()
     names = _cel_names(pattern)
     if names is None:
-        return None
+        return PatternSelectionStatus.AUTHORING_UNBOUND
     if not names <= set(bindings):
-        return None
+        return PatternSelectionStatus.AUTHORING_UNBOUND
     if solver is None:
-        return None
+        return PatternSelectionStatus.INCOMPLETE_SOUND
 
     try:
         result = solver.is_condition_satisfied_result(pattern, bindings)
     except Z3TranslationError:
-        return None
+        return PatternSelectionStatus.AUTHORING_UNBOUND
     if isinstance(result, SolverSat):
         return True
     if isinstance(result, SolverUnsat):
         return False
     if isinstance(result, SolverUnknown):
-        return None
-    return None
+        return PatternSelectionStatus.INCOMPLETE_SOUND
+    return PatternSelectionStatus.INCOMPLETE_SOUND
 
 
 def _cel_names(pattern: CelExpr) -> frozenset[str] | None:

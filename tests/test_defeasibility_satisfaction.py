@@ -139,7 +139,7 @@ def test_solver_unknown_is_not_treated_as_an_exception() -> None:
     assert result.defeats == ()
 
 
-def test_missing_binding_makes_pattern_incomplete_not_applied() -> None:
+def test_missing_binding_makes_pattern_authoring_unbound_not_applied() -> None:
     exception = _exception(pattern="age > 70")
     use = ContextualClaimUse(
         context="ctx:trial",
@@ -149,7 +149,7 @@ def test_missing_binding_makes_pattern_incomplete_not_applied() -> None:
     result = evaluate_contextual_claim(use, (exception,), solver=_age_solver())
 
     assert result.applicability is ClaimApplicability.UNKNOWN
-    assert result.decidability_status is DecidabilityStatus.INCOMPLETE_SOUND
+    assert result.decidability_status is DecidabilityStatus.AUTHORING_UNBOUND
     assert result.applied_exceptions == ()
 
 
