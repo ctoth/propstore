@@ -228,7 +228,17 @@ wheels = [
 [[package]]
 name = "bridgman"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/bridgman?rev=c6401fa1ff562c437bad18e73422c9aefa2485b1#c6401fa1ff562c437bad18e73422c9aefa2485b1" }
+source = { editable = "../bridgman" }
+
+[package.metadata]
+requires-dist = [{ name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.0" }]
+provides-extras = ["sympy"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest" },
+    { name = "sympy", specifier = ">=1.0" },
+]
 
 [[package]]
 name = "certifi"
@@ -2048,7 +2058,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ast-equiv", editable = "../ast-equiv" },
-    { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=c6401fa1ff562c437bad18e73422c9aefa2485b1" },
+    { name = "bridgman", editable = "../bridgman" },
     { name = "click", specifier = ">=8.0" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "formal-argumentation", editable = "../argumentation" },
