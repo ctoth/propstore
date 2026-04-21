@@ -27,14 +27,9 @@ def _claim_attr(claim: ActiveClaim, key: str) -> Any:
 
 
 def _coerce_bridge_stance_row(row: StanceRowInput) -> StanceRow:
-    """Coerce a bridge stance row, accepting bridge-local ``contradicts``."""
+    """Coerce a bridge stance row through the shared typed stance boundary."""
 
-    if isinstance(row, StanceRow):
-        return row
-    row_map = dict(row)
-    if row_map.get("stance_type") == "contradicts":
-        row_map["stance_type"] = "rebuts"
-    return coerce_stance_row(row_map)
+    return coerce_stance_row(row)
 
 
 def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[LiteralKey, Literal]:
@@ -129,7 +124,7 @@ def stances_to_contrariness(
         if src == tgt:
             continue
 
-        if stance.stance_type in ("rebuts", "contradicts"):
+        if stance.stance_type == "rebuts":
             contradictory_pairs.add((src, tgt))
             contradictory_pairs.add((tgt, src))
         elif stance.stance_type in ("supersedes", "undermines"):
