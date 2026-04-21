@@ -1,0 +1,116 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default' -> deadline=None
+rootdir: C:\Users\Q\code\propstore
+configfile: pyproject.toml
+plugins: hypothesis-6.152.1, cov-7.1.0, timeout-2.4.0, xdist-3.8.0
+timeout: 300.0s
+timeout method: thread
+timeout func_only: False
+created: 16/16 workers
+16 workers [2 items]
+
+scheduling tests via WorkStealingScheduling
+
+tests/remediation/phase_1_crits/test_T1_3_restrained_revise.py::test_restrained_revision_satisfies_booth_meyer_rr_pairwise_condition 
+tests/remediation/phase_1_crits/test_T1_3_restrained_revise.py::test_restrained_revision_splits_only_equal_nonminimal_preorder_levels 
+[gw14] [ 50%] FAILED tests/remediation/phase_1_crits/test_T1_3_restrained_revise.py::test_restrained_revision_splits_only_equal_nonminimal_preorder_levels 
+[gw15] [100%] FAILED tests/remediation/phase_1_crits/test_T1_3_restrained_revise.py::test_restrained_revision_satisfies_booth_meyer_rr_pairwise_condition 
+
+================================== FAILURES ===================================
+____ test_restrained_revision_splits_only_equal_nonminimal_preorder_levels ____
+[gw14] win32 -- Python 3.13.5 C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+
+    def test_restrained_revision_splits_only_equal_nonminimal_preorder_levels() -> None:
+        """Booth-Meyer 2006 (RR): old strict order survives outside minimal alpha-worlds."""
+        state = SpohnEpistemicState.from_ranks(
+            ALPHABET,
+            {
+                P_AND_NOT_Q: 0,
+                NOT_P_AND_NOT_Q: 0,
+                P_AND_Q: 1,
+                NOT_P_AND_Q: 1,
+            },
+        )
+    
+        revised = restrained_revise(state, P).state
+    
+>       assert revised.ranks[NOT_P_AND_NOT_Q] < revised.ranks[P_AND_Q]
+E       assert 1 < 1
+
+tests\remediation\phase_1_crits\test_T1_3_restrained_revise.py:33: AssertionError
+____ test_restrained_revision_satisfies_booth_meyer_rr_pairwise_condition _____
+[gw15] win32 -- Python 3.13.5 C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+
+    @given(state=st_state(), formula=st_formula)
+>   @settings(deadline=None)
+                   ^^^
+
+tests\remediation\phase_1_crits\test_T1_3_restrained_revise.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+state = SpohnEpistemicState(alphabet=frozenset({'r', 'p', 'q'}), ranks={frozenset({'p', 'q'}): 0, frozenset({'p'}): 0, frozens...q'}): 0, frozenset({'r', 'q'}): 0, frozenset({'r'}): 0, frozenset(): 0, frozenset({'q'}): 0, frozenset({'r', 'p'}): 1})
+formula = Atom(name='p')
+
+    @given(state=st_state(), formula=st_formula)
+    @settings(deadline=None)
+    def test_restrained_revision_satisfies_booth_meyer_rr_pairwise_condition(
+        state: SpohnEpistemicState,
+        formula,
+    ) -> None:
+        """Booth-Meyer 2006 (RR): non-minimal revised worlds obey the restrained preorder."""
+        if not BeliefSet.from_formula(state.alphabet, formula).is_consistent:
+            return
+    
+        revised = restrained_revise(state, formula).state
+        minimal_revised_worlds = revised.belief_set.models
+    
+        for left in revised.ranks:
+            for right in revised.ranks:
+                if left in minimal_revised_worlds or right in minimal_revised_worlds:
+                    continue
+    
+                old_left_rank = state.ranks[left]
+                old_right_rank = state.ranks[right]
+                expected_left_not_worse = (
+                    old_left_rank < old_right_rank
+                    or (
+                        old_left_rank <= old_right_rank
+                        and (formula.evaluate(left) or not formula.evaluate(right))
+                    )
+                )
+                actual_left_not_worse = revised.ranks[left] <= revised.ranks[right]
+    
+>               assert actual_left_not_worse is expected_left_not_worse
+E               assert True is False
+E               Falsifying example: test_restrained_revision_satisfies_booth_meyer_rr_pairwise_condition(
+E                   state=SpohnEpistemicState(alphabet=frozenset({'p', 'q', 'r'}),
+E                    ranks={frozenset({'p', 'q'}): 0,
+E                     frozenset({'p'}): 0,
+E                     frozenset({'p', 'q', 'r'}): 0,
+E                     frozenset({'q', 'r'}): 0,
+E                     frozenset({'r'}): 0,
+E                     frozenset(): 0,
+E                     frozenset({'q'}): 0,
+E                     frozenset({'p', 'r'}): 1}),
+E                   formula=Atom(name='p'),
+E               )
+
+tests\remediation\phase_1_crits\test_T1_3_restrained_revise.py:65: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/remediation/phase_1_crits/test_T1_3_restrained_revise.py::test_restrained_revision_splits_only_equal_nonminimal_preorder_levels - assert 1 < 1
+FAILED tests/remediation/phase_1_crits/test_T1_3_restrained_revise.py::test_restrained_revision_satisfies_booth_meyer_rr_pairwise_condition - assert True is False
+Falsifying example: test_restrained_revision_satisfies_booth_meyer_rr_pairwise_condition(
+    state=SpohnEpistemicState(alphabet=frozenset({'p', 'q', 'r'}),
+     ranks={frozenset({'p', 'q'}): 0,
+      frozenset({'p'}): 0,
+      frozenset({'p', 'q', 'r'}): 0,
+      frozenset({'q', 'r'}): 0,
+      frozenset({'r'}): 0,
+      frozenset(): 0,
+      frozenset({'q'}): 0,
+      frozenset({'p', 'r'}): 1}),
+    formula=Atom(name='p'),
+)
+============================== 2 failed in 4.43s ==============================
