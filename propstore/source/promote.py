@@ -21,6 +21,7 @@ from __future__ import annotations
 import copy
 import json
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
@@ -67,6 +68,13 @@ from .registry import load_primary_branch_concepts
 from .stages import SourcePromotionPlan
 
 
+@dataclass(frozen=True)
+class SourceConceptPromotionResolution:
+    concept_map: dict[str, str]
+    promoted_concept_documents: dict[str, ConceptDocument]
+    blocked_concept_refs: dict[str, str]
+
+
 def rewrite_claim_concept_refs(
     claim: dict[str, Any],
     concept_map: dict[str, str],
@@ -100,6 +108,27 @@ def rewrite_claim_concept_refs(
             if isinstance(parameter, dict):
                 parameter["concept"] = resolve(parameter.get("concept"))
     return normalize_canonical_claim_payload(normalized)
+
+
+def _source_claim_concept_refs(claim) -> tuple[str, ...]:
+    refs: list[str] = []
+    for value in (claim.concept, claim.target_concept):
+        if isinstance(value, str):
+            refs.append(value)
+    refs.extend(value for value in claim.concepts if isinstance(value, str))
+    variables = claim.variables
+    if isinstance(variables, tuple):
+        refs.extend(
+            variable.concept
+            for variable in variables
+            if isinstance(variable.concept, str)
+        )
+    refs.extend(
+        parameter.concept
+        for parameter in claim.parameters
+        if isinstance(parameter.concept, str)
+    )
+    return tuple(refs)
 
 
 def _normalize_promoted_claim_context(claim: dict[str, Any]) -> dict[str, Any]:
@@ -137,13 +166,27 @@ def _filter_promoted_micropubs(
 def resolve_source_concept_promotions(
     repo: Repository,
     source_name: str,
-) -> tuple[dict[str, str], dict[str, ConceptDocument]]:
+) -> SourceConceptPromotionResolution:
     concepts_doc = load_source_concepts_document(repo, source_name)
     concepts_by_artifact, handle_to_artifact = load_primary_branch_concepts(repo)
     mapping: dict[str, str] = {}
     concept_documents: dict[str, ConceptDocument] = {}
-    new_concepts: list[tuple[SourceConceptEntryDocument, str, str]] = []
+    new_concepts: dict[str, tuple[SourceConceptEntryDocument, str, str, str]] = {}
     seen_new_artifacts: dict[str, str] = {}
+    blocked_concept_refs: dict[str, str] = {}
+
+    def entry_handles(entry: SourceConceptEntryDocument, fallback: str) -> set[str]:
+        handles = {
+            handle
+            for handle in (entry.local_name, entry.proposed_name, fallback)
+            if isinstance(handle, str) and handle
+        }
+        return handles
+
+    def block_entry(entry: SourceConceptEntryDocument, fallback: str, detail: str) -> None:
+        for handle in entry_handles(entry, fallback):
+            blocked_concept_refs[handle] = detail
+            mapping.pop(handle, None)
 
     for entry in (() if concepts_doc is None else concepts_doc.concepts):
         registry_match = entry.registry_match
@@ -177,19 +220,32 @@ def resolve_source_concept_promotions(
         artifact_id = concept_payload["artifact_id"]
         existing = concepts_by_artifact.get(artifact_id)
         if existing is not None:
-            raise ValueError(f"Cannot promote source {source_name!r}; ambiguous concept mappings: {handle_seed}")
+            block_entry(
+                entry,
+                handle_seed,
+                f"ambiguous concept mappings: {handle_seed}",
+            )
+            continue
         prior_handle = seen_new_artifacts.get(artifact_id)
         if prior_handle is not None and prior_handle != handle_seed:
-            raise ValueError(
-                f"Cannot promote source {source_name!r}; ambiguous concept mappings: {handle_seed}, {prior_handle}"
+            detail = f"ambiguous concept mappings: {handle_seed}, {prior_handle}"
+            prior_entry = new_concepts.pop(artifact_id, None)
+            if prior_entry is not None:
+                block_entry(prior_entry[0], prior_entry[3], detail)
+            block_entry(
+                entry,
+                handle_seed,
+                detail,
             )
+            seen_new_artifacts.pop(artifact_id, None)
+            continue
         seen_new_artifacts[artifact_id] = handle_seed
-        new_concepts.append((entry, artifact_id, slug))
+        new_concepts[artifact_id] = (entry, artifact_id, slug, handle_seed)
         for handle in (entry.local_name, entry.proposed_name):
             if isinstance(handle, str) and handle:
                 mapping[handle] = artifact_id
 
-    for raw_entry, artifact_id, slug in new_concepts:
+    for raw_entry, artifact_id, slug, _ in new_concepts.values():
         parameterization_relationships: list[dict[str, Any]] = []
         for relationship in raw_entry.parameterization_relationships:
             normalized_relationship = relationship.to_payload()
@@ -230,7 +286,11 @@ def resolve_source_concept_promotions(
             source=repo.families.concepts.address(concept_ref).require_path(),
         )
 
-    return mapping, concept_documents
+    return SourceConceptPromotionResolution(
+        concept_map=mapping,
+        promoted_concept_documents=concept_documents,
+        blocked_concept_refs=blocked_concept_refs,
+    )
 
 
 def load_finalize_report(repo: Repository, source_name: str):
@@ -243,6 +303,8 @@ def _compute_blocked_claim_artifact_ids(
     stances_doc,
     resolver: ClaimReferenceResolver,
     source_claim_index,
+    *,
+    blocked_concept_refs: dict[str, str] | None = None,
 ) -> tuple[set[str], dict[str, list[tuple[str, str]]]]:
     """Identify source-branch claims blocked from promotion by per-item errors.
 
@@ -265,6 +327,8 @@ def _compute_blocked_claim_artifact_ids(
         blocked.add(artifact_id)
         reasons.setdefault(artifact_id, []).append((kind, detail))
 
+    blocked_concept_refs = blocked_concept_refs or {}
+
     # (a) claims without a canonical artifact_id.
     for claim in () if claims_doc is None else claims_doc.claims:
         artifact_id = claim.artifact_id
@@ -275,6 +339,15 @@ def _compute_blocked_claim_artifact_ids(
             # produced a malformed doc.
             raw_id = str(claim.id or "?")
             _record(raw_id, "claim_reference", f"claim {raw_id!r} missing artifact_id")
+            continue
+        for concept_ref in _source_claim_concept_refs(claim):
+            detail = blocked_concept_refs.get(concept_ref)
+            if detail is not None:
+                _record(
+                    artifact_id,
+                    "concept_mapping",
+                    f"claim concept {concept_ref!r} blocked: {detail}",
+                )
 
     # (b) stances referencing unknown targets block the stance's source_claim.
     for stance in () if stances_doc is None else stances_doc.stances:
@@ -451,7 +524,9 @@ def promote_source_branch(
     micropubs_doc = load_source_micropubs_document(repo, source_name)
     justifications_doc = load_source_justifications_document(repo, source_name)
     stances_doc = load_source_stances_document(repo, source_name)
-    concept_map, promoted_concept_documents = resolve_source_concept_promotions(repo, source_name)
+    concept_resolution = resolve_source_concept_promotions(repo, source_name)
+    concept_map = concept_resolution.concept_map
+    promoted_concept_documents = concept_resolution.promoted_concept_documents
     unresolved_concepts: set[str] = set()
 
     source_claim_index = load_source_claim_reference_index(repo, source_name)
@@ -466,6 +541,7 @@ def promote_source_branch(
         stances_doc,
         resolver,
         source_claim_index,
+        blocked_concept_refs=concept_resolution.blocked_concept_refs,
     )
 
     all_claims = tuple(() if claims_doc is None else claims_doc.claims)
@@ -492,9 +568,17 @@ def promote_source_branch(
             blocked_claims,
             blocked_reasons,
         )
+        details = sorted(
+            {
+                detail
+                for reason_entries in blocked_reasons.values()
+                for _, detail in reason_entries
+            }
+        )
+        detail_suffix = f": {'; '.join(details)}" if details else ""
         raise ValueError(
             f"Source {source_name!r}: all {len(blocked_claims)} claims blocked "
-            "from promotion; see build_diagnostics for details"
+            f"from promotion; see build_diagnostics for details{detail_suffix}"
         )
 
     promoted_claims = [
