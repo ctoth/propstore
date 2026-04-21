@@ -30,6 +30,7 @@ class ClaimStanceInsertRow:
 class ClaimSidecarRows:
     claim_rows: tuple[ClaimInsertRow, ...]
     stance_rows: tuple[ClaimStanceInsertRow, ...]
+    quarantine_diagnostics: tuple["QuarantineDiagnostic", ...]
 
 
 @dataclass(frozen=True)

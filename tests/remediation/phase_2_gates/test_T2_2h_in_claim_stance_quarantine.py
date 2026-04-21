@@ -79,7 +79,11 @@ def test_in_claim_stance_missing_target_quarantines_not_raises(
             (source_claim_id,),
         ).fetchall()
         stance_rows = conn.execute(
-            "SELECT claim_id, target_claim_id FROM claim_stance"
+            """
+            SELECT source_id, target_id
+            FROM relation_edge
+            WHERE source_kind = 'claim' AND target_kind = 'claim'
+            """
         ).fetchall()
         diagnostic_rows = conn.execute(
             """
