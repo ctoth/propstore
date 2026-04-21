@@ -1,0 +1,67 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default' -> deadline=None
+rootdir: C:\Users\Q\code\propstore
+configfile: pyproject.toml
+plugins: hypothesis-6.152.1, cov-7.1.0, timeout-2.4.0, xdist-3.8.0
+timeout: 300.0s
+timeout method: thread
+timeout func_only: False
+created: 16/16 workers
+16 workers [2 items]
+
+scheduling tests via WorkStealingScheduling
+
+tests/remediation/phase_1_crits/test_T1_4_revision_provenance.py::test_revision_defaults_vacuous_not_stated_or_epoch 
+tests/remediation/phase_1_crits/test_T1_4_revision_provenance.py::test_revision_trace_uses_supplied_provenance_and_real_timestamp 
+[gw14] [ 50%] FAILED tests/remediation/phase_1_crits/test_T1_4_revision_provenance.py::test_revision_trace_uses_supplied_provenance_and_real_timestamp 
+[gw15] [100%] FAILED tests/remediation/phase_1_crits/test_T1_4_revision_provenance.py::test_revision_defaults_vacuous_not_stated_or_epoch 
+
+================================== FAILURES ===================================
+_______ test_revision_trace_uses_supplied_provenance_and_real_timestamp _______
+[gw14] win32 -- Python 3.13.5 C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+
+    def test_revision_trace_uses_supplied_provenance_and_real_timestamp() -> None:
+        supplied = Provenance(
+            status=ProvenanceStatus.CALIBRATED,
+            witnesses=(
+                ProvenanceWitness(
+                    asserter="unit-test",
+                    timestamp="2026-04-20T00:00:00Z",
+                    source_artifact_code="unit-test-source",
+                    method="test",
+                ),
+            ),
+            graph_name="urn:unit-test:revision-provenance",
+        )
+    
+        before = datetime.now(timezone.utc)
+>       result = revise(_state(), Q, provenance=supplied)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: revise() got an unexpected keyword argument 'provenance'
+
+tests\remediation\phase_1_crits\test_T1_4_revision_provenance.py:39: TypeError
+_____________ test_revision_defaults_vacuous_not_stated_or_epoch ______________
+[gw15] win32 -- Python 3.13.5 C:\Users\Q\code\propstore\.venv\Scripts\python.exe
+
+    def test_revision_defaults_vacuous_not_stated_or_epoch() -> None:
+        before = datetime.now(timezone.utc)
+        result = revise(_state(), Q)
+        after = datetime.now(timezone.utc)
+    
+        trace = result.trace
+>       assert trace.provenance.status is ProvenanceStatus.VACUOUS
+E       AssertionError: assert <ProvenanceStatus.STATED: 'stated'> is <ProvenanceStatus.VACUOUS: 'vacuous'>
+E        +  where <ProvenanceStatus.STATED: 'stated'> = Provenance(status=<ProvenanceStatus.STATED: 'stated'>, witnesses=(ProvenanceWitness(asserter='propstore', timestamp='1970-01-01T00:00:00Z', source_artifact_code='ws-b-belief-set-layer', method='revise'),), graph_name='urn:propstore:belief-set:revise:7ea3ecb5de54e00f303d97ab175386b5e0267cba', derived_from=(), operations=('revise',)).status
+E        +    where Provenance(status=<ProvenanceStatus.STATED: 'stated'>, witnesses=(ProvenanceWitness(asserter='propstore', timestamp='1970-01-01T00:00:00Z', source_artifact_code='ws-b-belief-set-layer', method='revise'),), graph_name='urn:propstore:belief-set:revise:7ea3ecb5de54e00f303d97ab175386b5e0267cba', derived_from=(), operations=('revise',)) = RevisionTrace(operator='revise', pre_image_fingerprint='7ea3ecb5de54e00f303d97ab175386b5e0267cba', provenance=Provenance(status=<ProvenanceStatus.STATED: 'stated'>, witnesses=(ProvenanceWitness(asserter='propstore', timestamp='1970-01-01T00:00:00Z', source_artifact_code='ws-b-belief-set-layer', method='revise'),), graph_name='urn:propstore:belief-set:revise:7ea3ecb5de54e00f303d97ab175386b5e0267cba', derived_from=(), operations=('revise',))).provenance
+E        +  and   <ProvenanceStatus.VACUOUS: 'vacuous'> = ProvenanceStatus.VACUOUS
+
+tests\remediation\phase_1_crits\test_T1_4_revision_provenance.py:53: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/remediation/phase_1_crits/test_T1_4_revision_provenance.py::test_revision_trace_uses_supplied_provenance_and_real_timestamp - TypeError: revise() got an unexpected keyword argument 'provenance'
+FAILED tests/remediation/phase_1_crits/test_T1_4_revision_provenance.py::test_revision_defaults_vacuous_not_stated_or_epoch - AssertionError: assert <ProvenanceStatus.STATED: 'stated'> is <ProvenanceStatus.VACUOUS: 'vacuous'>
+ +  where <ProvenanceStatus.STATED: 'stated'> = Provenance(status=<ProvenanceStatus.STATED: 'stated'>, witnesses=(ProvenanceWitness(asserter='propstore', timestamp='1970-01-01T00:00:00Z', source_artifact_code='ws-b-belief-set-layer', method='revise'),), graph_name='urn:propstore:belief-set:revise:7ea3ecb5de54e00f303d97ab175386b5e0267cba', derived_from=(), operations=('revise',)).status
+ +    where Provenance(status=<ProvenanceStatus.STATED: 'stated'>, witnesses=(ProvenanceWitness(asserter='propstore', timestamp='1970-01-01T00:00:00Z', source_artifact_code='ws-b-belief-set-layer', method='revise'),), graph_name='urn:propstore:belief-set:revise:7ea3ecb5de54e00f303d97ab175386b5e0267cba', derived_from=(), operations=('revise',)) = RevisionTrace(operator='revise', pre_image_fingerprint='7ea3ecb5de54e00f303d97ab175386b5e0267cba', provenance=Provenance(status=<ProvenanceStatus.STATED: 'stated'>, witnesses=(ProvenanceWitness(asserter='propstore', timestamp='1970-01-01T00:00:00Z', source_artifact_code='ws-b-belief-set-layer', method='revise'),), graph_name='urn:propstore:belief-set:revise:7ea3ecb5de54e00f303d97ab175386b5e0267cba', derived_from=(), operations=('revise',))).provenance
+ +  and   <ProvenanceStatus.VACUOUS: 'vacuous'> = ProvenanceStatus.VACUOUS
+============================== 2 failed in 3.45s ==============================
