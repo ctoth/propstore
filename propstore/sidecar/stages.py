@@ -64,6 +64,15 @@ class RawIdQuarantineSidecarRows:
 
 
 @dataclass(frozen=True)
+class QuarantineDiagnostic:
+    artifact_id: str
+    kind: str
+    diagnostic_kind: str
+    message: str
+    file: str | None = None
+
+
+@dataclass(frozen=True)
 class MicropublicationInsertRow:
     values: tuple[Any, ...]
 
@@ -193,3 +202,4 @@ class SidecarBuildPlan:
     micropublication_rows: MicropublicationSidecarRows
     stance_rows: tuple[ClaimStanceInsertRow, ...]
     justification_rows: tuple[JustificationInsertRow, ...]
+    quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]
