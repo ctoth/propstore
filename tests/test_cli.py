@@ -1416,6 +1416,58 @@ class TestConnectionClosedOnError:
         # The connection MUST have been closed despite the error
         mock_conn.close.assert_called()
 
+    def test_claim_embed_all_progress_reports_final_partial_batch(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """claim embed --model all reports final partial progress on its own line."""
+        from propstore.app.claims import ClaimEmbedModelReport, ClaimEmbedReport
+        import propstore.cli.claim as claim_cli
+
+        self._make_repo_with_sidecar(tmp_path)
+
+        def fake_embed_claim_embeddings(repo, request, *, on_progress=None):
+            assert request.model == "all"
+            assert request.batch_size == 64
+            assert on_progress is not None
+            for done in (64, 128, 130):
+                on_progress("model-a", done, 130)
+            return ClaimEmbedReport(
+                results=(
+                    ClaimEmbedModelReport(
+                        model_name="model-a",
+                        embedded=130,
+                        skipped=0,
+                        errors=0,
+                    ),
+                ),
+            )
+
+        monkeypatch.setattr(
+            claim_cli,
+            "embed_claim_embeddings",
+            fake_embed_claim_embeddings,
+        )
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "-C",
+                str(tmp_path),
+                "claim",
+                "embed",
+                "--all",
+                "--model",
+                "all",
+                "--batch-size",
+                "64",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "  130/130\nEmbedding with model-a..." in result.output
+
 
 # ── claim show ──────────────────────────────────────────────────────
 
