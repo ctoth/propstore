@@ -67,8 +67,17 @@ def justifications_to_rules(
         premise_keys = tuple(claim_key(pid) for pid in justification.premise_claim_ids)
         if conclusion_key not in literals:
             continue
-        if any(pid not in literals for pid in premise_keys):
-            continue
+        unknown_premises = [
+            premise_id
+            for premise_id, premise_key in zip(justification.premise_claim_ids, premise_keys)
+            if premise_key not in literals
+        ]
+        if unknown_premises:
+            missing = ", ".join(repr(premise_id) for premise_id in unknown_premises)
+            raise ValueError(
+                "unknown premise in justification "
+                f"{justification.justification_id!r}: {missing}"
+            )
 
         antecedents = tuple(literals[pid] for pid in premise_keys)
         consequent = literals[conclusion_key]
