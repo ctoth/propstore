@@ -22,6 +22,7 @@ from propstore.app.sources import (
     stamp_source_provenance,
     sync_source,
 )
+from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
 from propstore.cli.source import source
 
@@ -169,12 +170,14 @@ def sync(obj: dict, name: str, output_dir: Path | None) -> None:
 @click.option("--file", "file_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--agent", required=True)
 @click.option("--skill", "skill_name", required=True)
+@click.option("--status", "status_value", required=True, type=click.Choice([status.value for status in ProvenanceStatus], case_sensitive=False))
 @click.option("--plugin-version", required=False)
 def stamp_provenance(
     name: str,
     file_path: Path,
     agent: str,
     skill_name: str,
+    status_value: str,
     plugin_version: str | None,
 ) -> None:
     """Stamp extraction provenance onto a pipeline artifact.
@@ -187,6 +190,7 @@ def stamp_provenance(
             file_path=file_path,
             agent=agent,
             skill_name=skill_name,
+            status=ProvenanceStatus(status_value.lower()),
             plugin_version=plugin_version,
         )
     )

@@ -10,7 +10,7 @@ The core provenance model follows the WS-A Phase 1 design:
 
 The older ``stamp_file`` helper remains as the stated-method authoring branch:
 it adds or updates a ``produced_by`` block recording which agent, skill, and
-plugin version produced the file, plus a UTC timestamp.
+plugin version produced the file, plus provenance status and a UTC timestamp.
 
 Supports two file types:
   - .md  -- writes into YAML frontmatter (creates frontmatter if absent)
@@ -250,6 +250,7 @@ def read_provenance_note(
 def _build_produced_by_yaml(
     agent: str,
     skill: str,
+    status: ProvenanceStatus,
     plugin_version: str | None,
     timestamp: str,
 ) -> str:
@@ -257,6 +258,7 @@ def _build_produced_by_yaml(
         "produced_by:",
         f'  agent: "{agent}"',
         f'  skill: "{skill}"',
+        f'  status: "{status.value}"',
     ]
     if plugin_version is not None:
         lines.append(f'  plugin_version: "{plugin_version}"')
@@ -279,11 +281,12 @@ def _stamp_md(
     text: str,
     agent: str,
     skill: str,
+    status: ProvenanceStatus,
     plugin_version: str | None,
     timestamp: str,
 ) -> tuple[str, bool]:
     """Add or update produced_by in markdown YAML frontmatter."""
-    produced_by_block = _build_produced_by_yaml(agent, skill, plugin_version, timestamp)
+    produced_by_block = _build_produced_by_yaml(agent, skill, status, plugin_version, timestamp)
     match = _FRONTMATTER_RE.match(text)
 
     if not match:
@@ -318,11 +321,12 @@ def _stamp_yaml(
     text: str,
     agent: str,
     skill: str,
+    status: ProvenanceStatus,
     plugin_version: str | None,
     timestamp: str,
 ) -> tuple[str, bool]:
     """Add or update produced_by in a YAML file's top level."""
-    produced_by_block = _build_produced_by_yaml(agent, skill, plugin_version, timestamp) + "\n"
+    produced_by_block = _build_produced_by_yaml(agent, skill, status, plugin_version, timestamp) + "\n"
 
     if _YAML_PRODUCED_BY_RE.search(text):
         result = _YAML_PRODUCED_BY_RE.sub(produced_by_block, text, count=1)
@@ -349,6 +353,8 @@ def stamp_file(
     path: Path,
     agent: str,
     skill: str,
+    *,
+    status: ProvenanceStatus,
     plugin_version: str | None = None,
     timestamp: str | None = None,
 ) -> bool:
@@ -359,9 +365,9 @@ def stamp_file(
     text = path.read_text(encoding="utf-8")
 
     if path.suffix == ".md":
-        result, changed = _stamp_md(text, agent, skill, plugin_version, timestamp)
+        result, changed = _stamp_md(text, agent, skill, status, plugin_version, timestamp)
     elif path.suffix in (".yaml", ".yml"):
-        result, changed = _stamp_yaml(text, agent, skill, plugin_version, timestamp)
+        result, changed = _stamp_yaml(text, agent, skill, status, plugin_version, timestamp)
     else:
         print(f"Unsupported file type: {path.suffix}", file=sys.stderr)
         return False
