@@ -8,9 +8,9 @@ from collections.abc import Sequence
 from argumentation.aspic import (
     Argument,
     Attack,
-    ContrarinessFn,
     GroundAtom,
     Literal,
+    _contraries_of,
     build_arguments_for,
     conc,
     compute_attacks,
@@ -46,21 +46,6 @@ def _query_goal_key(goal_ref: str | GroundAtom | LiteralKey) -> LiteralKey:
     if isinstance(goal_ref, GroundAtom):
         return ground_key(goal_ref, False)
     return goal_ref
-
-
-def _goal_contraries(
-    literal: Literal,
-    contrariness: ContrarinessFn,
-    language: frozenset[Literal],
-) -> frozenset[Literal]:
-    """Return every language literal that conflicts with ``literal``."""
-
-    return frozenset(
-        other
-        for other in language
-        if contrariness.is_contradictory(other, literal)
-        or contrariness.is_contrary(other, literal)
-    )
 
 
 def query_claim(
@@ -112,7 +97,7 @@ def query_claim(
     defeat_pairs = frozenset((attack.attacker, attack.target) for attack in defeat_attacks)
 
     arguments_for = frozenset(argument for argument in arguments if conc(argument) == goal)
-    against_literals = _goal_contraries(
+    against_literals = _contraries_of(
         goal,
         compiled.system.contrariness,
         compiled.system.language,
