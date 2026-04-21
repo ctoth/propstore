@@ -257,17 +257,30 @@ def build_bridge_csaf(
         arg_to_id[argument] = arg_id
         id_to_arg[arg_id] = argument
 
+    def require_argument_id(argument: Argument, edge_kind: str) -> str:
+        try:
+            return arg_to_id[argument]
+        except KeyError as exc:
+            raise AssertionError(
+                f"{edge_kind} references argument outside bridge argument domain: "
+                f"{argument!r}"
+            ) from exc
+
     framework = ArgumentationFramework(
         arguments=frozenset(arg_to_id.values()),
         defeats=frozenset(
-            (arg_to_id[attacker], arg_to_id[target])
+            (
+                require_argument_id(attacker, "defeat"),
+                require_argument_id(target, "defeat"),
+            )
             for attacker, target in defeat_pairs
-            if attacker in arg_to_id and target in arg_to_id
         ),
         attacks=frozenset(
-            (arg_to_id[attack.attacker], arg_to_id[attack.target])
+            (
+                require_argument_id(attack.attacker, "attack"),
+                require_argument_id(attack.target, "attack"),
+            )
             for attack in attacks
-            if attack.attacker in arg_to_id and attack.target in arg_to_id
         ),
     )
 
