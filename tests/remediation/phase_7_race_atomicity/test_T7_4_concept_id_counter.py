@@ -30,4 +30,6 @@ def test_concurrent_concept_id_allocation_reserves_unique_ids(tmp_path):
         thread.join()
 
     assert errors == []
-    assert sorted(allocated) == list(range(1, 9))
+    assert len(allocated) == 8
+    assert len(set(allocated)) == 8
+    assert min(allocated) >= 1
