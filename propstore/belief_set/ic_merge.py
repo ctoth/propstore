@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -15,7 +16,7 @@ class ICMergeOperator(StrEnum):
 @dataclass(frozen=True, slots=True)
 class ICMergeOutcome:
     belief_set: BeliefSet
-    scored_worlds: tuple[tuple[World, float | tuple[int, ...]], ...]
+    scored_worlds: tuple[tuple[World, float | tuple[float, ...]], ...]
 
 
 def merge_belief_profile(
@@ -58,31 +59,32 @@ def _score_world(
     profile: tuple[Formula, ...],
     signature: frozenset[str],
     operator: ICMergeOperator,
-) -> float | tuple[int, ...]:
+) -> float | tuple[float, ...]:
     distances = tuple(_distance_to_formula(world, formula, signature) for formula in profile)
+    finite_distances = tuple(distance for distance in distances if not math.isinf(distance))
     if operator == ICMergeOperator.SIGMA:
-        return float(sum(distances))
+        return float(sum(finite_distances))
     if operator == ICMergeOperator.GMAX:
-        return tuple(sorted(distances, reverse=True))
+        return tuple(sorted(finite_distances, reverse=True))
     raise ValueError(f"Unsupported IC merge operator: {operator}")
 
 
-def _distance_to_formula(world: World, formula: Formula, signature: frozenset[str]) -> int:
+def _distance_to_formula(world: World, formula: Formula, signature: frozenset[str]) -> float:
     models = tuple(
         candidate
         for candidate in BeliefSet.all_worlds(signature)
         if formula.evaluate(candidate)
     )
     if not models:
-        return len(signature) + 1
-    return min(_hamming(world, model) for model in models)
+        return math.inf
+    return float(min(_hamming(world, model) for model in models))
 
 
 def _hamming(left: World, right: World) -> int:
     return len(left.symmetric_difference(right))
 
 
-def _score_key(score: float | tuple[int, ...]) -> tuple[float, ...]:
+def _score_key(score: float | tuple[float, ...]) -> tuple[float, ...]:
     if isinstance(score, tuple):
         return tuple(float(item) for item in score)
     return (score,)
