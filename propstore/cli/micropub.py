@@ -13,7 +13,7 @@ from propstore.app.micropubs import (
     load_micropub_bundle,
 )
 from propstore.repository import Repository
-from propstore.cli.helpers import exit_with_code, fail
+from propstore.cli.helpers import EXIT_ERROR, exit_with_code, fail
 
 
 @click.group()
@@ -66,7 +66,7 @@ def lift(obj: dict, artifact_id: str, target_context: str) -> None:
         emit(
             f"not liftable: {report.artifact_id} {report.source_context} -> {report.target_context}"
         )
-        exit_with_code(1)
+        exit_with_code(EXIT_ERROR)
     emit(
         f"liftable: {report.artifact_id} {report.source_context} -> {report.target_context}"
     )
