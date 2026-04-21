@@ -1469,6 +1469,44 @@ class TestConnectionClosedOnError:
         assert "  130/130\nEmbedding with model-a..." in result.output
 
 
+class TestClaimRelateCli:
+    def test_claim_relate_rejects_all_with_claim_id(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import propstore.cli.claim as claim_cli
+
+        owner_called = False
+
+        def fake_relate_claims(*args, **kwargs):
+            nonlocal owner_called
+            owner_called = True
+            from propstore.app.claims import ClaimRelateReport
+
+            return ClaimRelateReport(branch="stance-proposals")
+
+        monkeypatch.setattr(claim_cli, "relate_claims", fake_relate_claims)
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "-C",
+                str(tmp_path),
+                "claim",
+                "relate",
+                "claim-a",
+                "--all",
+                "--model",
+                "model-a",
+            ],
+        )
+
+        assert result.exit_code == 2
+        assert "--all cannot be used with a claim ID" in result.output
+        assert owner_called is False
+
+
 # ── claim show ──────────────────────────────────────────────────────
 
 class TestClaimShow:
