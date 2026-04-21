@@ -152,6 +152,13 @@ def test_concept_commands_live_outside_group_module() -> None:
     assert "def similar(" in embedding
 
 
+def test_concept_add_uses_owner_form_listing() -> None:
+    mutation = Path("propstore/cli/concept/mutation.py").read_text(encoding="utf-8")
+
+    assert "repo.families.forms" not in mutation
+    assert "list_form_items" in mutation
+
+
 def test_source_commands_live_in_source_package() -> None:
     group_module = Path("propstore/cli/source/__init__.py").read_text(encoding="utf-8")
     authoring = Path("propstore/cli/source/authoring.py").read_text(encoding="utf-8")
