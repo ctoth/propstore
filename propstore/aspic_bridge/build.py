@@ -26,6 +26,7 @@ from propstore.core.literal_keys import LiteralKey
 from propstore.core.row_types import StanceRowInput
 from argumentation.dung import ArgumentationFramework
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.gunray_complement import GUNRAY_COMPLEMENT_ENCODER
 
 from .grounding import (
     _ground_facts_to_axioms,
@@ -103,14 +104,23 @@ def compile_bridge_context(
     literals = claims_to_literals(normalized_claims)
 
     strict_rules, defeasible_rules = justifications_to_rules(justifications, literals)
-    grounded_strict, grounded_defeasible, literals = grounded_rules_to_rules(bundle, literals)
+    grounded_strict, grounded_defeasible, literals = grounded_rules_to_rules(
+        bundle,
+        literals,
+        complement_encoder=GUNRAY_COMPLEMENT_ENCODER,
+    )
     strict_rules |= grounded_strict
     defeasible_rules |= grounded_defeasible
     grounded_rule_order = grounded_rule_order_from_bundle(bundle, defeasible_rules)
 
     contrariness = stances_to_contrariness(stances, literals, defeasible_rules)
     kb = claims_to_kb(normalized_claims, justifications, literals)
-    kb = _ground_facts_to_axioms(bundle, literals, kb)
+    kb = _ground_facts_to_axioms(
+        bundle,
+        literals,
+        kb,
+        complement_encoder=GUNRAY_COMPLEMENT_ENCODER,
+    )
 
     language = _build_language(literals, strict_rules, defeasible_rules, kb)
     closed_strict = transposition_closure(strict_rules, language, contrariness)
