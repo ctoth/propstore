@@ -390,16 +390,13 @@ def build_repository(
                     context_ids=context_ids if context_ids else None,
                 )
             )
+            claim_messages = _messages_from_pipeline_result(claim_pipeline_result)
             if not isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
                 raise CompilerWorkflowError(
                     "Build aborted: claim validation failed.",
-                    _messages_from_pipeline_result(claim_pipeline_result),
+                    claim_messages,
                 )
-            if claim_pipeline_result.errors:
-                raise CompilerWorkflowError(
-                    "Build aborted: claim validation failed.",
-                    _messages_from_pipeline_result(claim_pipeline_result),
-            )
+            build_messages.extend(claim_messages)
             claim_checked_bundle = claim_pipeline_result.output
             claim_files = files
         except DocumentSchemaError as exc:
