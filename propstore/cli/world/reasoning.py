@@ -17,11 +17,11 @@ from propstore.app.world import (
     AppWorldResolveRequest,
     WorldLifecycleOptions,
     WorldResolveError,
-    parse_world_binding_args,
     world_derive as run_world_derive,
     world_resolve as run_world_resolve,
 )
 from propstore.cli.world import (
+    parse_world_binding_args,
     world,
 )
 from propstore.repository import Repository

@@ -9,7 +9,6 @@ from typing import Protocol, cast
 
 from propstore.app.world import (
     open_app_world_model,
-    parse_world_binding_args,
     resolve_world_target,
 )
 from propstore.repository import Repository
@@ -29,14 +28,15 @@ class _StatusCarrier(Protocol):
 
 @dataclass(frozen=True)
 class AppAtmsViewRequest:
-    args: tuple[str, ...]
+    bindings: Mapping[str, str]
+    concept_id: str | None = None
     context: str | None = None
 
 
 @dataclass(frozen=True)
 class AppAtmsTargetRequest:
     target: str
-    args: tuple[str, ...]
+    bindings: Mapping[str, str]
     queryables: tuple[str, ...] = ()
     limit: int = 8
     context: str | None = None
@@ -45,7 +45,7 @@ class AppAtmsTargetRequest:
 @dataclass(frozen=True)
 class AppAtmsInterventionRequest:
     target: str
-    args: tuple[str, ...]
+    bindings: Mapping[str, str]
     target_status: str
     queryables: tuple[str, ...]
     limit: int = 8
@@ -212,9 +212,9 @@ def _bind_atms(repo: Repository, request: AppAtmsViewRequest):
     world = open_app_world_model(repo)
     wm = world.__enter__()
     try:
-        bindings, concept_id = parse_world_binding_args(request.args)
+        bindings = dict(request.bindings)
         bound = bind_atms_world(wm, ATMSBindRequest(bindings, request.context))
-        return world, wm, bound, bindings, concept_id
+        return world, wm, bound, bindings, request.concept_id
     except Exception:
         world.__exit__(None, None, None)
         raise
@@ -316,7 +316,7 @@ def world_atms_verify(repo: Repository, request: AppAtmsViewRequest) -> AtmsVeri
 def world_atms_futures(repo: Repository, request: AppAtmsTargetRequest) -> AtmsFutureReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
-        AppAtmsViewRequest(args=request.args, context=request.context),
+        AppAtmsViewRequest(bindings=request.bindings, context=request.context),
     )
     try:
         queryables = _queryables(request.queryables)
@@ -349,7 +349,7 @@ def world_atms_futures(repo: Repository, request: AppAtmsTargetRequest) -> AtmsF
 def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsWhyOutReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
-        AppAtmsViewRequest(args=request.args, context=request.context),
+        AppAtmsViewRequest(bindings=request.bindings, context=request.context),
     )
     try:
         queryables = _queryables(request.queryables)
@@ -408,7 +408,7 @@ def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsW
 def world_atms_stability(repo: Repository, request: AppAtmsTargetRequest) -> AtmsStabilityReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
-        AppAtmsViewRequest(args=request.args, context=request.context),
+        AppAtmsViewRequest(bindings=request.bindings, context=request.context),
     )
     try:
         queryables = _queryables(request.queryables)
@@ -454,7 +454,7 @@ def world_atms_stability(repo: Repository, request: AppAtmsTargetRequest) -> Atm
 def world_atms_relevance(repo: Repository, request: AppAtmsTargetRequest) -> AtmsRelevanceReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
-        AppAtmsViewRequest(args=request.args, context=request.context),
+        AppAtmsViewRequest(bindings=request.bindings, context=request.context),
     )
     try:
         queryables = _queryables(request.queryables)
@@ -522,7 +522,7 @@ def world_atms_interventions(
 ) -> AtmsInterventionsReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
-        AppAtmsViewRequest(args=request.args, context=request.context),
+        AppAtmsViewRequest(bindings=request.bindings, context=request.context),
     )
     try:
         queryables = _queryables(request.queryables)
@@ -560,7 +560,7 @@ def world_atms_next_query(
 ) -> AtmsNextQueryReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
-        AppAtmsViewRequest(args=request.args, context=request.context),
+        AppAtmsViewRequest(bindings=request.bindings, context=request.context),
     )
     try:
         queryables = _queryables(request.queryables)

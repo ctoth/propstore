@@ -1,16 +1,38 @@
 """pks worldline — CLI commands for materialized query artifacts."""
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from typing import TypeGuard
+
 import click
 
 from propstore.cli.output import emit_warning
 
 from propstore.app.worldlines import (
     JsonObject,
+    JsonValue,
     argumentation_semantics_values,
-    coerce_worldline_cli_value,
     reasoning_backend_values,
 )
+
+
+def _is_cli_json_value(value: object) -> TypeGuard[JsonValue]:
+    if value is None or isinstance(value, str | int | float | bool):
+        return True
+    if isinstance(value, Mapping):
+        return all(
+            isinstance(key, str) and _is_cli_json_value(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
+        return all(_is_cli_json_value(item) for item in value)
+    return False
+
+
+def coerce_worldline_cli_value(value: object) -> JsonValue:
+    if _is_cli_json_value(value):
+        return value
+    return str(value)
 
 
 def _parse_kv_args(args: tuple[str, ...]) -> JsonObject:

@@ -65,10 +65,6 @@ class WorldSidecarMissingError(WorldAppError):
         super().__init__("Sidecar not found. Run 'pks build' first.")
 
 
-class WorldBindingParseError(WorldAppError):
-    pass
-
-
 @dataclass(frozen=True)
 class WorldLifecycleOptions:
     include_drafts: bool = False
@@ -227,26 +223,6 @@ def bind_world(
 
 def resolve_world_target(world: WorldModel, target: str) -> str:
     return world.resolve_concept(target) or target
-
-
-def parse_world_binding_args(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
-    """Parse raw command-style binding tokens into bindings and target.
-
-    Tokens containing ``=`` become string key/value bindings.  The last
-    token without ``=`` is treated as the optional world target.
-    """
-
-    parsed: dict[str, str] = {}
-    remaining: list[str] = []
-    for arg in args:
-        if "=" not in arg:
-            remaining.append(arg)
-            continue
-        key, _, value = arg.partition("=")
-        if not key:
-            raise WorldBindingParseError("world bindings require a non-empty key")
-        parsed[key] = value
-    return parsed, remaining[-1] if remaining else None
 
 
 def world_status(
