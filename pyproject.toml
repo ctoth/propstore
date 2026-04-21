@@ -14,7 +14,7 @@ dependencies = [
     "z3-solver>=4.12",
     "graphviz>=0.20",
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@9033d045b9c8076a13b3430a364416379312166b",
-    "argumentation @ git+https://github.com/ctoth/argumentation@82774afa2753d7dd27a850b5a24f7d78a2747c89",
+    "formal-argumentation",
     "bridgman @ git+https://github.com/ctoth/bridgman@c6401fa1ff562c437bad18e73422c9aefa2485b1",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
@@ -77,6 +77,7 @@ markers = [
 ]
 
 [tool.uv.sources]
+formal-argumentation = { path = "../argumentation", editable = true }
 quire = { path = "../quire", editable = true }
 
 [dependency-groups]
