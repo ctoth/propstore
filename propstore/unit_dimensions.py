@@ -20,7 +20,7 @@ from bridgman import dims_equal
 
 Dimensions = dict[str, int]  # e.g. {"M": 1, "L": -1, "T": -2}
 
-# physgen uses unicode Θ for temperature; form YAMLs use ascii THETA
+# physgen uses unicode theta for temperature; form YAMLs use ascii Theta.
 _DIM_KEY_NORMALIZE = {"Θ": "Theta", "θ": "Theta"}
 
 def _normalize_dim_key(k: str) -> str:
