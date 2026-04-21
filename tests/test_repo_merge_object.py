@@ -194,7 +194,7 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
     assert merge.framework.ignorance == frozenset()
 
 
-def test_create_merge_commit_keeps_divergent_same_artifact_versions_out_of_materialized_claims(tmp_path):
+def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_rivals(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
@@ -220,19 +220,27 @@ def test_create_merge_commit_keeps_divergent_same_artifact_versions_out_of_mater
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
 
+    manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
+    manifest_arguments = manifest["merge"]["arguments"]
+    canonical_artifact_id = make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+    materialized_claim_ids = {
+        row["claim_id"]
+        for row in manifest_arguments
+        if row["artifact_id"] == canonical_artifact_id
+    }
+
     materialized_claims = [
         claim
         for claim_file in claim_files
         for claim in claim_file_payload(claim_file).get("claims", [])
+        if claim["artifact_id"] in materialized_claim_ids
     ]
-    assert materialized_claims == []
+    assert {claim["value"] for claim in materialized_claims} == {150.0, 300.0}
 
-    manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
-    manifest_arguments = manifest["merge"]["arguments"]
     assert len(manifest_arguments) == 2
-    assert all(row["materialized"] is False for row in manifest_arguments)
+    assert all(row["materialized"] is True for row in manifest_arguments)
     assert {row["artifact_id"] for row in manifest_arguments} == {
-        make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+        canonical_artifact_id
     }
 
 

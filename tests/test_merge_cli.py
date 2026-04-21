@@ -214,7 +214,10 @@ def test_merge_commit_cli_surfaces_storage_commit_metadata(tmp_path):
     assert payload["branch_a"] == "master"
     assert payload["branch_b"] == branch_name
     assert payload["target_branch"] == "master"
-    assert payload["claims_path"] == "claims/merged.yaml"
+    assert payload["claims_paths"] == [
+        "claims/merged__master.yaml",
+        "claims/merged__paper_conflict.yaml",
+    ]
     assert payload["manifest_path"] == "merge/manifest.yaml"
     assert len(payload["commit_sha"]) == 40
     assert "completion_count" not in payload
@@ -375,14 +378,19 @@ def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
     commit_sha = payload["commit_sha"]
     assert git.head_sha() == commit_sha
 
-    merged_claims = yaml.safe_load(
-        (git.tree(commit=commit_sha) / "claims" / "merged.yaml").read_text()
-    )
     manifest = yaml.safe_load(
         (git.tree(commit=commit_sha) / "merge" / "manifest.yaml").read_text()
     )
 
-    assert payload["claims_path"] == "claims/merged.yaml"
+    merged_claims = []
+    for claims_path in payload["claims_paths"]:
+        loaded = yaml.safe_load((git.tree(commit=commit_sha) / claims_path).read_text())
+        merged_claims.extend(loaded["claims"])
+
+    assert payload["claims_paths"] == [
+        "claims/merged__master.yaml",
+        "claims/merged__paper_storage.yaml",
+    ]
     assert payload["manifest_path"] == "merge/manifest.yaml"
     assert manifest["merge"]["branch_a"] == "master"
     assert manifest["merge"]["branch_b"] == branch_name
@@ -391,7 +399,7 @@ def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
         for argument in manifest["merge"]["arguments"]
         if argument["materialized"]
     )
-    assert len(merged_claims["claims"]) == materialized_count
+    assert len(merged_claims) == materialized_count
     assert payload["semantic_candidate_count"] == len(
         manifest["merge"].get("semantic_candidate_details", [])
     )
