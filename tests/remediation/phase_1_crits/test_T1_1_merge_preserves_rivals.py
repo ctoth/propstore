@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 from propstore.claims import claim_file_payload
 from propstore.repository import Repository
 from propstore.storage import init_git_store
-from propstore.storage.merge_commit import create_merge_commit
+from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
 from tests.family_helpers import load_claim_files

@@ -14,7 +14,7 @@ from propstore.app.repository_history import (
     classify_log_operation,
 )
 from propstore.repository import Repository
-from propstore.storage.merge_commit import create_merge_commit
+from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_test_context_commit_entry, normalize_claims_payload, normalize_concept_payloads
 
