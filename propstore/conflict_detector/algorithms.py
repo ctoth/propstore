@@ -6,7 +6,7 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from ast_equiv import Tier, compare as ast_compare
+from ast_equiv import AlgorithmParseError, Tier, compare as ast_compare
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 
 from .collectors import _collect_algorithm_claims
@@ -44,7 +44,7 @@ def detect_algorithm_conflicts(
                 bindings_b = _bindings_for_algorithm_claim(claim_b)
                 try:
                     result = ast_compare(body_a, bindings_a, body_b, bindings_b)
-                except (ValueError, SyntaxError) as exc:
+                except (ValueError, SyntaxError, AlgorithmParseError, RecursionError) as exc:
                     logging.warning(
                         "ast_compare failed for %s vs %s: %s",
                         claim_a.claim_id,
