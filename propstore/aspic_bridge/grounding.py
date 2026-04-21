@@ -9,23 +9,19 @@ from propstore.families.documents.rules import AtomDocument
 from argumentation.aspic import GroundAtom, KnowledgeBase, Literal, Rule, Scalar
 from propstore.core.literal_keys import LiteralKey, ground_key
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.complement import ComplementEncoder
 from argumentation.preference import strict_partial_order_closure
 
 _GroundFactKey = tuple[str, bool]
 
 
-def _gunray_complement(predicate: str) -> str:
-    """Mirror gunray's current ``~``-prefix complement encoding."""
+def _decode_grounded_predicate(
+    predicate_id: str,
+    complement_encoder: ComplementEncoder,
+) -> _GroundFactKey:
+    """Decode the grounded predicate convention into typed polarity."""
 
-    if predicate.startswith("~"):
-        return predicate[1:]
-    return f"~{predicate}"
-
-
-def _decode_grounded_predicate(predicate_id: str) -> _GroundFactKey:
-    """Decode gunray's ``~``-prefixed predicate convention into typed polarity."""
-
-    toggled = _gunray_complement(predicate_id)
+    toggled = complement_encoder.complement(predicate_id)
     negated = len(toggled) < len(predicate_id)
     positive = toggled if negated else predicate_id
     return positive, negated
@@ -146,6 +142,8 @@ def _canonical_substitution_key(sigma: dict[str, Scalar]) -> str:
 def grounded_rules_to_rules(
     bundle: GroundedRulesBundle,
     literals: dict[LiteralKey, Literal],
+    *,
+    complement_encoder: ComplementEncoder,
 ) -> tuple[frozenset[Rule], frozenset[Rule], dict[LiteralKey, Literal]]:
     """Translate grounded gunray rules into ASPIC+ rules."""
 
@@ -153,7 +151,10 @@ def grounded_rules_to_rules(
     for section_name in ("definitely", "defeasibly"):
         section = bundle.sections.get(section_name, {})
         for predicate_id, rows in section.items():
-            bucket = facts.setdefault(_decode_grounded_predicate(predicate_id), set())
+            bucket = facts.setdefault(
+                _decode_grounded_predicate(predicate_id, complement_encoder),
+                set(),
+            )
             for row in rows:
                 bucket.add(row)
 
@@ -279,13 +280,15 @@ def _ground_facts_to_axioms(
     bundle: GroundedRulesBundle,
     literals: dict[LiteralKey, Literal],
     kb: KnowledgeBase,
+    *,
+    complement_encoder: ComplementEncoder,
 ) -> KnowledgeBase:
     """Inject bundle ``definitely`` facts into ``K_n``."""
 
     axioms: set[Literal] = set(kb.axioms)
     definitely = bundle.sections.get("definitely", {})
     for predicate_id, rows in definitely.items():
-        predicate, negated = _decode_grounded_predicate(predicate_id)
+        predicate, negated = _decode_grounded_predicate(predicate_id, complement_encoder)
         for row in rows:
             ground = GroundAtom(predicate=predicate, arguments=tuple(row))
             axioms.add(_literal_for_atom(ground, negated, literals))

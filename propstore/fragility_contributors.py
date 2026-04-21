@@ -28,6 +28,7 @@ from propstore.fragility_types import (
     RankedIntervention,
     RankingPolicy,
 )
+from propstore.grounding.gunray_complement import GUNRAY_COMPLEMENT_ENCODER
 from propstore.provenance import (
     ProvenancePolynomial,
     SourceVariableId,
@@ -408,7 +409,11 @@ def _coefficient_provenance_notes(*, formula: str, citation: str) -> tuple[str, 
 
 
 def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
-    _strict_rules, defeasible_rules, _literals = grounded_rules_to_rules(bundle, {})
+    _strict_rules, defeasible_rules, _literals = grounded_rules_to_rules(
+        bundle,
+        {},
+        complement_encoder=GUNRAY_COMPLEMENT_ENCODER,
+    )
     dependency_counts: dict[tuple[str, bool, tuple[object, ...]], int] = {}
     for rule in defeasible_rules:
         if "->" in (rule.name or ""):
@@ -424,7 +429,10 @@ def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
     ranked: list[RankedIntervention] = []
     for section_name, section in sorted(bundle.sections.items()):
         for predicate_id, rows in sorted(section.items()):
-            predicate_name, negated = _decode_grounded_predicate(predicate_id)
+            predicate_name, negated = _decode_grounded_predicate(
+                predicate_id,
+                GUNRAY_COMPLEMENT_ENCODER,
+            )
             for row in sorted(rows):
                 row_key = _typed_row_key(row)
                 dependency_count = dependency_counts.get(
@@ -477,7 +485,11 @@ def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
 
 
 def collect_grounded_rule_interventions(bundle) -> tuple[RankedIntervention, ...]:
-    strict_rules, defeasible_rules, _literals = grounded_rules_to_rules(bundle, {})
+    strict_rules, defeasible_rules, _literals = grounded_rules_to_rules(
+        bundle,
+        {},
+        complement_encoder=GUNRAY_COMPLEMENT_ENCODER,
+    )
     del strict_rules
     undercut_counts: dict[str, int] = {}
     for rule in defeasible_rules:
