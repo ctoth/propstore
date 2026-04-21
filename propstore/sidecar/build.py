@@ -208,6 +208,7 @@ def build_sidecar(
     commit_hash: str | None = None,
     compilation_context: CompilationContext | None = None,
     claim_checked_bundle: ClaimCheckedBundle | None = None,
+    concept_files: tuple[LoadedConcept, ...] | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
     context_files: tuple[LoadedContext, ...] | None = None,
     context_diagnostics: tuple[PassDiagnostic, ...] = (),
@@ -243,19 +244,23 @@ def build_sidecar(
         raise ValueError(f"form validation failed: {errors}")
     form_registry = form_result.output.registry
     form_diagnostics = form_result.diagnostics
-    concepts = [
-        LoadedConcept(
-            filename=ref.name,
-            source_path=tree / handle.address.require_path(),
-            knowledge_root=tree,
-            record=parse_concept_record_document(handle.document),
-            document=handle.document,
-        )
-        for ref in repo.families.concepts.iter(commit=commit_hash)
-        for handle in (
-            repo.families.concepts.require_handle(ref, commit=commit_hash),
-        )
-    ]
+    concepts = (
+        list(concept_files)
+        if concept_files is not None
+        else [
+            LoadedConcept(
+                filename=ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_concept_record_document(handle.document),
+                document=handle.document,
+            )
+            for ref in repo.families.concepts.iter(commit=commit_hash)
+            for handle in (
+                repo.families.concepts.require_handle(ref, commit=commit_hash),
+            )
+        ]
+    )
     claim_files = [
         repo.families.claims.require_handle(ref, commit=commit_hash)
         for ref in repo.families.claims.iter(commit=commit_hash)

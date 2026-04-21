@@ -10,7 +10,10 @@ from pathlib import Path
 
 from quire.documents import DocumentSchemaError
 from propstore.claims import claim_file_payload
-from propstore.compiler.context import build_compilation_context_from_repo
+from propstore.compiler.context import (
+    build_compilation_context_from_loaded,
+    build_compilation_context_from_repo,
+)
 from propstore.compiler.references import build_claim_reference_lookup
 from propstore.families.claims.passes import run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle, ClaimStage
@@ -256,33 +259,37 @@ def build_repository(
     hash_key = repo.snapshot.head_sha()
     tree = repo.snapshot.tree(commit=hash_key)
 
-    try:
-        concepts: list[LoadedConcept] = []
-        for ref in repo.families.concepts.iter(commit=hash_key):
+    concepts: list[LoadedConcept] = []
+    concept_schema_messages: list[PassDiagnostic] = []
+    for ref in repo.families.concepts.iter(commit=hash_key):
+        try:
             handle = repo.families.concepts.require_handle(
                 ref,
                 commit=hash_key,
             )
-            concepts.append(
-                LoadedConcept(
+        except DocumentSchemaError as exc:
+            concept_schema_messages.append(
+                PassDiagnostic(
+                    level="error",
+                    code="concept.schema",
+                    message=str(exc),
+                    family=PropstoreFamily.CONCEPTS,
+                    stage=ConceptStage.AUTHORED,
                     filename=ref.name,
-                    source_path=tree / handle.address.require_path(),
-                    knowledge_root=tree,
-                    record=parse_concept_record_document(handle.document),
-                    document=handle.document,
+                    artifact_id=ref.name,
+                    pass_name="compiler.build_repository",
                 )
             )
-    except DocumentSchemaError as exc:
-        raise CompilerWorkflowError(
-            "Build aborted: schema validation failed.",
-            (
-                _workflow_diagnostic(
-                    PropstoreFamily.CONCEPTS,
-                    ConceptStage.AUTHORED,
-                    str(exc),
-                ),
-            ),
-        ) from exc
+            continue
+        concepts.append(
+            LoadedConcept(
+                filename=ref.name,
+                source_path=tree / handle.address.require_path(),
+                knowledge_root=tree,
+                record=parse_concept_record_document(handle.document),
+                document=handle.document,
+            )
+        )
     if not concepts:
         return RepositoryBuildReport(
             concept_count=0,
@@ -324,11 +331,12 @@ def build_repository(
             claim_reference_lookup=build_claim_reference_lookup(files),
         ),
     )
-    concept_messages = _messages_from_pipeline_result(concept_result)
+    concept_messages = list(concept_schema_messages)
+    concept_messages.extend(_messages_from_pipeline_result(concept_result))
     if not isinstance(concept_result.output, ConceptCheckedRegistry):
         raise CompilerWorkflowError(
             "Build aborted: concept validation failed.",
-            concept_messages,
+            tuple(concept_messages),
         )
     build_messages.extend(concept_messages)
 
@@ -376,19 +384,19 @@ def build_repository(
     build_messages.extend(context_messages)
 
     claim_files = None
-    compilation_context = build_compilation_context_from_repo(
-        repo,
+    compilation_context = build_compilation_context_from_loaded(
+        concepts,
+        form_registry=form_registry,
         context_ids=context_ids,
-        commit=hash_key,
     )
     claim_checked_bundle: ClaimCheckedBundle | None = None
     if files:
         try:
-            compilation_context = build_compilation_context_from_repo(
-                repo,
+            compilation_context = build_compilation_context_from_loaded(
+                concepts,
+                form_registry=form_registry,
                 claim_files=files,
                 context_ids=context_ids if context_ids else None,
-                commit=hash_key,
             )
             claim_pipeline_result = run_claim_pipeline(
                 ClaimAuthoredFiles.from_sequence(
@@ -426,7 +434,8 @@ def build_repository(
         commit_hash=hash_key,
         compilation_context=compilation_context,
         claim_checked_bundle=claim_checked_bundle,
-        concept_diagnostics=concept_messages,
+        concept_files=tuple(concepts),
+        concept_diagnostics=tuple(concept_messages),
         context_files=tuple(ctx_list),
         context_diagnostics=tuple(context_messages),
     )
