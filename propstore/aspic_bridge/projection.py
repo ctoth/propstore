@@ -20,6 +20,9 @@ from .build import build_bridge_csaf
 from .extract import _extract_justifications, _extract_stance_rows
 from .grounding import _typed_scalar_key
 
+_STRICT_RULE_STRENGTH = 1.0
+_DEFEASIBLE_RULE_STRENGTH = 0.7
+
 
 def _default_support_metadata(claim: ActiveClaim) -> tuple[Label | None, SupportQuality]:
     """Compute default projected support metadata for a claim-backed argument."""
@@ -47,6 +50,27 @@ def _projection_conclusion_key(literal: Literal) -> str:
         sort_keys=True,
         separators=(",", ":"),
     )
+
+
+def _rule_strength(argument) -> float:
+    top = top_rule(argument)
+    if top is None:
+        return _STRICT_RULE_STRENGTH
+    if top.kind == "strict":
+        return _STRICT_RULE_STRENGTH
+    return _DEFEASIBLE_RULE_STRENGTH
+
+
+def _grounded_argument_strength(argument) -> float:
+    if isinstance(argument, PremiseArg):
+        return _STRICT_RULE_STRENGTH
+    strengths = [_rule_strength(argument)]
+    strengths.extend(
+        _grounded_argument_strength(sub_argument)
+        for sub_argument in sub(argument)
+        if sub_argument != argument
+    )
+    return min(strengths)
 
 
 def csaf_to_projection(
@@ -100,7 +124,7 @@ def csaf_to_projection(
         )
 
         if claim is None:
-            strength = 0.0
+            strength = _grounded_argument_strength(argument)
         else:
             vector = claim_strength(claim)
             strength = 0.0 if vector.is_vacuous else statistics.mean(vector.dimensions)
