@@ -33,7 +33,7 @@ def test_search_concepts_owns_sidecar_query_and_connection(
     cursor.fetchall.return_value = [("concept-a", "concept a", "definition text")]
     conn.execute.return_value = cursor
 
-    monkeypatch.setattr(concepts_mod.sqlite3, "connect", lambda path: conn)
+    monkeypatch.setattr(concepts_mod, "connect_sidecar", lambda path: conn)
 
     report = search_concepts(repo, ConceptSearchRequest(query="concept", limit=7))
 
@@ -67,7 +67,7 @@ def test_embed_concept_embeddings_owns_connection_and_progress(
             on_progress(4, 8)
         return {"embedded": 4, "skipped": 2, "errors": 0}
 
-    monkeypatch.setattr(concepts_mod.sqlite3, "connect", lambda path: conn)
+    monkeypatch.setattr(concepts_mod, "connect_sidecar", lambda path: conn)
     monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn_arg: None)
     monkeypatch.setattr(embed_mod, "embed_concepts", fake_embed_concepts)
     progress: list[tuple[str, int, int]] = []
@@ -131,7 +131,7 @@ def test_find_similar_concepts_resolves_id_uses_default_model_and_closes(
         ]
 
     conn.execute.side_effect = fake_execute
-    monkeypatch.setattr(concepts_mod.sqlite3, "connect", lambda path: conn)
+    monkeypatch.setattr(concepts_mod, "connect_sidecar", lambda path: conn)
     monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn_arg: None)
     monkeypatch.setattr(
         embed_mod,

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from propstore.repository import Repository
+from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.common import source_branch_name
 
 
@@ -49,7 +50,7 @@ def inspect_source_status(repo: Repository, name: str) -> SourceStatusReport:
             state=SourceStatusState.SIDECAR_MISSING,
         )
 
-    conn = sqlite3.connect(repo.sidecar_path)
+    conn = connect_sidecar(repo.sidecar_path)
     conn.row_factory = sqlite3.Row
     try:
         has_claim_core = conn.execute(

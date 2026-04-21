@@ -61,6 +61,7 @@ from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.types import PassDiagnostic
 import propstore.sidecar.schema as sidecar_schema
 from propstore.sidecar.stages import QuarantineDiagnostic
+from propstore.sidecar.sqlite import connect_sidecar
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
@@ -448,7 +449,7 @@ def build_sidecar(
         try:
             from propstore.embed import _load_vec_extension, extract_embeddings
 
-            snapshot_conn = sqlite3.connect(sidecar_path)
+            snapshot_conn = connect_sidecar(sidecar_path)
             snapshot_conn.row_factory = sqlite3.Row
             _load_vec_extension(snapshot_conn)
             embedding_snapshot = extract_embeddings(snapshot_conn)
@@ -477,11 +478,8 @@ def build_sidecar(
     temp_sidecar_path = _new_temp_sidecar_path(sidecar_path)
     temp_hash_path = temp_sidecar_path.with_name(f"{temp_sidecar_path.name}.hash")
 
-    conn = sqlite3.connect(temp_sidecar_path)
+    conn = connect_sidecar(temp_sidecar_path)
     try:
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.execute("PRAGMA journal_mode=WAL")
-
         write_schema_metadata(conn)
         create_tables(conn)
         create_context_tables(conn)
