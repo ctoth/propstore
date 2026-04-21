@@ -99,6 +99,7 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
                         "type": "observation",
                         "statement": "Known concept observation.",
                         "concepts": ["known_concept"],
+                        "context": "ctx_test",
                         "provenance": {"page": 1},
                     },
                     {
@@ -106,6 +107,7 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
                         "type": "observation",
                         "statement": "Ambiguous concept observation.",
                         "concepts": ["novel concept"],
+                        "context": "ctx_test",
                         "provenance": {"page": 2},
                     },
                 ],
