@@ -4,7 +4,6 @@ from propstore.belief_set.agm import (
     RevisionOutcome,
     SpohnEpistemicState,
     revision_trace,
-    revise,
 )
 from propstore.belief_set.core import BeliefSet
 from propstore.belief_set.language import Formula, World
@@ -43,16 +42,46 @@ def restrained_revise(
     state: SpohnEpistemicState,
     formula: Formula,
 ) -> RevisionOutcome:
-    """Booth-Meyer restrained revision represented by conservative Spohn update."""
-    result = revise(state, formula)
+    """Booth-Meyer restrained revision over a world preorder.
+
+    Booth and Meyer, JAIR 26 (2006), Definition 4 (RR): outside the
+    post-revision minimal alpha-worlds, old strict order is preserved and
+    same-rank alpha/not-alpha ties split in favor of alpha-worlds.
+    """
+    signature = state.alphabet | formula.atoms()
+    working = _extend_state(state, signature)
+    worlds = tuple(BeliefSet.all_worlds(signature))
+    satisfying = tuple(world for world in worlds if formula.evaluate(world))
+    if not satisfying:
+        return RevisionOutcome(
+            belief_set=working.belief_set,
+            state=working,
+            trace=revision_trace("restrained_revise", state.belief_set),
+        )
+
+    min_formula_rank = min(working.ranks[world] for world in satisfying)
+    minimal_formula_worlds = frozenset(
+        world for world in satisfying if working.ranks[world] == min_formula_rank
+    )
+    keys: dict[World, tuple[int, ...]] = {}
+    for world in worlds:
+        if world in minimal_formula_worlds:
+            keys[world] = (0,)
+            continue
+
+        # RR keeps old strict order and splits only same-rank alpha/not-alpha ties.
+        alpha_tie_priority = 0 if formula.evaluate(world) else 1
+        keys[world] = (1, working.ranks[world], alpha_tie_priority)
+
+    revised_state = SpohnEpistemicState.from_ranks(signature, _dense_ranks(keys))
     return RevisionOutcome(
-        belief_set=result.belief_set,
-        state=result.state,
+        belief_set=revised_state.belief_set,
+        state=revised_state,
         trace=revision_trace("restrained_revise", state.belief_set),
     )
 
 
-def _dense_ranks(keys: dict[World, tuple[int, int]]) -> dict[World, int]:
+def _dense_ranks(keys: dict[World, tuple[int, ...]]) -> dict[World, int]:
     ordered_keys = {
         key: index
         for index, key in enumerate(sorted(set(keys.values())))
