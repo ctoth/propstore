@@ -248,26 +248,6 @@ def _component_wise_dominates(
     )
 
 
-def _transitive_closure(
-    pairs: set[tuple[Literal, Literal]],
-) -> frozenset[tuple[Literal, Literal]]:
-    """Compute the transitive closure of a binary relation over literals."""
-
-    closure = set(pairs)
-    changed = True
-    while changed:
-        changed = False
-        new_pairs: set[tuple[Literal, Literal]] = set()
-        for left, mid in closure:
-            for source, right in closure:
-                if mid == source and (left, right) not in closure:
-                    new_pairs.add((left, right))
-        if new_pairs:
-            closure |= new_pairs
-            changed = True
-    return frozenset(closure)
-
-
 def build_preference_config(
     active_claims: Sequence[ActiveClaimInput],
     literals: dict[LiteralKey, Literal],
@@ -315,7 +295,7 @@ def build_preference_config(
 
     return PreferenceConfig(
         rule_order=strict_partial_order_closure(rule_order),
-        premise_order=_transitive_closure(premise_order),
+        premise_order=strict_partial_order_closure(premise_order),
         comparison=comparison,
         link=link,
     )
