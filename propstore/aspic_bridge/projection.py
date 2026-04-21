@@ -54,6 +54,27 @@ def _projection_conclusion_key(literal: Literal) -> str:
     )
 
 
+def _claim_ids_for_literals(
+    literals: Sequence[Literal],
+    claim_literal_ids: Mapping[Literal, str],
+) -> tuple[str, ...]:
+    claim_ids: list[str] = []
+    for literal in literals:
+        claim_id = claim_literal_ids.get(literal)
+        if claim_id is not None and claim_id not in claim_ids:
+            claim_ids.append(claim_id)
+    return tuple(claim_ids)
+
+
+def _direct_premise_literals(argument) -> tuple[Literal, ...]:
+    if isinstance(argument, PremiseArg):
+        return (conc(argument),)
+    rule = top_rule(argument)
+    if rule is None:
+        return ()
+    return tuple(rule.antecedents)
+
+
 def _rule_strength(argument) -> float:
     top = top_rule(argument)
     if top is None:
@@ -114,10 +135,9 @@ def csaf_to_projection(
             top_rule_kind = "reported_claim"
 
         attackable_kind = "base_claim" if isinstance(argument, PremiseArg) else "inference_rule"
-        premise_claim_ids = tuple(
-            claim_literal_ids[premise_literal]
-            for premise_literal in prem(argument)
-            if premise_literal in claim_literal_ids
+        premise_claim_ids = _claim_ids_for_literals(
+            _direct_premise_literals(argument),
+            claim_literal_ids,
         )
         subargument_ids = tuple(
             csaf.arg_to_id[sub_argument]
@@ -146,10 +166,9 @@ def csaf_to_projection(
                 else f"premise:{_projection_conclusion_key(conclusion)}"
             )
 
-        dependency_claim_ids = tuple(
-            claim_literal_ids[premise_literal]
-            for premise_literal in prem(argument)
-            if premise_literal in claim_literal_ids
+        dependency_claim_ids = _claim_ids_for_literals(
+            tuple(sorted(prem(argument), key=_projection_conclusion_key)),
+            claim_literal_ids,
         )
 
         if claim_id is not None and claim_id in metadata:
