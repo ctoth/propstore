@@ -31,6 +31,7 @@ class ProposalPromotionPlanReport:
 @dataclass(frozen=True)
 class ProposalPromotionResult:
     moved: int
+    promoted_items: tuple[ProposalPromotionItem, ...]
 
 
 def plan_proposal_promotion(
@@ -62,4 +63,14 @@ def promote_proposals(
     from propstore.proposals import promote_stance_proposals
 
     result = promote_stance_proposals(repo, plan_report.plan)
-    return ProposalPromotionResult(moved=result.moved)
+    return ProposalPromotionResult(
+        moved=result.moved,
+        promoted_items=tuple(
+            ProposalPromotionItem(
+                source_relpath=item.source_relpath,
+                target_path=str(item.target_path),
+                filename=item.filename,
+            )
+            for item in result.promoted_items
+        ),
+    )

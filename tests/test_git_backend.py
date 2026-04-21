@@ -1188,7 +1188,7 @@ def test_promote_commits(tmp_path):
     runner = CliRunner()
     result = runner.invoke(cli, ["-C", str(root), "promote", "-y"])
     assert result.exit_code == 0, result.output
-    assert "1 file(s) promoted" in result.output
+    assert "Promoted 1 of 1 file(s)." in result.output
 
     commits_after = len(git.log(max_count=100))
     assert commits_after == commits_before + 1

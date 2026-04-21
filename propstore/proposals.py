@@ -65,6 +65,7 @@ class StanceProposalPromotionPlan:
 class StanceProposalPromotionResult:
     moved: int
     branch: str
+    promoted_items: tuple[StanceProposalPromotionItem, ...]
 
 
 def plan_stance_proposal_promotion(
@@ -141,6 +142,7 @@ def promote_stance_proposals(
     return StanceProposalPromotionResult(
         moved=moved,
         branch=plan.branch,
+        promoted_items=plan.items,
     )
 
 
