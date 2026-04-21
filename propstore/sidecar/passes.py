@@ -561,10 +561,20 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
             ) or ""
             stance_type = stance_payload.get("type") or ""
             if target not in valid_claims:
-                raise sqlite3.IntegrityError(
+                message = (
                     f"stance file {filename} references nonexistent target claim "
                     f"'{target}'"
                 )
+                diagnostics.append(
+                    QuarantineDiagnostic(
+                        artifact_id=target or stance.target or filename,
+                        kind="stance",
+                        diagnostic_kind="stance_validation",
+                        message=message,
+                        file=filename,
+                    )
+                )
+                continue
             if stance_type not in VALID_STANCE_TYPES:
                 raise ValueError(
                     f"stance file {filename} uses unrecognized stance type "
