@@ -82,7 +82,7 @@ def test_build_repository_claim_schema_error_quarantines_not_raises(
     conn = sqlite3.connect(sidecar_path)
     try:
         valid_claim_rows = conn.execute(
-            "SELECT claim_id FROM claim WHERE claim_id = ?",
+            "SELECT id FROM claim_core WHERE id = ?",
             (valid_claim_id,),
         ).fetchall()
         diagnostic_rows = conn.execute(

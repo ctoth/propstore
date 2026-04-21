@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from quire.documents import DocumentSchemaError
-from propstore.claims import claim_file_payload
+from propstore.claims import ClaimFileEntry, claim_file_payload
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
     build_compilation_context_from_repo,
@@ -319,10 +319,24 @@ def build_repository(
     build_messages.extend(form_messages)
     form_registry = form_result.output.registry
 
-    files = [
-        repo.families.claims.require_handle(ref, commit=hash_key)
-        for ref in repo.families.claims.iter(commit=hash_key)
-    ]
+    files: list[ClaimFileEntry] = []
+    claim_schema_messages: list[PassDiagnostic] = []
+    for ref in repo.families.claims.iter(commit=hash_key):
+        try:
+            files.append(repo.families.claims.require_handle(ref, commit=hash_key))
+        except DocumentSchemaError as exc:
+            claim_schema_messages.append(
+                PassDiagnostic(
+                    level="error",
+                    code="claim.schema",
+                    message=str(exc),
+                    family=PropstoreFamily.CLAIMS,
+                    stage=ClaimStage.AUTHORED,
+                    filename=ref.name,
+                    artifact_id=ref.name,
+                    pass_name="compiler.build_repository",
+                )
+            )
 
     concept_result = run_concept_pipeline(
         concepts,
@@ -384,6 +398,7 @@ def build_repository(
     build_messages.extend(context_messages)
 
     claim_files = None
+    claim_messages = list(claim_schema_messages)
     compilation_context = build_compilation_context_from_loaded(
         concepts,
         form_registry=form_registry,
@@ -405,13 +420,12 @@ def build_repository(
                     context_ids=context_ids if context_ids else None,
                 )
             )
-            claim_messages = _messages_from_pipeline_result(claim_pipeline_result)
+            claim_messages.extend(_messages_from_pipeline_result(claim_pipeline_result))
             if not isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
                 raise CompilerWorkflowError(
                     "Build aborted: claim validation failed.",
-                    claim_messages,
+                    tuple(claim_messages),
                 )
-            build_messages.extend(claim_messages)
             claim_checked_bundle = claim_pipeline_result.output
             claim_files = files
         except DocumentSchemaError as exc:
@@ -425,6 +439,7 @@ def build_repository(
                     ),
                 ),
             ) from exc
+    build_messages.extend(claim_messages)
 
     sidecar_path = Path(output) if output else repo.sidecar_path
     rebuilt = build_sidecar(
@@ -434,6 +449,8 @@ def build_repository(
         commit_hash=hash_key,
         compilation_context=compilation_context,
         claim_checked_bundle=claim_checked_bundle,
+        claim_files=tuple(files),
+        claim_diagnostics=tuple(claim_messages),
         concept_files=tuple(concepts),
         concept_diagnostics=tuple(concept_messages),
         context_files=tuple(ctx_list),

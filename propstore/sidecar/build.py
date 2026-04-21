@@ -18,6 +18,7 @@ import sqlite3
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
 )
@@ -208,6 +209,8 @@ def build_sidecar(
     commit_hash: str | None = None,
     compilation_context: CompilationContext | None = None,
     claim_checked_bundle: ClaimCheckedBundle | None = None,
+    claim_files: tuple[ClaimFileEntry, ...] | None = None,
+    claim_diagnostics: tuple[PassDiagnostic, ...] = (),
     concept_files: tuple[LoadedConcept, ...] | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
     context_files: tuple[LoadedContext, ...] | None = None,
@@ -261,10 +264,14 @@ def build_sidecar(
             )
         ]
     )
-    claim_files = [
-        repo.families.claims.require_handle(ref, commit=commit_hash)
-        for ref in repo.families.claims.iter(commit=commit_hash)
-    ]
+    claim_entries = (
+        list(claim_files)
+        if claim_files is not None
+        else [
+            repo.families.claims.require_handle(ref, commit=commit_hash)
+            for ref in repo.families.claims.iter(commit=commit_hash)
+        ]
+    )
     if context_files is None:
         context_files = tuple(
             LoadedContext(
@@ -288,7 +295,7 @@ def build_sidecar(
         compilation_context = build_compilation_context_from_loaded(
             concepts,
             form_registry=form_registry,
-            claim_files=list(claim_files) if claim_files else None,
+            claim_files=list(claim_entries) if claim_entries else None,
             context_ids=context_ids,
         )
     concept_registry = build_authored_concept_registry(
@@ -301,17 +308,17 @@ def build_sidecar(
         if claim_checked_bundle is None
         else claim_checked_bundle.bundle
     )
-    claim_diagnostics: tuple[PassDiagnostic, ...] = ()
-    if claim_bundle is None and claim_files:
+    recorded_claim_diagnostics = list(claim_diagnostics)
+    if claim_bundle is None and claim_entries:
         claim_pipeline_result = run_claim_pipeline(
             ClaimAuthoredFiles.from_sequence(
-                list(claim_files),
+                list(claim_entries),
                 compilation_context,
                 context_ids=context_ids if context_ids else None,
             )
         )
         if not isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
-            claim_diagnostics = claim_pipeline_result.diagnostics
+            recorded_claim_diagnostics.extend(claim_pipeline_result.diagnostics)
         else:
             claim_checked_bundle = claim_pipeline_result.output
             claim_bundle = claim_checked_bundle.bundle
@@ -420,7 +427,7 @@ def build_sidecar(
         _record_form_diagnostics(conn, form_diagnostics)
         _record_concept_diagnostics(conn, concept_diagnostics)
         _record_context_diagnostics(conn, context_diagnostics)
-        _record_claim_diagnostics(conn, claim_diagnostics)
+        _record_claim_diagnostics(conn, tuple(recorded_claim_diagnostics))
         _record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
         create_micropublication_tables(conn)
 
