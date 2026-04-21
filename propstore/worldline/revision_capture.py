@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
-from propstore.support_revision.snapshot_types import epistemic_state_snapshot
-from propstore.support_revision.state import BeliefAtom
 from propstore.worldline.revision_types import (
     RevisionAtomRef,
     WorldlineRevisionResult,
@@ -50,7 +49,7 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
             input_atom_id=_query_atom_id(revision_query.atom),
             target_atom_ids=tuple(_query_conflict_target_atom_ids(revision_query)),
             result=_revision_result_payload(bound, result),
-            state=epistemic_state_snapshot(state),
+            state=_revision_state_snapshot(bound, state),
         )
     raise ValueError(f"Unknown revision operation: {operation}")
 
@@ -64,10 +63,20 @@ def _revision_result_payload(bound: Any, result: Any) -> WorldlineRevisionResult
     )
 
 
-def _revision_atom_input(atom: RevisionAtomRef | None) -> BeliefAtom | None:
+def _revision_atom_input(atom: RevisionAtomRef | None) -> Mapping[str, Any] | None:
     if atom is None:
         return None
     return atom.to_revision_input()
+
+
+def _revision_state_snapshot(bound: Any, state: Any) -> Any:
+    snapshot = getattr(bound, "revision_state_snapshot", None)
+    if callable(snapshot):
+        return snapshot(state)
+    to_dict = getattr(state, "to_dict", None)
+    if callable(to_dict):
+        return state
+    raise TypeError("revision capture requires bound.revision_state_snapshot(state)")
 
 
 def _query_atom_id(atom: RevisionAtomRef | None) -> str | None:

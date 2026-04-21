@@ -4,11 +4,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.core.active_claims import coerce_active_claim
-from propstore.support_revision.explanation_types import RevisionExplanation
-from propstore.support_revision.snapshot_types import EpistemicStateSnapshot
-from propstore.support_revision.state import AssumptionAtom, BeliefAtom, ClaimAtom, coerce_assumption_ref
-
 
 def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
     if value is None:
@@ -60,25 +55,22 @@ class RevisionAtomRef:
             data["value"] = self.value
         return data
 
-    def to_revision_input(self) -> BeliefAtom:
+    def to_revision_input(self) -> dict[str, Any]:
+        data = self.to_dict()
         if self.kind == "claim":
             if self.claim_id is None:
                 raise ValueError("Claim revision atom requires a claim_id")
-            return ClaimAtom(
-                atom_id=self.resolved_atom_id() or f"claim:{self.claim_id}",
-                claim=coerce_active_claim({
-                    "id": self.claim_id,
-                    "artifact_id": self.claim_id,
-                    "value": self.value,
-                }),
-            )
+            data["claim_id"] = self.claim_id
+            if self.atom_id is not None:
+                data["atom_id"] = self.atom_id
+            return data
         if self.kind == "assumption":
             if self.assumption_id is None:
                 raise ValueError("Assumption revision atom requires an assumption_id")
-            return AssumptionAtom(
-                atom_id=self.resolved_atom_id() or f"assumption:{self.assumption_id}",
-                assumption=coerce_assumption_ref({"assumption_id": self.assumption_id}),
-            )
+            data["assumption_id"] = self.assumption_id
+            if self.atom_id is not None:
+                data["atom_id"] = self.atom_id
+            return data
         raise ValueError(f"Unsupported revision atom kind: {self.kind}")
 
     def resolved_atom_id(self) -> str | None:
@@ -140,7 +132,7 @@ class WorldlineRevisionResult:
     accepted_atom_ids: tuple[str, ...] = ()
     rejected_atom_ids: tuple[str, ...] = ()
     incision_set: tuple[str, ...] = ()
-    explanation: RevisionExplanation | None = None
+    explanation: Any | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
@@ -161,11 +153,7 @@ class WorldlineRevisionResult:
             accepted_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())),
             rejected_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())),
             incision_set=tuple(str(atom_id) for atom_id in (payload.get("incision_set") or ())),
-            explanation=(
-                None
-                if explanation_data is None
-                else RevisionExplanation.from_mapping(explanation_data)
-            ),
+            explanation=None if explanation_data is None else dict(explanation_data),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -175,7 +163,7 @@ class WorldlineRevisionResult:
             "incision_set": list(self.incision_set),
         }
         if self.explanation is not None:
-            data["explanation"] = self.explanation.to_dict()
+            data["explanation"] = _to_plain_data(self.explanation)
         return data
 
 
@@ -185,7 +173,7 @@ class WorldlineRevisionState:
     input_atom_id: str | None = None
     target_atom_ids: tuple[str, ...] = ()
     result: WorldlineRevisionResult | None = None
-    state: EpistemicStateSnapshot | None = None
+    state: Any | None = None
     status: str | None = None
     error: str | None = None
 
@@ -210,11 +198,7 @@ class WorldlineRevisionState:
             input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
             target_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())),
             result=WorldlineRevisionResult.from_mapping(result_data),
-            state=(
-                None
-                if state_data is None
-                else EpistemicStateSnapshot.from_mapping(state_data)
-            ),
+            state=None if state_data is None else dict(state_data),
             status=None if payload.get("status") is None else str(payload.get("status")),
             error=None if payload.get("error") is None else str(payload.get("error")),
         )
@@ -229,9 +213,25 @@ class WorldlineRevisionState:
         if self.result is not None:
             data["result"] = self.result.to_dict()
         if self.state is not None:
-            data["state"] = self.state.to_dict()
+            data["state"] = _to_plain_data(self.state)
         if self.status is not None:
             data["status"] = self.status
         if self.error is not None:
             data["error"] = self.error
         return data
+
+
+def _to_plain_data(value: Any) -> Any:
+    to_dict = getattr(value, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    if isinstance(value, Mapping):
+        return {
+            str(key): _to_plain_data(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, tuple):
+        return [_to_plain_data(item) for item in value]
+    if isinstance(value, list):
+        return [_to_plain_data(item) for item in value]
+    return value

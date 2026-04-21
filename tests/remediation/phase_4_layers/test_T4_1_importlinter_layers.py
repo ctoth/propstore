@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 
 
-def test_importlinter_catches_known_layer_violations() -> None:
+def test_importlinter_layer_contracts_are_clean() -> None:
     result = subprocess.run(
         ["uv", "run", "lint-imports"],
         capture_output=True,
@@ -11,9 +11,4 @@ def test_importlinter_catches_known_layer_violations() -> None:
         check=False,
     )
 
-    assert result.returncode != 0
-    output = result.stdout + result.stderr
-    for expected in (
-        "worldline -> support_revision",
-    ):
-        assert expected in output
+    assert result.returncode == 0, result.stdout + result.stderr

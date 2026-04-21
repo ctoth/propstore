@@ -26,7 +26,7 @@ def capture_argumentation_state(
     world: WorldlineStore,
     definition: WorldlineDefinition,
 ) -> tuple[WorldlineArgumentationState | None, list[str], set[ClaimId]]:
-    from propstore.world import ReasoningBackend
+    from propstore.world.types import ReasoningBackend
 
     active = coerce_active_claims(bound.active_claims())
     active_ids = {claim.claim_id for claim in active}
@@ -143,7 +143,7 @@ def _capture_aspic(
     policy: RenderPolicy,
     normalized_semantics: Any,
 ) -> WorldlineArgumentationState | None:
-    from propstore.world import ReasoningBackend
+    from propstore.world.types import ReasoningBackend
     from propstore.grounding.bundle import GroundedRulesBundle
     from propstore.structured_projection import (
         build_structured_projection,

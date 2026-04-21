@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from propstore.support_revision.snapshot_types import epistemic_state_snapshot
 from propstore.support_revision.iterated import epistemic_state_payload, make_epistemic_state
 from propstore.support_revision.operators import revise
-from propstore.support_revision.state import ClaimAtom, RevisionScope
+from propstore.support_revision.state import RevisionScope
 from tests.test_revision_iterated import _history_sensitive_base
 from tests.test_revision_operators import _base_with_shared_support
 
@@ -132,6 +133,9 @@ class _RevisionBound:
             return self.iterated_explanation
         raise AssertionError("unexpected revision result")
 
+    def revision_state_snapshot(self, state):
+        return epistemic_state_snapshot(state)
+
 
 class _RevisionWorld:
     def __init__(self, bound: _RevisionBound) -> None:
@@ -185,10 +189,12 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     assert len(bound.calls) == 1
     call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
     assert call_operation == "revise"
-    assert call_atom.atom_id == "claim:synthetic"
-    assert isinstance(call_atom, ClaimAtom)
-    assert call_atom.claim_id == "synthetic"
-    assert call_atom.claim.value == 9.0
+    assert call_atom == {
+        "kind": "claim",
+        "id": "synthetic",
+        "claim_id": "synthetic",
+        "value": 9.0,
+    }
     assert call_conflicts == {"claim:synthetic": ("claim:legacy",)}
     assert call_operator is None
 
@@ -246,10 +252,12 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     assert len(bound.calls) == 1
     call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
     assert call_operation == "iterated_revise"
-    assert call_atom.atom_id == "claim:new"
-    assert isinstance(call_atom, ClaimAtom)
-    assert call_atom.claim_id == "new"
-    assert call_atom.claim.value == 9.0
+    assert call_atom == {
+        "kind": "claim",
+        "id": "new",
+        "claim_id": "new",
+        "value": 9.0,
+    }
     assert call_conflicts == {"claim:new": ("claim:legacy",)}
     assert call_operator == "restrained"
 

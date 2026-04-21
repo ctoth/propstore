@@ -12,7 +12,7 @@ from propstore.support_revision.af_adapter import (
 from propstore.support_revision.entrenchment import EntrenchmentReport, compute_entrenchment
 from propstore.support_revision.explain import build_revision_explanation
 from propstore.support_revision.iterated import advance_epistemic_state, epistemic_state_payload, iterated_revise, make_epistemic_state
-from propstore.support_revision.operators import contract, expand, normalize_revision_input, revise, stabilize_belief_base
+from propstore.support_revision.operators import contract, expand, normalize_revision_input, stabilize_belief_base
 from propstore.support_revision.projection import project_belief_base
 from propstore.support_revision.state import BeliefAtom, BeliefBase, EpistemicState, RevisionEpisode, RevisionResult, RevisionScope
 
@@ -37,6 +37,5 @@ __all__ = [
     "normalize_revision_input",
     "project_epistemic_state_argumentation_view",
     "project_belief_base",
-    "revise",
     "stabilize_belief_base",
 ]

@@ -9,15 +9,12 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from propstore.core.environment import Environment
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.row_types import coerce_parameterization_row
 from propstore.propagation import parse_cached, rewrite_parameterization_symbols
-
-if TYPE_CHECKING:
-    from propstore.world import WorldModel
 
 
 @dataclass
@@ -61,7 +58,7 @@ class SensitivityReport:
 
 
 def query_sensitivity(
-    world: WorldModel,
+    world: Any,
     request: SensitivityRequest,
 ) -> SensitivityReport:
     resolved = world.resolve_concept(request.concept_id) or request.concept_id

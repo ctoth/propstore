@@ -38,7 +38,7 @@ def run_worldline(
     definition: WorldlineDefinition,
     world: WorldlineStore,
 ) -> WorldlineResult:
-    from propstore.world import ResolutionStrategy
+    from propstore.world.types import ResolutionStrategy
 
     environment = definition.inputs.environment
     bindings = dict(environment.bindings)
