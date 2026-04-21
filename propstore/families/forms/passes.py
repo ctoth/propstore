@@ -57,8 +57,13 @@ class FormDimensionPolicyPass:
                 for dimension_key in dims:
                     if (
                         not dimension_key
+                        or not dimension_key[0].isascii()
                         or not dimension_key[0].isalpha()
-                        or not dimension_key.isidentifier()
+                        or not all(
+                            character.isascii()
+                            and (character.isalnum() or character == "_")
+                            for character in dimension_key
+                        )
                     ):
                         diagnostics.append(
                             _error(
