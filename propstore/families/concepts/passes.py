@@ -109,17 +109,25 @@ def _concept_satisfies_type(
     required_reference: str,
     reference_index: dict[str, LoadedConcept],
 ) -> bool:
-    if required_reference in _concept_reference_keys(concept):
-        return True
-    for relationship in concept.record.relationships:
-        if relationship.relationship_type not in _TYPE_RELATIONSHIPS:
+    pending = [concept]
+    visited: set[str] = set()
+    while pending:
+        current = pending.pop(0)
+        current_id = str(current.record.artifact_id)
+        if current_id in visited:
             continue
-        target = str(relationship.target)
-        if target == required_reference:
+        visited.add(current_id)
+        if required_reference in _concept_reference_keys(current):
             return True
-        target_concept = reference_index.get(target)
-        if target_concept is not None and required_reference in _concept_reference_keys(target_concept):
-            return True
+        for relationship in current.record.relationships:
+            if relationship.relationship_type not in _TYPE_RELATIONSHIPS:
+                continue
+            target = str(relationship.target)
+            if target == required_reference:
+                return True
+            target_concept = reference_index.get(target)
+            if target_concept is not None:
+                pending.append(target_concept)
     return False
 
 
