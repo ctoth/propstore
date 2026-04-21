@@ -19,10 +19,11 @@ from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from collections.abc import Iterable, Sequence
 from itertools import combinations, product
-from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, overload, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
+from propstore.core.anytime import EnumerationExceeded
 from propstore.core.environment import WorldStore, MicropublicationCatalogStore
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.id_types import (
@@ -1777,21 +1778,65 @@ class ATMSEngine:
             for key in sorted(normalized)
         )
 
+    @overload
     def _iter_future_queryable_sets(
         self,
         queryables: Sequence[QueryableAssumption],
         limit: int,
-    ):
+    ) -> tuple[tuple[QueryableAssumption, ...], ...]: ...
+
+    @overload
+    def _iter_future_queryable_sets(
+        self,
+        queryables: Sequence[QueryableAssumption],
+        limit: int,
+        *,
+        max_candidates: None,
+    ) -> tuple[tuple[QueryableAssumption, ...], ...]: ...
+
+    @overload
+    def _iter_future_queryable_sets(
+        self,
+        queryables: Sequence[QueryableAssumption],
+        limit: int,
+        *,
+        max_candidates: int,
+    ) -> tuple[tuple[QueryableAssumption, ...], ...] | EnumerationExceeded: ...
+
+    def _iter_future_queryable_sets(
+        self,
+        queryables: Sequence[QueryableAssumption],
+        limit: int,
+        *,
+        max_candidates: int | None = None,
+    ) -> tuple[tuple[QueryableAssumption, ...], ...] | EnumerationExceeded:
+        """Enumerate future queryable sets with an anytime candidate ceiling.
+
+        Zilberstein 1996 treats interrupted enumeration as an anytime result:
+        callers get the exact completed candidate count and the unvisited
+        power-set remainder is marked vacuous rather than inferred.
+        """
+
         if limit <= 0:
-            return
+            return ()
+        if max_candidates is not None and max_candidates < 0:
+            raise ValueError("max_candidates must be non-negative")
+
         normalized = self._coerce_queryables(queryables)
+        queryable_sets: list[tuple[QueryableAssumption, ...]] = []
         count = 0
         for width in range(1, len(normalized) + 1):
             for queryable_set in combinations(normalized, width):
-                yield queryable_set
+                if max_candidates is not None and count >= max_candidates:
+                    return EnumerationExceeded(
+                        partial_count=count,
+                        max_candidates=max_candidates,
+                    )
+                queryable_sets.append(queryable_set)
                 count += 1
                 if count >= limit:
-                    return
+                    return tuple(queryable_sets)
+        return tuple(queryable_sets)
 
     def _future_engine(
         self,
