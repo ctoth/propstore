@@ -368,10 +368,11 @@ class TestStancesToContrariness:
 
     @given(claim_graph())
     @settings(deadline=None)
-    def test_supersedes_produce_contraries(self, graph):
-        """supersedes stances produce asymmetric contraries.
+    def test_supersedes_produce_preference_sensitive_contradictions(self, graph):
+        """supersedes stances produce preference-sensitive contradictions.
 
-        Modgil & Prakken 2018, Def 2 (p.8): contraries are directional.
+        Modgil & Prakken 2018, Def 9 (p.12): contradictory attacks are
+        filtered by preferences, unlike directional contraries.
         """
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
@@ -381,9 +382,10 @@ class TestStancesToContrariness:
             if stance["stance_type"] == "supersedes":
                 tgt = literals[claim_key(stance["target_claim_id"])]
                 src = literals[claim_key(stance["claim_id"])]
-                assert cfn.is_contrary(src, tgt) or cfn.is_contradictory(src, tgt), (
+                assert cfn.is_contradictory(src, tgt), (
                     f"supersedes {src}->{tgt} not in contrariness"
                 )
+                assert not cfn.is_contrary(src, tgt)
 
     @given(claim_graph())
     @settings(deadline=None)
