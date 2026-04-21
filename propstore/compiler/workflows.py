@@ -324,11 +324,13 @@ def build_repository(
             claim_reference_lookup=build_claim_reference_lookup(files),
         ),
     )
-    if not concept_result.ok or not isinstance(concept_result.output, ConceptCheckedRegistry):
+    concept_messages = _messages_from_pipeline_result(concept_result)
+    if not isinstance(concept_result.output, ConceptCheckedRegistry):
         raise CompilerWorkflowError(
             "Build aborted: concept validation failed.",
-            _messages_from_pipeline_result(concept_result),
+            concept_messages,
         )
+    build_messages.extend(concept_messages)
 
     context_ids: set[str] = set()
     try:
@@ -421,6 +423,7 @@ def build_repository(
         commit_hash=hash_key,
         compilation_context=compilation_context,
         claim_checked_bundle=claim_checked_bundle,
+        concept_diagnostics=concept_messages,
     )
 
     warning_count = len(concept_result.warnings)
