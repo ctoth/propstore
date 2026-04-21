@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 import threading
 import time
+from contextlib import closing
 
 from propstore.sidecar.sqlite import SIDECAR_BUSY_TIMEOUT_MS, connect_sidecar
 
@@ -10,7 +11,7 @@ from propstore.sidecar.sqlite import SIDECAR_BUSY_TIMEOUT_MS, connect_sidecar
 def test_sidecar_connect_enables_wal_and_busy_timeout(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
 
-    with connect_sidecar(sidecar_path) as conn:
+    with closing(connect_sidecar(sidecar_path)) as conn:
         conn.execute("CREATE TABLE item (id INTEGER PRIMARY KEY)")
         journal_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
         busy_timeout = conn.execute("PRAGMA busy_timeout").fetchone()[0]
@@ -21,7 +22,7 @@ def test_sidecar_connect_enables_wal_and_busy_timeout(tmp_path):
 
 def test_concurrent_sqlite_writer_waits_for_busy_timeout(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
-    with connect_sidecar(sidecar_path) as conn:
+    with closing(connect_sidecar(sidecar_path)) as conn:
         conn.execute("CREATE TABLE item (id INTEGER PRIMARY KEY)")
         conn.commit()
 
@@ -35,7 +36,7 @@ def test_concurrent_sqlite_writer_waits_for_busy_timeout(tmp_path):
     def write_waiting() -> None:
         started.set()
         try:
-            with connect_sidecar(sidecar_path) as conn:
+            with closing(connect_sidecar(sidecar_path)) as conn:
                 conn.execute("INSERT INTO item (id) VALUES (2)")
                 conn.commit()
         except sqlite3.OperationalError as exc:
@@ -52,6 +53,6 @@ def test_concurrent_sqlite_writer_waits_for_busy_timeout(tmp_path):
     writer.join(timeout=SIDECAR_BUSY_TIMEOUT_MS / 1000)
 
     assert errors == []
-    with connect_sidecar(sidecar_path) as conn:
+    with closing(connect_sidecar(sidecar_path)) as conn:
         rows = conn.execute("SELECT id FROM item ORDER BY id").fetchall()
     assert [row[0] for row in rows] == [1, 2]
