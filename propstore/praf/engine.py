@@ -83,9 +83,22 @@ def _defeat_summary_opinion(probability: float) -> Opinion:
     )
     variance = p * (1.0 - p)
     if variance <= 1e-12:
-        return Opinion(p, 1.0 - p, 0.0, 0.5, provenance)
+        return Opinion(
+            p,
+            1.0 - p,
+            0.0,
+            0.5,
+            provenance,
+            allow_dogmatic=True,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
+        )
 
-    dogmatic = Opinion(p, 1.0 - p, 0.0, 0.5)
+    dogmatic = Opinion(
+        p,
+        1.0 - p,
+        0.0,
+        0.5,
+        allow_dogmatic=True,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
+    )
     max_uncertainty = dogmatic.maximize_uncertainty().u
     normalized_variance = min(1.0, variance / 0.25)
     uncertainty = max_uncertainty * normalized_variance

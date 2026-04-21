@@ -52,6 +52,7 @@ class Opinion:
     u: float
     a: float = 0.5
     provenance: Provenance | None = None
+    allow_dogmatic: bool = False
 
     def __post_init__(self) -> None:
         for name, val in [("b", self.b), ("d", self.d), ("u", self.u)]:
@@ -455,6 +456,7 @@ def wbf(*opinions: Opinion) -> Opinion:
             0.0,
             _clamp_base_rate(a_fused),
             _compose_opinion_provenance("fusion", *dogmatic),
+            allow_dogmatic=True,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
         )
 
     # Precompute products of all uncertainties excluding each index.
