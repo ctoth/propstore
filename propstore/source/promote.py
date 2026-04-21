@@ -435,6 +435,7 @@ def _write_promotion_blocked_sidecar_rows(
                 # Fall back to raw id — upstream shouldn't produce this,
                 # but the path must not crash on a malformed claim.
                 artifact_id = str(claim.id or "?")
+            source_ref = f"{source_branch}:{artifact_id}"
             # Delete any prior mirror row for this (artifact_id, branch)
             # so re-promote after a fix doesn't leave stale rows.
             conn.execute(
@@ -443,8 +444,9 @@ def _write_promotion_blocked_sidecar_rows(
             )
             conn.execute(
                 "DELETE FROM build_diagnostics WHERE claim_id = ? "
-                "AND diagnostic_kind = 'promotion_blocked'",
-                (artifact_id,),
+                "AND diagnostic_kind = 'promotion_blocked' "
+                "AND source_ref = ?",
+                (artifact_id, source_ref),
             )
 
             conn.execute(
@@ -491,7 +493,7 @@ def _write_promotion_blocked_sidecar_rows(
                     (
                         artifact_id,
                         "claim",
-                        f"{source_branch}:{artifact_id}",
+                        source_ref,
                         "promotion_blocked",
                         "error",
                         1,
