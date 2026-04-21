@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from propstore.belief_set.core import BeliefSet
 from propstore.belief_set.language import Formula, World, negate
@@ -12,6 +13,7 @@ class RevisionTrace:
     operator: str
     pre_image_fingerprint: str
     provenance: Provenance
+    timestamp: datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,7 +70,12 @@ class SpohnEpistemicState:
         )
 
 
-def revise(state: SpohnEpistemicState, formula: Formula) -> RevisionOutcome:
+def revise(
+    state: SpohnEpistemicState,
+    formula: Formula,
+    *,
+    provenance: Provenance | None = None,
+) -> RevisionOutcome:
     """Darwiche-Pearl 1997 bullet revision over a Spohn ranking."""
     signature = state.alphabet | formula.atoms()
     working_state = extend_state(state, signature)
@@ -89,24 +96,29 @@ def revise(state: SpohnEpistemicState, formula: Formula) -> RevisionOutcome:
     return RevisionOutcome(
         belief_set=result_state.belief_set,
         state=result_state,
-        trace=revision_trace("revise", state.belief_set),
+        trace=revision_trace("revise", state.belief_set, provenance=provenance),
     )
 
 
-def full_meet_contract(state: SpohnEpistemicState, formula: Formula) -> RevisionOutcome:
+def full_meet_contract(
+    state: SpohnEpistemicState,
+    formula: Formula,
+    *,
+    provenance: Provenance | None = None,
+) -> RevisionOutcome:
     """AGM contraction using the Harper identity over the finite theory."""
     if not state.belief_set.entails(formula):
         return RevisionOutcome(
             belief_set=state.belief_set,
             state=state,
-            trace=revision_trace("contract", state.belief_set),
+            trace=revision_trace("contract", state.belief_set, provenance=provenance),
         )
-    revised_by_negation = revise(state, negate(formula))
+    revised_by_negation = revise(state, negate(formula), provenance=provenance)
     contracted = state.belief_set.intersection_theory(revised_by_negation.belief_set)
     return RevisionOutcome(
         belief_set=contracted,
         state=SpohnEpistemicState.from_belief_set(contracted),
-        trace=revision_trace("contract", state.belief_set),
+        trace=revision_trace("contract", state.belief_set, provenance=provenance),
     )
 
 
@@ -121,23 +133,42 @@ def extend_state(state: SpohnEpistemicState, alphabet: frozenset[str]) -> SpohnE
     return SpohnEpistemicState.from_ranks(alphabet, ranks)
 
 
-def revision_trace(operator: str, pre_image: BeliefSet) -> RevisionTrace:
+def _trace_timestamp() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _format_timestamp(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def revision_trace(
+    operator: str,
+    pre_image: BeliefSet,
+    *,
+    provenance: Provenance | None = None,
+) -> RevisionTrace:
+    timestamp = _trace_timestamp()
     graph_name = f"urn:propstore:belief-set:{operator}:{pre_image.fingerprint()}"
-    provenance = Provenance(
-        status=ProvenanceStatus.STATED,
-        witnesses=(
-            ProvenanceWitness(
-                asserter="propstore",
-                timestamp="1970-01-01T00:00:00Z",
-                source_artifact_code="ws-b-belief-set-layer",
-                method=operator,
+    trace_provenance = (
+        provenance
+        if provenance is not None
+        else Provenance(
+            status=ProvenanceStatus.VACUOUS,
+            witnesses=(
+                ProvenanceWitness(
+                    asserter="propstore",
+                    timestamp=_format_timestamp(timestamp),
+                    source_artifact_code="propstore-belief-set",
+                    method=operator,
+                ),
             ),
-        ),
-        graph_name=graph_name,
-        operations=(operator,),
+            graph_name=graph_name,
+            operations=(operator,),
+        )
     )
     return RevisionTrace(
         operator=operator,
         pre_image_fingerprint=pre_image.fingerprint(),
-        provenance=provenance,
+        provenance=trace_provenance,
+        timestamp=timestamp,
     )
