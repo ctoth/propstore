@@ -326,7 +326,15 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
 @click.option("--top-k", default=5, type=int, help="Number of similar claims to classify")
 @click.option("--concurrency", default=20, type=int, help="Max concurrent LLM calls")
 @click.pass_obj
-def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concurrency):
+def relate(
+    obj: dict,
+    claim_id: str | None,
+    relate_all_flag: bool,
+    model: str,
+    embedding_model: str | None,
+    top_k: int,
+    concurrency: int,
+) -> None:
     """Classify epistemic relationships between similar claims via LLM.
 
     Uses embedding similarity to pick top-k candidates per claim, then calls
