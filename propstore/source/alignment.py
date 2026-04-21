@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Mapping
 from collections import Counter
 from itertools import product
 from typing import Any, cast
@@ -32,6 +33,7 @@ from propstore.core.lemon import (
     lexical_entry_identity_key,
     lexical_form_identity_key,
 )
+from propstore.opinion import Opinion
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 
 from .common import load_document_from_branch, load_source_document
@@ -51,7 +53,7 @@ def concept_proposal_branch(repo: Repository | None = None) -> str:
     ).branch
 
 
-def _proposal_lexical_entry(proposal: dict[str, Any]) -> LexicalEntry:
+def _proposal_lexical_entry(proposal: Mapping[str, Any]) -> LexicalEntry:
     proposed_name = str(proposal["proposed_name"])
     proposed_uri = str(
         proposal.get("proposed_uri")
@@ -65,7 +67,26 @@ def _proposal_lexical_entry(proposal: dict[str, Any]) -> LexicalEntry:
     )
 
 
-def classify_relation(left: dict[str, Any], right: dict[str, Any]) -> str:
+def classify_relation(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any] | None = None,
+) -> str:
+    relation_opinion: Opinion | None = None
+    if right is None:
+        relation = left
+        relation_left = relation.get("left")
+        relation_right = relation.get("right")
+        if not isinstance(relation_left, Mapping) or not isinstance(relation_right, Mapping):
+            raise TypeError("alignment relation must contain mapping left/right proposals")
+        left = relation_left
+        right = relation_right
+        opinion = relation.get("opinion")
+        if isinstance(opinion, Opinion):
+            relation_opinion = opinion
+
+    if relation_opinion is not None and relation_opinion.uncertainty > 0.99:
+        return "ignorance"
+
     left_entry = _proposal_lexical_entry(left)
     right_entry = _proposal_lexical_entry(right)
     if lexical_entry_identity_key(left_entry) == lexical_entry_identity_key(right_entry):
