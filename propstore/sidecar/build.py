@@ -15,7 +15,9 @@ whether to show these rows. This implements the discipline declared in
 from __future__ import annotations
 
 import hashlib
+import os
 import sqlite3
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -71,6 +73,36 @@ def _sidecar_content_hash(source_revision: str) -> str:
         f"source_revision:{source_revision}\n"
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _sqlite_sidecar_artifact_paths(sidecar_path: Path) -> tuple[Path, Path, Path]:
+    return (
+        sidecar_path,
+        sidecar_path.with_name(f"{sidecar_path.name}-wal"),
+        sidecar_path.with_name(f"{sidecar_path.name}-shm"),
+    )
+
+
+def _cleanup_sidecar_artifacts(sidecar_path: Path) -> None:
+    for path in _sqlite_sidecar_artifact_paths(sidecar_path):
+        path.unlink(missing_ok=True)
+
+
+def _new_temp_sidecar_path(sidecar_path: Path) -> Path:
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{sidecar_path.name}.",
+        suffix=".tmp",
+        dir=sidecar_path.parent,
+    )
+    os.close(fd)
+    temp_path = Path(temp_name)
+    temp_path.unlink()
+    return temp_path
+
+
+def _checkpoint_and_close(conn: sqlite3.Connection) -> None:
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    conn.close()
 
 
 def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
@@ -415,10 +447,11 @@ def build_sidecar(
             if snapshot_conn is not None:
                 snapshot_conn.close()
 
-    if sidecar_path.exists():
-        sidecar_path.unlink()
+    had_existing_sidecar = sidecar_path.exists()
+    temp_sidecar_path = _new_temp_sidecar_path(sidecar_path)
+    temp_hash_path = temp_sidecar_path.with_name(f"{temp_sidecar_path.name}.hash")
 
-    conn = sqlite3.connect(sidecar_path)
+    conn = sqlite3.connect(temp_sidecar_path)
     try:
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA journal_mode=WAL")
@@ -489,11 +522,29 @@ def build_sidecar(
     except Exception as exc:
         try:
             _record_build_exception(conn, exc)
+            conn.commit()
         except Exception as diagnostic_error:
             exc.add_note(f"failed to record build diagnostic: {diagnostic_error}")
-        conn.close()
+        try:
+            _checkpoint_and_close(conn)
+        except Exception as close_error:
+            exc.add_note(f"failed to close failed sidecar build: {close_error}")
+        if had_existing_sidecar:
+            _cleanup_sidecar_artifacts(temp_sidecar_path)
+        else:
+            temp_sidecar_path.replace(sidecar_path)
+            _cleanup_sidecar_artifacts(temp_sidecar_path)
         raise
-    conn.close()
 
-    hash_path.write_text(content_hash)
+    _checkpoint_and_close(conn)
+    temp_hash_path.write_text(content_hash)
+    try:
+        temp_sidecar_path.replace(sidecar_path)
+        temp_hash_path.replace(hash_path)
+    except Exception:
+        _cleanup_sidecar_artifacts(temp_sidecar_path)
+        temp_hash_path.unlink(missing_ok=True)
+        raise
+    _cleanup_sidecar_artifacts(temp_sidecar_path)
+    temp_hash_path.unlink(missing_ok=True)
     return True
