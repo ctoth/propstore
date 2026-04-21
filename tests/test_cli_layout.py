@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -178,6 +179,19 @@ def test_world_reasoning_uses_named_validation_exit_code() -> None:
 
     assert "exit_code=2" not in reasoning
     assert "EXIT_VALIDATION" in reasoning
+
+
+def test_claim_relate_command_is_fully_annotated() -> None:
+    claim_source = Path("propstore/cli/claim.py").read_text(encoding="utf-8")
+    module = ast.parse(claim_source)
+    relate = next(
+        node
+        for node in module.body
+        if isinstance(node, ast.FunctionDef) and node.name == "relate"
+    )
+
+    assert relate.returns is not None
+    assert all(arg.annotation is not None for arg in relate.args.args)
 
 
 def test_source_commands_live_in_source_package() -> None:
