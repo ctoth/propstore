@@ -837,21 +837,57 @@ def compile_micropublication_sidecar_rows(
     micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
     claim_reference_map: dict[str, str],
 ) -> MicropublicationSidecarRows:
+    rows, diagnostics = _compile_micropublication_sidecar_rows_with_diagnostics(
+        micropub_files,
+        claim_reference_map,
+    )
+    if diagnostics:
+        raise sqlite3.IntegrityError(diagnostics[0].message)
+    return rows
+
+
+def _compile_micropublication_sidecar_rows_with_diagnostics(
+    micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
+    claim_reference_map: dict[str, str],
+) -> tuple[MicropublicationSidecarRows, tuple[QuarantineDiagnostic, ...]]:
     valid_claim_ids = set(claim_reference_map.values())
     micropublication_rows: list[MicropublicationInsertRow] = []
     claim_rows: list[MicropublicationClaimInsertRow] = []
+    diagnostics: list[QuarantineDiagnostic] = []
 
-    for _name, document in sorted(micropub_files, key=lambda item: item[0]):
+    for filename, document in sorted(micropub_files, key=lambda item: item[0]):
         for micropub in document.micropubs:
-            resolved_claims = [
-                resolve_claim_reference(claim_id, claim_reference_map)
-                for claim_id in micropub.claims
-            ]
-            if any(claim_id not in valid_claim_ids for claim_id in resolved_claims):
-                raise sqlite3.IntegrityError(
+            resolved_claims: list[str] = []
+            missing_claim_ref: str | None = None
+            for claim_id in micropub.claims:
+                resolved_claim = resolve_claim_reference(claim_id, claim_reference_map)
+                if (
+                    not isinstance(resolved_claim, str)
+                    or resolved_claim not in valid_claim_ids
+                ):
+                    if isinstance(resolved_claim, str) and resolved_claim:
+                        missing_claim_ref = resolved_claim
+                    elif isinstance(claim_id, str) and claim_id:
+                        missing_claim_ref = claim_id
+                    else:
+                        missing_claim_ref = micropub.artifact_id
+                    break
+                resolved_claims.append(resolved_claim)
+            if missing_claim_ref is not None:
+                message = (
                     f"micropublication {micropub.artifact_id} references "
-                    "nonexistent claim"
+                    f"nonexistent claim '{missing_claim_ref}'"
                 )
+                diagnostics.append(
+                    QuarantineDiagnostic(
+                        artifact_id=missing_claim_ref,
+                        kind="micropublication",
+                        diagnostic_kind="micropublication_validation",
+                        message=message,
+                        file=filename,
+                    )
+                )
+                continue
 
             micropublication_rows.append(
                 MicropublicationInsertRow(
@@ -884,9 +920,12 @@ def compile_micropublication_sidecar_rows(
                     )
                 )
 
-    return MicropublicationSidecarRows(
-        micropublication_rows=tuple(micropublication_rows),
-        claim_rows=tuple(claim_rows),
+    return (
+        MicropublicationSidecarRows(
+            micropublication_rows=tuple(micropublication_rows),
+            claim_rows=tuple(claim_rows),
+        ),
+        tuple(diagnostics),
     )
 
 
@@ -951,6 +990,16 @@ def compile_sidecar_build_plan(
             stance_quarantine_diagnostics + justification_quarantine_diagnostics
         )
 
+    micropublication_rows, micropublication_quarantine_diagnostics = (
+        _compile_micropublication_sidecar_rows_with_diagnostics(
+            micropub_files,
+            claim_reference_map,
+        )
+    )
+    quarantine_diagnostics = (
+        quarantine_diagnostics + micropublication_quarantine_diagnostics
+    )
+
     return SidecarBuildPlan(
         source_rows=compile_source_sidecar_rows(source_entries),
         concept_rows=compile_concept_sidecar_rows(
@@ -964,10 +1013,7 @@ def compile_sidecar_build_plan(
         raw_id_quarantine_rows=raw_id_quarantine_rows,
         conflict_rows=conflict_rows,
         claim_fts_rows=claim_fts_rows,
-        micropublication_rows=compile_micropublication_sidecar_rows(
-            micropub_files,
-            claim_reference_map,
-        ),
+        micropublication_rows=micropublication_rows,
         stance_rows=stance_rows,
         justification_rows=justification_rows,
         quarantine_diagnostics=quarantine_diagnostics,
