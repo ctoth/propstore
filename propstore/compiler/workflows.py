@@ -424,16 +424,18 @@ def build_repository(
             if isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
                 claim_checked_bundle = claim_pipeline_result.output
         except DocumentSchemaError as exc:
-            raise CompilerWorkflowError(
-                "Build aborted: claim validation failed.",
-                (
-                    _workflow_diagnostic(
-                        PropstoreFamily.CLAIMS,
-                        ClaimStage.AUTHORED,
-                        str(exc),
-                    ),
-                ),
-            ) from exc
+            claim_messages.append(
+                PassDiagnostic(
+                    level="error",
+                    code="claim.schema",
+                    message=str(exc),
+                    family=PropstoreFamily.CLAIMS,
+                    stage=ClaimStage.AUTHORED,
+                    filename=exc.source,
+                    artifact_id=exc.source,
+                    pass_name="compiler.build_repository",
+                )
+            )
     build_messages.extend(claim_messages)
 
     sidecar_path = Path(output) if output else repo.sidecar_path
