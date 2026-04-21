@@ -31,6 +31,10 @@ class NoCalibration:
     provenance: Provenance | None = None
 
 
+class PreferenceLayerError(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class PropstorePrAF:
     """Propstore-owned PrAF adapter with opinion and provenance metadata."""
@@ -310,7 +314,9 @@ def p_defeat_from_stance(stance: dict) -> Opinion | NoCalibration:
 
 def enforce_coh(praf: PropstorePrAF) -> PropstorePrAF:
     """Enforce COH rationality on propstore opinion-valued argument probabilities."""
-    attacks = praf.framework.attacks if praf.framework.attacks is not None else praf.framework.defeats
+    attacks = praf.framework.attacks
+    if attacks is None:
+        raise PreferenceLayerError("enforce_coh requires explicit pre-preference attacks")
 
     expectations: dict[str, float] = {}
     evidence_n: dict[str, float] = {}
