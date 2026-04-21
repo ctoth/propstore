@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 import json
-import re
 from typing import TYPE_CHECKING, Any
 
 from propstore.core.active_claims import ActiveClaim
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.cel_checker import (
-    synthetic_category_concept,
+    ASTNode,
+    BinaryOpNode,
+    InNode,
+    NameNode,
+    TernaryNode,
+    UnaryOpNode,
+    parse_cel,
     with_standard_synthetic_bindings,
-    with_synthetic_concepts,
 )
 from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
@@ -70,15 +74,62 @@ def _claim_conditions(claim: ClaimNode) -> tuple[CelExpr, ...]:
     return to_cel_exprs((str(raw),))
 
 
-_NAME_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+def _claim_node_source_artifact(claim: ClaimNode) -> str | None:
+    if claim.provenance is not None and claim.provenance.source_id is not None:
+        return claim.provenance.source_id
+    return claim.claim_id
+
+
 _NON_BINDING_NAMES = frozenset({"true", "false", "in"})
+
+
+class UnknownConceptInCEL(ValueError):
+    """Raised when activation sees a CEL identifier outside the registry."""
+
+    def __init__(self, concept_name: str, *, source_artifact: str | None) -> None:
+        self.concept_name = concept_name
+        self.source_artifact = source_artifact
+        context = (
+            "without source artifact context"
+            if source_artifact is None
+            else f"in source artifact {source_artifact}"
+        )
+        super().__init__(f"Unknown CEL concept '{concept_name}' {context}")
+
+
+def _names_from_ast(node: ASTNode) -> set[str]:
+    if isinstance(node, NameNode):
+        return {node.name}
+    if isinstance(node, BinaryOpNode):
+        return _names_from_ast(node.left) | _names_from_ast(node.right)
+    if isinstance(node, UnaryOpNode):
+        return _names_from_ast(node.operand)
+    if isinstance(node, InNode):
+        names = _names_from_ast(node.expr)
+        for value in node.values:
+            names.update(_names_from_ast(value))
+        return names
+    if isinstance(node, TernaryNode):
+        return (
+            _names_from_ast(node.condition)
+            | _names_from_ast(node.true_branch)
+            | _names_from_ast(node.false_branch)
+        )
+    return set()
+
+
+def _cel_identifier_names(condition: CelExpr) -> set[str]:
+    try:
+        return _names_from_ast(parse_cel(condition))
+    except ValueError:
+        return set()
 
 
 def _synthetic_names_from_conditions(*condition_groups: tuple[CelExpr, ...] | list[CelExpr]) -> list[str]:
     names: set[str] = set()
     for group in condition_groups:
         for condition in group:
-            for match in _NAME_PATTERN.findall(str(condition)):
+            for match in _cel_identifier_names(condition):
                 if match not in _NON_BINDING_NAMES:
                     names.add(match)
     return sorted(names)
@@ -89,6 +140,7 @@ def _retry_with_standard_bindings(
     *,
     binding_conditions: tuple[CelExpr, ...] | list[CelExpr],
     claim_conditions: tuple[CelExpr, ...] | list[CelExpr],
+    source_artifact: str | None,
 ) -> Z3ConditionSolver:
     try:
         base_registry = getattr(solver, "_registry")
@@ -104,18 +156,7 @@ def _retry_with_standard_bindings(
         if name not in augmented_registry
     ]
     if extra_names:
-        augmented_registry = with_synthetic_concepts(
-            augmented_registry,
-            [
-                synthetic_category_concept(
-                    concept_id=f"ps:concept:__{name}__",
-                    canonical_name=name,
-                    values=(),
-                    extensible=True,
-                )
-                for name in extra_names
-            ],
-        )
+        raise UnknownConceptInCEL(extra_names[0], source_artifact=source_artifact)
     if augmented_registry == dict(base_registry):
         return solver
     return Z3ConditionSolver(augmented_registry)
@@ -151,6 +192,7 @@ def is_claim_node_active(
             solver,
             binding_conditions=binding_conditions,
             claim_conditions=claim_conditions,
+            source_artifact=_claim_node_source_artifact(claim),
         ).are_disjoint(
             binding_conditions,
             claim_conditions,
@@ -187,6 +229,7 @@ def is_active_claim_active(
             solver,
             binding_conditions=binding_conditions,
             claim_conditions=claim_conditions,
+            source_artifact=claim.artifact_id,
         ).are_disjoint(
             binding_conditions,
             claim_conditions,
