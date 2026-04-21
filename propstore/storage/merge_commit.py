@@ -5,12 +5,45 @@ import time
 from collections import Counter
 from typing import TYPE_CHECKING
 
+from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.registry import ClaimsFileRef, MergeManifestRef
+from propstore.merge.merge_classifier import MergeArgument
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import semantic_candidate_details
 
 if TYPE_CHECKING:
     from propstore.storage.snapshot import RepositorySnapshot
+
+
+def _safe_ref_part(value: str) -> str:
+    safe = "".join(character if character.isalnum() else "_" for character in value)
+    return safe.strip("_") or "branch"
+
+
+def _claims_ref_for_argument(argument: MergeArgument, *, has_rivals: bool) -> ClaimsFileRef:
+    """Return the merge claim file ref.
+
+    Clark et al. micropublications require rival assertions to remain separately
+    citable. Branch-keyed files keep those rival bodies present without
+    collapsing them into one canonical storage identity.
+    """
+    if not has_rivals:
+        return ClaimsFileRef("merged")
+    origin_key = "__".join(_safe_ref_part(origin) for origin in argument.branch_origins)
+    return ClaimsFileRef(f"merged__{origin_key or 'unknown'}")
+
+
+def _materialized_claim_payload(argument: MergeArgument, *, has_rivals: bool) -> dict:
+    payload = argument.claim.to_payload()
+    if has_rivals:
+        # Clark et al. micropublications: each rival needs its own materialized
+        # identity; the manifest keeps the shared canonical artifact_id.
+        payload["artifact_id"] = argument.claim_id
+        provenance = payload.get("provenance")
+        if isinstance(provenance, dict):
+            provenance.pop("branch_origin", None)
+        payload["version_id"] = compute_claim_version_id(payload)
+    return payload
 
 
 def create_merge_commit(
@@ -48,29 +81,16 @@ def create_merge_commit(
 
     sorted_arguments = sorted(merge.arguments, key=lambda argument: argument.claim_id)
     artifact_counts = Counter(argument.artifact_id for argument in sorted_arguments)
-    merged_claims = [
-        argument.claim.to_payload()
-        for argument in sorted_arguments
-        if artifact_counts[argument.artifact_id] == 1
-    ]
-
-    claims_payload = {
-        "source": {
-            "paper": "merged",
-            "extraction_model": "merge",
-            "extraction_date": time.strftime("%Y-%m-%d"),
-        },
-        "claims": merged_claims,
-    }
+    claim_payloads_by_ref: dict[ClaimsFileRef, list[dict]] = {}
+    for argument in sorted_arguments:
+        has_rivals = artifact_counts[argument.artifact_id] > 1
+        claims_ref = _claims_ref_for_argument(argument, has_rivals=has_rivals)
+        claim_payloads_by_ref.setdefault(claims_ref, []).append(
+            _materialized_claim_payload(argument, has_rivals=has_rivals)
+        )
     claim_paths = [path for path in merged_entries if path.startswith("claims/")]
     for path in claim_paths:
         del merged_entries[path]
-
-    claims_ref = ClaimsFileRef("merged")
-    claims_document = families.claims.coerce(
-        claims_payload,
-        source=families.claims.address(claims_ref).require_path(),
-    )
 
     manifest_payload = {
         "merge": {
@@ -83,7 +103,7 @@ def create_merge_commit(
                     "artifact_id": argument.artifact_id,
                     "logical_id": argument.logical_id,
                     "branch_origins": list(argument.branch_origins),
-                    "materialized": artifact_counts[argument.artifact_id] == 1,
+                    "materialized": True,
                 }
                 for argument in sorted_arguments
             ],
@@ -97,18 +117,37 @@ def create_merge_commit(
         source=families.merge_manifests.address(manifest_ref).require_path(),
     )
 
-    prepared_claims = families.claims.prepare(
-        claims_ref,
-        claims_document,
-        branch=target_branch,
-    )
+    prepared_claims = []
+    for claims_ref, claims in sorted(
+        claim_payloads_by_ref.items(),
+        key=lambda item: item[0].name,
+    ):
+        claims_payload = {
+            "source": {
+                "paper": "merged",
+                "extraction_model": "merge",
+                "extraction_date": time.strftime("%Y-%m-%d"),
+            },
+            "claims": claims,
+        }
+        claims_document = families.claims.coerce(
+            claims_payload,
+            source=families.claims.address(claims_ref).require_path(),
+        )
+        prepared_claims.append(
+            families.claims.prepare(
+                claims_ref,
+                claims_document,
+                branch=target_branch,
+            )
+        )
     prepared_manifest = families.merge_manifests.prepare(
         manifest_ref,
         manifest_document,
         branch=target_branch,
     )
 
-    for prepared in (prepared_claims, prepared_manifest):
+    for prepared in (*prepared_claims, prepared_manifest):
         merged_entries[prepared.address.require_path()] = kr.store_blob(prepared.content)
 
     return kr.commit_flat_tree(

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
-from propstore.families.registry import ClaimsFileRef, MergeManifestRef
+from propstore.families.registry import MergeManifestRef
 from propstore.repository import Repository
 
 
@@ -72,16 +72,21 @@ def commit_merge(
         MergeManifestRef(),
         commit=commit_sha,
     )
+    git = repo.git
+    if git is None:
+        raise ValueError("merge commit report requires a git-backed repository")
+    claim_paths = sorted(
+        path
+        for path in git.flat_tree_entries(commit_sha)
+        if path.startswith("claims/")
+    )
     return MergeCommitReport(
         payload={
             "surface": "storage_merge_commit",
             "branch_a": request.branch_a,
             "branch_b": request.branch_b,
             "target_branch": target_branch,
-            "claims_path": repo.families.claims.family.address_for(
-                repo,
-                ClaimsFileRef("merged"),
-            ).require_path(),
+            "claims_paths": claim_paths,
             "manifest_path": repo.families.merge_manifests.family.address_for(
                 repo,
                 MergeManifestRef(),

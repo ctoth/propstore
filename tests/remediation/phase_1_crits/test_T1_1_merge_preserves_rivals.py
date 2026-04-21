@@ -74,15 +74,24 @@ def test_merge_preserves_rival_bodies(left_body: str, right_body: str) -> None:
         )
 
         merge_sha = create_merge_commit(_snapshot(root), "master", branch_name)
+        manifest = yaml.safe_load(
+            (kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text()
+        )
         claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
         artifact_id = make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+        materialized_claim_ids = {
+            argument["claim_id"]
+            for argument in manifest["merge"]["arguments"]
+            if argument["artifact_id"] == artifact_id
+        }
         bodies = [
             claim["statement"]
             for claim_file in claim_files
             for claim in claim_file_payload(claim_file).get("claims", [])
-            if claim["artifact_id"] == artifact_id
+            if claim["artifact_id"] in materialized_claim_ids
         ]
 
+        assert len(materialized_claim_ids) == 2
         assert len(bodies) == 2
         assert left_body in bodies
         assert right_body in bodies
