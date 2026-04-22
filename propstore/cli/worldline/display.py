@@ -64,11 +64,11 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
 
     if check:
         if report.staleness_unavailable:
-            emit("  ? Cannot check staleness — sidecar not found")
+            emit("  Cannot check staleness: sidecar not found")
         elif report.stale:
-            emit("  ⚠ STALE — upstream dependencies have changed")
+            emit("  STALE: upstream dependencies have changed")
         else:
-            emit("  ✓ Fresh — dependencies unchanged")
+            emit("  Fresh: dependencies unchanged")
 
     emit_section(
         "Results:",
