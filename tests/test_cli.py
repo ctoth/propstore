@@ -1976,6 +1976,16 @@ class TestSourceLifecycleCli:
         assert "add-claim" in result.output
 
 
+class TestSourceProposalCli:
+    def test_propose_concept_names_source_and_concept_distinctly(self) -> None:
+        result = CliRunner().invoke(cli, ["source", "propose-concept", "--help"])
+
+        assert result.exit_code == 0, result.output
+        assert "SOURCE_NAME" in result.output
+        assert "--concept-name" in result.output
+        assert "--name" not in result.output
+
+
 class TestWorldFragilityInterventions:
     def test_world_fragility_json_uses_interventions_key(self, freq_workspace: Path) -> None:
         runner = CliRunner()
