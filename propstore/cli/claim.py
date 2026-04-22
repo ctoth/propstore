@@ -7,6 +7,7 @@ parameter conflicts), compare (algorithm claim equivalence), embed
 and relate (LLM-assisted epistemic relationship classification)."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import click
@@ -262,11 +263,7 @@ def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_si
                 model=model,
                 batch_size=batch_size,
             ),
-            on_progress=(
-                (lambda model_name, done, total: emit(f"  {done}/{total}") if done % batch_size == 0 or done == total else None)
-                if model == "all"
-                else (lambda model_name, done, total: emit(f"  {done}/{total} claims embedded", err=True))
-            ),
+            on_progress=_claim_embed_progress_callback(model, batch_size),
         )
     except ClaimSidecarMissingError as exc:
         fail(exc)
@@ -282,6 +279,23 @@ def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_si
     else:
         result = report.results[0]
         emit(f"Embedded: {result.embedded}, Skipped: {result.skipped}, Errors: {result.errors}")
+
+
+def _claim_embed_progress_callback(
+    model: str,
+    batch_size: int,
+) -> Callable[[str, int, int], None]:
+    if model == "all":
+        def report_model_progress(_model_name: str, done: int, total: int) -> None:
+            if done % batch_size == 0 or done == total:
+                emit(f"  {done}/{total}")
+
+        return report_model_progress
+
+    def report_claim_progress(_model_name: str, done: int, total: int) -> None:
+        emit(f"  {done}/{total} claims embedded", err=True)
+
+    return report_claim_progress
 
 
 @claim.command()
