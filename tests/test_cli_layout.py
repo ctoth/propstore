@@ -237,6 +237,17 @@ def test_claim_embed_progress_uses_named_callback_helper() -> None:
     assert "lambda model_name" not in embed_body
 
 
+def test_compiler_commands_return_after_validation_exit() -> None:
+    compiler_source = Path("propstore/cli/compiler_cmds.py").read_text(
+        encoding="utf-8"
+    )
+    lines = compiler_source.splitlines()
+
+    for index, line in enumerate(lines):
+        if "exit_with_code(EXIT_VALIDATION)" in line:
+            assert lines[index + 1].strip() == "return"
+
+
 def test_source_commands_live_in_source_package() -> None:
     group_module = Path("propstore/cli/source/__init__.py").read_text(encoding="utf-8")
     authoring = Path("propstore/cli/source/authoring.py").read_text(encoding="utf-8")
