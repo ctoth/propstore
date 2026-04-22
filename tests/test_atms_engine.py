@@ -1888,3 +1888,36 @@ def test_atms_interventions_validation_error_does_not_emit_success_preamble(
     assert "target status is required" in result.output
     assert "bounded additive plans over declared queryables" not in result.output
     assert "not revision/contraction" not in result.output
+
+
+def test_atms_next_query_validation_error_does_not_emit_success_preamble(
+    monkeypatch,
+) -> None:
+    atms_module = import_module("propstore.cli.world.atms")
+
+    def raise_validation_error(*_args, **_kwargs):
+        raise atms_module.WorldAtmsValidationError("target status is required")
+
+    monkeypatch.setattr(
+        atms_module,
+        "world_atms_next_query",
+        raise_validation_error,
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "world",
+            "atms",
+            "next-query",
+            "claim_future",
+            "--target-status",
+            "IN",
+            "--queryable",
+            "y=2",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "target status is required" in result.output
+    assert "derived from bounded additive intervention plans" not in result.output
