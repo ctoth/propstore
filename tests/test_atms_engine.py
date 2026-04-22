@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib import import_module
 import json
 
 from click.testing import CliRunner
@@ -1853,3 +1854,37 @@ def test_atms_cli_surfaces_interventions_and_next_queries(monkeypatch) -> None:
     assert next_query_result.exit_code == 0, next_query_result.output
     assert "derived from bounded additive intervention plans" in next_query_result.output
     assert "y == '2': coverage=1 smallest_plan_size=1" in next_query_result.output
+
+
+def test_atms_interventions_validation_error_does_not_emit_success_preamble(
+    monkeypatch,
+) -> None:
+    atms_module = import_module("propstore.cli.world.atms")
+
+    def raise_validation_error(*_args, **_kwargs):
+        raise atms_module.WorldAtmsValidationError("target status is required")
+
+    monkeypatch.setattr(
+        atms_module,
+        "world_atms_interventions",
+        raise_validation_error,
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "world",
+            "atms",
+            "interventions",
+            "claim_future",
+            "--target-status",
+            "IN",
+            "--queryable",
+            "y=2",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "target status is required" in result.output
+    assert "bounded additive plans over declared queryables" not in result.output
+    assert "not revision/contraction" not in result.output
