@@ -77,6 +77,16 @@ def _format_chain_concept(concept) -> str:
     return str(concept.display_id)
 
 
+def _write_new_text_file(path: Path, content: str) -> None:
+    try:
+        with path.open("x", encoding="utf-8") as handle:
+            handle.write(content)
+    except FileExistsError as exc:
+        raise click.ClickException(f"output file already exists: {path}") from exc
+    except OSError as exc:
+        raise click.ClickException(f"could not write output file {path}: {exc}") from exc
+
+
 @world.command("hypothetical")
 @click.argument("args", nargs=-1)
 @click.option("--remove", multiple=True, help="Claim ID to remove")
@@ -203,7 +213,7 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
         output = report.graph.to_dot()
 
     if output_file:
-        Path(output_file).write_text(output)
+        _write_new_text_file(Path(output_file), output)
         emit(f"Graph written to {output_file}")
     else:
         emit(output)
