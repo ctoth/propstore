@@ -84,7 +84,7 @@ class _LazyCLIGroup(click.Group):
 
 
 @click.group(cls=_LazyCLIGroup)
-@click.option("-C", "--directory", default=None, type=click.Path(exists=True),
+@click.option("-C", "--directory", default=None, type=click.Path(file_okay=False),
               help="Run as if pks was started in this directory.")
 @click.pass_context
 def cli(ctx: click.Context, directory: str | None) -> None:
