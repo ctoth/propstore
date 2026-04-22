@@ -129,6 +129,21 @@ def test_worldline_commands_live_outside_group_module() -> None:
     assert "def worldline_delete(" in mutation
 
 
+def test_worldline_staleness_status_output_is_ascii() -> None:
+    display = Path("propstore/cli/worldline/display.py").read_text(encoding="utf-8")
+    staleness_fragments = (
+        "sidecar not found",
+        "upstream dependencies have changed",
+        "dependencies unchanged",
+    )
+
+    for line in display.splitlines():
+        if any(fragment in line for fragment in staleness_fragments):
+            line.encode("ascii")
+    assert chr(0x26A0) not in display
+    assert chr(0x2713) not in display
+
+
 def test_concept_commands_live_outside_group_module() -> None:
     group_module = Path("propstore/cli/concept/__init__.py").read_text(encoding="utf-8")
     mutation = Path("propstore/cli/concept/mutation.py").read_text(
