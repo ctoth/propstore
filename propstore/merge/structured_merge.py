@@ -296,10 +296,18 @@ def build_structured_merge_candidates(
     operator: str = "sum",
 ) -> list[ArgumentationFramework]:
     from argumentation.partial_af import (
+        EnumerationExceeded,
         leximax_merge_frameworks,
         max_merge_frameworks,
         sum_merge_frameworks,
     )
+
+    def require_candidates(
+        result: list[ArgumentationFramework] | EnumerationExceeded,
+    ) -> list[ArgumentationFramework]:
+        if isinstance(result, EnumerationExceeded):
+            raise RuntimeError(str(result))
+        return result
 
     summaries = {
         branch_a: build_branch_structured_summary(snapshot, branch_a),
@@ -310,11 +318,11 @@ def build_structured_merge_candidates(
         for branch, summary in summaries.items()
     }
     if operator == "sum":
-        return sum_merge_frameworks(profile)
+        return require_candidates(sum_merge_frameworks(profile))
     if operator == "max":
-        return max_merge_frameworks(profile)
+        return require_candidates(max_merge_frameworks(profile))
     if operator == "leximax":
-        return leximax_merge_frameworks(profile)
+        return require_candidates(leximax_merge_frameworks(profile))
     raise ValueError(f"Unknown structured merge operator: {operator}")
 
 

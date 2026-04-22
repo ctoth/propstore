@@ -31,7 +31,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: uv sync --dev --locked
+        run: uv sync --dev --locked --no-sources
 
       - name: Run tests
-        run: sh ./scripts/run_logged_pytest.sh
+        run: sh ./scripts/run_logged_pytest.sh --no-sources
