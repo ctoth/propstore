@@ -41,6 +41,7 @@ def validate(obj: dict) -> None:
         _emit_workflow_messages(exc.messages)
         emit_error(exc.summary)
         exit_with_code(EXIT_VALIDATION)
+        return
 
     if report.no_concepts:
         emit("No concept files found.")
@@ -54,6 +55,7 @@ def validate(obj: dict) -> None:
     else:
         emit_error(f"Validation FAILED: {len(report.errors)} error(s)")
         exit_with_code(EXIT_VALIDATION)
+        return
 
 
 @click.command()
@@ -69,6 +71,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         _emit_workflow_messages(exc.messages)
         emit_error(exc.summary)
         exit_with_code(EXIT_VALIDATION)
+        return
 
     if report.no_concepts:
         emit("No concept files found.")
