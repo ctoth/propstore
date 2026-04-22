@@ -5,6 +5,7 @@ Each test gets a fresh concepts directory with known state.
 """
 from __future__ import annotations
 
+from importlib import import_module
 import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
@@ -20,6 +21,7 @@ from propstore.app.claims import (
     compare_algorithm_claims,
     show_claim,
 )
+from propstore.app.project_init import ProjectInitReport
 from propstore.cli import cli
 from propstore.fragility import FragilityRequest, query_fragility
 from propstore.graph_export import GraphExportRequest, export_knowledge_graph
@@ -298,6 +300,30 @@ class TestInit:
         assert result.exit_code == 0, result.output
         assert (tmp_path / "knowledge" / "forms").is_dir()
         assert (tmp_path / "knowledge" / "forms" / "category.yaml").exists()
+
+    def test_init_passes_absolute_root_to_owner(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        init_module = import_module("propstore.cli.init")
+        captured_roots: list[Path] = []
+
+        def fake_initialize_project(root: Path) -> object:
+            captured_roots.append(root)
+            return ProjectInitReport(
+                root=root,
+                initialized=True,
+                paths=(),
+            )
+
+        monkeypatch.setattr(init_module, "initialize_project", fake_initialize_project)
+
+        result = CliRunner().invoke(cli, ["init", "custom"])
+
+        assert result.exit_code == 0, result.output
+        assert captured_roots == [(tmp_path / "custom").resolve()]
 
     def test_fresh_project_can_add_concept(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.chdir(tmp_path)
