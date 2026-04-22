@@ -1935,6 +1935,16 @@ class TestWorldHypotheticalCli:
         assert specs[0].value == 12.5
         assert isinstance(specs[0].value, float)
 
+    def test_world_hypothetical_add_invalid_json_reports_position(self) -> None:
+        from propstore.cli.world.analysis import _parse_hypothetical_add
+
+        with pytest.raises(click.ClickException) as exc_info:
+            _parse_hypothetical_add('{"id": "synthetic_claim"\n "concept_id": "speech:frequency"}')
+
+        message = str(exc_info.value)
+        assert "invalid --add JSON" in message
+        assert "line 2 column" in message
+
 
 class TestSourceLifecycleCli:
     def test_stamp_provenance_emits_deprecation_warning(
