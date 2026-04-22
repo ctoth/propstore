@@ -164,6 +164,16 @@ class TestInit:
         assert (root / "concepts").is_dir()
         assert (root / "claims").is_dir()
 
+    def test_init_directory_flag_accepts_new_path(self, empty_workspace: Path) -> None:
+        """pks -C NEW init NEW should let init create the selected tree."""
+        root = empty_workspace / "new_knowledge"
+
+        result = CliRunner().invoke(cli, ["-C", str(root), "init", "new_knowledge"])
+
+        assert result.exit_code == 0, result.output
+        assert (root / "new_knowledge" / "concepts").is_dir()
+        assert (root / "new_knowledge" / "claims").is_dir()
+
     def test_form_files_are_valid_yaml(self, empty_workspace: Path) -> None:
         """Generated form files should be valid YAML with at least a 'name' field."""
         runner = CliRunner()
