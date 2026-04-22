@@ -1924,6 +1924,18 @@ class TestWorldExportGraphCli:
         assert output_file.read_text(encoding="utf-8") == "existing graph"
 
 
+class TestWorldHypotheticalCli:
+    def test_world_hypothetical_add_coerces_numeric_string_value(self) -> None:
+        from propstore.cli.world.analysis import _parse_hypothetical_add
+
+        specs = _parse_hypothetical_add(
+            '{"id": "synthetic_claim", "concept_id": "speech:frequency", "value": "12.5"}'
+        )
+
+        assert specs[0].value == 12.5
+        assert isinstance(specs[0].value, float)
+
+
 class TestWorldFragilityInterventions:
     def test_world_fragility_json_uses_interventions_key(self, freq_workspace: Path) -> None:
         runner = CliRunner()
