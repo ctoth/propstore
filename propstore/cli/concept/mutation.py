@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 import click
 
 from propstore.cli.output import emit, emit_error, emit_warning
@@ -106,8 +108,8 @@ def add(
         if available:
             emit(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
-    if definition is None or form_name is None:
-        raise click.ClickException("definition and form are required")
+    definition = cast(str, definition)
+    form_name = cast(str, form_name)
 
     _run_mutation(
         lambda: add_concept(
