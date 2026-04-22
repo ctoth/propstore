@@ -25,7 +25,7 @@ def init(obj: dict, directory: str) -> None:
     """
     context_obj = {} if obj is None else obj
     start = context_obj.get("start")
-    root = start / directory if start is not None else Path(directory)
+    root = (start / directory if start is not None else Path(directory)).resolve()
 
     try:
         report = initialize_project(root)
