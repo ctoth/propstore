@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from importlib import import_module
 from pathlib import Path
-import sys
 from typing import TYPE_CHECKING
 
 import click
@@ -92,7 +91,7 @@ def cli(ctx: click.Context, directory: str | None) -> None:
     """Propositional Knowledge Store CLI."""
     ctx.ensure_object(dict)
     start = Path(directory) if directory else None
-    if ctx.resilient_parsing or any(arg in {"--help", "-h"} for arg in sys.argv[1:]):
+    if ctx.resilient_parsing:
         return
     if ctx.invoked_subcommand == "init":
         # init bypasses Repository lookup — store the start dir for init to use
