@@ -160,6 +160,12 @@ def test_concept_add_uses_owner_form_listing() -> None:
     assert "list_form_items" in mutation
 
 
+def test_concept_add_has_no_dead_post_prompt_required_guard() -> None:
+    mutation = Path("propstore/cli/concept/mutation.py").read_text(encoding="utf-8")
+
+    assert "definition and form are required" not in mutation
+
+
 def test_micropub_lift_uses_named_error_exit_code() -> None:
     micropub = Path("propstore/cli/micropub.py").read_text(encoding="utf-8")
 
