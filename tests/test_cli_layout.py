@@ -226,6 +226,17 @@ def test_claim_relate_command_is_fully_annotated() -> None:
     assert all(arg.annotation is not None for arg in relate.args.args)
 
 
+def test_claim_embed_progress_uses_named_callback_helper() -> None:
+    claim_source = Path("propstore/cli/claim.py").read_text(encoding="utf-8")
+    embed_body = claim_source.split("def embed(", maxsplit=1)[1].split(
+        "\n\n@claim.command()",
+        maxsplit=1,
+    )[0]
+
+    assert "def _claim_embed_progress_callback(" in claim_source
+    assert "lambda model_name" not in embed_body
+
+
 def test_source_commands_live_in_source_package() -> None:
     group_module = Path("propstore/cli/source/__init__.py").read_text(encoding="utf-8")
     authoring = Path("propstore/cli/source/authoring.py").read_text(encoding="utf-8")
