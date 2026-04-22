@@ -13,6 +13,7 @@ from functools import cached_property
 from pathlib import Path
 from types import SimpleNamespace
 
+import click
 import pytest
 import yaml
 from hypothesis import given, settings
@@ -1492,6 +1493,10 @@ class TestWorldlineCliParsing:
             "place": "earth",
             "ratio": 0.5,
         }
+
+    def test_parse_kv_args_rejects_tokens_without_equals(self):
+        with pytest.raises(click.ClickException, match="expected key=value"):
+            _parse_kv_args(("count=10", "enabled"))
 
 
 class TestWorldlineFailureModes:
