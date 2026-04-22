@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+from types import SimpleNamespace
 
 import click
 import pytest
@@ -145,6 +146,38 @@ def _commit_workspace_paths(workspace: Path, relpaths: list[str], message: str =
     }
     repo.git.commit_files(adds, message)
     repo.git.sync_worktree()
+
+
+class TestRootCli:
+    def test_nested_help_literal_does_not_bypass_repo_attachment(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import propstore.cli.history_cmds as history_cmds
+
+        calls: list[str] = []
+
+        def fake_build_commit_show_report(repo, commit: str):
+            calls.append(commit)
+            return SimpleNamespace(
+                sha="abcdef1234567890",
+                author="Test Author",
+                time="2026-04-20T00:00:00Z",
+                message="literal help commit",
+                changes=SimpleNamespace(added=(), modified=(), deleted=()),
+            )
+
+        monkeypatch.setattr("sys.argv", ["pks", "show", "--", "--help"])
+        monkeypatch.setattr(
+            history_cmds,
+            "build_commit_show_report",
+            fake_build_commit_show_report,
+        )
+
+        result = CliRunner().invoke(cli, ["show", "--", "--help"])
+
+        assert result.exit_code == 0, result.output
+        assert calls == ["--help"]
 
 
 
