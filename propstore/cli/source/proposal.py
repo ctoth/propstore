@@ -22,8 +22,8 @@ from propstore.cli.source import source
 
 
 @source.command("propose-concept")
-@click.argument("name")
-@click.option("--name", "concept_name", required=True)
+@click.argument("source_name", metavar="SOURCE_NAME")
+@click.option("--concept-name", required=True)
 @click.option("--definition", required=True)
 @click.option("--form", "form_name", required=True)
 @click.option("--values", default=None, help="Comma-separated values (required for category concepts)")
@@ -31,7 +31,7 @@ from propstore.cli.source import source
 @click.pass_obj
 def propose_concept(
     obj: dict,
-    name: str,
+    source_name: str,
     concept_name: str,
     definition: str,
     form_name: str,
@@ -43,7 +43,7 @@ def propose_concept(
         report = propose_source_concept(
             repo,
             SourceConceptProposalRequest(
-                source_name=name,
+                source_name=source_name,
                 concept_name=concept_name,
                 definition=definition,
                 form_name=form_name,

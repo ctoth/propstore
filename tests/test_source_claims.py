@@ -291,7 +291,7 @@ def test_promoted_claims_conform_to_master_schema(tmp_path: Path) -> None:
     assert runner.invoke(cli, [
         "-C", str(repo.root),
         "source", "propose-concept", "demo",
-        "--name", "test_concept",
+        "--concept-name", "test_concept",
         "--definition", "A test concept",
         "--form", "category",
     ]).exit_code == 0

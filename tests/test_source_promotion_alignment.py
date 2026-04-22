@@ -312,7 +312,7 @@ def _setup_source_with_partial_validity(
             "source",
             "propose-concept",
             source_name,
-            "--name",
+            "--concept-name",
             "shared_concept",
             "--definition",
             "A shared concept definition.",

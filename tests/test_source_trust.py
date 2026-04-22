@@ -276,7 +276,7 @@ def test_world_model_claim_rows_include_calibrated_source_prior(tmp_path: Path) 
             "source",
             "propose-concept",
             "demo",
-            "--name",
+            "--concept-name",
             "base_replication_rate",
             "--definition",
             "Field-specific replication prior.",
