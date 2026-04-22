@@ -17,6 +17,7 @@ from propstore.app.concepts import (
     show_concept,
 )
 from propstore.repository import Repository
+from propstore.cli.helpers import fail
 from propstore.cli.concept import (
     concept,
 )
@@ -113,10 +114,8 @@ def show(obj: dict, concept_id_or_name: str) -> None:
             repo,
             ConceptShowRequest(concept_id_or_name=concept_id_or_name),
         )
-    except UnknownConceptError as exc:
+    except UnknownConceptError:
         if concept_id_or_name.startswith("align:"):
-            raise click.ClickException(
-                f"Concept alignment '{concept_id_or_name}' not found"
-            ) from exc
-        raise click.ClickException(f"Concept '{concept_id_or_name}' not found") from exc
+            fail(f"Concept alignment '{concept_id_or_name}' not found")
+        fail(f"Concept '{concept_id_or_name}' not found")
     emit(report.rendered)
