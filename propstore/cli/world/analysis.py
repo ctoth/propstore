@@ -53,7 +53,7 @@ def _parse_hypothetical_add(
     try:
         raw = json.loads(add_json)
     except json.JSONDecodeError as exc:
-        raise click.ClickException(f"invalid --add JSON: {exc.msg}") from exc
+        raise click.ClickException(f"invalid --add JSON: {exc}") from exc
     entries = [raw] if isinstance(raw, dict) else raw
     if not isinstance(entries, list):
         raise click.ClickException("--add JSON must be an object or a list of objects")
