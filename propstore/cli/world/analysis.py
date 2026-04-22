@@ -17,6 +17,7 @@ from propstore.app.world import (
     AppWorldHypotheticalRequest,
     AppWorldSensitivityRequest,
     WorldLifecycleOptions,
+    WorldHypotheticalSyntheticClaimSpec,
     world_chain as run_world_chain,
     world_consistency as run_world_consistency,
     world_export_graph as run_world_export_graph,
@@ -28,10 +29,25 @@ from propstore.cli.world import parse_world_binding_args, world
 from propstore.repository import Repository
 
 
-def _parse_hypothetical_add(add_json: str | None):
-    """Parse the CLI JSON payload for ``world hypothetical --add``."""
-    from propstore.app.world import WorldHypotheticalSyntheticClaimSpec
+def _coerce_hypothetical_value(value: object) -> float | str | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise click.ClickException("--add JSON value must be a string or number")
+    if isinstance(value, int | float):
+        return float(value)
+    if not isinstance(value, str):
+        raise click.ClickException("--add JSON value must be a string or number")
+    try:
+        return float(value)
+    except ValueError:
+        return value
 
+
+def _parse_hypothetical_add(
+    add_json: str | None,
+) -> tuple[WorldHypotheticalSyntheticClaimSpec, ...]:
+    """Parse the CLI JSON payload for ``world hypothetical --add``."""
     if add_json is None:
         return ()
     try:
@@ -54,17 +70,12 @@ def _parse_hypothetical_add(add_json: str | None):
         conditions = entry.get("conditions", [])
         if not isinstance(conditions, list):
             raise click.ClickException("--add JSON conditions must be a list")
-        value = entry.get("value")
-        if value is not None and (
-            not isinstance(value, str | int | float) or isinstance(value, bool)
-        ):
-            raise click.ClickException("--add JSON value must be a string or number")
         specs.append(
             WorldHypotheticalSyntheticClaimSpec(
                 claim_id=claim_id,
                 concept_id=concept_id,
                 claim_type=entry.get("type", "parameter"),
-                value=float(value) if isinstance(value, int | float) else value,
+                value=_coerce_hypothetical_value(entry.get("value")),
                 conditions=tuple(conditions),
             )
         )
