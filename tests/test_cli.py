@@ -1884,6 +1884,46 @@ class TestWorldCommandsKeepConnectionOpen:
             assert expected in result.output
 
 
+class TestWorldExportGraphCli:
+    def test_world_export_graph_refuses_existing_output_file(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import propstore.cli.world.analysis as world_analysis
+
+        class FakeGraph:
+            def to_dot(self) -> str:
+                return "digraph overwritten {}"
+
+        def fake_world_export_graph(repo, request):
+            return SimpleNamespace(graph=FakeGraph())
+
+        output_file = tmp_path / "graph.dot"
+        output_file.write_text("existing graph", encoding="utf-8")
+        monkeypatch.setattr(
+            world_analysis,
+            "run_world_export_graph",
+            fake_world_export_graph,
+        )
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "-C",
+                str(tmp_path),
+                "world",
+                "export-graph",
+                "--output",
+                str(output_file),
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "already exists" in result.output
+        assert output_file.read_text(encoding="utf-8") == "existing graph"
+
+
 class TestWorldFragilityInterventions:
     def test_world_fragility_json_uses_interventions_key(self, freq_workspace: Path) -> None:
         runner = CliRunner()
