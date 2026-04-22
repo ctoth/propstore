@@ -1,4 +1,4 @@
-"""Run pytest through uv while teeing output to a timestamped log file."""
+"""Run pytest while teeing output to a timestamped log file."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def _default_pytest_args(pytest_args: list[str]) -> list[str]:
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run uv pytest and tee output to logs/test-runs.",
+        description="Run pytest and tee output to logs/test-runs.",
     )
     parser.add_argument("--label", default="pytest")
     parser.add_argument("pytest_args", nargs=argparse.REMAINDER)
@@ -41,7 +41,13 @@ def main(argv: list[str] | None = None) -> int:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     log_path = log_dir / f"{parsed.label}-{timestamp}.log"
 
-    command = ["uv", "run", "pytest", *_default_pytest_args(parsed.pytest_args), *parsed.pytest_args]
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        *_default_pytest_args(parsed.pytest_args),
+        *parsed.pytest_args,
+    ]
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,

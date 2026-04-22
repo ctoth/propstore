@@ -194,18 +194,10 @@ wheels = [
 [[package]]
 name = "ast-equiv"
 version = "0.1.0"
-source = { editable = "../ast-equiv" }
+source = { git = "https://github.com/ctoth/ast-equiv?rev=129569f4f8472402fdae1142bcf485f45010a83d#129569f4f8472402fdae1142bcf485f45010a83d" }
 dependencies = [
     { name = "sympy" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "hypothesis", marker = "extra == 'dev'" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "sympy", specifier = ">=1.14.0" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "attrs"
@@ -228,17 +220,7 @@ wheels = [
 [[package]]
 name = "bridgman"
 version = "0.1.0"
-source = { editable = "../bridgman" }
-
-[package.metadata]
-requires-dist = [{ name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.0" }]
-provides-extras = ["sympy"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest" },
-    { name = "sympy", specifier = ">=1.0" },
-]
+source = { git = "https://github.com/ctoth/bridgman?rev=35c88af379178d6571f60a6e9450cd61d40d52d1#35c88af379178d6571f60a6e9450cd61d40d52d1" }
 
 [[package]]
 name = "certifi"
@@ -701,20 +683,7 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.1.0"
-source = { editable = "../argumentation" }
-
-[package.metadata]
-requires-dist = [{ name = "z3-solver", marker = "extra == 'z3'", specifier = ">=4.12" }]
-provides-extras = ["z3"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.0" },
-    { name = "pyright", specifier = ">=1.1.390" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-timeout", specifier = ">=2.3" },
-    { name = "z3-solver", specifier = ">=4.12" },
-]
+source = { git = "https://github.com/ctoth/argumentation?rev=adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a#adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a" }
 
 [[package]]
 name = "fqdn"
@@ -1001,19 +970,7 @@ wheels = [
 [[package]]
 name = "gunray"
 version = "0.1.0"
-source = { editable = "../gunray" }
-
-[package.metadata]
-requires-dist = [
-    { name = "datalog-conformance", marker = "extra == 'dev'", git = "https://github.com/ctoth/datalog-conformance-suite" },
-    { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.3.1" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11.0" },
-    { name = "vulture", marker = "extra == 'dev'", specifier = ">=2.11" },
-]
-provides-extras = ["dev"]
+source = { git = "https://github.com/ctoth/gunray?rev=23b31c8efbc4ac585e64b7792291cbeebae7cd54#23b31c8efbc4ac585e64b7792291cbeebae7cd54" }
 
 [[package]]
 name = "h11"
@@ -2057,20 +2014,20 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ast-equiv", editable = "../ast-equiv" },
-    { name = "bridgman", editable = "../bridgman" },
+    { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=129569f4f8472402fdae1142bcf485f45010a83d" },
+    { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=35c88af379178d6571f60a6e9450cd61d40d52d1" },
     { name = "click", specifier = ">=8.0" },
     { name = "dulwich", specifier = ">=1.1.0" },
-    { name = "formal-argumentation", editable = "../argumentation" },
+    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation?rev=adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a" },
     { name = "graphviz", specifier = ">=0.20" },
-    { name = "gunray", editable = "../gunray" },
+    { name = "gunray", git = "https://github.com/ctoth/gunray?rev=23b31c8efbc4ac585e64b7792291cbeebae7cd54" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "linkml", specifier = ">=1.8" },
     { name = "litellm", marker = "extra == 'embeddings'", specifier = ">=1.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "pint", specifier = ">=0.25.3" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "quire", editable = "../quire" },
+    { name = "quire", git = "https://github.com/ctoth/quire?rev=393583226d1c05575e708402235336a10e3706f7" },
     { name = "rich", specifier = ">=13.7" },
     { name = "sqlite-vec", marker = "extra == 'embeddings'", specifier = ">=0.1" },
     { name = "sympy", specifier = ">=1.14.0" },
@@ -2473,28 +2430,11 @@ wheels = [
 [[package]]
 name = "quire"
 version = "0.1.0"
-source = { editable = "../quire" }
+source = { git = "https://github.com/ctoth/quire?rev=393583226d1c05575e708402235336a10e3706f7#393583226d1c05575e708402235336a10e3706f7" }
 dependencies = [
     { name = "dulwich" },
     { name = "msgspec" },
     { name = "pyyaml" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dulwich", specifier = ">=1.1.0" },
-    { name = "msgspec", specifier = ">=0.19.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.3" },
-    { name = "pyyaml", specifier = ">=6.0" },
-]
-provides-extras = ["dev"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.152.1" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-timeout", specifier = ">=2.3" },
 ]
 
 [[package]]
