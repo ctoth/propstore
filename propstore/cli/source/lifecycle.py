@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from propstore.cli.output import emit, emit_success, emit_table
+from propstore.cli.output import emit, emit_success, emit_table, emit_warning
 
 from propstore.app.sources import (
     SourceInitRequest,
@@ -185,6 +185,10 @@ def stamp_provenance(
     DEPRECATED: Use --reader/--method flags on add-claim, add-justification,
     add-stance instead. Provenance is now stored on the source branch directly.
     """
+    emit_warning(
+        "Deprecated: use --reader/--method flags on source add-claim, "
+        "source add-justification, or source add-stance instead."
+    )
     stamped_path = stamp_source_provenance(
         SourceStampProvenanceRequest(
             file_path=file_path,
