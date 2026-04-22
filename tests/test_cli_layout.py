@@ -175,6 +175,17 @@ def test_concept_add_uses_owner_form_listing() -> None:
     assert "list_form_items" in mutation
 
 
+def test_concept_show_unknown_concept_uses_shared_fail_helper() -> None:
+    display = Path("propstore/cli/concept/display.py").read_text(encoding="utf-8")
+    handler = display.split("except UnknownConceptError", maxsplit=1)[1].split(
+        "emit(report.rendered)",
+        maxsplit=1,
+    )[0]
+
+    assert "fail(" in handler
+    assert "click.ClickException" not in handler
+
+
 def test_concept_add_has_no_dead_post_prompt_required_guard() -> None:
     mutation = Path("propstore/cli/concept/mutation.py").read_text(encoding="utf-8")
 
