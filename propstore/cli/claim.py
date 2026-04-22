@@ -342,6 +342,9 @@ def relate(
     classifications as stance proposal files to the stance proposal placement branch.
     The main branch is not mutated; promote proposals into source-of-truth
     storage with ``pks promote``."""
+    if claim_id is not None and relate_all_flag:
+        fail("--all cannot be used with a claim ID", exit_code=EXIT_VALIDATION)
+
     repo = obj["repo"]
     try:
         report = relate_claims(
