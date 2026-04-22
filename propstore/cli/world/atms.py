@@ -372,8 +372,6 @@ def world_atms_interventions_command(
 ) -> None:
     """Show bounded additive intervention plans for an ATMS claim or concept."""
     repo: Repository = obj["repo"]
-    emit("bounded additive plans over declared queryables")
-    emit("not revision/contraction")
 
     try:
         bindings, _ = parse_world_binding_args(args)
@@ -391,6 +389,8 @@ def world_atms_interventions_command(
     except WorldAtmsValidationError as exc:
         raise click.ClickException(str(exc)) from exc
 
+    emit("bounded additive plans over declared queryables")
+    emit("not revision/contraction")
     emit_section(
         "",
         (
