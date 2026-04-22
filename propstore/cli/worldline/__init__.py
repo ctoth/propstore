@@ -6,8 +6,6 @@ from typing import TypeGuard
 
 import click
 
-from propstore.cli.output import emit_warning
-
 from propstore.app.worldlines import (
     JsonObject,
     JsonValue,
@@ -40,8 +38,9 @@ def _parse_kv_args(args: tuple[str, ...]) -> JsonObject:
     from propstore.cli.helpers import parse_kv_pairs
 
     parsed, remaining = parse_kv_pairs(args, coerce=True)
-    for r in remaining:
-        emit_warning(f"WARNING: ignoring argument without '=': {r}")
+    if remaining:
+        bad = ", ".join(remaining)
+        raise click.ClickException(f"expected key=value argument: {bad}")
     return {
         key: coerce_worldline_cli_value(value)
         for key, value in parsed.items()
