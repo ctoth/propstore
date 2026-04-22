@@ -431,7 +431,6 @@ def world_atms_next_query_command(
 ) -> None:
     """Show next-query suggestions derived from bounded additive intervention plans."""
     repo: Repository = obj["repo"]
-    emit("derived from bounded additive intervention plans")
 
     try:
         bindings, _ = parse_world_binding_args(args)
@@ -449,6 +448,7 @@ def world_atms_next_query_command(
     except WorldAtmsValidationError as exc:
         raise click.ClickException(str(exc)) from exc
 
+    emit("derived from bounded additive intervention plans")
     emit_section(
         "",
         (
