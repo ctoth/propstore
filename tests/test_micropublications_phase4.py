@@ -95,7 +95,7 @@ def _init_source_with_claim(tmp_path: Path) -> Repository:
             "source",
             "propose-concept",
             "demo",
-            "--name",
+            "--concept-name",
             "test_concept",
             "--definition",
             "A test concept",

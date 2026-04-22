@@ -58,7 +58,7 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
             "source",
             "propose-concept",
             "demo",
-            "--name",
+            "--concept-name",
             "claims_identical",
             "--definition",
             "A weak identity relation.",

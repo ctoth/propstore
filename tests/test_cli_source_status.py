@@ -109,7 +109,7 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
             "source",
             "propose-concept",
             source_name,
-            "--name",
+            "--concept-name",
             "shared_concept",
             "--definition",
             "A shared concept definition.",

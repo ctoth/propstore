@@ -71,7 +71,7 @@ def test_source_promote_unresolved_concept_mapping_quarantines_claim_not_valid_c
             "source",
             "propose-concept",
             "demo",
-            "--name",
+            "--concept-name",
             "known_concept",
             "--definition",
             "known_concept definition",

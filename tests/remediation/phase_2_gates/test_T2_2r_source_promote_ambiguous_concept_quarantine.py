@@ -78,7 +78,7 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
                 "source",
                 "propose-concept",
                 "demo",
-                "--name",
+                "--concept-name",
                 concept_name,
                 "--definition",
                 f"{concept_name} definition",

@@ -1804,7 +1804,7 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
             "source",
             "propose-concept",
             "Smith_2024_TestPaper",
-            "--name",
+            "--concept-name",
             "fundamental_frequency",
             "--definition",
             "F0",

@@ -464,7 +464,7 @@ def _prepare_promoted_parameter_source(
             "source",
             "propose-concept",
             "demo",
-            "--name",
+            "--concept-name",
             "boiling_point",
             "--definition",
             "Temperature at which water boils.",
@@ -561,7 +561,7 @@ def test_propose_concept_reports_linked_status(tmp_path: Path) -> None:
         [
             "-C", str(repo.root),
             "source", "propose-concept", "demo",
-            "--name", "existing",
+            "--concept-name", "existing",
             "--definition", "Existing concept from source.",
             "--form", "structural",
         ],
@@ -588,7 +588,7 @@ def test_propose_concept_reports_proposed_status(tmp_path: Path) -> None:
         [
             "-C", str(repo.root),
             "source", "propose-concept", "demo",
-            "--name", "brand_new_thing",
+            "--concept-name", "brand_new_thing",
             "--definition", "A brand new concept.",
             "--form", "structural",
         ],
@@ -615,7 +615,7 @@ def test_propose_concept_rejects_invalid_form(tmp_path: Path) -> None:
         [
             "-C", str(repo.root),
             "source", "propose-concept", "demo",
-            "--name", "some_concept",
+            "--concept-name", "some_concept",
             "--definition", "A concept.",
             "--form", "bogus_form",
         ],
@@ -642,7 +642,7 @@ def test_propose_concept_category_with_values(tmp_path: Path) -> None:
         [
             "-C", str(repo.root),
             "source", "propose-concept", "demo",
-            "--name", "color",
+            "--concept-name", "color",
             "--definition", "A color category.",
             "--form", "category",
             "--values", "red,green,blue",
@@ -675,7 +675,7 @@ def test_propose_concept_category_with_values_and_closed(tmp_path: Path) -> None
         [
             "-C", str(repo.root),
             "source", "propose-concept", "demo",
-            "--name", "status",
+            "--concept-name", "status",
             "--definition", "A status category.",
             "--form", "category",
             "--values", "active,inactive",
@@ -707,7 +707,7 @@ def test_propose_concept_values_rejected_for_non_category(tmp_path: Path) -> Non
         [
             "-C", str(repo.root),
             "source", "propose-concept", "demo",
-            "--name", "temperature",
+            "--concept-name", "temperature",
             "--definition", "A temperature measurement.",
             "--form", "scalar",
             "--values", "hot,cold",
@@ -733,7 +733,7 @@ def test_propose_concept_category_without_values_still_works(tmp_path: Path) -> 
         [
             "-C", str(repo.root),
             "source", "propose-concept", "demo",
-            "--name", "mood",
+            "--concept-name", "mood",
             "--definition", "A mood category.",
             "--form", "category",
         ],
@@ -758,7 +758,7 @@ def test_propose_concept_values_survive_finalize_and_promote(tmp_path: Path) -> 
         [
             "-C", str(repo.root),
             "source", "propose-concept", "demo",
-            "--name", "severity",
+            "--concept-name", "severity",
             "--definition", "Severity levels.",
             "--form", "category",
             "--values", "low,medium,high",
