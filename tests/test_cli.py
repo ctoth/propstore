@@ -1936,6 +1936,46 @@ class TestWorldHypotheticalCli:
         assert isinstance(specs[0].value, float)
 
 
+class TestSourceLifecycleCli:
+    def test_stamp_provenance_emits_deprecation_warning(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import propstore.cli.source.lifecycle as lifecycle
+
+        artifact = tmp_path / "artifact.yaml"
+        artifact.write_text("kind: note\n", encoding="utf-8")
+        monkeypatch.setattr(
+            lifecycle,
+            "stamp_source_provenance",
+            lambda request: request.file_path,
+        )
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "-C",
+                str(tmp_path),
+                "source",
+                "stamp-provenance",
+                "draft",
+                "--file",
+                str(artifact),
+                "--agent",
+                "codex",
+                "--skill",
+                "paper-reader",
+                "--status",
+                "stated",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "deprecated" in result.output.lower()
+        assert "add-claim" in result.output
+
+
 class TestWorldFragilityInterventions:
     def test_world_fragility_json_uses_interventions_key(self, freq_workspace: Path) -> None:
         runner = CliRunner()
