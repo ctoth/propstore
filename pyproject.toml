@@ -20,6 +20,7 @@ dependencies = [
     "dulwich>=1.1.0",
     "gunray @ git+https://github.com/ctoth/gunray@23b31c8efbc4ac585e64b7792291cbeebae7cd54",
     "quire @ git+https://github.com/ctoth/quire@393583226d1c05575e708402235336a10e3706f7",
+    "fastapi>=0.136.0",
 ]
 
 [project.optional-dependencies]
