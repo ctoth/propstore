@@ -26,7 +26,8 @@ semantics. Quire stays the generic Git/document substrate.
 - `errors.py`: typed command failures for CLI/API mapping.
 - `repository.py`: `init`, `log`, `diff`, `show`, `checkout`, `import_repository`,
   `merge inspect`, `merge commit`.
-- `compiler.py`: `validate`, `build`, `query`, `export_aliases`.
+- `compiler.py`: `validate`, `build`, `export_aliases`.
+- `sidecar.py`: `query`.
 - `concepts.py`: concept display, mutation, alignment, embedding.
 - `claims.py`: claim show, validation, embedding, comparison, relation.
 - `forms.py`: form list/show/add/remove/validate.
@@ -288,7 +289,7 @@ that links to the original command and the undo command.
 | --- | --- | --- |
 | `pks validate` | Read-only validation report | `NoOpUndo` |
 | `pks build` | Writes derived sidecar and diagnostics output | `RebuildDerivedUndo`; if output path is external, restore/delete via `RestoreExternalFilesUndo` when before-state was captured |
-| `pks query` | Read-only SQL over sidecar | `NoOpUndo` |
+| `pks sidecar query` | Read-only SQL over sidecar | `NoOpUndo` |
 | `pks export-aliases` | Read-only export to stdout | `NoOpUndo`; if later given file output, use external-file restore |
 
 ### Concept Commands
@@ -323,10 +324,10 @@ that links to the original command and the undo command.
 
 | Command | Effect | Undo |
 | --- | --- | --- |
-| `pks form list/show/validate` | Read-only reports | `NoOpUndo` |
+| `pks form list/search/show/validate` | Read-only reports | `NoOpUndo` |
 | `pks form add` | Adds form document | `RevertCommitsUndo` |
 | `pks form remove` | Deletes form document after reference checks | `RevertCommitsUndo` |
-| `pks context list` | Read-only report | `NoOpUndo` |
+| `pks context list/search/show` | Read-only report | `NoOpUndo` |
 | `pks context add` | Adds context document | `RevertCommitsUndo` |
 
 ### Source Commands
@@ -354,7 +355,7 @@ that links to the original command and the undo command.
 
 | Command | Effect | Undo |
 | --- | --- | --- |
-| `pks promote` | Promotes committed proposal artifacts into primary branch | `RevertCommitsUndo` or `CompositeUndo` |
+| `pks proposal promote` | Promotes committed proposal artifacts into primary branch | `RevertCommitsUndo` or `CompositeUndo` |
 | `pks merge inspect` | Read-only merge framework report | `NoOpUndo` |
 | `pks merge commit` | Creates storage merge commit and merge manifest | `RestoreTreeUndo`; two-parent merge commits are not single-parent reverts |
 | `pks micropub bundle` | Writes micropublication bundle/materialized artifacts | `RevertCommitsUndo` |
@@ -380,7 +381,7 @@ that links to the original command and the undo command.
 | `pks world derive/resolve/extensions` | Read-only reasoning reports | `NoOpUndo` |
 | `pks world revision base/entrenchment/expand/contract/revise/explain/iterated-state/iterated-revise` | Read-only revision reports unless a future command persists state | `NoOpUndo` |
 | `pks world atms status/context/verify/futures/why-out/stability/relevance/interventions/next-query` | Read-only ATMS reports | `NoOpUndo` |
-| `pks grounding status/show/query/arguments` | Read-only grounding reports | `NoOpUndo` |
+| `pks grounding status/show/query/arguments/explain` | Read-only grounding reports | `NoOpUndo` |
 | `pks verify tree` | Read-only evidence verification | `NoOpUndo` |
 
 ## Merge Undo Semantics

@@ -36,7 +36,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, encode_document
 
 from propstore.families.documents.rules import (
     AtomDocument,
@@ -54,6 +54,12 @@ _RULE_KINDS = ("strict", "defeasible", "defeater")
 
 class RuleWorkflowError(Exception):
     """Raised when a rule workflow cannot complete."""
+
+
+class RuleFileNotFoundError(RuleWorkflowError):
+    def __init__(self, file: str) -> None:
+        super().__init__(f"Rule file '{file}' not found")
+        self.file = file
 
 
 @dataclass(frozen=True)
@@ -92,6 +98,20 @@ class RuleAddReport:
     filepath: Path
     document: RulesFileDocument
     created: bool
+
+
+@dataclass(frozen=True)
+class RuleListItem:
+    file: str
+    rule_id: str
+    kind: str
+    paper: str | None
+
+
+@dataclass(frozen=True)
+class RuleShowReport:
+    filepath: Path
+    rendered: str
 
 
 _ATOM_RE = re.compile(r"^\s*(~)?\s*([A-Za-z_][A-Za-z_0-9]*)\s*(\((.*)\))?\s*$")
@@ -247,4 +267,36 @@ def add_rule(
         filepath=filepath,
         document=document,
         created=created,
+    )
+
+
+def list_rules(repo: Repository) -> tuple[RuleListItem, ...]:
+    items: list[RuleListItem] = []
+    for ref in repo.families.rules.iter():
+        document = repo.families.rules.require(ref)
+        paper = None if document.source is None else document.source.paper
+        for rule in document.rules:
+            items.append(
+                RuleListItem(
+                    file=ref.name,
+                    rule_id=rule.id,
+                    kind=rule.kind,
+                    paper=paper,
+                )
+            )
+    return tuple(items)
+
+
+def show_rule_file(
+    repo: Repository,
+    file: str,
+) -> RuleShowReport:
+    ref = RuleFileRef(file)
+    document = repo.families.rules.load(ref)
+    if document is None:
+        raise RuleFileNotFoundError(file)
+    filepath = repo.root / repo.families.rules.address(ref).require_path()
+    return RuleShowReport(
+        filepath=filepath,
+        rendered=encode_document(document).decode("utf-8"),
     )

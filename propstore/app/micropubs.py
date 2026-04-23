@@ -36,6 +36,13 @@ class MicropubLiftReport:
     liftable: bool
 
 
+@dataclass(frozen=True)
+class MicropubListItem:
+    bundle: str
+    artifact_id: str
+    context_id: str
+
+
 def load_micropub_bundle(repo: Repository, source: str) -> MicropublicationsFileDocument:
     document = repo.families.micropubs.load(MicropubsFileRef(source))
     if document is None:
@@ -84,4 +91,15 @@ def inspect_micropub_lift(
         source_context=source_context,
         target_context=target_context,
         liftable=system.can_lift(source_context, target_context),
+    )
+
+
+def list_micropubs(repo: Repository) -> tuple[MicropubListItem, ...]:
+    return tuple(
+        MicropubListItem(
+            bundle=entry.ref.name,
+            artifact_id=entry.document.artifact_id,
+            context_id=entry.document.context.id,
+        )
+        for entry in iter_micropubs(repo)
     )

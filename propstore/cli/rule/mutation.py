@@ -1,18 +1,16 @@
-"""pks rule — subcommands for authoring DeLP rules."""
-
 from __future__ import annotations
 
 import click
 
-from propstore.app.rules import RuleAddRequest, RuleWorkflowError, add_rule
+from propstore.app.rules import (
+    RuleAddRequest,
+    RuleWorkflowError,
+    add_rule,
+)
 from propstore.cli.helpers import fail
 from propstore.cli.output import emit, emit_success
+from propstore.cli.rule import rule
 from propstore.repository import Repository
-
-
-@click.group()
-def rule() -> None:
-    """Author DeLP strict, defeasible, and defeater rules."""
 
 
 @rule.command("add")

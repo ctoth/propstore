@@ -1,23 +1,27 @@
-"""Top-level proposal promotion CLI commands."""
+"""pks proposal - proposal promotion commands."""
 
 from __future__ import annotations
 
 import click
-
-from propstore.cli.output import emit, emit_success, emit_table
 
 from propstore.app.proposals import (
     ProposalPromotionRequest,
     plan_proposal_promotion,
     promote_proposals,
 )
+from propstore.cli.output import emit, emit_success, emit_table
 
 
-@click.command("promote")
+@click.group()
+def proposal() -> None:
+    """Manage proposal branches and proposal artifacts."""
+
+
+@proposal.command("promote")
 @click.argument("path", required=False, default=None, type=click.Path())
 @click.option("-y", "--yes", is_flag=True, help="Skip confirmation prompt.")
 @click.pass_context
-def promote_cmd(ctx: click.Context, path: str | None, yes: bool) -> None:
+def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
     """Promote committed stance proposals into source-of-truth storage."""
     repo = ctx.obj["repo"]
     plan = plan_proposal_promotion(repo, ProposalPromotionRequest(path=path))

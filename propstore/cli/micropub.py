@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import click
 
-from propstore.cli.output import emit, emit_yaml
+from propstore.cli.output import emit, emit_table, emit_yaml
 
 from propstore.app.micropubs import (
     MicropubNotFoundError,
     find_micropub,
     inspect_micropub_lift,
+    list_micropubs,
     load_micropub_bundle,
 )
 from propstore.repository import Repository
@@ -32,6 +33,24 @@ def bundle(obj: dict, source: str) -> None:
     except MicropubNotFoundError as exc:
         fail(exc)
     emit_yaml(document.to_payload())
+
+
+@micropub.command("list")
+@click.pass_obj
+def list_cmd(obj: dict) -> None:
+    """List micropublication entries across bundles."""
+    repo: Repository = obj["repo"]
+    items = list_micropubs(repo)
+    if not items:
+        emit("No micropublications.")
+        return
+    emit_table(
+        ("BUNDLE", "ARTIFACT ID", "CONTEXT"),
+        [
+            (item.bundle, item.artifact_id, item.context_id)
+            for item in items
+        ],
+    )
 
 
 @micropub.command("show")

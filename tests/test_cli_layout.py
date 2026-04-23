@@ -192,6 +192,47 @@ def test_concept_add_has_no_dead_post_prompt_required_guard() -> None:
     assert "definition and form are required" not in mutation
 
 
+def test_claim_commands_live_outside_group_module() -> None:
+    group_module = Path("propstore/cli/claim/__init__.py").read_text(encoding="utf-8")
+    display = Path("propstore/cli/claim/display.py").read_text(encoding="utf-8")
+    validation = Path("propstore/cli/claim/validation.py").read_text(encoding="utf-8")
+    embedding = Path("propstore/cli/claim/embedding.py").read_text(encoding="utf-8")
+    relation = Path("propstore/cli/claim/relation.py").read_text(encoding="utf-8")
+
+    assert "@claim.command" not in group_module
+    assert "def claim(" in group_module
+    assert "def claim_render_policy_request(" in group_module
+    assert "from propstore.cli.claim import display" in group_module
+    assert '@claim.command("show")' in display
+    assert '@claim.command("validate-file")' in validation
+    assert "def _claim_embed_progress_callback(" in embedding
+    assert "def relate(" in relation
+
+
+def test_predicate_commands_live_outside_group_module() -> None:
+    group_module = Path("propstore/cli/predicate/__init__.py").read_text(encoding="utf-8")
+    display = Path("propstore/cli/predicate/display.py").read_text(encoding="utf-8")
+    mutation = Path("propstore/cli/predicate/mutation.py").read_text(encoding="utf-8")
+
+    assert "@predicate.command" not in group_module
+    assert "def predicate(" in group_module
+    assert "from propstore.cli.predicate import display" in group_module
+    assert '@predicate.command("list")' in display
+    assert '@predicate.command("add")' in mutation
+
+
+def test_rule_commands_live_outside_group_module() -> None:
+    group_module = Path("propstore/cli/rule/__init__.py").read_text(encoding="utf-8")
+    display = Path("propstore/cli/rule/display.py").read_text(encoding="utf-8")
+    mutation = Path("propstore/cli/rule/mutation.py").read_text(encoding="utf-8")
+
+    assert "@rule.command" not in group_module
+    assert "def rule(" in group_module
+    assert "from propstore.cli.rule import display" in group_module
+    assert '@rule.command("list")' in display
+    assert '@rule.command("add")' in mutation
+
+
 def test_micropub_lift_uses_named_error_exit_code() -> None:
     micropub = Path("propstore/cli/micropub.py").read_text(encoding="utf-8")
 
@@ -214,7 +255,7 @@ def test_world_reasoning_uses_named_validation_exit_code() -> None:
 
 
 def test_claim_relate_command_is_fully_annotated() -> None:
-    claim_source = Path("propstore/cli/claim.py").read_text(encoding="utf-8")
+    claim_source = Path("propstore/cli/claim/relation.py").read_text(encoding="utf-8")
     module = ast.parse(claim_source)
     relate = next(
         node
@@ -227,7 +268,7 @@ def test_claim_relate_command_is_fully_annotated() -> None:
 
 
 def test_claim_embed_progress_uses_named_callback_helper() -> None:
-    claim_source = Path("propstore/cli/claim.py").read_text(encoding="utf-8")
+    claim_source = Path("propstore/cli/claim/embedding.py").read_text(encoding="utf-8")
     embed_body = claim_source.split("def embed(", maxsplit=1)[1].split(
         "\n\n@claim.command()",
         maxsplit=1,

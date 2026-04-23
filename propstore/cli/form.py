@@ -17,6 +17,7 @@ from propstore.app.forms import (
     format_dims_col,
     list_form_items,
     remove_form,
+    search_form_items,
     show_form,
     validate_forms,
 )
@@ -56,6 +57,26 @@ def list_forms(obj: dict, dims_filter: str | None, show_dims_flag: bool) -> None
             emit(f"  {item.name:30s}{unit_col:10s}  {dims_str}")
         else:
             emit(f"  {item.name:30s}{unit_col}")
+
+
+@form.command("search")
+@click.argument("query")
+@click.option("--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show.")
+@click.pass_obj
+def search(obj: dict, query: str, limit: int) -> None:
+    """Search forms by name, unit, QUDT, or base."""
+    repo: Repository = obj["repo"]
+    items = search_form_items(repo, query, limit=limit)
+    if items is None:
+        emit("No forms directory found.")
+        return
+    if not items:
+        emit("No matches.")
+        return
+    for item in items:
+        unit = item.unit_symbol or ""
+        unit_col = f"  [{unit}]" if unit else ""
+        emit(f"  {item.name:30s}{unit_col}")
 
 
 # ── form show ────────────────────────────────────────────────────────

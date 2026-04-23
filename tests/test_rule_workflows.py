@@ -9,9 +9,12 @@ from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.rule_workflows import (
     RuleAddRequest,
+    RuleFileNotFoundError,
     RuleWorkflowError,
     add_rule,
+    list_rules,
     parse_atom,
+    show_rule_file,
 )
 
 
@@ -166,3 +169,54 @@ def test_rule_cli_add(tmp_path) -> None:
     assert data["rules"][0]["id"] == "r_mi"
     assert data["rules"][0]["kind"] == "defeasible"
     assert data["rules"][0]["head"]["predicate"] == "reduces_mi"
+
+
+def test_rule_owner_list_and_show(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_mi",
+            kind="defeasible",
+            head="reduces_mi(X)",
+        ),
+    )
+
+    items = list_rules(repo)
+    shown = show_rule_file(repo, "ikeda_2014")
+
+    assert [(item.file, item.rule_id) for item in items] == [("ikeda_2014", "r_mi")]
+    assert "rules:" in shown.rendered
+
+    try:
+        show_rule_file(repo, "missing")
+    except RuleFileNotFoundError as exc:
+        assert "missing" in str(exc)
+    else:
+        raise AssertionError("expected missing rule file failure")
+
+
+def test_rule_cli_list_and_show(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_mi",
+            kind="defeasible",
+            head="reduces_mi(X)",
+        ),
+    )
+    runner = CliRunner()
+
+    listed = runner.invoke(cli, ["-C", str(repo.root), "rule", "list"])
+    shown = runner.invoke(cli, ["-C", str(repo.root), "rule", "show", "ikeda_2014"])
+
+    assert listed.exit_code == 0, listed.output
+    assert "ikeda_2014" in listed.output
+    assert "r_mi" in listed.output
+    assert shown.exit_code == 0, shown.output
+    assert "rules:" in shown.output

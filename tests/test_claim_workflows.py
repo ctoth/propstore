@@ -7,6 +7,7 @@ import yaml
 import pytest
 
 import propstore.app.claims as claims_app
+from propstore.app.claim_views import ClaimViewRequest, build_claim_view
 from propstore.app.claims import (
     ClaimEmbedRequest,
     ClaimRelateRequest,
@@ -16,12 +17,12 @@ from propstore.app.claims import (
     embed_claim_embeddings,
     find_similar_claims,
     relate_claims,
-    show_claim_from_repo,
 )
 import propstore.embed as embed_mod
 import propstore.relate as relate_mod
 from propstore.proposals import stance_proposal_branch
 from propstore.repository import Repository
+from propstore.app.world import WorldSidecarMissingError
 
 
 def _repo_with_sidecar(tmp_path: Path) -> Repository:
@@ -34,8 +35,8 @@ def _repo_with_sidecar(tmp_path: Path) -> Repository:
 def test_claim_repo_world_model_wrappers_report_missing_sidecar(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
-    with pytest.raises(ClaimSidecarMissingError):
-        show_claim_from_repo(repo, "claim-a")
+    with pytest.raises(WorldSidecarMissingError):
+        build_claim_view(repo, ClaimViewRequest(claim_id="claim-a"))
 
     with pytest.raises(ClaimSidecarMissingError):
         compare_algorithm_claims_from_repo(

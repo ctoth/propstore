@@ -56,8 +56,8 @@ for the import contract implemented here.
 
 ## Phase 6: Query/test coverage and docs
 
-- add a `pks query` CLI test
-- add a full workflow test covering `init -> add concept -> add/build/query`
+- add a `pks sidecar query` CLI test
+- add a full workflow test covering `init -> add concept -> add/build/sidecar query`
 - update README examples and contracts to match current behavior
 - keep `code-review.md` and this plan as the written record of the review
 

@@ -3,13 +3,17 @@ from __future__ import annotations
 import yaml
 from click.testing import CliRunner
 
-from propstore.cli import cli
-from propstore.context_workflows import (
+from propstore.app.contexts import (
     ContextAddRequest,
+    ContextNotFoundError,
+    ContextSearchRequest,
     ContextWorkflowError,
     add_context,
     list_context_items,
+    search_context_items,
+    show_context,
 )
+from propstore.cli import cli
 from propstore.repository import Repository
 
 
@@ -115,3 +119,55 @@ def test_context_cli_add_dry_run_and_list_use_owner_reports(tmp_path) -> None:
     assert data["id"] == "ctx_real"
     assert listed.exit_code == 0, listed.output
     assert "ctx_real (analyst) — Real context" in listed.output
+
+
+def test_context_show_and_search_owner_reports(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_context(
+        repo,
+        ContextAddRequest(
+            name="ctx_real",
+            description="Real context",
+            perspective="analyst",
+        ),
+        dry_run=False,
+    )
+
+    shown = show_context(repo, "ctx_real")
+    searched = search_context_items(
+        repo,
+        ContextSearchRequest(query="analyst", limit=10),
+    )
+
+    assert shown.filepath == repo.contexts_dir / "ctx_real.yaml"
+    assert "description: Real context" in shown.rendered
+    assert [item.context_id for item in searched] == ["ctx_real"]
+
+    try:
+        show_context(repo, "missing")
+    except ContextNotFoundError as exc:
+        assert "missing" in str(exc)
+    else:
+        raise AssertionError("expected missing context failure")
+
+
+def test_context_cli_show_and_search_use_owner_reports(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_context(
+        repo,
+        ContextAddRequest(
+            name="ctx_real",
+            description="Real context",
+            perspective="analyst",
+        ),
+        dry_run=False,
+    )
+    runner = CliRunner()
+
+    shown = runner.invoke(cli, ["-C", str(repo.root), "context", "show", "ctx_real"])
+    searched = runner.invoke(cli, ["-C", str(repo.root), "context", "search", "analyst"])
+
+    assert shown.exit_code == 0, shown.output
+    assert "description: Real context" in shown.output
+    assert searched.exit_code == 0, searched.output
+    assert "ctx_real (analyst) — Real context" in searched.output

@@ -65,7 +65,7 @@ From `propstore`:
 1. Run the `pks source ...` sequence for each source package
 2. Run `pks validate`
 3. Run `pks build`
-4. Query the sidecar with `pks query ...`
+4. Query the sidecar with `pks sidecar query ...`
 
 ## Current state
 

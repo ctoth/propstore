@@ -140,7 +140,7 @@ def checkout_cmd(ctx: click.Context, commit: str) -> None:
 
     Leaves git state, working tree, and source YAML untouched, but
     overwrites the on-disk sidecar at ``<repo>/sidecar/propstore.sqlite``
-    so that subsequent ``pks world`` / ``pks query`` commands see the
+    so that subsequent ``pks world`` / ``pks sidecar query`` commands see the
     historical state until the next ``pks build``.
     """
     repo = ctx.obj["repo"]

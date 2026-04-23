@@ -8,6 +8,7 @@ from propstore.app.micropubs import (
     MicropubNotFoundError,
     find_micropub,
     inspect_micropub_lift,
+    list_micropubs,
     load_micropub_bundle,
 )
 from propstore.repository import Repository
@@ -66,6 +67,7 @@ def test_micropub_reports_load_find_and_lift(tmp_path) -> None:
 
     bundle = load_micropub_bundle(repo, "demo")
     entry = find_micropub(repo, "ps:micropub:test")
+    items = list_micropubs(repo)
     lift = inspect_micropub_lift(
         repo,
         "ps:micropub:test",
@@ -80,6 +82,7 @@ def test_micropub_reports_load_find_and_lift(tmp_path) -> None:
     assert bundle.micropubs[0].artifact_id == "ps:micropub:test"
     assert entry.ref.name == "demo"
     assert entry.document.context.id == "ctx_source"
+    assert [(item.bundle, item.artifact_id) for item in items] == [("demo", "ps:micropub:test")]
     assert lift.liftable is True
     assert reverse.liftable is False
 
@@ -99,6 +102,7 @@ def test_micropub_cli_renders_bundle_show_and_lift(tmp_path) -> None:
     repo = _seed_micropub_repo(tmp_path)
     runner = CliRunner()
 
+    listed = runner.invoke(cli, ["-C", str(repo.root), "micropub", "list"])
     bundle = runner.invoke(cli, ["-C", str(repo.root), "micropub", "bundle", "demo"])
     show = runner.invoke(cli, ["-C", str(repo.root), "micropub", "show", "ps:micropub:test"])
     lift = runner.invoke(
@@ -126,6 +130,8 @@ def test_micropub_cli_renders_bundle_show_and_lift(tmp_path) -> None:
         ],
     )
 
+    assert listed.exit_code == 0, listed.output
+    assert "ps:micropub:test" in listed.output
     assert bundle.exit_code == 0, bundle.output
     assert "ps:micropub:test" in bundle.output
     assert show.exit_code == 0, show.output
