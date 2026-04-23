@@ -14,6 +14,7 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from propstore.core.id_types import to_context_id
+from propstore.app.rendering import AppRenderPolicyRequest, build_render_policy
 from propstore.repository import Repository
 from propstore.world import Environment, RenderPolicy
 from propstore.world.queries import (
@@ -66,21 +67,14 @@ class WorldSidecarMissingError(WorldAppError):
 
 
 @dataclass(frozen=True)
-class WorldLifecycleOptions:
-    include_drafts: bool = False
-    include_blocked: bool = False
-    show_quarantined: bool = False
-
-
-@dataclass(frozen=True)
 class AppWorldStatusRequest:
-    lifecycle: WorldLifecycleOptions = field(default_factory=WorldLifecycleOptions)
+    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
 
 
 @dataclass(frozen=True)
 class AppWorldConceptQueryRequest:
     target: str
-    lifecycle: WorldLifecycleOptions = field(default_factory=WorldLifecycleOptions)
+    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
 
 
 @dataclass(frozen=True)
@@ -104,7 +98,7 @@ class AppWorldAlgorithmsRequest:
 class AppWorldDeriveRequest:
     concept_id: str
     bindings: Mapping[str, str]
-    lifecycle: WorldLifecycleOptions = field(default_factory=WorldLifecycleOptions)
+    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
 
 
 @dataclass(frozen=True)
@@ -113,16 +107,7 @@ class AppWorldResolveRequest:
     bindings: Mapping[str, str]
     strategy: str
     override_id: str | None = None
-    semantics: str = "grounded"
-    set_comparison: str = "elitist"
-    decision_criterion: str = "pignistic"
-    pessimism_index: float = 0.5
-    reasoning_backend: str = "claim_graph"
-    praf_strategy: str = "auto"
-    praf_epsilon: float = 0.01
-    praf_confidence: float = 0.95
-    praf_seed: int | None = None
-    lifecycle: WorldLifecycleOptions = field(default_factory=WorldLifecycleOptions)
+    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
 
 
 @dataclass(frozen=True)
@@ -137,7 +122,7 @@ class AppWorldChainRequest:
     concept_id: str
     bindings: Mapping[str, str]
     strategy: str | None = None
-    lifecycle: WorldLifecycleOptions = field(default_factory=WorldLifecycleOptions)
+    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
 
 
 @dataclass(frozen=True)
@@ -170,27 +155,6 @@ class AppWorldFragilityRequest:
 class AppWorldConsistencyRequest:
     bindings: Mapping[str, str]
     transitive: bool = False
-
-
-def lifecycle_policy(
-    options: WorldLifecycleOptions,
-    *,
-    base: RenderPolicy | None = None,
-) -> RenderPolicy:
-    """Construct or clone a render policy with lifecycle visibility set."""
-
-    if base is None:
-        return RenderPolicy(
-            include_drafts=options.include_drafts,
-            include_blocked=options.include_blocked,
-            show_quarantined=options.show_quarantined,
-        )
-    return replace(
-        base,
-        include_drafts=options.include_drafts,
-        include_blocked=options.include_blocked,
-        show_quarantined=options.show_quarantined,
-    )
 
 
 @contextmanager
@@ -232,7 +196,7 @@ def world_status(
     with open_app_world_model(repo) as world:
         return get_world_status(
             world,
-            WorldStatusRequest(policy=lifecycle_policy(request.lifecycle)),
+            WorldStatusRequest(policy=build_render_policy(request.render_policy)),
         )
 
 
@@ -245,7 +209,7 @@ def world_concept_query(
             world,
             WorldConceptQueryRequest(
                 target=request.target,
-                policy=lifecycle_policy(request.lifecycle),
+                policy=build_render_policy(request.render_policy),
             ),
         )
 
@@ -293,7 +257,7 @@ def world_derive(
             WorldDeriveRequest(
                 concept_id=request.concept_id,
                 bindings=request.bindings,
-                policy=lifecycle_policy(request.lifecycle),
+                policy=build_render_policy(request.render_policy),
             ),
         )
 
@@ -302,29 +266,13 @@ def world_resolve(
     repo: Repository,
     request: AppWorldResolveRequest,
 ) -> WorldResolveReport:
-    from propstore.world import ResolutionStrategy
-    from propstore.world.types import (
-        normalize_argumentation_semantics,
-        normalize_reasoning_backend,
-    )
-
     with open_app_world_model(repo) as world:
         resolved = resolve_world_target(world, request.concept_id)
-        policy = RenderPolicy(
-            reasoning_backend=normalize_reasoning_backend(request.reasoning_backend),
-            strategy=ResolutionStrategy(request.strategy),
-            semantics=normalize_argumentation_semantics(request.semantics),
-            comparison=request.set_comparison,
-            decision_criterion=request.decision_criterion,
-            pessimism_index=request.pessimism_index,
-            praf_strategy=request.praf_strategy,
-            praf_mc_epsilon=request.praf_epsilon,
-            praf_mc_confidence=request.praf_confidence,
-            praf_mc_seed=request.praf_seed,
+        policy = replace(
+            build_render_policy(
+                replace(request.render_policy, strategy=request.strategy),
+            ),
             overrides={} if request.override_id is None else {resolved: request.override_id},
-            include_drafts=request.lifecycle.include_drafts,
-            include_blocked=request.lifecycle.include_blocked,
-            show_quarantined=request.lifecycle.show_quarantined,
         )
         return resolve_world_value(
             world,
@@ -357,7 +305,7 @@ def world_chain(
 ) -> WorldChainReport:
     # Chain currently does not consume RenderPolicy, but constructing the
     # policy here keeps lifecycle option validation in the app layer.
-    _ = lifecycle_policy(request.lifecycle)
+    _ = build_render_policy(request.render_policy)
     with open_app_world_model(repo) as world:
         return query_world_chain(
             world,

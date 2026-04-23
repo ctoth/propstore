@@ -12,10 +12,10 @@ from propstore.app.world_reasoning import (
     WorldExtensionsUnsupportedBackend,
     world_extensions as run_world_extensions,
 )
+from propstore.app.rendering import AppRenderPolicyRequest
 from propstore.app.world import (
     AppWorldDeriveRequest,
     AppWorldResolveRequest,
-    WorldLifecycleOptions,
     WorldResolveError,
     world_derive as run_world_derive,
     world_resolve as run_world_resolve,
@@ -77,7 +77,7 @@ def world_derive(
         AppWorldDeriveRequest(
             concept_id=concept_id,
             bindings=bindings,
-            lifecycle=WorldLifecycleOptions(
+            render_policy=AppRenderPolicyRequest(
                 include_drafts=include_drafts,
                 include_blocked=include_blocked,
                 show_quarantined=show_quarantined,
@@ -180,16 +180,16 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                 bindings=bindings,
                 strategy=strategy,
                 override_id=override_id,
-                semantics=semantics,
-                set_comparison=set_comparison,
-                decision_criterion=decision_criterion,
-                pessimism_index=pessimism_index,
-                reasoning_backend=reasoning_backend,
-                praf_strategy=praf_strategy,
-                praf_epsilon=praf_epsilon,
-                praf_confidence=praf_confidence,
-                praf_seed=praf_seed,
-                lifecycle=WorldLifecycleOptions(
+                render_policy=AppRenderPolicyRequest(
+                    semantics=semantics,
+                    set_comparison=set_comparison,
+                    decision_criterion=decision_criterion,
+                    pessimism_index=pessimism_index,
+                    reasoning_backend=reasoning_backend,
+                    praf_strategy=praf_strategy,
+                    praf_epsilon=praf_epsilon,
+                    praf_confidence=praf_confidence,
+                    praf_seed=praf_seed,
                     include_drafts=include_drafts,
                     include_blocked=include_blocked,
                     show_quarantined=show_quarantined,
