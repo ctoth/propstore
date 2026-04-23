@@ -2062,6 +2062,7 @@ embeddings = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "httpx" },
     { name = "hypothesis" },
     { name = "import-linter" },
     { name = "libcst" },
@@ -2098,6 +2099,7 @@ provides-extras = ["embeddings"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "hypothesis", specifier = ">=6.0" },
     { name = "import-linter", specifier = ">=2.11" },
     { name = "libcst", specifier = ">=1.8.6" },
