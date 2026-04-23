@@ -52,7 +52,9 @@ def detect_parameter_conflicts(
             try:
                 eq_classes = z3_solver.partition_equivalence_classes(all_conditions)
             except (Z3TranslationError, z3.Z3Exception) as exc:
-                raise RuntimeError("Z3 partitioning failed during parameter conflict detection") from exc
+                raise RuntimeError(
+                    f"Z3 partitioning failed during parameter conflict detection: {exc}"
+                ) from exc
         else:
             eq_classes = None
 
@@ -208,7 +210,9 @@ def _detect_cross_class_parameter_conflicts(
             try:
                 disjointness = z3_solver.are_disjoint_result(rep_i, rep_j)
             except (Z3TranslationError, z3.Z3Exception) as exc:
-                raise RuntimeError("Z3 disjointness check failed during parameter conflict detection") from exc
+                raise RuntimeError(
+                    f"Z3 disjointness check failed during parameter conflict detection: {exc}"
+                ) from exc
             if isinstance(disjointness, SolverUnknown):
                 cross_class = ConflictClass.UNKNOWN
             elif isinstance(disjointness, SolverUnsat):
