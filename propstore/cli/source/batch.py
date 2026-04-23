@@ -41,8 +41,25 @@ def add_concepts(obj: dict, name: str, batch_file: Path) -> None:
 @click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--reader", required=False, help="Who extracted these claims (human name or model ID)")
 @click.option("--method", required=False, help="Extraction method (skill name, 'manual', etc.)")
+@click.option(
+    "--context",
+    "default_context",
+    required=False,
+    default=None,
+    help=(
+        "Default context id applied to every claim in the batch that does not "
+        "already declare an inline context. Inline context: wins over this flag."
+    ),
+)
 @click.pass_obj
-def add_claim(obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None) -> None:
+def add_claim(
+    obj: dict,
+    name: str,
+    batch_file: Path,
+    reader: str | None,
+    method: str | None,
+    default_context: str | None,
+) -> None:
     repo: Repository = obj["repo"]
     try:
         report = add_source_claims_batch(
@@ -52,6 +69,7 @@ def add_claim(obj: dict, name: str, batch_file: Path, reader: str | None, method
                 batch_file=batch_file,
                 reader=reader,
                 method=method,
+                default_context=default_context,
             ),
         )
     except ValueError as exc:

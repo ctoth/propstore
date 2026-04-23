@@ -55,6 +55,19 @@ class SourceBatchRequest:
     batch_file: Path
     reader: str | None = None
     method: str | None = None
+    default_context: str | None = None
+
+
+@dataclass(frozen=True)
+class SourceListItem:
+    name: str
+    branch: str
+    tip_sha: str
+
+
+@dataclass(frozen=True)
+class SourceListReport:
+    items: tuple[SourceListItem, ...]
 
 
 @dataclass(frozen=True)
@@ -294,8 +307,41 @@ def add_source_claims_batch(
         request.batch_file,
         reader=request.reader,
         method=request.method,
+        default_context=request.default_context,
     )
     return _auto_finalize_source(repo, request.name)
+
+
+def list_sources(repo: Repository) -> SourceListReport:
+    """Enumerate source branches (``source/<slug>``) from the snapshot."""
+    from propstore.source import source_branch_name
+
+    items: list[SourceListItem] = []
+    for branch_info in repo.snapshot.iter_branches():
+        if branch_info.kind != "source":
+            continue
+        # ``source/<slug>`` → recover the authoring slug. Fall back to
+        # the full name if the prefix is missing, although
+        # ``_branch_kind`` keys on ``source/`` so this should not
+        # happen.
+        prefix = "source/"
+        slug = (
+            branch_info.name[len(prefix):]
+            if branch_info.name.startswith(prefix)
+            else branch_info.name
+        )
+        items.append(
+            SourceListItem(
+                name=slug,
+                branch=branch_info.name,
+                tip_sha=branch_info.tip_sha,
+            )
+        )
+    items.sort(key=lambda entry: entry.name)
+    # Silence lint: source_branch_name import is unused but the CLI
+    # adapter imports this module and the symbol stays available.
+    _ = source_branch_name
+    return SourceListReport(items=tuple(items))
 
 
 def add_source_justifications_batch(

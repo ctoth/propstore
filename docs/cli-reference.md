@@ -160,18 +160,23 @@ the old paper-import bridge.
 
 Key subcommands:
 
+- `pks source list` — enumerate `source/<slug>` branches with tip shas
 - `pks source init <name> --kind <kind> --origin-type <type> --origin-value <value> [--content-file FILE]`
 - `pks source write-notes <name> --file notes.md`
 - `pks source write-metadata <name> --file metadata.json`
 - `pks source propose-concept <name> --name <concept> --definition <text> --form <form>`
 - `pks source propose-claim <name> --id <claim-id> --concept <concept-id> --type <type> --context <context-id> ...`
 - `pks source add-concepts <name> --batch concepts.yaml`
-- `pks source add-claim <name> --batch claims.yaml`
+- `pks source add-claim <name> --batch claims.yaml [--context <ctx-id>]`
 - `pks source add-justification <name> --batch justifications.yaml`
 - `pks source add-stance <name> --batch stances.yaml`
 - `pks source finalize <name>`
 - `pks source promote <name>`
 - `pks source sync <name> [--output-dir DIR]`
+
+`--context <ctx-id>` on `add-claim` stamps every claim in the batch
+that does not already declare an inline `context:` with the supplied
+default. Inline context always wins.
 
 ```bash
 uv run pks source init Demo_2026 --kind academic_paper --origin-type file --origin-value Demo_2026.pdf
@@ -568,6 +573,95 @@ List all registered contexts. No options.
 
 ```bash
 uv run pks context list
+```
+
+---
+
+## Predicates (`pks predicate`)
+
+Declare DeLP/Datalog predicates into `predicates/<file>.yaml`. Each
+predicate names a relation symbol, fixes its arity, and tags every
+argument position with a sort that the grounder uses to enumerate
+well-typed substitutions (Diller, Borg, Bex 2025 §3-4; Garcia & Simari
+2004 §3).
+
+### `pks predicate add`
+
+Add a predicate declaration. Creates the target file if absent, or
+appends an entry otherwise. Duplicate predicate ids within a single
+file are rejected.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--file` | TEXT | -- | File stem in `predicates/` (e.g. `ikeda_2014`) (required) |
+| `--id` | TEXT | -- | Predicate name (e.g. `aspirin_user`) (required) |
+| `--arity` | INT | -- | Non-negative argument count (required) |
+| `--arg-type` | TEXT | -- | Per-position sort; repeat for each position (must total `arity`) |
+| `--derived-from` | TEXT | -- | Optional `derived_from` DSL |
+| `--description` | TEXT | -- | Optional human-readable description |
+
+```bash
+uv run pks predicate add --file ikeda_2014 --id aspirin_user --arity 1 --arg-type person --description "Patient takes daily low-dose aspirin."
+```
+
+---
+
+## Rules (`pks rule`)
+
+Author DeLP strict, defeasible, and defeater rules into
+`rules/<file>.yaml`. Rules use a shallow atom DSL for the CLI surface
+while the underlying schema (`RuleDocument`, `AtomDocument`) remains the
+canonical form. Paper-priority pairs (`superiority`) stay schema-only for
+now.
+
+### `pks rule add`
+
+Add a rule to `rules/<file>.yaml`. Creates the file if absent (stamping
+`source.paper = --paper`), or appends otherwise (appending requires the
+paper to match).
+
+Atom DSL:
+
+- `pred(term1, term2, ...)` with a leading `~` for strong negation
+- Uppercase term prefix → variable (`X`, `Dose`); otherwise constant
+- Quoted string literals and numeric literals coerce to typed constants
+- Zero-arity atoms write as `pred` or `pred()`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--file` | TEXT | -- | File stem in `rules/` (required) |
+| `--paper` | TEXT | -- | Source paper slug for `source.paper` (required) |
+| `--id` | TEXT | -- | Authoring rule id (e.g. `r_ikeda_mi`) (required) |
+| `--kind` | CHOICE | -- | One of `strict`, `defeasible`, `defeater` (required) |
+| `--head` | TEXT | -- | Head atom in DSL form (required) |
+| `--body` | TEXT | -- | Body atom in DSL form; repeat for each body literal |
+
+```bash
+uv run pks rule add --file ikeda_2014 --paper Ikeda_2014_Low-doseAspirinPrimaryPrevention \
+  --id r_mi --kind defeasible \
+  --head "reduces_mi(X)" --body "aspirin_user(X)"
+
+uv run pks rule add --file ikeda_2014 --paper Ikeda_2014_Low-doseAspirinPrimaryPrevention \
+  --id r_not_indicated --kind defeater \
+  --head "~indicated(X)" --body "~has_net_benefit(X)" --body "aspirin_user(X)"
+```
+
+---
+
+## Index (`pks index`)
+
+Manages the git index for propstore-backed knowledge repositories.
+
+### `pks index reset`
+
+Rewrite the git index to match HEAD, discarding any staged additions or
+deletions. Use this after `pks source promote` or other propstore
+commands if a subsequent plain `git commit` is going to follow
+user-authored work in the same repo — it prevents the phantom-deletion
+pattern where stale staged entries silently end up in the next commit.
+
+```bash
+uv run pks index reset
 ```
 
 ---
