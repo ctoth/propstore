@@ -16,13 +16,13 @@ from propstore.app.world import (
     UnknownConceptError,
     WorldBindActiveReport,
     WorldBindConceptReport,
-    WorldLifecycleOptions,
     world_algorithms as run_world_algorithms,
     world_bind as run_world_bind,
     world_concept_query,
     world_explain as run_world_explain,
     world_status as run_world_status,
 )
+from propstore.app.rendering import AppRenderPolicyRequest
 from propstore.cli.world import (
     parse_world_binding_args,
     world,
@@ -30,12 +30,12 @@ from propstore.cli.world import (
 from propstore.repository import Repository
 
 
-def _lifecycle_options(
+def _render_policy_request(
     include_drafts: bool,
     include_blocked: bool,
     show_quarantined: bool,
-) -> WorldLifecycleOptions:
-    return WorldLifecycleOptions(
+) -> AppRenderPolicyRequest:
+    return AppRenderPolicyRequest(
         include_drafts=include_drafts,
         include_blocked=include_blocked,
         show_quarantined=show_quarantined,
@@ -82,12 +82,12 @@ def world_status(
     report.
     """
     repo: Repository = obj["repo"]
-    lifecycle = _lifecycle_options(include_drafts, include_blocked, show_quarantined)
-    report = run_world_status(repo, AppWorldStatusRequest(lifecycle=lifecycle))
+    render_policy = _render_policy_request(include_drafts, include_blocked, show_quarantined)
+    report = run_world_status(repo, AppWorldStatusRequest(render_policy=render_policy))
     emit(f"Concepts: {report.concept_count}")
     emit(f"Claims:   {report.visible_claim_count}")
     emit(f"Conflicts: {report.conflict_count}")
-    if lifecycle.show_quarantined:
+    if render_policy.show_quarantined:
         emit(f"Diagnostics: {report.diagnostic_count}")
 
 
@@ -134,11 +134,11 @@ def world_query(
     promotion-blocked mirror rows; opt-in flags lift each filter.
     """
     repo: Repository = obj["repo"]
-    lifecycle = _lifecycle_options(include_drafts, include_blocked, show_quarantined)
+    render_policy = _render_policy_request(include_drafts, include_blocked, show_quarantined)
     try:
         report = world_concept_query(
             repo,
-            AppWorldConceptQueryRequest(target=concept_id, lifecycle=lifecycle),
+            AppWorldConceptQueryRequest(target=concept_id, render_policy=render_policy),
         )
     except UnknownConceptError:
         fail(f"Unknown concept: {concept_id}")
@@ -151,7 +151,7 @@ def world_query(
             f"  {claim.display_id}: {claim.claim_type} "
             f"{claim.value_display} conditions={claim.conditions}"
         )
-    if lifecycle.show_quarantined and report.diagnostics:
+    if render_policy.show_quarantined and report.diagnostics:
         emit("Diagnostics:")
         for diagnostic in report.diagnostics:
             emit(

@@ -16,7 +16,6 @@ from propstore.app.world import (
     AppWorldFragilityRequest,
     AppWorldHypotheticalRequest,
     AppWorldSensitivityRequest,
-    WorldLifecycleOptions,
     WorldHypotheticalSyntheticClaimSpec,
     world_chain as run_world_chain,
     world_consistency as run_world_consistency,
@@ -25,6 +24,7 @@ from propstore.app.world import (
     world_hypothetical as run_world_hypothetical,
     world_sensitivity as run_world_sensitivity,
 )
+from propstore.app.rendering import AppRenderPolicyRequest
 from propstore.cli.world import parse_world_binding_args, world
 from propstore.repository import Repository
 
@@ -179,7 +179,7 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
             concept_id=concept_id,
             bindings=bindings,
             strategy=strategy,
-            lifecycle=WorldLifecycleOptions(
+            render_policy=AppRenderPolicyRequest(
                 include_drafts=include_drafts,
                 include_blocked=include_blocked,
                 show_quarantined=show_quarantined,
