@@ -2032,7 +2032,7 @@ wheels = [
 
 [[package]]
 name = "propstore"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "ast-equiv" },
@@ -2494,7 +2494,7 @@ wheels = [
 
 [[package]]
 name = "quire"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "../quire" }
 dependencies = [
     { name = "dulwich" },
