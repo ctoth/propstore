@@ -143,11 +143,43 @@ def commit_source_claims_batch(
     *,
     reader: str | None = None,
     method: str | None = None,
+    default_context: str | None = None,
 ) -> str:
+    """Ingest a claims-batch YAML onto a source branch.
+
+    When ``default_context`` is provided, every claim in the batch whose
+    ``context`` field is unset is stamped with that value. An inline
+    ``context:`` in the YAML always wins over the default; this makes
+    ``pks source add-claim --context <name>`` safe to use over batches
+    produced by extraction pipelines that emit per-claim context
+    overrides for some but not all entries.
+    """
     from datetime import datetime
 
     source_doc = load_source_document(repo, source_name)
     raw = decode_document_path(claims_file, SourceClaimsDocument)
+    if default_context is not None:
+        if not isinstance(default_context, str) or not default_context:
+            raise ValueError("default_context must be a non-empty string")
+        injected: list[SourceClaimDocument] = []
+        for index, claim in enumerate(raw.claims, start=1):
+            if claim.context is not None and claim.context != "":
+                injected.append(claim)
+                continue
+            payload = claim.to_payload()
+            payload["context"] = default_context
+            injected.append(
+                convert_document_value(
+                    payload,
+                    SourceClaimDocument,
+                    source=f"{source_name}:claims[{index}]",
+                )
+            )
+        raw = SourceClaimsDocument(
+            source=raw.source,
+            claims=tuple(injected),
+            produced_by=raw.produced_by,
+        )
     if reader is not None:
         raw = SourceClaimsDocument(
             source=raw.source,

@@ -18,6 +18,7 @@ from propstore.app.sources import (
     finalize_source,
     init_source,
     inspect_source,
+    list_sources,
     promote_source,
     stamp_source_provenance,
     sync_source,
@@ -147,6 +148,25 @@ def source_status(obj: dict, name: str) -> None:
         for diag in row.diagnostics:
             rows.append((row.claim_id, row.promotion_status, f"[{diag.kind}] {diag.message}"))
     emit_table(("CLAIM ID", "STATUS", "MESSAGE"), rows)
+
+
+@source.command("list")
+@click.pass_obj
+def source_list(obj: dict) -> None:
+    """List all source branches in the repository.
+
+    Enumerates branches whose name begins with ``source/`` and prints
+    the authoring slug, branch name, and tip commit sha for each.
+    """
+    repo: Repository = obj["repo"]
+    report = list_sources(repo)
+    if not report.items:
+        emit("No source branches.")
+        return
+    rows = tuple(
+        (item.name, item.branch, item.tip_sha[:12]) for item in report.items
+    )
+    emit_table(("NAME", "BRANCH", "TIP"), rows)
 
 
 @source.command("sync")
