@@ -25,7 +25,6 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
         "import_repository_cmd",
         "Import a repository snapshot.",
     ),
-    "index": ("propstore.cli.index", "index", "Manage the working git index."),
     "init": ("propstore.cli.init", "init", "Initialize a propstore knowledge repository."),
     "log": ("propstore.cli.history_cmds", "log_cmd", "Show knowledge repository history."),
     "merge": ("propstore.cli.merge_cmds", "merge", "Merge repository branches."),

@@ -648,24 +648,6 @@ uv run pks rule add --file ikeda_2014 --paper Ikeda_2014_Low-doseAspirinPrimaryP
 
 ---
 
-## Index (`pks index`)
-
-Manages the git index for propstore-backed knowledge repositories.
-
-### `pks index reset`
-
-Rewrite the git index to match HEAD, discarding any staged additions or
-deletions. Use this after `pks source promote` or other propstore
-commands if a subsequent plain `git commit` is going to follow
-user-authored work in the same repo — it prevents the phantom-deletion
-pattern where stale staged entries silently end up in the next commit.
-
-```bash
-uv run pks index reset
-```
-
----
-
 ## Micropublications (`pks micropub`)
 
 Micropublication commands inspect canonical `micropubs/{source}.yaml` artifacts promoted from source branches. A micropublication bundles context-qualified claims with evidence, assumptions, stance, provenance, and source identity.
