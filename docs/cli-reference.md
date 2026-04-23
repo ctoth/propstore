@@ -47,12 +47,12 @@ Validate all concepts and claims. Runs CEL type-checking. No options.
 uv run pks validate
 ```
 
-### `pks query SQL`
+### `pks sidecar query SQL`
 
 Run raw SQL against the sidecar SQLite.
 
 ```bash
-uv run pks query "SELECT * FROM claims WHERE concept_id LIKE 'speech%'"
+uv run pks sidecar query "SELECT * FROM claims WHERE concept_id LIKE 'speech%'"
 ```
 
 ### `pks checkout COMMIT`
@@ -140,7 +140,7 @@ uv run pks diff
 uv run pks diff abc1234
 ```
 
-### `pks promote [PATH]`
+### `pks proposal promote [PATH]`
 
 Promote committed stance proposals from the `proposal/stances` branch into source-of-truth storage on `master`. If PATH is given, promotes only that stance file or claim-id-derived filename; otherwise promotes all committed stance proposal files on the proposal branch.
 
@@ -149,8 +149,8 @@ Promote committed stance proposals from the `proposal/stances` branch into sourc
 | `-y`, `--yes` | FLAG | false | Skip confirmation prompt |
 
 ```bash
-uv run pks promote
-uv run pks promote some-stance.yaml -y
+uv run pks proposal promote
+uv run pks proposal promote some-stance.yaml -y
 ```
 
 ### `pks source`

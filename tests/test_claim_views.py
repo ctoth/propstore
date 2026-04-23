@@ -24,18 +24,20 @@ class _World:
     def __init__(
         self,
         *,
-        claim: ClaimRow | None,
+        claim: ClaimRow | None = None,
+        claims: tuple[ClaimRow, ...] = (),
         concept: ConceptRow | None = None,
         visible: bool = True,
     ) -> None:
-        self.claim = claim
+        claim_rows = list(claims)
+        if claim is not None:
+            claim_rows.append(claim)
+        self.claims = {str(item.claim_id): item for item in claim_rows}
         self.concept = concept
         self.visible = visible
 
     def get_claim(self, claim_id: str) -> ClaimRow | None:
-        if self.claim is None or str(self.claim.claim_id) != claim_id:
-            return None
-        return self.claim
+        return self.claims.get(claim_id)
 
     def get_concept(self, concept_id: str) -> ConceptRow | None:
         if self.concept is None or str(self.concept.concept_id) != concept_id:
@@ -47,11 +49,19 @@ class _World:
         concept_id: str | None,
         policy: RenderPolicy,
     ) -> list[ClaimRow]:
-        if self.claim is None or not self.visible:
+        if not self.visible:
             return []
-        if concept_id is not None and str(self.claim.concept_id) != concept_id:
-            return []
-        return [self.claim]
+        claims = list(self.claims.values())
+        if concept_id is None:
+            return claims
+        return [claim for claim in claims if str(claim.concept_id) == concept_id]
+
+    def resolve_concept(self, name: str) -> str | None:
+        if self.concept is None:
+            return None
+        if name in {str(self.concept.concept_id), self.concept.canonical_name}:
+            return str(self.concept.concept_id)
+        return None
 
 
 @contextmanager
@@ -168,3 +178,47 @@ def test_build_claim_view_reports_unknown_claim(
 
     with pytest.raises(ClaimViewUnknownClaimError, match="missing"):
         build_claim_view(_repo(), ClaimViewRequest(claim_id="missing"))
+
+
+def test_list_claim_views_projects_visible_claim_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _World(
+        claims=(
+            _claim(claim_id="claim2", artifact_id="claim2"),
+            _claim(claim_id="claim1", artifact_id="claim1"),
+        ),
+        concept=_concept(),
+    )
+    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+
+    report = claim_views.list_claim_views(_repo(), claim_views.ClaimListRequest(limit=10))
+
+    assert [entry.claim_id for entry in report.entries] == ["claim1", "claim2"]
+    assert report.entries[0].concept_name == "fundamental_frequency"
+    assert report.entries[0].value_display == "12.5 Hz"
+    assert report.entries[0].condition_display == "(vacuous)"
+
+
+def test_search_claim_views_filters_by_query_and_concept(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _World(
+        claims=(
+            _claim(claim_id="claim1", artifact_id="claim1", statement="fundamental frequency rises"),
+            _claim(claim_id="claim2", artifact_id="claim2", statement="another measurement"),
+        ),
+        concept=_concept(),
+    )
+    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+
+    report = claim_views.search_claim_views(
+        _repo(),
+        claim_views.ClaimSearchRequest(
+            query="rises",
+            concept="fundamental_frequency",
+            limit=10,
+        ),
+    )
+
+    assert [entry.claim_id for entry in report.entries] == ["claim1"]

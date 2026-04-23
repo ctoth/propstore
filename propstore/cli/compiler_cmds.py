@@ -13,11 +13,8 @@ from propstore.cli.output import emit, emit_error, emit_success
 
 from propstore.app.compiler import (
     CompilerWorkflowError,
-    SidecarQueryError,
-    SidecarQueryRequest,
     build_repository,
     export_aliases as run_export_aliases,
-    query_sidecar,
     validate_repository,
 )
 from propstore.cli.helpers import EXIT_VALIDATION, exit_with_code, fail
@@ -96,27 +93,6 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         f"Build {status}: {report.concept_count} concepts, "
         f"{report.claim_count} claims, {report.conflict_count} conflicts, "
         f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings")
-
-
-@click.command()
-@click.argument("sql")
-@click.pass_obj
-def query(obj: dict, sql: str) -> None:
-    """Run raw SQL against the sidecar SQLite."""
-    repo: Repository = obj["repo"]
-    try:
-        result = query_sidecar(repo, SidecarQueryRequest(sql=sql))
-    except FileNotFoundError:
-        fail("Sidecar not found. Run 'pks build' first.")
-    except SidecarQueryError as exc:
-        fail(f"SQL error: {exc}")
-
-    if not result.rows:
-        emit("(no results)")
-        return
-    emit("\t".join(result.columns))
-    for row in result.rows:
-        emit("\t".join(row))
 
 
 @click.command("export-aliases")

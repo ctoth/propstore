@@ -2,7 +2,7 @@
 
 Declares DeLP/Datalog predicates into ``knowledge/predicates/<name>.yaml``
 files. Mirrors the context-authoring workflow pattern
-(``propstore.context_workflows``) and uses the existing
+(``propstore.app.contexts``) and uses the existing
 ``PREDICATE_FILE_FAMILY`` plumbing so predicates appear on the primary
 branch alongside other canonical artifacts.
 
@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, encode_document
 
 from propstore.families.documents.predicates import (
     PredicateDocument,
@@ -34,6 +34,12 @@ from propstore.repository import Repository
 
 class PredicateWorkflowError(Exception):
     """Raised when a predicate workflow cannot complete."""
+
+
+class PredicateFileNotFoundError(PredicateWorkflowError):
+    def __init__(self, file: str) -> None:
+        super().__init__(f"Predicate file '{file}' not found")
+        self.file = file
 
 
 @dataclass(frozen=True)
@@ -72,6 +78,20 @@ class PredicateAddReport:
     created: bool
     """``True`` when the file was newly created; ``False`` when an
     existing predicates file was extended with an additional entry."""
+
+
+@dataclass(frozen=True)
+class PredicateListItem:
+    file: str
+    predicate_id: str
+    arity: int
+    arg_types: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PredicateShowReport:
+    filepath: Path
+    rendered: str
 
 
 def _predicate_document_payload(request: PredicateAddRequest) -> dict[str, object]:
@@ -150,4 +170,35 @@ def add_predicate(
         filepath=filepath,
         document=document,
         created=created,
+    )
+
+
+def list_predicates(repo: Repository) -> tuple[PredicateListItem, ...]:
+    items: list[PredicateListItem] = []
+    for ref in repo.families.predicates.iter():
+        document = repo.families.predicates.require(ref)
+        for predicate in document.predicates:
+            items.append(
+                PredicateListItem(
+                    file=ref.name,
+                    predicate_id=predicate.id,
+                    arity=predicate.arity,
+                    arg_types=tuple(predicate.arg_types),
+                )
+            )
+    return tuple(items)
+
+
+def show_predicate_file(
+    repo: Repository,
+    file: str,
+) -> PredicateShowReport:
+    ref = PredicateFileRef(file)
+    document = repo.families.predicates.load(ref)
+    if document is None:
+        raise PredicateFileNotFoundError(file)
+    filepath = repo.root / repo.families.predicates.address(ref).require_path()
+    return PredicateShowReport(
+        filepath=filepath,
+        rendered=encode_document(document).decode("utf-8"),
     )

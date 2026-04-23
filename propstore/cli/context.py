@@ -9,9 +9,13 @@ from quire.documents import encode_document
 from propstore.cli.helpers import fail
 from propstore.app.contexts import (
     ContextAddRequest,
+    ContextNotFoundError,
+    ContextSearchRequest,
     ContextWorkflowError,
     add_context,
     list_context_items,
+    search_context_items,
+    show_context,
 )
 from propstore.repository import Repository
 
@@ -73,3 +77,35 @@ def list_contexts(obj: dict) -> None:
     for context in contexts:
         suffix = f" ({context.perspective})" if context.perspective else ""
         emit(f"  {context.context_id}{suffix} — {context.description}")
+
+
+@context.command("show")
+@click.argument("name")
+@click.pass_obj
+def show(obj: dict, name: str) -> None:
+    """Show one context YAML document."""
+    repo: Repository = obj["repo"]
+    try:
+        report = show_context(repo, name)
+    except ContextNotFoundError:
+        fail(f"Context '{name}' not found")
+    emit(report.rendered)
+
+
+@context.command("search")
+@click.argument("query")
+@click.option("--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show.")
+@click.pass_obj
+def search(obj: dict, query: str, limit: int) -> None:
+    """Search contexts by id, description, or perspective."""
+    repo: Repository = obj["repo"]
+    items = search_context_items(
+        repo,
+        ContextSearchRequest(query=query, limit=limit),
+    )
+    if not items:
+        emit("No matches.")
+        return
+    for item in items:
+        suffix = f" ({item.perspective})" if item.perspective else ""
+        emit(f"  {item.context_id}{suffix} — {item.description}")

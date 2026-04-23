@@ -8,8 +8,11 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.predicate_workflows import (
     PredicateAddRequest,
+    PredicateFileNotFoundError,
     PredicateWorkflowError,
     add_predicate,
+    list_predicates,
+    show_predicate_file,
 )
 from propstore.repository import Repository
 
@@ -156,3 +159,42 @@ def test_predicate_cli_appends_to_existing_file(tmp_path) -> None:
     data = yaml.safe_load(target.read_text(encoding="utf-8"))
     ids = [entry["id"] for entry in data["predicates"]]
     assert ids == ["p1", "p2"]
+
+
+def test_predicate_owner_list_and_show(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_predicate(
+        repo,
+        PredicateAddRequest(file="ikeda_2014", predicate_id="p1", arity=0),
+    )
+
+    items = list_predicates(repo)
+    shown = show_predicate_file(repo, "ikeda_2014")
+
+    assert [(item.file, item.predicate_id) for item in items] == [("ikeda_2014", "p1")]
+    assert "predicates:" in shown.rendered
+
+    try:
+        show_predicate_file(repo, "missing")
+    except PredicateFileNotFoundError as exc:
+        assert "missing" in str(exc)
+    else:
+        raise AssertionError("expected missing predicate file failure")
+
+
+def test_predicate_cli_list_and_show(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_predicate(
+        repo,
+        PredicateAddRequest(file="ikeda_2014", predicate_id="p1", arity=0),
+    )
+    runner = CliRunner()
+
+    listed = runner.invoke(cli, ["-C", str(repo.root), "predicate", "list"])
+    shown = runner.invoke(cli, ["-C", str(repo.root), "predicate", "show", "ikeda_2014"])
+
+    assert listed.exit_code == 0, listed.output
+    assert "ikeda_2014" in listed.output
+    assert "p1" in listed.output
+    assert shown.exit_code == 0, shown.output
+    assert "predicates:" in shown.output

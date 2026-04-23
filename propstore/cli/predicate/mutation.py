@@ -1,5 +1,3 @@
-"""pks predicate — subcommands for managing DeLP/Datalog predicates."""
-
 from __future__ import annotations
 
 import click
@@ -11,12 +9,8 @@ from propstore.app.predicates import (
 )
 from propstore.cli.helpers import fail
 from propstore.cli.output import emit, emit_success
+from propstore.cli.predicate import predicate
 from propstore.repository import Repository
-
-
-@click.group()
-def predicate() -> None:
-    """Declare DeLP/Datalog predicates in the registry."""
 
 
 @predicate.command("add")

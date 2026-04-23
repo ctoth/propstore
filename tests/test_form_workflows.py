@@ -3,16 +3,17 @@ from __future__ import annotations
 import yaml
 from click.testing import CliRunner
 
-from propstore.cli import cli
-from propstore.form_utils import (
+from propstore.app.forms import (
     FormAddRequest,
     FormNotFoundError,
     FormWorkflowError,
     add_form,
     list_form_items,
     remove_form,
+    search_form_items,
     validate_forms,
 )
+from propstore.cli import cli
 from propstore.repository import Repository
 
 
@@ -66,6 +67,25 @@ def test_form_workflows_report_json_and_missing_errors(tmp_path) -> None:
         raise AssertionError("expected missing form failure")
 
 
+def test_form_search_matches_unit_and_name(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_form(
+        repo,
+        FormAddRequest(
+            name="frequency_like",
+            unit_symbol="Hz",
+            dimensions_json='{"T": -1}',
+        ),
+        dry_run=False,
+    )
+
+    unit_matches = search_form_items(repo, "hz", limit=10)
+    name_matches = search_form_items(repo, "frequency", limit=10)
+
+    assert [item.name for item in unit_matches or ()] == ["frequency_like"]
+    assert [item.name for item in name_matches or ()] == ["frequency_like"]
+
+
 def test_form_cli_add_dry_run_list_validate_and_remove(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
@@ -100,6 +120,7 @@ def test_form_cli_add_dry_run_list_validate_and_remove(tmp_path) -> None:
         ],
     )
     listed = runner.invoke(cli, ["-C", str(repo.root), "form", "list", "--show-dims"])
+    searched = runner.invoke(cli, ["-C", str(repo.root), "form", "search", "hz"])
     validate = runner.invoke(cli, ["-C", str(repo.root), "form", "validate"])
 
     assert dry_run.exit_code == 0, dry_run.output
@@ -110,6 +131,8 @@ def test_form_cli_add_dry_run_list_validate_and_remove(tmp_path) -> None:
     assert data["dimensions"] == {"T": -1}
     assert listed.exit_code == 0, listed.output
     assert "real_form" in listed.output
+    assert searched.exit_code == 0, searched.output
+    assert "real_form" in searched.output
     assert validate.exit_code == 0, validate.output
     assert "OK: 1 form(s) valid" in validate.output
     remove = runner.invoke(cli, ["-C", str(repo.root), "form", "remove", "real_form"])

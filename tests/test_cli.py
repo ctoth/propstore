@@ -15,17 +15,17 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
+from propstore.app.claim_views import ClaimListRequest, ClaimSearchRequest, ClaimViewRequest, build_claim_view
 from propstore.app.claims import (
     ClaimCompareRequest,
     ClaimComparisonError,
     compare_algorithm_claims,
-    show_claim,
 )
+from propstore.app.forms import show_form
 from propstore.app.project_init import ProjectInitReport
 from propstore.cli import cli
 from propstore.fragility import FragilityRequest, query_fragility
 from propstore.graph_export import GraphExportRequest, export_knowledge_graph
-from propstore.form_utils import show_form
 from propstore.repository import Repository
 from propstore.sensitivity import SensitivityRequest, query_sensitivity
 from propstore.families.identity.claims import compute_claim_version_id
@@ -899,7 +899,10 @@ class TestQuery:
         build_result = runner.invoke(cli, ["build"])
         assert build_result.exit_code == 0, build_result.output
 
-        query_result = runner.invoke(cli, ["query", "SELECT count(*) AS n FROM concept"])
+        query_result = runner.invoke(
+            cli,
+            ["sidecar", "query", "SELECT count(*) AS n FROM concept"],
+        )
         assert query_result.exit_code == 0, query_result.output
         assert "n" in query_result.output
         assert "2" in query_result.output
@@ -1387,11 +1390,11 @@ class TestConceptAddValue:
 # ── query (SQL injection protection) ────────────────────────────────
 
 class TestQueryReadOnly:
-    """Verify that `pks query` enforces read-only mode on the sidecar."""
+    """Verify that `pks sidecar query` enforces read-only mode on the sidecar."""
 
     @pytest.fixture()
     def built_workspace(self, workspace: Path) -> Path:
-        """Build a sidecar so `pks query` has something to query."""
+        """Build a sidecar so `pks sidecar query` has something to query."""
         runner = CliRunner()
         sidecar_dir = workspace / "knowledge" / "sidecar"
         sidecar_dir.mkdir(parents=True, exist_ok=True)
@@ -1401,17 +1404,18 @@ class TestQueryReadOnly:
 
     def test_select_works(self, built_workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, ["query", "SELECT count(*) FROM concept"])
+        result = runner.invoke(cli, ["sidecar", "query", "SELECT count(*) FROM concept"])
         assert result.exit_code == 0, result.output
 
     def test_drop_table_rejected(self, built_workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, ["query", "DROP TABLE IF EXISTS concept"])
+        result = runner.invoke(cli, ["sidecar", "query", "DROP TABLE IF EXISTS concept"])
         assert result.exit_code != 0
 
     def test_insert_rejected(self, built_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
+            "sidecar",
             "query",
             "INSERT INTO concept (id, canonical_name, status, definition, domain, form) "
             "VALUES ('evil', 'evil', 'accepted', 'evil', 'evil', 'evil')",
@@ -1421,6 +1425,7 @@ class TestQueryReadOnly:
     def test_update_rejected(self, built_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
+            "sidecar",
             "query",
             "UPDATE concept SET canonical_name='hacked' WHERE 1=1",
         ])
@@ -1429,6 +1434,7 @@ class TestQueryReadOnly:
     def test_delete_rejected(self, built_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
+            "sidecar",
             "query",
             "DELETE FROM concept WHERE 1=1",
         ])
@@ -1482,7 +1488,7 @@ class TestConnectionClosedOnError:
     ) -> None:
         """claim embed --model all reports final partial progress on its own line."""
         from propstore.app.claims import ClaimEmbedModelReport, ClaimEmbedReport
-        import propstore.cli.claim as claim_cli
+        import propstore.cli.claim.embedding as claim_embedding_cli
 
         self._make_repo_with_sidecar(tmp_path)
 
@@ -1504,7 +1510,7 @@ class TestConnectionClosedOnError:
             )
 
         monkeypatch.setattr(
-            claim_cli,
+            claim_embedding_cli,
             "embed_claim_embeddings",
             fake_embed_claim_embeddings,
         )
@@ -1534,7 +1540,7 @@ class TestClaimRelateCli:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        import propstore.cli.claim as claim_cli
+        import propstore.cli.claim.relation as claim_relation_cli
 
         owner_called = False
 
@@ -1545,7 +1551,7 @@ class TestClaimRelateCli:
 
             return ClaimRelateReport(branch="stance-proposals")
 
-        monkeypatch.setattr(claim_cli, "relate_claims", fake_relate_claims)
+        monkeypatch.setattr(claim_relation_cli, "relate_claims", fake_relate_claims)
 
         result = CliRunner().invoke(
             cli,
@@ -1569,18 +1575,20 @@ class TestClaimRelateCli:
 # ── claim show ──────────────────────────────────────────────────────
 
 class TestClaimShow:
-    def test_owner_show_claim_reports_si_value(
+    def test_owner_build_claim_view_reports_si_value(
         self,
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
-            report = show_claim(wm, "freq_paper:freq_claim1")
+        report = build_claim_view(
+            repo,
+            ClaimViewRequest(claim_id="freq_paper:freq_claim1"),
+        )
 
         assert report.logical_id == "freq_paper:freq_claim1"
-        assert report.value == 0.2
-        assert report.value_si == 200
-        assert report.unit == "kHz"
+        assert report.value.value == 0.2
+        assert report.value.value_si == 200
+        assert report.value.unit == "kHz"
 
     def test_owner_compare_rejects_non_algorithm_claims(
         self,
@@ -1615,6 +1623,178 @@ class TestClaimShow:
         runner = CliRunner()
         result = runner.invoke(cli, ["claim", "show", "nonexistent_claim"])
         assert result.exit_code != 0 or "not found" in result.output.lower()
+
+    def test_claim_show_passes_render_policy_to_claim_view(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import propstore.cli.claim.display as claim_display_cli
+
+        captured: list[ClaimViewRequest] = []
+
+        def fake_build_claim_view(repo: Repository, request: ClaimViewRequest):
+            captured.append(request)
+            return SimpleNamespace(
+                logical_id="claim-a",
+                artifact_id="claim-a",
+                version_id=None,
+                status=SimpleNamespace(
+                    state="known",
+                    visible_under_policy=True,
+                    reason="Claim is visible under the current render policy.",
+                    branch="master",
+                    build_status="ingested",
+                    stage="accepted",
+                    promotion_status="accepted",
+                ),
+                concept=SimpleNamespace(
+                    concept_id="concept-a",
+                    canonical_name="concept_a",
+                ),
+                claim_type="parameter",
+                statement=None,
+                value=SimpleNamespace(
+                    value=1.0,
+                    unit="Hz",
+                    value_si=1.0,
+                    canonical_unit="Hz",
+                    state="known",
+                    sentence="Value is 1.0 Hz.",
+                ),
+                uncertainty=SimpleNamespace(
+                    lower_bound=None,
+                    lower_bound_si=None,
+                    upper_bound=None,
+                    upper_bound_si=None,
+                    uncertainty=None,
+                    sample_size=None,
+                ),
+                provenance=SimpleNamespace(
+                    paper="paper-a",
+                    source_id="paper-a",
+                    source_slug="paper-a",
+                    page=None,
+                ),
+                condition=SimpleNamespace(expression=None),
+            )
+
+        monkeypatch.setattr(claim_display_cli, "build_claim_view", fake_build_claim_view)
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "-C",
+                str(tmp_path),
+                "claim",
+                "show",
+                "claim-a",
+                "--include-drafts",
+                "--include-blocked",
+                "--show-quarantined",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert len(captured) == 1
+        assert captured[0].render_policy.include_drafts is True
+        assert captured[0].render_policy.include_blocked is True
+        assert captured[0].render_policy.show_quarantined is True
+
+    def test_claim_list_exists(self, freq_workspace: Path) -> None:
+        result = CliRunner().invoke(cli, ["claim", "list"])
+        assert result.exit_code == 0, result.output
+        assert "freq_paper:freq_claim1" in result.output
+
+    def test_claim_search_exists(self, freq_workspace: Path) -> None:
+        result = CliRunner().invoke(cli, ["claim", "search", "freq_claim1"])
+        assert result.exit_code == 0, result.output
+        assert "freq_paper:freq_claim1" in result.output
+
+    def test_claim_list_passes_render_policy_to_owner(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import propstore.cli.claim.display as claim_display_cli
+
+        captured: list[ClaimListRequest] = []
+
+        def fake_list_claim_views(repo: Repository, request: ClaimListRequest):
+            captured.append(request)
+            return SimpleNamespace(entries=())
+
+        monkeypatch.setattr(claim_display_cli, "list_claim_views", fake_list_claim_views)
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "-C",
+                str(tmp_path),
+                "claim",
+                "list",
+                "--include-drafts",
+                "--include-blocked",
+                "--show-quarantined",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert captured[0].render_policy.include_drafts is True
+        assert captured[0].render_policy.include_blocked is True
+        assert captured[0].render_policy.show_quarantined is True
+
+    def test_claim_neighborhood_passes_render_policy_to_owner(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import propstore.cli.claim.display as claim_display_cli
+
+        captured: list[object] = []
+
+        def fake_build_semantic_neighborhood(repo: Repository, request):
+            captured.append(request)
+            return SimpleNamespace(
+                focus=SimpleNamespace(display_id="claim-a"),
+                status=SimpleNamespace(
+                    state="known",
+                    visible_under_policy=True,
+                    reason="visible",
+                ),
+                prose_summary="Claim claim-a has 0 supporters.",
+                moves=(),
+                table_rows=(),
+            )
+
+        monkeypatch.setattr(
+            claim_display_cli,
+            "build_semantic_neighborhood",
+            fake_build_semantic_neighborhood,
+        )
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "-C",
+                str(tmp_path),
+                "claim",
+                "neighborhood",
+                "claim-a",
+                "--include-drafts",
+                "--include-blocked",
+                "--show-quarantined",
+                "--limit",
+                "7",
+            ],
+        )
+
+        assert result.exit_code == 0
+        request = captured[0]
+        assert request.limit == 7
+        assert request.render_policy.include_drafts is True
+        assert request.render_policy.include_blocked is True
+        assert request.render_policy.show_quarantined is True
 
 
 # ── world owner reports ─────────────────────────────────────────────
@@ -2185,26 +2365,29 @@ class TestFormShowConversions:
 
 # ── Promote command (F17) ────────────────────────────────────────────
 
-class TestPromoteCommandExists:
-    """Bug F17: There is no 'pks promote' command to move proposal artifacts
+class TestProposalPromoteCommandExists:
+    """Bug F17: There is no 'pks proposal promote' command to move proposal artifacts
     from proposals/ into knowledge/ (source-of-truth storage).  Without this
     command, heuristic output either goes directly to knowledge/ (violating
     the non-commitment principle) or stays in proposals/ with no path to
     acceptance."""
 
-    def test_promote_is_registered_command(self):
-        """The 'promote' command must be registered on the top-level CLI group."""
+    def test_proposal_is_registered_command(self):
+        """The 'proposal' command must be registered on the top-level CLI group."""
         command_names = cli.list_commands(click.Context(cli))
-        assert "promote" in command_names, (
-            f"'promote' not found in CLI commands: {sorted(command_names)}. "
-            "A promote command is needed to move proposals into source-of-truth storage."
+        assert "proposal" in command_names, (
+            f"'proposal' not found in CLI commands: {sorted(command_names)}. "
+            "A proposal command family is needed to move proposals into source-of-truth storage."
         )
 
-    def test_promote_help_exits_cleanly(self, tmp_path: Path):
-        """'pks promote --help' must exit 0 from an initialized git-backed repo."""
+    def test_proposal_promote_help_exits_cleanly(self, tmp_path: Path):
+        """'pks proposal promote --help' must exit 0 from an initialized git-backed repo."""
         Repository.init(tmp_path / "knowledge")
         runner = CliRunner()
-        result = runner.invoke(cli, ["-C", str(tmp_path / "knowledge"), "promote", "--help"])
+        result = runner.invoke(
+            cli,
+            ["-C", str(tmp_path / "knowledge"), "proposal", "promote", "--help"],
+        )
         assert result.exit_code == 0, (
-            f"'pks promote --help' exited {result.exit_code}: {result.output}"
+            f"'pks proposal promote --help' exited {result.exit_code}: {result.output}"
         )

@@ -49,6 +49,21 @@ class ClaimViewRequest:
 
 
 @dataclass(frozen=True)
+class ClaimListRequest:
+    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    concept: str | None = None
+    limit: int = 50
+
+
+@dataclass(frozen=True)
+class ClaimSearchRequest:
+    query: str
+    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    concept: str | None = None
+    limit: int = 20
+
+
+@dataclass(frozen=True)
 class ClaimViewConcept:
     state: ClaimViewState
     concept_id: str | None
@@ -129,6 +144,24 @@ class ClaimViewReport:
     repository_state: str
 
 
+@dataclass(frozen=True)
+class ClaimSummaryEntry:
+    claim_id: str
+    logical_id: str | None
+    concept_id: str | None
+    concept_name: str | None
+    claim_type: str
+    value_display: str
+    condition_display: str
+    status_state: ClaimViewState
+    status_reason: str
+
+
+@dataclass(frozen=True)
+class ClaimSummaryReport:
+    entries: tuple[ClaimSummaryEntry, ...]
+
+
 def build_claim_view(repo: Repository, request: ClaimViewRequest) -> ClaimViewReport:
     if request.branch is not None:
         raise ClaimViewUnsupportedStateError("branch-qualified claim views are not implemented")
@@ -161,6 +194,43 @@ def build_claim_view(repo: Repository, request: ClaimViewRequest) -> ClaimViewRe
             status=status,
             repository_state="current worktree",
         )
+
+
+def list_claim_views(
+    repo: Repository,
+    request: ClaimListRequest,
+) -> ClaimSummaryReport:
+    policy = build_render_policy(request.render_policy)
+    with open_app_world_model(repo) as world:
+        concept_filter = _resolve_concept_filter(world, request.concept)
+        claims = sorted(
+            world.claims_with_policy(concept_filter, policy),
+            key=_claim_sort_key,
+        )
+        entries = tuple(
+            _claim_summary_entry(claim, world.get_concept(str(claim.concept_id)) if claim.concept_id else None)
+            for claim in claims[:request.limit]
+        )
+    return ClaimSummaryReport(entries=entries)
+
+
+def search_claim_views(
+    repo: Repository,
+    request: ClaimSearchRequest,
+) -> ClaimSummaryReport:
+    policy = build_render_policy(request.render_policy)
+    query = request.query.casefold()
+    with open_app_world_model(repo) as world:
+        concept_filter = _resolve_concept_filter(world, request.concept)
+        matches: list[ClaimSummaryEntry] = []
+        for claim in sorted(world.claims_with_policy(concept_filter, policy), key=_claim_sort_key):
+            concept = world.get_concept(str(claim.concept_id)) if claim.concept_id else None
+            if not _claim_matches_query(claim, concept, query):
+                continue
+            matches.append(_claim_summary_entry(claim, concept))
+            if len(matches) >= request.limit:
+                break
+    return ClaimSummaryReport(entries=tuple(matches))
 
 
 def _claim_concept(claim, concept) -> ClaimViewConcept:
@@ -337,6 +407,71 @@ def _attribute_text(claim, key: str, default: str) -> str:
     if raw is None or raw == "":
         return default
     return str(raw)
+
+
+def _claim_summary_entry(claim, concept) -> ClaimSummaryEntry:
+    concept_view = _claim_concept(claim, concept)
+    value_view = _claim_value(claim, concept_view)
+    condition_view = _claim_condition(claim)
+    status = _claim_status(claim, True)
+    return ClaimSummaryEntry(
+        claim_id=str(claim.claim_id),
+        logical_id=_claim_logical_id(claim),
+        concept_id=concept_view.concept_id,
+        concept_name=concept_view.canonical_name,
+        claim_type="unknown" if claim.claim_type is None else claim.claim_type.value,
+        value_display=_claim_value_display(value_view),
+        condition_display=(
+            "(vacuous)"
+            if condition_view.expression is None
+            else condition_view.expression
+        ),
+        status_state=status.state,
+        status_reason=status.reason,
+    )
+
+
+def _claim_value_display(value: ClaimViewValue) -> str:
+    if value.value is not None:
+        return f"{value.value} {value.unit or ''}".rstrip()
+    if value.state == "not_applicable":
+        return "n/a"
+    return "(missing)"
+
+
+def _claim_sort_key(claim) -> tuple[str, str]:
+    logical_id = _claim_logical_id(claim)
+    return (
+        "" if logical_id is None else logical_id,
+        str(claim.claim_id),
+    )
+
+
+def _claim_logical_id(claim) -> str | None:
+    logical_id = claim.primary_logical_id
+    return None if logical_id is None else str(logical_id)
+
+
+def _resolve_concept_filter(world, concept: str | None) -> str | None:
+    if concept is None:
+        return None
+    return world.resolve_concept(concept) or concept
+
+
+def _claim_matches_query(claim, concept, query: str) -> bool:
+    if query == "":
+        return True
+    fields = (
+        str(claim.claim_id),
+        _claim_logical_id(claim) or "",
+        "" if claim.statement is None else claim.statement,
+        "" if claim.auto_summary is None else claim.auto_summary,
+        "" if claim.conditions_cel is None else claim.conditions_cel,
+        "" if concept is None or concept.canonical_name is None else concept.canonical_name,
+        "" if claim.source is None or claim.source.source_id is None else claim.source.source_id,
+        "" if claim.provenance is None or claim.provenance.paper is None else claim.provenance.paper,
+    )
+    return any(query in field.casefold() for field in fields)
 
 
 def _scalar_value(value) -> ClaimViewScalar | None:

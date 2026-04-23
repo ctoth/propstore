@@ -254,12 +254,12 @@ pks checkout abc1234
 
 This creates a `GitTreeReader` at the target commit and builds the sidecar using only the object store. The working tree is unaffected.
 
-### pks promote
+### pks proposal promote
 
 Promotes committed proposal-branch stances into the main stance collection.
 
 ```bash
-pks promote
+pks proposal promote
 ```
 
 Reads committed `stances/*.yaml` blobs from the `proposal/stances` branch, copies them into `master`'s `stances/` tree in one atomic commit, and syncs the working tree.

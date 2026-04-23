@@ -45,27 +45,6 @@ class ClaimValidationDocumentError(ClaimWorkflowError):
 
 
 @dataclass(frozen=True)
-class ClaimShowReport:
-    logical_id: object
-    artifact_id: object
-    version_id: object
-    concept_id: object
-    claim_type: object
-    value: object
-    unit: str
-    value_si: object
-    canonical_unit: str
-    lower_bound: object
-    lower_bound_si: object
-    upper_bound: object
-    upper_bound_si: object
-    uncertainty: object
-    sample_size: object
-    source_paper: object
-    conditions_cel: object
-
-
-@dataclass(frozen=True)
 class ClaimCompareRequest:
     claim_a_id: str
     claim_b_id: str
@@ -188,57 +167,6 @@ class ClaimRelateReport:
     claims_processed: int | None = None
     stances_found: int | None = None
     no_relation: int | None = None
-
-
-def show_claim(
-    world: WorldModel,
-    claim_id: str,
-) -> ClaimShowReport:
-    from propstore.core.row_types import coerce_claim_row, coerce_concept_row
-
-    claim_input = world.get_claim(claim_id)
-    if claim_input is None:
-        raise UnknownClaimError(claim_id)
-    claim_data = coerce_claim_row(claim_input).to_dict()
-    concept_id = claim_data.get("concept_id")
-    canonical_unit = ""
-    if isinstance(concept_id, str):
-        concept = world.get_concept(concept_id)
-        if concept is not None:
-            canonical_unit = str(
-                coerce_concept_row(concept).attributes.get("unit_symbol") or ""
-            )
-    return ClaimShowReport(
-        logical_id=claim_data.get("logical_id") or claim_data.get("primary_logical_id"),
-        artifact_id=claim_data.get("artifact_id"),
-        version_id=claim_data.get("version_id"),
-        concept_id=concept_id,
-        claim_type=claim_data.get("type"),
-        value=claim_data.get("value"),
-        unit=str(claim_data.get("unit") or ""),
-        value_si=claim_data.get("value_si"),
-        canonical_unit=canonical_unit,
-        lower_bound=claim_data.get("lower_bound"),
-        lower_bound_si=claim_data.get("lower_bound_si"),
-        upper_bound=claim_data.get("upper_bound"),
-        upper_bound_si=claim_data.get("upper_bound_si"),
-        uncertainty=claim_data.get("uncertainty"),
-        sample_size=claim_data.get("sample_size"),
-        source_paper=claim_data.get("source_paper"),
-        conditions_cel=claim_data.get("conditions_cel"),
-    )
-
-
-def show_claim_from_repo(repo: Repository, claim_id: str) -> ClaimShowReport:
-    from propstore.world import WorldModel
-
-    try:
-        with WorldModel(repo) as world:
-            return show_claim(world, claim_id)
-    except FileNotFoundError as exc:
-        raise ClaimSidecarMissingError(
-            "Sidecar not found. Run 'pks build' first."
-        ) from exc
 
 
 def compare_algorithm_claims(

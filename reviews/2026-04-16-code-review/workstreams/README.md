@@ -56,6 +56,7 @@ What "right" looks like for each workstream:
 | Z-types | `ws-z-honest-ignorance-types.md` | `Provenance`, `CategoryPrior`, `SolverResult`, `Opinion | NoCalibration`, `ConflictClass.UNKNOWN`. Closes the cross-cutting fabrication pattern. | WS-A phase 1 (provenance) for full payoff |
 | Z-gates | `ws-z-render-gates.md` | **COMPLETED 2026-04-16.** Converted build-time data-blocking gates into render-time policy filters with quarantine rows. See workstream doc for the per-phase commit register. | None |
 | CLI | `ws-cli-layer-discipline.md` | Moves command-owned workflows out of `propstore.cli` into compiler/world/source/storage/semantic owner modules; records the CLI adapter discipline in project instructions. | Axis 2 + CLAUDE.md layer architecture |
+| CLI-2 | `ws-cli-surface-convergence.md` | Converges CLI and app-layer artifact surfaces, makes `claim_views` the canonical claim read model, fills missing list/search/show families, and removes ambiguous root verbs. | `ws-cli-layer-discipline.md`, `ws-z-render-gates.md` |
 
 Dependencies:
 
