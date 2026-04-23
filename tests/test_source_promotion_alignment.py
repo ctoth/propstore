@@ -169,6 +169,60 @@ def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     assert reloaded_alignment.decision.status == "promoted"
 
 
+def test_promote_source_branch_leaves_clean_git_index(tmp_path: Path) -> None:
+    """After `pks source promote`, the dulwich on-disk index must match HEAD.
+
+    Regression test for the phantom-deletion pattern: quire's
+    ``GitStore.sync_worktree`` previously wrote files to disk but never
+    refreshed the dulwich index. ``git status`` inside the knowledge
+    repo would then report every tracked file as staged-for-deletion
+    and every on-disk file as untracked — and a subsequent plain
+    ``git commit`` would silently wipe the just-promoted artifacts.
+    """
+    from dulwich import porcelain
+
+    repo = Repository.init(tmp_path / "knowledge")
+
+    _save_source(
+        repo,
+        "clean_index_paper",
+        {
+            "concepts": [
+                {
+                    "local_name": "velocity",
+                    "proposed_name": "velocity",
+                    "definition": "Speed with direction.",
+                    "form": "quantity",
+                }
+            ]
+        },
+        claims_payload={
+            "source": {"paper": "clean_index_paper"},
+            "claims": [
+                {
+                    "id": "velocity_claim_local",
+                    "type": "parameter",
+                    "context": "ctx_test",
+                    "concept": "velocity",
+                    "value": 3.0,
+                    "unit": "m/s",
+                    "provenance": {"paper": "clean_index_paper", "page": 1},
+                }
+            ],
+        },
+    )
+
+    commit_sha = promote_source_branch(repo, "clean_index_paper")
+    assert commit_sha
+
+    status = porcelain.status(str(repo.root))
+    assert dict(status.staged) == {"add": [], "delete": [], "modify": []}, (
+        f"phantom staged entries after promote: {dict(status.staged)}"
+    )
+    assert list(status.unstaged) == []
+    assert list(status.untracked) == []
+
+
 def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
