@@ -136,6 +136,53 @@ def normalize_source_claims_payload(
     )
 
 
+def validate_source_claim_cel_expressions(
+    repo: Repository,
+    source_name: str,
+    data: SourceClaimsDocument,
+) -> None:
+    """Reject a batch that references structural concepts in any CEL condition.
+
+    Runs before ``commit_source_claims_batch`` writes to the source branch, so
+    a failing batch never reaches the sidecar or conflict detection. The CEL
+    registry is built from master's canonical concepts (the authoritative
+    source of concept kinds) so any previously-authored structural declaration
+    is honored even if the source branch proposes an overlapping name.
+    """
+    from propstore.cel_validation import (
+        iter_claim_condition_expressions,
+        validate_cel_expressions,
+    )
+    from propstore.compiler.context import build_compilation_context_from_repo
+
+    compilation_context = build_compilation_context_from_repo(repo)
+    registry = compilation_context.cel_registry
+    if not registry:
+        # No master concepts yet — no registry to validate against. The
+        # batch may still reference its own source-proposed concepts,
+        # which are type-checked at promote/build time. This is the
+        # bootstrap path for a fresh repository.
+        return
+
+    paper = (
+        data.source.paper
+        if data.source is not None and data.source.paper
+        else source_name
+    )
+    for claim in data.claims:
+        if not claim.conditions:
+            continue
+        claim_label = claim.source_local_id or claim.id or "<unnamed>"
+        artifact_label = f"claim '{claim_label}' in paper '{paper}'"
+        validate_cel_expressions(
+            iter_claim_condition_expressions(
+                [str(condition) for condition in claim.conditions],
+                artifact_label=artifact_label,
+            ),
+            registry,
+        )
+
+
 def commit_source_claims_batch(
     repo: Repository,
     source_name: str,
@@ -191,6 +238,7 @@ def commit_source_claims_batch(
             ),
         )
     validate_source_claim_concepts(repo, source_name, raw)
+    validate_source_claim_cel_expressions(repo, source_name, raw)
     normalized, _ = normalize_source_claims_payload(
         raw,
         source_uri=source_doc.id or source_tag_uri(repo, source_name),

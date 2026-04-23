@@ -73,6 +73,39 @@ def _context_document_payload(request: ContextAddRequest) -> dict[str, object]:
     return data
 
 
+def _validate_context_assumption_cel(
+    repo: Repository,
+    request: ContextAddRequest,
+) -> None:
+    """Reject assumptions referencing structural concepts before any write.
+
+    Delegates to ``propstore.cel_validation`` so ``pks source add-claim``,
+    ``pks context add``, and ``pks build`` share one enforcement path.
+    """
+    if not request.assumptions:
+        return
+    from propstore.cel_validation import (
+        CelIngestValidationError,
+        iter_context_assumption_expressions,
+        validate_cel_expressions,
+    )
+    from propstore.compiler.context import build_compilation_context_from_repo
+
+    registry = build_compilation_context_from_repo(repo).cel_registry
+    if not registry:
+        return
+    try:
+        validate_cel_expressions(
+            iter_context_assumption_expressions(
+                list(request.assumptions),
+                artifact_label=f"context '{request.name}'",
+            ),
+            registry,
+        )
+    except CelIngestValidationError as exc:
+        raise ContextWorkflowError(str(exc)) from exc
+
+
 def add_context(
     repo: Repository,
     request: ContextAddRequest,
@@ -84,6 +117,8 @@ def add_context(
     filepath = repo.root / relpath
     if repo.families.contexts.load(ref) is not None:
         raise ContextWorkflowError(f"Context file '{filepath}' already exists")
+
+    _validate_context_assumption_cel(repo, request)
 
     source = (
         f"dry-run:{relpath}"
