@@ -112,6 +112,103 @@ def _workflow_diagnostic(
     )
 
 
+def _enforce_cel_structural_invariants(
+    claim_files,
+    ctx_records,
+    cel_registry,
+) -> None:
+    """Pre-pass: fail early if any CEL expression references a structural concept.
+
+    This is a safety net for YAML that bypassed the CLI ingest boundary
+    (direct file edits, migrations, external tooling). Mirrors the
+    ingest-time check in ``propstore.source.claims.commit_source_claims_batch``
+    and ``propstore.app.contexts.add_context`` so the same invariant is
+    enforced uniformly regardless of how the artifact reached the tree.
+
+    Raises :class:`CompilerWorkflowError` with one diagnostic per offense.
+    """
+    from propstore.cel_validation import (
+        CelIngestValidationError,
+        iter_claim_condition_expressions,
+        iter_context_assumption_expressions,
+        validate_cel_expressions,
+    )
+    from propstore.claims import claim_file_claims, claim_file_source_paper, claim_file_filename
+
+    diagnostics: list[PassDiagnostic] = []
+
+    def _record(family, stage, message: str, *, filename: str | None, artifact_id: str | None):
+        diagnostics.append(
+            PassDiagnostic(
+                level="error",
+                code="cel.structural_in_expression",
+                message=message,
+                family=family,
+                stage=stage,
+                filename=filename,
+                artifact_id=artifact_id,
+                pass_name="compiler.validate_cel_structural_invariants",
+            )
+        )
+
+    for claim_file in claim_files or ():
+        paper = claim_file_source_paper(claim_file)
+        filename = claim_file_filename(claim_file)
+        for claim in claim_file_claims(claim_file):
+            if not claim.conditions:
+                continue
+            claim_label = claim.id or "<unnamed>"
+            artifact_label = f"claim '{claim_label}' in paper '{paper}'"
+            try:
+                validate_cel_expressions(
+                    iter_claim_condition_expressions(
+                        [str(condition) for condition in claim.conditions],
+                        artifact_label=artifact_label,
+                    ),
+                    cel_registry,
+                )
+            except CelIngestValidationError as exc:
+                _record(
+                    PropstoreFamily.CLAIMS,
+                    ClaimStage.AUTHORED,
+                    str(exc),
+                    filename=filename,
+                    artifact_id=claim.id,
+                )
+
+    for record in ctx_records or ():
+        if not record.assumptions:
+            continue
+        context_id = (
+            str(record.context_id)
+            if record.context_id is not None
+            else record.name or "<unnamed>"
+        )
+        artifact_label = f"context '{context_id}'"
+        try:
+            validate_cel_expressions(
+                iter_context_assumption_expressions(
+                    list(record.assumptions),
+                    artifact_label=artifact_label,
+                ),
+                cel_registry,
+            )
+        except CelIngestValidationError as exc:
+            _record(
+                PropstoreFamily.CONTEXTS,
+                ContextStage.AUTHORED,
+                str(exc),
+                filename=None,
+                artifact_id=context_id,
+            )
+
+    if diagnostics:
+        raise CompilerWorkflowError(
+            f"Validation FAILED: {len(diagnostics)} error(s)",
+            tuple(diagnostics),
+        )
+
+
 def _messages_from_pipeline_result(result) -> tuple[PassDiagnostic, ...]:
     return tuple(result.diagnostics)
 
@@ -227,6 +324,22 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
         ctx_result = run_context_pipeline(ctx_list)
         messages.extend(_messages_from_pipeline_result(ctx_result))
         context_error_count = len(ctx_result.errors)
+
+    # Pre-build CEL invariant check: reject structural concepts appearing
+    # in any claim condition or context assumption. Fails early with the
+    # offending artifact named so authors see one clear error — not a
+    # Z3-wrapped message three layers deep at conflict-detection time.
+    if isinstance(concept_result.output, ConceptCheckedRegistry):
+        cel_registry = build_compilation_context_from_loaded(
+            concepts,
+            form_registry=form_registry,
+            claim_files=files if files else None,
+        ).cel_registry
+        _enforce_cel_structural_invariants(
+            files,
+            [c.record for c in ctx_list],
+            cel_registry,
+        )
 
     total_errors = (
         len(concept_result.errors)
@@ -404,6 +517,16 @@ def build_repository(
         form_registry=form_registry,
         context_ids=context_ids,
     )
+
+    # Pre-build CEL invariant check: reject structural concepts in any
+    # claim condition or context assumption before Z3 translation runs.
+    # Same enforcement as ingest-time add-claim/context-add.
+    _enforce_cel_structural_invariants(
+        claim_files,
+        [c.record for c in ctx_list],
+        compilation_context.cel_registry,
+    )
+
     claim_checked_bundle: ClaimCheckedBundle | None = None
     if files:
         try:
