@@ -35,6 +35,7 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
     "source": ("propstore.cli.source", "source", "Manage source-local authoring state."),
     "validate": ("propstore.cli.compiler_cmds", "validate", "Validate concepts and claims."),
     "verify": ("propstore.cli.verify", "verify", "Verify repository evidence."),
+    "web": ("propstore.cli.web", "web", "Serve the propstore web UI."),
     "world": ("propstore.cli.world", "world", "Query the world model."),
     "worldline": ("propstore.cli.worldline", "worldline", "Manage materialized query artifacts."),
 }

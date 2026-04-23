@@ -35,6 +35,15 @@ def test_create_app_is_shallow_fastapi_app() -> None:
     assert any(route.path == "/healthz" for route in app.routes)
 
 
+def test_create_app_serves_static_assets() -> None:
+    from fastapi.testclient import TestClient
+
+    response = TestClient(create_app()).get("/static/web.css")
+
+    assert response.status_code == 200
+    assert "font-family" in response.text
+
+
 def test_parse_render_policy_request_uses_web_input_only_for_app_request() -> None:
     request = parse_render_policy_request(
         {
