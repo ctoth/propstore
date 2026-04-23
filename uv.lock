@@ -194,10 +194,18 @@ wheels = [
 [[package]]
 name = "ast-equiv"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/ast-equiv?rev=129569f4f8472402fdae1142bcf485f45010a83d#129569f4f8472402fdae1142bcf485f45010a83d" }
+source = { editable = "../ast-equiv" }
 dependencies = [
     { name = "sympy" },
 ]
+
+[package.metadata]
+requires-dist = [
+    { name = "hypothesis", marker = "extra == 'dev'" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "sympy", specifier = ">=1.14.0" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "attrs"
@@ -220,7 +228,17 @@ wheels = [
 [[package]]
 name = "bridgman"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/bridgman?rev=35c88af379178d6571f60a6e9450cd61d40d52d1#35c88af379178d6571f60a6e9450cd61d40d52d1" }
+source = { editable = "../bridgman" }
+
+[package.metadata]
+requires-dist = [{ name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.0" }]
+provides-extras = ["sympy"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest" },
+    { name = "sympy", specifier = ">=1.0" },
+]
 
 [[package]]
 name = "certifi"
@@ -596,6 +614,22 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi"
+version = "0.136.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "annotated-doc" },
+    { name = "pydantic" },
+    { name = "starlette" },
+    { name = "typing-extensions" },
+    { name = "typing-inspection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4e/d9/e66315807e41e69e7f6a1b42a162dada2f249c5f06ad3f1a95f84ab336ef/fastapi-0.136.0.tar.gz", hash = "sha256:cf08e067cc66e106e102d9ba659463abfac245200752f8a5b7b1e813de4ff73e", size = 396607, upload-time = "2026-04-16T11:47:13.623Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/26/a3/0bd5f0cdb0bbc92650e8dc457e9250358411ee5d1b65e42b6632387daf81/fastapi-0.136.0-py3-none-any.whl", hash = "sha256:8793d44ec7378e2be07f8a013cf7f7aa47d6327d0dfe9804862688ec4541a6b4", size = 117556, upload-time = "2026-04-16T11:47:11.922Z" },
+]
+
+[[package]]
 name = "fastuuid"
 version = "0.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -683,7 +717,20 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/argumentation?rev=adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a#adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a" }
+source = { editable = "../argumentation" }
+
+[package.metadata]
+requires-dist = [{ name = "z3-solver", marker = "extra == 'z3'", specifier = ">=4.12" }]
+provides-extras = ["z3"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.0" },
+    { name = "pyright", specifier = ">=1.1.390" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-timeout", specifier = ">=2.3" },
+    { name = "z3-solver", specifier = ">=4.12" },
+]
 
 [[package]]
 name = "fqdn"
@@ -970,7 +1017,19 @@ wheels = [
 [[package]]
 name = "gunray"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/gunray?rev=23b31c8efbc4ac585e64b7792291cbeebae7cd54#23b31c8efbc4ac585e64b7792291cbeebae7cd54" }
+source = { editable = "../gunray" }
+
+[package.metadata]
+requires-dist = [
+    { name = "datalog-conformance", marker = "extra == 'dev'", git = "https://github.com/ctoth/datalog-conformance-suite" },
+    { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.3.1" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11.0" },
+    { name = "vulture", marker = "extra == 'dev'", specifier = ">=2.11" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "h11"
@@ -1980,6 +2039,7 @@ dependencies = [
     { name = "bridgman" },
     { name = "click" },
     { name = "dulwich" },
+    { name = "fastapi" },
     { name = "formal-argumentation" },
     { name = "graphviz" },
     { name = "gunray" },
@@ -2014,20 +2074,21 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=129569f4f8472402fdae1142bcf485f45010a83d" },
-    { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=35c88af379178d6571f60a6e9450cd61d40d52d1" },
+    { name = "ast-equiv", editable = "../ast-equiv" },
+    { name = "bridgman", editable = "../bridgman" },
     { name = "click", specifier = ">=8.0" },
     { name = "dulwich", specifier = ">=1.1.0" },
-    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation?rev=adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a" },
+    { name = "fastapi", specifier = ">=0.136.0" },
+    { name = "formal-argumentation", editable = "../argumentation" },
     { name = "graphviz", specifier = ">=0.20" },
-    { name = "gunray", git = "https://github.com/ctoth/gunray?rev=23b31c8efbc4ac585e64b7792291cbeebae7cd54" },
+    { name = "gunray", editable = "../gunray" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "linkml", specifier = ">=1.8" },
     { name = "litellm", marker = "extra == 'embeddings'", specifier = ">=1.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "pint", specifier = ">=0.25.3" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "quire", git = "https://github.com/ctoth/quire?rev=393583226d1c05575e708402235336a10e3706f7" },
+    { name = "quire", editable = "../quire" },
     { name = "rich", specifier = ">=13.7" },
     { name = "sqlite-vec", marker = "extra == 'embeddings'", specifier = ">=0.1" },
     { name = "sympy", specifier = ">=1.14.0" },
@@ -2430,11 +2491,28 @@ wheels = [
 [[package]]
 name = "quire"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/quire?rev=393583226d1c05575e708402235336a10e3706f7#393583226d1c05575e708402235336a10e3706f7" }
+source = { editable = "../quire" }
 dependencies = [
     { name = "dulwich" },
     { name = "msgspec" },
     { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dulwich", specifier = ">=1.1.0" },
+    { name = "msgspec", specifier = ">=0.19.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.3" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
+provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.152.1" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-timeout", specifier = ">=2.3" },
 ]
 
 [[package]]
@@ -3049,6 +3127,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/00/d4/f2b936d3bdc38eadcbd2a87875815db36430fab0363182ba5d12cd8e0b51/sqlite_vec-0.1.9-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4e921e592f24a5f9a18f590b6ddd530eb637e2d474e3b1972f9bbeb773aa3cb9", size = 160076, upload-time = "2026-03-31T08:02:33.796Z" },
     { url = "https://files.pythonhosted.org/packages/6f/ad/6afd073b0f817b3e03f9e37ad626ae341805891f23c74b5292818f49ac63/sqlite_vec-0.1.9-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux1_x86_64.whl", hash = "sha256:1515727990b49e79bcaf75fdee2ffc7d461f8b66905013231251f1c8938e7786", size = 163388, upload-time = "2026-03-31T08:02:34.888Z" },
     { url = "https://files.pythonhosted.org/packages/42/89/81b2907cda14e566b9bf215e2ad82fc9b349edf07d2010756ffdb902f328/sqlite_vec-0.1.9-py3-none-win_amd64.whl", hash = "sha256:4a28dc12fa4b53d7b1dced22da2488fade444e96b5d16fd2d698cd670675cf32", size = 292804, upload-time = "2026-03-31T08:02:36.035Z" },
+]
+
+[[package]]
+name = "starlette"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/81/69/17425771797c36cded50b7fe44e850315d039f28b15901ab44839e70b593/starlette-1.0.0.tar.gz", hash = "sha256:6a4beaf1f81bb472fd19ea9b918b50dc3a77a6f2e190a12954b25e6ed5eea149", size = 2655289, upload-time = "2026-03-22T18:29:46.779Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0b/c9/584bc9651441b4ba60cc4d557d8a547b5aff901af35bda3a4ee30c819b82/starlette-1.0.0-py3-none-any.whl", hash = "sha256:d3ec55e0bb321692d275455ddfd3df75fff145d009685eb40dc91fc66b03d38b", size = 72651, upload-time = "2026-03-22T18:29:45.111Z" },
 ]
 
 [[package]]
