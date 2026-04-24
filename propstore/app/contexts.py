@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from propstore.cel_types import to_cel_exprs
 from propstore.context_lifting import LiftingMode
 from propstore.families.contexts.documents import ContextDocument, LiftingRuleDocument
 from propstore.families.contexts.stages import LoadedContext, parse_context_record_document
@@ -521,7 +522,7 @@ def _require_lifting_rule(
     context_name: str,
     rule_id: str,
 ) -> LiftingRuleDocument:
-    matches = tuple(rule for rule in document.lifting_rules if rule.id == rule_id)
+    matches = [rule for rule in document.lifting_rules if rule.id == rule_id]
     if not matches:
         raise ContextWorkflowError(
             f"Context '{context_name}' does not define lifting rule '{rule_id}'"
@@ -568,7 +569,7 @@ def _build_lifting_rule_document(
         id=rule_id,
         source=source_context_id,
         target=owner_context_id,
-        conditions=conditions,
+        conditions=to_cel_exprs(conditions),
         mode=mode,
         justification=justification,
     )
