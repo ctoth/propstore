@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
-from propstore.app.concepts_alignment import (
+from .alignment import (
     build_concept_alignment,
     decide_concept_alignment,
     promote_concept_alignment,
     query_concept_alignment,
 )
-from propstore.app.concepts_display import (
+from .display import (
     list_concept_categories,
     list_concepts,
     search_concepts,
     show_concept,
 )
-from propstore.app.concepts_embedding import (
+from .embedding import (
     embed_concept_embeddings,
     find_similar_concepts,
 )
-from propstore.app.concepts_mutation import (
+from .mutation import (
     PROTO_ROLE_KINDS,
     QUALIA_ROLES,
     RELATIONSHIP_TYPES,
