@@ -1,6 +1,6 @@
 [project]
 name = "propstore"
-version = "0.3.1"
+version = "0.3.2"
 description = "Propositional knowledge store compiler"
 requires-python = ">=3.11"
 dependencies = [
