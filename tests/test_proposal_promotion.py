@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from click.testing import CliRunner
 
 from propstore.app.proposals import ProposalPromotionItem, ProposalPromotionPlanReport
-from propstore.cli.proposal_cmds import promote_cmd
+from propstore.cli.proposal import promote
 from propstore.proposals import (
     commit_stance_proposals,
     plan_stance_proposal_promotion,
@@ -98,18 +98,18 @@ def test_promote_cli_reports_only_actual_promoted_items(monkeypatch) -> None:
     )
 
     monkeypatch.setattr(
-        "propstore.cli.proposal_cmds.plan_proposal_promotion",
+        "propstore.cli.proposal.plan_proposal_promotion",
         lambda _repo, _request: plan,
     )
     monkeypatch.setattr(
-        "propstore.cli.proposal_cmds.promote_proposals",
+        "propstore.cli.proposal.promote_proposals",
         lambda _repo, _plan: SimpleNamespace(
             moved=2,
             promoted_items=(planned_items[0], planned_items[2]),
         ),
     )
 
-    result = CliRunner().invoke(promote_cmd, ["--yes"], obj={"repo": object()})
+    result = CliRunner().invoke(promote, ["--yes"], obj={"repo": object()})
 
     assert result.exit_code == 0, result.output
     assert "Promoted: claim_a.yaml" in result.output

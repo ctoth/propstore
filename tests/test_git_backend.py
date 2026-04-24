@@ -1186,7 +1186,7 @@ def test_promote_commits(tmp_path):
     commits_before = len(git.log(max_count=100))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["-C", str(root), "promote", "-y"])
+    result = runner.invoke(cli, ["-C", str(root), "proposal", "promote", "-y"])
     assert result.exit_code == 0, result.output
     assert "Promoted 1 of 1 file(s)." in result.output
 
@@ -1232,7 +1232,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     monkeypatch.setattr(type(git), "commit_batch", _boom)
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["-C", str(root), "promote", "-y"])
+    result = runner.invoke(cli, ["-C", str(root), "proposal", "promote", "-y"])
     assert result.exit_code != 0
     assert git.branch_sha("master") is not None
     assert git.read_file("stances/claim_a.yaml", commit=proposal_sha) is not None
