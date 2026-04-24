@@ -42,6 +42,17 @@ class PredicateFileNotFoundError(PredicateWorkflowError):
         self.file = file
 
 
+class PredicateNotFoundError(PredicateWorkflowError):
+    """Raised when a named predicate id is absent from a predicates file."""
+
+    def __init__(self, file: str, predicate_id: str) -> None:
+        super().__init__(
+            f"Predicate '{predicate_id}' not found in predicates file '{file}'"
+        )
+        self.file = file
+        self.predicate_id = predicate_id
+
+
 @dataclass(frozen=True)
 class PredicateAddRequest:
     """CLI request to declare a predicate in ``predicates/<file>.yaml``.
@@ -78,6 +89,26 @@ class PredicateAddReport:
     created: bool
     """``True`` when the file was newly created; ``False`` when an
     existing predicates file was extended with an additional entry."""
+
+
+@dataclass(frozen=True)
+class PredicateRemoveRequest:
+    """CLI request to remove a predicate from ``predicates/<file>.yaml``.
+
+    Attributes:
+        file: File stem (e.g. ``"ikeda_2014"``).
+        predicate_id: Predicate name to remove.
+    """
+
+    file: str
+    predicate_id: str
+
+
+@dataclass(frozen=True)
+class PredicateRemoveReport:
+    filepath: Path
+    predicate_id: str
+    removed: bool
 
 
 @dataclass(frozen=True)
@@ -201,4 +232,52 @@ def show_predicate_file(
     return PredicateShowReport(
         filepath=filepath,
         rendered=encode_document(document).decode("utf-8"),
+    )
+
+
+def remove_predicate(
+    repo: Repository,
+    request: PredicateRemoveRequest,
+) -> PredicateRemoveReport:
+    """Remove a predicate from ``predicates/<file>.yaml``.
+
+    Raises ``PredicateFileNotFoundError`` if the file does not exist or
+    ``PredicateNotFoundError`` if the predicate id is absent. On success
+    the file is rewritten via the family ``save`` path (same commit
+    pattern as ``add_predicate``); if the removal leaves zero
+    predicates the file is kept as a stub so downstream tooling can
+    continue to observe the envelope, matching
+    ``remove_context_lifting_rule``'s behaviour for emptied
+    lifting-rule blocks.
+    """
+    if not isinstance(request.predicate_id, str) or not request.predicate_id:
+        raise PredicateWorkflowError("predicate id must be a non-empty string")
+
+    ref = PredicateFileRef(request.file)
+    existing = repo.families.predicates.load(ref)
+    if existing is None:
+        raise PredicateFileNotFoundError(request.file)
+
+    relpath = repo.families.predicates.address(ref).require_path()
+    filepath = repo.root / relpath
+
+    if not any(entry.id == request.predicate_id for entry in existing.predicates):
+        raise PredicateNotFoundError(request.file, request.predicate_id)
+
+    remaining = tuple(
+        entry for entry in existing.predicates if entry.id != request.predicate_id
+    )
+    document = PredicatesFileDocument(predicates=remaining)
+
+    repo.families.predicates.save(
+        ref,
+        document,
+        message=f"Remove predicate {request.predicate_id} from {request.file}",
+    )
+    repo.snapshot.sync_worktree()
+
+    return PredicateRemoveReport(
+        filepath=filepath,
+        predicate_id=request.predicate_id,
+        removed=True,
     )

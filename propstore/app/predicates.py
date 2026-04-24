@@ -7,10 +7,14 @@ from propstore.predicate_workflows import (
     PredicateAddRequest,
     PredicateFileNotFoundError,
     PredicateListItem,
+    PredicateNotFoundError,
+    PredicateRemoveReport,
+    PredicateRemoveRequest,
     PredicateShowReport,
     PredicateWorkflowError,
     add_predicate,
     list_predicates,
+    remove_predicate,
     show_predicate_file,
 )
 
@@ -19,9 +23,13 @@ __all__ = [
     "PredicateAddRequest",
     "PredicateFileNotFoundError",
     "PredicateListItem",
+    "PredicateNotFoundError",
+    "PredicateRemoveReport",
+    "PredicateRemoveRequest",
     "PredicateShowReport",
     "PredicateWorkflowError",
     "add_predicate",
     "list_predicates",
+    "remove_predicate",
     "show_predicate_file",
 ]
