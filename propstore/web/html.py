@@ -7,6 +7,11 @@ from urllib.parse import quote
 
 from propstore.app.claim_views import ClaimSummaryReport, ClaimViewReport
 from propstore.app.concepts import ConceptListReport, ConceptSearchReport
+from propstore.app.concept_views import (
+    ConceptClaimGroup,
+    ConceptRelatedClaimLink,
+    ConceptViewReport,
+)
 from propstore.app.neighborhoods import (
     SemanticEdge,
     SemanticMove,
@@ -113,6 +118,94 @@ def render_claim_page(report: ClaimViewReport) -> str:
   <h2 id="machine-ids-heading">Machine IDs</h2>
   {_dl([
       ("Claim ID", report.claim_id),
+      ("Logical ID", report.logical_id or "missing"),
+      ("Artifact ID", report.artifact_id or "missing"),
+      ("Version ID", report.version_id or "missing"),
+  ])}
+</section>
+""",
+    )
+
+
+def render_concept_page(report: ConceptViewReport) -> str:
+    title = f"{report.heading} - propstore"
+    return _page(
+        title,
+        f"""
+<h1>{_text(report.heading)}</h1>
+<section aria-labelledby="summary-heading">
+  <h2 id="summary-heading">Summary</h2>
+  {_dl([
+      ("Status", f"{_state_label(report.status.state)}: {report.status.reason}"),
+      ("Canonical name", report.canonical_name or "missing"),
+      ("Definition", report.definition or "missing"),
+      ("Domain", report.domain or "missing"),
+      ("Kind", report.kind_type or "missing"),
+      ("Form", f"{_state_label(report.form.state)}: {report.form.sentence}"),
+  ])}
+</section>
+<section aria-labelledby="render-state-heading">
+  <h2 id="render-state-heading">Render State</h2>
+  {_dl([
+      ("Repository state", report.repository_state),
+      ("Reasoning backend", report.render_policy.reasoning_backend),
+      ("Strategy", report.render_policy.strategy),
+      ("Semantics", report.render_policy.semantics),
+      ("Set comparison", report.render_policy.set_comparison),
+      ("Include drafts", _bool_text(report.render_policy.include_drafts)),
+      ("Include blocked", _bool_text(report.render_policy.include_blocked)),
+      ("Show quarantined", _bool_text(report.render_policy.show_quarantined)),
+  ])}
+</section>
+<section aria-labelledby="form-heading">
+  <h2 id="form-heading">Form</h2>
+  {_dl([
+      ("State", _state_label(report.form.state)),
+      ("Form name", report.form.form_name or "missing"),
+      ("Unit", report.form.unit or "missing"),
+      ("Range", report.form.range_text or "missing"),
+      ("Sentence", report.form.sentence),
+  ])}
+</section>
+<section aria-labelledby="value-heading">
+  <h2 id="value-heading">Value Summary</h2>
+  {_dl([
+      ("State", _state_label(report.value_summary.state)),
+      ("Claim count", str(report.value_summary.claim_count)),
+      ("Unit", report.value_summary.unit or "missing"),
+      ("Sentence", report.value_summary.sentence),
+  ])}
+</section>
+<section aria-labelledby="uncertainty-heading">
+  <h2 id="uncertainty-heading">Uncertainty</h2>
+  {_dl([
+      ("State", _state_label(report.uncertainty_summary.state)),
+      ("Claim count", str(report.uncertainty_summary.claim_count)),
+      ("Sentence", report.uncertainty_summary.sentence),
+  ])}
+</section>
+<section aria-labelledby="provenance-heading">
+  <h2 id="provenance-heading">Provenance</h2>
+  {_dl([
+      ("State", _state_label(report.provenance_summary.state)),
+      ("Claim count", str(report.provenance_summary.claim_count)),
+      ("Source count", str(report.provenance_summary.source_count)),
+      ("Papers", ", ".join(report.provenance_summary.papers) or "none"),
+      ("Sentence", report.provenance_summary.sentence),
+  ])}
+</section>
+<section aria-labelledby="claims-heading">
+  <h2 id="claims-heading">Claims By Type</h2>
+  {_claim_groups(report.claim_groups)}
+</section>
+<section aria-labelledby="related-claims-heading">
+  <h2 id="related-claims-heading">Related Claims</h2>
+  {_related_claims_table(report.related_claim_links)}
+</section>
+<section aria-labelledby="machine-ids-heading">
+  <h2 id="machine-ids-heading">Machine IDs</h2>
+  {_dl([
+      ("Concept ID", report.concept_id),
       ("Logical ID", report.logical_id or "missing"),
       ("Artifact ID", report.artifact_id or "missing"),
       ("Version ID", report.version_id or "missing"),
@@ -393,6 +486,56 @@ def _section_rows(
     section: str,
 ) -> tuple[SemanticNeighborhoodRow, ...]:
     return tuple(row for row in report.table_rows if row.section == section)
+
+
+def _claim_groups(groups: tuple[ConceptClaimGroup, ...]) -> str:
+    if not groups:
+        return "<p>No claim groups are available.</p>"
+    sections: list[str] = []
+    for group in groups:
+        sections.append(
+            "\n".join(
+                [
+                    f"<h3>{_text(group.claim_type)}</h3>",
+                    f"<p>{_text(group.sentence)}</p>",
+                    _link_table(
+                        ("Claim", "Type", "Value", "Conditions", "Status", "Reason"),
+                        [
+                            (
+                                entry.logical_id or entry.claim_id,
+                                entry.claim_type,
+                                entry.value_display,
+                                entry.condition_display,
+                                _state_label(entry.status_state),
+                                entry.status_reason,
+                                f"/claim/{quote(entry.claim_id, safe='')}",
+                            )
+                            for entry in group.entries
+                        ],
+                        link_column=0,
+                        href_column=6,
+                    ),
+                ]
+            )
+        )
+    return "\n".join(sections)
+
+
+def _related_claims_table(links: tuple[ConceptRelatedClaimLink, ...]) -> str:
+    return _link_table(
+        ("Claim", "Relation", "Sentence"),
+        [
+            (
+                link.logical_id or link.claim_id,
+                link.relation,
+                link.sentence,
+                f"/claim/{quote(link.claim_id, safe='')}",
+            )
+            for link in links
+        ],
+        link_column=0,
+        href_column=3,
+    )
 
 
 def _concept_text(report: ClaimViewReport) -> str:

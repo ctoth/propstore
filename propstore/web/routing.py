@@ -18,6 +18,12 @@ from propstore.app.claim_views import (
     list_claim_views,
     search_claim_views,
 )
+from propstore.app.concept_views import (
+    ConceptViewReport,
+    ConceptViewRequest,
+    ConceptViewUnknownConceptError,
+    build_concept_view,
+)
 from propstore.app.concepts import (
     ConceptListReport,
     ConceptListRequest,
@@ -40,6 +46,7 @@ from propstore.repository import Repository
 from propstore.web.html import (
     render_claim_index_page,
     render_claim_page,
+    render_concept_page,
     render_concept_index_page,
     render_error_page,
     render_neighborhood_page,
@@ -96,6 +103,20 @@ def register_routes(app: FastAPI) -> None:
                 status=_optional_query(request, "status"),
             )
         )
+
+    @app.get("/concept/{concept_id}.json")
+    def concept_json(concept_id: str, request: Request) -> JSONResponse:
+        report_or_response = _concept_report(concept_id, request, wants_json=True)
+        if isinstance(report_or_response, JSONResponse):
+            return report_or_response
+        return JSONResponse(to_json_compatible(report_or_response))
+
+    @app.get("/concept/{concept_id}")
+    def concept_html(concept_id: str, request: Request) -> HTMLResponse:
+        report_or_response = _concept_report(concept_id, request, wants_json=False)
+        if isinstance(report_or_response, HTMLResponse):
+            return report_or_response
+        return HTMLResponse(render_concept_page(report_or_response))
 
     @app.get("/claim/{claim_id}.json")
     def claim_json(claim_id: str, request: Request) -> JSONResponse:
@@ -171,6 +192,56 @@ def _claim_report(
         return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
     except ClaimViewUnknownClaimError as exc:
         return _error_response("Claim Not Found", str(exc), 404, wants_json=wants_json)
+    except WorldSidecarMissingError as exc:
+        return _error_response("Sidecar Missing", str(exc), 409, wants_json=wants_json)
+    return report
+
+
+@overload
+def _concept_report(
+    concept_id: str,
+    request: Request,
+    *,
+    wants_json: Literal[True],
+) -> ConceptViewReport | JSONResponse:
+    ...
+
+
+@overload
+def _concept_report(
+    concept_id: str,
+    request: Request,
+    *,
+    wants_json: Literal[False],
+) -> ConceptViewReport | HTMLResponse:
+    ...
+
+
+def _concept_report(
+    concept_id: str,
+    request: Request,
+    *,
+    wants_json: bool,
+) -> ConceptViewReport | JSONResponse | HTMLResponse:
+    try:
+        render_policy = parse_render_policy_request(dict(request.query_params))
+        repository_view = parse_repository_view_request(dict(request.query_params))
+        report = build_concept_view(
+            _repo_from_request(request),
+            ConceptViewRequest(
+                concept_id_or_name=concept_id,
+                render_policy=render_policy,
+                repository_view=repository_view,
+            ),
+        )
+    except ValueError as exc:
+        return _error_response("Invalid Request", str(exc), 400, wants_json=wants_json)
+    except RenderPolicyValidationError as exc:
+        return _error_response("Invalid Render Policy", str(exc), 400, wants_json=wants_json)
+    except RepositoryViewUnsupportedStateError as exc:
+        return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
+    except ConceptViewUnknownConceptError as exc:
+        return _error_response("Concept Not Found", str(exc), 404, wants_json=wants_json)
     except WorldSidecarMissingError as exc:
         return _error_response("Sidecar Missing", str(exc), 409, wants_json=wants_json)
     return report
