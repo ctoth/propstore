@@ -10,7 +10,12 @@ from typing import Any
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.claim_types import ClaimType
 from propstore.core.id_types import ClaimId, ConceptId, ContextId, LogicalId, to_concept_id
-from propstore.core.row_types import ClaimRow, ClaimRowInput, coerce_claim_row
+from propstore.core.row_types import (
+    ClaimConceptLinkRow,
+    ClaimRow,
+    ClaimRowInput,
+    coerce_claim_row,
+)
 
 
 @dataclass(frozen=True)
@@ -134,8 +139,16 @@ class ActiveClaim:
         return self.row.claim_type
 
     @property
-    def concept_id(self) -> ConceptId | None:
-        return self.row.concept_id
+    def concept_links(self) -> tuple[ClaimConceptLinkRow, ...]:
+        return self.row.concept_links
+
+    @property
+    def output_concept_id(self) -> ConceptId | None:
+        return self.row.output_concept_id
+
+    @property
+    def value_concept_id(self) -> ConceptId | None:
+        return self.row.value_concept_id
 
     @property
     def target_concept(self) -> ConceptId | None:
@@ -221,16 +234,16 @@ class ActiveClaim:
 
     def to_source_claim_payload(self) -> dict[str, Any]:
         source = self.to_dict()
-        if self.claim_type is ClaimType.PARAMETER and self.concept_id is not None:
-            source["concept"] = str(self.concept_id)
+        if self.claim_type is ClaimType.PARAMETER and self.output_concept_id is not None:
+            source["output_concept"] = str(self.output_concept_id)
         if (
             self.claim_type is ClaimType.MEASUREMENT
-            and self.concept_id is not None
+            and self.output_concept_id is not None
             and self.target_concept is None
         ):
-            source["target_concept"] = str(self.concept_id)
-        if self.claim_type is ClaimType.ALGORITHM and self.concept_id is not None:
-            source["concept"] = str(self.concept_id)
+            source["target_concept"] = str(self.output_concept_id)
+        if self.claim_type is ClaimType.ALGORITHM and self.output_concept_id is not None:
+            source["output_concept"] = str(self.output_concept_id)
         return source
 
 

@@ -22,6 +22,11 @@ class ClaimInsertRow:
 
 
 @dataclass(frozen=True)
+class ClaimConceptLinkInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
 class ClaimStanceInsertRow:
     values: tuple[Any, ...]
 
@@ -29,6 +34,7 @@ class ClaimStanceInsertRow:
 @dataclass(frozen=True)
 class ClaimSidecarRows:
     claim_rows: tuple[ClaimInsertRow, ...]
+    claim_link_rows: tuple[ClaimConceptLinkInsertRow, ...]
     stance_rows: tuple[ClaimStanceInsertRow, ...]
     quarantine_diagnostics: tuple["QuarantineDiagnostic", ...]
 

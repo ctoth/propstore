@@ -9,6 +9,10 @@ from typing import Any
 
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
+from propstore.core.claim_concept_link_roles import (
+    ClaimConceptLinkRole,
+    coerce_claim_concept_link_role,
+)
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.concept_status import ConceptStatus, coerce_concept_status
 from propstore.core.concept_relationship_types import (
@@ -216,11 +220,46 @@ class RelationshipRow:
 
 
 @dataclass(frozen=True)
+class ClaimConceptLinkRow:
+    claim_id: ClaimId
+    concept_id: ConceptId
+    role: ClaimConceptLinkRole
+    ordinal: int = 0
+    binding_name: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "role", coerce_claim_concept_link_role(self.role))
+
+    @classmethod
+    def from_mapping(cls, row_map: Mapping[str, Any]) -> ClaimConceptLinkRow:
+        return cls(
+            claim_id=to_claim_id(row_map["claim_id"]),
+            concept_id=to_concept_id(row_map["concept_id"]),
+            role=coerce_claim_concept_link_role(row_map["role"]),
+            ordinal=0 if row_map.get("ordinal") is None else int(row_map["ordinal"]),
+            binding_name=(
+                None if row_map.get("binding_name") is None else str(row_map["binding_name"])
+            ),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "claim_id": self.claim_id,
+            "concept_id": self.concept_id,
+            "role": self.role.value,
+            "ordinal": self.ordinal,
+        }
+        if self.binding_name is not None:
+            data["binding_name"] = self.binding_name
+        return data
+
+
+@dataclass(frozen=True)
 class ClaimRow:
     claim_id: ClaimId
     artifact_id: str
     claim_type: ClaimType | None = None
-    concept_id: ConceptId | None = None
+    concept_links: tuple[ClaimConceptLinkRow, ...] = field(default_factory=tuple)
     target_concept: ConceptId | None = None
     logical_ids: tuple[LogicalId, ...] = field(default_factory=tuple)
     version_id: str | None = None
@@ -258,6 +297,7 @@ class ClaimRow:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "attributes", dict(self.attributes))
+        object.__setattr__(self, "concept_links", tuple(self.concept_links))
         if self.claim_type is not None:
             object.__setattr__(self, "claim_type", coerce_claim_type(self.claim_type))
         if self.algorithm_stage is not None:
@@ -272,7 +312,7 @@ class ClaimRow:
             "artifact_id",
             "type",
             "claim_type",
-            "concept_id",
+            "concept_links",
             "target_concept",
             "primary_logical_id",
             "logical_id",
@@ -352,6 +392,13 @@ class ClaimRow:
             namespace, value = primary_logical_id.split(":", 1)
             if namespace and value:
                 logical_ids.append(LogicalId(namespace=namespace, value=value))
+        concept_link_entries = row_map.get("concept_links")
+        concept_links: list[ClaimConceptLinkRow] = []
+        if isinstance(concept_link_entries, list | tuple):
+            for entry in concept_link_entries:
+                if not isinstance(entry, Mapping):
+                    continue
+                concept_links.append(ClaimConceptLinkRow.from_mapping(entry))
 
         nested_source = row_map.get("source") if isinstance(row_map.get("source"), Mapping) else None
         quality_trust = (
@@ -451,9 +498,7 @@ class ClaimRow:
                 if row_map.get("type", row_map.get("claim_type")) is None
                 else _require_claim_type(row_map.get("type", row_map.get("claim_type")))
             ),
-            concept_id=(
-                None if row_map.get("concept_id") is None else to_concept_id(row_map["concept_id"])
-            ),
+            concept_links=tuple(concept_links),
             target_concept=(
                 None
                 if row_map.get("target_concept") is None
@@ -554,6 +599,34 @@ class ClaimRow:
     def source_slug(self) -> str | None:
         return None if self.source is None else self.source.slug
 
+    def concept_ids_for_role(self, role: ClaimConceptLinkRole) -> tuple[ConceptId, ...]:
+        return tuple(
+            link.concept_id
+            for link in self.concept_links
+            if link.role is role
+        )
+
+    @property
+    def output_concept_id(self) -> ConceptId | None:
+        concept_ids = self.concept_ids_for_role(ClaimConceptLinkRole.OUTPUT)
+        return concept_ids[0] if concept_ids else None
+
+    @property
+    def value_concept_id(self) -> ConceptId | None:
+        return self.output_concept_id or self.target_concept
+
+    @property
+    def about_concept_ids(self) -> tuple[ConceptId, ...]:
+        return self.concept_ids_for_role(ClaimConceptLinkRole.ABOUT)
+
+    @property
+    def input_concept_ids(self) -> tuple[ConceptId, ...]:
+        return self.concept_ids_for_role(ClaimConceptLinkRole.INPUT)
+
+    @property
+    def target_concept_ids(self) -> tuple[ConceptId, ...]:
+        return self.concept_ids_for_role(ClaimConceptLinkRole.TARGET)
+
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "id": self.claim_id,
@@ -580,7 +653,6 @@ class ClaimRow:
             "version_id": self.version_id,
             "seq": self.seq,
             "type": self.claim_type,
-            "concept_id": self.concept_id,
             "target_concept": self.target_concept,
             "value": self.value,
             "lower_bound": self.lower_bound,
@@ -658,6 +730,8 @@ class ClaimRow:
                 data[key] = value
         data["logical_id"] = self.primary_logical_id
         data["logical_ids"] = logical_ids_payload
+        if self.concept_links:
+            data["concept_links"] = [link.to_dict() for link in self.concept_links]
         if source_dict is not None:
             data["source"] = source_dict
         if source_quality is not None:

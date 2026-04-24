@@ -14,6 +14,7 @@ import sqlite3
 from collections.abc import Sequence
 
 from propstore.sidecar.claim_utils import (
+    insert_claim_concept_link_row,
     insert_claim_row,
     insert_claim_stance_row,
 )
@@ -36,11 +37,11 @@ def populate_raw_id_quarantine_records(
             """
             INSERT INTO claim_core (
                 id, primary_logical_id, logical_ids_json, version_id,
-                content_hash, seq, type, concept_id, target_concept,
+                content_hash, seq, type, target_concept,
                 source_slug, source_paper, provenance_page, provenance_json,
                 context_id, premise_kind, branch, build_status, stage,
                 promotion_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             row.values,
         )
@@ -89,6 +90,8 @@ def populate_claims(
         insert_claim_row(conn, row.values)
         if isinstance(claim_id, str):
             seen_claim_ids.add(claim_id)
+    for row in rows.claim_link_rows:
+        insert_claim_concept_link_row(conn, row.values)
     for stance_row in rows.stance_rows:
         insert_claim_stance_row(conn, stance_row.values)
 

@@ -186,8 +186,8 @@ class ProvenanceRecord:
 @dataclass(frozen=True, order=True)
 class ClaimNode:
     claim_id: ClaimId
-    concept_id: ConceptId
     claim_type: ClaimType
+    value_concept_id: ConceptId | None = None
     scalar_value: float | str | None = None
     provenance: ProvenanceRecord | None = None
     label: Label | None = field(default=None, compare=False)
@@ -200,9 +200,10 @@ class ClaimNode:
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "claim_id": self.claim_id,
-            "concept_id": self.concept_id,
             "claim_type": self.claim_type,
         }
+        if self.value_concept_id is not None:
+            data["value_concept_id"] = self.value_concept_id
         if self.scalar_value is not None:
             data["scalar_value"] = self.scalar_value
         if self.provenance is not None:
@@ -218,7 +219,11 @@ class ClaimNode:
         provenance_data = data.get("provenance")
         return cls(
             claim_id=to_claim_id(data["claim_id"]),
-            concept_id=to_concept_id(data["concept_id"]),
+            value_concept_id=(
+                None
+                if data.get("value_concept_id") is None
+                else to_concept_id(data["value_concept_id"])
+            ),
             claim_type=_require_claim_type(data["claim_type"]),
             scalar_value=data.get("scalar_value"),
             provenance=(

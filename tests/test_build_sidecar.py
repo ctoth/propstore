@@ -80,9 +80,15 @@ def _normalize_claim_concept_refs(payload: dict) -> dict:
     for claim in claims:
         if not isinstance(claim, dict):
             continue
+        claim_type = claim.get("type")
         concept = claim.get("concept")
         if isinstance(concept, str) and concept.startswith("concept"):
-            claim["concept"] = _concept_artifact(concept)
+            concept = _concept_artifact(concept)
+            if claim_type in {"parameter", "algorithm"}:
+                claim["output_concept"] = concept
+                claim.pop("concept", None)
+            else:
+                claim["concept"] = concept
         target_concept = claim.get("target_concept")
         if isinstance(target_concept, str) and target_concept.startswith("concept"):
             claim["target_concept"] = _concept_artifact(target_concept)
@@ -2017,7 +2023,7 @@ class TestClaimInsertRow:
         claim = {
             "id": "test_claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": "42",
             "unit": "Hz",
             "provenance": {"paper": "test.yaml", "page": 1},
@@ -2034,7 +2040,7 @@ class TestClaimInsertRow:
         claim = {
             "id": "test_claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": "42",
             "unit": "Hz",
             "provenance": {"paper": "test.yaml", "page": 1},
@@ -2043,7 +2049,7 @@ class TestClaimInsertRow:
             claim, "test_paper.yaml", claim_seq=1, concept_registry={}
         )
         assert "id" in row
-        assert "concept_id" in row
+        assert "concept_id" not in row
         assert "type" in row
         assert "source_paper" in row
         assert "context_id" in row
@@ -2064,9 +2070,20 @@ class TestNormalizedSidecarStorage:
         assert "claim_numeric_payload" in names
         assert "claim_text_payload" in names
         assert "claim_algorithm_payload" in names
+        assert "claim_concept_link" in names
         assert "relation_edge" in names
         assert "conflict_witness" in names
         assert "justification" in names
+
+    def test_claim_core_drops_generic_concept_id_column(self, sidecar_with_claims):
+        conn = sqlite3.connect(sidecar_with_claims)
+        columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(claim_core)").fetchall()
+        }
+        conn.close()
+
+        assert "concept_id" not in columns
 
     def test_normalized_storage_is_deterministic_across_rebuilds(
         self,

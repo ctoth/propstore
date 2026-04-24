@@ -130,7 +130,6 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "content_hash",
         "seq",
         "type",
-        "concept_id",
         "target_concept",
         "source_slug",
         "source_paper",
@@ -139,6 +138,13 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "context_id",
         "premise_kind",
         "branch",
+    },
+    "claim_concept_link": {
+        "claim_id",
+        "concept_id",
+        "role",
+        "ordinal",
+        "binding_name",
     },
     "claim_numeric_payload": {
         "claim_id",
@@ -433,7 +439,6 @@ class WorldModel(WorldStore):
                 core.version_id,
                 core.seq,
                 core.type,
-                core.concept_id,
                 num.value,
                 num.lower_bound,
                 num.upper_bound,
@@ -491,7 +496,30 @@ class WorldModel(WorldStore):
             f"{self._claim_select_sql()} {where_sql}",
             params,
         ).fetchall()
-        return [ClaimRow.from_mapping(dict(row)) for row in rows]
+        row_dicts = [dict(row) for row in rows]
+        if not row_dicts:
+            return []
+        claim_ids = [
+            str(row_dict["id"])
+            for row_dict in row_dicts
+            if isinstance(row_dict.get("id"), str)
+        ]
+        links_by_claim_id: dict[str, list[dict[str, Any]]] = {claim_id: [] for claim_id in claim_ids}
+        placeholders = ",".join("?" for _ in claim_ids)
+        link_rows = self._conn.execute(
+            f"""
+            SELECT claim_id, concept_id, role, ordinal, binding_name
+            FROM claim_concept_link
+            WHERE claim_id IN ({placeholders})
+            ORDER BY claim_id, ordinal, concept_id
+            """,  # noqa: S608
+            tuple(claim_ids),
+        ).fetchall()
+        for link_row in link_rows:
+            links_by_claim_id.setdefault(str(link_row["claim_id"]), []).append(dict(link_row))
+        for row_dict in row_dicts:
+            row_dict["concept_links"] = links_by_claim_id.get(str(row_dict["id"]), [])
+        return [ClaimRow.from_mapping(row_dict) for row_dict in row_dicts]
 
     def get_concept(self, concept_id: str) -> ConceptRow | None:
         row = self._conn.execute("SELECT * FROM concept WHERE id = ?", (concept_id,)).fetchone()
@@ -646,8 +674,16 @@ class WorldModel(WorldStore):
             return self._claim_rows("ORDER BY core.id")
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
         return self._claim_rows(
-            "WHERE core.concept_id = ? OR core.target_concept = ? ORDER BY core.id",
-            (resolved_concept_id, resolved_concept_id),
+            """
+            WHERE EXISTS (
+                SELECT 1
+                FROM claim_concept_link AS link
+                WHERE link.claim_id = core.id
+                  AND link.concept_id = ?
+            )
+            ORDER BY core.id
+            """,
+            (resolved_concept_id,),
         )
 
     def _render_policy_predicates(
@@ -705,8 +741,11 @@ class WorldModel(WorldStore):
         bound: list[Any] = list(params)
         if concept_id is not None:
             resolved = self.resolve_concept(concept_id) or concept_id
-            clauses.append("(core.concept_id = ? OR core.target_concept = ?)")
-            bound.extend([resolved, resolved])
+            clauses.append(
+                "EXISTS (SELECT 1 FROM claim_concept_link AS link "
+                "WHERE link.claim_id = core.id AND link.concept_id = ?)"
+            )
+            bound.append(resolved)
         clauses.extend(predicates)
         where_sql = ""
         if clauses:

@@ -259,8 +259,8 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
             (
                 ClaimNode(
                     claim_id=to_claim_id(claim_display_ids[str(row.claim_id)]),
-                    concept_id=to_concept_id(str(row.concept_id or row.target_concept or "")),
                     claim_type=(row.claim_type or ClaimType.UNKNOWN),
+                    value_concept_id=row.value_concept_id,
                     scalar_value=row.value,
                     provenance=_row_provenance(
                         row,

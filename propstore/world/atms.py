@@ -205,7 +205,11 @@ class ATMSClaimNode:
 
     @property
     def concept_id(self) -> str | None:
-        return None if self.claim.concept_id is None else str(self.claim.concept_id)
+        return (
+            None
+            if self.claim.value_concept_id is None
+            else str(self.claim.value_concept_id)
+        )
 
     @property
     def value(self) -> float | str | None:
@@ -342,10 +346,16 @@ def _claim_node_to_active_claim(claim_node: ClaimNode) -> ActiveClaim:
     row_data: dict[str, object] = {
         "id": claim_node.claim_id,
         "artifact_id": claim_node.claim_id,
-        "concept_id": claim_node.concept_id,
         "type": claim_node.claim_type,
         "value": claim_node.scalar_value,
     }
+    if claim_node.value_concept_id is not None:
+        row_data["concept_links"] = [{
+            "claim_id": claim_node.claim_id,
+            "concept_id": claim_node.value_concept_id,
+            "role": "output",
+            "ordinal": 0,
+        }]
     row_data.update(dict(claim_node.attributes))
     return ActiveClaim.from_claim_row(ClaimRow.from_mapping(row_data))
 
