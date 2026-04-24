@@ -1,7 +1,7 @@
 # Workstream CLI/App Surface Convergence
 
 Date: 2026-04-23
-Status: PROPOSED
+Status: COMPLETED
 Depends on: `disciplines.md`, `judgment-rubric.md`, `ws-cli-layer-discipline.md`, `ws-z-render-gates.md`
 Blocks: honest `docs/gaps.md` cleanup for CLI/app drift
 Review context: `../axis-2-layer-discipline.md`, `../axis-1-principle-adherence.md`, `../axis-9-doc-drift.md`, and the standing CLI/app rules in `CLAUDE.md`.
@@ -44,8 +44,8 @@ Canonical owners after convergence:
 
 - Claim reads: `propstore.app.claim_views`
 - Claim operational workflows: `propstore.app.claims`
-- Concept workflows: split app-layer surfaces under `propstore.app.concepts*`
-  or equivalent, not one monolith
+- Concept workflows: split app-layer surfaces under `propstore.app.concepts.*`
+  package modules, not one monolith
 - Form workflows: real app-layer owner module, not a thin facade
 - Context workflows: real app-layer owner module, not a thin facade
 - Source workflows: `propstore.app.sources`
@@ -66,6 +66,13 @@ Canonical owners after convergence:
   artifacts worth direct inspection
 - Root command cleanup: replace ambiguous top-level `promote` and `query` with
   family-specific group surfaces and update every caller
+
+Exit note:
+
+- `pks source show` was deliberately not added. The stable source-facing CLI
+  contract remains lifecycle/status/proposal operations under `pks source`;
+  there is no separate authored source-document inspection surface that
+  justifies a standalone `show` command.
 
 ## Phase structure
 

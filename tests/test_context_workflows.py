@@ -6,14 +6,22 @@ from click.testing import CliRunner
 from propstore.app.contexts import (
     ContextAddRequest,
     ContextNotFoundError,
+    ContextReferencedError,
     ContextSearchRequest,
     ContextWorkflowError,
     add_context,
     list_context_items,
+    remove_context,
     search_context_items,
     show_context,
 )
 from propstore.cli import cli
+from propstore.families.documents.sources import SourceClaimDocument, SourceClaimsDocument
+from propstore.families.documents.worldlines import (
+    WorldlineDefinitionDocument,
+    WorldlineInputsDocument,
+)
+from propstore.families.registry import SourceRef, WorldlineRef
 from propstore.repository import Repository
 
 
@@ -171,3 +179,90 @@ def test_context_cli_show_and_search_use_owner_reports(tmp_path) -> None:
     assert "description: Real context" in shown.output
     assert searched.exit_code == 0, searched.output
     assert "ctx_real (analyst) — Real context" in searched.output
+
+
+def test_remove_context_blocks_referenced_artifacts_and_supports_force(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_context(
+        repo,
+        ContextAddRequest(
+            name="ctx_real",
+            description="Real context",
+        ),
+        dry_run=False,
+    )
+    repo.families.source_claims.save(
+        SourceRef("paper"),
+        SourceClaimsDocument(
+            claims=(SourceClaimDocument(id="claim-a", context="ctx_real"),),
+        ),
+        message="Add source claims",
+    )
+    repo.families.worldlines.save(
+        WorldlineRef("demo"),
+        WorldlineDefinitionDocument(
+            id="demo",
+            targets=("target",),
+            inputs=WorldlineInputsDocument(context_id="ctx_real"),
+        ),
+        message="Add worldline",
+    )
+
+    try:
+        remove_context(repo, "ctx_real", force=False, dry_run=False)
+    except ContextReferencedError as exc:
+        assert exc.references == (
+            "source-claim:paper:claim-a",
+            "worldline:demo",
+        )
+    else:
+        raise AssertionError("expected referenced context failure")
+
+    dry_run = remove_context(repo, "ctx_real", force=True, dry_run=True)
+    forced = remove_context(repo, "ctx_real", force=True, dry_run=False)
+
+    assert dry_run.removed is False
+    assert dry_run.references == (
+        "source-claim:paper:claim-a",
+        "worldline:demo",
+    )
+    assert forced.removed is True
+    assert not (repo.contexts_dir / "ctx_real.yaml").exists()
+
+
+def test_context_cli_remove_uses_owner_reference_checks(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_context(
+        repo,
+        ContextAddRequest(
+            name="ctx_real",
+            description="Real context",
+        ),
+        dry_run=False,
+    )
+    repo.families.source_claims.save(
+        SourceRef("paper"),
+        SourceClaimsDocument(
+            claims=(SourceClaimDocument(id="claim-a", context="ctx_real"),),
+        ),
+        message="Add source claims",
+    )
+    runner = CliRunner()
+
+    blocked = runner.invoke(cli, ["-C", str(repo.root), "context", "remove", "ctx_real"])
+    dry_run = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "context", "remove", "ctx_real", "--force", "--dry-run"],
+    )
+    forced = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "context", "remove", "ctx_real", "--force"],
+    )
+
+    assert blocked.exit_code != 0, blocked.output
+    assert "source-claim:paper:claim-a" in blocked.output
+    assert "Use --force to remove anyway." in blocked.output
+    assert dry_run.exit_code == 0, dry_run.output
+    assert "Would remove" in dry_run.output
+    assert forced.exit_code == 0, forced.output
+    assert "Removed" in forced.output

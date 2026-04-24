@@ -399,6 +399,41 @@ uv run pks claim conflicts
 uv run pks claim conflicts --concept speech.pitch --class CONFLICT
 ```
 
+### `pks claim list`
+
+List claims from the canonical claim-view surface.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--limit` | INTEGER | 50 | Maximum rows to show |
+| `--concept` | TEXT | -- | Filter by concept ID |
+| `--paper` | TEXT | -- | Filter by provenance paper slug |
+
+```bash
+uv run pks claim list --limit 25
+uv run pks claim list --concept speech.pitch
+```
+
+### `pks claim neighborhood CLAIM_ID`
+
+Show the local stance and justification neighborhood around one claim.
+
+```bash
+uv run pks claim neighborhood speech.pitch.claim_01
+```
+
+### `pks claim search QUERY`
+
+Search the canonical claim-view surface lexically.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--limit` | INTEGER | 20 | Maximum rows to show |
+
+```bash
+uv run pks claim search "formant ratio"
+```
+
 ### `pks claim embed [CLAIM_ID]`
 
 Generate embeddings for claims via litellm. See [Embedding options](#embedding-options).
@@ -575,6 +610,40 @@ List all registered contexts. No options.
 uv run pks context list
 ```
 
+### `pks context search QUERY`
+
+Search contexts by id, description, or perspective.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--limit` | INTEGER | 20 | Maximum rows to show |
+
+```bash
+uv run pks context search argumentation
+```
+
+### `pks context show NAME`
+
+Show one context YAML document.
+
+```bash
+uv run pks context show ctx_atms_tradition
+```
+
+### `pks context remove NAME`
+
+Remove one context document. Removal is blocked when canonical claims, source-claim batches, or worldline definitions still reference the context unless `--force` is provided.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--force` | FLAG | false | Remove even if authored artifacts still reference the context |
+| `--dry-run` | FLAG | false | [Dry-run](#dry-run) |
+
+```bash
+uv run pks context remove ctx_atms_tradition --dry-run
+uv run pks context remove ctx_atms_tradition --force
+```
+
 ---
 
 ## Predicates (`pks predicate`)
@@ -584,6 +653,22 @@ predicate names a relation symbol, fixes its arity, and tags every
 argument position with a sort that the grounder uses to enumerate
 well-typed substitutions (Diller, Borg, Bex 2025 §3-4; Garcia & Simari
 2004 §3).
+
+### `pks predicate list`
+
+List authored predicate declarations.
+
+```bash
+uv run pks predicate list
+```
+
+### `pks predicate show PREDICATE_ID`
+
+Show one authored predicate declaration.
+
+```bash
+uv run pks predicate show aspirin_user
+```
 
 ### `pks predicate add`
 
@@ -613,6 +698,22 @@ Author DeLP strict, defeasible, and defeater rules into
 while the underlying schema (`RuleDocument`, `AtomDocument`) remains the
 canonical form. Paper-priority pairs (`superiority`) stay schema-only for
 now.
+
+### `pks rule list`
+
+List authored rules.
+
+```bash
+uv run pks rule list
+```
+
+### `pks rule show RULE_ID`
+
+Show one authored rule.
+
+```bash
+uv run pks rule show r_mi
+```
 
 ### `pks rule add`
 
@@ -651,6 +752,14 @@ uv run pks rule add --file ikeda_2014 --paper Ikeda_2014_Low-doseAspirinPrimaryP
 ## Micropublications (`pks micropub`)
 
 Micropublication commands inspect canonical `micropubs/{source}.yaml` artifacts promoted from source branches. A micropublication bundles context-qualified claims with evidence, assumptions, stance, provenance, and source identity.
+
+### `pks micropub list`
+
+List canonical micropublications.
+
+```bash
+uv run pks micropub list
+```
 
 ### `pks micropub bundle SOURCE`
 

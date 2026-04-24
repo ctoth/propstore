@@ -7,7 +7,7 @@ from pathlib import Path
 
 from propstore.families.contexts.documents import ContextDocument
 from propstore.families.contexts.stages import LoadedContext, parse_context_record_document
-from propstore.families.registry import ContextRef
+from propstore.families.registry import ContextRef, SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value, encode_document
 
@@ -20,6 +20,12 @@ class ContextNotFoundError(ContextWorkflowError):
     def __init__(self, name: str) -> None:
         super().__init__(f"Context '{name}' not found")
         self.name = name
+
+
+class ContextReferencedError(ContextWorkflowError):
+    def __init__(self, name: str, references: tuple[str, ...]) -> None:
+        super().__init__(f"Context '{name}' is referenced by {len(references)} artifact(s)")
+        self.references = references
 
 
 @dataclass(frozen=True)
@@ -49,6 +55,13 @@ class ContextListItem:
 class ContextShowReport:
     filepath: Path
     rendered: str
+
+
+@dataclass(frozen=True)
+class ContextRemoveReport:
+    filepath: Path
+    removed: bool
+    references: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -201,6 +214,34 @@ def show_context(repo: Repository, name: str) -> ContextShowReport:
     )
 
 
+def remove_context(
+    repo: Repository,
+    name: str,
+    *,
+    force: bool,
+    dry_run: bool,
+) -> ContextRemoveReport:
+    ref, loaded = _require_context(repo, name)
+    filepath = repo.root / repo.families.contexts.address(ref).require_path()
+    references = _context_references(repo, ref.name, _context_display_id(loaded))
+    if references and not force:
+        raise ContextReferencedError(name, references)
+    if dry_run:
+        return ContextRemoveReport(
+            filepath=filepath,
+            removed=False,
+            references=references,
+        )
+
+    repo.families.contexts.delete(ref, message=f"Remove context: {ref.name}")
+    repo.snapshot.sync_worktree()
+    return ContextRemoveReport(
+        filepath=filepath,
+        removed=True,
+        references=references,
+    )
+
+
 def _loaded_contexts(repo: Repository) -> tuple[LoadedContext, ...]:
     items: list[LoadedContext] = []
     tree = repo.tree()
@@ -236,3 +277,59 @@ def _require_context(
         ref = ContextRef(context.filename)
         return ref, context
     raise ContextNotFoundError(name)
+
+
+def _context_references(
+    repo: Repository,
+    filename: str,
+    display_id: str,
+) -> tuple[str, ...]:
+    aliases = {filename, display_id}
+    references: list[str] = []
+
+    for ref in repo.families.claims.iter():
+        document = repo.families.claims.require(ref)
+        context_id = str(document.context.id)
+        if context_id not in aliases:
+            continue
+        claim_handle = (
+            document.primary_logical_id
+            or document.artifact_id
+            or document.id
+            or ref.name
+        )
+        references.append(f"claim:{claim_handle}")
+
+    for branch_info in repo.snapshot.iter_branches():
+        if branch_info.kind != "source":
+            continue
+        prefix = "source/"
+        source_name = (
+            branch_info.name[len(prefix):]
+            if branch_info.name.startswith(prefix)
+            else branch_info.name
+        )
+        ref = SourceRef(source_name)
+        document = repo.families.source_claims.load(ref)
+        if document is None:
+            continue
+        for index, claim in enumerate(document.claims, start=1):
+            context_id = claim.context
+            if context_id not in aliases:
+                continue
+            claim_handle = (
+                claim.source_local_id
+                or claim.artifact_id
+                or claim.id
+                or str(index)
+            )
+            references.append(f"source-claim:{ref.name}:{claim_handle}")
+
+    for ref in repo.families.worldlines.iter():
+        document = repo.families.worldlines.require(ref)
+        inputs = document.inputs
+        if inputs is None or inputs.context_id not in aliases:
+            continue
+        references.append(f"worldline:{ref.name}")
+
+    return tuple(references)
