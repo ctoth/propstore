@@ -97,6 +97,16 @@ def _conflict_concept_id(conflict) -> str | None:
     return None if row.concept_id is None else str(row.concept_id)
 
 
+def _normalize_local_concept_ref(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    if ":" in value:
+        return value
+    if not (value.startswith("concept") or value.startswith("algo_concept")):
+        return value
+    return _concept_artifact(value)
+
+
 def _normalize_claim_concept_refs(payload: dict) -> dict:
     normalized = normalize_claims_payload(payload)
     source = normalized.get("source")
@@ -107,16 +117,22 @@ def _normalize_claim_concept_refs(payload: dict) -> dict:
     for claim in claims:
         if not isinstance(claim, dict):
             continue
+        claim_type = claim.get("type")
         concept = claim.get("concept")
-        if isinstance(concept, str) and concept.startswith("concept"):
-            claim["concept"] = _concept_artifact(concept)
+        if isinstance(concept, str):
+            concept = _normalize_local_concept_ref(concept)
+            if claim_type in {"parameter", "algorithm"}:
+                claim["output_concept"] = concept
+                claim.pop("concept", None)
+            else:
+                claim["concept"] = concept
         target_concept = claim.get("target_concept")
-        if isinstance(target_concept, str) and target_concept.startswith("concept"):
-            claim["target_concept"] = _concept_artifact(target_concept)
+        if isinstance(target_concept, str):
+            claim["target_concept"] = _normalize_local_concept_ref(target_concept)
         concepts = claim.get("concepts")
         if isinstance(concepts, list):
             claim["concepts"] = [
-                _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") else value
+                _normalize_local_concept_ref(value)
                 for value in concepts
             ]
         variables = claim.get("variables")
@@ -125,16 +141,16 @@ def _normalize_claim_concept_refs(payload: dict) -> dict:
                 if not isinstance(variable, dict):
                     continue
                 value = variable.get("concept")
-                if isinstance(value, str) and value.startswith("concept"):
-                    variable["concept"] = _concept_artifact(value)
+                if isinstance(value, str):
+                    variable["concept"] = _normalize_local_concept_ref(value)
         parameters = claim.get("parameters")
         if isinstance(parameters, list):
             for parameter in parameters:
                 if not isinstance(parameter, dict):
                     continue
                 value = parameter.get("concept")
-                if isinstance(value, str) and value.startswith("concept"):
-                    parameter["concept"] = _concept_artifact(value)
+                if isinstance(value, str):
+                    parameter["concept"] = _normalize_local_concept_ref(value)
         stances = claim.get("stances")
         if isinstance(stances, list):
             for stance in stances:
@@ -571,7 +587,7 @@ class TestUnboundQueries:
         c = world.get_claim(_claim_artifact("test_paper_alpha", "claim1"))
         assert c is not None
         assert c.claim_type is ClaimType.PARAMETER
-        assert c.concept_id == CONCEPT1_ID
+        assert c.output_concept_id == CONCEPT1_ID
 
     def test_get_claim_missing(self, world):
         assert world.get_claim("nonexistent") is None
@@ -773,8 +789,8 @@ class TestUnboundQueries:
         conn = sqlite3.connect(sidecar)
         create_world_model_schema(conn)
         conn.execute(
-            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, concept_id, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
-            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', NULL, 'concept2', 'test', 'test', 1, NULL, NULL)"
+            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', 'concept2', 'test', 'test', 1, NULL, NULL)"
         )
         conn.execute(
             "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
@@ -787,6 +803,10 @@ class TestUnboundQueries:
         conn.execute(
             "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, algorithm_stage) "
             "VALUES ('measurement1', NULL, NULL, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_concept_link (claim_id, concept_id, role, ordinal, binding_name) "
+            "VALUES ('measurement1', 'concept2', 'target', 0, NULL)"
         )
         conn.commit()
         conn.close()
@@ -804,7 +824,7 @@ class TestUnboundQueries:
         finally:
             wm.close()
 
-    def test_claims_for_includes_observations_by_about_link(self, tmp_path):
+    def test_claims_with_policy_includes_observations_by_about_link(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
         create_world_model_schema(conn)
@@ -836,11 +856,8 @@ class TestUnboundQueries:
 
         wm = WorldModel(_Repo())
         try:
-            claims = wm.claims_for("concept2")
+            claims = wm.claims_with_policy("concept2", RenderPolicy())
             assert [str(claim.claim_id) for claim in claims] == ["observation1"]
-
-            active = wm.bind().active_claims("concept2")
-            assert _runtime_claim_ids(active) == ["observation1"]
         finally:
             wm.close()
 
@@ -849,8 +866,8 @@ class TestUnboundQueries:
         conn = sqlite3.connect(sidecar)
         create_world_model_schema(conn)
         conn.execute(
-            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, concept_id, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
-            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', NULL, 'concept2', 'test', 'test', 1, NULL, NULL)"
+            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', 'concept2', 'test', 'test', 1, NULL, NULL)"
         )
         conn.execute(
             "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
@@ -863,6 +880,10 @@ class TestUnboundQueries:
         conn.execute(
             "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, algorithm_stage) "
             "VALUES ('measurement1', NULL, NULL, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_concept_link (claim_id, concept_id, role, ordinal, binding_name) "
+            "VALUES ('measurement1', 'concept2', 'target', 0, NULL)"
         )
         conn.commit()
         conn.close()
@@ -2565,8 +2586,20 @@ class TestFloatEqualityBugs:
 
         # Two target claims competing for the same concept
         target_claims = [
-            ActiveClaim.from_mapping({"id": "claim_x", "concept_id": "concept2", "value": 800.0}),
-            ActiveClaim.from_mapping({"id": "claim_y", "concept_id": "concept2", "value": 810.0}),
+            ActiveClaim.from_mapping(
+                {
+                    "id": "claim_x",
+                    "concept_links": [{"claim_id": "claim_x", "concept_id": "concept2", "role": "output"}],
+                    "value": 800.0,
+                }
+            ),
+            ActiveClaim.from_mapping(
+                {
+                    "id": "claim_y",
+                    "concept_links": [{"claim_id": "claim_y", "concept_id": "concept2", "role": "output"}],
+                    "value": 810.0,
+                }
+            ),
         ]
         active_claims = target_claims[:]
 
@@ -2810,8 +2843,10 @@ class _Phase6HypotheticalStore:
         self._claims = [
             {
                 "id": "claim_a",
-                "concept_id": "concept_x",
                 "type": "parameter",
+                "concept_links": [
+                    {"claim_id": "claim_a", "concept_id": "concept_x", "role": "output"}
+                ],
                 "value": 10.0,
                 "sample_size": 50,
                 "confidence": 1.0,
@@ -2822,7 +2857,11 @@ class _Phase6HypotheticalStore:
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+        return [
+            claim
+            for claim in self._claims
+            if any(link["concept_id"] == concept_id for link in claim["concept_links"])
+        ]
 
     def get_claim(self, claim_id: str) -> dict | None:
         return next((claim for claim in self._claims if claim["id"] == claim_id), None)
@@ -2892,7 +2931,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
             add=[
                 SyntheticClaim(
                     id="claim2",
-                    concept_id=str(restored.concept_id),
+                    concept_id=str(restored.value_concept_id),
                     type=restored.claim_type or "parameter",
                     value=restored.value,
                     conditions=json.loads(restored.conditions_cel or "[]"),

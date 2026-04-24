@@ -680,6 +680,7 @@ class WorldModel(WorldStore):
                 FROM claim_concept_link AS link
                 WHERE link.claim_id = core.id
                   AND link.concept_id = ?
+                  AND link.role IN ('output', 'target')
             )
             ORDER BY core.id
             """,

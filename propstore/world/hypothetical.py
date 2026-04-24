@@ -9,6 +9,8 @@ from typing import Any, Callable, Mapping, cast
 
 from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
+from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
+from propstore.core.claim_types import ClaimType
 from propstore.core.environment import (
     WorldStore,
     ClaimCatalogStore,
@@ -35,6 +37,7 @@ from propstore.core.store_results import (
     ConceptSimilarityHit,
 )
 from propstore.core.row_types import (
+    ClaimConceptLinkRow,
     ClaimRow,
     ClaimRowInput,
     ConflictRow,
@@ -178,12 +181,28 @@ def _claim_node_for_synthetic(
         attributes.pop("confidence", None)
     return ClaimNode(
         claim_id=to_claim_id(synthetic.id),
-        concept_id=to_concept_id(synthetic.concept_id),
+        value_concept_id=to_concept_id(synthetic.concept_id),
         claim_type=synthetic.type,
         scalar_value=synthetic.value,
         provenance=(existing.provenance if existing is not None else None),
         label=(existing.label if existing is not None else None),
         attributes=tuple(attributes.items()),
+    )
+
+
+def _synthetic_concept_links(synthetic: SyntheticClaim) -> tuple[ClaimConceptLinkRow, ...]:
+    role = (
+        ClaimConceptLinkRole.TARGET
+        if synthetic.type is ClaimType.MEASUREMENT
+        else ClaimConceptLinkRole.OUTPUT
+    )
+    return (
+        ClaimConceptLinkRow(
+            claim_id=to_claim_id(synthetic.id),
+            concept_id=to_concept_id(synthetic.concept_id),
+            role=role,
+            ordinal=0,
+        ),
     )
 
 
@@ -198,7 +217,12 @@ def _synthetic_row(
             claim_id=to_claim_id(synthetic.id),
             artifact_id=synthetic.id,
             claim_type=synthetic.type,
-            concept_id=to_concept_id(synthetic.concept_id),
+            concept_links=_synthetic_concept_links(synthetic),
+            target_concept=(
+                to_concept_id(synthetic.concept_id)
+                if synthetic.type is ClaimType.MEASUREMENT
+                else None
+            ),
             value=synthetic.value,
             sample_size=synthetic.sample_size,
             conditions_cel=conditions_cel,
@@ -215,7 +239,12 @@ def _synthetic_row(
         claim_id=to_claim_id(synthetic.id),
         artifact_id=(row.artifact_id or synthetic.id),
         claim_type=synthetic.type,
-        concept_id=to_concept_id(synthetic.concept_id),
+        concept_links=_synthetic_concept_links(synthetic),
+        target_concept=(
+            to_concept_id(synthetic.concept_id)
+            if synthetic.type is ClaimType.MEASUREMENT
+            else row.target_concept
+        ),
         value=synthetic.value,
         sample_size=synthetic.sample_size if synthetic.sample_size is not None else row.sample_size,
         conditions_cel=conditions_cel,
@@ -298,8 +327,7 @@ class _GraphOverlayStore:
         return [
             claim
             for claim in self._claims
-            if str(claim.concept_id or "") == resolved_concept_id
-            or str(claim.target_concept or "") == resolved_concept_id
+            if str(claim.value_concept_id or "") == resolved_concept_id
         ]
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRowInput]:
@@ -611,8 +639,8 @@ class HypotheticalWorld(BeliefSpace):
             affected.add(synthetic.concept_id)
         for claim_id in self._removed_ids:
             claim = self._base._store.get_claim(claim_id)
-            if claim and coerce_claim_row(claim).concept_id is not None:
-                affected.add(str(coerce_claim_row(claim).concept_id))
+            if claim and coerce_claim_row(claim).value_concept_id is not None:
+                affected.add(str(coerce_claim_row(claim).value_concept_id))
 
         result: dict[str, tuple[ValueResult, ValueResult]] = {}
         for concept_id in affected:
