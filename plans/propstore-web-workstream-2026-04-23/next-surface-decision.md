@@ -2,6 +2,10 @@
 
 Decision: concept view.
 
+Execution workstream:
+
+- `plans/propstore-web-concept-view-workstream-2026-04-23/`
+
 ## App-Owned Contract First
 
 The next surface must start in `propstore.app` with a typed
@@ -25,6 +29,9 @@ The first claim and neighborhood pages already prove object reading and
 semantic navigation. A concept view is the smallest next axis that uses those
 pages without introducing visual graph, chart, audio, command-journal, or
 mutation prerequisites.
+
+Collection entrypoints `/claims` and `/concepts` should be built alongside this
+surface as the discovery layer for readers who do not already know object IDs.
 
 ## Explicit Non-Decisions
 
