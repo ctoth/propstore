@@ -430,6 +430,22 @@ def _write_promotion_blocked_sidecar_rows(
 
     conn = connect_sidecar(sidecar_path)
     try:
+        child_payload_tables = {
+            row[0]
+            for row in conn.execute(
+                """
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table'
+                  AND name IN (
+                      'claim_numeric_payload',
+                      'claim_text_payload',
+                      'claim_algorithm_payload',
+                      'micropublication_claim'
+                  )
+                """
+            ).fetchall()
+        }
         for claim in blocked_claims:
             artifact_id = claim.artifact_id
             if not isinstance(artifact_id, str) or not artifact_id:
@@ -445,6 +461,32 @@ def _write_promotion_blocked_sidecar_rows(
             # test_T7_5d_promotion_blocked_id_collision.py``.)
             # The ``build_diagnostics`` DELETE stays scoped to this
             # source_ref so other branches' diagnostics survive.
+            #
+            # Bug 4 (v0.3.2): the sidecar connection runs with
+            # ``PRAGMA foreign_keys = ON`` and four child tables FK to
+            # ``claim_core(id)`` — ``claim_numeric_payload``,
+            # ``claim_text_payload``, ``claim_algorithm_payload``, and
+            # ``micropublication_claim``. If a sibling branch already
+            # ingested this claim its payload children exist, and a bare
+            # ``DELETE FROM claim_core`` raises
+            # ``sqlite3.IntegrityError: FOREIGN KEY constraint failed``.
+            # Drop the child rows first (they will not be re-inserted
+            # below — the blocked-mirror row has no payload), then the
+            # parent. Reproduction in
+            # ``tests/remediation/phase_7_race_atomicity/
+            # test_T7_5e_promotion_blocked_fk_payload.py``.
+            for table_name in (
+                "claim_numeric_payload",
+                "claim_text_payload",
+                "claim_algorithm_payload",
+                "micropublication_claim",
+            ):
+                if table_name not in child_payload_tables:
+                    continue
+                conn.execute(
+                    f"DELETE FROM {table_name} WHERE claim_id = ?",
+                    (artifact_id,),
+                )
             conn.execute(
                 "DELETE FROM claim_core WHERE id = ?",
                 (artifact_id,),
