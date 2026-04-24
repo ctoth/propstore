@@ -479,17 +479,17 @@ def _validate_claim_contract(
             contract.value_group,
         )
 
-    for reference in contract.concept_references:
-        _validate_concept_reference_declaration(
+    for link in contract.concept_links:
+        _validate_concept_link_declaration(
             claim,
             cid,
             filename,
             context,
             diagnostics,
             label,
-            field=reference.field,
-            source=reference.source,
-            message_subject=reference.message_subject,
+            field=link.field,
+            source=link.source,
+            message_subject=link.message_subject,
         )
 
     if contract.unit_policy is not None:
@@ -504,7 +504,7 @@ def _validate_claim_contract(
         )
 
 
-def _validate_concept_reference_declaration(
+def _validate_concept_link_declaration(
     claim: dict,
     cid: str,
     filename: str,

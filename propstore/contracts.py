@@ -14,7 +14,7 @@ from quire.versions import VersionId
 if TYPE_CHECKING:
     from propstore.families.claims.documents import ClaimTypeContract
 
-PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.27")
+PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.28")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent

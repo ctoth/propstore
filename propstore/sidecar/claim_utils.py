@@ -38,7 +38,7 @@ from propstore.stances import VALID_STANCE_TYPES
 
 @dataclass(frozen=True)
 class TypedClaimFields:
-    concept_id: str | None = None
+    output_concept: str | None = None
     statement: str | None = None
     expression: str | None = None
     name: str | None = None
@@ -336,7 +336,10 @@ def canonicalize_claim_for_storage(
     if isinstance(artifact_id, str) and artifact_id:
         normalized["id"] = artifact_id
 
-    normalized["concept"] = resolve_concept_reference(normalized.get("concept"), concept_registry)
+    normalized["output_concept"] = resolve_concept_reference(
+        normalized.get("output_concept"),
+        concept_registry,
+    )
     normalized["target_concept"] = resolve_concept_reference(normalized.get("target_concept"), concept_registry)
 
     concepts = normalized.get("concepts")
@@ -391,7 +394,7 @@ def extract_typed_claim_fields(claim: dict) -> TypedClaimFields:
     if claim_type == "parameter":
         numeric = extract_numeric_claim_fields(claim)
         return TypedClaimFields(
-            concept_id=_optional_string(claim.get("concept")),
+            output_concept=_optional_string(claim.get("output_concept")),
             value=numeric.value,
             lower_bound=numeric.lower_bound,
             upper_bound=numeric.upper_bound,
@@ -422,7 +425,9 @@ def extract_typed_claim_fields(claim: dict) -> TypedClaimFields:
     if claim_type == "model":
         return TypedClaimFields(name=_optional_string(claim.get("name")))
     if claim_type == "algorithm":
-        return TypedClaimFields(concept_id=_optional_string(claim.get("concept")))
+        return TypedClaimFields(
+            output_concept=_optional_string(claim.get("output_concept"))
+        )
     return TypedClaimFields()
 
 
@@ -615,8 +620,10 @@ def prepare_claim_insert_row(
 
     form_def: FormDefinition | None = None
     if form_registry and concept_registry:
-        concept_id = typed_fields.concept_id
-        concept_data = concept_registry.get(concept_id) if concept_id else None
+        output_concept = typed_fields.output_concept
+        concept_data = (
+            concept_registry.get(output_concept) if output_concept else None
+        )
         if isinstance(concept_data, dict):
             form_name = concept_data.get("form")
             if isinstance(form_name, str):
@@ -645,7 +652,7 @@ def prepare_claim_insert_row(
         "version_id": claim_version_id(normalized_claim),
         "seq": claim_seq,
         "type": claim_type,
-        "concept_id": typed_fields.concept_id,
+        "concept_id": typed_fields.output_concept,
         "value": typed_fields.value,
         "lower_bound": typed_fields.lower_bound,
         "upper_bound": typed_fields.upper_bound,

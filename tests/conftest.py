@@ -702,7 +702,7 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", *, page=1, paper="tes
     c = {
         **make_claim_identity(id, namespace=paper),
         "type": "parameter",
-        "concept": _canonical_concept_ref(concept_id),
+        "output_concept": _canonical_concept_ref(concept_id),
         "value": value,
         "unit": unit,
         "provenance": {"paper": paper, "page": page},

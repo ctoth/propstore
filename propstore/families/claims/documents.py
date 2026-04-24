@@ -8,6 +8,7 @@ from typing import Any, ClassVar
 
 from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
+from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
 from propstore.core.claim_types import ClaimType
 from quire.documents import DocumentStruct
 from quire.versions import VersionId
@@ -16,12 +17,13 @@ from propstore.provenance import Provenance
 from propstore.stances import StanceType
 
 
-CLAIM_TYPE_CONTRACT_VERSION = VersionId("2026.04.27")
+CLAIM_TYPE_CONTRACT_VERSION = VersionId("2026.04.28")
 
 
 @dataclass(frozen=True)
-class ClaimFieldReferenceDeclaration:
+class ClaimConceptLinkDeclaration:
     field: str
+    role: ClaimConceptLinkRole
     target_family: str = "concept"
     source: str = "scalar"
     message_subject: str | None = None
@@ -29,6 +31,7 @@ class ClaimFieldReferenceDeclaration:
     def contract_body(self) -> dict[str, object]:
         return {
             "field": self.field,
+            "role": self.role.value,
             "target_family": self.target_family,
             "source": self.source,
             "message_subject": self.message_subject,
@@ -103,7 +106,7 @@ class ClaimTypeContract:
     claim_type: ClaimType
     required_fields: tuple[str, ...] = ()
     nonempty_fields: tuple[str, ...] = ()
-    concept_references: tuple[ClaimFieldReferenceDeclaration, ...] = ()
+    concept_links: tuple[ClaimConceptLinkDeclaration, ...] = ()
     value_group: ClaimValueGroupDeclaration | None = None
     unit_policy: ClaimUnitPolicyDeclaration | None = None
     semantic_checks: tuple[type[ClaimSemanticCheck], ...] = ()
@@ -114,9 +117,9 @@ class ClaimTypeContract:
             "claim_type": self.claim_type.value,
             "required_fields": self.required_fields,
             "nonempty_fields": self.nonempty_fields,
-            "concept_references": tuple(
-                reference.contract_body()
-                for reference in self.concept_references
+            "concept_links": tuple(
+                link.contract_body()
+                for link in self.concept_links
             ),
             "value_group": (
                 None
@@ -135,17 +138,20 @@ class ClaimTypeContract:
         }
 
 
-_OBSERVATION_CONCEPT_REFERENCE = ClaimFieldReferenceDeclaration(
+_ABOUT_CONCEPT_LINK = ClaimConceptLinkDeclaration(
     field="concepts",
+    role=ClaimConceptLinkRole.ABOUT,
     source="list",
 )
-_VARIABLE_CONCEPT_REFERENCE = ClaimFieldReferenceDeclaration(
+_VARIABLE_INPUT_LINK = ClaimConceptLinkDeclaration(
     field="variables",
+    role=ClaimConceptLinkRole.INPUT,
     source="bindings",
     message_subject="variable",
 )
-_PARAMETER_CONCEPT_REFERENCE = ClaimFieldReferenceDeclaration(
+_PARAMETER_INPUT_LINK = ClaimConceptLinkDeclaration(
     field="parameters",
+    role=ClaimConceptLinkRole.INPUT,
     source="bindings",
     message_subject="parameter",
 )
@@ -154,12 +160,17 @@ _VALUE_GROUP = ClaimValueGroupDeclaration()
 CLAIM_TYPE_CONTRACTS: dict[ClaimType, ClaimTypeContract] = {
     ClaimType.PARAMETER: ClaimTypeContract(
         claim_type=ClaimType.PARAMETER,
-        required_fields=("concept",),
-        concept_references=(ClaimFieldReferenceDeclaration(field="concept"),),
+        required_fields=("output_concept",),
+        concept_links=(
+            ClaimConceptLinkDeclaration(
+                field="output_concept",
+                role=ClaimConceptLinkRole.OUTPUT,
+            ),
+        ),
         value_group=_VALUE_GROUP,
         unit_policy=ClaimUnitPolicyDeclaration(
             dimensionless_default_unit="1",
-            form_concept_field="concept",
+            form_concept_field="output_concept",
         ),
         semantic_checks=(UnitFormCompatibilityCheck,),
     ),
@@ -167,53 +178,62 @@ CLAIM_TYPE_CONTRACTS: dict[ClaimType, ClaimTypeContract] = {
         claim_type=ClaimType.EQUATION,
         required_fields=("expression",),
         nonempty_fields=("variables",),
-        concept_references=(_VARIABLE_CONCEPT_REFERENCE,),
+        concept_links=(_VARIABLE_INPUT_LINK,),
         semantic_checks=(SympyGenerationCheck, DimensionalConsistencyCheck),
     ),
     ClaimType.OBSERVATION: ClaimTypeContract(
         claim_type=ClaimType.OBSERVATION,
         required_fields=("statement",),
         nonempty_fields=("concepts",),
-        concept_references=(_OBSERVATION_CONCEPT_REFERENCE,),
+        concept_links=(_ABOUT_CONCEPT_LINK,),
     ),
     ClaimType.MECHANISM: ClaimTypeContract(
         claim_type=ClaimType.MECHANISM,
         required_fields=("statement",),
         nonempty_fields=("concepts",),
-        concept_references=(_OBSERVATION_CONCEPT_REFERENCE,),
+        concept_links=(_ABOUT_CONCEPT_LINK,),
     ),
     ClaimType.COMPARISON: ClaimTypeContract(
         claim_type=ClaimType.COMPARISON,
         required_fields=("statement",),
         nonempty_fields=("concepts",),
-        concept_references=(_OBSERVATION_CONCEPT_REFERENCE,),
+        concept_links=(_ABOUT_CONCEPT_LINK,),
     ),
     ClaimType.LIMITATION: ClaimTypeContract(
         claim_type=ClaimType.LIMITATION,
         required_fields=("statement",),
         nonempty_fields=("concepts",),
-        concept_references=(_OBSERVATION_CONCEPT_REFERENCE,),
+        concept_links=(_ABOUT_CONCEPT_LINK,),
     ),
     ClaimType.MODEL: ClaimTypeContract(
         claim_type=ClaimType.MODEL,
         required_fields=("name",),
         nonempty_fields=("equations", "parameters"),
-        concept_references=(_PARAMETER_CONCEPT_REFERENCE,),
+        concept_links=(_PARAMETER_INPUT_LINK,),
     ),
     ClaimType.MEASUREMENT: ClaimTypeContract(
         claim_type=ClaimType.MEASUREMENT,
         required_fields=("target_concept", "measure"),
-        concept_references=(
-            ClaimFieldReferenceDeclaration(field="target_concept"),
+        concept_links=(
+            ClaimConceptLinkDeclaration(
+                field="target_concept",
+                role=ClaimConceptLinkRole.TARGET,
+            ),
         ),
         value_group=_VALUE_GROUP,
         unit_policy=ClaimUnitPolicyDeclaration(),
     ),
     ClaimType.ALGORITHM: ClaimTypeContract(
         claim_type=ClaimType.ALGORITHM,
-        required_fields=("body",),
+        required_fields=("body", "output_concept"),
         nonempty_fields=("variables",),
-        concept_references=(_VARIABLE_CONCEPT_REFERENCE,),
+        concept_links=(
+            ClaimConceptLinkDeclaration(
+                field="output_concept",
+                role=ClaimConceptLinkRole.OUTPUT,
+            ),
+            _VARIABLE_INPUT_LINK,
+        ),
         semantic_checks=(AlgorithmParseCheck, AlgorithmUnboundNamesCheck),
     ),
 }
@@ -439,7 +459,6 @@ class StanceDocument(DocumentStruct):
 class AtomicPropositionDocument(DocumentStruct, tag="atomic", tag_field="kind"):
     type: ClaimType
     body: str | None = None
-    concept: str | None = None
     concepts: tuple[str, ...] = ()
     conditions: tuple[CelExpr, ...] = ()
     confidence: float | int | None = None
@@ -452,6 +471,7 @@ class AtomicPropositionDocument(DocumentStruct, tag="atomic", tag_field="kind"):
     methodology: str | None = None
     name: str | None = None
     notes: str | None = None
+    output_concept: str | None = None
     parameters: tuple[ParameterBindingDocument, ...] = ()
     sample_size: int | None = None
     stage: AlgorithmStage | None = None
@@ -469,8 +489,6 @@ class AtomicPropositionDocument(DocumentStruct, tag="atomic", tag_field="kind"):
         payload: dict[str, Any] = {"kind": "atomic", "type": self.type.value}
         if self.body is not None:
             payload["body"] = self.body
-        if self.concept is not None:
-            payload["concept"] = self.concept
         if self.concepts:
             payload["concepts"] = list(self.concepts)
         if self.conditions:
@@ -495,6 +513,8 @@ class AtomicPropositionDocument(DocumentStruct, tag="atomic", tag_field="kind"):
             payload["name"] = self.name
         if self.notes is not None:
             payload["notes"] = self.notes
+        if self.output_concept is not None:
+            payload["output_concept"] = self.output_concept
         if self.parameters:
             payload["parameters"] = [
                 parameter.to_payload()
@@ -548,7 +568,6 @@ class ClaimDocument(DocumentStruct):
     provenance: ProvenanceDocument | None = None
     id: str | None = None
     body: str | None = None
-    concept: str | None = None
     concepts: tuple[str, ...] = ()
     conditions: tuple[CelExpr, ...] = ()
     confidence: float | int | None = None
@@ -561,6 +580,7 @@ class ClaimDocument(DocumentStruct):
     methodology: str | None = None
     name: str | None = None
     notes: str | None = None
+    output_concept: str | None = None
     parameters: tuple[ParameterBindingDocument, ...] = ()
     sample_size: int | None = None
     stage: AlgorithmStage | None = None
@@ -599,8 +619,6 @@ class ClaimDocument(DocumentStruct):
             payload["id"] = self.id
         if self.body is not None:
             payload["body"] = self.body
-        if self.concept is not None:
-            payload["concept"] = self.concept
         if self.concepts:
             payload["concepts"] = list(self.concepts)
         if self.conditions:
@@ -628,6 +646,8 @@ class ClaimDocument(DocumentStruct):
             payload["name"] = self.name
         if self.notes is not None:
             payload["notes"] = self.notes
+        if self.output_concept is not None:
+            payload["output_concept"] = self.output_concept
         if self.parameters:
             payload["parameters"] = [
                 parameter.to_payload()
