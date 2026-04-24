@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from propstore.cel_checker import (
@@ -62,6 +64,11 @@ def detect_conflicts(
         synthetic_concepts,
     )
     condition_solver = _build_condition_solver(cel_registry)
+    claims = _expand_lifted_conflict_claims(
+        claims,
+        lifting_system=lifting_system,
+        solver=condition_solver,
+    )
 
     parameter_records, by_concept = detect_parameter_conflicts(
         claims,
@@ -111,6 +118,65 @@ def _build_condition_solver(cel_registry):
     except ImportError:
         return None
     return Z3ConditionSolver(cel_registry)
+
+
+def _expand_lifted_conflict_claims(
+    claims: Sequence[ConflictClaim],
+    *,
+    lifting_system: LiftingSystem | None,
+    solver,
+) -> list[ConflictClaim]:
+    if lifting_system is None or not claims:
+        return list(claims)
+
+    rules_by_source: dict[str, list[object]] = defaultdict(list)
+    for rule in lifting_system.lifting_rules:
+        rules_by_source[str(rule.source.id)].append(rule)
+    if not rules_by_source:
+        return list(claims)
+
+    expanded = list(claims)
+    seen = {
+        (
+            claim.claim_id,
+            claim.context_id,
+            tuple(claim.conditions),
+        )
+        for claim in claims
+    }
+
+    for claim in claims:
+        if claim.context_id is None:
+            continue
+        for rule in rules_by_source.get(str(claim.context_id), ()):
+            if rule.conditions and solver is not None and solver.are_disjoint(
+                claim.conditions,
+                rule.conditions,
+            ):
+                continue
+            target_conditions = tuple(
+                lifting_system.context_assumptions.get(rule.target.id, ())
+            )
+            if not target_conditions and rule.conditions:
+                target_conditions = tuple(rule.conditions)
+            if not target_conditions:
+                continue
+            key = (
+                claim.claim_id,
+                str(rule.target.id),
+                target_conditions,
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            expanded.append(
+                replace(
+                    claim,
+                    context_id=str(rule.target.id),
+                    conditions=target_conditions,
+                )
+            )
+    return expanded
 
 
 def _validate_conflict_concept_registry(concept_registry: dict[str, dict]) -> None:
