@@ -18,7 +18,7 @@ from propstore.app.repository_views import (
     RepositoryViewUnsupportedStateError,
 )
 from propstore.core.claim_values import ClaimProvenance
-from propstore.core.row_types import ClaimRow, ConceptRow, StanceRow
+from propstore.core.row_types import ClaimConceptLinkRow, ClaimRow, ConceptRow, StanceRow
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
 
@@ -56,7 +56,7 @@ class _World:
         ]
         if concept_id is None:
             return rows
-        return [claim for claim in rows if str(claim.concept_id) == concept_id]
+        return [claim for claim in rows if str(claim.value_concept_id or "") == concept_id]
 
     def all_claim_stances(self) -> list[StanceRow]:
         return list(self.stances)
@@ -76,7 +76,13 @@ def _claim(claim_id: str, *, concept_id: str = "concept1") -> ClaimRow:
         claim_id=claim_id,
         artifact_id=claim_id,
         claim_type="parameter",
-        concept_id=concept_id,
+        concept_links=(
+            ClaimConceptLinkRow(
+                claim_id=claim_id,
+                concept_id=concept_id,
+                role="output",
+            ),
+        ),
         value=1.0,
         provenance=ClaimProvenance(paper="paper1"),
     )

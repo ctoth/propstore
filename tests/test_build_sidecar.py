@@ -131,7 +131,8 @@ _CLAIM_SELECT_SQL = """
         core.version_id,
         core.seq,
         core.type,
-        core.concept_id,
+        output_link.concept_id AS output_concept_id,
+        COALESCE(output_link.concept_id, target_link.concept_id, core.target_concept) AS value_concept_id,
         num.value,
         num.lower_bound,
         num.upper_bound,
@@ -167,6 +168,10 @@ _CLAIM_SELECT_SQL = """
     LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
     LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
     LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+    LEFT JOIN claim_concept_link AS output_link
+        ON output_link.claim_id = core.id AND output_link.role = 'output'
+    LEFT JOIN claim_concept_link AS target_link
+        ON target_link.claim_id = core.id AND target_link.role = 'target'
 """
 
 
@@ -410,7 +415,7 @@ class TestTableCreation:
         conn.close()
 
 
-class TestSchemaV3:
+class TestSchemaV4:
     """Schema v3 additions for build-to-render gate removal.
 
     Implements `reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md`
@@ -419,7 +424,7 @@ class TestSchemaV3:
     quarantine reasons that the render layer filters per policy.
     """
 
-    def test_schema_version_is_three(self, knowledge_reader, sidecar_path):
+    def test_schema_version_is_four(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute(
@@ -427,7 +432,7 @@ class TestSchemaV3:
         ).fetchone()
         conn.close()
         assert row is not None
-        assert row[0] == 3
+        assert row[0] == 4
 
     def test_build_diagnostics_table_exists(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
@@ -1057,7 +1062,7 @@ class TestClaimTable:
         conn = sqlite3.connect(sidecar_with_claims)
         row = _fetch_claim(conn, "claim1")
         assert row["type"] == "parameter"
-        assert row["concept_id"] == CONCEPT1_ID
+        assert row["output_concept_id"] == CONCEPT1_ID
         assert row["unit"] == "Hz"
         assert row["source_paper"] == "test_paper_alpha"
         assert row["provenance_page"] == 5
@@ -1175,11 +1180,11 @@ class TestClaimTable:
         conn.close()
 
     def test_parameter_claim_has_concept(self, sidecar_with_claims):
-        """Parameter claim has concept_id populated."""
+        """Parameter claim has output_concept_id populated."""
         conn = sqlite3.connect(sidecar_with_claims)
         rows = _fetch_claim_rows(conn, "WHERE core.type='parameter'")
         for row in rows:
-            assert row["concept_id"] is not None, f"claim {row['id']} missing concept_id"
+            assert row["output_concept_id"] is not None, f"claim {row['id']} missing output_concept_id"
         conn.close()
 
     def test_observation_claim_has_statement(self, sidecar_with_claims):
@@ -1366,7 +1371,7 @@ class TestClaimStanceTable:
                         {
                             "id": "claim1",
                             "type": "parameter",
-                            "concept": CONCEPT1_ID,
+                            "output_concept": CONCEPT1_ID,
                             "value": 200.0,
                             "unit": "Hz",
                             "context": {"id": "ctx_test"},
@@ -1375,7 +1380,7 @@ class TestClaimStanceTable:
                         {
                             "id": "claim2",
                             "type": "parameter",
-                            "concept": CONCEPT1_ID,
+                            "output_concept": CONCEPT1_ID,
                             "value": 220.0,
                             "unit": "Hz",
                             "context": {"id": "ctx_test"},
@@ -1478,7 +1483,7 @@ class TestClaimStanceTable:
                         {
                             "id": "bad_claim",
                             "type": "parameter",
-                            "concept": CONCEPT1_ID,
+                            "output_concept": CONCEPT1_ID,
                             "value": 300.0,
                             "unit": "Hz",
                             "context": {"id": "ctx_test"},
@@ -1916,7 +1921,7 @@ def algorithm_claim_files(concept_dir):
                 "type": "algorithm",
                 "body": "def compute(x):\n    return x * 2\n",
                 "stage": "excitation",
-                "variables": [{"name": "x", "concept": "input_signal"}],
+                "variables": [{"name": "x", "concept": "concept1"}],
                 "provenance": {"paper": "algo_test_paper", "page": 3},
             },
         ],

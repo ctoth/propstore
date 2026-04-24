@@ -14,7 +14,7 @@ These tests exercise the contract described in
   lifts the two blocked filters; ``show_quarantined=True`` surfaces
   ``build_diagnostics`` rows.
 
-Fixtures populate a real sqlite sidecar (schema v3) via
+Fixtures populate a real sqlite sidecar (schema v4) via
 ``propstore.sidecar.schema``'s real ``create_tables`` +
 ``create_claim_tables`` helpers, then insert a small hand-crafted mix
 of rows covering each lifecycle state. No compile path is exercised —
@@ -83,13 +83,12 @@ def _insert_claim_core(
         """
         INSERT INTO claim_core (
             id, primary_logical_id, logical_ids_json, version_id,
-            content_hash, seq, type, concept_id, target_concept,
+            content_hash, seq, type, target_concept,
             source_slug, source_paper, provenance_page, provenance_json,
             context_id, premise_kind, branch,
             build_status, stage, promotion_status
         ) VALUES (
-            ?, ?, '[]', '',
-            '', 0, 'parameter', ?, NULL,
+            ?, ?, '[]', '', '', 0, 'parameter', NULL,
             ?, ?, 0, NULL,
             NULL, 'ordinary', ?,
             ?, ?, ?
@@ -98,7 +97,6 @@ def _insert_claim_core(
         (
             claim_id,
             claim_id,
-            concept_id,
             source_slug,
             source_slug,
             branch,
@@ -106,6 +104,14 @@ def _insert_claim_core(
             stage,
             promotion_status,
         ),
+    )
+    conn.execute(
+        """
+        INSERT INTO claim_concept_link (
+            claim_id, concept_id, role, ordinal, binding_name
+        ) VALUES (?, ?, 'output', 0, NULL)
+        """,
+        (claim_id, concept_id),
     )
 
 
@@ -224,8 +230,7 @@ def wm(lifecycle_sidecar: Path) -> WorldModel:
 
 
 def test_fixture_sidecar_is_schema_v3(lifecycle_sidecar: Path) -> None:
-    """Sanity: the fixture must actually use schema v3 (lifecycle columns
-    are only meaningful on schema >= 3)."""
+    """Sanity: the fixture must actually use the current schema version."""
     conn = sqlite3.connect(lifecycle_sidecar)
     try:
         row = conn.execute(
@@ -233,7 +238,7 @@ def test_fixture_sidecar_is_schema_v3(lifecycle_sidecar: Path) -> None:
             (SIDECAR_META_KEY,),
         ).fetchone()
         assert row is not None
-        assert row[0] == SCHEMA_VERSION == 3
+        assert row[0] == SCHEMA_VERSION == 4
     finally:
         conn.close()
 

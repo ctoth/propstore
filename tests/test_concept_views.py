@@ -18,7 +18,7 @@ from propstore.app.repository_views import (
     RepositoryViewUnsupportedStateError,
 )
 from propstore.core.claim_values import ClaimProvenance, ClaimSource
-from propstore.core.row_types import ClaimRow, ConceptRow
+from propstore.core.row_types import ClaimConceptLinkRow, ClaimRow, ConceptRow
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
@@ -65,7 +65,7 @@ class _World:
         return [
             claim
             for claim in self.claims.values()
-            if str(claim.concept_id) == resolved or str(claim.target_concept) == resolved
+            if str(claim.value_concept_id or "") == resolved
         ]
 
     def claims_with_policy(
@@ -80,7 +80,12 @@ class _World:
             claim
             for claim_id, claim in self.claims.items()
             if claim_id in self.visible_ids
-            and (str(claim.concept_id) == resolved or str(claim.target_concept) == resolved)
+            and (
+                str(claim.output_concept_id or "") == resolved
+                or str(claim.target_concept or "") == resolved
+                or resolved in {str(concept_id) for concept_id in claim.about_concept_ids}
+                or resolved in {str(concept_id) for concept_id in claim.input_concept_ids}
+            )
         ]
 
 
@@ -111,7 +116,13 @@ def _claim(claim_id: str, **overrides) -> ClaimRow:
         "claim_id": claim_id,
         "artifact_id": claim_id,
         "claim_type": "parameter",
-        "concept_id": "concept1",
+        "concept_links": (
+            ClaimConceptLinkRow(
+                claim_id=claim_id,
+                concept_id="concept1",
+                role="output",
+            ),
+        ),
         "value": 100.0,
         "unit": "Hz",
         "uncertainty": 2.0,

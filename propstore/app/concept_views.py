@@ -403,7 +403,7 @@ def _provenance_summary(visible_claims) -> ConceptProvenanceSummary:
 def _related_claim_links(concept_id: str, visible_claims) -> tuple[ConceptRelatedClaimLink, ...]:
     links: list[ConceptRelatedClaimLink] = []
     for claim in sorted(visible_claims, key=_claim_sort_key):
-        if str(claim.concept_id) == concept_id:
+        if str(claim.output_concept_id or "") == concept_id:
             relation = "instantiates"
             sentence = f"Claim {claim.primary_logical_value or claim.claim_id} instantiates this concept."
         elif str(claim.target_concept) == concept_id:
