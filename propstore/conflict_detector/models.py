@@ -44,7 +44,7 @@ class ConflictClaim:
     claim_id: str
     claim_type: str | None = None
     artifact_id: str | None = None
-    concept_id: str | None = None
+    output_concept_id: str | None = None
     target_concept_id: str | None = None
     measure: str | None = None
     value: Any = None
@@ -94,7 +94,11 @@ class ConflictClaim:
             claim_id=claim_id,
             claim_type=None if payload.get("type") is None else str(payload.get("type")),
             artifact_id=None if payload.get("artifact_id") is None else str(payload.get("artifact_id")),
-            concept_id=None if payload.get("concept") is None else str(payload.get("concept")),
+            output_concept_id=(
+                None
+                if payload.get("output_concept") is None
+                else str(payload.get("output_concept"))
+            ),
             target_concept_id=(
                 None if payload.get("target_concept") is None else str(payload.get("target_concept"))
             ),

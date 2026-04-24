@@ -38,7 +38,7 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", conditions=None):
     claim = {
         "id": id,
         "type": "parameter",
-        "concept": concept_id,
+        "output_concept": concept_id,
         "unit": unit,
         "conditions": conditions or [],
         "context": {"id": "ctx_test"},
@@ -534,7 +534,7 @@ def _make_named_claim(id, concept_id, unit="Hz", conditions=None, **fields):
     c = {
         "id": id,
         "type": "parameter",
-        "concept": concept_id,
+        "output_concept": concept_id,
         "unit": unit,
         "conditions": conditions or [],
         "provenance": {"paper": "test", "page": 1},
@@ -811,6 +811,7 @@ class TestEquationConflicts:
 
 def _make_algorithm_claim(id, body, variables, conditions=None, **fields):
     """Build an algorithm claim dict for testing."""
+    concept = fields.pop("concept", None)
     claim = {
         "id": id,
         "type": "algorithm",
@@ -819,6 +820,8 @@ def _make_algorithm_claim(id, body, variables, conditions=None, **fields):
         "conditions": conditions or [],
         "provenance": {"paper": "test", "page": 1},
     }
+    if concept is not None:
+        fields["output_concept"] = concept
     claim.update(fields)
     return claim
 
@@ -1294,14 +1297,14 @@ class TestAlgorithmExceptionHandling:
             {
                 "id": "alg1",
                 "type": "algorithm",
-                "concept": "concept_algo",
+                "output_concept": "concept_algo",
                 "body": "x + 1",
                 "variables": [{"name": "x", "concept": "input"}],
             },
             {
                 "id": "alg2",
                 "type": "algorithm",
-                "concept": "concept_algo",
+                "output_concept": "concept_algo",
                 "body": "x + 2",
                 "variables": [{"name": "x", "concept": "input"}],
             },
@@ -1332,14 +1335,14 @@ class TestAlgorithmExceptionHandling:
             {
                 "id": "alg1",
                 "type": "algorithm",
-                "concept": "concept_algo",
+                "output_concept": "concept_algo",
                 "body": "x + 1",
                 "variables": [{"name": "x", "concept": "input"}],
             },
             {
                 "id": "alg2",
                 "type": "algorithm",
-                "concept": "concept_algo",
+                "output_concept": "concept_algo",
                 "body": "x + 2",
                 "variables": [{"name": "x", "concept": "input"}],
             },
@@ -1366,14 +1369,14 @@ class TestAlgorithmExceptionHandling:
             {
                 "id": "alg1",
                 "type": "algorithm",
-                "concept": "concept_algo",
+                "output_concept": "concept_algo",
                 "body": "x + 1",
                 "variables": [{"name": "x", "concept": "input"}],
             },
             {
                 "id": "alg2",
                 "type": "algorithm",
-                "concept": "concept_algo",
+                "output_concept": "concept_algo",
                 "body": "x + 2",
                 "variables": [{"name": "x", "concept": "input"}],
             },
@@ -1404,9 +1407,9 @@ class TestParameterZ3FailureHandling:
 
         # 3 claims triggers the Z3 partition path
         cf = make_claim_file([
-            {"id": "p1", "type": "parameter", "concept": "freq", "body": "100", "conditions": ["freq > 50"]},
-            {"id": "p2", "type": "parameter", "concept": "freq", "body": "200", "conditions": ["freq > 50"]},
-            {"id": "p3", "type": "parameter", "concept": "freq", "body": "300", "conditions": ["freq > 50"]},
+            {"id": "p1", "type": "parameter", "output_concept": "freq", "body": "100", "conditions": ["freq > 50"]},
+            {"id": "p2", "type": "parameter", "output_concept": "freq", "body": "200", "conditions": ["freq > 50"]},
+            {"id": "p3", "type": "parameter", "output_concept": "freq", "body": "300", "conditions": ["freq > 50"]},
         ])
 
         with patch.object(
@@ -1429,9 +1432,9 @@ class TestParameterZ3FailureHandling:
         solver = Z3ConditionSolver(cel_registry)
 
         cf = make_claim_file([
-            {"id": "p1", "type": "parameter", "concept": "freq", "body": "100", "conditions": ["freq > 50"]},
-            {"id": "p2", "type": "parameter", "concept": "freq", "body": "200", "conditions": ["freq > 50"]},
-            {"id": "p3", "type": "parameter", "concept": "freq", "body": "300", "conditions": ["freq > 50"]},
+            {"id": "p1", "type": "parameter", "output_concept": "freq", "body": "100", "conditions": ["freq > 50"]},
+            {"id": "p2", "type": "parameter", "output_concept": "freq", "body": "200", "conditions": ["freq > 50"]},
+            {"id": "p3", "type": "parameter", "output_concept": "freq", "body": "300", "conditions": ["freq > 50"]},
         ])
 
         with patch.object(
@@ -1454,9 +1457,9 @@ class TestParameterZ3FailureHandling:
         solver = Z3ConditionSolver(cel_registry)
 
         cf = make_claim_file([
-            {"id": "p1", "type": "parameter", "concept": "freq", "body": "100", "conditions": ["freq > 50"]},
-            {"id": "p2", "type": "parameter", "concept": "freq", "body": "200", "conditions": ["freq > 50"]},
-            {"id": "p3", "type": "parameter", "concept": "freq", "body": "300", "conditions": ["freq < 10"]},
+            {"id": "p1", "type": "parameter", "output_concept": "freq", "body": "100", "conditions": ["freq > 50"]},
+            {"id": "p2", "type": "parameter", "output_concept": "freq", "body": "200", "conditions": ["freq > 50"]},
+            {"id": "p3", "type": "parameter", "output_concept": "freq", "body": "300", "conditions": ["freq < 10"]},
         ])
 
         with patch.object(
