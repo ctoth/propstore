@@ -10,10 +10,14 @@ from propstore.repository import Repository
 from propstore.rule_workflows import (
     RuleAddRequest,
     RuleFileNotFoundError,
+    RuleNotFoundError,
+    RuleReferencedError,
+    RuleRemoveRequest,
     RuleWorkflowError,
     add_rule,
     list_rules,
     parse_atom,
+    remove_rule,
     show_rule_file,
 )
 
@@ -220,3 +224,159 @@ def test_rule_cli_list_and_show(tmp_path) -> None:
     assert "r_mi" in listed.output
     assert shown.exit_code == 0, shown.output
     assert "rules:" in shown.output
+
+
+def test_remove_rule_rejects_missing_file(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    try:
+        remove_rule(
+            repo,
+            RuleRemoveRequest(file="missing", rule_id="r_mi"),
+        )
+    except RuleFileNotFoundError as exc:
+        assert "missing" in str(exc)
+    else:
+        raise AssertionError("expected missing-file failure")
+
+
+def test_remove_rule_rejects_unknown_id(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_mi",
+            kind="defeasible",
+            head="reduces_mi(X)",
+        ),
+    )
+    try:
+        remove_rule(
+            repo,
+            RuleRemoveRequest(file="ikeda_2014", rule_id="r_nope"),
+        )
+    except RuleNotFoundError as exc:
+        assert "r_nope" in str(exc)
+        assert "ikeda_2014" in str(exc)
+    else:
+        raise AssertionError("expected unknown-id failure")
+
+
+def test_remove_rule_removes_and_preserves_others(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_mi",
+            kind="defeasible",
+            head="reduces_mi(X)",
+            body=("aspirin_user(X)",),
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_bleed",
+            kind="defeasible",
+            head="~safe(X)",
+            body=("aspirin_user(X)",),
+        ),
+    )
+
+    report = remove_rule(
+        repo,
+        RuleRemoveRequest(file="ikeda_2014", rule_id="r_mi"),
+    )
+    assert report.removed is True
+
+    data = yaml.safe_load(report.filepath.read_text(encoding="utf-8"))
+    ids = [entry["id"] for entry in data["rules"]]
+    assert ids == ["r_bleed"]
+    assert data["source"]["paper"] == "Ikeda_2014"
+
+
+def test_remove_rule_rejects_when_referenced_by_superiority(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_a",
+            kind="defeasible",
+            head="a",
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_b",
+            kind="defeasible",
+            head="b",
+        ),
+    )
+    # Mutate the file to install a superiority pair.
+    from propstore.families.documents.rules import RulesFileDocument
+    from propstore.families.registry import RuleFileRef
+
+    ref = RuleFileRef("ikeda_2014")
+    document = repo.families.rules.require(ref)
+    updated = RulesFileDocument(
+        source=document.source,
+        rules=document.rules,
+        superiority=(("r_a", "r_b"),),
+    )
+    repo.families.rules.save(ref, updated, message="install superiority")
+    repo.snapshot.sync_worktree()
+
+    try:
+        remove_rule(
+            repo,
+            RuleRemoveRequest(file="ikeda_2014", rule_id="r_a"),
+        )
+    except RuleReferencedError as exc:
+        assert "r_a" in str(exc)
+        assert "superiority" in str(exc)
+    else:
+        raise AssertionError("expected superiority-reference failure")
+
+
+def test_rule_cli_remove(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_mi",
+            kind="defeasible",
+            head="reduces_mi(X)",
+        ),
+    )
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "rule",
+            "remove",
+            "--file",
+            "ikeda_2014",
+            "--id",
+            "r_mi",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    import yaml as _yaml
+    data = _yaml.safe_load((repo.root / "rules" / "ikeda_2014.yaml").read_text(encoding="utf-8"))
+    assert data["rules"] == [] or data.get("rules") is None
