@@ -604,6 +604,39 @@ class Z3ConditionSolver:
         self._add_temporal_constraints(s2)
         return solver_result_from_z3(s2)
 
+    def implies(
+        self,
+        antecedent_conditions: (
+            Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet
+        ),
+        consequent_conditions: (
+            Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet
+        ),
+    ) -> bool:
+        """Check whether one condition set logically entails another."""
+        result = _require_decided(
+            self.implies_result(antecedent_conditions, consequent_conditions)
+        )
+        return isinstance(result, SolverUnsat)
+
+    def implies_result(
+        self,
+        antecedent_conditions: (
+            Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet
+        ),
+        consequent_conditions: (
+            Sequence[CelExpr | CheckedCelExpr] | CheckedCelConditionSet
+        ),
+    ) -> SolverResult:
+        """Return UNSAT iff antecedent conditions entail consequent conditions."""
+        antecedent_expr = self._conditions_to_z3(antecedent_conditions)
+        consequent_expr = self._conditions_to_z3(consequent_conditions)
+        solver = self._new_solver()
+        solver.add(antecedent_expr)
+        solver.add(z3.Not(consequent_expr))
+        self._add_temporal_constraints(solver)
+        return solver_result_from_z3(solver)
+
     def partition_equivalence_classes(
         self,
         condition_sets: Sequence[

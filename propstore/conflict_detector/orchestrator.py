@@ -149,11 +149,12 @@ def _expand_lifted_conflict_claims(
         if claim.context_id is None:
             continue
         for rule in rules_by_source.get(str(claim.context_id), ()):
-            if rule.conditions and solver is not None and solver.are_disjoint(
-                claim.conditions,
-                rule.conditions,
-            ):
-                continue
+            if rule.conditions:
+                if solver is None:
+                    if not all(condition in claim.conditions for condition in rule.conditions):
+                        continue
+                elif not solver.implies(claim.conditions, rule.conditions):
+                    continue
             target_conditions = tuple(
                 lifting_system.context_assumptions.get(rule.target.id, ())
             )
