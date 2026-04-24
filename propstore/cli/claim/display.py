@@ -167,11 +167,11 @@ def list_cmd(
         emit("No claims found.")
         return
     emit_table(
-        ("ID", "Concept", "Type", "Value"),
+        ("ID", "Concept(s)", "Type", "Value / Summary"),
         [
             (
                 entry.logical_id or entry.claim_id,
-                entry.concept_name or entry.concept_id or "-",
+                entry.concept_display,
                 entry.claim_type,
                 entry.value_display,
             )
@@ -217,11 +217,11 @@ def search(
         emit("No matches.")
         return
     emit_table(
-        ("ID", "Concept", "Type", "Value"),
+        ("ID", "Concept(s)", "Type", "Value / Summary"),
         [
             (
                 entry.logical_id or entry.claim_id,
-                entry.concept_name or entry.concept_id or "-",
+                entry.concept_display,
                 entry.claim_type,
                 entry.value_display,
             )

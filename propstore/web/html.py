@@ -35,7 +35,7 @@ def render_claim_index_page(
     rows = [
         (
             entry.logical_id or entry.claim_id,
-            entry.concept_name or entry.concept_id or "missing",
+            entry.concept_display,
             entry.claim_type,
             entry.value_display,
             entry.condition_display,
@@ -55,7 +55,7 @@ def render_claim_index_page(
 <section aria-labelledby="claims-heading">
   <h2 id="claims-heading">Claim Inventory</h2>
   {_link_table(
-      ("Claim", "Concept", "Type", "Value", "Conditions", "Status"),
+      ("Claim", "Concept(s)", "Type", "Value / Summary", "Conditions", "Status"),
       rows,
       link_column=0,
       href_column=6,

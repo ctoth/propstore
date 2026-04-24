@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
@@ -151,6 +152,7 @@ class ClaimSummaryEntry:
     logical_id: str | None
     concept_id: str | None
     concept_name: str | None
+    concept_display: str
     claim_type: str
     value_display: str
     condition_display: str
@@ -206,7 +208,11 @@ def list_claim_views(
             key=_claim_sort_key,
         )
         entries = tuple(
-            _claim_summary_entry(claim, world.get_concept(str(claim.concept_id)) if claim.concept_id else None)
+            _claim_summary_entry(
+                claim,
+                world.get_concept(str(claim.concept_id)) if claim.concept_id else None,
+                world,
+            )
             for claim in claims[:request.limit]
         )
     return ClaimSummaryReport(entries=entries)
@@ -226,7 +232,7 @@ def search_claim_views(
             concept = world.get_concept(str(claim.concept_id)) if claim.concept_id else None
             if not _claim_matches_query(claim, concept, query):
                 continue
-            matches.append(_claim_summary_entry(claim, concept))
+            matches.append(_claim_summary_entry(claim, concept, world))
             if len(matches) >= request.limit:
                 break
     return ClaimSummaryReport(entries=tuple(matches))
@@ -408,7 +414,7 @@ def _attribute_text(claim, key: str, default: str) -> str:
     return str(raw)
 
 
-def _claim_summary_entry(claim, concept) -> ClaimSummaryEntry:
+def _claim_summary_entry(claim, concept, world) -> ClaimSummaryEntry:
     concept_view = _claim_concept(claim, concept)
     value_view = _claim_value(claim, concept_view)
     condition_view = _claim_condition(claim)
@@ -418,8 +424,9 @@ def _claim_summary_entry(claim, concept) -> ClaimSummaryEntry:
         logical_id=_claim_logical_id(claim),
         concept_id=concept_view.concept_id,
         concept_name=concept_view.canonical_name,
+        concept_display=_claim_summary_concept_display(claim, concept_view, world),
         claim_type="unknown" if claim.claim_type is None else claim.claim_type.value,
-        value_display=_claim_value_display(value_view),
+        value_display=_claim_value_display(claim, value_view),
         condition_display=(
             "(vacuous)"
             if condition_view.expression is None
@@ -430,12 +437,92 @@ def _claim_summary_entry(claim, concept) -> ClaimSummaryEntry:
     )
 
 
-def _claim_value_display(value: ClaimViewValue) -> str:
+def _claim_summary_concept_display(claim, concept: ClaimViewConcept, world) -> str:
+    if concept.canonical_name is not None:
+        return concept.canonical_name
+    if concept.concept_id is not None:
+        return concept.concept_id
+    claim_type = None if claim.claim_type is None else claim.claim_type.value
+    if claim_type == "equation":
+        variable_names = _equation_variable_concept_names(claim, world)
+        if variable_names:
+            return ", ".join(variable_names)
+        return "(equation)"
+    if claim_type in {"observation", "comparison", "mechanism", "limitation"}:
+        return "(multiple concepts)"
+    return "missing"
+
+
+def _claim_value_display(claim, value: ClaimViewValue) -> str:
     if value.value is not None:
         return f"{value.value} {value.unit or ''}".rstrip()
+    interval_display = _claim_interval_display(claim)
+    if interval_display is not None:
+        return interval_display
+    text_display = _claim_text_display(claim)
+    if text_display is not None:
+        return text_display
     if value.state == "not_applicable":
         return "n/a"
     return "(missing)"
+
+
+def _claim_interval_display(claim) -> str | None:
+    if claim.lower_bound is None and claim.upper_bound is None:
+        return None
+    unit_suffix = f" {claim.unit}" if claim.unit else ""
+    if claim.lower_bound is not None and claim.upper_bound is not None:
+        return f"{claim.lower_bound} to {claim.upper_bound}{unit_suffix}"
+    if claim.lower_bound is not None:
+        return f">= {claim.lower_bound}{unit_suffix}"
+    return f"<= {claim.upper_bound}{unit_suffix}"
+
+
+def _claim_text_display(claim) -> str | None:
+    claim_type = None if claim.claim_type is None else claim.claim_type.value
+    if claim.expression and claim_type == "equation":
+        return _truncate_claim_summary_text(claim.expression)
+    if claim.statement and claim_type in {
+        "observation",
+        "comparison",
+        "mechanism",
+        "limitation",
+    }:
+        return _truncate_claim_summary_text(claim.statement)
+    return None
+
+
+def _equation_variable_concept_names(claim, world) -> tuple[str, ...]:
+    if not claim.variables_json:
+        return ()
+    try:
+        variables = json.loads(str(claim.variables_json))
+    except json.JSONDecodeError:
+        return ()
+    if not isinstance(variables, list):
+        return ()
+    names: list[str] = []
+    seen: set[str] = set()
+    for entry in variables:
+        if not isinstance(entry, dict):
+            continue
+        concept_id = entry.get("concept")
+        if not isinstance(concept_id, str) or not concept_id:
+            continue
+        concept = world.get_concept(concept_id)
+        label = concept_id if concept is None or concept.canonical_name is None else concept.canonical_name
+        if label in seen:
+            continue
+        seen.add(label)
+        names.append(label)
+    return tuple(names)
+
+
+def _truncate_claim_summary_text(text: str, limit: int = 120) -> str:
+    normalized = " ".join(text.split())
+    if len(normalized) <= limit:
+        return normalized
+    return f"{normalized[: limit - 3].rstrip()}..."
 
 
 def _claim_sort_key(claim) -> tuple[str, str]:
@@ -464,6 +551,7 @@ def _claim_matches_query(claim, concept, query: str) -> bool:
         str(claim.claim_id),
         _claim_logical_id(claim) or "",
         "" if claim.statement is None else claim.statement,
+        "" if claim.expression is None else claim.expression,
         "" if claim.auto_summary is None else claim.auto_summary,
         "" if claim.conditions_cel is None else claim.conditions_cel,
         "" if concept is None or concept.canonical_name is None else concept.canonical_name,
