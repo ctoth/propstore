@@ -7,6 +7,7 @@ from propstore.demo import materialize_reasoning_demo
 from propstore.grounding.inspection import (
     GroundingInspectionError,
     inspect_grounding_arguments,
+    inspect_grounding_explain,
     inspect_grounding_query,
     inspect_grounding_show,
     inspect_grounding_status,
@@ -44,6 +45,24 @@ def test_grounding_show_report_projects_rules_sections_and_arguments(tmp_path) -
     assert "flies(tweety)" in sections["defeasibly"]
     assert "bird(tweety) <= fact" in arguments.arguments
     assert "flies(tweety) <= r_flies_from_bird" in arguments.arguments
+
+
+def test_grounding_explain_report_exposes_gunray_text(tmp_path) -> None:
+    repo = materialize_reasoning_demo(tmp_path / "knowledge")
+
+    report = inspect_grounding_explain(repo, "flies(tweety)")
+
+    assert report.atom == GroundAtom(predicate="flies", arguments=("tweety",))
+    assert report.matched_sections == ("defeasibly",)
+    assert report.explained_atom == report.atom
+    assert report.prose == (
+        "flies(tweety) is YES.\n"
+        "An argument supports flies(tweety) from {bird(tweety)} via r_flies_from_bird."
+    )
+    assert report.tree is not None
+    assert "flies(tweety)" in report.tree
+    assert "r_flies_from_bird" in report.tree
+    assert report.message is None
 
 
 def test_grounding_query_report_uses_typed_atom_parser(tmp_path) -> None:

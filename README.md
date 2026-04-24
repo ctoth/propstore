@@ -119,6 +119,7 @@ uv run pks -C .tmp-reasoning-demo/knowledge grounding status
 uv run pks -C .tmp-reasoning-demo/knowledge grounding show
 uv run pks -C .tmp-reasoning-demo/knowledge grounding query flies(tweety)
 uv run pks -C .tmp-reasoning-demo/knowledge grounding arguments
+uv run pks -C .tmp-reasoning-demo/knowledge grounding explain flies(tweety)
 uv run pks -C .tmp-reasoning-demo/knowledge world extensions --backend aspic
 uv run pks -C .tmp-reasoning-demo/knowledge worldline run demo --target flight_score --strategy argumentation --reasoning-backend aspic
 uv run pks -C .tmp-reasoning-demo/knowledge worldline show demo
@@ -126,7 +127,7 @@ uv run pks -C .tmp-reasoning-demo/knowledge worldline show demo
 
 What each layer is doing:
 
-- gunray computes the grounded predicates, grounded rule instances, grounded arguments, and the four defeasible sections
+- gunray computes the grounded predicates, grounded rule instances, grounded arguments, textual dialectical explanations, and the four defeasible sections
 - propstore consumes that grounded bundle and projects it into claim-level ASPIC arguments, defeats, extensions, and worldline output
 
 ## What This Can Actually Do

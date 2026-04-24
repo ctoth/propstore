@@ -11,7 +11,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from argumentation.aspic import GroundAtom, Scalar
-from propstore.grounding.loading import build_grounded_bundle
+from propstore.grounding.explanations import build_grounding_text_explanation
+from propstore.grounding.loading import build_grounded_bundle, load_grounding_inputs
 
 if TYPE_CHECKING:
     from gunray import Argument, GroundDefeasibleRule
@@ -79,6 +80,16 @@ class GroundingArgumentsReport:
     arguments: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class GroundingExplainReport:
+    atom: GroundAtom
+    matched_sections: tuple[str, ...]
+    explained_atom: GroundAtom | None
+    prose: str | None
+    tree: str | None
+    message: str | None
+
+
 def inspect_grounding_surface(repo: "Repository") -> GroundingSurface:
     return GroundingSurface(
         predicate_files=tuple(
@@ -129,6 +140,14 @@ def _sort_row(row: tuple[Scalar, ...]) -> tuple[str, ...]:
 
 def _section_atom_count(bundle: "GroundedRulesBundle", name: str) -> int:
     return sum(len(rows) for rows in bundle.sections[name].values())
+
+
+def _matched_sections(bundle: "GroundedRulesBundle", atom: GroundAtom) -> tuple[str, ...]:
+    return tuple(
+        name
+        for name in SECTION_ORDER
+        if tuple(atom.arguments) in bundle.sections[name].get(atom.predicate, frozenset())
+    )
 
 
 def _grounded_rules(bundle: "GroundedRulesBundle") -> tuple["GroundDefeasibleRule", ...]:
@@ -296,14 +315,9 @@ def inspect_grounding_show(repo: "Repository") -> GroundingShowReport:
 def inspect_grounding_query(repo: "Repository", atom: str) -> GroundingQueryReport:
     bundle = require_grounding_bundle(repo, return_arguments=False)
     query_atom = parse_query_atom(atom)
-    matched_sections = tuple(
-        name
-        for name in SECTION_ORDER
-        if tuple(query_atom.arguments) in bundle.sections[name].get(query_atom.predicate, frozenset())
-    )
     return GroundingQueryReport(
         atom=query_atom,
-        matched_sections=matched_sections,
+        matched_sections=_matched_sections(bundle, query_atom),
     )
 
 
@@ -311,4 +325,29 @@ def inspect_grounding_arguments(repo: "Repository") -> GroundingArgumentsReport:
     bundle = require_grounding_bundle(repo, return_arguments=True)
     return GroundingArgumentsReport(
         arguments=tuple(format_argument(argument) for argument in bundle.arguments),
+    )
+
+
+def inspect_grounding_explain(repo: "Repository", atom: str) -> GroundingExplainReport:
+    bundle = require_grounding_bundle(repo, return_arguments=False)
+    query_atom = parse_query_atom(atom)
+    inputs = load_grounding_inputs(repo)
+    if inputs.registry is None:
+        raise GroundingInspectionError(
+            "No grounding authoring found: predicates/ and rules/ contain no YAML files."
+        )
+
+    explanation = build_grounding_text_explanation(
+        inputs.rule_files,
+        inputs.facts,
+        inputs.registry,
+        query_atom,
+    )
+    return GroundingExplainReport(
+        atom=query_atom,
+        matched_sections=_matched_sections(bundle, query_atom),
+        explained_atom=explanation.explained_atom,
+        prose=explanation.prose,
+        tree=explanation.tree,
+        message=explanation.message,
     )
