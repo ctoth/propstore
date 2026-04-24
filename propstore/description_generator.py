@@ -64,7 +64,7 @@ def _format_number(n: float) -> str:
 
 def _describe_parameter(claim: dict, concept_registry: dict) -> str:
     """Generate description for a parameter claim."""
-    concept_id = claim.get("concept")
+    concept_id = claim.get("output_concept")
     name = _resolve_concept_name(concept_id, concept_registry)
     unit = claim.get("unit", "")
 
@@ -138,8 +138,13 @@ def _describe_algorithm(claim: dict) -> str:
     """Generate description for an algorithm claim."""
     name = claim.get("name", "unnamed")
     stage = claim.get("stage")
+    output_concept = claim.get("output_concept")
     if stage:
+        if output_concept:
+            return f"Algorithm: {name} -> {output_concept} [{stage}]"
         return f"Algorithm: {name} [{stage}]"
+    if output_concept:
+        return f"Algorithm: {name} -> {output_concept}"
     return f"Algorithm: {name}"
 
 

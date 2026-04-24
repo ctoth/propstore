@@ -69,9 +69,9 @@ def _bind_claim(
     authored_claim = claim.to_payload()
     resolved_claim = copy.deepcopy(authored_claim)
 
-    concept_ref = resolve_concept_reference(claim.concept, context)
-    if concept_ref is not None and concept_ref.resolved_id is not None:
-        resolved_claim["concept"] = concept_ref.resolved_id
+    output_concept_ref = resolve_concept_reference(claim.output_concept, context)
+    if output_concept_ref is not None and output_concept_ref.resolved_id is not None:
+        resolved_claim["output_concept"] = output_concept_ref.resolved_id
 
     target_concept_ref = resolve_concept_reference(claim.target_concept, context)
     if target_concept_ref is not None and target_concept_ref.resolved_id is not None:
@@ -155,7 +155,7 @@ def _bind_claim(
             ClaimDocument,
             source=filename,
         ),
-        concept_ref=concept_ref,
+        output_concept_ref=output_concept_ref,
         target_concept_ref=target_concept_ref,
         concept_refs=tuple(concept_refs),
         variable_refs=tuple(variable_refs),

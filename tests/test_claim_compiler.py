@@ -121,7 +121,7 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
         paper="paper",
         stances=[{"type": "supports", "target": "paper:claim2"}],
     )
-    claim1["concept"] = "F0"
+    claim1["output_concept"] = "F0"
     claim2 = make_parameter_claim("claim2", "concept2", 100.0, "Pa", paper="paper")
     payload = normalize_claims_payload({
         "source": {"paper": "paper"},
@@ -141,9 +141,12 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
     semantic_claim = bundle.semantic_files[0].claims[0]
     target_claim_id = bundle.semantic_files[0].claims[1].artifact_id
 
-    assert semantic_claim.concept_ref is not None
-    assert semantic_claim.concept_ref.matched_by == "alias"
-    assert semantic_claim.concept_ref.resolved_id == semantic_claim.resolved_claim.concept
+    assert semantic_claim.output_concept_ref is not None
+    assert semantic_claim.output_concept_ref.matched_by == "alias"
+    assert (
+        semantic_claim.output_concept_ref.resolved_id
+        == semantic_claim.resolved_claim.output_concept
+    )
     assert semantic_claim.stances[0].target_ref.matched_by == "logical_id"
     assert semantic_claim.stances[0].target_ref.resolved_id == target_claim_id
 
@@ -182,7 +185,7 @@ def test_prepare_claim_insert_row_matches_for_raw_and_semantic_claims(tmp_path):
     claims_dir.mkdir()
 
     claim = make_parameter_claim("claim1", "concept1", 200.0, "Hz", paper="paper")
-    claim["concept"] = "F0"
+    claim["output_concept"] = "F0"
     payload = normalize_claims_payload({
         "source": {"paper": "paper"},
         "claims": [claim],
@@ -244,7 +247,7 @@ def test_compile_claim_files_rejects_raw_id_only_claims(tmp_path):
             {
                 "id": "claim1",
                 "type": "parameter",
-                "concept": concepts[0]["artifact_id"],
+                "output_concept": concepts[0]["artifact_id"],
                 "value": 200.0,
                 "unit": "Hz",
                 "context": {"id": "ctx_test"},

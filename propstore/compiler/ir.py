@@ -31,7 +31,7 @@ class SemanticClaim:
     claim_type: str | None
     authored_claim: dict[str, Any]
     resolved_claim: ClaimDocument
-    concept_ref: ResolvedReference | None = None
+    output_concept_ref: ResolvedReference | None = None
     target_concept_ref: ResolvedReference | None = None
     concept_refs: tuple[ResolvedReference, ...] = ()
     variable_refs: tuple[ResolvedReference, ...] = ()

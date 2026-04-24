@@ -6,7 +6,7 @@ Tests the compiler contract checks that JSON Schema can't express:
 - Concept references exist in registry
 - CEL conditions type-check
 - Provenance has paper and page
-- Parameter claims: concept, value, unit required
+- Parameter claims: output_concept, value, unit required
 - Equation claims: expression, variables required
 - Observation claims: statement, concepts required
 - Model claims: name, equations, parameters required
@@ -32,9 +32,9 @@ def _concept_artifact(local_id: str) -> str:
 
 def _rewrite_claim_concept_refs(claim: dict) -> dict:
     rewritten = dict(claim)
-    concept = rewritten.get("concept")
-    if isinstance(concept, str) and concept.startswith("concept"):
-        rewritten["concept"] = _concept_artifact(concept)
+    output_concept = rewritten.get("output_concept")
+    if isinstance(output_concept, str) and output_concept.startswith("concept"):
+        rewritten["output_concept"] = _concept_artifact(output_concept)
 
     target_concept = rewritten.get("target_concept")
     if isinstance(target_concept, str) and target_concept.startswith("concept"):
@@ -379,7 +379,7 @@ class TestProvenanceErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 440.0,
             "unit": "Hz",
         }
@@ -395,7 +395,7 @@ class TestProvenanceErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 440.0,
             "unit": "Hz",
             "provenance": {"paper": "test_paper"},
@@ -415,7 +415,7 @@ class TestParameterClaimErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 440.0,
             "unit": "Pa",
             "provenance": {"paper": "test_paper", "page": 1},
@@ -433,7 +433,7 @@ class TestParameterClaimErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "unit": "Hz",
             "provenance": {"paper": "test_paper", "page": 1},
         }
@@ -449,7 +449,7 @@ class TestParameterClaimErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 440.0,
             "provenance": {"paper": "test_paper", "page": 1},
         }
@@ -466,7 +466,7 @@ class TestParameterClaimErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "hazard_ratio",
+            "output_concept": "hazard_ratio",
             "value": 0.94,
             "provenance": {"paper": "test_paper", "page": 1},
             # No unit field — should auto-fill '1' for dimensionless ratio form
@@ -477,7 +477,7 @@ class TestParameterClaimErrors:
         result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
-    def test_parameter_missing_concept_error(self, claims_dir):
+    def test_parameter_missing_output_concept_error(self, claims_dir):
         claim = {
             "id": "claim1",
             "type": "parameter",
@@ -491,7 +491,22 @@ class TestParameterClaimErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_compilation_context())
         assert not result.ok
-        assert any("concept" in e.lower() for e in result.errors)
+        assert any("output_concept" in e.lower() for e in result.errors)
+
+    def test_parameter_rejects_singular_concept_at_document_boundary(self, claims_dir):
+        claim = {
+            "id": "claim1",
+            "type": "parameter",
+            "concept": "concept1",
+            "value": 440.0,
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        with pytest.raises(DocumentSchemaError, match="concept"):
+            load_claim_files(claims_dir)
 
 
 # ── Equation claim errors ────────────────────────────────────────────
@@ -925,7 +940,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 0.7,
             "unit": "Hz",
             "provenance": {"paper": "test_paper", "page": 1},
@@ -942,7 +957,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 0.7,
             "lower_bound": 0.5,
             "upper_bound": 0.9,
@@ -961,7 +976,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 0.7,
             "uncertainty": 0.12,
             "uncertainty_type": "sd",
@@ -980,7 +995,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 0.7,
             "lower_bound": 0.5,
             "unit": "Hz",
@@ -999,7 +1014,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 0.7,
             "upper_bound": 0.9,
             "unit": "Hz",
@@ -1018,7 +1033,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 0.7,
             "uncertainty_type": "sd",
             "unit": "Hz",
@@ -1037,7 +1052,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 0.7,
             "uncertainty": 0.12,
             "unit": "Hz",
@@ -1056,7 +1071,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "unit": "Hz",
             "provenance": {"paper": "test_paper", "page": 1},
         }
@@ -1073,7 +1088,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "lower_bound": 0.5,
             "upper_bound": 0.9,
             "unit": "Hz",
@@ -1447,6 +1462,7 @@ def make_algorithm_claim(id, body, variables, page=1, **kwargs):
         "id": id,
         "type": "algorithm",
         "body": body,
+        "output_concept": "concept3",
         "variables": variables,
         "provenance": {"paper": "test_paper", "page": page},
     }
@@ -1650,7 +1666,7 @@ class TestValidateSingleFile:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "concept1",
+            "output_concept": "concept1",
             "value": 440.0,
             "unit": "Hz",
             "provenance": {"paper": "test_paper"},  # missing page
