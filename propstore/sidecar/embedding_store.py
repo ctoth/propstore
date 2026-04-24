@@ -196,11 +196,15 @@ class SidecarClaimEmbeddingStore(_SidecarEntityEmbeddingStore):
                 core.seq,
                 core.type,
                 core.source_paper,
-                core.concept_id,
+                COALESCE(output_link.concept_id, target_link.concept_id, core.target_concept) AS concept_id,
                 txt.auto_summary,
                 txt.statement
             FROM claim_core AS core
             LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+            LEFT JOIN claim_concept_link AS output_link
+                ON output_link.claim_id = core.id AND output_link.role = 'output'
+            LEFT JOIN claim_concept_link AS target_link
+                ON target_link.claim_id = core.id AND target_link.role = 'target'
         )
     """
     join_columns = (

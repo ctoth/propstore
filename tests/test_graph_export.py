@@ -177,7 +177,7 @@ def claim_files(concept_dir):
             {
                 "id": "claim1",
                 "type": "parameter",
-                "concept": "concept1",
+                "output_concept": "concept1",
                 "value": 200.0,
                 "unit": "Hz",
                 "sample_size": 30,
@@ -188,7 +188,7 @@ def claim_files(concept_dir):
             {
                 "id": "claim2",
                 "type": "parameter",
-                "concept": "concept1",
+                "output_concept": "concept1",
                 "value": 350.0,
                 "unit": "Hz",
                 "sample_size": 10,
@@ -207,7 +207,7 @@ def claim_files(concept_dir):
             {
                 "id": "claim3",
                 "type": "parameter",
-                "concept": "concept1",
+                "output_concept": "concept1",
                 "value": 180.0,
                 "unit": "Hz",
                 "conditions": ["task == 'singing'"],
@@ -216,7 +216,7 @@ def claim_files(concept_dir):
             {
                 "id": "claim4",
                 "type": "parameter",
-                "concept": "concept2",
+                "output_concept": "concept2",
                 "value": 800.0,
                 "unit": "Pa",
                 "conditions": ["task == 'speech'"],
@@ -232,7 +232,7 @@ def claim_files(concept_dir):
             {
                 "id": "claim10",
                 "type": "parameter",
-                "concept": "concept6",
+                "output_concept": "concept6",
                 "value": 0.001,
                 "unit": "s",
                 "conditions": ["task == 'speech'"],
@@ -247,7 +247,7 @@ def claim_files(concept_dir):
             {
                 "id": "claim6",
                 "type": "parameter",
-                "concept": "concept2",
+                "output_concept": "concept2",
                 "value": 800.0,
                 "unit": "Pa",
                 "conditions": ["task == 'speech'"],
@@ -256,7 +256,7 @@ def claim_files(concept_dir):
             {
                 "id": "claim7",
                 "type": "parameter",
-                "concept": "concept1",
+                "output_concept": "concept1",
                 "value": 250.0,
                 "unit": "Hz",
                 "sample_size": 50,
@@ -287,7 +287,7 @@ def claim_files(concept_dir):
             {
                 "id": "claim9",
                 "type": "parameter",
-                "concept": "concept1",
+                "output_concept": "concept1",
                 "value": 220.0,
                 "unit": "Hz",
                 "conditions": ["task == 'whisper'"],
@@ -365,8 +365,12 @@ class TestUnboundGraph:
             "VALUES ('concept2', 'jnd_threshold', 'accepted', 'speech', 'frequency', 'quantity', NULL)"
         )
         conn.execute(
-            "INSERT INTO claim_core (id, content_hash, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
-            "VALUES ('measurement1', 'h1', 1, 'measurement', NULL, 'concept2', 'test', 1, NULL, NULL)"
+            "INSERT INTO claim_core (id, content_hash, seq, type, target_concept, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('measurement1', 'h1', 1, 'measurement', 'concept2', 'test', 1, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_concept_link (claim_id, concept_id, role, ordinal, binding_name) "
+            "VALUES ('measurement1', 'concept2', 'target', 0, NULL)"
         )
         conn.execute(
             "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "

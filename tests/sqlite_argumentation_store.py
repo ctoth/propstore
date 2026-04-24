@@ -21,7 +21,7 @@ class SQLiteArgumentationStore:
             SELECT
                 core.id,
                 core.type,
-                core.concept_id,
+                COALESCE(output_link.concept_id, target_link.concept_id, core.target_concept) AS value_concept_id,
                 core.target_concept,
                 core.source_paper,
                 core.provenance_page,
@@ -38,6 +38,10 @@ class SQLiteArgumentationStore:
             FROM claim_core AS core
             LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
             LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+            LEFT JOIN claim_concept_link AS output_link
+                ON output_link.claim_id = core.id AND output_link.role = 'output'
+            LEFT JOIN claim_concept_link AS target_link
+                ON target_link.claim_id = core.id AND target_link.role = 'target'
             WHERE core.id IN ({placeholders})
             """,  # noqa: S608
             list(claim_ids),

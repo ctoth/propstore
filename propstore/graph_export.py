@@ -31,7 +31,7 @@ def _coerce_claim_like(claim_input):
 
 def _claim_concept_id(claim_input) -> Any:
     claim = _coerce_claim_like(claim_input)
-    return claim.concept_id or claim.target_concept
+    return claim.value_concept_id or claim.target_concept
 
 
 def _display_claim_id(claim_input) -> str:

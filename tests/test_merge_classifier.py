@@ -78,10 +78,9 @@ def _param_claim(
     claim: dict = {
         "id": cid,
         "type": "parameter",
-        "concept": concept,
+        "output_concept": concept,
         "value": value,
         "unit": "K",
-        "concepts": [concept],
         "provenance": {"paper": "test_paper", "page": 1},
     }
     if conditions:

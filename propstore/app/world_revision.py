@@ -88,7 +88,7 @@ def revision_atom_display(atom: BeliefAtom) -> RevisionAtomDisplay:
             atom_id=atom.atom_id,
             display_id=display_id,
             claim_type=None if atom.claim.claim_type is None else atom.claim.claim_type.value,
-            concept_id=None if atom.claim.concept_id is None else str(atom.claim.concept_id),
+            concept_id=None if atom.claim.value_concept_id is None else str(atom.claim.value_concept_id),
             value=atom.claim.row.value,
             unit=atom.claim.unit,
         )

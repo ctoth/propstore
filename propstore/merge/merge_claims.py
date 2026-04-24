@@ -36,9 +36,11 @@ class MergeClaim:
         return self.document.type
 
     @property
-    def concept_id(self) -> str:
-        if isinstance(self.document.concept, str) and self.document.concept:
-            return self.document.concept
+    def value_concept_id(self) -> str:
+        if isinstance(self.document.output_concept, str) and self.document.output_concept:
+            return self.document.output_concept
+        if isinstance(self.document.target_concept, str) and self.document.target_concept:
+            return self.document.target_concept
         for concept_id in self.document.concepts:
             if isinstance(concept_id, str) and concept_id:
                 return concept_id
