@@ -23,6 +23,7 @@ def _report() -> ClaimSummaryReport:
                 logical_id="paper:claim1",
                 concept_id="concept1",
                 concept_name="fundamental_frequency",
+                concept_display="fundamental_frequency",
                 claim_type="parameter",
                 value_display="100 Hz",
                 condition_display="(vacuous)",
@@ -54,6 +55,7 @@ def test_claim_index_html_route_renders_inventory(
     assert "Claim Inventory" in html
     assert "fundamental_frequency" in html
     assert "/claim/claim1" in html
+    assert "<th scope=\"col\">Concept(s)</th>" in html
     assert "<th scope=\"col\">Status</th>" in html
 
 
