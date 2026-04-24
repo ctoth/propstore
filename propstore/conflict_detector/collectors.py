@@ -58,8 +58,8 @@ def _collect_parameter_claims(
 ) -> dict[str, list[ConflictClaim]]:
     by_concept: dict[str, list[ConflictClaim]] = defaultdict(list)
     for claim in claims:
-        if claim.claim_type == "parameter" and claim.concept_id:
-            by_concept[claim.concept_id].append(claim)
+        if claim.claim_type == "parameter" and claim.output_concept_id:
+            by_concept[claim.output_concept_id].append(claim)
     return dict(by_concept)
 
 
@@ -84,8 +84,8 @@ def _collect_algorithm_claims(
     for claim in claims:
         if claim.claim_type != "algorithm":
             continue
-        if claim.concept_id is not None:
-            by_concept[claim.concept_id].append(claim)
+        if claim.output_concept_id is not None:
+            by_concept[claim.output_concept_id].append(claim)
             continue
         first_concept = next((variable.concept_id for variable in claim.variables), None)
         if first_concept is not None:
