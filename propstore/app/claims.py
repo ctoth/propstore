@@ -320,6 +320,7 @@ def detect_claim_conflicts(
     )
     from propstore.conflict_detector import ConflictClass, detect_conflicts
     from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+    from propstore.families.contexts.stages import loaded_contexts_to_lifting_system
 
     files = [
         repo.families.claims.require_handle(ref)
@@ -330,10 +331,20 @@ def detect_claim_conflicts(
 
     context = build_compilation_context_from_repo(repo, claim_files=list(files))
     registry = concept_registry_for_context(context)
+    contexts = [
+        repo.families.contexts.require_handle(ref)
+        for ref in repo.families.contexts.iter()
+    ]
+    lifting_system = (
+        loaded_contexts_to_lifting_system(contexts)
+        if contexts
+        else None
+    )
     records = detect_conflicts(
         conflict_claims_from_claim_files(files),
         registry,
         context.cel_registry,
+        lifting_system=lifting_system,
     )
     if request.concept:
         records = [record for record in records if record.concept_id == request.concept]
