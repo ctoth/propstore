@@ -19,7 +19,8 @@ from propstore.app.repository_views import (
     RepositoryViewUnsupportedStateError,
 )
 from propstore.core.claim_values import ClaimProvenance, ClaimSource
-from propstore.core.row_types import ClaimRow, ConceptRow
+from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
+from propstore.core.row_types import ClaimConceptLinkRow, ClaimRow, ConceptRow
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
 
@@ -60,7 +61,11 @@ class _World:
         claims = list(self.claims.values())
         if concept_id is None:
             return claims
-        return [claim for claim in claims if str(claim.concept_id) == concept_id]
+        return [
+            claim
+            for claim in claims
+            if any(str(link.concept_id) == concept_id for link in claim.concept_links)
+        ]
 
     def resolve_concept(self, name: str) -> str | None:
         for concept in self.concepts.values():
@@ -83,7 +88,14 @@ def _claim(**overrides) -> ClaimRow:
         "claim_id": "claim1",
         "artifact_id": "claim1",
         "claim_type": "parameter",
-        "concept_id": "concept1",
+        "concept_links": (
+            ClaimConceptLinkRow(
+                claim_id="claim1",
+                concept_id="concept1",
+                role=ClaimConceptLinkRole.OUTPUT,
+                ordinal=0,
+            ),
+        ),
         "value": 12.5,
         "unit": "Hz",
         "value_si": 12.5,
@@ -93,6 +105,16 @@ def _claim(**overrides) -> ClaimRow:
         "provenance": ClaimProvenance(paper="paper1", page=4),
     }
     values.update(overrides)
+    if "concept_links" not in overrides:
+        claim_id = str(values["claim_id"])
+        values["concept_links"] = (
+            ClaimConceptLinkRow(
+                claim_id=claim_id,
+                concept_id="concept1",
+                role=ClaimConceptLinkRole.OUTPUT,
+                ordinal=0,
+            ),
+        )
     return ClaimRow(**values)
 
 
@@ -138,6 +160,14 @@ def test_build_claim_view_speaks_absence_literals(
 ) -> None:
     claim = _claim(
         claim_type="mechanism",
+        concept_links=(
+            ClaimConceptLinkRow(
+                claim_id="claim1",
+                concept_id="concept1",
+                role=ClaimConceptLinkRole.ABOUT,
+                ordinal=0,
+            ),
+        ),
         value=None,
         unit=None,
         value_si=None,
@@ -229,20 +259,33 @@ def test_list_claim_views_renders_statement_claim_summaries(
                 claim_id="claim_obs",
                 artifact_id="claim_obs",
                 claim_type="observation",
-                concept_id=None,
+                concept_links=(
+                    ClaimConceptLinkRow(
+                        claim_id="claim_obs",
+                        concept_id="concept1",
+                        role=ClaimConceptLinkRole.ABOUT,
+                        ordinal=0,
+                    ),
+                    ClaimConceptLinkRow(
+                        claim_id="claim_obs",
+                        concept_id="concept2",
+                        role=ClaimConceptLinkRole.ABOUT,
+                        ordinal=1,
+                    ),
+                ),
                 value=None,
                 unit=None,
                 statement="No interaction was found between aspirin and antioxidant treatments on any outcome.",
             ),
         ),
-        visible=True,
+        concepts=(_concept(), _concept2()),
     )
     monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
 
     report = claim_views.list_claim_views(_repo(), claim_views.ClaimListRequest(limit=10))
 
     assert len(report.entries) == 1
-    assert report.entries[0].concept_display == "(multiple concepts)"
+    assert report.entries[0].concept_display == "fundamental_frequency, subglottal_pressure"
     assert report.entries[0].value_display == (
         "No interaction was found between aspirin and antioxidant treatments on any outcome."
     )
@@ -281,7 +324,7 @@ def test_list_claim_views_renders_equation_variable_concepts_and_expression(
                 claim_id="claim_eq",
                 artifact_id="claim_eq",
                 claim_type="equation",
-                concept_id=None,
+                concept_links=(),
                 value=None,
                 unit=None,
                 expression="y = f(x)",

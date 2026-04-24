@@ -172,7 +172,8 @@ def build_claim_view(repo: Repository, request: ClaimViewRequest) -> ClaimViewRe
         claim = world.get_claim(request.claim_id)
         if claim is None:
             raise ClaimViewUnknownClaimError(request.claim_id)
-        concept = world.get_concept(str(claim.concept_id)) if claim.concept_id else None
+        primary_concept_id = _claim_primary_concept_id(claim)
+        concept = world.get_concept(primary_concept_id) if primary_concept_id else None
         visible_ids = {str(row.claim_id) for row in world.claims_with_policy(None, policy)}
         status = _claim_status(claim, str(claim.claim_id) in visible_ids)
         concept_view = _claim_concept(claim, concept)
@@ -210,7 +211,11 @@ def list_claim_views(
         entries = tuple(
             _claim_summary_entry(
                 claim,
-                world.get_concept(str(claim.concept_id)) if claim.concept_id else None,
+                (
+                    world.get_concept(primary_concept_id)
+                    if (primary_concept_id := _claim_primary_concept_id(claim))
+                    else None
+                ),
                 world,
             )
             for claim in claims[:request.limit]
@@ -229,7 +234,8 @@ def search_claim_views(
         concept_filter = _resolve_concept_filter(world, request.concept)
         matches: list[ClaimSummaryEntry] = []
         for claim in sorted(world.claims_with_policy(concept_filter, policy), key=_claim_sort_key):
-            concept = world.get_concept(str(claim.concept_id)) if claim.concept_id else None
+            primary_concept_id = _claim_primary_concept_id(claim)
+            concept = world.get_concept(primary_concept_id) if primary_concept_id else None
             if not _claim_matches_query(claim, concept, query):
                 continue
             matches.append(_claim_summary_entry(claim, concept, world))
@@ -239,7 +245,8 @@ def search_claim_views(
 
 
 def _claim_concept(claim, concept) -> ClaimViewConcept:
-    if claim.concept_id is None:
+    primary_concept_id = _claim_primary_concept_id(claim)
+    if primary_concept_id is None:
         return ClaimViewConcept(
             state="not_applicable",
             concept_id=None,
@@ -249,7 +256,7 @@ def _claim_concept(claim, concept) -> ClaimViewConcept:
     if concept is None:
         return ClaimViewConcept(
             state="unknown",
-            concept_id=str(claim.concept_id),
+            concept_id=primary_concept_id,
             canonical_name=None,
             form=None,
         )
@@ -442,6 +449,9 @@ def _claim_summary_concept_display(claim, concept: ClaimViewConcept, world) -> s
         return concept.canonical_name
     if concept.concept_id is not None:
         return concept.concept_id
+    linked_labels = _claim_linked_concept_labels(claim, world)
+    if linked_labels:
+        return ", ".join(linked_labels)
     claim_type = None if claim.claim_type is None else claim.claim_type.value
     if claim_type == "equation":
         variable_names = _equation_variable_concept_names(claim, world)
@@ -536,6 +546,32 @@ def _claim_sort_key(claim) -> tuple[str, str]:
 def _claim_logical_id(claim) -> str | None:
     logical_id = claim.primary_logical_id
     return None if logical_id is None else str(logical_id)
+
+
+def _claim_primary_concept_id(claim) -> str | None:
+    if claim.value_concept_id is not None:
+        return str(claim.value_concept_id)
+    about_concepts = claim.about_concept_ids
+    if len(about_concepts) == 1:
+        return str(about_concepts[0])
+    return None
+
+
+def _claim_linked_concept_labels(claim, world) -> tuple[str, ...]:
+    labels: list[str] = []
+    seen: set[str] = set()
+    for link in claim.concept_links:
+        concept = world.get_concept(str(link.concept_id))
+        label = (
+            str(link.concept_id)
+            if concept is None or concept.canonical_name is None
+            else concept.canonical_name
+        )
+        if label in seen:
+            continue
+        seen.add(label)
+        labels.append(label)
+    return tuple(labels)
 
 
 def _resolve_concept_filter(world, concept: str | None) -> str | None:
