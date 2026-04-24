@@ -10,13 +10,16 @@ from propstore.cli.helpers import fail
 from propstore.app.contexts import (
     ContextAddRequest,
     ContextNotFoundError,
+    ContextReferencedError,
     ContextSearchRequest,
     ContextWorkflowError,
     add_context,
     list_context_items,
+    remove_context,
     search_context_items,
     show_context,
 )
+from propstore.cli.helpers import EXIT_ERROR, exit_with_code
 from propstore.repository import Repository
 
 
@@ -90,6 +93,36 @@ def show(obj: dict, name: str) -> None:
     except ContextNotFoundError:
         fail(f"Context '{name}' not found")
     emit(report.rendered)
+
+
+@context.command("remove")
+@click.argument("name")
+@click.option("--force", is_flag=True, help="Remove even if claims or worldlines still reference this context")
+@click.option("--dry-run", is_flag=True)
+@click.pass_obj
+def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
+    """Remove one context YAML document."""
+    repo: Repository = obj["repo"]
+    try:
+        report = remove_context(repo, name, force=force, dry_run=dry_run)
+    except ContextNotFoundError:
+        fail(f"Context '{name}' not found")
+    except ContextReferencedError as exc:
+        emit(f"ERROR: {exc}:")
+        for reference in exc.references:
+            emit(f"  {reference}")
+        emit("Use --force to remove anyway.")
+        exit_with_code(EXIT_ERROR)
+
+    if not report.removed:
+        emit(f"Would remove {report.filepath}")
+        if report.references:
+            emit(f"  ({len(report.references)} artifact(s) still reference this context)")
+        return
+
+    emit_success(f"Removed {report.filepath}")
+    if report.references:
+        emit(f"  WARNING: {len(report.references)} artifact(s) still reference this context")
 
 
 @context.command("search")

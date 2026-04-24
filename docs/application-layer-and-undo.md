@@ -329,6 +329,7 @@ that links to the original command and the undo command.
 | `pks form remove` | Deletes form document after reference checks | `RevertCommitsUndo` |
 | `pks context list/search/show` | Read-only report | `NoOpUndo` |
 | `pks context add` | Adds context document | `RevertCommitsUndo` |
+| `pks context remove` | Deletes context document after reference checks | `RevertCommitsUndo` |
 
 ### Source Commands
 
