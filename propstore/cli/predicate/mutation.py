@@ -4,8 +4,10 @@ import click
 
 from propstore.app.predicates import (
     PredicateAddRequest,
+    PredicateRemoveRequest,
     PredicateWorkflowError,
     add_predicate,
+    remove_predicate,
 )
 from propstore.cli.helpers import fail
 from propstore.cli.output import emit, emit_success
@@ -84,3 +86,32 @@ def add(
     else:
         emit_success(f"Updated {report.filepath}")
     emit(f"  + predicate {predicate_id}/{arity}")
+
+
+@predicate.command("remove")
+@click.option(
+    "--file",
+    "file_name",
+    required=True,
+    help="File stem in predicates/ (e.g. ikeda_2014).",
+)
+@click.option(
+    "--id",
+    "predicate_id",
+    required=True,
+    help="Predicate name to remove (e.g. aspirin_user).",
+)
+@click.pass_obj
+def remove(obj: dict, file_name: str, predicate_id: str) -> None:
+    """Remove a predicate from predicates/<file>.yaml.
+
+    Rejects if the file does not exist or the predicate id is absent.
+    """
+    repo: Repository = obj["repo"]
+    request = PredicateRemoveRequest(file=file_name, predicate_id=predicate_id)
+    try:
+        report = remove_predicate(repo, request)
+    except PredicateWorkflowError as exc:
+        fail(exc)
+
+    emit_success(f"Removed predicate '{report.predicate_id}' from {report.filepath}")

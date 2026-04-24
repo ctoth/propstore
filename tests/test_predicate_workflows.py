@@ -9,9 +9,12 @@ from propstore.cli import cli
 from propstore.predicate_workflows import (
     PredicateAddRequest,
     PredicateFileNotFoundError,
+    PredicateNotFoundError,
+    PredicateRemoveRequest,
     PredicateWorkflowError,
     add_predicate,
     list_predicates,
+    remove_predicate,
     show_predicate_file,
 )
 from propstore.repository import Repository
@@ -198,3 +201,82 @@ def test_predicate_cli_list_and_show(tmp_path) -> None:
     assert "p1" in listed.output
     assert shown.exit_code == 0, shown.output
     assert "predicates:" in shown.output
+
+
+def test_remove_predicate_rejects_missing_file(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    try:
+        remove_predicate(
+            repo,
+            PredicateRemoveRequest(file="missing", predicate_id="p1"),
+        )
+    except PredicateFileNotFoundError as exc:
+        assert "missing" in str(exc)
+    else:
+        raise AssertionError("expected missing-file failure")
+
+
+def test_remove_predicate_rejects_unknown_id(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_predicate(
+        repo,
+        PredicateAddRequest(file="ikeda_2014", predicate_id="p1", arity=0),
+    )
+    try:
+        remove_predicate(
+            repo,
+            PredicateRemoveRequest(file="ikeda_2014", predicate_id="nope"),
+        )
+    except PredicateNotFoundError as exc:
+        assert "nope" in str(exc)
+        assert "ikeda_2014" in str(exc)
+    else:
+        raise AssertionError("expected unknown-id failure")
+
+
+def test_remove_predicate_removes_and_preserves_others(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_predicate(
+        repo,
+        PredicateAddRequest(file="ikeda_2014", predicate_id="p1", arity=0),
+    )
+    add_predicate(
+        repo,
+        PredicateAddRequest(file="ikeda_2014", predicate_id="p2", arity=1, arg_types=("thing",)),
+    )
+
+    report = remove_predicate(
+        repo,
+        PredicateRemoveRequest(file="ikeda_2014", predicate_id="p1"),
+    )
+    assert report.removed is True
+    data = yaml.safe_load(report.filepath.read_text(encoding="utf-8"))
+    ids = [entry["id"] for entry in data["predicates"]]
+    assert ids == ["p2"]
+
+
+def test_predicate_cli_remove(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_predicate(
+        repo,
+        PredicateAddRequest(file="ikeda_2014", predicate_id="p1", arity=0),
+    )
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "predicate",
+            "remove",
+            "--file",
+            "ikeda_2014",
+            "--id",
+            "p1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load((repo.root / "predicates" / "ikeda_2014.yaml").read_text(encoding="utf-8"))
+    assert data.get("predicates") in (None, [])
