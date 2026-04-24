@@ -402,10 +402,10 @@ def _rows(
 
 
 def _shared_concept_ids(world, claim, policy, limit: int) -> tuple[str, ...]:
-    if claim.concept_id is None:
+    if claim.value_concept_id is None:
         return ()
     related: list[str] = []
-    for row in world.claims_with_policy(str(claim.concept_id), policy):
+    for row in world.claims_with_policy(str(claim.value_concept_id), policy):
         claim_id = str(row.claim_id)
         if claim_id != str(claim.claim_id):
             related.append(claim_id)
