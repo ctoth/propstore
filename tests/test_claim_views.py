@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+import json
 from typing import cast
 
 import pytest
@@ -30,22 +31,24 @@ class _World:
         claim: ClaimRow | None = None,
         claims: tuple[ClaimRow, ...] = (),
         concept: ConceptRow | None = None,
+        concepts: tuple[ConceptRow, ...] = (),
         visible: bool = True,
     ) -> None:
         claim_rows = list(claims)
         if claim is not None:
             claim_rows.append(claim)
         self.claims = {str(item.claim_id): item for item in claim_rows}
-        self.concept = concept
+        concept_rows = list(concepts)
+        if concept is not None:
+            concept_rows.append(concept)
+        self.concepts = {str(item.concept_id): item for item in concept_rows}
         self.visible = visible
 
     def get_claim(self, claim_id: str) -> ClaimRow | None:
         return self.claims.get(claim_id)
 
     def get_concept(self, concept_id: str) -> ConceptRow | None:
-        if self.concept is None or str(self.concept.concept_id) != concept_id:
-            return None
-        return self.concept
+        return self.concepts.get(concept_id)
 
     def claims_with_policy(
         self,
@@ -60,10 +63,9 @@ class _World:
         return [claim for claim in claims if str(claim.concept_id) == concept_id]
 
     def resolve_concept(self, name: str) -> str | None:
-        if self.concept is None:
-            return None
-        if name in {str(self.concept.concept_id), self.concept.canonical_name}:
-            return str(self.concept.concept_id)
+        for concept in self.concepts.values():
+            if name in {str(concept.concept_id), concept.canonical_name}:
+                return str(concept.concept_id)
         return None
 
 
@@ -99,6 +101,14 @@ def _concept() -> ConceptRow:
         concept_id="concept1",
         canonical_name="fundamental_frequency",
         form="frequency",
+    )
+
+
+def _concept2() -> ConceptRow:
+    return ConceptRow(
+        concept_id="concept2",
+        canonical_name="subglottal_pressure",
+        form="pressure",
     )
 
 
@@ -205,8 +215,93 @@ def test_list_claim_views_projects_visible_claim_rows(
 
     assert [entry.claim_id for entry in report.entries] == ["claim1", "claim2"]
     assert report.entries[0].concept_name == "fundamental_frequency"
+    assert report.entries[0].concept_display == "fundamental_frequency"
     assert report.entries[0].value_display == "12.5 Hz"
     assert report.entries[0].condition_display == "(vacuous)"
+
+
+def test_list_claim_views_renders_statement_claim_summaries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _World(
+        claims=(
+            _claim(
+                claim_id="claim_obs",
+                artifact_id="claim_obs",
+                claim_type="observation",
+                concept_id=None,
+                value=None,
+                unit=None,
+                statement="No interaction was found between aspirin and antioxidant treatments on any outcome.",
+            ),
+        ),
+        visible=True,
+    )
+    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+
+    report = claim_views.list_claim_views(_repo(), claim_views.ClaimListRequest(limit=10))
+
+    assert len(report.entries) == 1
+    assert report.entries[0].concept_display == "(multiple concepts)"
+    assert report.entries[0].value_display == (
+        "No interaction was found between aspirin and antioxidant treatments on any outcome."
+    )
+
+
+def test_list_claim_views_renders_interval_only_parameters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _World(
+        claims=(
+            _claim(
+                claim_id="claim_interval",
+                artifact_id="claim_interval",
+                value=None,
+                lower_bound=0.76,
+                upper_bound=1.26,
+                unit="dimensionless",
+            ),
+        ),
+        concept=_concept(),
+    )
+    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+
+    report = claim_views.list_claim_views(_repo(), claim_views.ClaimListRequest(limit=10))
+
+    assert len(report.entries) == 1
+    assert report.entries[0].value_display == "0.76 to 1.26 dimensionless"
+
+
+def test_list_claim_views_renders_equation_variable_concepts_and_expression(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _World(
+        claims=(
+            _claim(
+                claim_id="claim_eq",
+                artifact_id="claim_eq",
+                claim_type="equation",
+                concept_id=None,
+                value=None,
+                unit=None,
+                expression="y = f(x)",
+                variables_json=json.dumps(
+                    [
+                        {"name": "x", "concept": "concept1"},
+                        {"name": "y", "concept": "concept2"},
+                    ]
+                ),
+            ),
+        ),
+        concepts=(_concept(), _concept2()),
+    )
+    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+
+    report = claim_views.list_claim_views(_repo(), claim_views.ClaimListRequest(limit=10))
+
+    assert len(report.entries) == 1
+    assert report.entries[0].concept_display == "fundamental_frequency, subglottal_pressure"
+    assert report.entries[0].value_display == "y = f(x)"
 
 
 def test_search_claim_views_filters_by_query_and_concept(
