@@ -5,10 +5,12 @@ from pathlib import Path
 
 from propstore.web.html import (
     render_claim_page,
+    render_concept_page,
     render_error_page,
     render_neighborhood_page,
 )
 from tests.test_web_claim_routes import _report as _claim_report
+from tests.test_web_concept_routes import _report as _concept_report
 from tests.test_web_neighborhood_routes import _report as _neighborhood_report
 
 
@@ -117,6 +119,33 @@ def test_neighborhood_page_has_accessible_tables_and_literals() -> None:
     assert "unavailable" in html
     assert "vacuous" in html
     assert "unknown" in html
+    assert "blocked" in html
+
+
+def test_concept_page_has_accessible_tables_and_literals() -> None:
+    html = render_concept_page(_concept_report())
+    audit = _audit(html)
+
+    assert audit.h1_texts == ["Concept fundamental_frequency"]
+    assert audit.title_text == "Concept fundamental_frequency - propstore"
+    assert audit.main_count == 1
+    assert set(audit.h2_texts) >= {
+        "Summary",
+        "Render State",
+        "Form",
+        "Value Summary",
+        "Uncertainty",
+        "Provenance",
+        "Claims By Type",
+        "Related Claims",
+        "Machine IDs",
+    }
+    assert audit.table_count >= 2
+    assert all(count > 0 for count in audit.header_counts)
+    assert all(cell for cell in audit.cell_texts)
+    assert "paper:claim1" in audit.link_texts
+    assert "known" in html
+    assert "missing" in html
     assert "blocked" in html
 
 
