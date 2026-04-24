@@ -67,10 +67,28 @@ def populate_claims(
     (e.g. ``'draft'``) is threaded from the claim-file document onto each
     ``claim_core`` row. Drafts populate normally; render-policy filtering
     (phase 4) decides visibility.
+
+    Bug 5 (v0.3.2): ``artifact_id`` is content-hash-derived, so two
+    claim files that carry the same id carry definitionally identical
+    claim content. The historical crash path happens when a re-promote
+    leaves both the original claim file (``Foo_YEAR_Title.yaml``) and a
+    disambiguated copy (``Foo_YEAR_Title--<hex>.yaml``) on disk — both
+    contribute rows with the same ``artifact_id``. First-writer-wins
+    dedupe is safe here because the content is identical; the UNIQUE
+    constraint on ``claim_core.id`` and the PK constraints on the
+    three payload tables already enforce that invariant. Reproduction
+    in ``tests/remediation/phase_7_race_atomicity/
+    test_T7_5f_sidecar_build_duplicate_claim.py``.
     """
 
+    seen_claim_ids: set[str] = set()
     for row in rows.claim_rows:
+        claim_id = row.values.get("id")
+        if isinstance(claim_id, str) and claim_id in seen_claim_ids:
+            continue
         insert_claim_row(conn, row.values)
+        if isinstance(claim_id, str):
+            seen_claim_ids.add(claim_id)
     for stance_row in rows.stance_rows:
         insert_claim_stance_row(conn, stance_row.values)
 
