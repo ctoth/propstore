@@ -42,9 +42,11 @@ from propstore.sidecar.claim_utils import (
     collect_claim_reference_map,
     extract_deferred_stance_rows_with_diagnostics,
     prepare_claim_insert_row,
+    prepare_claim_concept_link_rows,
 )
 from propstore.sidecar.stages import (
     ClaimInsertRow,
+    ClaimConceptLinkInsertRow,
     ClaimFtsInsertRow,
     ClaimSidecarRows,
     ClaimStanceInsertRow,
@@ -465,6 +467,7 @@ def compile_claim_sidecar_rows(
 ) -> ClaimSidecarRows:
     claim_seq = 0
     claim_rows: list[ClaimInsertRow] = []
+    claim_link_rows: list[ClaimConceptLinkInsertRow] = []
     stance_rows: list[ClaimStanceInsertRow] = []
     quarantine_diagnostics: list[QuarantineDiagnostic] = []
     claim_reference_map = collect_claim_reference_map(
@@ -491,6 +494,10 @@ def compile_claim_sidecar_rows(
             if file_stage is not None:
                 row["stage"] = file_stage
             claim_rows.append(ClaimInsertRow(row))
+            claim_link_rows.extend(
+                ClaimConceptLinkInsertRow(values)
+                for values in prepare_claim_concept_link_rows(semantic_claim)
+            )
             deferred_stance_rows, deferred_stance_diagnostics = (
                 extract_deferred_stance_rows_with_diagnostics(
                     semantic_claim,
@@ -506,6 +513,7 @@ def compile_claim_sidecar_rows(
 
     return ClaimSidecarRows(
         claim_rows=tuple(claim_rows),
+        claim_link_rows=tuple(claim_link_rows),
         stance_rows=tuple(stance_rows),
         quarantine_diagnostics=tuple(quarantine_diagnostics),
     )
@@ -802,7 +810,6 @@ def compile_raw_id_quarantine_sidecar_rows(
                     "",
                     record.seq,
                     "quarantine",
-                    None,
                     None,
                     record.source_paper,
                     record.source_paper,

@@ -45,7 +45,7 @@ import sqlite3
 
 from propstore.sidecar.stages import ContextSidecarRows
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 SIDECAR_META_KEY = "sidecar"
 
 
@@ -357,7 +357,6 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
             content_hash TEXT NOT NULL DEFAULT '',
             seq INTEGER NOT NULL,
             type TEXT NOT NULL,
-            concept_id TEXT,
             target_concept TEXT,
             source_slug TEXT,
             source_paper TEXT NOT NULL,
@@ -370,6 +369,17 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
             stage TEXT,
             promotion_status TEXT,
             FOREIGN KEY (context_id) REFERENCES context(id)
+        );
+
+        CREATE TABLE claim_concept_link (
+            claim_id TEXT NOT NULL,
+            concept_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            ordinal INTEGER NOT NULL,
+            binding_name TEXT,
+            PRIMARY KEY (claim_id, role, ordinal, concept_id),
+            FOREIGN KEY (claim_id) REFERENCES claim_core(id),
+            FOREIGN KEY (concept_id) REFERENCES concept(id)
         );
 
         CREATE TABLE claim_numeric_payload (
@@ -465,8 +475,10 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
             expression
         );
 
-        CREATE INDEX idx_claim_core_concept ON claim_core(concept_id);
         CREATE INDEX idx_claim_core_target ON claim_core(target_concept);
+        CREATE INDEX idx_claim_concept_link_claim ON claim_concept_link(claim_id);
+        CREATE INDEX idx_claim_concept_link_concept ON claim_concept_link(concept_id);
+        CREATE INDEX idx_claim_concept_link_role ON claim_concept_link(role);
         CREATE INDEX idx_claim_core_type ON claim_core(type);
         CREATE INDEX idx_claim_core_primary_logical_id ON claim_core(primary_logical_id);
         CREATE INDEX idx_claim_core_build_status ON claim_core(build_status);

@@ -467,7 +467,6 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             content_hash TEXT NOT NULL DEFAULT '',
             seq INTEGER NOT NULL,
             type TEXT NOT NULL,
-            concept_id TEXT,
             target_concept TEXT,
             source_slug TEXT,
             source_paper TEXT NOT NULL DEFAULT 'test',
@@ -479,6 +478,15 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             build_status TEXT NOT NULL DEFAULT 'ingested',
             stage TEXT,
             promotion_status TEXT
+        );
+
+        CREATE TABLE claim_concept_link (
+            claim_id TEXT NOT NULL,
+            concept_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            ordinal INTEGER NOT NULL,
+            binding_name TEXT,
+            PRIMARY KEY (claim_id, role, ordinal, concept_id)
         );
 
         CREATE TABLE claim_numeric_payload (

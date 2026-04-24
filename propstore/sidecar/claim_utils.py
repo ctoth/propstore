@@ -19,8 +19,13 @@ from propstore.claims import (
 )
 from propstore.compiler.ir import SemanticClaim
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
+from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
 from propstore.core.claim_types import ClaimType
 from propstore.dimensions import normalize_to_si
+from propstore.families.claims.documents import (
+    ClaimConceptLinkDeclaration,
+    claim_type_contract_for,
+)
 from propstore.families.identity.logical_ids import (
     normalize_identity_namespace,
     normalize_logical_value,
@@ -85,6 +90,58 @@ def claim_version_id(claim: dict) -> str | None:
     if isinstance(version_id, str) and version_id:
         return version_id
     return None
+
+
+def _iter_claim_concept_link_values(
+    claim: dict[str, object],
+) -> list[tuple[str, ClaimConceptLinkRole, int, str | None]]:
+    claim_type = claim.get("type")
+    contract = claim_type_contract_for(claim_type)
+    if contract is None:
+        return []
+
+    rows: list[tuple[str, ClaimConceptLinkRole, int, str | None]] = []
+    for declaration in contract.concept_links:
+        rows.extend(_claim_concept_link_values_for_declaration(claim, declaration))
+    return rows
+
+
+def _claim_concept_link_values_for_declaration(
+    claim: dict[str, object],
+    declaration: ClaimConceptLinkDeclaration,
+) -> list[tuple[str, ClaimConceptLinkRole, int, str | None]]:
+    raw_value = claim.get(declaration.field)
+    if declaration.source == "scalar":
+        if isinstance(raw_value, str) and raw_value:
+            return [(raw_value, declaration.role, 0, None)]
+        return []
+    if declaration.source == "list":
+        if not isinstance(raw_value, list):
+            return []
+        rows: list[tuple[str, ClaimConceptLinkRole, int, str | None]] = []
+        for ordinal, item in enumerate(raw_value):
+            if isinstance(item, str) and item:
+                rows.append((item, declaration.role, ordinal, None))
+        return rows
+    if declaration.source == "bindings":
+        if not isinstance(raw_value, list):
+            return []
+        rows = []
+        for ordinal, item in enumerate(raw_value):
+            if not isinstance(item, dict):
+                continue
+            concept_id = item.get("concept")
+            if not isinstance(concept_id, str) or not concept_id:
+                continue
+            binding_name = item.get("name")
+            rows.append((
+                concept_id,
+                declaration.role,
+                ordinal,
+                binding_name if isinstance(binding_name, str) and binding_name else None,
+            ))
+        return rows
+    raise ValueError(f"unsupported claim concept link source: {declaration.source}")
 
 
 def normalize_conditions_differ(value: object) -> object:
@@ -218,10 +275,10 @@ def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
         """
         INSERT INTO claim_core (
             id, primary_logical_id, logical_ids_json, version_id, seq, type,
-            concept_id, target_concept, source_slug, source_paper,
-            provenance_page, provenance_json, context_id, branch,
+            target_concept, source_slug, source_paper, provenance_page,
+            provenance_json, context_id, branch,
             build_status, stage, promotion_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             row["id"],
@@ -230,7 +287,6 @@ def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
             row["version_id"],
             row["seq"],
             row["type"],
-            row["concept_id"],
             row["target_concept"],
             row["source_slug"],
             row["source_paper"],
@@ -265,6 +321,12 @@ def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
             row["upper_bound_si"],
         ),
     )
+
+
+def insert_claim_concept_link_row(
+    conn: sqlite3.Connection,
+    values: tuple[object, ...],
+) -> None:
     conn.execute(
         """
         INSERT INTO claim_text_payload (
@@ -302,6 +364,20 @@ def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
             row["variables_json"],
             row["algorithm_stage"],
         ),
+    )
+
+
+def insert_claim_concept_link_row(
+    conn: sqlite3.Connection,
+    values: tuple[object, ...],
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO claim_concept_link (
+            claim_id, concept_id, role, ordinal, binding_name
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        values,
     )
 
 
@@ -652,7 +728,6 @@ def prepare_claim_insert_row(
         "version_id": claim_version_id(normalized_claim),
         "seq": claim_seq,
         "type": claim_type,
-        "concept_id": typed_fields.output_concept,
         "value": typed_fields.value,
         "lower_bound": typed_fields.lower_bound,
         "upper_bound": typed_fields.upper_bound,
@@ -690,3 +765,25 @@ def prepare_claim_insert_row(
         "context_id": context_id,
         "branch": normalized_claim.get("branch"),
     }
+
+
+def prepare_claim_concept_link_rows(
+    claim: dict | SemanticClaim,
+) -> tuple[tuple[object, ...], ...]:
+    if isinstance(claim, SemanticClaim):
+        normalized_claim = copy.deepcopy(claim.resolved_claim.to_payload())
+    else:
+        normalized_claim = copy.deepcopy(claim)
+    claim_id = normalized_claim.get("artifact_id", normalized_claim.get("id"))
+    if not isinstance(claim_id, str) or not claim_id:
+        return ()
+    return tuple(
+        (
+            claim_id,
+            concept_id,
+            role.value,
+            ordinal,
+            binding_name,
+        )
+        for concept_id, role, ordinal, binding_name in _iter_claim_concept_link_values(normalized_claim)
+    )

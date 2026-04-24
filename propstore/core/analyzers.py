@@ -89,7 +89,7 @@ def _cayrol_derived_defeats(
 def _claim_mapping_from_node(claim: ClaimNode) -> dict:
     data = {
         "id": claim.claim_id,
-        "concept_id": claim.concept_id,
+        "value_concept_id": claim.value_concept_id,
         "type": claim.claim_type,
         "value": claim.scalar_value,
     }
@@ -147,13 +147,13 @@ def _claim_node_from_row(row_input: ClaimRowInput | dict) -> ClaimNode:
     attributes = tuple(
         (str(key), value)
         for key, value in row.to_dict().items()
-        if key not in {"id", "concept_id", "target_concept", "type", "value"}
+        if key not in {"id", "target_concept", "type", "value"}
         and value is not None
     )
     return ClaimNode(
         claim_id=to_claim_id(row.claim_id),
-        concept_id=to_concept_id(str(row.concept_id or row.target_concept or "")),
         claim_type=coerce_claim_type(row.claim_type or "unknown") or ClaimType.UNKNOWN,
+        value_concept_id=row.value_concept_id,
         scalar_value=row.value,
         attributes=attributes,
     )
