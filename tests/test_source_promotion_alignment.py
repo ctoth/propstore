@@ -597,3 +597,56 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     assert "Claim whose stance targets a missing ref." in final_statements, (
         "previously-blocked claim must promote once its finalize error is fixed"
     )
+
+
+def test_promote_source_branch_does_not_advance_master_when_sidecar_write_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression test for Bug 2: promote atomicity.
+
+    Previously, ``promote_source_branch`` committed to master first and
+    wrote the blocked-sidecar mirror rows afterward. If the sidecar
+    write raised (e.g. Bug 1's UNIQUE-id collision) the git commit was
+    already on master — leaving a stacked promote commit with no
+    corresponding sidecar row. The aspirin stance-backfill session
+    accumulated 15 such tangled commits before anyone noticed.
+
+    After the fix, a sidecar-write failure must NOT advance the master
+    ref: either the sidecar is written before the git commit, or the
+    two are bound in a single transaction that rolls back on failure.
+    """
+
+    source_name = "atomicity_paper"
+    repo = _setup_source_with_partial_validity(tmp_path, source_name=source_name)
+    finalize_source_branch(repo, source_name)
+
+    from tests.family_helpers import build_sidecar
+
+    head_before_build = repo.snapshot.head_sha()
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head_before_build)
+
+    master_branch = repo.snapshot.primary_branch_name()
+    master_head_before = repo.snapshot.branch_head(master_branch)
+
+    # Arrange a mid-flight sidecar failure.
+    from propstore.source import promote as promote_module
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("simulated sidecar write failure")
+
+    monkeypatch.setattr(
+        promote_module,
+        "_write_promotion_blocked_sidecar_rows",
+        _boom,
+    )
+
+    with pytest.raises(RuntimeError, match="simulated sidecar write failure"):
+        promote_source_branch(repo, source_name)
+
+    master_head_after = repo.snapshot.branch_head(master_branch)
+    assert master_head_after == master_head_before, (
+        "sidecar-write failure must not advance master; atomicity broken"
+    )
+
+

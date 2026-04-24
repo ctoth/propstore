@@ -769,6 +769,24 @@ def promote_source_branch(
         blocked_reasons=blocked_reasons,
     )
 
+    # Mirror blocked claims into the sidecar BEFORE the git commit.
+    # Blocked claims stay on their source branch — they do not flow into
+    # the master transaction — so the mirror rows do not depend on the
+    # commit landing. Writing sidecar first means a sidecar-write failure
+    # (Bug 1-class or otherwise) cannot pollute master with a commit
+    # that has no corresponding sidecar state. The sidecar is
+    # content-hash addressed and regenerable from git, so a transient
+    # window where sidecar is ahead of git is safe. If the sidecar file
+    # does not exist this is a no-op.
+    if promotion_plan.blocked_claims:
+        _write_promotion_blocked_sidecar_rows(
+            repo.sidecar_path,
+            promotion_plan.source_branch,
+            promotion_plan.slug,
+            promotion_plan.blocked_claims,
+            promotion_plan.blocked_reasons,
+        )
+
     with repo.families.transact(
         message=f"Promote source {slug}",
         branch=repo.snapshot.primary_branch_name(),
@@ -811,18 +829,6 @@ def promote_source_branch(
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
     repo.snapshot.sync_worktree()
-
-    # Mirror blocked claims into the sidecar so the render layer can
-    # surface them under opt-in policy flags (phase 4). If the sidecar
-    # does not exist, this is a no-op.
-    if promotion_plan.blocked_claims:
-        _write_promotion_blocked_sidecar_rows(
-            repo.sidecar_path,
-            promotion_plan.source_branch,
-            promotion_plan.slug,
-            promotion_plan.blocked_claims,
-            promotion_plan.blocked_reasons,
-        )
 
     return sha
 
