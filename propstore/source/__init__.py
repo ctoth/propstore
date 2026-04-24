@@ -25,6 +25,7 @@ from .common import (
     load_source_document,
     normalize_source_slug,
     source_branch_name,
+    source_paper_slug,
     source_tag_uri,
 )
 from .concepts import (
@@ -92,6 +93,7 @@ __all__ = [
     "promote_source_branch",
     "save_alignment_artifact",
     "source_branch_name",
+    "source_paper_slug",
     "SourceStatusState",
     "source_tag_uri",
     "sync_source_branch",

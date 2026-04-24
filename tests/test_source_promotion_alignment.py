@@ -599,6 +599,106 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     )
 
 
+def test_source_paper_slug_matches_source_branch_stem_for_unicode_name(
+    tmp_path: Path,
+) -> None:
+    """Regression test for Bug 3: source-branch and master-filename consistency.
+
+    When a paper directory name contains non-ASCII characters (e.g.
+    U+2010 HYPHEN), ``SourceBranchPlacement.branch_name`` replaces the
+    unsafe char with ``_`` and then appends a 12-char sha1 digest
+    (``--5265a1465b03``) so different unicode inputs do not collide
+    after slugging. Meanwhile paper-slug derivation re-used
+    ``normalize_source_slug`` which returned just the safe_slug with
+    NO digest suffix — so master claim files were written under a
+    different stem than the source branch. Depending on caller input
+    form, that produced either the wrong master file or a duplicate
+    file alongside the intended one.
+
+    The fix: the new ``source_paper_slug`` helper produces the same
+    stem as the source branch, and all paper-slug call sites route
+    through it — so ``source/<stem>`` and
+    ``knowledge/claims/<stem>.yaml`` share one logical id.
+    """
+
+    from propstore.source.common import (
+        source_branch_name,
+        source_paper_slug,
+    )
+
+    unicode_name = "McNeil_2018_EffectAspirinAll‐CauseMortality"  # U+2010
+
+    branch = source_branch_name(unicode_name)
+    assert branch.startswith("source/"), branch
+    branch_stem = branch[len("source/"):]
+
+    paper_slug = source_paper_slug(unicode_name)
+    assert paper_slug == branch_stem, (
+        f"paper_slug and branch stem disagree: paper_slug={paper_slug!r} "
+        f"branch_stem={branch_stem!r}"
+    )
+
+
+def test_promote_source_branch_unicode_name_writes_single_branch_matching_stem(
+    tmp_path: Path,
+) -> None:
+    """End-to-end: a source name with U+2010 HYPHEN promotes to a master
+    filename that matches the source branch stem.
+
+    Prior behavior (Bug 3): promote used the non-suffixed slug, so the
+    master claim file was written under a different stem than the
+    source branch. This test verifies the master claim filename
+    equals ``<branch_stem>.yaml``.
+    """
+
+    from propstore.source.common import source_branch_name
+
+    unicode_name = "UnicodeHyphen‐2026_paper"
+    repo = Repository.init(tmp_path / "knowledge")
+
+    _save_source(
+        repo,
+        unicode_name,
+        {
+            "concepts": [
+                {
+                    "local_name": "velocity",
+                    "proposed_name": "velocity",
+                    "definition": "Speed with direction.",
+                    "form": "quantity",
+                }
+            ]
+        },
+        claims_payload={
+            "source": {"paper": unicode_name},
+            "claims": [
+                {
+                    "id": "velocity_claim_local",
+                    "type": "parameter",
+                    "context": "ctx_test",
+                    "concept": "velocity",
+                    "value": 3.0,
+                    "unit": "m/s",
+                    "provenance": {"paper": unicode_name, "page": 1},
+                }
+            ],
+        },
+    )
+
+    commit_sha = promote_source_branch(repo, unicode_name)
+    assert commit_sha
+
+    branch = source_branch_name(unicode_name)
+    assert branch.startswith("source/"), branch
+    branch_stem = branch[len("source/"):]
+
+    claims_dir = repo.root / "claims"
+    promoted_files = sorted(p.name for p in claims_dir.glob("*.yaml"))
+    assert promoted_files == [f"{branch_stem}.yaml"], (
+        f"expected single claim file {branch_stem}.yaml; got {promoted_files}"
+    )
+
+
 def test_promote_source_branch_does_not_advance_master_when_sidecar_write_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

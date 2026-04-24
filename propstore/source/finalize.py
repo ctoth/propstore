@@ -21,6 +21,7 @@ from .common import (
     load_source_stances_document,
     normalize_source_slug,
     source_branch_name,
+    source_paper_slug,
     source_tag_uri,
 )
 from propstore.families.documents.sources import (
@@ -155,7 +156,7 @@ def finalize_source_branch(
     covered = bool(derived_from)
     artifact_code_status = "incomplete"
     source_id = str(source_doc.id or source_tag_uri(repo, source_name))
-    source_slug = normalize_source_slug(source_name)
+    source_slug = source_paper_slug(source_name)
     micropubs_doc = _compose_source_micropubs(
         source_id=source_id,
         source_slug=source_slug,
