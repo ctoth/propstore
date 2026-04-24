@@ -644,6 +644,78 @@ uv run pks context remove ctx_atms_tradition --dry-run
 uv run pks context remove ctx_atms_tradition --force
 ```
 
+### `pks context lifting list [CONTEXT_NAME]`
+
+List authored lifting rules. With `CONTEXT_NAME`, list only rules owned by that target context.
+
+```bash
+uv run pks context lifting list
+uv run pks context lifting list ctx_argumentation
+```
+
+### `pks context lifting show CONTEXT_NAME RULE_ID`
+
+Show one authored lifting rule as YAML.
+
+```bash
+uv run pks context lifting show ctx_argumentation lift_dung_to_argumentation
+```
+
+### `pks context lifting add CONTEXT_NAME`
+
+Add one authored lifting rule to a target context. The target is the owning context named on the command line; `--source` names the source context that can lift into it.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--rule-id` | TEXT | -- | Stable authored lifting-rule id (required) |
+| `--source` | TEXT | -- | Source context id (required) |
+| `--condition` | TEXT | -- | CEL condition required for the lift; repeat for multiple conditions |
+| `--mode` | `bridge\|specialization\|decontextualization` | `bridge` | Lifting mode |
+| `--justification` | TEXT | -- | Optional authored justification text |
+| `--dry-run` | FLAG | false | [Dry-run](#dry-run) |
+
+```bash
+uv run pks context lifting add ctx_argumentation \
+  --rule-id lift_dung_to_argumentation \
+  --source ctx_abstract_argumentation \
+  --condition "domain == 'argumentation'" \
+  --mode bridge \
+  --justification "Relative decontextualization into the broader argumentation context"
+```
+
+### `pks context lifting update CONTEXT_NAME RULE_ID`
+
+Update one authored lifting rule on a target context.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--source` | TEXT | -- | Replacement source context id |
+| `--condition` | TEXT | -- | Replace rule conditions with these CEL expressions; repeat for multiple conditions |
+| `--clear-conditions` | FLAG | false | Remove all rule conditions |
+| `--mode` | `bridge\|specialization\|decontextualization` | -- | Replacement lifting mode |
+| `--justification` | TEXT | -- | Replacement justification text |
+| `--clear-justification` | FLAG | false | Remove the existing justification |
+| `--dry-run` | FLAG | false | [Dry-run](#dry-run) |
+
+```bash
+uv run pks context lifting update ctx_argumentation lift_dung_to_argumentation \
+  --clear-conditions \
+  --justification "Unconditional bridge into the broader argumentation context"
+```
+
+### `pks context lifting remove CONTEXT_NAME RULE_ID`
+
+Remove one authored lifting rule from a target context.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--dry-run` | FLAG | false | [Dry-run](#dry-run) |
+
+```bash
+uv run pks context lifting remove ctx_argumentation lift_dung_to_argumentation --dry-run
+uv run pks context lifting remove ctx_argumentation lift_dung_to_argumentation
+```
+
 ---
 
 ## Predicates (`pks predicate`)
