@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +33,43 @@ def normalize_source_slug(name: str) -> str:
     cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in name.strip())
     cleaned = cleaned.strip("._-")
     return cleaned or "source"
+
+
+def source_paper_slug(name: str) -> str:
+    """Return the paper-scoped filesystem stem for a source name.
+
+    Must match ``SourceBranchPlacement.branch_name``'s stem
+    (``propstore/families/registry.py::SourceBranchPlacement``) so that
+    the master-branch artifact filename (e.g. ``claims/<stem>.yaml``)
+    shares one logical id with the source branch ``source/<stem>``.
+    When the safe-slug transform changes any character, the branch
+    placement appends a 12-char sha1 digest for disambiguation; this
+    helper does the same.
+
+    Distinct from ``normalize_source_slug``: the latter is also used
+    for concept-slug derivation where ambiguity detection relies on
+    the plain safe-slug collapsing non-ascii variants to one stem
+    (e.g. ``"novel concept"`` → ``"novel_concept"`` must collide with
+    a pre-existing master ``novel_concept`` concept).
+
+    Prior behavior re-used ``normalize_source_slug`` for paper slugs,
+    which disagreed with the branch stem whenever the input had
+    characters like U+2010 HYPHEN — producing duplicate master files
+    under two different stems. See ``tests/test_source_promotion_alignment.py::
+    test_normalize_source_slug_matches_source_branch_stem_for_unicode_name``.
+    """
+
+    stripped = name.strip()
+    cleaned = "".join(
+        ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in stripped
+    )
+    cleaned = cleaned.strip("._-")
+    if not cleaned:
+        return "source"
+    if cleaned != stripped:
+        digest = hashlib.sha1(stripped.encode("utf-8")).hexdigest()[:12]
+        return f"{cleaned}--{digest}"
+    return cleaned
 
 
 def source_branch_name(name: str) -> str:

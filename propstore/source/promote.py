@@ -64,6 +64,7 @@ from .common import (
     load_source_stances_document,
     normalize_source_slug,
     source_branch_name,
+    source_paper_slug,
 )
 from .registry import load_primary_branch_concepts
 from .stages import SourcePromotionPlan
@@ -537,7 +538,7 @@ def promote_source_branch(
             "before promotion (strict mode)"
         )
 
-    slug = normalize_source_slug(source_name)
+    slug = source_paper_slug(source_name)
     source_doc = load_source_document(repo, source_name)
     claims_doc = load_source_claims_document(repo, source_name)
     micropubs_doc = load_source_micropubs_document(repo, source_name)
@@ -847,7 +848,7 @@ def sync_source_branch(
     destination = output_dir
     if destination is None:
         papers_root = repo.root.parent / "papers"
-        destination = papers_root / normalize_source_slug(source_name)
+        destination = papers_root / source_paper_slug(source_name)
     destination.mkdir(parents=True, exist_ok=True)
     destination_root = destination.resolve()
 
