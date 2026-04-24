@@ -13,6 +13,10 @@ from propstore.app.neighborhoods import (
     SemanticNeighborhoodUnsupportedFocusError,
     build_semantic_neighborhood,
 )
+from propstore.app.repository_views import (
+    AppRepositoryViewRequest,
+    RepositoryViewUnsupportedStateError,
+)
 from propstore.core.claim_values import ClaimProvenance
 from propstore.core.row_types import ClaimRow, ConceptRow, StanceRow
 from propstore.repository import Repository
@@ -153,4 +157,16 @@ def test_claim_neighborhood_reports_unknown_claim(
         build_semantic_neighborhood(
             _repo(),
             SemanticNeighborhoodRequest(focus_kind="claim", focus_id="missing"),
+        )
+
+
+def test_claim_neighborhood_rejects_unimplemented_repository_state() -> None:
+    with pytest.raises(RepositoryViewUnsupportedStateError, match="revision-qualified"):
+        build_semantic_neighborhood(
+            _repo(),
+            SemanticNeighborhoodRequest(
+                focus_kind="claim",
+                focus_id="focus",
+                repository_view=AppRepositoryViewRequest(revision="deadbeef"),
+            ),
         )

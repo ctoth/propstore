@@ -11,6 +11,10 @@ from propstore.app.rendering import (
     build_render_policy,
     summarize_render_policy,
 )
+from propstore.app.repository_views import (
+    AppRepositoryViewRequest,
+    repository_view_label,
+)
 from propstore.app.world import open_app_world_model
 from propstore.repository import Repository
 
@@ -30,10 +34,6 @@ class ClaimViewAppError(Exception):
     """Base class for expected claim-view failures."""
 
 
-class ClaimViewUnsupportedStateError(ClaimViewAppError):
-    """Raised when a requested repository state is not implemented."""
-
-
 class ClaimViewUnknownClaimError(ClaimViewAppError):
     def __init__(self, claim_id: str) -> None:
         super().__init__(f"Claim '{claim_id}' not found.")
@@ -44,8 +44,7 @@ class ClaimViewUnknownClaimError(ClaimViewAppError):
 class ClaimViewRequest:
     claim_id: str
     render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
-    branch: str | None = None
-    revision: str | None = None
+    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
 
 
 @dataclass(frozen=True)
@@ -163,11 +162,7 @@ class ClaimSummaryReport:
 
 
 def build_claim_view(repo: Repository, request: ClaimViewRequest) -> ClaimViewReport:
-    if request.branch is not None:
-        raise ClaimViewUnsupportedStateError("branch-qualified claim views are not implemented")
-    if request.revision is not None:
-        raise ClaimViewUnsupportedStateError("revision-qualified claim views are not implemented")
-
+    repository_state = repository_view_label(request.repository_view)
     policy = build_render_policy(request.render_policy)
     with open_app_world_model(repo) as world:
         claim = world.get_claim(request.claim_id)
@@ -192,7 +187,7 @@ def build_claim_view(repo: Repository, request: ClaimViewRequest) -> ClaimViewRe
             provenance=_claim_provenance(claim),
             render_policy=summarize_render_policy(policy),
             status=status,
-            repository_state="current worktree",
+            repository_state=repository_state,
         )
 
 

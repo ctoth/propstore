@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
@@ -12,6 +11,10 @@ from propstore.app.rendering import (
     RenderPolicySummary,
     build_render_policy,
     summarize_render_policy,
+)
+from propstore.app.repository_views import (
+    AppRepositoryViewRequest,
+    repository_view_label,
 )
 from propstore.app.world import open_app_world_model
 from propstore.repository import Repository
@@ -42,9 +45,7 @@ class SemanticNeighborhoodRequest:
     focus_kind: SemanticFocusKind
     focus_id: str
     render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
-    branch: str | None = None
-    revision: str | None = None
-    bindings: Mapping[str, str] = field(default_factory=dict)
+    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
     limit: int = 50
 
 
@@ -116,6 +117,7 @@ def build_semantic_neighborhood(
 ) -> SemanticNeighborhoodReport:
     if request.focus_kind != "claim":
         raise SemanticNeighborhoodUnsupportedFocusError(request.focus_kind)
+    _ = repository_view_label(request.repository_view)
     policy = build_render_policy(request.render_policy)
     with open_app_world_model(repo) as world:
         claim = world.get_claim(request.focus_id)

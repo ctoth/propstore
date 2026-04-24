@@ -181,3 +181,13 @@ def test_claim_route_rejects_invalid_policy_query(
 
     assert response.status_code == 400
     assert response.json()["error"]["title"] == "Invalid Request"
+
+
+def test_claim_route_rejects_unsupported_repository_view(
+    client: TestClient,
+) -> None:
+    response = client.get("/claim/claim1.json?branch=feature")
+
+    assert response.status_code == 400
+    assert response.json()["error"]["title"] == "Unsupported Repository State"
+    assert response.json()["error"]["message"] == "branch-qualified views are not implemented"
