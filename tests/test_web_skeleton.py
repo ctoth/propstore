@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from propstore.web.app import create_app
-from propstore.web.requests import parse_render_policy_request
+from propstore.web.requests import parse_render_policy_request, parse_repository_view_request
 from propstore.web.serialization import WebSerializationError, to_json_compatible
 
 
@@ -63,6 +63,18 @@ def test_parse_render_policy_request_uses_web_input_only_for_app_request() -> No
 def test_parse_render_policy_request_rejects_invalid_bool() -> None:
     with pytest.raises(ValueError, match="include_drafts"):
         parse_render_policy_request({"include_drafts": "sometimes"})
+
+
+def test_parse_repository_view_request_parses_branch_and_revision() -> None:
+    request = parse_repository_view_request(
+        {
+            "branch": "feature",
+            "rev": "abc123",
+        }
+    )
+
+    assert request.branch == "feature"
+    assert request.revision == "abc123"
 
 
 def test_to_json_compatible_serializes_dataclass_reports() -> None:

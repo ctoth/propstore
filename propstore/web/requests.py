@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from propstore.app.rendering import AppRenderPolicyRequest
+from propstore.app.repository_views import AppRepositoryViewRequest
 
 
 def parse_render_policy_request(params: Mapping[str, str | None]) -> AppRenderPolicyRequest:
@@ -22,6 +23,13 @@ def parse_render_policy_request(params: Mapping[str, str | None]) -> AppRenderPo
         include_drafts=_bool_param(params, "include_drafts"),
         include_blocked=_bool_param(params, "include_blocked"),
         show_quarantined=_bool_param(params, "show_quarantined"),
+    )
+
+
+def parse_repository_view_request(params: Mapping[str, str | None]) -> AppRepositoryViewRequest:
+    return AppRepositoryViewRequest(
+        branch=_optional_text(params.get("branch")),
+        revision=_optional_text(params.get("rev")),
     )
 
 

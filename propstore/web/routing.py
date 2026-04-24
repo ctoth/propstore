@@ -11,7 +11,6 @@ from propstore.app.claim_views import (
     ClaimViewReport,
     ClaimViewRequest,
     ClaimViewUnknownClaimError,
-    ClaimViewUnsupportedStateError,
     build_claim_view,
 )
 from propstore.app.neighborhoods import (
@@ -20,6 +19,7 @@ from propstore.app.neighborhoods import (
     SemanticNeighborhoodUnsupportedFocusError,
     build_semantic_neighborhood,
 )
+from propstore.app.repository_views import RepositoryViewUnsupportedStateError
 from propstore.app.rendering import RenderPolicyValidationError
 from propstore.app.world import WorldSidecarMissingError
 from propstore.repository import Repository
@@ -28,7 +28,10 @@ from propstore.web.html import (
     render_error_page,
     render_neighborhood_page,
 )
-from propstore.web.requests import parse_render_policy_request
+from propstore.web.requests import (
+    parse_render_policy_request,
+    parse_repository_view_request,
+)
 from propstore.web.serialization import to_json_compatible
 
 
@@ -94,20 +97,20 @@ def _claim_report(
 ) -> ClaimViewReport | JSONResponse | HTMLResponse:
     try:
         render_policy = parse_render_policy_request(dict(request.query_params))
+        repository_view = parse_repository_view_request(dict(request.query_params))
         report = build_claim_view(
             _repo_from_request(request),
             ClaimViewRequest(
                 claim_id=claim_id,
                 render_policy=render_policy,
-                branch=request.query_params.get("branch"),
-                revision=request.query_params.get("rev"),
+                repository_view=repository_view,
             ),
         )
     except ValueError as exc:
         return _error_response("Invalid Request", str(exc), 400, wants_json=wants_json)
     except RenderPolicyValidationError as exc:
         return _error_response("Invalid Render Policy", str(exc), 400, wants_json=wants_json)
-    except ClaimViewUnsupportedStateError as exc:
+    except RepositoryViewUnsupportedStateError as exc:
         return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
     except ClaimViewUnknownClaimError as exc:
         return _error_response("Claim Not Found", str(exc), 404, wants_json=wants_json)
@@ -144,6 +147,7 @@ def _neighborhood_report(
 ) -> SemanticNeighborhoodReport | JSONResponse | HTMLResponse:
     try:
         render_policy = parse_render_policy_request(dict(request.query_params))
+        repository_view = parse_repository_view_request(dict(request.query_params))
         limit = _parse_limit(request.query_params.get("limit"))
         report = build_semantic_neighborhood(
             _repo_from_request(request),
@@ -151,8 +155,7 @@ def _neighborhood_report(
                 focus_kind="claim",
                 focus_id=claim_id,
                 render_policy=render_policy,
-                branch=request.query_params.get("branch"),
-                revision=request.query_params.get("rev"),
+                repository_view=repository_view,
                 limit=limit,
             ),
         )
@@ -162,6 +165,8 @@ def _neighborhood_report(
         return _error_response("Invalid Render Policy", str(exc), 400, wants_json=wants_json)
     except SemanticNeighborhoodUnsupportedFocusError as exc:
         return _error_response("Unsupported Focus", str(exc), 400, wants_json=wants_json)
+    except RepositoryViewUnsupportedStateError as exc:
+        return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
     except ClaimViewUnknownClaimError as exc:
         return _error_response("Claim Not Found", str(exc), 404, wants_json=wants_json)
     except WorldSidecarMissingError as exc:

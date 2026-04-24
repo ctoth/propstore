@@ -10,10 +10,13 @@ from propstore.app import claim_views
 from propstore.app.claim_views import (
     ClaimViewRequest,
     ClaimViewUnknownClaimError,
-    ClaimViewUnsupportedStateError,
     build_claim_view,
 )
 from propstore.app.rendering import AppRenderPolicyRequest
+from propstore.app.repository_views import (
+    AppRepositoryViewRequest,
+    RepositoryViewUnsupportedStateError,
+)
 from propstore.core.claim_values import ClaimProvenance, ClaimSource
 from propstore.core.row_types import ClaimRow, ConceptRow
 from propstore.repository import Repository
@@ -166,8 +169,14 @@ def test_build_claim_view_reports_policy_blocked_claim(
 
 
 def test_build_claim_view_rejects_unimplemented_repository_state() -> None:
-    with pytest.raises(ClaimViewUnsupportedStateError, match="branch-qualified"):
-        build_claim_view(_repo(), ClaimViewRequest(claim_id="claim1", branch="feature"))
+    with pytest.raises(RepositoryViewUnsupportedStateError, match="branch-qualified"):
+        build_claim_view(
+            _repo(),
+            ClaimViewRequest(
+                claim_id="claim1",
+                repository_view=AppRepositoryViewRequest(branch="feature"),
+            ),
+        )
 
 
 def test_build_claim_view_reports_unknown_claim(

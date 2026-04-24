@@ -261,3 +261,13 @@ def test_neighborhood_route_rejects_invalid_limit(client: TestClient) -> None:
     assert response.status_code == 400
     assert response.json()["error"]["title"] == "Invalid Request"
     assert response.json()["error"]["message"] == "limit must be between 1 and 500"
+
+
+def test_neighborhood_route_rejects_unsupported_repository_view(
+    client: TestClient,
+) -> None:
+    response = client.get("/claim/claim1/neighborhood.json?rev=deadbeef")
+
+    assert response.status_code == 400
+    assert response.json()["error"]["title"] == "Unsupported Repository State"
+    assert response.json()["error"]["message"] == "revision-qualified views are not implemented"
