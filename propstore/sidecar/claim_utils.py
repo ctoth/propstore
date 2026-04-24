@@ -321,12 +321,6 @@ def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
             row["upper_bound_si"],
         ),
     )
-
-
-def insert_claim_concept_link_row(
-    conn: sqlite3.Connection,
-    values: tuple[object, ...],
-) -> None:
     conn.execute(
         """
         INSERT INTO claim_text_payload (

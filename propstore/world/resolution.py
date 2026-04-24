@@ -398,9 +398,9 @@ def _build_global_assignment_selection_problem(
 
 
 def _claim_concept_id(claim: ActiveClaim) -> str:
-    concept_id = None if claim.concept_id is None else str(claim.concept_id)
+    concept_id = None if claim.value_concept_id is None else str(claim.value_concept_id)
     if not isinstance(concept_id, str) or not concept_id:
-        raise KeyError("resolution requires each claim to have a non-empty string concept_id")
+        raise KeyError("resolution requires each claim to have a non-empty value concept")
     return concept_id
 
 
