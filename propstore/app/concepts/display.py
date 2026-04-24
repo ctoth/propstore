@@ -22,6 +22,7 @@ from .mutation import (
     _loaded_concepts,
     _require_sidecar,
 )
+from propstore.app.repository_views import repository_view_label
 from propstore.sidecar.sqlite import connect_sidecar
 
 if TYPE_CHECKING:
@@ -32,11 +33,17 @@ def search_concepts(
     repo: Repository,
     request: ConceptSearchRequest,
 ) -> ConceptSearchReport:
+    _ = repository_view_label(request.repository_view)
     sidecar = _require_sidecar(repo)
     conn = connect_sidecar(sidecar)
     try:
         rows = conn.execute(
-            "SELECT concept.primary_logical_id, concept_fts.canonical_name, concept_fts.definition "
+            "SELECT "
+            "COALESCE(NULLIF(concept.primary_logical_id, ''), concept.id), "
+            "concept.primary_logical_id, "
+            "concept_fts.canonical_name, "
+            "concept.status, "
+            "concept_fts.definition "
             "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
             "WHERE concept_fts MATCH ? LIMIT ?",
             (request.query, request.limit),
@@ -46,9 +53,11 @@ def search_concepts(
     return ConceptSearchReport(
         hits=tuple(
             ConceptSearchHit(
-                logical_id=str(row[0]),
-                canonical_name=str(row[1]),
-                definition=str(row[2] or ""),
+                handle=str(row[0]),
+                logical_id=None if row[1] is None else str(row[1]),
+                canonical_name=str(row[2]),
+                status=None if row[3] is None else str(row[3]),
+                definition=str(row[4] or ""),
             )
             for row in rows
         )
@@ -59,6 +68,7 @@ def list_concepts(
     repo: Repository,
     request: ConceptListRequest,
 ) -> ConceptListReport:
+    _ = repository_view_label(request.repository_view)
     refs = list(repo.families.concepts.iter())
     if not refs:
         return ConceptListReport(concepts_found=False, entries=())
@@ -79,7 +89,10 @@ def list_concepts(
                 status=concept_status,
             )
         )
-    return ConceptListReport(concepts_found=True, entries=tuple(entries))
+    return ConceptListReport(
+        concepts_found=True,
+        entries=tuple(entries[: request.limit]),
+    )
 
 
 def list_concept_categories(repo: Repository) -> ConceptCategoriesReport:

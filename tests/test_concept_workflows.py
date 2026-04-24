@@ -32,7 +32,9 @@ def test_search_concepts_owns_sidecar_query_and_connection(
     repo = _repo_with_sidecar(tmp_path)
     conn = MagicMock()
     cursor = MagicMock()
-    cursor.fetchall.return_value = [("concept-a", "concept a", "definition text")]
+    cursor.fetchall.return_value = [
+        ("concept-a", "speech:concept-a", "concept a", "accepted", "definition text")
+    ]
     conn.execute.return_value = cursor
 
     monkeypatch.setattr(concepts_display_mod, "connect_sidecar", lambda path: conn)
@@ -41,8 +43,10 @@ def test_search_concepts_owns_sidecar_query_and_connection(
 
     conn.execute.assert_called_once()
     assert conn.execute.call_args.args[1] == ("concept", 7)
-    assert report.hits[0].logical_id == "concept-a"
+    assert report.hits[0].handle == "concept-a"
+    assert report.hits[0].logical_id == "speech:concept-a"
     assert report.hits[0].canonical_name == "concept a"
+    assert report.hits[0].status == "accepted"
     conn.close.assert_called_once()
 
 
