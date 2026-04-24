@@ -148,10 +148,14 @@ def derive_scored_concepts(bound: FragilityWorld) -> list[str]:
             for row in bound._store.all_parameterizations()
         }
         for claim in bound.active_claims():
-            if hasattr(claim, "concept_id"):
-                concepts.add(str(claim.concept_id))
-            elif isinstance(claim, Mapping) and "concept_id" in claim:
-                concepts.add(str(claim["concept_id"]))
+            if hasattr(claim, "value_concept_id"):
+                concept_id = getattr(claim, "value_concept_id")
+                if concept_id is not None:
+                    concepts.add(str(concept_id))
+            elif isinstance(claim, Mapping):
+                concept_id = claim.get("value_concept_id", claim.get("output_concept_id"))
+                if concept_id is not None:
+                    concepts.add(str(concept_id))
         return sorted(concepts)
     except Exception as exc:
         warnings.warn(

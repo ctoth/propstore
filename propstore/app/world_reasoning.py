@@ -273,7 +273,7 @@ def _claim_lines(
 
     lines: list[WorldExtensionsClaimLine] = []
     for claim in active:
-        concept_id = None if claim.concept_id is None else str(claim.concept_id)
+        concept_id = None if claim.value_concept_id is None else str(claim.value_concept_id)
         concept_name = None
         if concept_id:
             concept = world.get_concept(concept_id)

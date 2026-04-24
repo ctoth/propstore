@@ -485,7 +485,7 @@ def explain_world_claim(
     return WorldExplainReport(
         claim_display_id=claim_display_id,
         claim_type=str(claim.claim_type),
-        concept_display_id=world_concept_display_id(world, str(claim.concept_id)),
+        concept_display_id=world_concept_display_id(world, str(claim.value_concept_id)),
         value=claim.value,
         stances=tuple(stances),
     )
@@ -514,7 +514,7 @@ def list_world_algorithms(
         algorithms = [
             claim
             for claim in algorithms
-            if str(claim.concept_id or "") == request.concept
+            if str(claim.output_concept_id or "") == request.concept
         ]
     return WorldAlgorithmsReport(
         algorithms=tuple(
@@ -524,8 +524,8 @@ def list_world_algorithms(
                 stage=str(claim.algorithm_stage)
                 if claim.algorithm_stage is not None
                 else "-",
-                concept_id=str(claim.concept_id)
-                if claim.concept_id is not None
+                concept_id=str(claim.output_concept_id)
+                if claim.output_concept_id is not None
                 else "-",
             )
             for claim in algorithms

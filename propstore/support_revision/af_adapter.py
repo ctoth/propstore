@@ -63,7 +63,7 @@ class RevisionArgumentationStore:
         return [
             claim.row
             for claim in self._active_claims
-            if claim.concept_id == concept_id
+            if claim.value_concept_id == concept_id
         ]
 
     def claims_by_ids(self, claim_ids: set[str]):

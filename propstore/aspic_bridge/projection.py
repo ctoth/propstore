@@ -183,7 +183,7 @@ def csaf_to_projection(
             conclusion_key=_projection_conclusion_key(conclusion),
             claim_id=claim_id,
             conclusion_concept_id=(
-                None if claim is None or claim.concept_id is None else str(claim.concept_id)
+                None if claim is None or claim.value_concept_id is None else str(claim.value_concept_id)
             ),
             premise_claim_ids=premise_claim_ids,
             label=label,

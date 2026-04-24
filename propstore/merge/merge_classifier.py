@@ -99,7 +99,7 @@ def _disambiguate_id(claim_id: str, suffix: str) -> str:
 
 
 def _extract_concept(claim: MergeClaim) -> str:
-    return claim.concept_id
+    return claim.value_concept_id
 
 
 def _indexed_claim(claim: MergeClaim) -> _IndexedClaim | None:

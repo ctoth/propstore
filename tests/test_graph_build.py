@@ -104,7 +104,7 @@ def graph_build_world(tmp_path):
             {
                 "id": "claim_mass",
                 "type": "parameter",
-                "concept": "concept1",
+                "output_concept": "concept1",
                 "value": 5.0,
                 "unit": "kg",
                 "conditions": ["task == 'speech'"],
@@ -113,7 +113,7 @@ def graph_build_world(tmp_path):
             {
                 "id": "claim_accel",
                 "type": "parameter",
-                "concept": "concept2",
+                "output_concept": "concept2",
                 "value": 2.0,
                 "unit": "m/s^2",
                 "conditions": ["task == 'speech'"],
@@ -122,7 +122,7 @@ def graph_build_world(tmp_path):
             {
                 "id": "claim_force_a",
                 "type": "parameter",
-                "concept": "concept3",
+                "output_concept": "concept3",
                 "value": 10.0,
                 "unit": "N",
                 "conditions": ["task == 'speech'"],
@@ -131,7 +131,7 @@ def graph_build_world(tmp_path):
             {
                 "id": "claim_force_b",
                 "type": "parameter",
-                "concept": "concept3",
+                "output_concept": "concept3",
                 "value": 12.0,
                 "unit": "N",
                 "conditions": ["task == 'speech'"],
@@ -281,6 +281,18 @@ def test_world_model_compiled_graph_matches_normalized_storage_projection(
         def claims_for(self, concept_id):
             if concept_id is not None:
                 raise AssertionError("normalized parity store only supports claims_for(None)")
+            link_cursor = self._conn.execute(
+                """
+                SELECT claim_id, concept_id, role, ordinal, binding_name
+                FROM claim_concept_link
+                ORDER BY claim_id, ordinal, concept_id
+                """
+            )
+            link_columns = [desc[0] for desc in link_cursor.description]
+            links_by_claim: dict[str, list[dict]] = {}
+            for link_row in link_cursor.fetchall():
+                link = dict(zip(link_columns, link_row, strict=False))
+                links_by_claim.setdefault(str(link["claim_id"]), []).append(link)
             cursor = self._conn.execute(
                 """
                 SELECT
@@ -288,7 +300,6 @@ def test_world_model_compiled_graph_matches_normalized_storage_projection(
                     core.content_hash,
                     core.seq,
                     core.type,
-                    core.concept_id,
                     num.value,
                     num.lower_bound,
                     num.upper_bound,
@@ -332,7 +343,12 @@ def test_world_model_compiled_graph_matches_normalized_storage_projection(
                 """
             )
             columns = [desc[0] for desc in cursor.description]
-            return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
+            claim_rows: list[dict] = []
+            for row in cursor.fetchall():
+                claim = dict(zip(columns, row, strict=False))
+                claim["concept_links"] = links_by_claim.get(str(claim["id"]), [])
+                claim_rows.append(claim)
+            return claim_rows
 
         def all_parameterizations(self) -> list[dict]:
             cursor = self._conn.execute("SELECT * FROM parameterization ORDER BY output_concept_id, formula")
