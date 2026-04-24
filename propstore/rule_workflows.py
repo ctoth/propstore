@@ -62,6 +62,35 @@ class RuleFileNotFoundError(RuleWorkflowError):
         self.file = file
 
 
+class RuleNotFoundError(RuleWorkflowError):
+    """Raised when a named rule id is absent from a rules file."""
+
+    def __init__(self, file: str, rule_id: str) -> None:
+        super().__init__(f"Rule '{rule_id}' not found in rules file '{file}'")
+        self.file = file
+        self.rule_id = rule_id
+
+
+class RuleReferencedError(RuleWorkflowError):
+    """Raised when a rule id is still referenced by a superiority pair."""
+
+    def __init__(
+        self,
+        file: str,
+        rule_id: str,
+        pairs: tuple[tuple[str, str], ...],
+    ) -> None:
+        rendered = ", ".join(f"({a}, {b})" for a, b in pairs)
+        super().__init__(
+            f"cannot remove rule '{rule_id}' from '{file}'; still referenced "
+            f"in superiority pair(s): {rendered}. Remove the superiority "
+            f"pair(s) first."
+        )
+        self.file = file
+        self.rule_id = rule_id
+        self.pairs = pairs
+
+
 @dataclass(frozen=True)
 class RuleAddRequest:
     """CLI request to add a rule to ``rules/<file>.yaml``.
@@ -98,6 +127,26 @@ class RuleAddReport:
     filepath: Path
     document: RulesFileDocument
     created: bool
+
+
+@dataclass(frozen=True)
+class RuleRemoveRequest:
+    """CLI request to remove a rule from ``rules/<file>.yaml``.
+
+    Attributes:
+        file: File stem (e.g. ``"ikeda_2014"``).
+        rule_id: Authoring id of the rule to remove.
+    """
+
+    file: str
+    rule_id: str
+
+
+@dataclass(frozen=True)
+class RuleRemoveReport:
+    filepath: Path
+    rule_id: str
+    removed: bool
 
 
 @dataclass(frozen=True)
@@ -299,4 +348,65 @@ def show_rule_file(
     return RuleShowReport(
         filepath=filepath,
         rendered=encode_document(document).decode("utf-8"),
+    )
+
+
+def remove_rule(
+    repo: Repository,
+    request: RuleRemoveRequest,
+) -> RuleRemoveReport:
+    """Remove a rule from ``rules/<file>.yaml``.
+
+    Raises ``RuleFileNotFoundError`` if the file does not exist,
+    ``RuleNotFoundError`` if the rule id is absent, or
+    ``RuleReferencedError`` if the rule id still participates in a
+    ``superiority`` pair. On success the file is rewritten via the
+    existing family ``save`` path (same commit pattern as
+    ``add_rule``); if the removal leaves zero rules the file is kept
+    as a stub so downstream tooling can continue to observe the
+    ``source`` block, matching ``remove_context_lifting_rule``'s
+    behaviour for emptied lifting-rule blocks.
+    """
+    if not isinstance(request.rule_id, str) or not request.rule_id:
+        raise RuleWorkflowError("rule id must be a non-empty string")
+
+    ref = RuleFileRef(request.file)
+    existing = repo.families.rules.load(ref)
+    if existing is None:
+        raise RuleFileNotFoundError(request.file)
+
+    relpath = repo.families.rules.address(ref).require_path()
+    filepath = repo.root / relpath
+
+    if not any(entry.id == request.rule_id for entry in existing.rules):
+        raise RuleNotFoundError(request.file, request.rule_id)
+
+    referencing_pairs = tuple(
+        pair for pair in existing.superiority if request.rule_id in pair
+    )
+    if referencing_pairs:
+        raise RuleReferencedError(
+            request.file, request.rule_id, referencing_pairs
+        )
+
+    remaining = tuple(
+        entry for entry in existing.rules if entry.id != request.rule_id
+    )
+    document = RulesFileDocument(
+        source=existing.source,
+        rules=remaining,
+        superiority=existing.superiority,
+    )
+
+    repo.families.rules.save(
+        ref,
+        document,
+        message=f"Remove rule {request.rule_id} from {request.file}",
+    )
+    repo.snapshot.sync_worktree()
+
+    return RuleRemoveReport(
+        filepath=filepath,
+        rule_id=request.rule_id,
+        removed=True,
     )
