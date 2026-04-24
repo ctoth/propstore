@@ -61,6 +61,23 @@ def test_reasoning_demo_grounding_arguments(tmp_path) -> None:
     assert "flies(tweety) <= r_flies_from_bird" in result.output
 
 
+def test_reasoning_demo_grounding_explain(tmp_path) -> None:
+    root = _materialize_demo(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["-C", str(root), "grounding", "explain", "flies(tweety)"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "status: defeasibly" in result.output
+    assert "Textual explanation:" in result.output
+    assert "flies(tweety) is YES." in result.output
+    assert "via r_flies_from_bird" in result.output
+    assert "Dialectical tree:" in result.output
+
+
 def test_reasoning_demo_build_and_world_extensions(tmp_path) -> None:
     root = _materialize_demo(tmp_path)
 
