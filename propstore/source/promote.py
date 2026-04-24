@@ -436,11 +436,17 @@ def _write_promotion_blocked_sidecar_rows(
                 # but the path must not crash on a malformed claim.
                 artifact_id = str(claim.id or "?")
             source_ref = f"{source_branch}:{artifact_id}"
-            # Delete any prior mirror row for this (artifact_id, branch)
-            # so re-promote after a fix doesn't leave stale rows.
+            # ``claim_core.id`` is PK. Delete by id alone so a prior
+            # mirror row from any source branch is replaced cleanly.
+            # (Scoping by (id, branch) left prior rows behind and the
+            # subsequent INSERT collided on PK — reproduction in
+            # ``tests/remediation/phase_7_race_atomicity/
+            # test_T7_5d_promotion_blocked_id_collision.py``.)
+            # The ``build_diagnostics`` DELETE stays scoped to this
+            # source_ref so other branches' diagnostics survive.
             conn.execute(
-                "DELETE FROM claim_core WHERE id = ? AND branch = ?",
-                (artifact_id, source_branch),
+                "DELETE FROM claim_core WHERE id = ?",
+                (artifact_id,),
             )
             conn.execute(
                 "DELETE FROM build_diagnostics WHERE claim_id = ? "
