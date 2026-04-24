@@ -5,7 +5,7 @@ import contextlib
 import sqlite3
 from typing import TYPE_CHECKING
 
-from propstore.app.concepts_mutation import (
+from .mutation import (
     ConceptEmbedReport,
     ConceptEmbedModelReport,
     ConceptEmbedRequest,
