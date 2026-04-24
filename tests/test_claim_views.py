@@ -369,3 +369,43 @@ def test_search_claim_views_filters_by_query_and_concept(
     )
 
     assert [entry.claim_id for entry in report.entries] == ["claim1"]
+
+
+def test_search_claim_views_matches_linked_concept_labels(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _World(
+        claims=(
+            _claim(
+                claim_id="claim_obs",
+                artifact_id="claim_obs",
+                claim_type="observation",
+                concept_links=(
+                    ClaimConceptLinkRow(
+                        claim_id="claim_obs",
+                        concept_id="concept1",
+                        role=ClaimConceptLinkRole.ABOUT,
+                        ordinal=0,
+                    ),
+                    ClaimConceptLinkRow(
+                        claim_id="claim_obs",
+                        concept_id="concept2",
+                        role=ClaimConceptLinkRole.ABOUT,
+                        ordinal=1,
+                    ),
+                ),
+                value=None,
+                unit=None,
+                statement="Interaction summary.",
+            ),
+        ),
+        concepts=(_concept(), _concept2()),
+    )
+    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+
+    report = claim_views.search_claim_views(
+        _repo(),
+        claim_views.ClaimSearchRequest(query="subglottal_pressure", limit=10),
+    )
+
+    assert [entry.claim_id for entry in report.entries] == ["claim_obs"]
