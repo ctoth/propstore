@@ -5,7 +5,8 @@ from __future__ import annotations
 from html import escape
 from urllib.parse import quote
 
-from propstore.app.claim_views import ClaimViewReport
+from propstore.app.claim_views import ClaimSummaryReport, ClaimViewReport
+from propstore.app.concepts import ConceptListReport, ConceptSearchReport
 from propstore.app.neighborhoods import (
     SemanticEdge,
     SemanticMove,
@@ -13,6 +14,50 @@ from propstore.app.neighborhoods import (
     SemanticNeighborhoodRow,
     SemanticNode,
 )
+
+
+def render_claim_index_page(
+    report: ClaimSummaryReport,
+    *,
+    query: str | None,
+    concept: str | None,
+) -> str:
+    title = "Claims - propstore"
+    filter_rows = [
+        ("Query", query or "none"),
+        ("Concept filter", concept or "none"),
+    ]
+    rows = [
+        (
+            entry.logical_id or entry.claim_id,
+            entry.concept_name or entry.concept_id or "missing",
+            entry.claim_type,
+            entry.value_display,
+            entry.condition_display,
+            entry.status_state.replace("_", " "),
+            f"/claim/{quote(entry.claim_id, safe='')}",
+        )
+        for entry in report.entries
+    ]
+    return _page(
+        title,
+        f"""
+<h1>Claims</h1>
+<section aria-labelledby="filters-heading">
+  <h2 id="filters-heading">Filters</h2>
+  {_dl(filter_rows)}
+</section>
+<section aria-labelledby="claims-heading">
+  <h2 id="claims-heading">Claim Inventory</h2>
+  {_link_table(
+      ("Claim", "Concept", "Type", "Value", "Conditions", "Status"),
+      rows,
+      link_column=0,
+      href_column=6,
+  )}
+</section>
+""",
+    )
 
 
 def render_claim_page(report: ClaimViewReport) -> str:
@@ -85,6 +130,68 @@ def render_error_page(title: str, message: str) -> str:
 <section aria-labelledby="error-heading">
   <h2 id="error-heading">Error</h2>
   <p>{_text(message)}</p>
+</section>
+""",
+    )
+
+
+def render_concept_index_page(
+    report: ConceptListReport | ConceptSearchReport,
+    *,
+    query: str | None,
+    domain: str | None,
+    status: str | None,
+) -> str:
+    title = "Concepts - propstore"
+    filter_rows = [
+        ("Query", query or "none"),
+        ("Domain filter", domain or "none"),
+        ("Status filter", status or "none"),
+    ]
+    if isinstance(report, ConceptListReport):
+        rows = [
+            (
+                entry.handle,
+                entry.canonical_name,
+                entry.status or "missing",
+                f"/concept/{quote(entry.handle, safe='')}",
+            )
+            for entry in report.entries
+        ]
+        table = _link_table(
+            ("Handle", "Canonical Name", "Status"),
+            rows,
+            link_column=0,
+            href_column=3,
+        )
+    else:
+        rows = [
+            (
+                hit.handle,
+                hit.canonical_name,
+                hit.status or "missing",
+                hit.definition or "missing",
+                f"/concept/{quote(hit.handle, safe='')}",
+            )
+            for hit in report.hits
+        ]
+        table = _link_table(
+            ("Handle", "Canonical Name", "Status", "Definition"),
+            rows,
+            link_column=0,
+            href_column=4,
+        )
+    return _page(
+        title,
+        f"""
+<h1>Concepts</h1>
+<section aria-labelledby="filters-heading">
+  <h2 id="filters-heading">Filters</h2>
+  {_dl(filter_rows)}
+</section>
+<section aria-labelledby="concepts-heading">
+  <h2 id="concepts-heading">Concept Inventory</h2>
+  {table}
 </section>
 """,
     )
@@ -248,6 +355,36 @@ def _table(headers: tuple[str, ...], rows: list[tuple[str, ...]]) -> str:
         "<tr>" + "".join(f"<td>{_text(cell)}</td>" for cell in row) + "</tr>"
         for row in body_rows
     )
+    return f"<table><thead><tr>{head}</tr></thead><tbody>\n{body}\n</tbody></table>"
+
+
+def _link_table(
+    headers: tuple[str, ...],
+    rows: list[tuple[str, ...]],
+    *,
+    link_column: int,
+    href_column: int,
+) -> str:
+    head = "".join(f"<th scope=\"col\">{_text(header)}</th>" for header in headers)
+    if not rows:
+        empty_row = tuple(
+            "none" if index == 0 else "not applicable" for index in range(len(headers))
+        )
+        body = "<tr>" + "".join(f"<td>{_text(cell)}</td>" for cell in empty_row) + "</tr>"
+        return f"<table><thead><tr>{head}</tr></thead><tbody>\n{body}\n</tbody></table>"
+
+    body_rows: list[str] = []
+    for row in rows:
+        href = row[href_column]
+        cells: list[str] = []
+        visible_cells = [cell for index, cell in enumerate(row) if index != href_column]
+        for index, cell in enumerate(visible_cells):
+            if index == link_column:
+                cells.append(f"<td><a href=\"{_text(href)}\">{_text(cell)}</a></td>")
+            else:
+                cells.append(f"<td>{_text(cell)}</td>")
+        body_rows.append("<tr>" + "".join(cells) + "</tr>")
+    body = "\n".join(body_rows)
     return f"<table><thead><tr>{head}</tr></thead><tbody>\n{body}\n</tbody></table>"
 
 

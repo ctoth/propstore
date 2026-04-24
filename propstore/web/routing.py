@@ -8,10 +8,24 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from propstore.app.claim_views import (
+    ClaimSummaryReport,
     ClaimViewReport,
+    ClaimListRequest,
+    ClaimSearchRequest,
     ClaimViewRequest,
     ClaimViewUnknownClaimError,
     build_claim_view,
+    list_claim_views,
+    search_claim_views,
+)
+from propstore.app.concepts import (
+    ConceptListReport,
+    ConceptListRequest,
+    ConceptSearchReport,
+    ConceptSearchRequest,
+    ConceptSidecarMissingError,
+    list_concepts,
+    search_concepts,
 )
 from propstore.app.neighborhoods import (
     SemanticNeighborhoodReport,
@@ -24,7 +38,9 @@ from propstore.app.rendering import RenderPolicyValidationError
 from propstore.app.world import WorldSidecarMissingError
 from propstore.repository import Repository
 from propstore.web.html import (
+    render_claim_index_page,
     render_claim_page,
+    render_concept_index_page,
     render_error_page,
     render_neighborhood_page,
 )
@@ -39,6 +55,47 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/claims.json")
+    def claims_json(request: Request) -> JSONResponse:
+        report_or_response = _claims_report(request, wants_json=True)
+        if isinstance(report_or_response, JSONResponse):
+            return report_or_response
+        return JSONResponse(to_json_compatible(report_or_response))
+
+    @app.get("/claims")
+    def claims_html(request: Request) -> HTMLResponse:
+        report_or_response = _claims_report(request, wants_json=False)
+        if isinstance(report_or_response, HTMLResponse):
+            return report_or_response
+        return HTMLResponse(
+            render_claim_index_page(
+                report_or_response,
+                query=_optional_query(request, "q"),
+                concept=_optional_query(request, "concept"),
+            )
+        )
+
+    @app.get("/concepts.json")
+    def concepts_json(request: Request) -> JSONResponse:
+        report_or_response = _concepts_report(request, wants_json=True)
+        if isinstance(report_or_response, JSONResponse):
+            return report_or_response
+        return JSONResponse(to_json_compatible(report_or_response))
+
+    @app.get("/concepts")
+    def concepts_html(request: Request) -> HTMLResponse:
+        report_or_response = _concepts_report(request, wants_json=False)
+        if isinstance(report_or_response, HTMLResponse):
+            return report_or_response
+        return HTMLResponse(
+            render_concept_index_page(
+                report_or_response,
+                query=_optional_query(request, "q"),
+                domain=_optional_query(request, "domain"),
+                status=_optional_query(request, "status"),
+            )
+        )
 
     @app.get("/claim/{claim_id}.json")
     def claim_json(claim_id: str, request: Request) -> JSONResponse:
@@ -120,6 +177,68 @@ def _claim_report(
 
 
 @overload
+def _claims_report(
+    request: Request,
+    *,
+    wants_json: Literal[True],
+) -> ClaimSummaryReport | JSONResponse:
+    ...
+
+
+@overload
+def _claims_report(
+    request: Request,
+    *,
+    wants_json: Literal[False],
+) -> ClaimSummaryReport | HTMLResponse:
+    ...
+
+
+def _claims_report(
+    request: Request,
+    *,
+    wants_json: bool,
+) -> ClaimSummaryReport | JSONResponse | HTMLResponse:
+    try:
+        render_policy = parse_render_policy_request(dict(request.query_params))
+        repository_view = parse_repository_view_request(dict(request.query_params))
+        concept = _optional_query(request, "concept")
+        limit = _parse_limit(request.query_params.get("limit"))
+        query = _optional_query(request, "q")
+        repo = _repo_from_request(request)
+        if query is None:
+            report = list_claim_views(
+                repo,
+                ClaimListRequest(
+                    render_policy=render_policy,
+                    concept=concept,
+                    limit=limit,
+                    repository_view=repository_view,
+                ),
+            )
+        else:
+            report = search_claim_views(
+                repo,
+                ClaimSearchRequest(
+                    query=query,
+                    render_policy=render_policy,
+                    concept=concept,
+                    limit=limit,
+                    repository_view=repository_view,
+                ),
+            )
+    except ValueError as exc:
+        return _error_response("Invalid Request", str(exc), 400, wants_json=wants_json)
+    except RenderPolicyValidationError as exc:
+        return _error_response("Invalid Render Policy", str(exc), 400, wants_json=wants_json)
+    except RepositoryViewUnsupportedStateError as exc:
+        return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
+    except WorldSidecarMissingError as exc:
+        return _error_response("Sidecar Missing", str(exc), 409, wants_json=wants_json)
+    return report
+
+
+@overload
 def _neighborhood_report(
     claim_id: str,
     request: Request,
@@ -174,6 +293,64 @@ def _neighborhood_report(
     return report
 
 
+@overload
+def _concepts_report(
+    request: Request,
+    *,
+    wants_json: Literal[True],
+) -> ConceptListReport | ConceptSearchReport | JSONResponse:
+    ...
+
+
+@overload
+def _concepts_report(
+    request: Request,
+    *,
+    wants_json: Literal[False],
+) -> ConceptListReport | ConceptSearchReport | HTMLResponse:
+    ...
+
+
+def _concepts_report(
+    request: Request,
+    *,
+    wants_json: bool,
+) -> ConceptListReport | ConceptSearchReport | JSONResponse | HTMLResponse:
+    try:
+        repository_view = parse_repository_view_request(dict(request.query_params))
+        query = _optional_query(request, "q")
+        domain = _optional_query(request, "domain")
+        status = _optional_query(request, "status")
+        limit = _parse_limit(request.query_params.get("limit"))
+        repo = _repo_from_request(request)
+        if query is None:
+            report = list_concepts(
+                repo,
+                ConceptListRequest(
+                    domain=domain,
+                    status=status,
+                    limit=limit,
+                    repository_view=repository_view,
+                ),
+            )
+        else:
+            report = search_concepts(
+                repo,
+                ConceptSearchRequest(
+                    query=query,
+                    limit=limit,
+                    repository_view=repository_view,
+                ),
+            )
+    except ValueError as exc:
+        return _error_response("Invalid Request", str(exc), 400, wants_json=wants_json)
+    except RepositoryViewUnsupportedStateError as exc:
+        return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
+    except ConceptSidecarMissingError as exc:
+        return _error_response("Sidecar Missing", str(exc), 409, wants_json=wants_json)
+    return report
+
+
 def _parse_limit(value: str | None) -> int:
     if value is None:
         return 50
@@ -189,6 +366,13 @@ def _parse_limit(value: str | None) -> int:
 def _repo_from_request(request: Request) -> Repository:
     start = request.app.state.repository_root
     return Repository.find(start)
+
+
+def _optional_query(request: Request, name: str) -> str | None:
+    value = request.query_params.get(name)
+    if value is None or value == "":
+        return None
+    return value
 
 
 @overload

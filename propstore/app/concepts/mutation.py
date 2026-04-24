@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from copy import deepcopy
 from datetime import date
 from pathlib import Path
@@ -45,6 +45,7 @@ from propstore.families.registry import ClaimsFileRef, ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.semantic_passes.types import PipelineResult
+from propstore.app.repository_views import AppRepositoryViewRequest
 
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
 QUALIA_ROLES = ("formal", "constitutive", "telic", "agentive")
@@ -94,13 +95,16 @@ class ConceptDisplayError(ConceptWorkflowError):
 class ConceptSearchRequest:
     query: str
     limit: int = 20
+    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
 
 
 @dataclass(frozen=True)
 class ConceptSearchHit:
-    logical_id: str
+    handle: str
+    logical_id: str | None
     canonical_name: str
     definition: str
+    status: str | None = None
 
 
 @dataclass(frozen=True)
@@ -112,6 +116,8 @@ class ConceptSearchReport:
 class ConceptListRequest:
     domain: str | None = None
     status: str | None = None
+    limit: int = 200
+    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
 
 
 @dataclass(frozen=True)
@@ -347,6 +353,7 @@ def search_concepts(
     return ConceptSearchReport(
         hits=tuple(
             ConceptSearchHit(
+                handle=str(row[0]),
                 logical_id=str(row[0]),
                 canonical_name=str(row[1]),
                 definition=str(row[2] or ""),

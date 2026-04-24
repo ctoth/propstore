@@ -52,6 +52,7 @@ class ClaimListRequest:
     render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
     concept: str | None = None
     limit: int = 50
+    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,7 @@ class ClaimSearchRequest:
     render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
     concept: str | None = None
     limit: int = 20
+    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
 
 
 @dataclass(frozen=True)
@@ -195,6 +197,7 @@ def list_claim_views(
     repo: Repository,
     request: ClaimListRequest,
 ) -> ClaimSummaryReport:
+    _ = repository_view_label(request.repository_view)
     policy = build_render_policy(request.render_policy)
     with open_app_world_model(repo) as world:
         concept_filter = _resolve_concept_filter(world, request.concept)
@@ -213,6 +216,7 @@ def search_claim_views(
     repo: Repository,
     request: ClaimSearchRequest,
 ) -> ClaimSummaryReport:
+    _ = repository_view_label(request.repository_view)
     policy = build_render_policy(request.render_policy)
     query = request.query.casefold()
     with open_app_world_model(repo) as world:
