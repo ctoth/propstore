@@ -5,16 +5,24 @@ from click.testing import CliRunner
 
 from propstore.app.contexts import (
     ContextAddRequest,
+    ContextLiftingRuleAddRequest,
+    ContextLiftingRuleUpdateRequest,
     ContextNotFoundError,
     ContextReferencedError,
     ContextSearchRequest,
     ContextWorkflowError,
     add_context,
+    add_context_lifting_rule,
     list_context_items,
+    list_context_lifting_rules,
     remove_context,
+    remove_context_lifting_rule,
     search_context_items,
+    show_context_lifting_rule,
     show_context,
+    update_context_lifting_rule,
 )
+from propstore.app.forms import FormAddRequest, add_form
 from propstore.cli import cli
 from propstore.families.documents.sources import SourceClaimDocument, SourceClaimsDocument
 from propstore.families.documents.worldlines import (
@@ -266,3 +274,282 @@ def test_context_cli_remove_uses_owner_reference_checks(tmp_path) -> None:
     assert "Would remove" in dry_run.output
     assert forced.exit_code == 0, forced.output
     assert "Removed" in forced.output
+
+
+def test_context_lifting_rule_workflows_crud(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_context(
+        repo,
+        ContextAddRequest(name="ctx_source", description="Source context"),
+        dry_run=False,
+    )
+    add_context(
+        repo,
+        ContextAddRequest(name="ctx_target", description="Target context"),
+        dry_run=False,
+    )
+
+    dry_run = add_context_lifting_rule(
+        repo,
+        "ctx_target",
+        ContextLiftingRuleAddRequest(
+            rule_id="lift_source_target",
+            source_context="ctx_source",
+            conditions=("license == 'bridge'",),
+            justification="Bridge rule",
+        ),
+        dry_run=True,
+    )
+    created = add_context_lifting_rule(
+        repo,
+        "ctx_target",
+        ContextLiftingRuleAddRequest(
+            rule_id="lift_source_target",
+            source_context="ctx_source",
+            conditions=("license == 'bridge'",),
+            justification="Bridge rule",
+        ),
+        dry_run=False,
+    )
+    items = list_context_lifting_rules(repo, "ctx_target")
+    shown = show_context_lifting_rule(repo, "ctx_target", "lift_source_target")
+    updated = update_context_lifting_rule(
+        repo,
+        "ctx_target",
+        "lift_source_target",
+        ContextLiftingRuleUpdateRequest(
+            conditions=(),
+            justification="Retargeted bridge",
+        ),
+        dry_run=False,
+    )
+    removed_dry_run = remove_context_lifting_rule(
+        repo,
+        "ctx_target",
+        "lift_source_target",
+        dry_run=True,
+    )
+    rewritten = yaml.safe_load((repo.contexts_dir / "ctx_target.yaml").read_text())
+    removed = remove_context_lifting_rule(
+        repo,
+        "ctx_target",
+        "lift_source_target",
+        dry_run=False,
+    )
+
+    assert dry_run.created is False
+    assert created.created is True
+    assert items[0].owner_context == "ctx_target"
+    assert items[0].source_context == "ctx_source"
+    assert items[0].target_context == "ctx_target"
+    assert items[0].condition_count == 1
+    assert "id: lift_source_target" in shown.rendered
+    assert "source: ctx_source" in shown.rendered
+    assert updated.updated is True
+    assert "conditions" not in rewritten["lifting_rules"][0]
+    assert rewritten["lifting_rules"][0]["justification"] == "Retargeted bridge"
+    assert removed_dry_run.removed is False
+    assert removed.removed is True
+    assert yaml.safe_load((repo.contexts_dir / "ctx_target.yaml").read_text()).get("lifting_rules") is None
+
+
+def test_context_lifting_rule_workflows_validate_source_and_cel(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_context(
+        repo,
+        ContextAddRequest(name="ctx_target", description="Target context"),
+        dry_run=False,
+    )
+
+    try:
+        add_context_lifting_rule(
+            repo,
+            "ctx_target",
+            ContextLiftingRuleAddRequest(
+                rule_id="lift_missing",
+                source_context="ctx_missing",
+            ),
+            dry_run=False,
+        )
+    except ContextNotFoundError as exc:
+        assert exc.name == "ctx_missing"
+    else:
+        raise AssertionError("expected missing source context failure")
+
+    add_form(
+        repo,
+        FormAddRequest(
+            name="boolean",
+            dimensionless="true",
+        ),
+        dry_run=False,
+    )
+    runner = CliRunner()
+    concept_add = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "concept",
+            "add",
+            "--domain",
+            "speech",
+            "--name",
+            "pitch",
+            "--definition",
+            "Pitch",
+            "--form",
+            "boolean",
+        ],
+    )
+
+    assert concept_add.exit_code == 0, concept_add.output
+
+    try:
+        add_context_lifting_rule(
+            repo,
+            "ctx_target",
+            ContextLiftingRuleAddRequest(
+                rule_id="lift_invalid",
+                source_context="ctx_target",
+                conditions=("(",),
+            ),
+            dry_run=False,
+        )
+    except ContextWorkflowError as exc:
+        assert "lifting rule 'lift_invalid'" in str(exc)
+        assert "condition[0]" in str(exc)
+    else:
+        raise AssertionError("expected invalid lifting-rule condition failure")
+
+
+def test_context_lifting_cli_crud(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_context(
+        repo,
+        ContextAddRequest(name="ctx_source", description="Source context"),
+        dry_run=False,
+    )
+    add_context(
+        repo,
+        ContextAddRequest(name="ctx_target", description="Target context"),
+        dry_run=False,
+    )
+    runner = CliRunner()
+
+    add = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "context",
+            "lifting",
+            "add",
+            "ctx_target",
+            "--rule-id",
+            "lift_source_target",
+            "--source",
+            "ctx_source",
+            "--condition",
+            "license == 'bridge'",
+            "--justification",
+            "Bridge rule",
+        ],
+    )
+    listed = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "context", "lifting", "list", "ctx_target"],
+    )
+    shown = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "context",
+            "lifting",
+            "show",
+            "ctx_target",
+            "lift_source_target",
+        ],
+    )
+    updated = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "context",
+            "lifting",
+            "update",
+            "ctx_target",
+            "lift_source_target",
+            "--clear-conditions",
+            "--clear-justification",
+        ],
+    )
+    removed_dry_run = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "context",
+            "lifting",
+            "remove",
+            "ctx_target",
+            "lift_source_target",
+            "--dry-run",
+        ],
+    )
+    removed = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "context",
+            "lifting",
+            "remove",
+            "ctx_target",
+            "lift_source_target",
+        ],
+    )
+
+    assert add.exit_code == 0, add.output
+    assert "Added lifting rule 'lift_source_target'" in add.output
+    assert listed.exit_code == 0, listed.output
+    assert "ctx_target: lift_source_target [ctx_source -> ctx_target, mode=bridge, conditions=1]" in listed.output
+    assert shown.exit_code == 0, shown.output
+    assert "justification: Bridge rule" in shown.output
+    assert updated.exit_code == 0, updated.output
+    assert "Updated lifting rule 'lift_source_target'" in updated.output
+    assert removed_dry_run.exit_code == 0, removed_dry_run.output
+    assert "Would remove lifting rule 'lift_source_target'" in removed_dry_run.output
+    assert removed.exit_code == 0, removed.output
+    assert "Removed lifting rule 'lift_source_target'" in removed.output
+
+
+def test_context_lifting_cli_rejects_invalid_update_flags(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_context(
+        repo,
+        ContextAddRequest(name="ctx_target", description="Target context"),
+        dry_run=False,
+    )
+    runner = CliRunner()
+
+    conflict = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "context",
+            "lifting",
+            "update",
+            "ctx_target",
+            "lift_missing",
+            "--condition",
+            "a == b",
+            "--clear-conditions",
+        ],
+    )
+
+    assert conflict.exit_code != 0, conflict.output
+    assert "Cannot use --condition and --clear-conditions together" in conflict.output

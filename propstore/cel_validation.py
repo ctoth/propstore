@@ -142,6 +142,23 @@ def iter_context_assumption_expressions(
         )
 
 
+def iter_lifting_rule_condition_expressions(
+    conditions: Sequence[str],
+    *,
+    artifact_label: str,
+) -> Iterable[tuple[str, CelExpressionLocation]]:
+    """Yield ``(expression, location)`` pairs for every lifting-rule condition."""
+    for index, expression in enumerate(conditions):
+        yield (
+            expression,
+            CelExpressionLocation(
+                artifact_label=artifact_label,
+                field="condition",
+                index=index,
+            ),
+        )
+
+
 __all__ = [
     "CelIngestValidationError",
     "CelExpressionLocation",
@@ -149,4 +166,5 @@ __all__ = [
     "validate_cel_expressions",
     "iter_claim_condition_expressions",
     "iter_context_assumption_expressions",
+    "iter_lifting_rule_condition_expressions",
 ]
