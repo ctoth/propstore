@@ -172,8 +172,7 @@ def build_claim_view(repo: Repository, request: ClaimViewRequest) -> ClaimViewRe
         claim = world.get_claim(request.claim_id)
         if claim is None:
             raise ClaimViewUnknownClaimError(request.claim_id)
-        primary_concept_id = _claim_primary_concept_id(claim)
-        concept = world.get_concept(primary_concept_id) if primary_concept_id else None
+        concept = _claim_focus_concept(claim, world)
         visible_ids = {str(row.claim_id) for row in world.claims_with_policy(None, policy)}
         status = _claim_status(claim, str(claim.claim_id) in visible_ids)
         concept_view = _claim_concept(claim, concept)
@@ -209,15 +208,7 @@ def list_claim_views(
             key=_claim_sort_key,
         )
         entries = tuple(
-            _claim_summary_entry(
-                claim,
-                (
-                    world.get_concept(primary_concept_id)
-                    if (primary_concept_id := _claim_primary_concept_id(claim))
-                    else None
-                ),
-                world,
-            )
+            _claim_summary_entry(claim, _claim_focus_concept(claim, world), world)
             for claim in claims[:request.limit]
         )
     return ClaimSummaryReport(entries=entries)
@@ -234,9 +225,8 @@ def search_claim_views(
         concept_filter = _resolve_concept_filter(world, request.concept)
         matches: list[ClaimSummaryEntry] = []
         for claim in sorted(world.claims_with_policy(concept_filter, policy), key=_claim_sort_key):
-            primary_concept_id = _claim_primary_concept_id(claim)
-            concept = world.get_concept(primary_concept_id) if primary_concept_id else None
-            if not _claim_matches_query(claim, concept, query):
+            concept = _claim_focus_concept(claim, world)
+            if not _claim_matches_query(claim, concept, query, world):
                 continue
             matches.append(_claim_summary_entry(claim, concept, world))
             if len(matches) >= request.limit:
@@ -245,8 +235,8 @@ def search_claim_views(
 
 
 def _claim_concept(claim, concept) -> ClaimViewConcept:
-    primary_concept_id = _claim_primary_concept_id(claim)
-    if primary_concept_id is None:
+    concept_id = _claim_focus_concept_id(claim)
+    if concept_id is None:
         return ClaimViewConcept(
             state="not_applicable",
             concept_id=None,
@@ -256,7 +246,7 @@ def _claim_concept(claim, concept) -> ClaimViewConcept:
     if concept is None:
         return ClaimViewConcept(
             state="unknown",
-            concept_id=primary_concept_id,
+            concept_id=concept_id,
             canonical_name=None,
             form=None,
         )
@@ -548,13 +538,20 @@ def _claim_logical_id(claim) -> str | None:
     return None if logical_id is None else str(logical_id)
 
 
-def _claim_primary_concept_id(claim) -> str | None:
+def _claim_focus_concept_id(claim) -> str | None:
     if claim.value_concept_id is not None:
         return str(claim.value_concept_id)
     about_concepts = claim.about_concept_ids
     if len(about_concepts) == 1:
         return str(about_concepts[0])
     return None
+
+
+def _claim_focus_concept(claim, world):
+    concept_id = _claim_focus_concept_id(claim)
+    if concept_id is None:
+        return None
+    return world.get_concept(concept_id)
 
 
 def _claim_linked_concept_labels(claim, world) -> tuple[str, ...]:
@@ -580,7 +577,7 @@ def _resolve_concept_filter(world, concept: str | None) -> str | None:
     return world.resolve_concept(concept) or concept
 
 
-def _claim_matches_query(claim, concept, query: str) -> bool:
+def _claim_matches_query(claim, concept, query: str, world) -> bool:
     if query == "":
         return True
     fields = (
@@ -591,6 +588,7 @@ def _claim_matches_query(claim, concept, query: str) -> bool:
         "" if claim.auto_summary is None else claim.auto_summary,
         "" if claim.conditions_cel is None else claim.conditions_cel,
         "" if concept is None or concept.canonical_name is None else concept.canonical_name,
+        *_claim_linked_concept_labels(claim, world),
         "" if claim.source is None or claim.source.source_id is None else claim.source.source_id,
         "" if claim.provenance is None or claim.provenance.paper is None else claim.provenance.paper,
     )
