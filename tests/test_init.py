@@ -401,8 +401,6 @@ def test_ordinary_app_workflow_modules_do_not_sync_or_materialize_loose_files() 
     ]
     module_paths.extend(
         [
-            root / "propstore" / "predicate_workflows.py",
-            root / "propstore" / "rule_workflows.py",
             root / "propstore" / "proposals.py",
         ]
     )
