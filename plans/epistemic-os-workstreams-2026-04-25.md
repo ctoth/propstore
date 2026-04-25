@@ -196,6 +196,29 @@ The first slice should not try to solve ontology, import, context, or grounding
 semantics. It should establish the gate infrastructure and a small owner module
 that later slices can expand under mechanical constraints.
 
+First-slice execution ledger:
+
+- WS0 baseline note: `notes/epistemic-os-ws0-baseline-2026-04-25.md`
+- Baseline full suite: `logs/test-runs/ws0-baseline-20260425-175127.log`,
+  2788 passed.
+- Baseline pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Red commit: `d41f0f0` added relation-kernel architecture and identity tests.
+- Red log: `logs/test-runs/ws1-slice1-red-20260425-175520.log`, failed because
+  `propstore.core.relations` and `kernel.py` did not exist.
+- Negative architecture gate: `logs/test-runs/ws1-slice1-negative-gate-20260425-175637.log`,
+  failed after a deliberate forbidden `predicate` kernel symbol was inserted;
+  the violation was reverted before the green commit.
+- Green commit: `ed57545` added `propstore.core.relations` and the bootstrap
+  relation kernel.
+- Green log: `logs/test-runs/ws1-slice1-green-20260425-175656.log`, 11 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no old production surface was deleted in this first slice;
+  caller migration, grounding predicate removal, context-lifting replacement,
+  sidecar schema changes, and `0.5` default removal remain explicitly out of
+  scope for later slices.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
