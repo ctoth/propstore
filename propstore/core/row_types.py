@@ -48,6 +48,13 @@ def _require_claim_type(value: object) -> ClaimType:
     return claim_type
 
 
+def _require_claim_concept_link_role(value: object) -> ClaimConceptLinkRole:
+    role = coerce_claim_concept_link_role(value)
+    if role is None:
+        raise KeyError("role")
+    return role
+
+
 def _require_concept_relationship_type(value: object) -> ConceptRelationshipType:
     relation_type = coerce_concept_relationship_type(value)
     if relation_type is None:
@@ -228,14 +235,14 @@ class ClaimConceptLinkRow:
     binding_name: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "role", coerce_claim_concept_link_role(self.role))
+        object.__setattr__(self, "role", _require_claim_concept_link_role(self.role))
 
     @classmethod
     def from_mapping(cls, row_map: Mapping[str, Any]) -> ClaimConceptLinkRow:
         return cls(
             claim_id=to_claim_id(row_map["claim_id"]),
             concept_id=to_concept_id(row_map["concept_id"]),
-            role=coerce_claim_concept_link_role(row_map["role"]),
+            role=_require_claim_concept_link_role(row_map["role"]),
             ordinal=0 if row_map.get("ordinal") is None else int(row_map["ordinal"]),
             binding_name=(
                 None if row_map.get("binding_name") is None else str(row_map["binding_name"])
