@@ -37,7 +37,7 @@ def concept_registry():
 def test_parameter_claim_with_value(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "concept2",
+        "output_concept": "concept2",
         "value": 0.7,
         "unit": "ratio",
         "conditions": ["voice_quality_type == 'modal'"],
@@ -51,7 +51,7 @@ def test_parameter_claim_with_value(concept_registry):
 def test_parameter_claim_with_range(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "concept2",
+        "output_concept": "concept2",
         "lower_bound": 0.5,
         "upper_bound": 0.9,
         "unit": "ratio",
@@ -65,7 +65,7 @@ def test_parameter_claim_with_range(concept_registry):
 def test_parameter_claim_with_uncertainty(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "concept2",
+        "output_concept": "concept2",
         "value": 0.7,
         "uncertainty": 0.12,
         "uncertainty_type": "sd",
@@ -102,7 +102,7 @@ def test_observation_preserves_statement(concept_registry):
 def test_parameter_no_conditions(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "concept2",
+        "output_concept": "concept2",
         "value": 0.7,
         "unit": "ratio",
     }
@@ -115,7 +115,7 @@ def test_parameter_no_conditions(concept_registry):
 def test_parameter_multiple_conditions(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "concept2",
+        "output_concept": "concept2",
         "value": 0.7,
         "unit": "ratio",
         "conditions": [
@@ -188,7 +188,7 @@ def test_unknown_type_returns_none(concept_registry):
 def test_missing_concept_falls_back_to_id(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "concept9999",
+        "output_concept": "concept9999",
         "value": 42.0,
         "unit": "Hz",
     }
@@ -201,7 +201,7 @@ def test_missing_concept_falls_back_to_id(concept_registry):
 def test_parameter_value_and_range(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "concept2",
+        "output_concept": "concept2",
         "value": 0.7,
         "lower_bound": 0.5,
         "upper_bound": 0.9,
