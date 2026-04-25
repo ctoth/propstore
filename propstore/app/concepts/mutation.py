@@ -1132,7 +1132,6 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
         ),
     )
     record_concept_id_for_repo(repo, numeric_concept_id)
-    snapshot.sync_worktree()
     return ConceptMutationReport(
         lines=(
             "Created "
@@ -1192,7 +1191,6 @@ def add_concept_alias(
         document,
         message=f"Add alias '{request.name}' to {_concept_display_handle(data)}",
     )
-    snapshot.sync_worktree()
 
     return ConceptMutationReport(
         lines=(
@@ -1357,7 +1355,6 @@ def rename_concept(
                     claim_file_payload(updated_claim_file),
                 ),
             )
-    snapshot.sync_worktree()
 
     renamed_entry = next(
         (entry for _, updated_ref, entry in updated_concepts if updated_ref == new_ref),
@@ -1421,7 +1418,6 @@ def deprecate_concept(
             f"{_concept_display_handle(replacement_data)}"
         ),
     )
-    snapshot.sync_worktree()
     return ConceptMutationReport(
         lines=(
             f"Deprecated {_concept_display_handle(data)} ({filepath.stem}), "
@@ -1511,7 +1507,6 @@ def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutat
             f"{_concept_display_handle(target_data)}"
         ),
     )
-    snapshot.sync_worktree()
     return ConceptMutationReport(
         lines=(
             f"Added {request.rel_type} -> {_concept_display_handle(target_data)} "
@@ -1573,7 +1568,6 @@ def add_concept_qualia(
         document,
         message=f"Add {request.role} qualia to {_concept_display_handle(data)}",
     )
-    snapshot.sync_worktree()
     return ConceptMutationReport(
         lines=(f"Added {request.role} qualia to {_concept_display_handle(data)}",),
         warnings=warnings,
@@ -1625,7 +1619,6 @@ def set_concept_description_kind(
         document,
         message=f"Set description kind on {_concept_display_handle(data)}",
     )
-    snapshot.sync_worktree()
     return ConceptMutationReport(
         lines=(f"Set description kind on {_concept_display_handle(data)}",),
         warnings=warnings,
@@ -1701,7 +1694,6 @@ def add_concept_proto_role(
             f"to {_concept_display_handle(data)}"
         ),
     )
-    snapshot.sync_worktree()
     return ConceptMutationReport(
         lines=(
             f"Added {request.role_kind} proto-role {request.property_name} "
@@ -1769,7 +1761,6 @@ def add_concept_value(
         _concept_document(repo, ref, data),
         message=f"Add value '{request.value}' to {request.concept_name}",
     )
-    snapshot.sync_worktree()
     return ConceptMutationReport(
         lines=(
             f"Added '{request.value}' to "

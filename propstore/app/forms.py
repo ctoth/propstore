@@ -298,7 +298,6 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
         document,
         message=f"Add form: {request.name}",
     )
-    repo.snapshot.sync_worktree()
     return FormAddReport(path=path, document=document, created=True)
 
 
@@ -335,7 +334,6 @@ def remove_form(
         ref,
         message=f"Remove form: {name}",
     )
-    repo.snapshot.sync_worktree()
     return FormRemoveReport(path=path, removed=True, references=references)
 
 

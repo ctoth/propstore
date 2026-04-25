@@ -138,7 +138,6 @@ def promote_stance_proposals(
                     ref,
                     repo.families.proposal_stances.require(ref, commit=plan.proposal_tip),
                 )
-        repo.snapshot.sync_worktree()
     return StanceProposalPromotionResult(
         moved=moved,
         branch=plan.branch,

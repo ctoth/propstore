@@ -871,7 +871,6 @@ def promote_source_branch(
     sha = transaction.commit_sha
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
-    repo.snapshot.sync_worktree()
 
     return sha
 
