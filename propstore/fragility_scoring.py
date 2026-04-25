@@ -235,10 +235,10 @@ def detect_interactions(
             stability = engine.concept_stability(concept_id, queryables, limit=atms_limit)
         except Exception:
             continue
-        witnesses = stability.get("witnesses", [])
+        witnesses = stability.witnesses
         singleton_by_qcel: dict[str, set[str]] = {}
         for witness in witnesses:
-            q_cels = [str(item) for item in witness.get("queryable_cels", [])]
+            q_cels = [str(item) for item in witness.queryable_cels]
             if len(q_cels) == 1:
                 singleton_by_qcel.setdefault(q_cels[0], set()).add(concept_id)
             elif len(q_cels) >= 2:

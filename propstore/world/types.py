@@ -6,7 +6,7 @@ import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, overload, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypeVar, overload, runtime_checkable
 
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
@@ -38,6 +38,16 @@ from propstore.core.row_types import ConflictRow, StanceRow
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
+
+_T = TypeVar("_T")
+
+
+def _tuple(values: Iterable[_T]) -> tuple[_T, ...]:
+    return tuple(values)
+
+
+def _tuple_of_tuples(values: Iterable[Iterable[_T]]) -> tuple[tuple[_T, ...], ...]:
+    return tuple(tuple(value) for value in values)
     from propstore.z3_conditions import Z3ConditionSolver
 
 
@@ -213,46 +223,73 @@ class ATMSInspection:
     kind: str | None = None
 
 
-class ATMSFutureEnvironmentReport(TypedDict):
-    queryable_ids: list[QueryableId]
-    queryable_cels: list[str]
-    environment: list[AssumptionId]
+@dataclass(frozen=True)
+class ATMSFutureEnvironmentReport:
+    queryable_ids: Sequence[QueryableId]
+    queryable_cels: Sequence[str]
+    environment: Sequence[AssumptionId]
     consistent: bool
-    supported_claim_ids: list[ClaimId]
-    nogoods: list[list[AssumptionId]]
+    supported_claim_ids: Sequence[ClaimId]
+    nogoods: Sequence[Sequence[AssumptionId]]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
+        object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
+        object.__setattr__(self, "environment", _tuple(self.environment))
+        object.__setattr__(self, "supported_claim_ids", _tuple(self.supported_claim_ids))
+        object.__setattr__(self, "nogoods", _tuple_of_tuples(self.nogoods))
 
 
-class ATMSNodeFutureStatusEntry(TypedDict):
-    queryable_ids: list[QueryableId]
-    queryable_cels: list[str]
-    environment: list[AssumptionId]
+@dataclass(frozen=True)
+class ATMSNodeFutureStatusEntry:
+    queryable_ids: Sequence[QueryableId]
+    queryable_cels: Sequence[str]
+    environment: Sequence[AssumptionId]
     consistent: bool
     status: ATMSNodeStatus
     out_kind: ATMSOutKind | None
     reason: str
     support_quality: SupportQuality
-    essential_support: list[AssumptionId]
+    essential_support: Sequence[AssumptionId]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
+        object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
+        object.__setattr__(self, "environment", _tuple(self.environment))
+        object.__setattr__(self, "essential_support", _tuple(self.essential_support))
 
 
-class ATMSConceptFutureStatusEntry(TypedDict):
-    queryable_ids: list[QueryableId]
-    queryable_cels: list[str]
-    environment: list[AssumptionId]
+@dataclass(frozen=True)
+class ATMSConceptFutureStatusEntry:
+    queryable_ids: Sequence[QueryableId]
+    queryable_cels: Sequence[str]
+    environment: Sequence[AssumptionId]
     consistent: bool
     status: ValueStatus
-    supported_claim_ids: list[ClaimId]
+    supported_claim_ids: Sequence[ClaimId]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
+        object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
+        object.__setattr__(self, "environment", _tuple(self.environment))
+        object.__setattr__(self, "supported_claim_ids", _tuple(self.supported_claim_ids))
 
 
-class ATMSFutureStatusReport(TypedDict):
+@dataclass(frozen=True)
+class ATMSFutureStatusReport:
     node_id: str
     claim_id: str | None
     current: ATMSInspection
     could_become_in: bool
     could_become_out: bool
-    futures: list[ATMSNodeFutureStatusEntry]
+    futures: Sequence[ATMSNodeFutureStatusEntry]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "futures", _tuple(self.futures))
 
 
-class ATMSWhyOutReport(TypedDict):
+@dataclass(frozen=True)
+class ATMSWhyOutReport:
     node_id: str
     claim_id: str | None
     status: ATMSNodeStatus
@@ -260,10 +297,18 @@ class ATMSWhyOutReport(TypedDict):
     reason: str
     support_quality: SupportQuality
     future_activatable: bool
-    candidate_queryable_cels: list[list[str]]
+    candidate_queryable_cels: Sequence[Sequence[str]]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "candidate_queryable_cels",
+            _tuple_of_tuples(self.candidate_queryable_cels),
+        )
 
 
-class ATMSNodeStabilityReport(TypedDict):
+@dataclass(frozen=True)
+class ATMSNodeStabilityReport:
     node_id: str
     claim_id: str | None
     current: ATMSInspection
@@ -272,10 +317,14 @@ class ATMSNodeStabilityReport(TypedDict):
     future_count: int
     consistent_future_count: int
     inconsistent_future_count: int
-    witnesses: list[ATMSNodeFutureStatusEntry]
+    witnesses: Sequence[ATMSNodeFutureStatusEntry]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "witnesses", _tuple(self.witnesses))
 
 
-class ATMSConceptStabilityReport(TypedDict):
+@dataclass(frozen=True)
+class ATMSConceptStabilityReport:
     concept_id: str
     current_status: ValueStatus
     stable: bool
@@ -283,135 +332,204 @@ class ATMSConceptStabilityReport(TypedDict):
     future_count: int
     consistent_future_count: int
     inconsistent_future_count: int
-    witnesses: list[ATMSConceptFutureStatusEntry]
+    witnesses: Sequence[ATMSConceptFutureStatusEntry]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "witnesses", _tuple(self.witnesses))
 
 
-class ATMSNodeRelevanceState(TypedDict):
-    queryable_ids: list[QueryableId]
-    queryable_cels: list[str]
-    environment: list[AssumptionId]
+@dataclass(frozen=True)
+class ATMSNodeRelevanceState:
+    queryable_ids: Sequence[QueryableId]
+    queryable_cels: Sequence[str]
+    environment: Sequence[AssumptionId]
     consistent: bool
     status: ATMSNodeStatus
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
+        object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
+        object.__setattr__(self, "environment", _tuple(self.environment))
 
-class ATMSConceptRelevanceState(TypedDict):
-    queryable_ids: list[QueryableId]
-    queryable_cels: list[str]
-    environment: list[AssumptionId]
+
+@dataclass(frozen=True)
+class ATMSConceptRelevanceState:
+    queryable_ids: Sequence[QueryableId]
+    queryable_cels: Sequence[str]
+    environment: Sequence[AssumptionId]
     consistent: bool
     status: ValueStatus
 
-
-ATMSNodeWitnessPair = TypedDict(
-    "ATMSNodeWitnessPair",
-    {
-        "queryable_id": QueryableId,
-        "queryable_cel": str,
-        "without": ATMSNodeRelevanceState,
-        "with": ATMSNodeRelevanceState,
-    },
-)
-
-ATMSConceptWitnessPair = TypedDict(
-    "ATMSConceptWitnessPair",
-    {
-        "queryable_id": QueryableId,
-        "queryable_cel": str,
-        "without": ATMSConceptRelevanceState,
-        "with": ATMSConceptRelevanceState,
-    },
-)
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
+        object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
+        object.__setattr__(self, "environment", _tuple(self.environment))
 
 
-class ATMSNodeRelevanceReport(TypedDict):
+@dataclass(frozen=True)
+class ATMSNodeWitnessPair:
+    queryable_id: QueryableId
+    queryable_cel: str
+    without_state: ATMSNodeRelevanceState
+    with_state: ATMSNodeRelevanceState
+
+
+@dataclass(frozen=True)
+class ATMSConceptWitnessPair:
+    queryable_id: QueryableId
+    queryable_cel: str
+    without_state: ATMSConceptRelevanceState
+    with_state: ATMSConceptRelevanceState
+
+
+@dataclass(frozen=True)
+class ATMSNodeRelevanceReport:
     node_id: str
     claim_id: str | None
     current: ATMSInspection
     current_status: ATMSNodeStatus
-    relevant_queryables: list[str]
-    irrelevant_queryables: list[str]
-    witness_pairs: dict[str, list[ATMSNodeWitnessPair]]
+    relevant_queryables: Sequence[str]
+    irrelevant_queryables: Sequence[str]
+    witness_pairs: Mapping[str, Sequence[ATMSNodeWitnessPair]]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "relevant_queryables", _tuple(self.relevant_queryables))
+        object.__setattr__(self, "irrelevant_queryables", _tuple(self.irrelevant_queryables))
+        object.__setattr__(
+            self,
+            "witness_pairs",
+            {str(key): _tuple(value) for key, value in self.witness_pairs.items()},
+        )
 
 
-class ATMSConceptRelevanceReport(TypedDict):
+@dataclass(frozen=True)
+class ATMSConceptRelevanceReport:
     concept_id: str
     current_status: ValueStatus
-    relevant_queryables: list[str]
-    irrelevant_queryables: list[str]
-    witness_pairs: dict[str, list[ATMSConceptWitnessPair]]
+    relevant_queryables: Sequence[str]
+    irrelevant_queryables: Sequence[str]
+    witness_pairs: Mapping[str, Sequence[ATMSConceptWitnessPair]]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "relevant_queryables", _tuple(self.relevant_queryables))
+        object.__setattr__(self, "irrelevant_queryables", _tuple(self.irrelevant_queryables))
+        object.__setattr__(
+            self,
+            "witness_pairs",
+            {str(key): _tuple(value) for key, value in self.witness_pairs.items()},
+        )
 
 
-class ATMSNodeInterventionPlan(TypedDict):
+@dataclass(frozen=True)
+class ATMSNodeInterventionPlan:
     target: str
     node_id: str
     claim_id: str | None
     current_status: ATMSNodeStatus
     target_status: ATMSNodeStatus
-    queryable_ids: list[QueryableId]
-    queryable_cels: list[str]
-    environment: list[AssumptionId]
+    queryable_ids: Sequence[QueryableId]
+    queryable_cels: Sequence[str]
+    environment: Sequence[AssumptionId]
     consistent: bool
     result_status: ATMSNodeStatus
     result_out_kind: ATMSOutKind | None
     minimality_basis: str
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
+        object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
+        object.__setattr__(self, "environment", _tuple(self.environment))
 
-class ATMSConceptInterventionPlan(TypedDict):
+
+@dataclass(frozen=True)
+class ATMSConceptInterventionPlan:
     target: str
     concept_id: str
     current_status: ValueStatus
     target_status: ValueStatus
-    queryable_ids: list[QueryableId]
-    queryable_cels: list[str]
-    environment: list[AssumptionId]
+    queryable_ids: Sequence[QueryableId]
+    queryable_cels: Sequence[str]
+    environment: Sequence[AssumptionId]
     consistent: bool
     result_status: ValueStatus
     minimality_basis: str
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
+        object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
+        object.__setattr__(self, "environment", _tuple(self.environment))
 
-class ATMSNextQuerySuggestion(TypedDict):
+
+@dataclass(frozen=True)
+class ATMSNextQuerySuggestion:
     queryable_id: QueryableId
     queryable_cel: str
     plan_count: int
     smallest_plan_size: int
-    plan_queryable_cels: list[list[str]]
-    example_plans: list[ATMSNodeInterventionPlan | ATMSConceptInterventionPlan]
+    plan_queryable_cels: Sequence[Sequence[str]]
+    example_plans: Sequence[ATMSNodeInterventionPlan | ATMSConceptInterventionPlan]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "plan_queryable_cels", _tuple_of_tuples(self.plan_queryable_cels))
+        object.__setattr__(self, "example_plans", _tuple(self.example_plans))
 
 
-class ATMSCycleAntecedent(TypedDict):
+@dataclass(frozen=True)
+class ATMSCycleAntecedent:
     node_id: str
     kind: str
     cycle: Literal[True]
 
 
-class ATMSAssumptionAntecedent(TypedDict):
+@dataclass(frozen=True)
+class ATMSAssumptionAntecedent:
     node_id: str
     kind: str
-    label: list[list[str]] | None
+    label: Sequence[Sequence[str]] | None
+
+    def __post_init__(self) -> None:
+        if self.label is not None:
+            object.__setattr__(self, "label", _tuple_of_tuples(self.label))
 
 
-class ATMSJustificationExplanation(TypedDict):
+@dataclass(frozen=True)
+class ATMSJustificationExplanation:
     node_id: str
     justification_id: str
-    antecedent_ids: list[str]
+    antecedent_ids: Sequence[str]
     consequent_id: str
     informant: str
-    support: list[list[str]] | None
-    antecedents: list["ATMSExplanationAntecedent"]
+    support: Sequence[Sequence[str]] | None
+    antecedents: Sequence["ATMSExplanationAntecedent"]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "antecedent_ids", _tuple(self.antecedent_ids))
+        if self.support is not None:
+            object.__setattr__(self, "support", _tuple_of_tuples(self.support))
+        object.__setattr__(self, "antecedents", _tuple(self.antecedents))
 
 
-class ATMSNodeExplanation(TypedDict):
+@dataclass(frozen=True)
+class ATMSNodeExplanation:
     node_id: str
     claim_id: str | None
     kind: str
     status: ATMSNodeStatus
     support_quality: SupportQuality
-    label: list[list[str]] | None
-    essential_support: list[str] | None
+    label: Sequence[Sequence[str]] | None
+    essential_support: Sequence[str] | None
     reason: str
-    traces: list[ATMSJustificationExplanation]
+    traces: Sequence[ATMSJustificationExplanation]
+
+    def __post_init__(self) -> None:
+        if self.label is not None:
+            object.__setattr__(self, "label", _tuple_of_tuples(self.label))
+        if self.essential_support is not None:
+            object.__setattr__(self, "essential_support", _tuple(self.essential_support))
+        object.__setattr__(self, "traces", _tuple(self.traces))
 
 
+@dataclass(frozen=True)
 class ATMSNestedNodeExplanation(ATMSNodeExplanation):
     antecedent_of: str
 
@@ -423,26 +541,43 @@ ATMSExplanationAntecedent: TypeAlias = (
 )
 
 
-class ATMSNogoodProvenanceDetail(TypedDict):
+@dataclass(frozen=True)
+class ATMSNogoodProvenanceDetail:
     claim_a_id: str
     claim_b_id: str
     concept_id: str | None
     warning_class: ConflictClass | None
-    environment_a: list[str]
-    environment_b: list[str]
+    environment_a: Sequence[str]
+    environment_b: Sequence[str]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "environment_a", _tuple(self.environment_a))
+        object.__setattr__(self, "environment_b", _tuple(self.environment_b))
 
 
-class ATMSNogoodDetail(TypedDict):
-    environment: list[str]
-    provenance: list[ATMSNogoodProvenanceDetail]
+@dataclass(frozen=True)
+class ATMSNogoodDetail:
+    environment: Sequence[str]
+    provenance: Sequence[ATMSNogoodProvenanceDetail]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "environment", _tuple(self.environment))
+        object.__setattr__(self, "provenance", _tuple(self.provenance))
 
 
-class ATMSLabelVerificationReport(TypedDict):
+@dataclass(frozen=True)
+class ATMSLabelVerificationReport:
     ok: bool
-    consistency_errors: list[str]
-    minimality_errors: list[str]
-    soundness_errors: list[str]
-    completeness_errors: list[str]
+    consistency_errors: Sequence[str]
+    minimality_errors: Sequence[str]
+    soundness_errors: Sequence[str]
+    completeness_errors: Sequence[str]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "consistency_errors", _tuple(self.consistency_errors))
+        object.__setattr__(self, "minimality_errors", _tuple(self.minimality_errors))
+        object.__setattr__(self, "soundness_errors", _tuple(self.soundness_errors))
+        object.__setattr__(self, "completeness_errors", _tuple(self.completeness_errors))
 
 
 class ResolutionStrategy(StrEnum):

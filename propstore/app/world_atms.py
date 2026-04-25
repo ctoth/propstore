@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING
 
 from propstore.app.world import (
     open_app_world_model,
@@ -14,7 +14,13 @@ from propstore.app.world import (
 from propstore.core.environment import Environment
 from propstore.core.id_types import to_context_id
 from propstore.repository import Repository
-from propstore.world.types import ReasoningBackend, RenderPolicy
+from propstore.world.types import (
+    ATMSConceptRelevanceReport,
+    ATMSFutureStatusReport,
+    ATMSNodeRelevanceReport,
+    ReasoningBackend,
+    RenderPolicy,
+)
 
 if TYPE_CHECKING:
     from propstore.world import BoundWorld, WorldModel
@@ -26,10 +32,6 @@ class WorldAtmsAppError(Exception):
 
 class WorldAtmsValidationError(WorldAtmsAppError):
     pass
-
-
-class _StatusCarrier(Protocol):
-    status: object
 
 
 @dataclass(frozen=True)
@@ -247,21 +249,21 @@ def _bind_atms(repo: Repository, request: AppAtmsViewRequest):
         raise
 
 
-def _claim_future_report(target: str, report: Mapping[str, object]) -> AtmsClaimFutureReport:
+def _claim_future_report(target: str, report: ATMSFutureStatusReport) -> AtmsClaimFutureReport:
     return AtmsClaimFutureReport(
         target=target,
-        current_status=_status_value(cast(_StatusCarrier, report["current"]).status),
-        could_become_in=report["could_become_in"],
-        could_become_out=report["could_become_out"],
+        current_status=_status_value(report.current.status),
+        could_become_in=report.could_become_in,
+        could_become_out=report.could_become_out,
         futures=tuple(
             AtmsFutureLine(
                 queryable_cels=_string_sequence(
-                    future["queryable_cels"],
+                    future.queryable_cels,
                     field_name="future.queryable_cels",
                 ),
-                status=_status_value(future["status"]),
+                status=_status_value(future.status),
             )
-            for future in _mapping_sequence(report["futures"], field_name="futures")
+            for future in report.futures
         ),
     )
 
@@ -327,15 +329,12 @@ def world_atms_verify(repo: Repository, request: AppAtmsViewRequest) -> AtmsVeri
     try:
         raw = bound.atms_engine().verify_labels()
         sections = {
-            section: tuple(str(error) for error in raw.get(section) or ())
-            for section in (
-                "consistency_errors",
-                "minimality_errors",
-                "soundness_errors",
-                "completeness_errors",
-            )
+            "consistency_errors": tuple(str(error) for error in raw.consistency_errors),
+            "minimality_errors": tuple(str(error) for error in raw.minimality_errors),
+            "soundness_errors": tuple(str(error) for error in raw.soundness_errors),
+            "completeness_errors": tuple(str(error) for error in raw.completeness_errors),
         }
-        return AtmsVerifyReport(ok=bool(raw["ok"]), sections=sections)
+        return AtmsVerifyReport(ok=bool(raw.ok), sections=sections)
     finally:
         manager.__exit__(None, None, None)
 
@@ -391,15 +390,15 @@ def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsW
                 target=request.target,
                 out_kind=(
                     "none"
-                    if report["out_kind"] is None
-                    else _status_value(report["out_kind"])
+                    if report.out_kind is None
+                    else _status_value(report.out_kind)
                 ),
-                future_activatable=report["future_activatable"],
+                future_activatable=report.future_activatable,
                 candidate_queryables=tuple(
                     ", ".join(str(value) for value in item)
-                    for item in report["candidate_queryable_cels"]
+                    for item in report.candidate_queryable_cels
                 ),
-                reason=str(report["reason"]),
+                reason=str(report.reason),
             )
         resolved = resolve_world_target(wm, request.target)
         concept_report = bound.why_concept_out(
@@ -418,12 +417,12 @@ def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsW
                     target=str(claim_id),
                     out_kind=(
                         "none"
-                        if report["out_kind"] is None
-                        else _status_value(report["out_kind"])
+                        if report.out_kind is None
+                        else _status_value(report.out_kind)
                     ),
-                    future_activatable=report["future_activatable"],
+                    future_activatable=report.future_activatable,
                     candidate_queryables=(),
-                    reason=str(report.get("reason", "")),
+                    reason=str(report.reason),
                 )
                 for claim_id, report in sorted(concept_report["claim_reasons"].items())
             ),
@@ -448,30 +447,30 @@ def world_atms_stability(repo: Repository, request: AppAtmsTargetRequest) -> Atm
             )
             return AtmsStabilityReport(
                 target=request.target,
-                current_status=_status_value(report["current"].status),
-                stable=report["stable"],
-                consistent_future_count=report["consistent_future_count"],
+                current_status=_status_value(report.current.status),
+                stable=report.stable,
+                consistent_future_count=report.consistent_future_count,
                 witnesses=tuple(
                     AtmsFutureLine(
-                        queryable_cels=tuple(str(value) for value in witness["queryable_cels"]),
-                        status=_status_value(witness["status"]),
+                        queryable_cels=tuple(str(value) for value in witness.queryable_cels),
+                        status=_status_value(witness.status),
                     )
-                    for witness in report["witnesses"]
+                    for witness in report.witnesses
                 ),
             )
         resolved = resolve_world_target(wm, request.target)
         report = bound.concept_stability(resolved, queryables, limit=request.limit)
         return AtmsStabilityReport(
             target=resolved,
-            current_status=report["current_status"],
-            stable=report["stable"],
-            consistent_future_count=report["consistent_future_count"],
+            current_status=report.current_status,
+            stable=report.stable,
+            consistent_future_count=report.consistent_future_count,
             witnesses=tuple(
                 AtmsFutureLine(
-                    queryable_cels=tuple(str(value) for value in witness["queryable_cels"]),
-                    status=_status_value(witness["status"]),
+                    queryable_cels=tuple(str(value) for value in witness.queryable_cels),
+                    status=_status_value(witness.status),
                 )
-                for witness in report["witnesses"]
+                for witness in report.witnesses
             ),
         )
     finally:
@@ -489,33 +488,33 @@ def world_atms_relevance(repo: Repository, request: AppAtmsTargetRequest) -> Atm
         if claim is not None:
             raw = bound.claim_relevance(request.target, queryables, limit=request.limit)
             target = request.target
-            current_status = _status_value(raw["current"].status)
+            current_status = _status_value(raw.current.status)
         else:
             target = resolve_world_target(wm, request.target)
             raw = bound.concept_relevance(target, queryables, limit=request.limit)
-            current_status = raw["current_status"]
+            current_status = raw.current_status
         pairs: list[AtmsRelevancePairLine] = []
-        for queryable_cel, raw_pairs in sorted(raw["witness_pairs"].items()):
+        for queryable_cel, raw_pairs in sorted(raw.witness_pairs.items()):
             for pair in raw_pairs:
                 pairs.append(
                     AtmsRelevancePairLine(
                         queryable_cel=str(queryable_cel),
                         without_queryables=tuple(
                             str(value)
-                            for value in pair["without"]["queryable_cels"]
+                            for value in pair.without_state.queryable_cels
                         ),
-                        without_status=_status_value(pair["without"]["status"]),
+                        without_status=_status_value(pair.without_state.status),
                         with_queryables=tuple(
                             str(value)
-                            for value in pair["with"]["queryable_cels"]
+                            for value in pair.with_state.queryable_cels
                         ),
-                        with_status=_status_value(pair["with"]["status"]),
+                        with_status=_status_value(pair.with_state.status),
                     )
                 )
         return AtmsRelevanceReport(
             target=target,
             current_status=current_status,
-            relevant_queryables=tuple(str(value) for value in raw["relevant_queryables"]),
+            relevant_queryables=tuple(str(value) for value in raw.relevant_queryables),
             witness_pairs=tuple(pairs),
         )
     finally:
@@ -571,8 +570,8 @@ def world_atms_interventions(
         return AtmsInterventionsReport(
             plans=tuple(
                 AtmsPlanLine(
-                    queryable_cels=tuple(str(value) for value in plan["queryable_cels"]),
-                    result_status=_status_value(plan["result_status"]),
+                    queryable_cels=tuple(str(value) for value in plan.queryable_cels),
+                    result_status=_status_value(plan.result_status),
                 )
                 for plan in plans
             )
@@ -609,9 +608,9 @@ def world_atms_next_query(
         return AtmsNextQueryReport(
             suggestions=tuple(
                 AtmsNextQueryLine(
-                    queryable_cel=str(suggestion["queryable_cel"]),
-                    plan_count=suggestion["plan_count"],
-                    smallest_plan_size=suggestion["smallest_plan_size"],
+                    queryable_cel=str(suggestion.queryable_cel),
+                    plan_count=suggestion.plan_count,
+                    smallest_plan_size=suggestion.smallest_plan_size,
                 )
                 for suggestion in suggestions
             )
