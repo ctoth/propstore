@@ -56,7 +56,10 @@ def test_source_init_creates_source_branch_and_source_yaml(tmp_path: Path) -> No
 
 def test_source_init_uses_repo_uri_authority_and_content_file(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.config_path.write_text("uri_authority: example.com,2026\n", encoding="utf-8")
+    repo.git.commit_files(
+        {"propstore.yaml": b"uri_authority: example.com,2026\n"},
+        "Set repository config",
+    )
     runner = CliRunner()
     content_file = tmp_path / "paper.pdf"
     content_file.write_bytes(b"%PDF-demo\n")
