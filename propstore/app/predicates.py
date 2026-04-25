@@ -205,12 +205,12 @@ def add_predicate(
 
 def list_predicates(repo: Repository) -> tuple[PredicateListItem, ...]:
     items: list[PredicateListItem] = []
-    for ref in repo.families.predicates.iter():
-        document = repo.families.predicates.require(ref)
+    for handle in repo.families.predicates.iter_handles():
+        document = handle.document
         for predicate in document.predicates:
             items.append(
                 PredicateListItem(
-                    file=ref.name,
+                    file=handle.ref.name,
                     predicate_id=predicate.id,
                     arity=predicate.arity,
                     arg_types=tuple(predicate.arg_types),
