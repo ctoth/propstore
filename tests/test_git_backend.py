@@ -1298,11 +1298,16 @@ def test_init_creates_git_repo(tmp_path):
     assert result.exit_code == 0, result.output
 
     assert (root / ".git").is_dir()
+    assert not (root / "concepts").exists()
+    assert not (root / "forms").exists()
 
     # Should have commits (gitignore + forms)
     kr = open_git_store(root)
     history = kr.log(max_count=10)
     assert len(history) >= 2  # .gitignore init + forms seed
+    entries = kr.flat_tree_entries()
+    assert "concepts/measurement.yaml" in entries
+    assert "forms/frequency.yaml" in entries
 
 
 def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(tmp_path, monkeypatch):
@@ -1337,6 +1342,18 @@ def test_repository_find_rejects_non_git_knowledge_dir(tmp_path):
     (root / "concepts").mkdir(parents=True)
 
     with pytest.raises(RepositoryNotFound, match="git-backed knowledge/ directory"):
+        Repository.find(root)
+
+
+def test_repository_find_rejects_plain_git_repo_without_propstore_bootstrap(tmp_path):
+    """Repository.find() rejects git repos that are not propstore repositories."""
+    from propstore.repository import Repository, RepositoryNotFound
+    from quire.git_store import GitStore
+
+    root = tmp_path / "knowledge"
+    GitStore.init(root)
+
+    with pytest.raises(RepositoryNotFound, match="propstore"):
         Repository.find(root)
 
 
