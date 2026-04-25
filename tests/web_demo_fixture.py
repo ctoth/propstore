@@ -203,9 +203,9 @@ def _insert_claim(
         """
         INSERT INTO claim_core (
             id, primary_logical_id, logical_ids_json, version_id, content_hash,
-            seq, type, concept_id, source_slug, source_paper, provenance_page,
+            seq, type, source_slug, source_paper, provenance_page,
             premise_kind, branch, build_status, stage
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             claim_id,
@@ -215,7 +215,6 @@ def _insert_claim(
             f"{claim_id}-hash",
             1,
             claim_type,
-            "demo_concept",
             "demo_source",
             "demo_source",
             7,
@@ -224,6 +223,14 @@ def _insert_claim(
             build_status,
             "final",
         ),
+    )
+    conn.execute(
+        """
+        INSERT INTO claim_concept_link (
+            claim_id, concept_id, role, ordinal, binding_name
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        (claim_id, "demo_concept", "output", 0, None),
     )
     conn.execute(
         """
