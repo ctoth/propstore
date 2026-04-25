@@ -563,14 +563,14 @@ def test_build_praf_omits_uncalibrated_relation_from_probability_envelope():
             claims=(
                 ClaimNode(
                     claim_id="c1",
-                    concept_id="x",
+                    value_concept_id="x",
                     claim_type="parameter",
                     scalar_value=1.0,
                     attributes=(("source_prior_base_rate", 0.6),),
                 ),
                 ClaimNode(
                     claim_id="c2",
-                    concept_id="x",
+                    value_concept_id="x",
                     claim_type="parameter",
                     scalar_value=2.0,
                     attributes=(("source_prior_base_rate", 0.6),),
