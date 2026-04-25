@@ -1,7 +1,7 @@
 # Storage QA Workstream
 
 Date: 2026-04-25
-Status: PROPOSED
+Status: ACTIVE - SQA-1 COMPLETE
 Depends on: none
 Blocks: none
 Review context: measured Quire/Dulwich read-path behavior against propstore usage patterns on 2026-04-25.
@@ -123,6 +123,45 @@ Exit criteria:
 
 - Full-family scan callsites in compiler/build paths stop re-resolving branch
   head and stop using avoidable point-read loops.
+
+Execution status: COMPLETE on 2026-04-25.
+
+Audit result:
+
+- Replaced whole-family `iter() -> require()` and
+  `iter() -> require_handle()` scans with existing Quire `iter_handles()`
+  across compiler, sidecar, grounding, app workflow, source registry, merge,
+  artifact-code, and consistency paths.
+- Left fixed source-branch side-file loads as point reads. Those families use
+  fixed-file placements and are not enumerable through Quire's family scan API.
+- Left three `compiler.build_repository` schema-diagnostic loops as
+  `iter() -> require_handle()` because current Quire `iter_handles()` cannot
+  continue after a decode failure while preserving one diagnostic per bad ref.
+- Left ref-only enumeration as `iter()` where the code only needs names or
+  existence checks.
+
+Files updated:
+
+- `propstore/artifact_codes.py`
+- `propstore/app/claims.py`
+- `propstore/app/concepts/display.py`
+- `propstore/app/concepts/mutation.py`
+- `propstore/app/contexts.py`
+- `propstore/app/forms.py`
+- `propstore/app/micropubs.py`
+- `propstore/app/predicates.py`
+- `propstore/app/rules.py`
+- `propstore/claim_references.py`
+- `propstore/compiler/context.py`
+- `propstore/compiler/workflows.py`
+- `propstore/concept_ids.py`
+- `propstore/core/aliases.py`
+- `propstore/grounding/loading.py`
+- `propstore/merge/merge_classifier.py`
+- `propstore/merge/structured_merge.py`
+- `propstore/sidecar/build.py`
+- `propstore/source/registry.py`
+- `propstore/world/consistency.py`
 
 ### Phase SQA-2 - Bulk-write packing policy
 
