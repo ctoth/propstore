@@ -29,8 +29,8 @@ def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, 
 
     concepts_by_artifact: dict[str, dict[str, Any]] = {}
     handle_to_artifact: dict[str, str] = {}
-    for ref in repo.families.concepts.iter(commit=primary_tip):
-        document = repo.families.concepts.require(ref, commit=primary_tip)
+    for handle in repo.families.concepts.iter_handles(commit=primary_tip):
+        document = handle.document
         concept = dict(parse_concept_record_document(document).to_payload())
         artifact_id = concept.get("artifact_id")
         if not isinstance(artifact_id, str) or not artifact_id:
@@ -54,8 +54,8 @@ def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
         return []
 
     docs: list[dict[str, Any]] = []
-    for ref in repo.families.concepts.iter(commit=primary_tip):
-        document = repo.families.concepts.require(ref, commit=primary_tip)
+    for handle in repo.families.concepts.iter_handles(commit=primary_tip):
+        document = handle.document
         docs.append(copy.deepcopy(parse_concept_record_document(document).to_payload()))
     return docs
 
