@@ -74,8 +74,8 @@ def _check_transitive_consistency(
     )
 
     claim_files = [
-        repo.families.claims.require_handle(ref)
-        for ref in repo.families.claims.iter()
+        handle
+        for handle in repo.families.claims.iter_handles()
     ]
     concept_registry: dict[str, dict] = {}
     for concept_input in world.all_concepts():
