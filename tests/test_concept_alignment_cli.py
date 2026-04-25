@@ -8,6 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
+from propstore.families.registry import ConceptFileRef
 from propstore.repository import Repository
 from propstore.source import build_alignment_artifact, classify_relation
 
@@ -201,8 +202,6 @@ def test_concept_align_creates_proposal_artifact_and_promote(tmp_path: Path) -> 
     )
     assert promote_result.exit_code == 0, promote_result.output
 
-    concept_file = repo.root / "concepts" / "claims_identical.yaml"
-    assert concept_file.exists()
-    concept_data = yaml.safe_load(concept_file.read_text(encoding="utf-8"))
-    assert concept_data["lexical_entry"]["canonical_form"]["written_rep"] == "claims_identical"
-    assert concept_data["status"] == "accepted"
+    concept_document = repo.families.concepts.require(ConceptFileRef("claims_identical"))
+    assert concept_document.lexical_entry.canonical_form.written_rep == "claims_identical"
+    assert concept_document.status == "accepted"
