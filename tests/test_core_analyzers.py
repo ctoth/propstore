@@ -218,14 +218,14 @@ def test_shared_projection_is_independent_of_active_claim_id_order() -> None:
         claims=(
             ClaimNode(
                 claim_id="c1",
-                concept_id="temp",
+                value_concept_id="temp",
                 claim_type="parameter",
                 scalar_value=100.0,
                 attributes={"sample_size": 50},
             ),
             ClaimNode(
                 claim_id="c2",
-                concept_id="temp",
+                value_concept_id="temp",
                 claim_type="parameter",
                 scalar_value=200.0,
                 attributes={"sample_size": 50},
