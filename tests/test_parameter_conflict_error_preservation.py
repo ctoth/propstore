@@ -30,7 +30,7 @@ def _three_parameter_claims_on_concept() -> tuple[ConflictClaim, ...]:
         ConflictClaim(
             claim_id=f"c{i}",
             claim_type="parameter",
-            concept_id="outcome",
+            output_concept_id="outcome",
             value=float(i),
             unit="",
             conditions=("intention_to_treat == true",),
