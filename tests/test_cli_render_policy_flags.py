@@ -130,7 +130,7 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
         )
         base_cols = (
             "id, primary_logical_id, logical_ids_json, version_id, "
-            "content_hash, seq, type, concept_id, source_slug, source_paper, "
+            "content_hash, seq, type, source_slug, source_paper, "
             "provenance_page, premise_kind, branch, build_status, stage, "
             "promotion_status"
         )
@@ -140,19 +140,26 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
             conn.execute(
                 f"""
                 INSERT INTO claim_core ({base_cols}) VALUES (
-                    ?, ?, '[]', '', '', 0, 'parameter', ?, 'fixture_paper',
+                    ?, ?, '[]', '', '', 0, 'parameter', 'fixture_paper',
                     'fixture_paper', 1, 'ordinary', ?, ?, ?, ?
                 )
                 """,
                 (
                     claim_id,
                     claim_id,
-                    concept_aid,
                     branch,
                     build_status,
                     stage,
                     promotion_status,
                 ),
+            )
+            conn.execute(
+                """
+                INSERT INTO claim_concept_link (
+                    claim_id, concept_id, role, ordinal, binding_name
+                ) VALUES (?, ?, 'output', 0, NULL)
+                """,
+                (claim_id, concept_aid),
             )
 
         _insert("claim_fixture_final")
