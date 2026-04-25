@@ -320,13 +320,13 @@ def add_rule(
 
 def list_rules(repo: Repository) -> tuple[RuleListItem, ...]:
     items: list[RuleListItem] = []
-    for ref in repo.families.rules.iter():
-        document = repo.families.rules.require(ref)
+    for handle in repo.families.rules.iter_handles():
+        document = handle.document
         paper = None if document.source is None else document.source.paper
         for rule in document.rules:
             items.append(
                 RuleListItem(
-                    file=ref.name,
+                    file=handle.ref.name,
                     rule_id=rule.id,
                     kind=rule.kind,
                     paper=paper,
