@@ -130,10 +130,14 @@ def test_p_arg_from_claim_rejects_invalid_source_quality_shape() -> None:
 
 
 def _seed_ratio_form(repo: Repository) -> None:
-    repo.forms_dir.mkdir(parents=True, exist_ok=True)
-    (repo.forms_dir / "ratio.yaml").write_text(
-        yaml.safe_dump({"name": "ratio", "dimensionless": True}, sort_keys=False),
-        encoding="utf-8",
+    repo.git.commit_files(
+        {
+            "forms/ratio.yaml": yaml.safe_dump(
+                {"name": "ratio", "dimensionless": True},
+                sort_keys=False,
+            ).encode("utf-8")
+        },
+        "Seed ratio form",
     )
 
 

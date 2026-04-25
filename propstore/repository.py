@@ -10,8 +10,6 @@ from quire.refs import RefName
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
 from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
-    PropstoreFamily,
-    semantic_root_path,
 )
 from propstore.uri import DEFAULT_URI_AUTHORITY
 
@@ -42,44 +40,12 @@ class Repository:
         return self._root
 
     @property
-    def concepts_dir(self) -> Path:
-        return semantic_root_path(PropstoreFamily.CONCEPTS.value, self)
-
-    @property
-    def claims_dir(self) -> Path:
-        return semantic_root_path(PropstoreFamily.CLAIMS.value, self)
-
-    @property
-    def forms_dir(self) -> Path:
-        return semantic_root_path(PropstoreFamily.FORMS.value, self)
-
-    @property
     def sidecar_dir(self) -> Path:
         return self._root / "sidecar"
 
     @property
     def sidecar_path(self) -> Path:
         return self._root / "sidecar" / "propstore.sqlite"
-
-    @property
-    def contexts_dir(self) -> Path:
-        return semantic_root_path(PropstoreFamily.CONTEXTS.value, self)
-
-    @property
-    def stances_dir(self) -> Path:
-        return semantic_root_path(PropstoreFamily.STANCES.value, self)
-
-    @property
-    def justifications_dir(self) -> Path:
-        return self._root / "justifications"
-
-    @property
-    def sources_dir(self) -> Path:
-        return self._root / "sources"
-
-    @property
-    def worldlines_dir(self) -> Path:
-        return semantic_root_path(PropstoreFamily.WORLDLINES.value, self)
 
     @property
     def config_path(self) -> Path:
@@ -105,10 +71,6 @@ class Repository:
         if isinstance(authority, str) and authority:
             return authority
         return DEFAULT_URI_AUTHORITY
-
-    @property
-    def counters_dir(self) -> Path:
-        return self.concepts_dir / ".counters"
 
     def tree(self, commit: str | None = None) -> KnowledgePath:
         """Return a read-only semantic tree rooted at this repository."""

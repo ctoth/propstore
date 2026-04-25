@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import pytest
@@ -45,17 +44,14 @@ def test_log_output(tmp_path: Path) -> None:
     repo = Repository.init(root)
 
     package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
-    for form_file in package_forms.glob("*.yaml"):
-        shutil.copy2(form_file, repo.forms_dir / form_file.name)
 
     git = repo.git
     assert git is not None
     form_files = {
-        form.relative_to(repo.root).as_posix(): form.read_bytes()
-        for form in sorted(repo.forms_dir.glob("*.yaml"))
+        f"forms/{form.name}": form.read_bytes()
+        for form in sorted(package_forms.glob("*.yaml"))
     }
     git.commit_files(form_files, "Seed forms")
-    git.sync_worktree()
 
     runner = CliRunner()
     runner.invoke(
