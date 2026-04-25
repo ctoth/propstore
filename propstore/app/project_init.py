@@ -12,9 +12,7 @@ from propstore.families.forms.documents import FormDocument
 from propstore.families.registry import (
     ConceptFileRef,
     FormRef,
-    PropstoreFamily,
     semantic_init_roots,
-    semantic_root_path,
 )
 from propstore.repository import Repository
 from propstore.resources import _get_resource
@@ -35,7 +33,7 @@ class ProjectInitReport:
 def initialize_project(root: Path) -> ProjectInitReport:
     """Initialize a project and seed packaged forms/concepts when needed."""
     paths = _project_paths(root)
-    if semantic_root_path(PropstoreFamily.CONCEPTS.value, root).is_dir():
+    if Repository.is_propstore_repo(root):
         return ProjectInitReport(root=root, initialized=False, paths=paths)
 
     repo = Repository.init(root)
@@ -49,8 +47,8 @@ def initialize_project(root: Path) -> ProjectInitReport:
             **_render_seed_form_files(repo, form_documents),
             **_render_seed_concept_files(repo, concept_documents),
         }
-        repo.git.commit_files(seed_files, "Seed default forms and concepts")
-        repo.snapshot.sync_worktree()
+        seed_commit = repo.git.commit_files(seed_files, "Seed default forms and concepts")
+        repo.write_bootstrap_manifest(seed_commit=seed_commit)
 
     return ProjectInitReport(root=root, initialized=True, paths=paths)
 
