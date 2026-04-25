@@ -52,7 +52,13 @@ from propstore.world.queries import (
     query_bound_world,
     resolve_world_value,
 )
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads, make_test_context_commit_entry
+from tests.conftest import (
+    TEST_CONTEXT_ID,
+    attach_concept_version_id,
+    make_test_context_commit_entry,
+    normalize_claims_payload,
+    normalize_concept_payloads,
+)
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -122,17 +128,6 @@ def _write_concept(concepts_dir: Path, name: str, data: dict) -> Path:
     return p
 
 
-def _write_counter(concepts_dir: Path, domain: str, value: int) -> None:
-    """Write the global counter file (domain param kept for compat)."""
-    counters = concepts_dir / ".counters"
-    counters.mkdir(parents=True, exist_ok=True)
-    (counters / "global.next").write_text(f"{value}\n")
-
-
-def _read_counter(concepts_dir: Path, domain: str) -> int:
-    return int((concepts_dir / ".counters" / "global.next").read_text().strip())
-
-
 def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
     claims_dir.mkdir(parents=True, exist_ok=True)
     path = claims_dir / filename
@@ -148,6 +143,15 @@ def _commit_workspace_paths(workspace: Path, relpaths: list[str], message: str =
     }
     repo.git.commit_files(adds, message)
     repo.git.sync_worktree()
+
+
+def _read_repo_yaml(workspace: Path, relpath: str) -> dict:
+    repo = Repository.find(workspace / "knowledge")
+    return yaml.safe_load(repo.git.read_file(relpath))
+
+
+def _repo_entries(workspace: Path) -> set[str]:
+    return set(Repository.find(workspace / "knowledge").git.flat_tree_entries())
 
 
 class TestRootCli:
@@ -361,9 +365,8 @@ class TestConceptAdd:
         assert result.exit_code == 0, result.output
         assert "Created" in result.output
 
-        filepath = workspace / "knowledge" / "concepts" / "test_pressure.yaml"
-        assert filepath.exists()
-        data = yaml.safe_load(filepath.read_text())
+        assert "concepts/test_pressure.yaml" in _repo_entries(workspace)
+        data = _read_repo_yaml(workspace, "concepts/test_pressure.yaml")
         assert data["artifact_id"] == _concept_artifact("concept3")
         assert data["lexical_entry"]["canonical_form"]["written_rep"] == "test_pressure"
         assert data["status"] == "proposed"
@@ -395,7 +398,7 @@ class TestConceptAdd:
             "--domain", "speech", "--name", "c1",
             "--definition", "d1", "--form", "boolean",
         ])
-        c1_data = yaml.safe_load((workspace / "knowledge" / "concepts" / "c1.yaml").read_text())
+        c1_data = _read_repo_yaml(workspace, "concepts/c1.yaml")
         assert c1_data["artifact_id"] == _concept_artifact("concept3")
 
         runner.invoke(cli, [
@@ -403,7 +406,7 @@ class TestConceptAdd:
             "--domain", "speech", "--name", "c2",
             "--definition", "d2", "--form", "boolean",
         ])
-        c2_data = yaml.safe_load((workspace / "knowledge" / "concepts" / "c2.yaml").read_text())
+        c2_data = _read_repo_yaml(workspace, "concepts/c2.yaml")
         assert c2_data["artifact_id"] == _concept_artifact("concept4")
 
     def test_dry_run_does_not_write(self, workspace: Path) -> None:
@@ -416,7 +419,7 @@ class TestConceptAdd:
         ])
         assert result.exit_code == 0
         assert "Would create" in result.output
-        assert not (workspace / "knowledge" / "concepts" / "ghost.yaml").exists()
+        assert "concepts/ghost.yaml" not in _repo_entries(workspace)
 
     def test_validation_failure_does_not_advance_counter(self, workspace: Path) -> None:
         runner = CliRunner()
@@ -428,8 +431,18 @@ class TestConceptAdd:
             "--form", "missing_form",
         ])
         assert result.exit_code != 0
-        assert not (workspace / "knowledge" / "concepts" / "bad_pressure.yaml").exists()
-        assert _read_counter(workspace / "knowledge" / "concepts", "speech") == 3
+        assert "concepts/bad_pressure.yaml" not in _repo_entries(workspace)
+
+        valid_result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "speech",
+            "--name", "good_pressure",
+            "--definition", "d",
+            "--form", "pressure",
+        ])
+        assert valid_result.exit_code == 0, valid_result.output
+        data = _read_repo_yaml(workspace, "concepts/good_pressure.yaml")
+        assert data["artifact_id"] == _concept_artifact("concept3")
 
 
 # ── concept alias ────────────────────────────────────────────────────
@@ -444,8 +457,7 @@ class TestConceptAlias:
         assert result.exit_code == 0, result.output
         assert "Added alias" in result.output
 
-        data = yaml.safe_load(
-            (workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text())
+        data = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
         alias_names = [a["name"] for a in data["aliases"]]
         assert "f_zero" in alias_names
 
@@ -472,12 +484,11 @@ class TestConceptRename:
         assert result.exit_code == 0, result.output
         assert "task -> vocal_task" in result.output
 
-        old_path = workspace / "knowledge" / "concepts" / "task.yaml"
-        new_path = workspace / "knowledge" / "concepts" / "vocal_task.yaml"
-        assert not old_path.exists()
-        assert new_path.exists()
+        entries = _repo_entries(workspace)
+        assert "concepts/task.yaml" not in entries
+        assert "concepts/vocal_task.yaml" in entries
 
-        data = yaml.safe_load(new_path.read_text())
+        data = _read_repo_yaml(workspace, "concepts/vocal_task.yaml")
         assert data["lexical_entry"]["canonical_form"]["written_rep"] == "vocal_task"
         assert data["artifact_id"] == _concept_artifact("concept2")
         assert data["logical_ids"][0] == {"namespace": "speech", "value": "vocal_task"}
@@ -520,10 +531,10 @@ class TestConceptRename:
         ])
         assert result.exit_code == 0, result.output
 
-        renamed_concept = yaml.safe_load((workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text())
+        renamed_concept = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
         assert renamed_concept["relationships"][0]["conditions"] == ["vocal_task == 'speech'"]
 
-        claim_data = yaml.safe_load((workspace / "knowledge" / "claims" / "paper.yaml").read_text())
+        claim_data = _read_repo_yaml(workspace, "claims/paper.yaml")
         assert claim_data["claims"][0]["conditions"] == ["vocal_task == 'speech'"]
 
 
@@ -539,8 +550,7 @@ class TestConceptDeprecate:
         assert result.exit_code == 0, result.output
         assert "Deprecated" in result.output
 
-        data = yaml.safe_load(
-            (workspace / "knowledge" / "concepts" / "task.yaml").read_text())
+        data = _read_repo_yaml(workspace, "concepts/task.yaml")
         assert data["status"] == "deprecated"
         assert data["replaced_by"] == _concept_artifact("concept1")
 
@@ -583,8 +593,7 @@ class TestConceptLink:
         assert result.exit_code == 0, result.output
         assert "Added broader" in result.output
 
-        data = yaml.safe_load(
-            (workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text())
+        data = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
         rels = data.get("relationships", [])
         assert any(r["type"] == "broader" and r["target"] == _concept_artifact("concept2") for r in rels)
 
@@ -596,8 +605,7 @@ class TestConceptLink:
         assert result.exit_code != 0
         assert "Validation failed" in result.output
 
-        data = yaml.safe_load(
-            (workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text())
+        data = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
         assert not data.get("relationships")
 
 
@@ -623,9 +631,7 @@ class TestConceptPhase3Semantics:
         ])
 
         assert result.exit_code == 0, result.output
-        data = yaml.safe_load(
-            (workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text()
-        )
+        data = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
         telic = data["lexical_entry"]["senses"][0]["qualia"]["telic"][0]
         assert telic["reference"]["uri"] == _concept_artifact("concept2")
         assert telic["type_constraint"]["reference"]["uri"] == _concept_artifact("concept2")
@@ -643,7 +649,7 @@ class TestConceptPhase3Semantics:
         ])
 
         assert result.exit_code == 0, result.output
-        data = yaml.safe_load((workspace / "knowledge" / "concepts" / "task.yaml").read_text())
+        data = _read_repo_yaml(workspace, "concepts/task.yaml")
         description_kind = data["lexical_entry"]["senses"][0]["description_kind"]
         assert description_kind["name"] == "TaskDescription"
         assert description_kind["reference"]["uri"] == _concept_artifact("concept2")
@@ -672,7 +678,7 @@ class TestConceptPhase3Semantics:
         ])
 
         assert result.exit_code == 0, result.output
-        data = yaml.safe_load((workspace / "knowledge" / "concepts" / "task.yaml").read_text())
+        data = _read_repo_yaml(workspace, "concepts/task.yaml")
         bundle = data["lexical_entry"]["senses"][0]["role_bundles"]["observer"]
         entailment = bundle["proto_agent_entailments"][0]
         assert entailment["property"] == "sentience"
@@ -695,6 +701,21 @@ class TestValidate:
     def test_accepts_valid_canonical_claim_reference(self, workspace: Path) -> None:
         concepts_dir = workspace / "knowledge" / "concepts"
         claims_dir = workspace / "knowledge" / "claims"
+        claim_payload = _normalize_claim_concept_refs({
+            "source": {"paper": "paper"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "output_concept": _concept_artifact("concept3"),
+                    "value": 800.0,
+                    "unit": "Pa",
+                    "provenance": {"paper": "paper", "page": 1},
+                    "context": {"id": TEST_CONTEXT_ID},
+                }
+            ],
+        })
+        claim_artifact_id = claim_payload["claims"][0]["artifact_id"]
 
         _write_concept(concepts_dir, "subglottal_pressure", _make_concept(
             "subglottal_pressure", "concept3", "speech", form="pressure",
@@ -703,28 +724,22 @@ class TestValidate:
         concept_data = yaml.safe_load(concept_path.read_text())
         concept_data["parameterization_relationships"] = [{
             "formula": "fundamental_frequency = subglottal_pressure",
-            "inputs": ["concept3"],
+            "inputs": [_concept_artifact("concept3")],
             "exactness": "approximate",
-            "canonical_claim": "claim1",
+            "canonical_claim": claim_artifact_id,
             "sympy": "concept3",
         }]
+        concept_data = attach_concept_version_id(concept_data)
         concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
-        _write_claim_file(
-            claims_dir,
-            "paper.yaml",
-            {
-                "source": {"paper": "paper"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "parameter",
-                        "concept": "concept3",
-                        "value": 800.0,
-                        "unit": "Pa",
-                        "provenance": {"paper": "paper", "page": 1},
-                    }
-                ],
-            },
+        _write_claim_file(claims_dir, "paper.yaml", claim_payload)
+        _commit_workspace_paths(
+            workspace,
+            [
+                "concepts/subglottal_pressure.yaml",
+                "concepts/fundamental_frequency.yaml",
+                "claims/paper.yaml",
+            ],
+            "Seed canonical claim reference workspace",
         )
 
         runner = CliRunner()
@@ -769,6 +784,21 @@ class TestBuild:
         concepts_dir = workspace / "knowledge" / "concepts"
         claims_dir = workspace / "knowledge" / "claims"
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
+        claim_payload = _normalize_claim_concept_refs({
+            "source": {"paper": "paper"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "output_concept": _concept_artifact("concept3"),
+                    "value": 800.0,
+                    "unit": "Pa",
+                    "provenance": {"paper": "paper", "page": 1},
+                    "context": {"id": TEST_CONTEXT_ID},
+                }
+            ],
+        })
+        claim_artifact_id = claim_payload["claims"][0]["artifact_id"]
 
         _write_concept(concepts_dir, "subglottal_pressure", _make_concept(
             "subglottal_pressure", "concept3", "speech", form="pressure",
@@ -777,28 +807,22 @@ class TestBuild:
         concept_data = yaml.safe_load(concept_path.read_text())
         concept_data["parameterization_relationships"] = [{
             "formula": "fundamental_frequency = subglottal_pressure",
-            "inputs": ["concept3"],
+            "inputs": [_concept_artifact("concept3")],
             "exactness": "approximate",
-            "canonical_claim": "claim1",
+            "canonical_claim": claim_artifact_id,
             "sympy": "concept3",
         }]
+        concept_data = attach_concept_version_id(concept_data)
         concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
-        _write_claim_file(
-            claims_dir,
-            "paper.yaml",
-            {
-                "source": {"paper": "paper"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "parameter",
-                        "concept": "concept3",
-                        "value": 800.0,
-                        "unit": "Pa",
-                        "provenance": {"paper": "paper", "page": 1},
-                    }
-                ],
-            },
+        _write_claim_file(claims_dir, "paper.yaml", claim_payload)
+        _commit_workspace_paths(
+            workspace,
+            [
+                "concepts/subglottal_pressure.yaml",
+                "concepts/fundamental_frequency.yaml",
+                "claims/paper.yaml",
+            ],
+            "Seed canonical claim reference workspace",
         )
 
         runner = CliRunner()
@@ -1173,8 +1197,7 @@ class TestConceptCategoryValues:
         assert result.exit_code == 0, result.output
         assert "Created" in result.output
 
-        filepath = workspace / "knowledge" / "concepts" / "dataset.yaml"
-        data = yaml.safe_load(filepath.read_text())
+        data = _read_repo_yaml(workspace, "concepts/dataset.yaml")
         assert data["lexical_entry"]["physical_dimension_form"] == "category"
         assert data["form_parameters"]["values"] == ["ActivityNet", "YouCook2", "Charades"]
 
@@ -1190,9 +1213,19 @@ class TestConceptCategoryValues:
         ])
         assert result.exit_code != 0
         assert "values" in result.output.lower()
-        assert not (workspace / "knowledge" / "concepts" / "dataset.yaml").exists()
-        # Counter must not advance
-        assert _read_counter(workspace / "knowledge" / "concepts", "general") == 3
+        assert "concepts/dataset.yaml" not in _repo_entries(workspace)
+
+        valid_result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "general",
+            "--name", "valid_dataset",
+            "--definition", "The benchmark dataset",
+            "--form", "category",
+            "--values", "ActivityNet",
+        ])
+        assert valid_result.exit_code == 0, valid_result.output
+        data = _read_repo_yaml(workspace, "concepts/valid_dataset.yaml")
+        assert data["artifact_id"] == _concept_artifact("concept3")
 
     def test_add_category_values_strips_whitespace(self, workspace: Path) -> None:
         """Whitespace around comma-separated values is stripped."""
@@ -1206,8 +1239,7 @@ class TestConceptCategoryValues:
             "--values", " CIDEr , METEOR , BLEU ",
         ])
         assert result.exit_code == 0, result.output
-        data = yaml.safe_load(
-            (workspace / "knowledge" / "concepts" / "metric.yaml").read_text())
+        data = _read_repo_yaml(workspace, "concepts/metric.yaml")
         assert data["form_parameters"]["values"] == ["CIDEr", "METEOR", "BLEU"]
 
     def test_add_non_category_with_values_fails(self, workspace: Path) -> None:
@@ -1222,7 +1254,7 @@ class TestConceptCategoryValues:
             "--values", "a,b",
         ])
         assert result.exit_code != 0
-        assert not (workspace / "knowledge" / "concepts" / "test_freq.yaml").exists()
+        assert "concepts/test_freq.yaml" not in _repo_entries(workspace)
 
     def test_add_category_closed_sets_extensible_false(self, workspace: Path) -> None:
         """pks concept add --form category --closed writes extensible: false in form_parameters."""
@@ -1237,8 +1269,7 @@ class TestConceptCategoryValues:
             "--closed",
         ])
         assert result.exit_code == 0, result.output
-        filepath = workspace / "knowledge" / "concepts" / "closed_cat.yaml"
-        data = yaml.safe_load(filepath.read_text())
+        data = _read_repo_yaml(workspace, "concepts/closed_cat.yaml")
         assert data["lexical_entry"]["physical_dimension_form"] == "category"
         assert data["form_parameters"]["values"] == ["a", "b", "c"]
         assert data["form_parameters"]["extensible"] is False
@@ -1255,8 +1286,7 @@ class TestConceptCategoryValues:
             "--values", "x,y",
         ])
         assert result.exit_code == 0, result.output
-        filepath = workspace / "knowledge" / "concepts" / "open_cat.yaml"
-        data = yaml.safe_load(filepath.read_text())
+        data = _read_repo_yaml(workspace, "concepts/open_cat.yaml")
         assert "extensible" not in data.get("form_parameters", {})
 
     def test_closed_on_non_category_fails(self, workspace: Path) -> None:
@@ -1311,18 +1341,15 @@ class TestConceptCategories:
         monkeypatch.chdir(tmp_path)
         knowledge = tmp_path / "knowledge"
         repo = Repository.init(knowledge)
-        concepts = knowledge / "concepts"
-        forms = knowledge / "forms"
-        (forms / "structural.yaml").write_text("name: structural\n")
-
-        _write_concept(concepts, "only_struct", _make_concept(
-            "only_struct", "concept1", "test", form="structural"))
-        _write_counter(concepts, "test", 2)
+        concept_data = _make_concept("only_struct", "concept1", "test", form="structural")
         repo.git.commit_files(
             {
-                "forms/structural.yaml": (forms / "structural.yaml").read_bytes(),
-                "concepts/only_struct.yaml": (concepts / "only_struct.yaml").read_bytes(),
-                "concepts/.counters/global.next": (concepts / ".counters" / "global.next").read_bytes(),
+                "forms/structural.yaml": b"name: structural\n",
+                "concepts/only_struct.yaml": yaml.dump(
+                    concept_data,
+                    default_flow_style=False,
+                    sort_keys=False,
+                ).encode("utf-8"),
             },
             "Seed non-category-only workspace",
         )
@@ -1346,8 +1373,7 @@ class TestConceptAddValue:
         ])
         assert result.exit_code == 0, result.output
 
-        data = yaml.safe_load(
-            (workspace / "knowledge" / "concepts" / "task.yaml").read_text())
+        data = _read_repo_yaml(workspace, "concepts/task.yaml")
         assert "reading" in data["form_parameters"]["values"]
         # Original values preserved
         assert "speech" in data["form_parameters"]["values"]
@@ -1454,6 +1480,7 @@ class TestConnectionClosedOnError:
         Repository.init(knowledge)
         sidecar_dir = knowledge / "sidecar"
         sidecar = sidecar_dir / "propstore.sqlite"
+        sidecar_dir.mkdir(parents=True, exist_ok=True)
         sidecar.touch()
         return tmp_path
 
