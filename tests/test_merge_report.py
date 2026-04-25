@@ -4,6 +4,7 @@ from __future__ import annotations
 import yaml
 
 from propstore.families.identity.claims import compute_claim_version_id
+from propstore.families.identity.concepts import derive_concept_artifact_id
 from quire.git_store import GitStore
 from propstore.storage import init_git_store
 from propstore.repository import Repository
@@ -76,6 +77,7 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 def test_merge_report_surfaces_conflict_query_state(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
+    concept_id = derive_concept_artifact_id("propstore", "concept_x")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
         "seed",
@@ -118,7 +120,7 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
         assert detail["canonical_claim_id"] == "test_paper:claim1"
         assert detail["artifact_id"] == artifact_id
         assert detail["logical_id"] == "test_paper:claim1"
-        assert detail["concept_id"] == "concept_x"
+        assert detail["concept_id"] == concept_id
         assert detail["branch_origins"]
         assert detail["provenance"]["branch_origin"] in detail["branch_origins"]
         assert detail["credulously_accepted"] is False
