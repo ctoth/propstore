@@ -27,6 +27,29 @@ from tests.atms_helpers import leaf_lifting_system
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
+def _parameter_claim(claim_id: str, concept_id: str, value: float) -> dict:
+    return {
+        "id": claim_id,
+        "concept_links": [
+            {
+                "claim_id": claim_id,
+                "concept_id": concept_id,
+                "role": "output",
+                "ordinal": 0,
+            }
+        ],
+        "type": "parameter",
+        "value": value,
+    }
+
+
+def _output_concept_id(claim: dict) -> str | None:
+    for link in claim.get("concept_links", ()):
+        if link.get("role") == "output":
+            return link.get("concept_id")
+    return claim.get("concept_id")
+
+
 class _ExactMatchSolver:
     def are_disjoint(self, left: list[str], right: list[str]) -> bool:
         return set(left).isdisjoint(right)
@@ -58,7 +81,7 @@ class _ProjectionStore:
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim.get("concept_id") == concept_id]
+        return [claim for claim in self._claims if _output_concept_id(claim) == concept_id]
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
         return {
@@ -758,8 +781,8 @@ def test_grounded_semantics_property_matches_dung_grounded_extension(
 def test_structured_resolution_reports_no_stance_data_like_claim_graph() -> None:
     store = _ProjectionStore(
         claims=[
-            {"id": "target_a", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-            {"id": "target_b", "concept_id": "concept1", "type": "parameter", "value": 2.0},
+            _parameter_claim("target_a", "concept1", 1.0),
+            _parameter_claim("target_b", "concept1", 2.0),
         ],
         has_stance_table=False,
     )
@@ -983,8 +1006,8 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
     class FakeBound:
         def active_claims(self, concept_id: str | None = None) -> list[dict]:
             return [
-                {"id": "target_a", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-                {"id": "target_b", "concept_id": "concept1", "type": "parameter", "value": 2.0},
+                _parameter_claim("target_a", "concept1", 1.0),
+                _parameter_claim("target_b", "concept1", 2.0),
             ]
 
         def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
@@ -1070,8 +1093,8 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
     class FakeBound:
         def active_claims(self, concept_id: str | None = None) -> list[dict]:
             return [
-                {"id": "target_a", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-                {"id": "target_b", "concept_id": "concept1", "type": "parameter", "value": 2.0},
+                _parameter_claim("target_a", "concept1", 1.0),
+                _parameter_claim("target_b", "concept1", 2.0),
             ]
 
         def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
