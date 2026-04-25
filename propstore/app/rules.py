@@ -310,7 +310,6 @@ def add_rule(
             else f"Declare rules for {request.file}"
         ),
     )
-    repo.snapshot.sync_worktree()
 
     return RuleAddReport(
         filepath=filepath,
@@ -403,7 +402,6 @@ def remove_rule(
         document,
         message=f"Remove rule {request.rule_id} from {request.file}",
     )
-    repo.snapshot.sync_worktree()
 
     return RuleRemoveReport(
         filepath=filepath,
