@@ -519,11 +519,11 @@ def _write_promotion_blocked_sidecar_rows(
                 """
                 INSERT INTO claim_core (
                     id, primary_logical_id, logical_ids_json, version_id,
-                    content_hash, seq, type, concept_id, target_concept,
+                    content_hash, seq, type, target_concept,
                     source_slug, source_paper, provenance_page,
                     provenance_json, context_id, premise_kind, branch,
                     build_status, stage, promotion_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     artifact_id,
@@ -533,7 +533,6 @@ def _write_promotion_blocked_sidecar_rows(
                     "",
                     0,
                     "promotion_blocked",
-                    None,
                     None,
                     source_paper,
                     source_paper,
