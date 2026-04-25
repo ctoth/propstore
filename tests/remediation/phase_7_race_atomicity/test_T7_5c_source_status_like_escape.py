@@ -13,6 +13,7 @@ def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
     alien_branch = target_branch.replace("_", "x")
     assert alien_branch != target_branch
 
+    repo.sidecar_dir.mkdir(parents=True, exist_ok=True)
     conn = connect_sidecar(repo.sidecar_path)
     try:
         create_context_tables(conn)
