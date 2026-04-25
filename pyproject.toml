@@ -19,7 +19,7 @@ dependencies = [
     "pint>=0.25.3",
     "dulwich>=1.1.0",
     "gunray @ git+https://github.com/ctoth/gunray@23b31c8efbc4ac585e64b7792291cbeebae7cd54",
-    "quire @ git+https://github.com/ctoth/quire@427d82cfe163c5bdb594fe560e069910cc6759c6",
+    "quire @ git+https://github.com/ctoth/quire@84f5d07e6f2127688b34c9fc582aa6900b7ff0c8",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
 ]
