@@ -19,14 +19,33 @@ from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStra
 from propstore.world.types import IntegrityConstraint, IntegrityConstraintKind
 
 
+def _claim_mapping(
+    claim_id: str,
+    *,
+    concept_id: str = "concept1",
+    value: float = 1.0,
+    branch: str | None = None,
+) -> dict:
+    data = {
+        "id": claim_id,
+        "concept_id": concept_id,
+        "concept_links": [
+            {
+                "claim_id": claim_id,
+                "concept_id": concept_id,
+                "role": "output",
+                "ordinal": 0,
+            }
+        ],
+        "value": value,
+    }
+    if branch is not None:
+        data["branch"] = branch
+    return data
+
+
 def _active_claim(claim_id: str, *, concept_id: str = "concept1", value: float = 1.0) -> ActiveClaim:
-    return ActiveClaim.from_mapping(
-        {
-            "id": claim_id,
-            "concept_id": concept_id,
-            "value": value,
-        }
-    )
+    return ActiveClaim.from_mapping(_claim_mapping(claim_id, concept_id=concept_id, value=value))
 
 
 class _World:
@@ -44,8 +63,8 @@ class _View:
 class _AspicView:
     def __init__(self) -> None:
         self._claims = [
-            {"id": "claim_a", "concept_id": "concept1", "value": 1.0},
-            {"id": "claim_b", "concept_id": "concept1", "value": 2.0},
+            _claim_mapping("claim_a", concept_id="concept1", value=1.0),
+            _claim_mapping("claim_b", concept_id="concept1", value=2.0),
         ]
 
     def value_of(self, concept_id: str):
@@ -110,12 +129,12 @@ class _GlobalAssignmentSelectionWorld:
 class _GlobalAssignmentSelectionView:
     def __init__(self) -> None:
         self._claims = [
-            {"id": "claim_ax", "concept_id": "concept1", "value": 1.0, "branch": "a"},
-            {"id": "claim_ay", "concept_id": "concept2", "value": 0.0, "branch": "a"},
-            {"id": "claim_bx", "concept_id": "concept1", "value": 1.0, "branch": "b"},
-            {"id": "claim_by", "concept_id": "concept2", "value": 1.0, "branch": "b"},
-            {"id": "claim_cx", "concept_id": "concept1", "value": 0.0, "branch": "c"},
-            {"id": "claim_cy", "concept_id": "concept2", "value": 0.0, "branch": "c"},
+            _claim_mapping("claim_ax", concept_id="concept1", value=1.0, branch="a"),
+            _claim_mapping("claim_ay", concept_id="concept2", value=0.0, branch="a"),
+            _claim_mapping("claim_bx", concept_id="concept1", value=1.0, branch="b"),
+            _claim_mapping("claim_by", concept_id="concept2", value=1.0, branch="b"),
+            _claim_mapping("claim_cx", concept_id="concept1", value=0.0, branch="c"),
+            _claim_mapping("claim_cy", concept_id="concept2", value=0.0, branch="c"),
         ]
 
     def value_of(self, concept_id: str):
@@ -134,9 +153,9 @@ class _GlobalAssignmentSelectionView:
 class _DuplicateSourceAssignmentSelectionView:
     def __init__(self) -> None:
         self._claims = [
-            {"id": "claim_a1", "concept_id": "concept1", "value": 10.0, "branch": "a"},
-            {"id": "claim_a2", "concept_id": "concept1", "value": 11.0, "branch": "a"},
-            {"id": "claim_b1", "concept_id": "concept1", "value": 12.0, "branch": "b"},
+            _claim_mapping("claim_a1", concept_id="concept1", value=10.0, branch="a"),
+            _claim_mapping("claim_a2", concept_id="concept1", value=11.0, branch="a"),
+            _claim_mapping("claim_b1", concept_id="concept1", value=12.0, branch="b"),
         ]
 
     def value_of(self, concept_id: str):
@@ -155,9 +174,9 @@ class _DuplicateSourceAssignmentSelectionView:
 class _AssignmentSelectionView:
     def __init__(self) -> None:
         self._claims = [
-            {"id": "claim_a", "concept_id": "concept1", "value": 50.0},
-            {"id": "claim_b", "concept_id": "concept1", "value": 10.0},
-            {"id": "claim_c", "concept_id": "concept1", "value": 5.0},
+            _claim_mapping("claim_a", concept_id="concept1", value=50.0),
+            _claim_mapping("claim_b", concept_id="concept1", value=10.0),
+            _claim_mapping("claim_c", concept_id="concept1", value=5.0),
         ]
 
     def value_of(self, concept_id: str):
