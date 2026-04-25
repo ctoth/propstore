@@ -69,12 +69,12 @@ def list_concepts(
     request: ConceptListRequest,
 ) -> ConceptListReport:
     _ = repository_view_label(request.repository_view)
-    refs = list(repo.families.concepts.iter())
-    if not refs:
+    loaded_concepts = _loaded_concepts(repo)
+    if not loaded_concepts:
         return ConceptListReport(concepts_found=False, entries=())
 
     entries: list[ConceptListEntry] = []
-    for concept_entry in _loaded_concepts(repo):
+    for concept_entry in loaded_concepts:
         data = concept_entry.record.to_payload()
         concept_domain = str(data.get("domain", ""))
         concept_status = str(data.get("status", ""))
