@@ -175,15 +175,15 @@ def list_form_items(
     *,
     dims_filter: str | None,
 ) -> tuple[FormListItem, ...] | None:
-    refs = list(repo.families.forms.iter())
-    if not refs:
+    handles = list(repo.families.forms.iter_handles())
+    if not handles:
         return None
 
     filter_dims = parse_dims_spec(dims_filter) if dims_filter is not None else None
     items: list[FormListItem] = []
     forms: list[tuple[FormDocument, FormDefinition]] = []
-    for ref in refs:
-        document = repo.families.forms.require(ref)
+    for handle in handles:
+        document = handle.document
         forms.append((document, parse_form(document.name, document)))
     for document, form in sorted(forms, key=lambda item: item[1].name):
         if filter_dims is not None:
@@ -303,8 +303,9 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
 
 def form_references(repo: Repository, name: str) -> tuple[str, ...]:
     references: list[str] = []
-    for ref in repo.families.concepts.iter():
-        document = repo.families.concepts.require(ref)
+    for handle in repo.families.concepts.iter_handles():
+        ref = handle.ref
+        document = handle.document
         record = parse_concept_record_document(document)
         if record.form == name:
             references.append(f"{record.artifact_id} ({ref.name})")
@@ -338,15 +339,18 @@ def remove_form(
 
 
 def validate_forms(repo: Repository, name: str | None = None) -> FormValidationReport | None:
-    refs = list(repo.families.forms.iter())
-    if not refs:
+    form_handles = list(repo.families.forms.iter_handles())
+    if not form_handles:
         return None
 
     if name is not None and repo.families.forms.load(FormRef(name)) is None:
         raise FormNotFoundError(name)
 
     form_result = run_form_pipeline(
-        [LoadedForm(filename=ref.name, document=repo.families.forms.require(ref)) for ref in refs]
+        [
+            LoadedForm(filename=handle.ref.name, document=handle.document)
+            for handle in form_handles
+        ]
     )
     errors = [error.render() for error in form_result.errors]
     form_registry = (
@@ -354,12 +358,13 @@ def validate_forms(repo: Repository, name: str | None = None) -> FormValidationR
         if isinstance(form_result.output, FormCheckedRegistry)
         else {}
     )
-    all_forms = {ref.name for ref in refs}
+    all_forms = {handle.ref.name for handle in form_handles}
 
-    for ref in repo.families.concepts.iter():
-        record = parse_concept_record_document(repo.families.concepts.require(ref))
+    for handle in repo.families.concepts.iter_handles():
+        ref = handle.ref
+        record = parse_concept_record_document(handle.document)
         form_ref = record.form
         if form_ref and form_ref not in form_registry and form_ref not in all_forms:
             errors.append(f"concept {ref.name}: references missing form '{form_ref}'")
 
-    return FormValidationReport(count=len(refs), errors=tuple(errors))
+    return FormValidationReport(count=len(form_handles), errors=tuple(errors))
