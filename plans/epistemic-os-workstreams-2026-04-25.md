@@ -62,7 +62,8 @@ The typing strictification plan remains binding as a global implementation
 constraint:
 
 - use stdlib dataclasses for closed invariant-bearing domain/runtime objects;
-- use `TypedDict` for narrow stable storage/report shapes;
+- use stdlib dataclasses for closed report/result shapes and keep loose
+  dictionaries only at explicit IO/serialization boundaries;
 - do not introduce `attrs`;
 - do not wrap the whole wide claim row in one giant dataclass;
 - convert decoded YAML/JSON/SQLite dictionaries at IO boundaries and do not
