@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import threading
 import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 from dulwich.file import FileLocked
@@ -19,6 +20,12 @@ _CONCEPT_ID_RE = re.compile(r"^concept(\d+)$")
 CONCEPT_ID_COUNTER_REF = RefName("refs/propstore/indexes/concept-id-counter")
 _COUNTER_WRITE_ATTEMPTS = 64
 _COUNTER_REF_LOCK = threading.Lock()
+
+
+@dataclass(frozen=True)
+class ConceptIdCandidate:
+    numeric_id: int
+    counter_ref_sha: str | None
 
 
 def _numeric_concept_id(document: ConceptDocument) -> int | None:
@@ -40,6 +47,27 @@ def next_concept_id_for_repo(repo: Repository) -> int:
     if repo.git is not None:
         return _reserve_next_concept_id(repo)
     return _next_concept_id_from_documents(repo)
+
+
+def candidate_concept_id_for_repo(repo: Repository) -> ConceptIdCandidate:
+    if repo.git is None:
+        return ConceptIdCandidate(
+            numeric_id=_next_concept_id_from_documents(repo),
+            counter_ref_sha=None,
+        )
+    current, ref_sha = _read_concept_id_counter_state(repo.git)
+    numeric_id = current + 1 if current is not None else _next_concept_id_from_documents(repo)
+    return ConceptIdCandidate(numeric_id=numeric_id, counter_ref_sha=ref_sha)
+
+
+def reserve_concept_id_candidate(repo: Repository, candidate: ConceptIdCandidate) -> bool:
+    if repo.git is None:
+        return True
+    return _write_concept_id_counter_if_unchanged(
+        repo.git,
+        candidate.counter_ref_sha,
+        candidate.numeric_id,
+    )
 
 
 def _next_concept_id_from_documents(repo: Repository) -> int:
