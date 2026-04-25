@@ -177,9 +177,53 @@ def normalize_claims_payload(data: dict, *, default_namespace: str | None = None
                     rewritten["target"] = local_to_artifact[target]
                 rewritten_stances.append(rewritten)
             normalized["stances"] = rewritten_stances
+        _normalize_claim_concept_fields(normalized)
         normalized_claims[index] = attach_claim_version_id(normalized)
     normalized_data["claims"] = normalized_claims
     return normalized_data
+
+
+def _normalize_claim_concept_fields(claim: dict) -> None:
+    claim_type = str(claim.get("type", ""))
+    singular_concept = claim.pop("concept", None)
+    if singular_concept is not None:
+        if claim_type in {"parameter", "algorithm"}:
+            claim.setdefault("output_concept", _canonical_concept_ref(str(singular_concept)))
+        elif claim_type == "measurement":
+            claim.setdefault("target_concept", _canonical_concept_ref(str(singular_concept)))
+        else:
+            claim.setdefault("concepts", [_canonical_concept_ref(str(singular_concept))])
+
+    output_concept = claim.get("output_concept")
+    if isinstance(output_concept, str):
+        claim["output_concept"] = _canonical_concept_ref(output_concept)
+
+    target_concept = claim.get("target_concept")
+    if isinstance(target_concept, str):
+        claim["target_concept"] = _canonical_concept_ref(target_concept)
+
+    concepts = claim.get("concepts")
+    if isinstance(concepts, list):
+        claim["concepts"] = [
+            _canonical_concept_ref(value) if isinstance(value, str) else value
+            for value in concepts
+        ]
+
+    for field in ("variables", "parameters"):
+        bindings = claim.get(field)
+        if not isinstance(bindings, list):
+            continue
+        rewritten_bindings = []
+        for binding in bindings:
+            if not isinstance(binding, dict):
+                rewritten_bindings.append(binding)
+                continue
+            rewritten = dict(binding)
+            concept = rewritten.get("concept")
+            if isinstance(concept, str):
+                rewritten["concept"] = _canonical_concept_ref(concept)
+            rewritten_bindings.append(rewritten)
+        claim[field] = rewritten_bindings
 
 
 def normalize_concept_payloads(
@@ -252,7 +296,6 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
             logical_ids_json TEXT,
             version_id TEXT,
             type TEXT,
-            concept_id TEXT,
             target_concept TEXT,
             seq INTEGER,
             source_slug TEXT,
@@ -286,6 +329,15 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
             canonical_ast TEXT,
             variables_json TEXT,
             algorithm_stage TEXT
+        );
+
+        CREATE TABLE claim_concept_link (
+            claim_id TEXT NOT NULL,
+            concept_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            ordinal INTEGER NOT NULL,
+            binding_name TEXT,
+            PRIMARY KEY (claim_id, role, ordinal, concept_id)
         );
 
         CREATE TABLE relation_edge (
@@ -575,9 +627,9 @@ def insert_claim(
         """
         INSERT INTO claim_core (
             id, primary_logical_id, logical_ids_json, version_id,
-            type, concept_id, target_concept, seq,
+            type, target_concept, seq,
             source_slug, source_paper, provenance_page, provenance_json, context_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             claim_id,
@@ -585,7 +637,6 @@ def insert_claim(
             json.dumps([{"namespace": "test", "value": claim_id}]),
             version_id,
             claim_type,
-            concept_id,
             target_concept,
             seq,
             resolved_source_slug,
@@ -595,6 +646,24 @@ def insert_claim(
             None,
         ),
     )
+    if concept_id is not None:
+        conn.execute(
+            """
+            INSERT INTO claim_concept_link (
+                claim_id, concept_id, role, ordinal, binding_name
+            ) VALUES (?, ?, 'output', 0, NULL)
+            """,
+            (claim_id, concept_id),
+        )
+    if target_concept is not None:
+        conn.execute(
+            """
+            INSERT INTO claim_concept_link (
+                claim_id, concept_id, role, ordinal, binding_name
+            ) VALUES (?, ?, 'target', 0, NULL)
+            """,
+            (claim_id, target_concept),
+        )
     conn.execute(
         """
         INSERT INTO claim_numeric_payload (
