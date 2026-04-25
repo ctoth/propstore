@@ -79,7 +79,6 @@ markers = [
 ]
 
 [tool.uv.sources]
-ast-equiv = { path = "../ast-equiv", editable = true }
 bridgman = { path = "../bridgman", editable = true }
 formal-argumentation = { path = "../argumentation", editable = true }
 gunray = { path = "../gunray", editable = true }
