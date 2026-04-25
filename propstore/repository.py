@@ -1,17 +1,22 @@
 """Repository — locates and provides paths within a propstore knowledge/ directory."""
 from __future__ import annotations
 
+import json
 from functools import cached_property
 from pathlib import Path
 
 from quire.documents import DocumentStruct, decode_document_bytes
+from quire.refs import RefName
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
 from propstore.families.registry import (
+    PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
     PropstoreFamily,
-    semantic_init_roots,
     semantic_root_path,
 )
 from propstore.uri import DEFAULT_URI_AUTHORITY
+
+PROPSTORE_BOOTSTRAP_REF = RefName("refs/propstore/bootstrap")
+PROPSTORE_REPOSITORY_FORMAT_VERSION = "2026.04.store-only-init"
 
 
 class RepositoryNotFound(Exception):
@@ -143,31 +148,47 @@ class Repository:
         return RepositorySnapshot(self)
 
     @classmethod
+    def is_propstore_repo(cls, root: Path) -> bool:
+        """Return whether *root* is a git store with propstore bootstrap state."""
+        from propstore.storage import is_git_repo, open_git_store
+
+        if not is_git_repo(root):
+            return False
+        return _read_bootstrap_manifest(open_git_store(root)) is not None
+
+    def write_bootstrap_manifest(self, *, seed_commit: str | None = None) -> None:
+        _write_bootstrap_manifest(self.git, seed_commit=seed_commit)
+
+    @classmethod
     def find(cls, start: Path | None = None) -> Repository:
         """Walk up from *start* (default: cwd) looking for a ``knowledge/`` directory.
 
-        Also recognises *start* itself as a repository root if it contains
-        a ``concepts/`` subdirectory (e.g. ``pks -C path/to/knowledge``
-        or when cwd is already inside the knowledge tree).
+        Also recognises *start* itself as a repository root when it is a
+        git-backed propstore store.
         """
         from propstore.storage import is_git_repo
 
         current = (start or Path.cwd()).resolve()
-        # If start itself has the knowledge structure (e.g. -C pointed at it,
-        # or cwd is already the knowledge dir)
-        if semantic_root_path(PropstoreFamily.CONCEPTS.value, current).is_dir():
-            if is_git_repo(current):
+        if is_git_repo(current):
+            if cls.is_propstore_repo(current):
                 return cls(current)
             raise RepositoryNotFound(
-                f"No git-backed knowledge/ directory found (searched from {current}). "
+                f"Git repository at {current} is not a propstore repository. "
                 f"Run 'pks init' to create one."
             )
         # Walk up looking for knowledge/
         for ancestor in [current, *current.parents]:
             candidate = ancestor / "knowledge"
-            if candidate.is_dir() and semantic_root_path(PropstoreFamily.CONCEPTS.value, candidate).is_dir():
-                if is_git_repo(candidate):
-                    return cls(candidate)
+            if not candidate.is_dir():
+                continue
+            if not is_git_repo(candidate):
+                continue
+            if cls.is_propstore_repo(candidate):
+                return cls(candidate)
+            raise RepositoryNotFound(
+                f"Git repository at {candidate} is not a propstore repository. "
+                f"Run 'pks init' to create one."
+            )
         raise RepositoryNotFound(
             f"No git-backed knowledge/ directory found (searched from {current}). "
             f"Run 'pks init' to create one."
@@ -175,23 +196,44 @@ class Repository:
 
     @classmethod
     def init(cls, root: Path) -> Repository:
-        """Create the directory structure and return a Repository."""
-        # Initialize git first (sync_worktree in init only writes .gitignore)
+        """Create a store-only propstore repository and return it."""
         from propstore.storage import init_git_store
 
         init_git_store(root)
-        # Create dirs after git init so sync_worktree doesn't remove them
         repo = cls(root)
-        dirs = [
-            repo.root / root
-            for root in semantic_init_roots()
-        ]
-        dirs.extend([
-            repo.concepts_dir / ".counters",
-            root / "justifications",
-            root / "sidecar",
-            root / "sources",
-        ])
-        for d in dirs:
-            d.mkdir(parents=True, exist_ok=True)
+        repo.write_bootstrap_manifest()
         return repo
+
+
+def _bootstrap_manifest(seed_commit: str | None) -> dict[str, object]:
+    return {
+        "repository_format_version": PROPSTORE_REPOSITORY_FORMAT_VERSION,
+        "family_registry_contract_version": str(PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION),
+        "seed_bundle_version": "packaged-defaults",
+        "seed_commit": seed_commit,
+        "primary_branch": "master",
+    }
+
+
+def _write_bootstrap_manifest(git, *, seed_commit: str | None) -> None:
+    payload = json.dumps(
+        _bootstrap_manifest(seed_commit),
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    git.write_blob_ref(PROPSTORE_BOOTSTRAP_REF, payload)
+
+
+def _read_bootstrap_manifest(git) -> dict[str, object] | None:
+    payload = git.read_blob_ref(PROPSTORE_BOOTSTRAP_REF)
+    if payload is None:
+        return None
+    try:
+        loaded = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    if loaded.get("repository_format_version") != PROPSTORE_REPOSITORY_FORMAT_VERSION:
+        return None
+    return loaded

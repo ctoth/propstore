@@ -45,9 +45,7 @@ def _walker(repo: Any, tip: bytes, *, max_entries: int) -> Any:
 
 
 def init_git_store(root: Path) -> GitStore:
-    store = GitStore.init(root, policy=_PROPSTORE_POLICY)
-    store.sync_worktree()
-    return store
+    return GitStore.init(root, policy=_PROPSTORE_POLICY)
 
 
 def init_memory_git_store() -> GitStore:
