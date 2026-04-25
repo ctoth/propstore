@@ -32,6 +32,49 @@ principled architecture" instruction. Its useful correction was to make the
 workstream graph dependency-ordered and to make page-image rereads binding
 before work that depends on formal diagrams or definitions.
 
+## Reconciled Prior Plans
+
+This file is the active control surface for the epistemic OS program.
+
+The following prior plan files were reconciled into this file and retired:
+
+- `plans/typed-documentstore-and-semantic-families-proposal-2026-04-17.md`
+- `plans/typing-strictification-plan-2026-03-29.md`
+
+The typed document store and semantic family proposal remains binding as a
+supporting architecture constraint:
+
+- the generic typed git document store must not learn claim, concept, stance,
+  sidecar, argumentation, or propstore identity semantics;
+- propstore semantic families must describe representation stages explicitly:
+  source document, canonical document, identity payload, domain object,
+  sidecar row(s), embedding entity, argumentation projection, and history
+  snapshot;
+- sidecar remains propstore-specific and becomes a materializer over registered
+  semantic families, not a generic database abstraction;
+- semantic merge, PAF, structured merge, and repository import code are not
+  storage code and must not live under storage ownership when the relevant
+  deletion slice runs;
+- family specs should start as typed Python declarations and only move to a
+  schema-backed authoring form after the runtime object model is stable.
+
+The typing strictification plan remains binding as a global implementation
+constraint:
+
+- use stdlib dataclasses for closed invariant-bearing domain/runtime objects;
+- use `TypedDict` for narrow stable storage/report shapes;
+- do not introduce `attrs`;
+- do not wrap the whole wide claim row in one giant dataclass;
+- convert decoded YAML/JSON/SQLite dictionaries at IO boundaries and do not
+  pass loose dicts through the semantic core;
+- replace `getattr` capability probes with explicit protocols or owner-layer
+  typed request/report objects;
+- add stricter pyright coverage only after the relevant interface boundary is
+  clean.
+
+Any future plan/checklist for this program must either be a committed child
+artifact linked from this section or a direct edit to this file.
+
 ## Non-Negotiable Method
 
 Every implementation slice uses red/green TDD:
