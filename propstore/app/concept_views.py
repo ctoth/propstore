@@ -160,7 +160,7 @@ def build_concept_view(repo: Repository, request: ConceptViewRequest) -> Concept
         )
 
         visible_claims = tuple(world.claims_with_policy(concept_id, policy))
-        all_claims = tuple(world.claims_for(concept_id))
+        all_claims = tuple(world.claims_related_to_concept(concept_id))
 
     artifact_id = str(concept_entry.record.artifact_id) if concept_entry is not None else concept_id
     version_id = None if concept_entry is None else concept_entry.record.version_id
