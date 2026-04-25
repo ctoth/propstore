@@ -252,6 +252,7 @@ class TestFormAddCLIDimensions:
         from propstore.cli.form import add
 
         runner = CliRunner()
+        repo = _make_mock_repo(tmp_path)
         result = runner.invoke(
             add,
             [
@@ -259,16 +260,13 @@ class TestFormAddCLIDimensions:
                 "--dimensions", '{"T": -1}',
                 "--dimensionless", "false",
             ],
-            obj={"repo": _make_mock_repo(tmp_path)},
+            obj={"repo": repo},
         )
 
         assert result.exit_code == 0, f"CLI failed: {result.output}"
 
-        # Verify the written YAML
-        form_path = tmp_path / "forms" / "test_form.yaml"
-        assert form_path.exists()
-        with open(form_path) as f:
-            data = yaml.safe_load(f)
+        assert repo.git is not None
+        data = yaml.safe_load(repo.git.read_file("forms/test_form.yaml"))
         assert data["dimensions"] == {"T": -1}
         assert data["dimensionless"] is False
         assert data["name"] == "test_form"
@@ -281,6 +279,7 @@ class TestFormAddCLIDimensions:
         from propstore.cli.form import add
 
         runner = CliRunner()
+        repo = _make_mock_repo(tmp_path)
         result = runner.invoke(
             add,
             [
@@ -288,15 +287,13 @@ class TestFormAddCLIDimensions:
                 "--dimensions", "{}",
                 "--dimensionless", "true",
             ],
-            obj={"repo": _make_mock_repo(tmp_path)},
+            obj={"repo": repo},
         )
 
         assert result.exit_code == 0, f"CLI failed: {result.output}"
 
-        form_path = tmp_path / "forms" / "test_dimless.yaml"
-        assert form_path.exists()
-        with open(form_path) as f:
-            data = yaml.safe_load(f)
+        assert repo.git is not None
+        data = yaml.safe_load(repo.git.read_file("forms/test_dimless.yaml"))
         assert data["dimensions"] == {} or data["dimensions"] is None
         assert data["dimensionless"] is True
 
