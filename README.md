@@ -238,6 +238,8 @@ uv run pks -C knowledge worldline refresh my_query
 ```bash
 # 1. Create a fresh knowledge repo
 uv run pks init knowledge
+# Optional: project committed YAML to loose files for inspection
+uv run pks -C knowledge materialize
 
 # 2. Create and populate a source branch
 uv run pks -C knowledge source init Demo_2026 --kind academic_paper --origin-type file --origin-value Demo_2026.pdf
