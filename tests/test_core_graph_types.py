@@ -28,7 +28,7 @@ def test_compiled_world_graph_normalizes_order_and_supporting_records() -> None:
         claims=(
             ClaimNode(
                 claim_id="claim_b",
-                concept_id="concept2",
+                value_concept_id="concept2",
                 claim_type="parameter",
                 scalar_value=2.0,
                 provenance=provenance,
@@ -36,7 +36,7 @@ def test_compiled_world_graph_normalizes_order_and_supporting_records() -> None:
             ),
             ClaimNode(
                 claim_id="claim_a",
-                concept_id="concept1",
+                value_concept_id="concept1",
                 claim_type="parameter",
                 scalar_value=1.0,
                 attributes={"unit": "m"},
@@ -95,14 +95,14 @@ def test_compiled_world_graph_normalizes_order_and_supporting_records() -> None:
         claims=(
             ClaimNode(
                 claim_id="claim_a",
-                concept_id="concept1",
+                value_concept_id="concept1",
                 claim_type="parameter",
                 scalar_value=1.0,
                 attributes={"unit": "m"},
             ),
             ClaimNode(
                 claim_id="claim_b",
-                concept_id="concept2",
+                value_concept_id="concept2",
                 claim_type="parameter",
                 scalar_value=2.0,
                 provenance=ProvenanceRecord.from_mapping(
@@ -174,7 +174,7 @@ def test_graph_delta_identity_preserves_graph_exactly() -> None:
         claims=(
             ClaimNode(
                 claim_id="claim_a",
-                concept_id="concept1",
+                value_concept_id="concept1",
                 claim_type="parameter",
                 scalar_value=1.0,
             ),
@@ -192,7 +192,7 @@ def test_graph_delta_add_remove_inverse_returns_to_same_graph() -> None:
     base = CompiledWorldGraph()
     claim = ClaimNode(
         claim_id="claim_a",
-        concept_id="concept1",
+        value_concept_id="concept1",
         claim_type="parameter",
         scalar_value=1.0,
     )
@@ -218,13 +218,13 @@ def test_graph_delta_preserves_concepts_and_removes_dangling_relations_and_confl
         claims=(
             ClaimNode(
                 claim_id="claim_a",
-                concept_id="concept1",
+                value_concept_id="concept1",
                 claim_type="parameter",
                 scalar_value=1.0,
             ),
             ClaimNode(
                 claim_id="claim_b",
-                concept_id="concept1",
+                value_concept_id="concept1",
                 claim_type="parameter",
                 scalar_value=2.0,
             ),
@@ -256,7 +256,7 @@ def test_active_world_graph_roundtrip_is_stable() -> None:
         claims=(
             ClaimNode(
                 claim_id="claim_a",
-                concept_id="concept1",
+                value_concept_id="concept1",
                 claim_type="parameter",
                 scalar_value=1.0,
             ),
