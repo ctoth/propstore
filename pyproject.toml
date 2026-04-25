@@ -78,12 +78,6 @@ markers = [
     "slow: intentionally slow tests or suites",
 ]
 
-[tool.uv.sources]
-bridgman = { path = "../bridgman", editable = true }
-formal-argumentation = { path = "../argumentation", editable = true }
-gunray = { path = "../gunray", editable = true }
-quire = { path = "../quire", editable = true }
-
 [dependency-groups]
 dev = [
     "pytest>=8.0",
