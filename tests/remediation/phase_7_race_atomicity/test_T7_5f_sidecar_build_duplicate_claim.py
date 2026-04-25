@@ -28,7 +28,6 @@ def _make_claim_row(artifact_id: str, source_paper: str, seq: int) -> dict:
         "version_id": "sha256:deadbeef",
         "seq": seq,
         "type": "observation",
-        "concept_id": None,
         "target_concept": None,
         "source_slug": source_paper,
         "source_paper": source_paper,
@@ -94,6 +93,7 @@ def test_populate_claims_tolerates_duplicate_artifact_ids(tmp_path):
                     )
                 ),
             ),
+            claim_link_rows=(),
             stance_rows=(),
             quarantine_diagnostics=(),
         )
