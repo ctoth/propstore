@@ -195,7 +195,6 @@ def add_predicate(
             else f"Declare predicates for {request.file}"
         ),
     )
-    repo.snapshot.sync_worktree()
 
     return PredicateAddReport(
         filepath=filepath,
@@ -274,7 +273,6 @@ def remove_predicate(
         document,
         message=f"Remove predicate {request.predicate_id} from {request.file}",
     )
-    repo.snapshot.sync_worktree()
 
     return PredicateRemoveReport(
         filepath=filepath,
