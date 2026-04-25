@@ -20,6 +20,10 @@ from propstore.app.predicates import (
 from propstore.repository import Repository
 
 
+def _read_predicate_file(repo: Repository, file: str) -> dict:
+    return yaml.safe_load(repo.git.read_file(f"predicates/{file}.yaml"))
+
+
 def test_add_predicate_creates_file_and_appends(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
@@ -45,8 +49,8 @@ def test_add_predicate_creates_file_and_appends(tmp_path) -> None:
 
     assert first.created is True
     assert second.created is False
-    assert first.filepath.exists()
-    data = yaml.safe_load(first.filepath.read_text(encoding="utf-8"))
+    assert not first.filepath.exists()
+    data = _read_predicate_file(repo, "ikeda_2014")
     ids = [entry["id"] for entry in data["predicates"]]
     assert ids == ["aspirin_user", "reduces_mi"]
 
@@ -112,8 +116,8 @@ def test_predicate_cli_add_creates_file(tmp_path) -> None:
 
     assert result.exit_code == 0, result.output
     target = repo.root / "predicates" / "ikeda_2014.yaml"
-    assert target.exists()
-    data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    assert not target.exists()
+    data = _read_predicate_file(repo, "ikeda_2014")
     assert data["predicates"][0]["id"] == "aspirin_user"
     assert data["predicates"][0]["arity"] == 1
     assert data["predicates"][0]["arg_types"] == ["person"]
@@ -158,8 +162,7 @@ def test_predicate_cli_appends_to_existing_file(tmp_path) -> None:
 
     assert first.exit_code == 0, first.output
     assert second.exit_code == 0, second.output
-    target = repo.root / "predicates" / "ikeda_2014.yaml"
-    data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    data = _read_predicate_file(repo, "ikeda_2014")
     ids = [entry["id"] for entry in data["predicates"]]
     assert ids == ["p1", "p2"]
 
@@ -250,7 +253,7 @@ def test_remove_predicate_removes_and_preserves_others(tmp_path) -> None:
         PredicateRemoveRequest(file="ikeda_2014", predicate_id="p1"),
     )
     assert report.removed is True
-    data = yaml.safe_load(report.filepath.read_text(encoding="utf-8"))
+    data = _read_predicate_file(repo, "ikeda_2014")
     ids = [entry["id"] for entry in data["predicates"]]
     assert ids == ["p2"]
 
@@ -278,5 +281,5 @@ def test_predicate_cli_remove(tmp_path) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    data = yaml.safe_load((repo.root / "predicates" / "ikeda_2014.yaml").read_text(encoding="utf-8"))
+    data = _read_predicate_file(repo, "ikeda_2014")
     assert data.get("predicates") in (None, [])

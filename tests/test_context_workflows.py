@@ -29,8 +29,12 @@ from propstore.families.documents.worldlines import (
     WorldlineDefinitionDocument,
     WorldlineInputsDocument,
 )
-from propstore.families.registry import SourceRef, WorldlineRef
+from propstore.families.registry import ContextRef, SourceRef, WorldlineRef
 from propstore.repository import Repository
+
+
+def _read_context_file(repo: Repository, name: str) -> dict:
+    return yaml.safe_load(repo.git.read_file(f"contexts/{name}.yaml"))
 
 
 def test_add_context_workflow_writes_structured_document(tmp_path) -> None:
@@ -131,7 +135,7 @@ def test_context_cli_add_dry_run_and_list_use_owner_reports(tmp_path) -> None:
     assert "Would create" in dry_run.output
     assert not (repo.contexts_dir / "ctx_dry.yaml").exists()
     assert add.exit_code == 0, add.output
-    data = yaml.safe_load((repo.contexts_dir / "ctx_real.yaml").read_text())
+    data = _read_context_file(repo, "ctx_real")
     assert data["id"] == "ctx_real"
     assert listed.exit_code == 0, listed.output
     assert "ctx_real (analyst) — Real context" in listed.output
@@ -235,7 +239,7 @@ def test_remove_context_blocks_referenced_artifacts_and_supports_force(tmp_path)
         "worldline:demo",
     )
     assert forced.removed is True
-    assert not (repo.contexts_dir / "ctx_real.yaml").exists()
+    assert repo.families.contexts.load(ContextRef("ctx_real")) is None
 
 
 def test_context_cli_remove_uses_owner_reference_checks(tmp_path) -> None:
@@ -329,7 +333,7 @@ def test_context_lifting_rule_workflows_crud(tmp_path) -> None:
         "lift_source_target",
         dry_run=True,
     )
-    rewritten = yaml.safe_load((repo.contexts_dir / "ctx_target.yaml").read_text())
+    rewritten = _read_context_file(repo, "ctx_target")
     removed = remove_context_lifting_rule(
         repo,
         "ctx_target",
@@ -350,7 +354,7 @@ def test_context_lifting_rule_workflows_crud(tmp_path) -> None:
     assert rewritten["lifting_rules"][0]["justification"] == "Retargeted bridge"
     assert removed_dry_run.removed is False
     assert removed.removed is True
-    assert yaml.safe_load((repo.contexts_dir / "ctx_target.yaml").read_text()).get("lifting_rules") is None
+    assert _read_context_file(repo, "ctx_target").get("lifting_rules") is None
 
 
 def test_context_lifting_rule_workflows_validate_source_and_cel(tmp_path) -> None:
