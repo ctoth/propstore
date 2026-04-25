@@ -15,36 +15,10 @@ class _ExactMatchSolver:
 class _Store:
     def __init__(self) -> None:
         self._claims = [
-            {
-                "id": "claim_low",
-                "concept_id": "concept1",
-                "type": "parameter",
-                "value": 10.0,
-                "sample_size": 5,
-                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
-            },
-            {
-                "id": "claim_high",
-                "concept_id": "concept1",
-                "type": "parameter",
-                "value": 20.0,
-                "sample_size": 50,
-                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
-            },
-            {
-                "id": "claim_left",
-                "concept_id": "concept2",
-                "type": "parameter",
-                "value": 5.0,
-                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
-            },
-            {
-                "id": "claim_right",
-                "concept_id": "concept4",
-                "type": "parameter",
-                "value": 7.0,
-                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
-            },
+            self._claim("claim_low", "concept1", value=10.0, sample_size=5),
+            self._claim("claim_high", "concept1", value=20.0, sample_size=50),
+            self._claim("claim_left", "concept2", value=5.0),
+            self._claim("claim_right", "concept4", value=7.0),
         ]
         self._parameterizations = {
             "concept3": [
@@ -56,6 +30,31 @@ class _Store:
                     "conditions_cel": json.dumps(["x == 1", "y == 2"]),
                 }
             ]
+        }
+
+    @staticmethod
+    def _claim(
+        claim_id: str,
+        concept_id: str,
+        *,
+        value: float,
+        sample_size: int | None = None,
+    ) -> dict:
+        return {
+            "id": claim_id,
+            "concept_id": concept_id,
+            "concept_links": [
+                {
+                    "claim_id": claim_id,
+                    "concept_id": concept_id,
+                    "role": "output",
+                    "ordinal": 0,
+                }
+            ],
+            "type": "parameter",
+            "value": value,
+            "sample_size": sample_size,
+            "conditions_cel": json.dumps(["x == 1", "y == 2"]),
         }
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
