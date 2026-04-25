@@ -45,17 +45,16 @@ def _raw_claim_yaml(local_id: str) -> bytes:
     ).encode("utf-8")
 
 
-def test_propstore_init_materializes_and_commits_gitignore(tmp_path: Path) -> None:
+def test_propstore_init_commits_gitignore_without_materializing_it(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     git = repo.git
     assert git is not None
 
     disk_gitignore = repo.root / ".gitignore"
 
-    assert disk_gitignore.is_file()
-    assert disk_gitignore.read_bytes() == git.read_file(".gitignore")
-    assert b"sidecar/" in disk_gitignore.read_bytes()
-    assert b"*.sqlite" in disk_gitignore.read_bytes()
+    assert not disk_gitignore.exists()
+    assert b"sidecar/" in git.read_file(".gitignore")
+    assert b"*.sqlite" in git.read_file(".gitignore")
 
 
 @settings(
