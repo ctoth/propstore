@@ -17,7 +17,7 @@ from propstore.core.labels import (
     compile_environment_assumptions,
 )
 from propstore.world.resolution import resolve
-from propstore.world.atms_workflows import ATMSBindRequest, bind_atms_world
+from propstore.app.world_atms import ATMSBindRequest, bind_atms_world
 from propstore.world.types import (
     ATMSNodeStatus,
     ATMSOutKind,
