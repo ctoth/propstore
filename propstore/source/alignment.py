@@ -308,7 +308,6 @@ def promote_alignment(
         document,
         message=f"Promote concept alignment {cluster_id}",
     )
-    repo.snapshot.sync_worktree()
     updated = copy.deepcopy(artifact)
     updated.decision = AlignmentDecisionDocument(
         status="promoted",

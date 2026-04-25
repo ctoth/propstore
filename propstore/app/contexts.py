@@ -220,7 +220,6 @@ def add_context(
         document,
         message=f"Add context: {request.name}",
     )
-    repo.snapshot.sync_worktree()
     return ContextAddReport(
         filepath=filepath,
         document=document,
@@ -292,7 +291,6 @@ def remove_context(
         )
 
     repo.families.contexts.delete(ref, message=f"Remove context: {ref.name}")
-    repo.snapshot.sync_worktree()
     return ContextRemoveReport(
         filepath=filepath,
         removed=True,
@@ -377,7 +375,6 @@ def add_context_lifting_rule(
             updated,
             message=f"Add context lifting rule: {request.rule_id} -> {owner_context_id}",
         )
-        repo.snapshot.sync_worktree()
     return ContextLiftingRuleAddReport(
         filepath=filepath,
         rule_id=request.rule_id,
@@ -430,7 +427,6 @@ def update_context_lifting_rule(
             updated,
             message=f"Update context lifting rule: {rule_id} -> {owner_context_id}",
         )
-        repo.snapshot.sync_worktree()
     return ContextLiftingRuleUpdateReport(
         filepath=filepath,
         rule_id=rule_id,
@@ -461,7 +457,6 @@ def remove_context_lifting_rule(
             updated,
             message=f"Remove context lifting rule: {rule_id}",
         )
-        repo.snapshot.sync_worktree()
     return ContextLiftingRuleRemoveReport(
         filepath=filepath,
         rule_id=rule_id,

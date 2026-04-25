@@ -437,7 +437,6 @@ def create_worldline(
         definition.to_document(),
         message=f"Create worldline: {request.name}",
     )
-    repo.snapshot.sync_worktree()
     return WorldlineMutationReport(name=request.name, path=path)
 
 
@@ -466,7 +465,6 @@ def materialize_worldline(
         definition.to_document(),
         message=f"Materialize worldline: {request.name}",
     )
-    repo.snapshot.sync_worktree()
     return WorldlineRunReport(name=request.name, result=result)
 
 
@@ -483,5 +481,4 @@ def delete_worldline(repo: Repository, name: str) -> WorldlineMutationReport:
     if repo.families.worldlines.load(ref) is None:
         raise WorldlineNotFoundError(name)
     repo.families.worldlines.delete(ref, message=f"Delete worldline: {name}")
-    repo.snapshot.sync_worktree()
     return WorldlineMutationReport(name=name, path=path)

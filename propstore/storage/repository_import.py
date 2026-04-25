@@ -32,7 +32,6 @@ class RepositoryImportPlan:
     writes: dict[str, PlannedSemanticWrite]
     deletes: list[str]
     touched_paths: list[str]
-    sync_worktree_default: bool
     warnings: list[str] = field(default_factory=list)
 
 
@@ -47,7 +46,6 @@ class RepositoryImportResult:
     commit_sha: str
     touched_paths: list[str]
     deleted_paths: list[str]
-    worktree_synced: bool
 
 
 def _infer_repository_name(repository: Repository) -> str:
@@ -117,7 +115,6 @@ def plan_repository_import(
         writes=writes,
         deletes=deletes,
         touched_paths=touched_paths,
-        sync_worktree_default=(selected_branch == primary_branch),
         warnings=warnings,
     )
 
@@ -127,12 +124,8 @@ def commit_repository_import(
     plan: RepositoryImportPlan,
     *,
     message: str | None = None,
-    sync_worktree: str = "auto",
 ) -> RepositoryImportResult:
     """Commit a planned import onto the destination repository."""
-
-    if sync_worktree not in {"auto", "always", "never"}:
-        raise ValueError("sync_worktree must be one of: auto, always, never")
 
     primary_branch = repository.snapshot.primary_branch_name()
     if repository.snapshot.branch_head(plan.target_branch) is None and plan.target_branch != primary_branch:
@@ -155,19 +148,6 @@ def commit_repository_import(
     if commit_sha is None:
         raise ValueError("repo import transaction did not produce a commit")
 
-    should_sync = False
-    if sync_worktree == "always":
-        if plan.target_branch != primary_branch:
-            raise ValueError(
-                "Explicit worktree sync is only supported for the primary branch"
-            )
-        should_sync = True
-    elif sync_worktree == "auto":
-        should_sync = plan.sync_worktree_default
-
-    if should_sync:
-        repository.snapshot.sync_worktree()
-
     return RepositoryImportResult(
         surface="repository_import_commit",
         source_repository=plan.source_repository,
@@ -176,5 +156,4 @@ def commit_repository_import(
         commit_sha=commit_sha,
         touched_paths=list(plan.touched_paths),
         deleted_paths=list(plan.deletes),
-        worktree_synced=should_sync,
     )
