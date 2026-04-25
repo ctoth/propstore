@@ -5,13 +5,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol, cast
+from typing import TYPE_CHECKING, Protocol, cast
 
 from propstore.app.world import (
     open_app_world_model,
     resolve_world_target,
 )
+from propstore.core.environment import Environment
+from propstore.core.id_types import to_context_id
 from propstore.repository import Repository
+from propstore.world.types import ReasoningBackend, RenderPolicy
+
+if TYPE_CHECKING:
+    from propstore.world import BoundWorld, WorldModel
 
 
 class WorldAtmsAppError(Exception):
@@ -50,6 +56,12 @@ class AppAtmsInterventionRequest:
     queryables: tuple[str, ...]
     limit: int = 8
     context: str | None = None
+
+
+@dataclass(frozen=True)
+class ATMSBindRequest:
+    bindings: Mapping[str, str]
+    context_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -206,9 +218,24 @@ def _queryables(queryables: tuple[str, ...]):
     return list(coerce_queryable_assumptions(queryables))
 
 
-def _bind_atms(repo: Repository, request: AppAtmsViewRequest):
-    from propstore.world.atms_workflows import ATMSBindRequest, bind_atms_world
+def bind_atms_world(
+    world: "WorldModel",
+    request: ATMSBindRequest,
+) -> "BoundWorld":
+    return world.bind(
+        Environment(
+            bindings=dict(request.bindings),
+            context_id=(
+                None
+                if request.context_id is None
+                else to_context_id(request.context_id)
+            ),
+        ),
+        policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),
+    )
 
+
+def _bind_atms(repo: Repository, request: AppAtmsViewRequest):
     world = open_app_world_model(repo)
     wm = world.__enter__()
     try:
