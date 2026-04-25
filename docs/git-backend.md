@@ -1,16 +1,17 @@
 # Git Backend
 
-propstore uses Dulwich (pure-Python git) to version knowledge repositories. The git object store is the single source of truth; the working tree is a materialized view. This enables historical builds, branch-based isolation, and atomic commits.
+propstore uses Dulwich (pure-Python git) to version knowledge repositories. The git object store is the single source of truth; loose files under the repository root are an explicit materialized projection. This enables store-only initialization, historical builds, branch-based isolation, and atomic commits.
 
 Dulwich is confined to a single file (`propstore/storage/git_backend.py`). Everything else interacts through `GitStore` or `TreeReader`.
 
 ## Design Principles
 
-- **Object store is truth, working tree is a view.** `sync_worktree()` materializes HEAD to disk. The object store is never derived from the filesystem.
+- **Object store is truth, loose files are a projection.** `pks init` seeds semantic artifacts into the git store only. `pks materialize` is the explicit operation that writes committed artifacts to disk.
 - **Dulwich confined to one file.** Only `propstore/storage/git_backend.py` imports Dulwich. All other modules use `GitStore` or `TreeReader`.
 - **HEAD is secondary; branch refs are primary.** Branch refs (`refs/heads/{name}`) are the authoritative pointers. HEAD symref is only set when the active branch is master.
 - **Linear ordinary history per branch; merge commits exist globally.** Ordinary branch commits created by `GitStore._commit()` have exactly one parent, so each branch's non-merge history stays linear. Repository merges created by `propstore/storage/merge_commit.py:create_merge_commit()` write two-parent commits on the target branch.
 - **Branch metadata is ephemeral.** `_branch_meta` is stored as an attribute on the `GitStore` instance, not persisted to git. It is lost when the process exits.
+- **Sidecar is derived runtime output.** Build products such as SQLite sidecars, WAL files, hashes, and provenance outputs are not semantic source truth and are preserved by materialization cleanup.
 
 ## GitStore
 
@@ -22,9 +23,9 @@ The core wrapper around a Dulwich `Repo`. All git operations go through this cla
 
 | Method | What it does |
 |--------|-------------|
-| `init(root)` | Creates a new repo, commits `.gitignore`, syncs worktree |
+| `init(root)` | Creates a new store-only repo with an internal bare git store at `root/.git` |
 | `open(root)` | Opens an existing repo at `root` |
-| `is_repo(root)` | Checks for `.git/` directory |
+| `is_repo(root)` | Checks for a supported propstore git store layout |
 
 ### Read Operations
 
@@ -71,9 +72,11 @@ All three delegate to `_commit()`, which:
 | `diff_commits(commit1=None, commit2=None)` | Flattens both trees, compares blob SHAs, returns `{added, modified, deleted}` |
 | `show_commit(sha)` | Commit metadata plus diff vs parent |
 
-### Working Tree
+### Materialization
 
-`sync_worktree()` materializes the HEAD tree to the filesystem. It writes all tracked files and removes non-git files (excluding `.git/`). The working tree is a convenience for human inspection — the object store remains the source of truth.
+`pks materialize` projects a selected commit or branch tip to loose files under the repository root. It refuses conflicting local content unless forced. With `--clean`, it removes stale materialized semantic files that are absent from the selected snapshot while preserving ignored runtime outputs such as sidecar SQLite files, WAL files, hash files, and provenance outputs.
+
+`sync_worktree()` remains the low-level projection primitive used by explicit materialization/export paths. Ordinary semantic workflows commit directly to the object store and do not refresh loose files. The object store is never derived from the filesystem.
 
 `propstore/storage/git_backend.py:GitStore.sync_worktree`
 
@@ -93,13 +96,13 @@ A protocol with two implementations, enabling reads from either the filesystem o
 
 ### FilesystemReader
 
-Backed by a `Path` root. Reads from disk via `pathlib`. This is the normal operation mode.
+Backed by a `Path` root. Reads from disk via `pathlib`. This is for external or explicitly materialized file trees, not the normal source-of-truth path for git-backed propstore repositories.
 
 `propstore/tree_reader.py:FilesystemReader`
 
 ### GitTreeReader
 
-Backed by a `GitStore` and an optional commit SHA. Delegates to `GitStore.list_dir()` and `read_file()` with the commit parameter. This is how `pks checkout` reads from a historical commit without touching the working tree.
+Backed by a `GitStore` and an optional commit SHA. Delegates to `GitStore.list_dir()` and `read_file()` with the commit parameter. This is how store-backed commands read current or historical semantic state without touching loose files.
 
 `propstore/tree_reader.py:GitTreeReader`
 

@@ -18,11 +18,27 @@ uv run pks <command> [options]
 
 ### `pks init [DIRECTORY]`
 
-Initialize a new propstore project directory. Creates the standard directory structure (`concepts/`, `claims/`, `contexts/`, `forms/`, `justifications/`, `sidecar/`, `sources/`, `stances/`, `worldlines/`). If no DIRECTORY argument is given, it creates `knowledge/` in the current working directory.
+Initialize a new store-only propstore project directory. `pks init` creates the repository container, commits bootstrap identity, and seeds packaged forms and concepts into the git store. It does not create loose semantic directories or YAML files. If no DIRECTORY argument is given, it creates `knowledge/` in the current working directory.
 
 ```bash
 uv run pks init
 uv run pks init my-project
+```
+
+### `pks materialize [DIRECTORY]`
+
+Project the committed repository snapshot to loose files for inspection, external editing, or export/debug workflows. Loose semantic files are not source truth; local edits do not affect validation, build, or query behavior until an explicit import or commit workflow accepts them.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--commit` | TEXT | -- | Materialize a specific commit |
+| `--branch` | TEXT | -- | Materialize a branch tip |
+| `--force` | FLAG | false | Overwrite conflicting loose files |
+| `--clean` | FLAG | false | Remove stale materialized semantic files while preserving ignored runtime output |
+
+```bash
+uv run pks -C knowledge materialize
+uv run pks -C knowledge materialize --clean
 ```
 
 ### `pks build`

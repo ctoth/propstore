@@ -292,14 +292,15 @@ def freq_workspace(workspace: Path) -> Path:
 
 
 class TestInit:
-    def test_creates_forms_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_init_seeds_forms_in_store_only(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.chdir(tmp_path)
         runner = CliRunner()
 
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
-        assert (tmp_path / "knowledge" / "forms").is_dir()
-        assert (tmp_path / "knowledge" / "forms" / "category.yaml").exists()
+        root = tmp_path / "knowledge"
+        assert not (root / "forms").exists()
+        assert "forms/category.yaml" in Repository.find(root).git.flat_tree_entries()
 
     def test_init_passes_absolute_root_to_owner(
         self,
@@ -315,7 +316,6 @@ class TestInit:
             return ProjectInitReport(
                 root=root,
                 initialized=True,
-                paths=(),
             )
 
         monkeypatch.setattr(init_module, "initialize_project", fake_initialize_project)
@@ -342,7 +342,8 @@ class TestInit:
         ])
         assert add_result.exit_code == 0, add_result.output
         assert "Created" in add_result.output
-        assert (tmp_path / "knowledge" / "concepts" / "test_structural.yaml").exists()
+        repo = Repository.find(tmp_path / "knowledge")
+        assert "concepts/test_structural.yaml" in repo.git.flat_tree_entries()
 
 
 # ── concept add ──────────────────────────────────────────────────────

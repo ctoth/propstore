@@ -16,10 +16,9 @@ from propstore.app.project_init import ProjectInitError, initialize_project
 def init(obj: dict, directory: str) -> None:
     """Initialize a new propstore project directory.
 
-    Creates the standard knowledge tree (concepts/, claims/, contexts/,
-    forms/, justifications/, predicates/, rules/, sidecar/, sources/,
-    stances/, worldlines/) as a git-backed repository, and seeds the
-    packaged default forms.
+    Creates a store-only propstore repository and commits the packaged
+    default forms and concepts into the git store. Loose semantic files are
+    written only by ``pks materialize``.
     If no DIRECTORY argument is given, creates a ``knowledge/`` directory
     in the current working directory.
     """
@@ -36,6 +35,5 @@ def init(obj: dict, directory: str) -> None:
         emit(f"Already initialized: {report.root}")
         return
 
-    emit(f"Initialized propstore project at {report.root}/")
-    for path in report.paths:
-        emit(f"  {path}/")
+    emit(f"Initialized store-only propstore project at {report.root}/")
+    emit("Seeded default forms and concepts in the git store.")

@@ -12,7 +12,6 @@ from propstore.families.forms.documents import FormDocument
 from propstore.families.registry import (
     ConceptFileRef,
     FormRef,
-    semantic_init_roots,
 )
 from propstore.repository import Repository
 from propstore.resources import _get_resource
@@ -27,14 +26,12 @@ class ProjectInitError(Exception):
 class ProjectInitReport:
     root: Path
     initialized: bool
-    paths: tuple[Path, ...]
 
 
 def initialize_project(root: Path) -> ProjectInitReport:
     """Initialize a project and seed packaged forms/concepts when needed."""
-    paths = _project_paths(root)
     if Repository.is_propstore_repo(root):
-        return ProjectInitReport(root=root, initialized=False, paths=paths)
+        return ProjectInitReport(root=root, initialized=False)
 
     repo = Repository.init(root)
     form_documents = _seed_form_documents(repo)
@@ -50,20 +47,7 @@ def initialize_project(root: Path) -> ProjectInitReport:
         seed_commit = repo.git.commit_files(seed_files, "Seed default forms and concepts")
         repo.write_bootstrap_manifest(seed_commit=seed_commit)
 
-    return ProjectInitReport(root=root, initialized=True, paths=paths)
-
-
-def _project_paths(root: Path) -> tuple[Path, ...]:
-    semantic_paths = [
-        root / semantic_root
-        for semantic_root in semantic_init_roots()
-    ]
-    return (
-        *semantic_paths,
-        root / "justifications",
-        root / "sidecar",
-        root / "sources",
-    )
+    return ProjectInitReport(root=root, initialized=True)
 
 
 def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, FormDocument]]:

@@ -12,8 +12,6 @@ def test_initialize_project_seeds_packaged_artifacts(tmp_path: Path) -> None:
     report = initialize_project(root)
 
     assert report.initialized is True
-    assert root / "concepts" in report.paths
-    assert root / "forms" in report.paths
     assert not (root / "forms").exists()
     assert not (root / "concepts").exists()
     repo = Repository.find(root)
