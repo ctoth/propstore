@@ -141,7 +141,8 @@ def _rewrite_claim_concept_refs(
             continue
         copied = dict(claim)
         if "concept" in copied:
-            copied["concept"] = _rewrite_reference(copied.get("concept"), concept_ref_map)
+            concept = _rewrite_reference(copied.pop("concept"), concept_ref_map)
+            _place_rewritten_singular_concept(copied, concept)
         if "target_concept" in copied:
             copied["target_concept"] = _rewrite_reference(copied.get("target_concept"), concept_ref_map)
         concepts = copied.get("concepts")
@@ -163,6 +164,21 @@ def _rewrite_claim_concept_refs(
 
     rewritten["claims"] = updated_claims
     return rewritten
+
+
+def _place_rewritten_singular_concept(claim: dict[str, Any], concept: object) -> None:
+    claim_type = claim.get("type")
+    if claim_type in {"parameter", "algorithm"} and "output_concept" not in claim:
+        claim["output_concept"] = concept
+        return
+    if claim_type == "measurement" and "target_concept" not in claim:
+        claim["target_concept"] = concept
+        return
+    concepts = claim.get("concepts")
+    merged_concepts = list(concepts) if isinstance(concepts, list) else []
+    if concept not in merged_concepts:
+        merged_concepts.insert(0, concept)
+    claim["concepts"] = merged_concepts
 
 
 def _normalize_concept_payload(

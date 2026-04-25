@@ -100,9 +100,11 @@ def rewrite_claim_concept_refs(
             return value
         return resolved
 
-    for field in ("concept", "target_concept"):
-        if field in normalized:
-            normalized[field] = resolve(normalized.get(field))
+    if "concept" in normalized:
+        concept = resolve(normalized.pop("concept"))
+        _place_promoted_singular_concept(normalized, concept)
+    if "target_concept" in normalized:
+        normalized["target_concept"] = resolve(normalized.get("target_concept"))
     if isinstance(normalized.get("concepts"), list):
         normalized["concepts"] = [resolve(value) for value in normalized["concepts"]]
     if isinstance(normalized.get("variables"), list):
@@ -114,6 +116,21 @@ def rewrite_claim_concept_refs(
             if isinstance(parameter, dict):
                 parameter["concept"] = resolve(parameter.get("concept"))
     return normalize_canonical_claim_payload(normalized)
+
+
+def _place_promoted_singular_concept(claim: dict[str, Any], concept: object) -> None:
+    claim_type = claim.get("type")
+    if claim_type in {"parameter", "algorithm"} and "output_concept" not in claim:
+        claim["output_concept"] = concept
+        return
+    if claim_type == "measurement" and "target_concept" not in claim:
+        claim["target_concept"] = concept
+        return
+    concepts = claim.get("concepts")
+    merged_concepts = list(concepts) if isinstance(concepts, list) else []
+    if concept not in merged_concepts:
+        merged_concepts.insert(0, concept)
+    claim["concepts"] = merged_concepts
 
 
 def _source_claim_concept_refs(claim) -> tuple[str, ...]:

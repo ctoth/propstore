@@ -22,6 +22,10 @@ from propstore.app.rules import (
 )
 
 
+def _read_rule_file(repo: Repository, file: str) -> dict:
+    return yaml.safe_load(repo.git.read_file(f"rules/{file}.yaml"))
+
+
 def test_parse_atom_variables_and_negation() -> None:
     atom = parse_atom("~reduces_mi(X)")
     assert atom.predicate == "reduces_mi"
@@ -82,7 +86,7 @@ def test_add_rule_creates_and_appends(tmp_path) -> None:
 
     assert first.created is True
     assert second.created is False
-    data = yaml.safe_load(first.filepath.read_text(encoding="utf-8"))
+    data = _read_rule_file(repo, "ikeda_2014")
     assert data["source"]["paper"] == "Ikeda_2014_Low-doseAspirinPrimaryPrevention"
     ids = [entry["id"] for entry in data["rules"]]
     assert ids == ["r_mi", "r_bleed"]
@@ -167,8 +171,8 @@ def test_rule_cli_add(tmp_path) -> None:
 
     assert result.exit_code == 0, result.output
     target = repo.root / "rules" / "ikeda_2014.yaml"
-    assert target.exists()
-    data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    assert not target.exists()
+    data = _read_rule_file(repo, "ikeda_2014")
     assert data["source"]["paper"] == "Ikeda_2014"
     assert data["rules"][0]["id"] == "r_mi"
     assert data["rules"][0]["kind"] == "defeasible"
@@ -294,7 +298,7 @@ def test_remove_rule_removes_and_preserves_others(tmp_path) -> None:
     )
     assert report.removed is True
 
-    data = yaml.safe_load(report.filepath.read_text(encoding="utf-8"))
+    data = _read_rule_file(repo, "ikeda_2014")
     ids = [entry["id"] for entry in data["rules"]]
     assert ids == ["r_bleed"]
     assert data["source"]["paper"] == "Ikeda_2014"
@@ -377,6 +381,5 @@ def test_rule_cli_remove(tmp_path) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    import yaml as _yaml
-    data = _yaml.safe_load((repo.root / "rules" / "ikeda_2014.yaml").read_text(encoding="utf-8"))
+    data = _read_rule_file(repo, "ikeda_2014")
     assert data["rules"] == [] or data.get("rules") is None

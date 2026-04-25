@@ -257,7 +257,6 @@ def test_plan_repository_import_uses_default_branch_name_from_source_repository(
 
     assert plan.repository_name == "repo-b"
     assert plan.target_branch == "import/repo-b"
-    assert plan.sync_worktree_default is False
 
 
 def test_plan_repository_import_limits_to_semantic_tree_and_excludes_sidecar(tmp_path):
@@ -397,7 +396,6 @@ def test_commit_repository_import_writes_commit_to_target_branch_and_returns_res
         "concepts/example.yaml",
     ]
     assert result.deleted_paths == []
-    assert result.worktree_synced is False
 
 
 def test_commit_repository_import_does_not_mutate_master_unless_targeted(tmp_path):
@@ -427,7 +425,7 @@ def test_commit_repository_import_does_not_mutate_master_unless_targeted(tmp_pat
     }
 
 
-def test_commit_repository_import_auto_syncs_master_but_not_other_branches(tmp_path):
+def test_commit_repository_import_does_not_materialize_master_or_other_branches(tmp_path):
     from propstore.storage.repository_import import commit_repository_import, plan_repository_import
 
     source = _init_project(tmp_path / "repo-b")
@@ -438,7 +436,6 @@ def test_commit_repository_import_auto_syncs_master_but_not_other_branches(tmp_p
     non_master_destination = _init_project(tmp_path / "dest-branch")
     non_master_plan = plan_repository_import(non_master_destination, source.root.parent)
     non_master_result = commit_repository_import(non_master_destination, non_master_plan)
-    assert non_master_result.worktree_synced is False
     assert not (non_master_destination.root / "claims" / "source.yaml").exists()
 
     master_destination = _init_project(tmp_path / "dest-master")
@@ -448,8 +445,8 @@ def test_commit_repository_import_auto_syncs_master_but_not_other_branches(tmp_p
         target_branch="master",
     )
     master_result = commit_repository_import(master_destination, master_plan)
-    assert master_result.worktree_synced is True
-    assert yaml.safe_load((master_destination.root / "claims" / "source.yaml").read_bytes()) == (
+    assert not (master_destination.root / "claims" / "source.yaml").exists()
+    assert yaml.safe_load(master_destination.git.read_file("claims/source.yaml", commit=master_result.commit_sha)) == (
         _expected_imported_claim_yaml("imported", namespace="repo-b")
     )
 
@@ -647,7 +644,8 @@ def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_id
     imported_claims = yaml.safe_load(destination.git.read_file("claims/source.yaml", commit=result.commit_sha))
 
     assert imported_claims["claims"][0]["concepts"] == [concept_a_id]
-    assert imported_claims["claims"][1]["concept"] == concept_a_id
+    assert imported_claims["claims"][1]["output_concept"] == concept_a_id
+    assert "concept" not in imported_claims["claims"][1]
 
 
 def test_import_repo_cli_emits_structured_yaml_for_import_commit(tmp_path):
@@ -675,10 +673,9 @@ def test_import_repo_cli_emits_structured_yaml_for_import_commit(tmp_path):
     assert len(payload["commit_sha"]) == 40
     assert payload["touched_paths"] == ["claims/source.yaml"]
     assert payload["deleted_paths"] == []
-    assert payload["worktree_synced"] is False
 
 
-def test_import_repo_cli_can_target_master_and_sync_worktree(tmp_path):
+def test_import_repo_cli_can_target_master_without_materializing_worktree(tmp_path):
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
     source_git = source.git
@@ -704,8 +701,8 @@ def test_import_repo_cli_can_target_master_and_sync_worktree(tmp_path):
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
     assert payload["target_branch"] == "master"
-    assert payload["worktree_synced"] is True
-    assert yaml.safe_load((destination.root / "claims" / "source.yaml").read_bytes()) == (
+    assert not (destination.root / "claims" / "source.yaml").exists()
+    assert yaml.safe_load(destination.git.read_file("claims/source.yaml", commit=payload["commit_sha"])) == (
         _expected_imported_claim_yaml("imported", namespace="repo-b")
     )
 

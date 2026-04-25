@@ -14,7 +14,12 @@ from propstore.app.forms import (
     validate_forms,
 )
 from propstore.cli import cli
+from propstore.families.registry import FormRef
 from propstore.repository import Repository
+
+
+def _read_form_file(repo: Repository, name: str) -> dict:
+    return yaml.safe_load(repo.git.read_file(f"forms/{name}.yaml"))
 
 
 def test_form_workflows_add_list_validate_and_remove(tmp_path) -> None:
@@ -42,7 +47,7 @@ def test_form_workflows_add_list_validate_and_remove(tmp_path) -> None:
     assert validation.ok
     assert validation.count == 1
     assert remove_report.removed is True
-    assert not (repo.forms_dir / "frequency_like.yaml").exists()
+    assert repo.families.forms.load(FormRef("frequency_like")) is None
 
 
 def test_form_workflows_report_json_and_missing_errors(tmp_path) -> None:
@@ -127,7 +132,7 @@ def test_form_cli_add_dry_run_list_validate_and_remove(tmp_path) -> None:
     assert "Would create" in dry_run.output
     assert not (repo.forms_dir / "dry_form.yaml").exists()
     assert add.exit_code == 0, add.output
-    data = yaml.safe_load((repo.forms_dir / "real_form.yaml").read_text())
+    data = _read_form_file(repo, "real_form")
     assert data["dimensions"] == {"T": -1}
     assert listed.exit_code == 0, listed.output
     assert "real_form" in listed.output
