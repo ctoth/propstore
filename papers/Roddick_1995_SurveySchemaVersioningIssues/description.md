@@ -1,0 +1,6 @@
+---
+tags: [schema-evolution, schema-versioning, databases, migration, terminology]
+---
+Roddick (1995) is the canonical vocabulary paper for schema-evolving databases, formally distinguishing schema modification (changes to the schema of a populated database) from schema evolution (loss-free schema modification) from schema versioning (retrospective + prospective access through user-definable version interfaces), and refining versioning into partial (read-many, update-current-only) and full (read-many, update-many).
+The survey contributes a four-area taxonomy unifying schema evolution, schema versioning, data integration, and view integration; a five-level taxonomy of query-language postures toward schema change; an extension of Zaniolo's three-valued null logic to a seven-valued logic that distinguishes attribute applicability from definedness; and the identification of schema-time as a fourth time dimension orthogonal to valid-time and transaction-time.
+For propstore's migration framework this paper supplies the foundational terminology — schema evolution vs schema versioning maps directly onto propstore's non-commitment discipline at the semantic core, with the symmetry, reversibility, and algebraic-expressibility constraints translating to the migration operator algebra.

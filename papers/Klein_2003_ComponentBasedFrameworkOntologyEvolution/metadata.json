@@ -1,0 +1,14 @@
+{
+  "title": "A Component-Based Framework For Ontology Evolution",
+  "authors": [
+    "Michel Klein",
+    "Natalya F. Noy"
+  ],
+  "year": 2003,
+  "venue": "Workshop on Semantic Integration (CEUR-WS Vol-71)",
+  "doi": null,
+  "arxiv_id": null,
+  "url": "https://ceur-ws.org/Vol-71/Klein.pdf",
+  "abstract": "Support for ontology evolution becomes extremely important in distributed development and use of ontologies. Information about change can be represented in many different ways. We describe these different representations and propose a framework that integrates them. We show how different representations in the framework are related by describing some techniques and heuristics that supplement information in one representation with information from other representations. We present an ontology of change operations, which is the kernel of our framework.",
+  "source": "ceur-ws"
+}

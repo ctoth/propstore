@@ -1,0 +1,17 @@
+{
+  "title": "Relational Lenses: A Language for Updatable Views",
+  "authors": [
+    "Aaron Bohannon",
+    "Benjamin C. Pierce",
+    "Jeffrey A. Vaughan"
+  ],
+  "year": "2006",
+  "arxiv_id": null,
+  "doi": "10.1145/1142351.1142399",
+  "abstract": "We propose a novel approach to the classical view update problem. The view update problem arises from the fact that modifications to a database view may not correspond uniquely to modifications on the underlying database; we need a means of determining an \"update policy\" that guides how view updates are reflected in the database. Our approach is to define a bi-directional query language, in which every expression can be read both (from left to right) as a view definition and (from right to left) as an update policy. We treat in detail the case of relational lenses, a basic combinator language for transforming relations together with their integrity constraints (functional dependencies). The relational lenses include selection, projection, and join. We show that the resulting lenses obey the laws of bi-directional programming and we define a static type system enforcing those laws.",
+  "url": "https://doi.org/10.1145/1142351.1142399",
+  "pdf_url": null,
+  "bibtex": "@inproceedings{Bohannon2006RelationalLenses,\n  author = {Bohannon, Aaron and Pierce, Benjamin C. and Vaughan, Jeffrey A.},\n  title = {Relational Lenses: A Language for Updatable Views},\n  booktitle = {Proceedings of the Twenty-Fifth ACM SIGMOD-SIGACT-SIGART Symposium on Principles of Database Systems (PODS)},\n  year = {2006},\n  pages = {338--347},\n  publisher = {ACM},\n  doi = {10.1145/1142351.1142399}\n}\n",
+  "venue": "ACM SIGACT-SIGMOD-SIGART Symposium on Principles of Database Systems",
+  "venue_type": "conference"
+}

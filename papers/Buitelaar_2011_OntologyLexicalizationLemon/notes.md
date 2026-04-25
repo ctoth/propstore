@@ -171,6 +171,7 @@ Specific points of contact:
 - [[Fillmore_1982_FrameSemantics]] — Lemon's Ontology Entity corresponds to a Fillmorean frame; lemon formalizes the link between linguistic surface forms and the frame-structured concepts they reference
 - [[Baker_1998_BerkeleyFrameNet]] — FrameNet's Lexical Units (word senses tied to frames) are the empirical counterpart to lemon's Lexical Entries tied to Ontology Entities
 - [[Clark_2014_Micropublications]] — Clark's Similarity Groups / Holotypes address the same vocabulary normalization problem that lemon's sense-disambiguated lexicalization solves structurally
+- [A Component-Based Framework For Ontology Evolution](../Klein_2003_ComponentBasedFrameworkOntologyEvolution/notes.md) — Klein and Noy define a typed change-operation framework parametrized over Frames-style ontology components (class / slot / facet / instance). For propstore the lemon decomposition (OntologyReference / LexicalEntry / LexicalForm / LexicalSense) is the propstore-era equivalent of those components; a Klein/Noy-style change ontology *for propstore* would be parametrized over lemon components rather than Frames components. Lemon supplies the substrate, Klein/Noy supplies the migration discipline.
 
 ## Related Work Worth Reading
 - Guarino N. (1998) — Formal Ontology in Information Systems (foundational ontology reference)

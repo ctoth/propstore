@@ -1,0 +1,15 @@
+{
+  "title": "A Survey of Schema Versioning Issues for Database Systems",
+  "authors": ["John F. Roddick"],
+  "year": "1995",
+  "arxiv_id": null,
+  "doi": "10.1016/0950-5849(95)91494-K",
+  "abstract": "Schema versioning is one of a number of related areas dealing with the same general problem - that of using multiple heterogeneous schemata for various database related tasks. In particular, schema versioning, and its weaker companion, schema evolution, deal with the need to retain current data and software system functionality in the face of changing database structure. Schema versioning and schema evolution offer a solution to the problem by enabling intelligent handling of any temporal mismatch between data and data structure. This survey discusses the modelling, architectural and query language issues relating to the support of evolving schemata in database systems. An indication of the future directions of schema versioning research are also given.",
+  "url": "https://www.semanticscholar.org/paper/e25c0dd1c1c85fc0e5ddd643b15523a13d565b9d",
+  "pdf_url": "http://www.cs.ubc.ca/~rap/teaching/534a/readings/roddick.pdf",
+  "venue": "Information and Software Technology",
+  "venue_type": "journal",
+  "volume": "37",
+  "issue": "7",
+  "pages": "383-393"
+}
