@@ -1023,7 +1023,7 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
     promoted_claims = claims_doc["claims"]
     parameter_claim = next(claim for claim in promoted_claims if claim["type"] == "parameter")
     observation_claim = next(claim for claim in promoted_claims if claim["type"] == "observation")
-    assert parameter_claim["concept"] == canonical_concept_id
+    assert parameter_claim["output_concept"] == canonical_concept_id
     assert observation_claim["concepts"] == [canonical_concept_id]
 
     source_claim_id = parameter_claim["artifact_id"]
