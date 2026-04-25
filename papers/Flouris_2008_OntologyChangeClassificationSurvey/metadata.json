@@ -1,0 +1,18 @@
+{
+  "title": "Ontology change: classification and survey",
+  "authors": [
+    "G. Flouris",
+    "D. Manakanatas",
+    "H. Kondylakis",
+    "D. Plexousakis",
+    "G. Antoniou"
+  ],
+  "year": "2008",
+  "doi": "10.1017/S0269888908001367",
+  "url": "https://www.semanticscholar.org/paper/237f46e2df5c280861a1e694927e54d332c2fc42",
+  "pdf_url": "http://rewerse.net/publications/download/REWERSE-RP-2008-007.pdf",
+  "bibtex": "@Article{Flouris2008OntologyCC,\n author = {G. Flouris and D. Manakanatas and H. Kondylakis and D. Plexousakis and G. Antoniou},\n booktitle = {Knowledge engineering review (Print)},\n journal = {The Knowledge Engineering Review},\n pages = {117 - 152},\n title = {Ontology change: classification and survey},\n volume = {23},\n year = {2008}\n}\n",
+  "venue": "Knowledge engineering review (Print)",
+  "volume": "23",
+  "pages": "117 - 152"
+}

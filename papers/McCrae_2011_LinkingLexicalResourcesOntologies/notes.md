@@ -308,3 +308,8 @@ This 2011 paper is theoretically grounded; the Cimiano 2016 OntoLex community re
 - [24] Van Assem, Gangemi, Schreiber — **Conversion of WordNet to a standard RDF/OWL representation** (LREC 2006). The RDF WordNet lemon converts from.
 - [4] Buitelaar — **Ontology-based Semantic Lexicons: Mapping between Terms and Object Descriptions** (Ontology and the Lexicon, 2010) — already in propstore corpus as the 4pp Buitelaar 2011 relative.
 - [16] Korhonen, Krymolowski, Briscoe — **A large subcategorization lexicon for NLP** (LREC 2006). COMLEX; source of the 163 frames.
+
+## Collection Cross-References
+
+### Conceptual Links (not citation-based)
+- [A Component-Based Framework For Ontology Evolution](../Klein_2003_ComponentBasedFrameworkOntologyEvolution/notes.md) — Klein and Noy define a typed change-operation framework parametrized over Frames-style ontology components (class / slot / facet / instance) and argue that change information itself should be first-class structured data with the same substrate as the ontologies it describes. lemon supplies the propstore-era component decomposition (OntologyReference / LexicalEntry / LexicalForm / LexicalSense) that a Klein/Noy-style change ontology would target — `ClaimConceptLinkDeclaration` in propstore is exactly such a typed component-targeted change operation, but parametrized over lemon components rather than Frames components.
