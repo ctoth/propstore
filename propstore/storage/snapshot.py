@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Iterator, TypeVar
 
 from quire.documents import decode_document_bytes
+from propstore.families.registry import semantic_init_roots
+from propstore.storage.git_policy import _is_ignored_runtime_path
 
 if TYPE_CHECKING:
     from quire.git_store import GitStore
@@ -33,6 +35,20 @@ class BranchInfo:
     kind: str
     parent_branch: str = ""
     created_at: int = 0
+
+
+@dataclass(frozen=True)
+class MaterializeReport:
+    source_commit: str
+    written_paths: tuple[str, ...]
+    deleted_stale_paths: tuple[str, ...]
+    skipped_ignored_paths: tuple[str, ...]
+    clean: bool
+    force: bool
+
+
+class MaterializeConflictError(Exception):
+    pass
 
 
 def _branch_kind(name: str) -> str:
@@ -163,6 +179,91 @@ class RepositorySnapshot:
 
     def sync_worktree(self) -> None:
         self.git.sync_worktree()
+
+    def materialize(
+        self,
+        *,
+        commit: str | None = None,
+        branch: str | None = None,
+        clean: bool = False,
+        force: bool = False,
+    ) -> MaterializeReport:
+        if commit is not None and branch is not None:
+            raise ValueError("materialize accepts either commit or branch, not both")
+        if commit is None:
+            branch_name = branch or self.current_branch_name() or self.primary_branch_name()
+            commit = self.branch_head(branch_name)
+            if commit is None:
+                raise ValueError(f"Branch {branch_name!r} has no commit")
+
+        snapshot_files = self.files(commit=commit)
+        tracked_paths = {snapshot_file.relpath for snapshot_file in snapshot_files}
+        conflicts: list[str] = []
+        written: list[str] = []
+        for snapshot_file in snapshot_files:
+            destination = self.repo.root / snapshot_file.relpath
+            if destination.exists() and destination.is_file():
+                existing = destination.read_bytes()
+                if existing != snapshot_file.content and not force:
+                    conflicts.append(snapshot_file.relpath)
+                    continue
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(snapshot_file.content)
+            written.append(snapshot_file.relpath)
+
+        if conflicts:
+            details = ", ".join(sorted(conflicts))
+            raise MaterializeConflictError(f"Refusing to overwrite local edits: {details}")
+
+        deleted, skipped = self._clean_materialized_semantic_files(tracked_paths) if clean else ([], [])
+        return MaterializeReport(
+            source_commit=commit,
+            written_paths=tuple(sorted(written)),
+            deleted_stale_paths=tuple(sorted(deleted)),
+            skipped_ignored_paths=tuple(sorted(skipped)),
+            clean=clean,
+            force=force,
+        )
+
+    def _clean_materialized_semantic_files(self, tracked_paths: set[str]) -> tuple[list[str], list[str]]:
+        semantic_roots = tuple(f"{root}/" for root in semantic_init_roots())
+        deleted: list[str] = []
+        skipped: list[str] = []
+        prune_candidates: set[Path] = set()
+        for disk_file in self.repo.root.rglob("*"):
+            if not disk_file.is_file():
+                continue
+            relpath = disk_file.relative_to(self.repo.root).as_posix()
+            if relpath.startswith(".git/") or relpath == ".git":
+                continue
+            if not relpath.startswith(semantic_roots):
+                continue
+            if relpath in tracked_paths:
+                continue
+            if _is_ignored_runtime_path(relpath):
+                skipped.append(relpath)
+                continue
+            disk_file.unlink()
+            deleted.append(relpath)
+            parent = disk_file.parent
+            while parent != self.repo.root:
+                prune_candidates.add(parent)
+                parent = parent.parent
+        for directory in sorted(
+            prune_candidates,
+            key=lambda path: len(path.relative_to(self.repo.root).parts),
+            reverse=True,
+        ):
+            relpath = directory.relative_to(self.repo.root).as_posix()
+            if relpath.startswith(".git/") or relpath == ".git":
+                continue
+            if _is_ignored_runtime_path(relpath):
+                continue
+            try:
+                directory.rmdir()
+            except OSError:
+                continue
+        return deleted, skipped
 
     def log(self, *, max_count: int = 50, branch: str | None = None) -> list[dict]:
         return self.git.log(max_count=max_count, branch=branch)
