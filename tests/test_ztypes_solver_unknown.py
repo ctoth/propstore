@@ -56,8 +56,8 @@ def test_parameter_cross_class_conflict_preserves_unknown_warning_class():
 
     records = []
     claims = [
-        ConflictClaim(claim_id="a", concept_id="freq", value=1),
-        ConflictClaim(claim_id="b", concept_id="freq", value=2),
+        ConflictClaim(claim_id="a", output_concept_id="freq", value=1),
+        ConflictClaim(claim_id="b", output_concept_id="freq", value=2),
     ]
 
     _detect_cross_class_parameter_conflicts(
