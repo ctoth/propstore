@@ -241,7 +241,7 @@ def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
     emit_table(
         ("ID", "Name", "Stage", "Concept(s)"),
         [
-            (claim.claim_id, claim.name, claim.stage, claim.concept_display)
+            (claim.claim_id, claim.name, claim.stage, claim.concept_id)
             for claim in report.algorithms
         ],
     )
