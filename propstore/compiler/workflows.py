@@ -217,11 +217,10 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     tree = repo.tree()
     try:
         concepts: list[LoadedConcept] = []
-        for ref in repo.families.concepts.iter():
-            handle = repo.families.concepts.require_handle(ref)
+        for handle in repo.families.concepts.iter_handles():
             concepts.append(
                 LoadedConcept(
-                    filename=ref.name,
+                    filename=handle.ref.name,
                     source_path=tree / handle.address.require_path(),
                     knowledge_root=tree,
                     record=parse_concept_record_document(handle.document),
@@ -250,8 +249,8 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     messages: list[PassDiagnostic] = []
 
     form_files = [
-        LoadedForm(filename=form_ref.name, document=repo.families.forms.require(form_ref))
-        for form_ref in repo.families.forms.iter()
+        LoadedForm(filename=handle.ref.name, document=handle.document)
+        for handle in repo.families.forms.iter_handles()
     ]
     form_result = run_form_pipeline(form_files)
     messages.extend(_messages_from_pipeline_result(form_result))
@@ -262,8 +261,8 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     )
 
     files = [
-        repo.families.claims.require_handle(ref)
-        for ref in repo.families.claims.iter()
+        handle
+        for handle in repo.families.claims.iter_handles()
     ]
 
     concept_result = run_concept_pipeline(
@@ -301,13 +300,12 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     try:
         ctx_list = [
             LoadedContext(
-                filename=ref.name,
+                filename=handle.ref.name,
                 source_path=tree / handle.address.require_path(),
                 knowledge_root=tree,
                 record=parse_context_record_document(handle.document),
             )
-            for ref in repo.families.contexts.iter()
-            for handle in (repo.families.contexts.require_handle(ref),)
+            for handle in repo.families.contexts.iter_handles()
         ]
     except DocumentSchemaError as exc:
         raise CompilerWorkflowError(
@@ -417,10 +415,10 @@ def build_repository(
     build_messages: list[PassDiagnostic] = []
     form_files = [
         LoadedForm(
-            filename=form_ref.name,
-            document=repo.families.forms.require(form_ref, commit=hash_key),
+            filename=handle.ref.name,
+            document=handle.document,
         )
-        for form_ref in repo.families.forms.iter(commit=hash_key)
+        for handle in repo.families.forms.iter_handles(commit=hash_key)
     ]
     form_result = run_form_pipeline(form_files)
     form_messages = _messages_from_pipeline_result(form_result)
