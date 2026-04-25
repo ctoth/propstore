@@ -65,6 +65,14 @@ class _FakeWorldlineRepo:
         if existing_worldlines:
             self.git.commit_files(existing_worldlines, "Seed fake worldlines")
             self.git.sync_worktree()
+        original_commit_batch = self.git.commit_batch
+
+        def commit_batch_and_materialize(*args, **kwargs):
+            commit_sha = original_commit_batch(*args, **kwargs)
+            self.git.sync_worktree()
+            return commit_sha
+
+        self.git.commit_batch = commit_batch_and_materialize
 
     @property
     def worldlines_dir(self) -> Path:
@@ -1100,14 +1108,14 @@ class TestSemanticCorePhase7Worldlines:
             claims=(
                 ClaimNode(
                     claim_id="claim_a",
-                    concept_id="concept1",
+                    value_concept_id="concept1",
                     claim_type="parameter",
                     scalar_value=10.0,
                     attributes={"content_hash": "hash-a"},
                 ),
                 ClaimNode(
                     claim_id="claim_b",
-                    concept_id="concept1",
+                    value_concept_id="concept1",
                     claim_type="parameter",
                     scalar_value=20.0,
                     attributes={"content_hash": "hash-b"},
