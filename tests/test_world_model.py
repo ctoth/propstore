@@ -861,6 +861,43 @@ class TestUnboundQueries:
         finally:
             wm.close()
 
+    def test_claims_related_to_concept_includes_observations_by_about_link(self, tmp_path):
+        sidecar = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        create_world_model_schema(conn)
+        conn.execute(
+            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('observation1', 'test:observation1', '[{\"namespace\":\"test\",\"value\":\"observation1\"}]', 'sha256:h1', 1, 'observation', NULL, 'test', 'test', 1, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
+            "VALUES ('observation1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_text_payload (claim_id, conditions_cel, statement, expression, sympy_generated, sympy_error, name, measure, listener_population, methodology, notes, description, auto_summary) "
+            "VALUES ('observation1', NULL, 'Observed at concept2', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, algorithm_stage) "
+            "VALUES ('observation1', NULL, NULL, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_concept_link (claim_id, concept_id, role, ordinal, binding_name) "
+            "VALUES ('observation1', 'concept2', 'about', 0, NULL)"
+        )
+        conn.commit()
+        conn.close()
+
+        class _Repo:
+            sidecar_path = sidecar
+
+        wm = WorldModel(_Repo())
+        try:
+            claims = wm.claims_related_to_concept("concept2")
+            assert [str(claim.claim_id) for claim in claims] == ["observation1"]
+        finally:
+            wm.close()
+
     def test_claims_for_works_with_canonical_schema(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)

@@ -670,22 +670,41 @@ class WorldModel(WorldStore):
         return row["id"] if row else None
 
     def claims_for(self, concept_id: str | None) -> list[ClaimRow]:
-        if concept_id is None:
-            return self._claim_rows("ORDER BY core.id")
-        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
-        return self._claim_rows(
-            """
-            WHERE EXISTS (
-                SELECT 1
-                FROM claim_concept_link AS link
-                WHERE link.claim_id = core.id
-                  AND link.concept_id = ?
-                  AND link.role IN ('output', 'target')
-            )
-            ORDER BY core.id
-            """,
-            (resolved_concept_id,),
+        where_sql, params = self._claims_linked_to_concept_where_sql(
+            concept_id,
+            roles=("output", "target"),
         )
+        return self._claim_rows(where_sql + "ORDER BY core.id", params)
+
+    def claims_related_to_concept(self, concept_id: str | None) -> list[ClaimRow]:
+        where_sql, params = self._claims_linked_to_concept_where_sql(concept_id)
+        return self._claim_rows(where_sql + "ORDER BY core.id", params)
+
+    def _claims_linked_to_concept_where_sql(
+        self,
+        concept_id: str | None,
+        *,
+        roles: tuple[str, ...] | None = None,
+    ) -> tuple[str, tuple[Any, ...]]:
+        if concept_id is None:
+            return "", ()
+        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
+        predicates = [
+            "link.claim_id = core.id",
+            "link.concept_id = ?",
+        ]
+        params: list[Any] = [resolved_concept_id]
+        if roles:
+            placeholders = ",".join("?" for _ in roles)
+            predicates.append(f"link.role IN ({placeholders})")
+            params.extend(roles)
+        where_sql = (
+            "WHERE EXISTS ("
+            "SELECT 1 FROM claim_concept_link AS link "
+            f"WHERE {' AND '.join(predicates)}"
+            ") "
+        )
+        return where_sql, tuple(params)
 
     def _render_policy_predicates(
         self, policy: RenderPolicy
@@ -741,12 +760,9 @@ class WorldModel(WorldStore):
         clauses: list[str] = []
         bound: list[Any] = list(params)
         if concept_id is not None:
-            resolved = self.resolve_concept(concept_id) or concept_id
-            clauses.append(
-                "EXISTS (SELECT 1 FROM claim_concept_link AS link "
-                "WHERE link.claim_id = core.id AND link.concept_id = ?)"
-            )
-            bound.append(resolved)
+            concept_clause, concept_params = self._claims_linked_to_concept_where_sql(concept_id)
+            clauses.append(concept_clause.removeprefix("WHERE ").strip())
+            bound.extend(concept_params)
         clauses.extend(predicates)
         where_sql = ""
         if clauses:

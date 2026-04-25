@@ -68,6 +68,21 @@ class _World:
             if str(claim.value_concept_id or "") == resolved
         ]
 
+    def claims_related_to_concept(self, concept_id: str) -> list[ClaimRow]:
+        if self.concept is None:
+            return []
+        resolved = self.resolve_concept(concept_id) or concept_id
+        return [
+            claim
+            for claim in self.claims.values()
+            if (
+                str(claim.output_concept_id or "") == resolved
+                or str(claim.target_concept or "") == resolved
+                or resolved in {str(linked_id) for linked_id in claim.about_concept_ids}
+                or resolved in {str(linked_id) for linked_id in claim.input_concept_ids}
+            )
+        ]
+
     def claims_with_policy(
         self,
         concept_id: str | None,
@@ -218,6 +233,43 @@ def test_build_concept_view_reports_blocked_when_all_claims_hidden(
     assert report.status.visible_claim_count == 0
     assert report.status.blocked_claim_count == 1
     assert "blocked under the current render policy" in report.status.reason
+
+
+def test_build_concept_view_counts_about_links_as_related_claims(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _World(
+        concept=_concept(),
+        claims=(
+            _claim(
+                "claim-about-only",
+                claim_type="observation",
+                concept_links=(
+                    ClaimConceptLinkRow(
+                        claim_id="claim-about-only",
+                        concept_id="concept1",
+                        role="about",
+                    ),
+                ),
+                value=None,
+                unit=None,
+                uncertainty=None,
+                sample_size=None,
+                statement="Observed at concept1",
+            ),
+        ),
+        visible_ids=("claim-about-only",),
+    )
+    monkeypatch.setattr(concept_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(concept_views, "_find_concept_entry", lambda repo, handle: _concept_entry())
+
+    report = build_concept_view(_repo(), ConceptViewRequest(concept_id_or_name="concept1"))
+
+    assert report.status.state == "known"
+    assert report.status.total_claim_count == 1
+    assert report.status.visible_claim_count == 1
+    assert report.claim_groups[0].claim_type == "observation"
+    assert report.related_claim_links[0].relation == "related"
 
 
 def test_build_concept_view_rejects_unimplemented_repository_state() -> None:
