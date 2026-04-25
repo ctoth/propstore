@@ -86,7 +86,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                 {
                     "id": "claim_can_fly",
                     "type": "parameter",
-                    "concept": "flight_score",
+                    "output_concept": flight_score["artifact_id"],
                     "value": 1.0,
                     "context": {"id": "demo"},
                     "provenance": {"paper": "reasoning_demo", "page": 1},
@@ -94,7 +94,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                 {
                     "id": "claim_cannot_fly",
                     "type": "parameter",
-                    "concept": "flight_score",
+                    "output_concept": flight_score["artifact_id"],
                     "value": 0.0,
                     "context": {"id": "demo"},
                     "provenance": {"paper": "reasoning_demo", "page": 1},
@@ -103,7 +103,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                     "id": "claim_override",
                     "type": "observation",
                     "statement": "Independent evidence defeats the non-flight claim.",
-                    "concepts": ["tweety"],
+                    "concepts": [tweety["artifact_id"]],
                     "context": {"id": "demo"},
                     "provenance": {"paper": "reasoning_demo", "page": 1},
                 },
