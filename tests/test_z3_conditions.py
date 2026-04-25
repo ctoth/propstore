@@ -23,7 +23,7 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", conditions=None):
     return {
         "id": id,
         "type": "parameter",
-        "concept": concept_id,
+        "output_concept": concept_id,
         "value": value if isinstance(value, list) else [value],
         "unit": unit,
         "conditions": conditions or [],
