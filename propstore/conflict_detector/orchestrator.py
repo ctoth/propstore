@@ -12,6 +12,7 @@ from propstore.cel_checker import (
     synthetic_category_concept,
     with_synthetic_concepts,
 )
+from propstore.core.id_types import to_context_id
 
 from .algorithms import detect_algorithm_conflicts
 from .equations import detect_equation_conflicts
@@ -155,8 +156,9 @@ def _expand_lifted_conflict_claims(
                         continue
                 elif not solver.implies(claim.conditions, rule.conditions):
                     continue
+            target_id = to_context_id(rule.target.id)
             target_conditions = tuple(
-                lifting_system.context_assumptions.get(rule.target.id, ())
+                lifting_system.context_assumptions.get(target_id, ())
             )
             if not target_conditions and rule.conditions:
                 target_conditions = tuple(rule.conditions)
@@ -164,7 +166,7 @@ def _expand_lifted_conflict_claims(
                 continue
             key = (
                 claim.claim_id,
-                str(rule.target.id),
+                str(target_id),
                 target_conditions,
             )
             if key in seen:
@@ -173,7 +175,7 @@ def _expand_lifted_conflict_claims(
             expanded.append(
                 replace(
                     claim,
-                    context_id=str(rule.target.id),
+                    context_id=str(target_id),
                     conditions=target_conditions,
                 )
             )
