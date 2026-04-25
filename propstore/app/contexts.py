@@ -467,11 +467,10 @@ def remove_context_lifting_rule(
 def _loaded_contexts(repo: Repository) -> tuple[LoadedContext, ...]:
     items: list[LoadedContext] = []
     tree = repo.tree()
-    for ref in repo.families.contexts.iter():
-        handle = repo.families.contexts.require_handle(ref)
+    for handle in repo.families.contexts.iter_handles():
         items.append(
             LoadedContext(
-                filename=ref.name,
+                filename=handle.ref.name,
                 source_path=tree / handle.address.require_path(),
                 knowledge_root=tree,
                 record=parse_context_record_document(handle.document),
@@ -578,8 +577,9 @@ def _context_references(
     aliases = {filename, display_id}
     references: list[str] = []
 
-    for ref in repo.families.claims.iter():
-        document = repo.families.claims.require(ref)
+    for handle in repo.families.claims.iter_handles():
+        ref = handle.ref
+        document = handle.document
         context_id = str(document.context.id)
         if context_id not in aliases:
             continue
@@ -616,8 +616,9 @@ def _context_references(
             )
             references.append(f"source-claim:{ref.name}:{claim_handle}")
 
-    for ref in repo.families.worldlines.iter():
-        document = repo.families.worldlines.require(ref)
+    for handle in repo.families.worldlines.iter_handles():
+        ref = handle.ref
+        document = handle.document
         inputs = document.inputs
         if inputs is None or inputs.context_id not in aliases:
             continue
