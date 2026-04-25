@@ -6,7 +6,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
-from propstore.predicate_workflows import (
+from propstore.app.predicates import (
     PredicateAddRequest,
     PredicateFileNotFoundError,
     PredicateNotFoundError,
