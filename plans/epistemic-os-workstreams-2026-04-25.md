@@ -69,6 +69,89 @@ The plan is only useful if it prevents old and new semantics from coexisting.
 Each implementation slice therefore needs explicit gates, not only passing
 behavior tests.
 
+## Readiness Verdict
+
+Execution readiness is conditional, not unconditional.
+
+The workstream is principled enough to start only after WS0 preflight lands.
+It is not complete enough to begin deep semantic rewrites immediately. The
+current repo has real predicate/rule authoring surfaces, direct grounding
+bundle rebuild paths, context lifting code, and sidecar predicate-key storage.
+Those cannot be banned with broad string searches. The gates must distinguish
+backend predicate syntax from propstore semantic identity.
+
+Before any WS1/WS2 production rewrite:
+
+1. Reconcile or explicitly subordinate other plan files so this workstream is
+   the active control surface.
+2. Run and record a baseline targeted/full test status and `uv run pyright
+   propstore` status. Future "preserved" gates can only refer to behavior known
+   to be green or explicitly marked as existing red.
+3. Add an architecture-test harness for forbidden imports, forbidden symbols,
+   schema gates, and runtime fallback sentinels.
+4. Enumerate actual old surfaces from the current tree with file/function names,
+   not abstract categories.
+5. Land minimal closed owner types for `ConditionRef` and
+   `ProvenanceGraphRef` before `SituatedAssertion` stores them. WS2 must not use
+   raw CEL strings or loose provenance blobs as placeholders.
+6. Read required page images before the stream that depends on them. Notes-only
+   is not enough where this file says page images are binding.
+
+No new plan file should be created for this program unless this file explicitly
+delegates that scope. If a new checklist is needed, add it here or link it here
+as an owned child artifact.
+
+## First Execution Slice
+
+The first code slice is WS0 plus a very small WS1 skeleton. Its purpose is to
+prove the gates have teeth before semantic migration begins.
+
+Target files:
+
+- `propstore/core/relations/__init__.py`
+- `propstore/core/relations/kernel.py`
+- `tests/architecture/__init__.py`
+- `tests/architecture/test_forbidden_symbols.py`
+- `tests/architecture/test_import_boundaries.py`
+- `tests/test_relation_concept_identity.py`
+- a baseline note under `notes/` recording test and pyright status
+
+Out of scope for the first slice:
+
+- Do not migrate callers.
+- Do not delete `propstore/grounding/predicates.py`.
+- Do not delete `propstore/context_lifting.py`.
+- Do not change sidecar grounded-fact schema.
+- Do not remove `0.5` defaults.
+
+Those are later deletion slices and need their own red/green tests.
+
+First-slice gates:
+
+- `propstore.core.relations` must not import grounding, context lifting,
+  calibration, opinion, app, CLI, sidecar, or backend projection modules.
+- The relation kernel must not define relation identity as a bare predicate
+  string.
+- The negative architecture test must be manually checked once by inserting a
+  deliberate forbidden relation-kernel violation, observing red, and reverting
+  before the green commit.
+
+First-slice acceptance commands:
+
+```powershell
+powershell -File scripts/run_logged_pytest.ps1 -Label ws1-slice1 `
+  tests/architecture/test_forbidden_symbols.py `
+  tests/architecture/test_import_boundaries.py `
+  tests/test_relation_concept_identity.py
+uv run pyright propstore
+git diff --check
+git status --short
+```
+
+The first slice should not try to solve ontology, import, context, or grounding
+semantics. It should establish the gate infrastructure and a small owner module
+that later slices can expand under mechanical constraints.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
