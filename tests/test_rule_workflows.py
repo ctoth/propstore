@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.rule_workflows import (
+from propstore.app.rules import (
     RuleAddRequest,
     RuleFileNotFoundError,
     RuleNotFoundError,
