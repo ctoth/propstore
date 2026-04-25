@@ -320,10 +320,10 @@ def build_sidecar(
     form_result = run_form_pipeline(
         [
             LoadedForm(
-                filename=form_ref.name,
-                document=repo.families.forms.require(form_ref, commit=commit_hash),
+                filename=handle.ref.name,
+                document=handle.document,
             )
-            for form_ref in repo.families.forms.iter(commit=commit_hash)
+            for handle in repo.families.forms.iter_handles(commit=commit_hash)
         ]
     )
     if not isinstance(form_result.output, FormCheckedRegistry):
@@ -336,38 +336,32 @@ def build_sidecar(
         if concept_files is not None
         else [
             LoadedConcept(
-                filename=ref.name,
+                filename=handle.ref.name,
                 source_path=tree / handle.address.require_path(),
                 knowledge_root=tree,
                 record=parse_concept_record_document(handle.document),
                 document=handle.document,
             )
-            for ref in repo.families.concepts.iter(commit=commit_hash)
-            for handle in (
-                repo.families.concepts.require_handle(ref, commit=commit_hash),
-            )
+            for handle in repo.families.concepts.iter_handles(commit=commit_hash)
         ]
     )
     claim_entries = (
         list(claim_files)
         if claim_files is not None
         else [
-            repo.families.claims.require_handle(ref, commit=commit_hash)
-            for ref in repo.families.claims.iter(commit=commit_hash)
+            handle
+            for handle in repo.families.claims.iter_handles(commit=commit_hash)
         ]
     )
     if context_files is None:
         context_files = tuple(
             LoadedContext(
-                filename=ref.name,
+                filename=handle.ref.name,
                 source_path=tree / handle.address.require_path(),
                 knowledge_root=tree,
                 record=parse_context_record_document(handle.document),
             )
-            for ref in repo.families.contexts.iter(commit=commit_hash)
-            for handle in (
-                repo.families.contexts.require_handle(ref, commit=commit_hash),
-            )
+            for handle in repo.families.contexts.iter_handles(commit=commit_hash)
         )
     context_ids = {
         str(c.record.context_id)
@@ -429,31 +423,31 @@ def build_sidecar(
         repository_checked_bundle,
         source_entries=(
             (
-                ref.name,
-                repo.families.sources.require(ref, commit=commit_hash),
+                handle.ref.name,
+                handle.document,
             )
-            for ref in repo.families.sources.iter(commit=commit_hash)
+            for handle in repo.families.sources.iter_handles(commit=commit_hash)
         ),
         stance_entries=(
             (
-                ref.source_claim,
-                repo.families.stances.require(ref, commit=commit_hash),
+                handle.ref.source_claim,
+                handle.document,
             )
-            for ref in repo.families.stances.iter(commit=commit_hash)
+            for handle in repo.families.stances.iter_handles(commit=commit_hash)
         ),
         justification_entries=(
             (
-                ref.name,
-                repo.families.justifications.require(ref, commit=commit_hash),
+                handle.ref.name,
+                handle.document,
             )
-            for ref in repo.families.justifications.iter(commit=commit_hash)
+            for handle in repo.families.justifications.iter_handles(commit=commit_hash)
         ),
         micropub_files=(
             (
-                ref.name,
-                repo.families.micropubs.require(ref, commit=commit_hash),
+                handle.ref.name,
+                handle.document,
             )
-            for ref in repo.families.micropubs.iter(commit=commit_hash)
+            for handle in repo.families.micropubs.iter_handles(commit=commit_hash)
         ),
     )
 
