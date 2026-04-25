@@ -690,19 +690,19 @@ def test_atms_explain_node_returns_real_justification_chains() -> None:
     derived = bound.derived_value("concept3")
     explanation = engine.explain_node(engine._derived_node_id("concept3", derived.value))
 
-    assert explanation["status"] is ATMSNodeStatus.IN
-    assert explanation["support_quality"] is SupportQuality.EXACT
-    assert explanation["traces"]
+    assert explanation.status is ATMSNodeStatus.IN
+    assert explanation.support_quality is SupportQuality.EXACT
+    assert explanation.traces
     assert any(
-        trace["informant"] == "parameterization:0"
-        and "claim:claim_x" in trace["antecedent_ids"]
+        trace.informant == "parameterization:0"
+        and "claim:claim_x" in trace.antecedent_ids
         and any(
-            antecedent.get("claim_id") == "claim_x"
-            and antecedent["traces"]
-            and antecedent["traces"][0]["informant"] == "claim:claim_x"
-            for antecedent in trace["antecedents"]
+            getattr(antecedent, "claim_id", None) == "claim_x"
+            and getattr(antecedent, "traces", ())
+            and antecedent.traces[0].informant == "claim:claim_x"
+            for antecedent in trace.antecedents
         )
-        for trace in explanation["traces"]
+        for trace in explanation.traces
     )
 
 
@@ -760,11 +760,11 @@ def test_atms_preserves_nogood_pruned_vs_semantic_only_out_and_provenance() -> N
     assert semantic_status.support_quality is SupportQuality.SEMANTIC_COMPATIBLE
     assert "semantic compatibility" in semantic_status.reason
     assert nogood_details is not None
-    assert nogood_details["provenance"]
-    assert nogood_details["provenance"][0]["claim_a_id"] == "claim_x"
-    assert nogood_details["provenance"][0]["claim_b_id"] == "claim_y"
-    assert nogood_details["provenance"][0]["environment_a"]
-    assert nogood_details["provenance"][0]["environment_b"]
+    assert nogood_details.provenance
+    assert nogood_details.provenance[0].claim_a_id == "claim_x"
+    assert nogood_details.provenance[0].claim_b_id == "claim_y"
+    assert nogood_details.provenance[0].environment_a
+    assert nogood_details.provenance[0].environment_b
 
 
 def test_atms_verify_labels_reports_clean_fixpoint() -> None:
@@ -783,11 +783,11 @@ def test_atms_verify_labels_reports_clean_fixpoint() -> None:
 
     report = bound.atms_engine().verify_labels()
 
-    assert report["ok"] is True
-    assert report["consistency_errors"] == []
-    assert report["minimality_errors"] == []
-    assert report["soundness_errors"] == []
-    assert report["completeness_errors"] == []
+    assert report.ok is True
+    assert report.consistency_errors == ()
+    assert report.minimality_errors == ()
+    assert report.soundness_errors == ()
+    assert report.completeness_errors == ()
 
 
 def test_phase8_graph_runtime_matches_boundworld_for_labels_and_nogoods() -> None:
@@ -866,10 +866,10 @@ def test_phase8_graph_runtime_replays_future_status_and_interventions_without_bo
     relevance = runtime_engine.claim_relevance("claim_future", queryables, limit=8)
     plans = runtime_engine.claim_interventions("claim_future", queryables, ATMSNodeStatus.IN, limit=8)
 
-    assert future_statuses["could_become_in"] is True
-    assert [entry["queryable_cels"] for entry in future_statuses["futures"]] == [["y == 2"]]
-    assert relevance["relevant_queryables"] == ["y == 2"]
-    assert [plan["queryable_cels"] for plan in plans] == [["y == 2"]]
+    assert future_statuses.could_become_in is True
+    assert [entry.queryable_cels for entry in future_statuses.futures] == [("y == 2",)]
+    assert relevance.relevant_queryables == ("y == 2",)
+    assert [plan.queryable_cels for plan in plans] == [("y == 2",)]
 
 
 def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> None:
@@ -1063,15 +1063,15 @@ def test_atms_future_queryables_can_activate_exact_support_without_fabricating_c
     assert current.status == ATMSNodeStatus.OUT
     assert current.out_kind == ATMSOutKind.MISSING_SUPPORT
     assert engine.claim_label("claim_future") is None
-    assert future_statuses["could_become_in"] is True
-    assert future_statuses["current"].status is ATMSNodeStatus.OUT
-    assert future_statuses["futures"][0]["queryable_cels"] == ["y == 2"]
-    assert future_statuses["futures"][0]["status"] is ATMSNodeStatus.IN
-    assert why_out["out_kind"] == ATMSOutKind.MISSING_SUPPORT
-    assert why_out["future_activatable"] is True
-    assert why_out["candidate_queryable_cels"] == [["y == 2"]]
-    assert future_in[0]["queryable_cels"] == ["y == 2"]
-    assert future_in[0]["status"] is ATMSNodeStatus.IN
+    assert future_statuses.could_become_in is True
+    assert future_statuses.current.status is ATMSNodeStatus.OUT
+    assert future_statuses.futures[0].queryable_cels == ("y == 2",)
+    assert future_statuses.futures[0].status is ATMSNodeStatus.IN
+    assert why_out.out_kind == ATMSOutKind.MISSING_SUPPORT
+    assert why_out.future_activatable is True
+    assert why_out.candidate_queryable_cels == (("y == 2",),)
+    assert future_in[0].queryable_cels == ("y == 2",)
+    assert future_in[0].status is ATMSNodeStatus.IN
 
 
 def test_run5_future_audit_pins_rebuilt_bound_world_substrate() -> None:
@@ -1093,17 +1093,16 @@ def test_run5_future_audit_pins_rebuilt_bound_world_substrate() -> None:
     future_engine = engine._future_engine((queryable,))
     future_report = engine.future_environments([queryable], limit=4)[0]
 
-    assert isinstance(future_report, dict)
     assert future_engine is not engine
     assert future_engine._bound is not bound
     assert any(
         assumption.assumption_id == queryable.assumption_id
         for assumption in future_engine._bound._environment.assumptions
     )
-    assert future_report["queryable_ids"] == [queryable.assumption_id]
-    assert future_report["queryable_cels"] == ["y == 2"]
-    assert future_report["environment"]
-    assert future_report["consistent"] is True
+    assert future_report.queryable_ids == (queryable.assumption_id,)
+    assert future_report.queryable_cels == ("y == 2",)
+    assert future_report.environment
+    assert future_report.consistent is True
 
 
 def test_future_engine_includes_queryable_bindings_in_environment() -> None:
@@ -1161,9 +1160,9 @@ def test_run7_future_audit_queryables_are_additive_only() -> None:
     }
     future_queryable = QueryableAssumption.from_cel("y == 2")
 
-    assert [future["queryable_cels"] for future in futures] == [["y == 2"]]
-    assert any(current_assumption_ids["x == 1"] in future["environment"] for future in futures)
-    assert any(future_queryable.assumption_id in future["environment"] for future in futures)
+    assert [future.queryable_cels for future in futures] == [("y == 2",)]
+    assert any(current_assumption_ids["x == 1"] in future.environment for future in futures)
+    assert any(future_queryable.assumption_id in future.environment for future in futures)
 
 
 def test_run5_future_audit_surfaces_missing_support_nogood_and_future_activation() -> None:
@@ -1212,10 +1211,10 @@ def test_run5_future_audit_surfaces_missing_support_nogood_and_future_activation
     derived_why_out = engine.why_out(engine._derived_node_id("concept4", derived.value), limit=4)
     future_why_out = engine.why_out("claim:claim_future", queryables=queryables, limit=4)
 
-    assert derived_why_out["out_kind"] == ATMSOutKind.NOGOOD_PRUNED
-    assert derived_why_out["future_activatable"] is False
-    assert future_why_out["out_kind"] == ATMSOutKind.MISSING_SUPPORT
-    assert future_why_out["future_activatable"] is True
+    assert derived_why_out.out_kind == ATMSOutKind.NOGOOD_PRUNED
+    assert derived_why_out.future_activatable is False
+    assert future_why_out.out_kind == ATMSOutKind.MISSING_SUPPORT
+    assert future_why_out.future_activatable is True
 
 
 def test_atms_future_queryables_respect_limit_and_enumerate_deterministically() -> None:
@@ -1246,8 +1245,8 @@ def test_atms_future_queryables_respect_limit_and_enumerate_deterministically() 
 
     futures = engine.future_environments(queryables, limit=2)
 
-    assert [entry["queryable_cels"] for entry in futures] == [["a == 1"], ["b == 2"]]
-    assert all(entry["queryable_cels"] != ["a == 1", "b == 2"] for entry in futures)
+    assert [entry.queryable_cels for entry in futures] == [("a == 1",), ("b == 2",)]
+    assert all(entry.queryable_cels != ("a == 1", "b == 2") for entry in futures)
     assert engine.claim_label("claim_future_a") is None
     assert engine.claim_label("claim_future_b") is None
 
@@ -1270,11 +1269,11 @@ def test_atms_future_queryables_can_be_insufficient() -> None:
     future_statuses = bound.claim_future_statuses("claim_future", queryables, limit=4)
     why_out = bound.atms_engine().why_out("claim:claim_future", queryables=queryables, limit=4)
 
-    assert future_statuses["could_become_in"] is False
-    assert future_statuses["futures"][0]["status"] is ATMSNodeStatus.OUT
-    assert future_statuses["futures"][0]["out_kind"] is ATMSOutKind.MISSING_SUPPORT
-    assert why_out["future_activatable"] is False
-    assert why_out["candidate_queryable_cels"] == []
+    assert future_statuses.could_become_in is False
+    assert future_statuses.futures[0].status is ATMSNodeStatus.OUT
+    assert future_statuses.futures[0].out_kind is ATMSOutKind.MISSING_SUPPORT
+    assert why_out.future_activatable is False
+    assert why_out.candidate_queryable_cels == ()
 
 
 def test_atms_bounded_stability_and_relevance_are_honest_for_claims_and_concepts() -> None:
@@ -1316,35 +1315,35 @@ def test_atms_bounded_stability_and_relevance_are_honest_for_claims_and_concepts
     concept_stability = bound.concept_stability("concept2", queryables, limit=8)
     concept_relevance = bound.concept_relevance("concept2", queryables, limit=8)
 
-    assert stable_in["stable"] is True
-    assert stable_in["witnesses"] == []
+    assert stable_in.stable is True
+    assert stable_in.witnesses == ()
     assert bound.claim_is_stable("claim_now", queryables, limit=8) is True
 
-    assert unstable_out["stable"] is False
-    assert [witness["queryable_cels"] for witness in unstable_out["witnesses"]] == [["y == 2"]]
-    assert unstable_out["witnesses"][0]["status"] is ATMSNodeStatus.IN
-    assert bound.atms_engine().status_flip_witnesses("claim:claim_future", queryables, limit=8) == unstable_out["witnesses"]
+    assert unstable_out.stable is False
+    assert [witness.queryable_cels for witness in unstable_out.witnesses] == [("y == 2",)]
+    assert unstable_out.witnesses[0].status is ATMSNodeStatus.IN
+    assert tuple(bound.atms_engine().status_flip_witnesses("claim:claim_future", queryables, limit=8)) == tuple(unstable_out.witnesses)
     assert bound.claim_is_stable("claim_future", queryables, limit=8) is False
 
-    assert stable_out["stable"] is True
-    assert stable_out["witnesses"] == []
+    assert stable_out.stable is True
+    assert stable_out.witnesses == ()
 
-    assert claim_relevance["relevant_queryables"] == ["y == 2"]
-    assert claim_relevance["irrelevant_queryables"] == ["z == 3"]
-    assert claim_relevance["current_status"] is ATMSNodeStatus.OUT
-    assert claim_relevance["witness_pairs"]["y == 2"][0]["without"]["status"] is ATMSNodeStatus.OUT
-    assert claim_relevance["witness_pairs"]["y == 2"][0]["with"]["status"] is ATMSNodeStatus.IN
+    assert claim_relevance.relevant_queryables == ("y == 2",)
+    assert claim_relevance.irrelevant_queryables == ("z == 3",)
+    assert claim_relevance.current_status is ATMSNodeStatus.OUT
+    assert claim_relevance.witness_pairs["y == 2"][0].without_state.status is ATMSNodeStatus.OUT
+    assert claim_relevance.witness_pairs["y == 2"][0].with_state.status is ATMSNodeStatus.IN
     assert bound.claim_relevant_queryables("claim_future", queryables, limit=8) == ["y == 2"]
 
-    assert concept_stability["stable"] is False
-    assert [witness["queryable_cels"] for witness in concept_stability["witnesses"]] == [["y == 2"]]
-    assert concept_stability["current_status"] is ValueStatus.NO_CLAIMS
-    assert concept_stability["witnesses"][0]["status"] is ValueStatus.DETERMINED
+    assert concept_stability.stable is False
+    assert [witness.queryable_cels for witness in concept_stability.witnesses] == [("y == 2",)]
+    assert concept_stability.current_status is ValueStatus.NO_CLAIMS
+    assert concept_stability.witnesses[0].status is ValueStatus.DETERMINED
     assert bound.concept_is_stable("concept2", queryables, limit=8) is False
-    assert concept_relevance["relevant_queryables"] == ["y == 2"]
-    assert concept_relevance["current_status"] is ValueStatus.NO_CLAIMS
-    assert concept_relevance["witness_pairs"]["y == 2"][0]["without"]["status"] is ValueStatus.NO_CLAIMS
-    assert concept_relevance["witness_pairs"]["y == 2"][0]["with"]["status"] is ValueStatus.DETERMINED
+    assert concept_relevance.relevant_queryables == ("y == 2",)
+    assert concept_relevance.current_status is ValueStatus.NO_CLAIMS
+    assert concept_relevance.witness_pairs["y == 2"][0].without_state.status is ValueStatus.NO_CLAIMS
+    assert concept_relevance.witness_pairs["y == 2"][0].with_state.status is ValueStatus.DETERMINED
     assert bound.concept_relevant_queryables("concept2", queryables, limit=8) == ["y == 2"]
 
 
@@ -1380,8 +1379,8 @@ def test_atms_future_queryables_do_not_fabricate_future_out_transitions_without_
     future_out = bound.atms_engine().could_become_out("claim:claim_future", queryables, limit=4)
 
     assert bound.claim_status("claim_future").status == ATMSNodeStatus.OUT
-    assert future_statuses["could_become_in"] is True
-    assert future_statuses["could_become_out"] is False
+    assert future_statuses.could_become_in is True
+    assert future_statuses.could_become_out is False
     assert future_out == []
 
 
@@ -1412,18 +1411,18 @@ def test_atms_claim_interventions_and_next_queries_are_minimal() -> None:
     future_queryable = QueryableAssumption.from_cel("y == 2")
 
     assert len(plans) == 1
-    assert plans[0]["current_status"] is ATMSNodeStatus.OUT
-    assert plans[0]["target_status"] is ATMSNodeStatus.IN
-    assert plans[0]["result_status"] is ATMSNodeStatus.IN
-    assert plans[0]["queryable_cels"] == ["y == 2"]
-    assert current_assumption_ids["x == 1"] in plans[0]["environment"]
-    assert future_queryable.assumption_id in plans[0]["environment"]
-    assert plans[0]["minimality_basis"] == "set_inclusion_over_queryable_ids"
-    assert all(cel in {"y == 2", "z == 3"} for cel in plans[0]["queryable_cels"])
-    assert [entry["queryable_cel"] for entry in suggestions] == ["y == 2"]
-    assert suggestions[0]["plan_count"] == 1
-    assert suggestions[0]["smallest_plan_size"] == 1
-    assert suggestions[0]["plan_queryable_cels"] == [["y == 2"]]
+    assert plans[0].current_status is ATMSNodeStatus.OUT
+    assert plans[0].target_status is ATMSNodeStatus.IN
+    assert plans[0].result_status is ATMSNodeStatus.IN
+    assert plans[0].queryable_cels == ("y == 2",)
+    assert current_assumption_ids["x == 1"] in plans[0].environment
+    assert future_queryable.assumption_id in plans[0].environment
+    assert plans[0].minimality_basis == "set_inclusion_over_queryable_ids"
+    assert all(cel in {"y == 2", "z == 3"} for cel in plans[0].queryable_cels)
+    assert [entry.queryable_cel for entry in suggestions] == ["y == 2"]
+    assert suggestions[0].plan_count == 1
+    assert suggestions[0].smallest_plan_size == 1
+    assert suggestions[0].plan_queryable_cels == (("y == 2",),)
 
 
 def test_atms_claim_interventions_to_out_require_consistent_nogood_pruned_future() -> None:
@@ -1454,9 +1453,9 @@ def test_atms_claim_interventions_to_out_require_consistent_nogood_pruned_future
     future_out = bound.atms_engine().could_become_out("claim:claim_future", queryables, limit=8)
     plans = bound.claim_interventions("claim_future", queryables, ATMSNodeStatus.OUT, limit=8)
 
-    assert [future["queryable_cels"] for future in future_out] == [["y == 2"]]
-    assert future_out[0]["out_kind"] == ATMSOutKind.NOGOOD_PRUNED
-    assert future_out[0]["consistent"] is False
+    assert [future.queryable_cels for future in future_out] == [("y == 2",)]
+    assert future_out[0].out_kind == ATMSOutKind.NOGOOD_PRUNED
+    assert future_out[0].consistent is False
     assert plans == []
 
 
@@ -1482,11 +1481,11 @@ def test_atms_concept_interventions_use_replayed_value_statuses() -> None:
         limit=8,
     )
 
-    assert [plan["queryable_cels"] for plan in plans] == [["y == 2"]]
-    assert plans[0]["current_status"] is ValueStatus.NO_CLAIMS
-    assert plans[0]["target_status"] is ValueStatus.DETERMINED
-    assert plans[0]["result_status"] is ValueStatus.DETERMINED
-    assert [entry["queryable_cel"] for entry in suggestions] == ["y == 2"]
+    assert [plan.queryable_cels for plan in plans] == [("y == 2",)]
+    assert plans[0].current_status is ValueStatus.NO_CLAIMS
+    assert plans[0].target_status is ValueStatus.DETERMINED
+    assert plans[0].result_status is ValueStatus.DETERMINED
+    assert [entry.queryable_cel for entry in suggestions] == ["y == 2"]
 
 
 def test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_limit() -> None:
@@ -1505,12 +1504,12 @@ def test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_li
 
     assert bound.claim_interventions("claim_future", ["z == 3"], ATMSNodeStatus.IN, limit=8) == []
     assert bound.claim_interventions("claim_future", ["a == 1", "b == 2"], ATMSNodeStatus.IN, limit=1) == []
-    assert [plan["queryable_cels"] for plan in bound.claim_interventions(
+    assert [plan.queryable_cels for plan in bound.claim_interventions(
         "claim_future",
         ["b == 2", "a == 1"],
         ATMSNodeStatus.IN,
         limit=8,
-    )] == [["a == 1", "b == 2"]]
+    )] == [("a == 1", "b == 2")]
 
 
 def test_atms_why_out_distinguishes_missing_support_from_nogood_and_future_activation() -> None:
@@ -1559,11 +1558,11 @@ def test_atms_why_out_distinguishes_missing_support_from_nogood_and_future_activ
     derived_why_out = engine.why_out(engine._derived_node_id("concept4", derived.value), limit=4)
     future_why_out = engine.why_out("claim:claim_future", queryables=queryables, limit=4)
 
-    assert derived_why_out["out_kind"] == ATMSOutKind.NOGOOD_PRUNED
-    assert derived_why_out["future_activatable"] is False
-    assert future_why_out["out_kind"] == ATMSOutKind.MISSING_SUPPORT
-    assert future_why_out["future_activatable"] is True
-    assert future_why_out["candidate_queryable_cels"] == [["z == 3"]]
+    assert derived_why_out.out_kind == ATMSOutKind.NOGOOD_PRUNED
+    assert derived_why_out.future_activatable is False
+    assert future_why_out.out_kind == ATMSOutKind.MISSING_SUPPORT
+    assert future_why_out.future_activatable is True
+    assert future_why_out.candidate_queryable_cels == (("z == 3",),)
 
 
 def test_atms_worldline_future_capture_is_opt_in() -> None:
@@ -1643,11 +1642,11 @@ def test_atms_worldline_future_capture_is_opt_in() -> None:
     assert plain_result.argumentation.declared_queryables == ()
     assert future_result.argumentation is not None
     assert future_result.argumentation.declared_queryables == ("y == 2",)
-    assert future_result.argumentation.future_statuses["claim_future"]["could_become_in"] is True
-    assert future_result.argumentation.why_out["claim_future"]["candidate_queryable_cels"] == [["y == 2"]]
-    assert future_result.argumentation.stability["claim_future"]["stable"] is False
-    assert future_result.argumentation.relevance["claim_future"]["relevant_queryables"] == ["y == 2"]
-    assert future_result.argumentation.witness_futures["claim_future"][0]["queryable_cels"] == ["y == 2"]
+    assert future_result.argumentation.future_statuses["claim_future"].could_become_in is True
+    assert future_result.argumentation.why_out["claim_future"].candidate_queryable_cels == (("y == 2",),)
+    assert future_result.argumentation.stability["claim_future"].stable is False
+    assert future_result.argumentation.relevance["claim_future"].relevant_queryables == ("y == 2",)
+    assert future_result.argumentation.witness_futures["claim_future"][0].queryable_cels == ("y == 2",)
 
 
 def test_was_pruned_by_nogood_detects_transitive_nogood_through_antecedent() -> None:

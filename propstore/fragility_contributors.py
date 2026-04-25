@@ -70,10 +70,9 @@ def _witness_support_polynomial(
     queryable_by_cel = {str(queryable.cel): queryable for queryable in queryables}
     support = ProvenancePolynomial.zero()
     for witness in witnesses:
-        if not isinstance(witness, Mapping):
-            continue
+        q_cels = getattr(witness, "queryable_cels", ())
         monomial = ProvenancePolynomial.one()
-        for qcel in witness.get("queryable_cels", ()):
+        for qcel in q_cels:
             queryable = queryable_by_cel.get(str(qcel), QueryableAssumption.from_cel(str(qcel)))
             monomial = monomial * ProvenancePolynomial.variable(_queryable_source_variable(queryable))
         support = support + monomial
@@ -86,9 +85,7 @@ def _support_queryables(
 ) -> tuple[QueryableAssumption, ...]:
     queryable_by_cel = {str(queryable.cel): queryable for queryable in queryables}
     for witness in witnesses:
-        if not isinstance(witness, Mapping):
-            continue
-        for qcel in witness.get("queryable_cels", ()):
+        for qcel in getattr(witness, "queryable_cels", ()):
             queryable_by_cel.setdefault(str(qcel), QueryableAssumption.from_cel(str(qcel)))
     return tuple(sorted(queryable_by_cel.values(), key=lambda item: str(item.assumption_id)))
 
@@ -195,10 +192,10 @@ def collect_assumption_interventions(
             )
             continue
 
-        witnesses = stability.get("witnesses", [])
-        consistent_future_count = int(stability.get("consistent_future_count", 0))
+        witnesses = stability.witnesses
+        consistent_future_count = int(stability.consistent_future_count)
         support = _witness_support_polynomial(witnesses, normalized_queryables)
-        current_in_extension = _in_extension(stability.get("current_status"))
+        current_in_extension = _in_extension(stability.current_status)
         for queryable in _support_queryables(witnesses, normalized_queryables):
             source_variable = _queryable_source_variable(queryable)
             derivative = partial_derivative(support, source_variable)

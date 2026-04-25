@@ -631,17 +631,17 @@ class ATMSEngine:
         futures: list[ATMSFutureEnvironmentReport] = []
         for future in self._future_entries(queryables, limit):
             future_engine = future.future_engine
-            futures.append({
-                "queryable_ids": _queryable_id_list(future.queryable_ids),
-                "queryable_cels": list(future.queryable_cels),
-                "environment": _assumption_id_list(future.environment_key.assumption_ids),
-                "consistent": future.consistent,
-                "supported_claim_ids": _claim_id_list(future_engine.supported_claim_ids()),
-                "nogoods": [
+            futures.append(ATMSFutureEnvironmentReport(
+                queryable_ids=_queryable_id_list(future.queryable_ids),
+                queryable_cels=list(future.queryable_cels),
+                environment=_assumption_id_list(future.environment_key.assumption_ids),
+                consistent=future.consistent,
+                supported_claim_ids=_claim_id_list(future_engine.supported_claim_ids()),
+                nogoods=[
                     _assumption_id_list(environment.assumption_ids)
                     for environment in future_engine.nogoods.environments
                 ],
-            })
+            ))
         return futures
 
     def node_future_statuses(
@@ -656,34 +656,34 @@ class ATMSEngine:
             future_engine = future.future_engine
             inspection = future_engine._future_node_inspection(node_id, fallback=self._nodes.get(node_id))
             essential_support = self._serialize_environment_key(inspection.essential_support) or []
-            futures.append({
-                "queryable_ids": _queryable_id_list(future.queryable_ids),
-                "queryable_cels": list(future.queryable_cels),
-                "environment": _assumption_id_list(future.environment_key.assumption_ids),
-                "consistent": future.consistent,
-                "status": inspection.status,
-                "out_kind": inspection.out_kind,
-                "reason": inspection.reason,
-                "support_quality": inspection.support_quality,
-                "essential_support": _assumption_id_list(essential_support),
-            })
-        return {
-            "node_id": node_id,
-            "claim_id": current.claim_id,
-            "current": current,
-            "could_become_in": current.status == ATMSNodeStatus.OUT
-            and any(entry["status"] != ATMSNodeStatus.OUT for entry in futures),
-            "could_become_out": (
+            futures.append(ATMSNodeFutureStatusEntry(
+                queryable_ids=_queryable_id_list(future.queryable_ids),
+                queryable_cels=list(future.queryable_cels),
+                environment=_assumption_id_list(future.environment_key.assumption_ids),
+                consistent=future.consistent,
+                status=inspection.status,
+                out_kind=inspection.out_kind,
+                reason=inspection.reason,
+                support_quality=inspection.support_quality,
+                essential_support=_assumption_id_list(essential_support),
+            ))
+        return ATMSFutureStatusReport(
+            node_id=node_id,
+            claim_id=current.claim_id,
+            current=current,
+            could_become_in=current.status == ATMSNodeStatus.OUT
+            and any(entry.status != ATMSNodeStatus.OUT for entry in futures),
+            could_become_out=(
                 current.status != ATMSNodeStatus.OUT
-                or any(entry["status"] != ATMSNodeStatus.OUT for entry in futures)
+                or any(entry.status != ATMSNodeStatus.OUT for entry in futures)
             )
             and any(
-                entry["status"] == ATMSNodeStatus.OUT
-                and entry["out_kind"] == ATMSOutKind.NOGOOD_PRUNED
+                entry.status == ATMSNodeStatus.OUT
+                and entry.out_kind == ATMSOutKind.NOGOOD_PRUNED
                 for entry in futures
             ),
-            "futures": futures,
-        }
+            futures=futures,
+        )
 
     def claim_future_statuses(
         self,
@@ -706,17 +706,17 @@ class ATMSEngine:
         candidate_queryable_cels: list[list[str]] = []
         if inspection.status == ATMSNodeStatus.OUT and queryables:
             for future in self.could_become_in(node_id, queryables, limit=limit):
-                candidate_queryable_cels.append(list(future["queryable_cels"]))
-        return {
-            "node_id": node_id,
-            "claim_id": inspection.claim_id,
-            "status": inspection.status,
-            "out_kind": inspection.out_kind,
-            "reason": inspection.reason,
-            "support_quality": inspection.support_quality,
-            "future_activatable": bool(candidate_queryable_cels),
-            "candidate_queryable_cels": candidate_queryable_cels,
-        }
+                candidate_queryable_cels.append(list(future.queryable_cels))
+        return ATMSWhyOutReport(
+            node_id=node_id,
+            claim_id=inspection.claim_id,
+            status=inspection.status,
+            out_kind=inspection.out_kind,
+            reason=inspection.reason,
+            support_quality=inspection.support_quality,
+            future_activatable=bool(candidate_queryable_cels),
+            candidate_queryable_cels=candidate_queryable_cels,
+        )
 
     def could_become_in(
         self,
@@ -727,8 +727,8 @@ class ATMSEngine:
         report = self.node_future_statuses(node_id, queryables, limit=limit)
         return [
             future
-            for future in report["futures"]
-            if future["status"] != ATMSNodeStatus.OUT
+            for future in report.futures
+            if future.status != ATMSNodeStatus.OUT
         ]
 
     def could_become_out(
@@ -740,9 +740,9 @@ class ATMSEngine:
         report = self.node_future_statuses(node_id, queryables, limit=limit)
         return [
             future
-            for future in report["futures"]
-            if future["status"] == ATMSNodeStatus.OUT
-            and future["out_kind"] == ATMSOutKind.NOGOOD_PRUNED
+            for future in report.futures
+            if future.status == ATMSNodeStatus.OUT
+            and future.out_kind == ATMSOutKind.NOGOOD_PRUNED
         ]
 
     def status_flip_witnesses(
@@ -753,11 +753,11 @@ class ATMSEngine:
     ) -> list[ATMSNodeFutureStatusEntry]:
         """Return minimal bounded consistent futures whose ATMS status flips."""
         report = self.node_future_statuses(node_id, queryables, limit=limit)
-        current_status = report["current"].status
+        current_status = report.current.status
         witnesses = [
             future
-            for future in report["futures"]
-            if future["consistent"] and future["status"] != current_status
+            for future in report.futures
+            if future.consistent and future.status != current_status
         ]
         return self._minimal_future_entries(witnesses)
 
@@ -768,7 +768,7 @@ class ATMSEngine:
         limit: int = 8,
     ) -> bool:
         """Whether the node keeps its current ATMS status in all bounded consistent futures."""
-        return self.node_stability(node_id, queryables, limit=limit)["stable"]
+        return self.node_stability(node_id, queryables, limit=limit).stable
 
     def claim_is_stable(
         self,
@@ -787,7 +787,7 @@ class ATMSEngine:
         queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> bool:
-        return self.concept_stability(concept_id, queryables, limit=limit)["stable"]
+        return self.concept_stability(concept_id, queryables, limit=limit).stable
 
     def node_stability(
         self,
@@ -797,23 +797,23 @@ class ATMSEngine:
     ) -> ATMSNodeStabilityReport:
         """Summarize bounded ATMS stability over the implemented replay substrate."""
         report = self.node_future_statuses(node_id, queryables, limit=limit)
-        consistent_futures = [future for future in report["futures"] if future["consistent"]]
+        consistent_futures = [future for future in report.futures if future.consistent]
         witnesses = self._minimal_future_entries([
             future
             for future in consistent_futures
-            if future["status"] != report["current"].status
+            if future.status != report.current.status
         ])
-        return {
-            "node_id": report["node_id"],
-            "claim_id": report["claim_id"],
-            "current": report["current"],
-            "stable": not witnesses,
-            "limit": limit,
-            "future_count": len(report["futures"]),
-            "consistent_future_count": len(consistent_futures),
-            "inconsistent_future_count": len(report["futures"]) - len(consistent_futures),
-            "witnesses": witnesses,
-        }
+        return ATMSNodeStabilityReport(
+            node_id=report.node_id,
+            claim_id=report.claim_id,
+            current=report.current,
+            stable=not witnesses,
+            limit=limit,
+            future_count=len(report.futures),
+            consistent_future_count=len(consistent_futures),
+            inconsistent_future_count=len(report.futures) - len(consistent_futures),
+            witnesses=witnesses,
+        )
 
     def claim_stability(
         self,
@@ -835,22 +835,22 @@ class ATMSEngine:
         """Summarize bounded concept stability using the current BoundWorld value status."""
         current_status = self._runtime.concept_status(concept_id)
         futures = self._concept_future_entries(concept_id, queryables, limit=limit)
-        consistent_futures = [future for future in futures if future["consistent"]]
+        consistent_futures = [future for future in futures if future.consistent]
         witnesses = self._minimal_future_entries([
             future
             for future in consistent_futures
-            if future["status"] != current_status
+            if future.status != current_status
         ])
-        return {
-            "concept_id": concept_id,
-            "current_status": current_status,
-            "stable": not witnesses,
-            "limit": limit,
-            "future_count": len(futures),
-            "consistent_future_count": len(consistent_futures),
-            "inconsistent_future_count": len(futures) - len(consistent_futures),
-            "witnesses": witnesses,
-        }
+        return ATMSConceptStabilityReport(
+            concept_id=concept_id,
+            current_status=current_status,
+            stable=not witnesses,
+            limit=limit,
+            future_count=len(futures),
+            consistent_future_count=len(consistent_futures),
+            inconsistent_future_count=len(futures) - len(consistent_futures),
+            witnesses=witnesses,
+        )
 
     def relevant_queryables(
         self,
@@ -859,7 +859,7 @@ class ATMSEngine:
         limit: int = 8,
     ) -> list[str]:
         """Return queryables whose inclusion changes the bounded ATMS status somewhere."""
-        return self.node_relevance(node_id, queryables, limit=limit)["relevant_queryables"]
+        return list(self.node_relevance(node_id, queryables, limit=limit).relevant_queryables)
 
     def claim_relevant_queryables(
         self,
@@ -878,7 +878,7 @@ class ATMSEngine:
         queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> list[str]:
-        return self.concept_relevance(concept_id, queryables, limit=limit)["relevant_queryables"]
+        return list(self.concept_relevance(concept_id, queryables, limit=limit).relevant_queryables)
 
     def node_relevance(
         self,
@@ -893,15 +893,15 @@ class ATMSEngine:
             states,
             current.status,
         )
-        return {
-            "node_id": node_id,
-            "claim_id": current.claim_id,
-            "current": current,
-            "current_status": current.status,
-            "relevant_queryables": relevant_queryables,
-            "irrelevant_queryables": irrelevant_queryables,
-            "witness_pairs": witness_pairs,
-        }
+        return ATMSNodeRelevanceReport(
+            node_id=node_id,
+            claim_id=current.claim_id,
+            current=current,
+            current_status=current.status,
+            relevant_queryables=relevant_queryables,
+            irrelevant_queryables=irrelevant_queryables,
+            witness_pairs=witness_pairs,
+        )
 
     def claim_relevance(
         self,
@@ -927,13 +927,13 @@ class ATMSEngine:
             states,
             current_status,
         )
-        return {
-            "concept_id": concept_id,
-            "current_status": current_status,
-            "relevant_queryables": relevant_queryables,
-            "irrelevant_queryables": irrelevant_queryables,
-            "witness_pairs": witness_pairs,
-        }
+        return ATMSConceptRelevanceReport(
+            concept_id=concept_id,
+            current_status=current_status,
+            relevant_queryables=relevant_queryables,
+            irrelevant_queryables=irrelevant_queryables,
+            witness_pairs=witness_pairs,
+        )
 
     def node_interventions(
         self,
@@ -950,8 +950,8 @@ class ATMSEngine:
         current = self.node_status(node_id)
         candidates = [
             future
-            for future in self.node_future_statuses(node_id, queryables, limit=limit)["futures"]
-            if future["consistent"] and self._future_reaches_node_target(future, target_status)
+            for future in self.node_future_statuses(node_id, queryables, limit=limit).futures
+            if future.consistent and self._future_reaches_node_target(future, target_status)
         ]
         plans = [
             self._node_intervention_plan(
@@ -1001,7 +1001,7 @@ class ATMSEngine:
         candidates = [
             future
             for future in self._concept_future_entries(concept_id, queryables, limit=limit)
-            if future["consistent"] and future["status"] == normalized_target
+            if future.consistent and future.status == normalized_target
         ]
         plans = [
             self._concept_intervention_plan(
@@ -1167,18 +1167,18 @@ class ATMSEngine:
                     f"{node_id}: missing justified environment {environment.assumption_ids}"
                 )
 
-        return {
-            "ok": not (
+        return ATMSLabelVerificationReport(
+            ok=not (
                 consistency_errors
                 or minimality_errors
                 or soundness_errors
                 or completeness_errors
             ),
-            "consistency_errors": consistency_errors,
-            "minimality_errors": minimality_errors,
-            "soundness_errors": soundness_errors,
-            "completeness_errors": completeness_errors,
-        }
+            consistency_errors=consistency_errors,
+            minimality_errors=minimality_errors,
+            soundness_errors=soundness_errors,
+            completeness_errors=completeness_errors,
+        )
 
     def argumentation_state(
         self,
@@ -1228,53 +1228,42 @@ class ATMSEngine:
         if normalized_queryables:
             result["declared_queryables"] = [queryable.cel for queryable in normalized_queryables]
             result["future_statuses"] = {
-                claim_id: self._serialize_future_report(
-                    self.claim_future_statuses(
-                        claim_id,
-                        normalized_queryables,
-                        limit=future_limit,
-                    )
+                claim_id: self.claim_future_statuses(
+                    claim_id,
+                    normalized_queryables,
+                    limit=future_limit,
                 )
                 for claim_id in sorted(claim_inspections)
             }
             result["stability"] = {
-                claim_id: self._serialize_stability_report(
-                    self.claim_stability(
-                        claim_id,
-                        normalized_queryables,
-                        limit=future_limit,
-                    )
+                claim_id: self.claim_stability(
+                    claim_id,
+                    normalized_queryables,
+                    limit=future_limit,
                 )
                 for claim_id in sorted(claim_inspections)
             }
             result["relevance"] = {
-                claim_id: self._serialize_relevance_report(
-                    self.claim_relevance(
-                        claim_id,
-                        normalized_queryables,
-                        limit=future_limit,
-                    )
+                claim_id: self.claim_relevance(
+                    claim_id,
+                    normalized_queryables,
+                    limit=future_limit,
                 )
                 for claim_id in sorted(claim_inspections)
             }
             result["witness_futures"] = {
-                claim_id: [
-                    self._serialize_future_entry(witness)
-                    for witness in self.status_flip_witnesses(
-                        self._claim_node_ids[claim_id],
-                        normalized_queryables,
-                        limit=future_limit,
-                    )
-                ]
+                claim_id: self.status_flip_witnesses(
+                    self._claim_node_ids[claim_id],
+                    normalized_queryables,
+                    limit=future_limit,
+                )
                 for claim_id in sorted(claim_inspections)
             }
             why_out = {
-                claim_id: self._serialize_why_out(
-                    self.why_out(
-                        self._claim_node_ids[claim_id],
-                        queryables=normalized_queryables,
-                        limit=future_limit,
-                    )
+                claim_id: self.why_out(
+                    self._claim_node_ids[claim_id],
+                    queryables=normalized_queryables,
+                    limit=future_limit,
                 )
                 for claim_id, inspection in sorted(claim_inspections.items())
                 if inspection.status == ATMSNodeStatus.OUT
@@ -1502,14 +1491,14 @@ class ATMSEngine:
                 for env_b in label_b.environments:
                     nogood_environment = env_a.union(env_b)
                     environments.append(nogood_environment)
-                    provenance[nogood_environment].append({
-                        "claim_a_id": claim_a,
-                        "claim_b_id": claim_b,
-                        "concept_id": conflict.concept_id,
-                        "warning_class": conflict.warning_class,
-                        "environment_a": list(env_a.assumption_ids),
-                        "environment_b": list(env_b.assumption_ids),
-                    })
+                    provenance[nogood_environment].append(ATMSNogoodProvenanceDetail(
+                        claim_a_id=claim_a,
+                        claim_b_id=claim_b,
+                        concept_id=conflict.concept_id,
+                        warning_class=conflict.warning_class,
+                        environment_a=list(env_a.assumption_ids),
+                        environment_b=list(env_b.assumption_ids),
+                    ))
 
         updated = NogoodSet(tuple(environments))
         if updated == self.nogoods:
@@ -1897,14 +1886,14 @@ class ATMSEngine:
         futures: list[ATMSConceptFutureStatusEntry] = []
         for future in self._future_entries(queryables, limit):
             future_engine = future.future_engine
-            futures.append({
-                "queryable_ids": _queryable_id_list(future.queryable_ids),
-                "queryable_cels": list(future.queryable_cels),
-                "environment": _assumption_id_list(future.environment_key.assumption_ids),
-                "consistent": future.consistent,
-                "status": future_engine._runtime.concept_status(concept_id),
-                "supported_claim_ids": _claim_id_list(future_engine.supported_claim_ids(concept_id)),
-            })
+            futures.append(ATMSConceptFutureStatusEntry(
+                queryable_ids=_queryable_id_list(future.queryable_ids),
+                queryable_cels=list(future.queryable_cels),
+                environment=_assumption_id_list(future.environment_key.assumption_ids),
+                consistent=future.consistent,
+                status=future_engine._runtime.concept_status(concept_id),
+                supported_claim_ids=_claim_id_list(future_engine.supported_claim_ids(concept_id)),
+            ))
         return futures
 
     @staticmethod
@@ -1912,14 +1901,14 @@ class ATMSEngine:
         ordered = sorted(
             entries,
             key=lambda entry: (
-                len(entry["queryable_ids"]),
-                tuple(entry["queryable_ids"]),
+                len(entry.queryable_ids),
+                tuple(entry.queryable_ids),
             ),
         )
         minimal: list[_FutureEntryT] = []
         minimal_sets: list[set[QueryableId]] = []
         for entry in ordered:
-            queryable_set = set(entry["queryable_ids"])
+            queryable_set = set(entry.queryable_ids)
             if any(existing.issubset(queryable_set) for existing in minimal_sets):
                 continue
             minimal.append(entry)
@@ -1934,23 +1923,23 @@ class ATMSEngine:
     ) -> dict[tuple[QueryableId, ...], ATMSNodeRelevanceState]:
         current = self.node_status(node_id)
         states: dict[tuple[QueryableId, ...], ATMSNodeRelevanceState] = {
-            (): {
-                "queryable_ids": [],
-                "queryable_cels": [],
-                "environment": _assumption_id_list(self._bound_environment_key().assumption_ids),
-                "consistent": not self.nogoods.excludes(self._bound_environment_key()),
-                "status": current.status,
-            }
+            (): ATMSNodeRelevanceState(
+                queryable_ids=[],
+                queryable_cels=[],
+                environment=_assumption_id_list(self._bound_environment_key().assumption_ids),
+                consistent=not self.nogoods.excludes(self._bound_environment_key()),
+                status=current.status,
+            )
         }
-        for future in self.node_future_statuses(node_id, queryables, limit=limit)["futures"]:
-            key = tuple(future["queryable_ids"])
-            states[key] = {
-                "queryable_ids": _queryable_id_list(future["queryable_ids"]),
-                "queryable_cels": list(future["queryable_cels"]),
-                "environment": _assumption_id_list(future["environment"]),
-                "consistent": future["consistent"],
-                "status": future["status"],
-            }
+        for future in self.node_future_statuses(node_id, queryables, limit=limit).futures:
+            key = tuple(future.queryable_ids)
+            states[key] = ATMSNodeRelevanceState(
+                queryable_ids=_queryable_id_list(future.queryable_ids),
+                queryable_cels=list(future.queryable_cels),
+                environment=_assumption_id_list(future.environment),
+                consistent=future.consistent,
+                status=future.status,
+            )
         return states
 
     def _concept_relevance_states(
@@ -1960,23 +1949,23 @@ class ATMSEngine:
         limit: int,
     ) -> dict[tuple[QueryableId, ...], ATMSConceptRelevanceState]:
         states: dict[tuple[QueryableId, ...], ATMSConceptRelevanceState] = {
-            (): {
-                "queryable_ids": [],
-                "queryable_cels": [],
-                "environment": _assumption_id_list(self._bound_environment_key().assumption_ids),
-                "consistent": not self.nogoods.excludes(self._bound_environment_key()),
-                "status": self._runtime.concept_status(concept_id),
-            }
+            (): ATMSConceptRelevanceState(
+                queryable_ids=[],
+                queryable_cels=[],
+                environment=_assumption_id_list(self._bound_environment_key().assumption_ids),
+                consistent=not self.nogoods.excludes(self._bound_environment_key()),
+                status=self._runtime.concept_status(concept_id),
+            )
         }
         for future in self._concept_future_entries(concept_id, queryables, limit=limit):
-            key = tuple(future["queryable_ids"])
-            states[key] = {
-                "queryable_ids": _queryable_id_list(future["queryable_ids"]),
-                "queryable_cels": list(future["queryable_cels"]),
-                "environment": _assumption_id_list(future["environment"]),
-                "consistent": future["consistent"],
-                "status": future["status"],
-            }
+            key = tuple(future.queryable_ids)
+            states[key] = ATMSConceptRelevanceState(
+                queryable_ids=_queryable_id_list(future.queryable_ids),
+                queryable_cels=list(future.queryable_cels),
+                environment=_assumption_id_list(future.environment),
+                consistent=future.consistent,
+                status=future.status,
+            )
         return states
 
     def _node_relevance_from_states(
@@ -1988,8 +1977,8 @@ class ATMSEngine:
             (queryable_id, queryable_cel)
             for state in states.values()
             for queryable_id, queryable_cel in zip(
-                state["queryable_ids"],
-                state["queryable_cels"],
+                state.queryable_ids,
+                state.queryable_cels,
                 strict=True,
             )
         })
@@ -1998,32 +1987,32 @@ class ATMSEngine:
         for queryable_id, queryable_cel in known_queryables:
             pairs: list[ATMSNodeWitnessPair] = []
             for key, without_state in states.items():
-                if queryable_id in key or not without_state["consistent"]:
+                if queryable_id in key or not without_state.consistent:
                     continue
                 with_key = tuple(sorted(key + (queryable_id,)))
                 with_state = states.get(with_key)
-                if with_state is None or not with_state["consistent"]:
+                if with_state is None or not with_state.consistent:
                     continue
-                if without_state["status"] == with_state["status"]:
+                if without_state.status == with_state.status:
                     continue
-                pairs.append({
-                    "queryable_id": queryable_id,
-                    "queryable_cel": queryable_cel,
-                    "without": {
-                        "queryable_ids": _queryable_id_list(without_state["queryable_ids"]),
-                        "queryable_cels": list(without_state["queryable_cels"]),
-                        "environment": _assumption_id_list(without_state["environment"]),
-                        "consistent": without_state["consistent"],
-                        "status": without_state["status"],
-                    },
-                    "with": {
-                        "queryable_ids": _queryable_id_list(with_state["queryable_ids"]),
-                        "queryable_cels": list(with_state["queryable_cels"]),
-                        "environment": _assumption_id_list(with_state["environment"]),
-                        "consistent": with_state["consistent"],
-                        "status": with_state["status"],
-                    },
-                })
+                pairs.append(ATMSNodeWitnessPair(
+                    queryable_id=queryable_id,
+                    queryable_cel=queryable_cel,
+                    without_state=ATMSNodeRelevanceState(
+                        queryable_ids=_queryable_id_list(without_state.queryable_ids),
+                        queryable_cels=list(without_state.queryable_cels),
+                        environment=_assumption_id_list(without_state.environment),
+                        consistent=without_state.consistent,
+                        status=without_state.status,
+                    ),
+                    with_state=ATMSNodeRelevanceState(
+                        queryable_ids=_queryable_id_list(with_state.queryable_ids),
+                        queryable_cels=list(with_state.queryable_cels),
+                        environment=_assumption_id_list(with_state.environment),
+                        consistent=with_state.consistent,
+                        status=with_state.status,
+                    ),
+                ))
             if pairs:
                 relevant_queryables.append(queryable_cel)
                 witness_pairs[queryable_cel] = self._minimal_node_witness_pairs(pairs)
@@ -2045,14 +2034,14 @@ class ATMSEngine:
         ordered = sorted(
             pairs,
             key=lambda pair: (
-                len(pair["with"]["queryable_ids"]),
-                tuple(pair["with"]["queryable_ids"]),
+                len(pair.with_state.queryable_ids),
+                tuple(pair.with_state.queryable_ids),
             ),
         )
         minimal: list[ATMSNodeWitnessPair] = []
         minimal_sets: list[set[QueryableId]] = []
         for pair in ordered:
-            queryable_set = set(pair["with"]["queryable_ids"])
+            queryable_set = set(pair.with_state.queryable_ids)
             if any(existing.issubset(queryable_set) for existing in minimal_sets):
                 continue
             minimal.append(pair)
@@ -2068,8 +2057,8 @@ class ATMSEngine:
             (queryable_id, queryable_cel)
             for state in states.values()
             for queryable_id, queryable_cel in zip(
-                state["queryable_ids"],
-                state["queryable_cels"],
+                state.queryable_ids,
+                state.queryable_cels,
                 strict=True,
             )
         })
@@ -2078,32 +2067,32 @@ class ATMSEngine:
         for queryable_id, queryable_cel in known_queryables:
             pairs: list[ATMSConceptWitnessPair] = []
             for key, without_state in states.items():
-                if queryable_id in key or not without_state["consistent"]:
+                if queryable_id in key or not without_state.consistent:
                     continue
                 with_key = tuple(sorted(key + (queryable_id,)))
                 with_state = states.get(with_key)
-                if with_state is None or not with_state["consistent"]:
+                if with_state is None or not with_state.consistent:
                     continue
-                if without_state["status"] == with_state["status"]:
+                if without_state.status == with_state.status:
                     continue
-                pairs.append({
-                    "queryable_id": queryable_id,
-                    "queryable_cel": queryable_cel,
-                    "without": {
-                        "queryable_ids": _queryable_id_list(without_state["queryable_ids"]),
-                        "queryable_cels": list(without_state["queryable_cels"]),
-                        "environment": _assumption_id_list(without_state["environment"]),
-                        "consistent": without_state["consistent"],
-                        "status": without_state["status"],
-                    },
-                    "with": {
-                        "queryable_ids": _queryable_id_list(with_state["queryable_ids"]),
-                        "queryable_cels": list(with_state["queryable_cels"]),
-                        "environment": _assumption_id_list(with_state["environment"]),
-                        "consistent": with_state["consistent"],
-                        "status": with_state["status"],
-                    },
-                })
+                pairs.append(ATMSConceptWitnessPair(
+                    queryable_id=queryable_id,
+                    queryable_cel=queryable_cel,
+                    without_state=ATMSConceptRelevanceState(
+                        queryable_ids=_queryable_id_list(without_state.queryable_ids),
+                        queryable_cels=list(without_state.queryable_cels),
+                        environment=_assumption_id_list(without_state.environment),
+                        consistent=without_state.consistent,
+                        status=without_state.status,
+                    ),
+                    with_state=ATMSConceptRelevanceState(
+                        queryable_ids=_queryable_id_list(with_state.queryable_ids),
+                        queryable_cels=list(with_state.queryable_cels),
+                        environment=_assumption_id_list(with_state.environment),
+                        consistent=with_state.consistent,
+                        status=with_state.status,
+                    ),
+                ))
             if pairs:
                 relevant_queryables.append(queryable_cel)
                 witness_pairs[queryable_cel] = self._minimal_concept_witness_pairs(pairs)
@@ -2125,14 +2114,14 @@ class ATMSEngine:
         ordered = sorted(
             pairs,
             key=lambda pair: (
-                len(pair["with"]["queryable_ids"]),
-                tuple(pair["with"]["queryable_ids"]),
+                len(pair.with_state.queryable_ids),
+                tuple(pair.with_state.queryable_ids),
             ),
         )
         minimal: list[ATMSConceptWitnessPair] = []
         minimal_sets: list[set[QueryableId]] = []
         for pair in ordered:
-            queryable_set = set(pair["with"]["queryable_ids"])
+            queryable_set = set(pair.with_state.queryable_ids)
             if any(existing.issubset(queryable_set) for existing in minimal_sets):
                 continue
             minimal.append(pair)
@@ -2150,10 +2139,10 @@ class ATMSEngine:
         future: ATMSNodeFutureStatusEntry,
         target_status: ATMSNodeStatus,
     ) -> bool:
-        if future["status"] != target_status:
+        if future.status != target_status:
             return False
         if target_status == ATMSNodeStatus.OUT:
-            return future.get("out_kind") == ATMSOutKind.NOGOOD_PRUNED
+            return future.out_kind == ATMSOutKind.NOGOOD_PRUNED
         return True
 
     def _node_intervention_plan(
@@ -2164,20 +2153,20 @@ class ATMSEngine:
         target_status: ATMSNodeStatus,
         future: ATMSNodeFutureStatusEntry,
     ) -> ATMSNodeInterventionPlan:
-        return {
-            "target": node_id,
-            "node_id": node_id,
-            "claim_id": current.claim_id,
-            "current_status": current.status,
-            "target_status": target_status,
-            "queryable_ids": list(future["queryable_ids"]),
-            "queryable_cels": list(future["queryable_cels"]),
-            "environment": list(future["environment"]),
-            "consistent": future["consistent"],
-            "result_status": future["status"],
-            "result_out_kind": future.get("out_kind"),
-            "minimality_basis": "set_inclusion_over_queryable_ids",
-        }
+        return ATMSNodeInterventionPlan(
+            target=node_id,
+            node_id=node_id,
+            claim_id=current.claim_id,
+            current_status=current.status,
+            target_status=target_status,
+            queryable_ids=list(future.queryable_ids),
+            queryable_cels=list(future.queryable_cels),
+            environment=list(future.environment),
+            consistent=future.consistent,
+            result_status=future.status,
+            result_out_kind=future.out_kind,
+            minimality_basis="set_inclusion_over_queryable_ids",
+        )
 
     def _concept_intervention_plan(
         self,
@@ -2187,18 +2176,18 @@ class ATMSEngine:
         target_status: ValueStatus,
         future: ATMSConceptFutureStatusEntry,
     ) -> ATMSConceptInterventionPlan:
-        return {
-            "target": concept_id,
-            "concept_id": concept_id,
-            "current_status": current_status,
-            "target_status": target_status,
-            "queryable_ids": list(future["queryable_ids"]),
-            "queryable_cels": list(future["queryable_cels"]),
-            "environment": list(future["environment"]),
-            "consistent": future["consistent"],
-            "result_status": future["status"],
-            "minimality_basis": "set_inclusion_over_queryable_ids",
-        }
+        return ATMSConceptInterventionPlan(
+            target=concept_id,
+            concept_id=concept_id,
+            current_status=current_status,
+            target_status=target_status,
+            queryable_ids=list(future.queryable_ids),
+            queryable_cels=list(future.queryable_cels),
+            environment=list(future.environment),
+            consistent=future.consistent,
+            result_status=future.status,
+            minimality_basis="set_inclusion_over_queryable_ids",
+        )
 
     @staticmethod
     def _next_queryables_from_plans(
@@ -2212,33 +2201,33 @@ class ATMSEngine:
         ] = defaultdict(list)
         for plan in plans:
             for queryable_id, queryable_cel in zip(
-                plan["queryable_ids"],
-                plan["queryable_cels"],
+                plan.queryable_ids,
+                plan.queryable_cels,
                 strict=True,
             ):
                 grouped[(queryable_id, queryable_cel)].append(plan)
 
         suggestions: list[ATMSNextQuerySuggestion] = []
         for (queryable_id, queryable_cel), containing_plans in grouped.items():
-            suggestions.append({
-                "queryable_id": queryable_id,
-                "queryable_cel": queryable_cel,
-                "plan_count": len(containing_plans),
-                "smallest_plan_size": min(
-                    len(plan["queryable_ids"])
+            suggestions.append(ATMSNextQuerySuggestion(
+                queryable_id=queryable_id,
+                queryable_cel=queryable_cel,
+                plan_count=len(containing_plans),
+                smallest_plan_size=min(
+                    len(plan.queryable_ids)
                     for plan in containing_plans
                 ),
-                "plan_queryable_cels": [
-                    list(plan["queryable_cels"])
+                plan_queryable_cels=[
+                    list(plan.queryable_cels)
                     for plan in containing_plans
                 ],
-                "example_plans": containing_plans[:2],
-            })
+                example_plans=containing_plans[:2],
+            ))
         suggestions.sort(
             key=lambda suggestion: (
-                suggestion["smallest_plan_size"],
-                -suggestion["plan_count"],
-                suggestion["queryable_cel"],
+                suggestion.smallest_plan_size,
+                -suggestion.plan_count,
+                suggestion.queryable_cel,
             )
         )
         if max_suggestions is not None:
@@ -2299,39 +2288,48 @@ class ATMSEngine:
         for antecedent_id in justification.antecedent_ids:
             antecedent_node = self._nodes[antecedent_id]
             if antecedent_id in seen_nodes:
-                cycle_antecedent: ATMSCycleAntecedent = {
-                    "node_id": antecedent_id,
-                    "kind": antecedent_node.kind,
-                    "cycle": True,
-                }
+                cycle_antecedent = ATMSCycleAntecedent(
+                    node_id=antecedent_id,
+                    kind=antecedent_node.kind,
+                    cycle=True,
+                )
                 antecedents.append(cycle_antecedent)
                 continue
             if antecedent_node.kind == "assumption":
-                assumption_antecedent: ATMSAssumptionAntecedent = {
-                    "node_id": antecedent_id,
-                    "kind": antecedent_node.kind,
-                    "label": self._serialize_label(self._label_or_none(antecedent_node.label)),
-                }
+                assumption_antecedent = ATMSAssumptionAntecedent(
+                    node_id=antecedent_id,
+                    kind=antecedent_node.kind,
+                    label=self._serialize_label(self._label_or_none(antecedent_node.label)),
+                )
                 antecedents.append(assumption_antecedent)
                 continue
 
             nested_seen = set(seen_nodes)
             nested_seen.add(antecedent_id)
-            nested_explanation: ATMSNestedNodeExplanation = {
-                **self._explain_node(antecedent_id, seen_nodes=nested_seen),
-                "antecedent_of": justification.consequent_ids[0],
-            }
+            nested = self._explain_node(antecedent_id, seen_nodes=nested_seen)
+            nested_explanation = ATMSNestedNodeExplanation(
+                node_id=nested.node_id,
+                claim_id=nested.claim_id,
+                kind=nested.kind,
+                status=nested.status,
+                support_quality=nested.support_quality,
+                label=nested.label,
+                essential_support=nested.essential_support,
+                reason=nested.reason,
+                traces=nested.traces,
+                antecedent_of=justification.consequent_ids[0],
+            )
             antecedents.append(nested_explanation)
 
-        return {
-            "node_id": consequent.node_id,
-            "justification_id": justification.justification_id,
-            "antecedent_ids": list(justification.antecedent_ids),
-            "consequent_id": justification.consequent_ids[0],
-            "informant": justification.informant,
-            "support": self._serialize_label(candidate),
-            "antecedents": antecedents,
-        }
+        return ATMSJustificationExplanation(
+            node_id=consequent.node_id,
+            justification_id=justification.justification_id,
+            antecedent_ids=list(justification.antecedent_ids),
+            consequent_id=justification.consequent_ids[0],
+            informant=justification.informant,
+            support=self._serialize_label(candidate),
+            antecedents=antecedents,
+        )
 
     def _explain_node(
         self,
@@ -2349,17 +2347,17 @@ class ATMSEngine:
             for justification_id in node.justification_ids
             if (trace := self._explain_justification(justification_id, seen_nodes=seen_nodes)) is not None
         ]
-        return {
-            "node_id": node_id,
-            "claim_id": inspection.claim_id,
-            "kind": node.kind,
-            "status": inspection.status,
-            "support_quality": inspection.support_quality,
-            "label": self._serialize_label(inspection.label),
-            "essential_support": self._serialize_environment_key(inspection.essential_support),
-            "reason": inspection.reason,
-            "traces": traces,
-        }
+        return ATMSNodeExplanation(
+            node_id=node_id,
+            claim_id=inspection.claim_id,
+            kind=node.kind,
+            status=inspection.status,
+            support_quality=inspection.support_quality,
+            label=self._serialize_label(inspection.label),
+            essential_support=self._serialize_environment_key(inspection.essential_support),
+            reason=inspection.reason,
+            traces=traces,
+        )
 
     @staticmethod
     def _serialize_environment_key(environment: EnvironmentKey | None) -> list[str] | None:
@@ -2377,10 +2375,10 @@ class ATMSEngine:
         ]
 
     def _serialize_nogood_detail(self, environment: EnvironmentKey) -> ATMSNogoodDetail:
-        return {
-            "environment": list(environment.assumption_ids),
-            "provenance": list(self._nogood_provenance.get(environment, ())),
-        }
+        return ATMSNogoodDetail(
+            environment=list(environment.assumption_ids),
+            provenance=list(self._nogood_provenance.get(environment, ())),
+        )
 
     @classmethod
     def _serialize_inspection(cls, inspection: ATMSInspection) -> dict[str, Any]:
@@ -2399,50 +2397,50 @@ class ATMSEngine:
     @classmethod
     def _serialize_future_report(cls, report: ATMSFutureStatusReport) -> dict[str, Any]:
         return {
-            "node_id": report["node_id"],
-            "claim_id": report["claim_id"],
-            "current": cls._serialize_inspection(report["current"]),
-            "could_become_in": report["could_become_in"],
-            "could_become_out": report["could_become_out"],
+            "node_id": report.node_id,
+            "claim_id": report.claim_id,
+            "current": cls._serialize_inspection(report.current),
+            "could_become_in": report.could_become_in,
+            "could_become_out": report.could_become_out,
             "futures": [
                 {
-                    "queryable_ids": list(future["queryable_ids"]),
-                    "queryable_cels": list(future["queryable_cels"]),
-                    "environment": list(future["environment"]),
-                    "consistent": future["consistent"],
-                    "status": future["status"].value,
-                    "out_kind": None if future["out_kind"] is None else future["out_kind"].value,
-                    "reason": future["reason"],
-                    "support_quality": future["support_quality"].value,
-                    "essential_support": list(future["essential_support"]),
+                    "queryable_ids": list(future.queryable_ids),
+                    "queryable_cels": list(future.queryable_cels),
+                    "environment": list(future.environment),
+                    "consistent": future.consistent,
+                    "status": future.status.value,
+                    "out_kind": None if future.out_kind is None else future.out_kind.value,
+                    "reason": future.reason,
+                    "support_quality": future.support_quality.value,
+                    "essential_support": list(future.essential_support),
                 }
-                for future in report["futures"]
+                for future in report.futures
             ],
             "future_in": [
-                list(future["queryable_cels"])
-                for future in report["futures"]
-                if future["status"] != ATMSNodeStatus.OUT
+                list(future.queryable_cels)
+                for future in report.futures
+                if future.status != ATMSNodeStatus.OUT
             ],
             "future_out": [
-                list(future["queryable_cels"])
-                for future in report["futures"]
-                if future["status"] == ATMSNodeStatus.OUT
+                list(future.queryable_cels)
+                for future in report.futures
+                if future.status == ATMSNodeStatus.OUT
             ],
         }
 
     @classmethod
     def _serialize_why_out(cls, report: ATMSWhyOutReport) -> dict[str, Any]:
         return {
-            "node_id": report["node_id"],
-            "claim_id": report["claim_id"],
-            "status": report["status"].value,
-            "out_kind": None if report["out_kind"] is None else report["out_kind"].value,
-            "reason": report["reason"],
-            "support_quality": report["support_quality"].value,
-            "future_activatable": report["future_activatable"],
+            "node_id": report.node_id,
+            "claim_id": report.claim_id,
+            "status": report.status.value,
+            "out_kind": None if report.out_kind is None else report.out_kind.value,
+            "reason": report.reason,
+            "support_quality": report.support_quality.value,
+            "future_activatable": report.future_activatable,
             "candidate_queryable_cels": [
                 list(queryable_set)
-                for queryable_set in report["candidate_queryable_cels"]
+                for queryable_set in report.candidate_queryable_cels
             ],
         }
 
@@ -2452,30 +2450,23 @@ class ATMSEngine:
         future: ATMSNodeFutureStatusEntry | ATMSConceptFutureStatusEntry,
     ) -> dict[str, Any]:
         result = {
-            "queryable_ids": list(future["queryable_ids"]),
-            "queryable_cels": list(future["queryable_cels"]),
-            "environment": list(future["environment"]),
-            "consistent": future["consistent"],
-            "status": (
-                future["status"].value
-                if isinstance(future["status"], (ATMSNodeStatus, ValueStatus))
-                else future["status"]
-            ),
+            "queryable_ids": list(future.queryable_ids),
+            "queryable_cels": list(future.queryable_cels),
+            "environment": list(future.environment),
+            "consistent": future.consistent,
+            "status": future.status.value,
         }
-        if "out_kind" in future:
+        if isinstance(future, ATMSNodeFutureStatusEntry):
             result["out_kind"] = (
                 None
-                if future["out_kind"] is None
-                else future["out_kind"].value
+                if future.out_kind is None
+                else future.out_kind.value
             )
-        if "reason" in future:
-            result["reason"] = future["reason"]
-        if "support_quality" in future:
-            result["support_quality"] = future["support_quality"].value
-        if "essential_support" in future:
-            result["essential_support"] = list(future["essential_support"])
-        if "supported_claim_ids" in future:
-            result["supported_claim_ids"] = list(future["supported_claim_ids"])
+            result["reason"] = future.reason
+            result["support_quality"] = future.support_quality.value
+            result["essential_support"] = list(future.essential_support)
+        else:
+            result["supported_claim_ids"] = list(future.supported_claim_ids)
         return result
 
     @staticmethod
@@ -2483,15 +2474,11 @@ class ATMSEngine:
         state: ATMSNodeRelevanceState | ATMSConceptRelevanceState,
     ) -> dict[str, Any]:
         return {
-            "queryable_ids": list(state["queryable_ids"]),
-            "queryable_cels": list(state["queryable_cels"]),
-            "environment": list(state["environment"]),
-            "consistent": state["consistent"],
-            "status": (
-                state["status"].value
-                if isinstance(state["status"], (ATMSNodeStatus, ValueStatus))
-                else state["status"]
-            ),
+            "queryable_ids": list(state.queryable_ids),
+            "queryable_cels": list(state.queryable_cels),
+            "environment": list(state.environment),
+            "consistent": state.consistent,
+            "status": state.status.value,
         }
 
     @classmethod
@@ -2500,23 +2487,23 @@ class ATMSEngine:
         report: ATMSNodeStabilityReport | ATMSConceptStabilityReport,
     ) -> dict[str, Any]:
         serialized = {
-            "stable": report["stable"],
-            "limit": report["limit"],
-            "future_count": report["future_count"],
-            "consistent_future_count": report["consistent_future_count"],
-            "inconsistent_future_count": report["inconsistent_future_count"],
+            "stable": report.stable,
+            "limit": report.limit,
+            "future_count": report.future_count,
+            "consistent_future_count": report.consistent_future_count,
+            "inconsistent_future_count": report.inconsistent_future_count,
             "witnesses": [
                 cls._serialize_future_entry(witness)
-                for witness in report["witnesses"]
+                for witness in report.witnesses
             ],
         }
-        if "node_id" in report:
-            serialized["node_id"] = report["node_id"]
-            serialized["claim_id"] = report["claim_id"]
-            serialized["current"] = cls._serialize_inspection(report["current"])
-        if "concept_id" in report:
-            serialized["concept_id"] = report["concept_id"]
-            serialized["current_status"] = report["current_status"].value
+        if isinstance(report, ATMSNodeStabilityReport):
+            serialized["node_id"] = report.node_id
+            serialized["claim_id"] = report.claim_id
+            serialized["current"] = cls._serialize_inspection(report.current)
+        else:
+            serialized["concept_id"] = report.concept_id
+            serialized["current_status"] = report.current_status.value
         return serialized
 
     @classmethod
@@ -2525,29 +2512,29 @@ class ATMSEngine:
         report: ATMSNodeRelevanceReport | ATMSConceptRelevanceReport,
     ) -> dict[str, Any]:
         serialized = {
-            "relevant_queryables": list(report["relevant_queryables"]),
-            "irrelevant_queryables": list(report["irrelevant_queryables"]),
+            "relevant_queryables": list(report.relevant_queryables),
+            "irrelevant_queryables": list(report.irrelevant_queryables),
             "witness_pairs": {
                 queryable_cel: [
                     {
-                        "queryable_id": pair["queryable_id"],
-                        "queryable_cel": pair["queryable_cel"],
-                        "without": cls._serialize_relevance_state(pair["without"]),
-                        "with": cls._serialize_relevance_state(pair["with"]),
+                        "queryable_id": pair.queryable_id,
+                        "queryable_cel": pair.queryable_cel,
+                        "without": cls._serialize_relevance_state(pair.without_state),
+                        "with": cls._serialize_relevance_state(pair.with_state),
                     }
                     for pair in pairs
                 ]
-                for queryable_cel, pairs in report["witness_pairs"].items()
+                for queryable_cel, pairs in report.witness_pairs.items()
             },
         }
-        if "node_id" in report:
-            serialized["node_id"] = report["node_id"]
-            serialized["claim_id"] = report["claim_id"]
-            serialized["current"] = cls._serialize_inspection(report["current"])
-            serialized["current_status"] = report["current_status"].value
-        if "concept_id" in report:
-            serialized["concept_id"] = report["concept_id"]
-            serialized["current_status"] = report["current_status"].value
+        if isinstance(report, ATMSNodeRelevanceReport):
+            serialized["node_id"] = report.node_id
+            serialized["claim_id"] = report.claim_id
+            serialized["current"] = cls._serialize_inspection(report.current)
+            serialized["current_status"] = report.current_status.value
+        else:
+            serialized["concept_id"] = report.concept_id
+            serialized["current_status"] = report.current_status.value
         return serialized
 
     @classmethod
@@ -2556,29 +2543,29 @@ class ATMSEngine:
         plan: ATMSNodeInterventionPlan | ATMSConceptInterventionPlan,
     ) -> dict[str, Any]:
         serialized = {
-            "target": plan["target"],
-            "queryable_ids": list(plan["queryable_ids"]),
-            "queryable_cels": list(plan["queryable_cels"]),
-            "environment": list(plan["environment"]),
-            "consistent": plan["consistent"],
-            "minimality_basis": plan["minimality_basis"],
+            "target": plan.target,
+            "queryable_ids": list(plan.queryable_ids),
+            "queryable_cels": list(plan.queryable_cels),
+            "environment": list(plan.environment),
+            "consistent": plan.consistent,
+            "minimality_basis": plan.minimality_basis,
         }
-        if "node_id" in plan:
-            serialized["node_id"] = plan["node_id"]
-            serialized["claim_id"] = plan["claim_id"]
-            serialized["current_status"] = plan["current_status"].value
-            serialized["target_status"] = plan["target_status"].value
-            serialized["result_status"] = plan["result_status"].value
+        if isinstance(plan, ATMSNodeInterventionPlan):
+            serialized["node_id"] = plan.node_id
+            serialized["claim_id"] = plan.claim_id
+            serialized["current_status"] = plan.current_status.value
+            serialized["target_status"] = plan.target_status.value
+            serialized["result_status"] = plan.result_status.value
             serialized["result_out_kind"] = (
                 None
-                if plan["result_out_kind"] is None
-                else plan["result_out_kind"].value
+                if plan.result_out_kind is None
+                else plan.result_out_kind.value
             )
-        if "concept_id" in plan:
-            serialized["concept_id"] = plan["concept_id"]
-            serialized["current_status"] = plan["current_status"].value
-            serialized["target_status"] = plan["target_status"].value
-            serialized["result_status"] = plan["result_status"].value
+        else:
+            serialized["concept_id"] = plan.concept_id
+            serialized["current_status"] = plan.current_status.value
+            serialized["target_status"] = plan.target_status.value
+            serialized["result_status"] = plan.result_status.value
         return serialized
 
     @classmethod
@@ -2587,17 +2574,17 @@ class ATMSEngine:
         suggestion: ATMSNextQuerySuggestion,
     ) -> dict[str, Any]:
         return {
-            "queryable_id": suggestion["queryable_id"],
-            "queryable_cel": suggestion["queryable_cel"],
-            "plan_count": suggestion["plan_count"],
-            "smallest_plan_size": suggestion["smallest_plan_size"],
+            "queryable_id": suggestion.queryable_id,
+            "queryable_cel": suggestion.queryable_cel,
+            "plan_count": suggestion.plan_count,
+            "smallest_plan_size": suggestion.smallest_plan_size,
             "plan_queryable_cels": [
                 list(plan_queryables)
-                for plan_queryables in suggestion["plan_queryable_cels"]
+                for plan_queryables in suggestion.plan_queryable_cels
             ],
             "example_plans": [
                 cls._serialize_intervention_plan(plan)
-                for plan in suggestion["example_plans"]
+                for plan in suggestion.example_plans
             ],
         }
 
