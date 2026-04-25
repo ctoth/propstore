@@ -22,8 +22,8 @@ class AliasExportEntry:
 
 def export_concept_aliases(repo: Repository) -> dict[str, AliasExportEntry]:
     aliases: dict[str, AliasExportEntry] = {}
-    for ref in repo.families.concepts.iter():
-        document = repo.families.concepts.require(ref)
+    for handle in repo.families.concepts.iter_handles():
+        document = handle.document
         data = parse_concept_record_document(document).to_payload()
         logical_id = primary_logical_id(data) or data.get("canonical_name", "")
         name = data.get("canonical_name", "")
