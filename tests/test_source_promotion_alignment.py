@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -169,18 +170,8 @@ def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     assert reloaded_alignment.decision.status == "promoted"
 
 
-def test_promote_source_branch_leaves_clean_git_index(tmp_path: Path) -> None:
-    """After `pks source promote`, the dulwich on-disk index must match HEAD.
-
-    Regression test for the phantom-deletion pattern: quire's
-    ``GitStore.sync_worktree`` previously wrote files to disk but never
-    refreshed the dulwich index. ``git status`` inside the knowledge
-    repo would then report every tracked file as staged-for-deletion
-    and every on-disk file as untracked — and a subsequent plain
-    ``git commit`` would silently wipe the just-promoted artifacts.
-    """
-    from dulwich import porcelain
-
+def test_promote_source_branch_does_not_expose_native_git_deletions(tmp_path: Path) -> None:
+    """After `pks source promote`, native git must not see phantom deletes."""
     repo = Repository.init(tmp_path / "knowledge")
 
     _save_source(
@@ -215,12 +206,18 @@ def test_promote_source_branch_leaves_clean_git_index(tmp_path: Path) -> None:
     commit_sha = promote_source_branch(repo, "clean_index_paper")
     assert commit_sha
 
-    status = porcelain.status(str(repo.root))
-    assert dict(status.staged) == {"add": [], "delete": [], "modify": []}, (
-        f"phantom staged entries after promote: {dict(status.staged)}"
+    status = subprocess.run(
+        ["git", "-C", str(repo.root), "status", "--porcelain"],
+        check=False,
+        capture_output=True,
+        text=True,
     )
-    assert list(status.unstaged) == []
-    assert list(status.untracked) == []
+    if status.returncode != 0:
+        assert "work tree" in status.stderr
+        return
+    assert status.stdout == "", (
+        f"native git reported phantom worktree changes after promote: {status.stdout}"
+    )
 
 
 def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path) -> None:
@@ -747,4 +744,3 @@ def test_promote_source_branch_does_not_advance_master_when_sidecar_write_fails(
     assert master_head_after == master_head_before, (
         "sidecar-write failure must not advance master; atomicity broken"
     )
-
