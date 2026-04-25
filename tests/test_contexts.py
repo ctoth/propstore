@@ -103,11 +103,19 @@ def insert_claim_row(
     conn.execute(
         """
         INSERT INTO claim_core (
-            id, content_hash, seq, type, concept_id, target_concept,
+            id, content_hash, seq, type, target_concept,
             source_paper, provenance_page, provenance_json, context_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (claim_id, "", 1, "observation", concept_id, None, "test", 1, None, context_id),
+        (claim_id, "", 1, "observation", None, "test", 1, None, context_id),
+    )
+    conn.execute(
+        """
+        INSERT INTO claim_concept_link (
+            claim_id, concept_id, role, ordinal, binding_name
+        ) VALUES (?, ?, 'output', 0, NULL)
+        """,
+        (claim_id, concept_id),
     )
     conn.execute(
         """
@@ -480,7 +488,9 @@ class TestContextCLIIntegration:
         ])
 
         assert result.exit_code == 0, result.output
-        data = yaml.safe_load((workspace / "contexts" / "ctx_test.yaml").read_text())
+        repo = Repository.find(workspace)
+        assert repo.git is not None
+        data = yaml.safe_load(repo.git.read_file("contexts/ctx_test.yaml"))
         assert data["structure"]["assumptions"] == ["framework == 'general'"]
         assert data["structure"]["parameters"] == {"domain": "speech"}
         assert data["structure"]["perspective"] == "local-model"
