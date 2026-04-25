@@ -250,8 +250,8 @@ def validate_claim_files(
     try:
         if claims_root is None:
             files = [
-                repo.families.claims.require_handle(ref)
-                for ref in repo.families.claims.iter()
+                handle
+                for handle in repo.families.claims.iter_handles()
             ]
         else:
             files = load_document_dir(claims_root, ClaimsFileDocument)
@@ -327,8 +327,8 @@ def detect_claim_conflicts(
     )
 
     files = [
-        repo.families.claims.require_handle(ref)
-        for ref in repo.families.claims.iter()
+        handle
+        for handle in repo.families.claims.iter_handles()
     ]
     if not files:
         return ClaimConflictsReport(file_count=0, conflicts=())
@@ -338,13 +338,12 @@ def detect_claim_conflicts(
     tree = repo.tree()
     contexts = [
         LoadedContext(
-            filename=ref.name,
+            filename=handle.ref.name,
             source_path=tree / handle.address.require_path(),
             knowledge_root=tree,
             record=parse_context_record_document(handle.document),
         )
-        for ref in repo.families.contexts.iter()
-        for handle in (repo.families.contexts.require_handle(ref),)
+        for handle in repo.families.contexts.iter_handles()
     ]
     lifting_system = (
         loaded_contexts_to_lifting_system(contexts)
