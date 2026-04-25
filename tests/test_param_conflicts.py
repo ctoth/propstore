@@ -66,6 +66,8 @@ def _claim_file(payloads: list[dict], filename: str = "test") -> list[ConflictCl
         normalized = dict(payload)
         if "type" not in normalized and "concept" in normalized:
             normalized["type"] = "parameter"
+        if "output_concept" not in normalized and "concept" in normalized:
+            normalized["output_concept"] = normalized.pop("concept")
         claim = conflict_claim_from_payload(normalized, source_paper=filename)
         assert claim is not None
         claims.append(claim)
