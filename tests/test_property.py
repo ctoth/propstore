@@ -117,7 +117,7 @@ def _make_parameter_claim(claim_id, concept_id, value, unit="Hz", conditions=Non
     claim = {
         "id": claim_id,
         "type": "parameter",
-        "concept": concept_id,
+        "output_concept": concept_id,
         "unit": unit,
         "conditions": conditions or [],
         "provenance": {"paper": "test", "page": 1},
