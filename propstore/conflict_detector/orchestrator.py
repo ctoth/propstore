@@ -21,7 +21,7 @@ from .parameter_claims import detect_parameter_conflicts
 from .parameterization_conflicts import _detect_parameterization_conflicts
 
 if TYPE_CHECKING:
-    from propstore.context_lifting import LiftingSystem
+    from propstore.context_lifting import LiftingRule, LiftingSystem
 
 
 def detect_conflicts(
@@ -129,7 +129,7 @@ def _expand_lifted_conflict_claims(
     if lifting_system is None or not claims:
         return list(claims)
 
-    rules_by_source: dict[str, list[object]] = defaultdict(list)
+    rules_by_source: dict[str, list[LiftingRule]] = defaultdict(list)
     for rule in lifting_system.lifting_rules:
         rules_by_source[str(rule.source.id)].append(rule)
     if not rules_by_source:
