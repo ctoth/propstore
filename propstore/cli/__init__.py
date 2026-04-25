@@ -27,6 +27,7 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
     ),
     "init": ("propstore.cli.init", "init", "Initialize a propstore knowledge repository."),
     "log": ("propstore.cli.history_cmds", "log_cmd", "Show knowledge repository history."),
+    "materialize": ("propstore.cli.materialize", "materialize_cmd", "Project committed artifacts to loose files."),
     "merge": ("propstore.cli.merge_cmds", "merge", "Merge repository branches."),
     "micropub": ("propstore.cli.micropub", "micropub", "Manage micropublications."),
     "predicate": ("propstore.cli.predicate", "predicate", "Declare DeLP/Datalog predicates."),

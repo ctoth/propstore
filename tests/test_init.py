@@ -235,6 +235,20 @@ class TestInit:
         assert all(not (root / name).exists() for name in semantic_roots)
         assert _visible_paths(root) == set()
 
+    def test_materialize_projects_seed_artifacts_to_loose_files(self, empty_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+
+        root = empty_workspace / "knowledge"
+        assert not (root / "concepts").exists()
+
+        result = runner.invoke(cli, ["-C", str(root), "materialize"])
+        assert result.exit_code == 0, result.output
+        assert (root / ".gitignore").is_file()
+        assert (root / "concepts" / "measurement.yaml").is_file()
+        assert (root / "forms" / "frequency.yaml").is_file()
+
     def test_schema_dir_not_required(self, empty_workspace: Path) -> None:
         """init should not create a schema/ directory (schema is separate)."""
         runner = CliRunner()
