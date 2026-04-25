@@ -12,7 +12,10 @@ from propstore.z3_conditions import Z3ConditionSolver, Z3TranslationError
 def _make_claims(claims: list[dict]) -> list[ConflictClaim]:
     records = []
     for payload in claims:
-        claim = conflict_claim_from_payload(payload, source_paper="test_paper")
+        normalized = dict(payload)
+        if "output_concept" not in normalized and "concept" in normalized:
+            normalized["output_concept"] = normalized.pop("concept")
+        claim = conflict_claim_from_payload(normalized, source_paper="test_paper")
         assert claim is not None
         records.append(claim)
     return records
