@@ -23,7 +23,7 @@ from propstore.claims import (
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.families.claims.passes import validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
-from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_for_repo
+from propstore.concept_ids import candidate_concept_id_for_repo, reserve_concept_id_candidate
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.families.concepts.passes import (
     ConceptPipelineContext,
@@ -1074,8 +1074,6 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
     if semantic_path.exists():
         raise ConceptMutationError(f"Concept file '{filepath}' already exists")
 
-    numeric_concept_id = next_concept_id_for_repo(repo)
-    local_handle = f"concept{numeric_concept_id}"
     data: dict[str, object] = {
         "canonical_name": request.name,
         "status": "proposed",
@@ -1100,46 +1098,55 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
     elif request.closed:
         raise ConceptMutationError("--closed is only valid with --form=category")
 
-    data = _normalize_concept_data(data, local_handle=local_handle)
-    document = _concept_document(repo, ref, data)
+    for _attempt in range(64):
+        candidate = candidate_concept_id_for_repo(repo)
+        document_data = _normalize_concept_data(
+            dict(data),
+            local_handle=f"concept{candidate.numeric_id}",
+        )
+        document = _concept_document(repo, ref, document_data)
 
-    if request.dry_run:
+        if request.dry_run:
+            return ConceptMutationReport(
+                lines=(f"Would create {filepath}", repo.families.concepts.render(document))
+            )
+
+        concepts = _loaded_concepts(repo)
+        concepts.append(
+            LoadedConcept(
+                filename=request.name,
+                source_path=semantic_path,
+                knowledge_root=repo.tree(),
+                record=parse_concept_record_document(document),
+                document=document,
+            )
+        )
+
+        result = _run_concept_validation(repo, concepts)
+        _raise_validation_failure(result)
+        warnings = tuple(_render_diagnostic(warning) for warning in result.warnings)
+
+        if not reserve_concept_id_candidate(repo, candidate):
+            continue
+
+        repo.families.concepts.save(
+            ref,
+            document,
+            message=(
+                f"Add concept: {request.name} "
+                f"({_concept_display_handle(concept_document_to_record_payload(document))})"
+            ),
+        )
         return ConceptMutationReport(
-            lines=(f"Would create {filepath}", repo.families.concepts.render(document))
+            lines=(
+                "Created "
+                f"{filepath} with logical ID "
+                f"{_concept_display_handle(concept_document_to_record_payload(document))}",
+            ),
+            warnings=warnings,
         )
 
-    concepts = _loaded_concepts(repo)
-    concepts.append(
-        LoadedConcept(
-            filename=request.name,
-            source_path=semantic_path,
-            knowledge_root=repo.tree(),
-            record=parse_concept_record_document(document),
-            document=document,
-        )
-    )
-
-    result = _run_concept_validation(repo, concepts)
-    _raise_validation_failure(result)
-    warnings = tuple(_render_diagnostic(warning) for warning in result.warnings)
-
-    repo.families.concepts.save(
-        ref,
-        document,
-        message=(
-            f"Add concept: {request.name} "
-            f"({_concept_display_handle(concept_document_to_record_payload(document))})"
-        ),
-    )
-    record_concept_id_for_repo(repo, numeric_concept_id)
-    return ConceptMutationReport(
-        lines=(
-            "Created "
-            f"{filepath} with logical ID "
-            f"{_concept_display_handle(concept_document_to_record_payload(document))}",
-        ),
-        warnings=warnings,
-    )
+    raise ConceptMutationError("could not reserve concept ID after concurrent updates")
 
 
 def add_concept_alias(
