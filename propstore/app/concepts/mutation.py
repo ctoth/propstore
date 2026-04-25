@@ -367,12 +367,12 @@ def list_concepts(
     repo: Repository,
     request: ConceptListRequest,
 ) -> ConceptListReport:
-    refs = list(repo.families.concepts.iter())
-    if not refs:
+    loaded_concepts = _loaded_concepts(repo)
+    if not loaded_concepts:
         return ConceptListReport(concepts_found=False, entries=())
 
     entries: list[ConceptListEntry] = []
-    for concept_entry in _loaded_concepts(repo):
+    for concept_entry in loaded_concepts:
         data = concept_entry.record.to_payload()
         concept_domain = str(data.get("domain", ""))
         concept_status = str(data.get("status", ""))
@@ -859,16 +859,15 @@ def _concept_display_handle(data: dict) -> str:
 
 def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | None:
     tree = repo.tree()
-    for ref in repo.families.concepts.iter():
-        handle = repo.families.concepts.require_handle(ref)
+    for handle in repo.families.concepts.iter_handles():
         concept = LoadedConcept(
-            filename=ref.name,
+            filename=handle.ref.name,
             source_path=tree / handle.address.require_path(),
             knowledge_root=tree,
             record=parse_concept_record_document(handle.document),
             document=handle.document,
         )
-        if ref.name == id_or_name:
+        if handle.ref.name == id_or_name:
             return concept
         data = concept.record.to_payload()
         if data.get("canonical_name") == id_or_name:
@@ -953,19 +952,18 @@ def _first_lexical_sense(data: dict) -> dict:
 def _form_registry(repo: Repository) -> dict[str, FormDefinition]:
     return {
         document.name: parse_form(document.name, document)
-        for form_ref in repo.families.forms.iter()
-        for document in (repo.families.forms.require(form_ref),)
+        for handle in repo.families.forms.iter_handles()
+        for document in (handle.document,)
     }
 
 
 def _loaded_concepts(repo: Repository) -> list[LoadedConcept]:
     tree = repo.tree()
     concepts: list[LoadedConcept] = []
-    for loaded_ref in repo.families.concepts.iter():
-        handle = repo.families.concepts.require_handle(loaded_ref)
+    for handle in repo.families.concepts.iter_handles():
         concepts.append(
             LoadedConcept(
-                filename=loaded_ref.name,
+                filename=handle.ref.name,
                 source_path=tree / handle.address.require_path(),
                 knowledge_root=tree,
                 record=parse_concept_record_document(handle.document),
@@ -1000,8 +998,8 @@ def _run_concept_validation(
     concepts: list[LoadedConcept],
 ) -> PipelineResult[object]:
     claim_files = [
-        repo.families.claims.require_handle(claim_ref)
-        for claim_ref in repo.families.claims.iter()
+        handle
+        for handle in repo.families.claims.iter_handles()
     ]
     return run_concept_pipeline(
         concepts,
@@ -1020,8 +1018,8 @@ def _validate_updated_concept(
     ref = _concept_ref(concept_entry)
     concepts = []
     tree = repo.tree()
-    for loaded_ref in repo.families.concepts.iter():
-        handle = repo.families.concepts.require_handle(loaded_ref)
+    for handle in repo.families.concepts.iter_handles():
+        loaded_ref = handle.ref
         if loaded_ref == ref:
             concepts.append(
                 LoadedConcept(
@@ -1160,13 +1158,14 @@ def add_concept_alias(
 
     warnings: list[str] = []
     tree = repo.tree()
-    for other_ref in repo.families.concepts.iter():
+    for handle in repo.families.concepts.iter_handles():
+        other_ref = handle.ref
         if other_ref == ref:
             continue
-        other_document = repo.families.concepts.require(other_ref)
+        other_document = handle.document
         other_entry = LoadedConcept(
             filename=other_ref.name,
-            source_path=tree / repo.families.concepts.address(other_ref).require_path(),
+            source_path=tree / handle.address.require_path(),
             knowledge_root=tree,
             record=parse_concept_record_document(other_document),
             document=other_document,
@@ -1274,8 +1273,8 @@ def rename_concept(
         )
 
     claim_files = [
-        repo.families.claims.require_handle(claim_ref)
-        for claim_ref in repo.families.claims.iter()
+        handle
+        for handle in repo.families.claims.iter_handles()
     ]
     concept_validation = _run_concept_validation(
         repo,
