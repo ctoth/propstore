@@ -53,8 +53,9 @@ def test_add_context_workflow_writes_structured_document(tmp_path) -> None:
     )
     items = list_context_items(repo)
 
+    expected_path = repo.root / repo.families.contexts.address(ContextRef("ctx_test")).require_path()
     assert report.created is True
-    assert report.filepath == repo.contexts_dir / "ctx_test.yaml"
+    assert report.filepath == expected_path
     assert report.document.structure.parameters == {"domain": "speech"}
     assert len(items) == 1
     assert items[0].context_id == "ctx_test"
@@ -133,7 +134,8 @@ def test_context_cli_add_dry_run_and_list_use_owner_reports(tmp_path) -> None:
 
     assert dry_run.exit_code == 0, dry_run.output
     assert "Would create" in dry_run.output
-    assert not (repo.contexts_dir / "ctx_dry.yaml").exists()
+    dry_path = repo.root / repo.families.contexts.address(ContextRef("ctx_dry")).require_path()
+    assert not dry_path.exists()
     assert add.exit_code == 0, add.output
     data = _read_context_file(repo, "ctx_real")
     assert data["id"] == "ctx_real"
@@ -159,7 +161,8 @@ def test_context_show_and_search_owner_reports(tmp_path) -> None:
         ContextSearchRequest(query="analyst", limit=10),
     )
 
-    assert shown.filepath == repo.contexts_dir / "ctx_real.yaml"
+    expected_path = repo.root / repo.families.contexts.address(ContextRef("ctx_real")).require_path()
+    assert shown.filepath == expected_path
     assert "description: Real context" in shown.rendered
     assert [item.context_id for item in searched] == ["ctx_real"]
 

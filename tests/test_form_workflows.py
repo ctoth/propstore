@@ -130,7 +130,8 @@ def test_form_cli_add_dry_run_list_validate_and_remove(tmp_path) -> None:
 
     assert dry_run.exit_code == 0, dry_run.output
     assert "Would create" in dry_run.output
-    assert not (repo.forms_dir / "dry_form.yaml").exists()
+    dry_path = repo.root / repo.families.forms.address(FormRef("dry_form")).require_path()
+    assert not dry_path.exists()
     assert add.exit_code == 0, add.output
     data = _read_form_file(repo, "real_form")
     assert data["dimensions"] == {"T": -1}

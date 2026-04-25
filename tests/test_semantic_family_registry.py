@@ -139,18 +139,18 @@ def test_semantic_family_owns_path_ref_and_listing_behaviour(tmp_path: Path) -> 
     assert list(repo.families.concepts.iter()) == []
 
 
-def test_repository_init_semantic_roots_match_registry(tmp_path: Path) -> None:
+def test_repository_init_does_not_materialize_semantic_roots(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     for root in semantic_init_roots():
-        assert (repo.root / root).is_dir()
+        assert not (repo.root / root).exists()
 
     initialized_semantic_roots = {
         child.name
         for child in repo.root.iterdir()
         if child.is_dir() and child.name != "sidecar"
     }
-    assert set(semantic_init_roots()) <= initialized_semantic_roots
+    assert initialized_semantic_roots == {".git"}
 
 
 def test_repository_import_module_has_no_local_semantic_root_dispatch() -> None:
