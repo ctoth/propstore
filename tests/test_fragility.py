@@ -49,6 +49,12 @@ from propstore.provenance import (
     SupportEvidence,
     SupportQuality,
 )
+from propstore.world.types import (
+    ATMSConceptFutureStatusEntry,
+    ATMSConceptStabilityReport,
+    QueryableAssumption,
+    ValueStatus,
+)
 
 
 class TestInterventionModel:
@@ -370,15 +376,27 @@ def _mock_bound_for_atms(queryable_order: list[str]) -> MagicMock:
     ]
     bound.active_claims.side_effect = lambda concept_id=None: [{"claim_id": "claim1"}] if concept_id == "c1" else []
     engine = MagicMock()
-    engine.concept_stability.return_value = {
-        "witnesses": [
-            {"queryable_cels": [queryable_order[0]]},
-            {"queryable_cels": [queryable_order[1]]},
-        ],
-        "consistent_future_count": 4,
-        "stable": False,
-        "current_status": "determined",
-    }
+    queryables = [QueryableAssumption.from_cel(cel) for cel in queryable_order]
+    engine.concept_stability.return_value = ATMSConceptStabilityReport(
+        concept_id="c1",
+        current_status=ValueStatus.DETERMINED,
+        stable=False,
+        limit=8,
+        future_count=4,
+        consistent_future_count=4,
+        inconsistent_future_count=0,
+        witnesses=tuple(
+            ATMSConceptFutureStatusEntry(
+                queryable_ids=(queryable.assumption_id,),
+                queryable_cels=(queryable.cel,),
+                environment=(queryable.assumption_id,),
+                consistent=True,
+                status=ValueStatus.DETERMINED,
+                supported_claim_ids=("claim1",),
+            )
+            for queryable in queryables
+        ),
+    )
     bound.atms_engine.return_value = engine
     bound.conflicts.return_value = []
     return bound
