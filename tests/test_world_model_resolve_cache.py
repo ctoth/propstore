@@ -40,9 +40,9 @@ def _insert_claim_row(
         """
         INSERT INTO claim_core (
             id, primary_logical_id, logical_ids_json, version_id,
-            seq, type, concept_id, target_concept,
+            seq, type, target_concept,
             source_slug, source_paper, provenance_page, provenance_json, context_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             claim_id,
@@ -51,7 +51,6 @@ def _insert_claim_row(
             f"sha256:{claim_id}",
             seq,
             "measurement",
-            None,
             None,
             "test",
             "test",
