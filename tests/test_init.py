@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import builtins
 import importlib
+import ast
+import subprocess
 import sys
 from pathlib import Path
 
@@ -22,6 +24,24 @@ def _visible_paths(root: Path) -> set[str]:
         for path in root.rglob("*")
         if ".git" not in path.relative_to(root).parts
     }
+
+
+def _assert_native_git_does_not_report_deletions(root: Path) -> None:
+    status = subprocess.run(
+        ["git", "-C", str(root), "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if status.returncode != 0:
+        error = status.stderr.lower()
+        assert "work tree" in error or "bare" in error
+        return
+    deleted = [
+        line for line in status.stdout.splitlines()
+        if len(line) >= 2 and "D" in line[:2]
+    ]
+    assert deleted == []
 
 
 @pytest.fixture()
@@ -235,6 +255,117 @@ class TestInit:
         assert all(not (root / name).exists() for name in semantic_roots)
         assert _visible_paths(root) == set()
 
+    def test_semantic_mutation_does_not_change_loose_files_until_materialize(self, empty_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+        root = empty_workspace / "knowledge"
+        before = _visible_paths(root)
+
+        result = runner.invoke(
+            cli,
+            [
+                "-C",
+                str(root),
+                "concept",
+                "add",
+                "--domain",
+                "test",
+                "--name",
+                "store_only_mutation",
+                "--definition",
+                "A mutation committed to the store only.",
+                "--form",
+                "structural",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert _visible_paths(root) == before
+        assert "concepts/store_only_mutation.yaml" in Repository.find(root).git.flat_tree_entries()
+
+        result = runner.invoke(cli, ["-C", str(root), "materialize"])
+        assert result.exit_code == 0, result.output
+        assert (root / "concepts" / "store_only_mutation.yaml").is_file()
+
+    def test_native_git_status_does_not_report_seed_deletions(self, empty_workspace: Path) -> None:
+        result = CliRunner().invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+
+        _assert_native_git_does_not_report_deletions(empty_workspace / "knowledge")
+
+    def test_native_empty_commit_cannot_destroy_seed_store(self, empty_workspace: Path) -> None:
+        result = CliRunner().invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+        root = empty_workspace / "knowledge"
+
+        status = subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if status.returncode == 0:
+            commit = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(root),
+                    "-c",
+                    "user.name=Propstore Test",
+                    "-c",
+                    "user.email=test@example.invalid",
+                    "commit",
+                    "--allow-empty",
+                    "-m",
+                    "native empty commit",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            assert commit.returncode == 0, commit.stderr
+
+        entries = Repository.find(root).git.flat_tree_entries()
+        assert "forms/frequency.yaml" in entries
+        assert "concepts/measurement.yaml" in entries
+
+    def test_materialize_clean_after_build_preserves_runtime_outputs(self, empty_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+        root = empty_workspace / "knowledge"
+
+        result = runner.invoke(cli, ["-C", str(root), "build"])
+        assert result.exit_code == 0, result.output
+        repo = Repository.find(root)
+        sidecar = repo.sidecar_path
+        hash_path = sidecar.with_suffix(".hash")
+        wal_path = sidecar.with_suffix(".sqlite-wal")
+        provenance_path = sidecar.with_suffix(".provenance")
+        assert sidecar.is_file()
+        assert hash_path.is_file()
+        sidecar_bytes = sidecar.read_bytes()
+        hash_bytes = hash_path.read_bytes()
+        wal_path.write_bytes(b"wal runtime\n")
+        provenance_path.write_bytes(b"provenance runtime\n")
+
+        stale = root / "concepts" / "stale.yaml"
+        ignored_provenance = root / "concepts" / "local.provenance"
+        stale.parent.mkdir(parents=True, exist_ok=True)
+        stale.write_bytes(b"stale\n")
+        ignored_provenance.write_bytes(b"semantic runtime\n")
+
+        result = runner.invoke(cli, ["-C", str(root), "materialize", "--clean"])
+        assert result.exit_code == 0, result.output
+
+        assert not stale.exists()
+        assert ignored_provenance.read_bytes() == b"semantic runtime\n"
+        assert sidecar.read_bytes() == sidecar_bytes
+        assert hash_path.read_bytes() == hash_bytes
+        assert wal_path.read_bytes() == b"wal runtime\n"
+        assert provenance_path.read_bytes() == b"provenance runtime\n"
+
     def test_materialize_projects_seed_artifacts_to_loose_files(self, empty_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
@@ -259,3 +390,33 @@ class TestInit:
         root = empty_workspace / "knowledge"
         # Just verify init doesn't crash; schema/ is optional
         assert not (root / "schema").exists()
+
+
+def test_ordinary_app_workflow_modules_do_not_sync_or_materialize_loose_files() -> None:
+    root = Path(__file__).parent.parent
+    module_paths = [
+        path
+        for path in (root / "propstore" / "app").rglob("*.py")
+        if path.name != "materialize.py"
+    ]
+    module_paths.extend(
+        [
+            root / "propstore" / "predicate_workflows.py",
+            root / "propstore" / "rule_workflows.py",
+            root / "propstore" / "proposals.py",
+        ]
+    )
+    violations: list[str] = []
+    for path in module_paths:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                func = node.func
+                if isinstance(func, ast.Attribute) and func.attr == "sync_worktree":
+                    violations.append(f"{path.relative_to(root)}:{node.lineno}: sync_worktree")
+                if isinstance(func, ast.Name) and func.id == "sync_worktree":
+                    violations.append(f"{path.relative_to(root)}:{node.lineno}: sync_worktree")
+            if isinstance(node, ast.ImportFrom) and node.module == "propstore.app.materialize":
+                violations.append(f"{path.relative_to(root)}:{node.lineno}: propstore.app.materialize")
+
+    assert violations == []
