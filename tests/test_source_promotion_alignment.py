@@ -269,7 +269,7 @@ def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path
     )
 
     assert canonical_source.metadata is not None
-    assert claims_file.claims[0].concept == derive_concept_artifact_id("propstore", "gravity")
+    assert claims_file.claims[0].output_concept == derive_concept_artifact_id("propstore", "gravity")
     assert concept_file.artifact_id == derive_concept_artifact_id("propstore", "gravity")
 
 
@@ -692,10 +692,9 @@ def test_promote_source_branch_unicode_name_writes_single_branch_matching_stem(
     assert branch.startswith("source/"), branch
     branch_stem = branch[len("source/"):]
 
-    claims_dir = repo.root / "claims"
-    promoted_files = sorted(p.name for p in claims_dir.glob("*.yaml"))
-    assert promoted_files == [f"{branch_stem}.yaml"], (
-        f"expected single claim file {branch_stem}.yaml; got {promoted_files}"
+    promoted_claim_refs = sorted(ref.name for ref in repo.families.claims.iter())
+    assert promoted_claim_refs == [branch_stem], (
+        f"expected single claim artifact {branch_stem}; got {promoted_claim_refs}"
     )
 
 
@@ -748,5 +747,4 @@ def test_promote_source_branch_does_not_advance_master_when_sidecar_write_fails(
     assert master_head_after == master_head_before, (
         "sidecar-write failure must not advance master; atomicity broken"
     )
-
 
