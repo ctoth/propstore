@@ -32,27 +32,21 @@ def load_grounding_inputs(
     tree = repo.tree(commit=commit)
     predicate_files = tuple(
         LoadedPredicateFile(
-            filename=ref.name,
+            filename=handle.ref.name,
             source_path=tree / handle.address.require_path(),
             knowledge_root=tree,
             document=handle.document,
         )
-        for ref in repo.families.predicates.iter(commit=commit)
-        for handle in (
-            repo.families.predicates.require_handle(ref, commit=commit),
-        )
+        for handle in repo.families.predicates.iter_handles(commit=commit)
     )
     rule_files: tuple[LoadedRuleFile, ...] = tuple(
         LoadedRuleFile(
-            filename=ref.name,
+            filename=handle.ref.name,
             source_path=tree / handle.address.require_path(),
             knowledge_root=tree,
             document=handle.document,
         )
-        for ref in repo.families.rules.iter(commit=commit)
-        for handle in (
-            repo.families.rules.require_handle(ref, commit=commit),
-        )
+        for handle in repo.families.rules.iter_handles(commit=commit)
     )
 
     if not predicate_files:
@@ -61,16 +55,13 @@ def load_grounding_inputs(
     registry = PredicateRegistry.from_files(predicate_files)
     concepts = [
         LoadedConcept(
-            filename=ref.name,
+            filename=handle.ref.name,
             source_path=tree / handle.address.require_path(),
             knowledge_root=tree,
             record=parse_concept_record_document(handle.document),
             document=handle.document,
         )
-        for ref in repo.families.concepts.iter(commit=commit)
-        for handle in (
-            repo.families.concepts.require_handle(ref, commit=commit),
-        )
+        for handle in repo.families.concepts.iter_handles(commit=commit)
     ]
     facts = extract_facts(concepts, registry)
     return GroundingInputs(
