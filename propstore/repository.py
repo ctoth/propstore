@@ -15,6 +15,7 @@ from propstore.uri import DEFAULT_URI_AUTHORITY
 
 PROPSTORE_BOOTSTRAP_REF = RefName("refs/propstore/bootstrap")
 PROPSTORE_REPOSITORY_FORMAT_VERSION = "2026.04.store-only-init"
+REPOSITORY_CONFIG_PATH = "propstore.yaml"
 
 
 class RepositoryNotFound(Exception):
@@ -47,18 +48,18 @@ class Repository:
     def sidecar_path(self) -> Path:
         return self._root / "sidecar" / "propstore.sqlite"
 
-    @property
-    def config_path(self) -> Path:
-        return self._root / "propstore.yaml"
-
     @cached_property
     def config(self) -> dict:
-        if not self.config_path.exists():
+        if self.git is None:
+            return {}
+        try:
+            payload = self.git.read_file(REPOSITORY_CONFIG_PATH)
+        except FileNotFoundError:
             return {}
         loaded = decode_document_bytes(
-            self.config_path.read_bytes(),
+            payload,
             RepositoryConfigDocument,
-            source=str(self.config_path),
+            source=REPOSITORY_CONFIG_PATH,
         )
         config: dict[str, str] = {}
         if loaded.uri_authority is not None:
