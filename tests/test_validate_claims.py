@@ -1228,38 +1228,29 @@ class TestFormAwareUnitValidation:
     """Tests for form-definition-based unit validation on claims."""
 
     def _make_registry_with_forms(self, tmp_path):
-        """Build a concept registry with form definitions available on disk."""
+        """Build a concept registry with form definitions committed to the store."""
         from propstore.repository import Repository
         from propstore.compiler.context import build_compilation_context_from_repo
 
         knowledge = tmp_path / "knowledge"
         repo = Repository.init(knowledge)
-        # Create forms directory with real form definitions
-        forms_dir = knowledge / "forms"
 
         import yaml as _yaml
-        _yaml.dump({"name": "frequency", "dimensionless": False, "unit_symbol": "Hz",
-                     "dimensions": {"T": -1}},
-                    (forms_dir / "frequency.yaml").open("w"))
-        _yaml.dump({"name": "pressure", "dimensionless": False, "unit_symbol": "Pa",
-                     "dimensions": {"M": 1, "L": -1, "T": -2},
-                     "common_alternatives": [{"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}]},
-                    (forms_dir / "pressure.yaml").open("w"))
-        _yaml.dump({"name": "duration_ratio", "dimensionless": True, "base": "ratio",
-                     "dimensions": {},
-                     "parameters": {"numerator": "duration", "denominator": "duration"}},
-                    (forms_dir / "duration_ratio.yaml").open("w"))
-        _yaml.dump({"name": "level", "dimensionless": True, "unit_symbol": "dB",
-                     "dimensions": {},
-                     "parameters": {"scale": "dB", "reference": None}},
-                    (forms_dir / "level.yaml").open("w"))
-        _yaml.dump({"name": "category", "dimensionless": True, "parameters": {"values": [], "extensible": False}},
-                    (forms_dir / "category.yaml").open("w"))
+        forms = {
+            "forms/frequency.yaml": {"name": "frequency", "dimensionless": False, "unit_symbol": "Hz",
+                                      "dimensions": {"T": -1}},
+            "forms/pressure.yaml": {"name": "pressure", "dimensionless": False, "unit_symbol": "Pa",
+                                     "dimensions": {"M": 1, "L": -1, "T": -2},
+                                     "common_alternatives": [{"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}]},
+            "forms/duration_ratio.yaml": {"name": "duration_ratio", "dimensionless": True, "base": "ratio",
+                                           "dimensions": {},
+                                           "parameters": {"numerator": "duration", "denominator": "duration"}},
+            "forms/level.yaml": {"name": "level", "dimensionless": True, "unit_symbol": "dB",
+                                  "dimensions": {},
+                                  "parameters": {"scale": "dB", "reference": None}},
+            "forms/category.yaml": {"name": "category", "dimensionless": True, "parameters": {"values": [], "extensible": False}},
+        }
 
-        # Create concepts directory
-        concepts_dir = knowledge / "concepts"
-
-        # Write concept files
         concept_payloads = normalize_concept_payloads(
             [
                 {"id": "concept1", "canonical_name": "fundamental_frequency",
@@ -1276,24 +1267,20 @@ class TestFormAwareUnitValidation:
             ],
             default_domain="speech",
         )
-        for cdata in concept_payloads:
-            canonical_form = cdata["lexical_entry"]["canonical_form"]
-            concept_slug = canonical_form["written_rep"]
-            (concepts_dir / f"{concept_slug}.yaml").write_text(
-                _yaml.dump(cdata, default_flow_style=False))
-
         adds = {
-            relpath.relative_to(knowledge).as_posix(): relpath.read_bytes()
-            for relpath in sorted(forms_dir.glob("*.yaml"))
+            relpath: _yaml.dump(payload, default_flow_style=False).encode("utf-8")
+            for relpath, payload in forms.items()
         }
         adds.update(
             {
-                relpath.relative_to(knowledge).as_posix(): relpath.read_bytes()
-                for relpath in sorted(concepts_dir.glob("*.yaml"))
+                f"concepts/{cdata['lexical_entry']['canonical_form']['written_rep']}.yaml": _yaml.dump(
+                    cdata,
+                    default_flow_style=False,
+                ).encode("utf-8")
+                for cdata in concept_payloads
             }
         )
         repo.git.commit_files(adds, "Seed form-aware validation fixture")
-        repo.git.sync_worktree()
         return build_compilation_context_from_repo(repo)
 
     def test_parameter_claim_hz_on_frequency_concept_validates(self, claims_dir, tmp_path):
