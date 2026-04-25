@@ -44,14 +44,22 @@ def _concept_payload(
     return normalize_concept_payloads([payload])[0]
 
 
+def _packaged_form_files() -> dict[str, bytes]:
+    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    return {
+        f"forms/{form_path.name}": form_path.read_bytes()
+        for form_path in sorted(package_forms.glob("*.yaml"))
+    }
+
+
 # ── GitStore lifecycle ─────────────────────────────────────────
 
 
 def test_init_creates_repo(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     assert (tmp_path / "knowledge" / ".git").is_dir()
-    assert (tmp_path / "knowledge" / ".gitignore").exists()
-    gitignore = (tmp_path / "knowledge" / ".gitignore").read_text()
+    assert not (tmp_path / "knowledge" / ".gitignore").exists()
+    gitignore = kr.read_file(".gitignore").decode("utf-8")
     assert "sidecar/" in gitignore
     assert "*.sqlite" in gitignore
 
@@ -1052,7 +1060,6 @@ def test_build_rebuilds_on_new_commit(tmp_path):
 
 def test_concept_add_creates_commit(tmp_path):
     """pks concept add against a git-backed workspace creates a commit."""
-    import shutil
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
@@ -1060,19 +1067,8 @@ def test_concept_add_creates_commit(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
 
-    # Seed forms so validation passes
-    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
-    for f in package_forms.glob("*.yaml"):
-        shutil.copy2(f, repo.forms_dir / f.name)
-
-    # Commit forms into git so they're available
     git = repo.git
-    form_files = {}
-    for f in sorted(repo.forms_dir.glob("*.yaml")):
-        rel = f.relative_to(repo.root).as_posix()
-        form_files[rel] = f.read_bytes()
-    git.commit_files(form_files, "Seed forms")
-    git.sync_worktree()
+    git.commit_files(_packaged_form_files(), "Seed forms")
 
     runner = CliRunner()
     result = runner.invoke(cli, [
@@ -1102,7 +1098,6 @@ def test_concept_add_creates_commit(tmp_path):
 
 def test_concept_rename_atomic(tmp_path):
     """Renaming a concept produces one commit with old file gone, new present."""
-    import shutil
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
@@ -1110,18 +1105,8 @@ def test_concept_rename_atomic(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
 
-    # Seed forms
-    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
-    for f in package_forms.glob("*.yaml"):
-        shutil.copy2(f, repo.forms_dir / f.name)
-
     git = repo.git
-    form_files = {}
-    for f in sorted(repo.forms_dir.glob("*.yaml")):
-        rel = f.relative_to(repo.root).as_posix()
-        form_files[rel] = f.read_bytes()
-    git.commit_files(form_files, "Seed forms")
-    git.sync_worktree()
+    git.commit_files(_packaged_form_files(), "Seed forms")
 
     # Add a concept first
     runner = CliRunner()
@@ -1252,6 +1237,7 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
+    repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
     sqlite3.connect(repo.sidecar_path).close()
 
     monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn: None)
@@ -1459,7 +1445,6 @@ def test_show_missing_commit_returns_validation_error(tmp_path):
 
 def test_checkout_builds_from_historical(tmp_path):
     """pks checkout <v1_sha> builds sidecar from v1 data."""
-    import shutil
     import sqlite3
     from click.testing import CliRunner
     from propstore.cli import cli
@@ -1468,17 +1453,8 @@ def test_checkout_builds_from_historical(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
 
-    # Seed forms so build works
-    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
-    for f in package_forms.glob("*.yaml"):
-        shutil.copy2(f, repo.forms_dir / f.name)
-
     git = repo.git
-    form_files = {}
-    for f in sorted(repo.forms_dir.glob("*.yaml")):
-        rel = f.relative_to(repo.root).as_posix()
-        form_files[rel] = f.read_bytes()
-    git.commit_files(form_files, "Seed forms")
+    git.commit_files(_packaged_form_files(), "Seed forms")
 
     # v1: one concept
     v1_concept = yaml.dump(
@@ -1504,7 +1480,6 @@ def test_checkout_builds_from_historical(tmp_path):
         )
     ).encode()
     git.commit_files({"concepts/test_bool_v2.yaml": v2_concept}, "v2 concept")
-    git.sync_worktree()
 
     # Checkout v1
     runner = CliRunner()
