@@ -67,7 +67,7 @@ class _ATMSStore:
         micropublications: list[dict] | None = None,
         solver=None,
     ) -> None:
-        self._claims = list(claims)
+        self._claims = [_normalize_test_claim(claim) for claim in claims]
         self._parameterizations = list(parameterizations or [])
         self._conflicts = list(conflicts or [])
         self._micropublications = list(micropublications or [])
@@ -76,7 +76,11 @@ class _ATMSStore:
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim.get("concept_id") == concept_id]
+        return [
+            claim
+            for claim in self._claims
+            if _test_claim_value_concept_id(claim) == concept_id
+        ]
 
     def parameterizations_for(self, concept_id: str) -> list[dict]:
         return [
@@ -116,12 +120,38 @@ class _ATMSStore:
 
     def resolve_concept(self, name: str) -> str | None:
         for claim in self._claims:
-            if claim.get("concept_id") == name:
+            if _test_claim_value_concept_id(claim) == name:
                 return name
         return name if name.startswith("concept") else None
 
     def get_concept(self, concept_id: str) -> dict | None:
         return {"id": concept_id, "canonical_name": concept_id}
+
+
+def _normalize_test_claim(claim: dict) -> dict:
+    normalized = dict(claim)
+    concept_id = normalized.pop("concept_id", None)
+    if concept_id is not None and "concept_links" not in normalized:
+        normalized["concept_links"] = [
+            {
+                "claim_id": normalized["id"],
+                "concept_id": concept_id,
+                "role": "output",
+                "ordinal": 0,
+            }
+        ]
+    return normalized
+
+
+def _test_claim_value_concept_id(claim: dict) -> str | None:
+    for link in claim.get("concept_links") or ():
+        if not isinstance(link, dict):
+            continue
+        if link.get("role") == "output":
+            concept_id = link.get("concept_id")
+            return None if concept_id is None else str(concept_id)
+    target = claim.get("target_concept")
+    return None if target is None else str(target)
 
 
 def _runtime_claim_id_set(claims) -> set[str]:
@@ -181,11 +211,19 @@ class _GraphOnlyATMSRuntime:
     def _claim_node_to_claim(claim_node) -> ActiveClaim:
         row = {
             "id": claim_node.claim_id,
-            "concept_id": claim_node.concept_id,
             "type": claim_node.claim_type,
             "value": claim_node.scalar_value,
             **dict(claim_node.attributes),
         }
+        if claim_node.value_concept_id is not None:
+            row["concept_links"] = [
+                {
+                    "claim_id": claim_node.claim_id,
+                    "concept_id": claim_node.value_concept_id,
+                    "role": "output",
+                    "ordinal": 0,
+                }
+            ]
         return coerce_active_claim(row)
 
     def is_parameterization_compatible(self, conditions: tuple[str, ...]) -> bool:
