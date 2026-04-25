@@ -11,6 +11,17 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.repository import Repository
+
+
+def _visible_paths(root: Path) -> set[str]:
+    if not root.exists():
+        return set()
+    return {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if ".git" not in path.relative_to(root).parts
+    }
 
 
 @pytest.fixture()
@@ -58,19 +69,20 @@ class TestInit:
         assert propstore.RenderPolicy.__name__ == "RenderPolicy"
         assert propstore.WorldModel.__name__ == "WorldModel"
 
-    def test_creates_default_structure(self, empty_workspace: Path) -> None:
+    def test_init_creates_store_only_repository(self, empty_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
         assert "Initialized" in result.output
 
         root = empty_workspace / "knowledge"
-        assert (root / "concepts").is_dir()
-        assert (root / "concepts" / ".counters").is_dir()
-        assert (root / "claims").is_dir()
-        assert (root / "predicates").is_dir()
-        assert (root / "rules").is_dir()
-        assert (root / "sidecar").is_dir()
+        assert (root / ".git").is_dir()
+        assert not (root / "concepts").exists()
+        assert not (root / "forms").exists()
+        assert not (root / "claims").exists()
+        assert "concepts/measurement.yaml" in Repository.find(root).git.flat_tree_entries()
+        assert "forms/frequency.yaml" in Repository.find(root).git.flat_tree_entries()
+        assert _visible_paths(root) == set()
 
     def test_creates_at_custom_path(self, empty_workspace: Path) -> None:
         runner = CliRunner()
@@ -79,12 +91,9 @@ class TestInit:
         assert "myproject" in result.output
 
         root = empty_workspace / "myproject"
-        assert (root / "concepts").is_dir()
-        assert (root / "concepts" / ".counters").is_dir()
-        assert (root / "claims").is_dir()
-        assert (root / "predicates").is_dir()
-        assert (root / "rules").is_dir()
-        assert (root / "sidecar").is_dir()
+        assert (root / ".git").is_dir()
+        assert not (root / "concepts").exists()
+        assert "concepts/measurement.yaml" in Repository.find(root).git.flat_tree_entries()
 
     def test_already_initialized(self, empty_workspace: Path) -> None:
         runner = CliRunner()
@@ -108,12 +117,12 @@ class TestInit:
         result = runner.invoke(cli, ["validate"])
         assert result.exit_code == 0, result.output
 
-    def test_init_seeds_phase3_description_kind_concepts(self, empty_workspace: Path) -> None:
+    def test_init_seeds_phase3_description_kind_concepts_in_store(self, empty_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
 
-        concepts_dir = empty_workspace / "knowledge" / "concepts"
+        repo = Repository.find(empty_workspace / "knowledge")
         required = {
             "observation",
             "measurement",
@@ -121,32 +130,36 @@ class TestInit:
             "decision",
             "reaction",
         }
-        seeded = {path.stem for path in concepts_dir.glob("*.yaml")}
+        seeded = {
+            Path(path).stem
+            for path in repo.git.flat_tree_entries()
+            if path.startswith("concepts/") and path.endswith(".yaml")
+        }
         assert required <= seeded
 
         for name in required:
-            data = yaml.safe_load((concepts_dir / f"{name}.yaml").read_text())
+            data = yaml.safe_load(repo.git.read_file(f"concepts/{name}.yaml"))
             sense = data["lexical_entry"]["senses"][0]
             description_kind = sense["description_kind"]
             assert description_kind["reference"]["uri"] == data["artifact_id"]
             assert description_kind["slots"], f"{name} has no participant slots"
             assert all("type_constraint" in slot for slot in description_kind["slots"])
 
-    def test_init_seeds_qualia_and_causal_connection_examples(self, empty_workspace: Path) -> None:
+    def test_init_seeds_qualia_and_causal_connection_examples_in_store(self, empty_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
 
-        concepts_dir = empty_workspace / "knowledge" / "concepts"
-        instrument = yaml.safe_load((concepts_dir / "measurement_instrument.yaml").read_text())
-        measurement = yaml.safe_load((concepts_dir / "measurement.yaml").read_text())
+        repo = Repository.find(empty_workspace / "knowledge")
+        instrument = yaml.safe_load(repo.git.read_file("concepts/measurement_instrument.yaml"))
+        measurement = yaml.safe_load(repo.git.read_file("concepts/measurement.yaml"))
         instrument_sense = instrument["lexical_entry"]["senses"][0]
         telic = instrument_sense["qualia"]["telic"][0]
         assert telic["reference"]["uri"] == measurement["artifact_id"]
         assert telic["type_constraint"]["reference"]["uri"] == measurement["artifact_id"]
         assert telic["provenance"]["status"] == "stated"
 
-        causal = yaml.safe_load((concepts_dir / "causal_connection.yaml").read_text())
+        causal = yaml.safe_load(repo.git.read_file("concepts/causal_connection.yaml"))
         causal_kind = causal["lexical_entry"]["senses"][0]["description_kind"]
         slot_names = {slot["name"] for slot in causal_kind["slots"]}
         assert {"cause-description", "effect-description", "account"} <= slot_names
@@ -161,8 +174,9 @@ class TestInit:
         assert result.exit_code == 0, result.output
 
         root = subdir / "knowledge"
-        assert (root / "concepts").is_dir()
-        assert (root / "claims").is_dir()
+        assert (root / ".git").is_dir()
+        assert not (root / "concepts").exists()
+        assert "forms/frequency.yaml" in Repository.find(root).git.flat_tree_entries()
 
     def test_init_directory_flag_accepts_new_path(self, empty_workspace: Path) -> None:
         """pks -C NEW init NEW should let init create the selected tree."""
@@ -171,48 +185,55 @@ class TestInit:
         result = CliRunner().invoke(cli, ["-C", str(root), "init", "new_knowledge"])
 
         assert result.exit_code == 0, result.output
-        assert (root / "new_knowledge" / "concepts").is_dir()
-        assert (root / "new_knowledge" / "claims").is_dir()
+        repo_root = root / "new_knowledge"
+        assert (repo_root / ".git").is_dir()
+        assert not (repo_root / "concepts").exists()
+        assert "forms/frequency.yaml" in Repository.find(repo_root).git.flat_tree_entries()
 
-    def test_form_files_are_valid_yaml(self, empty_workspace: Path) -> None:
+    def test_seed_form_blobs_are_valid_yaml(self, empty_workspace: Path) -> None:
         """Generated form files should be valid YAML with at least a 'name' field."""
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
 
-        forms_dir = empty_workspace / "knowledge" / "forms"
-        assert forms_dir.is_dir()
+        repo = Repository.find(empty_workspace / "knowledge")
+        form_paths = [
+            path
+            for path in repo.git.flat_tree_entries()
+            if path.startswith("forms/") and path.endswith(".yaml")
+        ]
+        assert len(form_paths) > 0, "No form files generated"
 
-        form_files = list(forms_dir.glob("*.yaml"))
-        assert len(form_files) > 0, "No form files generated"
-
-        for form_file in form_files:
-            data = yaml.safe_load(form_file.read_text())
-            assert isinstance(data, dict), f"{form_file.name} is not a YAML mapping"
-            assert "name" in data, f"{form_file.name} missing 'name' field"
-            assert data["name"] == form_file.stem, (
-                f"{form_file.name}: name field '{data['name']}' != stem '{form_file.stem}'"
+        for form_path in form_paths:
+            data = yaml.safe_load(repo.git.read_file(form_path))
+            stem = Path(form_path).stem
+            assert isinstance(data, dict), f"{form_path} is not a YAML mapping"
+            assert "name" in data, f"{form_path} missing 'name' field"
+            assert data["name"] == stem, (
+                f"{form_path}: name field '{data['name']}' != stem '{stem}'"
             )
 
-    def test_directory_structure_complete(self, empty_workspace: Path) -> None:
-        """init should create the full reasoning-capable knowledge tree."""
+    def test_init_does_not_materialize_semantic_directory_structure(self, empty_workspace: Path) -> None:
+        """init should create the store, not a materialized knowledge tree."""
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
 
         root = empty_workspace / "knowledge"
-        assert (root / "concepts").is_dir()
-        assert (root / "concepts" / ".counters").is_dir()
-        assert (root / "claims").is_dir()
-        assert (root / "contexts").is_dir()
-        assert (root / "forms").is_dir()
-        assert (root / "justifications").is_dir()
-        assert (root / "predicates").is_dir()
-        assert (root / "rules").is_dir()
-        assert (root / "sidecar").is_dir()
-        assert (root / "sources").is_dir()
-        assert (root / "stances").is_dir()
-        assert (root / "worldlines").is_dir()
+        semantic_roots = {
+            "claims",
+            "concepts",
+            "contexts",
+            "forms",
+            "justifications",
+            "predicates",
+            "rules",
+            "sources",
+            "stances",
+            "worldlines",
+        }
+        assert all(not (root / name).exists() for name in semantic_roots)
+        assert _visible_paths(root) == set()
 
     def test_schema_dir_not_required(self, empty_workspace: Path) -> None:
         """init should not create a schema/ directory (schema is separate)."""
@@ -223,4 +244,4 @@ class TestInit:
         # schema/ is NOT part of the init structure
         root = empty_workspace / "knowledge"
         # Just verify init doesn't crash; schema/ is optional
-        assert (root / "concepts").is_dir()
+        assert not (root / "schema").exists()
