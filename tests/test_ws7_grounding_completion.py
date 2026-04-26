@@ -76,6 +76,7 @@ def _ws7_claim_file():
                     "type": "observation",
                     "concepts": ["concept:bird", "concept:flight"],
                     "statement": "Tweety usually flies.",
+                    "context": {"id": "ctx-field"},
                     "provenance": {
                         "paper": "Diller_2025_GroundingRuleBasedArgumentationDatalog",
                         "page": 8,
