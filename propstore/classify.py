@@ -20,7 +20,8 @@ import json
 import logging
 from dataclasses import dataclass
 
-from propstore.calibrate import categorical_to_opinion
+from propstore.calibrate import CategoryPriorRegistry, categorical_to_opinion
+from propstore.core.base_rates import BaseRateUnresolved
 from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.stances import VALID_STANCE_TYPES, StanceType
@@ -148,6 +149,13 @@ def classify_stance_from_llm_output(raw: dict) -> ClassifiedStance:
                 conditions_differ=raw.get("conditions_differ"),
             )
         opinion = categorical_to_opinion(str(strength), 1)
+        if isinstance(opinion, BaseRateUnresolved):
+            return ClassifiedStance(
+                stance_type=StanceType.ABSTAIN,
+                opinion=_vacuous_classifier_opinion("stance_classification_missing_base_rate"),
+                note=str(raw.get("note", "")),
+                conditions_differ=raw.get("conditions_differ"),
+            )
     return ClassifiedStance(
         stance_type=stance_type,
         opinion=opinion,
@@ -238,6 +246,15 @@ def _opinion_payload(opinion: Opinion | None) -> dict | None:
     }
 
 
+def _unresolved_payload(unresolved: BaseRateUnresolved | None) -> dict | None:
+    if unresolved is None:
+        return None
+    return {
+        "reason": unresolved.reason,
+        "missing_fields": list(unresolved.missing_fields),
+    }
+
+
 def _build_stance_dict(
     raw: dict,
     target_id: str,
@@ -246,6 +263,7 @@ def _build_stance_dict(
     embedding_distance: float | None,
     reference_distances: list[float] | None,
     calibration_counts: dict[tuple[int, str], tuple[int, int]] | None,
+    category_prior_registry: CategoryPriorRegistry | None,
 ) -> dict:
     """Build a single stance dict from raw LLM output for one direction."""
     stance_type = raw.get("type", "none")
@@ -253,17 +271,28 @@ def _build_stance_dict(
         stance_type = "none"
 
     strength = raw.get("strength", "moderate")
+    unresolved: BaseRateUnresolved | None = None
     if stance_type != "none":
-        opinion = categorical_to_opinion(strength, 1, calibration_counts=calibration_counts)
+        category_opinion = categorical_to_opinion(
+            strength,
+            1,
+            calibration_counts=calibration_counts,
+            prior_registry=category_prior_registry,
+        )
+        if isinstance(category_opinion, BaseRateUnresolved):
+            opinion = None
+            unresolved = category_opinion
+        else:
+            opinion = category_opinion
 
-        if reference_distances is not None and embedding_distance is not None and len(reference_distances) > 0:
+        if opinion is not None and reference_distances is not None and embedding_distance is not None and len(reference_distances) > 0:
             from propstore.calibrate import CorpusCalibrator
             from propstore.opinion import fuse
             corpus_cal = CorpusCalibrator(reference_distances)
             corpus_opinion = corpus_cal.to_opinion(embedding_distance)
             opinion = fuse(opinion, corpus_opinion)
 
-        confidence = opinion.expectation()
+        confidence = 0.0 if opinion is None else opinion.expectation()
     else:
         confidence = 0.0
         opinion = None
@@ -275,6 +304,7 @@ def _build_stance_dict(
         "embedding_distance": embedding_distance,
         "confidence": confidence,
         "opinion": _opinion_payload(opinion),
+        "unresolved_calibration": _unresolved_payload(unresolved),
     }
 
     return {
@@ -300,6 +330,7 @@ async def classify_stance_async(
     enrichment_threshold: float = _ENRICHMENT_THRESHOLD_DEFAULT,
     reference_distances: list[float] | None = None,
     calibration_counts: dict[tuple[int, str], tuple[int, int]] | None = None,
+    category_prior_registry: CategoryPriorRegistry | None = None,
 ) -> list[dict]:
     """Classify epistemic relationship between two claims in both directions.
 
@@ -356,11 +387,11 @@ async def classify_stance_async(
 
     forward = _build_stance_dict(
         forward_raw, claim_b["id"], model_name, embedding_model, embedding_distance,
-        reference_distances, calibration_counts,
+        reference_distances, calibration_counts, category_prior_registry,
     )
     reverse = _build_stance_dict(
         reverse_raw, claim_a["id"], model_name, embedding_model, embedding_distance,
-        reference_distances, calibration_counts,
+        reference_distances, calibration_counts, category_prior_registry,
     )
 
     return [forward, reverse]

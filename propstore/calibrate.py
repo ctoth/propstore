@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
 
+from propstore.core.base_rates import BaseRateUnresolved
+from propstore.core.id_types import AssertionId
 from propstore.opinion import Opinion, from_evidence, from_probability
 from propstore.provenance import (
     Provenance,
@@ -364,7 +366,7 @@ def categorical_to_opinion(
     calibration_counts: dict[tuple[int, str], tuple[int, int]] | None = None,
     prior: CategoryPrior | None = None,
     prior_registry: CategoryPriorRegistry | None = None,
-) -> Opinion:
+) -> Opinion | BaseRateUnresolved:
     """Convert categorical LLM output to opinion.
 
     Without calibration data (calibration_counts=None), returns vacuous
@@ -387,8 +389,8 @@ def categorical_to_opinion(
             from a validation set of human-judged stances.
 
     Returns:
-        Opinion with an explicit or vacuous base rate. Without a supplied
-        CategoryPrior, the base rate is the binary-frame ignorance value 0.5.
+        Opinion with an explicit base rate, or BaseRateUnresolved when no
+        sourced CategoryPrior is supplied.
     """
     cat = _validate_category(category)
     resolved_prior = _resolve_prior(
@@ -396,12 +398,14 @@ def categorical_to_opinion(
         prior=prior,
         prior_registry=prior_registry,
     )
-    base_rate = 0.5 if resolved_prior is None else resolved_prior.value
-    prior_provenance = (
-        _provenance(ProvenanceStatus.VACUOUS, "no_category_prior_supplied")
-        if resolved_prior is None
-        else resolved_prior.provenance
-    )
+    if resolved_prior is None:
+        return BaseRateUnresolved(
+            AssertionId(f"ps:assertion:category_prior:{cat}:pass:{pass_number}"),
+            "missing_base_rate",
+            ("category_prior",),
+        )
+    base_rate = resolved_prior.value
+    prior_provenance = resolved_prior.provenance
 
     if calibration_counts is None:
         return Opinion.vacuous(a=base_rate, provenance=prior_provenance)

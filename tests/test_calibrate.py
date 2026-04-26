@@ -8,14 +8,31 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.calibrate import (
+    CalibrationSource,
     CorpusCalibrator,
+    CategoryPrior,
     TemperatureScaler,
     calibrated_probability_to_opinion,
     categorical_to_opinion,
     expected_calibration_error,
 )
+from propstore.core.base_rates import BaseRateUnresolved
 from propstore.opinion import Opinion
+from propstore.provenance import Provenance, ProvenanceStatus
 from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
+
+
+def _category_prior(category: str, value: float = 0.5) -> CategoryPrior:
+    return CategoryPrior(
+        category=category,
+        value=value,
+        source=CalibrationSource.MEASURED,
+        provenance=Provenance(
+            status=ProvenanceStatus.CALIBRATED,
+            witnesses=(),
+            operations=("test_category_prior",),
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -137,12 +154,11 @@ def test_corpus_calibrator_uncertainty_scales_with_n():
 # ---------------------------------------------------------------------------
 
 
-def test_categorical_without_calibration_returns_vacuous():
-    """Without calibration data, opinion should be vacuous (u ~ 1.0)."""
-    op = categorical_to_opinion("strong", 1)
-    assert abs(op.u - 1.0) < 1e-9
-    assert abs(op.b) < 1e-9
-    assert abs(op.d) < 1e-9
+def test_categorical_without_prior_returns_unresolved():
+    """Without a sourced prior, no numeric opinion is produced."""
+    result = categorical_to_opinion("strong", 1)
+    assert isinstance(result, BaseRateUnresolved)
+    assert result.reason == "missing_base_rate"
 
 
 def test_categorical_with_calibration_returns_informative():
@@ -151,7 +167,13 @@ def test_categorical_with_calibration_returns_informative():
         (1, "strong"): (80, 100),
         (1, "moderate"): (60, 100),
     }
-    op = categorical_to_opinion("strong", 1, calibration_counts=counts)
+    op = categorical_to_opinion(
+        "strong",
+        1,
+        calibration_counts=counts,
+        prior=_category_prior("strong"),
+    )
+    assert isinstance(op, Opinion)
     assert op.u < 1.0
     # Expectation should be near the empirical accuracy (80/100 = 0.8)
     assert abs(op.expectation() - 0.8) < 0.1
@@ -212,9 +234,15 @@ def test_ece_miscalibrated():
 def test_roundtrip_categorical_to_expectation():
     """categorical -> opinion -> expectation recovers calibrated probability."""
     counts = {(1, "strong"): (85, 100)}
-    op = categorical_to_opinion("strong", 1, calibration_counts=counts)
+    op = categorical_to_opinion(
+        "strong",
+        1,
+        calibration_counts=counts,
+        prior=_category_prior("strong"),
+    )
+    assert isinstance(op, Opinion)
     # r=85, s=15 -> b=85/102, d=15/102, u=2/102
-    # expectation = b + a*u = 85/102 + 0.5 * 2/102
+        # expectation = b + a*u = 85/102 + 0.5 * 2/102
     # The empirical prob is 85/100 = 0.85
     # With W=2 and no explicit CategoryPrior, expectation = (85 + 0.5*2) / 102.
     expected_emp = (85 + 0.5 * 2) / 102
@@ -369,7 +397,13 @@ class TestCalibrationCountsInfrastructure:
         conn.commit()
 
         counts = load_calibration_counts(conn)
-        op = categorical_to_opinion("strong", 1, calibration_counts=counts)
+        op = categorical_to_opinion(
+            "strong",
+            1,
+            calibration_counts=counts,
+            prior=_category_prior("strong"),
+        )
+        assert isinstance(op, Opinion)
         assert op.u < 0.5, (
             f"With 80/100 calibration data, uncertainty should be < 0.5, got {op.u}"
         )
