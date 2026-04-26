@@ -14,7 +14,7 @@ dependencies = [
     "z3-solver>=4.12",
     "graphviz>=0.20",
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@129569f4f8472402fdae1142bcf485f45010a83d",
-    "formal-argumentation @ git+https://github.com/ctoth/argumentation@adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a",
+    "formal-argumentation",
     "bridgman @ git+https://github.com/ctoth/bridgman@35c88af379178d6571f60a6e9450cd61d40d52d1",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
@@ -77,6 +77,9 @@ markers = [
     "migration: temporary migration or cutover protection tests",
     "slow: intentionally slow tests or suites",
 ]
+
+[tool.uv.sources]
+formal-argumentation = { path = "../argumentation" }
 
 [dependency-groups]
 dev = [
