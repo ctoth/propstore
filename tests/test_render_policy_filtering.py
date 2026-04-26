@@ -14,11 +14,12 @@ These tests exercise the contract described in
   lifts the two blocked filters; ``show_quarantined=True`` surfaces
   ``build_diagnostics`` rows.
 
-Fixtures populate a real sqlite sidecar (schema v4) via
+Fixtures populate a real sqlite sidecar via
 ``propstore.sidecar.schema``'s real ``create_tables`` +
-``create_claim_tables`` helpers, then insert a small hand-crafted mix
-of rows covering each lifecycle state. No compile path is exercised —
-the tests target the render layer's filtering behavior in isolation.
+``create_claim_tables`` helpers and the grounding sidecar schema helper,
+then insert a small hand-crafted mix of rows covering each lifecycle
+state. No compile path is exercised — the tests target the render
+layer's filtering behavior in isolation.
 """
 
 from __future__ import annotations
@@ -36,6 +37,7 @@ from propstore.sidecar.schema import (
     create_tables,
     write_schema_metadata,
 )
+from propstore.sidecar.rules import create_grounded_fact_table
 from propstore.world.model import WorldModel
 from propstore.world.types import RenderPolicy
 
@@ -139,7 +141,7 @@ def _insert_build_diagnostic(
 
 @pytest.fixture
 def lifecycle_sidecar(tmp_path: Path) -> Path:
-    """Populate a schema-v3 sidecar with one row per lifecycle state.
+    """Populate a current-schema sidecar with one row per lifecycle state.
 
     Rows produced:
       - ``claim_final`` — normal ingested row (default visible).
@@ -161,6 +163,7 @@ def lifecycle_sidecar(tmp_path: Path) -> Path:
         create_tables(conn)
         create_context_tables(conn)
         create_claim_tables(conn)
+        create_grounded_fact_table(conn)
         # ``concept_fts`` is normally built by
         # ``propstore.sidecar.concepts.build_concept_fts_index`` during the
         # full build; WorldModel validates its presence. Create a stub
