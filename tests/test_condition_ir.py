@@ -4,7 +4,14 @@ import importlib
 
 import pytest
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.cel_checker import (
+    BinaryOpNode,
+    ConceptInfo,
+    KindType,
+    LiteralNode,
+    NameNode,
+    parse_cel,
+)
 from propstore.core.conditions import (
     ConditionBinary,
     ConditionBinaryOp,
@@ -64,15 +71,55 @@ def test_condition_ir_from_cel_lowers_typed_comparison() -> None:
             concept_id=ConceptId("ps:concept:temperature"),
             source_name="temperature",
             value_kind=ConditionValueKind.NUMERIC,
-            span=ConditionSourceSpan(0, 16),
+            span=ConditionSourceSpan(0, 11),
         ),
         right=ConditionLiteral(
             value=21,
             value_kind=ConditionValueKind.NUMERIC,
-            span=ConditionSourceSpan(0, 16),
+            span=ConditionSourceSpan(14, 16),
         ),
         span=ConditionSourceSpan(0, 16),
     )
+
+
+def test_cel_ast_nodes_preserve_source_spans() -> None:
+    ast = parse_cel("temperature > 21")
+
+    assert isinstance(ast, BinaryOpNode)
+    assert ast.span == ConditionSourceSpan(0, 16)
+    assert isinstance(ast.left, NameNode)
+    assert ast.left.span == ConditionSourceSpan(0, 11)
+    assert isinstance(ast.right, LiteralNode)
+    assert ast.right.span == ConditionSourceSpan(14, 16)
+
+
+def test_condition_ir_preserves_child_spans_from_cel_frontend() -> None:
+    ir = condition_ir_from_cel(
+        "(temperature > 21) && humid",
+        {
+            "temperature": ConceptInfo(
+                id="ps:concept:temperature",
+                canonical_name="temperature",
+                kind=KindType.QUANTITY,
+            ),
+            "humid": ConceptInfo(
+                id="ps:concept:humid",
+                canonical_name="humid",
+                kind=KindType.BOOLEAN,
+            ),
+        },
+    )
+
+    assert isinstance(ir, ConditionBinary)
+    assert ir.span == ConditionSourceSpan(1, 27)
+    assert isinstance(ir.left, ConditionBinary)
+    assert ir.left.span == ConditionSourceSpan(1, 17)
+    assert isinstance(ir.left.left, ConditionReference)
+    assert ir.left.left.span == ConditionSourceSpan(1, 12)
+    assert isinstance(ir.left.right, ConditionLiteral)
+    assert ir.left.right.span == ConditionSourceSpan(15, 17)
+    assert isinstance(ir.right, ConditionReference)
+    assert ir.right.span == ConditionSourceSpan(22, 27)
 
 
 def test_condition_ir_from_cel_rejects_structural_concepts() -> None:
