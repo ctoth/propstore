@@ -528,6 +528,22 @@ def project_acceptance_result(
     )
 
 
+def project_extension_probability_result(
+    extension_probability: float,
+    *,
+    queried_set: tuple[str, ...] | list[str] | set[str] | None,
+    target_claim_ids: tuple[str, ...] | list[str] | set[str],
+) -> ClaimProjection:
+    target_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids)))
+    witness_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in (queried_set or target_ids))))
+    survivor_ids = witness_ids if extension_probability > 0.0 else ()
+    return ClaimProjection(
+        target_claim_ids=target_ids,
+        survivor_claim_ids=survivor_ids,
+        witness_claim_ids=witness_ids,
+    )
+
+
 def analyze_claim_graph(
     shared: SharedAnalyzerInput,
     *,
@@ -584,6 +600,57 @@ def analyze_claim_graph(
         extensions=extensions,
         projection=projection,
         metadata=(("comparison", shared.comparison),),
+    )
+
+
+def analyze_aspic_backend(
+    system,
+    kb,
+    pref,
+    *,
+    backend: str = "materialized_reference",
+    semantics: str = "grounded",
+) -> AnalyzerResult:
+    from argumentation.aspic_encoding import solve_aspic_with_backend
+
+    query_semantics = (
+        "grounded"
+        if semantics == ArgumentationSemantics.ASPIC_DIRECT_GROUNDED.value
+        else semantics
+    )
+    package_result = solve_aspic_with_backend(
+        system,
+        kb,
+        pref,
+        backend=backend,
+        semantics=query_semantics,
+    )
+    if package_result.status == "success":
+        extensions = (
+            ExtensionResult(
+                name=package_result.semantics,
+                accepted_claim_ids=tuple(
+                    sorted(repr(conclusion) for conclusion in package_result.accepted_conclusions)
+                ),
+            ),
+        )
+    else:
+        extensions = ()
+
+    metadata = {
+        "backend_requested": backend,
+        "package_backend": package_result.backend,
+        "package_status": package_result.status,
+        "encoding_signature": package_result.encoding.signature,
+        "encoding": package_result.encoding.metadata["encoding"],
+    }
+    if "reason" in package_result.metadata:
+        metadata["reason"] = package_result.metadata["reason"]
+    return AnalyzerResult(
+        backend="aspic",
+        semantics=package_result.semantics,
+        extensions=extensions,
+        metadata=tuple(metadata.items()),
     )
 
 
@@ -709,14 +776,21 @@ def analyze_praf(
         treewidth_cutoff=treewidth_cutoff,
         rng_seed=rng_seed,
     )
-    projection = (
-        None
-        if target_claim_ids is None or praf_result.acceptance_probs is None
-        else project_acceptance_result(
+    if target_claim_ids is None:
+        projection = None
+    elif praf_result.acceptance_probs is not None:
+        projection = project_acceptance_result(
             praf_result.acceptance_probs,
             target_claim_ids=target_claim_ids,
         )
-    )
+    elif praf_result.extension_probability is not None:
+        projection = project_extension_probability_result(
+            praf_result.extension_probability,
+            queried_set=praf_result.queried_set,
+            target_claim_ids=target_claim_ids,
+        )
+    else:
+        projection = None
     return AnalyzerResult(
         backend="praf",
         semantics=semantics,
@@ -730,6 +804,7 @@ def analyze_praf(
             ("strategy_used", praf_result.strategy_used),
             ("strategy_requested", praf_result.strategy_requested),
             ("downgraded_from", praf_result.downgraded_from),
+            ("strategy_metadata", dict(praf_result.strategy_metadata or {})),
             ("samples", praf_result.samples),
             ("confidence_interval_half", praf_result.confidence_interval_half),
             ("comparison", shared.comparison),
