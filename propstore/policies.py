@@ -81,7 +81,7 @@ class RevisionPolicy:
 
 @dataclass(frozen=True, order=True)
 class MergePolicy:
-    operator: MergeOperator | str = MergeOperator.SIGMA
+    operator: MergeOperator = MergeOperator.SIGMA
     conflict_strategy: str = "surface_conflicts"
     branch_filter: tuple[str, ...] | None = None
     require_witnesses: bool = True
@@ -115,8 +115,8 @@ class MergePolicy:
 
 @dataclass(frozen=True, order=True)
 class AdmissibilityProfile:
-    reasoning_backend: ReasoningBackend | str = ReasoningBackend.CLAIM_GRAPH
-    semantics: ArgumentationSemantics | str = ArgumentationSemantics.GROUNDED
+    reasoning_backend: ReasoningBackend = ReasoningBackend.CLAIM_GRAPH
+    semantics: ArgumentationSemantics = ArgumentationSemantics.GROUNDED
     conflict_free_basis: str = "attack"
     comparison: str = "elitist"
     link: str = "last"
