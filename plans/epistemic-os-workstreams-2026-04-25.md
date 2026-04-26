@@ -218,6 +218,8 @@ First-slice execution ledger:
   caller migration, grounding predicate removal, context-lifting replacement,
   sidecar schema changes, and `0.5` default removal remain explicitly out of
   scope for later slices.
+- Old-surface enumeration note:
+  `notes/epistemic-os-old-surface-enumeration-2026-04-25.md`.
 
 ### Slice Gate Template
 
