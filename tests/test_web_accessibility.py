@@ -3,7 +3,11 @@ from __future__ import annotations
 from html.parser import HTMLParser
 from pathlib import Path
 
+import pytest
+
 from propstore.web.html import (
+    LinkRow,
+    _link_table,
     render_claim_page,
     render_concept_page,
     render_error_page,
@@ -166,3 +170,19 @@ def test_web_surface_has_no_hover_or_pointer_required_css() -> None:
     assert ":hover" not in css
     assert "pointer-events" not in css
     assert "cursor:" not in css
+
+
+def test_link_table_uses_typed_rows_and_rejects_misaligned_cells() -> None:
+    html = _link_table(
+        ("Claim", "Status"),
+        [LinkRow("paper:claim1", "/claim/claim1", ("known",))],
+    )
+
+    assert '<a href="/claim/claim1">paper:claim1</a>' in html
+    assert "<td>known</td>" in html
+
+    with pytest.raises(ValueError, match="LinkRow has 2 cells for 3 headers"):
+        _link_table(
+            ("Claim", "Status", "Reason"),
+            [LinkRow("paper:claim1", "/claim/claim1", ("known",))],
+        )
