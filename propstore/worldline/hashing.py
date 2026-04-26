@@ -22,9 +22,11 @@ def compute_worldline_content_hash(
     sensitivity: WorldlineSensitivityReport | None,
     argumentation: WorldlineArgumentationState | None,
     revision: WorldlineRevisionState | None,
+    policy: Mapping[str, object] | None = None,
 ) -> str:
     """Compute a deterministic fingerprint for materialized worldline content."""
     payload = {
+        "policy": {} if policy is None else dict(policy),
         "values": {
             target_name: target_value.to_dict()
             for target_name, target_value in values.items()
