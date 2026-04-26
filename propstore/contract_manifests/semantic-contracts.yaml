@@ -692,7 +692,7 @@ contracts:
       value_field: value
 - kind: document_schema
   name: AlignmentArgumentDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -719,7 +719,7 @@ contracts:
     module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: AlignmentDecisionDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: status
@@ -737,7 +737,7 @@ contracts:
     module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: AlignmentFrameworkDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: attacks
@@ -752,7 +752,7 @@ contracts:
     module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: AlignmentQueriesDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: skeptical_acceptance
@@ -767,7 +767,7 @@ contracts:
     module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: AtomDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: predicate
@@ -782,7 +782,7 @@ contracts:
     module: propstore.families.documents.rules
 - kind: document_schema
   name: AtomicPropositionDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: type
@@ -869,7 +869,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ClaimDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: context
@@ -983,7 +983,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ClaimLogicalIdDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: namespace
@@ -1001,7 +1001,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ClaimSourceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: paper
@@ -1019,7 +1019,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ClaimsFileDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: source
@@ -1034,7 +1034,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ConceptAliasDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: name
@@ -1049,7 +1049,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptAlignmentArtifactDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: kind
@@ -1076,7 +1076,7 @@ contracts:
     module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: ConceptDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: status
@@ -1133,7 +1133,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptFormParametersDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: construction
@@ -1154,7 +1154,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptIdScanDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -1169,7 +1169,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptLogicalIdDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: namespace
@@ -1181,7 +1181,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptRelationshipDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: type
@@ -1202,7 +1202,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: ContextDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -1223,7 +1223,7 @@ contracts:
     module: propstore.families.contexts.documents
 - kind: document_schema
   name: ContextReferenceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -1232,7 +1232,7 @@ contracts:
     module: propstore.families.contexts.documents
 - kind: document_schema
   name: ContextStructureDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: assumptions
@@ -1247,7 +1247,7 @@ contracts:
     module: propstore.families.contexts.documents
 - kind: document_schema
   name: ExtractionProvenanceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: reader
@@ -1262,7 +1262,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: FitStatisticsDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: r
@@ -1280,7 +1280,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: FormAlternativeDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: unit
@@ -1307,7 +1307,7 @@ contracts:
     module: propstore.families.forms.documents
 - kind: document_schema
   name: FormDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: name
@@ -1346,7 +1346,7 @@ contracts:
     module: propstore.families.forms.documents
 - kind: document_schema
   name: FormExtraUnitDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: symbol
@@ -1358,7 +1358,7 @@ contracts:
     module: propstore.families.forms.documents
 - kind: document_schema
   name: IstPropositionDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: context
@@ -1370,7 +1370,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: LexicalEntryDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: identifier
@@ -1391,7 +1391,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: LexicalFormDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: written_rep
@@ -1406,7 +1406,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: LexicalSenseDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: reference
@@ -1430,7 +1430,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: LiftingRuleDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -1454,10 +1454,10 @@ contracts:
     module: propstore.families.contexts.documents
 - kind: document_schema
   name: MergeManifestArgumentDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
-    - name: claim_id
+    - name: assertion_id
       required: true
       type: str
     - name: artifact_id
@@ -1478,7 +1478,7 @@ contracts:
     module: propstore.families.documents.merge
 - kind: document_schema
   name: MergeManifestDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: merge
@@ -1487,7 +1487,7 @@ contracts:
     module: propstore.families.documents.merge
 - kind: document_schema
   name: MergeManifestPayloadDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: branch_a
@@ -1508,10 +1508,10 @@ contracts:
     module: propstore.families.documents.merge
 - kind: document_schema
   name: MergeSemanticCandidateArgumentDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
-    - name: claim_id
+    - name: assertion_id
       required: true
       type: str
     - name: logical_id
@@ -1529,10 +1529,10 @@ contracts:
     module: propstore.families.documents.merge
 - kind: document_schema
   name: MergeSemanticCandidateDetailDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
-    - name: claim_ids
+    - name: assertion_ids
       required: true
       type: tuple[str, ...]
     - name: logical_ids
@@ -1547,7 +1547,7 @@ contracts:
     module: propstore.families.documents.merge
 - kind: document_schema
   name: MicropublicationDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: artifact_id
@@ -1580,7 +1580,7 @@ contracts:
     module: propstore.families.documents.micropubs
 - kind: document_schema
   name: MicropublicationEvidenceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: kind
@@ -1592,7 +1592,7 @@ contracts:
     module: propstore.families.documents.micropubs
 - kind: document_schema
   name: MicropublicationsFileDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: micropubs
@@ -1604,7 +1604,7 @@ contracts:
     module: propstore.families.documents.micropubs
 - kind: document_schema
   name: OntologyReferenceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: uri
@@ -1616,7 +1616,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: OpinionDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: b
@@ -1637,7 +1637,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ParameterBindingDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: name
@@ -1652,7 +1652,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ParameterizationRelationshipDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: inputs
@@ -1688,7 +1688,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: PredicateDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -1709,7 +1709,7 @@ contracts:
     module: propstore.families.documents.predicates
 - kind: document_schema
   name: PredicatesFileDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: predicates
@@ -1718,7 +1718,7 @@ contracts:
     module: propstore.families.documents.predicates
 - kind: document_schema
   name: ProvenanceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: page
@@ -1745,7 +1745,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ResolutionDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: method
@@ -1772,7 +1772,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: RuleDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -1790,7 +1790,7 @@ contracts:
     module: propstore.families.documents.rules
 - kind: document_schema
   name: RuleSourceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: paper
@@ -1799,7 +1799,7 @@ contracts:
     module: propstore.families.documents.rules
 - kind: document_schema
   name: RulesFileDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: source
@@ -1814,7 +1814,7 @@ contracts:
     module: propstore.families.documents.rules
 - kind: document_schema
   name: SourceAttackTargetDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: target_claim
@@ -1829,7 +1829,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceClaimDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: artifact_id
@@ -1940,7 +1940,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceClaimsDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: claims
@@ -1955,7 +1955,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptAliasDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: name
@@ -1970,7 +1970,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptEntryDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: local_name
@@ -2006,7 +2006,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptFormParametersDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: construction
@@ -2027,7 +2027,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptRegistryMatchDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: artifact_id
@@ -2039,7 +2039,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptsDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: concepts
@@ -2048,7 +2048,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -2072,7 +2072,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceFinalizeCalibrationDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: prior_base_rate_status
@@ -2087,7 +2087,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceFinalizeReportDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: kind
@@ -2126,7 +2126,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceJustificationDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -2156,7 +2156,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceJustificationsDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: justifications
@@ -2171,7 +2171,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceMetadataDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: name
@@ -2180,7 +2180,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceOriginDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: type
@@ -2198,7 +2198,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceParameterizationGroupMergeDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: merged_group
@@ -2213,7 +2213,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceParameterizationRelationshipDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: inputs
@@ -2249,7 +2249,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceProvenanceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: paper
@@ -2273,7 +2273,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceStanceEntryDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: source_claim
@@ -2306,7 +2306,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceStancesDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: stances
@@ -2321,7 +2321,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceTrustDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: status
@@ -2339,7 +2339,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceTrustQualityDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: status
@@ -2360,7 +2360,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: StanceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: type
@@ -2387,7 +2387,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: StanceEntryDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: source_claim
@@ -2420,7 +2420,7 @@ contracts:
     module: propstore.families.documents.stances
 - kind: document_schema
   name: StanceFileDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: source_claim
@@ -2438,7 +2438,7 @@ contracts:
     module: propstore.families.documents.stances
 - kind: document_schema
   name: TermDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: kind
@@ -2453,7 +2453,7 @@ contracts:
     module: propstore.families.documents.rules
 - kind: document_schema
   name: VariableBindingDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: concept
@@ -2471,7 +2471,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: WorldlineAssumptionDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: assumption_id
@@ -2489,7 +2489,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineDefinitionDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: id
@@ -2519,7 +2519,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineDependenciesDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: claims
@@ -2534,7 +2534,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineInputSourceDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: source
@@ -2561,7 +2561,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineInputsDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: bindings
@@ -2582,7 +2582,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlinePolicyDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: reasoning_backend
@@ -2651,7 +2651,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineResultDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: computed
@@ -2681,7 +2681,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionAtomDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: kind
@@ -2699,7 +2699,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionQueryDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: operation
@@ -2720,7 +2720,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionResultDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: accepted_atom_ids
@@ -2738,7 +2738,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionStateDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: operation
@@ -2765,7 +2765,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineStepDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: concept
@@ -2792,7 +2792,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineTargetValueDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: status
@@ -2846,7 +2846,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineVariableRefDocument
-  contract_version: 2026.04.28
+  contract_version: 2026.04.29
   body:
     fields:
     - name: name
