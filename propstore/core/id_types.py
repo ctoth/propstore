@@ -9,6 +9,8 @@ from typing import NewType
 ConceptId = NewType("ConceptId", str)
 ClaimId = NewType("ClaimId", str)
 ContextId = NewType("ContextId", str)
+ConditionId = NewType("ConditionId", str)
+ProvenanceGraphId = NewType("ProvenanceGraphId", str)
 JustificationId = NewType("JustificationId", str)
 AssumptionId = NewType("AssumptionId", str)
 QueryableId = NewType("QueryableId", str)
@@ -40,6 +42,14 @@ def to_claim_id(value: object) -> ClaimId:
 
 def to_context_id(value: object) -> ContextId:
     return ContextId(str(value))
+
+
+def to_condition_id(value: object) -> ConditionId:
+    return ConditionId(str(value))
+
+
+def to_provenance_graph_id(value: object) -> ProvenanceGraphId:
+    return ProvenanceGraphId(str(value))
 
 
 def to_justification_id(value: object) -> JustificationId:
