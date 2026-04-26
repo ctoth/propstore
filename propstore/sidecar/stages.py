@@ -121,10 +121,16 @@ class ContextLiftingRuleInsertRow:
 
 
 @dataclass(frozen=True)
+class ContextLiftingMaterializationInsertRow:
+    values: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
 class ContextSidecarRows:
     context_rows: tuple[ContextInsertRow, ...]
     assumption_rows: tuple[ContextAssumptionInsertRow, ...]
     lifting_rule_rows: tuple[ContextLiftingRuleInsertRow, ...]
+    lifting_materialization_rows: tuple[ContextLiftingMaterializationInsertRow, ...] = ()
 
 
 @dataclass(frozen=True)
