@@ -14,6 +14,7 @@ CONDITION_CHECKED = Path("propstore/core/conditions/checked.py")
 CONTEXT_LIFTING = Path("propstore/context_lifting.py")
 PROVENANCE_CARRIER = Path("propstore/provenance/__init__.py")
 PROVENANCE_RECORDS = Path("propstore/provenance/records.py")
+STRUCTURED_MERGE = Path("propstore/merge/structured_merge.py")
 FORBIDDEN_RELATION_IDENTITY_NAMES = {
     "predicate",
     "predicate_id",
@@ -119,6 +120,10 @@ def _provenance_carrier_tree() -> ast.AST:
 
 def _provenance_records_tree() -> ast.AST:
     return ast.parse(PROVENANCE_RECORDS.read_text(encoding="utf-8"))
+
+
+def _structured_merge_tree() -> ast.AST:
+    return ast.parse(STRUCTURED_MERGE.read_text(encoding="utf-8"))
 
 
 def test_relation_kernel_does_not_name_relation_identity_as_predicate() -> None:
@@ -304,3 +309,14 @@ def test_provenance_records_do_not_store_loose_event_payload_fields() -> None:
                     observed_fields.add(node.annotation.id)
 
     assert observed_fields.isdisjoint(FORBIDDEN_PROVENANCE_RECORD_FIELD_NAMES)
+
+
+def test_structured_merge_does_not_rebuild_grounding_bundle_from_repo_files() -> None:
+    tree = _structured_merge_tree()
+
+    for node in ast.walk(tree):
+        assert not (
+            isinstance(node, ast.ImportFrom)
+            and node.module == "propstore.grounding.loading"
+            and any(alias.name == "build_grounded_bundle" for alias in node.names)
+        )
