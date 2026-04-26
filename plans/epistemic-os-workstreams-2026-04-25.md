@@ -429,6 +429,33 @@ Sixth slice execution ledger:
   the new conversion owner rejects old claim-shaped source payloads and keeps
   loose decoded mappings at the source boundary only.
 
+Seventh slice gate, WS2 canonical assertion codec:
+
+```text
+target_surface: canonical SituatedAssertion render/parse round trips
+old_surfaces_to_delete: loose canonical assertion dicts beyond the serialization
+  boundary; old claim-row/predicate-key canonical payloads are rejected here
+allowed_owner_modules: propstore.core.assertions, propstore.core.relations,
+  propstore.core.id_types
+forbidden_imports: context_lifting, z3_conditions, condition_classifier,
+  grounding, calibration, opinion, app, CLI, sidecar, world, backend projection
+  modules
+forbidden_symbols: assertion codec owner must not name semantic identity fields
+  claim_id, predicate, predicate_id, cel, conditions, or provenance_payload
+forbidden_storage_columns: none in this slice
+positive_tests: SituatedAssertion to canonical record conversion, record to
+  payload rendering, payload parse back to the same SituatedAssertion, role
+  order canonicalization on parse
+negative_tests: reject old claim-shaped canonical payloads; reject mismatched
+  assertion ids; architecture import/symbol tests
+pyright_scope: uv run pyright propstore
+paper_checkpoint: situated assertion synthesis, Clark 2014 notes, and Carroll
+  2005 notes already reread for WS2
+deletion_ledger: no existing persistence caller migration yet; this lands the
+  canonical serialization boundary future storage/projection callers must use
+  directly
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
