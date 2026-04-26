@@ -166,7 +166,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             opinion_belief REAL,
             opinion_disbelief REAL,
             opinion_uncertainty REAL,
-            opinion_base_rate REAL DEFAULT 0.5,
+            opinion_base_rate REAL,
             CHECK(opinion_belief IS NULL OR (opinion_belief >= 0 AND opinion_belief <= 1)),
             CHECK(opinion_disbelief IS NULL OR (opinion_disbelief >= 0 AND opinion_disbelief <= 1)),
             CHECK(opinion_uncertainty IS NULL OR (opinion_uncertainty >= 0 AND opinion_uncertainty <= 1)),
