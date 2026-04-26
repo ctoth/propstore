@@ -131,7 +131,7 @@ def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
 
     assert len(merge.arguments) == 1
     assert merge.arguments[0].assertion_id.startswith("ps:assertion:")
-    assert merge.arguments[0].canonical_claim_id == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+    assert merge.arguments[0].canonical_claim_id == "test_paper:claim1"
     assert merge.arguments[0].branch_origins == ("master", branch_name)
 
 
@@ -153,10 +153,7 @@ def test_syntax_independence_claim_order(tmp_path):
 
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
     emitted = {argument.canonical_claim_id for argument in merge.arguments}
-    assert emitted == {
-        make_claim_identity("claimA", namespace="test_paper")["artifact_id"],
-        make_claim_identity("claimB", namespace="test_paper")["artifact_id"],
-    }
+    assert emitted == {"test_paper:claimA", "test_paper:claimB"}
     assert {argument.assertion_id for argument in merge.arguments} == set(merge.framework.arguments)
 
 
@@ -179,7 +176,7 @@ def test_syntax_independence_filename(tmp_path):
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
     assert len(merge.arguments) == 1
     assert merge.arguments[0].assertion_id.startswith("ps:assertion:")
-    assert merge.arguments[0].canonical_claim_id == make_claim_identity("claimA", namespace="test_paper")["artifact_id"]
+    assert merge.arguments[0].canonical_claim_id == "test_paper:claimA"
 
 
 def test_merge_commit_has_two_parents(tmp_path):
