@@ -945,7 +945,7 @@ class TestSourceCutover:
 
 class TestBuildExtended:
     def test_sidecar_contains_expected_tables(self, workspace: Path) -> None:
-        """Built sidecar should contain concept, alias, relationship, concept_fts tables."""
+        """Built sidecar should contain core and grounding tables."""
         runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
@@ -961,6 +961,8 @@ class TestBuildExtended:
         assert "alias" in tables
         assert "relationship" in tables
         assert "concept_fts" in tables
+        assert "grounded_fact" in tables
+        assert "grounded_fact_empty_predicate" in tables
 
     def test_sidecar_contains_concept_data(self, workspace: Path) -> None:
         """Built sidecar should have correct concept names and IDs."""
