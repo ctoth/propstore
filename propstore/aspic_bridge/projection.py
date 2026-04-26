@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import statistics
 from collections.abc import Mapping, Sequence
@@ -14,6 +15,7 @@ from propstore.core.labels import Label, SupportQuality
 from propstore.core.literal_keys import ClaimLiteralKey
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.preference import claim_strength
+from propstore.provenance.records import ProjectionFrameProvenanceRecord
 from propstore.structured_projection import (
     ProjectionAtom,
     ProjectionLossWitness,
@@ -88,12 +90,22 @@ def _projection_atom_for_literal(
             ),
             backend_atom_id=backend_atom_id,
         )
+    provenance = None
+    if source_assertion_ids:
+        frame_digest = hashlib.sha256(backend_atom_id.encode("utf-8")).hexdigest()[:32]
+        provenance = ProjectionFrameProvenanceRecord(
+            frame_id=f"urn:propstore:projection:aspic:{frame_digest}",
+            backend="aspic",
+            projected_at="projection-boundary-v2",
+            source_assertion_ids=source_assertion_ids,
+        )
     return ProjectionAtom(
         backend="aspic",
         backend_atom=literal.atom,
         backend_atom_id=backend_atom_id,
         negated=literal.negated,
         source_assertion_ids=source_assertion_ids,
+        provenance=provenance,
         loss=loss,
     )
 
