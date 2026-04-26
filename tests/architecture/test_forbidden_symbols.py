@@ -10,6 +10,7 @@ ASSERTION_SITUATED = Path("propstore/core/assertions/situated.py")
 ASSERTION_CONVERSION = Path("propstore/core/assertions/conversion.py")
 ASSERTION_CODEC = Path("propstore/core/assertions/codec.py")
 CONDITION_IR = Path("propstore/core/conditions/ir.py")
+CONDITION_CHECKED = Path("propstore/core/conditions/checked.py")
 CONTEXT_LIFTING = Path("propstore/context_lifting.py")
 FORBIDDEN_RELATION_IDENTITY_NAMES = {
     "predicate",
@@ -57,6 +58,11 @@ FORBIDDEN_CONDITION_IR_BACKEND_NAMES = {
     "Solver",
     "SQL",
 }
+FORBIDDEN_CHECKED_CONDITION_NAMES = FORBIDDEN_CONDITION_IR_BACKEND_NAMES | {
+    "ast",
+    "cel_ast",
+    "raw_cel_ast",
+}
 
 
 def _kernel_tree() -> ast.AST:
@@ -85,6 +91,10 @@ def _assertion_codec_tree() -> ast.AST:
 
 def _condition_ir_tree() -> ast.AST:
     return ast.parse(CONDITION_IR.read_text(encoding="utf-8"))
+
+
+def _condition_checked_tree() -> ast.AST:
+    return ast.parse(CONDITION_CHECKED.read_text(encoding="utf-8"))
 
 
 def test_relation_kernel_does_not_name_relation_identity_as_predicate() -> None:
@@ -220,3 +230,20 @@ def test_condition_ir_does_not_name_backend_helper_surfaces() -> None:
             observed.add(node.name)
 
     assert observed.isdisjoint(FORBIDDEN_CONDITION_IR_BACKEND_NAMES)
+
+
+def test_checked_condition_does_not_store_old_ast_or_backend_surfaces() -> None:
+    tree = _condition_checked_tree()
+    observed: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.arg):
+            observed.add(node.arg)
+        elif isinstance(node, ast.Attribute):
+            observed.add(node.attr)
+        elif isinstance(node, ast.Name):
+            observed.add(node.id)
+        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            observed.add(node.name)
+
+    assert observed.isdisjoint(FORBIDDEN_CHECKED_CONDITION_NAMES)
