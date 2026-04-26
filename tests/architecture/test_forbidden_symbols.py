@@ -8,6 +8,7 @@ RELATION_KERNEL = Path("propstore/core/relations/kernel.py")
 ASSERTION_REFS = Path("propstore/core/assertions/refs.py")
 ASSERTION_SITUATED = Path("propstore/core/assertions/situated.py")
 ASSERTION_CONVERSION = Path("propstore/core/assertions/conversion.py")
+ASSERTION_CODEC = Path("propstore/core/assertions/codec.py")
 CONTEXT_LIFTING = Path("propstore/context_lifting.py")
 FORBIDDEN_RELATION_IDENTITY_NAMES = {
     "predicate",
@@ -38,6 +39,14 @@ FORBIDDEN_ASSERTION_CONVERSION_FIELD_NAMES = {
     "predicate_id",
     "provenance_payload",
 }
+FORBIDDEN_ASSERTION_CODEC_FIELD_NAMES = {
+    "cel",
+    "claim_id",
+    "conditions",
+    "predicate",
+    "predicate_id",
+    "provenance_payload",
+}
 
 
 def _kernel_tree() -> ast.AST:
@@ -58,6 +67,10 @@ def _situated_assertion_tree() -> ast.AST:
 
 def _assertion_conversion_tree() -> ast.AST:
     return ast.parse(ASSERTION_CONVERSION.read_text(encoding="utf-8"))
+
+
+def _assertion_codec_tree() -> ast.AST:
+    return ast.parse(ASSERTION_CODEC.read_text(encoding="utf-8"))
 
 
 def test_relation_kernel_does_not_name_relation_identity_as_predicate() -> None:
@@ -161,3 +174,18 @@ def test_assertion_conversion_does_not_use_old_semantic_field_names() -> None:
             observed.add(node.id)
 
     assert observed.isdisjoint(FORBIDDEN_ASSERTION_CONVERSION_FIELD_NAMES)
+
+
+def test_assertion_codec_does_not_use_old_semantic_field_names() -> None:
+    tree = _assertion_codec_tree()
+    observed: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.arg):
+            observed.add(node.arg)
+        elif isinstance(node, ast.Attribute):
+            observed.add(node.attr)
+        elif isinstance(node, ast.Name):
+            observed.add(node.id)
+
+    assert observed.isdisjoint(FORBIDDEN_ASSERTION_CODEC_FIELD_NAMES)
