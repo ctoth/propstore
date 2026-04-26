@@ -878,6 +878,25 @@ deletion_ledger: add the typed vocabulary without a compatibility dictionary
   directly
 ```
 
+Sixteenth slice execution ledger:
+
+- Red commit: `695c19a` added provenance-record vocabulary tests and
+  architecture gates for an owner module with no loose event payload fields.
+- Red log: `logs/test-runs/ws4-record-vocabulary-red-20260425-195345.log`,
+  failed because `propstore.provenance.records` and the required exported
+  record types did not exist.
+- Green commit: `b951e92` added typed source-version, license, import-run,
+  projection-frame, external-statement, and external-inference provenance
+  records with URI/hash validation, stable identity payloads, deterministic
+  input canonicalization, and asserted/quoted statement attitudes.
+- Green log: `logs/test-runs/ws4-record-vocabulary-green-20260425-195620.log`,
+  43 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no old production record module existed to delete; the new
+  `propstore/provenance/records.py` surface has no compatibility dictionary
+  event type and rejects invalid URI/hash/projection-set boundaries directly.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
