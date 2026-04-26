@@ -45,7 +45,7 @@ _CONTEXT = {
     "prov": "http://www.w3.org/ns/prov#",
     "swp": "http://www.w3.org/2004/03/trix/swp-2/",
 }
-_ANONYMOUS_GRAPH_NAME = "urn:propstore:provenance:anonymous"
+_GRAPH_NAME_PREFIXES = ("urn:", "ni://", "http://", "https://")
 
 _STATUS_RANK = {
     "vacuous": 0,
@@ -138,6 +138,54 @@ def _dedupe_preserve_order(values: list[str]) -> tuple[str, ...]:
     return tuple(result)
 
 
+def _dedupe_sorted(values: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(sorted(set(values)))
+
+
+def _witness_key(witness: ProvenanceWitness) -> tuple[str, str, str, str]:
+    return (
+        witness.asserter,
+        witness.method,
+        witness.source_artifact_code,
+        witness.timestamp,
+    )
+
+
+def _canonical_witnesses(
+    witnesses: tuple[ProvenanceWitness, ...],
+) -> tuple[ProvenanceWitness, ...]:
+    by_key = {_witness_key(witness): witness for witness in witnesses}
+    return tuple(by_key[key] for key in sorted(by_key))
+
+
+def _require_graph_name(value: str | None) -> str:
+    graph_name = "" if value is None else value.strip()
+    if graph_name == "":
+        raise ValueError("provenance graph_name must be explicit")
+    if not graph_name.startswith(_GRAPH_NAME_PREFIXES):
+        raise ValueError("provenance graph_name must be a URI")
+    return graph_name
+
+
+def _canonical_provenance(
+    provenance: Provenance,
+    *,
+    require_graph_name: bool,
+) -> Provenance:
+    graph_name = (
+        _require_graph_name(provenance.graph_name)
+        if require_graph_name
+        else provenance.graph_name
+    )
+    return Provenance(
+        status=provenance.status,
+        witnesses=_canonical_witnesses(provenance.witnesses),
+        graph_name=graph_name,
+        derived_from=_dedupe_sorted(provenance.derived_from),
+        operations=_dedupe_sorted(provenance.operations),
+    )
+
+
 def compose_provenance(*records: Provenance, operation: str) -> Provenance:
     """Compose provenance for a derived value.
 
@@ -174,23 +222,27 @@ def compose_provenance(*records: Provenance, operation: str) -> Provenance:
             witnesses.append(witness)
 
     operations.append(operation)
-    return Provenance(
-        status=status,
-        witnesses=tuple(witnesses),
-        derived_from=_dedupe_preserve_order(derived_from),
-        operations=_dedupe_preserve_order(operations),
+    return _canonical_provenance(
+        Provenance(
+            status=status,
+            witnesses=tuple(witnesses),
+            derived_from=_dedupe_preserve_order(derived_from),
+            operations=_dedupe_preserve_order(operations),
+        ),
+        require_graph_name=False,
     )
 
 
 def encode_named_graph(provenance: Provenance) -> bytes:
     """Serialize provenance as a deterministic JSON-LD named graph."""
 
-    graph_id = provenance.graph_name or _ANONYMOUS_GRAPH_NAME
+    canonical = _canonical_provenance(provenance, require_graph_name=True)
+    graph_id = _require_graph_name(canonical.graph_name)
     document = _NamedGraphDocument(
         context=_CONTEXT,
         id=graph_id,
         type="NamedGraph",
-        provenance=provenance,
+        provenance=canonical,
     )
     return msgspec.json.encode(document)
 
@@ -202,15 +254,19 @@ def decode_named_graph(payload: bytes) -> Provenance:
     if document.type != "NamedGraph":
         raise ValueError(f"Unsupported provenance graph type: {document.type!r}")
     provenance = document.provenance
-    if provenance.graph_name is None and document.id != _ANONYMOUS_GRAPH_NAME:
-        return Provenance(
+    graph_id = _require_graph_name(document.id)
+    if provenance.graph_name is not None and provenance.graph_name != graph_id:
+        raise ValueError("provenance graph_name must match named graph id")
+    return _canonical_provenance(
+        Provenance(
             status=provenance.status,
             witnesses=provenance.witnesses,
-            graph_name=document.id,
+            graph_name=graph_id,
             derived_from=provenance.derived_from,
             operations=provenance.operations,
-        )
-    return provenance
+        ),
+        require_graph_name=True,
+    )
 
 
 def write_provenance_note(
