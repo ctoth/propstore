@@ -20,6 +20,7 @@ from propstore.app.neighborhoods import (
     SemanticNeighborhoodRow,
     SemanticNode,
 )
+from propstore.app.rendering import RenderPolicySummary
 
 
 class LinkRow(NamedTuple):
@@ -57,10 +58,7 @@ def render_claim_index_page(
         title,
         f"""
 <h1>Claims</h1>
-<section aria-labelledby="filters-heading">
-  <h2 id="filters-heading">Filters</h2>
-  {_dl(filter_rows)}
-</section>
+{_filter_section(filter_rows)}
 <section aria-labelledby="claims-heading">
   <h2 id="claims-heading">Claim Inventory</h2>
   {_link_table(
@@ -91,19 +89,7 @@ def render_claim_page(report: ClaimViewReport) -> str:
       ("Condition regime", report.condition.sentence),
   ])}
 </section>
-<section aria-labelledby="render-state-heading">
-  <h2 id="render-state-heading">Render State</h2>
-  {_dl([
-      ("Repository state", report.repository_state),
-      ("Reasoning backend", report.render_policy.reasoning_backend),
-      ("Strategy", report.render_policy.strategy),
-      ("Semantics", report.render_policy.semantics),
-      ("Set comparison", report.render_policy.set_comparison),
-      ("Include drafts", _bool_text(report.render_policy.include_drafts)),
-      ("Include blocked", _bool_text(report.render_policy.include_blocked)),
-      ("Show quarantined", _bool_text(report.render_policy.show_quarantined)),
-  ])}
-</section>
+{_render_policy_section(report.render_policy, repository_state=report.repository_state)}
 <section aria-labelledby="provenance-heading">
   <h2 id="provenance-heading">Provenance</h2>
   {_dl([
@@ -121,15 +107,12 @@ def render_claim_page(report: ClaimViewReport) -> str:
   <h2 id="neighborhood-heading">Neighborhood</h2>
   <p><a href="{_text(neighborhood_href)}">Open semantic neighborhood for this claim</a></p>
 </section>
-<section aria-labelledby="machine-ids-heading">
-  <h2 id="machine-ids-heading">Machine IDs</h2>
-  {_dl([
+{_machine_ids_section([
       ("Claim ID", report.claim_id),
       ("Logical ID", report.logical_id or "missing"),
       ("Artifact ID", report.artifact_id or "missing"),
       ("Version ID", report.version_id or "missing"),
   ])}
-</section>
 """,
     )
 
@@ -151,19 +134,7 @@ def render_concept_page(report: ConceptViewReport) -> str:
       ("Form", f"{_state_label(report.form.state)}: {report.form.sentence}"),
   ])}
 </section>
-<section aria-labelledby="render-state-heading">
-  <h2 id="render-state-heading">Render State</h2>
-  {_dl([
-      ("Repository state", report.repository_state),
-      ("Reasoning backend", report.render_policy.reasoning_backend),
-      ("Strategy", report.render_policy.strategy),
-      ("Semantics", report.render_policy.semantics),
-      ("Set comparison", report.render_policy.set_comparison),
-      ("Include drafts", _bool_text(report.render_policy.include_drafts)),
-      ("Include blocked", _bool_text(report.render_policy.include_blocked)),
-      ("Show quarantined", _bool_text(report.render_policy.show_quarantined)),
-  ])}
-</section>
+{_render_policy_section(report.render_policy, repository_state=report.repository_state)}
 <section aria-labelledby="form-heading">
   <h2 id="form-heading">Form</h2>
   {_dl([
@@ -209,15 +180,12 @@ def render_concept_page(report: ConceptViewReport) -> str:
   <h2 id="related-claims-heading">Related Claims</h2>
   {_related_claims_table(report.related_claim_links)}
 </section>
-<section aria-labelledby="machine-ids-heading">
-  <h2 id="machine-ids-heading">Machine IDs</h2>
-  {_dl([
+{_machine_ids_section([
       ("Concept ID", report.concept_id),
       ("Logical ID", report.logical_id or "missing"),
       ("Artifact ID", report.artifact_id or "missing"),
       ("Version ID", report.version_id or "missing"),
   ])}
-</section>
 """,
     )
 
@@ -285,10 +253,7 @@ def render_concept_index_page(
         title,
         f"""
 <h1>Concepts</h1>
-<section aria-labelledby="filters-heading">
-  <h2 id="filters-heading">Filters</h2>
-  {_dl(filter_rows)}
-</section>
+{_filter_section(filter_rows)}
 <section aria-labelledby="concepts-heading">
   <h2 id="concepts-heading">Concept Inventory</h2>
   {table}
@@ -345,18 +310,7 @@ def render_neighborhood_page(report: SemanticNeighborhoodReport) -> str:
   {_edges_table(report.edges)}
   {_nodes_table(report.nodes)}
 </section>
-<section aria-labelledby="render-state-heading">
-  <h2 id="render-state-heading">Render State</h2>
-  {_dl([
-      ("Reasoning backend", report.render_policy.reasoning_backend),
-      ("Strategy", report.render_policy.strategy),
-      ("Semantics", report.render_policy.semantics),
-      ("Set comparison", report.render_policy.set_comparison),
-      ("Include drafts", _bool_text(report.render_policy.include_drafts)),
-      ("Include blocked", _bool_text(report.render_policy.include_blocked)),
-      ("Show quarantined", _bool_text(report.render_policy.show_quarantined)),
-  ])}
-</section>
+{_render_policy_section(report.render_policy)}
 """,
     )
 
@@ -384,6 +338,50 @@ def _dl(rows: list[tuple[str, str]]) -> str:
         for label, value in rows
     )
     return f"<dl>\n{content}\n  </dl>"
+
+
+def _filter_section(rows: list[tuple[str, str]]) -> str:
+    return f"""<section aria-labelledby="filters-heading">
+  <h2 id="filters-heading">Filters</h2>
+  {_dl(rows)}
+</section>"""
+
+
+def _status_text(state: str, reason: str) -> str:
+    return f"{_state_label(state)}: {reason}"
+
+
+def _render_policy_rows(summary: RenderPolicySummary) -> list[tuple[str, str]]:
+    return [
+        ("Reasoning backend", summary.reasoning_backend),
+        ("Strategy", summary.strategy),
+        ("Semantics", summary.semantics),
+        ("Set comparison", summary.set_comparison),
+        ("Include drafts", _bool_text(summary.include_drafts)),
+        ("Include blocked", _bool_text(summary.include_blocked)),
+        ("Show quarantined", _bool_text(summary.show_quarantined)),
+    ]
+
+
+def _render_policy_section(
+    summary: RenderPolicySummary,
+    *,
+    repository_state: str | None = None,
+) -> str:
+    rows = _render_policy_rows(summary)
+    if repository_state is not None:
+        rows = [("Repository state", repository_state), *rows]
+    return f"""<section aria-labelledby="render-state-heading">
+  <h2 id="render-state-heading">Render State</h2>
+  {_dl(rows)}
+</section>"""
+
+
+def _machine_ids_section(rows: list[tuple[str, str]]) -> str:
+    return f"""<section aria-labelledby="machine-ids-heading">
+  <h2 id="machine-ids-heading">Machine IDs</h2>
+  {_dl(rows)}
+</section>"""
 
 
 def _moves_table(moves: tuple[SemanticMove, ...]) -> str:
