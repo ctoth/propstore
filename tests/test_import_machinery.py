@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from hypothesis import given, settings
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.importing.machinery import (
@@ -153,6 +153,7 @@ def test_equivalence_witness_composition_keeps_candidates_distinct(
     a = f"urn:example:candidate:{first}"
     b = f"urn:example:candidate:{middle}"
     c = f"urn:example:candidate:{last}"
+    assume(len({a, b, c}) == 3)
     witness_ab = store.record_witness(
         a,
         b,
@@ -168,9 +169,8 @@ def test_equivalence_witness_composition_keeps_candidates_distinct(
 
     composed = store.compose(witness_ab.witness_id, witness_bc.witness_id)
 
-    if len({a, b, c}) == 3:
-        assert composed is not None
-        assert set(composed.candidate_ids) == {a, c}
+    assert composed is not None
+    assert set(composed.candidate_ids) == {a, c}
     assert store.identity_for(a) == a
     assert store.identity_for(b) == b
     assert store.identity_for(c) == c
