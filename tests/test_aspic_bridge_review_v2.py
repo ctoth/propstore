@@ -330,8 +330,8 @@ def test_csaf_to_projection_keeps_grounded_arguments_and_subarguments() -> None:
     projected_ids = {argument.arg_id for argument in projection.arguments}
     assert projection.framework.arguments == frozenset(projected_ids)
     assert any(argument.claim_id is None for argument in projection.arguments)
-    assert any("\"predicate\":\"fly\"" in argument.conclusion_key for argument in projection.arguments)
-    assert any("\"predicate\":\"bird\"" in argument.conclusion_key for argument in projection.arguments)
+    assert any(argument.projection.backend_atom == GroundAtom("fly", ("tweety",)) for argument in projection.arguments)
+    assert any(argument.projection.backend_atom == GroundAtom("bird", ("tweety",)) for argument in projection.arguments)
     for argument in projection.arguments:
         assert set(argument.subargument_ids) <= projected_ids
 
