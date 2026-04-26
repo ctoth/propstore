@@ -130,7 +130,8 @@ def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
 
     assert len(merge.arguments) == 1
-    assert merge.arguments[0].claim_id == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+    assert merge.arguments[0].assertion_id.startswith("ps:assertion:")
+    assert merge.arguments[0].canonical_claim_id == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
     assert merge.arguments[0].branch_origins == ("master", branch_name)
 
 
@@ -151,11 +152,12 @@ def test_syntax_independence_claim_order(tmp_path):
     )
 
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
-    emitted = {argument.claim_id for argument in merge.arguments}
+    emitted = {argument.canonical_claim_id for argument in merge.arguments}
     assert emitted == {
         make_claim_identity("claimA", namespace="test_paper")["artifact_id"],
         make_claim_identity("claimB", namespace="test_paper")["artifact_id"],
     }
+    assert {argument.assertion_id for argument in merge.arguments} == set(merge.framework.arguments)
 
 
 def test_syntax_independence_filename(tmp_path):
@@ -176,7 +178,8 @@ def test_syntax_independence_filename(tmp_path):
 
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
     assert len(merge.arguments) == 1
-    assert merge.arguments[0].claim_id == make_claim_identity("claimA", namespace="test_paper")["artifact_id"]
+    assert merge.arguments[0].assertion_id.startswith("ps:assertion:")
+    assert merge.arguments[0].canonical_claim_id == make_claim_identity("claimA", namespace="test_paper")["artifact_id"]
 
 
 def test_merge_commit_has_two_parents(tmp_path):
@@ -343,7 +346,7 @@ def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
 
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
     expected_origins = {
-        argument.claim_id: list(argument.branch_origins)
+        argument.assertion_id: list(argument.branch_origins)
         for argument in merge.arguments
     }
 
@@ -352,7 +355,7 @@ def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
     manifest_path = kr.tree(commit=merge_sha) / "merge" / "manifest.yaml"
     manifest = yaml.safe_load(manifest_path.read_text())
     observed_origins = {
-        row["claim_id"]: row["branch_origins"]
+        row["assertion_id"]: row["branch_origins"]
         for row in manifest["merge"]["arguments"]
     }
     assert observed_origins == expected_origins
