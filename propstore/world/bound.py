@@ -239,13 +239,6 @@ class BoundWorld(BeliefSpace):
                 self._binding_conds.append(assumption)
         self._context_id = environment.context_id
         self._lifting_system = lifting_system
-        if self._context_id and lifting_system is not None:
-            self._context_visible: set[str] | None = {
-                str(context_id)
-                for context_id in lifting_system.contexts_visible_from(self._context_id)
-            }
-        else:
-            self._context_visible = None  # no context filtering
         self._conflicts_cache: dict[str | None, list[ConflictRow]] = {}
         # Typed per-instance memo of the concept + CEL registry used to
         # revalidate conflicts at render time. Built lazily on the first
