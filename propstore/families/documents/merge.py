@@ -4,7 +4,7 @@ from quire.documents import DocumentStruct
 
 
 class MergeManifestArgumentDocument(DocumentStruct):
-    claim_id: str
+    assertion_id: str
     artifact_id: str
     logical_id: str
     canonical_claim_id: str | None = None
@@ -13,7 +13,7 @@ class MergeManifestArgumentDocument(DocumentStruct):
 
 
 class MergeSemanticCandidateArgumentDocument(DocumentStruct):
-    claim_id: str
+    assertion_id: str
     logical_id: str
     artifact_id: str
     branch_origins: tuple[str, ...] = ()
@@ -21,7 +21,7 @@ class MergeSemanticCandidateArgumentDocument(DocumentStruct):
 
 
 class MergeSemanticCandidateDetailDocument(DocumentStruct):
-    claim_ids: tuple[str, ...] = ()
+    assertion_ids: tuple[str, ...] = ()
     logical_ids: tuple[str, ...] = ()
     artifact_ids: tuple[str, ...] = ()
     arguments: tuple[MergeSemanticCandidateArgumentDocument, ...] = ()
