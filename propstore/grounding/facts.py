@@ -50,7 +50,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from argumentation.aspic import GroundAtom
+from argumentation.aspic import GroundAtom, Scalar
 from propstore.claims import ClaimFileEntry, claim_file_claims
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.stages import LoadedConcept
@@ -329,7 +329,7 @@ def _add_fact(
     *,
     registry: PredicateRegistry,
     predicate_id: str,
-    arguments: tuple[object, ...],
+    arguments: tuple[Scalar, ...],
     argument_types: tuple[str, ...],
 ) -> None:
     registry.validate_atom(
