@@ -1753,6 +1753,41 @@ Paper checkpoints:
 - Greenberg 2009 notes if citation-distortion examples become evaluation
   fixtures.
 
+Execution ledger:
+
+- Supporting materials read:
+  Clark 2014 local notes, Clark 2014 page images for the micropublication visual
+  model, support/challenge graphs, data/method evidence, attribution,
+  nanopublication recruitment, and claim-network figures; Greenberg 2009 local
+  notes for citation-distortion fixture semantics.
+- Added `propstore.observatory` as the deterministic observatory owner surface
+  with typed `SemanticTraceRecord`, `EvaluationScenario`, `ScenarioEvaluation`,
+  `OperatorFamilySummary`, `ObservatoryReport`, stable content hashes,
+  deterministic scenario ordering, replay hash summaries, falsification counts,
+  and export/import validation.
+- Added the typed app boundary in `propstore.app.observatory` and a thin
+  `pks observatory run` CLI adapter. The CLI only reads fixture JSON, builds an
+  `AppObservatoryRunRequest`, calls the app layer, and renders the typed report.
+- Registered the CLI command lazily and documented the public epistemic OS trace
+  chain in `docs/epistemic-operating-system.md`:
+  `source artifact -> assertion -> projection -> state -> journal`.
+- Red/green tests:
+  `logs/test-runs/ws14-observatory-red-20260426-023646.log` failed on the
+  missing observatory owner, CLI adapter, lazy registration, and docs as
+  expected;
+  `logs/test-runs/ws14-observatory-owner-green-20260426-024103.log` passed with
+  2 owner/report tests;
+  `logs/test-runs/ws14-observatory-green-20260426-024506.log` passed with 5
+  observatory tests;
+  `logs/test-runs/ws14-public-surfaces-20260426-024712.log` passed with 29
+  observatory and CLI-layout tests.
+- Type and full verification:
+  `uv run pyright propstore` passed with 0 errors, 0 warnings, 0 informations;
+  `logs/test-runs/ws14-full-20260426-024754.log` passed with 2966 tests.
+- Deletion ledger: no remaining semantic workflow code was found or added in
+  the WS14 CLI adapter; no ad hoc script was deleted because the new observatory
+  harness covers typed scenario fixtures rather than an existing script surface.
+
 ## Global Property Program
 
 Use Hypothesis aggressively for:
