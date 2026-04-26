@@ -220,6 +220,9 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
             "derived_from spec must be a non-empty string"
         )
 
+    if spec == "claim.context":
+        return DerivedFromSpec(kind="claim_context")
+
     # Split into prefix + remainder on the first colon. Diller 2025 §3
     # fixes the prefix as the discriminant; everything after the first
     # colon is the kind-specific payload.
@@ -299,9 +302,6 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
             kind="claim_role",
             role=remainder,
         )
-
-    if spec == "claim.context":
-        return DerivedFromSpec(kind="claim_context")
 
     if prefix == "claim.provenance":
         if remainder == "":
