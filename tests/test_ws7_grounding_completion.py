@@ -61,7 +61,7 @@ def _ws7_claim_file():
                 {
                     "id": "claim-tweety",
                     "type": "parameter",
-                    "concept": "concept:bird",
+                    "output_concept": "concept:bird",
                     "value": 42,
                     "sample_size": 11,
                     "conditions": ["habitat == 'wetland'"],
