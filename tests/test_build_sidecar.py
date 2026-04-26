@@ -416,7 +416,7 @@ class TestTableCreation:
 
 
 class TestSchemaV5:
-    """Schema v3 additions for build-to-render gate removal.
+    """Sidecar schema additions for build-to-render gate removal.
 
     Implements `reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md`
     findings 3.1/3.2/3.3 — every claim flows into the sidecar with a per-row
