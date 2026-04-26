@@ -116,7 +116,8 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
     }
     assert len(report["argument_details"]) == 2
     for detail in report["argument_details"]:
-        assert detail["claim_id"] in report["arguments"]
+        assert detail["assertion_id"] in report["arguments"]
+        assert detail["assertion_id"].startswith("ps:assertion:")
         assert detail["canonical_claim_id"] == "test_paper:claim1"
         assert detail["artifact_id"] == artifact_id
         assert detail["logical_id"] == "test_paper:claim1"
@@ -174,12 +175,12 @@ def test_merge_report_surfaces_ignorance_query_state(tmp_path):
     }
     assert len(report["argument_details"]) == 2
     detail_by_id = {
-        detail["claim_id"]: detail for detail in report["argument_details"]
+        detail["assertion_id"]: detail for detail in report["argument_details"]
     }
-    for claim_id in report["credulous"]:
-        assert report["statuses"][claim_id]["credulously_accepted"] is True
-        assert detail_by_id[claim_id]["credulously_accepted"] is True
-        assert detail_by_id[claim_id]["provenance"]["branch_origin"] in detail_by_id[claim_id]["branch_origins"]
+    for assertion_id in report["credulous"]:
+        assert report["statuses"][assertion_id]["credulously_accepted"] is True
+        assert detail_by_id[assertion_id]["credulously_accepted"] is True
+        assert detail_by_id[assertion_id]["provenance"]["branch_origin"] in detail_by_id[assertion_id]["branch_origins"]
 
 
 def test_merge_report_surfaces_semantic_candidates_without_forced_fusion(tmp_path):
@@ -227,7 +228,7 @@ def test_merge_report_surfaces_semantic_candidates_without_forced_fusion(tmp_pat
     ]
     assert report["semantic_candidate_details"] == [
         {
-            "claim_ids": sorted(report["arguments"]),
+            "assertion_ids": sorted(report["arguments"]),
             "logical_ids": ["left_paper:claim_a", "right_paper:claim_b"],
             "artifact_ids": [
                 "ps:claim:leftcandidate0001",
@@ -235,14 +236,14 @@ def test_merge_report_surfaces_semantic_candidates_without_forced_fusion(tmp_pat
             ],
             "arguments": [
                 {
-                    "claim_id": "ps:claim:leftcandidate0001",
+                    "assertion_id": report["semantic_candidate_details"][0]["assertion_ids"][0],
                     "logical_id": "left_paper:claim_a",
                     "artifact_id": "ps:claim:leftcandidate0001",
                     "branch_origins": ["master"],
                     "source_paper": "left_paper",
                 },
                 {
-                    "claim_id": "ps:claim:rightcandidate0001",
+                    "assertion_id": report["semantic_candidate_details"][0]["assertion_ids"][1],
                     "logical_id": "right_paper:claim_b",
                     "artifact_id": "ps:claim:rightcandidate0001",
                     "branch_origins": [branch_name],
