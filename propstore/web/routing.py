@@ -414,8 +414,8 @@ def _parse_limit(value: str | None) -> int:
         return 50
     try:
         limit = int(value)
-    except ValueError as exc:
-        raise WebQueryParseError("limit must be an integer") from exc
+    except ValueError:
+        raise WebQueryParseError("limit must be an integer") from None
     if limit < 1 or limit > 500:
         raise WebQueryParseError("limit must be between 1 and 500")
     return limit
