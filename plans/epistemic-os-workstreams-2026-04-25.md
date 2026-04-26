@@ -661,6 +661,32 @@ Eleventh slice execution ledger:
   from `propstore.core.conditions.cel_frontend`; child `ConditionIR` nodes now
   preserve parser-owned source spans.
 
+Twelfth slice gate, WS3 ESTree backend:
+
+```text
+target_surface: JavaScript/ESTree backend emitter over ConditionIR
+old_surfaces_to_delete: none existing; block JavaScript backends from consuming
+  raw CEL AST/source or Python AST nodes
+allowed_owner_modules: propstore.core.conditions
+forbidden_imports: ESTree backend must not import cel_checker, z3_conditions,
+  condition_classifier, app, CLI, sidecar, world, Python ast, or other backend
+  projection modules
+forbidden_symbols: ConditionIR must still not name backend helper surfaces
+  _rt, RuntimeHelper, PythonAst, Estree, Z3, Solver, or SQL
+forbidden_storage_columns: none in this slice
+positive_tests: arithmetic/comparison/logical ConditionIR emits typed ESTree;
+  membership emits an Array.includes call; Python and ESTree evaluators agree
+  on generated tiny expressions
+negative_tests: architecture import/symbol tests; ESTree backend rejects
+  missing bindings during evaluator use; emitted payloads contain no raw CEL
+  source or Python AST nodes
+pyright_scope: uv run pyright propstore
+paper_checkpoint: compiler middle-end plan and CEL section already reread for
+  WS3 on 2026-04-25
+deletion_ledger: no old JavaScript backend path existed; this adds the
+  backend projection directly over checked semantic ConditionIR
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
