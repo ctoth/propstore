@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from unittest.mock import MagicMock
 
 import pytest
 from hypothesis import given, settings
@@ -56,6 +57,37 @@ def test_investigation_plan_from_fragility_report_roundtrips_with_stable_identit
     assert plan.objective == "stabilize-fragile-world"
     assert restored == plan
     assert restored.content_hash == plan.content_hash
+
+
+def test_public_fragility_investigation_path_reuses_fragility_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    from propstore.epistemic_process import plan_fragility_investigation
+    from propstore.fragility import FragilityRequest
+
+    report = FragilityReport(
+        interventions=(_ranked_intervention("assumption:temperature", "temperature == 300"),),
+        world_fragility=0.4,
+        analysis_scope="subject:enthalpy",
+    )
+    calls: list[object] = []
+
+    def fake_query_fragility(world: object, request: object) -> FragilityReport:
+        calls.append((world, request))
+        return report
+
+    monkeypatch.setattr("propstore.epistemic_process.query_fragility", fake_query_fragility)
+    world = MagicMock()
+    request = FragilityRequest(bindings={"sample": "s1"}, concept_id="enthalpy")
+
+    plan = plan_fragility_investigation(
+        world,
+        request,
+        objective="stabilize enthalpy",
+    )
+
+    assert calls == [(world, request)]
+    assert plan.analysis_scope == "subject:enthalpy"
+    assert plan.intervention_ids == ("assumption:temperature",)
+    assert plan.objective == "stabilize enthalpy"
 
 
 def test_process_manager_queues_jobs_referencing_snapshots_policies_assertions_and_journal_entries() -> None:
