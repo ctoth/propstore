@@ -4,13 +4,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.core.id_types import AssumptionId
 from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
     coerce_entrenchment_reason,
     _coerce_override_priority,
 )
-from propstore.support_revision.state import BeliefBase, is_assumption_atom, is_claim_atom
+from propstore.support_revision.state import BeliefBase, is_assumption_atom, is_assertion_atom
 
 
 @dataclass(frozen=True)
@@ -69,7 +68,7 @@ def compute_entrenchment(
             ),
             override_key=override_key,
             support_count=support_count,
-            essential_support=tuple(_essential_support_ids(bound, atom.atom_id)),
+            essential_support=tuple(base.essential_support.get(atom.atom_id, ())),
         )
 
     scored.sort()
@@ -77,16 +76,6 @@ def compute_entrenchment(
         ranked_atom_ids=tuple(atom_id for _, _, atom_id in scored),
         reasons=reasons,
     )
-
-
-def _essential_support_ids(bound, atom_id: str) -> list[AssumptionId]:
-    if not atom_id.startswith("claim:"):
-        return []
-    claim_id = atom_id.partition(":")[2]
-    essential = bound.claim_essential_support(claim_id)
-    if essential is None:
-        return []
-    return list(essential.assumption_ids)
 
 
 def _match_override(
@@ -103,7 +92,7 @@ def _match_override(
     if context_id:
         candidates.append((1, f"context:{context_id}"))
 
-    candidates.append((2, "kind:assumption" if is_assumption_atom(atom) else "kind:claim"))
+    candidates.append((2, "kind:assumption" if is_assumption_atom(atom) else "kind:assertion"))
 
     for rank, key in candidates:
         override = override_map.get(key)
@@ -113,15 +102,18 @@ def _match_override(
 
 
 def _override_source_ids(atom) -> tuple[str, ...]:
-    if not is_claim_atom(atom):
+    if not is_assertion_atom(atom):
         return ()
 
-    source = atom.claim.source
-    provenance = atom.claim.provenance
-    candidates = (
-        atom.claim.source_paper,
-        None if source is None else source.source_id,
-        None if source is None else source.slug,
-        None if provenance is None else provenance.paper,
-    )
-    return tuple(str(value) for value in candidates if value)
+    values: list[str] = []
+    for claim in atom.source_claims:
+        source = claim.source
+        provenance = claim.provenance
+        candidates = (
+            claim.source_paper,
+            None if source is None else source.source_id,
+            None if source is None else source.slug,
+            None if provenance is None else provenance.paper,
+        )
+        values.extend(str(value) for value in candidates if value)
+    return tuple(dict.fromkeys(values))
