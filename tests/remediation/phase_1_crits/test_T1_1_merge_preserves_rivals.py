@@ -80,7 +80,7 @@ def test_merge_preserves_rival_bodies(left_body: str, right_body: str) -> None:
         claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
         canonical_claim_id = "test_paper:claim1"
         materialized_claim_ids = {
-            argument["artifact_id"]
+            argument["assertion_id"]
             for argument in manifest["merge"]["arguments"]
             if argument["canonical_claim_id"] == canonical_claim_id
         }
