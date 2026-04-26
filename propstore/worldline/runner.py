@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from propstore.core.id_types import ConceptId, ContextId, to_concept_id
+from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
 from propstore.worldline.hashing import compute_worldline_content_hash
@@ -140,6 +141,7 @@ def run_worldline(
         contexts=tuple(_context_dependencies(bound, context_id)),
     )
     content_hash = compute_worldline_content_hash(
+        policy=policy_profile_from_render_policy(definition.policy).to_dict(),
         values=values,
         steps=trace.steps,
         dependencies=dependencies,
