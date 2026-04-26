@@ -8,6 +8,10 @@ from propstore.app.rendering import AppRenderPolicyRequest
 from propstore.app.repository_views import AppRepositoryViewRequest
 
 
+class WebQueryParseError(Exception):
+    """Raised when HTTP query parameters cannot build an app request."""
+
+
 def parse_render_policy_request(params: Mapping[str, str | None]) -> AppRenderPolicyRequest:
     return AppRenderPolicyRequest(
         reasoning_backend=params.get("reasoning_backend") or "claim_graph",
@@ -48,7 +52,7 @@ def _bool_param(params: Mapping[str, str | None], name: str) -> bool:
         return True
     if normalized in {"0", "false", "no", "off"}:
         return False
-    raise ValueError(f"{name} must be a boolean value")
+    raise WebQueryParseError(f"{name} must be a boolean value")
 
 
 def _float_param(
@@ -62,7 +66,7 @@ def _float_param(
     try:
         return float(value)
     except ValueError as exc:
-        raise ValueError(f"{name} must be a number") from exc
+        raise WebQueryParseError(f"{name} must be a number") from exc
 
 
 def _int_param(params: Mapping[str, str | None], name: str) -> int | None:
@@ -72,4 +76,4 @@ def _int_param(params: Mapping[str, str | None], name: str) -> int | None:
     try:
         return int(value)
     except ValueError as exc:
-        raise ValueError(f"{name} must be an integer") from exc
+        raise WebQueryParseError(f"{name} must be an integer") from exc
