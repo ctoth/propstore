@@ -12,7 +12,7 @@ from propstore.repository import Repository
 from propstore.storage import init_git_store
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
-from tests.conftest import make_claim_identity, normalize_claims_payload
+from tests.conftest import normalize_claims_payload
 from tests.family_helpers import load_claim_files
 
 
@@ -78,11 +78,11 @@ def test_merge_preserves_rival_bodies(left_body: str, right_body: str) -> None:
             (kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text()
         )
         claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
-        artifact_id = make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+        canonical_claim_id = "test_paper:claim1"
         materialized_claim_ids = {
-            argument["claim_id"]
+            argument["artifact_id"]
             for argument in manifest["merge"]["arguments"]
-            if argument["artifact_id"] == artifact_id
+            if argument["canonical_claim_id"] == canonical_claim_id
         }
         bodies = [
             claim["statement"]
