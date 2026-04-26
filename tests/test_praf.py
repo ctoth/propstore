@@ -454,6 +454,23 @@ def test_p_arg_from_claim_accepts_stated_opinion_columns():
     assert result.provenance is not None
 
 
+def test_p_arg_from_claim_requires_base_rate_for_opinion_columns():
+    from propstore.praf import NoCalibration, p_arg_from_claim
+
+    result = p_arg_from_claim(
+        {
+            "claim_id": "test",
+            "opinion_belief": 0.6,
+            "opinion_disbelief": 0.1,
+            "opinion_uncertainty": 0.3,
+        }
+    )
+
+    assert isinstance(result, NoCalibration)
+    assert result.reason == "missing_base_rate"
+    assert result.missing_fields == ("opinion_base_rate",)
+
+
 # ---------------------------------------------------------------------------
 # 9. test_p_defeat_from_opinion_columns
 # ---------------------------------------------------------------------------
@@ -498,6 +515,16 @@ def test_p_defeat_from_opinion_columns():
     op3 = p_defeat_from_stance(stance_bare)
     assert isinstance(op3, NoCalibration)
     assert op3.reason == "missing_relation_calibration"
+
+
+def test_p_defeat_from_stance_requires_base_rate_for_confidence():
+    from propstore.praf import NoCalibration, p_defeat_from_stance
+
+    result = p_defeat_from_stance({"confidence": 0.75})
+
+    assert isinstance(result, NoCalibration)
+    assert result.reason == "missing_base_rate"
+    assert result.missing_fields == ("opinion_base_rate",)
 
 
 # ---------------------------------------------------------------------------
