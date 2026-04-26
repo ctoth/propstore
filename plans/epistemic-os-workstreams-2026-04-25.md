@@ -368,6 +368,23 @@ deletion_ledger: no caller migration yet; land the domain object without old
   claim/predicate/CEL/provenance identity placeholders
 ```
 
+Fifth slice execution ledger:
+
+- Red commit: `43c75e6` added situated assertion identity tests and owner
+  architecture gates.
+- Red log: `logs/test-runs/ws2-situated-red-20260425-182551.log`, failed
+  because `propstore.core.assertions.situated` and `SituatedAssertion` did not
+  exist.
+- Green commit: `e93aedb` added `SituatedAssertion`, deterministic
+  `AssertionId`, and identity derivation excluding `provenance_ref`.
+- Green log: `logs/test-runs/ws2-situated-green-20260425-182708.log`,
+  23 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no existing caller path was deleted in this slice; the new
+  owner module blocks claim-row, predicate-string, CEL-source, and provenance
+  payload placeholders from the situated assertion identity surface.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
