@@ -336,7 +336,7 @@ class TestSidecarPopulatesOpinionColumns:
                 opinion_belief REAL,
                 opinion_disbelief REAL,
                 opinion_uncertainty REAL,
-                opinion_base_rate REAL DEFAULT 0.5
+                opinion_base_rate REAL
             );
         """)
         conn.execute(
@@ -449,7 +449,7 @@ class TestSidecarHandlesOldFormatYaml:
                 opinion_belief REAL,
                 opinion_disbelief REAL,
                 opinion_uncertainty REAL,
-                opinion_base_rate REAL DEFAULT 0.5
+                opinion_base_rate REAL
             );
         """)
         conn.execute(
