@@ -1688,6 +1688,38 @@ Paper checkpoints:
 - Doyle 1979 notes for TMS/problem-solver boundary.
 - de Kleer 1986 notes for assumptions/environments.
 
+Execution ledger:
+
+- Supporting materials read:
+  Doyle 1979 local notes for the TMS/problem-solver boundary; de Kleer 1986
+  ATMS local notes and de Kleer 1986 problem-solving local notes for
+  assumptions, environments, labels, consumers, and control boundaries.
+- Added `propstore.epistemic_process` as the process owner layer with
+  `InvestigationPlan`, `InterventionPlan`, `ProcessJob`,
+  `QueuedProcessJob`, `ProcessCompletionRecord`, `ProcessReplayReport`, and
+  `EpistemicProcessManager`. Jobs record snapshot hashes, typed policy ids and
+  payloads, assertion ids, and transition journal entry hashes.
+- Fragility and bounded ATMS intervention machinery are reused directly:
+  `InvestigationPlan.from_fragility_report` and
+  `plan_fragility_investigation` build executable investigation plans from the
+  existing fragility query, while `InterventionPlan.from_atms_plan` records
+  ATMS node/concept intervention plans without duplicating the reasoning
+  engine.
+- Red/green tests:
+  `logs/test-runs/ws13-process-red-20260426-021343.log` failed on the missing
+  process owner module as expected;
+  `logs/test-runs/ws13-public-path-red-20260426-021857.log` failed on the
+  missing public investigation API as expected;
+  `logs/test-runs/ws13-process-green-20260426-021701.log` and
+  `logs/test-runs/ws13-public-path-green-20260426-022039.log` passed.
+- Focused preservation:
+  `logs/test-runs/ws13-process-focused2-20260426-022228.log` passed with 6
+  process-manager tests; `logs/test-runs/ws13-fragility-atms-20260426-022326.log`
+  passed with 78 process/fragility/ATMS tests; `uv run pyright propstore`
+  passed with 0 errors.
+- Final verification:
+  `logs/test-runs/ws13-full-20260426-022458.log` passed with 2961 tests.
+
 ### WS14: Public Surfaces and Observatory
 
 Purpose:
