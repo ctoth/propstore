@@ -15,6 +15,7 @@ from propstore.claims import (
     claim_file_filename,
     claim_file_stage,
 )
+from propstore.context_lifting import LiftedAssertion
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.compiler.ir import ClaimCompilationBundle
@@ -54,6 +55,7 @@ from propstore.sidecar.stages import (
     ConceptFtsInsertRow,
     ContextAssumptionInsertRow,
     ContextInsertRow,
+    ContextLiftingMaterializationInsertRow,
     ContextLiftingRuleInsertRow,
     ContextSidecarRows,
     ConceptInsertRow,
@@ -174,6 +176,27 @@ def compile_context_sidecar_rows(
         assumption_rows=tuple(assumption_rows),
         lifting_rule_rows=tuple(lifting_rule_rows),
     )
+
+
+def compile_context_lifting_materialization_rows(
+    materializations: Sequence[LiftedAssertion],
+) -> tuple[ContextLiftingMaterializationInsertRow, ...]:
+    rows: list[ContextLiftingMaterializationInsertRow] = []
+    for materialization in materializations:
+        rows.append(
+            ContextLiftingMaterializationInsertRow(
+                (
+                    materialization.rule_id,
+                    str(materialization.source_context.id),
+                    str(materialization.target_context.id),
+                    materialization.proposition_id,
+                    materialization.status.value,
+                    materialization.exception_id,
+                    json.dumps(materialization.provenance, sort_keys=True),
+                )
+            )
+        )
+    return tuple(rows)
 
 
 def compile_concept_sidecar_rows(
