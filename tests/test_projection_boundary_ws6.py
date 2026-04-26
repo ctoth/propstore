@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import pytest
 from argumentation.aspic import GroundAtom
 
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
 from propstore.core.justifications import CanonicalJustification
-from propstore.structured_projection import ProjectionAtom, ProjectionLossWitness
+from propstore.structured_projection import (
+    ProjectionAtom,
+    ProjectionLiftError,
+    ProjectionLossWitness,
+    lift_projected_argument,
+)
 from tests.test_aspic_bridge_review_v2 import (
     _make_atom,
     _make_grounded_bundle,
@@ -58,6 +64,11 @@ def test_aspic_projection_arguments_expose_typed_source_projection_records() -> 
     assert projected.projection.provenance.source_assertion_ids == (source_id,)
     assert projected.projection.loss is None
 
+    lifted = lift_projected_argument(projected)
+
+    assert lifted.situated_assertion_ids == (source_id,)
+    assert lifted.provenance == projected.projection.provenance
+
 
 def test_grounded_backend_projection_has_typed_loss_witness_when_source_assertion_missing() -> None:
     bundle = _make_grounded_bundle(
@@ -83,3 +94,6 @@ def test_grounded_backend_projection_has_typed_loss_witness_when_source_assertio
     assert isinstance(grounded_fly.projection.loss, ProjectionLossWitness)
     assert grounded_fly.projection.loss.kind == "missing_source_assertion"
     assert grounded_fly.projection.source_assertion_ids == ()
+
+    with pytest.raises(ProjectionLiftError, match="missing_source_assertion"):
+        lift_projected_argument(grounded_fly)
