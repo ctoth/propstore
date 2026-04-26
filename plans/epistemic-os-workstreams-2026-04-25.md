@@ -1515,6 +1515,32 @@ Paper checkpoints:
 - Bonanno 2007/2010 notes if branching-time belief change affects identity.
 - Klein 2003 notes if ontology evolution diff vocabulary is used.
 
+WS10 execution ledger:
+
+- Paper/doc checkpoint completed: local notes for Bonanno 2007, Bonanno
+  2010/2012, and Klein/Noy 2003 were read before the snapshot, journal, and
+  typed semantic-diff implementation.
+- Red tests added snapshot round trip, transition journal replay determinism,
+  typed semantic diff application, and Hypothesis-generated tiny assertion
+  language diff/apply coverage in `tests/test_epistemic_history.py`.
+- Green implementation added `propstore.support_revision.history` with
+  `EpistemicSnapshot`, `TransitionJournalEntry`, `TransitionJournal`,
+  `SemanticFieldDelta`, `EpistemicSemanticDiff`, stable canonical hashes,
+  replay determinism checks, and semantic diff/apply over assertion
+  acceptance, warrant, ranking, provenance, and dependency surfaces.
+- The old bare `epistemic_state_snapshot` production helper was deleted, and
+  revision/worldline persistence now routes iterated state payloads through
+  `EpistemicSnapshot` instead of treating worldline revision state as the
+  authoritative history layer.
+- Verification passed:
+  `logs/test-runs/ws10-history-green2-20260426-012029.log`,
+  `logs/test-runs/ws10-iterated-payload-green2-20260426-012452.log`,
+  `logs/test-runs/ws10-history-focused2-20260426-012717.log`,
+  `logs/test-runs/ws10-revision-worldline-preserve2-20260426-012816.log`;
+  `uv run pyright propstore` passed with 0 errors.
+- Final verification:
+  `logs/test-runs/ws10-full-20260426-012853.log` passed with 2945 tests.
+
 ### WS11: Import-Ready Machinery
 
 Purpose:
