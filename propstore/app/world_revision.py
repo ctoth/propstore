@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from propstore.app.world import open_app_world_model
 from propstore.repository import Repository
-from propstore.support_revision.state import BeliefAtom, is_assumption_atom, is_claim_atom
+from propstore.support_revision.state import BeliefAtom, is_assumption_atom, is_assertion_atom
 
 
 class WorldRevisionAppError(Exception):
@@ -77,20 +77,21 @@ def _lower_request(request: AppRevisionWorldRequest):
 
 
 def revision_atom_display(atom: BeliefAtom) -> RevisionAtomDisplay:
-    if is_claim_atom(atom):
-        primary_logical_id = atom.claim.primary_logical_id
+    if is_assertion_atom(atom):
+        claim = atom.primary_source_claim
+        primary_logical_id = None if claim is None else claim.primary_logical_id
         if primary_logical_id:
             display_value = primary_logical_id.split(":", 1)[1] if ":" in primary_logical_id else primary_logical_id
-            display_id = f"claim:{display_value}"
+            display_id = display_value
         else:
             display_id = atom.atom_id
         return RevisionAtomDisplay(
             atom_id=atom.atom_id,
             display_id=display_id,
-            claim_type=None if atom.claim.claim_type is None else atom.claim.claim_type.value,
-            concept_id=None if atom.claim.value_concept_id is None else str(atom.claim.value_concept_id),
-            value=atom.claim.row.value,
-            unit=atom.claim.unit,
+            claim_type=None if claim is None or claim.claim_type is None else claim.claim_type.value,
+            concept_id=None if claim is None or claim.value_concept_id is None else str(claim.value_concept_id),
+            value=None if claim is None else claim.row.value,
+            unit=None if claim is None else claim.unit,
         )
     if is_assumption_atom(atom):
         return RevisionAtomDisplay(
