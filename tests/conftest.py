@@ -591,6 +591,9 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             derivation_chain TEXT
         );
     """)
+    from propstore.sidecar.rules import create_grounded_fact_table
+
+    create_grounded_fact_table(conn)
     conn.execute(
         "INSERT INTO meta (key, schema_version) VALUES (?, ?)",
         (SIDECAR_META_KEY, SCHEMA_VERSION),
