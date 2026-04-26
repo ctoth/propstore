@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from argumentation.aspic import GroundAtom
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record_document
 from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.grounding.facts import extract_facts
+from propstore.grounding.facts import GroundingFactInputs, extract_facts
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.predicate_files import LoadedPredicateFile
@@ -63,7 +63,17 @@ def load_grounding_inputs(
         )
         for handle in repo.families.concepts.iter_handles(commit=commit)
     ]
-    facts = extract_facts(concepts, registry)
+    claim_files = tuple(
+        handle
+        for handle in repo.families.claims.iter_handles(commit=commit)
+    )
+    facts = extract_facts(
+        GroundingFactInputs(
+            concepts=tuple(concepts),
+            claim_files=claim_files,
+        ),
+        registry,
+    )
     return GroundingInputs(
         rule_files=rule_files,
         facts=facts,
