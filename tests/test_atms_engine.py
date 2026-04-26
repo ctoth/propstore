@@ -187,6 +187,10 @@ def _make_bound(
     )
 
 
+def _assertion_node_id(bound: BoundWorld, claim_id: str) -> str:
+    return bound.claim_status(claim_id).node_id
+
+
 class _GraphOnlyATMSRuntime:
     """ATMS runtime surface with no BoundWorld implementation details."""
 
@@ -682,10 +686,13 @@ def test_atms_essential_support_intersection_and_environment_queries_are_exact()
             assumption_ids["y == 2"],
         ))
     )
-    assert "claim:claim_x" in visible_nodes
-    assert "claim:claim_y_a" in visible_nodes
+    claim_x_node = _assertion_node_id(bound, "claim_x")
+    claim_y_a_node = _assertion_node_id(bound, "claim_y_a")
+    claim_y_b_node = _assertion_node_id(bound, "claim_y_b")
+    assert claim_x_node in visible_nodes
+    assert claim_y_a_node in visible_nodes
     assert derived_node_id in visible_nodes
-    assert "claim:claim_y_b" not in visible_nodes
+    assert claim_y_b_node not in visible_nodes
 
 
 def test_atms_explain_node_returns_real_justification_chains() -> None:
@@ -727,17 +734,18 @@ def test_atms_explain_node_returns_real_justification_chains() -> None:
     engine = bound.atms_engine()
     derived = bound.derived_value("concept3")
     explanation = engine.explain_node(engine._derived_node_id("concept3", derived.value))
+    claim_x_node = _assertion_node_id(bound, "claim_x")
 
     assert explanation.status is ATMSNodeStatus.IN
     assert explanation.support_quality is SupportQuality.EXACT
     assert explanation.traces
     assert any(
         trace.informant == "parameterization:0"
-        and "claim:claim_x" in trace.antecedent_ids
+        and claim_x_node in trace.antecedent_ids
         and any(
             getattr(antecedent, "claim_id", None) == "claim_x"
             and getattr(antecedent, "traces", ())
-            and antecedent.traces[0].informant == "claim:claim_x"
+            and antecedent.traces[0].informant == claim_x_node
             for antecedent in trace.antecedents
         )
         for trace in explanation.traces
@@ -961,7 +969,8 @@ def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> 
     assert result.argumentation is not None
     assert result.argumentation.backend == "atms"
     assert result.argumentation.supported == ("claim_exact",)
-    assert result.argumentation.node_statuses == {"claim:claim_exact": "IN"}
+    assert list(result.argumentation.node_statuses.values()) == ["IN"]
+    assert all(node_id.startswith("ps:assertion:") for node_id in result.argumentation.node_statuses)
     assert result.argumentation.support_quality == {"claim_exact": "exact"}
     assert result.argumentation.essential_support["claim_exact"]
     assert result.argumentation.nogood_details == ()
@@ -1247,7 +1256,7 @@ def test_run5_future_audit_surfaces_missing_support_nogood_and_future_activation
     derived = bound.derived_value("concept4")
 
     derived_why_out = engine.why_out(engine._derived_node_id("concept4", derived.value), limit=4)
-    future_why_out = engine.why_out("claim:claim_future", queryables=queryables, limit=4)
+    future_why_out = engine.why_out(_assertion_node_id(bound, "claim_future"), queryables=queryables, limit=4)
 
     assert derived_why_out.out_kind == ATMSOutKind.NOGOOD_PRUNED
     assert derived_why_out.future_activatable is False
@@ -1305,7 +1314,7 @@ def test_atms_future_queryables_can_be_insufficient() -> None:
     queryables = [QueryableAssumption.from_cel("z == 3")]
 
     future_statuses = bound.claim_future_statuses("claim_future", queryables, limit=4)
-    why_out = bound.atms_engine().why_out("claim:claim_future", queryables=queryables, limit=4)
+    why_out = bound.atms_engine().why_out(_assertion_node_id(bound, "claim_future"), queryables=queryables, limit=4)
 
     assert future_statuses.could_become_in is False
     assert future_statuses.futures[0].status is ATMSNodeStatus.OUT
@@ -1360,7 +1369,7 @@ def test_atms_bounded_stability_and_relevance_are_honest_for_claims_and_concepts
     assert unstable_out.stable is False
     assert [witness.queryable_cels for witness in unstable_out.witnesses] == [("y == 2",)]
     assert unstable_out.witnesses[0].status is ATMSNodeStatus.IN
-    assert tuple(bound.atms_engine().status_flip_witnesses("claim:claim_future", queryables, limit=8)) == tuple(unstable_out.witnesses)
+    assert tuple(bound.atms_engine().status_flip_witnesses(_assertion_node_id(bound, "claim_future"), queryables, limit=8)) == tuple(unstable_out.witnesses)
     assert bound.claim_is_stable("claim_future", queryables, limit=8) is False
 
     assert stable_out.stable is True
@@ -1414,7 +1423,7 @@ def test_atms_future_queryables_do_not_fabricate_future_out_transitions_without_
     ]
 
     future_statuses = bound.claim_future_statuses("claim_future", queryables, limit=4)
-    future_out = bound.atms_engine().could_become_out("claim:claim_future", queryables, limit=4)
+    future_out = bound.atms_engine().could_become_out(_assertion_node_id(bound, "claim_future"), queryables, limit=4)
 
     assert bound.claim_status("claim_future").status == ATMSNodeStatus.OUT
     assert future_statuses.could_become_in is True
@@ -1488,7 +1497,7 @@ def test_atms_claim_interventions_to_out_require_consistent_nogood_pruned_future
     bound = _make_bound(store, bindings={"x": 1})
     queryables = [QueryableAssumption.from_cel("y == 2")]
 
-    future_out = bound.atms_engine().could_become_out("claim:claim_future", queryables, limit=8)
+    future_out = bound.atms_engine().could_become_out(_assertion_node_id(bound, "claim_future"), queryables, limit=8)
     plans = bound.claim_interventions("claim_future", queryables, ATMSNodeStatus.OUT, limit=8)
 
     assert [future.queryable_cels for future in future_out] == [("y == 2",)]
@@ -1594,7 +1603,7 @@ def test_atms_why_out_distinguishes_missing_support_from_nogood_and_future_activ
     derived = bound.derived_value("concept4")
 
     derived_why_out = engine.why_out(engine._derived_node_id("concept4", derived.value), limit=4)
-    future_why_out = engine.why_out("claim:claim_future", queryables=queryables, limit=4)
+    future_why_out = engine.why_out(_assertion_node_id(bound, "claim_future"), queryables=queryables, limit=4)
 
     assert derived_why_out.out_kind == ATMSOutKind.NOGOOD_PRUNED
     assert derived_why_out.future_activatable is False
@@ -1730,7 +1739,7 @@ def test_was_pruned_by_nogood_detects_transitive_nogood_through_antecedent() -> 
     engine = bound.atms_engine()
 
     # claim_a should be directly nogood-pruned (its assumption {x==1} is a nogood)
-    claim_a_inspection = engine.node_status("claim:claim_a")
+    claim_a_inspection = engine.node_status(_assertion_node_id(bound, "claim_a"))
     assert claim_a_inspection.status == ATMSNodeStatus.OUT
     assert claim_a_inspection.out_kind == ATMSOutKind.NOGOOD_PRUNED
 
