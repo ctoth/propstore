@@ -13,6 +13,9 @@ from propstore.opinion import Opinion, from_probability
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
 
+_METADATA_STRENGTH_BASE_RATE = 0.5
+
+
 @dataclass(frozen=True)
 class MetadataStrengthVector:
     """Metadata-derived preference strength plus its uncertainty.
@@ -109,6 +112,7 @@ def metadata_strength_vector(
         opinion = from_probability(
             confidence_value,
             sample_size_value,
+            _METADATA_STRENGTH_BASE_RATE,
             provenance=provenance,
         )
         uncertainty_value = opinion.uncertainty
@@ -123,6 +127,7 @@ def metadata_strength_vector(
         )
     else:
         opinion = Opinion.vacuous(
+            _METADATA_STRENGTH_BASE_RATE,
             provenance=_metadata_provenance(
                 ProvenanceStatus.VACUOUS,
                 source_artifact_code,
