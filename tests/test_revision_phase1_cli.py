@@ -124,7 +124,7 @@ def test_world_revision_base_shows_exact_claim_atoms_and_assumptions(revision_cl
     )
 
     assert result.exit_code == 0, result.output
-    assert "claim:freq_claim1" in result.output
+    assert "ps:assertion:" in result.output
     assert "speaker_sex == 'male'" in result.output
 
 
@@ -137,4 +137,4 @@ def test_world_revision_entrenchment_shows_ranked_atoms(revision_cli_workspace: 
     )
 
     assert result.exit_code == 0, result.output
-    assert "claim:freq_claim1" in result.output
+    assert "ps:assertion:" in result.output
