@@ -2,6 +2,9 @@ from propstore.opinion import Opinion
 from propstore.source.alignment import classify_relation
 
 
+_TEST_BASE_RATE = 0.5
+
+
 def _proposal(
     source: str,
     *,
@@ -29,7 +32,7 @@ def test_classify_relation_returns_ignorance_for_vacuous_opinion() -> None:
             proposed_name="shared_name",
             definition="second source definition",
         ),
-        "opinion": Opinion.vacuous(),
+        "opinion": Opinion.vacuous(_TEST_BASE_RATE),
     }
 
     assert classify_relation(relation) == "ignorance"
