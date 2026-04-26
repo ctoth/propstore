@@ -179,6 +179,32 @@ def test_opinion_fusion_composes_provenance() -> None:
     assert fused.provenance.operations == ("fusion",)
 
 
+def test_probability_status_access_requires_explicit_provenance() -> None:
+    opinion = Opinion(
+        0.0,
+        0.0,
+        1.0,
+        0.5,
+        provenance=_provenance(ProvenanceStatus.VACUOUS, "explicit"),
+    )
+
+    assert opinion.provenance_status is ProvenanceStatus.VACUOUS
+
+    with pytest.raises(ValueError, match="explicit provenance"):
+        _ = Opinion(0.0, 0.0, 1.0, 0.5).provenance_status
+
+
+def test_probability_derivation_without_provenance_does_not_manufacture_status() -> None:
+    left = Opinion(0.4, 0.2, 0.4, 0.5)
+    right = Opinion(0.2, 0.3, 0.5, 0.5)
+
+    fused = consensus_pair(left, right)
+
+    assert fused.provenance is None
+    with pytest.raises(ValueError, match="explicit provenance"):
+        _ = fused.provenance_status
+
+
 def test_source_trust_status_is_mandatory_at_document_boundary() -> None:
     with pytest.raises(DocumentSchemaError):
         convert_document_value(
