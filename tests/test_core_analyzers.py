@@ -308,3 +308,47 @@ class TestConflictStanceSynthesis:
         assert ("cC", "cA") in synthetic_pairs, (
             "Conflict A↔C should produce synthetic rebuts C→A"
         )
+
+    def test_synthetic_conflict_stances_do_not_fabricate_opinions(
+        self, conn: sqlite3.Connection
+    ) -> None:
+        _insert_claim(conn, "cA", "temp", 100.0, sample_size=50)
+        _insert_claim(conn, "cC", "temp", 300.0, sample_size=50)
+        insert_conflict(
+            conn,
+            concept_id="temp",
+            claim_a_id="cA",
+            claim_b_id="cC",
+            warning_class="CONFLICT",
+        )
+        conn.commit()
+
+        from propstore.core.analyzers import shared_analyzer_input_from_store
+
+        store = SQLiteArgumentationStore(conn)
+        shared = shared_analyzer_input_from_store(
+            store,
+            {"cA", "cC"},
+        )
+
+        synthetic = [
+            stance
+            for stance in shared.stance_rows
+            if (
+                stance["claim_id"],
+                stance["target_claim_id"],
+                stance["stance_type"],
+            )
+            in {
+                ("cA", "cC", "rebuts"),
+                ("cC", "cA", "rebuts"),
+            }
+        ]
+        assert len(synthetic) == 2
+
+        for stance in synthetic:
+            assert "confidence" not in stance
+            assert "opinion_belief" not in stance
+            assert "opinion_disbelief" not in stance
+            assert "opinion_uncertainty" not in stance
+            assert "opinion_base_rate" not in stance
