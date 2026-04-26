@@ -592,3 +592,30 @@ def build_sidecar(
     _cleanup_sidecar_artifacts(temp_sidecar_path)
     temp_hash_path.unlink(missing_ok=True)
     return True
+
+
+def build_grounding_sidecar(
+    repo: "Repository",
+    sidecar_path: Path,
+    *,
+    commit_hash: str | None = None,
+) -> None:
+    """Materialize the grounding substrate into a sidecar-shaped SQLite file."""
+
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    _cleanup_sidecar_artifacts(sidecar_path)
+    conn = connect_sidecar(sidecar_path)
+    try:
+        write_schema_metadata(conn)
+        create_grounded_fact_table(conn)
+        grounded_bundle = build_grounded_bundle(
+            repo,
+            commit=commit_hash,
+        )
+        populate_grounded_facts(conn, grounded_bundle)
+        conn.commit()
+    except Exception:
+        conn.close()
+        _cleanup_sidecar_artifacts(sidecar_path)
+        raise
+    _checkpoint_and_close(conn)
