@@ -165,8 +165,8 @@ def test_nested_ist_proposition_round_trips_context_stack(context_ids: list[str]
 
 
 def test_lifting_system_is_explicit_rule_based() -> None:
+    from propstore.core.assertions import ContextReference
     from propstore.context_lifting import (
-        ContextReference,
         LiftingMode,
         LiftingRule,
         LiftingSystem,

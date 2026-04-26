@@ -15,6 +15,7 @@ from propstore.cel_checker import (
 )
 from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import to_cel_exprs
+from propstore.core.assertions import ContextReference
 from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.micropublications import ActiveMicropublication
@@ -359,7 +360,6 @@ class WorldModel(WorldStore):
         self._lifting_system_loaded = True
 
         from propstore.context_lifting import (
-            ContextReference,
             LiftingMode,
             LiftingRule,
             LiftingSystem,

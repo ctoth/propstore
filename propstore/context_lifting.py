@@ -12,20 +12,13 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 
 from propstore.cel_types import CelExpr, to_cel_exprs
+from propstore.core import assertions as _assertions
 from propstore.core.id_types import ContextId, to_context_id
-
-
-@dataclass(frozen=True, order=True)
-class ContextReference:
-    id: ContextId | str
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "id", to_context_id(self.id))
 
 
 @dataclass(frozen=True)
 class IstProposition:
-    context: ContextReference
+    context: _assertions.ContextReference
     proposition_id: str
 
 
@@ -38,8 +31,8 @@ class LiftingMode(StrEnum):
 @dataclass(frozen=True)
 class LiftingRule:
     id: str
-    source: ContextReference
-    target: ContextReference
+    source: _assertions.ContextReference
+    target: _assertions.ContextReference
     conditions: tuple[CelExpr, ...] = ()
     mode: LiftingMode = LiftingMode.BRIDGE
     justification: str | None = None
@@ -50,7 +43,7 @@ class LiftingRule:
 
 @dataclass(frozen=True)
 class LiftingSystem:
-    contexts: tuple[ContextReference, ...] = ()
+    contexts: tuple[_assertions.ContextReference, ...] = ()
     lifting_rules: tuple[LiftingRule, ...] = ()
     context_assumptions: Mapping[ContextId, tuple[CelExpr, ...]] = field(
         default_factory=dict
