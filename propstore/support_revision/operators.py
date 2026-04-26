@@ -5,7 +5,6 @@ from dataclasses import replace
 from itertools import combinations
 from typing import Any, overload
 
-from propstore.core.active_claims import coerce_active_claim
 from propstore.core.anytime import EnumerationExceeded
 from propstore.core.id_types import AssumptionId
 from propstore.support_revision.entrenchment import EntrenchmentReport
@@ -14,47 +13,17 @@ from propstore.support_revision.state import (
     BeliefAtom,
     BeliefBase,
     AssumptionAtom,
-    ClaimAtom,
+    AssertionAtom,
     RevisionResult,
     is_assumption_atom,
-    is_claim_atom,
+    is_assertion_atom,
 )
 
 
-def _claim_input_candidates(atom: BeliefAtom) -> tuple[str, ...]:
-    if not is_claim_atom(atom):
+def _assertion_input_candidates(atom: BeliefAtom) -> tuple[str, ...]:
+    if not is_assertion_atom(atom):
         return ()
-
-    claim = atom.claim
-    candidates: list[str] = []
-
-    candidates.append(str(claim.claim_id))
-    if claim.artifact_id:
-        candidates.append(str(claim.artifact_id))
-
-    logical_id = claim.primary_logical_id
-    if isinstance(logical_id, str) and logical_id:
-        candidates.append(logical_id)
-        if ":" in logical_id:
-            candidates.append(logical_id.split(":", 1)[1])
-
-    for entry in claim.logical_ids:
-        if entry.namespace and entry.value:
-            candidates.append(f"{entry.namespace}:{entry.value}")
-            candidates.append(entry.value)
-
-    if atom.atom_id.startswith("claim:"):
-        candidates.append(atom.atom_id)
-        candidates.append(atom.atom_id.split(":", 1)[1])
-
-    seen: set[str] = set()
-    ordered: list[str] = []
-    for candidate in candidates:
-        if candidate in seen:
-            continue
-        seen.add(candidate)
-        ordered.append(candidate)
-    return tuple(ordered)
+    return (atom.atom_id, str(atom.assertion_id))
 
 
 def normalize_revision_input(
@@ -62,7 +31,7 @@ def normalize_revision_input(
     revision_input: BeliefAtom | str | Mapping[str, Any],
 ) -> BeliefAtom:
     """Normalize a user-facing revision input into a BeliefAtom."""
-    if isinstance(revision_input, (ClaimAtom, AssumptionAtom)):
+    if isinstance(revision_input, (AssertionAtom, AssumptionAtom)):
         return revision_input
 
     if isinstance(revision_input, str):
@@ -71,14 +40,7 @@ def normalize_revision_input(
             return existing
         raise ValueError(f"Unknown revision input: {revision_input}")
 
-    kind = str(revision_input.get("kind") or "claim")
-    if kind == "claim":
-        claim_id = revision_input.get("id") or revision_input.get("claim_id")
-        if not claim_id:
-            raise ValueError("Claim revision input requires 'id' or 'claim_id'")
-        atom_id = str(revision_input.get("atom_id") or f"claim:{claim_id}")
-        return ClaimAtom(atom_id=atom_id, claim=coerce_active_claim(revision_input))
-
+    kind = str(revision_input.get("kind") or "")
     if kind == "assumption":
         assumption_id = revision_input.get("assumption_id") or revision_input.get("id")
         if not assumption_id:
@@ -88,7 +50,7 @@ def normalize_revision_input(
 
         return AssumptionAtom(atom_id=atom_id, assumption=coerce_assumption_ref(revision_input))
 
-    raise ValueError(f"Unsupported revision input kind: {kind}")
+    raise ValueError("Assertion revision input requires an AssertionAtom")
 
 
 def expand(base: BeliefBase, atom: BeliefAtom | str | Mapping[str, Any]) -> RevisionResult:
@@ -202,7 +164,7 @@ def stabilize_belief_base(
                 )
                 continue
 
-            if is_claim_atom(atom):
+            if is_assertion_atom(atom):
                 support_sets = active_base.support_sets.get(atom_id, ())
                 if support_sets and not _has_surviving_support(support_sets, incised):
                     round_rejected.add(atom_id)
@@ -239,7 +201,7 @@ def _normalize_targets(
     base: BeliefBase,
     targets: str | BeliefAtom | Mapping[str, Any] | Sequence[str | BeliefAtom | Mapping[str, Any]],
 ) -> tuple[str, ...]:
-    if isinstance(targets, (str, ClaimAtom, AssumptionAtom, Mapping)):
+    if isinstance(targets, (str, AssertionAtom, AssumptionAtom, Mapping)):
         return (normalize_revision_input(base, targets).atom_id,)
     return tuple(normalize_revision_input(base, target).atom_id for target in targets)
 
@@ -248,7 +210,7 @@ def _find_existing_atom(base: BeliefBase, revision_input: str) -> BeliefAtom | N
     for atom in base.atoms:
         if atom.atom_id == revision_input:
             return atom
-        if is_claim_atom(atom) and revision_input in _claim_input_candidates(atom):
+        if is_assertion_atom(atom) and revision_input in _assertion_input_candidates(atom):
             return atom
         if is_assumption_atom(atom) and atom.assumption.assumption_id == revision_input:
             return atom
@@ -349,7 +311,7 @@ def _forced_rejections_for_targets(
         if atom is None:
             forced.append(target_id)
             continue
-        if not is_claim_atom(atom):
+        if not is_assertion_atom(atom):
             forced.append(target_id)
             continue
         if not base.support_sets.get(target_id):
