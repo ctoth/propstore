@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from propstore.cel_checker import (
     ASTNode,
     BinaryOpNode,
+    CheckedCelExpr,
     ConceptInfo,
     InNode,
     KindType,
@@ -16,6 +17,7 @@ from propstore.cel_checker import (
     UnaryOpNode,
     check_cel_expr,
 )
+from propstore.core.conditions.checked import CheckedCondition
 from propstore.core.conditions.ir import (
     ConditionBinary,
     ConditionBinaryOp,
@@ -36,6 +38,26 @@ def condition_ir_from_cel(
     registry: Mapping[str, ConceptInfo],
 ) -> ConditionIR:
     checked = check_cel_expr(source, registry)
+    return _condition_ir_from_checked(checked, registry)
+
+
+def check_condition_ir(
+    source: str,
+    registry: Mapping[str, ConceptInfo],
+) -> CheckedCondition:
+    checked = check_cel_expr(source, registry)
+    return CheckedCondition(
+        source=str(checked.source),
+        ir=_condition_ir_from_checked(checked, registry),
+        registry_fingerprint=str(checked.registry_fingerprint),
+        warnings=tuple(warning.message for warning in checked.warnings),
+    )
+
+
+def _condition_ir_from_checked(
+    checked: CheckedCelExpr,
+    registry: Mapping[str, ConceptInfo],
+) -> ConditionIR:
     span = ConditionSourceSpan(0, len(str(checked.source)))
     return _lower_node(checked.ast, registry, span)
 
