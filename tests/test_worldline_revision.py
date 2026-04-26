@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from propstore.support_revision.snapshot_types import epistemic_state_snapshot
+from propstore.support_revision.history import EpistemicSnapshot
 from propstore.support_revision.iterated import epistemic_state_payload, make_epistemic_state
 from propstore.support_revision.operators import revise
 from propstore.support_revision.state import RevisionScope
@@ -139,7 +139,7 @@ class _RevisionBound:
         raise AssertionError("unexpected revision result")
 
     def revision_state_snapshot(self, state):
-        return epistemic_state_snapshot(state)
+        return EpistemicSnapshot.from_state(state)
 
 
 class _RevisionWorld:
