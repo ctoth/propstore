@@ -252,7 +252,7 @@ def test_repo_public_merge_surface_excludes_bridge_helpers() -> None:
     assert not hasattr(repo_module, "inject_branch_stances")
 
 
-def test_create_merge_commit_records_semantic_candidates_in_manifest(tmp_path):
+def test_create_merge_commit_collapses_duplicate_assertions_without_candidate_bucket(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/candidates"
@@ -290,21 +290,7 @@ def test_create_merge_commit_records_semantic_candidates_in_manifest(tmp_path):
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
     manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
 
-    assert len(manifest["merge"]["semantic_candidates"]) == 1
-    assert all(
-        assertion_id.startswith("ps:assertion:")
-        for assertion_id in manifest["merge"]["semantic_candidates"][0]
-    )
-    details = manifest["merge"]["semantic_candidate_details"]
-    assert len(details) == 1
-    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in details[0]["assertion_ids"])
-    assert details[0]["logical_ids"] == ["left_paper:claim_a", "right_paper:claim_b"]
-    assert details[0]["artifact_ids"] == [
-        "ps:claim:leftcandidate0001",
-        "ps:claim:rightcandidate0001",
-    ]
-    assert [argument["artifact_id"] for argument in details[0]["arguments"]] == [
-        "ps:claim:leftcandidate0001",
-        "ps:claim:rightcandidate0001",
-    ]
-    assert all(argument["assertion_id"].startswith("ps:assertion:") for argument in details[0]["arguments"])
+    assert len(manifest["merge"]["arguments"]) == 1
+    assert manifest["merge"]["arguments"][0]["assertion_id"].startswith("ps:assertion:")
+    assert manifest["merge"]["semantic_candidates"] == []
+    assert manifest["merge"]["semantic_candidate_details"] == []
