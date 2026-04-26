@@ -78,7 +78,9 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
 
     summary = build_branch_structured_summary(_snapshot(kr), "master")
 
-    assert summary.claim_ids == (_artifact_id("claim_a"), _artifact_id("claim_b"))
+    assert not hasattr(summary, "claim_ids")
+    assert len(summary.assertion_ids) == 2
+    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in summary.assertion_ids)
     assert summary.claim_provenance[_artifact_id("claim_a")]["paper"] == "test_paper"
     assert summary.claim_provenance[_artifact_id("claim_b")]["paper"] == "test_paper"
     assert summary.relation_surface == {
