@@ -26,13 +26,16 @@ def _revision_request() -> RevisionWorldRequest:
     )
 
 
-def _projected_assertion_id(repo: Repository, claim_id: str = "freq_paper:freq_claim1") -> str:
+def _projected_assertion_id(repo: Repository) -> str:
     with WorldModel(repo) as wm:
         base = revision_base(wm, _revision_request())
-    for atom in base.atoms:
-        if any(str(claim.claim_id) == claim_id for claim in getattr(atom, "source_claims", ())):
-            return atom.atom_id
-    raise AssertionError(f"missing projected assertion for {claim_id}")
+    assertion_ids = [
+        atom.atom_id
+        for atom in base.atoms
+        if getattr(atom, "source_claims", ())
+    ]
+    assert len(assertion_ids) == 1
+    return assertion_ids[0]
 
 
 def test_revision_workflow_reports_base_and_entrenchment(revision_cli_workspace) -> None:
