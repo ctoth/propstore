@@ -253,16 +253,12 @@ class PolicyProfile:
                 "escalation",
                 EscalationPolicy.from_dict(_as_mapping(self.escalation, "escalation")),
             )
-        if self.profile_id:
-            expected = self._derived_profile_id()
-            if self.profile_id != expected:
-                raise ValueError("policy profile_id does not match policy content")
-        else:
-            object.__setattr__(self, "profile_id", self._derived_profile_id())
+        object.__setattr__(self, "profile_id", self._derived_profile_id())
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> PolicyProfile:
         schema_version = str(data.get("schema_version", _PROFILE_VERSION))
+        recorded_profile_id = str(data.get("profile_id", ""))
         profile = cls(
             revision=RevisionPolicy.from_dict(_optional_mapping(data.get("revision"), "revision")),
             merge=MergePolicy.from_dict(_optional_mapping(data.get("merge"), "merge")),
@@ -275,8 +271,9 @@ class PolicyProfile:
             escalation=EscalationPolicy.from_dict(_optional_mapping(data.get("escalation"), "escalation")),
             label=str(data.get("label", "default")),
             schema_version=schema_version,
-            profile_id=str(data.get("profile_id", "")),
         )
+        if recorded_profile_id and recorded_profile_id != profile.profile_id:
+            raise ValueError("policy profile_id does not match policy content")
         recorded_hash = data.get("content_hash")
         if recorded_hash is not None and str(recorded_hash) != profile.content_hash:
             raise ValueError("policy profile content_hash does not match payload")

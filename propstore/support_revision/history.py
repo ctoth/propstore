@@ -155,6 +155,7 @@ class TransitionJournalEntry:
     operator: str
     state_out: EpistemicSnapshot
     explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
+    policy_payload: Mapping[str, Any] = field(default_factory=dict)
     schema_version: str = TransitionJournalVersion
 
     def __post_init__(self) -> None:
@@ -162,6 +163,7 @@ class TransitionJournalEntry:
             raise ValueError(f"unsupported transition journal version: {self.schema_version}")
         object.__setattr__(self, "policy_id", str(self.policy_id))
         object.__setattr__(self, "operator", str(self.operator))
+        object.__setattr__(self, "policy_payload", _to_plain_data(dict(self.policy_payload)))
         object.__setattr__(
             self,
             "explanation",
@@ -178,6 +180,7 @@ class TransitionJournalEntry:
         state_in: EpistemicState,
         operation: TransitionOperation,
         policy_id: str,
+        policy_payload: Mapping[str, Any] | None = None,
         operator: str,
         state_out: EpistemicState,
         explanation: Mapping[str, RevisionAtomDetail],
@@ -186,6 +189,7 @@ class TransitionJournalEntry:
             state_in=EpistemicSnapshot.from_state(state_in),
             operation=operation,
             policy_id=policy_id,
+            policy_payload={} if policy_payload is None else policy_payload,
             operator=operator,
             state_out=EpistemicSnapshot.from_state(state_out),
             explanation=explanation,
@@ -207,6 +211,7 @@ class TransitionJournalEntry:
             "state_in": self.state_in.to_dict(),
             "operation": self.operation.to_dict(),
             "policy_id": self.policy_id,
+            "policy": _to_plain_data(self.policy_payload),
             "operator": self.operator,
             "state_out_hash": self.state_out.content_hash,
             "state_out": self.state_out.to_dict(),
