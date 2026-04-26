@@ -65,8 +65,8 @@ def _float_param(
         return default
     try:
         return float(value)
-    except ValueError as exc:
-        raise WebQueryParseError(f"{name} must be a number") from exc
+    except ValueError:
+        raise WebQueryParseError(f"{name} must be a number") from None
 
 
 def _int_param(params: Mapping[str, str | None], name: str) -> int | None:
@@ -75,5 +75,5 @@ def _int_param(params: Mapping[str, str | None], name: str) -> int | None:
         return None
     try:
         return int(value)
-    except ValueError as exc:
-        raise WebQueryParseError(f"{name} must be an integer") from exc
+    except ValueError:
+        raise WebQueryParseError(f"{name} must be an integer") from None
