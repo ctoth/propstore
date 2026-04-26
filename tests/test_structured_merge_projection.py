@@ -153,7 +153,7 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
     left = build_branch_structured_summary(_snapshot(kr), "master")
     right = build_branch_structured_summary(_snapshot(kr), "master")
 
-    assert left.claim_ids == right.claim_ids
+    assert left.assertion_ids == right.assertion_ids
     assert left.claim_provenance == right.claim_provenance
     assert left.content_signature == right.content_signature
     assert left.projection.framework == right.projection.framework
@@ -190,7 +190,8 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
 
     summary = build_branch_structured_summary(_snapshot(kr), "master")
 
-    assert summary.claim_ids == (_artifact_id("claim_a"),)
+    assert len(summary.assertion_ids) == 1
+    assert summary.assertion_ids[0].startswith("ps:assertion:")
     assert set(summary.projection.argument_to_claim_id.values()) == {_artifact_id("claim_a")}
     assert summary.projection.framework.attacks == frozenset()
 
@@ -270,7 +271,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
         left_summary = build_branch_structured_summary(_snapshot(kr), "master")
         right_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
 
-        assert left_summary.claim_ids == right_summary.claim_ids
+        assert left_summary.assertion_ids == right_summary.assertion_ids
         assert left_summary.claim_provenance == right_summary.claim_provenance
         assert left_summary.content_signature == right_summary.content_signature
         assert left_summary.stance_rows == right_summary.stance_rows
@@ -330,7 +331,7 @@ def test_branch_structured_summary_is_order_invariant(
         left_summary = build_branch_structured_summary(_snapshot(kr), "master")
         right_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
 
-        assert left_summary.claim_ids == right_summary.claim_ids
+        assert left_summary.assertion_ids == right_summary.assertion_ids
         assert left_summary.claim_provenance == right_summary.claim_provenance
         assert left_summary.content_signature == right_summary.content_signature
         assert left_summary.stance_rows == right_summary.stance_rows
