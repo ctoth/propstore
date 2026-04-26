@@ -235,9 +235,25 @@ def create_context_tables(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (target_context_id) REFERENCES context(id)
         );
 
+        CREATE TABLE IF NOT EXISTS context_lifting_materialization (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rule_id TEXT NOT NULL,
+            source_context_id TEXT NOT NULL,
+            target_context_id TEXT NOT NULL,
+            proposition_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            exception_id TEXT,
+            provenance_json TEXT NOT NULL,
+            FOREIGN KEY (rule_id) REFERENCES context_lifting_rule(id),
+            FOREIGN KEY (source_context_id) REFERENCES context(id),
+            FOREIGN KEY (target_context_id) REFERENCES context(id)
+        );
+
         CREATE INDEX IF NOT EXISTS idx_ctx_assumption ON context_assumption(context_id);
         CREATE INDEX IF NOT EXISTS idx_ctx_lift_source ON context_lifting_rule(source_context_id);
         CREATE INDEX IF NOT EXISTS idx_ctx_lift_target ON context_lifting_rule(target_context_id);
+        CREATE INDEX IF NOT EXISTS idx_ctx_lift_mat_target
+            ON context_lifting_materialization(target_context_id, proposition_id);
     """)
 
 
@@ -295,6 +311,17 @@ def populate_contexts(
                 id, source_context_id, target_context_id,
                 conditions_cel, mode, justification
             ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            row.values,
+        )
+
+    for row in rows.lifting_materialization_rows:
+        conn.execute(
+            """
+            INSERT INTO context_lifting_materialization (
+                rule_id, source_context_id, target_context_id,
+                proposition_id, status, exception_id, provenance_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             row.values,
         )
