@@ -9,6 +9,8 @@ ASSERTION_REFS = Path("propstore/core/assertions/refs.py")
 ASSERTION_SITUATED = Path("propstore/core/assertions/situated.py")
 ASSERTION_CONVERSION = Path("propstore/core/assertions/conversion.py")
 ASSERTION_CODEC = Path("propstore/core/assertions/codec.py")
+CONDITION_IR = Path("propstore/core/conditions/ir.py")
+CONDITION_CEL_FRONTEND = Path("propstore/core/conditions/cel_frontend.py")
 
 FORBIDDEN_IMPORT_PREFIXES = (
     "propstore.app",
@@ -23,6 +25,15 @@ FORBIDDEN_IMPORT_PREFIXES = (
     "propstore.world",
     "propstore.z3_conditions",
 )
+FORBIDDEN_CONDITION_IR_IMPORT_PREFIXES = FORBIDDEN_IMPORT_PREFIXES + (
+    "ast",
+    "propstore.cel_checker",
+)
+FORBIDDEN_CONDITION_FRONTEND_IMPORT_PREFIXES = tuple(
+    prefix
+    for prefix in FORBIDDEN_IMPORT_PREFIXES
+    if prefix != "propstore.cel_checker"
+) + ("ast",)
 
 
 def _imported_modules(path: Path) -> set[str]:
@@ -115,6 +126,40 @@ def test_assertion_codec_does_not_import_downstream_semantic_layers() -> None:
         imported
         for imported in imports
         for prefix in FORBIDDEN_IMPORT_PREFIXES
+        if imported == prefix or imported.startswith(f"{prefix}.")
+    }
+
+    assert forbidden == set()
+
+
+def test_condition_ir_exists_as_shallow_owner_module() -> None:
+    assert CONDITION_IR.exists()
+
+
+def test_condition_ir_does_not_import_frontend_or_backend_layers() -> None:
+    imports = _imported_modules(CONDITION_IR)
+
+    forbidden = {
+        imported
+        for imported in imports
+        for prefix in FORBIDDEN_CONDITION_IR_IMPORT_PREFIXES
+        if imported == prefix or imported.startswith(f"{prefix}.")
+    }
+
+    assert forbidden == set()
+
+
+def test_condition_cel_frontend_exists_as_shallow_adapter_module() -> None:
+    assert CONDITION_CEL_FRONTEND.exists()
+
+
+def test_condition_cel_frontend_does_not_import_backend_layers() -> None:
+    imports = _imported_modules(CONDITION_CEL_FRONTEND)
+
+    forbidden = {
+        imported
+        for imported in imports
+        for prefix in FORBIDDEN_CONDITION_FRONTEND_IMPORT_PREFIXES
         if imported == prefix or imported.startswith(f"{prefix}.")
     }
 
