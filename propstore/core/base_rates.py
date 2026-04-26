@@ -1,0 +1,125 @@
+"""Assertion-scoped base-rate resolution for opinion construction."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from propstore.core.id_types import AssertionId
+from propstore.provenance import Provenance
+
+
+def _assertion_id(value: AssertionId, field_name: str) -> AssertionId:
+    rendered = str(value)
+    if not rendered.startswith("ps:assertion:"):
+        raise ValueError(f"{field_name} must be a propstore assertion id")
+    return AssertionId(rendered)
+
+
+def _assertion_ids(values: tuple[AssertionId, ...], field_name: str) -> tuple[AssertionId, ...]:
+    return tuple(_assertion_id(value, field_name) for value in values)
+
+
+@dataclass(frozen=True)
+class BaseRateProfile:
+    """A sourced base-rate assertion for a target assertion."""
+
+    profile_assertion_id: AssertionId
+    target_assertion_id: AssertionId
+    value: float
+    provenance: Provenance
+    evidence_assertion_ids: tuple[AssertionId, ...] = ()
+    dependency_assertion_ids: tuple[AssertionId, ...] = ()
+    stratum: int = 0
+
+    def __post_init__(self) -> None:
+        if self.value <= 0.0 or self.value >= 1.0:
+            raise ValueError("BaseRateProfile.value must be in the open interval (0, 1)")
+        if self.stratum < 0:
+            raise ValueError("BaseRateProfile.stratum must be non-negative")
+        object.__setattr__(
+            self,
+            "profile_assertion_id",
+            _assertion_id(self.profile_assertion_id, "profile_assertion_id"),
+        )
+        object.__setattr__(
+            self,
+            "target_assertion_id",
+            _assertion_id(self.target_assertion_id, "target_assertion_id"),
+        )
+        object.__setattr__(
+            self,
+            "evidence_assertion_ids",
+            _assertion_ids(self.evidence_assertion_ids, "evidence_assertion_ids"),
+        )
+        object.__setattr__(
+            self,
+            "dependency_assertion_ids",
+            _assertion_ids(self.dependency_assertion_ids, "dependency_assertion_ids"),
+        )
+
+
+@dataclass(frozen=True)
+class BaseRateResolved:
+    assertion_id: AssertionId
+    value: float
+    profile_assertion_id: AssertionId
+    evidence_assertion_ids: tuple[AssertionId, ...]
+    provenance: Provenance
+
+
+@dataclass(frozen=True)
+class BaseRateUnresolved:
+    assertion_id: AssertionId
+    reason: str
+    missing_fields: tuple[str, ...] = ("base_rate_profile",)
+
+
+@dataclass(frozen=True)
+class BaseRateResolver:
+    profiles: tuple[BaseRateProfile, ...]
+    _by_target: dict[AssertionId, BaseRateProfile] = field(init=False, repr=False)
+
+    def __init__(self, profiles: tuple[BaseRateProfile, ...]) -> None:
+        by_target: dict[AssertionId, BaseRateProfile] = {}
+        for profile in profiles:
+            if profile.target_assertion_id in by_target:
+                raise ValueError(f"duplicate base-rate profile for {profile.target_assertion_id}")
+            by_target[profile.target_assertion_id] = profile
+        object.__setattr__(self, "profiles", tuple(profiles))
+        object.__setattr__(self, "_by_target", by_target)
+
+    def resolve(self, assertion_id: AssertionId) -> BaseRateResolved | BaseRateUnresolved:
+        assertion = _assertion_id(assertion_id, "assertion_id")
+        return self._resolve(assertion, seen=frozenset())
+
+    def _resolve(
+        self,
+        assertion_id: AssertionId,
+        *,
+        seen: frozenset[AssertionId],
+    ) -> BaseRateResolved | BaseRateUnresolved:
+        if assertion_id in seen:
+            return BaseRateUnresolved(assertion_id, "recursive_base_rate")
+
+        profile = self._by_target.get(assertion_id)
+        if profile is None:
+            return BaseRateUnresolved(assertion_id, "missing_base_rate")
+
+        next_seen = seen | frozenset((assertion_id,))
+        for dependency_id in profile.dependency_assertion_ids:
+            dependency = self._by_target.get(dependency_id)
+            if dependency is None:
+                return BaseRateUnresolved(assertion_id, "missing_base_rate")
+            if dependency.stratum >= profile.stratum:
+                return BaseRateUnresolved(assertion_id, "recursive_base_rate")
+            resolved = self._resolve(dependency_id, seen=next_seen)
+            if isinstance(resolved, BaseRateUnresolved):
+                return BaseRateUnresolved(assertion_id, resolved.reason)
+
+        return BaseRateResolved(
+            assertion_id=assertion_id,
+            value=profile.value,
+            profile_assertion_id=profile.profile_assertion_id,
+            evidence_assertion_ids=profile.evidence_assertion_ids,
+            provenance=profile.provenance,
+        )
