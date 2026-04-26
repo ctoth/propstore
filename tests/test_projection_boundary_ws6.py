@@ -3,6 +3,7 @@ from __future__ import annotations
 from argumentation.aspic import GroundAtom
 
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
+from propstore.core.justifications import CanonicalJustification
 from propstore.structured_projection import ProjectionAtom, ProjectionLossWitness
 from tests.test_aspic_bridge_review_v2 import (
     _make_atom,
@@ -23,7 +24,13 @@ def test_aspic_projection_arguments_expose_typed_source_projection_records() -> 
                 "source_assertion_ids": [source_id],
             }
         ],
-        [],
+        [
+            CanonicalJustification(
+                justification_id="reported:claim-a",
+                conclusion_claim_id="claim-a",
+                rule_kind="reported_claim",
+            )
+        ],
         [],
         bundle=_make_grounded_bundle(),
     )
