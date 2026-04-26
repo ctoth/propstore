@@ -16,6 +16,7 @@ CONDITION_PYTHON_BACKEND = Path("propstore/core/conditions/python_backend.py")
 CONDITION_ESTREE_BACKEND = Path("propstore/core/conditions/estree_backend.py")
 CONDITION_Z3_BACKEND = Path("propstore/core/conditions/z3_backend.py")
 CONDITION_SQL_BACKEND = Path("propstore/core/conditions/sql_backend.py")
+PROVENANCE_CARRIER = Path("propstore/provenance/__init__.py")
 
 FORBIDDEN_IMPORT_PREFIXES = (
     "propstore.app",
@@ -258,6 +259,24 @@ def test_condition_sql_backend_does_not_import_frontend_or_other_backends() -> N
             "ast",
             "propstore.core.conditions.estree_backend",
             "propstore.core.conditions.z3_backend",
+        )
+        if imported == prefix or imported.startswith(f"{prefix}.")
+    }
+
+    assert forbidden == set()
+
+
+def test_provenance_carrier_does_not_import_downstream_semantic_layers() -> None:
+    imports = _imported_modules(PROVENANCE_CARRIER)
+
+    forbidden = {
+        imported
+        for imported in imports
+        for prefix in FORBIDDEN_IMPORT_PREFIXES
+        + (
+            "propstore.core.assertions.situated",
+            "propstore.core.conditions",
+            "propstore.core.relations",
         )
         if imported == prefix or imported.startswith(f"{prefix}.")
     }
