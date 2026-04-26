@@ -6,10 +6,12 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from propstore.core.base_rates import (
+    AssertionOpinion,
     BaseRateProfile,
     BaseRateResolved,
     BaseRateResolver,
     BaseRateUnresolved,
+    construct_assertion_opinion,
 )
 from propstore.core.id_types import AssertionId
 from propstore.provenance import Provenance, ProvenanceStatus
@@ -51,6 +53,45 @@ def test_base_rate_profile_resolves_for_assertion_id() -> None:
     assert result.profile_assertion_id == _aid("psychology_replication_rate")
     assert result.evidence_assertion_ids == (_aid("aarts_2015_replication_rate"),)
     assert result.provenance.status == ProvenanceStatus.CALIBRATED
+
+
+def test_construct_assertion_opinion_attaches_to_assertion_id() -> None:
+    profile = BaseRateProfile(
+        profile_assertion_id=_aid("psychology_replication_rate"),
+        target_assertion_id=_aid("psychology_claim"),
+        value=0.36,
+        evidence_assertion_ids=(_aid("aarts_2015_replication_rate"),),
+        provenance=_provenance("aarts_2015_replication_notes"),
+    )
+
+    result = construct_assertion_opinion(
+        assertion_id=_aid("psychology_claim"),
+        belief=0.2,
+        disbelief=0.1,
+        uncertainty=0.7,
+        resolver=BaseRateResolver((profile,)),
+    )
+
+    assert isinstance(result, AssertionOpinion)
+    assert result.assertion_id == _aid("psychology_claim")
+    assert result.base_rate_assertion_id == _aid("psychology_replication_rate")
+    assert result.evidence_assertion_ids == (_aid("aarts_2015_replication_rate"),)
+    assert result.opinion.a == 0.36
+    assert result.opinion.provenance == profile.provenance
+
+
+def test_construct_assertion_opinion_missing_prior_is_unresolved() -> None:
+    result = construct_assertion_opinion(
+        assertion_id=_aid("unknown_claim"),
+        belief=0.0,
+        disbelief=0.0,
+        uncertainty=1.0,
+        resolver=BaseRateResolver(()),
+    )
+
+    assert isinstance(result, BaseRateUnresolved)
+    assert result.assertion_id == _aid("unknown_claim")
+    assert result.reason == "missing_base_rate"
 
 
 def test_base_rate_profile_requires_assertion_ids() -> None:
