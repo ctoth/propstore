@@ -117,11 +117,11 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
 
     assert len(merge.arguments) == 2
-    claim_ids = {argument.claim_id for argument in merge.arguments}
-    artifact_id = make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
-    assert all(claim_id.startswith(f"{artifact_id}__") for claim_id in claim_ids)
+    assert all(not hasattr(argument, "claim_id") for argument in merge.arguments)
+    assertion_ids = {argument.assertion_id for argument in merge.arguments}
+    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids)
 
-    left_id, right_id = sorted(claim_ids)
+    left_id, right_id = sorted(assertion_ids)
     assert (left_id, right_id) in merge.framework.attacks
     assert (right_id, left_id) in merge.framework.attacks
     assert (left_id, right_id) not in merge.framework.ignorance
