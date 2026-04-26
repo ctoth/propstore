@@ -1457,6 +1457,31 @@ Paper checkpoints:
 - Coste-Marquis 2007 page images before changing merge universe identity.
 - Konieczny and Pino Perez 2002 notes for IC postulates.
 
+WS9 execution ledger:
+
+- Paper/doc checkpoint completed: local notes for Alchourron 1985,
+  Darwiche 1997, de Kleer 1986, Dixon 1993, Coste-Marquis 2007, and
+  Konieczny/Pino Perez 2002 were read; Dixon 1993 and Coste-Marquis
+  2007 page images were reread directly before the ATMS and merge identity
+  changes.
+- Red commits added assertion-id revision, structured merge, repository merge,
+  ATMS/worldline, and CLI identity expectations before moving the production
+  paths.
+- Green commits replaced revision atoms, worldline revision capture, ATMS
+  nodes, structured merge summaries, repository merge arguments/reports/
+  manifests, and CLI display paths with situated assertion ids.
+- Claim-bucket merge/reporting and old claim-id revision/worldline adapters
+  were removed; remaining claim ids are source/canonical presentation or
+  argumentation-input projections, not belief-change atom identities.
+- Preservation verification passed:
+  `logs/test-runs/ws9-atms-assertion3-20260426-003321.log`,
+  `logs/test-runs/ws9-revision-workflows-green3-20260426-004929.log`,
+  `logs/test-runs/ws9-postulates-merge3-20260426-005426.log`,
+  `logs/test-runs/ws9-argumentation-paf-aspic-20260426-005524.log`, and
+  `logs/test-runs/ws9-full-failure-fixes2-20260426-010749.log`.
+- Final verification: `uv run pyright propstore` passed with 0 errors, and
+  `logs/test-runs/ws9-full2-20260426-010854.log` passed with 2941 tests.
+
 ### WS10: Snapshot, Journal, and Diff
 
 Purpose:
