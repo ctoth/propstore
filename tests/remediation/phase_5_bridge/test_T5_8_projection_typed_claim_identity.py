@@ -1,3 +1,5 @@
+from argumentation.aspic import GroundAtom
+
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
 from tests.test_aspic_bridge_review_v2 import (
     _make_atom,
@@ -34,8 +36,7 @@ def test_grounded_predicate_does_not_project_as_same_named_claim() -> None:
     grounded_fly_args = [
         argument
         for argument in projection.arguments
-        if '"predicate":"fly"' in argument.conclusion_key
-        and '"arguments":[{"type":"str","value":"tweety"}]' in argument.conclusion_key
+        if argument.projection.backend_atom == GroundAtom("fly", ("tweety",))
     ]
 
     assert grounded_fly_args
