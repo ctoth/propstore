@@ -131,6 +131,16 @@ def test_corpus_calibrator_monotonicity():
     assert p1 <= p2
 
 
+def test_corpus_calibrator_requires_explicit_base_rate():
+    with pytest.raises(TypeError):
+        CorpusCalibrator([0.1, 0.2, 0.3])
+
+
+def test_corpus_calibrator_from_cdf_requires_explicit_base_rate():
+    with pytest.raises(TypeError):
+        CorpusCalibrator.from_cdf([0.1, 0.2, 0.3])
+
+
 def test_corpus_calibrator_uncertainty_scales_with_n():
     """Opinion uncertainty should scale approximately as 1/sqrt(n).
 
@@ -194,6 +204,11 @@ def test_calibrated_prob_n0_returns_vacuous():
     """n=0 should return vacuous opinion."""
     op = calibrated_probability_to_opinion(0.8, 0.0)
     assert abs(op.u - 1.0) < 1e-9
+
+
+def test_calibrated_probability_requires_explicit_base_rate():
+    with pytest.raises(TypeError):
+        calibrated_probability_to_opinion(0.8, 10.0)
 
 
 def test_calibrated_prob_large_n_returns_narrow():
