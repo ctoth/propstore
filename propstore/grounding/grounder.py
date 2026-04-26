@@ -46,7 +46,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from types import MappingProxyType
-from typing import cast
 
 import gunray
 
@@ -166,13 +165,9 @@ def ground(
 
     # Step 2: run gunray. Garcia & Simari 2004 §4 (p.25) computes the
     # four-valued answer system here; the ``policy`` keyword selects
-    # the ambiguity-resolution regime. ``GunrayEvaluator.evaluate`` is
-    # typed as returning ``object`` because it dispatches over both
-    # ``Program`` and ``DefeasibleTheory`` — but we pass a
-    # ``DefeasibleTheory`` so the concrete return is a
-    # ``DefeasibleModel``.
+    # the ambiguity-resolution regime.
     evaluator = gunray.GunrayEvaluator()
-    raw_model = cast(gunray.DefeasibleModel, evaluator.evaluate(theory, policy))
+    raw_model = evaluator.evaluate(theory, policy)
     grounding_inspection = gunray.inspect_grounding(theory)
 
     # Step 3: re-normalise sections. Garcia & Simari 2004 §4 (p.25)
