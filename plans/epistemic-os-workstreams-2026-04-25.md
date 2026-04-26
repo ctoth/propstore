@@ -342,6 +342,32 @@ Fourth slice execution ledger:
 - Deletion ledger: deleted the `ContextReference` class definition from
   `propstore/context_lifting.py`; `context_lifting` no longer exports the type.
 
+Fifth slice gate, WS2 situated assertion identity:
+
+```text
+target_surface: SituatedAssertion domain object and assertion identity
+old_surfaces_to_delete: none existing; block claim-row, predicate-string, CEL
+  source, and provenance-payload identity placeholders in the new owner module
+allowed_owner_modules: propstore.core.assertions, propstore.core.relations,
+  propstore.core.id_types
+forbidden_imports: context_lifting, z3_conditions, condition_classifier,
+  grounding, calibration, opinion, app, CLI, sidecar, world, backend projection
+  modules
+forbidden_symbols: situated assertion owner must not name identity fields
+  claim_id, predicate, predicate_id, cel, conditions, or provenance_payload
+forbidden_storage_columns: none in this slice
+positive_tests: assertion identity includes relation, role bindings, context,
+  and condition; role order canonicalization; rival normalized candidates get
+  distinct identities
+negative_tests: changing only provenance_ref does not change identity;
+  architecture import/symbol tests
+pyright_scope: uv run pyright propstore
+paper_checkpoint: situated assertion synthesis, Clark 2014 notes, and Carroll
+  2005 notes already reread for WS2; no page-image gate for this identity slice
+deletion_ledger: no caller migration yet; land the domain object without old
+  claim/predicate/CEL/provenance identity placeholders
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
