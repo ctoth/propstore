@@ -304,7 +304,7 @@ def world_atms_context(repo: Repository, request: AppAtmsViewRequest) -> AtmsCon
         if concept_id:
             resolved = resolve_world_target(wm, concept_id)
             allowed = {
-                str(claim.claim_id)
+                bound.claim_status(str(claim.claim_id)).node_id
                 for claim in bound.active_claims(resolved)
             }
             claim_ids = [claim_id for claim_id in claim_ids if claim_id in allowed]
@@ -317,7 +317,7 @@ def world_atms_context(repo: Repository, request: AppAtmsViewRequest) -> AtmsCon
                     essential_support=_support_ids(inspection.essential_support),
                 )
                 for claim_id in sorted(claim_ids)
-                for inspection in (bound.claim_status(claim_id),)
+                for inspection in (bound.atms_engine().node_status(claim_id),)
             ),
         )
     finally:
