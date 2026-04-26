@@ -238,7 +238,7 @@ def test_fixture_sidecar_is_schema_v3(lifecycle_sidecar: Path) -> None:
             (SIDECAR_META_KEY,),
         ).fetchone()
         assert row is not None
-        assert row[0] == SCHEMA_VERSION == 4
+        assert row[0] == SCHEMA_VERSION == 5
     finally:
         conn.close()
 
