@@ -114,7 +114,7 @@ def test_temperature_fit():
 
 def test_corpus_calibrator_percentile_bounds():
     """Percentile must be in [0, 1]."""
-    cal = CorpusCalibrator([0.1, 0.3, 0.5, 0.7, 0.9])
+    cal = CorpusCalibrator([0.1, 0.3, 0.5, 0.7, 0.9], corpus_base_rate=0.5)
     # Below min
     assert 0.0 <= cal.percentile(0.0) <= 1.0
     # Above max
@@ -125,7 +125,10 @@ def test_corpus_calibrator_percentile_bounds():
 
 def test_corpus_calibrator_monotonicity():
     """Smaller distance -> smaller percentile (more similar)."""
-    cal = CorpusCalibrator([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+    cal = CorpusCalibrator(
+        [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+        corpus_base_rate=0.5,
+    )
     p1 = cal.percentile(0.2)
     p2 = cal.percentile(0.8)
     assert p1 <= p2
@@ -149,8 +152,8 @@ def test_corpus_calibrator_uncertainty_scales_with_n():
     small_ref = [float(i) / 10 for i in range(10)]
     large_ref = [float(i) / 1000 for i in range(1000)]
 
-    cal_small = CorpusCalibrator(small_ref)
-    cal_large = CorpusCalibrator(large_ref)
+    cal_small = CorpusCalibrator(small_ref, corpus_base_rate=0.5)
+    cal_large = CorpusCalibrator(large_ref, corpus_base_rate=0.5)
 
     op_small = cal_small.to_opinion(0.05)
     op_large = cal_large.to_opinion(0.05)
@@ -202,7 +205,7 @@ def test_categorical_unknown_category():
 
 def test_calibrated_prob_n0_returns_vacuous():
     """n=0 should return vacuous opinion."""
-    op = calibrated_probability_to_opinion(0.8, 0.0)
+    op = calibrated_probability_to_opinion(0.8, 0.0, 0.5)
     assert abs(op.u - 1.0) < 1e-9
 
 
@@ -213,7 +216,7 @@ def test_calibrated_probability_requires_explicit_base_rate():
 
 def test_calibrated_prob_large_n_returns_narrow():
     """Large n should give narrow opinion near the probability."""
-    op = calibrated_probability_to_opinion(0.8, 1000.0)
+    op = calibrated_probability_to_opinion(0.8, 1000.0, 0.5)
     assert op.u < 0.01
     assert abs(op.expectation() - 0.8) < 0.01
 
@@ -299,7 +302,7 @@ class TestCorpusCalibrationEvidenceModel:
         """
         # Build a large corpus of uniformly spaced reference distances
         ref = [i / 10_000 for i in range(10_000)]
-        cal = CorpusCalibrator(ref)
+        cal = CorpusCalibrator(ref, corpus_base_rate=0.5)
         opinion = cal.to_opinion(distance)
 
         # u > 0.01: the system should NOT be 99%+ certain about a claim
@@ -318,7 +321,7 @@ class TestCorpusCalibrationEvidenceModel:
         With only 1 data point, the system knows almost nothing about the
         distance distribution.
         """
-        cal = CorpusCalibrator([0.5])
+        cal = CorpusCalibrator([0.5], corpus_base_rate=0.5)
         opinion = cal.to_opinion(0.3)
 
         assert opinion.u > 0.9, (
@@ -338,7 +341,7 @@ class TestCorpusCalibrationEvidenceModel:
         The Opinion constructor enforces this, so this should PASS.
         """
         ref = [i / max(n, 1) for i in range(n)]
-        cal = CorpusCalibrator(ref)
+        cal = CorpusCalibrator(ref, corpus_base_rate=0.5)
         op = cal.to_opinion(distance)
 
         total = op.b + op.d + op.u
@@ -359,7 +362,7 @@ class TestCorpusCalibrationEvidenceModel:
 
         for n in sizes:
             ref = [i / n for i in range(n)]
-            cal = CorpusCalibrator(ref)
+            cal = CorpusCalibrator(ref, corpus_base_rate=0.5)
             op = cal.to_opinion(distance)
             uncertainties.append(op.u)
 
@@ -510,7 +513,7 @@ class TestCorpusOpinionBDUSumProperty:
     @settings(deadline=None)
     def test_bdu_sum_is_one(self, ref_distances, query_distance):
         """b + d + u must equal 1.0 for all CorpusCalibrator outputs."""
-        cal = CorpusCalibrator(ref_distances)
+        cal = CorpusCalibrator(ref_distances, corpus_base_rate=0.5)
         op = cal.to_opinion(query_distance)
         total = op.b + op.d + op.u
         assert abs(total - 1.0) < 1e-9, (

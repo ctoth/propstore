@@ -288,7 +288,7 @@ def _build_stance_dict(
         if opinion is not None and reference_distances is not None and embedding_distance is not None and len(reference_distances) > 0:
             from propstore.calibrate import CorpusCalibrator
             from propstore.opinion import fuse
-            corpus_cal = CorpusCalibrator(reference_distances)
+            corpus_cal = CorpusCalibrator(reference_distances, corpus_base_rate=opinion.a)
             corpus_opinion = corpus_cal.to_opinion(embedding_distance)
             opinion = fuse(opinion, corpus_opinion)
 
