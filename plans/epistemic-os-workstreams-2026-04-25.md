@@ -506,6 +506,24 @@ deletion_ledger: no existing CEL/Z3 caller migration yet; this lands the IR
   backend ASTs
 ```
 
+Eighth slice execution ledger:
+
+- Red commit: `48c850b` added ConditionIR bootstrap tests and condition-owner
+  architecture gates.
+- Red log: `logs/test-runs/ws3-condition-ir-red-20260425-184651.log`, failed
+  because `propstore.core.conditions`, `ir.py`, and `cel_frontend.py` did not
+  exist.
+- Green commit: `d9ddd4f` added the closed `ConditionIR` node family, source
+  span carrier, CEL-to-IR frontend lowering, structural concept rejection, and
+  import/symbol gates that keep backend helper surfaces out of the IR owner.
+- Green log: `logs/test-runs/ws3-condition-ir-green-20260425-184857.log`,
+  37 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no existing CEL, Z3, sidecar, or runtime caller was migrated
+  in this slice; the new `propstore.core.conditions.ir` owner now blocks
+  backend/runtime nodes before caller migration begins.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
