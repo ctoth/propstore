@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import cast
 
 import gunray
 from argumentation.aspic import GroundAtom, Scalar
@@ -39,8 +38,7 @@ def build_grounding_text_explanation(
 
     theory = translate_to_theory(rule_files, facts, registry)
     evaluator = gunray.GunrayEvaluator()
-    _, raw_trace = evaluator.evaluate_with_trace(theory, policy)
-    trace = cast(gunray.DefeasibleTrace, raw_trace)
+    _, trace = evaluator.evaluate_with_trace(theory, policy)
 
     tree = _find_tree(trace, atom.predicate, tuple(atom.arguments))
     explained_atom = atom
