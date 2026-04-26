@@ -823,6 +823,27 @@ deletion_ledger: replace the anonymous/order-sensitive named graph encoding
   of input collection ordering
 ```
 
+Fifteenth slice execution ledger:
+
+- Red commit: `1a4679e` added deterministic named-graph carrier tests,
+  provenance-owner import gates, and an architecture test forbidding anonymous
+  graph identity and assertion identity surfaces inside the provenance carrier.
+- Red log: `logs/test-runs/ws4-named-graph-red-20260425-194417.log`, failed
+  because `encode_named_graph` still accepted records with no `graph_name`,
+  preserved witness/derived-from/operation input ordering, and exposed the
+  anonymous graph constant.
+- Green commit: `e09a1a5` replaced the implicit/order-sensitive encoding path
+  with explicit graph URI validation plus canonical witness, derived-from, and
+  operation ordering before JSON-LD serialization.
+- Green log: `logs/test-runs/ws4-named-graph-green-20260425-194603.log`,
+  46 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: removed the anonymous graph-name production path from
+  `propstore/provenance/__init__.py`; provenance named-graph bytes are now
+  stable under input collection ordering and unnamed provenance blobs are
+  refused at the carrier boundary.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
