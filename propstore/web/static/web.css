@@ -1,5 +1,168 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light;
+  --page: #f7f8f5;
+  --paper: #ffffff;
+  --ink: #17201d;
+  --muted: #5b6560;
+  --rule: #d7ddd6;
+  --table-head: #eef4f1;
+  --accent: #1f6f68;
+  --accent-strong: #164c47;
+  --focus: #b9442d;
+}
+
 body {
-  font-family: system-ui, sans-serif;
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, "Segoe UI", sans-serif;
   line-height: 1.5;
   margin: 0;
+}
+
+main {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  margin: 2rem auto;
+  max-width: 76rem;
+  padding: 2rem;
+  width: min(100% - 2rem, 76rem);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--ink);
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.2;
+  margin: 0;
+}
+
+h1 {
+  border-bottom: 2px solid var(--ink);
+  font-size: 2rem;
+  padding-bottom: 0.75rem;
+}
+
+h2 {
+  font-size: 1.2rem;
+}
+
+h3 {
+  color: var(--muted);
+  font-size: 1rem;
+  margin-top: 1.25rem;
+}
+
+section {
+  border-top: 1px solid var(--rule);
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+}
+
+p {
+  margin: 0.75rem 0 0;
+}
+
+a {
+  color: var(--accent-strong);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+dl {
+  display: grid;
+  gap: 0.45rem 1.25rem;
+  grid-template-columns: minmax(9rem, 16rem) minmax(0, 1fr);
+  margin: 0.9rem 0 0;
+}
+
+dt {
+  color: var(--muted);
+  font-weight: 650;
+}
+
+dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+table {
+  border-collapse: collapse;
+  display: block;
+  font-size: 0.95rem;
+  margin-top: 0.9rem;
+  max-width: 100%;
+  overflow-x: auto;
+  width: 100%;
+}
+
+thead,
+tbody,
+tr {
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid var(--rule);
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: var(--table-head);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+td {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 44rem) {
+  main {
+    border-left: 0;
+    border-right: 0;
+    margin: 0;
+    padding: 1rem;
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 1.55rem;
+  }
+
+  dl {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  main {
+    border: 0;
+    margin: 0;
+    max-width: none;
+    padding: 0;
+    width: 100%;
+  }
+
+  a {
+    color: inherit;
+  }
 }
