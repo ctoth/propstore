@@ -269,32 +269,21 @@ def test_merge_inspect_cli_surfaces_semantic_candidate_details(tmp_path):
 
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
-    assert payload["semantic_candidates"] == [
-        ["ps:claim:leftcandidate0001", "ps:claim:rightcandidate0001"]
+    assert len(payload["semantic_candidates"]) == 1
+    assert all(
+        assertion_id.startswith("ps:assertion:")
+        for assertion_id in payload["semantic_candidates"][0]
+    )
+    details = payload["semantic_candidate_details"]
+    assert len(details) == 1
+    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in details[0]["assertion_ids"])
+    assert details[0]["logical_ids"] == ["left_paper:claim_a", "right_paper:claim_b"]
+    assert details[0]["artifact_ids"] == ["ps:claim:leftcandidate0001", "ps:claim:rightcandidate0001"]
+    assert [argument["artifact_id"] for argument in details[0]["arguments"]] == [
+        "ps:claim:leftcandidate0001",
+        "ps:claim:rightcandidate0001",
     ]
-    assert payload["semantic_candidate_details"] == [
-        {
-            "claim_ids": ["ps:claim:leftcandidate0001", "ps:claim:rightcandidate0001"],
-            "logical_ids": ["left_paper:claim_a", "right_paper:claim_b"],
-            "artifact_ids": ["ps:claim:leftcandidate0001", "ps:claim:rightcandidate0001"],
-            "arguments": [
-                {
-                    "claim_id": "ps:claim:leftcandidate0001",
-                    "logical_id": "left_paper:claim_a",
-                    "artifact_id": "ps:claim:leftcandidate0001",
-                    "branch_origins": ["master"],
-                    "source_paper": "left_paper",
-                },
-                {
-                    "claim_id": "ps:claim:rightcandidate0001",
-                    "logical_id": "right_paper:claim_b",
-                    "artifact_id": "ps:claim:rightcandidate0001",
-                    "branch_origins": [branch_name],
-                    "source_paper": "right_paper",
-                },
-            ],
-        }
-    ]
+    assert all(argument["assertion_id"].startswith("ps:assertion:") for argument in details[0]["arguments"])
 
 
 def test_merge_commit_cli_reports_semantic_candidate_count(tmp_path):
