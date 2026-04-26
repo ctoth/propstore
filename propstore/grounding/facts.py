@@ -165,11 +165,12 @@ def _collect_concept_relation_facts(
     relation: str | None,
     target: str | None,
 ) -> None:
+    declaration = registry.lookup(predicate_id)
     registry.validate_atom(
         PredicateAtom(
             predicate_id=predicate_id,
             arguments=("__concept__",),
-            argument_types=("Concept",),
+            argument_types=tuple(declaration.arg_types),
         )
     )
     if relation is None or target is None:
