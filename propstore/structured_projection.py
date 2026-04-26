@@ -62,6 +62,18 @@ class ProjectionAtom:
         )
 
 
+class ProjectionLiftError(ValueError):
+    """Raised when a backend result cannot lift to propstore assertion ids."""
+
+
+@dataclass(frozen=True)
+class LiftedProjectionResult:
+    argument_id: str
+    backend: str
+    situated_assertion_ids: tuple[str, ...]
+    provenance: ProjectionFrameProvenanceRecord
+
+
 @dataclass(frozen=True)
 class StructuredArgument:
     arg_id: str
@@ -77,6 +89,24 @@ class StructuredArgument:
     support_quality: SupportQuality
     justification_id: str
     dependency_claim_ids: tuple[str, ...]
+
+
+def lift_projected_argument(argument: StructuredArgument) -> LiftedProjectionResult:
+    projection = argument.projection
+    if projection.loss is not None:
+        raise ProjectionLiftError(
+            f"{projection.loss.kind}: {projection.loss.reason}"
+        )
+    if projection.provenance is None or not projection.source_assertion_ids:
+        raise ProjectionLiftError(
+            "missing_source_assertion: projection result has no situated assertion ids"
+        )
+    return LiftedProjectionResult(
+        argument_id=argument.arg_id,
+        backend=projection.backend,
+        situated_assertion_ids=projection.source_assertion_ids,
+        provenance=projection.provenance,
+    )
 
 
 @dataclass(frozen=True)
