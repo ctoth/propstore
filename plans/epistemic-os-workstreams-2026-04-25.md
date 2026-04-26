@@ -730,6 +730,24 @@ deletion_ledger: no existing ConditionIR Z3 backend to delete; the new backend
   consumes semantic ConditionIR directly and does not call the raw-CEL solver
 ```
 
+Thirteenth slice execution ledger:
+
+- Red commit: `54ae731` added Z3 backend architecture tests, direct
+  `ConditionIR` projection fixtures, binding-boundary tests, and a
+  Python/Z3 agreement property.
+- Red log: `logs/test-runs/ws3-z3-backend-red-20260425-192429.log`, failed
+  because `propstore.core.conditions.z3_backend` did not exist.
+- Green commit: `1362c34` added `condition_ir_to_z3`,
+  `z3_bindings_for_values`, direct typed reference projection, membership and
+  conditional projection, and guarded division terms for boolean projections.
+- Green log: `logs/test-runs/ws3-z3-backend-green-20260425-192623.log`,
+  44 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no old ConditionIR Z3 backend was deleted; the new backend
+  imports the external `z3` package directly and does not call the raw-CEL
+  `propstore.z3_conditions` solver path.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
