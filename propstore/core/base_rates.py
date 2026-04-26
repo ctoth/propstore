@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from collections.abc import Mapping
 
 from propstore.core.id_types import AssertionId
 from propstore.opinion import Opinion
-from propstore.provenance import Provenance
+from propstore.provenance import Provenance, ProvenanceStatus
 
 
 def _assertion_id(value: AssertionId, field_name: str) -> AssertionId:
@@ -56,6 +57,77 @@ class BaseRateProfile:
             self,
             "dependency_assertion_ids",
             _assertion_ids(self.dependency_assertion_ids, "dependency_assertion_ids"),
+        )
+
+
+@dataclass(frozen=True)
+class BaseRateAssertionRecord:
+    """Authored parameter assertion that can serve as a base-rate profile."""
+
+    source_key: str
+    claim_id: str
+    concept: str
+    value: float
+    unit: str
+
+    def __post_init__(self) -> None:
+        if not self.source_key:
+            raise ValueError("source_key is required")
+        if not self.claim_id:
+            raise ValueError("claim_id is required")
+        if not self.concept:
+            raise ValueError("concept is required")
+        if self.value <= 0.0 or self.value >= 1.0:
+            raise ValueError("BaseRateAssertionRecord.value must be in the open interval (0, 1)")
+        if self.unit != "proportion":
+            raise ValueError("base-rate assertion unit must be 'proportion'")
+
+    @property
+    def assertion_id(self) -> AssertionId:
+        return AssertionId(f"ps:assertion:{self.source_key}:{self.claim_id}")
+
+    @classmethod
+    def from_parameter_claim(
+        cls,
+        *,
+        source_key: str,
+        claim_payload: Mapping[str, object],
+    ) -> BaseRateAssertionRecord:
+        if claim_payload.get("type") != "parameter":
+            raise ValueError("base-rate source claim must be a parameter claim")
+
+        claim_id = claim_payload.get("id")
+        concept = claim_payload.get("concept")
+        value = claim_payload.get("value")
+        unit = claim_payload.get("unit")
+        if not isinstance(claim_id, str):
+            raise ValueError("base-rate source claim requires string id")
+        if not isinstance(concept, str):
+            raise ValueError("base-rate source claim requires string concept")
+        if not isinstance(value, int | float):
+            raise ValueError("base-rate source claim requires numeric value")
+        if not isinstance(unit, str):
+            raise ValueError("base-rate source claim requires string unit")
+
+        return cls(
+            source_key=source_key,
+            claim_id=claim_id,
+            concept=concept,
+            value=float(value),
+            unit=unit,
+        )
+
+    def to_profile(self, *, target_assertion_id: AssertionId) -> BaseRateProfile:
+        return BaseRateProfile(
+            profile_assertion_id=self.assertion_id,
+            target_assertion_id=target_assertion_id,
+            value=self.value,
+            provenance=Provenance(
+                status=ProvenanceStatus.STATED,
+                witnesses=(),
+                operations=(f"base_rate_assertion:{self.source_key}:{self.claim_id}",),
+            ),
+            evidence_assertion_ids=(self.assertion_id,),
         )
 
 
