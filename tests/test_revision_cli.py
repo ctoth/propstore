@@ -26,7 +26,7 @@ def _revision_request() -> RevisionWorldRequest:
     )
 
 
-def _projected_assertion_id(repo: Repository, claim_id: str = "freq_claim1") -> str:
+def _projected_assertion_id(repo: Repository, claim_id: str = "freq_paper:freq_claim1") -> str:
     with WorldModel(repo) as wm:
         base = revision_base(wm, _revision_request())
     for atom in base.atoms:
