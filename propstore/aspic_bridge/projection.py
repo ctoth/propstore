@@ -14,7 +14,12 @@ from propstore.core.labels import Label, SupportQuality
 from propstore.core.literal_keys import ClaimLiteralKey
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.preference import claim_strength
-from propstore.structured_projection import StructuredArgument, StructuredProjection
+from propstore.structured_projection import (
+    ProjectionAtom,
+    ProjectionLossWitness,
+    StructuredArgument,
+    StructuredProjection,
+)
 from propstore.world.types import SupportMetadata
 
 from .build import build_bridge_csaf
@@ -40,8 +45,8 @@ def _default_support_metadata(claim: ActiveClaim) -> tuple[Label | None, Support
     return Label.empty(), SupportQuality.EXACT
 
 
-def _projection_conclusion_key(literal: Literal) -> str:
-    """Return a stable string identity for one projected conclusion literal."""
+def _projection_backend_atom_id(literal: Literal) -> str:
+    """Return the ASPIC backend-local atom id for one projected literal."""
 
     return json.dumps(
         {
@@ -51,6 +56,45 @@ def _projection_conclusion_key(literal: Literal) -> str:
         },
         sort_keys=True,
         separators=(",", ":"),
+    )
+
+
+def _source_assertion_ids_for_claim(claim: ActiveClaim | None) -> tuple[str, ...]:
+    if claim is None:
+        return ()
+    raw = claim.attributes.get("source_assertion_ids")
+    if isinstance(raw, str):
+        return (raw,)
+    if isinstance(raw, Sequence) and not isinstance(raw, str | bytes):
+        return tuple(str(value) for value in raw)
+    return ()
+
+
+def _projection_atom_for_literal(
+    literal: Literal,
+    *,
+    claim: ActiveClaim | None,
+) -> ProjectionAtom:
+    backend_atom_id = _projection_backend_atom_id(literal)
+    source_assertion_ids = _source_assertion_ids_for_claim(claim)
+    loss = None
+    if not source_assertion_ids:
+        loss = ProjectionLossWitness(
+            backend="aspic",
+            kind="missing_source_assertion",
+            reason=(
+                "ASPIC literal projection has no source situated assertion id "
+                "to attribute the backend atom"
+            ),
+            backend_atom_id=backend_atom_id,
+        )
+    return ProjectionAtom(
+        backend="aspic",
+        backend_atom=literal.atom,
+        backend_atom_id=backend_atom_id,
+        negated=literal.negated,
+        source_assertion_ids=source_assertion_ids,
+        loss=loss,
     )
 
 
@@ -155,7 +199,7 @@ def csaf_to_projection(
             justification_id = (
                 f"reported:{claim_id}"
                 if claim_id is not None
-                else f"premise:{_projection_conclusion_key(conclusion)}"
+                else f"premise:{_projection_backend_atom_id(conclusion)}"
             )
         elif top is not None and top.name is not None:
             justification_id = top.name
@@ -163,11 +207,11 @@ def csaf_to_projection(
             justification_id = (
                 f"reported:{claim_id}"
                 if claim_id is not None
-                else f"premise:{_projection_conclusion_key(conclusion)}"
+                else f"premise:{_projection_backend_atom_id(conclusion)}"
             )
 
         dependency_claim_ids = _claim_ids_for_literals(
-            tuple(sorted(prem(argument), key=_projection_conclusion_key)),
+            tuple(sorted(prem(argument), key=_projection_backend_atom_id)),
             claim_literal_ids,
         )
 
@@ -180,7 +224,7 @@ def csaf_to_projection(
 
         projected = StructuredArgument(
             arg_id=arg_id,
-            conclusion_key=_projection_conclusion_key(conclusion),
+            projection=_projection_atom_for_literal(conclusion, claim=claim),
             claim_id=claim_id,
             conclusion_concept_id=(
                 None if claim is None or claim.value_concept_id is None else str(claim.value_concept_id)
