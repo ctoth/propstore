@@ -1788,6 +1788,38 @@ Execution ledger:
   the WS14 CLI adapter; no ad hoc script was deleted because the new observatory
   harness covers typed scenario fixtures rather than an existing script surface.
 
+### Argumentation Package Track E Child Scope
+
+Purpose:
+
+- Consume the sibling `argumentation` package improvements after the situated
+  assertion and typed projection boundary were in place.
+- Keep package semantics in `argumentation`; propstore projects, calls package
+  services, and lifts results back to situated assertions.
+
+Execution ledger:
+
+- Gate verification: WS6 through WS14 execution ledgers are present, including
+  typed projection records, situated assertion identity, merge/revision
+  repointing, policy ownership, process management, and public observability.
+- Red commit: `5a44e04a` added Track E tests for package semantics exposure,
+  projection result lifting to situated assertion ids, typed optional ASPIC
+  backend absence, paper-TD PrAF routing, and merge evidence ownership.
+- Dependency commit: `e0c9eb9a` changed propstore to consume the sibling
+  `../argumentation` package source so the package-first Tracks A-D surfaces
+  are available locally.
+- Green commit: `ac696d1e` added propstore semantics names for the selected new
+  package surfaces, analyzer result lifting helpers, an ASPIC optional-backend
+  analyzer adapter, paper-TD PrAF metadata/projection handling, and merge
+  argumentation evidence that explicitly leaves decisions to merge policy.
+- Focused verification:
+  `logs/test-runs/argumentation-track-e-20260426-105244.log` passed with 5
+  tests; `uv run pyright propstore` passed with 0 errors.
+- Deletion ledger: no old propstore argumentation production path was kept as a
+  parallel replacement for this child scope. Existing claim-graph, ASPIC, PrAF,
+  and merge paths now call or lift the package surfaces at their projection
+  boundaries; merge evidence remains evidence, not merge policy.
+
 ## Global Property Program
 
 Use Hypothesis aggressively for:
