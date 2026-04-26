@@ -9,7 +9,8 @@ from pathlib import Path
 from propstore.claim_graph import build_argumentation_framework
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import SupportQuality, build_structured_projection
-from tests.test_revision_bound_world import _operator_bound
+from tests.revision_assertion_helpers import make_assertion_atom
+from tests.test_revision_bound_world import _atom_id_for_claim, _operator_bound
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
@@ -19,9 +20,10 @@ def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims(
     from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
 
     bound = _operator_bound()
+    atom = make_assertion_atom("synthetic", value=9.0)
     _, state = bound.iterated_revise(
-        {"kind": "claim", "id": "synthetic", "value": 9.0},
-        conflicts={"claim:synthetic": ("legacy",)},
+        atom,
+        conflicts={atom.atom_id: (_atom_id_for_claim(bound, "legacy"),)},
         operator="restrained",
     )
 
@@ -30,9 +32,9 @@ def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims(
     af = build_argumentation_framework(view.store, set(view.active_claim_ids))
 
     assert "legacy" not in view.active_claim_ids
-    assert "synthetic" in view.active_claim_ids
-    assert any(claim_id != "synthetic" for claim_id in view.active_claim_ids)
-    assert claim_rows["synthetic"].value == 9.0
+    assert "claim_synthetic" in view.active_claim_ids
+    assert any(claim_id != "claim_synthetic" for claim_id in view.active_claim_ids)
+    assert claim_rows["claim_synthetic"].value == 9.0
     assert "legacy" not in claim_rows
     assert af.arguments == frozenset(view.active_claim_ids)
 
