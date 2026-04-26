@@ -11,6 +11,7 @@ ASSERTION_CONVERSION = Path("propstore/core/assertions/conversion.py")
 ASSERTION_CODEC = Path("propstore/core/assertions/codec.py")
 CONDITION_IR = Path("propstore/core/conditions/ir.py")
 CONDITION_CEL_FRONTEND = Path("propstore/core/conditions/cel_frontend.py")
+CONDITION_PYTHON_BACKEND = Path("propstore/core/conditions/python_backend.py")
 
 FORBIDDEN_IMPORT_PREFIXES = (
     "propstore.app",
@@ -34,6 +35,9 @@ FORBIDDEN_CONDITION_FRONTEND_IMPORT_PREFIXES = tuple(
     for prefix in FORBIDDEN_IMPORT_PREFIXES
     if prefix != "propstore.cel_checker"
 ) + ("ast",)
+FORBIDDEN_CONDITION_BACKEND_IMPORT_PREFIXES = FORBIDDEN_IMPORT_PREFIXES + (
+    "propstore.cel_checker",
+)
 
 
 def _imported_modules(path: Path) -> set[str]:
@@ -160,6 +164,23 @@ def test_condition_cel_frontend_does_not_import_backend_layers() -> None:
         imported
         for imported in imports
         for prefix in FORBIDDEN_CONDITION_FRONTEND_IMPORT_PREFIXES
+        if imported == prefix or imported.startswith(f"{prefix}.")
+    }
+
+    assert forbidden == set()
+
+
+def test_condition_python_backend_exists_as_backend_module() -> None:
+    assert CONDITION_PYTHON_BACKEND.exists()
+
+
+def test_condition_python_backend_does_not_import_frontend_or_other_backends() -> None:
+    imports = _imported_modules(CONDITION_PYTHON_BACKEND)
+
+    forbidden = {
+        imported
+        for imported in imports
+        for prefix in FORBIDDEN_CONDITION_BACKEND_IMPORT_PREFIXES
         if imported == prefix or imported.startswith(f"{prefix}.")
     }
 
