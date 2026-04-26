@@ -424,7 +424,7 @@ class TestSchemaV4:
     quarantine reasons that the render layer filters per policy.
     """
 
-    def test_schema_version_is_four(self, knowledge_reader, sidecar_path):
+    def test_schema_version_is_five(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute(
@@ -432,7 +432,7 @@ class TestSchemaV4:
         ).fetchone()
         conn.close()
         assert row is not None
-        assert row[0] == 4
+        assert row[0] == 5
 
     def test_build_diagnostics_table_exists(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
