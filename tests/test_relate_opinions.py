@@ -756,7 +756,7 @@ class TestCorpusCalibReducesUncertainty:
         u = result["resolution"]["opinion"]["u"]
 
         from propstore.calibrate import CorpusCalibrator, categorical_to_opinion
-        corpus_op = CorpusCalibrator(reference_distances).to_opinion(0.3)
+        corpus_op = CorpusCalibrator(reference_distances, corpus_base_rate=0.7).to_opinion(0.3)
         cat_op = categorical_to_opinion(
             "strong",
             1,

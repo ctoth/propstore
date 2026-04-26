@@ -143,7 +143,7 @@ class CorpusCalibrator:
         self,
         reference_distances: list[float],
         *,
-        corpus_base_rate: float = 0.5,
+        corpus_base_rate: float,
     ) -> None:
         """Build CDF from reference corpus of pairwise distances.
 
@@ -164,7 +164,7 @@ class CorpusCalibrator:
         cls,
         corpus_cdf: list[float],
         *,
-        corpus_base_rate: float = 0.5,
+        corpus_base_rate: float,
     ) -> CorpusCalibrator:
         return cls(corpus_cdf, corpus_base_rate=corpus_base_rate)
 
@@ -444,7 +444,7 @@ def categorical_to_opinion(
 def calibrated_probability_to_opinion(
     probability: float,
     effective_sample_size: float,
-    base_rate: float = 0.5,
+    base_rate: float,
 ) -> Opinion:
     """Convert calibrated probability to opinion via Beta parameterization.
 
