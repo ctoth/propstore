@@ -846,6 +846,38 @@ Fifteenth slice execution ledger:
   stable under input collection ordering and unnamed provenance blobs are
   refused at the carrier boundary.
 
+Sixteenth slice gate, WS4 provenance record vocabulary:
+
+```text
+target_surface: typed provenance records for import runs, projection frames,
+  external statements, external inferences, source versions/hashes, and licenses
+old_surfaces_to_delete: loose provenance event dictionaries for the new
+  import-ready provenance vocabulary
+allowed_owner_modules: propstore.provenance
+forbidden_imports: provenance records must not import app, CLI, sidecar, world,
+  backend projection modules, calibration, opinion, assertion identity
+  derivation modules, or condition backend modules
+forbidden_symbols: provenance record owner must not expose event payload fields
+  as untyped dict, Dict, data, blob, payload, or metadata semantic fields
+forbidden_storage_columns: none in this slice
+positive_tests: each required record is a closed domain object with stable
+  canonical identity payload; source version records require a content hash;
+  license and activity ids require URI identity; statement attitude separates
+  asserted from quoted; record serialization is deterministic and sorted where
+  inputs are unordered
+negative_tests: architecture import/symbol tests; missing source hashes,
+  non-URI ids, empty projection source sets, and untyped event payloads are
+  refused
+pyright_scope: uv run pyright propstore
+paper_checkpoint: Carroll 2005 page images 004-008 reread directly on
+  2026-04-25 for asserted/quoted/warranted graph state; Buneman 2001 notes
+  reread for why/where source version location; docs/provenance.md and
+  docs/semiring-provenance-architecture.md reread on 2026-04-25
+deletion_ledger: add the typed vocabulary without a compatibility dictionary
+  event surface; future import/projection callers must construct these records
+  directly
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
