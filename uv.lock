@@ -704,7 +704,20 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/argumentation?rev=adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a#adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a" }
+source = { directory = "../argumentation" }
+
+[package.metadata]
+requires-dist = [{ name = "z3-solver", marker = "extra == 'z3'", specifier = ">=4.12" }]
+provides-extras = ["z3"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.0" },
+    { name = "pyright", specifier = ">=1.1.390" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-timeout", specifier = ">=2.3" },
+    { name = "z3-solver", specifier = ">=4.12" },
+]
 
 [[package]]
 name = "fqdn"
@@ -2043,7 +2056,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.0" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
-    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation?rev=adedb7e72d8737ff09b0852cfe1cb6dc3aab9e2a" },
+    { name = "formal-argumentation", directory = "../argumentation" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray?rev=83ab5f0cd7660a80787e3974f310bf8fbd85a1ae" },
     { name = "lark", specifier = ">=1.2.2" },
