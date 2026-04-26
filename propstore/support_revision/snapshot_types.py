@@ -370,7 +370,3 @@ class EpistemicStateSnapshot:
             },
             "history": [episode.to_dict() for episode in self.history],
         }
-
-
-def epistemic_state_snapshot(state: EpistemicState) -> EpistemicStateSnapshot:
-    return EpistemicStateSnapshot.from_state(state)
