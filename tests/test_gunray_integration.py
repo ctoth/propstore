@@ -190,6 +190,15 @@ def _build_registry(predicates):
     return PredicateRegistry.from_files([predicate_file])
 
 
+def _fact_inputs(concepts=(), claim_files=()):
+    from propstore.grounding.facts import GroundingFactInputs
+
+    return GroundingFactInputs(
+        concepts=tuple(concepts),
+        claim_files=tuple(claim_files),
+    )
+
+
 def _build_var(name: str):
     """Build a DeLP variable term.
 
@@ -412,7 +421,7 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     Pipeline:
         1. Build concept graph, predicate registry, and rule files
            via the inline helpers above.
-        2. ``extract_facts(concepts, registry)`` -> ``(bird(tweety),)``.
+        2. ``extract_facts(GroundingFactInputs(...), registry)`` -> ``(bird(tweety),)``.
         3. ``ground(rule_files, facts, registry)`` -> bundle whose
            ``definitely`` section contains ``{'bird': {('tweety',)}}``
            and whose ``defeasibly`` section contains
@@ -440,7 +449,7 @@ def test_tweety_end_to_end_via_query_claim() -> None:
 
     concepts, registry, rule_files = _build_tweety_world()
 
-    facts = extract_facts(concepts, registry)
+    facts = extract_facts(_fact_inputs(concepts), registry)
     # Garcia & Simari 2004 §3: the fact extractor must materialise
     # exactly ``bird(tweety)``.
     assert len(facts) == 1
@@ -528,7 +537,7 @@ def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
     # identical to the canonical tweety setup.
     empty_rule_files = [_build_rule_file([])]
 
-    facts = extract_facts(concepts, registry)
+    facts = extract_facts(_fact_inputs(concepts), registry)
     bundle = ground(empty_rule_files, facts, registry)
 
     # Facts are still present: Diller, Borg, Bex 2025 §3 Def 7.
@@ -612,7 +621,7 @@ def test_tweety_multiple_birds_produces_multiple_arguments() -> None:
     )
     rule_files = [_build_rule_file([rule])]
 
-    facts = extract_facts(concepts, registry)
+    facts = extract_facts(_fact_inputs(concepts), registry)
     # Both birds show up as facts (deterministic sorted order —
     # Diller, Borg, Bex 2025 §3 Def 9).
     assert GroundAtom(predicate="bird", arguments=("opus",)) in facts
@@ -713,7 +722,7 @@ def test_tweety_rule_body_fact_missing_produces_zero_arguments() -> None:
     )
     rule_files = [_build_rule_file([rule])]
 
-    facts = extract_facts(concepts, registry)
+    facts = extract_facts(_fact_inputs(concepts), registry)
     # No fact matches ``is_a:Bird`` — Diller, Borg, Bex 2025 §3 Def 7:
     # the empty fact base is legal.
     assert facts == ()
