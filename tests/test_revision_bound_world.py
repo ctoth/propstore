@@ -8,6 +8,7 @@ from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.operators import contract as contract_base
 from propstore.support_revision.operators import expand as expand_base
 from propstore.support_revision.operators import revise as revise_base
+from tests.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 
@@ -40,9 +41,16 @@ def _operator_bound():
     return _make_bound(store, bindings={"x": 1, "y": 2})
 
 
+def _atom_id_for_claim(bound, claim_id: str) -> str:
+    for atom in bound.revision_base().atoms:
+        if any(str(claim.claim_id) == claim_id for claim in getattr(atom, "source_claims", ())):
+            return atom.atom_id
+    raise AssertionError(f"missing projected claim {claim_id}")
+
+
 def test_bound_world_expand_delegates_to_revision_package() -> None:
     bound = _operator_bound()
-    atom = {"kind": "claim", "id": "synthetic", "value": 9.0}
+    atom = make_assertion_atom("synthetic", value=9.0)
 
     expected = expand_base(bound.revision_base(), atom)
     actual = bound.expand(atom)
@@ -56,13 +64,14 @@ def test_bound_world_expand_delegates_to_revision_package() -> None:
 
 def test_bound_world_contract_delegates_to_revision_package() -> None:
     bound = _operator_bound()
+    legacy_id = _atom_id_for_claim(bound, "legacy")
 
     expected = contract_base(
         bound.revision_base(),
-        "legacy",
+        legacy_id,
         entrenchment=bound.revision_entrenchment(),
     )
-    actual = bound.contract("legacy")
+    actual = bound.contract(legacy_id)
 
     assert actual.accepted_atom_ids == expected.accepted_atom_ids
     assert actual.rejected_atom_ids == expected.rejected_atom_ids
@@ -71,8 +80,8 @@ def test_bound_world_contract_delegates_to_revision_package() -> None:
 
 def test_bound_world_revise_delegates_to_revision_package() -> None:
     bound = _operator_bound()
-    atom = {"kind": "claim", "id": "synthetic", "value": 9.0}
-    conflicts = {"claim:synthetic": ("legacy",)}
+    atom = make_assertion_atom("synthetic", value=9.0)
+    conflicts = {atom.atom_id: (_atom_id_for_claim(bound, "legacy"),)}
 
     expected = revise_base(
         bound.revision_base(),
@@ -89,7 +98,7 @@ def test_bound_world_revise_delegates_to_revision_package() -> None:
 
 def test_bound_world_revision_explain_delegates_to_explanation_builder() -> None:
     bound = _operator_bound()
-    result = bound.contract("legacy")
+    result = bound.contract(_atom_id_for_claim(bound, "legacy"))
 
     expected = build_revision_explanation(
         result,
@@ -116,8 +125,8 @@ def test_bound_world_epistemic_state_delegates_to_iterated_state_builder() -> No
 
 def test_bound_world_iterated_revise_delegates_to_iterated_revision_package() -> None:
     bound = _operator_bound()
-    atom = {"kind": "claim", "id": "synthetic", "value": 9.0}
-    conflicts = {"claim:synthetic": ("legacy",)}
+    atom = make_assertion_atom("synthetic", value=9.0)
+    conflicts = {atom.atom_id: (_atom_id_for_claim(bound, "legacy"),)}
 
     expected_result, expected_state = iterated_revise_base(
         make_epistemic_state(bound.revision_base(), bound.revision_entrenchment()),
