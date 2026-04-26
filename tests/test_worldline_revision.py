@@ -14,26 +14,30 @@ from tests.revision_assertion_helpers import make_assertion_atom
 def test_worldline_definition_roundtrip_preserves_revision_query_block() -> None:
     from propstore.worldline import WorldlineDefinition
 
+    synthetic = make_assertion_atom("synthetic", value=9.0)
+    legacy = make_assertion_atom("legacy")
     definition = WorldlineDefinition.from_dict({
         "id": "revision_wl",
         "targets": ["target"],
         "revision": {
             "operation": "revise",
-            "atom": {"kind": "claim", "id": "synthetic", "value": 9.0},
-            "conflicts": {"claim:synthetic": ["legacy"]},
+            "atom": {"kind": "assertion", "id": synthetic.atom_id, "value": 9.0},
+            "conflicts": {synthetic.atom_id: [legacy.atom_id]},
         },
     })
 
     assert definition.revision is not None
     assert definition.revision.operation == "revise"
     assert definition.revision.atom is not None
-    assert definition.revision.atom.to_dict() == {"kind": "claim", "id": "synthetic", "value": 9.0}
-    assert definition.to_dict()["revision"]["conflicts"] == {"claim:synthetic": ["legacy"]}
+    assert definition.revision.atom.to_dict() == {"kind": "assertion", "id": synthetic.atom_id, "value": 9.0}
+    assert definition.to_dict()["revision"]["conflicts"] == {synthetic.atom_id: [legacy.atom_id]}
 
 
 def test_worldline_result_roundtrip_preserves_revision_payload() -> None:
     from propstore.worldline import WorldlineResult
 
+    synthetic_id = "ps:assertion:synthetic"
+    legacy_id = "ps:assertion:legacy"
     result = WorldlineResult.from_dict({
         "computed": "2026-03-29T00:00:00Z",
         "content_hash": "abc123",
@@ -42,18 +46,18 @@ def test_worldline_result_roundtrip_preserves_revision_payload() -> None:
         "dependencies": {"claims": [], "stances": [], "contexts": []},
         "revision": {
             "operation": "revise",
-            "input_atom_id": "claim:synthetic",
-            "target_atom_ids": ["claim:legacy"],
+            "input_atom_id": synthetic_id,
+            "target_atom_ids": [legacy_id],
             "result": {
-                "accepted_atom_ids": ["claim:synthetic"],
-                "rejected_atom_ids": ["claim:legacy"],
+                "accepted_atom_ids": [synthetic_id],
+                "rejected_atom_ids": [legacy_id],
                 "incision_set": ["assumption:shared_weak"],
                 "explanation": {
-                    "accepted_atom_ids": ["claim:synthetic"],
-                    "rejected_atom_ids": ["claim:legacy"],
+                    "accepted_atom_ids": [synthetic_id],
+                    "rejected_atom_ids": [legacy_id],
                     "incision_set": ["assumption:shared_weak"],
                     "atoms": {
-                        "claim:legacy": {
+                        legacy_id: {
                             "status": "rejected",
                             "reason": "support_lost",
                         }
@@ -66,7 +70,7 @@ def test_worldline_result_roundtrip_preserves_revision_payload() -> None:
     assert result is not None
     assert result.revision is not None
     assert result.revision.operation == "revise"
-    assert result.to_dict()["revision"]["result"]["rejected_atom_ids"] == ["claim:legacy"]
+    assert result.to_dict()["revision"]["result"]["rejected_atom_ids"] == [legacy_id]
 
 
 def test_compute_worldline_content_hash_changes_when_revision_payload_changes() -> None:
@@ -82,7 +86,7 @@ def test_compute_worldline_content_hash_changes_when_revision_payload_changes() 
         argumentation=None,
         revision=WorldlineRevisionState(
             operation="revise",
-            result=WorldlineRevisionResult(accepted_atom_ids=("claim:new",)),
+            result=WorldlineRevisionResult(accepted_atom_ids=("ps:assertion:new",)),
         ),
     )
     right = compute_worldline_content_hash(
@@ -93,7 +97,7 @@ def test_compute_worldline_content_hash_changes_when_revision_payload_changes() 
         argumentation=None,
         revision=WorldlineRevisionState(
             operation="revise",
-            result=WorldlineRevisionResult(accepted_atom_ids=("claim:other",)),
+            result=WorldlineRevisionResult(accepted_atom_ids=("ps:assertion:other",)),
         ),
     )
 
@@ -176,8 +180,8 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
             "targets": ["target"],
             "revision": {
                 "operation": "revise",
-                "atom": {"kind": "claim", "id": "synthetic", "value": 9.0},
-                "conflicts": {"claim:synthetic": ["claim:legacy"]},
+                "atom": {"kind": "assertion", "id": synthetic.atom_id, "value": 9.0},
+                "conflicts": {synthetic.atom_id: [ids["legacy"]]},
             },
         }),
         _RevisionWorld(bound),
@@ -192,12 +196,12 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
     assert call_operation == "revise"
     assert call_atom == {
-        "kind": "claim",
-        "id": "synthetic",
-        "claim_id": "synthetic",
+        "kind": "assertion",
+        "id": synthetic.atom_id,
+        "assertion_id": synthetic.atom_id,
         "value": 9.0,
     }
-    assert call_conflicts == {"claim:synthetic": ("claim:legacy",)}
+    assert call_conflicts == {synthetic.atom_id: (ids["legacy"],)}
     assert call_operator is None
 
 
@@ -240,8 +244,8 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
             "targets": ["target"],
             "revision": {
                 "operation": "iterated_revise",
-                "atom": {"kind": "claim", "id": "new", "value": 9.0},
-                "conflicts": {"claim:new": ["claim:legacy"]},
+                "atom": {"kind": "assertion", "id": new.atom_id, "value": 9.0},
+                "conflicts": {new.atom_id: [ids["legacy"]]},
                 "operator": "restrained",
             },
         }),
@@ -256,12 +260,12 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
     assert call_operation == "iterated_revise"
     assert call_atom == {
-        "kind": "claim",
-        "id": "new",
-        "claim_id": "new",
+        "kind": "assertion",
+        "id": new.atom_id,
+        "assertion_id": new.atom_id,
         "value": 9.0,
     }
-    assert call_conflicts == {"claim:new": ("claim:legacy",)}
+    assert call_conflicts == {new.atom_id: (ids["legacy"],)}
     assert call_operator == "restrained"
 
 
@@ -294,8 +298,8 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
             "targets": ["target"],
             "revision": {
                 "operation": "iterated_revise",
-                "atom": {"kind": "claim", "id": "new", "value": 9.0},
-                "conflicts": {"claim:new": ["claim:legacy"]},
+                "atom": {"kind": "assertion", "id": make_assertion_atom("new", value=9.0).atom_id, "value": 9.0},
+                "conflicts": {},
                 "operator": "restrained",
             },
         }),
