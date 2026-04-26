@@ -1043,7 +1043,9 @@ def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
 
     context_result = runner.invoke(cli, ["world", "atms", "context", "x=1"])
     assert context_result.exit_code == 0, context_result.output
-    assert "claim_exact: status=IN" in context_result.output
+    assert "ps:assertion:" in context_result.output
+    assert "status=IN" in context_result.output
+    assert "claim_exact" not in context_result.output
     assert "claim_semantic" not in context_result.output
 
     verify_result = runner.invoke(cli, ["world", "atms", "verify", "x=1"])
