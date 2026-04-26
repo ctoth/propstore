@@ -17,6 +17,7 @@ Design basis:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 from propstore.core.id_types import ConceptId, to_concept_id
 
@@ -114,26 +115,62 @@ class RoleBindingSet:
         return tuple(binding.identity_payload() for binding in self.bindings)
 
 
-@dataclass(frozen=True)
-class RoleSignature:
-    """Required role names for a relation concept."""
+@dataclass(frozen=True, order=True)
+class RoleDefinition:
+    """Role slot with explicit domain and range concepts.
 
-    relation: RelationConceptRef
-    roles: tuple[str, ...]
+    FrameNet-style frame elements are useful only when their participant slot
+    is tied to the kind of event/frame that owns the slot and to the kind of
+    value that may fill it (Baker et al. 1998). The domain/range pair keeps
+    that slot identity explicit in the kernel.
+    """
+
+    role: str
+    domain: ConceptId | str
+    range: ConceptId | str
 
     def __post_init__(self) -> None:
-        roles = tuple(role.strip() for role in self.roles)
-        if not roles:
-            raise ValueError("role signature must define at least one role")
-        if any(role == "" for role in roles):
+        role = self.role.strip()
+        if role == "":
             raise ValueError("role name must be non-empty")
-        duplicated = _duplicated(roles)
+        domain = to_concept_id(self.domain)
+        if str(domain) == "":
+            raise ValueError("role domain must be non-empty")
+        range_id = to_concept_id(self.range)
+        if str(range_id) == "":
+            raise ValueError("role range must be non-empty")
+        object.__setattr__(self, "role", role)
+        object.__setattr__(self, "domain", domain)
+        object.__setattr__(self, "range", range_id)
+
+    def identity_payload(self) -> tuple[str, str, str]:
+        return (self.role, str(self.domain), str(self.range))
+
+
+@dataclass(frozen=True)
+class RoleSignature:
+    """Required domain/range-bearing role slots for a relation concept."""
+
+    relation: RelationConceptRef
+    role_definitions: tuple[RoleDefinition, ...]
+
+    def __post_init__(self) -> None:
+        role_definitions = tuple(
+            sorted(self.role_definitions, key=lambda definition: definition.role)
+        )
+        if not role_definitions:
+            raise ValueError("role signature must define at least one role")
+        role_names = [definition.role for definition in role_definitions]
+        duplicated = _duplicated(role_names)
         if duplicated:
             raise ValueError(f"duplicate role in signature: {duplicated}")
-        object.__setattr__(self, "roles", roles)
+        object.__setattr__(self, "role_definitions", role_definitions)
+
+    def role_names(self) -> frozenset[str]:
+        return frozenset(definition.role for definition in self.role_definitions)
 
     def validate_bindings(self, bindings: RoleBindingSet) -> None:
-        expected = frozenset(self.roles)
+        expected = self.role_names()
         observed = bindings.roles()
         missing = expected.difference(observed)
         if missing:
@@ -142,8 +179,115 @@ class RoleSignature:
         if unknown:
             raise ValueError(f"unknown role binding: {sorted(unknown)[0]}")
 
-    def identity_payload(self) -> tuple[tuple[str, str], tuple[str, ...]]:
-        return (self.relation.identity_key(), self.roles)
+    def identity_payload(
+        self,
+    ) -> tuple[tuple[str, str], tuple[tuple[str, str, str], ...]]:
+        return (
+            self.relation.identity_key(),
+            tuple(
+                definition.identity_payload()
+                for definition in self.role_definitions
+            ),
+        )
+
+
+class RelationPropertyKind(StrEnum):
+    """Implemented relation properties in the bootstrap kernel."""
+
+    FUNCTIONAL = "functional"
+    INVERSE_OF = "inverse_of"
+    SYMMETRIC = "symmetric"
+    TRANSITIVE = "transitive"
+
+
+@dataclass(frozen=True, order=True)
+class RelationPropertyAssertion:
+    """A kernel-recognized property asserted about a relation concept."""
+
+    relation: RelationConceptRef
+    kind: RelationPropertyKind
+    target: RelationConceptRef | None = None
+
+    def __post_init__(self) -> None:
+        kind = RelationPropertyKind(self.kind)
+        object.__setattr__(self, "kind", kind)
+        if kind == RelationPropertyKind.INVERSE_OF:
+            if self.target is None:
+                raise ValueError("inverse target relation is required")
+        elif self.target is not None:
+            raise ValueError(f"{kind.value} must not carry a target relation")
+
+    def inverse(self) -> RelationPropertyAssertion:
+        if self.kind != RelationPropertyKind.INVERSE_OF:
+            return self
+        if self.target is None:
+            raise ValueError("inverse target relation is required")
+        return RelationPropertyAssertion(
+            relation=self.target,
+            kind=RelationPropertyKind.INVERSE_OF,
+            target=self.relation,
+        )
+
+    def identity_payload(self) -> tuple[tuple[str, str], str, tuple[str, str] | None]:
+        target_payload = None if self.target is None else self.target.identity_key()
+        return (self.relation.identity_key(), self.kind.value, target_payload)
+
+
+@dataclass(frozen=True)
+class RelationPropertySet:
+    """Immutable property assertions with small kernel algorithms."""
+
+    assertions: tuple[RelationPropertyAssertion, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "assertions", tuple(self.assertions))
+
+    def has(
+        self,
+        relation: RelationConceptRef,
+        kind: RelationPropertyKind,
+    ) -> bool:
+        return any(
+            assertion.relation.identity_key() == relation.identity_key()
+            and assertion.kind == kind
+            for assertion in self.assertions
+        )
+
+    def canonicalize_binary_values(
+        self,
+        relation: RelationConceptRef,
+        left: object,
+        right: object,
+    ) -> tuple[str, str]:
+        left_text = str(left)
+        right_text = str(right)
+        if self.has(relation, RelationPropertyKind.SYMMETRIC):
+            ordered = sorted((left_text, right_text))
+            return (ordered[0], ordered[1])
+        return (left_text, right_text)
+
+    def transitive_closure(
+        self,
+        relation: RelationConceptRef,
+        edges: frozenset[tuple[str, str]],
+    ) -> frozenset[tuple[str, str]]:
+        if not self.has(relation, RelationPropertyKind.TRANSITIVE):
+            return edges
+
+        closure = set(edges)
+        changed = True
+        while changed:
+            changed = False
+            additions = {
+                (left, right_next)
+                for left, right in closure
+                for left_next, right_next in closure
+                if right == left_next and (left, right_next) not in closure
+            }
+            if additions:
+                closure.update(additions)
+                changed = True
+        return frozenset(closure)
 
 
 def _duplicated(values: tuple[str, ...] | list[str]) -> str | None:
