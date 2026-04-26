@@ -774,6 +774,25 @@ deletion_ledger: no old ConditionIR SQL backend to delete; this adds a sound
   parameterized fragment projection directly over semantic ConditionIR
 ```
 
+Fourteenth slice execution ledger:
+
+- Red commit: `625f0b4` added SQL backend architecture tests, parameterized
+  fragment fixtures, sqlite evaluation, literal interpolation protection, and
+  explicit refusal tests for unsupported conditionals.
+- Red log: `logs/test-runs/ws3-sql-backend-red-20260425-193050.log`, failed
+  because `propstore.core.conditions.sql_backend` did not exist.
+- Green commit: `645cb21` added `SqlConditionFragment` and
+  `condition_ir_to_sql` for quoted references, parameterized literals,
+  boolean/logical/comparison/arithmetic expressions, membership fragments, and
+  explicit `ConditionChoice` refusal.
+- Green log: `logs/test-runs/ws3-sql-backend-green-20260425-193233.log`,
+  42 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no old ConditionIR SQL backend was deleted; the new backend
+  emits parameterized SQL fragments directly from semantic `ConditionIR` and
+  does not consume CEL source or AST nodes.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
