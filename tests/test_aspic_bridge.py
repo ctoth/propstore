@@ -940,8 +940,8 @@ class TestCsafToProjection:
         """Projected arguments must have a stable identity surface.
 
         Claim-backed arguments map to authored claim ids. Grounded-only
-        arguments may have ``claim_id=None`` but must expose a canonical
-        ``conclusion_key`` and dependency claim ids that stay within the
+        arguments may have ``claim_id=None`` but must expose a typed
+        projection atom and dependency claim ids that stay within the
         authored claim set.
         """
         claims, justifications, stances = graph
@@ -949,7 +949,7 @@ class TestCsafToProjection:
         projection = csaf_to_projection(csaf, claims)
         claim_ids = {c["id"] for c in claims}
         for arg in projection.arguments:
-            assert arg.conclusion_key
+            assert arg.projection.backend_atom_id
             if arg.claim_id is not None:
                 assert arg.claim_id in claim_ids, (
                     f"Argument {arg.arg_id} maps to unknown claim {arg.claim_id}"
