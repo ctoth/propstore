@@ -22,7 +22,6 @@ from propstore.families.documents.sources import (
     SourceJustificationsDocument,
     SourceStancesDocument,
     SourceTrustDocument,
-    SourceTrustQualityDocument,
 )
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
 
@@ -104,14 +103,6 @@ def initial_source_document(
         ),
         trust=SourceTrustDocument(
             status=ProvenanceStatus.DEFAULTED,
-            prior_base_rate=0.5,
-            quality=SourceTrustQualityDocument(
-                status=ProvenanceStatus.VACUOUS,
-                b=0.0,
-                d=0.0,
-                u=1.0,
-                a=0.5,
-            ),
             derived_from=(),
         ),
         metadata=SourceMetadataDocument(name=normalize_source_slug(name)),
