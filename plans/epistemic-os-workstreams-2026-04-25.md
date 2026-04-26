@@ -570,6 +570,37 @@ Ninth slice execution ledger:
   in this slice; the first backend consumer now takes `ConditionIR` directly
   and imports neither the CEL parser nor Z3.
 
+Tenth slice gate, WS3 checked ConditionIR carrier:
+
+```text
+target_surface: checked condition carrier and condition-set normalization over
+  ConditionIR
+old_surfaces_to_delete: none existing; block new runtime-facing condition
+  carriers from storing old CEL AST nodes
+allowed_owner_modules: propstore.core.conditions, propstore.core.id_types,
+  propstore.cel_checker only from the CEL frontend adapter
+forbidden_imports: checked condition owner must not import cel_checker,
+  z3_conditions, condition_classifier, app, CLI, sidecar, world, backend
+  projection modules, Python ast, or JavaScript backend modules; CEL frontend
+  adapter remains the only module in this owner package that may call
+  cel_checker
+forbidden_symbols: checked condition owner must not name old AST carrier fields
+  ast, cel_ast, raw_cel_ast, or backend/runtime helper surfaces _rt,
+  RuntimeHelper, PythonAst, Estree, Z3, Solver, SQL
+forbidden_storage_columns: none in this slice
+positive_tests: checked condition carries source text, registry fingerprint,
+  warnings, and ConditionIR; condition set deduplicates and sorts by source;
+  CEL frontend can produce checked ConditionIR directly
+negative_tests: checked condition rejects empty fingerprints; architecture
+  import/symbol tests; no checked condition field stores a CEL AST
+pyright_scope: uv run pyright propstore
+paper_checkpoint: compiler middle-end plan and CEL section already reread for
+  WS3 on 2026-04-25
+deletion_ledger: no existing CheckedCelExpr caller migration yet; this lands
+  the runtime-facing checked ConditionIR carrier that later callers must use
+  directly
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
