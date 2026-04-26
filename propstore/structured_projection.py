@@ -27,6 +27,7 @@ from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.labels import Label, SupportQuality
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.provenance.records import ProjectionFrameProvenanceRecord
 from propstore.world.types import (
     ArgumentationSemantics,
     ReasoningBackend,
@@ -50,6 +51,7 @@ class ProjectionAtom:
     backend_atom_id: str
     negated: bool
     source_assertion_ids: tuple[str, ...]
+    provenance: ProjectionFrameProvenanceRecord | None = None
     loss: ProjectionLossWitness | None = None
 
     def __post_init__(self) -> None:
