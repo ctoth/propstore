@@ -7,7 +7,7 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from propstore.fragility import FragilityReport, FragilityRequest, query_fragility
 from propstore.policies import PolicyProfile
@@ -20,6 +20,9 @@ from propstore.world.types import (
     ATMSConceptInterventionPlan,
     ATMSNodeInterventionPlan,
 )
+
+if TYPE_CHECKING:
+    from propstore.world import WorldModel
 
 
 _INVESTIGATION_PLAN_VERSION = "propstore.investigation_plan.v1"
@@ -290,7 +293,7 @@ class InterventionPlan:
 
 
 def plan_fragility_investigation(
-    world: object,
+    world: "WorldModel",
     request: FragilityRequest,
     *,
     objective: str,
