@@ -244,6 +244,21 @@ deletion_ledger: remove the loose RoleSignature.roles production surface in
   favor of RoleDefinition domain/range records
 ```
 
+Second WS1 slice execution ledger:
+
+- Red commit: `8ece3b2` added role-domain/range and relation property tests.
+- Red log: `logs/test-runs/ws1-slice2-red-20260425-180434.log`, failed at
+  collection because the relation property API did not exist.
+- Green commit: `8eadccd` replaced loose `RoleSignature.roles` with
+  `RoleDefinition` domain/range records and added relation property assertions.
+- Green log: `logs/test-runs/ws1-slice2-green-fix-20260425-180805.log`,
+  18 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: the production `RoleSignature.roles` tuple was removed from
+  `propstore/core/relations/kernel.py`; callers now construct
+  `RoleSignature(role_definitions=...)` with explicit role domain/range.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
