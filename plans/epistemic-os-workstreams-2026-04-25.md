@@ -1353,6 +1353,12 @@ Paper checkpoints:
 - Diller 2025 page images.
 - Garcia 2004 notes for four-valued DeLP query distinction.
 
+Slice gate:
+
+- 2026-04-26 WS7 slice: make sidecar grounding materialization the runtime
+  source for structural facts and four-status outputs; remove direct runtime
+  repository rebuild paths instead of preserving a parallel bundle compiler.
+
 ### WS8: Opinions and Base-Rate Resolution
 
 Purpose:
