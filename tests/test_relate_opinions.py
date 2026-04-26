@@ -21,14 +21,43 @@ import yaml
 
 from quire.documents import decode_document_path
 
-from propstore.calibrate import categorical_to_opinion
+from propstore.calibrate import (
+    CalibrationSource,
+    CategoryPrior,
+    CategoryPriorRegistry,
+    categorical_to_opinion,
+)
 from propstore.core.base_rates import BaseRateUnresolved
 from propstore.families.documents.stances import StanceFileDocument
 from propstore.opinion import Opinion
+from propstore.provenance import Provenance, ProvenanceStatus
 
 
 def _vacuous_provenance_payload() -> dict:
     return {"status": "vacuous", "witnesses": []}
+
+
+def _category_prior(category: str, value: float = 0.5) -> CategoryPrior:
+    return CategoryPrior(
+        category=category,
+        value=value,
+        source=CalibrationSource.MEASURED,
+        provenance=Provenance(
+            status=ProvenanceStatus.CALIBRATED,
+            witnesses=(),
+            operations=("test_category_prior",),
+        ),
+    )
+
+
+def _category_prior_registry() -> CategoryPriorRegistry:
+    return CategoryPriorRegistry(
+        {
+            "strong": _category_prior("strong", 0.7),
+            "moderate": _category_prior("moderate", 0.5),
+            "weak": _category_prior("weak", 0.3),
+        }
+    )
 
 
 def _opinion_payload(
@@ -101,13 +130,25 @@ class TestCategoricalToOpinionWithCalibration:
 
     def test_informative_opinion(self):
         counts = {(1, "strong"): (90, 100)}  # 90% accuracy on 100 samples
-        op = categorical_to_opinion("strong", 1, calibration_counts=counts)
+        op = categorical_to_opinion(
+            "strong",
+            1,
+            calibration_counts=counts,
+            prior=_category_prior("strong", 0.7),
+        )
+        assert isinstance(op, Opinion)
         assert op.u < 1.0, "with evidence, uncertainty must decrease"
         assert op.expectation() == pytest.approx(90 / 102, abs=0.05)
 
     def test_high_evidence_low_uncertainty(self):
         counts = {(1, "strong"): (950, 1000)}
-        op = categorical_to_opinion("strong", 1, calibration_counts=counts)
+        op = categorical_to_opinion(
+            "strong",
+            1,
+            calibration_counts=counts,
+            prior=_category_prior("strong", 0.7),
+        )
+        assert isinstance(op, Opinion)
         assert op.u < 0.01, "1000 samples should yield very low uncertainty"
 
 
@@ -140,6 +181,7 @@ class TestResolutionDictHasOpinionFields:
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
                     claim_a, claim_b, "test-model", sem,
+                    category_prior_registry=_category_prior_registry(),
                 )
 
         results = asyncio.run(run())
@@ -149,7 +191,7 @@ class TestResolutionDictHasOpinionFields:
         assert set(res["opinion"]) == {"b", "d", "u", "a", "provenance"}
         for key in ("b", "d", "u", "a"):
             assert isinstance(res["opinion"][key], float), f"opinion.{key} must be float"
-        assert res["opinion"]["provenance"]["status"] == "vacuous"
+        assert res["opinion"]["provenance"]["status"] == "calibrated"
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +210,13 @@ class TestConfidenceEqualsExpectation:
 
     def test_calibrated_opinion_expectation(self):
         counts = {(1, "strong"): (80, 100)}
-        op = categorical_to_opinion("strong", 1, calibration_counts=counts)
+        op = categorical_to_opinion(
+            "strong",
+            1,
+            calibration_counts=counts,
+            prior=_category_prior("strong", 0.7),
+        )
+        assert isinstance(op, Opinion)
         expected_e = op.b + op.a * op.u
         assert op.expectation() == pytest.approx(expected_e)
 
@@ -192,6 +240,7 @@ class TestConfidenceEqualsExpectation:
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
                     claim_a, claim_b, "test-model", sem,
+                    category_prior_registry=_category_prior_registry(),
                 )
 
         results = asyncio.run(run())
@@ -636,6 +685,7 @@ class TestCorpusCalibReducesUncertainty:
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
                     claim_a, claim_b, "test-model", sem,
+                    category_prior_registry=_category_prior_registry(),
                     embedding_distance=0.3,
                     reference_distances=reference_distances,
                 )
@@ -644,7 +694,7 @@ class TestCorpusCalibReducesUncertainty:
         result = results[0]
         assert result["resolution"]["opinion"]["u"] < 1.0
 
-    def test_no_reference_distances_stays_vacuous(self):
+    def test_no_reference_distances_and_no_prior_stays_unresolved(self):
         import asyncio
         from propstore.classify import classify_stance_async
 
@@ -669,7 +719,9 @@ class TestCorpusCalibReducesUncertainty:
 
         results = asyncio.run(run())
         result = results[0]
-        assert result["resolution"]["opinion"]["u"] == pytest.approx(1.0)
+        assert result["resolution"]["opinion"] is None
+        assert result["resolution"]["confidence"] == pytest.approx(0.0)
+        assert result["resolution"]["unresolved_calibration"]["reason"] == "missing_base_rate"
 
     def test_corpus_and_categorical_fused_via_consensus(self):
         import asyncio
@@ -693,6 +745,7 @@ class TestCorpusCalibReducesUncertainty:
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
                     claim_a, claim_b, "test-model", sem,
+                    category_prior_registry=_category_prior_registry(),
                     embedding_distance=0.3,
                     reference_distances=reference_distances,
                     calibration_counts=calibration_counts,
@@ -704,6 +757,12 @@ class TestCorpusCalibReducesUncertainty:
 
         from propstore.calibrate import CorpusCalibrator, categorical_to_opinion
         corpus_op = CorpusCalibrator(reference_distances).to_opinion(0.3)
-        cat_op = categorical_to_opinion("strong", 1, calibration_counts=calibration_counts)
+        cat_op = categorical_to_opinion(
+            "strong",
+            1,
+            calibration_counts=calibration_counts,
+            prior=_category_prior("strong", 0.7),
+        )
+        assert isinstance(cat_op, Opinion)
 
         assert u <= min(corpus_op.u, cat_op.u) + 1e-9
