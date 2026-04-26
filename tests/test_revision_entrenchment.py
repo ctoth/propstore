@@ -5,7 +5,8 @@ from pathlib import Path
 
 from propstore.core.labels import AssumptionRef, Label
 from propstore.support_revision.entrenchment import compute_entrenchment
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
+from tests.revision_assertion_helpers import make_assertion_atom
 
 
 class _BoundStub:
@@ -14,19 +15,13 @@ class _BoundStub:
 
 
 def test_compute_entrenchment_source_override_outranks_default_ordering() -> None:
+    alpha = make_assertion_atom("alpha", source_paper="paper_alpha", label=Label.empty())
+    beta = make_assertion_atom("beta", source_paper="paper_beta", label=Label.empty())
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            ClaimAtom(
-                atom_id="claim:claim_alpha",
-                claim={"id": "claim_alpha", "source_paper": "paper_alpha"},
-                label=Label.empty(),
-            ),
-            ClaimAtom(
-                atom_id="claim:claim_beta",
-                claim={"id": "claim_beta", "source_paper": "paper_beta"},
-                label=Label.empty(),
-            ),
+            alpha,
+            beta,
         ),
     )
 
@@ -36,20 +31,17 @@ def test_compute_entrenchment_source_override_outranks_default_ordering() -> Non
         overrides={"source:paper_beta": {"priority": "preferred-source"}},
     )
 
-    assert report.ranked_atom_ids[0] == "claim:claim_beta"
-    assert report.reasons["claim:claim_beta"].override_priority == "preferred-source"
-    assert report.reasons["claim:claim_beta"].override_key == "source:paper_beta"
+    assert report.ranked_atom_ids[0] == beta.atom_id
+    assert report.reasons[beta.atom_id].override_priority == "preferred-source"
+    assert report.reasons[beta.atom_id].override_key == "source:paper_beta"
 
 
 def test_compute_entrenchment_kind_override_can_promote_assumptions() -> None:
+    alpha = make_assertion_atom("alpha", label=Label.empty())
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            ClaimAtom(
-                atom_id="claim:claim_alpha",
-                claim={"id": "claim_alpha"},
-                label=Label.empty(),
-            ),
+            alpha,
             AssumptionAtom(
                 atom_id="assumption:env:x_eq_1",
                 assumption={
