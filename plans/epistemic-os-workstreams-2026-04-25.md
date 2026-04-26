@@ -897,6 +897,33 @@ Sixteenth slice execution ledger:
   `propstore/provenance/records.py` surface has no compatibility dictionary
   event type and rejects invalid URI/hash/projection-set boundaries directly.
 
+Seventeenth slice gate, WS4 probability provenance status boundary:
+
+```text
+target_surface: explicit ProvenanceStatus access for probability-bearing
+  Opinion values
+old_surfaces_to_delete: silent provenance-status manufacture at the
+  probability boundary
+allowed_owner_modules: propstore.opinion, propstore.provenance
+forbidden_imports: opinion boundary must not import app, CLI, sidecar, world,
+  backend projection modules, grounding, context lifting, or assertion identity
+  derivation modules
+forbidden_symbols: probability status boundary must not expose fallback,
+  default_status, assumed_status, synthetic_status, or manufactured_status
+positive_tests: explicit opinion provenance returns its status; missing
+  provenance raises at status access; provenance-free derived opinions remain
+  provenance-free rather than silently receiving a vacuous/defaulted status
+negative_tests: no helper may fabricate a status for an opinion with no
+  provenance record
+pyright_scope: uv run pyright propstore
+paper_checkpoint: docs/provenance.md reread on 2026-04-25; Green 2007 notes
+  reread for non-laundering provenance composition; subjective-logic doc was
+  already reread for probability-bearing values
+deletion_ledger: add the status boundary without converting historical tests
+  to strict construction; later WS8 deletes the broader silent 0.5/default
+  prior surfaces
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
