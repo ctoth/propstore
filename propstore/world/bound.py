@@ -851,7 +851,7 @@ class BoundWorld(BeliefSpace):
         supported_ids = self.atms_engine().supported_claim_ids(concept_id)
         claim_reasons = {
             str(claim.claim_id): self.atms_engine().why_out(
-                f"claim:{claim.claim_id}",
+                self.claim_status(str(claim.claim_id)).node_id,
                 queryables=normalized_queryables,
                 limit=limit,
             )
@@ -878,11 +878,11 @@ class BoundWorld(BeliefSpace):
         self,
         environment: EnvironmentKey | tuple[str, ...] | list[str],
     ) -> list[str]:
-        """Return claim IDs whose exact ATMS support is visible inside the environment."""
+        """Return assertion IDs whose exact ATMS support is visible inside the environment."""
         return [
-            node_id.partition(":")[2]
+            node_id
             for node_id in self.atms_engine().nodes_in_environment(environment)
-            if node_id.startswith("claim:")
+            if node_id.startswith("ps:assertion:")
         ]
 
     def explain_claim_support(self, claim_id: str) -> ATMSNodeExplanation:
