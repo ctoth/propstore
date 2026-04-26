@@ -3008,7 +3008,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         assert result.winning_claim_id == "claim_a"
         assert result.reason == "sole survivor in grounded extension"
 
-    def test_praf_overlay_uses_delta_backed_conflicts(self):
+    def test_praf_overlay_keeps_delta_conflicts_unresolved_without_priors(self):
         bound = _phase6_bound_world(
             RenderPolicy(
                 strategy=ResolutionStrategy.ARGUMENTATION,
@@ -3033,8 +3033,8 @@ class TestSemanticCorePhase6HypotheticalDeltas:
 
         result = hypo.resolved_value("concept_x")
 
-        assert result.status == ValueStatus.RESOLVED
-        assert result.winning_claim_id == "claim_a"
-        assert result.acceptance_probs is not None
-        assert result.acceptance_probs["claim_a"] > result.acceptance_probs["synth_b"]
-        assert result.acceptance_probs["synth_b"] < 1.0
+        assert result.status == ValueStatus.CONFLICTED
+        assert result.winning_claim_id is None
+        assert result.acceptance_probs == {}
+        assert result.reason is not None
+        assert "claims tied at acceptance" in result.reason
