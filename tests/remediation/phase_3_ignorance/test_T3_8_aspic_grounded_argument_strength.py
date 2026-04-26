@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import MappingProxyType
 
+from argumentation.aspic import GroundAtom
 from quire.documents import LoadedDocument
 
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
@@ -62,7 +63,7 @@ def test_grounded_argument_strength_not_zero() -> None:
     fly_argument = next(
         argument
         for argument in projection.arguments
-        if "\"predicate\":\"fly\"" in argument.conclusion_key
+        if argument.projection.backend_atom == GroundAtom("fly", ("tweety",))
     )
 
     assert fly_argument.strength == 0.7
