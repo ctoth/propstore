@@ -704,6 +704,32 @@ Twelfth slice execution ledger:
   consumes `ConditionIR` directly and imports neither CEL, Z3, nor Python AST
   surfaces.
 
+Thirteenth slice gate, WS3 Z3 backend:
+
+```text
+target_surface: Z3 backend projection over ConditionIR
+old_surfaces_to_delete: none existing in core conditions; block the new backend
+  from delegating through raw-CEL propstore.z3_conditions
+allowed_owner_modules: propstore.core.conditions
+forbidden_imports: Z3 backend must not import cel_checker, propstore.z3_conditions,
+  condition_classifier, app, CLI, sidecar, world, Python ast, JavaScript
+  backend modules, or other backend projection modules except the external z3
+  solver package
+forbidden_symbols: ConditionIR must still not name backend helper surfaces
+  _rt, RuntimeHelper, PythonAst, Estree, Z3, Solver, or SQL
+forbidden_storage_columns: none in this slice
+positive_tests: numeric, boolean, string, membership, and conditional
+  ConditionIR projects to Z3 expressions; Z3 agrees with Python evaluation on
+  generated tiny decidable numeric fragments
+negative_tests: architecture import/symbol tests; binding projection rejects
+  missing bindings and boolean-as-numeric values
+pyright_scope: uv run pyright propstore
+paper_checkpoint: compiler middle-end plan and CEL section already reread for
+  WS3 on 2026-04-25
+deletion_ledger: no existing ConditionIR Z3 backend to delete; the new backend
+  consumes semantic ConditionIR directly and does not call the raw-CEL solver
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
