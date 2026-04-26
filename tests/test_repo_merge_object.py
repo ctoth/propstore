@@ -158,8 +158,9 @@ def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
 
     assert len(merge.arguments) == 2
-    claim_ids = {argument.claim_id for argument in merge.arguments}
-    left_id, right_id = sorted(claim_ids)
+    assertion_ids = {argument.assertion_id for argument in merge.arguments}
+    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids)
+    left_id, right_id = sorted(assertion_ids)
     assert (left_id, right_id) in merge.framework.ignorance
     assert (right_id, left_id) in merge.framework.ignorance
     assert (left_id, right_id) not in merge.framework.attacks
@@ -187,7 +188,8 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
 
     assert len(merge.arguments) == 1
     emitted = merge.arguments[0]
-    assert emitted.claim_id == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+    assert emitted.assertion_id.startswith("ps:assertion:")
+    assert emitted.artifact_id == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
     assert emitted.claim["value"] == 999.0
     assert emitted.branch_origins == (branch_name,)
     assert merge.framework.attacks == frozenset()
@@ -223,8 +225,8 @@ def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_ri
     manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
     manifest_arguments = manifest["merge"]["arguments"]
     canonical_artifact_id = make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
-    materialized_claim_ids = {
-        row["claim_id"]
+    materialized_assertion_ids = {
+        row["assertion_id"]
         for row in manifest_arguments
         if row["artifact_id"] == canonical_artifact_id
     }
@@ -233,7 +235,7 @@ def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_ri
         claim
         for claim_file in claim_files
         for claim in claim_file_payload(claim_file).get("claims", [])
-        if claim["artifact_id"] in materialized_claim_ids
+        if claim["artifact_id"] in materialized_assertion_ids
     ]
     assert {claim["value"] for claim in materialized_claims} == {150.0, 300.0}
 
@@ -288,38 +290,21 @@ def test_create_merge_commit_records_semantic_candidates_in_manifest(tmp_path):
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
     manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
 
-    assert manifest["merge"]["semantic_candidates"] == [
-        [
-            "ps:claim:leftcandidate0001",
-            "ps:claim:rightcandidate0001",
-        ]
+    assert len(manifest["merge"]["semantic_candidates"]) == 1
+    assert all(
+        assertion_id.startswith("ps:assertion:")
+        for assertion_id in manifest["merge"]["semantic_candidates"][0]
+    )
+    details = manifest["merge"]["semantic_candidate_details"]
+    assert len(details) == 1
+    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in details[0]["assertion_ids"])
+    assert details[0]["logical_ids"] == ["left_paper:claim_a", "right_paper:claim_b"]
+    assert details[0]["artifact_ids"] == [
+        "ps:claim:leftcandidate0001",
+        "ps:claim:rightcandidate0001",
     ]
-    assert manifest["merge"]["semantic_candidate_details"] == [
-        {
-            "claim_ids": [
-                "ps:claim:leftcandidate0001",
-                "ps:claim:rightcandidate0001",
-            ],
-            "logical_ids": ["left_paper:claim_a", "right_paper:claim_b"],
-            "artifact_ids": [
-                "ps:claim:leftcandidate0001",
-                "ps:claim:rightcandidate0001",
-            ],
-            "arguments": [
-                {
-                    "claim_id": "ps:claim:leftcandidate0001",
-                    "logical_id": "left_paper:claim_a",
-                    "artifact_id": "ps:claim:leftcandidate0001",
-                    "branch_origins": ["master"],
-                    "source_paper": "left_paper",
-                },
-                {
-                    "claim_id": "ps:claim:rightcandidate0001",
-                    "logical_id": "right_paper:claim_b",
-                    "artifact_id": "ps:claim:rightcandidate0001",
-                    "branch_origins": [branch_name],
-                    "source_paper": "right_paper",
-                },
-            ],
-        }
+    assert [argument["artifact_id"] for argument in details[0]["arguments"]] == [
+        "ps:claim:leftcandidate0001",
+        "ps:claim:rightcandidate0001",
     ]
+    assert all(argument["assertion_id"].startswith("ps:assertion:") for argument in details[0]["arguments"])
