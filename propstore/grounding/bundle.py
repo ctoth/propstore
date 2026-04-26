@@ -46,7 +46,7 @@ from argumentation.aspic import GroundAtom, Scalar
 from propstore.rule_files import LoadedRuleFile
 
 if TYPE_CHECKING:
-    from gunray import Argument
+    from gunray import Argument, GroundingInspection
 
 
 def _build_empty_sections() -> Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]:
@@ -112,6 +112,7 @@ class GroundedRulesBundle:
     source_facts: tuple[GroundAtom, ...]
     sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]
     arguments: tuple["Argument", ...] = field(default_factory=tuple)
+    grounding_inspection: "GroundingInspection | None" = None
 
     @classmethod
     def empty(cls) -> "GroundedRulesBundle":
