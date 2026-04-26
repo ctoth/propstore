@@ -26,7 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 embeddings = [
-    "litellm>=1.0",
+    "litellm>=1.83.7",
     "sqlite-vec>=0.1",
 ]
 
