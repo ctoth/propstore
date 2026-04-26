@@ -552,6 +552,24 @@ deletion_ledger: no existing Z3/runtime caller migration yet; this lands one
   backend consumer of ConditionIR for later caller rewrites
 ```
 
+Ninth slice execution ledger:
+
+- Red commit: `b0e13d6` added Python backend tests and import-boundary gates for
+  a `ConditionIR` backend consumer.
+- Red log: `logs/test-runs/ws3-python-backend-red-20260425-185325.log`,
+  failed because `propstore.core.conditions.python_backend` and exported
+  backend functions did not exist.
+- Green commit: `c59d3a5` added Python `ast.Expression` emission from
+  `ConditionIR`, backend evaluation over typed bindings, missing-binding
+  rejection, and a generated arithmetic/comparison oracle test.
+- Green log: `logs/test-runs/ws3-python-backend-green-20260425-185525.log`,
+  30 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no existing CEL, Z3, sidecar, or runtime caller was migrated
+  in this slice; the first backend consumer now takes `ConditionIR` directly
+  and imports neither the CEL parser nor Z3.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
