@@ -301,6 +301,30 @@ Third slice execution ledger:
   boundary prevents the upcoming `SituatedAssertion` type from using raw CEL
   strings or embedded provenance records as placeholders.
 
+Fourth slice gate, WS2 context reference owner:
+
+```text
+target_surface: ContextReference owned by propstore.core.assertions
+old_surfaces_to_delete: ContextReference class definition and public import
+  surface from propstore.context_lifting
+allowed_owner_modules: propstore.core.assertions, propstore.core.id_types
+forbidden_imports: assertion owner must not import context_lifting, grounding,
+  calibration, opinion, app, CLI, sidecar, world, backend projection modules
+forbidden_symbols: propstore.context_lifting must not define or export
+  ContextReference
+forbidden_storage_columns: none in this slice
+positive_tests: context reference identity payload and context-lifting behavior
+  preserved through the new owner type
+negative_tests: architecture test fails if context_lifting still defines or
+  exports ContextReference; assertion import-boundary tests
+pyright_scope: uv run pyright propstore
+paper_checkpoint: contexts-and-micropubs doc reread; Guha/McCarthy page-image
+  gates deferred until WS5 lifting semantics
+deletion_ledger: delete the old ContextReference production definition from
+  propstore.context_lifting and update production callers to import the owner
+  type directly
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
