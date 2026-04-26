@@ -30,6 +30,7 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
     "materialize": ("propstore.cli.materialize", "materialize_cmd", "Project committed artifacts to loose files."),
     "merge": ("propstore.cli.merge_cmds", "merge", "Merge repository branches."),
     "micropub": ("propstore.cli.micropub", "micropub", "Manage micropublications."),
+    "observatory": ("propstore.cli.observatory", "observatory", "Run epistemic observatory fixtures."),
     "predicate": ("propstore.cli.predicate", "predicate", "Declare DeLP/Datalog predicates."),
     "proposal": ("propstore.cli.proposal", "proposal", "Manage proposal artifacts."),
     "rule": ("propstore.cli.rule", "rule", "Author DeLP rules."),
