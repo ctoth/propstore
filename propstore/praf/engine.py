@@ -173,8 +173,10 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
                 "claim_probability",
                 "source_quality_opinion",
             )
+        if prior_base_rate is None:
+            return _missing_calibration("missing_base_rate", "source_prior_base_rate")
 
-        prior = 0.5 if prior_base_rate is None else float(prior_base_rate)
+        prior = float(prior_base_rate)
         omega_prior = Opinion.vacuous(
             a=prior,
             provenance=_praf_provenance(ProvenanceStatus.VACUOUS, "claim_prior"),
@@ -233,8 +235,10 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
             "claim_probability",
             "source_quality_opinion",
         )
+    if prior_base_rate is None:
+        return _missing_calibration("missing_base_rate", "source_prior_base_rate")
 
-    prior = 0.5 if prior_base_rate is None else float(prior_base_rate)
+    prior = float(prior_base_rate)
     omega_prior = Opinion.vacuous(
         a=prior,
         provenance=_praf_provenance(ProvenanceStatus.VACUOUS, "claim_prior"),
