@@ -172,6 +172,17 @@ def test_web_surface_has_no_hover_or_pointer_required_css() -> None:
     assert "cursor:" not in css
 
 
+def test_web_css_has_document_reading_system() -> None:
+    css = (Path("propstore") / "web" / "static" / "web.css").read_text(encoding="utf-8")
+
+    assert "max-width:" in css
+    assert "overflow-x: auto" in css
+    assert ":focus-visible" in css
+    assert "outline:" in css
+    assert "@media print" in css
+    assert "@media (max-width:" in css
+
+
 def test_link_table_uses_typed_rows_and_rejects_misaligned_cells() -> None:
     html = _link_table(
         ("Claim", "Status"),
