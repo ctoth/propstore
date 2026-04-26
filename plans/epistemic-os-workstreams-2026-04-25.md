@@ -793,6 +793,36 @@ Fourteenth slice execution ledger:
   emits parameterized SQL fragments directly from semantic `ConditionIR` and
   does not consume CEL source or AST nodes.
 
+Fifteenth slice gate, WS4 deterministic named-graph carrier:
+
+```text
+target_surface: deterministic JSON-LD named graph carrier for provenance records
+old_surfaces_to_delete: order-sensitive provenance named-graph serialization
+allowed_owner_modules: propstore.provenance
+forbidden_imports: provenance carrier must not import app, CLI, sidecar, world,
+  backend projection modules, calibration, opinion, or assertion identity
+  derivation modules
+forbidden_symbols: provenance named-graph carrier must not expose anonymous
+  graph identity, embedded assertion identity, or order-sensitive witness
+  serialization as the stable graph payload
+forbidden_storage_columns: none in this slice
+positive_tests: named graph requires an explicit URI name; JSON-LD payload is
+  byte-stable under witness/derived-from/operation input ordering; decode/encode
+  round trips preserve the canonical payload; situated assertion identity stays
+  unchanged when only provenance graph content changes
+negative_tests: architecture import/symbol tests; unnamed graph encoding is
+  refused; non-URI graph names are refused; payload order cannot change the
+  stable carrier bytes
+pyright_scope: uv run pyright propstore
+paper_checkpoint: Carroll 2005 page images 000-009 read directly on
+  2026-04-25 for named graphs, quoting, assertion, and trust; Green 2007 and
+  Buneman 2001 notes reread on 2026-04-25 for semiring and why/where
+  provenance constraints
+deletion_ledger: replace the anonymous/order-sensitive named graph encoding
+  path with an explicit named graph carrier whose stable bytes are independent
+  of input collection ordering
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
