@@ -15,7 +15,7 @@ from propstore.claims import (
     claim_file_filename,
     claim_file_stage,
 )
-from propstore.context_lifting import LiftedAssertion
+from propstore.context_lifting import IstProposition, LiftedAssertion
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.compiler.ir import ClaimCompilationBundle
@@ -125,6 +125,8 @@ def compile_source_sidecar_rows(
 
 def compile_context_sidecar_rows(
     contexts: Sequence[LoadedContext],
+    *,
+    authored_ist_assertions: Sequence[IstProposition] = (),
 ) -> ContextSidecarRows:
     context_rows: list[ContextInsertRow] = []
     assumption_rows: list[ContextAssumptionInsertRow] = []
@@ -171,10 +173,19 @@ def compile_context_sidecar_rows(
                 )
             )
 
+    materialization_rows = ()
+    if authored_ist_assertions:
+        materialization_rows = compile_context_lifting_materialization_rows(
+            loaded_contexts_to_lifting_system(contexts).materialize_lifted_assertions(
+                tuple(authored_ist_assertions)
+            )
+        )
+
     return ContextSidecarRows(
         context_rows=tuple(context_rows),
         assumption_rows=tuple(assumption_rows),
         lifting_rule_rows=tuple(lifting_rule_rows),
+        lifting_materialization_rows=materialization_rows,
     )
 
 
