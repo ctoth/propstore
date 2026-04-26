@@ -475,6 +475,37 @@ Seventh slice execution ledger:
   in this slice; the new canonical codec rejects old claim/predicate-key
   payloads and keeps loose mappings at the serialization boundary only.
 
+Eighth slice gate, WS3 ConditionIR bootstrap:
+
+```text
+target_surface: closed ConditionIR node family and first CEL-to-IR frontend
+  lowering fixture
+old_surfaces_to_delete: none existing; block backend helper/runtime AST nodes
+  from the new semantic condition IR before caller migration begins
+allowed_owner_modules: propstore.core.conditions, propstore.core.id_types,
+  propstore.cel_checker only from the CEL frontend adapter
+forbidden_imports: condition IR owner must not import cel_checker,
+  z3_conditions, condition_classifier, grounding, calibration, opinion, app,
+  CLI, sidecar, world, backend projection modules, Python ast, or JavaScript
+  backend modules; CEL frontend adapter must not import backend lowering or
+  runtime modules
+forbidden_symbols: condition IR owner must not name backend/runtime helper
+  surfaces _rt, RuntimeHelper, PythonAst, Estree, Z3, Solver, or SQL
+forbidden_storage_columns: none in this slice
+positive_tests: direct ConditionIR construction, CEL expression to ConditionIR
+  lowering for a typed comparison, root source-span preservation, structural
+  concepts rejected during lowering
+negative_tests: architecture import/symbol tests; backend helper node cannot
+  be imported or constructed from ConditionIR
+pyright_scope: uv run pyright propstore
+paper_checkpoint: compiler middle-end plan reread on 2026-04-25; situated
+  assertion synthesis CEL section and structural-predicates/CEL research note
+  reread on 2026-04-25
+deletion_ledger: no existing CEL/Z3 caller migration yet; this lands the IR
+  boundary that later callers must consume instead of raw CEL strings or
+  backend ASTs
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
