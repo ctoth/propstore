@@ -71,6 +71,24 @@ def _accepted_extensions(result) -> set[frozenset[str]]:
     }
 
 
+class _StoreWithSourcePrior:
+    def __init__(self, wrapped: SQLiteArgumentationStore, prior: float) -> None:
+        self._wrapped = wrapped
+        self._prior = prior
+
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
+        return {
+            claim_id: {**claim, "source_prior_base_rate": self._prior}
+            for claim_id, claim in self._wrapped.claims_by_ids(claim_ids).items()
+        }
+
+    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+        return self._wrapped.stances_between(claim_ids)
+
+    def conflicts(self) -> list[dict]:
+        return self._wrapped.conflicts()
+
+
 def test_shared_claim_graph_analyzer_matches_current_grounded(conn: sqlite3.Connection) -> None:
     _insert_claim(conn, "c1", "temp", 100.0, sample_size=50)
     _insert_claim(conn, "c2", "temp", 200.0, sample_size=50)
@@ -191,7 +209,7 @@ def test_shared_praf_analyzer_matches_current_acceptance(conn: sqlite3.Connectio
 
     from propstore.core.analyzers import analyze_praf, shared_analyzer_input_from_store
 
-    store = SQLiteArgumentationStore(conn)
+    store = _StoreWithSourcePrior(SQLiteArgumentationStore(conn), 0.5)
     shared = shared_analyzer_input_from_store(store, {"c1", "c2"})
 
     result = analyze_praf(
