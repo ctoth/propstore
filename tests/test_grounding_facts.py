@@ -1,11 +1,4 @@
-"""Tests for the propstore concept-graph -> Datalog fact extractor.
-
-These tests describe the contract for the Phase-1 fact extractor that
-will live in ``propstore/grounding/facts.py``. The module does not
-exist yet — every import is deferred (into strategy bodies and test
-bodies) so pytest can collect this file cleanly while every test fails
-at run time with ``ModuleNotFoundError: No module named
-'propstore.grounding.facts'``.
+"""Tests for the propstore source-data -> Datalog fact extractor.
 
 Concept-graph data structure (verified by reading
 ``propstore/core/concepts.py`` and ``propstore/sidecar/build.py``):
@@ -21,7 +14,7 @@ Concept-graph data structure (verified by reading
     target concept, e.g. ``ConceptId("Bird")``), an optional tuple of
     condition strings, and an optional note. Relationships are
     *outgoing* edges from the source concept (``concept_record``) to
-    the target concept identified by the ``target`` string. The Phase-1
+    the target concept identified by the ``target`` string. The
     extractor walks every relationship on every loaded concept,
     matches the ``relationship_type`` and ``target`` against each
     predicate's parsed ``DerivedFromSpec`` (kind ==
@@ -186,6 +179,15 @@ def _build_registry(predicates):
     return PredicateRegistry.from_files([file])
 
 
+def _fact_inputs(concepts=(), claim_files=()):
+    from propstore.grounding.facts import GroundingFactInputs
+
+    return GroundingFactInputs(
+        concepts=tuple(concepts),
+        claim_files=tuple(claim_files),
+    )
+
+
 def concept_relationship_graphs() -> st.SearchStrategy:
     """Strategy producing small concept relationship graphs.
 
@@ -288,8 +290,8 @@ def test_extract_facts_idempotent(graph, registry) -> None:
 
     from propstore.grounding.facts import extract_facts
 
-    first = extract_facts(graph, registry)
-    second = extract_facts(graph, registry)
+    first = extract_facts(_fact_inputs(graph), registry)
+    second = extract_facts(_fact_inputs(graph), registry)
     assert first == second
 
 
@@ -310,7 +312,7 @@ def test_extracted_facts_match_registry_arity(graph, registry) -> None:
 
     from propstore.grounding.facts import extract_facts
 
-    atoms = extract_facts(graph, registry)
+    atoms = extract_facts(_fact_inputs(graph), registry)
     for atom in atoms:
         declaration = registry.lookup(atom.predicate)
         assert len(atom.arguments) == declaration.arity
@@ -335,7 +337,7 @@ def test_extracted_facts_reference_registered_predicates(
 
     from propstore.grounding.facts import extract_facts
 
-    atoms = extract_facts(graph, registry)
+    atoms = extract_facts(_fact_inputs(graph), registry)
     declared_ids = {p.id for p in registry.all_predicates()}
     for atom in atoms:
         assert atom.predicate in declared_ids
@@ -359,7 +361,7 @@ def test_extract_facts_no_duplicates(graph, registry) -> None:
 
     from propstore.grounding.facts import extract_facts
 
-    atoms = extract_facts(graph, registry)
+    atoms = extract_facts(_fact_inputs(graph), registry)
     assert len(atoms) == len(set(atoms))
 
 
@@ -381,7 +383,7 @@ def test_extract_facts_returns_tuple(graph, registry) -> None:
     from argumentation.aspic import GroundAtom
     from propstore.grounding.facts import extract_facts
 
-    atoms = extract_facts(graph, registry)
+    atoms = extract_facts(_fact_inputs(graph), registry)
     assert isinstance(atoms, tuple)
     for atom in atoms:
         assert isinstance(atom, GroundAtom)
@@ -420,7 +422,7 @@ def test_extract_facts_concept_relation_is_a_minimal() -> None:
         ]
     )
 
-    atoms = extract_facts([concept], registry)
+    atoms = extract_facts(_fact_inputs([concept]), registry)
     assert atoms == (GroundAtom("bird", ("tweety",)),)
 
 
@@ -461,7 +463,7 @@ def test_extract_facts_multiple_concepts_same_predicate() -> None:
         ]
     )
 
-    atoms = extract_facts(concepts, registry)
+    atoms = extract_facts(_fact_inputs(concepts), registry)
     assert set(atoms) == {
         GroundAtom("bird", ("tweety",)),
         GroundAtom("bird", ("opus",)),
@@ -497,7 +499,7 @@ def test_extract_facts_unmatched_relation_produces_nothing() -> None:
         ]
     )
 
-    atoms = extract_facts([concept], registry)
+    atoms = extract_facts(_fact_inputs([concept]), registry)
     assert atoms == ()
 
 
@@ -530,7 +532,7 @@ def test_extract_facts_unmatched_relation_name_produces_nothing() -> None:
         ]
     )
 
-    atoms = extract_facts([concept], registry)
+    atoms = extract_facts(_fact_inputs([concept]), registry)
     assert atoms == ()
 
 
@@ -555,7 +557,7 @@ def test_extract_facts_empty_graph_empty_result() -> None:
         ]
     )
 
-    atoms = extract_facts([], registry)
+    atoms = extract_facts(_fact_inputs([]), registry)
     assert atoms == ()
 
 
@@ -592,22 +594,17 @@ def test_extract_facts_no_derived_from_predicates_empty_result() -> None:
         ]
     )
 
-    atoms = extract_facts(concepts, registry)
+    atoms = extract_facts(_fact_inputs(concepts), registry)
     assert atoms == ()
 
 
-def test_extract_facts_ignores_non_is_a_derivations() -> None:
-    """Phase 1 supports only ``concept.relation:is_a:X``.
+def test_extract_facts_claim_sources_need_claim_inputs() -> None:
+    """Claim-derived predicates emit no atoms when no claims are supplied.
 
-    Predicates declared with ``claim.attribute:X`` or
-    ``claim.condition:X`` produce no facts — they belong to later
-    phases (Diller et al. 2025 §4 lists all three sanctioned source
-    kinds; Garcia & Simari 2004 §3 supplies the canonical examples).
-    The extractor must not raise on the unsupported kinds; it just
-    returns nothing for them. **When Phase 2 lands and these kinds
-    start producing facts, this test will start failing — that
-    failure is the deliberate signal to extend the extractor and
-    update this expectation.**
+    WS7 materialises claim attributes and claim conditions from
+    ``GroundingFactInputs.claim_files``. A concept-only input bundle
+    therefore cannot satisfy claim-derived predicates, and the result is
+    empty without treating the source kind as unsupported.
     """
 
     from propstore.grounding.facts import extract_facts
@@ -633,7 +630,7 @@ def test_extract_facts_ignores_non_is_a_derivations() -> None:
         ]
     )
 
-    atoms = extract_facts([concept], registry)
+    atoms = extract_facts(_fact_inputs([concept]), registry)
     assert atoms == ()
 
 
@@ -675,22 +672,19 @@ def test_extract_facts_deterministic_order() -> None:
         ]
     )
 
-    first = extract_facts(concepts, registry)
-    second = extract_facts(concepts, registry)
-    third = extract_facts(concepts, registry)
+    first = extract_facts(_fact_inputs(concepts), registry)
+    second = extract_facts(_fact_inputs(concepts), registry)
+    third = extract_facts(_fact_inputs(concepts), registry)
     assert first == second == third
 
 
 def test_extract_facts_mixed_derived_from_only_emits_supported() -> None:
-    """A registry mixing supported and unsupported ``derived_from``
-    forms emits facts only for the supported ones.
+    """A registry mixing concept and claim ``derived_from`` forms can be
+    evaluated against concept-only inputs.
 
-    Diller et al. 2025 §3 lists three sanctioned source kinds; Phase 1
-    only implements ``concept_relation``. Garcia & Simari 2004 §3.2:
-    rule bodies that reference unsupported predicates contribute
-    nothing to the Herbrand base. The extractor must not raise on the
-    unsupported kinds and must still emit facts for the supported
-    ones from the same graph.
+    The concept relation source emits ``bird(tweety)``. The
+    claim-attribute source is supported, but this input bundle carries no
+    claim files, so it contributes no atoms.
     """
 
     from argumentation.aspic import GroundAtom
@@ -717,7 +711,7 @@ def test_extract_facts_mixed_derived_from_only_emits_supported() -> None:
         ]
     )
 
-    atoms = extract_facts([concept], registry)
+    atoms = extract_facts(_fact_inputs([concept]), registry)
     assert atoms == (GroundAtom("bird", ("tweety",)),)
 
 
@@ -749,4 +743,4 @@ def test_extract_facts_rejects_non_unary_concept_relation_predicate() -> None:
     )
 
     with pytest.raises(PredicateArityMismatchError):
-        extract_facts([concept], registry)
+        extract_facts(_fact_inputs([concept]), registry)
