@@ -22,6 +22,7 @@ import yaml
 from quire.documents import decode_document_path
 
 from propstore.calibrate import categorical_to_opinion
+from propstore.core.base_rates import BaseRateUnresolved
 from propstore.families.documents.stances import StanceFileDocument
 from propstore.opinion import Opinion
 
@@ -69,26 +70,25 @@ class TestCategoricalToOpinionNoCalibration:
     of total ignorance.  Without calibration data, we have no empirical basis
     for confidence."""
 
-    def test_strong_pass1_is_vacuous(self):
-        op = categorical_to_opinion("strong", 1)
-        assert op.u == pytest.approx(1.0), "uncertainty must be 1.0 (vacuous)"
-        assert op.b == pytest.approx(0.0)
-        assert op.d == pytest.approx(0.0)
+    def test_strong_pass1_is_unresolved(self):
+        result = categorical_to_opinion("strong", 1)
+        assert isinstance(result, BaseRateUnresolved)
+        assert result.reason == "missing_base_rate"
 
-    def test_moderate_pass2_is_vacuous(self):
-        op = categorical_to_opinion("moderate", 2)
-        assert op.u == pytest.approx(1.0)
+    def test_moderate_pass2_is_unresolved(self):
+        result = categorical_to_opinion("moderate", 2)
+        assert isinstance(result, BaseRateUnresolved)
 
-    def test_weak_pass1_is_vacuous(self):
-        op = categorical_to_opinion("weak", 1)
-        assert op.u == pytest.approx(1.0)
+    def test_weak_pass1_is_unresolved(self):
+        result = categorical_to_opinion("weak", 1)
+        assert isinstance(result, BaseRateUnresolved)
 
-    def test_base_rate_does_not_vary_without_explicit_prior(self):
-        """Without an explicit prior, every category uses vacuous a=0.5."""
+    def test_base_rate_does_not_exist_without_explicit_prior(self):
+        """Without an explicit prior, every category is unresolved."""
         strong = categorical_to_opinion("strong", 1)
         weak = categorical_to_opinion("weak", 1)
-        assert strong.a == pytest.approx(0.5)
-        assert weak.a == pytest.approx(0.5)
+        assert isinstance(strong, BaseRateUnresolved)
+        assert isinstance(weak, BaseRateUnresolved)
 
 
 # ---------------------------------------------------------------------------
@@ -160,11 +160,11 @@ class TestConfidenceEqualsExpectation:
     """Per Josang (2001, p.5, Def 6): E(w) = b + a*u.
     The resolution confidence must equal the opinion expectation."""
 
-    def test_vacuous_opinion_expectation(self):
-        """Without calibration, confidence = base_rate (since E(vacuous) = a)."""
+    def test_missing_prior_has_no_expectation(self):
+        """Without a sourced prior, no numeric confidence is fabricated."""
         for cat in ("strong", "moderate", "weak"):
-            op = categorical_to_opinion(cat, 1)
-            assert op.expectation() == pytest.approx(op.a)
+            result = categorical_to_opinion(cat, 1)
+            assert isinstance(result, BaseRateUnresolved)
 
     def test_calibrated_opinion_expectation(self):
         counts = {(1, "strong"): (80, 100)}
