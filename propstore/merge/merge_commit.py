@@ -38,7 +38,7 @@ def _materialized_claim_payload(argument: MergeArgument, *, has_rivals: bool) ->
     if has_rivals:
         # Clark et al. micropublications: each rival needs its own materialized
         # identity; the manifest keeps the shared canonical artifact_id.
-        payload["artifact_id"] = argument.claim_id
+        payload["artifact_id"] = argument.assertion_id
         provenance = payload.get("provenance")
         if isinstance(provenance, dict):
             provenance.pop("branch_origin", None)
@@ -80,7 +80,7 @@ def create_merge_commit(
         if not path.startswith("claims/"):
             merged_entries[path] = sha
 
-    sorted_arguments = sorted(merge.arguments, key=lambda argument: argument.claim_id)
+    sorted_arguments = sorted(merge.arguments, key=lambda argument: argument.assertion_id)
     artifact_counts = Counter(argument.artifact_id for argument in sorted_arguments)
     claim_payloads_by_ref: dict[ClaimsFileRef, list[dict]] = {}
     for argument in sorted_arguments:
@@ -99,7 +99,7 @@ def create_merge_commit(
             "branch_b": branch_b,
             "arguments": [
                 {
-                    "claim_id": argument.claim_id,
+                    "assertion_id": argument.assertion_id,
                     "canonical_claim_id": argument.canonical_claim_id,
                     "artifact_id": argument.artifact_id,
                     "logical_id": argument.logical_id,
