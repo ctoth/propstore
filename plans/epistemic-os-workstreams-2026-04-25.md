@@ -524,6 +524,34 @@ Eighth slice execution ledger:
   in this slice; the new `propstore.core.conditions.ir` owner now blocks
   backend/runtime nodes before caller migration begins.
 
+Ninth slice gate, WS3 Python ConditionIR backend:
+
+```text
+target_surface: Python AST backend emitter consuming ConditionIR
+old_surfaces_to_delete: none existing; block new backend evaluation paths from
+  consuming raw CEL strings or old CEL AST nodes
+allowed_owner_modules: propstore.core.conditions
+forbidden_imports: condition IR owner remains forbidden from Python ast,
+  cel_checker, z3_conditions, condition_classifier, grounding, calibration,
+  opinion, app, CLI, sidecar, world, and backend projection modules; Python
+  backend may import ast but must not import cel_checker, z3_conditions,
+  condition_classifier, sidecar, world, or CLI modules
+forbidden_symbols: condition IR owner must still not name backend/runtime helper
+  surfaces _rt, RuntimeHelper, PythonAst, Estree, Z3, Solver, or SQL
+forbidden_storage_columns: none in this slice
+positive_tests: ConditionIR to Python ast.Expression emission, expression
+  evaluation over typed bindings, arithmetic/comparison oracle agreement on
+  small generated cases
+negative_tests: backend rejects missing bindings; architecture import tests
+  prove backend code does not import CEL parser or Z3 and IR still does not
+  import backend code
+pyright_scope: uv run pyright propstore
+paper_checkpoint: compiler middle-end plan and CEL section already reread for
+  WS3 on 2026-04-25
+deletion_ledger: no existing Z3/runtime caller migration yet; this lands one
+  backend consumer of ConditionIR for later caller rewrites
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
