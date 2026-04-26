@@ -687,6 +687,23 @@ deletion_ledger: no old JavaScript backend path existed; this adds the
   backend projection directly over checked semantic ConditionIR
 ```
 
+Twelfth slice execution ledger:
+
+- Red commit: `3a7aac9` added ESTree backend architecture tests, typed ESTree
+  shape tests, missing-binding tests, and a Python/ESTree agreement property.
+- Red log: `logs/test-runs/ws3-estree-backend-red-20260425-191736.log`,
+  failed because `propstore.core.conditions.estree_backend` did not exist.
+- Green commit: `b28d0dd` added the typed ESTree expression subset,
+  `condition_ir_to_estree`, and an ESTree evaluator for backend-agreement
+  checks over `ConditionIR`.
+- Green log: `logs/test-runs/ws3-estree-backend-green-20260425-191940.log`,
+  42 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no old JavaScript backend was deleted; the new backend
+  consumes `ConditionIR` directly and imports neither CEL, Z3, nor Python AST
+  surfaces.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
