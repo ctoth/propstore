@@ -67,6 +67,7 @@ from propstore.core.row_types import (
     coerce_conflict_row,
     coerce_parameterization_row,
 )
+from propstore.support_revision.projection import situated_assertion_from_active_claim
 from propstore.world.types import (
     ATMSConceptFutureStatusEntry,
     ATMSConceptInterventionPlan,
@@ -1322,7 +1323,12 @@ class ATMSEngine:
     def _build_claim_nodes_and_justifications(self) -> None:
         for claim in sorted(self._runtime.active_claims(), key=lambda row: str(row.claim_id)):
             claim_id = str(claim.claim_id)
-            node_id = f"claim:{claim_id}"
+            node_id = str(
+                situated_assertion_from_active_claim(
+                    claim,
+                    context_id=self._runtime.environment.context_id,
+                ).assertion_id
+            )
             self._nodes[node_id] = ATMSClaimNode(
                 node_id=node_id,
                 claim=claim,
@@ -1337,7 +1343,7 @@ class ATMSEngine:
                 self._add_justification(
                     antecedent_ids=antecedents,
                     consequent_id=node_id,
-                    informant=f"claim:{claim_id}",
+                    informant=node_id,
                 )
 
     def _build_micropublication_nodes_and_justifications(self) -> None:
