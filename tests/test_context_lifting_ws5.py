@@ -11,7 +11,11 @@ from propstore.context_lifting import (
     LiftingSystem,
 )
 from propstore.core.assertions import ContextReference
-from propstore.sidecar.passes import compile_context_lifting_materialization_rows
+from propstore.families.contexts.stages import LoadedContext
+from propstore.sidecar.passes import (
+    compile_context_lifting_materialization_rows,
+    compile_context_sidecar_rows,
+)
 from propstore.sidecar.schema import create_context_tables, populate_contexts
 from propstore.sidecar.stages import ContextSidecarRows
 from propstore.world.bound import BoundWorld
@@ -190,3 +194,45 @@ def test_sidecar_stores_lifting_materialization_provenance() -> None:
     assert row["proposition_id"] == "claim_alpha"
     assert row["status"] == "lifted"
     assert json.loads(row["provenance_json"])["source_proposition_id"] == "claim_alpha"
+
+
+def test_context_sidecar_compiler_materializes_authored_ist_assertions() -> None:
+    rows = compile_context_sidecar_rows(
+        (
+            LoadedContext.from_payload(
+                filename="source.yaml",
+                source_path=None,
+                data={"id": "ctx_source", "name": "Source"},
+            ),
+            LoadedContext.from_payload(
+                filename="target.yaml",
+                source_path=None,
+                data={
+                    "id": "ctx_target",
+                    "name": "Target",
+                    "lifting_rules": [
+                        {
+                            "id": "lift-source-target",
+                            "source": "ctx_source",
+                            "target": "ctx_target",
+                        },
+                    ],
+                },
+            ),
+        ),
+        authored_ist_assertions=(
+            IstProposition(
+                context=ContextReference("ctx_source"),
+                proposition_id="claim_alpha",
+            ),
+        ),
+    )
+
+    assert len(rows.lifting_materialization_rows) == 1
+    assert rows.lifting_materialization_rows[0].values[:5] == (
+        "lift-source-target",
+        "ctx_source",
+        "ctx_target",
+        "claim_alpha",
+        "lifted",
+    )
