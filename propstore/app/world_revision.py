@@ -79,15 +79,9 @@ def _lower_request(request: AppRevisionWorldRequest):
 def revision_atom_display(atom: BeliefAtom) -> RevisionAtomDisplay:
     if is_assertion_atom(atom):
         claim = atom.primary_source_claim
-        primary_logical_id = None if claim is None else claim.primary_logical_id
-        if primary_logical_id:
-            display_value = primary_logical_id.split(":", 1)[1] if ":" in primary_logical_id else primary_logical_id
-            display_id = display_value
-        else:
-            display_id = atom.atom_id
         return RevisionAtomDisplay(
             atom_id=atom.atom_id,
-            display_id=display_id,
+            display_id=atom.atom_id,
             claim_type=None if claim is None or claim.claim_type is None else claim.claim_type.value,
             concept_id=None if claim is None or claim.value_concept_id is None else str(claim.value_concept_id),
             value=None if claim is None else claim.row.value,
