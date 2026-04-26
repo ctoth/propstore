@@ -11,7 +11,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from propstore.provenance import Provenance, compose_provenance
+from propstore.provenance import Provenance, ProvenanceStatus, compose_provenance
 
 # Prior weight for non-informative prior (Jøsang p.20)
 W = 2
@@ -77,6 +77,13 @@ class Opinion:
     def base_rate(self) -> float:
         """Alias for ``a`` (base rate / atomicity component)."""
         return self.a
+
+    @property
+    def provenance_status(self) -> ProvenanceStatus:
+        """Return the explicit provenance status for this probability value."""
+        if self.provenance is None:
+            raise ValueError("Opinion requires explicit provenance to expose provenance status")
+        return self.provenance.status
 
     # --- Special constructors ---
 
