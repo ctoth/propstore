@@ -6,6 +6,7 @@ from pathlib import Path
 
 RELATION_KERNEL = Path("propstore/core/relations/kernel.py")
 ASSERTION_REFS = Path("propstore/core/assertions/refs.py")
+CONTEXT_LIFTING = Path("propstore/context_lifting.py")
 FORBIDDEN_RELATION_IDENTITY_NAMES = {
     "predicate",
     "predicate_id",
@@ -27,6 +28,10 @@ def _kernel_tree() -> ast.AST:
 
 def _assertion_refs_tree() -> ast.AST:
     return ast.parse(ASSERTION_REFS.read_text(encoding="utf-8"))
+
+
+def _context_lifting_tree() -> ast.AST:
+    return ast.parse(CONTEXT_LIFTING.read_text(encoding="utf-8"))
 
 
 def test_relation_kernel_does_not_name_relation_identity_as_predicate() -> None:
@@ -81,3 +86,22 @@ def test_assertion_refs_do_not_store_raw_conditions_or_provenance_blobs() -> Non
             observed.add(node.id)
 
     assert observed.isdisjoint(FORBIDDEN_ASSERTION_REF_FIELD_NAMES)
+
+
+def test_context_lifting_does_not_define_or_export_context_reference() -> None:
+    import propstore.context_lifting as context_lifting
+
+    tree = _context_lifting_tree()
+
+    for node in ast.walk(tree):
+        assert not (
+            isinstance(node, ast.ClassDef)
+            and node.name == "ContextReference"
+        )
+        assert not (
+            isinstance(node, ast.ImportFrom)
+            and node.module == "propstore.core.assertions"
+            and any(alias.name == "ContextReference" for alias in node.names)
+        )
+
+    assert "ContextReference" not in vars(context_lifting)
