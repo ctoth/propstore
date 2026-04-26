@@ -167,6 +167,7 @@ def test_ws7_extract_facts_materializes_claim_structural_sources() -> None:
         GroundAtom("claim_sample_size", ("claim-tweety", 11)),
         GroundAtom("claim_condition", ("claim-tweety", "habitat == 'wetland'")),
         GroundAtom("claim_context", ("claim-tweety", "ctx-field")),
+        GroundAtom("claim_context", ("claim-flight", "ctx-field")),
         GroundAtom("claim_page", ("claim-tweety", 25)),
         GroundAtom("claim_page", ("claim-flight", 8)),
         GroundAtom("claim_output_concept", ("claim-tweety", "concept:bird")),
