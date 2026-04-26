@@ -1269,6 +1269,12 @@ Paper checkpoints:
   deliberately do not copy.
 - Bozzato 2018 page images for CKR-style justifiable exceptions.
 
+Slice gate:
+
+- 2026-04-25 WS5 slice: implement authored `ist(c, p)` lifting rules with local
+  justified exceptions and sidecar materialization provenance. Paper checkpoint
+  completed from local notes and page images before code.
+
 ### WS6: Projection Boundary V2
 
 Purpose:
