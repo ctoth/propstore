@@ -124,13 +124,15 @@ def _opinion_from_payload(
     *,
     prefix: str,
     operation: str,
-) -> Opinion | None:
+) -> Opinion | NoCalibration | None:
     b = payload.get(f"{prefix}belief")
     d = payload.get(f"{prefix}disbelief")
     u = payload.get(f"{prefix}uncertainty")
-    a = payload.get(f"{prefix}base_rate", 0.5)
     if b is None or d is None or u is None:
         return None
+    a = payload.get(f"{prefix}base_rate")
+    if a is None:
+        return _missing_calibration("missing_base_rate", f"{prefix}base_rate")
     return Opinion(
         float(b),
         float(d),
@@ -149,6 +151,8 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
             operation="claim_opinion_columns",
         )
         if claim_opinion is not None:
+            if isinstance(claim_opinion, NoCalibration):
+                return claim_opinion
             return claim_opinion
 
         source_trust = None if claim.source is None else claim.source.trust
@@ -205,6 +209,8 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
         operation="claim_opinion_columns",
     )
     if claim_opinion is not None:
+        if isinstance(claim_opinion, NoCalibration):
+            return claim_opinion
         return claim_opinion
 
     source_trust = source.get("trust") if isinstance(source, dict) else None
@@ -278,10 +284,11 @@ def p_relation_from_stance(stance: dict) -> Opinion | NoCalibration:
         operation="stance_opinion_columns",
     )
     if opinion is not None:
+        if isinstance(opinion, NoCalibration):
+            return opinion
         return opinion
 
     confidence = stance.get("confidence")
-    a = float(stance.get("opinion_base_rate", 0.5))
     if confidence is not None:
         confidence_value = float(confidence)
         if confidence_value <= 1e-12:
@@ -291,6 +298,9 @@ def p_relation_from_stance(stance: dict) -> Opinion | NoCalibration:
                 "opinion_disbelief",
                 "opinion_uncertainty",
             )
+        if stance.get("opinion_base_rate") is None:
+            return _missing_calibration("missing_base_rate", "opinion_base_rate")
+        a = float(stance["opinion_base_rate"])
         if confidence_value >= 1.0 - 1e-12:
             return Opinion.dogmatic_true(
                 a,
