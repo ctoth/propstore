@@ -382,7 +382,7 @@ def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsW
         claim = wm.get_claim(request.target)
         if claim is not None:
             report = bound.atms_engine().why_out(
-                f"claim:{request.target}",
+                bound.claim_status(request.target).node_id,
                 queryables=queryables,
                 limit=request.limit,
             )
