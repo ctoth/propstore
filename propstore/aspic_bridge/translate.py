@@ -63,9 +63,9 @@ def justifications_to_rules(
                 f"{justification.justification_id!r} must be rejected or represented explicitly"
             )
 
-        conclusion_key = claim_key(justification.conclusion_claim_id)
+        conclusion_literal_key = claim_key(justification.conclusion_claim_id)
         premise_keys = tuple(claim_key(pid) for pid in justification.premise_claim_ids)
-        if conclusion_key not in literals:
+        if conclusion_literal_key not in literals:
             continue
         unknown_premises = [
             premise_id
@@ -80,7 +80,7 @@ def justifications_to_rules(
             )
 
         antecedents = tuple(literals[pid] for pid in premise_keys)
-        consequent = literals[conclusion_key]
+        consequent = literals[conclusion_literal_key]
         if justification.rule_strength == "strict":
             strict.append(
                 Rule(
