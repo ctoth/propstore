@@ -41,6 +41,15 @@ def normalize_revision_input(
         raise ValueError(f"Unknown revision input: {revision_input}")
 
     kind = str(revision_input.get("kind") or "")
+    if kind == "assertion":
+        assertion_id = revision_input.get("assertion_id") or revision_input.get("id") or revision_input.get("atom_id")
+        if not assertion_id:
+            raise ValueError("Assertion revision input requires 'assertion_id' or 'id'")
+        existing = _find_existing_atom(base, str(assertion_id))
+        if existing is not None:
+            return existing
+        raise ValueError(f"Unknown revision input: {assertion_id}")
+
     if kind == "assumption":
         assumption_id = revision_input.get("assumption_id") or revision_input.get("id")
         if not assumption_id:
