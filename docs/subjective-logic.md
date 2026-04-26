@@ -13,7 +13,7 @@ An opinion is a tuple `(b, d, u, a)` where:
 - **u** (uncertainty) -- how much evidence is missing
 - **a** (base rate) -- prior probability in the absence of evidence
 
-The constraint `b + d + u = 1` is enforced at construction time (`opinion.py:34`, tolerance 1e-9). The base rate `a` lives in (0, 1) and defaults to 0.5.
+The constraint `b + d + u = 1` is enforced at construction time (`opinion.py`, tolerance 1e-9). The base rate `a` lives in (0, 1) and must be supplied explicitly. When the system lacks a sourced or policy-selected prior for an assertion, the result is `BaseRateUnresolved`, not an `Opinion`.
 
 The **expected probability** (Josang 2001 Def 6, p.5) combines belief with the uncertainty-weighted base rate:
 
@@ -21,7 +21,7 @@ The **expected probability** (Josang 2001 Def 6, p.5) combines belief with the u
 E(w) = b + a * u
 ```
 
-This is the single-number summary when you need one. A vacuous opinion `(0, 0, 1, 0.5)` has expectation 0.5 -- total ignorance defaults to the base rate. A dogmatic opinion `(1, 0, 0, 0.5)` has expectation 1.0 -- certainty ignores the base rate entirely.
+This is the single-number summary when you need one. A vacuous opinion `(0, 0, 1, a)` has expectation `a`; that `a` must come from a resolved base-rate assertion or an explicit policy. A dogmatic opinion `(1, 0, 0, a)` has expectation 1.0 -- certainty ignores the base rate entirely.
 
 The **uncertainty interval** `[b, 1 - d]` = `[Bel, Pl]` gives the range of compatible probabilities (`opinion.py:76`).
 
@@ -33,7 +33,7 @@ The **uncertainty interval** `[b, 1 - d]` = `[Bel, Pl]` gives the range of compa
 | Dogmatic true | `(1, 0, 0, a)` | Absolute belief | `Opinion.dogmatic_true(a)` |
 | Dogmatic false | `(0, 1, 0, a)` | Absolute disbelief | `Opinion.dogmatic_false(a)` |
 
-Vacuous opinions are the honest default. When the system has no calibration data, no corpus evidence, and no LLM output to work with, it produces a vacuous opinion rather than inventing a number.
+Vacuous opinions represent total uncertainty after a base rate has already been resolved. They are not a substitute for a missing prior. Missing calibration or missing source trust returns a typed unresolved result so the caller can surface the absence of a prior instead of inventing one.
 
 ### Operators
 
@@ -81,7 +81,7 @@ Convenience functions:
 
 ### The problem
 
-Raw LLM outputs are not calibrated. A model labeling a stance as "strong" does not mean `p = 0.7`. Without calibration, the system cannot map categorical labels to meaningful opinion values. propstore solves this by treating uncalibrated labels honestly (vacuous opinions with category-derived base rates) and upgrading to evidence-based opinions only when calibration data is available.
+Raw LLM outputs are not calibrated. A model labeling a stance as "strong" does not mean `p = 0.7`. Without calibration and a resolved prior, the system cannot map categorical labels to meaningful opinion values. propstore treats that case as `BaseRateUnresolved` and upgrades to evidence-based opinions only when calibration data and a base-rate assertion are available.
 
 ### Temperature scaling
 
@@ -100,17 +100,17 @@ Temperature scaling preserves the ranking of class probabilities while adjusting
 1. **Percentile ranking** -- where does this distance fall in the reference corpus? (`calibrate.py:142`, via `bisect_right`)
 2. **Effective sample size** -- local density around the distance, with bandwidth `h = 1/sqrt(n)`. Capped at 50, scaled by corpus confidence factor `min(1.0, (n-1)/9.0)`. Cites Sensoy et al. 2018, p.3-4. (`calibrate.py:150`)
 3. **Similarity** -- `1 - percentile`
-4. **Opinion** -- `from_probability(similarity, n_eff)` maps similarity and local evidence density to an opinion (`calibrate.py:189`)
+4. **Opinion** -- `from_probability(similarity, n_eff, base_rate)` maps similarity and local evidence density to an opinion after the corpus base rate has been supplied explicitly
 
 Small corpora produce high-uncertainty opinions (low effective sample size). Large corpora with tight clusters produce high-belief opinions. The mapping is principled: evidence counts from observed data, not heuristic thresholds.
 
 ### Categorical-to-opinion mapping
 
-`categorical_to_opinion()` (`calibrate.py:238`) converts LLM strength labels to opinions with two modes:
+`categorical_to_opinion()` converts LLM strength labels to opinions with two modes:
 
-**Without calibration data:** returns a vacuous opinion with a category-derived base rate. The base rates (`calibrate.py:211`) are: `strong=0.7`, `moderate=0.5`, `weak=0.3`, `none=0.1`. A vacuous opinion `(0, 0, 1, 0.7)` says "I have no evidence, but if I had to guess, 70%." This is honest about the system's ignorance.
+**Without calibration data or an explicit category prior:** returns `BaseRateUnresolved(reason="missing_base_rate")`. A category label alone is not a prior.
 
-**With calibration data:** loads historical `(correct, total)` counts from the sidecar's `calibration_counts` table per `(pass_number, category)`. Maps `r = correct`, `s = total - correct` to an evidence-based opinion via `from_evidence(r, s, base_rate)`. More calibration data means lower uncertainty.
+**With calibration data and a resolved prior:** loads historical `(correct, total)` counts from the sidecar's `calibration_counts` table per `(pass_number, category)`. Maps `r = correct`, `s = total - correct` to an evidence-based opinion via `from_evidence(r, s, base_rate)`. More calibration data means lower uncertainty.
 
 When both corpus-distance and categorical opinions are available, they are fused via `fuse()` (consensus fusion) to combine independent evidence sources (`relate.py:219`).
 
@@ -132,12 +132,20 @@ This is how opinions flow from LLM output through argumentation to a resolved wi
 LLM output (strength label)
     |
     v
-categorical_to_opinion() -----> Opinion (vacuous if no calibration)
-    |                                    |
-    |  [if reference_distances]          |
-    |  CorpusCalibrator.to_opinion() --> fuse() (consensus)
-    |                                    |
-    v                                    v
+categorical_to_opinion()
+    |
+    |  [if base-rate resolution fails]
+    v
+BaseRateUnresolved
+    |
+    |  [if base-rate resolution succeeds]
+    v
+AssertionOpinion -----> Opinion
+    |                     |
+    | [if reference_distances]
+    | CorpusCalibrator.to_opinion(base_rate) --> fuse() (consensus)
+    |                     |
+    v                     v
 Resolution dict: confidence = Opinion.expectation()
                   opinion_b, opinion_d, opinion_u, opinion_a
     |
@@ -165,15 +173,15 @@ Resolved winner (or tie)
 
 **Step by step:**
 
-1. The LLM classifies a stance with a strength label (strong/moderate/weak/none). `categorical_to_opinion()` converts this to an Opinion (`relate.py:207-237`).
+1. The LLM classifies a stance with a strength label (strong/moderate/weak/none). `categorical_to_opinion()` converts this to either `BaseRateUnresolved` or an `Opinion` whose prior was supplied explicitly.
 
-2. If corpus embedding distances are available, `CorpusCalibrator.to_opinion()` produces a second independent opinion. The two are fused via consensus to combine both evidence sources.
+2. If corpus embedding distances are available, `CorpusCalibrator.to_opinion()` produces a second independent opinion using the same explicit corpus base rate. The two are fused via consensus to combine both evidence sources.
 
-3. The opinion's `expectation()` becomes the backward-compatible `confidence` field. All four opinion components are written to the stance YAML.
+3. The opinion's `expectation()` becomes the `confidence` field. All four opinion components are written to the stance YAML only when calibration succeeds.
 
 4. During sidecar build, opinion columns are populated on the `relation_edge` table from stance YAML files.
 
-5. `p_relation_from_stance()` (`praf.py:114`) extracts the Opinion from each stance's opinion columns. Claims themselves get `Opinion.dogmatic_true()` -- claim existence is certain.
+5. `p_relation_from_stance()` extracts the Opinion from each stance's opinion columns. If opinion fields are absent or incomplete, PrAF receives `NoCalibration` rather than a fabricated probability.
 
 6. The MC sampler uses `Opinion.expectation()` as the existence probability for each argument and defeat in each Monte Carlo sample (Li et al. 2012).
 
@@ -194,7 +202,7 @@ Four criteria are implemented in `apply_decision_criterion()` (`world/types.py:3
 
 The pignistic criterion is equivalent to `Opinion.expectation()`. The lower and upper bounds give the endpoints of the uncertainty interval `[Bel, Pl]` (Josang 2001, p.4). Hurwicz interpolates between them (Denoeux 2019, p.17).
 
-When opinion columns are NULL (backward compatibility with pre-opinion data), the system falls back to the raw `confidence` float (`world/types.py:395`).
+When opinion columns are NULL, the probabilistic path treats the value as uncalibrated unless an explicit owner-layer policy supplies a prior and provenance.
 
 ### Integration with resolution
 
