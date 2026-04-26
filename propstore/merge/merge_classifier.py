@@ -7,7 +7,7 @@ argumentation framework over the claim alternatives that survive the merge.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from itertools import product
 from typing import Any
@@ -409,6 +409,7 @@ def build_merge_framework(
                 branch_origins=(branch_b,),
             )
 
+    emitted = _deduplicate_arguments(emitted)
     emitted.sort(key=lambda argument: (argument.canonical_claim_id, argument.assertion_id))
     argument_index = {argument.assertion_id: argument for argument in emitted}
 
@@ -473,6 +474,20 @@ def build_merge_framework(
         framework=framework,
         semantic_candidates=semantic_candidates,
     )
+
+
+def _deduplicate_arguments(arguments: list[MergeArgument]) -> list[MergeArgument]:
+    by_assertion_id: dict[str, MergeArgument] = {}
+    for argument in arguments:
+        existing = by_assertion_id.get(argument.assertion_id)
+        if existing is None:
+            by_assertion_id[argument.assertion_id] = argument
+            continue
+        by_assertion_id[argument.assertion_id] = replace(
+            existing,
+            branch_origins=tuple(sorted(set(existing.branch_origins) | set(argument.branch_origins))),
+        )
+    return list(by_assertion_id.values())
 
 
 __all__ = [
