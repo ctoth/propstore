@@ -47,13 +47,14 @@ def test_lifting_materializes_ist_assertion_with_rule_provenance() -> None:
         proposition_id="claim_alpha",
     )
     assert lifted.rule_id == "lift-source-target"
-    assert lifted.provenance == {
+    assert lifted.provenance.items() >= {
         "rule_id": "lift-source-target",
         "source_context_id": "ctx_source",
         "target_context_id": "ctx_target",
         "source_proposition_id": "claim_alpha",
         "status": "lifted",
-    }
+    }.items()
+    assert lifted.provenance["justification"] == "Guha DCR-T bridge"
 
 
 def test_lifting_exception_is_local_and_blocks_only_matching_target() -> None:
