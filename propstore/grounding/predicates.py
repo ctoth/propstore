@@ -17,8 +17,9 @@ Theoretical sources:
       atom's arity matches the registered predicate signature; arity
       mismatches are schema errors and are rejected by the grounder.
       The ``derived_from`` DSL identifies how propstore data
-      materialises ground atoms — concept relations, claim attributes,
-      and claim conditions are the three sanctioned source kinds.
+      materialises ground atoms — concept relations, claim structure,
+      claim contexts, and claim provenance are the sanctioned source
+      kinds.
 
     Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic Programming:
     An Argumentative Approach. TPLP 4(1-2), 95-138.
@@ -42,7 +43,14 @@ from propstore.families.documents.predicates import PredicateDocument
 from propstore.predicate_files import LoadedPredicateFile
 
 
-DerivedFromKind = Literal["concept_relation", "claim_attribute", "claim_condition"]
+DerivedFromKind = Literal[
+    "concept_relation",
+    "claim_attribute",
+    "claim_condition",
+    "claim_role",
+    "claim_context",
+    "claim_provenance",
+]
 
 
 class PredicateNotRegisteredError(KeyError):
@@ -94,12 +102,11 @@ class DerivedFromParseError(ValueError):
     """Raised when ``parse_derived_from`` cannot parse a DSL string.
 
     Diller, Borg, Bex 2025 §3 fixes the grammar of the ``derived_from``
-    DSL: only the three sanctioned prefixes (``concept.relation``,
-    ``claim.attribute``, ``claim.condition``) are recognised, each with
-    a fixed number of colon-separated segments. Anything else is an
-    authoring typo and must be rejected so fact extraction does not
-    silently misroute. Garcia & Simari 2004 §3 admits no other
-    extension points at the schema layer.
+    DSL: only the sanctioned prefixes are recognised, each with a fixed
+    number of colon-separated segments. Anything else is an authoring
+    typo and must be rejected so fact extraction does not silently
+    misroute. Garcia & Simari 2004 §3 admits no untyped extension
+    points at the schema layer.
     """
 
 
@@ -107,9 +114,11 @@ class DerivedFromParseError(ValueError):
 class DerivedFromSpec:
     """Parsed shape of a ``derived_from`` DSL string.
 
-    Discriminated record over the three sanctioned source kinds for
+    Discriminated record over the sanctioned source kinds for
     fact extraction. Diller, Borg, Bex 2025 §3-§4 lists exactly three
-    ways propstore data can materialise into a Datalog ground atom:
+    rule-facing ways propstore data can materialise into a Datalog
+    ground atom; WS7 extends the same typed boundary to propstore's
+    claim structure so runtime grounding is complete:
 
     - ``concept.relation:<relation>:<target>`` — a concept relation
       walked from a subject concept to a target via a named relation;
@@ -121,6 +130,12 @@ class DerivedFromSpec:
     - ``claim.condition:<condition>`` — a claim-side context condition
       treated as a fact in the grounder; ``kind == "claim_condition"``
       with ``condition`` populated.
+    - ``claim.role:<role>`` — a claim-concept binding with the requested
+      semantic role; ``kind == "claim_role"`` with ``role`` populated.
+    - ``claim.context`` — a claim's authored context id; ``kind ==
+      "claim_context"``.
+    - ``claim.provenance:<field>`` — a claim provenance field; ``kind ==
+      "claim_provenance"`` with ``provenance_field`` populated.
 
     Garcia & Simari 2004 §3 grounds the same canonical examples
     (``bird/1``, ``is_a:Bird``) used in the test fixtures.
@@ -131,6 +146,9 @@ class DerivedFromSpec:
         target: Target concept identifier (concept_relation only).
         attribute: Claim attribute name (claim_attribute only).
         condition: Claim condition name (claim_condition only).
+        role: Claim-concept binding role (claim_role only).
+        provenance_field: Claim provenance field name (claim_provenance
+            only).
     """
 
     kind: DerivedFromKind
@@ -138,6 +156,8 @@ class DerivedFromSpec:
     target: str | None = None
     attribute: str | None = None
     condition: str | None = None
+    role: str | None = None
+    provenance_field: str | None = None
 
 
 PredicateArgumentType = str | KindType
@@ -161,12 +181,15 @@ class PredicateAtom:
 def parse_derived_from(spec: str) -> DerivedFromSpec:
     """Parse a ``derived_from`` DSL string into a typed ``DerivedFromSpec``.
 
-    Diller, Borg, Bex 2025 §3-§4 lists three sanctioned prefixes; each
-    has a fixed shape:
+    Diller, Borg, Bex 2025 §3-§4 lists typed source prefixes; each has
+    a fixed shape:
 
     - ``concept.relation:<relation>:<target>`` -> ``concept_relation``
     - ``claim.attribute:<attribute>``          -> ``claim_attribute``
     - ``claim.condition:<condition>``          -> ``claim_condition``
+    - ``claim.role:<role>``                    -> ``claim_role``
+    - ``claim.context``                        -> ``claim_context``
+    - ``claim.provenance:<field>``             -> ``claim_provenance``
 
     Garcia & Simari 2004 §3 fixes the canonical example tokens
     (``is_a:Bird``, ``bird``) the parser must round-trip without loss.
@@ -261,6 +284,37 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
         return DerivedFromSpec(
             kind="claim_condition",
             condition=remainder,
+        )
+
+    if prefix == "claim.role":
+        if remainder == "":
+            raise DerivedFromParseError(
+                f"claim.role spec has empty role: {spec!r}"
+            )
+        if ":" in remainder:
+            raise DerivedFromParseError(
+                f"claim.role spec has extra ':' in role: {spec!r}"
+            )
+        return DerivedFromSpec(
+            kind="claim_role",
+            role=remainder,
+        )
+
+    if spec == "claim.context":
+        return DerivedFromSpec(kind="claim_context")
+
+    if prefix == "claim.provenance":
+        if remainder == "":
+            raise DerivedFromParseError(
+                f"claim.provenance spec has empty field: {spec!r}"
+            )
+        if ":" in remainder:
+            raise DerivedFromParseError(
+                f"claim.provenance spec has extra ':' in field: {spec!r}"
+            )
+        return DerivedFromSpec(
+            kind="claim_provenance",
+            provenance_field=remainder,
         )
 
     raise DerivedFromParseError(
