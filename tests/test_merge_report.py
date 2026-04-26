@@ -183,7 +183,7 @@ def test_merge_report_surfaces_ignorance_query_state(tmp_path):
         assert detail_by_id[assertion_id]["provenance"]["branch_origin"] in detail_by_id[assertion_id]["branch_origins"]
 
 
-def test_merge_report_surfaces_semantic_candidates_without_forced_fusion(tmp_path):
+def test_merge_report_collapses_duplicate_assertion_identity_without_candidate_bucket(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/candidates"
@@ -223,32 +223,7 @@ def test_merge_report_surfaces_semantic_candidates_without_forced_fusion(tmp_pat
         semantics="grounded",
     )
 
-    assert report["semantic_candidates"] == [
-        sorted(report["arguments"])
-    ]
-    assert report["semantic_candidate_details"] == [
-        {
-            "assertion_ids": sorted(report["arguments"]),
-            "logical_ids": ["left_paper:claim_a", "right_paper:claim_b"],
-            "artifact_ids": [
-                "ps:claim:leftcandidate0001",
-                "ps:claim:rightcandidate0001",
-            ],
-            "arguments": [
-                {
-                    "assertion_id": report["semantic_candidate_details"][0]["assertion_ids"][0],
-                    "logical_id": "left_paper:claim_a",
-                    "artifact_id": "ps:claim:leftcandidate0001",
-                    "branch_origins": ["master"],
-                    "source_paper": "left_paper",
-                },
-                {
-                    "assertion_id": report["semantic_candidate_details"][0]["assertion_ids"][1],
-                    "logical_id": "right_paper:claim_b",
-                    "artifact_id": "ps:claim:rightcandidate0001",
-                    "branch_origins": [branch_name],
-                    "source_paper": "right_paper",
-                },
-            ],
-        }
-    ]
+    assert len(report["arguments"]) == 1
+    assert report["arguments"][0].startswith("ps:assertion:")
+    assert report["semantic_candidates"] == []
+    assert report["semantic_candidate_details"] == []
