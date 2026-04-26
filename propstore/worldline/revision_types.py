@@ -15,8 +15,8 @@ def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
 
 @dataclass(frozen=True)
 class RevisionAtomRef:
-    kind: str = "claim"
-    claim_id: str | None = None
+    kind: str = "assertion"
+    assertion_id: str | None = None
     assumption_id: str | None = None
     atom_id: str | None = None
     value: float | str | None = None
@@ -28,16 +28,16 @@ class RevisionAtomRef:
         payload = _optional_mapping(data, "atom")
         if not payload:
             return None
-        kind = str(payload.get("kind") or "claim")
-        claim_id = payload.get("claim_id")
+        kind = str(payload.get("kind") or "assertion")
+        assertion_id = payload.get("assertion_id")
         assumption_id = payload.get("assumption_id")
-        if claim_id is None and kind == "claim":
-            claim_id = payload.get("id")
+        if assertion_id is None and kind == "assertion":
+            assertion_id = payload.get("id")
         if assumption_id is None and kind == "assumption":
             assumption_id = payload.get("id")
         return cls(
             kind=kind,
-            claim_id=None if claim_id is None else str(claim_id),
+            assertion_id=None if assertion_id is None else str(assertion_id),
             assumption_id=None if assumption_id is None else str(assumption_id),
             atom_id=None if payload.get("atom_id") is None else str(payload.get("atom_id")),
             value=payload.get("value"),
@@ -45,8 +45,8 @@ class RevisionAtomRef:
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"kind": self.kind}
-        if self.kind == "claim" and self.claim_id is not None:
-            data["id"] = self.claim_id
+        if self.kind == "assertion" and self.assertion_id is not None:
+            data["id"] = self.assertion_id
         if self.kind == "assumption" and self.assumption_id is not None:
             data["id"] = self.assumption_id
         if self.atom_id is not None:
@@ -57,10 +57,10 @@ class RevisionAtomRef:
 
     def to_revision_input(self) -> dict[str, Any]:
         data = self.to_dict()
-        if self.kind == "claim":
-            if self.claim_id is None:
-                raise ValueError("Claim revision atom requires a claim_id")
-            data["claim_id"] = self.claim_id
+        if self.kind == "assertion":
+            if self.assertion_id is None:
+                raise ValueError("Assertion revision atom requires an assertion_id")
+            data["assertion_id"] = self.assertion_id
             if self.atom_id is not None:
                 data["atom_id"] = self.atom_id
             return data
@@ -76,8 +76,8 @@ class RevisionAtomRef:
     def resolved_atom_id(self) -> str | None:
         if self.atom_id:
             return self.atom_id
-        if self.kind == "claim" and self.claim_id:
-            return f"claim:{self.claim_id}"
+        if self.kind == "assertion" and self.assertion_id:
+            return self.assertion_id
         if self.kind == "assumption" and self.assumption_id:
             return f"assumption:{self.assumption_id}"
         return None

@@ -89,9 +89,9 @@ def _query_target_atom_ids(target: Any) -> list[str]:
     if target is None:
         return []
     if isinstance(target, str):
-        if ":" in target:
+        if target.startswith("ps:assertion:") or target.startswith("assumption:"):
             return [target]
-        return [f"claim:{target}"]
+        raise ValueError(f"Worldline revision target must be an assertion or assumption atom id: {target}")
     return [str(target)]
 
 
@@ -100,7 +100,14 @@ def _query_conflict_target_atom_ids(revision_query: Any) -> list[str]:
     if input_atom_id is None:
         return []
     targets = revision_query.conflicts.targets_for(input_atom_id)
-    return [
-        target if ":" in target else f"claim:{target}"
+    invalid = [
+        target
         for target in targets
+        if not (target.startswith("ps:assertion:") or target.startswith("assumption:"))
     ]
+    if invalid:
+        raise ValueError(
+            "Worldline revision conflicts must name assertion or assumption atom ids: "
+            + ", ".join(invalid)
+        )
+    return list(targets)
