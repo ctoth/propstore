@@ -259,6 +259,32 @@ Second WS1 slice execution ledger:
   `propstore/core/relations/kernel.py`; callers now construct
   `RoleSignature(role_definitions=...)` with explicit role domain/range.
 
+Third slice gate, WS2 prerequisite:
+
+```text
+target_surface: closed ConditionRef and ProvenanceGraphRef owner references
+old_surfaces_to_delete: raw CEL strings and loose provenance blobs as future
+  situated-assertion reference placeholders
+allowed_owner_modules: propstore.core.assertions, propstore.core.id_types
+forbidden_imports: z3_conditions, condition_classifier, grounding, context
+  lifting, calibration, opinion, app, CLI, sidecar, world, backend projection
+  modules
+forbidden_symbols: assertion reference fields named cel, conditions,
+  provenance, provenance_blob, or graph_payload
+forbidden_storage_columns: none in this slice
+positive_tests: condition reference identity payload, unconditional condition
+  sentinel, provenance graph URI reference identity, deterministic ordering
+negative_tests: reject raw-looking CEL condition ids; reject missing registry
+  fingerprints; reject empty or non-URI provenance graph references; import and
+  forbidden-symbol architecture tests
+pyright_scope: uv run pyright propstore
+paper_checkpoint: situated assertion synthesis reread; Clark 2014 and Carroll
+  2005 notes reread on 2026-04-25; Carroll page images deferred until the
+  provenance carrier code slice named in WS4
+deletion_ledger: no situated assertion object yet; prevent WS2 from using raw
+  CEL strings or provenance blobs by landing typed references first
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
