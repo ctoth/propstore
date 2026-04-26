@@ -111,12 +111,14 @@ def test_praf_mc_respects_support_coupling_when_decomposing() -> None:
                 "target_claim_id": "claim_b",
                 "stance_type": "supports",
                 "confidence": 1.0,
+                "opinion_base_rate": 0.5,
             },
             {
                 "claim_id": "claim_c",
                 "target_claim_id": "claim_a",
                 "stance_type": "undercuts",
                 "confidence": 1.0,
+                "opinion_base_rate": 0.5,
             },
         ],
     )
@@ -212,6 +214,7 @@ def test_build_praf_keeps_direct_defeats_separate_from_derived_summaries() -> No
                 "target_claim_id": "claim_b",
                 "stance_type": "supports",
                 "confidence": 1.0,
+                "opinion_base_rate": 0.5,
             },
             {
                 "claim_id": "claim_b",
