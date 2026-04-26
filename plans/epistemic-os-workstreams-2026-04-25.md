@@ -411,6 +411,24 @@ deletion_ledger: no existing claim importer migration yet; this lands the
   structural source boundary that future caller rewrites must use directly
 ```
 
+Sixth slice execution ledger:
+
+- Red commit: `dedc038` added structural assertion source conversion tests and
+  conversion-owner architecture gates.
+- Red log: `logs/test-runs/ws2-conversion-red-20260425-183350.log`, failed
+  because `propstore.core.assertions.conversion` and
+  `AssertionSourceRecord` did not exist.
+- Green commit: `f321705` added `AssertionSourceRecord`, immediate
+  payload-to-domain conversion, role-signature validation before
+  `SituatedAssertion` construction, and rejection of old claim-shaped payloads.
+- Green log: `logs/test-runs/ws2-conversion-green-20260425-183516.log`,
+  31 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no existing claim importer path was migrated in this slice;
+  the new conversion owner rejects old claim-shaped source payloads and keeps
+  loose decoded mappings at the source boundary only.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
