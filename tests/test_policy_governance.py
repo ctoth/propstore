@@ -105,6 +105,38 @@ def test_policy_profile_projects_to_situated_assertions() -> None:
     assert all(str(assertion.context.id) == "ps:context:governance" for assertion in assertions)
 
 
+def test_worldline_content_hash_changes_when_policy_profile_changes() -> None:
+    from propstore.worldline import compute_worldline_content_hash
+    from propstore.worldline.result_types import WorldlineDependencies, WorldlineTargetValue
+
+    profile = default_policy_profile()
+    changed = replace(
+        profile,
+        admissibility=AdmissibilityProfile(comparison="democratic", link="weakest"),
+    )
+
+    left = compute_worldline_content_hash(
+        values={"target": WorldlineTargetValue(status="determined", value=1.0)},
+        steps=(),
+        dependencies=WorldlineDependencies(),
+        sensitivity=None,
+        argumentation=None,
+        revision=None,
+        policy=profile.to_dict(),
+    )
+    right = compute_worldline_content_hash(
+        values={"target": WorldlineTargetValue(status="determined", value=1.0)},
+        steps=(),
+        dependencies=WorldlineDependencies(),
+        sensitivity=None,
+        argumentation=None,
+        revision=None,
+        policy=changed.to_dict(),
+    )
+
+    assert left != right
+
+
 _token = st.from_regex(r"[a-z][a-z0-9_]{0,8}", fullmatch=True)
 
 
