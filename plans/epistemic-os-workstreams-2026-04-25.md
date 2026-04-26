@@ -936,6 +936,8 @@ Seventeenth slice execution ledger:
   record exists.
 - Green log: `logs/test-runs/ws4-probability-status-green-20260425-200149.log`,
   13 passed.
+- Combined WS4 log: `logs/test-runs/ws4-combined-20260425-200359.log`,
+  222 passed.
 - Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
   0 informations.
 - Deletion ledger: no broad historical opinion-construction path was deleted in
