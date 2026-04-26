@@ -7,6 +7,7 @@ from propstore.calibrate import (
     CategoryPrior,
     categorical_to_opinion,
 )
+from propstore.core.base_rates import BaseRateUnresolved
 from propstore.provenance import Provenance, ProvenanceStatus
 
 
@@ -23,15 +24,12 @@ def _prior(category: str, value: float) -> CategoryPrior:
     )
 
 
-def test_uncalibrated_category_without_prior_is_vacuous_half_base_rate():
-    op = categorical_to_opinion("strong", 1)
+def test_uncalibrated_category_without_prior_is_unresolved():
+    result = categorical_to_opinion("strong", 1)
 
-    assert op.b == 0.0
-    assert op.d == 0.0
-    assert op.u == 1.0
-    assert op.a == 0.5
-    assert op.provenance is not None
-    assert op.provenance.status == ProvenanceStatus.VACUOUS
+    assert isinstance(result, BaseRateUnresolved)
+    assert result.reason == "missing_base_rate"
+    assert result.missing_fields == ("category_prior",)
 
 
 def test_non_vacuous_base_rate_requires_explicit_category_prior():
