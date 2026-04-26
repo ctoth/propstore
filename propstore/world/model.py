@@ -257,17 +257,12 @@ class WorldModel(WorldStore):
         self._conn.close()
 
     def grounding_bundle(self):
-        """Return the grounded-rule bundle for this world model's knowledge root."""
+        """Return the grounded-rule bundle materialized in this sidecar."""
 
         if self._grounding_bundle_cache is None:
-            if self._repo is None:
-                from propstore.grounding.bundle import GroundedRulesBundle
+            from propstore.sidecar.rules import read_grounded_bundle
 
-                self._grounding_bundle_cache = GroundedRulesBundle.empty()
-                return self._grounding_bundle_cache
-            from propstore.grounding.loading import build_grounded_bundle
-
-            self._grounding_bundle_cache = build_grounded_bundle(self._repo)
+            self._grounding_bundle_cache = read_grounded_bundle(self._conn)
         return self._grounding_bundle_cache
 
     def _validate_schema(self) -> None:
