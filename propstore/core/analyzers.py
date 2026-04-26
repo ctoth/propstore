@@ -326,11 +326,6 @@ def _collect_claim_graph_relations(
                         "claim_id": source_id,
                         "target_claim_id": target_id,
                         "stance_type": "rebuts",
-                        "confidence": 0.5,
-                        "opinion_belief": 0.0,
-                        "opinion_disbelief": 0.0,
-                        "opinion_uncertainty": 1.0,
-                        "opinion_base_rate": 0.5,
                     }
                 )
             continue
@@ -340,11 +335,6 @@ def _collect_claim_graph_relations(
                     "claim_id": source_id,
                     "target_claim_id": target_id,
                     "stance_type": "rebuts",
-                    "confidence": 0.5,
-                    "opinion_belief": 0.0,
-                    "opinion_disbelief": 0.0,
-                    "opinion_uncertainty": 1.0,
-                    "opinion_base_rate": 0.5,
                 }
             )
 
