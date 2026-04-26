@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
 from propstore.cel_types import to_cel_expr
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
+from propstore.core.active_claims import ActiveClaim, coerce_active_claim
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import (
     AssertionId,
@@ -43,7 +43,7 @@ def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> Assumpt
 class AssertionAtom:
     atom_id: str
     assertion: SituatedAssertion
-    source_claims: tuple[ActiveClaimInput, ...] = field(default_factory=tuple)
+    source_claims: tuple[ActiveClaim, ...] = field(default_factory=tuple)
     label: Label | None = None
 
     def __post_init__(self) -> None:
