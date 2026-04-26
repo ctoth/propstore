@@ -39,6 +39,10 @@ from propstore.core.conditions.python_backend import (
     condition_ir_to_python_ast,
     evaluate_condition_ir,
 )
+from propstore.core.conditions.z3_backend import (
+    condition_ir_to_z3,
+    z3_bindings_for_values,
+)
 
 __all__ = [
     "CheckedCondition",
@@ -68,7 +72,9 @@ __all__ = [
     "checked_condition_set",
     "condition_ir_to_estree",
     "condition_ir_to_python_ast",
+    "condition_ir_to_z3",
     "condition_ir_from_cel",
     "evaluate_estree_expression",
     "evaluate_condition_ir",
+    "z3_bindings_for_values",
 ]
