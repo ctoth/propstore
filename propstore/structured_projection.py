@@ -8,7 +8,7 @@ retains the public projection dataclasses and thin delegation wrappers.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from argumentation.aspic import GroundAtom
@@ -26,6 +26,7 @@ from propstore.core.active_claims import (
 from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.labels import Label, SupportQuality
+from propstore.core.results import AnalyzerResult
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.provenance.records import ProjectionFrameProvenanceRecord
 from propstore.world.types import (
@@ -75,6 +76,20 @@ class LiftedProjectionResult:
 
 
 @dataclass(frozen=True)
+class LiftedAnalyzerProjectionResult:
+    backend: str
+    semantics: str
+    target_assertion_ids: tuple[str, ...]
+    survivor_assertion_ids: tuple[str, ...]
+    witness_assertion_ids: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "target_assertion_ids", _sorted_unique(self.target_assertion_ids))
+        object.__setattr__(self, "survivor_assertion_ids", _sorted_unique(self.survivor_assertion_ids))
+        object.__setattr__(self, "witness_assertion_ids", _sorted_unique(self.witness_assertion_ids))
+
+
+@dataclass(frozen=True)
 class StructuredArgument:
     arg_id: str
     projection: ProjectionAtom
@@ -107,6 +122,80 @@ def lift_projected_argument(argument: StructuredArgument) -> LiftedProjectionRes
         situated_assertion_ids=projection.source_assertion_ids,
         provenance=projection.provenance,
     )
+
+
+def claim_source_assertion_ids_from_active_graph(
+    active_graph: ActiveWorldGraph,
+) -> dict[str, tuple[str, ...]]:
+    active_claim_ids = set(active_graph.active_claim_ids)
+    mapping: dict[str, tuple[str, ...]] = {}
+    for claim in active_graph.compiled.claims:
+        if claim.claim_id not in active_claim_ids:
+            continue
+        raw = dict(claim.attributes).get("source_assertion_ids")
+        assertion_ids = _coerce_source_assertion_ids(raw)
+        if assertion_ids:
+            mapping[str(claim.claim_id)] = assertion_ids
+    return mapping
+
+
+def lift_analyzer_result_projection(
+    result: AnalyzerResult,
+    claim_assertion_ids: Mapping[str, Sequence[str]],
+) -> LiftedAnalyzerProjectionResult:
+    if result.projection is None:
+        raise ProjectionLiftError(
+            "missing_projection: analyzer result has no claim projection to lift"
+        )
+    projection = result.projection
+    return LiftedAnalyzerProjectionResult(
+        backend=result.backend,
+        semantics=result.semantics,
+        target_assertion_ids=_assertion_ids_for_claims(
+            projection.target_claim_ids,
+            claim_assertion_ids,
+        ),
+        survivor_assertion_ids=_assertion_ids_for_claims(
+            projection.survivor_claim_ids,
+            claim_assertion_ids,
+        ),
+        witness_assertion_ids=_assertion_ids_for_claims(
+            projection.witness_claim_ids,
+            claim_assertion_ids,
+        ),
+    )
+
+
+def _sorted_unique(values: Sequence[str]) -> tuple[str, ...]:
+    return tuple(sorted(dict.fromkeys(str(value) for value in values)))
+
+
+def _coerce_source_assertion_ids(raw: object) -> tuple[str, ...]:
+    if isinstance(raw, str):
+        return (raw,)
+    if isinstance(raw, Sequence) and not isinstance(raw, str | bytes):
+        return _sorted_unique(tuple(str(value) for value in raw))
+    return ()
+
+
+def _assertion_ids_for_claims(
+    claim_ids: Sequence[str],
+    claim_assertion_ids: Mapping[str, Sequence[str]],
+) -> tuple[str, ...]:
+    assertion_ids: list[str] = []
+    missing: list[str] = []
+    for claim_id in claim_ids:
+        values = claim_assertion_ids.get(str(claim_id), ())
+        if not values:
+            missing.append(str(claim_id))
+            continue
+        assertion_ids.extend(str(value) for value in values)
+    if missing:
+        raise ProjectionLiftError(
+            "missing_source_assertion: analyzer projection has no situated "
+            f"assertion ids for claims {missing!r}"
+        )
+    return _sorted_unique(tuple(assertion_ids))
 
 
 @dataclass(frozen=True)

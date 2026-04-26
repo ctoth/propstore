@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -17,6 +17,16 @@ from propstore.claims import claim_file_claims
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.structured_projection import StructuredProjection, build_structured_projection
+
+
+@dataclass(frozen=True)
+class BranchArgumentationEvidence:
+    branch: str
+    backend: str
+    semantics: str
+    accepted_assertion_ids: tuple[str, ...]
+    witness_assertion_ids: tuple[str, ...]
+    decision_owner: str = "merge_policy"
 
 
 @dataclass(frozen=True)
@@ -47,6 +57,40 @@ def _normalize_for_signature(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_normalize_for_signature(item) for item in value]
     return value
+
+
+def _sorted_unique(values: Sequence[str]) -> tuple[str, ...]:
+    return tuple(sorted(dict.fromkeys(str(value) for value in values)))
+
+
+def argumentation_evidence_from_projection(
+    *,
+    branch: str,
+    projection: StructuredProjection,
+    claim_assertion_ids: Mapping[str, Sequence[str]],
+    semantics: str = "grounded",
+) -> BranchArgumentationEvidence:
+    if semantics != "grounded":
+        raise ValueError("structured merge evidence currently supports grounded semantics")
+    from argumentation.dung import grounded_extension
+
+    accepted_argument_ids = grounded_extension(projection.framework)
+    accepted_assertion_ids: list[str] = []
+    witness_assertion_ids: list[str] = []
+    for argument_id in sorted(accepted_argument_ids):
+        claim_id = projection.argument_to_claim_id.get(argument_id)
+        if claim_id is None:
+            continue
+        accepted_assertion_ids.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
+    for claim_id in sorted(projection.claim_to_argument_ids):
+        witness_assertion_ids.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
+    return BranchArgumentationEvidence(
+        branch=branch,
+        backend="argumentation",
+        semantics=semantics,
+        accepted_assertion_ids=_sorted_unique(accepted_assertion_ids),
+        witness_assertion_ids=_sorted_unique(witness_assertion_ids),
+    )
 
 
 def _stance_row_from_mapping(
@@ -338,7 +382,9 @@ def build_structured_merge_candidates(
 
 
 __all__ = [
+    "BranchArgumentationEvidence",
     "BranchStructuredSummary",
+    "argumentation_evidence_from_projection",
     "build_branch_structured_summary",
     "build_structured_merge_candidates",
 ]

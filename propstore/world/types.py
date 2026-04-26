@@ -620,6 +620,9 @@ class ArgumentationSemantics(StrEnum):
     C_PREFERRED = "c-preferred"
     BIPOLAR_STABLE = "bipolar-stable"
     COMPLETE = "complete"
+    PRAF_PAPER_TD_COMPLETE = "praf-paper-td-complete"
+    ASPIC_DIRECT_GROUNDED = "aspic-direct-grounded"
+    ASPIC_INCOMPLETE_GROUNDED = "aspic-incomplete-grounded"
 
 
 _ARGUMENTATION_SEMANTICS_ALIASES: dict[str, ArgumentationSemantics] = {
@@ -632,6 +635,9 @@ _ARGUMENTATION_SEMANTICS_ALIASES: dict[str, ArgumentationSemantics] = {
     "bipolar_stable": ArgumentationSemantics.BIPOLAR_STABLE,
     ArgumentationSemantics.BIPOLAR_STABLE.value: ArgumentationSemantics.BIPOLAR_STABLE,
     ArgumentationSemantics.COMPLETE.value: ArgumentationSemantics.COMPLETE,
+    ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE.value: ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE,
+    ArgumentationSemantics.ASPIC_DIRECT_GROUNDED.value: ArgumentationSemantics.ASPIC_DIRECT_GROUNDED,
+    ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED.value: ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED,
 }
 
 _CLI_ARGUMENTATION_SEMANTICS = (
@@ -643,6 +649,9 @@ _CLI_ARGUMENTATION_SEMANTICS = (
     ArgumentationSemantics.C_PREFERRED,
     ArgumentationSemantics.BIPOLAR_STABLE,
     ArgumentationSemantics.COMPLETE,
+    ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE,
+    ArgumentationSemantics.ASPIC_DIRECT_GROUNDED,
+    ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED,
 )
 
 _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = {
@@ -659,6 +668,8 @@ _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = 
         ArgumentationSemantics.GROUNDED,
         ArgumentationSemantics.PREFERRED,
         ArgumentationSemantics.STABLE,
+        ArgumentationSemantics.ASPIC_DIRECT_GROUNDED,
+        ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED,
     }),
     ReasoningBackend.ATMS: frozenset({
         ArgumentationSemantics.GROUNDED,
@@ -668,6 +679,7 @@ _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = 
         ArgumentationSemantics.PREFERRED,
         ArgumentationSemantics.STABLE,
         ArgumentationSemantics.COMPLETE,
+        ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE,
     }),
 }
 
