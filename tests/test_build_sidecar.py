@@ -415,7 +415,7 @@ class TestTableCreation:
         conn.close()
 
 
-class TestSchemaV4:
+class TestSchemaV5:
     """Schema v3 additions for build-to-render gate removal.
 
     Implements `reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md`
