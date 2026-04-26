@@ -6,7 +6,16 @@ from typing import Any, TypeGuard
 
 from propstore.cel_types import to_cel_expr
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
-from propstore.core.id_types import AssumptionId, ContextId, to_assumption_id, to_assumption_ids, to_context_id
+from propstore.core.assertions.situated import SituatedAssertion
+from propstore.core.id_types import (
+    AssertionId,
+    AssumptionId,
+    ContextId,
+    to_assertion_id,
+    to_assumption_id,
+    to_assumption_ids,
+    to_context_id,
+)
 from propstore.core.labels import AssumptionRef, Label
 from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
@@ -31,17 +40,30 @@ def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> Assumpt
 
 
 @dataclass(frozen=True)
-class ClaimAtom:
+class AssertionAtom:
     atom_id: str
-    claim: ActiveClaim
+    assertion: SituatedAssertion
+    source_claims: tuple[ActiveClaimInput, ...] = field(default_factory=tuple)
     label: Label | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "claim", coerce_active_claim(self.claim))
+        if not isinstance(self.assertion, SituatedAssertion):
+            raise TypeError("assertion atom requires a SituatedAssertion")
+        assertion_id = self.assertion.assertion_id
+        object.__setattr__(self, "atom_id", str(assertion_id))
+        object.__setattr__(
+            self,
+            "source_claims",
+            tuple(coerce_active_claim(claim) for claim in self.source_claims),
+        )
 
     @property
-    def claim_id(self) -> str:
-        return str(self.claim.claim_id)
+    def assertion_id(self) -> AssertionId:
+        return to_assertion_id(self.assertion.assertion_id)
+
+    @property
+    def primary_source_claim(self) -> ActiveClaim | None:
+        return self.source_claims[0] if self.source_claims else None
 
 
 @dataclass(frozen=True)
@@ -54,11 +76,11 @@ class AssumptionAtom:
         object.__setattr__(self, "assumption", coerce_assumption_ref(self.assumption))
 
 
-BeliefAtom = ClaimAtom | AssumptionAtom
+BeliefAtom = AssertionAtom | AssumptionAtom
 
 
-def is_claim_atom(atom: BeliefAtom) -> TypeGuard[ClaimAtom]:
-    return isinstance(atom, ClaimAtom)
+def is_assertion_atom(atom: BeliefAtom) -> TypeGuard[AssertionAtom]:
+    return isinstance(atom, AssertionAtom)
 
 
 def is_assumption_atom(atom: BeliefAtom) -> TypeGuard[AssumptionAtom]:
