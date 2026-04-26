@@ -325,6 +325,23 @@ deletion_ledger: delete the old ContextReference production definition from
   type directly
 ```
 
+Fourth slice execution ledger:
+
+- Red commit: `6f5425a` added owner tests requiring `ContextReference` under
+  `propstore.core.assertions` and forbidding `context_lifting` from exporting it.
+- Red log: `logs/test-runs/ws2-context-ref-red-20260425-181818.log`, failed
+  because `ContextReference` was still defined in `propstore.context_lifting`.
+- Green commit: `03c6c89` moved `ContextReference` to assertion core and
+  updated production/test callers to import the owner type directly.
+- Green log: `logs/test-runs/ws2-context-ref-green-20260425-182122.log`,
+  18 passed.
+- Broader target log:
+  `logs/test-runs/ws2-context-ref-targeted-20260425-182145.log`, 34 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: deleted the `ContextReference` class definition from
+  `propstore/context_lifting.py`; `context_lifting` no longer exports the type.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
