@@ -8,10 +8,13 @@ from propstore.core.assertions.refs import (
     ContextReference,
     ProvenanceGraphRef,
 )
+from propstore.core.assertions.situated import SituatedAssertion, derive_assertion_id
 
 __all__ = [
     "UNCONDITIONAL_CONDITION_REF",
     "ConditionRef",
     "ContextReference",
     "ProvenanceGraphRef",
+    "SituatedAssertion",
+    "derive_assertion_id",
 ]
