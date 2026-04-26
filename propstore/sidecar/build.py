@@ -35,6 +35,7 @@ from propstore.families.contexts.stages import (
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record_document
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
+from propstore.grounding.loading import build_grounded_bundle
 from propstore.sidecar.claims import (
     populate_authored_justifications,
     populate_claim_fts_rows,
@@ -57,6 +58,7 @@ from propstore.sidecar.schema import (
 )
 from propstore.sidecar.micropublications import populate_micropublications
 from propstore.sidecar.quarantine import QuarantinableWriter
+from propstore.sidecar.rules import create_grounded_fact_table, populate_grounded_facts
 from propstore.sidecar.sources import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.types import PassDiagnostic
@@ -491,6 +493,7 @@ def build_sidecar(
         write_schema_metadata(conn)
         create_tables(conn)
         create_context_tables(conn)
+        create_grounded_fact_table(conn)
         populate_sources(
             conn,
             sidecar_plan.source_rows,
@@ -528,6 +531,12 @@ def build_sidecar(
             populate_claim_fts_rows(conn, sidecar_plan.claim_fts_rows)
 
         populate_micropublications(conn, sidecar_plan.micropublication_rows)
+
+        grounded_bundle = build_grounded_bundle(
+            repo,
+            commit=commit_hash,
+        )
+        populate_grounded_facts(conn, grounded_bundle)
 
         if embedding_snapshot is not None:
             try:
