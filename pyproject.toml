@@ -18,7 +18,7 @@ dependencies = [
     "bridgman @ git+https://github.com/ctoth/bridgman@35c88af379178d6571f60a6e9450cd61d40d52d1",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
-    "gunray @ git+https://github.com/ctoth/gunray@23b31c8efbc4ac585e64b7792291cbeebae7cd54",
+    "gunray @ git+https://github.com/ctoth/gunray@7a3f52a755469df60b7587a8bd8e64dd9723810a",
     "quire @ git+https://github.com/ctoth/quire@84f5d07e6f2127688b34c9fc582aa6900b7ff0c8",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
