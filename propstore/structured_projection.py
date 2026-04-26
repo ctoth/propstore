@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from argumentation.aspic import GroundAtom
 from argumentation.dung import (
     ArgumentationFramework,
     grounded_extension,
@@ -35,9 +36,34 @@ from propstore.world.types import (
 
 
 @dataclass(frozen=True)
+class ProjectionLossWitness:
+    backend: str
+    kind: str
+    reason: str
+    backend_atom_id: str | None = None
+
+
+@dataclass(frozen=True)
+class ProjectionAtom:
+    backend: str
+    backend_atom: GroundAtom
+    backend_atom_id: str
+    negated: bool
+    source_assertion_ids: tuple[str, ...]
+    loss: ProjectionLossWitness | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "source_assertion_ids",
+            tuple(sorted({str(value) for value in self.source_assertion_ids})),
+        )
+
+
+@dataclass(frozen=True)
 class StructuredArgument:
     arg_id: str
-    conclusion_key: str
+    projection: ProjectionAtom
     claim_id: str | None
     conclusion_concept_id: str | None
     premise_claim_ids: tuple[str, ...]
