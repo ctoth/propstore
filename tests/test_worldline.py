@@ -2145,19 +2145,21 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_create, "create")
 
         runner = CliRunner()
+        synthetic_id = "ps:assertion:synthetic"
+        legacy_id = "ps:assertion:legacy"
         result = runner.invoke(fake_cli, [
             "create", "revision-wl",
             "--target", "concept1",
             "--revision-operation", "revise",
-            "--revision-atom", '{"kind":"claim","id":"synthetic","value":9.0}',
-            "--revision-conflict", "claim:synthetic=legacy",
+            "--revision-atom", f'{{"kind":"assertion","id":"{synthetic_id}","value":9.0}}',
+            "--revision-conflict", f"{synthetic_id}={legacy_id}",
         ])
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "revision-wl.yaml").read_text())
         assert written["revision"]["operation"] == "revise"
-        assert written["revision"]["atom"]["id"] == "synthetic"
-        assert written["revision"]["conflicts"] == {"claim:synthetic": ["legacy"]}
+        assert written["revision"]["atom"]["id"] == synthetic_id
+        assert written["revision"]["conflicts"] == {synthetic_id: [legacy_id]}
 
     def test_run_revision_flags_pass_revision_query_to_runner(self, tmp_path, monkeypatch):
         import click
@@ -2201,19 +2203,21 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_run, "run")
 
         runner = CliRunner()
+        new_id = "ps:assertion:new"
+        legacy_id = "ps:assertion:legacy"
         result = runner.invoke(fake_cli, [
             "run", "revision-run",
             "--target", "concept1",
             "--revision-operation", "iterated_revise",
-            "--revision-atom", '{"kind":"claim","id":"new","value":9.0}',
-            "--revision-conflict", "claim:new=legacy",
+            "--revision-atom", f'{{"kind":"assertion","id":"{new_id}","value":9.0}}',
+            "--revision-conflict", f"{new_id}={legacy_id}",
             "--revision-operator", "lexicographic",
         ])
         assert result.exit_code == 0, result.output
         assert seen["revision"] == {
             "operation": "iterated_revise",
-            "atom": {"kind": "claim", "id": "new", "value": 9.0},
-            "conflicts": {"claim:new": ["legacy"]},
+            "atom": {"kind": "assertion", "id": new_id, "value": 9.0},
+            "conflicts": {new_id: [legacy_id]},
             "operator": "lexicographic",
         }
 
@@ -2225,13 +2229,15 @@ class TestWorldlineCLIFlags:
 
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
+        synthetic_id = "ps:assertion:synthetic"
+        legacy_id = "ps:assertion:legacy"
         (wl_dir / "revision-show.yaml").write_text(yaml.safe_dump({
             "id": "revision-show",
             "targets": ["concept1"],
             "revision": {
                 "operation": "revise",
-                "atom": {"kind": "claim", "id": "synthetic", "value": 9.0},
-                "conflicts": {"claim:synthetic": ["legacy"]},
+                "atom": {"kind": "assertion", "id": synthetic_id, "value": 9.0},
+                "conflicts": {synthetic_id: [legacy_id]},
             },
             "results": {
                 "computed": "2026-03-29T00:00:00Z",
@@ -2241,13 +2247,13 @@ class TestWorldlineCLIFlags:
                 "dependencies": {"claims": [], "stances": [], "contexts": []},
                 "revision": {
                     "operation": "revise",
-                    "input_atom_id": "claim:synthetic",
-                    "target_atom_ids": ["claim:legacy"],
+                    "input_atom_id": synthetic_id,
+                    "target_atom_ids": [legacy_id],
                     "result": {
-                        "accepted_atom_ids": ["claim:synthetic"],
-                        "rejected_atom_ids": ["claim:legacy"],
+                        "accepted_atom_ids": [synthetic_id],
+                        "rejected_atom_ids": [legacy_id],
                         "incision_set": ["assumption:shared_weak"],
-                        "explanation": {"claim:legacy": {"reason": "support_lost"}},
+                        "explanation": {legacy_id: {"reason": "support_lost"}},
                     },
                 },
             },
@@ -2266,8 +2272,8 @@ class TestWorldlineCLIFlags:
         assert result.exit_code == 0, result.output
         assert "Revision query: revise" in result.output
         assert "Revision result: revise" in result.output
-        assert "Input atom: claim:synthetic" in result.output
-        assert "Rejected atoms: claim:legacy" in result.output
+        assert f"Input atom: {synthetic_id}" in result.output
+        assert f"Rejected atoms: {legacy_id}" in result.output
 
     def test_run_show_and_list_share_materialized_worldline_surface(self, tmp_path, monkeypatch):
         import click
