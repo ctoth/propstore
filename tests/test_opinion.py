@@ -8,6 +8,7 @@ Page-image grounding:
 """
 
 import math
+from dataclasses import MISSING, fields
 
 import pytest
 from hypothesis import given, settings, assume
@@ -32,6 +33,30 @@ from propstore.opinion import (
 
 def approx(val, abs=1e-7):
     return pytest.approx(val, abs=abs)
+
+
+class TestNoSilentBaseRateDefaults:
+    def test_opinion_requires_explicit_base_rate(self):
+        defaults = {field.name: field.default for field in fields(Opinion)}
+
+        assert defaults["a"] is MISSING
+
+    def test_beta_evidence_requires_explicit_base_rate(self):
+        defaults = {field.name: field.default for field in fields(BetaEvidence)}
+
+        assert defaults["a"] is MISSING
+
+    def test_convenience_constructors_require_explicit_base_rate(self):
+        with pytest.raises(TypeError):
+            Opinion.vacuous()
+        with pytest.raises(TypeError):
+            Opinion.dogmatic_true()
+        with pytest.raises(TypeError):
+            Opinion.dogmatic_false()
+        with pytest.raises(TypeError):
+            from_evidence(0, 0)
+        with pytest.raises(TypeError):
+            from_probability(0.5, 0)
 
 
 # --- 1. b + d + u == 1 for all valid opinions ---
