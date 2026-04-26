@@ -19,6 +19,8 @@ import pytest
 from hypothesis import given, assume, settings
 from hypothesis import strategies as st
 
+from propstore.calibrate import CalibrationSource, CategoryPrior, CategoryPriorRegistry
+from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.stances import VALID_STANCE_TYPES
 
 
@@ -56,6 +58,30 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _test_category_prior_registry() -> CategoryPriorRegistry:
+    provenance = Provenance(
+        status=ProvenanceStatus.VACUOUS,
+        witnesses=(),
+        operations=("test_category_prior",),
+    )
+    return CategoryPriorRegistry(
+        {
+            category: CategoryPrior(
+                category=category,
+                value=value,
+                source=CalibrationSource.USER_DEFAULT,
+                provenance=provenance,
+            )
+            for category, value in {
+                "strong": 0.7,
+                "moderate": 0.5,
+                "weak": 0.3,
+                "none": 0.1,
+            }.items()
+        }
+    )
+
+
 def _default_forward():
     return {"type": "supports", "strength": "strong", "note": "corroborates", "conditions_differ": None}
 
@@ -83,6 +109,7 @@ class TestClassifyReturnsBidirectional:
             sem = asyncio.Semaphore(1)
             results = _run(classify_stance_async(
                 _make_claim("a"), _make_claim("b"), "test-model", sem,
+                category_prior_registry=_test_category_prior_registry(),
             ))
 
         assert isinstance(results, list)
@@ -100,6 +127,7 @@ class TestClassifyReturnsBidirectional:
             sem = asyncio.Semaphore(1)
             results = _run(classify_stance_async(
                 _make_claim("a"), _make_claim("b"), "test-model", sem,
+                category_prior_registry=_test_category_prior_registry(),
             ))
 
         assert results[0]["target"] == "b"
@@ -152,6 +180,7 @@ class TestClassifyReturnsBidirectional:
             sem = asyncio.Semaphore(1)
             results = _run(classify_stance_async(
                 _make_claim("a"), _make_claim("b"), "test-model", sem,
+                category_prior_registry=_test_category_prior_registry(),
             ))
 
         for r in results:
@@ -352,6 +381,7 @@ class TestClassifierOutputStructureInvariant:
             sem = asyncio.Semaphore(1)
             results = _run(classify_stance_async(
                 _make_claim("a"), _make_claim("b"), "m", sem,
+                category_prior_registry=_test_category_prior_registry(),
             ))
 
         for r in results:
@@ -382,6 +412,7 @@ class TestOpinionAlgebraInvariant:
             sem = asyncio.Semaphore(1)
             results = _run(classify_stance_async(
                 _make_claim("a"), _make_claim("b"), "m", sem,
+                category_prior_registry=_test_category_prior_registry(),
             ))
 
         for r in results:
@@ -433,6 +464,7 @@ class TestCorpusCalibrationReducesUncertainty:
                 _make_claim("a"), _make_claim("b"), "m", sem,
                 embedding_distance=embedding_distance,
                 reference_distances=distances,
+                category_prior_registry=_test_category_prior_registry(),
             ))
 
         with patch("propstore.classify._require_litellm") as mock_req:
@@ -445,6 +477,7 @@ class TestCorpusCalibrationReducesUncertainty:
             results_without = _run(classify_stance_async(
                 _make_claim("a"), _make_claim("b"), "m", sem,
                 embedding_distance=embedding_distance,
+                category_prior_registry=_test_category_prior_registry(),
             ))
 
         # Forward stance (non-none) should have lower uncertainty with corpus data
