@@ -1815,6 +1815,9 @@ Execution ledger:
 - Focused verification:
   `logs/test-runs/argumentation-track-e-20260426-105244.log` passed with 5
   tests; `uv run pyright propstore` passed with 0 errors.
+- Final verification:
+  `logs/test-runs/argumentation-track-e-full-20260426-105337.log` passed with
+  2971 tests; `uv run pyright propstore` passed with 0 errors.
 - Deletion ledger: no old propstore argumentation production path was kept as a
   parallel replacement for this child scope. Existing claim-graph, ASPIC, PrAF,
   and merge paths now call or lift the package surfaces at their projection
