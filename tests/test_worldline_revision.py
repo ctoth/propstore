@@ -8,6 +8,7 @@ from propstore.support_revision.operators import revise
 from propstore.support_revision.state import RevisionScope
 from tests.test_revision_iterated import _history_sensitive_base
 from tests.test_revision_operators import _base_with_shared_support
+from tests.revision_assertion_helpers import make_assertion_atom
 
 
 def test_worldline_definition_roundtrip_preserves_revision_query_block() -> None:
@@ -150,12 +151,13 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     from propstore.worldline import WorldlineDefinition, run_worldline
     from propstore.worldline.result_types import WorldlineTargetValue
 
-    base, entrenchment = _base_with_shared_support()
+    base, entrenchment, ids = _base_with_shared_support()
+    synthetic = make_assertion_atom("synthetic", value=9.0)
     one_shot_result = revise(
         base,
-        {"kind": "claim", "id": "synthetic", "value": 9.0},
+        synthetic,
         entrenchment=entrenchment,
-        conflicts={"claim:synthetic": ("claim:legacy",)},
+        conflicts={synthetic.atom_id: (ids["legacy"],)},
     )
     bound = _RevisionBound(
         one_shot_result=one_shot_result,
@@ -204,20 +206,21 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     from propstore.worldline import WorldlineDefinition, run_worldline
     from propstore.worldline.result_types import WorldlineTargetValue
 
-    base, entrenchment, _ = _history_sensitive_base()
+    base, entrenchment, _, ids = _history_sensitive_base()
+    new = make_assertion_atom("new", value=9.0)
     state = make_epistemic_state(base, entrenchment)
     iterated_result = (
         revise(
             base,
-            {"kind": "claim", "id": "new", "value": 9.0},
+            new,
             entrenchment=entrenchment,
-            conflicts={"claim:new": ("claim:legacy",)},
+            conflicts={new.atom_id: (ids["legacy"],)},
         ),
         replace(
             state,
-            accepted_atom_ids=("claim:new", "claim:left_dependent"),
-            ranked_atom_ids=("claim:new", "claim:left_dependent"),
-            ranking={"claim:new": 0, "claim:left_dependent": 1},
+            accepted_atom_ids=(new.atom_id, ids["left_dependent"]),
+            ranked_atom_ids=(new.atom_id, ids["left_dependent"]),
+            ranking={new.atom_id: 0, ids["left_dependent"]: 1},
         ),
     )
     bound = _RevisionBound(
@@ -266,7 +269,7 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
     from propstore.worldline import WorldlineDefinition, run_worldline
     from propstore.worldline.result_types import WorldlineTargetValue
 
-    base, entrenchment, _ = _history_sensitive_base()
+    base, entrenchment, _, _ = _history_sensitive_base()
     merge_state = make_epistemic_state(
         replace(
             base,
