@@ -13,6 +13,7 @@ from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
 from propstore.opinion import Opinion
+from propstore.sidecar.schema import create_tables
 from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 
 
@@ -54,6 +55,20 @@ class TestOpinionSchemaColumns:
         assert "opinion_disbelief" in columns
         assert "opinion_uncertainty" in columns
         assert "opinion_base_rate" in columns
+
+    def test_opinion_base_rate_has_no_schema_default(self, conn):
+        cur = conn.execute("PRAGMA table_info(relation_edge)")
+        defaults = {row[1]: row[4] for row in cur.fetchall()}
+
+        assert defaults["opinion_base_rate"] is None
+
+    def test_sidecar_opinion_base_rate_has_no_schema_default(self):
+        sidecar = sqlite3.connect(":memory:")
+        create_tables(sidecar)
+        cur = sidecar.execute("PRAGMA table_info(relation_edge)")
+        defaults = {row[1]: row[4] for row in cur.fetchall()}
+
+        assert defaults["opinion_base_rate"] is None
 
     def test_insert_with_opinion_values_roundtrips(self, conn):
         """INSERT with explicit opinion values should round-trip via SELECT.
@@ -138,7 +153,7 @@ class TestOpinionSchemaColumns:
         assert row[0] is None  # opinion_belief NULL
         assert row[1] is None  # opinion_disbelief NULL
         assert row[2] is None  # opinion_uncertainty NULL
-        assert abs(row[3] - 0.5) < 1e-9  # opinion_base_rate defaults to 0.5
+        assert row[3] is None  # opinion_base_rate NULL
 
     def test_confidence_column_unaffected(self, conn):
         """Existing confidence column must be completely unaffected by new columns."""
