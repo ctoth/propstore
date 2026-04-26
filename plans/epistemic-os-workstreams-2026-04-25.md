@@ -601,6 +601,24 @@ deletion_ledger: no existing CheckedCelExpr caller migration yet; this lands
   directly
 ```
 
+Tenth slice execution ledger:
+
+- Red commit: `0de9b84` added checked `ConditionIR` carrier and normalization
+  tests plus checked-condition owner architecture gates.
+- Red log: `logs/test-runs/ws3-checked-condition-red-20260425-190026.log`,
+  failed because `propstore.core.conditions.checked` and checked-condition
+  exports did not exist.
+- Green commit: `af47f09` added `CheckedCondition`,
+  `CheckedConditionSet`, condition-set normalization, and a CEL frontend entry
+  point that returns checked `ConditionIR`.
+- Green log: `logs/test-runs/ws3-checked-condition-green-20260425-190237.log`,
+  37 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no existing `CheckedCelExpr` caller was migrated in this
+  slice; the new runtime-facing checked carrier stores source text,
+  registry fingerprint, warnings, and `ConditionIR`, without a CEL AST field.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
