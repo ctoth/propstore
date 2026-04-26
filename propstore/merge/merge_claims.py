@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from typing import Any
 
+from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
+from propstore.core.assertions.situated import SituatedAssertion
+from propstore.core.id_types import AssertionId
+from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.identity.logical_ids import format_logical_id
 
@@ -65,6 +71,25 @@ class MergeClaim:
     def value(self) -> Any:
         return self.document.value
 
+    @property
+    def assertion(self) -> SituatedAssertion:
+        return SituatedAssertion(
+            relation=RelationConceptRef(f"ps:relation:claim:{self.claim_type or 'unknown'}"),
+            role_bindings=RoleBindingSet(
+                (
+                    RoleBinding("subject", self.value_concept_id or "ps:concept:unscoped"),
+                    RoleBinding("content", _stable_json(_semantic_payload(self.document))),
+                )
+            ),
+            context=ContextReference(self.document.context.id),
+            condition=_condition_ref(tuple(self.document.conditions)),
+            provenance_ref=_provenance_ref(self),
+        )
+
+    @property
+    def assertion_id(self) -> AssertionId:
+        return self.assertion.assertion_id
+
     def get(self, key: str, default: object = None) -> object:
         return self.to_payload(include_id_alias=True).get(key, default)
 
@@ -95,3 +120,50 @@ class MergeClaim:
         elif self.document.provenance is not None:
             payload["provenance"] = dict(self.document.provenance.to_payload())
         return payload
+
+
+def _semantic_payload(document: ClaimDocument) -> dict[str, Any]:
+    payload = document.to_payload()
+    for key in (
+        "artifact_id",
+        "artifact_code",
+        "id",
+        "logical_ids",
+        "version_id",
+        "provenance",
+        "stances",
+        "context",
+        "conditions",
+    ):
+        payload.pop(key, None)
+    return payload
+
+
+def _condition_ref(conditions: tuple[object, ...]) -> ConditionRef:
+    if not conditions:
+        return ConditionRef.unconditional()
+    digest = _digest(tuple(str(condition) for condition in conditions))
+    return ConditionRef(
+        id=f"ps:condition:{digest}",
+        registry_fingerprint=f"claim-condition-source:{digest}",
+    )
+
+
+def _provenance_ref(claim: MergeClaim) -> ProvenanceGraphRef:
+    return ProvenanceGraphRef(
+        f"urn:propstore:claim-provenance:{_digest(claim.provenance_payload())}"
+    )
+
+
+def _stable_json(value: object) -> str:
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        default=str,
+    )
+
+
+def _digest(value: object) -> str:
+    return hashlib.sha256(_stable_json(value).encode("utf-8")).hexdigest()[:32]
