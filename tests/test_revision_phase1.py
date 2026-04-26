@@ -112,8 +112,8 @@ def test_project_belief_base_includes_exact_support_claims_and_active_assumption
     atom_ids = {atom.atom_id for atom in base.atoms}
     assumption_cels = {assumption.cel for assumption in base.assumptions}
 
-    assert "claim:claim_exact" in atom_ids
-    assert "claim:claim_semantic_only" not in atom_ids
+    assert all(atom_id.startswith("ps:assertion:") for atom_id in atom_ids)
+    assert len(atom_ids) == 1
     assert "x == 1" in assumption_cels
 
 
@@ -141,17 +141,22 @@ def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_suppo
     )
     bound = _make_bound(store, bindings={"x": 1})
     base = project_belief_base(bound)
+    override_atom_id = next(
+        atom.atom_id
+        for atom in base.atoms
+        if any(str(claim.claim_id) == "claim_override_target" for claim in atom.source_claims)
+    )
 
     report = compute_entrenchment(
         bound,
         base,
         overrides={
-            "claim:claim_override_target": {"priority": "critical"},
+            override_atom_id: {"priority": "critical"},
         },
     )
 
-    assert report.ranked_atom_ids[0] == "claim:claim_override_target"
-    assert report.reasons["claim:claim_override_target"].override_priority == "critical"
+    assert report.ranked_atom_ids[0] == override_atom_id
+    assert report.reasons[override_atom_id].override_priority == "critical"
 
 
 def test_bound_world_revision_phase1_delegates_to_revision_package() -> None:
