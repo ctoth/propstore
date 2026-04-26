@@ -14,10 +14,10 @@ from argumentation.partial_af import (
 def semantic_candidate_details(merge: RepositoryMergeFramework) -> list[dict]:
     argument_index = merge.argument_index()
     details: list[dict] = []
-    for claim_ids in merge.semantic_candidates:
-        arguments = [argument_index[claim_id] for claim_id in sorted(claim_ids)]
+    for assertion_ids in merge.semantic_candidates:
+        arguments = [argument_index[assertion_id] for assertion_id in sorted(assertion_ids)]
         details.append({
-            "claim_ids": [argument.claim_id for argument in arguments],
+            "assertion_ids": [argument.assertion_id for argument in arguments],
             "logical_ids": [
                 argument.logical_id
                 for argument in arguments
@@ -26,7 +26,7 @@ def semantic_candidate_details(merge: RepositoryMergeFramework) -> list[dict]:
             "artifact_ids": [argument.artifact_id for argument in arguments],
             "arguments": [
                 {
-                    "claim_id": argument.claim_id,
+                    "assertion_id": argument.assertion_id,
                     "logical_id": argument.logical_id,
                     "artifact_id": argument.artifact_id,
                     "branch_origins": list(argument.branch_origins),
@@ -51,17 +51,17 @@ def summarize_merge_framework(
     canonical_groups: dict[str, list[str]] = defaultdict(list)
     for argument in merge.arguments:
         detail = {
-            "claim_id": argument.claim_id,
+            "assertion_id": argument.assertion_id,
             "canonical_claim_id": argument.canonical_claim_id,
             "artifact_id": argument.artifact_id,
             "logical_id": argument.logical_id,
             "concept_id": argument.concept_id,
             "branch_origins": list(argument.branch_origins),
             "provenance": argument.claim.provenance_payload(),
-            "skeptically_accepted": argument.claim_id in skeptical,
-            "credulously_accepted": argument.claim_id in credulous,
+            "skeptically_accepted": argument.assertion_id in skeptical,
+            "credulously_accepted": argument.assertion_id in credulous,
         }
-        statuses[argument.claim_id] = {
+        statuses[argument.assertion_id] = {
             "skeptically_accepted": detail["skeptically_accepted"],
             "credulously_accepted": detail["credulously_accepted"],
             "branch_origins": detail["branch_origins"],
@@ -71,9 +71,9 @@ def summarize_merge_framework(
             "concept_id": detail["concept_id"],
         }
         argument_details.append(detail)
-        canonical_groups[argument.canonical_claim_id].append(argument.claim_id)
+        canonical_groups[argument.canonical_claim_id].append(argument.assertion_id)
 
-    argument_details.sort(key=lambda detail: detail["claim_id"])
+    argument_details.sort(key=lambda detail: detail["assertion_id"])
     canonical_groups_out = {
         canonical_id: sorted(claim_ids)
         for canonical_id, claim_ids in sorted(canonical_groups.items())
@@ -85,7 +85,7 @@ def summarize_merge_framework(
         "branch_a": merge.branch_a,
         "branch_b": merge.branch_b,
         "semantics": semantics,
-        "arguments": [argument.claim_id for argument in merge.arguments],
+        "arguments": [argument.assertion_id for argument in merge.arguments],
         "attacks": [list(pair) for pair in sorted(merge.framework.attacks)],
         "ignorance": [list(pair) for pair in sorted(merge.framework.ignorance)],
         "non_attacks": [list(pair) for pair in sorted(merge.framework.non_attacks)],
