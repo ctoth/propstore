@@ -1,6 +1,6 @@
 """Sidecar schema and table helpers.
 
-Schema version 3 (current) extends the build-time schema with per-row
+Schema version 5 extends the build-time schema with per-row
 lifecycle annotations and a quarantine surface so the render layer can
 filter on policy without losing data. This implements the build-to-render
 gate-removal workstream described in
@@ -45,7 +45,7 @@ import sqlite3
 
 from propstore.sidecar.stages import ContextSidecarRows
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 SIDECAR_META_KEY = "sidecar"
 
 
