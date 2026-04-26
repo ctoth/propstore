@@ -499,7 +499,7 @@ def test_p_defeat_from_opinion_columns():
     # r=0.75, s=0.25, denom=3.0, b=0.25, d=0.083, u=0.667, E=b+a*u=0.583
     # The expectation won't match confidence exactly with n=1 evidence,
     # but the opinion should be constructible and have reasonable values.
-    stance_with_confidence = {"confidence": 0.75}
+    stance_with_confidence = {"confidence": 0.75, "opinion_base_rate": 0.5}
     op2 = p_defeat_from_stance(stance_with_confidence)
     assert isinstance(op2, Opinion)
     assert op2.b > 0  # has some belief
