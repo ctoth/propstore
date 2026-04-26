@@ -15,7 +15,7 @@ from propstore.core.row_types import (
 )
 from propstore.support_revision.state import EpistemicState
 from propstore.core.labels import Label, SupportQuality
-from propstore.support_revision.state import is_claim_atom
+from propstore.support_revision.state import is_assertion_atom
 
 
 @dataclass(frozen=True)
@@ -119,13 +119,13 @@ def project_epistemic_state_argumentation_view(
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
 
     for atom in state.base.atoms:
-        if atom.atom_id not in accepted_set or not is_claim_atom(atom):
+        if atom.atom_id not in accepted_set or not is_assertion_atom(atom):
             continue
-        claim = atom.claim
-        claim_id = str(claim.claim_id)
-        active_claims.append(claim)
-        if atom.label is not None:
-            support_metadata[claim_id] = (atom.label, SupportQuality.EXACT)
+        for claim in atom.source_claims:
+            claim_id = str(claim.claim_id)
+            active_claims.append(claim)
+            if atom.label is not None:
+                support_metadata[claim_id] = (atom.label, SupportQuality.EXACT)
 
     active_claims.sort(key=lambda claim: str(claim.claim_id))
     overlay = RevisionArgumentationStore(backing_store, tuple(active_claims))
@@ -135,12 +135,3 @@ def project_epistemic_state_argumentation_view(
         active_claims=tuple(active_claims),
         support_metadata=support_metadata,
     )
-
-
-def _claim_id(atom) -> str | None:
-    if is_claim_atom(atom):
-        return atom.claim_id
-    prefix, _, suffix = atom.atom_id.partition(":")
-    if prefix == "claim" and suffix:
-        return suffix
-    return None
