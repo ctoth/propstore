@@ -221,6 +221,29 @@ First-slice execution ledger:
 - Old-surface enumeration note:
   `notes/epistemic-os-old-surface-enumeration-2026-04-25.md`.
 
+Second WS1 slice gate:
+
+```text
+target_surface: role-domain/range signatures and relation property assertions
+old_surfaces_to_delete: loose RoleSignature roles tuple without role domain/range
+allowed_owner_modules: propstore.core.relations
+forbidden_imports: grounding, context lifting, calibration, opinion, app, CLI,
+  sidecar, world, backend projection modules
+forbidden_symbols: relation-kernel predicate identity names
+forbidden_storage_columns: none in this slice
+positive_tests: role-domain/range totality, relation property assertion shape,
+  inverse involution, symmetric binary canonicalization, transitive closure
+  containment
+negative_tests: architecture import/symbol tests; role definitions reject
+  missing domain/range; inverse_of rejects missing target
+pyright_scope: uv run pyright propstore
+paper_checkpoint: Buitelaar 2011 page images 000-003 read directly on
+  2026-04-25 before relation/lexical binding finalization; Cimiano 2016,
+  Dowty 1991, Fillmore 1982, and Baker 1998 notes already read for WS1
+deletion_ledger: remove the loose RoleSignature.roles production surface in
+  favor of RoleDefinition domain/range records
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
