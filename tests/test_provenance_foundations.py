@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -63,11 +64,75 @@ def test_named_graph_round_trips_byte_identically() -> None:
     assert b"NamedGraph" in encoded
 
 
+def test_named_graph_encoding_requires_explicit_uri_graph_name() -> None:
+    # Carroll 2005 page images 001 and 004 make graph naming explicit: a
+    # provenance carrier is a named graph, not an anonymous provenance blob.
+    with pytest.raises(ValueError, match="graph_name"):
+        encode_named_graph(_provenance(ProvenanceStatus.STATED, "source-a"))
+
+    with pytest.raises(ValueError, match="URI"):
+        encode_named_graph(
+            Provenance(
+                status=ProvenanceStatus.STATED,
+                witnesses=(_witness("source-a"),),
+                graph_name="claim:source-a",
+            )
+        )
+
+
+def test_named_graph_payload_is_canonical_under_record_ordering() -> None:
+    # Carroll 2005 page image 001 gives graph names rigid identity; Green 2007
+    # notes require provenance combination to behave algebraically rather than
+    # depend on input ordering.
+    first = Provenance(
+        status=ProvenanceStatus.CALIBRATED,
+        witnesses=(_witness("b"), _witness("a"), _witness("b")),
+        graph_name="urn:propstore:provenance:canonical",
+        derived_from=("urn:graph:z", "urn:graph:a", "urn:graph:z"),
+        operations=("projection", "import", "projection"),
+    )
+    second = Provenance(
+        status=ProvenanceStatus.CALIBRATED,
+        witnesses=(_witness("a"), _witness("b")),
+        graph_name="urn:propstore:provenance:canonical",
+        derived_from=("urn:graph:a", "urn:graph:z"),
+        operations=("import", "projection"),
+    )
+
+    encoded = encode_named_graph(first)
+
+    assert encoded == encode_named_graph(second)
+    assert decode_named_graph(encoded) == second
+
+    payload = json.loads(encoded)
+    assert payload["@id"] == "urn:propstore:provenance:canonical"
+    assert payload["provenance"]["witnesses"] == [
+        {
+            "asserter": "agent:a",
+            "method": "stated",
+            "source_artifact_code": "claim:a",
+            "timestamp": "2026-04-17T00:00:00Z",
+        },
+        {
+            "asserter": "agent:b",
+            "method": "stated",
+            "source_artifact_code": "claim:b",
+            "timestamp": "2026-04-17T00:00:00Z",
+        },
+    ]
+    assert payload["provenance"]["derived_from"] == ["urn:graph:a", "urn:graph:z"]
+    assert payload["provenance"]["operations"] == ["import", "projection"]
+
+
 def test_git_notes_round_trip_named_graph_content() -> None:
     repo = MemoryRepo()
     claim_blob = Blob.from_string(b"claim payload")
     repo.object_store.add_object(claim_blob)
-    provenance = _provenance(ProvenanceStatus.MEASURED, "claim")
+    provenance = Provenance(
+        status=ProvenanceStatus.MEASURED,
+        witnesses=(_witness("claim"),),
+        graph_name="urn:propstore:provenance:claim",
+    )
     encoded = encode_named_graph(provenance)
 
     note_commit = write_provenance_note(repo, claim_blob.id, provenance)

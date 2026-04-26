@@ -12,6 +12,7 @@ ASSERTION_CODEC = Path("propstore/core/assertions/codec.py")
 CONDITION_IR = Path("propstore/core/conditions/ir.py")
 CONDITION_CHECKED = Path("propstore/core/conditions/checked.py")
 CONTEXT_LIFTING = Path("propstore/context_lifting.py")
+PROVENANCE_CARRIER = Path("propstore/provenance/__init__.py")
 FORBIDDEN_RELATION_IDENTITY_NAMES = {
     "predicate",
     "predicate_id",
@@ -63,6 +64,12 @@ FORBIDDEN_CHECKED_CONDITION_NAMES = FORBIDDEN_CONDITION_IR_BACKEND_NAMES | {
     "cel_ast",
     "raw_cel_ast",
 }
+FORBIDDEN_PROVENANCE_CARRIER_NAMES = {
+    "_ANONYMOUS_GRAPH_NAME",
+    "anonymous",
+    "assertion_id",
+    "derive_assertion_id",
+}
 
 
 def _kernel_tree() -> ast.AST:
@@ -95,6 +102,10 @@ def _condition_ir_tree() -> ast.AST:
 
 def _condition_checked_tree() -> ast.AST:
     return ast.parse(CONDITION_CHECKED.read_text(encoding="utf-8"))
+
+
+def _provenance_carrier_tree() -> ast.AST:
+    return ast.parse(PROVENANCE_CARRIER.read_text(encoding="utf-8"))
 
 
 def test_relation_kernel_does_not_name_relation_identity_as_predicate() -> None:
@@ -247,3 +258,22 @@ def test_checked_condition_does_not_store_old_ast_or_backend_surfaces() -> None:
             observed.add(node.name)
 
     assert observed.isdisjoint(FORBIDDEN_CHECKED_CONDITION_NAMES)
+
+
+def test_provenance_named_graph_carrier_has_no_anonymous_or_assertion_identity_surface() -> None:
+    tree = _provenance_carrier_tree()
+    observed: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.arg):
+            observed.add(node.arg)
+        elif isinstance(node, ast.Attribute):
+            observed.add(node.attr)
+        elif isinstance(node, ast.Name):
+            observed.add(node.id)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            observed.add(node.value)
+        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            observed.add(node.name)
+
+    assert observed.isdisjoint(FORBIDDEN_PROVENANCE_CARRIER_NAMES)
