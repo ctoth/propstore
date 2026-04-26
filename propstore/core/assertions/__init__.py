@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from propstore.core.assertions.codec import AssertionCanonicalRecord
 from propstore.core.assertions.conversion import (
     AssertionSourceRecord,
     assertion_source_record_from_payload,
@@ -15,6 +16,7 @@ from propstore.core.assertions.refs import (
 from propstore.core.assertions.situated import SituatedAssertion, derive_assertion_id
 
 __all__ = [
+    "AssertionCanonicalRecord",
     "AssertionSourceRecord",
     "UNCONDITIONAL_CONDITION_REF",
     "ConditionRef",
