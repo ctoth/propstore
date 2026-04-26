@@ -22,17 +22,18 @@ Implemented already:
 
 - typed app-owned claim view report;
 - typed app-owned semantic neighborhood report;
+- typed app-owned concept page report;
 - server-rendered and JSON claim routes;
 - server-rendered and JSON neighborhood routes;
+- server-rendered and JSON concept routes;
+- server-rendered and JSON `/claims` and `/concepts` entry routes;
 - focused demo fixture and automated accessibility tests;
 - next-surface decision selecting concept view.
 
 Still unfinished:
 
-- no typed app-owned concept page report exists;
 - current concept show surface is `ConceptShowReport(rendered: str)`, which is
-  CLI/YAML-oriented and not a durable web/API contract;
-- claim and neighborhood repository-state handling has not converged;
+  CLI/YAML-oriented and remains separate from the durable web/API contract;
 - manual browser and screen-reader verification has not been performed.
 
 ## Source Material
@@ -87,6 +88,15 @@ or concept handle.
   place while adding a third inconsistent view surface.
 - Do not preserve both dead template surfaces and active string presenters in
   parallel. Pick one production presenter path and delete the unused one.
+
+Current note:
+
+- `propstore-web-gui-vamp-2026-04-19.md` was referenced by this workstream but
+  was not present at the repository root during the 2026-04-25 abstraction
+  workstream intake.
+- The production presenter path has since converged on explicit presenter
+  functions in `propstore/web/html.py`; `propstore/web/templates/` is not
+  present in the current tree.
 
 ## Workstream Files
 
