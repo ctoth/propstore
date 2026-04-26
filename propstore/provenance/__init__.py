@@ -448,6 +448,15 @@ from propstore.provenance.projections import (
     tropical_cost,
     why_provenance,
 )
+from propstore.provenance.records import (
+    ExternalInferenceProvenanceRecord,
+    ExternalStatementAttitude,
+    ExternalStatementProvenanceRecord,
+    ImportRunProvenanceRecord,
+    LicenseProvenanceRecord,
+    ProjectionFrameProvenanceRecord,
+    SourceVersionProvenanceRecord,
+)
 from propstore.provenance.support import SupportEvidence, SupportQuality
 from propstore.provenance.variables import (
     SourceRole,
@@ -462,11 +471,18 @@ __all__ = [
     "NogoodWitness",
     "PolynomialTerm",
     "PROVENANCE_NOTES_REF",
+    "ExternalInferenceProvenanceRecord",
+    "ExternalStatementAttitude",
+    "ExternalStatementProvenanceRecord",
+    "ImportRunProvenanceRecord",
+    "LicenseProvenanceRecord",
+    "ProjectionFrameProvenanceRecord",
     "Provenance",
     "ProvenanceNogood",
     "ProvenancePolynomial",
     "ProvenanceStatus",
     "ProvenanceWitness",
+    "SourceVersionProvenanceRecord",
     "SourceRole",
     "SourceVariable",
     "SourceVariableId",
