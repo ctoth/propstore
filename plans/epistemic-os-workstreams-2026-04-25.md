@@ -1393,6 +1393,33 @@ Paper checkpoints:
 - Re-read local replication notes before writing fixture assertions.
 - Denoeux 2018 notes if belief-function decision behavior is touched.
 
+WS8 execution ledger:
+
+- Paper/doc checkpoint completed: `docs/subjective-logic.md`,
+  `notes/meta-base-rates.md`, and local notes for Aarts 2015, Camerer 2016,
+  and Camerer 2018 were reread before materializing replication/base-rate
+  assertions. Denoeux 2018 was not reread because belief-function decision
+  behavior was not changed.
+- Red commits covered source-prior resolution, assertion-scoped base-rate
+  resolution, unresolved category priors, calibration defaults, sidecar opinion
+  defaults, PrAF relation defaults, synthetic conflict opinions, explicit
+  opinion base rates, assertion-scoped opinion construction, sourced
+  replication base rates, and subjective-logic documentation.
+- Green commits removed silent base-rate defaults from source document
+  initialization, heuristic source trust, calibration opinion construction,
+  categorical classification, sidecar opinion schema defaults, PrAF claim and
+  relation construction, opinion constructors, synthetic conflict relations,
+  remaining opinion callers, and stale tests.
+- Replication-rate/base-rate fixture content now enters as sourced assertion
+  records through `BaseRateAssertionRecord` and `BaseRateProfile` rather than
+  as code constants.
+- Missing priors now surface as `BaseRateUnresolved` or omitted PrAF
+  calibration, not as numeric `0.5`; tests that intentionally use `0.5` now
+  declare it as a prior or policy.
+- Final verification: `uv run pyright propstore` passed with 0 errors;
+  `logs/test-runs/ws8-full-postfix-20260425-234552.log` passed with 2939
+  tests.
+
 ### WS9: Belief, Merge, Revision Repointing
 
 Purpose:
