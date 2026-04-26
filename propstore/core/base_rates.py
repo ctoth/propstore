@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from propstore.core.id_types import AssertionId
+from propstore.opinion import Opinion
 from propstore.provenance import Provenance
 
 
@@ -75,6 +76,31 @@ class BaseRateUnresolved:
 
 
 @dataclass(frozen=True)
+class AssertionOpinion:
+    assertion_id: AssertionId
+    opinion: Opinion
+    base_rate_assertion_id: AssertionId
+    evidence_assertion_ids: tuple[AssertionId, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "assertion_id",
+            _assertion_id(self.assertion_id, "assertion_id"),
+        )
+        object.__setattr__(
+            self,
+            "base_rate_assertion_id",
+            _assertion_id(self.base_rate_assertion_id, "base_rate_assertion_id"),
+        )
+        object.__setattr__(
+            self,
+            "evidence_assertion_ids",
+            _assertion_ids(self.evidence_assertion_ids, "evidence_assertion_ids"),
+        )
+
+
+@dataclass(frozen=True)
 class BaseRateResolver:
     profiles: tuple[BaseRateProfile, ...]
     _by_target: dict[AssertionId, BaseRateProfile] = field(init=False, repr=False)
@@ -123,3 +149,31 @@ class BaseRateResolver:
             evidence_assertion_ids=profile.evidence_assertion_ids,
             provenance=profile.provenance,
         )
+
+
+def construct_assertion_opinion(
+    *,
+    assertion_id: AssertionId,
+    belief: float,
+    disbelief: float,
+    uncertainty: float,
+    resolver: BaseRateResolver,
+    provenance: Provenance | None = None,
+) -> AssertionOpinion | BaseRateUnresolved:
+    assertion = _assertion_id(assertion_id, "assertion_id")
+    resolved = resolver.resolve(assertion)
+    if isinstance(resolved, BaseRateUnresolved):
+        return resolved
+
+    return AssertionOpinion(
+        assertion_id=assertion,
+        opinion=Opinion(
+            belief,
+            disbelief,
+            uncertainty,
+            resolved.value,
+            provenance if provenance is not None else resolved.provenance,
+        ),
+        base_rate_assertion_id=resolved.profile_assertion_id,
+        evidence_assertion_ids=resolved.evidence_assertion_ids,
+    )
