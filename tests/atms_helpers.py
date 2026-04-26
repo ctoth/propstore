@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from propstore.context_lifting import ContextReference, LiftingSystem
+from propstore.context_lifting import LiftingSystem
+from propstore.core.assertions import ContextReference
 
 
 class _ExactMatchSolver:

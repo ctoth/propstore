@@ -6,8 +6,10 @@ from dataclasses import dataclass
 
 from propstore.core.id_types import (
     ConditionId,
+    ContextId,
     ProvenanceGraphId,
     to_condition_id,
+    to_context_id,
     to_provenance_graph_id,
 )
 
@@ -15,6 +17,24 @@ _CONDITION_ID_PREFIX = "ps:condition:"
 _GRAPH_NAME_PREFIXES = ("urn:", "ni://", "http://", "https://")
 _UNCONDITIONAL_ID = ConditionId("ps:condition:unconditional")
 _UNCONDITIONAL_FINGERPRINT = "registry:unconditional"
+
+
+@dataclass(frozen=True, order=True)
+class ContextReference:
+    """Stable context identity reference for situated assertions."""
+
+    id: ContextId | str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.id, str):
+            raise TypeError("context id must be a string")
+        context_id = to_context_id(self.id.strip())
+        if str(context_id) == "":
+            raise ValueError("context id must be non-empty")
+        object.__setattr__(self, "id", context_id)
+
+    def identity_payload(self) -> tuple[str, str]:
+        return ("context", str(self.id))
 
 
 @dataclass(frozen=True, order=True)

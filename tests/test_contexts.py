@@ -17,7 +17,8 @@ from propstore.families.contexts.documents import ContextDocument
 from propstore.cel_checker import synthetic_category_concept
 from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
-from propstore.context_lifting import ContextReference, LiftingRule, LiftingSystem
+from propstore.context_lifting import LiftingRule, LiftingSystem
+from propstore.core.assertions import ContextReference
 from propstore.families.contexts import load_contexts
 from propstore.families.contexts.passes import run_context_pipeline
 from propstore.families.contexts.stages import (

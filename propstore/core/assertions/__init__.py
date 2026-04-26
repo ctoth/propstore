@@ -5,11 +5,13 @@ from __future__ import annotations
 from propstore.core.assertions.refs import (
     UNCONDITIONAL_CONDITION_REF,
     ConditionRef,
+    ContextReference,
     ProvenanceGraphRef,
 )
 
 __all__ = [
     "UNCONDITIONAL_CONDITION_REF",
     "ConditionRef",
+    "ContextReference",
     "ProvenanceGraphRef",
 ]
