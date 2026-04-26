@@ -1310,6 +1310,13 @@ Paper checkpoints:
 - Modgil 2014 and Prakken 2010 notes before ASPIC projection changes.
 - Dung 1995 notes for AF boundary semantics.
 
+Slice gate:
+
+- 2026-04-25 WS6 slice: introduce typed projection records with explicit
+  source assertion ids, backend atom ids, projection provenance, and typed loss
+  witnesses; replace the first bare backend-string projection path rather than
+  carrying a parallel compatibility surface.
+
 ### WS7: Grounding Completion
 
 Purpose:
