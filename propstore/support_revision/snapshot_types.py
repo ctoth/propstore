@@ -6,6 +6,7 @@ from typing import Any
 
 from propstore.cel_types import to_cel_expr
 from propstore.core.active_claims import coerce_active_claim
+from propstore.core.assertions.codec import AssertionCanonicalRecord
 from propstore.core.id_types import to_assumption_id, to_assumption_ids, to_context_id
 from propstore.core.labels import AssumptionRef, EnvironmentKey, Label
 from propstore.support_revision.explanation_types import (
@@ -19,11 +20,9 @@ from propstore.support_revision.state import (
     BeliefBase,
     EpistemicState,
     AssumptionAtom,
-    ClaimAtom,
+    AssertionAtom,
     RevisionEpisode,
     RevisionScope,
-    is_assumption_atom,
-    is_claim_atom,
 )
 
 
@@ -122,10 +121,23 @@ def _belief_atom_from_mapping(data: Mapping[str, Any]) -> BeliefAtom:
     payload_data = data.get("payload")
     atom_id = str(data.get("atom_id") or "")
     label = _label_from_mapping(data.get("label") if isinstance(data.get("label"), Mapping) else None)
-    if kind == "claim":
+    if kind == "assertion":
         if not isinstance(payload_data, Mapping):
-            raise ValueError("Claim atom snapshot requires mapping payload")
-        return ClaimAtom(atom_id=atom_id, claim=coerce_active_claim(payload_data), label=label)
+            raise ValueError("Assertion atom snapshot requires mapping payload")
+        assertion_payload = payload_data.get("assertion")
+        if not isinstance(assertion_payload, Mapping):
+            raise ValueError("Assertion atom snapshot requires mapping assertion payload")
+        source_payload = payload_data.get("source_claims") or ()
+        return AssertionAtom(
+            atom_id=atom_id,
+            assertion=AssertionCanonicalRecord.from_payload(assertion_payload).to_assertion(),
+            source_claims=tuple(
+                coerce_active_claim(item)
+                for item in source_payload
+                if isinstance(item, Mapping)
+            ),
+            label=label,
+        )
     if kind == "assumption":
         if not isinstance(payload_data, Mapping):
             raise ValueError("Assumption atom snapshot requires mapping payload")
@@ -134,9 +146,12 @@ def _belief_atom_from_mapping(data: Mapping[str, Any]) -> BeliefAtom:
 
 
 def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
-    if isinstance(atom, ClaimAtom):
-        payload = atom.claim.to_dict()
-        kind = "claim"
+    if isinstance(atom, AssertionAtom):
+        payload = {
+            "assertion": AssertionCanonicalRecord.from_assertion(atom.assertion).to_payload(),
+            "source_claims": [claim.to_dict() for claim in atom.source_claims],
+        }
+        kind = "assertion"
     else:
         assert isinstance(atom, AssumptionAtom)
         payload = {
