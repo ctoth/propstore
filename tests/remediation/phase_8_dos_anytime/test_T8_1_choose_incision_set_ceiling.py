@@ -4,10 +4,12 @@ from propstore.core.anytime import EnumerationExceeded
 from propstore.provenance import ProvenanceStatus
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.operators import _choose_incision_set
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
+from tests.revision_assertion_helpers import make_assertion_atom
 
 
 def test_choose_incision_set_returns_enumeration_exceeded_past_ceiling() -> None:
+    target = make_assertion_atom("target")
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
@@ -15,10 +17,10 @@ def test_choose_incision_set_returns_enumeration_exceeded_past_ceiling() -> None
             AssumptionAtom("assumption:a1", {"assumption_id": "a1"}),
             AssumptionAtom("assumption:a2", {"assumption_id": "a2"}),
             AssumptionAtom("assumption:a3", {"assumption_id": "a3"}),
-            ClaimAtom("claim:target", {"id": "target"}),
+            target,
         ),
         support_sets={
-            "claim:target": (
+            target.atom_id: (
                 ("assumption:a0", "assumption:a1"),
                 ("assumption:a2", "assumption:a3"),
             ),
@@ -27,7 +29,7 @@ def test_choose_incision_set_returns_enumeration_exceeded_past_ceiling() -> None
 
     result = _choose_incision_set(
         base,
-        ("claim:target",),
+        (target.atom_id,),
         EntrenchmentReport(ranked_atom_ids=()),
         max_candidates=1,
     )
