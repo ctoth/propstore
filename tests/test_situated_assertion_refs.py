@@ -7,9 +7,22 @@ from hypothesis import strategies as st
 from propstore.core.assertions import (
     UNCONDITIONAL_CONDITION_REF,
     ConditionRef,
+    ContextReference,
     ProvenanceGraphRef,
 )
-from propstore.core.id_types import ConditionId, ProvenanceGraphId
+from propstore.core.id_types import ConditionId, ContextId, ProvenanceGraphId
+
+
+def test_context_reference_is_owned_by_assertion_core() -> None:
+    context = ContextReference(ContextId("ctx_lab"))
+
+    assert not isinstance(context, str)
+    assert context.identity_payload() == ("context", "ctx_lab")
+
+
+def test_context_reference_rejects_empty_id() -> None:
+    with pytest.raises(ValueError, match="context id"):
+        ContextReference("")
 
 
 def test_condition_ref_is_closed_identity_reference_not_raw_cel() -> None:
