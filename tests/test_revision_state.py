@@ -6,7 +6,7 @@ from propstore.support_revision.projection import project_belief_base
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 
-def test_project_belief_base_exposes_support_sets_for_claim_atoms() -> None:
+def test_project_belief_base_exposes_support_sets_for_assertion_atoms() -> None:
     store = _RevisionStore(
         claims=[
             {
@@ -22,11 +22,13 @@ def test_project_belief_base_exposes_support_sets_for_claim_atoms() -> None:
 
     base = project_belief_base(bound)
     assumption_id = base.assumptions[0].assumption_id
+    atom_id = base.atoms[0].atom_id
 
-    assert base.support_sets["claim:claim_exact"] == ((assumption_id,),)
+    assert atom_id.startswith("ps:assertion:")
+    assert base.support_sets[atom_id] == ((assumption_id,),)
 
 
-def test_project_belief_base_exposes_essential_support_for_claim_atoms() -> None:
+def test_project_belief_base_exposes_essential_support_for_assertion_atoms() -> None:
     store = _RevisionStore(
         claims=[
             {
@@ -42,8 +44,10 @@ def test_project_belief_base_exposes_essential_support_for_claim_atoms() -> None
 
     base = project_belief_base(bound)
     assumption_id = base.assumptions[0].assumption_id
+    atom_id = base.atoms[0].atom_id
 
-    assert base.essential_support["claim:claim_exact"] == (assumption_id,)
+    assert atom_id.startswith("ps:assertion:")
+    assert base.essential_support[atom_id] == (assumption_id,)
 
 
 def test_projected_support_metadata_is_deterministic_under_claim_order_variation() -> None:
