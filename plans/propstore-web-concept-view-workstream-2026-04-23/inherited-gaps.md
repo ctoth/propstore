@@ -1,8 +1,11 @@
 # Inherited Gaps
 
-These gaps were left open by the first web workstream and remain active here.
+These gaps were left open by the first web workstream. Current status notes were
+updated during the 2026-04-25 web abstraction workstream.
 
 ## Gap 1 - Repository-View Contract Mismatch
+
+Status: resolved in current production code.
 
 Current claim and neighborhood readers do not yet share one converged
 repository-view contract.
@@ -17,7 +20,18 @@ Required convergence in this workstream:
 - one honest handling path for supported and unsupported repository-view state;
 - no leftover unused reading-surface fields.
 
+Current evidence:
+
+- `propstore/app/repository_views.py` defines `AppRepositoryViewRequest`.
+- Claim, neighborhood, concept, `/claims`, and `/concepts` routes build and pass
+  that shared request.
+- Unsupported branch or revision state is rejected through
+  `RepositoryViewUnsupportedStateError`.
+
 ## Gap 2 - Unused Reading-Surface Fields
+
+Status: resolved for the current claim, neighborhood, concept, `/claims`, and
+`/concepts` surfaces.
 
 The current neighborhood reader carries fields that are not part of a converged
 reading-surface contract.
@@ -26,7 +40,15 @@ If a field is not needed for claim, neighborhood, concept, `/claims`, or
 `/concepts` reading routes, delete it instead of carrying a speculative surface
 forward.
 
+Current evidence:
+
+- `SemanticNeighborhoodRequest` carries focus kind, focus ID, render policy,
+  repository view, and limit.
+- It no longer carries a speculative `bindings` field.
+
 ## Gap 3 - Manual Accessibility Is Still Open
+
+Status: still open.
 
 Automated checks exist, but live browser and screen-reader verification has not
 been performed.
@@ -40,6 +62,8 @@ continue to block:
 - audio projection.
 
 ## Gap 4 - Presenter Path Has Not Converged
+ 
+Status: resolved in current production code.
 
 `propstore/web/html.py` is the active presenter path, but `propstore/web/templates/`
 also exists.
@@ -47,7 +71,16 @@ also exists.
 Keeping both around as production surfaces is not convergence. This workstream
 must pick one and delete the other.
 
+Current evidence:
+
+- `propstore/web/html.py` is the active production presenter path.
+- `propstore/web/templates/` is not present in the current tree.
+- The 2026-04-25 web abstraction workstream keeps explicit presenter functions
+  and does not reintroduce templates.
+
 ## Gap 5 - Discovery Entry Routes Are Missing
+
+Status: resolved in current production code.
 
 The current web surface already has claim and neighborhood object routes, but
 it still lacks `/claims` and `/concepts`.
@@ -57,3 +90,10 @@ are arriving from the CLI.
 
 This workstream treats those collection routes as required reading entrypoints,
 not optional polish.
+
+Current evidence:
+
+- `propstore/web/routing.py` registers `/claims`, `/claims.json`, `/concepts`,
+  and `/concepts.json`.
+- `tests/test_web_claim_index_routes.py` and
+  `tests/test_web_concept_index_routes.py` cover those routes.
