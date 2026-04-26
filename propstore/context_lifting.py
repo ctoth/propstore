@@ -173,16 +173,6 @@ class LiftingSystem:
             assumptions.extend(rule.conditions)
         return tuple(dict.fromkeys(assumptions))
 
-    def contexts_visible_from(self, target: ContextId | str) -> frozenset[ContextId]:
-        target_id = to_context_id(target)
-        visible: set[ContextId] = {target_id}
-        visible.update(
-            to_context_id(rule.source.id)
-            for rule in self.lifting_rules
-            if rule.target.id == target_id
-        )
-        return frozenset(visible)
-
     def materialize_lifted_assertions(
         self,
         assertions: tuple[IstProposition, ...],
