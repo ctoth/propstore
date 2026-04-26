@@ -84,7 +84,7 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     repo.git.commit_files(adds, "Seed cli-render-policy workspace")
     repo.git.sync_worktree()
 
-    # Run pks build so the sidecar exists (with schema v3 + lifecycle cols).
+    # Run pks build so the sidecar exists with current lifecycle columns.
     runner = CliRunner()
     sidecar = knowledge / "sidecar" / "propstore.sqlite"
     sidecar.parent.mkdir(parents=True, exist_ok=True)
