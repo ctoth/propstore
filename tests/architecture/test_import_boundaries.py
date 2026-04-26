@@ -10,6 +10,7 @@ ASSERTION_SITUATED = Path("propstore/core/assertions/situated.py")
 ASSERTION_CONVERSION = Path("propstore/core/assertions/conversion.py")
 ASSERTION_CODEC = Path("propstore/core/assertions/codec.py")
 CONDITION_IR = Path("propstore/core/conditions/ir.py")
+CONDITION_CHECKED = Path("propstore/core/conditions/checked.py")
 CONDITION_CEL_FRONTEND = Path("propstore/core/conditions/cel_frontend.py")
 CONDITION_PYTHON_BACKEND = Path("propstore/core/conditions/python_backend.py")
 
@@ -142,6 +143,23 @@ def test_condition_ir_exists_as_shallow_owner_module() -> None:
 
 def test_condition_ir_does_not_import_frontend_or_backend_layers() -> None:
     imports = _imported_modules(CONDITION_IR)
+
+    forbidden = {
+        imported
+        for imported in imports
+        for prefix in FORBIDDEN_CONDITION_IR_IMPORT_PREFIXES
+        if imported == prefix or imported.startswith(f"{prefix}.")
+    }
+
+    assert forbidden == set()
+
+
+def test_condition_checked_exists_as_shallow_owner_module() -> None:
+    assert CONDITION_CHECKED.exists()
+
+
+def test_condition_checked_does_not_import_frontend_or_backend_layers() -> None:
+    imports = _imported_modules(CONDITION_CHECKED)
 
     forbidden = {
         imported
