@@ -294,3 +294,20 @@ def read_grounded_facts(
         }
         frozen[section_name] = MappingProxyType(inner_frozen)
     return MappingProxyType(frozen)
+
+
+def read_grounded_bundle(conn: sqlite3.Connection) -> GroundedRulesBundle:
+    """Rehydrate a runtime grounding bundle from sidecar materialization.
+
+    WS7 makes the sidecar the runtime source for grounded rule output.
+    The sidecar persists the backend's four-status section map; source
+    rules and source facts are intentionally empty here because runtime
+    argumentation should not rebuild the repository compiler inputs from
+    files after sidecar build has materialized the result.
+    """
+
+    return GroundedRulesBundle(
+        source_rules=(),
+        source_facts=(),
+        sections=read_grounded_facts(conn),
+    )
