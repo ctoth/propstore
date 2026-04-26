@@ -9,14 +9,15 @@ from pathlib import Path
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.operators import contract
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionEpisode, RevisionScope
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionEpisode, RevisionScope
+from tests.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_operators import _base_with_shared_support
 
 
 def test_make_epistemic_state_captures_base_entrenchment_and_empty_history() -> None:
     from propstore.support_revision.iterated import make_epistemic_state
 
-    base, entrenchment = _base_with_shared_support()
+    base, entrenchment, _ = _base_with_shared_support()
 
     state = make_epistemic_state(base, entrenchment)
 
@@ -30,9 +31,9 @@ def test_make_epistemic_state_captures_base_entrenchment_and_empty_history() -> 
 def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
     from propstore.support_revision.iterated import advance_epistemic_state, make_epistemic_state
 
-    base, entrenchment = _base_with_shared_support()
+    base, entrenchment, ids = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
-    result = contract(base, ("claim:legacy",), entrenchment=entrenchment)
+    result = contract(base, (ids["legacy"],), entrenchment=entrenchment)
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
             atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
@@ -45,7 +46,7 @@ def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
         result,
         next_entrenchment,
         operator="contract",
-        target_atom_ids=("claim:legacy",),
+        target_atom_ids=(ids["legacy"],),
     )
 
     assert tuple(atom.atom_id for atom in next_state.base.atoms) == tuple(
@@ -54,16 +55,16 @@ def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
     assert next_state.accepted_atom_ids == result.accepted_atom_ids
     assert next_state.ranked_atom_ids == next_entrenchment.ranked_atom_ids
     assert next_state.history[-1].operator == "contract"
-    assert next_state.history[-1].target_atom_ids == ("claim:legacy",)
+    assert next_state.history[-1].target_atom_ids == (ids["legacy"],)
     assert next_state.history[-1].rejected_atom_ids == result.rejected_atom_ids
 
 
 def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
     from propstore.support_revision.iterated import advance_epistemic_state, epistemic_state_payload, make_epistemic_state
 
-    base, entrenchment = _base_with_shared_support()
+    base, entrenchment, ids = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
-    result = contract(base, ("claim:legacy",), entrenchment=entrenchment)
+    result = contract(base, (ids["legacy"],), entrenchment=entrenchment)
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
             atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
@@ -76,7 +77,7 @@ def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
         result,
         next_entrenchment,
         operator="contract",
-        target_atom_ids=("claim:legacy",),
+        target_atom_ids=(ids["legacy"],),
     )
     payload = epistemic_state_payload(next_state)
 
@@ -99,34 +100,42 @@ def test_iterated_revision_module_does_not_import_ic_merge() -> None:
     assert "propstore.storage.ic_merge" not in imports
 
 
-def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, EntrenchmentReport]:
+def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, EntrenchmentReport, dict[str, str]]:
+    legacy = make_assertion_atom("legacy")
+    left_dependent = make_assertion_atom("left_dependent")
+    right_dependent = make_assertion_atom("right_dependent")
+    ids = {
+        "legacy": legacy.atom_id,
+        "left_dependent": left_dependent.atom_id,
+        "right_dependent": right_dependent.atom_id,
+    }
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
             AssumptionAtom("assumption:left_path", {"assumption_id": "left_path"}),
             AssumptionAtom("assumption:right_path", {"assumption_id": "right_path"}),
-            ClaimAtom("claim:legacy", {"id": "legacy"}),
-            ClaimAtom("claim:left_dependent", {"id": "left_dependent"}),
-            ClaimAtom("claim:right_dependent", {"id": "right_dependent"}),
+            legacy,
+            left_dependent,
+            right_dependent,
         ),
         support_sets={
-            "claim:legacy": (("assumption:left_path", "assumption:right_path"),),
-            "claim:left_dependent": (("assumption:left_path",),),
-            "claim:right_dependent": (("assumption:right_path",),),
+            ids["legacy"]: (("assumption:left_path", "assumption:right_path"),),
+            ids["left_dependent"]: (("assumption:left_path",),),
+            ids["right_dependent"]: (("assumption:right_path",),),
         },
         essential_support={
-            "claim:legacy": ("assumption:left_path", "assumption:right_path"),
-            "claim:left_dependent": ("assumption:left_path",),
-            "claim:right_dependent": ("assumption:right_path",),
+            ids["legacy"]: ("assumption:left_path", "assumption:right_path"),
+            ids["left_dependent"]: ("assumption:left_path",),
+            ids["right_dependent"]: ("assumption:right_path",),
         },
     )
     left_first = EntrenchmentReport(
         ranked_atom_ids=(
-            "claim:left_dependent",
+            ids["left_dependent"],
             "assumption:left_path",
-            "claim:right_dependent",
+            ids["right_dependent"],
             "assumption:right_path",
-            "claim:legacy",
+            ids["legacy"],
         ),
         reasons={
             "assumption:left_path": EntrenchmentReason(support_count=2),
@@ -135,24 +144,24 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
     )
     right_first = EntrenchmentReport(
         ranked_atom_ids=(
-            "claim:right_dependent",
+            ids["right_dependent"],
             "assumption:right_path",
-            "claim:left_dependent",
+            ids["left_dependent"],
             "assumption:left_path",
-            "claim:legacy",
+            ids["legacy"],
         ),
         reasons={
             "assumption:left_path": EntrenchmentReason(support_count=2),
             "assumption:right_path": EntrenchmentReason(support_count=2),
         },
     )
-    return base, left_first, right_first
+    return base, left_first, right_first, ids
 
 
 def test_iterated_revise_is_history_sensitive_even_with_same_current_acceptance() -> None:
     from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
-    base, left_first, right_first = _history_sensitive_base()
+    base, left_first, right_first, ids = _history_sensitive_base()
     state_left = replace(
         make_epistemic_state(base, left_first),
         history=(
@@ -165,8 +174,8 @@ def test_iterated_revise_is_history_sensitive_even_with_same_current_acceptance(
             RevisionEpisode(operator="seed-right"),
         ),
     )
-    new_atom = {"kind": "claim", "id": "new"}
-    conflicts = {"claim:new": ("claim:legacy",)}
+    new_atom = make_assertion_atom("new")
+    conflicts = {new_atom.atom_id: (ids["legacy"],)}
 
     _, next_left = iterated_revise(
         state_left,
@@ -182,19 +191,19 @@ def test_iterated_revise_is_history_sensitive_even_with_same_current_acceptance(
     )
 
     assert next_left.accepted_atom_ids != next_right.accepted_atom_ids
-    assert "claim:left_dependent" in next_left.accepted_atom_ids
-    assert "claim:right_dependent" not in next_left.accepted_atom_ids
-    assert "claim:right_dependent" in next_right.accepted_atom_ids
-    assert "claim:left_dependent" not in next_right.accepted_atom_ids
+    assert ids["left_dependent"] in next_left.accepted_atom_ids
+    assert ids["right_dependent"] not in next_left.accepted_atom_ids
+    assert ids["right_dependent"] in next_right.accepted_atom_ids
+    assert ids["left_dependent"] not in next_right.accepted_atom_ids
 
 
 def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
     from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
-    base, entrenchment, _ = _history_sensitive_base()
+    base, entrenchment, _, ids = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
-    new_atom = {"kind": "claim", "id": "new"}
-    conflicts = {"claim:new": ("claim:legacy",)}
+    new_atom = make_assertion_atom("new")
+    conflicts = {new_atom.atom_id: (ids["legacy"],)}
 
     _, restrained_state = iterated_revise(
         state,
@@ -210,34 +219,36 @@ def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
     )
 
     assert restrained_state.ranked_atom_ids[0] != lexicographic_state.ranked_atom_ids[0]
-    assert lexicographic_state.ranked_atom_ids[0] == "claim:new"
+    assert lexicographic_state.ranked_atom_ids[0] == new_atom.atom_id
 
 
 def test_iterated_revise_linear_sequence_appends_history_and_uses_next_state() -> None:
     from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
-    base, entrenchment, _ = _history_sensitive_base()
+    base, entrenchment, _, ids = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
+    new_a = make_assertion_atom("new_a")
+    new_b = make_assertion_atom("new_b")
 
     _, next_state = iterated_revise(
         state,
-        {"kind": "claim", "id": "new_a"},
-        conflicts={"claim:new_a": ("claim:legacy",)},
+        new_a,
+        conflicts={new_a.atom_id: (ids["legacy"],)},
         operator="restrained",
     )
     _, final_state = iterated_revise(
         next_state,
-        {"kind": "claim", "id": "new_b"},
-        conflicts={"claim:new_b": ("claim:new_a",)},
+        new_b,
+        conflicts={new_b.atom_id: (new_a.atom_id,)},
         operator="restrained",
     )
 
     assert len(next_state.history) == 1
     assert len(final_state.history) == 2
-    assert final_state.history[0].input_atom_id == "claim:new_a"
-    assert final_state.history[1].input_atom_id == "claim:new_b"
-    assert "claim:new_a" not in final_state.accepted_atom_ids
-    assert "claim:new_b" in final_state.accepted_atom_ids
+    assert final_state.history[0].input_atom_id == new_a.atom_id
+    assert final_state.history[1].input_atom_id == new_b.atom_id
+    assert new_a.atom_id not in final_state.accepted_atom_ids
+    assert new_b.atom_id in final_state.accepted_atom_ids
 
 
 def test_iterated_revise_refuses_merge_point_states() -> None:
@@ -245,7 +256,8 @@ def test_iterated_revise_refuses_merge_point_states() -> None:
 
     from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
-    base, entrenchment, _ = _history_sensitive_base()
+    base, entrenchment, _, ids = _history_sensitive_base()
+    new_atom = make_assertion_atom("new")
     merge_base = replace(
         base,
         scope=RevisionScope(
@@ -259,7 +271,7 @@ def test_iterated_revise_refuses_merge_point_states() -> None:
     with pytest.raises(ValueError, match="merge point"):
         iterated_revise(
             state,
-            {"kind": "claim", "id": "new"},
-            conflicts={"claim:new": ("claim:legacy",)},
+            new_atom,
+            conflicts={new_atom.atom_id: (ids["legacy"],)},
             operator="restrained",
         )
