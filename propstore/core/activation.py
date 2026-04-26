@@ -39,16 +39,39 @@ def _binding_conditions(environment: Environment) -> tuple[CelExpr, ...]:
     return to_cel_exprs(conditions)
 
 
-def _lifted_contexts(
+def _claim_projected_into_environment(
+    *,
+    claim_context_id: str | None,
+    claim_id: str,
     environment: Environment,
     lifting_system: LiftingSystem | None,
-) -> set[str] | None:
+) -> bool:
     if environment.context_id is None or lifting_system is None:
-        return None
-    return {
-        str(context_id)
-        for context_id in lifting_system.contexts_visible_from(environment.context_id)
-    }
+        return True
+    if claim_context_id is None:
+        return True
+    if claim_context_id == str(environment.context_id):
+        return True
+
+    from propstore.context_lifting import (
+        IstProposition,
+        LiftingMaterializationStatus,
+    )
+    from propstore.core.assertions import ContextReference
+
+    materializations = lifting_system.materialize_lifted_assertions(
+        (
+            IstProposition(
+                context=ContextReference(claim_context_id),
+                proposition_id=claim_id,
+            ),
+        )
+    )
+    return any(
+        materialization.target_context.id == environment.context_id
+        and materialization.status is LiftingMaterializationStatus.LIFTED
+        for materialization in materializations
+    )
 
 
 def _claim_attributes(claim: ClaimNode) -> dict[str, Any]:
@@ -169,11 +192,14 @@ def is_claim_node_active(
     solver: Z3ConditionSolver | None,
     lifting_system: LiftingSystem | None = None,
 ) -> bool:
-    visible_contexts = _lifted_contexts(environment, lifting_system)
     claim_context_id = _claim_context_id(claim)
-    if visible_contexts is not None and claim_context_id is not None:
-        if claim_context_id not in visible_contexts:
-            return False
+    if not _claim_projected_into_environment(
+        claim_context_id=claim_context_id,
+        claim_id=str(claim.claim_id),
+        environment=environment,
+        lifting_system=lifting_system,
+    ):
+        return False
 
     claim_conditions = _claim_conditions(claim)
     if not claim_conditions:
@@ -206,11 +232,14 @@ def is_active_claim_active(
     solver: Z3ConditionSolver | None,
     lifting_system: LiftingSystem | None = None,
 ) -> bool:
-    visible_contexts = _lifted_contexts(environment, lifting_system)
     claim_context_id = claim.context_id
-    if visible_contexts is not None and claim_context_id is not None:
-        if str(claim_context_id) not in visible_contexts:
-            return False
+    if not _claim_projected_into_environment(
+        claim_context_id=None if claim_context_id is None else str(claim_context_id),
+        claim_id=str(claim.claim_id),
+        environment=environment,
+        lifting_system=lifting_system,
+    ):
+        return False
 
     claim_conditions = claim.conditions
     if not claim_conditions:
