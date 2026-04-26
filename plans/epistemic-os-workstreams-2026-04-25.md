@@ -285,6 +285,22 @@ deletion_ledger: no situated assertion object yet; prevent WS2 from using raw
   CEL strings or provenance blobs by landing typed references first
 ```
 
+Third slice execution ledger:
+
+- Red commit: `e6034f9` added closed condition/provenance reference tests and
+  assertion-owner architecture gates.
+- Red log: `logs/test-runs/ws2-refs-red-20260425-181249.log`, failed because
+  `propstore.core.assertions` and `refs.py` did not exist.
+- Green commit: `c5c70e7` added `ConditionRef`,
+  `ProvenanceGraphRef`, their ID brands, and the unconditional condition
+  sentinel.
+- Green log: `logs/test-runs/ws2-refs-green-20260425-181356.log`, 13 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no old production object was deleted; the new reference
+  boundary prevents the upcoming `SituatedAssertion` type from using raw CEL
+  strings or embedded provenance records as placeholders.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
