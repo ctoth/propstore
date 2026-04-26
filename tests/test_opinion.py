@@ -63,15 +63,15 @@ class TestNoSilentBaseRateDefaults:
 
 class TestBDUSum:
     def test_vacuous(self):
-        o = Opinion.vacuous()
+        o = Opinion.vacuous(0.5)
         assert o.b + o.d + o.u == approx(1.0)
 
     def test_dogmatic_true(self):
-        o = Opinion.dogmatic_true()
+        o = Opinion.dogmatic_true(0.5)
         assert o.b + o.d + o.u == approx(1.0)
 
     def test_dogmatic_false(self):
-        o = Opinion.dogmatic_false()
+        o = Opinion.dogmatic_false(0.5)
         assert o.b + o.d + o.u == approx(1.0)
 
     def test_arbitrary(self):
@@ -80,7 +80,7 @@ class TestBDUSum:
 
     def test_rejects_invalid_sum(self):
         with pytest.raises(ValueError, match="b \\+ d \\+ u"):
-            Opinion(0.5, 0.5, 0.5)
+            Opinion(0.5, 0.5, 0.5, 0.5)
 
 
 # --- 2. 0 < a < 1 for all non-degenerate opinions ---
@@ -107,10 +107,10 @@ class TestExpectation:
         assert o.expectation() == approx(0.3)
 
     def test_dogmatic_true(self):
-        assert Opinion.dogmatic_true().expectation() == approx(1.0)
+        assert Opinion.dogmatic_true(0.5).expectation() == approx(1.0)
 
     def test_dogmatic_false(self):
-        assert Opinion.dogmatic_false().expectation() == approx(0.0)
+        assert Opinion.dogmatic_false(0.5).expectation() == approx(0.0)
 
     def test_in_unit_interval(self):
         o = Opinion(0.3, 0.2, 0.5, 0.6)
@@ -139,8 +139,8 @@ class TestConjunctionExpectation:
 
     def test_product_rule_high_evidence(self):
         """With very high evidence (low u), expectation approaches b, product rule approximately holds."""
-        x = from_probability(0.75, 1000)
-        y = from_probability(0.60, 1000)
+        x = from_probability(0.75, 1000, 0.5)
+        y = from_probability(0.60, 1000, 0.5)
         conj = x & y
         # With near-zero u, this should be very close
         assert conj.expectation() == approx(x.expectation() * y.expectation(), abs=0.01)
@@ -170,8 +170,8 @@ class TestDisjunctionExpectation:
         assert disj.expectation() == approx(ex + ey - ex * ey)
 
     def test_inclusion_exclusion_high_evidence(self):
-        x = from_probability(0.75, 1000)
-        y = from_probability(0.60, 1000)
+        x = from_probability(0.75, 1000, 0.5)
+        y = from_probability(0.60, 1000, 0.5)
         disj = x | y
         ex, ey = x.expectation(), y.expectation()
         assert disj.expectation() == approx(ex + ey - ex * ey, abs=0.01)
@@ -188,7 +188,7 @@ class TestDisjunctionExpectation:
 
 class TestDiscountVacuousTrust:
     def test_vacuous_trust(self):
-        trust = Opinion.vacuous()
+        trust = Opinion.vacuous(0.5)
         source = Opinion(0.7, 0.1, 0.2, 0.6)
         result = discount(trust, source)
         assert result.b == approx(0.0)
@@ -196,7 +196,7 @@ class TestDiscountVacuousTrust:
         assert result.u == approx(1.0)
 
     def test_vacuous_trust_preserves_base_rate(self):
-        trust = Opinion.vacuous()
+        trust = Opinion.vacuous(0.5)
         source = Opinion(0.7, 0.1, 0.2, 0.6)
         result = discount(trust, source)
         assert result.a == approx(source.a)
@@ -224,14 +224,14 @@ class TestRoundTrip:
 
     def test_dogmatic_raises(self):
         with pytest.raises(ValueError, match="dogmatic"):
-            Opinion.dogmatic_true().to_beta_evidence()
+            Opinion.dogmatic_true(0.5).to_beta_evidence()
 
 
 # --- 9. from_evidence(0, 0) produces vacuous opinion ---
 
 class TestFromEvidenceVacuous:
     def test_zero_evidence(self):
-        o = from_evidence(0, 0)
+        o = from_evidence(0, 0, 0.5)
         assert o.b == approx(0.0)
         assert o.d == approx(0.0)
         assert o.u == approx(1.0)
@@ -241,7 +241,7 @@ class TestFromEvidenceVacuous:
 
 class TestFromProbabilityVacuous:
     def test_zero_sample_size(self):
-        o = from_probability(0.5, 0)
+        o = from_probability(0.5, 0, 0.5)
         assert o.b == approx(0.0)
         assert o.d == approx(0.0)
         assert o.u == approx(1.0)
@@ -251,13 +251,13 @@ class TestFromProbabilityVacuous:
 
 class TestFromProbabilityNarrow:
     def test_narrow_opinion(self):
-        o = from_probability(0.7, 100)
+        o = from_probability(0.7, 100, 0.5)
         assert o.expectation() == approx(0.7, abs=0.02)
         # With 100 observations, uncertainty should be small
         assert o.u < 0.05
 
     def test_evidence_counts(self):
-        o = from_probability(0.7, 100)
+        o = from_probability(0.7, 100, 0.5)
         be = o.to_beta_evidence()
         assert be.r == approx(70.0)
         assert be.s == approx(30.0)
@@ -268,7 +268,7 @@ class TestFromProbabilityNarrow:
 class TestConsensusErrors:
     def test_two_dogmatic_raises(self):
         with pytest.raises(ValueError, match="dogmatic"):
-            consensus_pair(Opinion.dogmatic_true(), Opinion.dogmatic_false())
+            consensus_pair(Opinion.dogmatic_true(0.5), Opinion.dogmatic_false(0.5))
 
     def test_single_opinion_consensus(self):
         o = Opinion(0.3, 0.2, 0.5, 0.5)
@@ -282,22 +282,22 @@ class TestConsensusErrors:
 class TestBetaEvidenceValidation:
     def test_negative_r_rejected(self):
         with pytest.raises(ValueError):
-            BetaEvidence(-1, 0)
+            BetaEvidence(-1, 0, 0.5)
 
     def test_negative_s_rejected(self):
         with pytest.raises(ValueError):
-            BetaEvidence(0, -1)
+            BetaEvidence(0, -1, 0.5)
 
 
 class TestUncertaintyInterval:
     def test_vacuous(self):
-        o = Opinion.vacuous()
+        o = Opinion.vacuous(0.5)
         lo, hi = o.uncertainty_interval()
         assert lo == approx(0.0)
         assert hi == approx(1.0)
 
     def test_dogmatic_true(self):
-        o = Opinion.dogmatic_true()
+        o = Opinion.dogmatic_true(0.5)
         lo, hi = o.uncertainty_interval()
         assert lo == approx(1.0)
         assert hi == approx(1.0)
@@ -726,7 +726,7 @@ class TestWBF:
 
         papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
         """
-        dogmatic = Opinion.dogmatic_true()
+        dogmatic = Opinion.dogmatic_true(0.5)
         normal = Opinion(0.3, 0.2, 0.5, 0.5)
         result = wbf(dogmatic, normal)
         assert result == dogmatic
@@ -781,14 +781,14 @@ class TestCCF:
 
     def test_ccf_handles_dogmatic(self):
         """CCF can fuse two dogmatic opinions without raising."""
-        dt = Opinion.dogmatic_true()
-        df = Opinion.dogmatic_false()
+        dt = Opinion.dogmatic_true(0.5)
+        df = Opinion.dogmatic_false(0.5)
         result = ccf(dt, df)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
     def test_ccf_all_dogmatic_same(self):
         """CCF of identical dogmatic opinions returns the same opinion."""
-        dt = Opinion.dogmatic_true()
+        dt = Opinion.dogmatic_true(0.5)
         result = ccf(dt, dt)
         assert abs(result.b - 1.0) < 1e-6
         assert abs(result.d - 0.0) < 1e-6
@@ -905,8 +905,8 @@ class TestFuse:
 
         papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
         """
-        dt = Opinion.dogmatic_true()
-        df = Opinion.dogmatic_false()
+        dt = Opinion.dogmatic_true(0.5)
+        df = Opinion.dogmatic_false(0.5)
         result = fuse(dt, df, method="auto")
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
@@ -1388,15 +1388,15 @@ class TestOpinionBool:
 
     def test_bool_on_vacuous_raises(self):
         with pytest.raises(TypeError, match="not truthy|conjunction|expectation"):
-            bool(Opinion.vacuous())
+            bool(Opinion.vacuous(0.5))
 
     def test_bool_on_dogmatic_true_raises(self):
         with pytest.raises(TypeError):
-            bool(Opinion.dogmatic_true())
+            bool(Opinion.dogmatic_true(0.5))
 
     def test_bool_on_dogmatic_false_raises(self):
         with pytest.raises(TypeError):
-            bool(Opinion.dogmatic_false())
+            bool(Opinion.dogmatic_false(0.5))
 
     def test_bool_on_arbitrary_raises(self):
         with pytest.raises(TypeError):
@@ -1459,7 +1459,7 @@ class TestExplicitConjunctionDisjunction:
     def test_conjunction_with_vacuous_reduces_belief(self):
         """ω ∧ vacuous should still satisfy b + d + u = 1."""
         op = Opinion(0.6, 0.2, 0.2, 0.4)
-        result = op.conjunction(Opinion.vacuous())
+        result = op.conjunction(Opinion.vacuous(0.5))
         assert abs(result.b + result.d + result.u - 1.0) < 1e-9
 
 
