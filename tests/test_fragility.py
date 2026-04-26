@@ -314,10 +314,10 @@ class TestUtilityScores:
         )
         provenance = Provenance(status=ProvenanceStatus.VACUOUS, witnesses=())
         p_args = {
-            "A": Opinion.vacuous(provenance=provenance),
-            "B": Opinion.vacuous(provenance=provenance),
+            "A": Opinion.vacuous(0.5, provenance=provenance),
+            "B": Opinion.vacuous(0.5, provenance=provenance),
         }
-        p_defeats = {("A", "B"): Opinion.vacuous(provenance=provenance)}
+        p_defeats = {("A", "B"): Opinion.vacuous(0.5, provenance=provenance)}
         seen = []
 
         def fake_dfquad(praf, supports, *, base_scores):
@@ -360,8 +360,8 @@ class TestUtilityScores:
                 {},
                 {"A": 1.0, "B": 0.0},
                 ("A", "B"),
-                p_args={"A": Opinion.vacuous(), "B": Opinion.vacuous()},
-                p_defeats={("A", "B"): Opinion.vacuous()},
+                p_args={"A": Opinion.vacuous(0.5), "B": Opinion.vacuous(0.5)},
+                p_defeats={("A", "B"): Opinion.vacuous(0.5)},
             )
 
 

@@ -9,8 +9,15 @@ import pytest
 
 from argumentation.dung import ArgumentationFramework, grounded_extension, preferred_extensions
 from argumentation.probabilistic import ProbabilisticAF as ArgumentationProbabilisticAF
-from propstore.opinion import Opinion, from_probability
+from propstore.opinion import Opinion, from_probability as _from_probability
 from propstore.preference import claim_strength
+
+
+_TEST_BASE_RATE = 0.5
+
+
+def from_probability(p: float, n: float) -> Opinion:
+    return _from_probability(p, n, _TEST_BASE_RATE)
 
 
 def _probability(value: float | Opinion) -> float:
@@ -87,8 +94,8 @@ def test_praf_dataclass_construction():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b")}),
     )
-    p_args = {"a": Opinion.dogmatic_true(), "b": Opinion.dogmatic_true()}
-    p_defeats = {("a", "b"): Opinion.dogmatic_true()}
+    p_args = {"a": Opinion.dogmatic_true(_TEST_BASE_RATE), "b": Opinion.dogmatic_true(_TEST_BASE_RATE)}
+    p_defeats = {("a", "b"): Opinion.dogmatic_true(_TEST_BASE_RATE)}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     assert praf.framework is af
@@ -100,7 +107,7 @@ def test_praf_dataclass_construction():
 # 2. test_praf_deterministic_fallback
 # ---------------------------------------------------------------------------
 def test_praf_deterministic_fallback():
-    """When all P_D = Opinion.dogmatic_true() (expectation ≈ 1.0), acceptance
+    """When all P_D = Opinion.dogmatic_true(_TEST_BASE_RATE) (expectation ≈ 1.0), acceptance
     probabilities are exactly 0.0 or 1.0 matching grounded_extension().
 
     Per Li (2012, p.2): PrAF with P_A=1, P_D=1 equals standard Dung evaluation.
@@ -112,8 +119,8 @@ def test_praf_deterministic_fallback():
         arguments=frozenset({"a", "b", "c"}),
         defeats=frozenset({("a", "b"), ("b", "c")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
-    p_defeats = {d: Opinion.dogmatic_true() for d in af.defeats}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
+    p_defeats = {d: Opinion.dogmatic_true(_TEST_BASE_RATE) for d in af.defeats}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     result = compute_probabilistic_acceptance(praf, semantics="grounded")
@@ -144,7 +151,7 @@ def test_mc_convergence():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b"), ("b", "a")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     p_defeats = {d: from_probability(0.5, 1) for d in af.defeats}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
@@ -175,8 +182,8 @@ def test_public_exact_alias_routes_to_exact_enumeration():
     )
     praf = ProbabilisticAF(
         framework=af,
-        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
-        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+        p_args={arg: Opinion.dogmatic_true(_TEST_BASE_RATE) for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in af.defeats},
     )
 
     aliased = compute_probabilistic_acceptance(praf, semantics="grounded", strategy="exact")
@@ -194,7 +201,7 @@ def test_unknown_strategy_is_rejected_instead_of_silently_falling_back_to_auto()
     af = ArgumentationFramework(arguments=frozenset({"a"}), defeats=frozenset())
     praf = ProbabilisticAF(
         framework=af,
-        p_args={"a": Opinion.dogmatic_true()},
+        p_args={"a": Opinion.dogmatic_true(_TEST_BASE_RATE)},
         p_defeats={},
     )
 
@@ -215,7 +222,7 @@ def test_mc_seeded_reproducibility():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     p_defeats = {("a", "b"): from_probability(0.7, 5)}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
@@ -239,7 +246,7 @@ def test_mc_confidence_99_requires_more_or_equal_samples_than_95():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b"), ("b", "a")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     p_defeats = {d: from_probability(0.5, 1) for d in af.defeats}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
@@ -273,7 +280,7 @@ def test_mc_reported_ci_respects_requested_confidence():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b"), ("b", "a")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     p_defeats = {d: from_probability(0.5, 1) for d in af.defeats}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
@@ -326,7 +333,7 @@ def test_mc_known_example():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     # P_D = 0.7 exactly: use from_probability with high n for precision
     # from_probability(0.7, 100): r=70, s=30, denom=102, b=70/102, E = 70/102 + 0.5*2/102 ≈ 0.696
     # For exact 0.7, use Opinion directly: b=0.7, d=0.3, u=0.0 — but u=0 is dogmatic
@@ -363,7 +370,7 @@ def test_mc_per_argument_acceptance():
         arguments=frozenset({"a", "b", "c"}),
         defeats=frozenset({("a", "b"), ("b", "c")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     p_defeats = {d: from_probability(0.7, 5) for d in af.defeats}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
@@ -394,7 +401,7 @@ def test_connected_component_decomposition():
         arguments=frozenset({"a", "b", "c", "d"}),
         defeats=frozenset({("a", "b"), ("c", "d")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
 
     # Run 1: both defeats have P_D=0.7
     p_defeats_1 = {
@@ -638,9 +645,9 @@ def test_all_vacuous_defeats():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     # Vacuous opinion: expectation = 0.5
-    p_defeats = {("a", "b"): Opinion.vacuous()}
+    p_defeats = {("a", "b"): Opinion.vacuous(_TEST_BASE_RATE)}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     result = compute_probabilistic_acceptance(
@@ -674,7 +681,7 @@ def test_acceptance_probs_sum_constraint():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b"), ("b", "a")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     p_defeats = {
         ("a", "b"): from_probability(0.6, 5),
         ("b", "a"): from_probability(0.6, 5),
@@ -728,7 +735,7 @@ def test_mc_pa_lt_one_acceptance_bounded():
     p_args = {
         "a": from_probability(0.3, 10),   # E ~ 0.30
         "b": from_probability(0.7, 10),   # E ~ 0.70
-        "c": Opinion.dogmatic_true(),     # E = 1.0 (control)
+        "c": Opinion.dogmatic_true(_TEST_BASE_RATE),     # E = 1.0 (control)
     }
     p_defeats: dict[tuple[str, str], Opinion] = {}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
@@ -814,7 +821,7 @@ def test_mc_confidence_affects_ci_width():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b"), ("b", "a")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     p_defeats = {d: from_probability(0.6, 5) for d in af.defeats}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
@@ -872,7 +879,7 @@ def test_component_praf_with_missing_p_defeats_keys():
         arguments=frozenset({"a", "b", "c"}),
         defeats=frozenset({("a", "b"), ("b", "a"), ("a", "c")}),
     )
-    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_args = {a: Opinion.dogmatic_true(_TEST_BASE_RATE) for a in af.arguments}
     # Provide p_defeats for the probabilistic defeats only.
     # ("a", "c") intentionally omitted — deterministic defeat.
     p_defeats = {
@@ -928,7 +935,7 @@ def test_component_p_defeats_mismatch_direct():
         arguments=frozenset({"x", "y"}),
         defeats=frozenset({("x", "y")}),
     )
-    p_args = {"x": Opinion.dogmatic_true(), "y": Opinion.dogmatic_true()}
+    p_args = {"x": Opinion.dogmatic_true(_TEST_BASE_RATE), "y": Opinion.dogmatic_true(_TEST_BASE_RATE)}
     # p_defeats is EMPTY — the defeat ("x", "y") has no entry
     p_defeats: dict[tuple[str, str], Opinion] = {}
 
@@ -979,7 +986,7 @@ class TestCOHEnforcement:
         praf = PropstoreOpinionPrAF(
             framework=af,
             p_args={"A": from_probability(0.8, 10), "B": from_probability(0.6, 10)},
-            p_defeats={("A", "B"): Opinion.dogmatic_true()},
+            p_defeats={("A", "B"): Opinion.dogmatic_true(_TEST_BASE_RATE)},
         )
 
         result = enforce_coh(praf)
@@ -1011,7 +1018,7 @@ class TestCOHEnforcement:
         praf = PropstoreOpinionPrAF(
             framework=af,
             p_args={"A": op_a, "B": op_b},
-            p_defeats={("A", "B"): Opinion.dogmatic_true()},
+            p_defeats={("A", "B"): Opinion.dogmatic_true(_TEST_BASE_RATE)},
         )
 
         result = enforce_coh(praf)
@@ -1073,7 +1080,7 @@ class TestCOHEnforcement:
         praf = PropstoreOpinionPrAF(
             framework=af,
             p_args={"A": from_probability(0.8, 10), "B": from_probability(0.6, 10)},
-            p_defeats={("A", "B"): Opinion.dogmatic_true()},
+            p_defeats={("A", "B"): Opinion.dogmatic_true(_TEST_BASE_RATE)},
         )
 
         once = enforce_coh(praf)
@@ -1123,7 +1130,7 @@ def _small_praf_strategy():
             defeats=frozenset(attacks),
             attacks=frozenset(attacks),
         )
-        p_defeats = {edge: Opinion.dogmatic_true() for edge in attacks}
+        p_defeats = {edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in attacks}
 
         return ProbabilisticAF(
             framework=af,
@@ -1158,7 +1165,7 @@ def _small_propstore_praf_strategy():
             defeats=frozenset(attacks),
             attacks=frozenset(attacks),
         )
-        p_defeats = {edge: Opinion.dogmatic_true() for edge in attacks}
+        p_defeats = {edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in attacks}
 
         return PropstoreOpinionPrAF(
             framework=af,
@@ -1207,8 +1214,8 @@ def _small_deterministic_praf_strategy():
                 arguments=frozenset(arg_names),
                 defeats=defeats,
             ),
-            p_args={arg: Opinion.dogmatic_true() for arg in arg_names},
-            p_defeats={edge: Opinion.dogmatic_true() for edge in defeats},
+            p_args={arg: Opinion.dogmatic_true(_TEST_BASE_RATE) for arg in arg_names},
+            p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in defeats},
         )
 
     return build()
@@ -1304,8 +1311,8 @@ def test_credulous_acceptance_matches_union_of_extensions_on_deterministic_af():
     )
     praf = ProbabilisticAF(
         framework=af,
-        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
-        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+        p_args={arg: Opinion.dogmatic_true(_TEST_BASE_RATE) for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in af.defeats},
     )
 
     result = compute_probabilistic_acceptance(
@@ -1331,8 +1338,8 @@ def test_skeptical_acceptance_matches_intersection_of_extensions_on_deterministi
     )
     praf = ProbabilisticAF(
         framework=af,
-        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
-        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+        p_args={arg: Opinion.dogmatic_true(_TEST_BASE_RATE) for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in af.defeats},
     )
 
     result = compute_probabilistic_acceptance(
@@ -1358,8 +1365,8 @@ def test_extension_probability_queries_exact_set_not_single_argument():
     )
     praf = ProbabilisticAF(
         framework=af,
-        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
-        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+        p_args={arg: Opinion.dogmatic_true(_TEST_BASE_RATE) for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in af.defeats},
     )
 
     positive = compute_probabilistic_acceptance(
@@ -1394,8 +1401,8 @@ def test_exact_dp_rejects_unsupported_skeptical_acceptance_mode():
     )
     praf = ProbabilisticAF(
         framework=af,
-        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
-        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+        p_args={arg: Opinion.dogmatic_true(_TEST_BASE_RATE) for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in af.defeats},
     )
 
     with pytest.raises(ValueError, match="exact_dp only supports credulous argument acceptance queries"):
@@ -1418,8 +1425,8 @@ def test_direct_exact_dp_rejects_non_grounded_semantics():
     )
     praf = ProbabilisticAF(
         framework=af,
-        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
-        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+        p_args={arg: Opinion.dogmatic_true(_TEST_BASE_RATE) for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in af.defeats},
     )
 
     with pytest.raises(
@@ -1446,7 +1453,7 @@ def test_query_kind_argument_acceptance_requires_inference_mode():
     af = ArgumentationFramework(arguments=frozenset({"a"}), defeats=frozenset())
     praf = ProbabilisticAF(
         framework=af,
-        p_args={"a": Opinion.dogmatic_true()},
+        p_args={"a": Opinion.dogmatic_true(_TEST_BASE_RATE)},
         p_defeats={},
     )
 
@@ -1466,7 +1473,7 @@ def test_query_kind_extension_probability_rejects_inference_mode():
     af = ArgumentationFramework(arguments=frozenset({"a"}), defeats=frozenset())
     praf = ProbabilisticAF(
         framework=af,
-        p_args={"a": Opinion.dogmatic_true()},
+        p_args={"a": Opinion.dogmatic_true(_TEST_BASE_RATE)},
         p_defeats={},
     )
 
@@ -1660,7 +1667,7 @@ def _make_praf_with_self_attacks():
             defeats=frozenset(attacks),
             attacks=frozenset(attacks),
         )
-        p_defeats = {edge: Opinion.dogmatic_true() for edge in attacks}
+        p_defeats = {edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in attacks}
 
         return PropstoreOpinionPrAF(
             framework=af,
@@ -1721,10 +1728,10 @@ def test_praf_vacuous_argument_existence():
         defeats=frozenset({("a", "b")}),
     )
     p_args = {
-        "a": Opinion.vacuous(),
-        "b": Opinion.dogmatic_true(),
+        "a": Opinion.vacuous(_TEST_BASE_RATE),
+        "b": Opinion.dogmatic_true(_TEST_BASE_RATE),
     }
-    p_defeats = {("a", "b"): Opinion.dogmatic_true()}
+    p_defeats = {("a", "b"): Opinion.dogmatic_true(_TEST_BASE_RATE)}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
     result = compute_probabilistic_acceptance(
         praf, strategy="mc", mc_epsilon=0.05, rng_seed=42,
