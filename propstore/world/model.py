@@ -193,6 +193,8 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "value_b",
         "derivation_chain",
     },
+    "grounded_fact": {"predicate", "arguments", "section"},
+    "grounded_fact_empty_predicate": {"section", "predicate"},
 }
 
 
