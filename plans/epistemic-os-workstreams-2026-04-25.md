@@ -644,6 +644,23 @@ deletion_ledger: replace the current frontend full-expression span placeholder
   behavior with parser-owned source spans and direct frontend preservation
 ```
 
+Eleventh slice execution ledger:
+
+- Red commit: `4814d92` added CEL AST and `ConditionIR` source-span tests.
+- Red log: `logs/test-runs/ws3-source-spans-red-20260425-191022.log`,
+  failed because CEL AST nodes had no span field and lowered child nodes still
+  used the full-expression placeholder span.
+- Green commit: `d71364a` added parser-owned `CelSourceSpan`, threaded token
+  start/end positions through CEL AST nodes, and mapped those spans into
+  `ConditionSourceSpan` during frontend lowering.
+- Green log: `logs/test-runs/ws3-source-spans-green-20260425-191247.log`,
+  86 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: the full-expression placeholder span behavior was removed
+  from `propstore.core.conditions.cel_frontend`; child `ConditionIR` nodes now
+  preserve parser-owned source spans.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
