@@ -385,6 +385,32 @@ Fifth slice execution ledger:
   owner module blocks claim-row, predicate-string, CEL-source, and provenance
   payload placeholders from the situated assertion identity surface.
 
+Sixth slice gate, WS2 source-to-canonical conversion:
+
+```text
+target_surface: typed structural assertion source record to SituatedAssertion
+  conversion
+old_surfaces_to_delete: loose dict payloads beyond the IO boundary for the new
+  structural assertion path; old claim-shaped payloads are rejected here
+allowed_owner_modules: propstore.core.assertions, propstore.core.relations,
+  propstore.core.id_types
+forbidden_imports: context_lifting, z3_conditions, condition_classifier,
+  grounding, calibration, opinion, app, CLI, sidecar, world, backend projection
+  modules
+forbidden_symbols: conversion owner must not name semantic identity fields
+  claim_id, predicate, predicate_id, cel, conditions, or provenance_payload
+forbidden_storage_columns: none in this slice
+positive_tests: payload-to-source-record conversion, source-record to
+  SituatedAssertion conversion, role signature validation during conversion
+negative_tests: reject old claim-shaped payloads; reject unknown role bindings;
+  architecture import/symbol tests
+pyright_scope: uv run pyright propstore
+paper_checkpoint: situated assertion synthesis, Clark 2014 notes, and Carroll
+  2005 notes already reread for WS2
+deletion_ledger: no existing claim importer migration yet; this lands the
+  structural source boundary that future caller rewrites must use directly
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
