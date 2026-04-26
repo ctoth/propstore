@@ -57,30 +57,29 @@ Theoretical sources:
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from collections.abc import Sequence
 
-from gunray import schema as gunray_schema
-
-from collections.abc import Iterable
+import gunray
 
 from argumentation.aspic import GroundAtom
-from propstore.grounding.predicates import PredicateRegistry
-from propstore.families.documents.rules import AtomDocument, TermDocument
 from argumentation.preference import strict_partial_order_closure
+from propstore.families.documents.rules import AtomDocument, TermDocument
+from propstore.grounding.predicates import PredicateRegistry
 from propstore.rule_files import LoadedRuleFile
 
 # ``gunray.schema.Scalar`` and ``argumentation.aspic.Scalar`` are both
 # ``str | int | float | bool``; use the gunray alias here because the
 # grouped-facts dict is passed straight into ``gunray_schema.DefeasibleTheory``
 # and ``PredicateFacts`` is typed against gunray's ``FactTuple``.
-_FactTuple = tuple[gunray_schema.Scalar, ...]
+_FactTuple = tuple[gunray.Scalar, ...]
 
 
 def translate_to_theory(
     rule_files: Sequence[LoadedRuleFile],
     facts: tuple[GroundAtom, ...],
     registry: PredicateRegistry,
-) -> gunray_schema.DefeasibleTheory:
+) -> gunray.DefeasibleTheory:
     """Translate propstore rule/fact inputs into a gunray DefeasibleTheory.
 
     Walks every ``RuleDocument`` in ``rule_files`` (in file order, then
@@ -128,14 +127,14 @@ def translate_to_theory(
     Raises:
     """
 
-    strict_rules: list[gunray_schema.Rule] = []
-    defeasible_rules: list[gunray_schema.Rule] = []
-    defeaters: list[gunray_schema.Rule] = []
+    strict_rules: list[gunray.Rule] = []
+    defeasible_rules: list[gunray.Rule] = []
+    defeaters: list[gunray.Rule] = []
     authored_superiority: list[tuple[str, str]] = []
     non_strict_rule_ids: set[str] = set()
     for rule_file in rule_files:
         for rule_doc in rule_file.rules:
-            schema_rule = gunray_schema.Rule(
+            schema_rule = gunray.Rule(
                 id=rule_doc.id,
                 head=_stringify_atom(rule_doc.head),
                 body=tuple(_stringify_atom(atom) for atom in rule_doc.body),
@@ -173,7 +172,7 @@ def translate_to_theory(
     # ``dict[str, Iterable[tuple[Scalar, ...]]]`` — ``list`` satisfies
     # ``Iterable`` and the test suite converts rows via ``list(rows)``
     # / ``tuple(row)`` before asserting membership.
-    return gunray_schema.DefeasibleTheory(
+    return gunray.DefeasibleTheory(
         facts=grouped_facts,
         strict_rules=tuple(strict_rules),
         defeasible_rules=tuple(defeasible_rules),
