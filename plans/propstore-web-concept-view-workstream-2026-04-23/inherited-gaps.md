@@ -65,8 +65,8 @@ continue to block:
  
 Status: resolved in current production code.
 
-`propstore/web/html.py` is the active presenter path, but `propstore/web/templates/`
-also exists.
+Original gap statement: `propstore/web/html.py` was the active presenter path
+while `propstore/web/templates/` also existed.
 
 Keeping both around as production surfaces is not convergence. This workstream
 must pick one and delete the other.
