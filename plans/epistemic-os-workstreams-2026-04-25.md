@@ -1630,6 +1630,34 @@ Paper checkpoints:
 - Carroll 2005 notes for trust policy boundaries.
 - Modgil preference papers notes if argument preference policy changes.
 
+Execution ledger:
+
+- Supporting materials read:
+  Carroll 2005 local notes for named-graph trust boundaries; Modgil 2009,
+  Modgil/Prakken 2011, Modgil/Prakken 2014, and Modgil/Prakken 2018 local
+  notes for preference/admissibility policy boundaries.
+- Added `propstore.policies` with `PolicyProfile`, `RevisionPolicy`,
+  `MergePolicy`, `AdmissibilityProfile`, `SourceTrustProfile`, and
+  `EscalationPolicy`. Profiles have content-derived ids and stable
+  serialization, can be built from `RenderPolicy`, and can project to
+  situated assertions.
+- Rewrote transition/worldline replay hashes to include full typed policy
+  payloads, so policy changes are replay-visible instead of hidden defaults.
+- Red/green tests:
+  `logs/test-runs/ws12-policy-red-20260426-015200.log` failed on the missing
+  policy owner as expected;
+  `logs/test-runs/ws12-worldline-policy-red-20260426-015931.log` failed on the
+  missing worldline policy hash surface as expected;
+  `logs/test-runs/ws12-policy-green2-20260426-015611.log`,
+  `logs/test-runs/ws12-worldline-policy-green-20260426-020033.log`, and
+  `logs/test-runs/ws12-worldline-runner-policy-20260426-020205.log` passed.
+- Focused preservation:
+  `logs/test-runs/ws12-policy-focused-20260426-020455.log` passed with 26
+  policy/revision/worldline/render tests; `uv run pyright propstore` passed
+  with 0 errors.
+- Final verification:
+  `logs/test-runs/ws12-full-20260426-020536.log` passed with 2955 tests.
+
 ### WS13: Process Manager
 
 Purpose:
