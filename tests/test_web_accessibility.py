@@ -186,3 +186,13 @@ def test_link_table_uses_typed_rows_and_rejects_misaligned_cells() -> None:
             ("Claim", "Status", "Reason"),
             [LinkRow("paper:claim1", "/claim/claim1", ("known",))],
         )
+
+
+def test_html_presenters_use_shared_layout_helpers() -> None:
+    source = (Path("propstore") / "web" / "html.py").read_text(encoding="utf-8")
+
+    assert "_render_policy_rows" in source
+    assert "_render_policy_section" in source
+    assert "_machine_ids_section" in source
+    assert '"Reasoning backend", report.render_policy.reasoning_backend' not in source
+    assert '"Include drafts", _bool_text(report.render_policy.include_drafts)' not in source
