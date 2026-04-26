@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from propstore.cel_checker import (
     ASTNode,
     BinaryOpNode,
+    CelSourceSpan,
     CheckedCelExpr,
     ConceptInfo,
     InNode,
@@ -58,44 +59,42 @@ def _condition_ir_from_checked(
     checked: CheckedCelExpr,
     registry: Mapping[str, ConceptInfo],
 ) -> ConditionIR:
-    span = ConditionSourceSpan(0, len(str(checked.source)))
-    return _lower_node(checked.ast, registry, span)
+    return _lower_node(checked.ast, registry)
 
 
 def _lower_node(
     node: ASTNode,
     registry: Mapping[str, ConceptInfo],
-    span: ConditionSourceSpan,
 ) -> ConditionIR:
     if isinstance(node, NameNode):
-        return _lower_name(node, registry, span)
+        return _lower_name(node, registry)
     if isinstance(node, LiteralNode):
-        return _lower_literal(node, span)
+        return _lower_literal(node)
     if isinstance(node, UnaryOpNode):
         return ConditionUnary(
             op=ConditionUnaryOp(node.op),
-            operand=_lower_node(node.operand, registry, span),
-            span=span,
+            operand=_lower_node(node.operand, registry),
+            span=_condition_span(node.span),
         )
     if isinstance(node, BinaryOpNode):
         return ConditionBinary(
             op=ConditionBinaryOp(node.op),
-            left=_lower_node(node.left, registry, span),
-            right=_lower_node(node.right, registry, span),
-            span=span,
+            left=_lower_node(node.left, registry),
+            right=_lower_node(node.right, registry),
+            span=_condition_span(node.span),
         )
     if isinstance(node, InNode):
         return ConditionMembership(
-            element=_lower_node(node.expr, registry, span),
-            options=tuple(_lower_node(value, registry, span) for value in node.values),
-            span=span,
+            element=_lower_node(node.expr, registry),
+            options=tuple(_lower_node(value, registry) for value in node.values),
+            span=_condition_span(node.span),
         )
     if isinstance(node, TernaryNode):
         return ConditionChoice(
-            condition=_lower_node(node.condition, registry, span),
-            when_true=_lower_node(node.true_branch, registry, span),
-            when_false=_lower_node(node.false_branch, registry, span),
-            span=span,
+            condition=_lower_node(node.condition, registry),
+            when_true=_lower_node(node.true_branch, registry),
+            when_false=_lower_node(node.false_branch, registry),
+            span=_condition_span(node.span),
         )
     raise TypeError(f"unsupported CEL AST node: {type(node).__name__}")
 
@@ -103,7 +102,6 @@ def _lower_node(
 def _lower_name(
     node: NameNode,
     registry: Mapping[str, ConceptInfo],
-    span: ConditionSourceSpan,
 ) -> ConditionReference:
     info = registry.get(node.name)
     if info is None:
@@ -114,33 +112,36 @@ def _lower_name(
         concept_id=info.id,
         source_name=node.name,
         value_kind=_value_kind(info.kind),
-        span=span,
+        span=_condition_span(node.span),
     )
 
 
 def _lower_literal(
     node: LiteralNode,
-    span: ConditionSourceSpan,
 ) -> ConditionLiteral:
     if node.lit_type == "bool" and isinstance(node.value, bool):
         return ConditionLiteral(
             value=node.value,
             value_kind=ConditionValueKind.BOOLEAN,
-            span=span,
+            span=_condition_span(node.span),
         )
     if node.lit_type in {"int", "float"} and isinstance(node.value, int | float):
         return ConditionLiteral(
             value=node.value,
             value_kind=ConditionValueKind.NUMERIC,
-            span=span,
+            span=_condition_span(node.span),
         )
     if node.lit_type == "string" and isinstance(node.value, str):
         return ConditionLiteral(
             value=node.value,
             value_kind=ConditionValueKind.STRING,
-            span=span,
+            span=_condition_span(node.span),
         )
     raise TypeError(f"unsupported CEL literal: {node.lit_type}")
+
+
+def _condition_span(span: CelSourceSpan) -> ConditionSourceSpan:
+    return ConditionSourceSpan(span.start, span.end)
 
 
 def _value_kind(kind: KindType) -> ConditionValueKind:

@@ -119,6 +119,18 @@ class CelError:
         return f"{prefix}: {self.message} in expression: {self.expression}"
 
 
+@dataclass(frozen=True)
+class CelSourceSpan:
+    start: int
+    end: int
+
+    def __post_init__(self) -> None:
+        if self.start < 0:
+            raise ValueError("CEL source span start must be non-negative")
+        if self.end < self.start:
+            raise ValueError("CEL source span end must not precede start")
+
+
 # ── Tokenizer ────────────────────────────────────────────────────────
 
 class TokenType(Enum):
@@ -144,6 +156,7 @@ class Token:
     type: TokenType
     value: Any
     pos: int
+    end: int
 
 
 _TOKEN_PATTERNS = [
@@ -198,13 +211,13 @@ def tokenize(expr: str) -> list[Token]:
                         val = int(val)
                     elif token_type == TokenType.FLOAT_LIT:
                         val = float(val)
-                    tokens.append(Token(token_type, val, pos))
+                    tokens.append(Token(token_type, val, pos, m.end()))
                 pos = m.end()
                 matched = True
                 break
         if not matched:
             raise ValueError(f"Unexpected character at position {pos}: {expr[pos:]!r}")
-    tokens.append(Token(TokenType.EOF, None, pos))
+    tokens.append(Token(TokenType.EOF, None, pos, pos))
     return tokens
 
 
@@ -212,18 +225,20 @@ def tokenize(expr: str) -> list[Token]:
 # Recursive descent. Produces a simple AST for type-checking.
 
 class ASTNode:
-    pass
+    span: CelSourceSpan
 
 
 @dataclass
 class NameNode(ASTNode):
     name: str
+    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
 
 
 @dataclass
 class LiteralNode(ASTNode):
     value: Any
     lit_type: str  # "int", "float", "string", "bool"
+    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
 
 
 @dataclass
@@ -231,12 +246,14 @@ class BinaryOpNode(ASTNode):
     op: str
     left: ASTNode
     right: ASTNode
+    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
 
 
 @dataclass
 class UnaryOpNode(ASTNode):
     op: str
     operand: ASTNode
+    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
 
 
 @dataclass
@@ -244,6 +261,7 @@ class InNode(ASTNode):
     """name in [list]"""
     expr: ASTNode
     values: list[ASTNode]
+    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
 
 
 @dataclass
@@ -251,6 +269,7 @@ class TernaryNode(ASTNode):
     condition: ASTNode
     true_branch: ASTNode
     false_branch: ASTNode
+    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
 
 
 class Parser:
@@ -285,7 +304,12 @@ class Parser:
             true_branch = self.parse_ternary()
             self.expect(TokenType.COLON)
             false_branch = self.parse_ternary()
-            return TernaryNode(node, true_branch, false_branch)
+            return TernaryNode(
+                node,
+                true_branch,
+                false_branch,
+                span=_covering_span(node, false_branch),
+            )
         return node
 
     def parse_or(self) -> ASTNode:
@@ -293,7 +317,7 @@ class Parser:
         while self.peek().type == TokenType.OP and self.peek().value == "||":
             self.advance()
             right = self.parse_and()
-            left = BinaryOpNode("||", left, right)
+            left = BinaryOpNode("||", left, right, span=_covering_span(left, right))
         return left
 
     def parse_and(self) -> ASTNode:
@@ -301,7 +325,7 @@ class Parser:
         while self.peek().type == TokenType.OP and self.peek().value == "&&":
             self.advance()
             right = self.parse_comparison()
-            left = BinaryOpNode("&&", left, right)
+            left = BinaryOpNode("&&", left, right, span=_covering_span(left, right))
         return left
 
     def parse_comparison(self) -> ASTNode:
@@ -309,7 +333,7 @@ class Parser:
         if self.peek().type == TokenType.OP and self.peek().value in ("==", "!=", "<", ">", "<=", ">="):
             op = self.advance().value
             right = self.parse_additive()
-            return BinaryOpNode(op, left, right)
+            return BinaryOpNode(op, left, right, span=_covering_span(left, right))
         if self.peek().type == TokenType.IN:
             self.advance()
             self.expect(TokenType.LBRACKET)
@@ -320,7 +344,8 @@ class Parser:
                     self.advance()
                     values.append(self.parse_primary())
             self.expect(TokenType.RBRACKET)
-            return InNode(left, values)
+            right_edge = values[-1] if values else left
+            return InNode(left, values, span=_covering_span(left, right_edge))
         return left
 
     def parse_additive(self) -> ASTNode:
@@ -328,7 +353,7 @@ class Parser:
         while self.peek().type == TokenType.OP and self.peek().value in ("+", "-"):
             op = self.advance().value
             right = self.parse_multiplicative()
-            left = BinaryOpNode(op, left, right)
+            left = BinaryOpNode(op, left, right, span=_covering_span(left, right))
         return left
 
     def parse_multiplicative(self) -> ASTNode:
@@ -336,43 +361,55 @@ class Parser:
         while self.peek().type == TokenType.OP and self.peek().value in ("*", "/"):
             op = self.advance().value
             right = self.parse_unary()
-            left = BinaryOpNode(op, left, right)
+            left = BinaryOpNode(op, left, right, span=_covering_span(left, right))
         return left
 
     def parse_unary(self) -> ASTNode:
         if self.peek().type == TokenType.OP and self.peek().value == "!":
-            self.advance()
+            op = self.advance()
             operand = self.parse_unary()
-            return UnaryOpNode("!", operand)
+            return UnaryOpNode(
+                "!",
+                operand,
+                span=CelSourceSpan(op.pos, operand.span.end),
+            )
         if self.peek().type == TokenType.OP and self.peek().value == "-":
-            self.advance()
+            op = self.advance()
             operand = self.parse_unary()
-            return UnaryOpNode("-", operand)
+            return UnaryOpNode(
+                "-",
+                operand,
+                span=CelSourceSpan(op.pos, operand.span.end),
+            )
         return self.parse_primary()
 
     def parse_primary(self) -> ASTNode:
         t = self.peek()
         if t.type == TokenType.NAME:
             self.advance()
-            return NameNode(t.value)
+            return NameNode(t.value, span=CelSourceSpan(t.pos, t.end))
         if t.type == TokenType.INT_LIT:
             self.advance()
-            return LiteralNode(t.value, "int")
+            return LiteralNode(t.value, "int", span=CelSourceSpan(t.pos, t.end))
         if t.type == TokenType.FLOAT_LIT:
             self.advance()
-            return LiteralNode(t.value, "float")
+            return LiteralNode(t.value, "float", span=CelSourceSpan(t.pos, t.end))
         if t.type == TokenType.STRING_LIT:
             self.advance()
-            return LiteralNode(t.value, "string")
+            return LiteralNode(t.value, "string", span=CelSourceSpan(t.pos, t.end))
         if t.type == TokenType.BOOL_LIT:
             self.advance()
-            return LiteralNode(t.value, "bool")
+            return LiteralNode(t.value, "bool", span=CelSourceSpan(t.pos, t.end))
         if t.type == TokenType.LPAREN:
             self.advance()
             node = self.parse_ternary()
             self.expect(TokenType.RPAREN)
             return node
         raise ValueError(f"Unexpected token: {t.type} ({t.value!r}) at position {t.pos}")
+
+
+def _covering_span(left: ASTNode, right: ASTNode) -> CelSourceSpan:
+    return CelSourceSpan(left.span.start, right.span.end)
 
 
 def parse_cel(expr: str | CelExpr) -> ASTNode:

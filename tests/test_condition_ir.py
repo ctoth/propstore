@@ -6,6 +6,7 @@ import pytest
 
 from propstore.cel_checker import (
     BinaryOpNode,
+    CelSourceSpan,
     ConceptInfo,
     KindType,
     LiteralNode,
@@ -86,11 +87,11 @@ def test_cel_ast_nodes_preserve_source_spans() -> None:
     ast = parse_cel("temperature > 21")
 
     assert isinstance(ast, BinaryOpNode)
-    assert ast.span == ConditionSourceSpan(0, 16)
+    assert ast.span == CelSourceSpan(0, 16)
     assert isinstance(ast.left, NameNode)
-    assert ast.left.span == ConditionSourceSpan(0, 11)
+    assert ast.left.span == CelSourceSpan(0, 11)
     assert isinstance(ast.right, LiteralNode)
-    assert ast.right.span == ConditionSourceSpan(14, 16)
+    assert ast.right.span == CelSourceSpan(14, 16)
 
 
 def test_condition_ir_preserves_child_spans_from_cel_frontend() -> None:
