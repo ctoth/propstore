@@ -16,6 +16,7 @@ from propstore.claim_graph import (
     build_argumentation_framework,
     compute_claim_graph_justified_claims,
 )
+from propstore.core.analyzers import shared_analyzer_input_from_store
 from argumentation.dung import conflict_free, grounded_extension
 from propstore.praf import build_praf
 from propstore.preference import claim_strength
@@ -516,13 +517,8 @@ class TestConflictDerivedDefeats:
             f"a real 'supports' stance covers a→b, but af.defeats = {af.defeats}"
         )
 
-    def test_conflict_synthetic_stances_have_vacuous_opinions(self, conn):
-        """Synthetic stances from conflicts must carry vacuous opinions.
-
-        Per Josang 2001 (p.8): when the system lacks evidence for the
-        direction/strength of a relation, it must express total ignorance
-        via opinion_uncertainty >= 0.99 rather than fabricating confidence.
-        """
+    def test_conflict_synthetic_stances_do_not_fabricate_opinions(self, conn):
+        """Synthetic stances from conflicts must stay structural only."""
         _insert_claim(conn, "vac_a", "c1", 100.0, sample_size=50, confidence=1.0)
         _insert_claim(conn, "vac_b", "c1", 200.0, sample_size=50, confidence=1.0)
         _insert_conflict(conn, "c1", "vac_a", "vac_b", "CONFLICT",
@@ -530,27 +526,31 @@ class TestConflictDerivedDefeats:
         conn.commit()
 
         store = SQLiteArgumentationStore(conn)
-        praf = build_praf(store, {"vac_a", "vac_b"})
+        af = build_argumentation_framework(store, {"vac_a", "vac_b"})
 
-        # First, defeats must exist (prerequisite)
         has_defeat = (
-            ("vac_a", "vac_b") in praf.framework.defeats
-            or ("vac_b", "vac_a") in praf.framework.defeats
+            ("vac_a", "vac_b") in af.defeats
+            or ("vac_b", "vac_a") in af.defeats
         )
         assert has_defeat, (
-            "CONFLICT should generate defeats before we can inspect opinions"
+            "CONFLICT should generate structural defeats"
         )
 
-        # The PrAF attack relations for conflict-derived defeats should
-        # carry vacuous opinions (uncertainty >= 0.99)
-        conflict_pairs = {("vac_a", "vac_b"), ("vac_b", "vac_a")}
-        for rel in praf.attack_relations:
-            if (rel.source, rel.target) in conflict_pairs:
-                assert rel.opinion.uncertainty >= 0.99, (
-                    f"Conflict-derived relation {rel.source}→{rel.target} "
-                    f"has opinion uncertainty {rel.opinion.uncertainty}, "
-                    f"expected >= 0.99 (vacuous per Josang 2001)"
-                )
+        shared = shared_analyzer_input_from_store(store, {"vac_a", "vac_b"})
+        synthetic_stances = [
+            stance
+            for stance in shared.stance_rows
+            if {stance["claim_id"], stance["target_claim_id"]} == {"vac_a", "vac_b"}
+        ]
+
+        assert len(synthetic_stances) == 2
+        for stance in synthetic_stances:
+            assert stance["stance_type"] == "rebuts"
+            assert "confidence" not in stance
+            assert "opinion_belief" not in stance
+            assert "opinion_disbelief" not in stance
+            assert "opinion_uncertainty" not in stance
+            assert "opinion_base_rate" not in stance
 
     def test_overlap_conflict_generates_defeats(self, conn):
         """OVERLAP is a real value conflict — should generate defeats.
