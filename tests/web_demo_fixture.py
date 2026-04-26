@@ -11,6 +11,7 @@ from propstore.sidecar.schema import (
     create_tables,
     write_schema_metadata,
 )
+from propstore.sidecar.rules import create_grounded_fact_table
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,7 @@ def seed_web_demo_repository(tmp_path: Path) -> WebDemoRepositoryFixture:
         create_tables(conn)
         create_claim_tables(conn)
         create_context_tables(conn)
+        create_grounded_fact_table(conn)
         write_schema_metadata(conn)
         _create_concept_fts(conn)
         _seed_rows(conn)
