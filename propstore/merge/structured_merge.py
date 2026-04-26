@@ -22,7 +22,7 @@ from propstore.structured_projection import StructuredProjection, build_structur
 @dataclass(frozen=True)
 class BranchStructuredSummary:
     branch: str
-    claim_ids: tuple[str, ...]
+    assertion_ids: tuple[str, ...]
     claim_provenance: dict[str, dict[str, Any]]
     content_signature: str
     relation_surface: dict[str, str]
@@ -135,8 +135,8 @@ def _empty_projection() -> StructuredProjection:
     )
 
 
-def _summary_claim_ids(active_claims: list[MergeClaim]) -> tuple[str, ...]:
-    return tuple(sorted(claim.artifact_id for claim in active_claims))
+def _summary_assertion_ids(active_claims: list[MergeClaim]) -> tuple[str, ...]:
+    return tuple(sorted(str(claim.assertion_id) for claim in active_claims))
 
 
 def _summary_claim_provenance(active_claims: list[MergeClaim]) -> dict[str, dict[str, Any]]:
@@ -215,8 +215,8 @@ def _canonical_stance_rows(
     stance_rows: list[StanceRow],
 ) -> list[StanceRow]:
     in_scope_claim_ids = {
-        to_claim_id(claim_id)
-        for claim_id in _summary_claim_ids(active_claims)
+        to_claim_id(claim.artifact_id)
+        for claim in active_claims
     }
     canonical_rows = [
         row
@@ -274,7 +274,7 @@ def build_branch_structured_summary(snapshot: RepositorySnapshot, branch: str) -
     active_claims = _load_branch_claims(snapshot, commit)
     raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(snapshot, commit)
     stance_rows = _canonical_stance_rows(active_claims, raw_stance_rows)
-    claim_ids = _summary_claim_ids(active_claims)
+    assertion_ids = _summary_assertion_ids(active_claims)
     claim_provenance = _summary_claim_provenance(active_claims)
     content_signature = _summary_content_signature(active_claims, stance_rows)
     if active_claims:
@@ -288,7 +288,7 @@ def build_branch_structured_summary(snapshot: RepositorySnapshot, branch: str) -
         projection = _empty_projection()
     return BranchStructuredSummary(
         branch=branch,
-        claim_ids=claim_ids,
+        assertion_ids=assertion_ids,
         claim_provenance=claim_provenance,
         content_signature=content_signature,
         relation_surface=_summary_relation_surface(),
