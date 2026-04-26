@@ -154,15 +154,18 @@ main
 
 ## Presenter Convergence
 
-Current production rendering is in `propstore/web/html.py`, while
-`propstore/web/templates/base.html` also exists.
+Status: resolved in current production code.
 
-This workstream must converge that surface:
+Current production rendering is in `propstore/web/html.py`.
+`propstore/web/templates/` is not present in the current tree.
 
-- either move production HTML presenters onto the template path;
-- or delete the unused template path and keep explicit presenter functions.
+The converged surface keeps explicit presenter functions. A future move to a
+template language would be a replacement workstream: change the presenter
+interface, update every caller, and delete the old presenter path in the same
+slice.
 
-Do not keep both as production surfaces once the concept page lands.
+Do not keep both explicit presenter functions and templates as production
+surfaces.
 
 ## Explicit Non-Goals
 
