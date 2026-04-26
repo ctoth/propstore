@@ -14,6 +14,8 @@ from propstore.core.assertions import ContextReference
 from propstore.sidecar.passes import compile_context_lifting_materialization_rows
 from propstore.sidecar.schema import create_context_tables, populate_contexts
 from propstore.sidecar.stages import ContextSidecarRows
+from propstore.world.bound import BoundWorld
+from propstore.world.types import Environment
 
 
 def test_lifting_materializes_ist_assertion_with_rule_provenance() -> None:
@@ -90,6 +92,63 @@ def test_lifting_exception_is_local_and_blocks_only_matching_target() -> None:
     assert by_target["ctx_target"].status is LiftingMaterializationStatus.BLOCKED
     assert by_target["ctx_target"].exception_id == "except-target-alpha"
     assert by_target["ctx_sibling"].status is LiftingMaterializationStatus.LIFTED
+
+
+def test_lifting_system_does_not_expose_visibility_as_semantics() -> None:
+    system = LiftingSystem(contexts=(ContextReference("ctx_target"),))
+
+    assert not hasattr(system, "contexts_visible_from")
+
+
+def test_bound_world_projection_honors_local_lifting_exception() -> None:
+    class _Store:
+        def __init__(self) -> None:
+            from propstore.z3_conditions import Z3ConditionSolver
+
+            self._solver = Z3ConditionSolver({})
+            self._claims = [
+                {"id": "claim_alpha", "concept_id": "c1", "context_id": "ctx_source"},
+                {"id": "claim_local", "concept_id": "c1", "context_id": "ctx_target"},
+            ]
+
+        def claims_for(self, concept_id):
+            return [
+                claim
+                for claim in self._claims
+                if concept_id is None or claim.get("concept_id") == concept_id
+            ]
+
+        def condition_solver(self):
+            return self._solver
+
+    source = ContextReference("ctx_source")
+    target = ContextReference("ctx_target")
+    system = LiftingSystem(
+        contexts=(source, target),
+        lifting_rules=(
+            LiftingRule(id="lift-source-target", source=source, target=target),
+        ),
+        lifting_exceptions=(
+            LiftingException(
+                id="except-alpha",
+                rule_id="lift-source-target",
+                target=target,
+                proposition_id="claim_alpha",
+                clashing_set=("ctx_target:claim_local",),
+                justification="target-local undercutter",
+            ),
+        ),
+    )
+
+    bound = BoundWorld(
+        _Store(),
+        environment=Environment(context_id="ctx_target"),
+        lifting_system=system,
+    )
+
+    assert {str(claim.claim_id) for claim in bound.active_claims("c1")} == {
+        "claim_local",
+    }
 
 
 def test_sidecar_stores_lifting_materialization_provenance() -> None:
