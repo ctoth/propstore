@@ -52,10 +52,33 @@ from propstore.web.html import (
     render_neighborhood_page,
 )
 from propstore.web.requests import (
+    WebQueryParseError,
     parse_render_policy_request,
     parse_repository_view_request,
 )
 from propstore.web.serialization import to_json_compatible
+
+_EXPECTED_WEB_ERRORS = (
+    WebQueryParseError,
+    RenderPolicyValidationError,
+    RepositoryViewUnsupportedStateError,
+    ClaimViewUnknownClaimError,
+    ConceptViewUnknownConceptError,
+    SemanticNeighborhoodUnsupportedFocusError,
+    WorldSidecarMissingError,
+    ConceptSidecarMissingError,
+)
+
+_ERROR_RESPONSES: dict[type[Exception], tuple[str, int]] = {
+    WebQueryParseError: ("Invalid Request", 400),
+    RenderPolicyValidationError: ("Invalid Render Policy", 400),
+    RepositoryViewUnsupportedStateError: ("Unsupported Repository State", 400),
+    SemanticNeighborhoodUnsupportedFocusError: ("Unsupported Focus", 400),
+    ClaimViewUnknownClaimError: ("Claim Not Found", 404),
+    ConceptViewUnknownConceptError: ("Concept Not Found", 404),
+    WorldSidecarMissingError: ("Sidecar Missing", 409),
+    ConceptSidecarMissingError: ("Sidecar Missing", 409),
+}
 
 
 def register_routes(app: FastAPI) -> None:
@@ -184,16 +207,8 @@ def _claim_report(
                 repository_view=repository_view,
             ),
         )
-    except ValueError as exc:
-        return _error_response("Invalid Request", str(exc), 400, wants_json=wants_json)
-    except RenderPolicyValidationError as exc:
-        return _error_response("Invalid Render Policy", str(exc), 400, wants_json=wants_json)
-    except RepositoryViewUnsupportedStateError as exc:
-        return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
-    except ClaimViewUnknownClaimError as exc:
-        return _error_response("Claim Not Found", str(exc), 404, wants_json=wants_json)
-    except WorldSidecarMissingError as exc:
-        return _error_response("Sidecar Missing", str(exc), 409, wants_json=wants_json)
+    except _EXPECTED_WEB_ERRORS as exc:
+        return _expected_error_response(exc, wants_json=wants_json)
     return report
 
 
@@ -234,16 +249,8 @@ def _concept_report(
                 repository_view=repository_view,
             ),
         )
-    except ValueError as exc:
-        return _error_response("Invalid Request", str(exc), 400, wants_json=wants_json)
-    except RenderPolicyValidationError as exc:
-        return _error_response("Invalid Render Policy", str(exc), 400, wants_json=wants_json)
-    except RepositoryViewUnsupportedStateError as exc:
-        return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
-    except ConceptViewUnknownConceptError as exc:
-        return _error_response("Concept Not Found", str(exc), 404, wants_json=wants_json)
-    except WorldSidecarMissingError as exc:
-        return _error_response("Sidecar Missing", str(exc), 409, wants_json=wants_json)
+    except _EXPECTED_WEB_ERRORS as exc:
+        return _expected_error_response(exc, wants_json=wants_json)
     return report
 
 
@@ -298,14 +305,8 @@ def _claims_report(
                     repository_view=repository_view,
                 ),
             )
-    except ValueError as exc:
-        return _error_response("Invalid Request", str(exc), 400, wants_json=wants_json)
-    except RenderPolicyValidationError as exc:
-        return _error_response("Invalid Render Policy", str(exc), 400, wants_json=wants_json)
-    except RepositoryViewUnsupportedStateError as exc:
-        return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
-    except WorldSidecarMissingError as exc:
-        return _error_response("Sidecar Missing", str(exc), 409, wants_json=wants_json)
+    except _EXPECTED_WEB_ERRORS as exc:
+        return _expected_error_response(exc, wants_json=wants_json)
     return report
 
 
@@ -349,18 +350,8 @@ def _neighborhood_report(
                 limit=limit,
             ),
         )
-    except ValueError as exc:
-        return _error_response("Invalid Request", str(exc), 400, wants_json=wants_json)
-    except RenderPolicyValidationError as exc:
-        return _error_response("Invalid Render Policy", str(exc), 400, wants_json=wants_json)
-    except SemanticNeighborhoodUnsupportedFocusError as exc:
-        return _error_response("Unsupported Focus", str(exc), 400, wants_json=wants_json)
-    except RepositoryViewUnsupportedStateError as exc:
-        return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
-    except ClaimViewUnknownClaimError as exc:
-        return _error_response("Claim Not Found", str(exc), 404, wants_json=wants_json)
-    except WorldSidecarMissingError as exc:
-        return _error_response("Sidecar Missing", str(exc), 409, wants_json=wants_json)
+    except _EXPECTED_WEB_ERRORS as exc:
+        return _expected_error_response(exc, wants_json=wants_json)
     return report
 
 
@@ -413,12 +404,8 @@ def _concepts_report(
                     repository_view=repository_view,
                 ),
             )
-    except ValueError as exc:
-        return _error_response("Invalid Request", str(exc), 400, wants_json=wants_json)
-    except RepositoryViewUnsupportedStateError as exc:
-        return _error_response("Unsupported Repository State", str(exc), 400, wants_json=wants_json)
-    except ConceptSidecarMissingError as exc:
-        return _error_response("Sidecar Missing", str(exc), 409, wants_json=wants_json)
+    except _EXPECTED_WEB_ERRORS as exc:
+        return _expected_error_response(exc, wants_json=wants_json)
     return report
 
 
@@ -428,9 +415,9 @@ def _parse_limit(value: str | None) -> int:
     try:
         limit = int(value)
     except ValueError as exc:
-        raise ValueError("limit must be an integer") from exc
+        raise WebQueryParseError("limit must be an integer") from exc
     if limit < 1 or limit > 500:
-        raise ValueError("limit must be between 1 and 500")
+        raise WebQueryParseError("limit must be between 1 and 500")
     return limit
 
 
@@ -444,6 +431,35 @@ def _optional_query(request: Request, name: str) -> str | None:
     if value is None or value == "":
         return None
     return value
+
+
+@overload
+def _expected_error_response(
+    exc: Exception,
+    *,
+    wants_json: Literal[True],
+) -> JSONResponse:
+    ...
+
+
+@overload
+def _expected_error_response(
+    exc: Exception,
+    *,
+    wants_json: Literal[False],
+) -> HTMLResponse:
+    ...
+
+
+def _expected_error_response(
+    exc: Exception,
+    *,
+    wants_json: bool,
+) -> JSONResponse | HTMLResponse:
+    for error_type, (title, status_code) in _ERROR_RESPONSES.items():
+        if isinstance(exc, error_type):
+            return _error_response(title, str(exc), status_code, wants_json=wants_json)
+    raise TypeError(f"unmapped expected web error: {type(exc).__name__}")
 
 
 @overload
