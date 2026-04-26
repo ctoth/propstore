@@ -50,7 +50,7 @@ class Opinion:
     b: float
     d: float
     u: float
-    a: float = 0.5
+    a: float
     provenance: Provenance | None = None
     allow_dogmatic: bool = False
 
@@ -92,17 +92,17 @@ class Opinion:
         return Opinion(self.b, self.d, self.u, self.a, provenance)
 
     @classmethod
-    def vacuous(cls, a: float = 0.5, *, provenance: Provenance | None = None) -> Opinion:
+    def vacuous(cls, a: float, *, provenance: Provenance | None = None) -> Opinion:
         """Total ignorance."""
         return cls(0.0, 0.0, 1.0, a, provenance)
 
     @classmethod
-    def dogmatic_true(cls, a: float = 0.5, *, provenance: Provenance | None = None) -> Opinion:
+    def dogmatic_true(cls, a: float, *, provenance: Provenance | None = None) -> Opinion:
         """Absolute belief."""
         return cls(1.0, 0.0, 0.0, a, provenance)
 
     @classmethod
-    def dogmatic_false(cls, a: float = 0.5, *, provenance: Provenance | None = None) -> Opinion:
+    def dogmatic_false(cls, a: float, *, provenance: Provenance | None = None) -> Opinion:
         """Absolute disbelief."""
         return cls(0.0, 1.0, 0.0, a, provenance)
 
@@ -312,7 +312,7 @@ class BetaEvidence:
 
     r: float
     s: float
-    a: float = 0.5
+    a: float
 
     def __post_init__(self) -> None:
         if self.r < 0:
@@ -337,7 +337,7 @@ class BetaEvidence:
 def from_evidence(
     r: float,
     s: float,
-    a: float = 0.5,
+    a: float,
     *,
     provenance: Provenance | None = None,
 ) -> Opinion:
@@ -348,7 +348,7 @@ def from_evidence(
 def from_probability(
     p: float,
     n: float,
-    a: float = 0.5,
+    a: float,
     *,
     provenance: Provenance | None = None,
 ) -> Opinion:

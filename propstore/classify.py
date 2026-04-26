@@ -27,6 +27,9 @@ from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.stances import VALID_STANCE_TYPES, StanceType
 
 
+_CLASSIFIER_ABSTAIN_BASE_RATE = 0.5
+
+
 def _require_litellm():
     try:
         return importlib.import_module("litellm")
@@ -88,6 +91,7 @@ class ClassifiedStance:
 
 def _vacuous_classifier_opinion(operation: str) -> Opinion:
     return Opinion.vacuous(
+        _CLASSIFIER_ABSTAIN_BASE_RATE,
         provenance=Provenance(
             status=ProvenanceStatus.VACUOUS,
             witnesses=(),
