@@ -7,41 +7,50 @@ from pathlib import Path
 
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
+from tests.revision_assertion_helpers import make_assertion_atom
 
 
-def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport]:
+def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport, dict[str, str]]:
+    legacy = make_assertion_atom("legacy")
+    dependent = make_assertion_atom("dependent")
+    independent = make_assertion_atom("independent")
+    ids = {
+        "legacy": legacy.atom_id,
+        "dependent": dependent.atom_id,
+        "independent": independent.atom_id,
+    }
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
             AssumptionAtom("assumption:a_strong", {"assumption_id": "a_strong"}),
             AssumptionAtom("assumption:b_medium", {"assumption_id": "b_medium"}),
             AssumptionAtom("assumption:shared_weak", {"assumption_id": "shared_weak"}),
-            ClaimAtom("claim:legacy", {"id": "legacy"}),
-            ClaimAtom("claim:dependent", {"id": "dependent"}),
-            ClaimAtom("claim:independent", {"id": "independent"}),
+            legacy,
+            dependent,
+            independent,
         ),
         support_sets={
-            "claim:legacy": (
+            ids["legacy"]: (
                 ("assumption:a_strong", "assumption:shared_weak"),
                 ("assumption:b_medium", "assumption:shared_weak"),
             ),
-            "claim:dependent": (("assumption:shared_weak",),),
-            "claim:independent": (("assumption:a_strong",),),
+            ids["dependent"]: (("assumption:shared_weak",),),
+            ids["independent"]: (("assumption:a_strong",),),
         },
         essential_support={
-            "claim:legacy": ("assumption:shared_weak",),
-            "claim:dependent": ("assumption:shared_weak",),
-            "claim:independent": ("assumption:a_strong",),
+            ids["legacy"]: ("assumption:shared_weak",),
+            ids["dependent"]: ("assumption:shared_weak",),
+            ids["independent"]: ("assumption:a_strong",),
         },
     )
     entrenchment = EntrenchmentReport(
         ranked_atom_ids=(
             "assumption:a_strong",
-            "claim:independent",
+            ids["independent"],
             "assumption:b_medium",
-            "claim:legacy",
-            "claim:dependent",
+            ids["legacy"],
+            ids["dependent"],
             "assumption:shared_weak",
         ),
         reasons={
@@ -50,45 +59,45 @@ def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport]:
             "assumption:shared_weak": EntrenchmentReason(support_count=1),
         },
     )
-    return base, entrenchment
+    return base, entrenchment, ids
 
 
 def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() -> None:
     from propstore.support_revision.operators import contract
 
-    base, entrenchment = _base_with_shared_support()
+    base, entrenchment, ids = _base_with_shared_support()
 
-    result = contract(base, ("claim:legacy",), entrenchment=entrenchment)
+    result = contract(base, (ids["legacy"],), entrenchment=entrenchment)
 
     assert result.incision_set == ("assumption:shared_weak",)
     assert "assumption:shared_weak" in result.rejected_atom_ids
-    assert "claim:legacy" in result.rejected_atom_ids
-    assert "claim:dependent" in result.rejected_atom_ids
-    assert "claim:independent" in result.accepted_atom_ids
-    assert result.explanation["claim:legacy"].reason == "support_lost"
-    assert result.explanation["claim:dependent"].reason == "support_lost"
-    assert result.explanation["claim:dependent"].incision_set == ("assumption:shared_weak",)
+    assert ids["legacy"] in result.rejected_atom_ids
+    assert ids["dependent"] in result.rejected_atom_ids
+    assert ids["independent"] in result.accepted_atom_ids
+    assert result.explanation[ids["legacy"]].reason == "support_lost"
+    assert result.explanation[ids["dependent"]].reason == "support_lost"
+    assert result.explanation[ids["dependent"]].incision_set == ("assumption:shared_weak",)
 
 
 def test_expand_adds_atom_without_mutating_input_base() -> None:
     from propstore.support_revision.operators import expand
 
-    base, _ = _base_with_shared_support()
-    new_atom = ClaimAtom("claim:new", {"id": "new"})
+    base, _, _ = _base_with_shared_support()
+    new_atom = make_assertion_atom("new")
 
     result = expand(base, new_atom)
 
-    assert "claim:new" in result.accepted_atom_ids
-    assert all(atom.atom_id != "claim:new" for atom in base.atoms)
-    assert any(atom.atom_id == "claim:new" for atom in result.revised_base.atoms)
+    assert new_atom.atom_id in result.accepted_atom_ids
+    assert all(atom.atom_id != new_atom.atom_id for atom in base.atoms)
+    assert any(atom.atom_id == new_atom.atom_id for atom in result.revised_base.atoms)
 
 
 def test_revise_matches_operational_levi_identity() -> None:
     from propstore.support_revision.operators import contract, expand, revise
 
-    base, entrenchment = _base_with_shared_support()
-    new_atom = ClaimAtom("claim:new", {"id": "new"})
-    conflicts = {"claim:new": ("claim:legacy",)}
+    base, entrenchment, ids = _base_with_shared_support()
+    new_atom = make_assertion_atom("new")
+    conflicts = {new_atom.atom_id: (ids["legacy"],)}
 
     revised = revise(
         base,
@@ -98,7 +107,7 @@ def test_revise_matches_operational_levi_identity() -> None:
     )
     contracted = contract(
         base,
-        conflicts["claim:new"],
+        conflicts[new_atom.atom_id],
         entrenchment=entrenchment,
     )
     expanded = expand(contracted.revised_base, new_atom)
@@ -111,41 +120,33 @@ def test_revise_matches_operational_levi_identity() -> None:
     assert revised.incision_set == contracted.incision_set
 
 
-def test_normalize_revision_input_resolves_existing_claim_ids() -> None:
+def test_normalize_revision_input_resolves_existing_assertion_ids() -> None:
     from propstore.support_revision.operators import normalize_revision_input
 
-    base, _ = _base_with_shared_support()
+    base, _, ids = _base_with_shared_support()
 
-    atom = normalize_revision_input(base, "legacy")
+    atom = normalize_revision_input(base, ids["legacy"])
 
-    assert atom.atom_id == "claim:legacy"
-    assert isinstance(atom, ClaimAtom)
+    assert atom.atom_id == ids["legacy"]
 
 
-def test_normalize_revision_input_builds_synthetic_claim_atoms() -> None:
+def test_normalize_revision_input_rejects_claim_mapping_adapters() -> None:
     from propstore.support_revision.operators import normalize_revision_input
 
-    base, _ = _base_with_shared_support()
+    base, _, _ = _base_with_shared_support()
 
-    atom = normalize_revision_input(
-        base,
-        {
-            "kind": "claim",
-            "id": "new",
-            "value": 3.0,
-        },
-    )
-
-    assert atom.atom_id == "claim:new"
-    assert isinstance(atom, ClaimAtom)
-    assert atom.claim_id == "new"
-    assert atom.claim.value == 3.0
+    try:
+        normalize_revision_input(base, {"kind": "claim", "id": "new", "value": 3.0})
+    except ValueError as exc:
+        assert "Assertion revision input requires an AssertionAtom" in str(exc)
+    else:
+        raise AssertionError("claim-shaped revision mappings must not be accepted")
 
 
 def test_normalize_revision_input_builds_assumption_atoms() -> None:
     from propstore.support_revision.operators import normalize_revision_input
 
-    base, _ = _base_with_shared_support()
+    base, _, _ = _base_with_shared_support()
 
     atom = normalize_revision_input(
         base,
@@ -162,42 +163,37 @@ def test_normalize_revision_input_builds_assumption_atoms() -> None:
     assert atom.assumption.cel == "x == 2"
 
 
-def test_expand_accepts_synthetic_claim_mapping_via_adapter() -> None:
+def test_expand_rejects_synthetic_claim_mapping_adapter() -> None:
     from propstore.support_revision.operators import expand
 
-    base, _ = _base_with_shared_support()
+    base, _, _ = _base_with_shared_support()
 
-    result = expand(
-        base,
-        {
-            "kind": "claim",
-            "id": "new_from_adapter",
-            "value": 9.0,
-        },
-    )
-
-    assert "claim:new_from_adapter" in result.accepted_atom_ids
-    assert any(atom.atom_id == "claim:new_from_adapter" for atom in result.revised_base.atoms)
+    try:
+        expand(base, {"kind": "claim", "id": "new_from_adapter", "value": 9.0})
+    except ValueError as exc:
+        assert "Assertion revision input requires an AssertionAtom" in str(exc)
+    else:
+        raise AssertionError("claim-shaped expand mappings must not be accepted")
 
 
 def test_stabilize_belief_base_applies_support_loss_cascade_from_incision_set() -> None:
     from propstore.support_revision.operators import stabilize_belief_base
 
-    base, _ = _base_with_shared_support()
+    base, _, ids = _base_with_shared_support()
 
     result = stabilize_belief_base(base, incision_set=("assumption:shared_weak",))
 
     assert "assumption:shared_weak" in result.rejected_atom_ids
-    assert "claim:legacy" in result.rejected_atom_ids
-    assert "claim:dependent" in result.rejected_atom_ids
-    assert "claim:independent" in result.accepted_atom_ids
-    assert result.explanation["claim:legacy"].reason == "support_lost"
+    assert ids["legacy"] in result.rejected_atom_ids
+    assert ids["dependent"] in result.rejected_atom_ids
+    assert ids["independent"] in result.accepted_atom_ids
+    assert result.explanation[ids["legacy"]].reason == "support_lost"
 
 
 def test_stabilize_belief_base_is_idempotent_on_stable_result() -> None:
     from propstore.support_revision.operators import stabilize_belief_base
 
-    base, _ = _base_with_shared_support()
+    base, _, _ = _base_with_shared_support()
 
     stabilized = stabilize_belief_base(base, incision_set=("assumption:shared_weak",))
     rerun = stabilize_belief_base(stabilized.revised_base, incision_set=stabilized.incision_set)
@@ -211,9 +207,9 @@ def test_stabilize_belief_base_is_idempotent_on_stable_result() -> None:
 def test_contract_matches_explicit_stabilization_of_chosen_incision_set() -> None:
     from propstore.support_revision.operators import contract, stabilize_belief_base
 
-    base, entrenchment = _base_with_shared_support()
+    base, entrenchment, ids = _base_with_shared_support()
 
-    contracted = contract(base, ("claim:legacy",), entrenchment=entrenchment)
+    contracted = contract(base, (ids["legacy"],), entrenchment=entrenchment)
     stabilized = stabilize_belief_base(base, incision_set=contracted.incision_set)
 
     assert contracted.accepted_atom_ids == stabilized.accepted_atom_ids
