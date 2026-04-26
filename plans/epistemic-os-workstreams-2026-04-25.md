@@ -1577,6 +1577,28 @@ Paper checkpoints:
 - Beek 2018 notes for `sameAs` and equivalence hazards.
 - OpenCyc/Cyc notes before context/microtheory mapping.
 
+Execution ledger:
+
+- Supporting materials read:
+  Bohannon 2006 local notes and page images page-000 through page-009;
+  Beek 2018 local notes; Guha 1991 local notes; Kallem 2006 local notes;
+  McCarthy 1993 local notes.
+- Added `propstore.importing.machinery` as the import contract owner package:
+  typed non-NL authored surfaces, authored-form lens, import compiler into
+  `SituatedAssertion`, external source/version/import-run/statement/inference
+  metadata, mapping policy, license, context/microtheory mapping, and explicit
+  equivalence witness storage/composition without identity collapse.
+- Red/green tests:
+  `logs/test-runs/ws11-import-machinery-red-20260426-013902.log` failed on the
+  missing owner package as expected;
+  `logs/test-runs/ws11-import-machinery-green2-20260426-014327.log` passed
+  with 4 import machinery tests.
+- Focused preservation:
+  `logs/test-runs/ws11-import-focused-20260426-014548.log` passed with 21
+  import-focused tests; `uv run pyright propstore` passed with 0 errors.
+- Final verification:
+  `logs/test-runs/ws11-full-20260426-014641.log` passed with 2949 tests.
+
 ### WS12: Policy and Governance
 
 Purpose:
