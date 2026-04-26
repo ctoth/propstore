@@ -837,6 +837,8 @@ Fifteenth slice execution ledger:
   operation ordering before JSON-LD serialization.
 - Green log: `logs/test-runs/ws4-named-graph-green-20260425-194603.log`,
   46 passed.
+- Broader provenance log:
+  `logs/test-runs/ws4-provenance-broad-20260425-194920.log`, 45 passed.
 - Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
   0 informations.
 - Deletion ledger: removed the anonymous graph-name production path from
