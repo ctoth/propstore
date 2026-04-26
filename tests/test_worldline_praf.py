@@ -53,6 +53,7 @@ class FakeWorld:
                 "content_hash": "hash-a",
                 "claim_probability": 1.0,
                 "effective_sample_size": 10,
+                "source_prior_base_rate": 0.5,
             },
             "claim_b": {
                 "id": "claim_b",
@@ -61,6 +62,7 @@ class FakeWorld:
                 "content_hash": "hash-b",
                 "claim_probability": 1.0,
                 "effective_sample_size": 10,
+                "source_prior_base_rate": 0.5,
             },
         }
 
@@ -97,6 +99,7 @@ class FakeWorld:
                     "target_claim_id": "claim_a",
                     "stance_type": "rebuts",
                     "confidence": 0.8,
+                    "opinion_base_rate": 0.5,
                     "note": "rebuts-note",
                 },
             ]
