@@ -9,7 +9,8 @@ from hypothesis import strategies as st
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.operators import expand, revise, stabilize_belief_base
 from propstore.support_revision.operators import normalize_revision_input
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
+from tests.revision_assertion_helpers import make_assertion_atom
 
 
 _ident = st.text(
@@ -32,13 +33,7 @@ def bounded_revision_bases(draw):
         )
         for i in range(assumption_count)
     )
-    claims = tuple(
-        ClaimAtom(
-            atom_id=f"claim:c{i}",
-            claim={"id": f"c{i}"},
-        )
-        for i in range(claim_count)
-    )
+    claims = tuple(make_assertion_atom(f"c{i}") for i in range(claim_count))
     support_sets = {
         claim.atom_id: ((assumptions[index % assumption_count].atom_id,),)
         for index, claim in enumerate(claims)
@@ -61,26 +56,15 @@ def bounded_revision_bases(draw):
 
 @given(namespace=_ident, value=_ident)
 @settings(deadline=None)
-def test_normalize_revision_input_resolves_existing_claim_atom_by_all_user_handles(
+def test_normalize_revision_input_resolves_existing_assertion_atom_by_assertion_id(
     namespace: str,
     value: str,
 ) -> None:
-    artifact_id = "ps:claim:0123456789abcdef"
-    logical_id = f"{namespace}:{value}"
-    atom = ClaimAtom(
-        atom_id=f"claim:{value}",
-        claim={
-            "id": artifact_id,
-            "logical_id": logical_id,
-            "logical_ids": [{"namespace": namespace, "value": value}],
-        },
-    )
+    atom = make_assertion_atom(f"{namespace}_{value}", value=value)
     base = BeliefBase(scope=RevisionScope(bindings={}), atoms=(atom,))
 
-    assert normalize_revision_input(base, artifact_id) == atom
-    assert normalize_revision_input(base, logical_id) == atom
-    assert normalize_revision_input(base, value) == atom
-    assert normalize_revision_input(base, f"claim:{value}") == atom
+    assert normalize_revision_input(base, atom.atom_id) == atom
+    assert normalize_revision_input(base, str(atom.assertion_id)) == atom
 
 
 class TestGeneratedRevisionPostulates:
@@ -101,14 +85,14 @@ class TestGeneratedRevisionPostulates:
         consistency for a satisfiable revision input.
         """
         base, _ = generated
-        atom = ClaimAtom("claim:new", {"id": "new"})
+        atom = make_assertion_atom("new")
 
         result = expand(base, atom)
 
         original_ids = {item.atom_id for item in base.atoms}
         revised_ids = {item.atom_id for item in result.revised_base.atoms}
-        assert "claim:new" in result.accepted_atom_ids
-        assert original_ids | {"claim:new"} <= revised_ids
+        assert atom.atom_id in result.accepted_atom_ids
+        assert original_ids | {atom.atom_id} <= revised_ids
         assert set(result.accepted_atom_ids).isdisjoint(result.rejected_atom_ids)
 
     @given(bounded_revision_bases())
@@ -121,31 +105,28 @@ class TestGeneratedRevisionPostulates:
         """
         base, entrenchment = generated
 
+        atom = make_assertion_atom("new")
         result = revise(
             base,
-            {"kind": "claim", "id": "new"},
+            atom,
             entrenchment=entrenchment,
             conflicts={},
         )
 
-        assert "claim:new" in result.accepted_atom_ids
+        assert atom.atom_id in result.accepted_atom_ids
         assert result.rejected_atom_ids == ()
         assert set(result.accepted_atom_ids).isdisjoint(result.rejected_atom_ids)
 
     @given(bounded_revision_bases())
     @settings(deadline=None)
-    def test_syntax_irrelevance_for_equivalent_claim_inputs(self, generated):
-        """Equivalent claim inputs produce the same revised base.
-
-        The mapping and domain object name the same claim atom.
-        """
+    def test_syntax_irrelevance_for_equivalent_assertion_inputs(self, generated):
+        """Equivalent assertion inputs produce the same revised base."""
         base, entrenchment = generated
-        mapping_input = {"kind": "claim", "id": "new"}
-        atom_input = ClaimAtom("claim:new", {"id": "new"})
+        atom_input = make_assertion_atom("new")
 
-        from_mapping = revise(
+        from_string = revise(
             base,
-            mapping_input,
+            atom_input.atom_id,
             entrenchment=entrenchment,
             conflicts={},
         )
@@ -156,8 +137,8 @@ class TestGeneratedRevisionPostulates:
             conflicts={},
         )
 
-        assert from_mapping.accepted_atom_ids == from_atom.accepted_atom_ids
-        assert tuple(atom.atom_id for atom in from_mapping.revised_base.atoms) == tuple(
+        assert from_string.accepted_atom_ids == from_atom.accepted_atom_ids
+        assert tuple(atom.atom_id for atom in from_string.revised_base.atoms) == tuple(
             atom.atom_id for atom in from_atom.revised_base.atoms
         )
 
