@@ -123,17 +123,28 @@ class TestGeneratedRevisionPostulates:
         """Equivalent assertion inputs produce the same revised base."""
         base, entrenchment = generated
         atom_input = make_assertion_atom("new")
+        base_with_atom = BeliefBase(
+            scope=base.scope,
+            atoms=base.atoms + (atom_input,),
+            assumptions=base.assumptions,
+            support_sets=base.support_sets,
+            essential_support=base.essential_support,
+        )
+        entrenchment_with_atom = EntrenchmentReport(
+            ranked_atom_ids=entrenchment.ranked_atom_ids + (atom_input.atom_id,),
+            reasons=entrenchment.reasons,
+        )
 
         from_string = revise(
-            base,
+            base_with_atom,
             atom_input.atom_id,
-            entrenchment=entrenchment,
+            entrenchment=entrenchment_with_atom,
             conflicts={},
         )
         from_atom = revise(
-            base,
+            base_with_atom,
             atom_input,
-            entrenchment=entrenchment,
+            entrenchment=entrenchment_with_atom,
             conflicts={},
         )
 
