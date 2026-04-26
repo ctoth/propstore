@@ -924,6 +924,25 @@ deletion_ledger: add the status boundary without converting historical tests
   prior surfaces
 ```
 
+Seventeenth slice execution ledger:
+
+- Red commit: `25359bc` added probability-status boundary tests for explicit
+  opinion provenance and for provenance-free derivations that must not receive
+  manufactured statuses.
+- Red log: `logs/test-runs/ws4-probability-status-red-20260425-200051.log`,
+  failed because `Opinion` did not expose a provenance-status boundary.
+- Green commit: `a1bb3f4` added `Opinion.provenance_status`, returning the
+  explicit `ProvenanceStatus` when present and raising when no provenance
+  record exists.
+- Green log: `logs/test-runs/ws4-probability-status-green-20260425-200149.log`,
+  13 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no broad historical opinion-construction path was deleted in
+  this WS4 slice; the new boundary prevents status consumers from silently
+  fabricating provenance while WS8 remains responsible for deleting wider
+  default-prior surfaces.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
