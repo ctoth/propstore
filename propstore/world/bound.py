@@ -557,9 +557,9 @@ class BoundWorld(BeliefSpace):
 
     def revision_state_snapshot(self, state):
         """Render an iterated revision state as the worldline persistence payload."""
-        from propstore.support_revision.snapshot_types import epistemic_state_snapshot
+        from propstore.support_revision.history import EpistemicSnapshot
 
-        return epistemic_state_snapshot(state)
+        return EpistemicSnapshot.from_state(state)
 
     def iterated_revise(
         self,

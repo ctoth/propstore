@@ -81,9 +81,10 @@ def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
     )
     payload = epistemic_state_payload(next_state)
 
-    assert payload["accepted_atom_ids"] == list(result.accepted_atom_ids)
-    assert payload["history"][0]["operator"] == "contract"
-    assert payload["history"][0]["incision_set"] == list(result.incision_set)
+    assert payload["schema_version"] == "propstore.epistemic_snapshot.v1"
+    assert payload["state"]["accepted_atom_ids"] == list(result.accepted_atom_ids)
+    assert payload["state"]["history"][0]["operator"] == "contract"
+    assert payload["state"]["history"][0]["incision_set"] == list(result.incision_set)
 
 
 def test_iterated_revision_module_does_not_import_ic_merge() -> None:

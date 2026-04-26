@@ -6,7 +6,6 @@ from dataclasses import replace
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.operators import normalize_revision_input, revise
-from propstore.support_revision.snapshot_types import epistemic_state_snapshot
 from propstore.support_revision.state import BeliefBase, EpistemicState, RevisionEpisode, RevisionResult
 
 
@@ -101,7 +100,9 @@ def iterated_revise(
 
 def epistemic_state_payload(state: EpistemicState) -> dict:
     """Return a JSON-friendly payload for persistence or replay tooling."""
-    return epistemic_state_snapshot(state).to_dict()
+    from propstore.support_revision.history import EpistemicSnapshot
+
+    return EpistemicSnapshot.from_state(state).to_dict()
 
 
 def _entrenchment_from_state(state: EpistemicState) -> EntrenchmentReport:
