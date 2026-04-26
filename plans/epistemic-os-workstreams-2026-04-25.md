@@ -619,6 +619,31 @@ Tenth slice execution ledger:
   slice; the new runtime-facing checked carrier stores source text,
   registry fingerprint, warnings, and `ConditionIR`, without a CEL AST field.
 
+Eleventh slice gate, WS3 source-span preservation:
+
+```text
+target_surface: CEL source spans preserved through AST and ConditionIR lowering
+old_surfaces_to_delete: full-expression placeholder spans for every lowered
+  ConditionIR child node
+allowed_owner_modules: propstore.cel_checker, propstore.cel_types,
+  propstore.core.conditions
+forbidden_imports: ConditionIR owner modules must still not import
+  cel_checker except from the CEL frontend adapter; CEL parser/checker must not
+  import condition owner modules or backend projection modules
+forbidden_symbols: ConditionIR must still not name backend helper surfaces
+  _rt, RuntimeHelper, PythonAst, Estree, Z3, Solver, or SQL
+forbidden_storage_columns: none in this slice
+positive_tests: parsed CEL AST nodes carry precise source spans; lowered
+  ConditionIR preserves child spans; parent spans contain child spans
+negative_tests: architecture import/symbol tests; child reference/literal spans
+  must not collapse to the full expression span
+pyright_scope: uv run pyright propstore
+paper_checkpoint: compiler middle-end plan and CEL section already reread for
+  WS3 on 2026-04-25
+deletion_ledger: replace the current frontend full-expression span placeholder
+  behavior with parser-owned source spans and direct frontend preservation
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
