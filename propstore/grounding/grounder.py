@@ -49,8 +49,6 @@ from types import MappingProxyType
 from typing import cast
 
 import gunray
-from gunray.adapter import GunrayEvaluator
-from gunray.schema import DefeasibleModel, DefeasibleSections, Policy
 
 from argumentation.aspic import GroundAtom, Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -77,7 +75,7 @@ def ground(
     facts: tuple[GroundAtom, ...],
     registry: PredicateRegistry,
     *,
-    policy: Policy = Policy.BLOCKING,
+    policy: gunray.Policy = gunray.Policy.BLOCKING,
     return_arguments: bool = False,
 ) -> GroundedRulesBundle:
     """Ground a propstore rule/fact bundle via gunray.
@@ -173,8 +171,9 @@ def ground(
     # ``Program`` and ``DefeasibleTheory`` — but we pass a
     # ``DefeasibleTheory`` so the concrete return is a
     # ``DefeasibleModel``.
-    evaluator = GunrayEvaluator()
-    raw_model = cast(DefeasibleModel, evaluator.evaluate(theory, policy))
+    evaluator = gunray.GunrayEvaluator()
+    raw_model = cast(gunray.DefeasibleModel, evaluator.evaluate(theory, policy))
+    grounding_inspection = gunray.inspect_grounding(theory)
 
     # Step 3: re-normalise sections. Garcia & Simari 2004 §4 (p.25)
     # non-commitment anchor: every bundle must expose all four section
@@ -211,6 +210,7 @@ def ground(
         source_facts=facts,
         sections=normalized_sections,
         arguments=sorted_arguments,
+        grounding_inspection=grounding_inspection,
     )
 
 
@@ -240,7 +240,7 @@ def _argument_sort_key(
 
 
 def _normalise_sections(
-    raw_sections: DefeasibleSections,
+    raw_sections: gunray.DefeasibleSections,
 ) -> Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]:
     """Convert gunray's ``DefeasibleSections`` into an immutable view.
 
