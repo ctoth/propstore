@@ -223,7 +223,7 @@ def test_merge_commit_cli_surfaces_storage_commit_metadata(tmp_path):
     assert "completion_count" not in payload
 
 
-def test_merge_inspect_cli_surfaces_semantic_candidate_details(tmp_path):
+def test_merge_inspect_cli_collapses_duplicate_assertions_without_candidate_bucket(tmp_path):
     repo = Repository.init(tmp_path / "knowledge")
     git = repo.git
     assert git is not None
@@ -269,21 +269,10 @@ def test_merge_inspect_cli_surfaces_semantic_candidate_details(tmp_path):
 
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
-    assert len(payload["semantic_candidates"]) == 1
-    assert all(
-        assertion_id.startswith("ps:assertion:")
-        for assertion_id in payload["semantic_candidates"][0]
-    )
-    details = payload["semantic_candidate_details"]
-    assert len(details) == 1
-    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in details[0]["assertion_ids"])
-    assert details[0]["logical_ids"] == ["left_paper:claim_a", "right_paper:claim_b"]
-    assert details[0]["artifact_ids"] == ["ps:claim:leftcandidate0001", "ps:claim:rightcandidate0001"]
-    assert [argument["artifact_id"] for argument in details[0]["arguments"]] == [
-        "ps:claim:leftcandidate0001",
-        "ps:claim:rightcandidate0001",
-    ]
-    assert all(argument["assertion_id"].startswith("ps:assertion:") for argument in details[0]["arguments"])
+    assert len(payload["arguments"]) == 1
+    assert payload["arguments"][0].startswith("ps:assertion:")
+    assert payload["semantic_candidates"] == []
+    assert payload["semantic_candidate_details"] == []
 
 
 def test_merge_commit_cli_reports_semantic_candidate_count(tmp_path):
@@ -332,7 +321,7 @@ def test_merge_commit_cli_reports_semantic_candidate_count(tmp_path):
 
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
-    assert payload["semantic_candidate_count"] == 1
+    assert payload["semantic_candidate_count"] == 0
 
 
 def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
