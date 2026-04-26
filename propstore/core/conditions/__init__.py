@@ -16,6 +16,10 @@ from propstore.core.conditions.ir import (
     ConditionUnaryOp,
     ConditionValueKind,
 )
+from propstore.core.conditions.python_backend import (
+    condition_ir_to_python_ast,
+    evaluate_condition_ir,
+)
 
 __all__ = [
     "ConditionBinary",
@@ -29,5 +33,7 @@ __all__ = [
     "ConditionUnary",
     "ConditionUnaryOp",
     "ConditionValueKind",
+    "condition_ir_to_python_ast",
     "condition_ir_from_cel",
+    "evaluate_condition_ir",
 ]
