@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
-from propstore.fragility import FragilityReport
+from propstore.fragility import FragilityReport, FragilityRequest, query_fragility
 from propstore.policies import PolicyProfile
 from propstore.support_revision.history import (
     EpistemicSnapshot,
@@ -287,6 +287,21 @@ class InterventionPlan:
             "minimality_basis": self.minimality_basis,
             "assertion_ids": list(self.assertion_ids),
         }
+
+
+def plan_fragility_investigation(
+    world: object,
+    request: FragilityRequest,
+    *,
+    objective: str,
+    assertion_ids: Sequence[str] = (),
+) -> InvestigationPlan:
+    report = query_fragility(world, request)
+    return InvestigationPlan.from_fragility_report(
+        report,
+        objective=objective,
+        assertion_ids=assertion_ids,
+    )
 
 
 @dataclass(frozen=True)
@@ -646,4 +661,5 @@ __all__ = [
     "ProcessJob",
     "ProcessReplayReport",
     "QueuedProcessJob",
+    "plan_fragility_investigation",
 ]
