@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from html import escape
+from typing import NamedTuple
 from urllib.parse import quote
 
 from propstore.app.claim_views import ClaimSummaryReport, ClaimViewReport
@@ -21,6 +22,12 @@ from propstore.app.neighborhoods import (
 )
 
 
+class LinkRow(NamedTuple):
+    link_text: str
+    href: str
+    cells: tuple[str, ...]
+
+
 def render_claim_index_page(
     report: ClaimSummaryReport,
     *,
@@ -33,14 +40,16 @@ def render_claim_index_page(
         ("Concept filter", concept or "none"),
     ]
     rows = [
-        (
+        LinkRow(
             entry.logical_id or entry.claim_id,
-            entry.concept_display,
-            entry.claim_type,
-            entry.value_display,
-            entry.condition_display,
-            entry.status_state.replace("_", " "),
             f"/claim/{quote(entry.claim_id, safe='')}",
+            (
+                entry.concept_display,
+                entry.claim_type,
+                entry.value_display,
+                entry.condition_display,
+                entry.status_state.replace("_", " "),
+            ),
         )
         for entry in report.entries
     ]
@@ -57,8 +66,6 @@ def render_claim_index_page(
   {_link_table(
       ("Claim", "Concept(s)", "Type", "Value / Summary", "Conditions", "Status"),
       rows,
-      link_column=0,
-      href_column=6,
   )}
 </section>
 """,
@@ -243,36 +250,36 @@ def render_concept_index_page(
     ]
     if isinstance(report, ConceptListReport):
         rows = [
-            (
+            LinkRow(
                 entry.handle,
-                entry.canonical_name,
-                entry.status or "missing",
                 f"/concept/{quote(entry.handle, safe='')}",
+                (
+                    entry.canonical_name,
+                    entry.status or "missing",
+                ),
             )
             for entry in report.entries
         ]
         table = _link_table(
             ("Handle", "Canonical Name", "Status"),
             rows,
-            link_column=0,
-            href_column=3,
         )
     else:
         rows = [
-            (
+            LinkRow(
                 hit.handle,
-                hit.canonical_name,
-                hit.status or "missing",
-                hit.definition or "missing",
                 f"/concept/{quote(hit.handle, safe='')}",
+                (
+                    hit.canonical_name,
+                    hit.status or "missing",
+                    hit.definition or "missing",
+                ),
             )
             for hit in report.hits
         ]
         table = _link_table(
             ("Handle", "Canonical Name", "Status", "Definition"),
             rows,
-            link_column=0,
-            href_column=4,
         )
     return _page(
         title,
@@ -453,10 +460,7 @@ def _table(headers: tuple[str, ...], rows: list[tuple[str, ...]]) -> str:
 
 def _link_table(
     headers: tuple[str, ...],
-    rows: list[tuple[str, ...]],
-    *,
-    link_column: int,
-    href_column: int,
+    rows: list[LinkRow],
 ) -> str:
     head = "".join(f"<th scope=\"col\">{_text(header)}</th>" for header in headers)
     if not rows:
@@ -468,14 +472,12 @@ def _link_table(
 
     body_rows: list[str] = []
     for row in rows:
-        href = row[href_column]
-        cells: list[str] = []
-        visible_cells = [cell for index, cell in enumerate(row) if index != href_column]
-        for index, cell in enumerate(visible_cells):
-            if index == link_column:
-                cells.append(f"<td><a href=\"{_text(href)}\">{_text(cell)}</a></td>")
-            else:
-                cells.append(f"<td>{_text(cell)}</td>")
+        if len(row.cells) != len(headers) - 1:
+            raise ValueError(
+                f"LinkRow has {len(row.cells) + 1} cells for {len(headers)} headers"
+            )
+        cells = [f"<td><a href=\"{_text(row.href)}\">{_text(row.link_text)}</a></td>"]
+        cells.extend(f"<td>{_text(cell)}</td>" for cell in row.cells)
         body_rows.append("<tr>" + "".join(cells) + "</tr>")
     body = "\n".join(body_rows)
     return f"<table><thead><tr>{head}</tr></thead><tbody>\n{body}\n</tbody></table>"
@@ -501,19 +503,19 @@ def _claim_groups(groups: tuple[ConceptClaimGroup, ...]) -> str:
                     _link_table(
                         ("Claim", "Type", "Value", "Conditions", "Status", "Reason"),
                         [
-                            (
+                            LinkRow(
                                 entry.logical_id or entry.claim_id,
-                                entry.claim_type,
-                                entry.value_display,
-                                entry.condition_display,
-                                _state_label(entry.status_state),
-                                entry.status_reason,
                                 f"/claim/{quote(entry.claim_id, safe='')}",
+                                (
+                                    entry.claim_type,
+                                    entry.value_display,
+                                    entry.condition_display,
+                                    _state_label(entry.status_state),
+                                    entry.status_reason,
+                                ),
                             )
                             for entry in group.entries
                         ],
-                        link_column=0,
-                        href_column=6,
                     ),
                 ]
             )
@@ -525,16 +527,16 @@ def _related_claims_table(links: tuple[ConceptRelatedClaimLink, ...]) -> str:
     return _link_table(
         ("Claim", "Relation", "Sentence"),
         [
-            (
+            LinkRow(
                 link.logical_id or link.claim_id,
-                link.relation,
-                link.sentence,
                 f"/claim/{quote(link.claim_id, safe='')}",
+                (
+                    link.relation,
+                    link.sentence,
+                ),
             )
             for link in links
         ],
-        link_column=0,
-        href_column=3,
     )
 
 
