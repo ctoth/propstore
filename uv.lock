@@ -704,19 +704,10 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.1.0"
-source = { directory = "../argumentation" }
-
-[package.metadata]
-requires-dist = [{ name = "z3-solver", marker = "extra == 'z3'", specifier = ">=4.12" }]
-provides-extras = ["z3"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.0" },
-    { name = "pyright", specifier = ">=1.1.390" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-timeout", specifier = ">=2.3" },
-    { name = "z3-solver", specifier = ">=4.12" },
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/64/ef/a5eb7f57808cd263216adff463aef06f3c6e55fa6a7c2d7b533b45fc0636/formal_argumentation-0.1.0.tar.gz", hash = "sha256:63e34d589e48ef9c00989e0d980cf358bc92f413288255effe95c0d413fe1936", size = 119116, upload-time = "2026-04-18T22:34:33.795Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/75/eaab2b281f1acb1d98a2b38bbc74a312b92c84e43f345e619b1c7e8c5be9/formal_argumentation-0.1.0-py3-none-any.whl", hash = "sha256:730f9f2197649c3a8773d90a99a1d37fa6aca5eff65e93ac7be068221f8a20e2", size = 54461, upload-time = "2026-04-18T22:34:32.367Z" },
 ]
 
 [[package]]
@@ -2056,7 +2047,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.0" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
-    { name = "formal-argumentation", directory = "../argumentation" },
+    { name = "formal-argumentation" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray?rev=83ab5f0cd7660a80787e3974f310bf8fbd85a1ae" },
     { name = "lark", specifier = ">=1.2.2" },

@@ -78,9 +78,6 @@ markers = [
     "slow: intentionally slow tests or suites",
 ]
 
-[tool.uv.sources]
-formal-argumentation = { path = "../argumentation" }
-
 [dependency-groups]
 dev = [
     "pytest>=8.0",
