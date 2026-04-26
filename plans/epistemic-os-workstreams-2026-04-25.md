@@ -748,6 +748,32 @@ Thirteenth slice execution ledger:
   imports the external `z3` package directly and does not call the raw-CEL
   `propstore.z3_conditions` solver path.
 
+Fourteenth slice gate, WS3 SQL fragment backend:
+
+```text
+target_surface: parameterized SQL predicate fragments over ConditionIR
+old_surfaces_to_delete: none existing in core conditions; block SQL backend
+  from consuming raw CEL source/AST or returning interpolated literal SQL
+allowed_owner_modules: propstore.core.conditions
+forbidden_imports: SQL backend must not import cel_checker, z3_conditions,
+  condition_classifier, app, CLI, sidecar, world, Python ast, JavaScript
+  backend modules, or other backend projection modules
+forbidden_symbols: ConditionIR must still not name backend helper surfaces
+  _rt, RuntimeHelper, PythonAst, Estree, Z3, Solver, or SQL
+forbidden_storage_columns: none in this slice
+positive_tests: boolean, comparison, arithmetic, membership, and negation
+  ConditionIR emits parameterized SQL fragments with quoted identifiers;
+  emitted fragments can be evaluated by sqlite on tiny rows
+negative_tests: architecture import/symbol tests; unsupported conditional
+  expressions are refused explicitly; literal values never interpolate into
+  SQL text
+pyright_scope: uv run pyright propstore
+paper_checkpoint: compiler middle-end plan and CEL section already reread for
+  WS3 on 2026-04-25
+deletion_ledger: no old ConditionIR SQL backend to delete; this adds a sound
+  parameterized fragment projection directly over semantic ConditionIR
+```
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
