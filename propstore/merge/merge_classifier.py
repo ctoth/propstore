@@ -58,7 +58,7 @@ class _IndexedClaim:
 class MergeArgument:
     """A claim alternative emitted by the repository merge boundary."""
 
-    claim_id: str
+    assertion_id: str
     canonical_claim_id: str
     artifact_id: str
     logical_id: str | None
@@ -78,7 +78,7 @@ class RepositoryMergeFramework:
     semantic_candidates: tuple[tuple[str, ...], ...] = ()
 
     def argument_index(self) -> dict[str, MergeArgument]:
-        return {argument.claim_id: argument for argument in self.arguments}
+        return {argument.assertion_id: argument for argument in self.arguments}
 
 
 def _annotate_provenance(claim: MergeClaim, branch_name: str) -> MergeClaim:
@@ -91,11 +91,6 @@ def _claim_artifact_id(claim: MergeClaim) -> str | None:
 
 def _claim_logical_ids(claim: MergeClaim) -> tuple[str, ...]:
     return tuple(sorted(claim.logical_ids))
-
-
-def _disambiguate_id(claim_id: str, suffix: str) -> str:
-    safe_suffix = suffix.replace("/", "_").replace("-", "_")
-    return f"{claim_id}__{safe_suffix}"
 
 
 def _extract_concept(claim: MergeClaim) -> str:
@@ -268,16 +263,15 @@ def _emit_argument(
     canonical_claim_id: str,
     concept_id: str,
     branch_origins: tuple[str, ...],
-    emitted_claim_id: str | None = None,
     annotate_branch_origin: str | None = None,
 ) -> str:
     merged_claim = claim.claim
-    claim_id = emitted_claim_id or claim.artifact_id
     if annotate_branch_origin is not None:
         merged_claim = _annotate_provenance(merged_claim, annotate_branch_origin)
+    assertion_id = str(merged_claim.assertion_id)
     emitted.append(
         MergeArgument(
-            claim_id=claim_id,
+            assertion_id=assertion_id,
             canonical_claim_id=canonical_claim_id,
             artifact_id=claim.artifact_id,
             logical_id=claim.primary_logical_id,
@@ -286,7 +280,7 @@ def _emit_argument(
             branch_origins=branch_origins,
         )
     )
-    return claim_id
+    return assertion_id
 
 
 def build_merge_framework(
@@ -378,7 +372,6 @@ def build_merge_framework(
                 canonical_claim_id=canonical_claim_id,
                 concept_id=concept_id,
                 branch_origins=(branch_a,),
-                emitted_claim_id=_disambiguate_id(artifact_id, branch_a),
                 annotate_branch_origin=branch_a,
             )
             right_claim_id = _emit_argument(
@@ -387,7 +380,6 @@ def build_merge_framework(
                 canonical_claim_id=canonical_claim_id,
                 concept_id=concept_id,
                 branch_origins=(branch_b,),
-                emitted_claim_id=_disambiguate_id(artifact_id, branch_b),
                 annotate_branch_origin=branch_b,
             )
             if diff_kind == _DiffKind.CONFLICT:
@@ -417,8 +409,8 @@ def build_merge_framework(
                 branch_origins=(branch_b,),
             )
 
-    emitted.sort(key=lambda argument: (argument.canonical_claim_id, argument.claim_id))
-    argument_index = {argument.claim_id: argument for argument in emitted}
+    emitted.sort(key=lambda argument: (argument.canonical_claim_id, argument.assertion_id))
+    argument_index = {argument.assertion_id: argument for argument in emitted}
 
     emitted_groups: dict[str, list[MergeArgument]] = {}
     for argument in emitted:
@@ -438,8 +430,8 @@ def build_merge_framework(
             if argument.branch_origins == (branch_b,)
         ]
         for left_argument, right_argument in product(left_arguments, right_arguments):
-            pair = (left_argument.claim_id, right_argument.claim_id)
-            reverse_pair = (right_argument.claim_id, left_argument.claim_id)
+            pair = (left_argument.assertion_id, right_argument.assertion_id)
+            reverse_pair = (right_argument.assertion_id, left_argument.assertion_id)
             if pair in attacks or pair in ignorance or reverse_pair in attacks or reverse_pair in ignorance:
                 continue
             if _claims_equal(left_argument.claim, right_argument.claim):
@@ -455,7 +447,7 @@ def build_merge_framework(
     semantic_candidate_map: dict[str, list[str]] = {}
     for argument in emitted:
         semantic_key = json.dumps(_claim_candidate_key(argument.claim), sort_keys=True)
-        semantic_candidate_map.setdefault(semantic_key, []).append(argument.claim_id)
+        semantic_candidate_map.setdefault(semantic_key, []).append(argument.assertion_id)
     semantic_candidates = tuple(
         tuple(sorted(claim_ids))
         for claim_ids in sorted(
@@ -466,7 +458,7 @@ def build_merge_framework(
         and len({argument_index[claim_id].canonical_claim_id for claim_id in claim_ids}) > 1
     )
 
-    argument_ids = frozenset(argument.claim_id for argument in emitted)
+    argument_ids = frozenset(argument.assertion_id for argument in emitted)
     ordered_pairs = frozenset(product(argument_ids, argument_ids))
     framework = PartialArgumentationFramework(
         arguments=argument_ids,
