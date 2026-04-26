@@ -1,10 +1,10 @@
-"""Phase-1 fact extractor for the propstore -> Datalog grounding pipeline.
+"""Fact extractor for the propstore -> Datalog grounding pipeline.
 
-The fact extractor walks the propstore concept graph and materialises
+The fact extractor walks loaded propstore source data and materialises
 the Datalog fact base consumed by later grounding stages. It is the
-sole bridge between propstore source-of-truth concept relationships
-and the ground-atom set that the gunray translator and the sidecar
-populate stage will read.
+sole bridge between propstore concept relationships, claim structure,
+claim context/provenance, and the ground-atom set that the gunray
+translator and the sidecar populate stage will read.
 
 Theoretical sources:
     Diller, M., Borg, A., & Bex, F. (2025). Grounding Rule-Based
@@ -20,10 +20,9 @@ Theoretical sources:
     - Section 4: every emitted ground atom must reference a declared
       predicate and respect its declared arity. The extractor cannot
       invent predicate symbols and cannot emit atoms whose arity
-      disagrees with the registry. Section 4 also fixes the three
-      sanctioned ``derived_from`` source kinds; Phase 1 only
-      materialises the ``concept_relation`` form, leaving
-      ``claim_attribute`` and ``claim_condition`` for later phases.
+      disagrees with the registry. Section 4 fixes the typed
+      ``derived_from`` boundary that propstore extends across concept
+      relations and claim structure in WS7.
 
     Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic Programming:
     An Argumentative Approach. TPLP 4(1-2), 95-138.
@@ -31,7 +30,7 @@ Theoretical sources:
       canonical defeasible-reasoning toy example; the ground literal
       ``bird(tweety)`` is produced from a fact-base entry asserting
       that the constant ``tweety`` participates in the ``Bird``
-      classification. The Phase-1 extractor reproduces exactly this
+      classification. The extractor reproduces exactly this
       derivation: a concept whose ``canonical_name`` is ``tweety`` with
       an outgoing ``is_a`` edge to ``Bird`` produces ``bird(tweety)``.
     - Section 3.1: the ground instances of a program are obtained by
@@ -42,9 +41,8 @@ Theoretical sources:
     - Section 3.2: predicate signatures are a flat function from
       predicate id to arity; rule heads and bodies have term-tuple
       lengths matching the declared arity for grounding to be
-      well-defined. Phase 1 only materialises unary atoms because the
-      ``concept.relation`` derivation form fixes a single source-side
-      argument.
+      well-defined. WS7 emits concept, claim, context, and scalar terms
+      only through registered predicate signatures.
 """
 
 from __future__ import annotations
@@ -75,26 +73,13 @@ def extract_facts(
     inputs: GroundingFactInputs,
     registry: PredicateRegistry,
 ) -> tuple[GroundAtom, ...]:
-    """Materialise the Datalog fact base from the propstore concept graph.
+    """Materialise the Datalog fact base from loaded propstore sources.
 
-    For every predicate in ``registry`` whose ``derived_from`` DSL
-    parses as ``concept.relation:<relation>:<target>``, walk every
-    ``LoadedConcept`` in ``concepts``. For each outgoing
-    ``ConceptRelationship`` whose ``relationship_type`` matches
-    ``relation`` and whose ``target`` matches ``target``, emit one
-    ground atom of the form ``predicate(canonical_name)`` where
-    ``canonical_name`` is the source concept's
-    ``ConceptRecord.canonical_name`` (Garcia & Simari 2004 §3: the
-    user-facing token like ``tweety`` in ``bird(tweety)``).
-
-    Phase 1 supports ONLY the ``concept_relation`` source kind. The
-    other two sanctioned forms (``claim.attribute:<attribute>`` and
-    ``claim.condition:<condition>``) parse successfully via
-    ``parse_derived_from`` but contribute no facts here -- Diller, Borg,
-    Bex 2025 §4 lists them as legitimate source kinds, but
-    materialising them belongs to a later chunk. Predicates with
-    ``derived_from is None`` likewise contribute nothing because they
-    have no bridge from propstore data.
+    Predicates with ``derived_from`` declarations are materialised from
+    the matching source subsystem: concept relations, claim attributes,
+    claim conditions, claim roles, claim context, or claim provenance.
+    Predicates with ``derived_from is None`` contribute nothing because
+    they have no bridge from propstore data.
 
     The result is a deterministic, duplicate-free tuple. Diller et al.
     2025 §3 (Definition 7) treats the fact base as a *set*, so the
