@@ -456,6 +456,25 @@ deletion_ledger: no existing persistence caller migration yet; this lands the
   directly
 ```
 
+Seventh slice execution ledger:
+
+- Red commit: `5f00765` added canonical situated assertion codec tests and
+  codec-owner architecture gates.
+- Red log: `logs/test-runs/ws2-codec-red-20260425-183921.log`, failed because
+  `propstore.core.assertions.codec` and `AssertionCanonicalRecord` did not
+  exist.
+- Green commit: `b8b900c` added `AssertionCanonicalRecord`, deterministic
+  canonical payload rendering, payload parsing back to `SituatedAssertion`,
+  role-order normalization on parse, old claim-shaped payload rejection, and
+  stored assertion-id validation.
+- Green log: `logs/test-runs/ws2-codec-green-20260425-184058.log`,
+  39 passed.
+- Green pyright: `uv run pyright propstore`, 0 errors, 0 warnings,
+  0 informations.
+- Deletion ledger: no existing persistence or projection caller was migrated
+  in this slice; the new canonical codec rejects old claim/predicate-key
+  payloads and keeps loose mappings at the serialization boundary only.
+
 ### Slice Gate Template
 
 Every slice must name these before the red commit:
