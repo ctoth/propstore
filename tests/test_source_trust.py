@@ -9,8 +9,10 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.core.row_types import coerce_claim_row
+from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.opinion import Opinion, discount, from_probability
 from propstore.praf import NoCalibration, p_arg_from_claim
+from propstore.source.common import initial_source_document
 from tests.family_helpers import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
@@ -36,6 +38,34 @@ def test_p_arg_from_claim_builds_claim_evidence_opinion() -> None:
     assert isinstance(opinion, Opinion)
     assert opinion == from_probability(0.8, 10, 0.62)
     assert opinion.provenance is not None
+
+
+def test_p_arg_from_claim_requires_prior_for_claim_evidence() -> None:
+    result = p_arg_from_claim(
+        {
+            "claim_probability": 0.8,
+            "effective_sample_size": 10,
+        }
+    )
+
+    assert isinstance(result, NoCalibration)
+    assert result.reason == "missing_base_rate"
+    assert "source_prior_base_rate" in result.missing_fields
+
+
+def test_initial_source_document_does_not_fabricate_default_prior(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+
+    source_doc = initial_source_document(
+        repo,
+        "demo",
+        kind=SourceKind.ACADEMIC_PAPER,
+        origin_type=SourceOriginType.MANUAL,
+        origin_value="demo",
+    )
+
+    assert source_doc.trust.prior_base_rate is None
+    assert source_doc.trust.quality is None
 
 
 def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
