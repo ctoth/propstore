@@ -2,6 +2,8 @@
 
 Date: 2026-04-23
 
+Updated: 2026-04-25 for the web abstraction workstream.
+
 ## Scope
 
 Pages covered by Slice 7:
@@ -9,6 +11,8 @@ Pages covered by Slice 7:
 - `GET /claim/{claim_id}`
 - `GET /claim/{claim_id}/neighborhood`
 - `GET /concept/{concept_id}`
+- `GET /claims`
+- `GET /concepts`
 - HTML error responses for the same route family
 
 ## Automated Checks Added
@@ -24,7 +28,9 @@ Pages covered by Slice 7:
 - meaningful link text;
 - literal rendering of `unknown`, `vacuous`, `blocked`, `missing`,
   `not applicable`, and `unavailable` states;
-- absence of CSS hooks that would make hover or pointer position required.
+- absence of CSS hooks that would make hover or pointer position required;
+- document-style CSS hooks for readable width, table overflow, focus outlines,
+  responsive layout, and print defaults.
 
 ## Manual Checks Performed
 
@@ -37,9 +43,11 @@ I did not verify:
 - JavaScript-disabled loading of the concept page in a browser;
 - keyboard-only navigation in a browser;
 - keyboard-only navigation across concept claim tables and related-claim links;
+- keyboard-only navigation across `/claims` and `/concepts` inventory tables;
 - heading navigation in a screen reader;
 - landmark navigation in a screen reader;
 - table navigation in a screen reader, including concept claim-group tables;
+- table navigation in a screen reader for `/claims` and `/concepts`;
 - NVDA with Firefox;
 - NVDA with Chrome;
 - Windows Narrator with Edge;
@@ -49,6 +57,7 @@ I did not verify:
 
 ## Current Manual-Gate Status
 
-The current server-rendered web surface now includes claim, neighborhood, and
-concept pages. React, graph, chart, and audio slices must not start until the
-manual checks above are actually performed or explicitly deferred by the user.
+The current server-rendered web surface now includes claim, neighborhood,
+concept, `/claims`, and `/concepts` pages. React, graph, chart, and audio
+slices must not start until the manual checks above are actually performed or
+explicitly deferred by the user.
