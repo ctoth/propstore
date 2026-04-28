@@ -11,6 +11,11 @@ import click
 @click.command("web")
 @click.option("--host", default="127.0.0.1", show_default=True, help="Host interface to bind.")
 @click.option(
+    "--insecure",
+    is_flag=True,
+    help="Allow serving without authentication on a public network interface.",
+)
+@click.option(
     "--port",
     default=8000,
     show_default=True,
@@ -19,12 +24,29 @@ import click
 )
 @click.option("--open", "open_browser", is_flag=True, help="Open the web UI in a browser.")
 @click.pass_obj
-def web(obj: dict[str, Any], host: str, port: int, open_browser: bool) -> None:
+def web(
+    obj: dict[str, Any],
+    host: str,
+    insecure: bool,
+    port: int,
+    open_browser: bool,
+) -> None:
     """Serve the read-only propstore web UI."""
+    if _is_public_bind(host) and not insecure:
+        raise click.ClickException(
+            "Refusing to serve propstore on a public network interface without "
+            "--insecure. Bind to 127.0.0.1 or pass --insecure to acknowledge "
+            "the no-auth public-bind risk."
+        )
     repo = obj["repo"]
     repository_root = repo.root
     app = create_web_app(repository_root=repository_root)
     url = _display_url(host, port)
+    if _is_public_bind(host):
+        click.echo(
+            f"WARNING: serving propstore with no auth on {host}.",
+            err=True,
+        )
     click.echo(f"Serving propstore web UI for {repository_root}")
     click.echo(f"Open {url}")
     click.echo(f"Claim view: {url}/claim/<claim_id>")
@@ -49,3 +71,7 @@ def run_web_server(app, *, host: str, port: int) -> None:
 def _display_url(host: str, port: int) -> str:
     display_host = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
     return f"http://{display_host}:{port}"
+
+
+def _is_public_bind(host: str) -> bool:
+    return host not in {"127.0.0.1", "::1", "localhost"}
