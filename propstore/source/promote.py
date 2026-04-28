@@ -894,6 +894,7 @@ def promote_source_branch(
     prepared_sidecar_path: Path | None = None
     sidecar_mirror_ok = True
     sidecar_mirror_error: str | None = None
+    sha: str | None = None
     try:
         with repo.head_bound_transaction(repo.snapshot.primary_branch_name(), path="promote") as head_txn:
             if promotion_plan.blocked_claims:
@@ -947,7 +948,7 @@ def promote_source_branch(
                 except OSError as exc:
                     sidecar_mirror_ok = False
                     sidecar_mirror_error = str(exc)
-        sha = head_txn.commit_sha
+            sha = head_txn.commit_sha
     finally:
         if prepared_sidecar_path is not None and prepared_sidecar_path.exists():
             prepared_sidecar_path.unlink(missing_ok=True)
