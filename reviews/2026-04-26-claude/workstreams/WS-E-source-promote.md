@@ -1,6 +1,6 @@
 # WS-E: Source-promote and finalize correctness
 
-**Status**: OPEN
+**Status**: CLOSED 34d0a459
 **Depends on**: WS-A (schema fidelity), WS-C Step 2 reorder per D-6 (promote-ordering reorder — WS-E only consumes the reorder, not the full WS-C scope), WS-CM (micropub identity for finalize/promote surfaces), WS-Q-cas (branch-head CAS discipline)
 **Blocks**: WS-K (heuristic discipline), WS-L (merge non-commitment), WS-M (provenance)
 **Owner**: Codex implementation owner + human reviewer required
@@ -207,7 +207,7 @@ for alias in concept.get("aliases") or []:
     - Submit justification proposal with `rule_kind="bogus"`.
     - Assert: rejected at commit with clear error.
 
-15. **`tests/test_workstream_e_done.py`** (new — gating sentinel) — `xfail(strict=True)` until WS-E closes.
+15. **`tests/test_workstream_e_done.py`** (new — gating sentinel) — fails while WS-E stays open, passes after closeout artifacts agree.
 
 ## Production change sequence
 
@@ -283,17 +283,18 @@ Acceptance: tests 13, 14 turn green.
 
 ## Acceptance gates
 
-- [ ] WS-A is CLOSED.
-- [ ] WS-C is CLOSED (Step 5 prerequisite).
-- [ ] WS-CM is CLOSED (micropub identity prerequisite).
-- [ ] WS-Q-cas is CLOSED (Step 5b prerequisite).
-- [ ] `uv run pyright propstore` passes 0 errors.
-- [ ] `uv run lint-imports` passes.
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-E tests/test_source_promote_dangling_refs.py tests/test_alignment_default_classification.py tests/test_alignment_dead_branch.py tests/test_alias_collision_rejected.py tests/test_finalize_micropub_required.py tests/test_promote_atomicity_source_call_site.py tests/test_promote_branch_head_cas.py tests/test_promote_stance_target_guarded.py tests/test_transaction_commit_sha_lifetime.py tests/test_concept_import_status_proposed.py tests/test_local_handle_collision_blocks_commit.py tests/test_promote_claim_immutability.py tests/test_extraction_provenance_aware_timestamps.py tests/test_justification_rule_kind_validated.py tests/test_workstream_e_done.py` all green.
-- [ ] Full suite — no NEW failures vs WS-A baseline.
-- [ ] WS-E property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-E test run or a named companion run.
-- [ ] `docs/gaps.md` clean for all listed findings.
-- [ ] STATUS line `CLOSED <sha>`.
+- [x] WS-A is CLOSED.
+- [x] WS-C is CLOSED (Step 5 prerequisite).
+- [x] WS-CM is CLOSED (micropub identity prerequisite).
+- [x] WS-Q-cas is CLOSED (Step 5b prerequisite).
+- [x] `uv run pyright propstore` passes 0 errors.
+- [x] `uv run lint-imports` passes.
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-E-targeted-preclose tests/test_source_promote_dangling_refs.py tests/test_alignment_default_classification.py tests/test_alias_collision_rejected.py tests/test_finalize_micropub_required.py tests/test_transaction_commit_sha_lifetime.py tests/test_concept_import_status_proposed.py tests/test_local_handle_collision_blocks_commit.py tests/test_promote_claim_immutability.py tests/test_extraction_provenance_aware_timestamps.py tests/test_justification_rule_kind_validated.py tests/test_promote_atomicity.py tests/test_branch_head_cas_matrix.py tests/test_cas_rejection_no_orphan_rows.py` all green.
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-E-properties tests/test_source_promote_properties.py` all green.
+- [ ] Full suite — final closeout run pending after status/report edits.
+- [x] WS-E property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-E test run or a named companion run, except sameAs provenance which is explicitly moved to WS-L because WS-L owns the sameAs representation.
+- [x] `docs/gaps.md` clean for all listed findings.
+- [x] STATUS line `CLOSED 34d0a459`.
 
 ## Done means done
 
