@@ -548,6 +548,7 @@ class SourceFinalizeReportDocument(DocumentStruct):
     calibration: SourceFinalizeCalibrationDocument
     micropub_status: str = "not_composed"
     claim_reference_errors: tuple[str, ...] = ()
+    micropub_coverage_errors: tuple[str, ...] = ()
     justification_reference_errors: tuple[str, ...] = ()
     stance_reference_errors: tuple[str, ...] = ()
     concept_alignment_candidates: tuple[str, ...] = ()
@@ -559,6 +560,7 @@ class SourceFinalizeReportDocument(DocumentStruct):
             "source": self.source,
             "status": self.status,
             "claim_reference_errors": list(self.claim_reference_errors),
+            "micropub_coverage_errors": list(self.micropub_coverage_errors),
             "justification_reference_errors": list(self.justification_reference_errors),
             "stance_reference_errors": list(self.stance_reference_errors),
             "concept_alignment_candidates": list(self.concept_alignment_candidates),
