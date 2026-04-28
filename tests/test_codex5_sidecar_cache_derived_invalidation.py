@@ -12,8 +12,8 @@ def test_sidecar_cache_key_document_contains_derived_inputs() -> None:
     assert {
         "family": "claims",
         "name": "claim.compile",
-        "input_stage": "authored",
-        "output_stage": "checked",
+        "input_stage": "claim.authored",
+        "output_stage": "claim.checked",
         "version": "1",
     } in key_inputs["passes"]
     assert "claims_file" in key_inputs["family_contract_versions"]

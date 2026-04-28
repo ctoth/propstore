@@ -29,14 +29,16 @@ from propstore.compiler.context import (
     build_compilation_context_from_loaded,
 )
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
-from propstore.families.claims.passes import run_claim_pipeline
+from propstore.families.claims.passes import register_claim_pipeline, run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
+from propstore.families.contexts.passes import register_context_pipeline
 from propstore.families.contexts.stages import (
     LoadedContext,
     parse_context_record_document,
 )
+from propstore.families.concepts.passes import register_concept_pipeline
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record_document
-from propstore.families.forms.passes import run_form_pipeline
+from propstore.families.forms.passes import register_form_pipeline, run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.grounding.loading import build_grounded_bundle
 from propstore.sidecar.claims import (
@@ -64,6 +66,7 @@ from propstore.sidecar.quarantine import QuarantinableWriter
 from propstore.sidecar.rules import create_grounded_fact_table, populate_grounded_facts
 from propstore.sidecar.sources import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
+from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.types import PassDiagnostic
 import propstore.sidecar.schema as sidecar_schema
 from propstore.sidecar.stages import QuarantineDiagnostic
@@ -88,6 +91,8 @@ def _sidecar_cache_key_inputs(source_revision: str) -> dict[str, object]:
     return {
         "source_revision": source_revision,
         "sidecar_schema_version": sidecar_schema.SCHEMA_VERSION,
+        "passes": _semantic_pass_versions(),
+        "generated_schema_version": _generated_schema_version(),
         "family_contract_versions": _family_contract_versions(),
         "dependency_pins": _dependency_pins(),
         "build_time_config": {
@@ -117,6 +122,55 @@ def _family_contract_versions() -> dict[str, str]:
         if isinstance(artifact_name, str) and artifact_version is not None:
             versions[artifact_name] = str(artifact_version)
     return dict(sorted(versions.items()))
+
+
+def _semantic_pass_versions() -> tuple[dict[str, str], ...]:
+    registry = PipelineRegistry()
+    register_claim_pipeline(registry)
+    register_concept_pipeline(registry)
+    register_context_pipeline(registry)
+    register_form_pipeline(registry)
+    pass_inputs: list[dict[str, str]] = []
+    for pass_class in registry.registered_passes():
+        version = getattr(pass_class, "version", None)
+        if not isinstance(version, str) or not version:
+            raise RuntimeError(
+                f"semantic pass {pass_class.name!r} must declare a non-empty version"
+            )
+        pass_inputs.append(
+            {
+                "family": pass_class.family.value,
+                "name": pass_class.name,
+                "input_stage": pass_class.input_stage.value,
+                "output_stage": pass_class.output_stage.value,
+                "version": version,
+            }
+        )
+    return tuple(
+        sorted(
+            pass_inputs,
+            key=lambda item: (
+                item["family"],
+                item["name"],
+                item["input_stage"],
+                item["output_stage"],
+            ),
+        )
+    )
+
+
+def _generated_schema_version(schema_dir: Path | None = None) -> str:
+    if schema_dir is None:
+        schema_dir = Path(__file__).resolve().parents[2] / "schema" / "generated"
+    digest = hashlib.sha256()
+    if not schema_dir.exists():
+        return ""
+    for path in sorted(item for item in schema_dir.rglob("*") if item.is_file()):
+        digest.update(path.relative_to(schema_dir).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def _dependency_pins(lock_path: Path | None = None) -> dict[str, str]:
