@@ -32,7 +32,6 @@ from propstore.families.identity.logical_ids import (
     normalize_logical_value,
 )
 from propstore.form_utils import FormDefinition
-from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 
 
 TEST_CONTEXT_ID = "ctx_test"
