@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
@@ -116,6 +117,24 @@ class HeadBoundTransaction:
 
     def sidecar_write(self, write: Callable[[], None]) -> None:
         self._sidecar_writes.append(write)
+
+    @contextmanager
+    def families_transact(self, *, message: str):
+        try:
+            with self.repo.families.transact(
+                message=message,
+                branch=self.branch,
+                expected_head=self.expected_head,
+            ) as transaction:
+                yield transaction
+            object.__setattr__(self, "_commit_sha", transaction.commit_sha)
+        except ValueError as exc:
+            raise _map_stale_head_error(
+                exc,
+                branch=self.branch,
+                expected_head=self.expected_head,
+                path=self.path,
+            ) from exc
 
 
 class RepositoryConfigDocument(DocumentStruct):
