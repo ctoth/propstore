@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 from propstore.world.types import (
     ATMSFutureStatusReport,
@@ -43,6 +43,23 @@ def _optional_int(value: Any) -> int | None:
     if value is None:
         return None
     return int(value)
+
+
+def _json_native(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Mapping):
+        return {
+            str(key): _json_native(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_json_native(item) for item in value]
+    if not isinstance(value, type) and is_dataclass(value):
+        return _json_native(asdict(cast(Any, value)))
+    return value
 
 
 class WorldlineCaptureError(Enum):
@@ -631,20 +648,17 @@ class WorldlineArgumentationState:
         if self.status_reasons:
             data["status_reasons"] = dict(self.status_reasons)
         if self.nogood_details:
-            data["nogood_details"] = list(self.nogood_details)
+            data["nogood_details"] = _json_native(self.nogood_details)
         if self.declared_queryables:
             data["declared_queryables"] = list(self.declared_queryables)
         if self.future_statuses:
-            data["future_statuses"] = dict(self.future_statuses)
+            data["future_statuses"] = _json_native(self.future_statuses)
         if self.stability:
-            data["stability"] = dict(self.stability)
+            data["stability"] = _json_native(self.stability)
         if self.relevance:
-            data["relevance"] = dict(self.relevance)
+            data["relevance"] = _json_native(self.relevance)
         if self.witness_futures:
-            data["witness_futures"] = {
-                claim_id: list(entries)
-                for claim_id, entries in self.witness_futures.items()
-            }
+            data["witness_futures"] = _json_native(self.witness_futures)
         if self.why_out:
-            data["why_out"] = dict(self.why_out)
+            data["why_out"] = _json_native(self.why_out)
         return data
