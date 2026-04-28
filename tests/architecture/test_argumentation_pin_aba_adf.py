@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from argumentation import aba, adf
 from argumentation.aba import ABAFramework, ABAPlusFramework, NotFlatABAError
 from argumentation.adf import (
@@ -15,16 +13,21 @@ from argumentation.adf import (
     classify_link,
     grounded_interpretation,
     interpretation_from_mapping,
+    model_models,
+    stable_models,
 )
 from argumentation.aspic import GroundAtom, Literal, Rule
+from argumentation.dung import grounded_extension as dung_grounded_extension
 from argumentation.iccma import parse_aba, write_aba
-
-
-ARGUMENTATION_ABA_ADF_SHA = "ca1778cdcb16b1fa6360ab323bdae0af19c782fb"
 
 
 def lit(name: str) -> Literal:
     return Literal(GroundAtom(name))
+
+
+def argument_label(support: frozenset[Literal], conclusion: Literal) -> str:
+    support_text = ",".join(sorted(repr(assumption) for assumption in support))
+    return f"{{{support_text}}} |- {conclusion!r}"
 
 
 def test_argumentation_pin_exposes_flat_aba_and_adf_public_surface() -> None:
@@ -80,8 +83,36 @@ def test_argumentation_pin_exposes_flat_aba_and_adf_public_surface() -> None:
     assert "__call__" not in adf.AcceptanceCondition.__dict__
 
 
-def test_argumentation_pin_records_aba_adf_commit() -> None:
-    root = Path(__file__).resolve().parents[2]
+def test_argumentation_pin_uses_brewka_stable_reduct_semantics() -> None:
+    framework = AbstractDialecticalFramework(
+        statements=frozenset({"a"}),
+        links=frozenset({("a", "a")}),
+        acceptance_conditions={"a": Atom("a")},
+    )
+    false_model = interpretation_from_mapping({"a": ThreeValued.F})
+    self_supported_model = interpretation_from_mapping({"a": ThreeValued.T})
 
-    assert ARGUMENTATION_ABA_ADF_SHA in (root / "pyproject.toml").read_text(encoding="utf-8")
-    assert ARGUMENTATION_ABA_ADF_SHA in (root / "uv.lock").read_text(encoding="utf-8")
+    assert model_models(framework) == (false_model, self_supported_model)
+    assert stable_models(framework) == (false_model,)
+
+
+def test_argumentation_pin_projects_flat_aba_joint_support_attacks() -> None:
+    alpha = lit("alpha")
+    beta = lit("beta")
+    gamma = lit("gamma")
+    block_gamma = lit("block_gamma")
+    not_alpha = lit("not_alpha")
+    not_beta = lit("not_beta")
+    framework = ABAFramework(
+        language=frozenset({alpha, beta, gamma, block_gamma, not_alpha, not_beta}),
+        rules=frozenset({Rule((alpha, beta), block_gamma, "strict")}),
+        assumptions=frozenset({alpha, beta, gamma}),
+        contrary={alpha: not_alpha, beta: not_beta, gamma: block_gamma},
+    )
+    dung = aba.aba_to_dung(framework)
+
+    assert argument_label(frozenset({alpha, beta}), block_gamma) in dung.arguments
+    grounded = dung_grounded_extension(dung)
+    assert argument_label(frozenset({alpha}), alpha) in grounded
+    assert argument_label(frozenset({beta}), beta) in grounded
+    assert argument_label(frozenset({gamma}), gamma) not in grounded
