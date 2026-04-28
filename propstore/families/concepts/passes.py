@@ -754,6 +754,7 @@ class ConceptPipelineContext:
 class ConceptNormalizePass:
     family = PropstoreFamily.CONCEPTS
     name = "concept.normalize"
+    version = "1"
     input_stage = ConceptStage.AUTHORED
     output_stage = ConceptStage.NORMALIZED
 
@@ -770,6 +771,7 @@ class ConceptNormalizePass:
 class ConceptIdentityPass:
     family = PropstoreFamily.CONCEPTS
     name = "concept.identity"
+    version = "1"
     input_stage = ConceptStage.NORMALIZED
     output_stage = ConceptStage.BOUND
 
@@ -789,6 +791,7 @@ class ConceptIdentityPass:
 class ConceptSemanticCheckPass:
     family = PropstoreFamily.CONCEPTS
     name = "concept.semantic.check"
+    version = "1"
     input_stage = ConceptStage.BOUND
     output_stage = ConceptStage.CHECKED
 
