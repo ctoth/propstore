@@ -75,6 +75,11 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         return
 
     _emit_workflow_messages(report.messages)
+    if report.sidecar_missing:
+        emit_error("Build FAILED: sidecar database was not created.")
+        exit_with_code(EXIT_VALIDATION)
+        return
+
     for conflict in report.conflicts:
         emit(
             f"  {conflict.warning_class}: {conflict.concept_id} "

@@ -94,6 +94,7 @@ class RepositoryBuildReport:
     phi_groups: tuple[BuildPhiGroup, ...] = ()
     messages: tuple[PassDiagnostic, ...] = ()
     no_concepts: bool = False
+    sidecar_missing: bool = False
 
 
 def _workflow_diagnostic(
@@ -576,13 +577,14 @@ def build_repository(
     )
 
     warning_count = len(concept_result.warnings)
+    sidecar_missing = False
     try:
         from collections import defaultdict
 
         from propstore.conflict_detector import ConflictClass
         from propstore.world import WorldModel
 
-        wm = WorldModel(repo)
+        wm = WorldModel(repo, sidecar_path=sidecar_path)
         stats = wm.stats()
         claim_count = stats.claims
         conflicts = wm.conflicts()
@@ -606,7 +608,18 @@ def build_repository(
                     )
                 )
         wm.close()
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
+        sidecar_missing = True
+        build_messages.append(
+            PassDiagnostic(
+                level="error",
+                code="sidecar.missing",
+                message=str(exc),
+                family=PropstoreFamily.CLAIMS,
+                stage=ClaimStage.AUTHORED,
+                pass_name="compiler.build_repository",
+            )
+        )
         claim_count = 0
         phi_node_count = 0
         real_conflicts = []
@@ -628,4 +641,5 @@ def build_repository(
             for key, claim_ids in phi_groups.items()
         ),
         messages=tuple(build_messages),
+        sidecar_missing=sidecar_missing,
     )
