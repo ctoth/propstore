@@ -13,19 +13,11 @@ def populate_micropublications(
 ) -> None:
     """Populate micropublication tables from compiled sidecar rows.
 
-    Bug 6 (v0.3.3): mirror of the Bug 5 fix in ``populate_claims``. The
-    micropublication ``id`` is content-derived, so two micropub files
-    that carry the same id carry definitionally identical content. The
-    historical crash path happens when a re-promote leaves both the
-    original micropub file and a disambiguated ``--<hex>`` copy on disk
-    — both contribute rows with the same ``id``. First-writer-wins
-    dedupe is safe here because the content is identical; the UNIQUE
-    constraint on ``micropublication.id`` and the composite PK on
-    ``micropublication_claim`` enforce that invariant. The claim-link
-    dedupe uses ``(micropublication_id, claim_id)`` as the composite
-    key. Reproduction in
-    ``tests/remediation/phase_7_race_atomicity/
-    test_T7_5g_sidecar_build_duplicate_micropublication.py``.
+    ``micropublication.id`` is derived from the full canonical payload by WS-CM.
+    Identical authored payloads produce the same id; changing
+    authored content produces a new id. First-writer-wins dedupe on the
+    id is therefore safe, and link dedupe uses
+    ``(micropublication_id, claim_id)`` as the composite key.
     """
 
     seen_micropub_ids: set[str] = set()
