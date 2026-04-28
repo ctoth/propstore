@@ -160,7 +160,11 @@ def build_concept_view(repo: Repository, request: ConceptViewRequest) -> Concept
         )
 
         visible_claims = tuple(world.claims_with_policy(concept_id, policy))
-        all_claims = tuple(world.claims_related_to_concept(concept_id))
+        all_claims = (
+            tuple(world.claims_related_to_concept(concept_id))
+            if policy.include_blocked
+            else visible_claims
+        )
 
     artifact_id = str(concept_entry.record.artifact_id) if concept_entry is not None else concept_id
     version_id = None if concept_entry is None else concept_entry.record.version_id
@@ -293,10 +297,13 @@ def _claim_groups(all_claims, visible_claims) -> tuple[ConceptClaimGroup, ...]:
         )
         visible_count = len(visible_entries)
         blocked_count = blocked_counts[claim_type]
-        sentence = (
-            f"{visible_count} visible {claim_type} claims and {blocked_count} blocked "
-            "claims refer to this concept."
-        )
+        if blocked_count == 0:
+            sentence = f"{visible_count} visible {claim_type} claims refer to this concept."
+        else:
+            sentence = (
+                f"{visible_count} visible {claim_type} claims and {blocked_count} blocked "
+                "claims refer to this concept."
+            )
         groups.append(
             ConceptClaimGroup(
                 claim_type=claim_type,
