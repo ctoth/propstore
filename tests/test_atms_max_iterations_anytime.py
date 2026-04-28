@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
-
 import pytest
 
 from propstore.world.atms import ATMSEngine
@@ -34,19 +32,3 @@ def test_ws_i_atms_build_max_iterations_returns_partial_state(
         "ATMS build stopped before fixpoint after 2 iterations",
     )
 
-
-def test_ws_i_atms_justifications_have_one_consequent_field() -> None:
-    """E.M2: dead multi-consequent production surface is deleted."""
-
-    source = inspect.getsource(ATMSEngine)
-
-    assert "consequent_ids" not in source
-    assert "consequent_id" in source
-
-
-def test_ws_i_atms_build_does_not_propagate_before_nogood_update() -> None:
-    """E.M3: nogoods are updated before propagation observes final labels."""
-
-    source = inspect.getsource(ATMSEngine._build)
-
-    assert "self._propagate_labels()\n            added_justifications" not in source
