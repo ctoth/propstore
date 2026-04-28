@@ -259,6 +259,7 @@ class RepositorySnapshot:
         deleted: list[str] = []
         skipped: list[str] = []
         prune_candidates: set[Path] = set()
+        deletion_candidates: list[tuple[Path, str]] = []
         for disk_file in self.repo.root.rglob("*"):
             if not disk_file.is_file():
                 continue
@@ -272,6 +273,8 @@ class RepositorySnapshot:
             if _is_ignored_runtime_path(relpath):
                 skipped.append(relpath)
                 continue
+            deletion_candidates.append((disk_file, relpath))
+        for disk_file, relpath in deletion_candidates:
             disk_file.unlink()
             deleted.append(relpath)
             parent = disk_file.parent
