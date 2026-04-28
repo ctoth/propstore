@@ -36,6 +36,13 @@ Closed in propstore commit `00076004` after the Coste-Marquis prudent-semantics 
   - `powershell -File scripts/run_logged_pytest.ps1 -Label ws-o-arg-dung-extensions-full-final`
   - Result: `3205 passed in 128.98s`.
   - Log: `logs/test-runs/ws-o-arg-dung-extensions-full-final-20260428-150020.log`.
+- Corrective full logged gate:
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label prudent-semantics-correction-full`
+  - Result: `3206 passed in 137.00s`.
+  - Log: `logs/test-runs/prudent-semantics-correction-full-20260428-165953.log`.
+- Checklist order gate:
+  - `uv run python reviews/2026-04-26-claude/workstreams/check_index_order.py`
+  - Result: `INDEX.md dependency order OK (31 rows checked).`
 
 ## Issues surfaced
 
