@@ -656,7 +656,7 @@ class TestDiscountVacuousTrustProperty:
 
 
 class TestWBF:
-    """Weighted Belief Fusion — N-source generalization of consensus.
+    """Weighted Belief Fusion — confidence-weighted evidence fusion.
 
     Grounding:
     papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic/pngs/page-004.png
@@ -673,17 +673,22 @@ class TestWBF:
         with pytest.raises(ValueError):
             wbf()
 
-    @pytest.mark.property
-    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(deadline=None)
-    def test_wbf_two_equals_consensus_pair(self, a, b):
-        """For N=2 non-dogmatic opinions, WBF == consensus_pair."""
+    def test_wbf_two_source_is_distinct_from_consensus_pair(self):
+        """WBF and Jøsang consensus are distinct operators.
+
+        van der Heijden et al. 2018 defines WBF separately from
+        consensus & compromise fusion. For conflicting two-source
+        inputs, WBF preserves more uncertainty than consensus_pair.
+        """
+        a = Opinion(0.0, 0.5, 0.5, 0.5)
+        b = Opinion(0.5, 0.0, 0.5, 0.5)
         result_wbf = wbf(a, b)
         result_cp = consensus_pair(a, b)
-        assert abs(result_wbf.b - result_cp.b) < 1e-6
-        assert abs(result_wbf.d - result_cp.d) < 1e-6
-        assert abs(result_wbf.u - result_cp.u) < 1e-6
-        assert abs(result_wbf.a - result_cp.a) < 1e-6
+
+        assert result_wbf.b == pytest.approx(0.25, abs=1e-9)
+        assert result_wbf.d == pytest.approx(0.25, abs=1e-9)
+        assert result_wbf.u == pytest.approx(0.5, abs=1e-9)
+        assert result_cp.u == pytest.approx(1.0 / 3.0, abs=1e-9)
 
     @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
@@ -711,10 +716,16 @@ class TestWBF:
     @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
-    def test_wbf_uncertainty_reduction(self, a, b):
-        """Fusing two opinions never increases uncertainty beyond the minimum."""
+    def test_wbf_uncertainty_stays_within_input_range_for_two_sources(self, a, b):
+        """WBF uncertainty is not guaranteed to drop below min input u.
+
+        The paper's Table I (p.8) has WBF u=0.292 while one source has
+        u=0.200. The stronger invariant for two non-dogmatic inputs is
+        that fused uncertainty remains inside the input uncertainty
+        interval.
+        """
         result = wbf(a, b)
-        assert result.u <= min(a.u, b.u) + _TOL
+        assert min(a.u, b.u) - _TOL <= result.u <= max(a.u, b.u) + _TOL
 
     @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
@@ -766,13 +777,13 @@ class TestWBF:
         assert result.a == pytest.approx(a, abs=1e-9)
 
     def test_wbf_three_sources(self):
-        """Concrete 3-source WBF: result is valid and uncertainty decreases."""
+        """Concrete 3-source WBF: result is valid and bounded."""
         a = Opinion(0.5, 0.1, 0.4, 0.5)
         b = Opinion(0.3, 0.3, 0.4, 0.5)
         c = Opinion(0.6, 0.2, 0.2, 0.5)
         result = wbf(a, b, c)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
-        assert result.u < min(a.u, b.u, c.u) + _TOL
+        assert result.u <= max(a.u, b.u, c.u) + _TOL
         assert result.b >= 0.0
         assert result.d >= 0.0
         assert result.u >= 0.0
@@ -1017,15 +1028,15 @@ class TestWBFAdditionalProperties:
     @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
-    def test_wbf_base_rate_clamping_observable(self, a):
-        """Document that WBF clamps base rates to [0.01, 0.99].
+    def test_wbf_self_fusion_preserves_base_rate_without_clamp(self, a):
+        """Definition 4 computes base rate directly from confidence weights.
 
-        This is a known deviation from Jøsang 2001 (audit-2026-03-28 bug #2).
-        The test documents the current behavior so any future fix is visible.
+        WBF does not use propstore's CCF base-rate clamp. Self-fusion
+        therefore preserves the input base rate up to floating-point
+        arithmetic.
         """
         result = wbf(a, a)
-        assert result.a >= 0.01, f"Base rate below clamp: {result.a}"
-        assert result.a <= 0.99, f"Base rate above clamp: {result.a}"
+        assert result.a == pytest.approx(a.a, abs=1e-12)
 
 
 class TestCCFAdditionalProperties:
