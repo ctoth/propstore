@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
+from typing import Any
 
 from quire.documents import DocumentStruct, decode_document_bytes
 from quire.refs import RefName
@@ -21,6 +24,98 @@ REPOSITORY_CONFIG_PATH = "propstore.yaml"
 
 class RepositoryNotFound(Exception):
     """Raised when no knowledge/ directory can be found."""
+
+
+class StaleHeadError(RuntimeError):
+    """Raised when a branch-head CAS check rejects a stale mutation."""
+
+    def __init__(
+        self,
+        *,
+        branch: str,
+        expected_head: str | None,
+        actual_head: str | None,
+        path: str,
+    ) -> None:
+        super().__init__(
+            f"{path} saw stale branch {branch!r}: "
+            f"expected {expected_head}, got {actual_head}"
+        )
+        self.branch = branch
+        self.expected_head = expected_head
+        self.actual_head = actual_head
+        self.path = path
+
+
+@dataclass(frozen=True)
+class HeadBoundTransaction:
+    repo: Repository
+    branch: str
+    expected_head: str | None
+    path: str = "head_bound_transaction"
+    _sidecar_writes: list[Callable[[], None]] = field(default_factory=list)
+    _commit_sha: str | None = None
+
+    @property
+    def commit_sha(self) -> str | None:
+        return self._commit_sha
+
+    def __enter__(self) -> HeadBoundTransaction:
+        return self
+
+    def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: Any) -> None:
+        if exc_type is not None:
+            self._sidecar_writes.clear()
+            return None
+        if self._commit_sha is None:
+            self._sidecar_writes.clear()
+            return None
+        try:
+            for write in self._sidecar_writes:
+                write()
+        finally:
+            self._sidecar_writes.clear()
+        return None
+
+    def commit_batch(
+        self,
+        *,
+        adds: Mapping[str | Path, bytes],
+        deletes: Sequence[str | Path],
+        message: str,
+    ) -> str:
+        if self._commit_sha is not None:
+            return self._commit_sha
+        try:
+            commit_sha = self.repo.git.commit_batch(
+                adds=adds,
+                deletes=deletes,
+                message=message,
+                branch=self.branch,
+                expected_head=self.expected_head,
+            )
+        except ValueError as exc:
+            raise _map_stale_head_error(
+                exc,
+                branch=self.branch,
+                expected_head=self.expected_head,
+                path=self.path,
+            ) from exc
+        object.__setattr__(self, "_commit_sha", commit_sha)
+        return commit_sha
+
+    def assert_current(self) -> None:
+        actual_head = self.repo.snapshot.branch_head(self.branch)
+        if actual_head != self.expected_head:
+            raise StaleHeadError(
+                branch=self.branch,
+                expected_head=self.expected_head,
+                actual_head=actual_head,
+                path=self.path,
+            )
+
+    def sidecar_write(self, write: Callable[[], None]) -> None:
+        self._sidecar_writes.append(write)
 
 
 class RepositoryConfigDocument(DocumentStruct):
@@ -123,6 +218,19 @@ class Repository:
     def write_bootstrap_manifest(self, *, seed_commit: str | None = None) -> None:
         _write_bootstrap_manifest(self.git, seed_commit=seed_commit)
 
+    def head_bound_transaction(
+        self,
+        branch: str,
+        *,
+        path: str = "head_bound_transaction",
+    ) -> HeadBoundTransaction:
+        return HeadBoundTransaction(
+            repo=self,
+            branch=branch,
+            expected_head=self.snapshot.branch_head(branch),
+            path=path,
+        )
+
     @classmethod
     def find(cls, start: Path | None = None) -> Repository:
         """Walk up from *start* (default: cwd) looking for a ``knowledge/`` directory.
@@ -186,6 +294,31 @@ def _write_bootstrap_manifest(git, *, seed_commit: str | None) -> None:
         separators=(",", ":"),
     ).encode("utf-8")
     git.write_blob_ref(PROPSTORE_BOOTSTRAP_REF, payload)
+
+
+def _map_stale_head_error(
+    exc: ValueError,
+    *,
+    branch: str,
+    expected_head: str | None,
+    path: str,
+) -> StaleHeadError:
+    message = str(exc)
+    if "head mismatch" not in message and "head changed" not in message:
+        raise exc
+    actual_head: str | None = None
+    if " got " in message:
+        actual_head = message.rsplit(" got ", 1)[1].strip()
+    elif ", got " in message:
+        actual_head = message.rsplit(", got ", 1)[1].strip()
+    if actual_head == "None":
+        actual_head = None
+    return StaleHeadError(
+        branch=branch,
+        expected_head=expected_head,
+        actual_head=actual_head,
+        path=path,
+    )
 
 
 def _read_bootstrap_manifest(git) -> dict[str, object] | None:
