@@ -104,6 +104,9 @@ def coerce_value_status(value: object | None) -> ValueStatus | None:
     return ValueStatus(str(value))
 
 
+SerializedEnvironment: TypeAlias = Mapping[str, Sequence[str]]
+
+
 @dataclass
 class ValueResult:
     concept_id: ConceptId
@@ -251,13 +254,12 @@ class ATMSNodeFutureStatusEntry:
     out_kind: ATMSOutKind | None
     reason: str
     support_quality: SupportQuality
-    essential_support: Sequence[AssumptionId]
+    essential_support: SerializedEnvironment
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
         object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
         object.__setattr__(self, "environment", _tuple(self.environment))
-        object.__setattr__(self, "essential_support", _tuple(self.essential_support))
 
 
 @dataclass(frozen=True)
@@ -486,11 +488,11 @@ class ATMSCycleAntecedent:
 class ATMSAssumptionAntecedent:
     node_id: str
     kind: str
-    label: Sequence[Sequence[str]] | None
+    label: Sequence[SerializedEnvironment] | None
 
     def __post_init__(self) -> None:
         if self.label is not None:
-            object.__setattr__(self, "label", _tuple_of_tuples(self.label))
+            object.__setattr__(self, "label", _tuple(self.label))
 
 
 @dataclass(frozen=True)
@@ -500,13 +502,13 @@ class ATMSJustificationExplanation:
     antecedent_ids: Sequence[str]
     consequent_id: str
     informant: str
-    support: Sequence[Sequence[str]] | None
+    support: Sequence[SerializedEnvironment] | None
     antecedents: Sequence["ATMSExplanationAntecedent"]
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "antecedent_ids", _tuple(self.antecedent_ids))
         if self.support is not None:
-            object.__setattr__(self, "support", _tuple_of_tuples(self.support))
+            object.__setattr__(self, "support", _tuple(self.support))
         object.__setattr__(self, "antecedents", _tuple(self.antecedents))
 
 
@@ -517,16 +519,14 @@ class ATMSNodeExplanation:
     kind: str
     status: ATMSNodeStatus
     support_quality: SupportQuality
-    label: Sequence[Sequence[str]] | None
-    essential_support: Sequence[str] | None
+    label: Sequence[SerializedEnvironment] | None
+    essential_support: SerializedEnvironment | None
     reason: str
     traces: Sequence[ATMSJustificationExplanation]
 
     def __post_init__(self) -> None:
         if self.label is not None:
-            object.__setattr__(self, "label", _tuple_of_tuples(self.label))
-        if self.essential_support is not None:
-            object.__setattr__(self, "essential_support", _tuple(self.essential_support))
+            object.__setattr__(self, "label", _tuple(self.label))
         object.__setattr__(self, "traces", _tuple(self.traces))
 
 
