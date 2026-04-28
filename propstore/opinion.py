@@ -60,6 +60,8 @@ class Opinion:
             raise ValueError(
                 f"b + d + u = {total}, expected 1.0"
             )
+        if self.u < _TOL and not self.allow_dogmatic:
+            raise ValueError("dogmatic opinions require allow_dogmatic=True")
 
     # --- Aliases for readability ---
 
@@ -84,7 +86,14 @@ class Opinion:
 
     def with_provenance(self, provenance: Provenance) -> Opinion:
         """Return the same opinion with explicit provenance attached."""
-        return Opinion(self.b, self.d, self.u, self.a, provenance)
+        return Opinion(
+            self.b,
+            self.d,
+            self.u,
+            self.a,
+            provenance,
+            allow_dogmatic=self.allow_dogmatic,
+        )
 
     @classmethod
     def vacuous(cls, a: float, *, provenance: Provenance | None = None) -> Opinion:
@@ -94,12 +103,26 @@ class Opinion:
     @classmethod
     def dogmatic_true(cls, a: float, *, provenance: Provenance | None = None) -> Opinion:
         """Absolute belief."""
-        return cls(1.0, 0.0, 0.0, a, provenance)
+        return cls(
+            1.0,
+            0.0,
+            0.0,
+            a,
+            provenance,
+            allow_dogmatic=True,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
+        )
 
     @classmethod
     def dogmatic_false(cls, a: float, *, provenance: Provenance | None = None) -> Opinion:
         """Absolute disbelief."""
-        return cls(0.0, 1.0, 0.0, a, provenance)
+        return cls(
+            0.0,
+            1.0,
+            0.0,
+            a,
+            provenance,
+            allow_dogmatic=True,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
+        )
 
     # --- Core methods ---
 
@@ -128,7 +151,14 @@ class Opinion:
 
     def __invert__(self) -> Opinion:
         """Negation: ~ω = Opinion(d, b, u, 1 - a)  (Jøsang Theorem 6, p.18)."""
-        return Opinion(self.d, self.b, self.u, 1.0 - self.a, self.provenance)
+        return Opinion(
+            self.d,
+            self.b,
+            self.u,
+            1.0 - self.a,
+            self.provenance,
+            allow_dogmatic=self.allow_dogmatic,
+        )
 
     def conjunction(self, other: Opinion) -> Opinion:
         """Subjective-logic conjunction (Jøsang 2001 Theorem 3, p.14).
@@ -148,7 +178,14 @@ class Opinion:
         d = self.d + other.d - self.d * other.d
         u = self.b * other.u + self.u * other.b + self.u * other.u
         a = self.a * other.a
-        return Opinion(b, d, u, a, _compose_opinion_provenance("conjunction", self, other))
+        return Opinion(
+            b,
+            d,
+            u,
+            a,
+            _compose_opinion_provenance("conjunction", self, other),
+            allow_dogmatic=u < _TOL,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
+        )
 
     def disjunction(self, other: Opinion) -> Opinion:
         """Subjective-logic disjunction (Jøsang 2001 Theorem 4, p.14-15).
@@ -167,7 +204,14 @@ class Opinion:
         d = self.d * other.d
         u = self.d * other.u + self.u * other.d + self.u * other.u
         a = self.a + other.a - self.a * other.a
-        return Opinion(b, d, u, a, _compose_opinion_provenance("disjunction", self, other))
+        return Opinion(
+            b,
+            d,
+            u,
+            a,
+            _compose_opinion_provenance("disjunction", self, other),
+            allow_dogmatic=u < _TOL,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
+        )
 
     def __and__(self, other: Opinion) -> Opinion:
         """Alias for :meth:`conjunction`."""
@@ -285,7 +329,14 @@ class Opinion:
         b_new = max(0.0, b_new)
         d_new = max(0.0, d_new)
 
-        return Opinion(b_new, d_new, u_max, a, self.provenance)
+        return Opinion(
+            b_new,
+            d_new,
+            u_max,
+            a,
+            self.provenance,
+            allow_dogmatic=u_max < _TOL,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
+        )
 
 
 def _compose_opinion_provenance(
@@ -385,7 +436,14 @@ def consensus_pair(a_op: Opinion, b_op: Opinion) -> Opinion:
     else:
         a = (b_op.a * a_op.u * v_b + a_op.a * b_op.u * v_a) / denom_a
 
-    return Opinion(b, d, u, a, _compose_opinion_provenance("fusion", a_op, b_op))
+    return Opinion(
+        b,
+        d,
+        u,
+        a,
+        _compose_opinion_provenance("fusion", a_op, b_op),
+        allow_dogmatic=u < _TOL,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
+    )
 
 
 def consensus(*opinions: Opinion) -> Opinion:
@@ -421,7 +479,14 @@ def discount(trust: Opinion, source: Opinion) -> Opinion:
     d = trust.b * source.d
     u = trust.d + trust.u + trust.b * source.u
     a = source.a
-    return Opinion(b, d, u, a, _compose_opinion_provenance("discount", trust, source))
+    return Opinion(
+        b,
+        d,
+        u,
+        a,
+        _compose_opinion_provenance("discount", trust, source),
+        allow_dogmatic=u < _TOL,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
+    )
 
 
 def wbf(*opinions: Opinion) -> Opinion:
@@ -518,6 +583,7 @@ def wbf(*opinions: Opinion) -> Opinion:
         u_fused,
         a_fused,
         _compose_opinion_provenance("fusion", *opinions),
+        allow_dogmatic=u_fused < _TOL,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
     )
 
 
@@ -675,6 +741,7 @@ def _ccf_binomial(opinions: list[Opinion]) -> Opinion:
         u_fused,
         a_fused,
         _compose_opinion_provenance("fusion", *opinions),
+        allow_dogmatic=u_fused < _TOL,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
     )
 
 
