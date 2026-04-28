@@ -75,9 +75,6 @@ def _revision_state_snapshot(bound: Any, state: Any) -> Any:
     snapshot = getattr(bound, "revision_state_snapshot", None)
     if callable(snapshot):
         return snapshot(state)
-    to_dict = getattr(state, "to_dict", None)
-    if callable(to_dict):
-        return state
     raise TypeError("revision capture requires bound.revision_state_snapshot(state)")
 
 
