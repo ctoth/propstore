@@ -227,7 +227,8 @@ class FragilityATMSEngine(Protocol):
         self,
         concept_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSConceptStabilityReport: ...
 
 
