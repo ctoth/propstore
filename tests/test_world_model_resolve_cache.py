@@ -17,8 +17,8 @@ from typing import Any
 
 import pytest
 
+from propstore.sidecar.schema import build_minimal_world_model_schema
 from propstore.world.model import WorldModel
-from tests.conftest import create_world_model_schema
 
 
 # ── test fixture helpers ─────────────────────────────────────────────
@@ -96,7 +96,7 @@ def _build_claim_sidecar(tmp_path: Path, n_rows: int) -> Path:
     sidecar = tmp_path / "propstore.sqlite"
     conn = sqlite3.connect(sidecar)
     try:
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
         for idx in range(n_rows):
             _insert_claim_row(conn, f"claim_{idx}", seq=idx)
         conn.commit()
@@ -109,7 +109,7 @@ def _build_concept_sidecar(tmp_path: Path, n_rows: int) -> Path:
     sidecar = tmp_path / "propstore.sqlite"
     conn = sqlite3.connect(sidecar)
     try:
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
         for idx in range(n_rows):
             _insert_concept(conn, f"concept_{idx}")
         conn.commit()
