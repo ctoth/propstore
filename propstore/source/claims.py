@@ -203,7 +203,7 @@ def commit_source_claims_batch(
     produced by extraction pipelines that emit per-claim context
     overrides for some but not all entries.
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     source_doc = load_source_document(repo, source_name)
     raw = decode_document_path(claims_file, SourceClaimsDocument)
@@ -236,7 +236,7 @@ def commit_source_claims_batch(
             produced_by=ExtractionProvenanceDocument(
                 reader=reader,
                 method=method,
-                timestamp=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             ),
         )
     validate_source_claim_concepts(repo, source_name, raw)
