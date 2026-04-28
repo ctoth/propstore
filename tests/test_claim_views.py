@@ -9,6 +9,7 @@ import pytest
 
 from propstore.app import claim_views
 from propstore.app.claim_views import (
+    ClaimViewBlockedError,
     ClaimViewRequest,
     ClaimViewUnknownClaimError,
     build_claim_view,
@@ -195,17 +196,14 @@ def test_build_claim_view_reports_policy_blocked_claim(
     world = _World(claim=claim, concept=_concept(), visible=False)
     monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
 
-    report = build_claim_view(
-        _repo(),
-        ClaimViewRequest(
-            claim_id="claim1",
-            render_policy=AppRenderPolicyRequest(include_drafts=False),
-        ),
-    )
-
-    assert report.status.state == "blocked"
-    assert report.status.visible_under_policy is False
-    assert "drafts are hidden" in report.status.reason
+    with pytest.raises(ClaimViewBlockedError, match="Not Found"):
+        build_claim_view(
+            _repo(),
+            ClaimViewRequest(
+                claim_id="claim1",
+                render_policy=AppRenderPolicyRequest(include_drafts=False),
+            ),
+        )
 
 
 def test_build_claim_view_rejects_unimplemented_repository_state() -> None:
