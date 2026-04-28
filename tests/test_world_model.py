@@ -35,8 +35,9 @@ from propstore.core.store_results import (
 from tests.family_helpers import build_sidecar
 from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
+from propstore.sidecar.schema import build_minimal_world_model_schema
 from propstore.stances import StanceType
-from tests.conftest import create_world_model_schema, make_claim_identity, write_test_context
+from tests.conftest import make_claim_identity, write_test_context
 from propstore.world import (
     WorldStore,
     BeliefSpace,
@@ -787,7 +788,7 @@ class TestUnboundQueries:
     def test_claims_for_includes_measurements_by_target_concept(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
         conn.execute(
             "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
             "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', 'concept2', 'test', 'test', 1, NULL, NULL)"
@@ -827,7 +828,7 @@ class TestUnboundQueries:
     def test_claims_with_policy_includes_observations_by_about_link(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
         conn.execute(
             "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
             "VALUES ('observation1', 'test:observation1', '[{\"namespace\":\"test\",\"value\":\"observation1\"}]', 'sha256:h1', 1, 'observation', NULL, 'test', 'test', 1, NULL, NULL)"
@@ -864,7 +865,7 @@ class TestUnboundQueries:
     def test_claims_related_to_concept_includes_observations_by_about_link(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
         conn.execute(
             "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
             "VALUES ('observation1', 'test:observation1', '[{\"namespace\":\"test\",\"value\":\"observation1\"}]', 'sha256:h1', 1, 'observation', NULL, 'test', 'test', 1, NULL, NULL)"
@@ -901,7 +902,7 @@ class TestUnboundQueries:
     def test_claims_for_works_with_canonical_schema(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
         conn.execute(
             "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
             "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', 'concept2', 'test', 'test', 1, NULL, NULL)"
@@ -2729,7 +2730,7 @@ class TestWorldModelSidecarPath:
         # Create a minimal sidecar database at a known path
         db_path = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(db_path)
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
         conn.close()
 
         # This should work: construct WorldModel from a Path to the sidecar db.
@@ -2750,7 +2751,7 @@ class TestWorldModelSidecarPath:
     def test_worldmodel_rejects_unsupported_schema_version(self, tmp_path):
         db_path = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(db_path)
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
         conn.execute(
             "UPDATE meta SET schema_version = 9999 WHERE key = 'sidecar'"
         )
@@ -2771,7 +2772,7 @@ class TestWorldModelSidecarPath:
     def test_worldmodel_rejects_boundary_schema_breakage(self, tmp_path, mutation, message):
         db_path = tmp_path / f"{mutation}.sqlite"
         conn = sqlite3.connect(db_path)
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
 
         if mutation == "missing_meta_row":
             conn.execute("DELETE FROM meta WHERE key = 'sidecar'")
