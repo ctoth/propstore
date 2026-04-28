@@ -204,7 +204,7 @@ Use Hypothesis for Python properties. Keep strategies small at first, then expan
 
 ## WS-P CEL / units / equations
 
-- Generated CEL strings round-trip through lexer/parser for all supported escape forms in `cel-spec/langdef.md`.
+- Generated CEL strings round-trip through lexer/parser for all supported escape forms in the local CEL spec checkout at `~/src/cel-spec`.
 - Generated ternaries evaluate only the selected branch for type/effect checks where CEL semantics require short-circuiting.
 - Generated division constraints include non-zero guards before Z3 reasoning.
 - Generated equation comparisons preserve orientation where orientation is semantically meaningful.
