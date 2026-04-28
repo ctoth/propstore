@@ -71,7 +71,7 @@ class AtmsClaimStatusLine:
     claim_id: str
     status: str
     support_quality: str | None = None
-    essential_support: tuple[str, ...] = ()
+    essential_support: Mapping[str, tuple[str, ...]] | None = None
     reason: str | None = None
 
 
@@ -82,7 +82,7 @@ class AtmsStatusReport:
 
 @dataclass(frozen=True)
 class AtmsContextReport:
-    environment: tuple[str, ...]
+    environment: Mapping[str, tuple[str, ...]]
     claims: tuple[AtmsClaimStatusLine, ...]
 
 
@@ -192,9 +192,13 @@ def _status_value(status: object) -> str:
     return str(status)
 
 
-def _support_ids(support: object) -> tuple[str, ...]:
+def _support_ids(support: object) -> dict[str, list[str]]:
     assumption_ids = getattr(support, "assumption_ids", ())
-    return tuple(str(assumption_id) for assumption_id in assumption_ids)
+    context_ids = getattr(support, "context_ids", ())
+    return {
+        "assumption_ids": [str(assumption_id) for assumption_id in assumption_ids],
+        "context_ids": [str(context_id) for context_id in context_ids],
+    }
 
 
 def _mapping_sequence(value: object, *, field_name: str) -> tuple[Mapping[str, object], ...]:
