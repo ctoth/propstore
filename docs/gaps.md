@@ -57,6 +57,11 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ## Closed gaps (reference only — kept for traceability)
 
+### Closed 2026-04-27 (WS-CM micropub canonical payload and Trusty URI identity)
+- D-7 / D-29 — source-finalized micropublication artifact ids are now `ni:///sha-256;...` URIs computed over canonical authored micropub payload bytes, excluding recursive identity fields. Evidence: `tests/test_micropub_identity_trusty_uri.py`.
+- D-7 / D-29 — micropublication ids are no longer derived from only `(source_id, claim_id)`; changing authored micropub content changes the id even when the source and claim handle are unchanged. Evidence: `tests/test_micropub_identity_not_logical_handle.py`.
+- D-7 / D-29 — generated micropub Trusty URIs verify against exact canonical bytes and fail against mutated bytes. Evidence: `tests/test_micropub_trusty_verification.py`.
+
 ### Closed 2026-04-27 (WS-B render policy and web data leak)
 - T1.1 / Codex #8 — direct blocked claim reads no longer construct `ClaimViewReport`; they raise `ClaimViewBlockedError` and render a generic 404 with no claim payload. Evidence: `tests/test_render_policy_direct_claim.py`.
 - T1.2 / Codex #9 — claim neighborhoods now use policy-filtered stance endpoints and hard-error when the focus claim is hidden. Evidence: `tests/test_render_policy_neighborhood.py`.
