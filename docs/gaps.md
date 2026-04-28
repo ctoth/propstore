@@ -57,6 +57,19 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ## Closed gaps (reference only — kept for traceability)
 
+### Closed 2026-04-28 (WS-O-qui quire substrate release)
+- S-H1/S-H2 — quire canonical JSON hashing now uses the shared contract payload normalizer, supports domain payloads consistently, and rejects NaN/Infinity. Evidence: quire commits `e4abe17`, `989db98`, `ab982d2`; tests `tests/test_hashing.py`.
+- S-H3 — quire transaction head prechecks are explicitly advisory; durable protection remains the write-time CAS. Evidence: quire commits `5e090df`, `ddc32c5`; tests `tests/test_families.py`.
+- S-H4 — stale-head write races no longer write failed blobs before the final pre-write branch-head assertion, and `GitStore.gc(dry_run=True)` reports unreachable objects. Evidence: quire commits `e2260e6`, `10cb88f`, `7f0804a`, `5c1523a`; tests `tests/test_git_store.py`.
+- S-H5 — filesystem-backed quire repositories serialize mutations with a cross-process lock. Evidence: quire commits `6fe2e0c`, `2c4f5b7`; test `tests/test_git_store.py::test_multiprocess_writers_are_serialized_by_filesystem_lock`.
+- S-M1 — family and registry contract-version slots reject placeholder `VersionId` values and require strict calendar contract versions. Evidence: quire commits `8e7fa8f`, `23dcfe2`; tests `tests/test_families.py`.
+- S-M2 — ambiguous reference IDs now raise `AmbiguousReferenceError`, while `exists()` remains false for non-unique references. Evidence: quire commits `06956d2`, `8817cf0`; tests `tests/test_references.py`.
+- S-M3 — `ForeignKeySpec.required` and `many` are executable through quire's `validate_foreign_key(...)` helper against caller-provided target indexes. Evidence: quire commits `8e047c3`, `1fe47f0`; tests `tests/test_references.py`.
+- S-M4 — `materialize_worktree()` refreshes the on-disk index for filesystem repositories. Evidence: quire commits `bd87d88`, `829b5e6`; tests `tests/test_git_store.py`.
+- S-M5/S-M6 — opaque hash-scattered iteration and unscannable placements now fail through explicit typed errors instead of unrelated generic `TypeError`s. Evidence: quire commits `b463267`, `f21dd48`, `8df3628`; tests `tests/test_artifacts.py`.
+- S-M7 — quire `merge_base()` delegates to Dulwich's native merge-base implementation instead of repeatedly walking ancestor-distance maps. Evidence: quire commits `029846f`, `2f838f9`; tests `tests/test_git_store.py`.
+- S-Boundary — propstore's quire imports are covered by quire's public package surface, and propstore pins the pushed quire `0.2.0` release commit. Evidence: quire commits `bac6266`, `f469665`, `23bbac2`; propstore commit `a27b3cbc`; test `tests/test_quire_boundary.py`.
+
 ### Closed 2026-04-27 (WS-CM micropub canonical payload and Trusty URI identity)
 - D-7 / D-29 — source-finalized micropublication artifact ids are now `ni:///sha-256;...` URIs computed over canonical authored micropub payload bytes, excluding recursive identity fields. Evidence: `tests/test_micropub_identity_trusty_uri.py`.
 - D-7 / D-29 — micropublication ids are no longer derived from only `(source_id, claim_id)`; changing authored micropub content changes the id even when the source and claim handle are unchanged. Evidence: `tests/test_micropub_identity_not_logical_handle.py`.
