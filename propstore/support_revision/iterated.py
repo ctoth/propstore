@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import replace
 
-from propstore.support_revision.entrenchment import EntrenchmentReport
+from propstore.support_revision.entrenchment import EntrenchmentReport, compute_entrenchment
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.operators import normalize_revision_input, revise
 from propstore.support_revision.state import BeliefBase, EpistemicState, RevisionEpisode, RevisionResult
@@ -68,7 +68,7 @@ def iterated_revise(
         raise ValueError("iterated revision is undefined at a merge point; use an explicit merge path")
 
     normalized = normalize_revision_input(state.base, atom)
-    current_entrenchment = _entrenchment_from_state(state)
+    current_entrenchment = compute_entrenchment(None, state.base)
     if conflicts is None:
         conflict_items = ()
     elif isinstance(conflicts, Mapping):
@@ -105,13 +105,6 @@ def epistemic_state_payload(state: EpistemicState) -> dict:
     from propstore.support_revision.history import EpistemicSnapshot
 
     return EpistemicSnapshot.from_state(state).to_dict()
-
-
-def _entrenchment_from_state(state: EpistemicState) -> EntrenchmentReport:
-    return EntrenchmentReport(
-        ranked_atom_ids=tuple(state.ranked_atom_ids),
-        reasons=dict(state.entrenchment_reasons),
-    )
 
 
 def _updated_entrenchment_report(

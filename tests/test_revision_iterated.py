@@ -159,7 +159,7 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
     return base, left_first, right_first, ids
 
 
-def test_iterated_revise_is_history_sensitive_even_with_same_current_acceptance() -> None:
+def test_iterated_revise_recomputes_entrenchment_independent_of_stale_history_ranking() -> None:
     from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
     base, left_first, right_first, ids = _history_sensitive_base()
@@ -193,11 +193,13 @@ def test_iterated_revise_is_history_sensitive_even_with_same_current_acceptance(
         operator="restrained",
     )
 
-    assert next_left.accepted_atom_ids != next_right.accepted_atom_ids
+    assert next_left.accepted_atom_ids == next_right.accepted_atom_ids
     assert ids["left_dependent"] in next_left.accepted_atom_ids
+    assert ids["left_dependent"] in next_right.accepted_atom_ids
     assert ids["right_dependent"] not in next_left.accepted_atom_ids
-    assert ids["right_dependent"] in next_right.accepted_atom_ids
-    assert ids["left_dependent"] not in next_right.accepted_atom_ids
+    assert ids["right_dependent"] not in next_right.accepted_atom_ids
+    assert next_left.history[0].operator == "seed-left"
+    assert next_right.history[0].operator == "seed-right"
 
 
 def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
