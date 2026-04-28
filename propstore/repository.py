@@ -12,6 +12,7 @@ from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
 )
 from propstore.uri import DEFAULT_URI_AUTHORITY
+from propstore.uri_authority import TaggingAuthority, parse_tagging_authority
 
 PROPSTORE_BOOTSTRAP_REF = RefName("refs/propstore/bootstrap")
 PROPSTORE_REPOSITORY_FORMAT_VERSION = "2026.04.store-only-init"
@@ -49,7 +50,7 @@ class Repository:
         return self._root / "sidecar" / "propstore.sqlite"
 
     @cached_property
-    def config(self) -> dict:
+    def config(self) -> dict[str, TaggingAuthority]:
         if self.git is None:
             return {}
         try:
@@ -61,15 +62,15 @@ class Repository:
             RepositoryConfigDocument,
             source=REPOSITORY_CONFIG_PATH,
         )
-        config: dict[str, str] = {}
+        config: dict[str, TaggingAuthority] = {}
         if loaded.uri_authority is not None:
-            config["uri_authority"] = loaded.uri_authority
+            config["uri_authority"] = parse_tagging_authority(loaded.uri_authority)
         return config
 
     @property
-    def uri_authority(self) -> str:
+    def uri_authority(self) -> TaggingAuthority:
         authority = self.config.get("uri_authority")
-        if isinstance(authority, str) and authority:
+        if isinstance(authority, TaggingAuthority):
             return authority
         return DEFAULT_URI_AUTHORITY
 
