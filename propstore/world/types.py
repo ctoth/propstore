@@ -151,6 +151,7 @@ class ATMSOutKind(Enum):
 
     MISSING_SUPPORT = "missing_support"
     NOGOOD_PRUNED = "nogood_pruned"
+    PARAMETERIZATION_INPUT_TYPE_INCOMPATIBLE = "parameterization_input_type_incompatible"
 
 
 @dataclass(frozen=True, order=True)
