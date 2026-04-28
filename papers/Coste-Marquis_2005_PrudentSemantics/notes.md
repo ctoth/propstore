@@ -160,3 +160,40 @@ This paper is directly relevant to propstore's argumentation layer because it fo
 - Baroni and Giacomin 2003: odd-length cycles in argumentation, explicitly contrasted by the authors. *(p.2, p.5)*
 - Cayrol, Doutre, and Mengin 2003; Doutre and Mengin 2004: decision-problem and skeptical/credulous-acceptance complexity background used for the complexity comparison. *(p.4-p.5)*
 - Coste-Marquis, Devred, and Marquis 2005, "Symmetric argumentation frameworks": companion paper cited by the authors. *(p.5)*
+
+## Collection Cross-References
+
+### Already in Collection
+- [On the Acceptability of Arguments and its Fundamental Role in Nonmonotonic Reasoning, Logic Programming and n-Person Games](../Dung_1995_AcceptabilityArguments/notes.md) - cited as the framework whose admissible, preferred, stable, complete, and grounded semantics are refined by prudent semantics.
+- [A logic-based theory of deductive arguments](../Besnard_2001_Logic-basedTheoryDeductiveArguments/notes.md) - cited as a structured-argumentation predecessor; useful contrast because this paper stays abstract and changes only extension admissibility.
+- [A reasoning model based on the production of acceptable arguments](../Amgoud_2002_ReasoningModelProductionAcceptable/notes.md) - cited in the preference-based argumentation lineage that motivates richer acceptability conditions.
+- [Symmetric Argumentation Frameworks](../Coste-Marquis_2005_SymmetricArgumentationFrameworks/notes.md) - companion paper by the same authors; symmetric AFs restrict the attack relation, while prudent semantics keep arbitrary attacks but restrict co-acceptance through indirect-conflict checks.
+- [Defeasible Reasoning](../Pollock_1987_DefeasibleReasoning/notes.md) - cited as defeasible-reasoning background for argument attack and acceptability.
+- [A Mathematical Treatment of Defeasible Reasoning and its Implementation](../Simari_1992_MathematicalTreatmentDefeasibleReasoning/notes.md) - cited as structured defeasible-reasoning background that Dung-style abstract semantics generalize.
+
+### New Leads (Not Yet in Collection)
+- Baroni and Giacomin (2003) - "Solving semantic problems with odd-length cycles in argumentation" - relevant because prudent semantics explicitly rely on odd-length paths as indirect attacks.
+- Cayrol, Doutre, and Mengin (2003) - "On decision problems related to the preferred semantics for argumentation frameworks" - relevant for the complexity background behind preferred p-extension decision problems.
+- Doutre and Mengin (2004) - "On sceptical vs credulous acceptance for abstract argument systems" - relevant for the skeptical/credulous cautiousness comparisons.
+- Dunne and Bench-Capon (2002) - "Coherence in finite argument system" - relevant to coherence properties of AF semantics and the comparison with cautious acceptance.
+- Elvang-Goransson and Hunter (1995) - "Argumentative logics: Reasoning with classically inconsistent information" - relevant as an earlier inconsistency-handling formalism.
+- Prakken and Vreeswijk (2002) - "Logics for defeasible argumentation" - broad structured-argumentation reference cited for the defeasible-argumentation background.
+- Toulmin (1958) - "The Uses of Argument" - classical argumentation reference.
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [On principle-based evaluation of extension-based argumentation semantics](../Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation/notes.md) - evaluates prudent semantics among major extension-based semantics and records failures around skepticism/resolution adequacy.
+- [On the Issue of Reinstatement in Argumentation](../Caminada_2006_IssueReinstatementArgumentation/notes.md) - cites prudent semantics as another semantics handling indirect attacks, alongside semi-stable semantics.
+- [Change in Abstract Argumentation Frameworks: Adding an Argument](../Cayrol_2014_ChangeAbstractArgumentationFrameworks/notes.md) - cites prudent semantics in the AF-dynamics bibliography.
+- [Epistemic Graphs for Representing and Reasoning with Positive and Negative Influences of Arguments](../Hunter_2018_EpistemicGraphsRepresentingReasoning/notes.md) - cites prudent semantics as part of the lineage for handling positive/negative influences and acceptability beyond plain attacks.
+- [Developing the Abstract Dialectical Framework](../Polberg_2017_DevelopingAbstractDialecticalFramework/notes.md) - cites prudent semantics as CMDM05b in the semantics/translation literature.
+- Charwat et al. 2015 cite this paper in `citations.md`, but `papers/Charwat_2015_MethodsSolvingReasoningProblems/` currently has no `notes.md` for a normal notes-layer link.
+
+### Conceptual Links (not citation-based)
+- [On principle-based evaluation of extension-based argumentation semantics](../Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation/notes.md) - **Strong.** Baroni and Giacomin evaluate prudent semantics directly: the indirect-attack machinery defined here becomes one of the test cases for formal principles such as directionality, skepticism adequacy, and resolution adequacy.
+- [On the Issue of Reinstatement in Argumentation](../Caminada_2006_IssueReinstatementArgumentation/notes.md) - **Moderate.** Both papers respond to unintuitive behavior in standard Dung semantics. Caminada uses labellings and semi-stable semantics to reduce undecided arguments and handle reinstatement; Coste-Marquis et al. use odd-path indirect conflicts to block controversial co-acceptance.
+- [SCC-Recursiveness: General Schema for Argumentation Semantics](../Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation/notes.md) - **Moderate.** SCC-recursive semantics and prudent semantics both target graph-structure pathologies in AFs, especially cycles; SCC-recursiveness decomposes the graph, while prudent semantics filters extensions by odd-path reachability.
+- [CF2 Argumentation Semantics Revisited](../Gaggl_2013_CF2ArgumentationSemanticsRevisited/notes.md) - **Moderate.** CF2 and prudent semantics are alternative responses to odd-cycle and conflict-handling pathologies; CF2 uses recursive SCC decomposition and maximal conflict-free choices, while prudent semantics keeps Dung-style extension families but forbids indirect conflicts inside accepted sets.
+- [Toksia: An Efficient Abstract Argumentation Reasoner](../Niskanen_2020_ToksiaEfficientAbstractArgumentation/notes.md) - **Moderate.** Toksia supplies practical SAT-based computation for standard Dung semantics; prudent semantics would require adding odd-path indirect-conflict constraints on top of comparable extension-search machinery.
