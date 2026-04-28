@@ -169,7 +169,7 @@ def _stable_micropub_artifact_id(source_id: str, claim_id: str) -> str:
     return f"ps:micropub:{digest}"
 ```
 
-This is the function WS-M's Step 9 replaces with a `compute_ni_uri` call over the full canonical payload. WS-C does not specify the canonicalisation, the algorithm token, the truncation policy, or the URI scheme — those are WS-M's. WS-C only asserts the dedupe-shape contract: that two micropubs with different authored content end up with different artifact ids in the sidecar.
+This is the function WS-CM deletes and replaces with `micropub_artifact_id(document)`, a Trusty URI over the full canonical micropub payload. WS-C does not specify the canonicalisation, the algorithm token, the truncation policy, or the URI scheme — those are WS-CM's. WS-C only asserts the dedupe-shape contract: that two micropubs with different authored content end up with different artifact ids in the sidecar.
 
 ## First failing tests (write these first; they MUST fail before any production change)
 
