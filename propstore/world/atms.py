@@ -19,7 +19,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from collections.abc import Iterable, Sequence
 from itertools import combinations, product
-from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, overload, runtime_checkable
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
@@ -327,6 +327,17 @@ _FutureEntryT = TypeVar(
 )
 
 
+class BudgetExhausted(RuntimeError):
+    """Raised when a future-query budget is exhausted before a sound verdict."""
+
+    def __init__(self, *, examined: int, total: int) -> None:
+        self.examined = examined
+        self.total = total
+        super().__init__(
+            f"ATMS future-query budget exhausted after {examined} of {total} subsets"
+        )
+
+
 def _queryable_id_list(values: Iterable[object]) -> list[QueryableId]:
     return list(to_queryable_ids(values))
 
@@ -627,7 +638,8 @@ class ATMSEngine:
     def future_environments(
         self,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> list[ATMSFutureEnvironmentReport]:
         futures: list[ATMSFutureEnvironmentReport] = []
         for future in self._future_entries(queryables, limit):
@@ -649,25 +661,13 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSFutureStatusReport:
         current = self.node_status(node_id)
         futures: list[ATMSNodeFutureStatusEntry] = []
         for future in self._future_entries(queryables, limit):
-            future_engine = future.future_engine
-            inspection = future_engine._future_node_inspection(node_id, fallback=self._nodes.get(node_id))
-            essential_support = self._serialize_environment_key(inspection.essential_support) or []
-            futures.append(ATMSNodeFutureStatusEntry(
-                queryable_ids=_queryable_id_list(future.queryable_ids),
-                queryable_cels=list(future.queryable_cels),
-                environment=_assumption_id_list(future.environment_key.assumption_ids),
-                consistent=future.consistent,
-                status=inspection.status,
-                out_kind=inspection.out_kind,
-                reason=inspection.reason,
-                support_quality=inspection.support_quality,
-                essential_support=_assumption_id_list(essential_support),
-            ))
+            futures.append(self._node_future_status_entry(node_id, future))
         return ATMSFutureStatusReport(
             node_id=node_id,
             claim_id=current.claim_id,
@@ -686,11 +686,34 @@ class ATMSEngine:
             futures=futures,
         )
 
+    def _node_future_status_entry(
+        self,
+        node_id: str,
+        future: _FutureReplay,
+    ) -> ATMSNodeFutureStatusEntry:
+        inspection = future.future_engine._future_node_inspection(
+            node_id,
+            fallback=self._nodes.get(node_id),
+        )
+        essential_support = self._serialize_environment_key(inspection.essential_support) or []
+        return ATMSNodeFutureStatusEntry(
+            queryable_ids=_queryable_id_list(future.queryable_ids),
+            queryable_cels=list(future.queryable_cels),
+            environment=_assumption_id_list(future.environment_key.assumption_ids),
+            consistent=future.consistent,
+            status=inspection.status,
+            out_kind=inspection.out_kind,
+            reason=inspection.reason,
+            support_quality=inspection.support_quality,
+            essential_support=_assumption_id_list(essential_support),
+        )
+
     def claim_future_statuses(
         self,
         claim_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSFutureStatusReport:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
@@ -701,7 +724,8 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption] | None = None,
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSWhyOutReport:
         inspection = self.node_status(node_id)
         candidate_queryable_cels: list[list[str]] = []
@@ -723,7 +747,8 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> list[ATMSNodeFutureStatusEntry]:
         report = self.node_future_statuses(node_id, queryables, limit=limit)
         return [
@@ -736,7 +761,8 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> list[ATMSNodeFutureStatusEntry]:
         report = self.node_future_statuses(node_id, queryables, limit=limit)
         return [
@@ -750,7 +776,8 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> list[ATMSNodeFutureStatusEntry]:
         """Return minimal bounded consistent futures whose ATMS status flips."""
         report = self.node_future_statuses(node_id, queryables, limit=limit)
@@ -766,7 +793,8 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> bool:
         """Whether the node keeps its current ATMS status in all bounded consistent futures."""
         return self.node_stability(node_id, queryables, limit=limit).stable
@@ -775,7 +803,8 @@ class ATMSEngine:
         self,
         claim_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> bool:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
@@ -786,7 +815,8 @@ class ATMSEngine:
         self,
         concept_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> bool:
         return self.concept_stability(concept_id, queryables, limit=limit).stable
 
@@ -794,33 +824,43 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSNodeStabilityReport:
-        """Summarize bounded ATMS stability over the implemented replay substrate."""
-        report = self.node_future_statuses(node_id, queryables, limit=limit)
-        consistent_futures = [future for future in report.futures if future.consistent]
-        witnesses = self._minimal_future_entries([
-            future
-            for future in consistent_futures
-            if future.status != report.current.status
-        ])
+        """Summarize ATMS stability over future worlds without silent truncation."""
+        current = self.node_status(node_id)
+        futures: list[ATMSNodeFutureStatusEntry] = []
+        witnesses: list[ATMSNodeFutureStatusEntry] = []
+        for queryable_set in self._stream_future_queryable_sets(queryables, limit):
+            future = self._future_entry(queryable_set)
+            entry = self._node_future_status_entry(node_id, future)
+            futures.append(entry)
+            if entry.consistent and entry.status != current.status:
+                witnesses.append(entry)
+                # de Kleer 1986 p.144 makes a label claim only over minimal
+                # consistent environments. Width-ordered enumeration means the
+                # first flip proves instability without inspecting supersets.
+                break
+        consistent_futures = [future for future in futures if future.consistent]
+        minimal_witnesses = self._minimal_future_entries(witnesses)
         return ATMSNodeStabilityReport(
-            node_id=report.node_id,
-            claim_id=report.claim_id,
-            current=report.current,
-            stable=not witnesses,
+            node_id=node_id,
+            claim_id=current.claim_id,
+            current=current,
+            stable=not minimal_witnesses,
             limit=limit,
-            future_count=len(report.futures),
+            future_count=len(futures),
             consistent_future_count=len(consistent_futures),
-            inconsistent_future_count=len(report.futures) - len(consistent_futures),
-            witnesses=witnesses,
+            inconsistent_future_count=len(futures) - len(consistent_futures),
+            witnesses=minimal_witnesses,
         )
 
     def claim_stability(
         self,
         claim_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSNodeStabilityReport:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
@@ -831,7 +871,8 @@ class ATMSEngine:
         self,
         concept_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSConceptStabilityReport:
         """Summarize bounded concept stability using the current BoundWorld value status."""
         current_status = self._runtime.concept_status(concept_id)
@@ -857,7 +898,8 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> list[str]:
         """Return queryables whose inclusion changes the bounded ATMS status somewhere."""
         return list(self.node_relevance(node_id, queryables, limit=limit).relevant_queryables)
@@ -866,7 +908,8 @@ class ATMSEngine:
         self,
         claim_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> list[str]:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
@@ -877,7 +920,8 @@ class ATMSEngine:
         self,
         concept_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> list[str]:
         return list(self.concept_relevance(concept_id, queryables, limit=limit).relevant_queryables)
 
@@ -885,7 +929,8 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSNodeRelevanceReport:
         """Summarize which queryables can flip a node's bounded ATMS status."""
         current = self.node_status(node_id)
@@ -908,7 +953,8 @@ class ATMSEngine:
         self,
         claim_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSNodeRelevanceReport:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
@@ -919,7 +965,8 @@ class ATMSEngine:
         self,
         concept_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSConceptRelevanceReport:
         """Summarize which queryables can flip a concept's bounded value status."""
         current_status = self._runtime.concept_status(concept_id)
@@ -942,7 +989,7 @@ class ATMSEngine:
         queryables: Sequence[QueryableAssumption],
         target_status: ATMSNodeStatus,
         *,
-        limit: int = 8,
+        limit: int | None,
         max_plans: int | None = None,
     ) -> list[ATMSNodeInterventionPlan]:
         """Return minimal additive plans that reach the requested ATMS node status."""
@@ -973,7 +1020,7 @@ class ATMSEngine:
         queryables: Sequence[QueryableAssumption],
         target_status: ATMSNodeStatus,
         *,
-        limit: int = 8,
+        limit: int | None,
         max_plans: int | None = None,
     ) -> list[ATMSNodeInterventionPlan]:
         node_id = self._claim_node_ids.get(claim_id)
@@ -993,7 +1040,7 @@ class ATMSEngine:
         queryables: Sequence[QueryableAssumption],
         target_value_status: ValueStatus,
         *,
-        limit: int = 8,
+        limit: int | None,
         max_plans: int | None = None,
     ) -> list[ATMSConceptInterventionPlan]:
         """Return minimal additive plans that reach the requested concept value status."""
@@ -1023,7 +1070,7 @@ class ATMSEngine:
         queryables: Sequence[QueryableAssumption],
         target_status: ATMSNodeStatus,
         *,
-        limit: int = 8,
+        limit: int | None,
         max_suggestions: int | None = None,
     ) -> list[ATMSNextQuerySuggestion]:
         plans = self.node_interventions(
@@ -1040,7 +1087,7 @@ class ATMSEngine:
         queryables: Sequence[QueryableAssumption],
         target_status: ATMSNodeStatus,
         *,
-        limit: int = 8,
+        limit: int | None,
         max_suggestions: int | None = None,
     ) -> list[ATMSNextQuerySuggestion]:
         node_id = self._claim_node_ids.get(claim_id)
@@ -1060,7 +1107,7 @@ class ATMSEngine:
         queryables: Sequence[QueryableAssumption],
         target_value_status: ValueStatus,
         *,
-        limit: int = 8,
+        limit: int | None,
         max_suggestions: int | None = None,
     ) -> list[ATMSNextQuerySuggestion]:
         plans = self.concept_interventions(
@@ -1799,46 +1846,21 @@ class ATMSEngine:
             for key in sorted(normalized)
         )
 
-    @overload
     def _iter_future_queryable_sets(
         self,
         queryables: Sequence[QueryableAssumption],
-        limit: int,
-    ) -> tuple[tuple[QueryableAssumption, ...], ...]: ...
-
-    @overload
-    def _iter_future_queryable_sets(
-        self,
-        queryables: Sequence[QueryableAssumption],
-        limit: int,
-        *,
-        max_candidates: None,
-    ) -> tuple[tuple[QueryableAssumption, ...], ...]: ...
-
-    @overload
-    def _iter_future_queryable_sets(
-        self,
-        queryables: Sequence[QueryableAssumption],
-        limit: int,
-        *,
-        max_candidates: int,
-    ) -> tuple[tuple[QueryableAssumption, ...], ...] | EnumerationExceeded: ...
-
-    def _iter_future_queryable_sets(
-        self,
-        queryables: Sequence[QueryableAssumption],
-        limit: int,
+        limit: int | None,
         *,
         max_candidates: int | None = None,
     ) -> tuple[tuple[QueryableAssumption, ...], ...] | EnumerationExceeded:
-        """Enumerate future queryable sets with an anytime candidate ceiling.
+        """Enumerate future queryable sets for legacy anytime-ceiling callers.
 
         Zilberstein 1996 treats interrupted enumeration as an anytime result:
         callers get the exact completed candidate count and the unvisited
         power-set remainder is marked vacuous rather than inferred.
         """
 
-        if limit <= 0:
+        if limit is not None and limit <= 0:
             return ()
         if max_candidates is not None and max_candidates < 0:
             raise ValueError("max_candidates must be non-negative")
@@ -1855,9 +1877,29 @@ class ATMSEngine:
                     )
                 queryable_sets.append(queryable_set)
                 count += 1
-                if count >= limit:
+                if limit is not None and count >= limit:
                     return tuple(queryable_sets)
         return tuple(queryable_sets)
+
+    def _stream_future_queryable_sets(
+        self,
+        queryables: Sequence[QueryableAssumption],
+        limit: int | None,
+    ) -> Iterable[tuple[QueryableAssumption, ...]]:
+        """Yield future queryable sets and raise when a query budget is exhausted."""
+
+        if limit is not None and limit < 0:
+            raise ValueError("limit must be non-negative")
+
+        normalized = self._coerce_queryables(queryables)
+        total = 1 << len(normalized)
+        examined = 0
+        for width in range(1, len(normalized) + 1):
+            for queryable_set in combinations(normalized, width):
+                if limit is not None and examined >= limit:
+                    raise BudgetExhausted(examined=examined, total=total)
+                yield queryable_set
+                examined += 1
 
     def _future_engine(
         self,
@@ -1865,29 +1907,35 @@ class ATMSEngine:
     ) -> ATMSEngine:
         return self.__class__(self._runtime.replay(queryable_set))
 
+    def _future_entry(
+        self,
+        queryable_set: tuple[QueryableAssumption, ...],
+    ) -> _FutureReplay:
+        future_engine = self._future_engine(queryable_set)
+        environment_key = future_engine._bound_environment_key()
+        return _FutureReplay(
+            queryable_ids=tuple(queryable.assumption_id for queryable in queryable_set),
+            queryable_cels=tuple(queryable.cel for queryable in queryable_set),
+            environment_key=environment_key,
+            consistent=not future_engine.nogoods.excludes(environment_key),
+            future_engine=future_engine,
+        )
+
     def _future_entries(
         self,
         queryables: Sequence[QueryableAssumption],
-        limit: int,
+        limit: int | None,
     ) -> list[_FutureReplay]:
         entries: list[_FutureReplay] = []
-        for queryable_set in self._iter_future_queryable_sets(queryables, limit):
-            future_engine = self._future_engine(queryable_set)
-            environment_key = future_engine._bound_environment_key()
-            entries.append(_FutureReplay(
-                queryable_ids=tuple(queryable.assumption_id for queryable in queryable_set),
-                queryable_cels=tuple(queryable.cel for queryable in queryable_set),
-                environment_key=environment_key,
-                consistent=not future_engine.nogoods.excludes(environment_key),
-                future_engine=future_engine,
-            ))
+        for queryable_set in self._stream_future_queryable_sets(queryables, limit):
+            entries.append(self._future_entry(queryable_set))
         return entries
 
     def _concept_future_entries(
         self,
         concept_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int,
+        limit: int | None,
     ) -> list[ATMSConceptFutureStatusEntry]:
         futures: list[ATMSConceptFutureStatusEntry] = []
         for future in self._future_entries(queryables, limit):
@@ -1925,7 +1973,7 @@ class ATMSEngine:
         self,
         node_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int,
+        limit: int | None,
     ) -> dict[tuple[QueryableId, ...], ATMSNodeRelevanceState]:
         current = self.node_status(node_id)
         states: dict[tuple[QueryableId, ...], ATMSNodeRelevanceState] = {
@@ -1952,7 +2000,7 @@ class ATMSEngine:
         self,
         concept_id: str,
         queryables: Sequence[QueryableAssumption],
-        limit: int,
+        limit: int | None,
     ) -> dict[tuple[QueryableId, ...], ATMSConceptRelevanceState]:
         states: dict[tuple[QueryableId, ...], ATMSConceptRelevanceState] = {
             (): ATMSConceptRelevanceState(
