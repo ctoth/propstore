@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from propstore.app.world_atms import _support_ids
-from propstore.core.labels import EnvironmentKey, Label
+from propstore.core.labels import EnvironmentKey, Label, NogoodSet
 
 from tests.test_atms_engine import _ATMSStore, _make_bound
 
@@ -18,7 +18,7 @@ def test_ws_i_environment_serialization_preserves_assumptions_and_contexts() -> 
     assert engine._serialize_environment_key(environment) == expected
     assert engine._serialize_label(Label((environment,))) == [expected]
 
-    engine.nogoods = engine.nogoods.add(environment)
+    engine.nogoods = NogoodSet([environment])
     detail = engine._serialize_nogood_detail(environment)
     assert detail.environment == expected
 
