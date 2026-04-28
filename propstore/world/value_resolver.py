@@ -162,6 +162,7 @@ class ActiveClaimResolver:
         saw_compatible_candidate = False
         saw_conflicted_candidate = False
         saw_underspecified_candidate = False
+        derived_candidates: list[DerivedResult] = []
 
         for param in params:
             if not self._is_param_compatible(param.conditions_cel):
@@ -175,7 +176,8 @@ class ActiveClaimResolver:
                 derivation_stack=_derivation_stack,
             )
             if candidate.status is ValueStatus.DERIVED:
-                return candidate
+                derived_candidates.append(candidate)
+                continue
             if candidate.status is ValueStatus.CONFLICTED:
                 saw_conflicted_candidate = True
             elif candidate.status is ValueStatus.UNDERSPECIFIED:
@@ -183,6 +185,15 @@ class ActiveClaimResolver:
 
         if not saw_compatible_candidate:
             return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.NO_RELATIONSHIP)
+
+        if derived_candidates:
+            derived_values = {
+                self._normalize_value(candidate.value)
+                for candidate in derived_candidates
+            }
+            if len(derived_values) != 1:
+                return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED)
+            return derived_candidates[0]
 
         if saw_conflicted_candidate:
             return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED)
