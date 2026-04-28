@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, r
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
+from propstore.cel_checker import ASTNode, BinaryOpNode, LiteralNode, NameNode, UnaryOpNode, parse_cel
 from propstore.core.anytime import EnumerationExceeded
 from propstore.core.environment import WorldStore, MicropublicationCatalogStore
 from propstore.core.graph_build import build_compiled_world_graph
@@ -1698,7 +1699,7 @@ class ATMSEngine:
                 for node_id, node in self._nodes.items()
                 if node.kind == "assumption"
                 and (assumption := _node_assumption(node)) is not None
-                and assumption.cel == condition
+                and self._cel_conditions_equivalent(assumption.cel, str(condition))
             ]
             if not matches:
                 return []
@@ -1708,6 +1709,31 @@ class ATMSEngine:
             tuple(sorted(context_antecedents + node_ids))
             for node_ids in product(*matching_node_groups)
         ]
+
+    @classmethod
+    def _cel_conditions_equivalent(cls, left: str, right: str) -> bool:
+        if left == right:
+            return True
+        try:
+            return cls._canonical_cel_ast(parse_cel(left)) == cls._canonical_cel_ast(parse_cel(right))
+        except ValueError:
+            return False
+
+    @classmethod
+    def _canonical_cel_ast(cls, node: ASTNode) -> object:
+        if isinstance(node, NameNode):
+            return ("name", node.name)
+        if isinstance(node, LiteralNode):
+            return ("literal", node.lit_type, node.value)
+        if isinstance(node, UnaryOpNode):
+            return ("unary", node.op, cls._canonical_cel_ast(node.operand))
+        if isinstance(node, BinaryOpNode):
+            left = cls._canonical_cel_ast(node.left)
+            right = cls._canonical_cel_ast(node.right)
+            if node.op in {"==", "!=", "&&", "||"}:
+                left, right = sorted((left, right), key=repr)
+            return ("binary", node.op, left, right)
+        return repr(node)
 
     def _add_justification(
         self,
