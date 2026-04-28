@@ -1232,13 +1232,16 @@ def apply_decision_criterion(
 ) -> DecisionValue:
     """Apply decision criterion to opinion data, falling back to raw confidence.
 
-    Per Denoeux (2019, p.17-18): decision criteria determine how belief
-    function uncertainty maps to actionable values at render time.
+    Decision criteria determine how belief-function uncertainty maps to
+    actionable values at render time. The binomial pignistic path follows
+    Smets & Kennes 1994 (journal p.202) and Denoeux 2019 (pp.17-18).
+    The projected-probability path follows Jøsang 2001 Definition 6 (p.5).
 
     Args:
         opinion_b/d/u/a: Opinion components (may be None for old data)
         confidence: Scalar fallback (existing backward-compat field)
-        criterion: One of "pignistic", "lower_bound", "upper_bound", "hurwicz"
+        criterion: One of "pignistic", "projected_probability",
+            "lower_bound", "upper_bound", "hurwicz"
         pessimism_index: α for Hurwicz criterion
 
     Returns:
@@ -1255,7 +1258,11 @@ def apply_decision_criterion(
         and opinion_a is not None
     ):
         if criterion == "pignistic":
-            # Jøsang (2001, p.5, Def 6): E(ω) = b + a·u
+            # Smets & Kennes 1994, journal p.202: BetP distributes
+            # focal-set mass equally. For binomial opinions, BetP(x)=b+u/2.
+            value = opinion_b + (opinion_u / 2.0)
+        elif criterion == "projected_probability":
+            # Jøsang 2001, Definition 6 (p.5): E(ω)=b+a·u.
             value = opinion_b + opinion_a * opinion_u
         elif criterion == "lower_bound":
             # Jøsang (2001, p.4): Bel(x) = b
