@@ -30,6 +30,13 @@ class SnapshotFile:
 
 
 @dataclass(frozen=True)
+class _MaterializeWrite:
+    relpath: str
+    destination: Path
+    content: bytes
+
+
+@dataclass(frozen=True)
 class BranchInfo:
     name: str
     tip_sha: str
@@ -209,7 +216,7 @@ class RepositorySnapshot:
                 head_txn.assert_current()
             tracked_paths = {snapshot_file.relpath for snapshot_file in snapshot_files}
             conflicts: list[str] = []
-            written: list[str] = []
+            writes: list[_MaterializeWrite] = []
             for snapshot_file in snapshot_files:
                 destination = self.repo.root / snapshot_file.relpath
                 if destination.exists() and destination.is_file():
@@ -217,13 +224,25 @@ class RepositorySnapshot:
                     if existing != snapshot_file.content and not force:
                         conflicts.append(snapshot_file.relpath)
                         continue
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                destination.write_bytes(snapshot_file.content)
-                written.append(snapshot_file.relpath)
+                    if existing == snapshot_file.content:
+                        continue
+                writes.append(
+                    _MaterializeWrite(
+                        relpath=snapshot_file.relpath,
+                        destination=destination,
+                        content=snapshot_file.content,
+                    )
+                )
 
             if conflicts:
                 details = ", ".join(sorted(conflicts))
                 raise MaterializeConflictError(f"Refusing to overwrite local edits: {details}")
+
+            written: list[str] = []
+            for write in writes:
+                write.destination.parent.mkdir(parents=True, exist_ok=True)
+                write.destination.write_bytes(write.content)
+                written.append(write.relpath)
 
             deleted, skipped = self._clean_materialized_semantic_files(tracked_paths) if clean else ([], [])
             return MaterializeReport(
