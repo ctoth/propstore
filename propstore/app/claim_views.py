@@ -41,6 +41,12 @@ class ClaimViewUnknownClaimError(ClaimViewAppError):
         self.claim_id = claim_id
 
 
+class ClaimViewBlockedError(ClaimViewAppError):
+    def __init__(self, claim_id: str) -> None:
+        super().__init__("Not Found")
+        self.claim_id = claim_id
+
+
 @dataclass(frozen=True)
 class ClaimViewRequest:
     claim_id: str
@@ -172,8 +178,10 @@ def build_claim_view(repo: Repository, request: ClaimViewRequest) -> ClaimViewRe
         claim = world.get_claim(request.claim_id)
         if claim is None:
             raise ClaimViewUnknownClaimError(request.claim_id)
-        concept = _claim_focus_concept(claim, world)
         visible_ids = {str(row.claim_id) for row in world.claims_with_policy(None, policy)}
+        if str(claim.claim_id) not in visible_ids:
+            raise ClaimViewBlockedError(str(claim.claim_id))
+        concept = _claim_focus_concept(claim, world)
         status = _claim_status(claim, str(claim.claim_id) in visible_ids)
         concept_view = _claim_concept(claim, concept)
         return ClaimViewReport(
