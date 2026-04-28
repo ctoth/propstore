@@ -9,6 +9,7 @@ from .alignment import (
     query_concept_alignment,
 )
 from .display import (
+    ConceptSearchSyntaxError,
     list_concept_categories,
     list_concepts,
     search_concepts,
