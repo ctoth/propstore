@@ -16,6 +16,7 @@ from propstore.policies import (
     policy_assertions,
 )
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
+from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from tests.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_iterated import _history_sensitive_base
 
@@ -79,7 +80,7 @@ def test_transition_journal_hash_includes_full_policy_payload() -> None:
         policy_payload=profile.to_dict(),
         operator=JournalOperator.ITERATED_REVISE,
         operator_input={
-            "formula": new_atom.atom_id,
+            "formula": belief_atom_to_canonical_dict(new_atom),
             "revision_operator": "restrained",
             "targets": [ids["legacy"]],
         },
@@ -98,7 +99,7 @@ def test_transition_journal_hash_includes_full_policy_payload() -> None:
         policy_payload=changed.to_dict(),
         operator=JournalOperator.ITERATED_REVISE,
         operator_input={
-            "formula": new_atom.atom_id,
+            "formula": belief_atom_to_canonical_dict(new_atom),
             "revision_operator": "restrained",
             "targets": [ids["legacy"]],
         },

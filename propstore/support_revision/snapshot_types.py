@@ -172,6 +172,14 @@ def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
     return data
 
 
+def belief_atom_from_canonical_dict(data: Mapping[str, Any]) -> BeliefAtom:
+    return _belief_atom_from_mapping(data)
+
+
+def belief_atom_to_canonical_dict(atom: BeliefAtom) -> dict[str, Any]:
+    return _belief_atom_to_dict(atom)
+
+
 def _belief_base_from_mapping(data: Mapping[str, Any]) -> BeliefBase:
     support_sets_payload = _optional_mapping(data.get("support_sets"), "support_sets")
     essential_support_payload = _optional_mapping(data.get("essential_support"), "essential_support")
@@ -251,6 +259,17 @@ class RevisionEpisodeSnapshot:
             rejected_atom_ids=episode.rejected_atom_ids,
             incision_set=episode.incision_set,
             explanation=episode.explanation,
+        )
+
+    def to_episode(self) -> RevisionEpisode:
+        return RevisionEpisode(
+            operator=self.operator,
+            input_atom_id=self.input_atom_id,
+            target_atom_ids=self.target_atom_ids,
+            accepted_atom_ids=self.accepted_atom_ids,
+            rejected_atom_ids=self.rejected_atom_ids,
+            incision_set=self.incision_set,
+            explanation=self.explanation,
         )
 
     @classmethod
@@ -355,6 +374,17 @@ class EpistemicStateSnapshot:
                 for item in (data.get("history") or ())
                 if isinstance(item, Mapping)
             ),
+        )
+
+    def to_state(self) -> EpistemicState:
+        return EpistemicState(
+            scope=self.scope,
+            base=self.base,
+            accepted_atom_ids=self.accepted_atom_ids,
+            ranked_atom_ids=self.ranked_atom_ids,
+            ranking=dict(self.ranking),
+            entrenchment_reasons=dict(self.entrenchment_reasons),
+            history=tuple(episode.to_episode() for episode in self.history),
         )
 
     def to_dict(self) -> dict[str, Any]:

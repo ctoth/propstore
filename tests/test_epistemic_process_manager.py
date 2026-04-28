@@ -27,6 +27,7 @@ from propstore.support_revision.history import (
     TransitionOperation,
 )
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
+from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from propstore.world.types import (
     ATMSNodeInterventionPlan,
     ATMSNodeStatus,
@@ -337,7 +338,7 @@ def _snapshot_policy_journal_and_atom() -> tuple[
         policy_payload=policy.to_dict(),
         operator=JournalOperator.ITERATED_REVISE,
         operator_input={
-            "formula": atom.atom_id,
+            "formula": belief_atom_to_canonical_dict(atom),
             "revision_operator": "restrained",
             "targets": [ids["legacy"]],
         },
