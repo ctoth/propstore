@@ -27,7 +27,9 @@ Checklist protocol:
    property-based gates from `../PROPERTY-BASED-TDD.md`.
 4. Write a closure report under
    `reviews/2026-04-26-claude/workstreams/reports/<WS-ID>-closure.md`.
-5. Only after the report exists, update this INDEX row:
+5. Only after the report exists, update this INDEX row. The `Status` cell is
+   the checklist checkbox: `OPEN` means unchecked; `CLOSED <sha>` means checked
+   off.
    - change Status from `OPEN` to `CLOSED <sha>`;
    - add the closure report path to the Decisions/notes cell;
    - keep any partial/deferred work named explicitly in the report, not hidden
