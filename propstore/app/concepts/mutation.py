@@ -20,6 +20,7 @@ from propstore.claims import (
     claim_file_payload,
     loaded_claim_file_from_payload,
 )
+from propstore.canonical_namespaces import assert_alias_does_not_target_reserved_namespace
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.families.claims.passes import validate_claims
 from propstore.compiler.references import build_claim_reference_lookup
@@ -1150,6 +1151,7 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
 def add_concept_alias(
     repo: Repository, request: ConceptAliasRequest
 ) -> ConceptMutationReport:
+    assert_alias_does_not_target_reserved_namespace(request.name)
     snapshot = _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
