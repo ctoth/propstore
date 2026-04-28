@@ -4,8 +4,8 @@ version = "0.3.3"
 description = "Propositional knowledge store compiler"
 requires-python = ">=3.11"
 dependencies = [
-    "click>=8.0",
-    "linkml>=1.10.0",
+    "click>=8.3.3",
+    "linkml>=1.9.3,<1.10",
     "msgspec>=0.19.0",
     "pyyaml>=6.0",
     "rich>=13.7",
@@ -22,6 +22,7 @@ dependencies = [
     "quire @ git+https://github.com/ctoth/quire@84f5d07e6f2127688b34c9fc582aa6900b7ff0c8",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
+    "linkml-runtime>=1.9.3,<1.10",
 ]
 
 [project.optional-dependencies]
