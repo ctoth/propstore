@@ -696,7 +696,10 @@ class ATMSEngine:
             node_id,
             fallback=self._nodes.get(node_id),
         )
-        essential_support = self._serialize_environment_key(inspection.essential_support) or []
+        essential_support = self._serialize_environment_key(inspection.essential_support) or {
+            "assumption_ids": [],
+            "context_ids": [],
+        }
         return ATMSNodeFutureStatusEntry(
             queryable_ids=_queryable_id_list(future.queryable_ids),
             queryable_cels=list(future.queryable_cels),
@@ -706,7 +709,7 @@ class ATMSEngine:
             out_kind=inspection.out_kind,
             reason=inspection.reason,
             support_quality=inspection.support_quality,
-            essential_support=_assumption_id_list(essential_support),
+            essential_support=essential_support,
         )
 
     def claim_future_statuses(
@@ -2617,23 +2620,34 @@ class ATMSEngine:
         )
 
     @staticmethod
-    def _serialize_environment_key(environment: EnvironmentKey | None) -> list[str] | None:
+    def _serialize_environment_key(
+        environment: EnvironmentKey | None,
+    ) -> dict[str, list[str]] | None:
         if environment is None:
             return None
-        return list(environment.assumption_ids)
+        return {
+            "assumption_ids": list(environment.assumption_ids),
+            "context_ids": list(environment.context_ids),
+        }
 
     @classmethod
-    def _serialize_label(cls, label: Label | None) -> list[list[str]] | None:
+    def _serialize_label(cls, label: Label | None) -> list[dict[str, list[str]]] | None:
         if label is None:
             return None
         return [
-            cls._serialize_environment_key(environment) or []
+            cls._serialize_environment_key(environment) or {
+                "assumption_ids": [],
+                "context_ids": [],
+            }
             for environment in label.environments
         ]
 
     def _serialize_nogood_detail(self, environment: EnvironmentKey) -> ATMSNogoodDetail:
         return ATMSNogoodDetail(
-            environment=list(environment.assumption_ids),
+            environment=self._serialize_environment_key(environment) or {
+                "assumption_ids": [],
+                "context_ids": [],
+            },
             provenance=list(self._nogood_provenance.get(environment, ())),
         )
 
