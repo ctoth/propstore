@@ -131,20 +131,20 @@ def commit_repository_import(
     if repository.snapshot.branch_head(plan.target_branch) is None and plan.target_branch != primary_branch:
         repository.snapshot.ensure_branch(plan.target_branch)
 
-    with repository.families.transact(
-        message=message or f"Import {plan.repository_name} at {plan.source_commit[:12]}",
-        branch=plan.target_branch,
-    ) as transaction:
-        for planned_write in plan.writes.values():
-            transaction.by_artifact_family(cast(Any, planned_write.family)).save(
-                cast(Any, planned_write.ref),
-                cast(Any, planned_write.document),
-            )
-        for path in plan.deletes:
-            semantic_family = semantic_family_for_path(path)
-            bound_family = transaction.by_artifact_family(cast(Any, semantic_family.artifact_family))
-            bound_family.delete(bound_family.ref_from_path(path))
-    commit_sha = transaction.commit_sha
+    with repository.head_bound_transaction(plan.target_branch, path="repository_import") as head_txn:
+        with head_txn.families_transact(
+            message=message or f"Import {plan.repository_name} at {plan.source_commit[:12]}",
+        ) as transaction:
+            for planned_write in plan.writes.values():
+                transaction.by_artifact_family(cast(Any, planned_write.family)).save(
+                    cast(Any, planned_write.ref),
+                    cast(Any, planned_write.document),
+                )
+            for path in plan.deletes:
+                semantic_family = semantic_family_for_path(path)
+                bound_family = transaction.by_artifact_family(cast(Any, semantic_family.artifact_family))
+                bound_family.delete(bound_family.ref_from_path(path))
+    commit_sha = head_txn.commit_sha
     if commit_sha is None:
         raise ValueError("repo import transaction did not produce a commit")
 
