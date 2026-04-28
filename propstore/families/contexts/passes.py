@@ -23,6 +23,7 @@ from propstore.semantic_passes.types import PassDiagnostic, PassResult, Pipeline
 class ContextNormalizePass:
     family = PropstoreFamily.CONTEXTS
     name = "context.normalize"
+    version = "1"
     input_stage = ContextStage.AUTHORED
     output_stage = ContextStage.NORMALIZED
 
@@ -39,6 +40,7 @@ class ContextNormalizePass:
 class ContextIdentityPass:
     family = PropstoreFamily.CONTEXTS
     name = "context.identity"
+    version = "1"
     input_stage = ContextStage.NORMALIZED
     output_stage = ContextStage.NORMALIZED
 
@@ -98,6 +100,7 @@ class ContextIdentityPass:
 class ContextLiftingBindingPass:
     family = PropstoreFamily.CONTEXTS
     name = "context.lifting.binding"
+    version = "1"
     input_stage = ContextStage.NORMALIZED
     output_stage = ContextStage.BOUND
 
@@ -175,6 +178,7 @@ class ContextLiftingBindingPass:
 class ContextLiftingGraphPass:
     family = PropstoreFamily.CONTEXTS
     name = "context.lifting.graph"
+    version = "1"
     input_stage = ContextStage.BOUND
     output_stage = ContextStage.CHECKED
 
