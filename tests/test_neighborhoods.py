@@ -7,7 +7,7 @@ from typing import cast
 import pytest
 
 from propstore.app import neighborhoods
-from propstore.app.claim_views import ClaimViewUnknownClaimError
+from propstore.app.claim_views import ClaimViewBlockedError, ClaimViewUnknownClaimError
 from propstore.app.neighborhoods import (
     SemanticNeighborhoodRequest,
     SemanticNeighborhoodUnsupportedFocusError,
@@ -60,6 +60,24 @@ class _World:
 
     def all_claim_stances(self) -> list[StanceRow]:
         return list(self.stances)
+
+    def claim_stances_with_policy(
+        self,
+        focus_claim_id: str,
+        policy: RenderPolicy,
+    ) -> list[StanceRow]:
+        return [
+            stance
+            for stance in self.stances
+            if (
+                str(stance.claim_id) in self.visible_ids
+                and str(stance.target_claim_id) in self.visible_ids
+                and (
+                    str(stance.claim_id) == focus_claim_id
+                    or str(stance.target_claim_id) == focus_claim_id
+                )
+            )
+        ]
 
 
 @contextmanager
@@ -136,13 +154,11 @@ def test_claim_neighborhood_marks_blocked_focus(
     world = _World(claims=(_claim("focus"),), visible_ids=())
     monkeypatch.setattr(neighborhoods, "open_app_world_model", lambda repo: _open_world(world))
 
-    report = build_semantic_neighborhood(
-        _repo(),
-        SemanticNeighborhoodRequest(focus_kind="claim", focus_id="focus"),
-    )
-
-    assert report.status.state == "blocked"
-    assert report.status.visible_under_policy is False
+    with pytest.raises(ClaimViewBlockedError, match="Not Found"):
+        build_semantic_neighborhood(
+            _repo(),
+            SemanticNeighborhoodRequest(focus_kind="claim", focus_id="focus"),
+        )
 
 
 def test_claim_neighborhood_rejects_unsupported_focus() -> None:
