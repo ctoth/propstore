@@ -56,7 +56,9 @@ Implementation close commit: `eedfbaa8`
 - `uv run pyright propstore`: passed with 0 errors.
 - `uv run lint-imports`: passed.
 - Pre-close full suite: `3060 passed, 1 failed`; the single failure was the intentionally red WS-C sentinel before the closeout files were updated. Log: `logs/test-runs/WS-C-full-preclose-20260428-023350.log`.
-- Final sentinel, targeted acceptance, and full-suite logs are recorded in the final closeout commit after those commands pass.
+- Final sentinel: `1 passed`. Log: `logs/test-runs/WS-C-sentinel-green-20260428-024519.log`.
+- Final targeted WS-C acceptance bundle, including the WS-Q-cas matrix gates: `18 passed`. Log: `logs/test-runs/WS-C-acceptance-final-20260428-024537.log`.
+- Final full suite: `3061 passed`. Log: `logs/test-runs/WS-C-full-final-20260428-024557.log`.
 
 ## Remaining Risks
 
