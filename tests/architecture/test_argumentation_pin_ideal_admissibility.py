@@ -18,7 +18,7 @@ def test_argumentation_pin_ideal_extension_handles_mutual_defense() -> None:
         ),
     )
 
-    ideal = ideal_extension(framework, backend="brute")
+    ideal = ideal_extension(framework)
 
     assert ideal == frozenset({"a", "b"})
     assert admissible(ideal, framework.arguments, framework.defeats)
