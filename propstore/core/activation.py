@@ -53,24 +53,47 @@ def _claim_projected_into_environment(
     if claim_context_id == str(environment.context_id):
         return True
 
+    from propstore.context_lifting import LiftingMaterializationStatus
+
+    materializations = claim_lifting_materializations(
+        claim_context_id=claim_context_id,
+        claim_id=claim_id,
+        environment=environment,
+        lifting_system=lifting_system,
+    )
+    return any(
+        materialization.target_context.id == environment.context_id
+        and materialization.status is LiftingMaterializationStatus.LIFTED
+        for materialization in materializations
+    )
+
+
+def claim_lifting_materializations(
+    *,
+    claim_context_id: str | None,
+    claim_id: str,
+    environment: Environment,
+    lifting_system: LiftingSystem | None,
+):
+    if environment.context_id is None or lifting_system is None:
+        return ()
+    if claim_context_id is None:
+        return ()
+    if claim_context_id == str(environment.context_id):
+        return ()
+
     from propstore.context_lifting import (
         IstProposition,
-        LiftingMaterializationStatus,
     )
     from propstore.core.assertions import ContextReference
 
-    materializations = lifting_system.materialize_lifted_assertions(
+    return lifting_system.materialize_lifted_assertions(
         (
             IstProposition(
                 context=ContextReference(claim_context_id),
                 proposition_id=claim_id,
             ),
         )
-    )
-    return any(
-        materialization.target_context.id == environment.context_id
-        and materialization.status is LiftingMaterializationStatus.LIFTED
-        for materialization in materializations
     )
 
 

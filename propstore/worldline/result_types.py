@@ -319,6 +319,8 @@ class WorldlineDependencies:
     claims: tuple[str, ...] = ()
     stances: tuple[str, ...] = ()
     contexts: tuple[str, ...] = ()
+    lifting_rules: tuple[str, ...] = ()
+    blocked_exceptions: tuple[str, ...] = ()
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any] | None) -> WorldlineDependencies:
@@ -327,14 +329,23 @@ class WorldlineDependencies:
             claims=tuple(str(item) for item in payload.get("claims") or ()),
             stances=tuple(str(item) for item in payload.get("stances") or ()),
             contexts=tuple(str(item) for item in payload.get("contexts") or ()),
+            lifting_rules=tuple(str(item) for item in payload.get("lifting_rules") or ()),
+            blocked_exceptions=tuple(
+                str(item) for item in payload.get("blocked_exceptions") or ()
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "claims": list(self.claims),
             "stances": list(self.stances),
             "contexts": list(self.contexts),
         }
+        if self.lifting_rules:
+            data["lifting_rules"] = list(self.lifting_rules)
+        if self.blocked_exceptions:
+            data["blocked_exceptions"] = list(self.blocked_exceptions)
+        return data
 
 
 @dataclass(frozen=True)
