@@ -492,7 +492,7 @@ Acceptance: `tests/test_temperature_delta_unit.py` turns green.
 
 ### Step 11 — CEL float exponent + escapes (overlaps with WS-D)
 - `cel_checker.py:183` lexer regex extended to `\d+(\.\d+)?([eE][+-]?\d+)?`.
-- `cel_checker.py:209` escape table extended to `\n`, `\t`, `\r`, `\u{...}`/`\uXXXX`, `\xXX`, `\0` by reading `cel-spec/doc/langdef.md` during implementation. Document any explicit decision to *not* support `\u` if the local CEL language reference is silent.
+- `cel_checker.py:209` escape table extended to `\n`, `\t`, `\r`, `\u{...}`/`\uXXXX`, `\xXX`, `\0` by reading the local CEL spec checkout at `~/src/cel-spec` during implementation. Document any explicit decision to *not* support `\u` if the local CEL language reference is silent.
 - Coordinate with WS-D: if WS-D rewrites the CEL parser entirely, this step folds into WS-D and WS-P inherits a passing test.
 
 Acceptance: `tests/test_cel_float_exponent.py`, `tests/test_cel_string_escapes.py` green.
@@ -562,7 +562,7 @@ If any one is not true, WS-P stays OPEN. No "we'll get the parser gaps in a foll
 
 ### Pending external retrieval (declared dependency)
 
-- **Google CEL specification** (`cel-spec/doc/langdef.md`, type-system doc). Per D-28 this is an implementation reference, not a prerequisite workstream. The WS-P engineer reads the local language reference while implementing string escapes, float exponents, ternary typing, and Boolean combinator behavior. CEL ternary semantics in Step 1 follow the documented conditional rule; CEL's documented commutative-error policy for AND/OR is what Step 2's Boolean combinator rules implement.
+- **Google CEL specification** (`~/src/cel-spec`, including language and type-system docs). Per D-28 this is an implementation reference, not a prerequisite workstream. The WS-P engineer reads the local language reference while implementing string escapes, float exponents, ternary typing, and Boolean combinator behavior. CEL ternary semantics in Step 1 follow the documented conditional rule; CEL's documented commutative-error policy for AND/OR is what Step 2's Boolean combinator rules implement.
 
 ### Why no `notes.md` for these papers
 
