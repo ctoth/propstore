@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 from propstore.app.claim_views import (
     ClaimSummaryReport,
+    ClaimViewBlockedError,
     ClaimViewReport,
     ClaimListRequest,
     ClaimSearchRequest,
@@ -65,6 +66,7 @@ _EXPECTED_WEB_ERRORS = (
     ClaimViewUnknownClaimError,
     ConceptViewUnknownConceptError,
     SemanticNeighborhoodUnsupportedFocusError,
+    ClaimViewBlockedError,
     WorldSidecarMissingError,
     ConceptSidecarMissingError,
 )
@@ -75,6 +77,7 @@ _ERROR_RESPONSES: dict[type[Exception], tuple[str, int]] = {
     RepositoryViewUnsupportedStateError: ("Unsupported Repository State", 400),
     SemanticNeighborhoodUnsupportedFocusError: ("Unsupported Focus", 400),
     ClaimViewUnknownClaimError: ("Claim Not Found", 404),
+    ClaimViewBlockedError: ("Not Found", 404),
     ConceptViewUnknownConceptError: ("Concept Not Found", 404),
     WorldSidecarMissingError: ("Sidecar Missing", 409),
     ConceptSidecarMissingError: ("Sidecar Missing", 409),
