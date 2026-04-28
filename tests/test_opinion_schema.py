@@ -40,7 +40,7 @@ def valid_schema_opinions(draw):
     d = remaining - b
     a = draw(st.floats(min_value=0.01, max_value=0.99))
     assume(abs(b + d + u - 1.0) < 1e-9)
-    return Opinion(b, d, u, a)
+    return Opinion(b, d, u, a, allow_dogmatic=u < 1e-9)
 
 
 class TestOpinionSchemaColumns:
@@ -127,7 +127,13 @@ class TestOpinionSchemaColumns:
         ).fetchone()
 
         assert row is not None
-        restored = Opinion(row[0], row[1], row[2], row[3])
+        restored = Opinion(
+            row[0],
+            row[1],
+            row[2],
+            row[3],
+            allow_dogmatic=row[2] < 1e-9,
+        )
         assert restored.b == pytest.approx(opinion.b, abs=1e-9)
         assert restored.d == pytest.approx(opinion.d, abs=1e-9)
         assert restored.u == pytest.approx(opinion.u, abs=1e-9)
