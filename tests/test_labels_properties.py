@@ -13,6 +13,7 @@ de Kleer 1986 §3 requires of label propagation:
 
 from __future__ import annotations
 
+import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -79,6 +80,7 @@ class TestLabelMinimality:
     de Kleer 1986 §3: "The label of each node is a minimal set of environments."
     """
 
+    @pytest.mark.property
     @given(labels())
     @_PROP_SETTINGS
     def test_no_environment_subsumes_another(self, label):
@@ -92,6 +94,7 @@ class TestLabelMinimality:
                         f"violates minimality"
                     )
 
+    @pytest.mark.property
     @given(labels())
     @_PROP_SETTINGS
     def test_no_duplicate_environments(self, label):
@@ -111,6 +114,7 @@ class TestLabelMinimality:
 class TestNormalizeEnvironments:
     """normalize_environments must be idempotent and produce minimal antichains."""
 
+    @pytest.mark.property
     @given(st.lists(environment_keys(), min_size=0, max_size=6))
     @_PROP_SETTINGS
     def test_idempotent(self, envs):
@@ -119,6 +123,7 @@ class TestNormalizeEnvironments:
         twice = normalize_environments(once)
         assert once == twice
 
+    @pytest.mark.property
     @given(st.lists(environment_keys(), min_size=0, max_size=6), nogood_sets())
     @_PROP_SETTINGS
     def test_idempotent_with_nogoods(self, envs, nogoods):
@@ -127,6 +132,7 @@ class TestNormalizeEnvironments:
         twice = normalize_environments(once, nogoods=nogoods)
         assert once == twice
 
+    @pytest.mark.property
     @given(st.lists(environment_keys(), min_size=0, max_size=6), nogood_sets())
     @_PROP_SETTINGS
     def test_nogoods_exclude_supersets(self, envs, nogoods):
@@ -138,6 +144,7 @@ class TestNormalizeEnvironments:
                 f"by nogood set {nogoods}"
             )
 
+    @pytest.mark.property
     @given(st.lists(environment_keys(), min_size=0, max_size=6))
     @_PROP_SETTINGS
     def test_result_is_antichain(self, envs):
@@ -159,6 +166,7 @@ class TestCombineLabels:
     its label is the cross-product of A1's and A2's labels.
     """
 
+    @pytest.mark.property
     @given(labels(), labels())
     @_PROP_SETTINGS
     def test_commutative(self, label_a, label_b):
@@ -171,6 +179,7 @@ class TestCombineLabels:
             f"  B⊗A = {ba.environments}"
         )
 
+    @pytest.mark.property
     @given(labels(max_envs=3), labels(max_envs=3), labels(max_envs=3))
     @_PROP_SETTINGS
     def test_associative(self, a, b, c):
@@ -183,6 +192,7 @@ class TestCombineLabels:
             f"  A⊗(B⊗C) = {a_bc.environments}"
         )
 
+    @pytest.mark.property
     @given(labels())
     @_PROP_SETTINGS
     def test_empty_is_identity(self, label):
@@ -194,6 +204,7 @@ class TestCombineLabels:
             f"  result = {result.environments}"
         )
 
+    @pytest.mark.property
     @given(labels(), labels())
     @_PROP_SETTINGS
     def test_result_is_minimal(self, label_a, label_b):
@@ -204,6 +215,7 @@ class TestCombineLabels:
                 if i != j:
                     assert not env_a.subsumes(env_b)
 
+    @pytest.mark.property
     @given(labels(), labels(), nogood_sets())
     @_PROP_SETTINGS
     def test_nogoods_respected(self, label_a, label_b, nogoods):
@@ -223,6 +235,7 @@ class TestMergeLabels:
     its label is the merge (union + minimize) of all justification labels.
     """
 
+    @pytest.mark.property
     @given(labels(), labels())
     @_PROP_SETTINGS
     def test_commutative(self, label_a, label_b):
@@ -231,6 +244,7 @@ class TestMergeLabels:
         ba = merge_labels([label_b, label_a])
         assert set(ab.environments) == set(ba.environments)
 
+    @pytest.mark.property
     @given(labels())
     @_PROP_SETTINGS
     def test_idempotent(self, label):
@@ -238,6 +252,7 @@ class TestMergeLabels:
         result = merge_labels([label, label])
         assert set(result.environments) == set(label.environments)
 
+    @pytest.mark.property
     @given(labels(), labels())
     @_PROP_SETTINGS
     def test_result_is_minimal(self, label_a, label_b):
@@ -248,6 +263,7 @@ class TestMergeLabels:
                 if i != j:
                     assert not env_a.subsumes(env_b)
 
+    @pytest.mark.property
     @given(labels())
     @_PROP_SETTINGS
     def test_superset_of_inputs(self, label):
@@ -260,6 +276,7 @@ class TestMergeLabels:
                 existing.subsumes(env) for existing in result.environments
             ), f"Lost environment {env} after merge"
 
+    @pytest.mark.property
     @given(labels(), labels(), nogood_sets())
     @_PROP_SETTINGS
     def test_nogoods_respected(self, label_a, label_b, nogoods):
@@ -275,6 +292,7 @@ class TestMergeLabels:
 class TestEnvironmentKey:
     """EnvironmentKey invariants."""
 
+    @pytest.mark.property
     @given(environment_keys(), environment_keys())
     @_PROP_SETTINGS
     def test_union_commutative(self, a, b):
@@ -283,12 +301,14 @@ class TestEnvironmentKey:
         ba = b.union(a)
         assert ab.assumption_ids == ba.assumption_ids
 
+    @pytest.mark.property
     @given(environment_keys())
     @_PROP_SETTINGS
     def test_self_subsumes(self, env):
         """Every environment subsumes itself."""
         assert env.subsumes(env)
 
+    @pytest.mark.property
     @given(environment_keys(), environment_keys())
     @_PROP_SETTINGS
     def test_subsumes_is_subset_relation(self, a, b):
@@ -296,6 +316,7 @@ class TestEnvironmentKey:
         expected = set(a.assumption_ids).issubset(set(b.assumption_ids))
         assert a.subsumes(b) == expected
 
+    @pytest.mark.property
     @given(environment_keys())
     @_PROP_SETTINGS
     def test_assumptions_sorted_and_deduplicated(self, env):
@@ -304,6 +325,7 @@ class TestEnvironmentKey:
         assert ids == tuple(sorted(ids))
         assert len(ids) == len(set(ids))
 
+    @pytest.mark.property
     @given(_ASSUMPTION_IDS)
     @_PROP_SETTINGS
     def test_contexts_are_part_of_environment_identity(self, assumption_id):
@@ -316,6 +338,7 @@ class TestEnvironmentKey:
         assert not right.subsumes(left)
         assert left.union(right).context_ids == ("ctx_left", "ctx_right")
 
+    @pytest.mark.property
     @given(st.lists(_CONTEXT_IDS, min_size=0, max_size=6))
     @_PROP_SETTINGS
     def test_contexts_sorted_and_deduplicated(self, context_ids):

@@ -220,6 +220,7 @@ def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_
 @settings(
     deadline=None,
 )
+@pytest.mark.property
 @given(
     extra_targets=st.lists(
         st.from_regex(r"claim_extra_[a-z]{1,3}", fullmatch=True),
@@ -281,6 +282,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
 @settings(
     deadline=None,
 )
+@pytest.mark.property
 @given(
     claim_order=st.permutations(("claim_a", "claim_b", "claim_c")),
     stance_order=st.permutations(("claim_b", "claim_c")),
@@ -336,3 +338,4 @@ def test_branch_structured_summary_is_order_invariant(
         assert left_summary.content_signature == right_summary.content_signature
         assert left_summary.stance_rows == right_summary.stance_rows
         assert left_summary.projection.framework == right_summary.projection.framework
+import pytest

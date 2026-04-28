@@ -56,6 +56,7 @@ def test_observatory_harness_exports_stable_traceable_reports() -> None:
     assert first.scenario_results[0].trace_records[0].journal_entry_hash == "journal:def"
 
 
+@pytest.mark.property
 @given(
     scenario_id=st.text(min_size=1, max_size=24),
     policy_id=st.text(min_size=1, max_size=24),
@@ -135,3 +136,4 @@ def test_epistemic_os_documentation_maps_artifact_to_journal() -> None:
     assert "source artifact -> assertion -> projection -> state -> journal" in text
     assert "Micropublication" in text
     assert "Observatory" in text
+import pytest

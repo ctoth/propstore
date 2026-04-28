@@ -60,18 +60,21 @@ class CountHomomorphism:
 
 
 class TestProjectionHomomorphisms:
+    @pytest.mark.property
     @given(polynomials(), polynomials())
     @_PROP_SETTINGS
     def test_count_projection_preserves_addition(self, left, right):
         hom = CountHomomorphism()
         assert evaluate(left + right, hom) == hom.add(evaluate(left, hom), evaluate(right, hom))
 
+    @pytest.mark.property
     @given(polynomials(), polynomials())
     @_PROP_SETTINGS
     def test_count_projection_preserves_multiplication(self, left, right):
         hom = CountHomomorphism()
         assert evaluate(left * right, hom) == hom.mul(evaluate(left, hom), evaluate(right, hom))
 
+    @pytest.mark.property
     @given(polynomials())
     @_PROP_SETTINGS
     def test_derivation_count_matches_count_homomorphism(self, poly):
@@ -116,3 +119,4 @@ class TestProjectionHomomorphisms:
         )
 
         assert tropical_cost(poly, {a: 3.0, b: 4.0, c: 10.0}) == 7.0
+import pytest

@@ -181,6 +181,7 @@ def test_recursive_base_rate_dependency_is_unresolved() -> None:
     assert result.missing_fields == ("base_rate_profile",)
 
 
+@pytest.mark.property
 @given(st.lists(st.floats(min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False), min_size=1, max_size=8))
 def test_stratified_base_rate_chain_terminates(values: list[float]) -> None:
     profiles = tuple(

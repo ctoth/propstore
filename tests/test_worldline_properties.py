@@ -505,6 +505,7 @@ _OVERRIDABLE = ["mass", "velocity", "acceleration", "temperature", "distance"]
 class TestContentHashDeterminism:
     """Same inputs always produce same content hash."""
 
+    @pytest.mark.property
     @given(data=st.data())
     @settings(deadline=None)
     def test_content_hash_deterministic(self, data, property_world):
@@ -557,6 +558,7 @@ class TestContentHashDeterminism:
 class TestOverrideAlwaysWins:
     """For any concept with claims AND an override, the override value wins."""
 
+    @pytest.mark.property
     @given(override_value=st.floats(
         min_value=-1e6, max_value=1e6,
         allow_nan=False, allow_infinity=False,
@@ -580,6 +582,7 @@ class TestOverrideAlwaysWins:
         )
         assert accel.source == "override"
 
+    @pytest.mark.property
     @given(
         mass_val=st.floats(
             min_value=0.01, max_value=1e4,
@@ -614,6 +617,7 @@ class TestOverrideAlwaysWins:
 class TestBindingIsolation:
     """Claims conditional on binding X=v1 must not be active when X=v2."""
 
+    @pytest.mark.property
     @given(data=st.data())
     @settings(deadline=None)
     def test_binding_isolation(self, data, property_world):

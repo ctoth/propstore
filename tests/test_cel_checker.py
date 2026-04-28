@@ -423,6 +423,7 @@ _op_strategy = st.sampled_from(["==", "!=", ">", "<", ">=", "<="])
 _num_strategy = st.one_of(st.integers(0, 1000), st.floats(0.1, 1000.0, allow_nan=False, allow_infinity=False))
 
 
+@pytest.mark.property
 @given(name=_name_strategy, op=_op_strategy, val=_num_strategy)
 @settings()
 def test_unknown_name_always_errors(name, op, val):
@@ -435,6 +436,7 @@ def test_unknown_name_always_errors(name, op, val):
     assert len(hard_errors) >= 1, f"Expected error for undefined '{name}' in: {expr}"
 
 
+@pytest.mark.property
 @given(val=st.text(min_size=1, max_size=10, alphabet=st.characters(whitelist_categories=("L", "N"))))
 @settings()
 def test_structural_always_errors(val):
@@ -449,6 +451,7 @@ def test_structural_always_errors(val):
     assert len(hard_errors) >= 1
 
 
+@pytest.mark.property
 @given(
     val=st.text(
         min_size=1,
@@ -475,6 +478,7 @@ def test_open_category_undeclared_literals_are_warnings_only(val):
     assert all(error.is_warning for error in errors)
 
 
+@pytest.mark.property
 @given(
     val=st.text(
         min_size=1,

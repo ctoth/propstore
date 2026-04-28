@@ -338,6 +338,7 @@ class TestConsensusPropertyTests:
     concrete examples, not with randomized inputs.
     """
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_commutativity(self, op_a, op_b):
@@ -361,6 +362,7 @@ class TestConsensusPropertyTests:
             f"a mismatch: {ab.a} vs {ba.a}"
         )
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_vacuous_identity(self, op):
@@ -387,6 +389,7 @@ class TestConsensusPropertyTests:
             f"a: fused={fused.a}, original={op.a}"
         )
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_consensus_reduces_uncertainty(self, op_a, op_b):
@@ -404,6 +407,7 @@ class TestConsensusPropertyTests:
             f"min(a.u={op_a.u}, b.u={op_b.u})={min(op_a.u, op_b.u)}"
         )
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_vacuous_identity_different_base_rate(self, op):
@@ -485,18 +489,21 @@ class TestUncertaintyMaximization:
         assert abs(result.d) < 1e-9
         assert abs(result.expectation() - op.expectation()) < 1e-9
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_preserves_expectation(self, op):
         result = op.maximize_uncertainty()
         assert abs(result.expectation() - op.expectation()) < 1e-9
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_uncertainty_never_decreases(self, op):
         result = op.maximize_uncertainty()
         assert result.uncertainty >= op.uncertainty - 1e-9
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_idempotent(self, op):
@@ -543,12 +550,14 @@ class TestOpinionOrdering:
         assert not (a < b)
         assert not (a > b)
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_total_ordering(self, a, b):
         """Ordering is total: either a <= b or b <= a."""
         assert (a <= b) or (b <= a)
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_reflexive(self, a):
@@ -561,6 +570,7 @@ class TestOpinionOrdering:
 class TestConsensusAssociativityProperty:
     """Hypothesis property test for consensus associativity."""
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_consensus_associative(self, a, b, c):
@@ -579,6 +589,7 @@ class TestConsensusAssociativityProperty:
 class TestConjunctionPreservesSum:
     """Conjunction must preserve b + d + u = 1."""
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_conjunction_preserves_sum(self, a, b):
@@ -589,6 +600,7 @@ class TestConjunctionPreservesSum:
 class TestDisjunctionPreservesSum:
     """Disjunction must preserve b + d + u = 1."""
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_disjunction_preserves_sum(self, a, b):
@@ -599,6 +611,7 @@ class TestDisjunctionPreservesSum:
 class TestNegationInvolutionProperty:
     """Negation involution: ~~op ≈ op for all valid opinions."""
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_negation_involution(self, op):
@@ -613,6 +626,7 @@ class TestNegationInvolutionProperty:
 class TestBetaEvidenceRoundTripProperty:
     """Round-trip Opinion -> BetaEvidence -> Opinion for non-dogmatic opinions."""
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_beta_evidence_round_trip(self, op):
@@ -628,6 +642,7 @@ class TestBetaEvidenceRoundTripProperty:
 class TestDiscountVacuousTrustProperty:
     """Discounting with vacuous trust yields vacuous result."""
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_discount_vacuous_trust_yields_vacuous(self, op):
@@ -658,6 +673,7 @@ class TestWBF:
         with pytest.raises(ValueError):
             wbf()
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_two_equals_consensus_pair(self, a, b):
@@ -669,6 +685,7 @@ class TestWBF:
         assert abs(result_wbf.u - result_cp.u) < 1e-6
         assert abs(result_wbf.a - result_cp.a) < 1e-6
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_commutativity(self, a, b):
@@ -680,6 +697,7 @@ class TestWBF:
         assert abs(r1.u - r2.u) < 1e-6
         assert abs(r1.a - r2.a) < 1e-6
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_vacuous_identity(self, a):
@@ -690,6 +708,7 @@ class TestWBF:
         assert abs(result.d - a.d) < 1e-6
         assert abs(result.u - a.u) < 1e-6
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_uncertainty_reduction(self, a, b):
@@ -709,6 +728,7 @@ class TestWBF:
         result = wbf(a, b)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_expectation_valid(self, a, b):
@@ -832,6 +852,7 @@ class TestCCF:
 class TestCCFProperties:
     """CCF properties from van der Heijden 2018."""
 
+    @pytest.mark.property
     @given(a=valid_opinions(), b=valid_opinions())
     @settings(deadline=None)
     def test_ccf_commutativity(self, a, b):
@@ -842,6 +863,7 @@ class TestCCFProperties:
         assert abs(r1.d - r2.d) < 1e-6
         assert abs(r1.u - r2.u) < 1e-6
 
+    @pytest.mark.property
     @given(a=valid_opinions(), b=valid_opinions(), c=valid_opinions())
     @settings(deadline=None)
     def test_ccf_commutativity_three(self, a, b, c):
@@ -854,6 +876,7 @@ class TestCCFProperties:
         assert abs(result_abc.d - result_bca.d) < 1e-6
         assert abs(result_abc.d - result_cab.d) < 1e-6
 
+    @pytest.mark.property
     @given(a=valid_opinions())
     @settings(deadline=None)
     def test_ccf_single_identity(self, a):
@@ -861,6 +884,7 @@ class TestCCFProperties:
         result = ccf(a)
         assert result == a
 
+    @pytest.mark.property
     @given(a=valid_opinions(), b=valid_opinions())
     @settings(deadline=None)
     def test_ccf_sum_invariant_property(self, a, b):
@@ -868,6 +892,7 @@ class TestCCFProperties:
         result = ccf(a, b)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
+    @pytest.mark.property
     @given(a=valid_opinions(), b=valid_opinions())
     @settings(deadline=None)
     def test_ccf_non_negative(self, a, b):
@@ -890,6 +915,7 @@ class TestCCFProperties:
 class TestFuse:
     """fuse() dispatcher: auto selects WBF or CCF."""
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_fuse_auto_selects_wbf(self, a, b):
@@ -910,6 +936,7 @@ class TestFuse:
         result = fuse(dt, df, method="auto")
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_fuse_explicit_wbf(self, a, b):
@@ -919,6 +946,7 @@ class TestFuse:
         assert abs(r1.b - r2.b) < 1e-9
         assert abs(r1.d - r2.d) < 1e-9
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_fuse_explicit_ccf(self, a, b):
@@ -935,6 +963,7 @@ class TestFuse:
 class TestWBFAdditionalProperties:
     """WBF properties identified as missing in audit-2026-03-28."""
 
+    @pytest.mark.property
     @given(
         valid_opinions(min_uncertainty=0.05),
         valid_opinions(min_uncertainty=0.05),
@@ -957,6 +986,7 @@ class TestWBFAdditionalProperties:
         assert abs(r_abc.u - r_bca.u) < 1e-6, f"u: {r_abc.u} vs {r_bca.u}"
         assert abs(r_abc.u - r_cab.u) < 1e-6, f"u: {r_abc.u} vs {r_cab.u}"
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_self_fusion_preserves_belief_disbelief_ratio(self, a):
@@ -976,6 +1006,7 @@ class TestWBFAdditionalProperties:
                 f"b:d ratio changed: {orig_ratio} -> {result_ratio}"
             )
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_self_fusion_reduces_uncertainty(self, a):
@@ -983,6 +1014,7 @@ class TestWBFAdditionalProperties:
         result = wbf(a, a)
         assert result.u <= a.u + _TOL
 
+    @pytest.mark.property
     @given(valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_wbf_base_rate_clamping_observable(self, a):
@@ -1006,6 +1038,7 @@ class TestCCFAdditionalProperties:
     pairwise folding ``ccf(ccf(a, b), c)`` is not equivalent.
     """
 
+    @pytest.mark.property
     @given(a=valid_opinions(min_uncertainty=0.05))
     @settings(deadline=None)
     def test_ccf_self_fusion_is_idempotent(self, a):
@@ -1022,6 +1055,7 @@ class TestCCFAdditionalProperties:
         assert result.d == pytest.approx(a.d, abs=1e-9)
         assert result.u == pytest.approx(a.u, abs=1e-9)
 
+    @pytest.mark.property
     @given(a=valid_opinions())
     @settings(deadline=None)
     def test_ccf_base_rate_clamping_observable(self, a):
@@ -1041,6 +1075,7 @@ class TestConjunctionDisjunctionDeMorgan:
     This is a consequence of the dual construction of conjunction/disjunction.
     """
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_de_morgan_conjunction(self, a, b):
@@ -1051,6 +1086,7 @@ class TestConjunctionDisjunctionDeMorgan:
         assert abs(lhs.d - rhs.d) < 1e-9, f"d: {lhs.d} vs {rhs.d}"
         assert abs(lhs.u - rhs.u) < 1e-9, f"u: {lhs.u} vs {rhs.u}"
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_de_morgan_disjunction(self, a, b):
@@ -1065,6 +1101,7 @@ class TestConjunctionDisjunctionDeMorgan:
 class TestDiscountProperties:
     """Discount operator properties from Jøsang 2001 Def 14."""
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_discount_preserves_base_rate(self, trust, source):
@@ -1072,6 +1109,7 @@ class TestDiscountProperties:
         result = discount(trust, source)
         assert abs(result.a - source.a) < 1e-9
 
+    @pytest.mark.property
     @given(valid_opinions(), valid_opinions())
     @settings(deadline=None)
     def test_discount_sum_invariant(self, trust, source):
@@ -1079,6 +1117,7 @@ class TestDiscountProperties:
         result = discount(trust, source)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-9
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_discount_full_trust_is_identity(self, source):
@@ -1252,6 +1291,7 @@ class TestCCFDefinition5Real:
         # Residuals from a flow through; vacuous contributes nothing
         # meaningful beyond its u=1.
 
+    @pytest.mark.property
     @given(a=valid_opinions(), b=valid_opinions())
     @settings(deadline=None)
     def test_sum_invariant_property(self, a, b):
@@ -1262,6 +1302,7 @@ class TestCCFDefinition5Real:
         assert r.d >= -1e-9
         assert r.u >= -1e-9
 
+    @pytest.mark.property
     @given(a=valid_opinions(), b=valid_opinions())
     @settings(deadline=None)
     def test_commutativity_binary(self, a, b):
@@ -1272,6 +1313,7 @@ class TestCCFDefinition5Real:
         assert abs(r1.d - r2.d) < 1e-9
         assert abs(r1.u - r2.u) < 1e-9
 
+    @pytest.mark.property
     @given(a=valid_opinions(), b=valid_opinions(), c=valid_opinions())
     @settings(deadline=None)
     def test_commutativity_three(self, a, b, c):
@@ -1346,6 +1388,7 @@ class TestHashEqConsistency:
         d_map = {o1: "value"}
         assert d_map[o2] == "value"
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_identical_opinions_hash_equal(self, o):
@@ -1354,6 +1397,7 @@ class TestHashEqConsistency:
         assert o == other
         assert hash(o) == hash(other)
 
+    @pytest.mark.property
     @given(valid_opinions())
     @settings(deadline=None)
     def test_tol_perturbation_preserves_hash(self, o):
@@ -1513,6 +1557,7 @@ class TestConsensusPairNearVacuous:
         assert 0.2 <= r.a <= 0.8
         assert r.a < 0.5, f"expected a < 0.5 (o1 dominates), got {r.a}"
 
+    @pytest.mark.property
     @given(
         a1=st.floats(min_value=0.01, max_value=0.99),
         a2=st.floats(min_value=0.01, max_value=0.99),

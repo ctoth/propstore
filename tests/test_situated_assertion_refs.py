@@ -78,6 +78,7 @@ def test_provenance_graph_ref_rejects_empty_non_uri_and_payload_values() -> None
         ProvenanceGraphRef({"status": "stated"})
 
 
+@pytest.mark.property
 @given(
     st.permutations((
         ProvenanceGraphRef(ProvenanceGraphId("urn:propstore:provenance:a")),

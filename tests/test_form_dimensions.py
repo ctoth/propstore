@@ -314,6 +314,7 @@ _dimensions_strategy = st.dictionaries(
 class TestDimensionsPropertyBased:
     """Hypothesis property-based tests for dimensions invariants."""
 
+    @pytest.mark.property
     @given(dimensions=_dimensions_strategy)
     @settings()
     def test_nonempty_dimensions_implies_not_dimensionless(
@@ -334,6 +335,7 @@ class TestDimensionsPropertyBased:
         assert fd is not None
         assert fd.is_dimensionless is False
 
+    @pytest.mark.property
     @given(dimensions=_dimensions_strategy)
     @settings(suppress_health_check=[HealthCheck.filter_too_much])
     def test_dimensionless_implies_empty_or_absent_dimensions(
@@ -359,6 +361,7 @@ class TestDimensionsPropertyBased:
             v == 0 for v in fd.dimensions.values()
         )
 
+    @pytest.mark.property
     @given(
         exponent=st.one_of(
             st.floats(allow_nan=False, allow_infinity=False).filter(
@@ -380,6 +383,7 @@ class TestDimensionsPropertyBased:
         })
         assert validate_form_files(td).errors
 
+    @pytest.mark.property
     @given(key=st.text(min_size=1, max_size=10).filter(
         lambda k: not k or not k[0].isalpha() or not all(c.isalnum() or c == '_' for c in k)
     ))
@@ -399,6 +403,7 @@ class TestDimensionsPropertyBased:
         assert result.errors
         assert any("dimension key" in error for error in result.errors)
 
+    @pytest.mark.property
     @given(dimensions=_dimensions_strategy.filter(lambda d: len(d) > 0))
     @settings()
     def test_forms_with_same_dimensions_compatible(

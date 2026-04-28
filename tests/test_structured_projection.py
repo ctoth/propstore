@@ -526,6 +526,7 @@ def test_undercut_does_not_bleed_across_alternative_justifications_for_same_clai
     )
 
 
+@pytest.mark.property
 @given(extra_support_count=st.integers(min_value=1, max_value=3))
 @settings(deadline=None)
 def test_named_undercut_property_only_defeats_the_selected_rule_arguments(
@@ -634,6 +635,7 @@ def test_build_structured_projection_threads_link_to_aspic_bridge(monkeypatch) -
     assert calls[0]["link"] == "weakest"
 
 
+@pytest.mark.property
 @given(
     comparison=st.sampled_from(["elitist", "democratic"]),
     link=st.sampled_from(["last", "weakest"]),
@@ -750,6 +752,7 @@ def test_structured_projection_rejects_claim_graph_only_semantics() -> None:
         )
 
 
+@pytest.mark.property
 @given(framework=_frameworks_with_optional_attacks())
 @settings(deadline=None)
 def test_grounded_semantics_property_matches_dung_grounded_extension(

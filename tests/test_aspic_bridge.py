@@ -212,6 +212,7 @@ def claim_graph(draw, min_claims=2, max_claims=5):
 class TestClaimsToLiterals:
     """Property tests for T1: claims -> ASPIC+ literals."""
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_every_claim_has_literal(self, graph):
@@ -223,6 +224,7 @@ class TestClaimsToLiterals:
                 f"Claim {claim['id']} has no literal"
             )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_no_duplicate_atoms(self, graph):
@@ -232,6 +234,7 @@ class TestClaimsToLiterals:
         atoms = [lit.atom.predicate for lit in literals.values()]
         assert len(atoms) == len(set(atoms)), "Duplicate atoms in literals"
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_literal_atom_is_claim_id(self, graph):
@@ -242,6 +245,7 @@ class TestClaimsToLiterals:
             assert lit.atom.predicate == key.claim_id
             assert lit.negated is False
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_language_closure(self, graph):
@@ -266,6 +270,7 @@ class TestClaimsToLiterals:
 class TestJustificationsToRules:
     """Property tests for T2: justifications -> ASPIC+ rules."""
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_reported_claims_produce_no_rules(self, graph):
@@ -280,6 +285,7 @@ class TestJustificationsToRules:
                     f"reported_claim {j.justification_id} produced a rule"
                 )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_strict_rules_have_no_name(self, graph):
@@ -297,6 +303,7 @@ class TestJustificationsToRules:
             )
             assert rule.kind == "strict"
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_defeasible_rules_have_justification_id_as_name(self, graph):
@@ -313,6 +320,7 @@ class TestJustificationsToRules:
             assert rule.name is not None, "Defeasible rule has no name"
             assert rule.kind == "defeasible"
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_rule_antecedents_match_premise_literals(self, graph):
@@ -344,6 +352,7 @@ class TestJustificationsToRules:
 class TestStancesToContrariness:
     """Property tests for T3: attack stances -> contrariness function."""
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_rebuts_produce_contradictories(self, graph):
@@ -366,6 +375,7 @@ class TestStancesToContrariness:
                     f"Contradictory not symmetric for {tgt}->{src}"
                 )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_supersedes_produce_preference_sensitive_contradictions(self, graph):
@@ -387,6 +397,7 @@ class TestStancesToContrariness:
                 )
                 assert not cfn.is_contrary(src, tgt)
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_no_self_contrariness(self, graph):
@@ -402,6 +413,7 @@ class TestStancesToContrariness:
             assert not cfn.is_contradictory(lit, lit)
             assert not cfn.is_contrary(lit, lit)
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_contradictories_symmetric(self, graph):
@@ -553,6 +565,7 @@ class TestStancesToContrariness:
 class TestClaimsToKb:
     """Property tests for T4: claims -> ASPIC+ knowledge base."""
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_kn_kp_disjoint(self, graph):
@@ -567,6 +580,7 @@ class TestClaimsToKb:
             f"K_n ∩ K_p = {kb.axioms & kb.premises}"
         )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_necessary_claims_in_kn(self, graph):
@@ -581,6 +595,7 @@ class TestClaimsToKb:
                     f"Necessary claim {claim['id']} not in K_n"
                 )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_ordinary_claims_in_kp(self, graph):
@@ -595,6 +610,7 @@ class TestClaimsToKb:
                     f"Ordinary claim {claim['id']} not in K_p"
                 )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_kb_subset_of_language(self, graph):
@@ -616,6 +632,7 @@ class TestClaimsToKb:
 class TestPreferenceConfig:
     """Property tests for T5: claim metadata -> preference orderings."""
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_premise_order_irreflexive(self, graph):
@@ -632,6 +649,7 @@ class TestPreferenceConfig:
                 f"Premise order is reflexive: {weaker} < {weaker}"
             )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_premise_order_transitive(self, graph):
@@ -651,6 +669,7 @@ class TestPreferenceConfig:
                         f"Not transitive: {a} < {b} and {b} < {d} but {a} ≮ {d}"
                     )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_rule_order_irreflexive(self, graph):
@@ -751,6 +770,7 @@ class TestPreferenceConfig:
 class TestBuildBridgeCsaf:
     """Property tests for T6: full bridge producing a CSAF."""
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_every_claim_literal_in_language(self, graph):
@@ -764,6 +784,7 @@ class TestBuildBridgeCsaf:
                 f"Claim {claim['id']} literal not in CSAF language"
             )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_no_attacks_means_no_defeats(self, graph):
@@ -775,6 +796,7 @@ class TestBuildBridgeCsaf:
             f"Got {len(csaf.defeats)} defeats with no attack stances"
         )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_no_attacks_all_claims_justified(self, graph):
@@ -798,6 +820,7 @@ class TestBuildBridgeCsaf:
             f"missing {reported_claim_ids - justified_claim_ids}"
         )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_framework_is_valid_dung_af(self, graph):
@@ -834,6 +857,7 @@ class TestBridgeRationalityPostulates:
     bridge-constructed CSAFs from claim graphs.
     """
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None, max_examples=25)
     def test_sub_argument_closure(self, graph):
@@ -852,6 +876,7 @@ class TestBridgeRationalityPostulates:
                         f"Sub-argument of {aid} not in extension"
                     )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None, max_examples=25)
     def test_direct_consistency(self, graph):
@@ -882,6 +907,7 @@ class TestBridgeRationalityPostulates:
                         f"Direct inconsistency: {c1} contrary of {c2}"
                     )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None, max_examples=25)
     def test_attack_based_conflict_free(self, graph):
@@ -898,6 +924,7 @@ class TestBridgeRationalityPostulates:
                 f"Extension not attack-conflict-free"
             )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_undercutting_always_defeats(self, graph):
@@ -911,6 +938,7 @@ class TestBridgeRationalityPostulates:
                     f"Undercutting attack not a defeat"
                 )
 
+    @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
     def test_firm_strict_in_every_complete(self, graph):
@@ -934,6 +962,7 @@ class TestBridgeRationalityPostulates:
 class TestCsafToProjection:
     """Property tests for T7: CSAF -> StructuredProjection."""
 
+    @pytest.mark.property
     @given(claim_graph(max_claims=4))
     @settings(deadline=None, max_examples=50)
     def test_projection_arguments_preserve_claim_or_canonical_conclusion_identity(self, graph):
@@ -959,6 +988,7 @@ class TestCsafToProjection:
                     f"Argument {arg.arg_id} depends on unknown claim {dependency_claim_id}"
                 )
 
+    @pytest.mark.property
     @given(claim_graph(max_claims=4))
     @settings(deadline=None, max_examples=50)
     def test_justified_claims_subset_of_active(self, graph):
@@ -976,6 +1006,7 @@ class TestCsafToProjection:
                     f"Justified claim {cid} not in active claims"
                 )
 
+    @pytest.mark.property
     @given(claim_graph(max_claims=4))
     @settings(deadline=None, max_examples=50)
     def test_projection_framework_matches_csaf(self, graph):

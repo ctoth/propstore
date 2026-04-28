@@ -398,6 +398,7 @@ def random_small_af(draw: st.DrawFn) -> dict[str, Any]:
 class TestHypothesisDP:
     """Property-based tests: toy DP must match brute force."""
 
+    @pytest.mark.property
     @given(af=random_small_af())
     @settings(deadline=None)
     def test_dp_matches_brute_force(self, af: dict[str, Any]) -> None:
@@ -415,6 +416,7 @@ class TestHypothesisDP:
                 f"AF: args={args}, defeats={defeats}, p_defeats={p_defeats}"
             )
 
+    @pytest.mark.property
     @given(af=random_small_af())
     # This path is explicitly exponential in the number of arguments; keep
     # it smaller than the main DP-vs-brute-force property.
@@ -436,6 +438,7 @@ class TestHypothesisDP:
                 f"AF: args={args}, defeats={defeats}, p_defeats={p_defeats}"
             )
 
+    @pytest.mark.property
     @given(af=random_small_af())
     @settings(deadline=None)
     def test_probabilities_in_valid_range(self, af: dict[str, Any]) -> None:

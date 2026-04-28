@@ -100,6 +100,7 @@ def test_semantic_diff_applies_assertion_warrant_ranking_provenance_and_dependen
     assert apply_epistemic_diff(source, diff) == target
 
 
+@pytest.mark.property
 @given(source_accepts=st.booleans(), target_accepts=st.booleans())
 @settings(max_examples=12)
 def test_semantic_diff_apply_roundtrips_generated_tiny_assertion_languages(
@@ -169,3 +170,4 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
             legacy_id: EntrenchmentReason(support_count=1),
         },
     )
+import pytest

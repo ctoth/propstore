@@ -46,6 +46,7 @@ def test_canonical_payload_parses_back_to_same_situated_assertion() -> None:
     assert parsed.assertion_id == assertion.assertion_id
 
 
+@pytest.mark.property
 @given(st.permutations((
     {"role": "paper", "value": "ps:concept:paper:clark-2014"},
     {"role": "venue", "value": "ps:concept:venue:j-biomed-semantics"},

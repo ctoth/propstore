@@ -271,6 +271,7 @@ class TestClaimNotesProperties:
     """Property-based tests for the notes field."""
 
     @settings(deadline=None)
+    @pytest.mark.property
     @given(notes_text=st.text(min_size=1))
     def test_any_nonempty_string_produces_valid_claim(self, notes_text):
         """For any valid claim, adding a non-empty notes string produces a valid claim."""
@@ -289,6 +290,7 @@ class TestClaimNotesProperties:
             assert result.ok, f"Validation failed for notes={notes_text!r}: {result.errors}"
 
     @settings(deadline=None)
+    @pytest.mark.property
     @given(notes_text=st.text(min_size=1, max_size=500))
     def test_notes_roundtrips_through_sidecar(self, notes_text):
         """Notes field roundtrips: write claim with notes -> build sidecar -> query -> same string."""

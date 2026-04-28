@@ -361,6 +361,7 @@ def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
 @settings(
     deadline=None,
 )
+@pytest.mark.property
 @given(
     left_ids=st.lists(
         st.from_regex(r"left_[a-z]{1,4}", fullmatch=True),
@@ -410,3 +411,4 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
             for claim_id in [*left_ids, *right_ids]
         }
         assert merged_artifact_ids == expected_artifact_ids
+import pytest

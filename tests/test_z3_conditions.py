@@ -181,6 +181,7 @@ class TestZ3Disjointness:
             ["task == 'dancing'"],
         )
 
+    @pytest.mark.property
     @given(
         left=st.text(
             min_size=1,

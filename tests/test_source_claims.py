@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import textwrap
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from propstore.source import normalize_source_claims_payload
 from propstore.families.documents.sources import SourceClaimsDocument
 
 
+@pytest.mark.property
 @given(
     local_id_a=st.text(
         alphabet=st.characters(whitelist_categories=("Ll", "Lu", "Nd")),

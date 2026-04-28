@@ -97,6 +97,7 @@ class TestBulkFetchEmptyList:
 class TestBulkFetchEquivalence:
     """_bulk_get_claim_texts returns identical data to per-claim _get_claim_text."""
 
+    @pytest.mark.property
     @given(ids=st.lists(st.sampled_from(FIXTURE_IDS), min_size=0, max_size=5, unique=True))
     @settings(max_examples=50, suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_bulk_matches_individual(self, conn, ids):

@@ -163,6 +163,7 @@ def test_role_binding_validation_rejects_unknown_role() -> None:
         signature.validate_bindings(bindings)
 
 
+@pytest.mark.property
 @given(
     st.permutations((
         RoleBinding("paper", "ps:concept:paper:buitelaar-2011"),
@@ -188,6 +189,7 @@ def test_inverse_property_requires_target_relation() -> None:
         )
 
 
+@pytest.mark.property
 @given(
     st.text(
         alphabet=st.characters(whitelist_categories=("Ll", "Nd")),
@@ -237,6 +239,7 @@ def test_non_symmetric_relation_preserves_binary_value_order() -> None:
     )
 
 
+@pytest.mark.property
 @given(
     st.sets(
         st.tuples(

@@ -34,32 +34,38 @@ def polynomials(draw):
 
 
 class TestProvenancePolynomialAlgebra:
+    @pytest.mark.property
     @given(polynomials(), polynomials(), polynomials())
     @_PROP_SETTINGS
     def test_addition_is_associative(self, left, middle, right):
         assert (left + middle) + right == left + (middle + right)
 
+    @pytest.mark.property
     @given(polynomials(), polynomials())
     @_PROP_SETTINGS
     def test_addition_is_commutative(self, left, right):
         assert left + right == right + left
 
+    @pytest.mark.property
     @given(polynomials())
     @_PROP_SETTINGS
     def test_zero_is_additive_identity(self, poly):
         assert poly + ProvenancePolynomial.zero() == poly
         assert ProvenancePolynomial.zero() + poly == poly
 
+    @pytest.mark.property
     @given(polynomials(), polynomials(), polynomials())
     @_PROP_SETTINGS
     def test_multiplication_is_associative(self, left, middle, right):
         assert (left * middle) * right == left * (middle * right)
 
+    @pytest.mark.property
     @given(polynomials(), polynomials())
     @_PROP_SETTINGS
     def test_multiplication_is_commutative(self, left, right):
         assert left * right == right * left
 
+    @pytest.mark.property
     @given(polynomials())
     @_PROP_SETTINGS
     def test_one_and_zero_are_multiplicative_identities(self, poly):
@@ -68,11 +74,13 @@ class TestProvenancePolynomialAlgebra:
         assert poly * ProvenancePolynomial.zero() == ProvenancePolynomial.zero()
         assert ProvenancePolynomial.zero() * poly == ProvenancePolynomial.zero()
 
+    @pytest.mark.property
     @given(polynomials(), polynomials(), polynomials())
     @_PROP_SETTINGS
     def test_multiplication_distributes_over_addition(self, left, middle, right):
         assert left * (middle + right) == (left * middle) + (left * right)
 
+    @pytest.mark.property
     @given(polynomials())
     @_PROP_SETTINGS
     def test_canonicalization_is_idempotent(self, poly):
@@ -102,3 +110,4 @@ class TestProvenancePolynomialAlgebra:
         repeated = ProvenancePolynomial((PolynomialTerm(1, (VariablePower(x, 3),)),))
 
         assert why_provenance(linear) == why_provenance(repeated)
+import pytest

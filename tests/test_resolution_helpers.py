@@ -326,6 +326,7 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(monkeypatch) ->
     assert calls[0]["link"] == "weakest"
 
 
+@pytest.mark.property
 @given(
     comparison=st.sampled_from(["elitist", "democratic"]),
     link=st.sampled_from(["last", "weakest"]),

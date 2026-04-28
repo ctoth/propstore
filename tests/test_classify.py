@@ -315,6 +315,7 @@ class TestEnrichmentContext:
 class TestEnrichmentMonotonicity:
     """Enrichment context is non-empty iff distance < threshold."""
 
+    @pytest.mark.property
     @given(
         distance=st.floats(min_value=0.0, max_value=2.0, allow_nan=False),
         threshold=st.floats(min_value=0.01, max_value=2.0, allow_nan=False),
@@ -332,6 +333,7 @@ class TestEnrichmentMonotonicity:
 class TestBidirectionalCompleteness:
     """For any claim pair, classifier returns exactly 2 stances with correct targets."""
 
+    @pytest.mark.property
     @given(
         text_a=st.text(min_size=1, max_size=50),
         text_b=st.text(min_size=1, max_size=50),
@@ -359,6 +361,7 @@ class TestBidirectionalCompleteness:
 class TestClassifierOutputStructureInvariant:
     """For any valid type/strength from the LLM, output structure is always complete."""
 
+    @pytest.mark.property
     @given(
         fwd_type=st.sampled_from(sorted(VALID_STANCE_TYPES)),
         fwd_strength=st.sampled_from(["strong", "moderate", "weak"]),
@@ -394,6 +397,7 @@ class TestClassifierOutputStructureInvariant:
 class TestOpinionAlgebraInvariant:
     """For non-none stances: confidence == b + a*u and b + d + u ~= 1.0."""
 
+    @pytest.mark.property
     @given(
         strength=st.sampled_from(["strong", "moderate", "weak"]),
     )
@@ -438,6 +442,7 @@ class TestCorpusCalibrationReducesUncertainty:
     Direct consequence of consensus fusion (Josang 2001, Theorem 7).
     """
 
+    @pytest.mark.property
     @given(
         distances=st.lists(
             st.floats(min_value=0.01, max_value=1.5, allow_nan=False, allow_infinity=False),

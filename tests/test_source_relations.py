@@ -668,6 +668,7 @@ def test_source_finalize_reports_parameterization_group_merges(tmp_path: Path) -
     assert len(merge["introduced_by"]) == 1
 
 
+@pytest.mark.property
 @given(master_order=st.permutations([0, 1, 2, 3]), projected_order=st.permutations([0, 1]))
 @settings(deadline=None)
 def test_parameterization_group_merge_preview_is_order_invariant(
@@ -756,6 +757,7 @@ def test_parameterization_group_merge_preview_is_order_invariant(
     assert actual == expected
 
 
+@pytest.mark.property
 @given(
     source_local_ids=st.lists(
         st.text(

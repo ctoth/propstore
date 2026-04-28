@@ -32,6 +32,7 @@ def test_python_backend_rejects_missing_binding() -> None:
         evaluate_condition_ir(_temperature_gt_21(), {})
 
 
+@pytest.mark.property
 @given(
     x=st.integers(min_value=-20, max_value=20),
     y=st.integers(min_value=-20, max_value=20),

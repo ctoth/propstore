@@ -61,6 +61,7 @@ def test_propstore_init_commits_gitignore_without_materializing_it(tmp_path: Pat
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
+@pytest.mark.property
 @given(payload=_PAYLOAD)
 def test_propstore_sync_preserves_ignored_runtime_outputs(tmp_path: Path, payload: bytes) -> None:
     repo = Repository.init(tmp_path / f"project_{uuid4().hex}" / "knowledge")
@@ -88,6 +89,7 @@ def test_propstore_sync_preserves_ignored_runtime_outputs(tmp_path: Path, payloa
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
+@pytest.mark.property
 @given(claim_ids=_CLAIM_IDS, payload=_PAYLOAD)
 def test_repository_import_uses_committed_semantic_snapshot_only(
     tmp_path: Path,
@@ -139,6 +141,7 @@ def test_repository_import_uses_committed_semantic_snapshot_only(
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
+@pytest.mark.property
 @given(first=_SLUG, second=_SLUG)
 def test_source_documents_with_same_path_are_isolated_by_source_branch(
     tmp_path: Path,

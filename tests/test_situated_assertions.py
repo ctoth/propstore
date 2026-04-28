@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -39,6 +40,7 @@ def test_situated_assertion_identity_includes_structural_parts() -> None:
     assert base.assertion_id != different_condition.assertion_id
 
 
+@pytest.mark.property
 @given(st.permutations((
     RoleBinding("paper", "ps:concept:paper:clark-2014"),
     RoleBinding("venue", "ps:concept:venue:j-biomed-semantics"),

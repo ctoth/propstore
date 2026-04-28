@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 import z3
@@ -99,6 +100,7 @@ def test_z3_binding_projection_rejects_boolean_as_numeric() -> None:
         raise AssertionError("boolean numeric binding should raise")
 
 
+@pytest.mark.property
 @given(
     x=st.integers(min_value=-20, max_value=20),
     y=st.integers(min_value=-20, max_value=20),

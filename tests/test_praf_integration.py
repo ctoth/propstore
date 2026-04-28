@@ -800,6 +800,7 @@ class TestDecisionCriterionProperties:
         from hypothesis import strategies as st
         from propstore.world.types import apply_decision_criterion
 
+        @pytest.mark.property
         @given(
             b=st.floats(min_value=0.0, max_value=1.0),
             d=st.floats(min_value=0.0, max_value=1.0),

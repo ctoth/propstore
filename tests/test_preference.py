@@ -79,6 +79,7 @@ class TestClaimStrengthNormalization:
 class TestClaimStrengthProperties:
     pytestmark = pytest.mark.property
 
+    @pytest.mark.property
     @given(
         st.fixed_dictionaries(
             {},

@@ -83,6 +83,7 @@ def _is_tautology(formula: Formula) -> bool:
     return _belief(formula).models == BeliefSet.all_worlds(ALPHABET)
 
 
+@pytest.mark.property
 @given(st_formula, st_formula)
 @settings(deadline=None)
 def test_agm_1985_cn_is_inclusive_monotonic_and_idempotent(a: Formula, b: Formula) -> None:
@@ -96,6 +97,7 @@ def test_agm_1985_cn_is_inclusive_monotonic_and_idempotent(a: Formula, b: Formul
         assert stronger.models.issubset(base.models)
 
 
+@pytest.mark.property
 @given(st_consistent_state(), st_formula, st_formula)
 @settings(deadline=None)
 def test_alchourron_gardenfors_makinson_1985_revision_k_star_postulates(
@@ -126,6 +128,7 @@ def test_alchourron_gardenfors_makinson_1985_revision_k_star_postulates(
         assert theory_subset(revise_then_expand, conjunction_result)
 
 
+@pytest.mark.property
 @given(st_consistent_state(), st_nontrivial_formula)
 @settings(deadline=None)
 def test_alchourron_gardenfors_makinson_1985_contraction_and_harper_identity(
@@ -147,6 +150,7 @@ def test_alchourron_gardenfors_makinson_1985_contraction_and_harper_identity(
     assert contracted.belief_set.equivalent(harper)
 
 
+@pytest.mark.property
 @given(st_consistent_state(), st_formula, st_formula)
 @settings(deadline=None)
 def test_darwiche_pearl_1997_c1_c4_for_spohn_bullet_revision(
@@ -170,6 +174,7 @@ def test_darwiche_pearl_1997_c1_c4_for_spohn_bullet_revision(
         assert not after_mu_then_alpha.entails(negate(mu))
 
 
+@pytest.mark.property
 @given(st_consistent_state(), st_formula, st_formula, st_formula)
 @settings(deadline=None)
 def test_gardenfors_makinson_1988_epistemic_entrenchment_ee1_ee5(
@@ -193,6 +198,7 @@ def test_gardenfors_makinson_1988_epistemic_entrenchment_ee1_ee5(
         assert _is_tautology(a)
 
 
+@pytest.mark.property
 @given(st_profile(), st_formula, st_operator)
 @settings(deadline=None)
 def test_konieczny_pino_perez_2002_ic0_ic3_and_ic7_ic8(
@@ -224,6 +230,7 @@ def test_konieczny_pino_perez_2002_ic0_ic3_and_ic7_ic8(
         assert theory_subset(loose, tight)
 
 
+@pytest.mark.property
 @given(st_profile(), st_profile(), st_formula, st_operator)
 @settings(deadline=None)
 def test_konieczny_pino_perez_2002_ic5_ic6_profile_decomposition(

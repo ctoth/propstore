@@ -54,6 +54,7 @@ def bounded_revision_bases(draw):
     return base, entrenchment
 
 
+@pytest.mark.property
 @given(namespace=_ident, value=_ident)
 @settings(deadline=None)
 def test_normalize_revision_input_resolves_existing_assertion_atom_by_assertion_id(
@@ -76,6 +77,7 @@ class TestGeneratedRevisionPostulates:
 
     pytestmark = pytest.mark.property
 
+    @pytest.mark.property
     @given(bounded_revision_bases())
     @settings(deadline=None)
     def test_expand_success_and_inclusion_for_satisfiable_input(self, generated):
@@ -95,6 +97,7 @@ class TestGeneratedRevisionPostulates:
         assert original_ids | {atom.atom_id} <= revised_ids
         assert set(result.accepted_atom_ids).isdisjoint(result.rejected_atom_ids)
 
+    @pytest.mark.property
     @given(bounded_revision_bases())
     @settings(deadline=None)
     def test_revise_success_for_nonconflicting_satisfiable_input(self, generated):
@@ -117,6 +120,7 @@ class TestGeneratedRevisionPostulates:
         assert result.rejected_atom_ids == ()
         assert set(result.accepted_atom_ids).isdisjoint(result.rejected_atom_ids)
 
+    @pytest.mark.property
     @given(bounded_revision_bases())
     @settings(deadline=None)
     def test_syntax_irrelevance_for_equivalent_assertion_inputs(self, generated):
@@ -153,6 +157,7 @@ class TestGeneratedRevisionPostulates:
             atom.atom_id for atom in from_atom.revised_base.atoms
         )
 
+    @pytest.mark.property
     @given(bounded_revision_bases())
     @settings(deadline=None)
     def test_stabilization_idempotence_for_generated_bases(self, generated):

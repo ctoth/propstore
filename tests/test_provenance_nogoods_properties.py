@@ -64,6 +64,7 @@ def nogoods(draw):
 
 
 class TestLiveFiltering:
+    @pytest.mark.property
     @given(polynomials(), st.lists(nogoods(), min_size=0, max_size=3))
     @_PROP_SETTINGS
     def test_live_removes_every_nogood_superset(self, poly, generated_nogoods):
@@ -71,6 +72,7 @@ class TestLiveFiltering:
         for support in result.squarefree_supports():
             assert not any(nogood.variables.issubset(support) for nogood in generated_nogoods)
 
+    @pytest.mark.property
     @given(polynomials(), st.lists(nogoods(), min_size=0, max_size=3))
     @_PROP_SETTINGS
     def test_live_preserves_every_non_dead_monomial(self, poly, generated_nogoods):
@@ -110,3 +112,4 @@ class TestLiveFiltering:
         )
 
         assert live(poly, (nogood,)) == ProvenancePolynomial.zero()
+import pytest

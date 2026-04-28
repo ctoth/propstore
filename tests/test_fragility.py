@@ -403,6 +403,7 @@ def _mock_bound_for_atms(queryable_order: list[str]) -> MagicMock:
 
 
 class TestATMSInterventions:
+    @pytest.mark.property
     @given(st.permutations(["x == 1", "y == 2"]))
     @settings(deadline=None)
     def test_queryable_order_does_not_change_assumption_ids(self, ordered_conditions: tuple[str, str]) -> None:
@@ -443,6 +444,7 @@ class TestATMSInterventions:
 
 
 class TestMissingMeasurementInterventions:
+    @pytest.mark.property
     @given(st.permutations(["viscosity", "temperature"]))
     @settings(deadline=None)
     def test_parameterization_order_does_not_change_missing_measurement_ids(self, inputs: tuple[str, str]) -> None:
@@ -542,6 +544,7 @@ def _bundle(
 
 
 class TestGroundFactInterventions:
+    @pytest.mark.property
     @given(st.permutations([("bird", ("tweety",)), ("bird", ("opus",))]))
     @settings(deadline=None)
     def test_ground_fact_identities_are_permutation_invariant(

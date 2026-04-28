@@ -58,6 +58,7 @@ def _satisfies(extension: frozenset[str], formula: Formula) -> bool:
     return formula.evaluate(extension)
 
 
+@pytest.mark.property
 @given(st_framework(), st_framework())
 @settings(deadline=None)
 def test_baumann_brewka_2015_kernel_union_expansion_success_and_inclusion(
@@ -77,6 +78,7 @@ def test_baumann_brewka_2015_kernel_union_expansion_success_and_inclusion(
     assert baumann_2015_kernel_union_expand(expanded, new) == expanded
 
 
+@pytest.mark.property
 @given(st_revision_state(), st_formula)
 @settings(deadline=None)
 def test_diller_2015_p_star_1_p_star_6_formula_revision(
@@ -102,6 +104,7 @@ def test_diller_2015_p_star_1_p_star_6_formula_revision(
     assert result.extensions == state.minimal_extensions(satisfying)
 
 
+@pytest.mark.property
 @given(st_revision_state(), st_framework())
 @settings(deadline=None)
 def test_diller_2015_a_star_1_a_star_6_framework_revision(
@@ -119,6 +122,7 @@ def test_diller_2015_a_star_1_a_star_6_framework_revision(
     assert result.extensions == state.minimal_extensions(target_extensions)
 
 
+@pytest.mark.property
 @given(st_framework())
 @settings(deadline=None)
 def test_cayrol_2014_grounded_addition_is_never_restrictive_or_questioning(

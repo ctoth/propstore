@@ -38,6 +38,7 @@ def st_state(draw) -> SpohnEpistemicState:
     )
 
 
+@pytest.mark.property
 @given(st_state(), st_formula)
 @settings(deadline=None)
 def test_nayak_spohn_lexicographic_revision_places_all_input_worlds_first(
@@ -61,6 +62,7 @@ def test_nayak_spohn_lexicographic_revision_places_all_input_worlds_first(
             )
 
 
+@pytest.mark.property
 @given(st_state(), st_formula)
 @settings(deadline=None)
 def test_booth_meyer_2006_restrained_revision_preserves_internal_preorders(
@@ -81,6 +83,7 @@ def test_booth_meyer_2006_restrained_revision_preserves_internal_preorders(
                 )
 
 
+@pytest.mark.property
 @given(st_state(), st_formula, st_formula)
 @settings(deadline=None)
 def test_booth_meyer_2006_restrained_revision_satisfies_admissibility_p(

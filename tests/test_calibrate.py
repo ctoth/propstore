@@ -283,6 +283,7 @@ class TestCorpusCalibrationEvidenceModel:
     principle "honest ignorance over fabricated confidence", this is wrong.
     """
 
+    @pytest.mark.property
     @given(
         distance=st.floats(min_value=0.0, max_value=1.0),
     )
@@ -329,6 +330,7 @@ class TestCorpusCalibrationEvidenceModel:
             f"Expected near-vacuous (u > 0.9) per honest ignorance principle."
         )
 
+    @pytest.mark.property
     @given(
         n=st.integers(min_value=1, max_value=500),
         distance=st.floats(min_value=0.0, max_value=1.0),
@@ -502,6 +504,7 @@ class TestCorpusOpinionBDUSumProperty:
     This is a guard test to maintain the invariant under any input.
     """
 
+    @pytest.mark.property
     @given(
         ref_distances=st.lists(
             st.floats(min_value=0.0, max_value=2.0),

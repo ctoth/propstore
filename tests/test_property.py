@@ -5,6 +5,7 @@ with randomized inputs.
 """
 from __future__ import annotations
 
+import pytest
 from hypothesis import given, assume, settings
 from hypothesis import strategies as st
 
@@ -52,6 +53,7 @@ def detect_conflicts(claim_files, registry, lifting_system=None):
     )
 
 
+@pytest.mark.property
 @given(name=_VALID_IDENT, op=_VALID_OP, val=_VALID_INT)
 @settings()
 def test_tokenizer_simple_int_comparison(name, op, val):
@@ -65,6 +67,7 @@ def test_tokenizer_simple_int_comparison(name, op, val):
     assert tokens[1].value == op
 
 
+@pytest.mark.property
 @given(name=_VALID_IDENT, op=_VALID_OP, val=_VALID_FLOAT)
 @settings()
 def test_tokenizer_simple_float_comparison(name, op, val):
@@ -76,6 +79,7 @@ def test_tokenizer_simple_float_comparison(name, op, val):
     assert tokens[0].value == name
 
 
+@pytest.mark.property
 @given(name=_VALID_IDENT, val=_VALID_STRING_LIT)
 @settings()
 def test_tokenizer_string_equality(name, val):
@@ -88,6 +92,7 @@ def test_tokenizer_string_equality(name, val):
     assert tokens[2].value == val
 
 
+@pytest.mark.property
 @given(
     name_a=_VALID_IDENT,
     name_b=_VALID_IDENT,
@@ -156,6 +161,7 @@ def _make_registry():
     }
 
 
+@pytest.mark.property
 @given(
     lo=st.floats(min_value=1.0, max_value=100.0, allow_nan=False, allow_infinity=False),
     width_a=st.floats(min_value=10.0, max_value=200.0, allow_nan=False, allow_infinity=False),
@@ -182,6 +188,7 @@ def test_overlapping_intervals_compatible(lo, width_a, width_b, offset):
     assert len(records) == 0, f"Overlapping [{lo_a},{hi_a}] and [{lo_b},{hi_b}] should be compatible"
 
 
+@pytest.mark.property
 @given(
     lo_a=st.floats(min_value=1.0, max_value=100.0, allow_nan=False, allow_infinity=False),
     width_a=st.floats(min_value=1.0, max_value=50.0, allow_nan=False, allow_infinity=False),
@@ -206,6 +213,7 @@ def test_disjoint_intervals_conflict(lo_a, width_a, gap, width_b):
     assert records[0].warning_class == ConflictClass.CONFLICT
 
 
+@pytest.mark.property
 @given(
     val=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
 )

@@ -156,6 +156,7 @@ def loaded_predicate_files_from(docs) -> "list":
 # ── Property tests: PredicateRegistry ──────────────────────────────
 
 
+@pytest.mark.property
 @given(
     docs=st.deferred(
         lambda: st.lists(
@@ -183,6 +184,7 @@ def test_registry_lookup_returns_matching_document(docs) -> None:
         assert registry.lookup(doc.id) == doc
 
 
+@pytest.mark.property
 @given(
     docs=st.deferred(
         lambda: st.lists(
@@ -216,6 +218,7 @@ def test_registry_lookup_missing_predicate_raises(docs) -> None:
         registry.lookup(missing_id)
 
 
+@pytest.mark.property
 @given(
     docs=st.deferred(
         lambda: st.lists(
@@ -253,6 +256,7 @@ def test_registry_validate_atom_rejects_wrong_arity(docs, wrong_arity) -> None:
         registry.validate_atom(atom)
 
 
+@pytest.mark.property
 @given(
     docs=st.deferred(
         lambda: st.lists(
@@ -287,6 +291,7 @@ def test_registry_validate_atom_accepts_matching_arity(docs) -> None:
         )
 
 
+@pytest.mark.property
 @given(
     docs=st.deferred(
         lambda: st.lists(
@@ -477,6 +482,7 @@ def test_parse_derived_from_malformed_raises() -> None:
             parse_derived_from(spec)
 
 
+@pytest.mark.property
 @given(
     spec_and_kind=st.sampled_from(
         [

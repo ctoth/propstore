@@ -63,6 +63,7 @@ def _provenance(method: str = "stated") -> Provenance:
     )
 
 
+@pytest.mark.property
 @given(source_uri=_uri_text, target_uri=_uri_text)
 @settings(deadline=None)
 def test_qualia_coercion_returns_view_satisfying_target_type(
@@ -91,6 +92,7 @@ def test_qualia_coercion_returns_view_satisfying_target_type(
     assert "qualia_coercion:telic" in coerced.provenance.operations
 
 
+@pytest.mark.property
 @given(first_uri=_uri_text, second_uri=_uri_text, third_uri=_uri_text)
 @settings(deadline=None)
 def test_telic_qualia_chain_is_recoverable(
@@ -112,6 +114,7 @@ def test_telic_qualia_chain_is_recoverable(
     assert purposive_chain(_ref(first_uri), graph) == (_ref(second_uri), _ref(third_uri))
 
 
+@pytest.mark.property
 @given(value=st.floats(allow_nan=False, allow_infinity=False, min_value=0.0, max_value=1.0))
 @settings(deadline=None)
 def test_proto_role_entailments_are_graded_and_provenance_bearing(value: float) -> None:
@@ -321,6 +324,7 @@ def test_coreference_query_is_dung_argumentation_with_policy_dependent_clusters(
     assert query.merge_arguments == (first_second, first_rival)
 
 
+@pytest.mark.property
 @given(
     start=st.floats(
         allow_nan=False,

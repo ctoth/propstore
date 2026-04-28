@@ -36,11 +36,13 @@ def labels(draw):
 
 
 class TestLabelPolynomialEquivalence:
+    @pytest.mark.property
     @given(labels())
     @_PROP_SETTINGS
     def test_label_to_polynomial_to_label_round_trips(self, label):
         assert polynomial_to_label(label_to_polynomial(label)) == label
 
+    @pytest.mark.property
     @given(environment_keys())
     @_PROP_SETTINGS
     def test_assumptions_and_contexts_survive_projection_separately(self, environment):
@@ -52,6 +54,7 @@ class TestLabelPolynomialEquivalence:
             assert projected.environments[0].assumption_ids == environment.assumption_ids
             assert projected.environments[0].context_ids == environment.context_ids
 
+    @pytest.mark.property
     @given(labels(), labels())
     @_PROP_SETTINGS
     def test_combine_labels_uses_polynomial_multiplication_projection(self, left, right):
@@ -60,6 +63,7 @@ class TestLabelPolynomialEquivalence:
 
         assert combined == expected
 
+    @pytest.mark.property
     @given(labels(), labels())
     @_PROP_SETTINGS
     def test_merge_labels_uses_polynomial_addition_projection(self, left, right):
@@ -68,6 +72,7 @@ class TestLabelPolynomialEquivalence:
 
         assert merged == expected
 
+    @pytest.mark.property
     @given(labels(), labels(), environment_keys())
     @_PROP_SETTINGS
     def test_nogood_pruning_matches_polynomial_projection(self, left, right, nogood):
@@ -76,6 +81,7 @@ class TestLabelPolynomialEquivalence:
 
         assert all(not nogoods.excludes(env) for env in merged.environments)
 
+    @pytest.mark.property
     @given(labels(), environment_keys())
     @_PROP_SETTINGS
     def test_nogood_set_projects_to_live_filtering(self, label, nogood):
@@ -86,3 +92,4 @@ class TestLabelPolynomialEquivalence:
         )
 
         assert filtered.environments == expected.environments
+import pytest

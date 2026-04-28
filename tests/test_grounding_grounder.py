@@ -404,6 +404,7 @@ def test_bundle_section_keys_are_the_four_gunray_sections() -> None:
 # ── Grounder property tests ─────────────────────────────────────────
 
 
+@pytest.mark.property
 @given(facts=st.deferred(ground_atom_tuples))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_grounder_only_facts_no_rules_definitely_equals_input(facts) -> None:
@@ -432,6 +433,7 @@ def test_grounder_only_facts_no_rules_definitely_equals_input(facts) -> None:
     assert total_definitely_rows == len(facts)
 
 
+@pytest.mark.property
 @given(facts=st.deferred(ground_atom_tuples))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_grounder_determinism(facts) -> None:
@@ -453,6 +455,7 @@ def test_grounder_determinism(facts) -> None:
     assert first.source_facts == second.source_facts
 
 
+@pytest.mark.property
 @given(
     rule_files=st.deferred(rule_file_batches),
     facts=st.deferred(ground_atom_tuples),
@@ -478,6 +481,7 @@ def test_grounder_preserves_source_rules_and_facts(rule_files, facts) -> None:
     assert tuple(bundle.source_facts) == tuple(facts)
 
 
+@pytest.mark.property
 @given(
     rule_files=st.deferred(defeasible_rule_file_batches),
     facts=st.deferred(ground_atom_tuples),
@@ -841,6 +845,7 @@ def test_ground_return_arguments_is_deterministic() -> None:
     assert first.arguments == second.arguments
 
 
+@pytest.mark.property
 @given(
     rule_files=st.deferred(defeasible_rule_file_batches),
     facts=st.deferred(ground_atom_tuples),

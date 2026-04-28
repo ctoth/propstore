@@ -368,6 +368,7 @@ def ground_fact_tuples() -> st.SearchStrategy:
 # ── Property tests ─────────────────────────────────────────────────
 
 
+@pytest.mark.property
 @given(
     rule_files=st.deferred(defeasible_rule_file_sequences),
     facts=st.deferred(ground_fact_tuples),
@@ -394,6 +395,7 @@ def test_translate_preserves_fact_count(rule_files, facts) -> None:
     assert total_rows == len(facts)
 
 
+@pytest.mark.property
 @given(
     rule_files=st.deferred(defeasible_rule_file_sequences),
     facts=st.deferred(ground_fact_tuples),
@@ -424,6 +426,7 @@ def test_translate_preserves_rule_count(rule_files, facts) -> None:
     assert theory.conflicts == ()
 
 
+@pytest.mark.property
 @given(
     rule_files=st.deferred(defeasible_rule_file_sequences),
     facts=st.deferred(ground_fact_tuples),
@@ -458,6 +461,7 @@ def test_translate_rule_head_predicate_preserved(rule_files, facts) -> None:
         assert parsed_head.predicate == rule_doc.head.predicate
 
 
+@pytest.mark.property
 @given(
     rule_files=st.deferred(defeasible_rule_file_sequences),
     facts=st.deferred(ground_fact_tuples),
@@ -494,6 +498,7 @@ def test_translate_rule_body_predicates_preserved(rule_files, facts) -> None:
         assert parsed_body_predicates == expected
 
 
+@pytest.mark.property
 @given(
     rule_id=st.text(
         alphabet="abcdefghijklmnopqrstuvwxyz0123456789_",
@@ -524,6 +529,7 @@ def test_translate_rule_kind_routes_to_matching_schema_slot(rule_id, kind) -> No
     assert len(theory.defeaters) == (1 if kind == "defeater" else 0)
 
 
+@pytest.mark.property
 @given(
     facts=st.deferred(ground_fact_tuples),
 )

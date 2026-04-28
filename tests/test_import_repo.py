@@ -61,6 +61,7 @@ def _expected_imported_claim_yaml(local_id: str, *, namespace: str, source_paper
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
+@pytest.mark.property
 @given(
     source_claim_ids=st.lists(
         st.from_regex(r"claim_[a-z]{1,4}", fullmatch=True),
@@ -127,6 +128,7 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
+@pytest.mark.property
 @given(
     concept_ids=st.lists(
         st.from_regex(r"concept_[a-z]{1,4}", fullmatch=True),

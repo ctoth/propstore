@@ -416,6 +416,7 @@ class TestParameterizationConflict:
 
 
 class TestSymmetry:
+    @pytest.mark.property
     @given(
         val_a=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
         val_b=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
@@ -443,6 +444,7 @@ class TestSymmetry:
         if records_ab:
             assert records_ab[0].warning_class == records_ba[0].warning_class
 
+    @pytest.mark.property
     @given(
         val=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
     )
@@ -964,6 +966,7 @@ class TestAlgorithmConflicts:
         algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
         assert len(algo_records) == 0
 
+    @pytest.mark.property
     @given(
         var_a=st.sampled_from(["x", "signal", "sample"]),
         var_b=st.sampled_from(["value", "frame", "obs"]),

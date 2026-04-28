@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import ast
 
 from hypothesis import given
@@ -93,6 +94,7 @@ def test_estree_evaluator_rejects_missing_binding() -> None:
         raise AssertionError("missing ESTree binding should raise")
 
 
+@pytest.mark.property
 @given(
     x=st.integers(min_value=-20, max_value=20),
     y=st.integers(min_value=-20, max_value=20),

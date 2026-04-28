@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from pathlib import Path
 from unittest.mock import patch
 
@@ -236,6 +237,7 @@ def test_verify_tree_atms_failure_propagates(tmp_path: Path) -> None:
     assert "atms boom" in str(result.exception)
 
 
+@pytest.mark.property
 @given(order=st.permutations([0, 1]))
 @settings(deadline=None)
 def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple[int, int]) -> None:

@@ -342,6 +342,7 @@ def _build_scenario_db(claim_ids, stances, sample_sizes):
 
 
 class TestAFProperties:
+    @pytest.mark.property
     @given(stance_scenarios())
     @_PROP_SETTINGS
     def test_no_supports_in_defeats(self, scenario):
@@ -366,6 +367,7 @@ class TestAFProperties:
         for pair in support_only_pairs:
             assert pair not in af.attacks
 
+    @pytest.mark.property
     @given(stance_scenarios())
     @_PROP_SETTINGS
     def test_grounded_is_conflict_free(self, scenario):
@@ -376,6 +378,7 @@ class TestAFProperties:
         ext = grounded_extension(af)
         assert conflict_free(ext, af.defeats)
 
+    @pytest.mark.property
     @given(active_stance_scenarios())
     @_PROP_SETTINGS
     def test_af_arguments_never_introduce_claims_outside_active_set(self, scenario):
@@ -390,6 +393,7 @@ class TestAFProperties:
             for target in active_ids
         }
 
+    @pytest.mark.property
     @given(stance_scenarios())
     @_PROP_SETTINGS
     def test_justified_subset_of_input(self, scenario):

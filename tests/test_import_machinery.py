@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
@@ -114,6 +115,7 @@ _uri_token = st.from_regex(r"[a-z][a-z0-9]{0,8}", fullmatch=True)
 
 
 @settings(deadline=None)
+@pytest.mark.property
 @given(
     relation=_token,
     context=_token,
@@ -143,6 +145,7 @@ def test_surface_authored_form_lens_laws(
 
 
 @settings(deadline=None)
+@pytest.mark.property
 @given(first=_uri_token, middle=_uri_token, last=_uri_token)
 def test_equivalence_witness_composition_keeps_candidates_distinct(
     first: str,

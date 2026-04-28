@@ -217,6 +217,7 @@ def test_completion_recording_is_idempotent_but_rejects_conflicting_results() ->
         )
 
 
+@pytest.mark.property
 @given(objective=st.text(min_size=1, max_size=40))
 @settings(max_examples=16)
 def test_process_manager_replay_is_deterministic_for_fixed_inputs(objective: str) -> None:

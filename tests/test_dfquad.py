@@ -596,6 +596,7 @@ def _isolated_tau_pair(draw):
     return pa, tau_left, tau_right
 
 
+@pytest.mark.property
 @given(praf=_small_praf_strategy_dfquad())
 @settings(deadline=None)
 def test_dfquad_scores_bounded(praf):
@@ -610,6 +611,7 @@ def test_dfquad_scores_bounded(praf):
         assert 0.0 <= score <= 1.0, f"arg {arg}: score={score} out of [0,1]"
 
 
+@pytest.mark.property
 @given(sample=_paired_quad_inputs())
 @settings(deadline=None)
 def test_dfquad_quad_property_ignores_praf_argument_probability_when_tau_is_fixed(sample):
@@ -629,6 +631,7 @@ def test_dfquad_quad_property_ignores_praf_argument_probability_when_tau_is_fixe
     assert left.acceptance_probs == right.acceptance_probs
 
 
+@pytest.mark.property
 @given(sample=_isolated_tau_pair())
 @settings(deadline=None)
 def test_dfquad_quad_property_changes_when_tau_changes_with_fixed_topology(sample):
@@ -651,6 +654,7 @@ def test_dfquad_quad_property_changes_when_tau_changes_with_fixed_topology(sampl
     assert left.acceptance_probs["A"] != pytest.approx(right.acceptance_probs["A"], abs=1e-6)
 
 
+@pytest.mark.property
 @given(praf=_isolated_prafs())
 @settings(deadline=None)
 def test_dfquad_baf_property_keeps_isolated_arguments_at_neutral_half(praf):
@@ -693,6 +697,7 @@ def _monotonicity_scenario(draw):
     return args, defeats, base_scores, extra, extra_score, target
 
 
+@pytest.mark.property
 @given(scenario=_monotonicity_scenario())
 @settings(deadline=None)
 def test_dfquad_adding_attacker_never_increases_strength(scenario):
@@ -729,6 +734,7 @@ def test_dfquad_adding_attacker_never_increases_strength(scenario):
     )
 
 
+@pytest.mark.property
 @given(scenario=_monotonicity_scenario())
 @settings(deadline=None)
 def test_dfquad_adding_supporter_never_decreases_strength(scenario):
@@ -765,6 +771,7 @@ def test_dfquad_adding_supporter_never_decreases_strength(scenario):
     )
 
 
+@pytest.mark.property
 @given(praf=_small_praf_strategy_dfquad())
 @settings(deadline=None)
 def test_dfquad_convergence_bounded(praf):

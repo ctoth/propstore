@@ -54,6 +54,7 @@ def polynomials(draw):
 
 
 class TestPolynomialDerivative:
+    @pytest.mark.property
     @given(polynomials(), polynomials(), st.sampled_from(_VARIABLES))
     @_PROP_SETTINGS
     def test_derivative_of_sum(self, left, right, variable):
@@ -61,6 +62,7 @@ class TestPolynomialDerivative:
             partial_derivative(left, variable) + partial_derivative(right, variable)
         )
 
+    @pytest.mark.property
     @given(polynomials(), polynomials(), st.sampled_from(_VARIABLES))
     @_PROP_SETTINGS
     def test_derivative_product_rule(self, left, right, variable):
@@ -93,3 +95,4 @@ class TestPolynomialDerivative:
         derivative = partial_derivative(poly, a)
 
         assert derivative == ProvenancePolynomial.variable(b)
+import pytest

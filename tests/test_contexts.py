@@ -274,6 +274,7 @@ class TestLiftingSystem:
         } == {("ctx_root", "ctx_child")}
         assert system.effective_assumptions("ctx_child") == ("audience == 'researcher'",)
 
+    @pytest.mark.property
     @given(
         source_assumptions=st.lists(st.sampled_from([
             "framework == 'general'",

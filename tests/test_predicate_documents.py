@@ -162,6 +162,7 @@ def predicates_file_documents() -> st.SearchStrategy:
 # ── Property tests ─────────────────────────────────────────────────
 
 
+@pytest.mark.property
 @given(doc=st.deferred(predicate_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_predicate_document_yaml_round_trip(doc) -> None:
@@ -179,6 +180,7 @@ def test_predicate_document_yaml_round_trip(doc) -> None:
     assert decoded == doc
 
 
+@pytest.mark.property
 @given(doc=st.deferred(predicates_file_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_predicates_file_document_yaml_round_trip(doc) -> None:
@@ -196,6 +198,7 @@ def test_predicates_file_document_yaml_round_trip(doc) -> None:
     assert decoded == doc
 
 
+@pytest.mark.property
 @given(doc=st.deferred(predicate_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_predicate_arg_types_length_matches_arity(doc) -> None:
@@ -211,6 +214,7 @@ def test_predicate_arg_types_length_matches_arity(doc) -> None:
     assert len(doc.arg_types) == doc.arity
 
 
+@pytest.mark.property
 @given(doc=st.deferred(predicate_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_predicate_arg_types_are_strings(doc) -> None:
@@ -358,6 +362,7 @@ def test_loaded_predicate_file_from_loaded_document() -> None:
     assert wrapped.document is file_doc
 
 
+@pytest.mark.property
 @given(file_doc=st.deferred(predicates_file_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_predicates_file_document_preserves_order(file_doc) -> None:

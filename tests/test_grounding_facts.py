@@ -273,6 +273,7 @@ def predicate_registries_with_is_a_derivations() -> st.SearchStrategy:
 # ── Property tests ─────────────────────────────────────────────────
 
 
+@pytest.mark.property
 @given(
     graph=st.deferred(concept_relationship_graphs),
     registry=st.deferred(predicate_registries_with_is_a_derivations),
@@ -295,6 +296,7 @@ def test_extract_facts_idempotent(graph, registry) -> None:
     assert first == second
 
 
+@pytest.mark.property
 @given(
     graph=st.deferred(concept_relationship_graphs),
     registry=st.deferred(predicate_registries_with_is_a_derivations),
@@ -318,6 +320,7 @@ def test_extracted_facts_match_registry_arity(graph, registry) -> None:
         assert len(atom.arguments) == declaration.arity
 
 
+@pytest.mark.property
 @given(
     graph=st.deferred(concept_relationship_graphs),
     registry=st.deferred(predicate_registries_with_is_a_derivations),
@@ -343,6 +346,7 @@ def test_extracted_facts_reference_registered_predicates(
         assert atom.predicate in declared_ids
 
 
+@pytest.mark.property
 @given(
     graph=st.deferred(concept_relationship_graphs),
     registry=st.deferred(predicate_registries_with_is_a_derivations),
@@ -365,6 +369,7 @@ def test_extract_facts_no_duplicates(graph, registry) -> None:
     assert len(atoms) == len(set(atoms))
 
 
+@pytest.mark.property
 @given(
     graph=st.deferred(concept_relationship_graphs),
     registry=st.deferred(predicate_registries_with_is_a_derivations),

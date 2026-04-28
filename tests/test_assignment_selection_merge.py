@@ -292,6 +292,7 @@ class TestClaimDistance:
         assert claim_distance("alpha", "alpha") == 0.0
         assert claim_distance("alpha", "beta") == 1.0
 
+    @pytest.mark.property
     @given(st_claim_value, st_claim_value)
     @settings(
         deadline=None,
@@ -305,6 +306,7 @@ class TestClaimDistance:
         """
         assert claim_distance(a, b) == claim_distance(b, a)
 
+    @pytest.mark.property
     @given(st_claim_value)
     @settings(
         deadline=None,
@@ -341,6 +343,7 @@ class TestSigmaMerge:
         result = _sigma_merge(profile)
         assert result == 10.0  # 3 vs 1, majority wins
 
+    @pytest.mark.property
     @given(st_branch_profile)
     @settings(
         deadline=None,
@@ -356,6 +359,7 @@ class TestSigmaMerge:
         result2 = _sigma_merge(reversed_profile)
         assert result1 == result2
 
+    @pytest.mark.property
     @given(st_branch_profile)
     @settings(
         deadline=None,
@@ -370,6 +374,7 @@ class TestSigmaMerge:
         result = _sigma_merge(profile)
         assert result in profile.values()
 
+    @pytest.mark.property
     @given(st_branch_profile)
     @settings(
         deadline=None,
@@ -412,6 +417,7 @@ class TestMaxMerge:
         result = _max_merge(profile)
         assert result == 10.0
 
+    @pytest.mark.property
     @given(st_branch_profile)
     @settings(
         deadline=None,
@@ -427,6 +433,7 @@ class TestMaxMerge:
         result2 = _max_merge(reversed_profile)
         assert result1 == result2
 
+    @pytest.mark.property
     @given(st_branch_profile)
     @settings(
         deadline=None,
@@ -492,6 +499,7 @@ class TestGMaxMerge:
         max_max_dist = max(abs(max_result - v) for v in profile.values())
         assert gmax_max_dist <= max_max_dist + 1e-9  # float tolerance
 
+    @pytest.mark.property
     @given(st_branch_profile)
     @settings(
         deadline=None,
@@ -509,6 +517,7 @@ class TestGMaxMerge:
         max_max_dist = max(abs(max_result - v) for v in profile.values())
         assert gmax_max_dist <= max_max_dist + 1e-9
 
+    @pytest.mark.property
     @given(st_branch_profile)
     @settings(
         deadline=None,
@@ -524,6 +533,7 @@ class TestGMaxMerge:
         result2 = _gmax_merge(reversed_profile)
         assert result1 == result2
 
+    @pytest.mark.property
     @given(st_branch_profile)
     @settings(
         deadline=None,
@@ -772,6 +782,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
         assert result.winners
         assert init_count == 1
 
+    @pytest.mark.property
     @given(
         st.lists(
             st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
@@ -821,6 +832,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
 
         assert constrained.winners == unconstrained.winners
 
+    @pytest.mark.property
     @given(
         st.lists(
             st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
@@ -863,6 +875,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
         assert result.winners == tuple()
         assert result.reason == "no admissible assignments"
 
+    @pytest.mark.property
     @given(
         st.lists(
             st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
@@ -997,6 +1010,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
         assert result.winners
         assert result.admissible_count == 8
 
+    @pytest.mark.property
     @given(
         st.lists(
             st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
@@ -1047,6 +1061,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
         assert result.winners
         assert all(assignment_satisfies_mu(problem, winner) for winner in result.winners)
 
+    @pytest.mark.property
     @given(
         st.sets(st.integers(min_value=0, max_value=2), min_size=1, max_size=3),
         st.sets(st.integers(min_value=0, max_value=2), min_size=1, max_size=3),
@@ -1186,6 +1201,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
                 operator=MergeOperator.SIGMA,
             )
 
+    @pytest.mark.property
     @given(
         st.lists(
             st.tuples(st_small_assignment_value, st_small_assignment_value),
@@ -1282,6 +1298,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
         )
         assert result.admissible_count == 2
 
+    @pytest.mark.property
     @given(st_branch_profile, st.sampled_from(list(MergeOperator)))
     @settings(
         deadline=None,
@@ -1298,6 +1315,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
             operator=operator,
         )
 
+    @pytest.mark.property
     @given(st_branch_profile)
     @settings(
         deadline=None,
@@ -1326,6 +1344,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
             for winner in result.winners
         )
 
+    @pytest.mark.property
     @given(st_branch_profile, st.sampled_from(list(MergeOperator)))
     @settings(
         deadline=None,

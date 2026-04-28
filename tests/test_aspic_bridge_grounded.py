@@ -261,6 +261,7 @@ def _single_unary_rule_bundle(draw):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.property
 @given(_empty_bundle())
 @settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_empty_bundle_produces_empty_rule_sets(bundle) -> None:
@@ -281,6 +282,7 @@ def test_empty_bundle_produces_empty_rule_sets(bundle) -> None:
     assert out_literals == {}
 
 
+@pytest.mark.property
 @given(_single_unary_rule_bundle())
 @settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_rules_kind_is_defeasible_in_phase1(payload) -> None:
@@ -301,6 +303,7 @@ def test_grounded_rules_kind_is_defeasible_in_phase1(payload) -> None:
         assert rule.kind == "defeasible"
 
 
+@pytest.mark.property
 @given(_single_unary_rule_bundle())
 @settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_rules_names_are_unique(payload) -> None:
@@ -321,6 +324,7 @@ def test_grounded_rules_names_are_unique(payload) -> None:
     assert len(set(names)) == len(names)
 
 
+@pytest.mark.property
 @given(_single_unary_rule_bundle())
 @settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_rules_head_predicate_matches_schema(payload) -> None:
@@ -340,6 +344,7 @@ def test_grounded_rules_head_predicate_matches_schema(payload) -> None:
         assert rule.consequent.atom.predicate == "flies"
 
 
+@pytest.mark.property
 @given(_single_unary_rule_bundle())
 @settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_rules_antecedents_length_matches_schema_body(payload) -> None:
@@ -360,6 +365,7 @@ def test_grounded_rules_antecedents_length_matches_schema_body(payload) -> None:
         assert len(rule.antecedents) == 1  # body = (bird(X),)
 
 
+@pytest.mark.property
 @given(_single_unary_rule_bundle())
 @settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_literals_dict_extended_not_replaced(payload) -> None:
@@ -388,6 +394,7 @@ def test_literals_dict_extended_not_replaced(payload) -> None:
     assert out_literals[seed_key] == seed_lit
 
 
+@pytest.mark.property
 @given(_single_unary_rule_bundle())
 @settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_literals_contrary_involution(payload) -> None:

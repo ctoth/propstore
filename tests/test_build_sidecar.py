@@ -870,6 +870,7 @@ class TestRebuildSkipping:
 
         assert build_sidecar(knowledge_reader, sidecar_path) is True
 
+    @pytest.mark.property
     @given(
         assumption_a=st.sampled_from(["task == 'speech'", "task == 'singing'", "task == 'whisper'"]),
         assumption_b=st.sampled_from(["task == 'speech'", "task == 'singing'", "task == 'whisper'"]),
@@ -1662,6 +1663,7 @@ class TestClaimStanceTable:
         with pytest.raises(ValueError, match="resolution"):
             build_sidecar(knowledge_reader, sidecar_path, force=True)
 
+    @pytest.mark.property
     @given(
         stance_pairs=st.lists(
             st.tuples(

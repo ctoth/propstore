@@ -906,6 +906,7 @@ import tempfile
 from hypothesis import given, strategies as st, settings
 
 
+@pytest.mark.property
 @given(
     claim_id_num=st.integers(min_value=0, max_value=9999),
     value=st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False),

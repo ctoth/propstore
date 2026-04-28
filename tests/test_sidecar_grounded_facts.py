@@ -427,6 +427,7 @@ def test_populate_all_four_sections() -> None:
         conn.close()
 
 
+@pytest.mark.property
 @given(bundle=st.deferred(bundles_with_facts))
 @settings(
     max_examples=25,
@@ -529,6 +530,7 @@ def test_round_trip_single_fact() -> None:
         conn.close()
 
 
+@pytest.mark.property
 @given(bundle=st.deferred(bundles_with_facts))
 @settings(
     max_examples=25,

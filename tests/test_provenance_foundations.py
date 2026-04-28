@@ -143,6 +143,7 @@ def test_git_notes_round_trip_named_graph_content() -> None:
     assert encode_named_graph(read_provenance_note(repo, claim_blob.id)) == encoded
 
 
+@pytest.mark.property
 @given(provenance_records(), provenance_records(), provenance_records())
 @settings(deadline=None)
 def test_provenance_composition_is_associative(

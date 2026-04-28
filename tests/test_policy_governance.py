@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from dataclasses import replace
 
 from hypothesis import given, settings
@@ -141,6 +142,7 @@ _token = st.from_regex(r"[a-z][a-z0-9_]{0,8}", fullmatch=True)
 
 
 @settings(deadline=None)
+@pytest.mark.property
 @given(
     operator=_token,
     merge_operator=st.sampled_from(["sigma", "max", "gmax"]),

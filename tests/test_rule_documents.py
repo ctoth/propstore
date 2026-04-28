@@ -197,6 +197,7 @@ def rules_file_documents() -> st.SearchStrategy:
 # ── Property tests ─────────────────────────────────────────────────
 
 
+@pytest.mark.property
 @given(doc=st.deferred(rule_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_rule_document_yaml_round_trip(doc) -> None:
@@ -215,6 +216,7 @@ def test_rule_document_yaml_round_trip(doc) -> None:
     assert decoded == doc
 
 
+@pytest.mark.property
 @given(doc=st.deferred(rules_file_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_rules_file_document_yaml_round_trip(doc) -> None:
@@ -232,6 +234,7 @@ def test_rules_file_document_yaml_round_trip(doc) -> None:
     assert decoded == doc
 
 
+@pytest.mark.property
 @given(doc=st.deferred(rule_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_rule_document_safety_body_covers_head_variables(doc) -> None:
@@ -409,6 +412,7 @@ body:
     assert doc.head.predicate == "flies"
 
 
+@pytest.mark.property
 @given(file_doc=st.deferred(rules_file_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_rules_file_document_preserves_rule_order(file_doc) -> None:

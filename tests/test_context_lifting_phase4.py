@@ -124,6 +124,7 @@ def test_claim_document_parses_nested_ist_proposition() -> None:
     assert claim.to_payload()["proposition"]["proposition"]["context"]["id"] == "ctx_inner"
 
 
+@pytest.mark.property
 @given(st.lists(st.sampled_from(["ctx_a", "ctx_b", "ctx_c", "ctx_d"]), min_size=1, max_size=4))
 def test_nested_ist_proposition_round_trips_context_stack(context_ids: list[str]) -> None:
     proposition: dict[str, object] = {

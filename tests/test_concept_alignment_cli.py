@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from pathlib import Path
 
 import yaml
@@ -64,6 +65,7 @@ def test_source_propose_concept_writes_inventory(tmp_path: Path) -> None:
     assert concept["proposed_name"] == "claims_identical"
 
 
+@pytest.mark.property
 @given(
     definition_a=st.text(min_size=1, max_size=40),
     definition_b=st.text(min_size=1, max_size=40),
@@ -98,6 +100,7 @@ def test_alignment_builder_emits_mutual_attacks_for_same_name_different_definiti
     assert ("alt_local_b", "alt_local_a") in attacks
 
 
+@pytest.mark.property
 @given(
     shared_token=st.text(
         alphabet=st.characters(blacklist_categories=("Cs",), blacklist_characters="\x00"),

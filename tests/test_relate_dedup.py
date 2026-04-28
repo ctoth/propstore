@@ -74,6 +74,7 @@ pair_strategy = st.lists(
 class TestDedupCountInvariant:
     """After dedup, count equals number of distinct unordered pairs."""
 
+    @pytest.mark.property
     @given(pairs=pair_strategy)
     @settings(max_examples=100)
     def test_count_equals_distinct_frozensets(self, pairs):
@@ -87,6 +88,7 @@ class TestDedupCountInvariant:
 class TestDedupCoverageInvariant:
     """Every frozenset in input has exactly one representative in output."""
 
+    @pytest.mark.property
     @given(pairs=pair_strategy)
     @settings(max_examples=100)
     def test_every_pair_represented(self, pairs):
@@ -100,6 +102,7 @@ class TestDedupCoverageInvariant:
 class TestDedupMinDistanceInvariant:
     """For each surviving pair, distance is the minimum across all duplicates."""
 
+    @pytest.mark.property
     @given(pairs=pair_strategy)
     @settings(max_examples=100)
     def test_distance_is_minimum(self, pairs):

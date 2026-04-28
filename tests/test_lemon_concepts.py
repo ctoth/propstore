@@ -35,6 +35,7 @@ def test_lexical_entry_requires_at_least_one_sense() -> None:
         )
 
 
+@pytest.mark.property
 @given(entry_id=_text, written_rep=_text, language=_text, reference_uri=_text)
 @settings(deadline=None)
 def test_lexical_entry_identity_is_reference_stable(
@@ -59,6 +60,7 @@ def test_lexical_entry_identity_is_reference_stable(
     assert lexical_entry_identity_key(entry) != lexical_entry_identity_key(same_reference)
 
 
+@pytest.mark.property
 @given(written_rep=_text, language=_text, reference_uri=_text)
 @settings(deadline=None)
 def test_polysemy_is_multiple_senses_on_one_entry(
@@ -78,6 +80,7 @@ def test_polysemy_is_multiple_senses_on_one_entry(
     assert entry.references == (first.reference, second.reference)
 
 
+@pytest.mark.property
 @given(
     written_rep=_text,
     language=_text,

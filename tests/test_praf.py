@@ -1221,6 +1221,7 @@ def _small_deterministic_praf_strategy():
     return build()
 
 
+@pytest.mark.property
 @given(praf=_small_propstore_praf_strategy())
 @settings()
 def test_coh_holds_after_enforcement(praf):
@@ -1249,6 +1250,7 @@ def test_coh_holds_after_enforcement(praf):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.property
 @given(praf=_small_praf_strategy())
 @settings(deadline=None)
 def test_mc_agrees_with_exact_on_small_afs(praf):
@@ -1277,6 +1279,7 @@ def test_mc_agrees_with_exact_on_small_afs(praf):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.property
 @given(praf=_small_propstore_praf_strategy())
 @settings(deadline=None)
 def test_coh_idempotent(praf):
@@ -1488,6 +1491,7 @@ def test_query_kind_extension_probability_rejects_inference_mode():
         )
 
 
+@pytest.mark.property
 @given(praf=_small_praf_strategy())
 @settings(deadline=None)
 def test_skeptical_acceptance_probability_never_exceeds_credulous(praf):
@@ -1512,6 +1516,7 @@ def test_skeptical_acceptance_probability_never_exceeds_credulous(praf):
         assert skeptical.acceptance_probs[arg] <= credulous.acceptance_probs[arg] + 1e-12
 
 
+@pytest.mark.property
 @given(sample=_small_praf_and_query_set())
 @settings(deadline=None)
 def test_extension_probability_property_is_bounded_for_random_query_sets(sample):
@@ -1530,6 +1535,7 @@ def test_extension_probability_property_is_bounded_for_random_query_sets(sample)
     assert 0.0 <= result.extension_probability <= 1.0
 
 
+@pytest.mark.property
 @given(praf=_small_deterministic_praf_strategy())
 @settings(deadline=None)
 def test_deterministic_preferred_query_modes_match_extension_membership_property(praf):
@@ -1570,6 +1576,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 
+@pytest.mark.property
 @given(praf=_small_propstore_praf_strategy())
 @settings(deadline=None)
 def test_coh_minimality_no_unnecessary_adjustment(praf):
@@ -1608,6 +1615,7 @@ def test_coh_minimality_no_unnecessary_adjustment(praf):
             )
 
 
+@pytest.mark.property
 @given(praf=_small_propstore_praf_strategy())
 @settings(deadline=None)
 def test_coh_preserves_opinion_validity(praf):
@@ -1624,6 +1632,7 @@ def test_coh_preserves_opinion_validity(praf):
         )
 
 
+@pytest.mark.property
 @given(praf=_small_propstore_praf_strategy())
 @settings(deadline=None)
 def test_coh_expectation_bounds(praf):
@@ -1678,6 +1687,7 @@ def _make_praf_with_self_attacks():
     return build()
 
 
+@pytest.mark.property
 @given(praf=_make_praf_with_self_attacks())
 @settings(deadline=None)
 def test_coh_self_attack_constrains_to_half(praf):
@@ -1698,6 +1708,7 @@ def test_coh_self_attack_constrains_to_half(praf):
             )
 
 
+@pytest.mark.property
 @given(praf=_make_praf_with_self_attacks())
 @settings(deadline=None)
 def test_coh_with_self_attacks_idempotent(praf):
