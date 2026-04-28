@@ -1,6 +1,6 @@
 # WS-I: ATMS / world correctness
 
-**Status**: OPEN
+**Status**: CLOSED 6a6cc9d6
 **Depends on**: WS-D (math/operator naming — CEL semantic equality overlaps; the ATMS condition-matching fix at `atms.py:1562` reuses the canonical CEL pipeline that WS-D stabilises)
 **Blocks**: WS-J formally, WS-J2 via WS-J, and practical trust in WS-F (ASPIC) and WS-K (heuristic discipline). Every consumer of `ATMSEngine.argumentation_state` (`worldline`, `support_revision`, `app/world_atms.py`, the `pks world` CLI surfaces, the ASPIC bridge that lifts `OUT(NOGOOD_PRUNED)` into defeats) is currently reading values that this workstream proves are wrong.
 **Owner**: Codex implementation owner + human reviewer required
@@ -239,18 +239,18 @@ Acceptance: `test_workstream_i_done.py` passes; `gaps.md` reflects.
 
 Before declaring WS-I done, ALL must hold:
 
-- [ ] `uv run pyright propstore` — passes with 0 errors.
-- [ ] `uv run lint-imports` — passes (WS-I doesn't add new layers; this WS doesn't change contracts).
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-I tests/test_atms_unbounded_stability_api.py tests/test_atms_was_pruned_by_nogood_cycle.py tests/test_atms_categorical_provider_visibility.py tests/test_atms_derived_contradictions.py tests/test_atms_environment_context_serialisation.py tests/test_atms_cel_semantic_equality.py tests/test_atms_max_iterations_anytime.py tests/test_atms_consequent_field_discipline.py tests/test_atms_propagation_nogood_interleave.py tests/test_conflict_orchestrator_isolation.py tests/test_workstream_i_done.py` — all green.
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-I-existing tests/test_atms_engine.py tests/test_world_atms*.py tests/test_labels_properties.py tests/test_assignment_selection_merge.py` — no NEW failures vs `logs/test-runs/pytest-20260426-154852.log`.
-- [ ] Full suite `powershell -File scripts/run_logged_pytest.ps1` — no NEW failures vs the same baseline.
-- [ ] No call site in `propstore/` calls `is_stable`, `node_relevance`, or `node_interventions` with the old single-positional shape. Every call passes `limit=None` (accepting unbounded semantics) or `limit=N` (with `BudgetExhausted` handled in the same function). Verified by AST walk in `test_atms_unbounded_stability_api.py`.
-- [ ] Calling `engine.is_stable(node)` with no `limit` kwarg raises `TypeError`. The old API is gone from the codebase, not aliased.
-- [ ] `propstore/world/atms.py` has no remaining `consequent_ids` references.
-- [ ] `app/world_atms.py:_support_ids` returns a structured `(assumption_ids, context_ids)` shape.
-- [ ] WS-I property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-I test run or a named companion run.
-- [ ] `docs/gaps.md` has no open rows for the findings listed at the top of this file.
-- [ ] STATUS line is `CLOSED <sha>`.
+- [x] `uv run pyright propstore` — passes with 0 errors.
+- [x] `uv run lint-imports` — passes (WS-I doesn't add new layers; this WS doesn't change contracts).
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-I tests/test_atms_unbounded_stability_api.py tests/test_atms_was_pruned_by_nogood_cycle.py tests/test_atms_categorical_provider_visibility.py tests/test_atms_derived_contradictions.py tests/test_atms_environment_context_serialisation.py tests/test_atms_cel_semantic_equality.py tests/test_atms_max_iterations_anytime.py tests/test_atms_consequent_field_discipline.py tests/test_atms_propagation_nogood_interleave.py tests/test_conflict_orchestrator_isolation.py tests/test_workstream_i_done.py` — green, `logs/test-runs/WS-I-20260428-062435.log`.
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-I-existing tests/test_atms_engine.py tests/test_world_atms*.py tests/test_labels_properties.py tests/test_assignment_selection_merge.py` — no `test_world_atms*.py` files exist in this repo state; available companion files passed in `logs/test-runs/WS-I-existing-20260428-062524.log`.
+- [x] Full suite `powershell -File scripts/run_logged_pytest.ps1` — green, `logs/test-runs/pytest-20260428-062603.log`.
+- [x] No call site in `propstore/` calls `is_stable`, `node_relevance`, or `node_interventions` with the old single-positional shape. Every call passes `limit=None` (accepting unbounded semantics) or `limit=N` (with `BudgetExhausted` handled in the same function). Verified by AST walk in `test_atms_unbounded_stability_api.py`.
+- [x] Calling `engine.is_stable(node)` with no `limit` kwarg raises `TypeError`. The old API is gone from the codebase, not aliased.
+- [x] `propstore/world/atms.py` has no remaining `consequent_ids` references.
+- [x] `app/world_atms.py:_support_ids` returns a structured `(assumption_ids, context_ids)` shape.
+- [x] WS-I property-based gates from `PROPERTY-BASED-TDD.md` are included in `tests/test_atms_unbounded_stability_api.py` and companion label properties in `tests/test_labels_properties.py`, both included in logged WS-I runs.
+- [x] `docs/gaps.md` has no open rows for the findings listed at the top of this file; WS-I closures are recorded under "Closed gaps."
+- [x] STATUS line is `CLOSED 6a6cc9d6`.
 
 ## Done means done
 
