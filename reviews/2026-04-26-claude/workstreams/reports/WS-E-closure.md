@@ -1,7 +1,7 @@
 # WS-E Closure Report
 
 Workstream: WS-E source-promote correctness
-Closing implementation commit: `34d0a459`
+Closing implementation commit: `152818da`
 Status file: `reviews/2026-04-26-claude/workstreams/WS-E-source-promote.md`
 
 ## Findings Closed
@@ -50,10 +50,13 @@ Status file: `reviews/2026-04-26-claude/workstreams/WS-E-source-promote.md`
 - Targeted preclose: `logs/test-runs/WS-E-targeted-preclose-20260428-031736.log` (`18 passed`)
 - Sentinel red: `logs/test-runs/WS-E-sentinel-red-20260428-032058.log`
 - Property companion: `logs/test-runs/WS-E-properties-20260428-032542.log` (`2 passed`)
+- Sentinel green: `logs/test-runs/WS-E-sentinel-green-20260428-032932.log` (`1 passed`)
+- Targeted acceptance final: `logs/test-runs/WS-E-acceptance-final-20260428-033005.log` (`23 passed`)
+- Full suite first closeout attempt: `logs/test-runs/WS-E-full-final-20260428-033047.log` (`3 failed`, exposing a missing source-claim context in an old fixture plus the required contract-manifest update for `SourceFinalizeReportDocument`).
+- Failure-fix targeted run: `logs/test-runs/WS-E-full-failure-fixes-20260428-033504.log` (`3 passed`)
+- Full suite final rerun: `logs/test-runs/WS-E-full-final-rerun-20260428-033539.log` (`3076 passed`)
 - Pyright: `uv run pyright propstore` passed with 0 errors.
 - Import linter: `uv run lint-imports` passed with 4 contracts kept and 0 broken.
-
-Final sentinel, targeted acceptance, and full-suite logs are recorded in the final evidence commit after this report exists.
 
 ## Property Gates
 
@@ -85,6 +88,9 @@ Final sentinel, targeted acceptance, and full-suite logs are recorded in the fin
 - `tests/test_justification_rule_kind_validated.py`
 - `tests/test_source_promote_properties.py`
 - `tests/test_workstream_e_done.py`
+- `tests/test_git_backend.py`
+- `propstore/contracts.py`
+- `propstore/contract_manifests/semantic-contracts.yaml`
 - `docs/gaps.md`
 - `reviews/2026-04-26-claude/workstreams/WS-E-source-promote.md`
 - `reviews/2026-04-26-claude/workstreams/INDEX.md`

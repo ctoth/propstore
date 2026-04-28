@@ -1,6 +1,6 @@
 # WS-E: Source-promote and finalize correctness
 
-**Status**: CLOSED 34d0a459
+**Status**: CLOSED 152818da
 **Depends on**: WS-A (schema fidelity), WS-C Step 2 reorder per D-6 (promote-ordering reorder — WS-E only consumes the reorder, not the full WS-C scope), WS-CM (micropub identity for finalize/promote surfaces), WS-Q-cas (branch-head CAS discipline)
 **Blocks**: WS-K (heuristic discipline), WS-L (merge non-commitment), WS-M (provenance)
 **Owner**: Codex implementation owner + human reviewer required
@@ -291,10 +291,10 @@ Acceptance: tests 13, 14 turn green.
 - [x] `uv run lint-imports` passes.
 - [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-E-targeted-preclose tests/test_source_promote_dangling_refs.py tests/test_alignment_default_classification.py tests/test_alias_collision_rejected.py tests/test_finalize_micropub_required.py tests/test_transaction_commit_sha_lifetime.py tests/test_concept_import_status_proposed.py tests/test_local_handle_collision_blocks_commit.py tests/test_promote_claim_immutability.py tests/test_extraction_provenance_aware_timestamps.py tests/test_justification_rule_kind_validated.py tests/test_promote_atomicity.py tests/test_branch_head_cas_matrix.py tests/test_cas_rejection_no_orphan_rows.py` all green.
 - [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-E-properties tests/test_source_promote_properties.py` all green.
-- [ ] Full suite — final closeout run pending after status/report edits.
+- [x] Full suite — `powershell -File scripts/run_logged_pytest.ps1 -Label WS-E-full-final-rerun` passed `3076 passed`.
 - [x] WS-E property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-E test run or a named companion run, except sameAs provenance which is explicitly moved to WS-L because WS-L owns the sameAs representation.
 - [x] `docs/gaps.md` clean for all listed findings.
-- [x] STATUS line `CLOSED 34d0a459`.
+- [x] STATUS line `CLOSED 152818da`.
 
 ## Done means done
 
