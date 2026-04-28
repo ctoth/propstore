@@ -1,6 +1,6 @@
 # WS-C: Sidecar atomicity & SQLite discipline
 
-**Status**: OPEN
+**Status**: CLOSED eedfbaa8
 **Depends on**: WS-A (schema fidelity must land first; WS-C tests assume production schema is reachable from fixtures), WS-CM (canonical micropub payload + Trusty URI identity), WS-Q-cas (branch-head compare-and-swap discipline at propstore call sites — D-23)
 **Blocks**: WS-E (source/promote correctness — depends on WS-C Step 2 promote-ordering reorder per D-6); and indirectly WS-K, WS-L which sit downstream of source/promote
 **Owner**: Codex implementation owner + human reviewer required
@@ -335,20 +335,20 @@ Acceptance: `tests/test_workstream_c_done.py` passes; gaps.md reflects closure; 
 
 Before declaring WS-C done, ALL must hold:
 
-- [ ] `uv run pyright propstore` — passes with 0 errors.
-- [ ] `uv run lint-imports` — passes (this WS does not change contracts).
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-C tests/test_T1_4_materialize_atomicity.py tests/test_promote_atomicity.py tests/test_micropub_identity_dedupe_shape.py tests/test_T1_7_build_repository_propagates_sidecar_errors.py tests/test_codex2_claim_dedupe_diverges_on_version.py tests/test_codex2_claim_concept_link_dedupe.py tests/test_codex5_sidecar_cache_derived_invalidation.py tests/test_workstream_c_done.py` — all green.
-- [ ] Full suite `powershell -File scripts/run_logged_pytest.ps1` — no NEW failures vs. the WS-A merge-time baseline.
-- [ ] `propstore/sidecar/claims.py` and `propstore/sidecar/micropublications.py` no longer contain the "content-hash-derived, so two files that carry the same id carry definitionally identical content" docstrings.
-- [ ] `propstore/source/promote.py` no longer carries the "writing sidecar BEFORE the git commit" comment block at `:831-839`. The sidecar mirror runs strictly after `transact` succeeds.
-- [ ] `promote_source_branch` returns a `PromotionResult` (or equivalent) carrying blocked-claim diagnostics in-memory; persisted-state-as-diagnostic-channel is gone.
-- [ ] Micropub artifact ids in the sidecar are produced by WS-CM's `micropub_artifact_id`; no placeholder hash exists in WS-C.
-- [ ] `propstore/compiler/workflows.py` no longer swallows `FileNotFoundError` from the sidecar.
-- [ ] `_sidecar_content_hash` derives its key from the inputs listed in Step 6; no hand-maintained `BUILD_SEMANTIC_VERSION` constant exists in tree.
-- [ ] WS-Q-cas's promote-related test matrix runs and is green (hard dependency; WS-C does not own those tests but will not declare done while they fail).
-- [ ] WS-C property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-C test run or a named companion run.
-- [ ] `docs/gaps.md` has no open rows for the findings listed in the table above.
-- [ ] Workstream STATUS line is `CLOSED <sha>`.
+- [x] `uv run pyright propstore` — passes with 0 errors.
+- [x] `uv run lint-imports` — passes (this WS does not change contracts).
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-C tests/test_T1_4_materialize_atomicity.py tests/test_promote_atomicity.py tests/test_micropub_identity_dedupe_shape.py tests/test_T1_7_build_repository_propagates_sidecar_errors.py tests/test_codex2_claim_dedupe_diverges_on_version.py tests/test_codex2_claim_concept_link_dedupe.py tests/test_codex5_sidecar_cache_derived_invalidation.py tests/test_workstream_c_done.py` — all green.
+- [x] Full suite `powershell -File scripts/run_logged_pytest.ps1` — no NEW failures vs. the WS-A merge-time baseline.
+- [x] `propstore/sidecar/claims.py` and `propstore/sidecar/micropublications.py` no longer contain the "content-hash-derived, so two files that carry the same id carry definitionally identical content" docstrings.
+- [x] `propstore/source/promote.py` no longer carries the "writing sidecar BEFORE the git commit" comment block at `:831-839`. The sidecar mirror runs strictly after `transact` succeeds.
+- [x] `promote_source_branch` returns a `PromotionResult` (or equivalent) carrying blocked-claim diagnostics in-memory; persisted-state-as-diagnostic-channel is gone.
+- [x] Micropub artifact ids in the sidecar are produced by WS-CM's `micropub_artifact_id`; no placeholder hash exists in WS-C.
+- [x] `propstore/compiler/workflows.py` no longer swallows `FileNotFoundError` from the sidecar.
+- [x] `_sidecar_content_hash` derives its key from the inputs listed in Step 6; no hand-maintained `BUILD_SEMANTIC_VERSION` constant exists in tree.
+- [x] WS-Q-cas's promote-related test matrix runs and is green (hard dependency; WS-C does not own those tests but will not declare done while they fail).
+- [x] WS-C property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-C test run or a named companion run.
+- [x] `docs/gaps.md` has no open rows for the findings listed in the table above.
+- [x] Workstream STATUS line is `CLOSED <sha>`.
 
 ## Done means done
 
