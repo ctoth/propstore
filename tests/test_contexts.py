@@ -26,10 +26,14 @@ from propstore.families.contexts.stages import (
     loaded_contexts_to_lifting_system,
     parse_context_record,
 )
-from propstore.sidecar.schema import create_context_tables, populate_contexts
+from propstore.sidecar.schema import (
+    build_minimal_world_model_schema,
+    create_context_tables,
+    populate_contexts,
+)
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
-from tests.conftest import create_world_model_schema, make_compilation_context
+from tests.conftest import make_compilation_context
 
 
 def write_context(ctx_dir: Path, name: str, data: dict) -> Path:
@@ -427,7 +431,7 @@ class TestWorldModelContextLifting:
     def test_world_model_bind_loads_lifting_rules_from_sidecar(self, tmp_path: Path) -> None:
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        create_world_model_schema(conn)
+        build_minimal_world_model_schema(conn)
         conn.execute(
             "INSERT INTO context (id, name, parameters_json, perspective) VALUES (?, ?, ?, ?)",
             ("ctx_root", "Root", "{}", None),
