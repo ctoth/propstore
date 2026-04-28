@@ -20,6 +20,13 @@ Closed in propstore commit `04281337`.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label ws-o-arg-dung-extensions-target tests/architecture/test_argumentation_pin_dung_extensions.py tests/architecture/test_argumentation_pin_ideal_admissibility.py tests/architecture/test_argumentation_pin_aba_adf.py`
   - Result: `9 passed in 3.35s`.
   - Log: `logs/test-runs/ws-o-arg-dung-extensions-target-20260428-145620.log`.
+- Package type gate:
+  - `uv run pyright propstore`
+  - Result: `0 errors`.
+- Full logged gate:
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label ws-o-arg-dung-extensions-full-final`
+  - Result: `3205 passed in 128.98s`.
+  - Log: `logs/test-runs/ws-o-arg-dung-extensions-full-final-20260428-150020.log`.
 
 ## Issues surfaced
 
