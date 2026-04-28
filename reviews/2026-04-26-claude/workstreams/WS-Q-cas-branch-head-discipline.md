@@ -1,6 +1,6 @@
 # WS-Q-cas: Branch-head CAS discipline at propstore call sites
 
-**Status**: OPEN
+**Status**: CLOSED 8b1ff8ec
 **Depends on**: WS-A (test fixture parity — without it, race tests are written against fictional schemas), WS-O-qui (quire's expected-head primitives must be transactional, not advisory)
 **Blocks**: WS-C (atomicity tests assume CAS already exists), WS-E (source promote ordering relies on this discipline)
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1)
@@ -225,20 +225,20 @@ Acceptance: sentinel test passes; gaps.md updated; STATUS line flipped.
 
 Before declaring WS-Q-cas done, ALL must hold:
 
-- [ ] WS-A is CLOSED. (Race tests are written against the production schema; without WS-A they would test fictional shapes.)
-- [ ] WS-O-qui is CLOSED. (Without transactional CAS in the kernel, propstore-side discipline cannot be enforced no matter how careful the call sites are.)
-- [ ] `uv run pyright propstore` passes with 0 errors.
-- [ ] `uv run lint-imports` passes.
-- [ ] `tests/test_branch_head_cas_matrix.py` passes for all four parametrize values.
-- [ ] `tests/test_cas_rejection_no_orphan_rows.py` passes.
-- [ ] `tests/test_cas_no_silent_retry.py` passes.
-- [ ] `tests/test_head_bound_transaction_primitive.py` passes.
-- [ ] `tests/test_no_unbounded_quire_commit.py` (the AST gate) passes.
-- [ ] Full suite — no NEW failures vs the WS-A baseline.
-- [ ] WS-Q property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-Q test run or a named companion run.
-- [ ] Every mutation path enumerated in SCOPE has been migrated to `head_bound_transaction`.
-- [ ] `docs/gaps.md` has no open rows for the findings listed above.
-- [ ] STATUS line in this file is `CLOSED <sha>`.
+- [x] WS-A is CLOSED. (Race tests are written against the production schema; without WS-A they would test fictional shapes.)
+- [x] WS-O-qui is CLOSED. (Without transactional CAS in the kernel, propstore-side discipline cannot be enforced no matter how careful the call sites are.)
+- [x] `uv run pyright propstore` passes with 0 errors.
+- [x] `uv run lint-imports` passes.
+- [x] `tests/test_branch_head_cas_matrix.py` passes for all four parametrize values.
+- [x] `tests/test_cas_rejection_no_orphan_rows.py` passes.
+- [x] `tests/test_cas_no_silent_retry.py` passes.
+- [x] `tests/test_head_bound_transaction_primitive.py` passes.
+- [x] `tests/test_no_unbounded_quire_commit.py` (the AST gate) passes.
+- [x] Full suite — no NEW failures vs the WS-A baseline.
+- [x] WS-Q property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-Q test run or a named companion run.
+- [x] Every mutation path enumerated in SCOPE has been migrated to `head_bound_transaction`.
+- [x] `docs/gaps.md` has no open rows for the findings listed above.
+- [x] STATUS line in this file is `CLOSED <sha>`.
 
 ## Done means done
 
