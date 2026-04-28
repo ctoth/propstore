@@ -10,17 +10,12 @@ from propstore.repository import Repository
 from propstore.uri import ni_uri_for_bytes, tag_uri
 
 
-_AUTHORITY_CHARS = st.characters(
-    whitelist_categories=("Ll", "Lu", "Nd"),
-    whitelist_characters=(".", ",", "-"),
-)
 _TOKEN_CHARS = st.characters(
     whitelist_categories=("Ll", "Lu", "Nd"),
     whitelist_characters=("_", "-", "."),
 )
-_URI_AUTHORITIES = st.text(_AUTHORITY_CHARS, min_size=1, max_size=32).filter(
-    lambda value: value.strip(".,-") != ""
-)
+_AUTHORITY_NAME = st.from_regex(r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,30}[A-Za-z0-9])?", fullmatch=True)
+_URI_AUTHORITIES = st.builds(lambda name, year: f"{name},{year}", _AUTHORITY_NAME, st.integers(2000, 2099))
 _URI_TOKENS = st.text(_TOKEN_CHARS, min_size=1, max_size=32).filter(
     lambda value: value.strip("._-") != ""
 )
@@ -33,7 +28,7 @@ def test_repository_uri_authority_reads_repo_config(tmp_path: Path) -> None:
         "Set repository config",
     )
 
-    assert repo.uri_authority == "example.com,2026"
+    assert str(repo.uri_authority) == "example.com,2026"
 
 
 @pytest.mark.property
