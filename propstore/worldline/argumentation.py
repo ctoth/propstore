@@ -91,6 +91,7 @@ def _capture_claim_graph(
     normalized_semantics: Any,
 ) -> WorldlineArgumentationState | None:
     justified_claims: frozenset[ClaimId] | None = None
+    extension_claim_sets: tuple[frozenset[ClaimId], ...] = ()
     if active_graph is not None:
         from propstore.core.analyzers import (
             analyze_claim_graph,
@@ -104,10 +105,16 @@ def _capture_claim_graph(
             ),
             semantics=normalized_semantics,
         )
-        if len(analyzer_result.extensions) == 1:
-            justified_claims = frozenset(
-                to_claim_id(claim_id)
-                for claim_id in analyzer_result.extensions[0].accepted_claim_ids
+        extension_claim_sets = tuple(
+            frozenset(
+                to_claim_id(claim_id) for claim_id in extension.accepted_claim_ids
+            )
+            for extension in analyzer_result.extensions
+        )
+        if extension_claim_sets:
+            justified_claims = _claims_for_inference_mode(
+                extension_claim_sets,
+                _worldline_inference_mode(normalized_semantics),
             )
     else:
         from propstore.claim_graph import compute_claim_graph_justified_claims
@@ -123,6 +130,7 @@ def _capture_claim_graph(
                 to_claim_id(claim_id)
                 for claim_id in current
             )
+            extension_claim_sets = (justified_claims,)
 
     if justified_claims is None:
         return None
@@ -131,7 +139,28 @@ def _capture_claim_graph(
         backend="claim_graph",
         justified=tuple(sorted(str(claim_id) for claim_id in justified_claims)),
         defeated=tuple(sorted(str(claim_id) for claim_id in defeated)),
+        extensions=tuple(
+            tuple(sorted(str(claim_id) for claim_id in extension))
+            for extension in extension_claim_sets
+        ),
+        inference_mode=_worldline_inference_mode(normalized_semantics),
     )
+
+
+def _worldline_inference_mode(normalized_semantics: Any) -> str:
+    semantics_name = str(getattr(normalized_semantics, "value", normalized_semantics))
+    return "grounded" if semantics_name == "grounded" else "credulous"
+
+
+def _claims_for_inference_mode(
+    extensions: tuple[frozenset[ClaimId], ...],
+    inference_mode: str,
+) -> frozenset[ClaimId]:
+    if inference_mode == "grounded":
+        return extensions[0]
+    if inference_mode == "skeptical":
+        return frozenset(set.intersection(*(set(extension) for extension in extensions)))
+    return frozenset().union(*extensions)
 
 
 def _capture_aspic(

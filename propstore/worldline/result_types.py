@@ -423,6 +423,8 @@ class WorldlineArgumentationState:
     error: WorldlineCaptureError | None = None
     justified: tuple[str, ...] = ()
     defeated: tuple[str, ...] = ()
+    extensions: tuple[tuple[str, ...], ...] = ()
+    inference_mode: str | None = None
     acceptance_probs: Mapping[str, float] = field(default_factory=dict)
     strategy_used: str | None = None
     samples: int | None = None
@@ -446,6 +448,11 @@ class WorldlineArgumentationState:
         object.__setattr__(self, "error", coerce_worldline_capture_error(self.error))
         object.__setattr__(self, "justified", tuple(self.justified))
         object.__setattr__(self, "defeated", tuple(self.defeated))
+        object.__setattr__(
+            self,
+            "extensions",
+            tuple(tuple(str(item) for item in extension) for extension in self.extensions),
+        )
         object.__setattr__(self, "acceptance_probs", dict(self.acceptance_probs))
         object.__setattr__(self, "supported", tuple(self.supported))
         object.__setattr__(
@@ -519,6 +526,14 @@ class WorldlineArgumentationState:
             error=coerce_worldline_capture_error(data.get("error")),
             justified=tuple(str(item) for item in data.get("justified") or ()),
             defeated=tuple(str(item) for item in data.get("defeated") or ()),
+            extensions=tuple(
+                tuple(str(item) for item in extension)
+                for extension in data.get("extensions") or ()
+                if isinstance(extension, Sequence) and not isinstance(extension, (str, bytes))
+            ),
+            inference_mode=(
+                None if data.get("inference_mode") is None else str(data.get("inference_mode"))
+            ),
             acceptance_probs={
                 str(claim_id): float(value)
                 for claim_id, value in acceptance_probs.items()
@@ -575,6 +590,10 @@ class WorldlineArgumentationState:
             data["justified"] = list(self.justified)
         if self.defeated:
             data["defeated"] = list(self.defeated)
+        if self.extensions:
+            data["extensions"] = [list(extension) for extension in self.extensions]
+        if self.inference_mode is not None:
+            data["inference_mode"] = self.inference_mode
         if self.acceptance_probs:
             data["acceptance_probs"] = dict(self.acceptance_probs)
         if self.strategy_used is not None:
