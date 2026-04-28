@@ -2721,7 +2721,7 @@ class ATMSEngine:
                     "out_kind": None if future.out_kind is None else future.out_kind.value,
                     "reason": future.reason,
                     "support_quality": future.support_quality.value,
-                    "essential_support": list(future.essential_support),
+                    "essential_support": future.essential_support,
                 }
                 for future in report.futures
             ],
@@ -2773,7 +2773,7 @@ class ATMSEngine:
             )
             result["reason"] = future.reason
             result["support_quality"] = future.support_quality.value
-            result["essential_support"] = list(future.essential_support)
+            result["essential_support"] = future.essential_support
         else:
             result["supported_claim_ids"] = list(future.supported_claim_ids)
         return result
