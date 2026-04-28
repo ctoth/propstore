@@ -109,7 +109,13 @@ def world_derive(
               type=click.Choice(["elitist", "democratic"]),
               help="Set comparison for preference ordering (default: elitist)")
 @click.option("--decision-criterion", "decision_criterion", default="pignistic",
-              type=click.Choice(["pignistic", "lower_bound", "upper_bound", "hurwicz"]),
+              type=click.Choice([
+                  "pignistic",
+                  "projected_probability",
+                  "lower_bound",
+                  "upper_bound",
+                  "hurwicz",
+              ]),
               help="Decision criterion for opinion interpretation (default: pignistic)")
 @click.option("--pessimism-index", "pessimism_index", default=0.5,
               type=float, help="Hurwicz pessimism index α ∈ [0,1] (default: 0.5)")
