@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import sqlite3
 
 from propstore.repository import Repository
-from propstore.sidecar.sqlite import connect_sidecar
+from propstore.sidecar.sqlite import connect_sidecar_readonly
 
 
 class SidecarQueryError(Exception):
@@ -23,9 +23,8 @@ def query_sidecar(repo: Repository, sql: str) -> SidecarQueryResult:
     if not sidecar.exists():
         raise FileNotFoundError(sidecar)
 
-    conn = connect_sidecar(sidecar)
+    conn = connect_sidecar_readonly(sidecar)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA query_only=ON")
     try:
         cursor = conn.execute(sql)
         rows = cursor.fetchall()
