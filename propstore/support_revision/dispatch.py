@@ -32,7 +32,9 @@ def dispatch(
         atom = _formula_atom(payload)
         targets = _string_tuple(payload.get("targets") or ())
         revision_operator = str(payload.get("revision_operator") or "")
-        conflicts = {atom.atom_id: targets} if targets else None
+        conflicts: dict[str, tuple[str, ...] | list[str]] | None = (
+            {atom.atom_id: targets} if targets else None
+        )
         _, next_state = iterated_revise(
             state,
             atom,
