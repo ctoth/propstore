@@ -29,7 +29,7 @@ from propstore.calibrate import (
 )
 from propstore.core.base_rates import BaseRateUnresolved
 from propstore.families.documents.stances import StanceFileDocument
-from propstore.opinion import Opinion
+from propstore.opinion import Opinion, fuse
 from propstore.provenance import Provenance, ProvenanceStatus
 
 
@@ -723,7 +723,7 @@ class TestCorpusCalibReducesUncertainty:
         assert result["resolution"]["confidence"] == pytest.approx(0.0)
         assert result["resolution"]["unresolved_calibration"]["reason"] == "missing_base_rate"
 
-    def test_corpus_and_categorical_fused_via_consensus(self):
+    def test_corpus_and_categorical_fused_via_wbf(self):
         import asyncio
         from propstore.classify import classify_stance_async
 
@@ -765,4 +765,5 @@ class TestCorpusCalibReducesUncertainty:
         )
         assert isinstance(cat_op, Opinion)
 
-        assert u <= min(corpus_op.u, cat_op.u) + 1e-9
+        expected = fuse(corpus_op, cat_op)
+        assert u == pytest.approx(expected.u, abs=1e-12)
