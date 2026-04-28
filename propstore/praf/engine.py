@@ -35,6 +35,18 @@ class PreferenceLayerError(ValueError):
     pass
 
 
+class COHDivergenceError(PreferenceLayerError):
+    pass
+
+
+class COHDogmaticInputError(PreferenceLayerError):
+    pass
+
+
+_COH_MAX_ITERATIONS = 100
+_COH_TOLERANCE = 1e-12
+
+
 @dataclass(frozen=True)
 class PropstorePrAF:
     """Propstore-owned PrAF adapter with opinion and provenance metadata."""
@@ -315,6 +327,19 @@ def p_defeat_from_stance(stance: dict) -> Opinion | NoCalibration:
     return p_relation_from_stance(stance)
 
 
+def _has_coh_violation(
+    expectations: Mapping[str, float],
+    attacks: frozenset[tuple[str, str]],
+) -> bool:
+    for src, tgt in attacks:
+        if src == tgt:
+            if expectations[src] > 0.5 + _COH_TOLERANCE:
+                return True
+        elif expectations[src] + expectations[tgt] > 1.0 + _COH_TOLERANCE:
+            return True
+    return False
+
+
 def enforce_coh(praf: PropstorePrAF) -> PropstorePrAF:
     """Enforce COH rationality on propstore opinion-valued argument probabilities."""
     attacks = praf.framework.attacks
@@ -333,20 +358,23 @@ def enforce_coh(praf: PropstorePrAF) -> PropstorePrAF:
         if op.u > 1e-9:
             evidence_n[arg] = W * (1.0 / op.u - 1.0)
         else:
-            evidence_n[arg] = 10.0
+            raise COHDogmaticInputError(
+                "enforce_coh cannot reconstruct dogmatic argument opinions "
+                "without a paper-defined evidence count"
+            )
 
     changed = False
-    for _ in range(100):
+    for _ in range(_COH_MAX_ITERATIONS):
         any_violation = False
         for src, tgt in attacks:
             if src == tgt:
-                if expectations[src] > 0.5 + 1e-12:
+                if expectations[src] > 0.5 + _COH_TOLERANCE:
                     expectations[src] = 0.5
                     any_violation = True
                     changed = True
             else:
                 total = expectations[src] + expectations[tgt]
-                if total > 1.0 + 1e-12:
+                if total > 1.0 + _COH_TOLERANCE:
                     factor = 1.0 / total
                     expectations[src] *= factor
                     expectations[tgt] *= factor
@@ -354,6 +382,11 @@ def enforce_coh(praf: PropstorePrAF) -> PropstorePrAF:
                     changed = True
         if not any_violation:
             break
+
+    if _has_coh_violation(expectations, attacks):
+        raise COHDivergenceError(
+            f"enforce_coh did not converge within {_COH_MAX_ITERATIONS} iterations"
+        )
 
     if not changed:
         return praf
