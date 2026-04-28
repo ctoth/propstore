@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-ARGUMENTATION_WS_O_ARG_SHA = "f8ebd8575681f150e658c733cf0b25a265966503"
+ARGUMENTATION_WS_O_ARG_SHA = "ca1778cdcb16b1fa6360ab323bdae0af19c782fb"
 
 
 def test_workstream_o_arg_pin_done() -> None:
