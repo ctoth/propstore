@@ -30,6 +30,7 @@ from propstore.app.concepts import (
     ConceptListRequest,
     ConceptSearchReport,
     ConceptSearchRequest,
+    ConceptSearchSyntaxError,
     ConceptSidecarMissingError,
     list_concepts,
     search_concepts,
@@ -65,6 +66,7 @@ _EXPECTED_WEB_ERRORS = (
     RepositoryViewUnsupportedStateError,
     ClaimViewUnknownClaimError,
     ConceptViewUnknownConceptError,
+    ConceptSearchSyntaxError,
     SemanticNeighborhoodUnsupportedFocusError,
     ClaimViewBlockedError,
     WorldSidecarMissingError,
@@ -79,6 +81,7 @@ _ERROR_RESPONSES: dict[type[Exception], tuple[str, int]] = {
     ClaimViewUnknownClaimError: ("Claim Not Found", 404),
     ClaimViewBlockedError: ("Not Found", 404),
     ConceptViewUnknownConceptError: ("Concept Not Found", 404),
+    ConceptSearchSyntaxError: ("Invalid Search Query", 400),
     WorldSidecarMissingError: ("Sidecar Missing", 409),
     ConceptSidecarMissingError: ("Sidecar Missing", 409),
 }
