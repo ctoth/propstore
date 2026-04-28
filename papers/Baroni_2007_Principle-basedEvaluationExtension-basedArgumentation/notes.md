@@ -322,11 +322,14 @@ This paper is foundational for propstore's argumentation layer. It provides the 
 - [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — cited as [4/19]; the workshop version of the SCC-recursive schema that this paper extends with the full principle-based evaluation framework. This paper IS the full journal version of that work.
 - [[Pollock_1987_DefeasibleReasoning]] — cited as [17]; Pollock's defeasible reasoning with rebutting/undercutting defeat relates to the reinstatement principles evaluated here
 - [[Caminada_2006_IssueReinstatementArgumentation]] — cited as [7/9]; introduces semi-stable semantics and the labelling-based reinstatement analysis that this paper evaluates under the principle-based framework
+- [Prudent Semantics for Argumentation Frameworks](../Coste-Marquis_2005_PrudentSemantics/notes.md) - cited as [6]; defines the prudent semantics evaluated here, including indirect-attack constraints that make prudent semantics fail directionality in this paper's principle-based analysis.
 
 ### New Leads (Not Yet in Collection)
 - Jakobovits, Vermeir (1999) — "Robust semantics for argumentation frameworks" — relevant for alternative semantics handling problematic cycles
-- Coste-Marquis, Devred, Marquis (2005) — "Prudent semantics for argumentation frameworks" — relevant as cautionary example of how indirect defeats change formal properties
 - Dung, Mancarella, Toni (2007) — "Computing ideal sceptical argumentation" — defines ideal semantics, relevant to conservative rendering modes
+
+### Now in Collection (previously listed as leads)
+- [Prudent Semantics for Argumentation Frameworks](../Coste-Marquis_2005_PrudentSemantics/notes.md) - Provides the original definition of p-admissible, preferred p-, stable p-, grounded p-, and complete p-extensions. This paper evaluates those semantics as a cautionary case: indirect defeats make the semantics more conservative but break directionality.
 
 ### Supersedes or Recontextualizes
 - [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — this is the full journal version (AIJ 2007) of the NMR 2004 workshop paper, with complete proofs, the full principle-based evaluation framework, and comprehensive comparison across 8 semantics
@@ -339,6 +342,7 @@ This paper is foundational for propstore's argumentation layer. It provides the 
 **Semantics evaluation and comparison:**
 - [[Verheij_2002_ExistenceMultiplicityExtensionsDialectical]] — **Strong.** Both papers analyze fundamental properties of argumentation extensions. Verheij characterizes when extensions exist and why multiple extensions arise; Baroni provides formal criteria (I-maximality, reinstatement, directionality, skepticism adequacy) for evaluating semantics that produce those extensions. Complementary analytical frameworks.
 - [[Caminada_2007_EvaluationArgumentationFormalisms]] — **Strong.** Both papers evaluate argumentation formalisms against formal criteria. Caminada's labelling-based approach provides an alternative perspective to Baroni's extension-based evaluation; together they cover both sides of the extension/labelling duality.
+- [Prudent Semantics for Argumentation Frameworks](../Coste-Marquis_2005_PrudentSemantics/notes.md) - **Strong.** This paper directly evaluates prudent semantics; Coste-Marquis et al. provide the indirect-conflict machinery, while Baroni and Giacomin show how that machinery fares against directionality, skepticism adequacy, and resolution adequacy.
 
 **Extending Dung's framework:**
 - [[Amgoud_2008_BipolarityArgumentationFrameworks]] — **Moderate.** Baroni evaluates semantics for standard AFs; Amgoud extends AFs with support relations. Whether Baroni's principles (especially directionality and SCC-recursiveness) generalize to bipolar frameworks is an open question.
