@@ -49,7 +49,6 @@ def _insert_pytest_import(lines: list[str]) -> list[str]:
 def _mark_file(path: Path) -> bool:
     original_text = path.read_bytes().decode("utf-8")
     original = original_text.splitlines(keepends=True)
-    line_ending = "\r\n" if "\r\n" in original_text else "\n"
     if not any(line.lstrip().startswith("@given") for line in original):
         return False
 
@@ -60,7 +59,7 @@ def _mark_file(path: Path) -> bool:
         stripped = line.lstrip()
         if stripped.startswith("@given") and not _has_property_marker(lines, index):
             indent = line[: len(line) - len(stripped)]
-            marked.append(f"{indent}@pytest.mark.property{line_ending}")
+            marked.append(f"{indent}@pytest.mark.property\n")
             changed = True
         marked.append(line)
     if changed:
