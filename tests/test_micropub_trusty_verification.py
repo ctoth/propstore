@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from hypothesis import given, strategies as st
 
 from propstore.families.documents.micropubs import MicropublicationDocument
@@ -45,6 +46,7 @@ def test_micropub_trusty_uri_verifies_exact_canonical_bytes() -> None:
     context_id=st.from_regex(r"ctx_[a-z0-9_]{1,12}", fullmatch=True),
     page=st.integers(min_value=1, max_value=999),
 )
+@pytest.mark.property
 def test_generated_micropub_trusty_uri_verification_round_trips(
     claim_id: str,
     context_id: str,
