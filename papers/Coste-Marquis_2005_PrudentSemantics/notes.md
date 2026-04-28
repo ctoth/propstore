@@ -5,6 +5,11 @@ year: 2005
 venue: "ICTAI 2005"
 doi_url: "https://doi.org/10.1109/ICTAI.2005.103"
 pages: "568-572"
+produced_by:
+  agent: "GPT-5 Codex"
+  skill: "paper-reader"
+  status: "stated"
+  timestamp: "2026-04-28T21:26:29Z"
 ---
 
 # Prudent Semantics for Argumentation Frameworks
