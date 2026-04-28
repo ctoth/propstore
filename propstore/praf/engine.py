@@ -123,12 +123,17 @@ def _opinion_from_payload(
     a = payload.get(f"{prefix}base_rate")
     if a is None:
         return _missing_calibration("missing_base_rate", f"{prefix}base_rate")
+    belief = float(b)
+    disbelief = float(d)
+    uncertainty = float(u)
+    base_rate = float(a)
     return Opinion(
-        float(b),
-        float(d),
-        float(u),
-        float(a),
+        belief,
+        disbelief,
+        uncertainty,
+        base_rate,
         _praf_provenance(ProvenanceStatus.STATED, operation),
+        allow_dogmatic=uncertainty <= 1e-9,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
     )
 
 
