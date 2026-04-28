@@ -284,9 +284,20 @@ def p_relation_from_stance(stance: dict) -> Opinion | NoCalibration:
                 a,
                 provenance=_praf_provenance(ProvenanceStatus.STATED, "stance_confidence"),
             )
+        effective_sample_size = stance.get("effective_sample_size")
+        if effective_sample_size is None:
+            effective_sample_size = stance.get("sample_size")
+        if effective_sample_size is None or float(effective_sample_size) <= 0.0:
+            return Opinion.vacuous(
+                a,
+                provenance=_praf_provenance(
+                    ProvenanceStatus.VACUOUS,
+                    "stance_confidence_without_sample_size",
+                ),
+            )
         return from_probability(
             confidence_value,
-            1,
+            float(effective_sample_size),
             a,
             provenance=_praf_provenance(ProvenanceStatus.STATED, "stance_confidence"),
         )
