@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from typing import TYPE_CHECKING, Mapping
 
 from .mutation import (
@@ -29,6 +30,12 @@ if TYPE_CHECKING:
     from propstore.repository import Repository
 
 
+class ConceptSearchSyntaxError(ConceptDisplayError):
+    def __init__(self, query: str) -> None:
+        super().__init__("Search query is not valid FTS syntax.")
+        self.query = query
+
+
 def search_concepts(
     repo: Repository,
     request: ConceptSearchRequest,
@@ -37,17 +44,22 @@ def search_concepts(
     sidecar = _require_sidecar(repo)
     conn = connect_sidecar(sidecar)
     try:
-        rows = conn.execute(
-            "SELECT "
-            "COALESCE(NULLIF(concept.primary_logical_id, ''), concept.id), "
-            "concept.primary_logical_id, "
-            "concept_fts.canonical_name, "
-            "concept.status, "
-            "concept_fts.definition "
-            "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
-            "WHERE concept_fts MATCH ? LIMIT ?",
-            (request.query, request.limit),
-        ).fetchall()
+        try:
+            rows = conn.execute(
+                "SELECT "
+                "COALESCE(NULLIF(concept.primary_logical_id, ''), concept.id), "
+                "concept.primary_logical_id, "
+                "concept_fts.canonical_name, "
+                "concept.status, "
+                "concept_fts.definition "
+                "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
+                "WHERE concept_fts MATCH ? LIMIT ?",
+                (request.query, request.limit),
+            ).fetchall()
+        except sqlite3.OperationalError as exc:
+            if _is_fts_syntax_error(exc):
+                raise ConceptSearchSyntaxError(request.query) from exc
+            raise
     finally:
         conn.close()
     return ConceptSearchReport(
@@ -62,6 +74,11 @@ def search_concepts(
             for row in rows
         )
     )
+
+
+def _is_fts_syntax_error(exc: sqlite3.OperationalError) -> bool:
+    message = str(exc).casefold()
+    return "fts5: syntax error" in message or "unterminated string" in message
 
 
 def list_concepts(
