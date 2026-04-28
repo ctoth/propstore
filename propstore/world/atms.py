@@ -1744,6 +1744,8 @@ class ATMSEngine:
         node = self._nodes[node_id]
         if node.label.environments:
             return False
+        if self._cycle_support_pruned_by_nogood(node_id):
+            return True
         if _visited is None:
             _visited = set()
         if node_id in _visited:
@@ -1763,6 +1765,127 @@ class ATMSEngine:
                     if self._was_pruned_by_nogood(antecedent_id, _visited):
                         return True
         return False
+
+    def _cycle_support_pruned_by_nogood(self, node_id: str) -> bool:
+        component = self._empty_label_cycle_component(node_id)
+        if not component:
+            return False
+
+        labels_by_member: list[list[Label]] = []
+        for member_id in sorted(component):
+            options: list[Label] = []
+            member = self._nodes[member_id]
+            for justification_id in member.justification_ids:
+                justification = self._justifications[justification_id]
+                external_labels: list[Label] = []
+                valid = False
+                for antecedent_id in justification.antecedent_ids:
+                    if antecedent_id in component:
+                        valid = True
+                        continue
+                    antecedent = self._nodes[antecedent_id]
+                    if not antecedent.label.environments:
+                        valid = False
+                        break
+                    external_labels.append(antecedent.label)
+                if not valid:
+                    continue
+                options.append(
+                    combine_labels(*external_labels, nogoods=None)
+                    if external_labels
+                    else Label((EnvironmentKey(()),))
+                )
+            if not options:
+                return False
+            labels_by_member.append(options)
+
+        # de Kleer 1986 p.146 treats cyclic assumption hierarchies as a unit:
+        # external supports for the SCC are combined before nogood pruning.
+        for candidate_labels in product(*labels_by_member):
+            raw = combine_labels(*candidate_labels, nogoods=None)
+            pruned = combine_labels(*candidate_labels, nogoods=self.nogoods)
+            if raw.environments and not pruned.environments:
+                return True
+        return False
+
+    def _empty_label_cycle_component(self, node_id: str) -> frozenset[str]:
+        if node_id not in self._nodes or self._nodes[node_id].label.environments:
+            return frozenset()
+
+        reachable: set[str] = set()
+
+        def visit(candidate_id: str) -> None:
+            if candidate_id in reachable:
+                return
+            candidate = self._nodes[candidate_id]
+            if candidate.label.environments:
+                return
+            reachable.add(candidate_id)
+            for justification_id in candidate.justification_ids:
+                justification = self._justifications[justification_id]
+                for antecedent_id in justification.antecedent_ids:
+                    if antecedent_id in self._nodes:
+                        visit(antecedent_id)
+
+        visit(node_id)
+        index = 0
+        stack: list[str] = []
+        on_stack: set[str] = set()
+        indices: dict[str, int] = {}
+        lowlinks: dict[str, int] = {}
+        components: list[frozenset[str]] = []
+
+        def strongconnect(candidate_id: str) -> None:
+            nonlocal index
+            indices[candidate_id] = index
+            lowlinks[candidate_id] = index
+            index += 1
+            stack.append(candidate_id)
+            on_stack.add(candidate_id)
+
+            for successor_id in self._empty_label_successors(candidate_id):
+                if successor_id not in reachable:
+                    continue
+                if successor_id not in indices:
+                    strongconnect(successor_id)
+                    lowlinks[candidate_id] = min(lowlinks[candidate_id], lowlinks[successor_id])
+                elif successor_id in on_stack:
+                    lowlinks[candidate_id] = min(lowlinks[candidate_id], indices[successor_id])
+
+            if lowlinks[candidate_id] != indices[candidate_id]:
+                return
+            component: list[str] = []
+            while True:
+                member_id = stack.pop()
+                on_stack.remove(member_id)
+                component.append(member_id)
+                if member_id == candidate_id:
+                    break
+            components.append(frozenset(component))
+
+        for candidate_id in sorted(reachable):
+            if candidate_id not in indices:
+                strongconnect(candidate_id)
+
+        for component in components:
+            if node_id not in component:
+                continue
+            if len(component) > 1:
+                return component
+            if node_id in set(self._empty_label_successors(node_id)):
+                return component
+        return frozenset()
+
+    def _empty_label_successors(self, node_id: str) -> tuple[str, ...]:
+        successors: set[str] = set()
+        node = self._nodes[node_id]
+        for justification_id in node.justification_ids:
+            justification = self._justifications[justification_id]
+            for antecedent_id in justification.antecedent_ids:
+                antecedent = self._nodes.get(antecedent_id)
+                if antecedent is not None and not antecedent.label.environments:
+                    successors.add(antecedent_id)
+        return tuple(sorted(successors))
 
     def _justification_candidate_label(
         self,
