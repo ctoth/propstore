@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from propstore.canonical_namespaces import assert_namespace_not_reserved
 from propstore.families.claims.documents import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.families.registry import SourceRef
 from propstore.core.claim_types import ClaimType, coerce_claim_type
@@ -94,6 +95,7 @@ def normalize_source_claims_payload(
     normalized_claims: list[SourceClaimDocument] = []
     local_to_canonical: dict[str, str] = {}
     namespace = normalize_source_slug(source_namespace)
+    assert_namespace_not_reserved(namespace, context="source claims namespace")
 
     for index, claim in enumerate(data.claims, start=1):
         normalized = claim.to_payload()
