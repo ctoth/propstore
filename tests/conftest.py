@@ -9,9 +9,11 @@ import hashlib
 import json
 import os
 import sqlite3
+import warnings
 from copy import deepcopy
 from types import MappingProxyType
 
+import pytest
 from hypothesis import settings
 
 from quire.documents import convert_document_value as convert_document
@@ -63,6 +65,21 @@ def make_test_context_commit_entry(context_id: str = TEST_CONTEXT_ID) -> tuple[s
 settings.register_profile("default", deadline=None)
 settings.register_profile("overnight", deadline=None, max_examples=1000)
 settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
+
+
+def pytest_collection_modifyitems(config, items) -> None:
+    for item in items:
+        test_obj = getattr(item, "obj", None)
+        if getattr(test_obj, "hypothesis", None) is None:
+            continue
+        if item.get_closest_marker("property") is not None:
+            continue
+        warnings.warn(
+            pytest.PytestWarning(
+                f"Hypothesis test {item.nodeid} is missing @pytest.mark.property"
+            ),
+            stacklevel=2,
+        )
 
 
 def _rewrite_concept_ref(value: object) -> object:
