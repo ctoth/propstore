@@ -751,6 +751,14 @@ class WorldModel(WorldStore):
             )
         return predicates, tuple(params)
 
+    def _render_policy_predicates_for_alias(
+        self,
+        policy: RenderPolicy,
+        alias: str,
+    ) -> tuple[list[str], tuple[Any, ...]]:
+        predicates, params = self._render_policy_predicates(policy)
+        return [predicate.replace("core.", f"{alias}.") for predicate in predicates], params
+
     def claims_with_policy(
         self,
         concept_id: str | None,
@@ -923,6 +931,61 @@ class WorldModel(WorldStore):
             FROM relation_edge
             WHERE source_kind = 'claim' AND target_kind = 'claim'
             """
+        ).fetchall()
+        return [StanceRow.from_mapping(dict(row)) for row in rows]
+
+    def claim_stances_with_policy(
+        self,
+        focus_claim_id: str,
+        policy: RenderPolicy,
+    ) -> list[StanceRow]:
+        source_predicates, source_params = self._render_policy_predicates_for_alias(
+            policy,
+            "source_core",
+        )
+        target_predicates, target_params = self._render_policy_predicates_for_alias(
+            policy,
+            "target_core",
+        )
+        predicates = [
+            "edge.source_kind = 'claim'",
+            "edge.target_kind = 'claim'",
+            "(edge.source_id = ? OR edge.target_id = ?)",
+            *source_predicates,
+            *target_predicates,
+        ]
+        params: list[Any] = [
+            focus_claim_id,
+            focus_claim_id,
+            *source_params,
+            *target_params,
+        ]
+        rows = self._conn.execute(
+            f"""
+            SELECT
+                edge.source_id AS claim_id,
+                edge.target_id AS target_claim_id,
+                edge.relation_type AS stance_type,
+                edge.target_justification_id,
+                edge.strength,
+                edge.conditions_differ,
+                edge.note,
+                edge.resolution_method,
+                edge.resolution_model,
+                edge.embedding_model,
+                edge.embedding_distance,
+                edge.pass_number,
+                edge.confidence,
+                edge.opinion_belief,
+                edge.opinion_disbelief,
+                edge.opinion_uncertainty,
+                edge.opinion_base_rate
+            FROM relation_edge AS edge
+            JOIN claim_core AS source_core ON source_core.id = edge.source_id
+            JOIN claim_core AS target_core ON target_core.id = edge.target_id
+            WHERE {' AND '.join(predicates)}
+            """,  # noqa: S608
+            tuple(params),
         ).fetchall()
         return [StanceRow.from_mapping(dict(row)) for row in rows]
 
