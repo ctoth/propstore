@@ -244,6 +244,7 @@ class ATMSDerivedNode:
     value: float | str
     parameterization_index: int
     formula: str | None = None
+    rejection_reason: str | None = None
     label: Label = field(default_factory=Label)
     justification_ids: tuple[str, ...] = field(default_factory=tuple)
 
@@ -1497,6 +1498,14 @@ class ATMSEngine:
                 for concept_id, node_id in zip(effective_inputs, provider_combo, strict=True):
                     raw_value = _node_value(self._nodes[node_id])
                     if isinstance(raw_value, bool) or not isinstance(raw_value, int | float):
+                        added |= self._materialize_parameterization_input_rejection(
+                            parameterization_index=index,
+                            output_concept_id=output_concept_id,
+                            formula=param.formula,
+                            input_concept_id=concept_id,
+                            provider_node_id=node_id,
+                            raw_value=raw_value,
+                        )
                         break
                     input_values[concept_id] = float(raw_value)
                 else:
@@ -1524,6 +1533,39 @@ class ATMSEngine:
                         )
 
         return added
+
+    def _materialize_parameterization_input_rejection(
+        self,
+        *,
+        parameterization_index: int,
+        output_concept_id: str,
+        formula: str | None,
+        input_concept_id: str,
+        provider_node_id: str,
+        raw_value: object,
+    ) -> bool:
+        provider = self._nodes[provider_node_id]
+        provider_claim_id = _node_claim_id(provider) or provider_node_id
+        rejection_value = (
+            "parameterization_input_type_incompatible:"
+            f"{parameterization_index}:{input_concept_id}:{provider_claim_id}"
+        )
+        derived_node_id = self._derived_node_id(output_concept_id, rejection_value)
+        if derived_node_id in self._nodes:
+            return False
+        value_type = type(raw_value).__name__
+        self._nodes[derived_node_id] = ATMSDerivedNode(
+            node_id=derived_node_id,
+            concept_id=output_concept_id,
+            value=rejection_value,
+            parameterization_index=parameterization_index,
+            formula=formula,
+            rejection_reason=(
+                "parameterization input type incompatible: "
+                f"{input_concept_id} from {provider_claim_id} has {value_type} value"
+            ),
+        )
+        return True
 
     def _update_nogoods(self) -> bool:
         environments: list[EnvironmentKey] = list(self.nogoods.environments)
@@ -1700,6 +1742,9 @@ class ATMSEngine:
     ) -> ATMSOutKind | None:
         if status != ATMSNodeStatus.OUT:
             return None
+        node = self._nodes[node_id]
+        if _is_derived_node(node) and node.rejection_reason is not None:
+            return ATMSOutKind.PARAMETERIZATION_INPUT_TYPE_INCOMPATIBLE
         if self._was_pruned_by_nogood(node_id):
             return ATMSOutKind.NOGOOD_PRUNED
         return ATMSOutKind.MISSING_SUPPORT
@@ -1726,6 +1771,8 @@ class ATMSEngine:
             return "label contains the empty environment"
         if status == ATMSNodeStatus.IN:
             return "label has surviving exact support under non-empty environments"
+        if _is_derived_node(node) and node.rejection_reason is not None:
+            return node.rejection_reason
         if self._was_pruned_by_nogood(node.node_id):
             return "exact-support environments were pruned by nogoods"
         if node.kind != "claim":
