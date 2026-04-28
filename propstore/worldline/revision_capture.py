@@ -20,7 +20,7 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
             result=_revision_result_payload(bound, result),
         )
     if operation == "contract":
-        result = bound.contract(revision_query.target)
+        result = bound.contract(revision_query.target, max_candidates=1024)
         return WorldlineRevisionState(
             operation=operation,
             input_atom_id=None,
@@ -31,6 +31,7 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
         result = bound.revise(
             _revision_atom_input(revision_query.atom),
             conflicts=revision_query.conflicts.to_revision_input(),
+            max_candidates=1024,
         )
         return WorldlineRevisionState(
             operation=operation,
@@ -42,6 +43,7 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
         result, state = bound.iterated_revise(
             _revision_atom_input(revision_query.atom),
             conflicts=revision_query.conflicts.to_revision_input(),
+            max_candidates=1024,
             operator=revision_query.operator or "restrained",
         )
         return WorldlineRevisionState(

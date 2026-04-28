@@ -88,10 +88,13 @@ def contract(
     targets: str | BeliefAtom | Mapping[str, Any] | Sequence[str | BeliefAtom | Mapping[str, Any]],
     *,
     entrenchment: EntrenchmentReport,
+    max_candidates: int,
 ) -> RevisionResult:
     """Contract a belief base by cutting a minimal low-entrenchment support incision set."""
     target_ids = _normalize_targets(base, targets)
-    incision_set = _choose_incision_set(base, target_ids, entrenchment)
+    incision_set = _choose_incision_set(base, target_ids, entrenchment, max_candidates=max_candidates)
+    if isinstance(incision_set, EnumerationExceeded):
+        raise incision_set
     return stabilize_belief_base(
         base,
         incision_set=incision_set,
@@ -104,13 +107,19 @@ def revise(
     atom: BeliefAtom | str | Mapping[str, Any],
     *,
     entrenchment: EntrenchmentReport,
+    max_candidates: int,
     conflicts: Mapping[str, Sequence[str]] | None = None,
 ) -> RevisionResult:
     """Revise by contracting conflicting support and then expanding the new atom."""
     atom = normalize_revision_input(base, atom)
     conflict_ids = tuple(conflicts.get(atom.atom_id, ())) if conflicts is not None else ()
     if conflict_ids:
-        contracted = contract(base, conflict_ids, entrenchment=entrenchment)
+        contracted = contract(
+            base,
+            conflict_ids,
+            entrenchment=entrenchment,
+            max_candidates=max_candidates,
+        )
     else:
         contracted = RevisionResult(
             revised_base=base,

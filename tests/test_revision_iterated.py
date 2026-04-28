@@ -33,7 +33,7 @@ def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
 
     base, entrenchment, ids = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
-    result = contract(base, (ids["legacy"],), entrenchment=entrenchment)
+    result = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
             atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
@@ -64,7 +64,7 @@ def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
 
     base, entrenchment, ids = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
-    result = contract(base, (ids["legacy"],), entrenchment=entrenchment)
+    result = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
             atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
@@ -181,12 +181,14 @@ def test_iterated_revise_is_history_sensitive_even_with_same_current_acceptance(
     _, next_left = iterated_revise(
         state_left,
         new_atom,
+        max_candidates=8,
         conflicts=conflicts,
         operator="restrained",
     )
     _, next_right = iterated_revise(
         state_right,
         new_atom,
+        max_candidates=8,
         conflicts=conflicts,
         operator="restrained",
     )
@@ -209,12 +211,14 @@ def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
     _, restrained_state = iterated_revise(
         state,
         new_atom,
+        max_candidates=8,
         conflicts=conflicts,
         operator="restrained",
     )
     _, lexicographic_state = iterated_revise(
         state,
         new_atom,
+        max_candidates=8,
         conflicts=conflicts,
         operator="lexicographic",
     )
@@ -234,12 +238,14 @@ def test_iterated_revise_linear_sequence_appends_history_and_uses_next_state() -
     _, next_state = iterated_revise(
         state,
         new_a,
+        max_candidates=8,
         conflicts={new_a.atom_id: (ids["legacy"],)},
         operator="restrained",
     )
     _, final_state = iterated_revise(
         next_state,
         new_b,
+        max_candidates=8,
         conflicts={new_b.atom_id: (new_a.atom_id,)},
         operator="restrained",
     )
@@ -273,6 +279,7 @@ def test_iterated_revise_refuses_merge_point_states() -> None:
         iterated_revise(
             state,
             new_atom,
+            max_candidates=8,
             conflicts={new_atom.atom_id: (ids["legacy"],)},
             operator="restrained",
         )

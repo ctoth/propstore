@@ -67,7 +67,7 @@ def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() ->
 
     base, entrenchment, ids = _base_with_shared_support()
 
-    result = contract(base, (ids["legacy"],), entrenchment=entrenchment)
+    result = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
 
     assert result.incision_set == ("assumption:shared_weak",)
     assert "assumption:shared_weak" in result.rejected_atom_ids
@@ -103,12 +103,14 @@ def test_revise_matches_operational_levi_identity() -> None:
         base,
         new_atom,
         entrenchment=entrenchment,
+        max_candidates=8,
         conflicts=conflicts,
     )
     contracted = contract(
         base,
         conflicts[new_atom.atom_id],
         entrenchment=entrenchment,
+        max_candidates=8,
     )
     expanded = expand(contracted.revised_base, new_atom)
 
@@ -209,7 +211,7 @@ def test_contract_matches_explicit_stabilization_of_chosen_incision_set() -> Non
 
     base, entrenchment, ids = _base_with_shared_support()
 
-    contracted = contract(base, (ids["legacy"],), entrenchment=entrenchment)
+    contracted = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
     stabilized = stabilize_belief_base(base, incision_set=contracted.incision_set)
 
     assert contracted.accepted_atom_ids == stabilized.accepted_atom_ids

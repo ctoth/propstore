@@ -113,6 +113,7 @@ class TestGeneratedRevisionPostulates:
             base,
             atom,
             entrenchment=entrenchment,
+            max_candidates=32,
             conflicts={},
         )
 
@@ -143,12 +144,14 @@ class TestGeneratedRevisionPostulates:
             base_with_atom,
             atom_input.atom_id,
             entrenchment=entrenchment_with_atom,
+            max_candidates=32,
             conflicts={},
         )
         from_atom = revise(
             base_with_atom,
             atom_input,
             entrenchment=entrenchment_with_atom,
+            max_candidates=32,
             conflicts={},
         )
 

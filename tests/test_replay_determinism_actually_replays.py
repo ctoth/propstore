@@ -28,6 +28,7 @@ def test_ws_j_journal_replay_reports_algorithmic_divergence() -> None:
     )
     operator_input = {
         "formula": belief_atom_to_canonical_dict(new_atom),
+        "max_candidates": 8,
         "revision_operator": "restrained",
         "targets": [ids["legacy"]],
     }

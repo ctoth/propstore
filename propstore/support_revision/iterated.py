@@ -59,6 +59,7 @@ def iterated_revise(
     state: EpistemicState,
     atom,
     *,
+    max_candidates: int,
     conflicts: dict[str, tuple[str, ...] | list[str]] | None = None,
     operator: str = "restrained",
 ) -> tuple[RevisionResult, EpistemicState]:
@@ -79,6 +80,7 @@ def iterated_revise(
         state.base,
         normalized,
         entrenchment=current_entrenchment,
+        max_candidates=max_candidates,
         conflicts=conflict_map or None,
     )
     next_entrenchment = _updated_entrenchment_report(

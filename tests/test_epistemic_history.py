@@ -48,6 +48,7 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
     result, state_out = iterated_revise(
         state_in,
         new_atom,
+        max_candidates=8,
         conflicts={new_atom.atom_id: (ids["legacy"],)},
         operator="restrained",
     )
@@ -65,6 +66,7 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
         operator=JournalOperator.ITERATED_REVISE,
         operator_input={
             "formula": belief_atom_to_canonical_dict(new_atom),
+            "max_candidates": 8,
             "revision_operator": "restrained",
             "targets": [ids["legacy"]],
         },

@@ -22,6 +22,7 @@ def test_ws_j_transition_journal_entry_has_typed_replay_contract() -> None:
     result, state_out = iterated_revise(
         state_in,
         new_atom,
+        max_candidates=8,
         conflicts={new_atom.atom_id: (ids["legacy"],)},
         operator="restrained",
     )
@@ -37,6 +38,7 @@ def test_ws_j_transition_journal_entry_has_typed_replay_contract() -> None:
     }
     operator_input = {
         "formula": belief_atom_to_canonical_dict(new_atom),
+        "max_candidates": 8,
         "revision_operator": "restrained",
         "targets": [ids["legacy"]],
     }

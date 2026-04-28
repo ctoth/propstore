@@ -77,7 +77,7 @@ def contract_revision(
 ) -> RevisionResult:
     bound = _bind_revision_world(world, request)
     target_arg: str | tuple[str, ...] = targets[0] if len(targets) == 1 else targets
-    return bound.contract(target_arg)
+    return bound.contract(target_arg, max_candidates=4096)
 
 
 def revise_world(
@@ -90,7 +90,7 @@ def revise_world(
     base = bound.revision_base()
     normalized = normalize_revision_input(base, atom)
     conflict_map = {normalized.atom_id: tuple(conflicts)} if conflicts else None
-    return bound.revise(atom, conflicts=conflict_map)
+    return bound.revise(atom, conflicts=conflict_map, max_candidates=4096)
 
 
 def explain_revision_operation(
@@ -111,14 +111,14 @@ def explain_revision_operation(
         if not targets:
             raise ValueError("target is required for contract")
         target_arg: str | tuple[str, ...] = targets[0] if len(targets) == 1 else targets
-        result = bound.contract(target_arg)
+        result = bound.contract(target_arg, max_candidates=4096)
     elif operation == "revise":
         if atom is None:
             raise ValueError("atom is required for revise")
         base = bound.revision_base()
         normalized = normalize_revision_input(base, atom)
         conflict_map = {normalized.atom_id: tuple(conflicts)} if conflicts else None
-        result = bound.revise(atom, conflicts=conflict_map)
+        result = bound.revise(atom, conflicts=conflict_map, max_candidates=4096)
     else:
         raise ValueError(f"unsupported revision operation: {operation}")
     return bound.revision_explain(result)
@@ -146,6 +146,7 @@ def iterated_revise_world(
     result, next_state = bound.iterated_revise(
         atom,
         conflicts=conflict_map,
+        max_candidates=4096,
         operator=operator,
         state=state,
     )

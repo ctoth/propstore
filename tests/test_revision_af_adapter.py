@@ -23,6 +23,7 @@ def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims(
     atom = make_assertion_atom("synthetic", value=9.0)
     _, state = bound.iterated_revise(
         atom,
+        max_candidates=8,
         conflicts={atom.atom_id: (_atom_id_for_claim(bound, "legacy"),)},
         operator="restrained",
     )

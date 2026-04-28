@@ -121,12 +121,12 @@ class _RevisionBound:
         self.merge_error = merge_error
         self.calls: list[tuple[str, object, object, object]] = []
 
-    def revise(self, atom, *, conflicts=None):
-        self.calls.append(("revise", atom, conflicts, None))
+    def revise(self, atom, *, conflicts=None, max_candidates):
+        self.calls.append(("revise", atom, conflicts, None, max_candidates))
         return self.one_shot_result
 
-    def iterated_revise(self, atom, *, conflicts=None, operator="restrained"):
-        self.calls.append(("iterated_revise", atom, conflicts, operator))
+    def iterated_revise(self, atom, *, conflicts=None, max_candidates, operator="restrained"):
+        self.calls.append(("iterated_revise", atom, conflicts, operator, max_candidates))
         if self.merge_error is not None:
             raise self.merge_error
         return self.iterated_result
@@ -161,6 +161,7 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
         base,
         synthetic,
         entrenchment=entrenchment,
+        max_candidates=8,
         conflicts={synthetic.atom_id: (ids["legacy"],)},
     )
     bound = _RevisionBound(
@@ -193,7 +194,7 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     assert result.revision.result.accepted_atom_ids == one_shot_result.accepted_atom_ids
     assert result.revision.result.rejected_atom_ids == one_shot_result.rejected_atom_ids
     assert len(bound.calls) == 1
-    call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
+    call_operation, call_atom, call_conflicts, call_operator, call_max_candidates = bound.calls[0]
     assert call_operation == "revise"
     assert call_atom == {
         "kind": "assertion",
@@ -203,6 +204,7 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     }
     assert call_conflicts == {synthetic.atom_id: (ids["legacy"],)}
     assert call_operator is None
+    assert call_max_candidates == 1024
 
 
 def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> None:
@@ -218,6 +220,7 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
             base,
             new,
             entrenchment=entrenchment,
+            max_candidates=8,
             conflicts={new.atom_id: (ids["legacy"],)},
         ),
         replace(
@@ -257,7 +260,7 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     assert result.revision.state is not None
     assert result.revision.state.to_dict() == epistemic_state_payload(iterated_result[1])
     assert len(bound.calls) == 1
-    call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
+    call_operation, call_atom, call_conflicts, call_operator, call_max_candidates = bound.calls[0]
     assert call_operation == "iterated_revise"
     assert call_atom == {
         "kind": "assertion",
@@ -267,6 +270,7 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     }
     assert call_conflicts == {new.atom_id: (ids["legacy"],)}
     assert call_operator == "restrained"
+    assert call_max_candidates == 1024
 
 
 def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> None:
@@ -308,4 +312,4 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
 
     assert result.revision is not None
     assert result.revision.error is not None
-    assert "merge point" in result.revision.error
+    assert result.revision.error.value == "revision"

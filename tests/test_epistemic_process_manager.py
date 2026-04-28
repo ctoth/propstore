@@ -322,6 +322,7 @@ def _snapshot_policy_journal_and_atom() -> tuple[
     result, state_out = iterated_revise(
         state_in,
         atom,
+        max_candidates=8,
         conflicts={atom.atom_id: (ids["legacy"],)},
         operator="restrained",
     )
@@ -339,6 +340,7 @@ def _snapshot_policy_journal_and_atom() -> tuple[
         operator=JournalOperator.ITERATED_REVISE,
         operator_input={
             "formula": belief_atom_to_canonical_dict(atom),
+            "max_candidates": 8,
             "revision_operator": "restrained",
             "targets": [ids["legacy"]],
         },

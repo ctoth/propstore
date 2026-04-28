@@ -15,6 +15,7 @@ def test_restrained_example_keeps_prior_priority_path_when_admitting_new_asserti
     _, next_state = iterated_revise(
         state,
         new,
+        max_candidates=8,
         conflicts={new.atom_id: (ids["legacy"],)},
         operator="restrained",
     )
@@ -32,6 +33,7 @@ def test_lexicographic_example_promotes_new_assertion_to_top_priority() -> None:
     _, next_state = iterated_revise(
         state,
         new,
+        max_candidates=8,
         conflicts={new.atom_id: (ids["legacy"],)},
         operator="lexicographic",
     )

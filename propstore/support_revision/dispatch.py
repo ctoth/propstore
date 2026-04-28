@@ -36,6 +36,7 @@ def dispatch(
         _, next_state = iterated_revise(
             state,
             atom,
+            max_candidates=_max_candidates(payload),
             conflicts=conflicts,
             operator=revision_operator,
         )
@@ -53,6 +54,7 @@ def dispatch(
             state.base,
             atom,
             entrenchment=entrenchment,
+            max_candidates=_max_candidates(payload),
             conflicts=conflicts or None,
         )
         return advance_epistemic_state(
@@ -66,7 +68,12 @@ def dispatch(
 
     if op is JournalOperator.CONTRACT:
         targets = _string_tuple(payload.get("targets") or ())
-        result = contract(state.base, targets, entrenchment=entrenchment)
+        result = contract(
+            state.base,
+            targets,
+            entrenchment=entrenchment,
+            max_candidates=_max_candidates(payload),
+        )
         return advance_epistemic_state(
             state,
             result,
@@ -90,6 +97,13 @@ def _entrenchment_from_state(state: EpistemicState) -> EntrenchmentReport:
         ranked_atom_ids=tuple(state.ranked_atom_ids),
         reasons=dict(state.entrenchment_reasons),
     )
+
+
+def _max_candidates(payload: Mapping[str, Any]) -> int:
+    value = payload.get("max_candidates")
+    if value is None:
+        raise ValueError("journal operator_input.max_candidates is required")
+    return int(value)
 
 
 def _required_mapping(value: object, field_name: str) -> Mapping[str, Any]:

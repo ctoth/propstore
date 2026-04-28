@@ -3,12 +3,12 @@ from __future__ import annotations
 from propstore.core.anytime import EnumerationExceeded
 from propstore.provenance import ProvenanceStatus
 from propstore.support_revision.entrenchment import EntrenchmentReport
-from propstore.support_revision.operators import _choose_incision_set
+from propstore.support_revision.operators import contract
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
 from tests.revision_assertion_helpers import make_assertion_atom
 
 
-def test_choose_incision_set_returns_enumeration_exceeded_past_ceiling() -> None:
+def test_contract_surfaces_enumeration_exceeded_past_ceiling() -> None:
     target = make_assertion_atom("target")
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
@@ -27,14 +27,16 @@ def test_choose_incision_set_returns_enumeration_exceeded_past_ceiling() -> None
         },
     )
 
-    result = _choose_incision_set(
-        base,
-        (target.atom_id,),
-        EntrenchmentReport(ranked_atom_ids=()),
-        max_candidates=1,
-    )
-
-    assert isinstance(result, EnumerationExceeded)
-    assert result.partial_count == 1
-    assert result.max_candidates == 1
-    assert result.remainder_provenance == ProvenanceStatus.VACUOUS
+    try:
+        contract(
+            base,
+            (target.atom_id,),
+            entrenchment=EntrenchmentReport(ranked_atom_ids=()),
+            max_candidates=1,
+        )
+    except EnumerationExceeded as exc:
+        assert exc.partial_count == 1
+        assert exc.max_candidates == 1
+        assert exc.remainder_provenance == ProvenanceStatus.VACUOUS
+    else:
+        raise AssertionError("contract must surface enumeration budget exhaustion")

@@ -500,6 +500,7 @@ class BoundWorld(BeliefSpace):
         self,
         targets,
         *,
+        max_candidates: int,
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
         """Contract the scoped revision belief base using the current entrenchment."""
@@ -509,12 +510,14 @@ class BoundWorld(BeliefSpace):
             self.revision_base(),
             targets,
             entrenchment=self.revision_entrenchment(overrides=overrides),
+            max_candidates=max_candidates,
         )
 
     def revise(
         self,
         atom,
         *,
+        max_candidates: int,
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
         conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
     ):
@@ -525,6 +528,7 @@ class BoundWorld(BeliefSpace):
             self.revision_base(),
             atom,
             entrenchment=self.revision_entrenchment(overrides=overrides),
+            max_candidates=max_candidates,
             conflicts=conflicts,
         )
 
@@ -565,6 +569,7 @@ class BoundWorld(BeliefSpace):
         self,
         atom,
         *,
+        max_candidates: int,
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
         conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
         operator: str = "restrained",
@@ -577,6 +582,7 @@ class BoundWorld(BeliefSpace):
         return iterated_revise_state(
             current_state,
             atom,
+            max_candidates=max_candidates,
             conflicts=None if conflicts is None else dict(conflicts),
             operator=operator,
         )

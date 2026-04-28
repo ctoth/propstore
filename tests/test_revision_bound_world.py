@@ -70,8 +70,9 @@ def test_bound_world_contract_delegates_to_revision_package() -> None:
         bound.revision_base(),
         legacy_id,
         entrenchment=bound.revision_entrenchment(),
+        max_candidates=8,
     )
-    actual = bound.contract(legacy_id)
+    actual = bound.contract(legacy_id, max_candidates=8)
 
     assert actual.accepted_atom_ids == expected.accepted_atom_ids
     assert actual.rejected_atom_ids == expected.rejected_atom_ids
@@ -87,9 +88,10 @@ def test_bound_world_revise_delegates_to_revision_package() -> None:
         bound.revision_base(),
         atom,
         entrenchment=bound.revision_entrenchment(),
+        max_candidates=8,
         conflicts=conflicts,
     )
-    actual = bound.revise(atom, conflicts=conflicts)
+    actual = bound.revise(atom, conflicts=conflicts, max_candidates=8)
 
     assert actual.accepted_atom_ids == expected.accepted_atom_ids
     assert actual.rejected_atom_ids == expected.rejected_atom_ids
@@ -98,7 +100,7 @@ def test_bound_world_revise_delegates_to_revision_package() -> None:
 
 def test_bound_world_revision_explain_delegates_to_explanation_builder() -> None:
     bound = _operator_bound()
-    result = bound.contract(_atom_id_for_claim(bound, "legacy"))
+    result = bound.contract(_atom_id_for_claim(bound, "legacy"), max_candidates=8)
 
     expected = build_revision_explanation(
         result,
@@ -131,11 +133,13 @@ def test_bound_world_iterated_revise_delegates_to_iterated_revision_package() ->
     expected_result, expected_state = iterated_revise_base(
         make_epistemic_state(bound.revision_base(), bound.revision_entrenchment()),
         atom,
+        max_candidates=8,
         conflicts=conflicts,
         operator="restrained",
     )
     actual_result, actual_state = bound.iterated_revise(
         atom,
+        max_candidates=8,
         conflicts=conflicts,
         operator="restrained",
     )
