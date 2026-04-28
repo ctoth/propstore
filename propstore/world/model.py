@@ -139,6 +139,9 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "context_id",
         "premise_kind",
         "branch",
+        "build_status",
+        "stage",
+        "promotion_status",
     },
     "claim_concept_link": {
         "claim_id",
@@ -195,6 +198,18 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
     },
     "grounded_fact": {"predicate", "arguments", "section"},
     "grounded_fact_empty_predicate": {"section", "predicate"},
+    "build_diagnostics": {
+        "id",
+        "claim_id",
+        "source_kind",
+        "source_ref",
+        "diagnostic_kind",
+        "severity",
+        "blocking",
+        "message",
+        "file",
+        "detail_json",
+    },
 }
 
 
