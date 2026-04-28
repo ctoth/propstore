@@ -19,6 +19,7 @@ from propstore.semantic_passes.types import PassDiagnostic, PassResult, Pipeline
 class FormNormalizePass:
     family = PropstoreFamily.FORMS
     name = "form.normalize"
+    version = "1"
     input_stage = FormStage.AUTHORED
     output_stage = FormStage.NORMALIZED
 
@@ -39,6 +40,7 @@ class FormNormalizePass:
 class FormDimensionPolicyPass:
     family = PropstoreFamily.FORMS
     name = "form.dimension.policy"
+    version = "1"
     input_stage = FormStage.NORMALIZED
     output_stage = FormStage.NORMALIZED
 
@@ -120,6 +122,7 @@ class FormDimensionPolicyPass:
 class FormRegistryPass:
     family = PropstoreFamily.FORMS
     name = "form.registry"
+    version = "1"
     input_stage = FormStage.NORMALIZED
     output_stage = FormStage.CHECKED
 
