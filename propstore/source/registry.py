@@ -12,6 +12,10 @@ from .common import normalize_source_slug
 from propstore.families.documents.sources import SourceConceptsDocument
 
 
+class ConceptAliasCollisionError(ValueError):
+    """Raised when a primary-branch concept handle names multiple artifacts."""
+
+
 def _derived_concept_artifact_id(handle: str) -> str:
     artifact_id = normalize_canonical_concept_payload(
         {"canonical_name": handle},
@@ -29,6 +33,16 @@ def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, 
 
     concepts_by_artifact: dict[str, dict[str, Any]] = {}
     handle_to_artifact: dict[str, str] = {}
+
+    def record_handle(handle_name: str, artifact_id: str) -> None:
+        existing = handle_to_artifact.get(handle_name)
+        if existing is not None and existing != artifact_id:
+            raise ConceptAliasCollisionError(
+                f"concept handle {handle_name!r} maps to multiple artifacts: "
+                f"{existing!r}, {artifact_id!r}"
+            )
+        handle_to_artifact[handle_name] = artifact_id
+
     for handle in repo.families.concepts.iter_handles(commit=primary_tip):
         document = handle.document
         concept = dict(parse_concept_record_document(document).to_payload())
@@ -38,13 +52,13 @@ def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, 
         concepts_by_artifact[artifact_id] = concept
         canonical_name = concept.get("canonical_name")
         if isinstance(canonical_name, str) and canonical_name:
-            handle_to_artifact[canonical_name] = artifact_id
+            record_handle(canonical_name, artifact_id)
         for alias in concept.get("aliases") or []:
             if not isinstance(alias, dict):
                 continue
             alias_name = alias.get("name")
             if isinstance(alias_name, str) and alias_name:
-                handle_to_artifact.setdefault(alias_name, artifact_id)
+                record_handle(alias_name, artifact_id)
     return concepts_by_artifact, handle_to_artifact
 
 
