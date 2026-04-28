@@ -25,7 +25,7 @@ def _has_property_marker(lines: list[str], given_index: int) -> bool:
 
 
 def _insert_pytest_import(lines: list[str]) -> list[str]:
-    if any(line == "import pytest\n" for line in lines):
+    if any(line.rstrip("\r\n") == "import pytest" for line in lines):
         return lines
 
     insertion_index = 0
@@ -47,7 +47,9 @@ def _insert_pytest_import(lines: list[str]) -> list[str]:
 
 
 def _mark_file(path: Path) -> bool:
-    original = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    original_text = path.read_bytes().decode("utf-8")
+    original = original_text.splitlines(keepends=True)
+    line_ending = "\r\n" if "\r\n" in original_text else "\n"
     if not any(line.lstrip().startswith("@given") for line in original):
         return False
 
@@ -58,11 +60,11 @@ def _mark_file(path: Path) -> bool:
         stripped = line.lstrip()
         if stripped.startswith("@given") and not _has_property_marker(lines, index):
             indent = line[: len(line) - len(stripped)]
-            marked.append(f"{indent}@pytest.mark.property\n")
+            marked.append(f"{indent}@pytest.mark.property{line_ending}")
             changed = True
         marked.append(line)
     if changed:
-        path.write_text("".join(marked), encoding="utf-8")
+        path.write_bytes("".join(marked).encode("utf-8"))
     return changed
 
 
