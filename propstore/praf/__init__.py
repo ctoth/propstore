@@ -1,6 +1,8 @@
 """Propstore probabilistic argumentation adapters."""
 
 from .engine import (
+    COHDivergenceError,
+    COHDogmaticInputError,
     NoCalibration,
     PreferenceLayerError,
     PropstorePrAF,
@@ -14,6 +16,8 @@ from .engine import (
 from .projection import build_praf
 
 __all__ = [
+    "COHDivergenceError",
+    "COHDogmaticInputError",
     "NoCalibration",
     "PreferenceLayerError",
     "PropstorePrAF",
