@@ -38,6 +38,7 @@ def test_web_command_serves_current_repository(
             "web",
             "--host",
             "0.0.0.0",
+            "--insecure",
             "--port",
             "8765",
         ],
