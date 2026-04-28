@@ -25,19 +25,35 @@ def _has_property_marker(lines: list[str], given_index: int) -> bool:
 
 
 def _insert_pytest_import(lines: list[str]) -> list[str]:
-    if any(line.rstrip("\r\n") == "import pytest" for line in lines):
+    first_marker = next(
+        (index for index, line in enumerate(lines) if "@pytest.mark.property" in line),
+        None,
+    )
+    import_indexes = [
+        index for index, line in enumerate(lines) if line.rstrip("\r\n") == "import pytest"
+    ]
+    if import_indexes and (first_marker is None or min(import_indexes) < first_marker):
         return lines
+
+    lines = [
+        line
+        for index, line in enumerate(lines)
+        if index not in set(import_indexes)
+    ]
 
     insertion_index = 0
     if lines and lines[0].startswith("#!"):
         insertion_index = 1
-    if insertion_index < len(lines) and lines[insertion_index].strip().startswith('"""'):
-        insertion_index += 1
-        while insertion_index < len(lines):
-            if lines[insertion_index].strip().endswith('"""'):
-                insertion_index += 1
-                break
+    if insertion_index < len(lines):
+        stripped = lines[insertion_index].strip()
+        if stripped.startswith(('"""', "'''")):
+            quote = stripped[:3]
             insertion_index += 1
+            if not (len(stripped) > 3 and stripped.endswith(quote)):
+                while insertion_index < len(lines):
+                    if lines[insertion_index].strip().endswith(quote):
+                        insertion_index += 1
+                        break
     while insertion_index < len(lines) and (
         lines[insertion_index].strip() == ""
         or lines[insertion_index].startswith("from __future__ import ")
