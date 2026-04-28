@@ -81,34 +81,12 @@ def _praf_provenance(status: ProvenanceStatus, operation: str) -> Provenance:
 
 def _defeat_summary_opinion(probability: float) -> Opinion:
     p = max(0.0, min(1.0, float(probability)))
+    base_rate = max(1e-9, min(1.0 - 1e-9, p))
     provenance = _praf_provenance(
-        ProvenanceStatus.CALIBRATED,
-        "defeat_distribution_variance",
+        ProvenanceStatus.VACUOUS,
+        "defeat_probability_uncalibrated",
     )
-    variance = p * (1.0 - p)
-    if variance <= 1e-12:
-        return Opinion(
-            p,
-            1.0 - p,
-            0.0,
-            0.5,
-            provenance,
-            allow_dogmatic=True,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
-        )
-
-    dogmatic = Opinion(
-        p,
-        1.0 - p,
-        0.0,
-        0.5,
-        allow_dogmatic=True,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
-    )
-    max_uncertainty = dogmatic.maximize_uncertainty().u
-    normalized_variance = min(1.0, variance / 0.25)
-    uncertainty = max_uncertainty * normalized_variance
-    belief = p - 0.5 * uncertainty
-    disbelief = 1.0 - belief - uncertainty
-    return Opinion(belief, disbelief, uncertainty, 0.5, provenance)
+    return Opinion.vacuous(base_rate, provenance=provenance)
 
 
 def _missing_calibration(reason: str, *missing_fields: str) -> NoCalibration:
