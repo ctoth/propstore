@@ -132,8 +132,8 @@ class TestConjunctionExpectation:
 
     def test_product_rule_dogmatic(self):
         """Dogmatic opinions: u=0 so E=b, conjunction b = bx*by."""
-        x = Opinion(0.7, 0.3, 0.0, 0.5)
-        y = Opinion(0.4, 0.6, 0.0, 0.5)
+        x = Opinion(0.7, 0.3, 0.0, 0.5, allow_dogmatic=True)
+        y = Opinion(0.4, 0.6, 0.0, 0.5, allow_dogmatic=True)
         conj = x & y
         assert conj.expectation() == approx(x.expectation() * y.expectation())
 
@@ -163,8 +163,8 @@ class TestDisjunctionExpectation:
     """
 
     def test_inclusion_exclusion_dogmatic(self):
-        x = Opinion(0.7, 0.3, 0.0, 0.5)
-        y = Opinion(0.4, 0.6, 0.0, 0.5)
+        x = Opinion(0.7, 0.3, 0.0, 0.5, allow_dogmatic=True)
+        y = Opinion(0.4, 0.6, 0.0, 0.5, allow_dogmatic=True)
         disj = x | y
         ex, ey = x.expectation(), y.expectation()
         assert disj.expectation() == approx(ex + ey - ex * ey)
@@ -456,14 +456,14 @@ class TestUncertaintyMaximization:
         assert abs(result.uncertainty - 1.0) < 1e-9
 
     def test_dogmatic_true(self):
-        op = Opinion(1.0, 0.0, 0.0, 0.5)
+        op = Opinion(1.0, 0.0, 0.0, 0.5, allow_dogmatic=True)
         result = op.maximize_uncertainty()
         # E = 1.0, u_max = min(1/0.5, 0/0.5) = min(2, 0) = 0
         # Can't increase uncertainty when E=1
         assert abs(result.uncertainty - 0.0) < 1e-9
 
     def test_dogmatic_false(self):
-        op = Opinion(0.0, 1.0, 0.0, 0.5)
+        op = Opinion(0.0, 1.0, 0.0, 0.5, allow_dogmatic=True)
         result = op.maximize_uncertainty()
         # E = 0.0, u_max = min(0/0.5, 1/0.5) = min(0, 2) = 0
         # Can't increase uncertainty when E=0
@@ -528,7 +528,7 @@ class TestOpinionOrdering:
 
     def test_same_expectation_less_uncertainty_is_greater(self):
         # E = 0.8 for both
-        certain = Opinion(0.8, 0.2, 0.0, 0.5)    # E = 0.8, u = 0
+        certain = Opinion(0.8, 0.2, 0.0, 0.5, allow_dogmatic=True)    # E = 0.8, u = 0
         uncertain = Opinion(0.3, 0.0, 0.7, 5/7)   # E = 0.3 + 5/7*0.7 = 0.8, u = 0.7
         assert certain > uncertain
 
