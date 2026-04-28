@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from hypothesis import given, strategies as st
 
 from propstore.families.documents.micropubs import MicropublicationDocument
@@ -69,6 +70,7 @@ def test_micropub_id_is_trusty_uri_over_canonical_payload() -> None:
     ),
     page=st.integers(min_value=1, max_value=999),
 )
+@pytest.mark.property
 def test_micropub_id_is_deterministic_for_same_canonical_payload(
     claim_id: str,
     context_id: str,
@@ -107,6 +109,7 @@ def test_micropub_id_is_deterministic_for_same_canonical_payload(
         unique=True,
     ),
 )
+@pytest.mark.property
 def test_micropub_canonical_payload_ignores_nonsemantic_claim_order(
     claims: list[str],
 ) -> None:
