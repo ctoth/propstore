@@ -168,7 +168,7 @@ def test_claim_route_maps_unknown_claim_to_accessible_error(
     json_response = client.get("/claim/missing.json")
 
     assert html_response.status_code == 404
-    assert "<h1>Claim Not Found</h1>" in html_response.text
+    assert "<h1 id=\"error-heading\">Claim Not Found</h1>" in html_response.text
     assert "Claim &#x27;missing&#x27; not found." in html_response.text
     assert json_response.status_code == 404
     assert json_response.json()["error"]["title"] == "Claim Not Found"
