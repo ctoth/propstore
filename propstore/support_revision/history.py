@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from propstore.canonical_json import canonical_dumps
@@ -16,6 +17,12 @@ from propstore.support_revision.state import EpistemicState
 
 EPistemicSnapshotVersion = "propstore.epistemic_snapshot.v1"
 TransitionJournalVersion = "propstore.transition_journal.v1"
+
+
+class JournalOperator(Enum):
+    REVISE = "revise"
+    CONTRACT = "contract"
+    ITERATED_REVISE = "iterated_revise"
 
 
 def _required_mapping(value: object, field_name: str) -> Mapping[str, Any]:
@@ -43,6 +50,27 @@ def _canonical_json(payload: Mapping[str, Any]) -> str:
 
 def _stable_hash(payload: Mapping[str, Any]) -> str:
     return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def _journal_operator(value: JournalOperator | str) -> JournalOperator:
+    if isinstance(value, JournalOperator):
+        return value
+    return JournalOperator(str(value))
+
+
+def _version_policy_snapshot(
+    value: Mapping[str, str],
+) -> dict[str, str]:
+    required = {
+        "revision_policy_version",
+        "ranking_policy_version",
+        "entrenchment_policy_version",
+    }
+    snapshot = {str(key): str(item) for key, item in value.items()}
+    missing = sorted(required - set(snapshot))
+    if missing:
+        raise ValueError(f"transition journal missing policy versions: {', '.join(missing)}")
+    return snapshot
 
 
 @dataclass(frozen=True)
@@ -146,7 +174,11 @@ class TransitionJournalEntry:
     state_in: EpistemicSnapshot
     operation: TransitionOperation
     policy_id: str
-    operator: str
+    operator: JournalOperator
+    operator_input: Mapping[str, Any]
+    version_policy_snapshot: Mapping[str, str]
+    normalized_state_in: Mapping[str, Any]
+    normalized_state_out: Mapping[str, Any]
     state_out: EpistemicSnapshot
     explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
     policy_payload: Mapping[str, Any] = field(default_factory=dict)
@@ -156,7 +188,19 @@ class TransitionJournalEntry:
         if self.schema_version != TransitionJournalVersion:
             raise ValueError(f"unsupported transition journal version: {self.schema_version}")
         object.__setattr__(self, "policy_id", str(self.policy_id))
-        object.__setattr__(self, "operator", str(self.operator))
+        object.__setattr__(self, "operator", _journal_operator(self.operator))
+        object.__setattr__(self, "operator_input", _to_plain_data(dict(self.operator_input)))
+        object.__setattr__(
+            self,
+            "version_policy_snapshot",
+            _version_policy_snapshot(self.version_policy_snapshot),
+        )
+        object.__setattr__(self, "normalized_state_in", _to_plain_data(dict(self.normalized_state_in)))
+        object.__setattr__(self, "normalized_state_out", _to_plain_data(dict(self.normalized_state_out)))
+        canonical_dumps(self.operator_input)
+        canonical_dumps(self.version_policy_snapshot)
+        canonical_dumps(self.normalized_state_in)
+        canonical_dumps(self.normalized_state_out)
         object.__setattr__(self, "policy_payload", _to_plain_data(dict(self.policy_payload)))
         object.__setattr__(
             self,
@@ -174,19 +218,25 @@ class TransitionJournalEntry:
         state_in: EpistemicState,
         operation: TransitionOperation,
         policy_id: str,
-        policy_payload: Mapping[str, Any] | None = None,
-        operator: str,
+        operator: JournalOperator,
+        operator_input: Mapping[str, Any],
+        version_policy_snapshot: Mapping[str, str],
         state_out: EpistemicState,
         explanation: Mapping[str, RevisionAtomDetail],
+        policy_payload: Mapping[str, Any] | None = None,
     ) -> TransitionJournalEntry:
         return cls(
             state_in=EpistemicSnapshot.from_state(state_in),
             operation=operation,
             policy_id=policy_id,
-            policy_payload={} if policy_payload is None else policy_payload,
             operator=operator,
+            operator_input=operator_input,
+            version_policy_snapshot=version_policy_snapshot,
+            normalized_state_in=state_in.to_canonical_dict(),
+            normalized_state_out=state_out.to_canonical_dict(),
             state_out=EpistemicSnapshot.from_state(state_out),
             explanation=explanation,
+            policy_payload={} if policy_payload is None else policy_payload,
         )
 
     @property
@@ -206,7 +256,11 @@ class TransitionJournalEntry:
             "operation": self.operation.to_dict(),
             "policy_id": self.policy_id,
             "policy": _to_plain_data(self.policy_payload),
-            "operator": self.operator,
+            "operator": self.operator.value,
+            "operator_input": _to_plain_data(self.operator_input),
+            "version_policy_snapshot": dict(self.version_policy_snapshot),
+            "normalized_state_in": _to_plain_data(self.normalized_state_in),
+            "normalized_state_out": _to_plain_data(self.normalized_state_out),
             "state_out_hash": self.state_out.content_hash,
             "state_out": self.state_out.to_dict(),
             "explanation": {

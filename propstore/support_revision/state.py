@@ -207,3 +207,8 @@ class EpistemicState:
             },
         )
         object.__setattr__(self, "history", tuple(self.history))
+
+    def to_canonical_dict(self) -> dict[str, Any]:
+        from propstore.support_revision.snapshot_types import EpistemicStateSnapshot
+
+        return EpistemicStateSnapshot.from_state(self).to_dict()

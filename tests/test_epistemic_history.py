@@ -35,6 +35,7 @@ def test_epistemic_snapshot_roundtrips_with_stable_hash() -> None:
 
 def test_transition_journal_records_state_policy_operator_and_replay_hashes() -> None:
     from propstore.support_revision.history import (
+        JournalOperator,
         TransitionJournal,
         TransitionJournalEntry,
         TransitionOperation,
@@ -60,7 +61,17 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
         state_in=state_in,
         operation=operation,
         policy_id="policy:revision/default",
-        operator="restrained",
+        operator=JournalOperator.ITERATED_REVISE,
+        operator_input={
+            "formula": new_atom.atom_id,
+            "revision_operator": "restrained",
+            "targets": [ids["legacy"]],
+        },
+        version_policy_snapshot={
+            "revision_policy_version": "revision.v1",
+            "ranking_policy_version": "ranking.v1",
+            "entrenchment_policy_version": "entrenchment.v1",
+        },
         state_out=state_out,
         explanation=result.explanation,
     )
@@ -71,7 +82,9 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
     assert payload["state_in_hash"] == entry.state_in.content_hash
     assert payload["state_out_hash"] == entry.state_out.content_hash
     assert payload["policy_id"] == "policy:revision/default"
-    assert payload["operator"] == "restrained"
+    assert payload["operator"] == "iterated_revise"
+    assert payload["operator_input"]["revision_operator"] == "restrained"
+    assert payload["version_policy_snapshot"]["ranking_policy_version"] == "ranking.v1"
     assert replay.ok is True
     assert replay.checked_entry_hashes == (entry.content_hash,)
 

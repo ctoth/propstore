@@ -47,6 +47,7 @@ def test_policy_profile_identity_changes_when_governance_policy_changes() -> Non
 
 def test_transition_journal_hash_includes_full_policy_payload() -> None:
     from propstore.support_revision.history import (
+        JournalOperator,
         TransitionJournalEntry,
         TransitionOperation,
     )
@@ -76,7 +77,17 @@ def test_transition_journal_hash_includes_full_policy_payload() -> None:
         operation=operation,
         policy_id=profile.profile_id,
         policy_payload=profile.to_dict(),
-        operator="restrained",
+        operator=JournalOperator.ITERATED_REVISE,
+        operator_input={
+            "formula": new_atom.atom_id,
+            "revision_operator": "restrained",
+            "targets": [ids["legacy"]],
+        },
+        version_policy_snapshot={
+            "revision_policy_version": "revision.v1",
+            "ranking_policy_version": "ranking.v1",
+            "entrenchment_policy_version": "entrenchment.v1",
+        },
         state_out=state_out,
         explanation=result.explanation,
     )
@@ -85,7 +96,17 @@ def test_transition_journal_hash_includes_full_policy_payload() -> None:
         operation=operation,
         policy_id=profile.profile_id,
         policy_payload=changed.to_dict(),
-        operator="restrained",
+        operator=JournalOperator.ITERATED_REVISE,
+        operator_input={
+            "formula": new_atom.atom_id,
+            "revision_operator": "restrained",
+            "targets": [ids["legacy"]],
+        },
+        version_policy_snapshot={
+            "revision_policy_version": "revision.v1",
+            "ranking_policy_version": "ranking.v1",
+            "entrenchment_policy_version": "entrenchment.v1",
+        },
         state_out=state_out,
         explanation=result.explanation,
     )

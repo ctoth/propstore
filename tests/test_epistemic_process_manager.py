@@ -22,6 +22,7 @@ from propstore.fragility import (
 from propstore.policies import PolicyProfile, default_policy_profile
 from propstore.support_revision.history import (
     EpistemicSnapshot,
+    JournalOperator,
     TransitionJournalEntry,
     TransitionOperation,
 )
@@ -334,7 +335,17 @@ def _snapshot_policy_journal_and_atom() -> tuple[
         operation=operation,
         policy_id=policy.profile_id,
         policy_payload=policy.to_dict(),
-        operator="restrained",
+        operator=JournalOperator.ITERATED_REVISE,
+        operator_input={
+            "formula": atom.atom_id,
+            "revision_operator": "restrained",
+            "targets": [ids["legacy"]],
+        },
+        version_policy_snapshot={
+            "revision_policy_version": "revision.v1",
+            "ranking_policy_version": "ranking.v1",
+            "entrenchment_policy_version": "entrenchment.v1",
+        },
         state_out=state_out,
         explanation=result.explanation,
     )
