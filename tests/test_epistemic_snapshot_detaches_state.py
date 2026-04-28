@@ -13,7 +13,11 @@ def test_ws_j_epistemic_state_snapshot_from_state_deep_copies_payload() -> None:
 
     snapshot = EpistemicStateSnapshot.from_state(state)
 
-    assert snapshot.base == state.base
+    assert tuple(atom.atom_id for atom in snapshot.base.atoms) == tuple(
+        atom.atom_id for atom in state.base.atoms
+    )
+    assert snapshot.base.support_sets == state.base.support_sets
+    assert snapshot.base.essential_support == state.base.essential_support
     assert snapshot.base is not state.base
     assert snapshot.scope == state.scope
     assert snapshot.scope is not state.scope

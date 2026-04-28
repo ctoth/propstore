@@ -337,7 +337,7 @@ class EpistemicStateSnapshot:
 
     @classmethod
     def from_state(cls, state: EpistemicState) -> EpistemicStateSnapshot:
-        return cls(
+        snapshot = cls(
             scope=state.scope,
             base=state.base,
             accepted_atom_ids=state.accepted_atom_ids,
@@ -346,6 +346,7 @@ class EpistemicStateSnapshot:
             entrenchment_reasons=state.entrenchment_reasons,
             history=tuple(RevisionEpisodeSnapshot.from_episode(episode) for episode in state.history),
         )
+        return cls.from_mapping(snapshot.to_dict())
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> EpistemicStateSnapshot:
