@@ -78,7 +78,7 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
     )
     journal = TransitionJournal(entries=(entry,))
     payload = entry.to_dict()
-    replay = journal.check_replay_determinism()
+    replay = journal.check_chain_integrity()
 
     assert payload["state_in_hash"] == entry.state_in.content_hash
     assert payload["state_out_hash"] == entry.state_out.content_hash
