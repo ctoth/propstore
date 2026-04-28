@@ -1,6 +1,6 @@
 # WS-Q-cas: Branch-head CAS discipline at propstore call sites
 
-**Status**: CLOSED 8b1ff8ec
+**Status**: CLOSED 645df92f
 **Depends on**: WS-A (test fixture parity — without it, race tests are written against fictional schemas), WS-O-qui (quire's expected-head primitives must be transactional, not advisory)
 **Blocks**: WS-C (atomicity tests assume CAS already exists), WS-E (source promote ordering relies on this discipline)
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1)
