@@ -107,6 +107,7 @@ OutT = TypeVar("OutT")
 class SemanticPass(Protocol[InT, OutT]):
     family: PropstoreFamily
     name: str
+    version: str
     input_stage: StageId
     output_stage: StageId
 
