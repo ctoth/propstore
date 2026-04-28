@@ -16,6 +16,7 @@ class WorkstreamRow:
     title: str
     status: str
     deps: tuple[str, ...]
+    blocks: tuple[str, ...]
 
 
 def _strip_markup(value: str) -> str:
@@ -74,6 +75,7 @@ def _parse_rows(index_text: str) -> list[WorkstreamRow]:
                 title=_strip_markup(cells[1]),
                 status=_strip_markup(cells[2]),
                 deps=_parse_deps(cells[3]),
+                blocks=_parse_deps(cells[4]),
             )
         )
     return rows
@@ -98,6 +100,15 @@ def main() -> int:
                 errors.append(
                     f"{row.workstream_id} line {row.row_number}: dependency {dep} "
                     f"appears later on line {dep_row.row_number}"
+                )
+        for blocked in row.blocks:
+            if blocked not in positions:
+                continue
+            blocked_row = rows[positions[blocked]]
+            if positions[blocked] < positions[row.workstream_id]:
+                errors.append(
+                    f"{row.workstream_id} line {row.row_number}: blocks {blocked}, "
+                    f"but {blocked} appears earlier on line {blocked_row.row_number}"
                 )
 
     if errors:
