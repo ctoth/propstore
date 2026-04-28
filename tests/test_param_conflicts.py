@@ -99,7 +99,6 @@ def detect_conflicts(claim_files, registry, lifting_system=None):
 
 def test_detect_param_conflicts_handles_equality_parameterizations_without_warning():
     """Eq(...) parameterizations should produce conflicts, not warnings."""
-    records = []
     concept1_id, concept1 = _concept("concept1", form="quantity")
     concept2_id, concept2 = _concept("concept2", form="quantity")
     concept3_id, concept3 = _concept("concept3", form="quantity")
@@ -124,7 +123,7 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
     }
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        _detect_parameterization_conflicts(records, by_concept, concept_registry, [])
+        records = _detect_parameterization_conflicts(by_concept, concept_registry, [])
 
     param_warnings = [
         warning for warning in caught
@@ -139,7 +138,6 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
 
 def test_same_value_different_units_no_conflict():
     """Two claims for the same concept: 200 Hz and 0.2 kHz are identical. No conflict."""
-    records = []
     freq_form = _frequency_form()
     forms = {"frequency": freq_form}
     freq_input_id, freq_input = _concept("freq_input", form="frequency")
@@ -166,8 +164,8 @@ def test_same_value_different_units_no_conflict():
         },
     }
 
-    _detect_parameterization_conflicts(
-        records, by_concept, concept_registry, _stub_claim_file(), forms=forms
+    records = _detect_parameterization_conflicts(
+        by_concept, concept_registry, _stub_claim_file(), forms=forms
     )
 
     # Both claims for freq_input are 200 Hz after normalization.
@@ -177,7 +175,6 @@ def test_same_value_different_units_no_conflict():
 
 def test_different_value_different_units_conflict():
     """0.5 kHz input (=500 Hz) derives 250, but direct claim says 100. Conflict expected."""
-    records = []
     freq_form = _frequency_form()
     forms = {"frequency": freq_form}
     freq_input_id, freq_input = _concept("freq_input", form="frequency")
@@ -203,8 +200,8 @@ def test_different_value_different_units_conflict():
         },
     }
 
-    _detect_parameterization_conflicts(
-        records, by_concept, concept_registry, _stub_claim_file(), forms=forms
+    records = _detect_parameterization_conflicts(
+        by_concept, concept_registry, _stub_claim_file(), forms=forms
     )
 
     # 0.5 kHz → 500 Hz (normalized) → derived = 500/2 = 250, but claim_out = 100
@@ -273,7 +270,6 @@ def test_transitive_propagation_normalizes_units():
 
 
 def test_single_hop_conflict_carries_derived_conditions():
-    records = []
     concept_in_id, concept_in = _concept("concept_in", form="frequency")
     concept_out_id, concept_out = _concept("concept_out", form="frequency")
     by_concept = {
@@ -309,8 +305,7 @@ def test_single_hop_conflict_carries_derived_conditions():
         },
     }
 
-    _detect_parameterization_conflicts(
-        records,
+    records = _detect_parameterization_conflicts(
         by_concept,
         concept_registry,
         _stub_claim_file(),
@@ -429,7 +424,6 @@ def test_transitive_conflict_detection_is_order_independent():
 
 
 def test_runtime_error_from_sympy_parameterization_propagates():
-    records = []
     concept_a_id, concept_a = _concept("a", form="quantity")
     concept_b_id, concept_b = _concept("b", form="quantity")
     derived_id, derived = _concept("derived", form="quantity")
@@ -463,7 +457,6 @@ def test_runtime_error_from_sympy_parameterization_propagates():
         ):
             with pytest.raises(RuntimeError, match="boom"):
                 _detect_parameterization_conflicts(
-                    records,
                     by_concept,
                     concept_registry,
                     [],

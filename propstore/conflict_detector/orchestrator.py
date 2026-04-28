@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from propstore.cel_checker import (
@@ -23,6 +23,15 @@ from .parameterization_conflicts import _detect_parameterization_conflicts
 
 if TYPE_CHECKING:
     from propstore.context_lifting import LiftingRule, LiftingSystem
+
+
+class SyntheticConceptCollision(ValueError):
+    """Raised when a synthetic CEL concept would shadow an authored concept."""
+
+
+@dataclass
+class LiftingDecisionCache:
+    decisions: dict[tuple[str, str, str | None], bool] = field(default_factory=dict)
 
 
 def detect_conflicts(
@@ -60,6 +69,7 @@ def detect_conflicts(
                 extensible=True,
             )
         )
+    _raise_on_synthetic_collisions(cel_registry, synthetic_concepts)
     cel_registry = with_synthetic_concepts(
         cel_registry,
         synthetic_concepts,
@@ -103,14 +113,27 @@ def detect_conflicts(
         )
     )
 
-    _detect_parameterization_conflicts(
-        records,
+    records.extend(_detect_parameterization_conflicts(
         by_concept,
         concept_registry,
         claims,
         lifting_system=lifting_system,
-    )
+    ))
     return records
+
+
+def _raise_on_synthetic_collisions(
+    cel_registry: Mapping[str, ConceptInfo],
+    synthetic_concepts: Sequence[ConceptInfo],
+) -> None:
+    for concept in synthetic_concepts:
+        existing = cel_registry.get(concept.canonical_name)
+        if existing is None:
+            continue
+        if existing.id != concept.id:
+            raise SyntheticConceptCollision(
+                f"synthetic CEL concept '{concept.canonical_name}' would shadow {existing.id}"
+            )
 
 
 def _build_condition_solver(cel_registry):
@@ -142,20 +165,23 @@ def _expand_lifted_conflict_claims(
             claim.claim_id,
             claim.context_id,
             tuple(claim.conditions),
+            _claim_derivation_chain(claim),
         )
         for claim in claims
     }
 
+    cache = LiftingDecisionCache()
     for claim in claims:
         if claim.context_id is None:
             continue
         for rule in rules_by_source.get(str(claim.context_id), ()):
-            if rule.conditions:
-                if solver is None:
-                    if not all(condition in claim.conditions for condition in rule.conditions):
-                        continue
-                elif not solver.implies(claim.conditions, rule.conditions):
-                    continue
+            decision_key = (claim.claim_id, str(rule.source.id), str(rule.target.id))
+            applies = cache.decisions.get(decision_key)
+            if applies is None:
+                applies = _lifting_rule_applies(claim, rule, solver)
+                cache.decisions[decision_key] = applies
+            if not applies:
+                continue
             target_id = to_context_id(rule.target.id)
             target_conditions = tuple(
                 lifting_system.context_assumptions.get(target_id, ())
@@ -168,6 +194,7 @@ def _expand_lifted_conflict_claims(
                 claim.claim_id,
                 str(target_id),
                 target_conditions,
+                _claim_derivation_chain(claim),
             )
             if key in seen:
                 continue
@@ -180,6 +207,19 @@ def _expand_lifted_conflict_claims(
                 )
             )
     return expanded
+
+
+def _claim_derivation_chain(claim: ConflictClaim) -> tuple[str, ...]:
+    chain = getattr(claim, "derivation_chain", ())
+    return tuple(str(item) for item in chain)
+
+
+def _lifting_rule_applies(claim: ConflictClaim, rule: LiftingRule, solver) -> bool:
+    if not rule.conditions:
+        return True
+    if solver is None:
+        return all(condition in claim.conditions for condition in rule.conditions)
+    return bool(solver.implies(claim.conditions, rule.conditions))
 
 
 def _validate_conflict_concept_registry(concept_registry: dict[str, dict]) -> None:

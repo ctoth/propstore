@@ -411,14 +411,14 @@ def _compare_direct_claim_against_derived(
 
 
 def _detect_parameterization_conflicts(
-    records: list[ConflictRecord],
     by_concept: dict[str, list[ConflictClaim]],
     concept_registry: dict[str, dict],
     claims: Sequence[ConflictClaim],
     *,
     lifting_system: LiftingSystem | None = None,
     forms: dict[str, FormDefinition] | None = None,
-) -> None:
+) -> list[ConflictRecord]:
+    records: list[ConflictRecord] = []
     all_param_claims = by_concept or _collect_parameter_claims(claims)
     seen_record_keys: set[tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]] = set()
 
@@ -478,6 +478,7 @@ def _detect_parameterization_conflicts(
                         forms=forms,
                         concept_registry=concept_registry,
                     )
+    return records
 
 
 def _state_key(state: DerivedConflictValue) -> tuple[str, str, tuple[str, ...], tuple[str, ...], str | None, int]:
