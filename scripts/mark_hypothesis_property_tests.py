@@ -85,7 +85,7 @@ def _mark_file(path: Path) -> bool:
 
 def main() -> int:
     changed_paths = [
-        path for path in sorted(TESTS_DIR.glob("test_*.py")) if _mark_file(path)
+        path for path in sorted(TESTS_DIR.rglob("test_*.py")) if _mark_file(path)
     ]
     for path in changed_paths:
         print(path)
