@@ -1,7 +1,7 @@
 """Public render/store interfaces for propstore."""
 
 from propstore.world.bound import BoundWorld
-from propstore.world.hypothetical import HypotheticalWorld
+from propstore.world.overlay import OverlayWorld
 from propstore.world.model import WorldModel
 from propstore.world.resolution import resolve
 from propstore.world.types import (
@@ -50,7 +50,7 @@ __all__ = [
     "DecisionValueSource",
     "DerivedResult",
     "Environment",
-    "HypotheticalWorld",
+    "OverlayWorld",
     "QueryableAssumption",
     "ReasoningBackend",
     "RenderPolicy",

@@ -1,4 +1,4 @@
-"""HypotheticalWorld — graph-delta overlay on a BoundWorld."""
+"""OverlayWorld — graph-delta overlay on a BoundWorld."""
 
 from __future__ import annotations
 
@@ -432,8 +432,15 @@ class _GraphOverlayStore:
         )
 
 
-class HypotheticalWorld(BeliefSpace):
-    """Graph-delta overlay on a BoundWorld without mutating the base."""
+class OverlayWorld(BeliefSpace):
+    """Graph overlay, not intervention.
+
+    An overlay world in which a synthetic claim asserting `X = x` is added;
+    the existing parameterization graph is preserved and conflict resolution
+    decides which claim wins. This is overlay semantics — not a Pearl intervention.
+    For Pearl `do()` / Halpern HP-modified intervention, see `InterventionWorld`
+    (WS-J2).
+    """
 
     def __init__(
         self,

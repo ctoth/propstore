@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from propstore.world import BoundWorld, Environment, HypotheticalWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
+from propstore.world import BoundWorld, Environment, OverlayWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.row_types import ConflictRowInput, StanceRowInput
 
@@ -135,7 +135,7 @@ def test_binding_order_does_not_change_active_or_resolved_semantics() -> None:
 
 def test_empty_hypothetical_overlay_is_identity_transform() -> None:
     bound = _make_bound(bindings={"x": 1, "y": 2})
-    hypothetical = HypotheticalWorld(bound)
+    hypothetical = OverlayWorld(bound)
 
     assert _runtime_claim_ids(hypothetical.active_claims()) == _runtime_claim_ids(bound.active_claims())
     assert hypothetical.value_of("concept1") == bound.value_of("concept1")
@@ -145,7 +145,7 @@ def test_empty_hypothetical_overlay_is_identity_transform() -> None:
 
 def test_remove_and_add_inverse_overlay_returns_same_semantic_state() -> None:
     bound = _make_bound(bindings={"x": 1, "y": 2})
-    inverse = HypotheticalWorld(
+    inverse = OverlayWorld(
         bound,
         remove=["claim_left"],
         add=[

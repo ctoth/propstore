@@ -563,7 +563,7 @@ def diff_hypothetical_world(
     from propstore.core.claim_types import ClaimType, coerce_claim_type
     from propstore.core.environment import Environment
     from propstore.core.id_types import to_concept_id
-    from propstore.world import HypotheticalWorld, SyntheticClaim
+    from propstore.world import OverlayWorld, SyntheticClaim
 
     bound = world.bind(Environment(bindings=dict(request.bindings)))
     synthetics = [
@@ -580,7 +580,7 @@ def diff_hypothetical_world(
         world.resolve_claim(claim_id) or claim_id
         for claim_id in request.remove_claim_ids
     ]
-    diff = HypotheticalWorld(
+    diff = OverlayWorld(
         bound,
         remove=resolved_remove,
         add=synthetics,

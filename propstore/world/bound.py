@@ -82,7 +82,7 @@ class _ConflictInputs:
     because the underlying store is set once in ``__init__`` and never
     rebound. The free function ``_conflict_inputs_for_store`` still returns a
     bare tuple for backward compatibility with its existing call sites in
-    ``propstore.world.hypothetical`` (which operate on ``_GraphOverlayStore``
+    ``propstore.world.overlay`` (which operate on ``_GraphOverlayStore``
     instances and intentionally rebuild per call); the dataclass wrapper is
     introduced only at the ``BoundWorld`` caching layer.
     """
@@ -136,7 +136,7 @@ def _recomputed_conflicts(
 
     ``precomputed_inputs`` is an optional typed cache payload carrying the
     concept + CEL registry. When ``None`` (the default, used by overlay call
-    sites in ``propstore.world.hypothetical``), the registry is rebuilt from
+    sites in ``propstore.world.overlay``), the registry is rebuilt from
     ``world`` — this is the correct behavior for ``_GraphOverlayStore``,
     because overlay instances must not share cache state with the base
     ``BoundWorld._store``. ``BoundWorld.conflicts`` passes its own per-instance
@@ -245,7 +245,7 @@ class BoundWorld(BeliefSpace):
         # `.conflicts()` call that misses `_conflicts_cache`. Safe to memoize
         # on the instance because `self._store` is set once in __init__ and
         # never rebound. MUST NOT be shared across BoundWorld instances —
-        # HypotheticalWorld overlays construct their own BoundWorld over a
+        # OverlayWorld overlays construct their own BoundWorld over a
         # _GraphOverlayStore and rely on getting a fresh cache.
         self._conflict_inputs_cache: _ConflictInputs | None = None
         self._resolver = ActiveClaimResolver(
@@ -927,7 +927,7 @@ class BoundWorld(BeliefSpace):
         every `.conflicts()` call with a new concept id was O(|concepts|) of
         wasted work. Memoized here because `self._store` is immutable for the
         lifetime of the BoundWorld. Must NOT be called against an overlay
-        store — HypotheticalWorld overlays construct their own BoundWorld
+        store — OverlayWorld overlays construct their own BoundWorld
         and reach this helper through their own instance.
         """
         if self._conflict_inputs_cache is None:

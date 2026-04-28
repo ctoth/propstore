@@ -4,7 +4,7 @@ TDD tests:
 - Construction, unbound queries, explain, bind/active_claims, value_of, bound conflicts
 - Hypothesis property tests for invariants
 - Feature 1: derived_value (forward propagation)
-- Feature 2: HypotheticalWorld (counterfactual queries)
+- Feature 2: OverlayWorld (counterfactual queries)
 - Feature 3: resolve (conflict resolution strategies)
 - Feature 4: chain_query (multi-step binding chains)
 """
@@ -45,7 +45,7 @@ from propstore.world import (
     ChainResult,
     DerivedResult,
     Environment,
-    HypotheticalWorld,
+    OverlayWorld,
     RenderPolicy,
     ReasoningBackend,
     ResolvedResult,
@@ -1143,7 +1143,7 @@ class TestValueOf:
         """Claims present but all have value=None → status should be 'no_values', not 'no_claims'."""
         bound = world.bind(task="speech")
         # Inject synthetic claims with value=None (observation-like claims without scalar values)
-        hypo = HypotheticalWorld(
+        hypo = OverlayWorld(
             bound,
             add=[
                 SyntheticClaim(id="synth_obs1", concept_id=CONCEPT3_ID, type="observation", value=None,
@@ -1224,7 +1224,7 @@ class TestDerivedValue:
         # For this test, use singing where concept1=180
         # But concept6 only has a speech claim... need concept6 under singing too
         # Actually concept6's claim10 is under task=='speech', so under singing it's no_claims
-        # Let's test with a HypotheticalWorld instead, or just verify the status
+        # Let's test with a OverlayWorld instead, or just verify the status
         bound = world.bind(task="speech")
         result = bound.derived_value("concept5")
         # concept1 conflicted → conflicted
@@ -1280,11 +1280,11 @@ class TestDerivedValue:
 
 # ── Feature 2: Hypothetical World ────────────────────────────────────
 
-class TestHypotheticalWorld:
+class TestOverlayWorld:
     def test_remove_claim(self, world):
         """Removed claim absent from active_claims."""
         bound = world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
+        hypo = OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
         active_ids = _runtime_claim_id_set(hypo.active_claims(CONCEPT1_ID))
         assert _claim_artifact("test_paper_alpha", "claim1") not in active_ids
         assert _claim_artifact("test_paper_alpha", "claim2") in active_ids
@@ -1296,7 +1296,7 @@ class TestHypotheticalWorld:
             id="synth1", concept_id=CONCEPT2_ID, value=900.0,
             conditions=["task == 'singing'"],
         )
-        hypo = HypotheticalWorld(bound, add=[sc])
+        hypo = OverlayWorld(bound, add=[sc])
         active_ids = _runtime_claim_id_set(hypo.active_claims(CONCEPT2_ID))
         assert "synth1" in active_ids
         vr = hypo.value_of(CONCEPT2_ID)
@@ -1307,7 +1307,7 @@ class TestHypotheticalWorld:
         bound = world.bind(task="speech")
         # Under speech, concept1 has claim1(200), claim2(350), claim7(250), claim15(205) — conflicted
         # Remove claim2, claim7, claim15 → only claim1 remains → determined
-        hypo = HypotheticalWorld(bound, remove=[
+        hypo = OverlayWorld(bound, remove=[
             _claim_artifact("test_paper_alpha", "claim2"),
             _claim_artifact("test_paper_beta", "claim7"),
             _claim_artifact("test_paper_gamma", "claim15"),
@@ -1324,7 +1324,7 @@ class TestHypotheticalWorld:
             id="synth_conflict", concept_id=CONCEPT1_ID, value=999.0,
             conditions=["task == 'singing'"],
         )
-        hypo = HypotheticalWorld(bound, add=[sc])
+        hypo = OverlayWorld(bound, add=[sc])
         vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "conflicted"
 
@@ -1332,7 +1332,7 @@ class TestHypotheticalWorld:
         """Changing input claims affects derived_value."""
         bound = world.bind(task="speech")
         # Remove all concept1 claims except claim1(200) and resolve concept1
-        hypo = HypotheticalWorld(bound, remove=[
+        hypo = OverlayWorld(bound, remove=[
             _claim_artifact("test_paper_alpha", "claim2"),
             _claim_artifact("test_paper_beta", "claim7"),
             _claim_artifact("test_paper_gamma", "claim15"),
@@ -1346,16 +1346,16 @@ class TestHypotheticalWorld:
     def test_collect_known_values_uses_hypothetical(self, world):
         """collect_known_values routes through hypothetical, not base world.
 
-        Regression test: HypotheticalWorld.collect_known_values was wired to
+        Regression test: OverlayWorld.collect_known_values was wired to
         self._base.collect_known_values, which called self._base.value_of
-        (BoundWorld) instead of self.value_of (HypotheticalWorld). This meant
+        (BoundWorld) instead of self.value_of (OverlayWorld). This meant
         algorithm equivalence checks and other collect_known_values callers
         bypassed hypothetical additions and removals.
         """
         bound = world.bind(task="speech")
         # concept1 is conflicted in base (claim1=200, claim2=350, etc.)
         # Remove all but claim1 so concept1 is determined at 200
-        hypo_base = HypotheticalWorld(bound, remove=[
+        hypo_base = OverlayWorld(bound, remove=[
             _claim_artifact("test_paper_alpha", "claim2"),
             _claim_artifact("test_paper_beta", "claim7"),
             _claim_artifact("test_paper_gamma", "claim15"),
@@ -1367,7 +1367,7 @@ class TestHypotheticalWorld:
             id="synth_f0", concept_id=CONCEPT1_ID, value=500.0,
             conditions=["task == 'speech'"],
         )
-        hypo = HypotheticalWorld(bound, remove=[
+        hypo = OverlayWorld(bound, remove=[
             _claim_artifact("test_paper_alpha", "claim1"),
             _claim_artifact("test_paper_alpha", "claim2"),
             _claim_artifact("test_paper_beta", "claim7"),
@@ -1387,14 +1387,14 @@ class TestHypotheticalWorld:
         """Base BoundWorld unchanged after hypothetical creation."""
         bound = world.bind(task="speech")
         base_active = _runtime_claim_id_set(bound.active_claims(CONCEPT1_ID))
-        HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
+        OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
         after_active = _runtime_claim_id_set(bound.active_claims(CONCEPT1_ID))
         assert base_active == after_active
 
     def test_diff_shows_changes(self, world):
         """diff() reports changed concepts."""
         bound = world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=[
+        hypo = OverlayWorld(bound, remove=[
             _claim_artifact("test_paper_alpha", "claim2"),
             _claim_artifact("test_paper_beta", "claim7"),
             _claim_artifact("test_paper_gamma", "claim15"),
@@ -1409,7 +1409,7 @@ class TestHypotheticalWorld:
     def test_empty_noop(self, world):
         """remove=[], add=[] == base."""
         bound = world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=[], add=[])
+        hypo = OverlayWorld(bound, remove=[], add=[])
         for cid in [CONCEPT1_ID, CONCEPT2_ID, CONCEPT6_ID]:
             base_vr = bound.value_of(cid)
             hypo_vr = hypo.value_of(cid)
@@ -1428,7 +1428,7 @@ class TestHypotheticalWorld:
         ), "precondition: base must have conflicts involving claim2"
 
         # Remove claim2 — no conflict result should reference it
-        hypo = HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim2")])
+        hypo = OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim2")])
         hypo_conflicts = hypo.conflicts(CONCEPT1_ID)
         stale = [
             c for c in hypo_conflicts
@@ -1581,9 +1581,9 @@ class TestConflictResolution:
         assert result.status == "no_claims"
 
     def test_resolve_on_hypothetical(self, world):
-        """resolve() works on HypotheticalWorld via BeliefSpace."""
+        """resolve() works on OverlayWorld via BeliefSpace."""
         bound = world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=[
+        hypo = OverlayWorld(bound, remove=[
             _claim_artifact("test_paper_beta", "claim7"),
             _claim_artifact("test_paper_gamma", "claim15"),
         ])
@@ -1597,7 +1597,7 @@ class TestConflictResolution:
             task="speech",
             policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY),
         )
-        hypo = HypotheticalWorld(bound, remove=[
+        hypo = OverlayWorld(bound, remove=[
             _claim_artifact("test_paper_beta", "claim7"),
             _claim_artifact("test_paper_gamma", "claim15"),
         ])
@@ -1886,15 +1886,15 @@ class TestCrossFeatureProperties:
         vr_before = bound.value_of(CONCEPT1_ID)
         bound.derived_value(CONCEPT5_ID)
         resolve(bound, CONCEPT1_ID, ResolutionStrategy.RECENCY)
-        HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
+        OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
         vr_after = bound.value_of(CONCEPT1_ID)
         assert vr_before.status == vr_after.status
         assert len(vr_before.claims) == len(vr_after.claims)
 
     def test_claimview_substitutability(self, world):
-        """PX.2: Functions accepting BeliefSpace produce same structure for BoundWorld and identity HypotheticalWorld."""
+        """PX.2: Functions accepting BeliefSpace produce same structure for BoundWorld and identity OverlayWorld."""
         bound = world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=[], add=[])
+        hypo = OverlayWorld(bound, remove=[], add=[])
         for cid in [CONCEPT1_ID, CONCEPT2_ID, CONCEPT6_ID]:
             bvr = bound.value_of(cid)
             hvr = hypo.value_of(cid)
@@ -1905,7 +1905,7 @@ class TestCrossFeatureProperties:
         bound = world.bind(task="speech")
         base_claims_before = sorted(_runtime_claim_ids(bound.active_claims()))
         sc = SyntheticClaim(id="s1", concept_id=CONCEPT1_ID, value=999.0)
-        HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
+        OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
         base_claims_after = sorted(_runtime_claim_ids(bound.active_claims()))
         assert base_claims_before == base_claims_after
 
@@ -1916,7 +1916,7 @@ class TestCrossFeatureProperties:
             id="synth_p", concept_id=CONCEPT1_ID, value=999.0,
             conditions=["task == 'speech'"],
         )
-        hypo = HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
+        hypo = OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
         active = _runtime_claim_id_set(hypo.active_claims())
         inactive = _runtime_claim_id_set(hypo.inactive_claims())
         assert active & inactive == set(), "Overlap in hypothetical partition"
@@ -2099,7 +2099,7 @@ class TestTransitiveConsistency:
             id="synth_conflict", concept_id="concept2", value=999.0,
             conditions=["task == 'speech'"],
         )
-        hypo = HypotheticalWorld(bound, add=[sc])
+        hypo = OverlayWorld(bound, add=[sc])
         conflicts = hypo.recompute_conflicts()
         # concept2 now has claim4(800), claim6(800), synth_conflict(999) → conflict
         synthetic_conflicts = [
@@ -2122,7 +2122,7 @@ class TestTransitiveConsistency:
             id="synth_conflict", concept_id="concept2", value=999.0,
             conditions=["task == 'speech'"],
         )
-        hypo = HypotheticalWorld(bound, add=[sc])
+        hypo = OverlayWorld(bound, add=[sc])
 
         conflicts = hypo.conflicts("concept2")
 
@@ -2136,7 +2136,7 @@ class TestTransitiveConsistency:
         bound = world.bind(task="speech")
 
         monkeypatch.setattr(
-            "propstore.world.hypothetical._recomputed_conflicts",
+            "propstore.world.overlay._recomputed_conflicts",
             lambda store, claims: [
                 coerce_conflict_row({
                     "concept_id": "concept1",
@@ -2147,7 +2147,7 @@ class TestTransitiveConsistency:
             ],
         )
 
-        conflicts = HypotheticalWorld(bound).conflicts("concept1")
+        conflicts = OverlayWorld(bound).conflicts("concept1")
         pairs = {
             _conflict_pair(conflict)
             for conflict in conflicts
@@ -2160,7 +2160,7 @@ class TestTransitiveConsistency:
         bound = world.bind(task="speech")
         # Under speech, concept1 has claim1(200), claim2(350), claim7(250), claim15(205) → conflicted
         # Remove claim2, claim7, claim15 → only claim1 remains → no conflict for concept1
-        hypo = HypotheticalWorld(bound, remove=["claim2", "claim7", "claim15"])
+        hypo = OverlayWorld(bound, remove=["claim2", "claim7", "claim15"])
         conflicts = hypo.recompute_conflicts()
         concept1_conflicts = [c for c in conflicts if _conflict_concept_id(c) == "concept1"]
         assert len(concept1_conflicts) == 0
@@ -2168,7 +2168,7 @@ class TestTransitiveConsistency:
     def test_hypothetical_recompute_empty(self, world):
         """Identity hypothetical → no conflicts from recompute that aren't in base."""
         bound = world.bind(task="singing")
-        hypo = HypotheticalWorld(bound, remove=[], add=[])
+        hypo = OverlayWorld(bound, remove=[], add=[])
         conflicts = hypo.recompute_conflicts()
         # Under singing, concept1 has only claim3(180) → determined, no conflicts
         concept1_conflicts = [c for c in conflicts if _conflict_concept_id(c) == "concept1"]
@@ -2413,7 +2413,7 @@ class TestAlgorithmWorldModel:
         # algo_claim1 and algo_claim2 compute the same thing (sr/ws)
         # Remove algo_claim3 (different) and algo_claim_param (parameter)
         bound = algo_world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=["algo_claim3", "algo_claim_param"])
+        hypo = OverlayWorld(bound, remove=["algo_claim3", "algo_claim_param"])
         result = hypo.value_of("algo_concept3")
         # algo_claim1 and algo_claim2 are structurally equivalent (both do arg0/arg1)
         assert result.status == "determined"
@@ -2423,7 +2423,7 @@ class TestAlgorithmWorldModel:
         """Two different algorithms → conflict reported."""
         # algo_claim1 (sr/ws) vs algo_claim3 (sr*ws+1) — different
         bound = algo_world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=["algo_claim2", "algo_claim_param"])
+        hypo = OverlayWorld(bound, remove=["algo_claim2", "algo_claim_param"])
         result = hypo.value_of("algo_concept3")
         assert result.status == "conflicted"
         assert len(result.claims) == 2
@@ -2435,7 +2435,7 @@ class TestAlgorithmWorldModel:
         # the direct value should be checked against the active algorithm.
         bound = algo_world.bind(task="speech")
         # Remove all but one algorithm and keep the parameter
-        hypo = HypotheticalWorld(bound, remove=["algo_claim2", "algo_claim3"])
+        hypo = OverlayWorld(bound, remove=["algo_claim2", "algo_claim3"])
         result = hypo.value_of("algo_concept3")
         # algo_claim1 evaluates to 44100 / 512 ~= 86.13, which disagrees with 42.0.
         assert result.status == "conflicted"
@@ -2485,13 +2485,13 @@ class TestBoundWorldPublicInterface:
     """BoundWorld methods used by collaborators should be public."""
 
     def test_is_param_compatible_public(self, world):
-        """is_param_compatible is used by HypotheticalWorld and sensitivity."""
+        """is_param_compatible is used by OverlayWorld and sensitivity."""
         bound = world.bind()
         assert hasattr(bound, 'is_param_compatible')
         assert callable(bound.is_param_compatible)
 
     def test_extract_methods_public(self, world):
-        """Value extraction methods are used by HypotheticalWorld."""
+        """Value extraction methods are used by OverlayWorld."""
         bound = world.bind()
         assert hasattr(bound, 'extract_variable_concepts')
         assert hasattr(bound, 'collect_known_values')
@@ -2535,7 +2535,7 @@ class TestSemanticCorePhase4Activation:
             ResolutionStrategy.SAMPLE_SIZE,
         )
 
-        hypo = HypotheticalWorld(
+        hypo = OverlayWorld(
             bound,
             add=[
                 SyntheticClaim(
@@ -2577,8 +2577,8 @@ class TestSemanticCorePhase4Activation:
             conditions=["task == 'speech'"],
         )
 
-        forward = HypotheticalWorld(bound, remove=remove_ids, add=[synth_a, synth_b])
-        reverse = HypotheticalWorld(bound, remove=remove_ids, add=[synth_b, synth_a])
+        forward = OverlayWorld(bound, remove=remove_ids, add=[synth_a, synth_b])
+        reverse = OverlayWorld(bound, remove=remove_ids, add=[synth_b, synth_a])
 
         forward_pairs = {
             _conflict_pair(conflict)
@@ -2688,7 +2688,7 @@ class TestFloatEqualityBugs:
         existing_concept2_claims = bound.active_claims("concept2")
         remove_ids = _runtime_claim_ids(existing_concept2_claims)
 
-        hypo = HypotheticalWorld(bound, remove=remove_ids, add=[sc_a, sc_b])
+        hypo = OverlayWorld(bound, remove=remove_ids, add=[sc_a, sc_b])
         conflicts = hypo.recompute_conflicts()
 
         # Filter to only conflicts between our two synthetic claims
@@ -2844,11 +2844,11 @@ class TestWorldModelSidecarPath:
             sys.modules.update(saved)
 
 
-# ── F30: HypotheticalWorld + ATMS backend ────────────────────────────
+# ── F30: OverlayWorld + ATMS backend ────────────────────────────
 
 
-class TestHypotheticalWorldATMS:
-    """HypotheticalWorld preserves ATMS behavior without silent downgrade."""
+class TestOverlayWorldATMS:
+    """OverlayWorld preserves ATMS behavior without silent downgrade."""
 
     def test_hypothetical_atms_resolution_degrades_backend(self, world):
         """Identity overlays should match the base ATMS result without downgrade."""
@@ -2862,7 +2862,7 @@ class TestHypotheticalWorldATMS:
             ),
         )
         # Keep concept1 conflicted — identity hypothetical overlay
-        hypo = HypotheticalWorld(bound)
+        hypo = OverlayWorld(bound)
 
         expected = bound.resolved_value("concept1")
         result = hypo.resolved_value("concept1")
@@ -2951,7 +2951,7 @@ def _phase6_bound_world(policy: RenderPolicy) -> BoundWorld:
 class TestSemanticCorePhase6HypotheticalDeltas:
     def test_empty_overlay_builds_identity_graph_delta(self, world):
         bound = world.bind(task="speech")
-        hypo = HypotheticalWorld(bound)
+        hypo = OverlayWorld(bound)
 
         assert hypo._graph_delta.is_identity
         assert hypo._active_graph == bound._active_graph
@@ -2963,7 +2963,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         assert restored_claim is not None
         restored = coerce_claim_row(restored_claim)
 
-        hypo = HypotheticalWorld(
+        hypo = OverlayWorld(
             bound,
             remove=["claim2"],
             add=[
@@ -2988,7 +2988,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
                 semantics="grounded",
             )
         )
-        hypo = HypotheticalWorld(
+        hypo = OverlayWorld(
             bound,
             add=[
                 SyntheticClaim(
@@ -3018,7 +3018,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
                 praf_strategy="exact_enum",
             )
         )
-        hypo = HypotheticalWorld(
+        hypo = OverlayWorld(
             bound,
             add=[
                 SyntheticClaim(

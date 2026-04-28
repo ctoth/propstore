@@ -11,7 +11,7 @@ result = bound.value_of("fundamental_frequency")
 print(result.status, result.claims)
 ```
 
-Source: `propstore/world/model.py` (WorldModel), `propstore/world/bound.py` (BoundWorld), `propstore/world/hypothetical.py` (HypotheticalWorld), `propstore/world/types.py` (result types, enums, policies).
+Source: `propstore/world/model.py` (WorldModel), `propstore/world/bound.py` (BoundWorld), `propstore/world/overlay.py` (OverlayWorld), `propstore/world/types.py` (result types, enums, policies).
 
 ## WorldModel
 
@@ -193,19 +193,19 @@ resolved = bound.resolved_value("concept1",
     policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY))
 ```
 
-## HypotheticalWorld
+## OverlayWorld
 
 A counterfactual overlay on a `BoundWorld`. Implements the same `BeliefSpace` protocol, so it supports `value_of`, `derived_value`, `resolved_value`, `active_claims`, `inactive_claims`, `is_determined`, `conflicts`, and `explain`.
 
 Constructed by injecting or removing claims from an existing bound view:
 
 ```python
-from propstore import HypotheticalWorld, SyntheticClaim
+from propstore import OverlayWorld, SyntheticClaim
 
 bound = world.bind(task="speech")
 
 # Remove a claim and observe consequences
-hypo = HypotheticalWorld(bound, remove=["claim1"])
+hypo = OverlayWorld(bound, remove=["claim1"])
 result = hypo.value_of("concept1")
 
 # Add a synthetic claim
@@ -216,11 +216,11 @@ sc = SyntheticClaim(
     value=900.0,
     conditions=["task == 'singing'"],
 )
-hypo = HypotheticalWorld(bound, add=[sc])
+hypo = OverlayWorld(bound, add=[sc])
 result = hypo.value_of("concept2")
 
 # Cascading effects on derived values
-hypo = HypotheticalWorld(bound, remove=["claim2", "claim7"])
+hypo = OverlayWorld(bound, remove=["claim2", "claim7"])
 derived = hypo.derived_value("concept5")
 ```
 
@@ -293,7 +293,7 @@ Returned by `chain_query()`. A multi-step derivation trace through the parameter
 
 ### SyntheticClaim
 
-Used with `HypotheticalWorld` to inject counterfactual claims.
+Used with `OverlayWorld` to inject counterfactual claims.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -410,7 +410,7 @@ A frozen dataclass representing condition bindings and context scope.
 
 ### BeliefSpace
 
-A `Protocol` implemented by both `BoundWorld` and `HypotheticalWorld`. Code that needs to query values without caring whether the world is real or hypothetical can type-hint against `BeliefSpace`.
+A `Protocol` implemented by both `BoundWorld` and `OverlayWorld`. Code that needs to query values without caring whether the world is real or hypothetical can type-hint against `BeliefSpace`.
 
 Required methods: `active_claims`, `inactive_claims`, `value_of`, `derived_value`, `resolved_value`, `is_determined`, `conflicts`, `explain`.
 
@@ -460,13 +460,13 @@ for strategy in ResolutionStrategy:
 ### Hypothetical queries
 
 ```python
-from propstore import WorldModel, HypotheticalWorld, SyntheticClaim
+from propstore import WorldModel, OverlayWorld, SyntheticClaim
 
 world = WorldModel.from_path("knowledge")
 bound = world.bind(task="speech")
 
 # What if we remove a controversial claim?
-hypo = HypotheticalWorld(bound, remove=["titze_1994_f0_male"])
+hypo = OverlayWorld(bound, remove=["titze_1994_f0_male"])
 result = hypo.value_of("fundamental_frequency")
 print(f"Without Titze 1994: {result.status}")
 
@@ -478,7 +478,7 @@ sc = SyntheticClaim(
     value=125.0,
     conditions=["task == 'speech'"],
 )
-hypo = HypotheticalWorld(bound, add=[sc])
+hypo = OverlayWorld(bound, add=[sc])
 result = hypo.value_of("fundamental_frequency")
 print(f"With new measurement: {result.status}, {len(result.claims)} claims")
 ```

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from propstore.world.bound import BoundWorld
-    from propstore.world.hypothetical import HypotheticalWorld
+    from propstore.world.overlay import OverlayWorld
     from propstore.world.model import WorldModel
     from propstore.world.types import (
         DerivedResult,
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 _EXPORTS: dict[str, tuple[str, str]] = {
     "BoundWorld": ("propstore.world.bound", "BoundWorld"),
     "DerivedResult": ("propstore.world.types", "DerivedResult"),
-    "HypotheticalWorld": ("propstore.world.hypothetical", "HypotheticalWorld"),
+    "OverlayWorld": ("propstore.world.overlay", "OverlayWorld"),
     "ReasoningBackend": ("propstore.world.types", "ReasoningBackend"),
     "RenderPolicy": ("propstore.world.types", "RenderPolicy"),
     "ResolvedResult": ("propstore.world.types", "ResolvedResult"),
@@ -35,7 +35,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
 __all__ = [
     "BoundWorld",
     "DerivedResult",
-    "HypotheticalWorld",
+    "OverlayWorld",
     "ReasoningBackend",
     "RenderPolicy",
     "ResolvedResult",

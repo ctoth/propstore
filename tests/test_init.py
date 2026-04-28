@@ -56,7 +56,7 @@ class TestInit:
         """Kernel submodules should import without package root pulling in world machinery."""
         blocked = {
             "propstore.world.bound",
-            "propstore.world.hypothetical",
+            "propstore.world.overlay",
             "propstore.world.model",
         }
         original_import = builtins.__import__

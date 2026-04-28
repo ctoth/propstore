@@ -16,7 +16,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from tests.family_helpers import build_sidecar
-from propstore.world import HypotheticalWorld, WorldModel
+from propstore.world import OverlayWorld, WorldModel
 from propstore.worldline import WorldlineDefinition, run_worldline
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
@@ -184,7 +184,7 @@ class TestSoundness:
 
         # Now remove g_earth and try again
         bound = property_world.bind(location="earth")
-        hypo = HypotheticalWorld(bound, remove=["g_earth"])
+        hypo = OverlayWorld(bound, remove=["g_earth"])
 
         # With g_earth removed, acceleration has no claims under location=earth
         vr = hypo.value_of("concept2")  # acceleration
@@ -277,7 +277,7 @@ class TestCompleteness:
 
         # Hypothetical: remove g_earth, add g_earth_alt=5.0
         bound = property_world.bind(location="earth")
-        hypo = HypotheticalWorld(
+        hypo = OverlayWorld(
             bound,
             remove=["g_earth"],
             add=[SyntheticClaim(
@@ -307,7 +307,7 @@ class TestCompleteness:
 
         # Hypothetical: remove temp_room
         bound = property_world.bind(location="earth")
-        hypo = HypotheticalWorld(bound, remove=["temp_room"])
+        hypo = OverlayWorld(bound, remove=["temp_room"])
         dr = hypo.derived_value("concept3", override_values={"concept1": 10.0})
 
         assert dr.status == "derived"

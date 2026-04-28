@@ -8,7 +8,7 @@ registry inputs are invariant for the lifetime of a `BoundWorld` instance
 they must be memoised on the instance.
 
 Overlay safety note: the free function `_conflict_inputs_for_store` is ALSO
-called by `propstore.world.hypothetical` against a `_GraphOverlayStore`.
+called by `propstore.world.overlay` against a `_GraphOverlayStore`.
 Those call sites must continue to rebuild — a shared cache would validate
 synthetic overlay claims against the base store's registry. This test only
 asserts caching WITHIN a single `BoundWorld` instance; it does not (and
@@ -108,17 +108,17 @@ class TestBoundConflictInputsCache:
 
     def test_hypothetical_overlay_does_not_share_base_conflict_inputs(self, world):
         """Overlay safety guard: the base BoundWorld's conflict-inputs cache
-        must NOT be visible to a HypotheticalWorld overlay. The overlay
+        must NOT be visible to a OverlayWorld overlay. The overlay
         wraps a separate `_GraphOverlayStore` and constructs its own fresh
         `BoundWorld`, which has its own independent cache.
         """
-        from propstore.world import HypotheticalWorld
+        from propstore.world import OverlayWorld
 
         base = world.bind(task="speech")
         # Prime the base cache.
         base.conflicts(CONCEPT1_ID)
 
-        hypo = HypotheticalWorld(base)
+        hypo = OverlayWorld(base)
 
         # The overlay's internal BoundWorld is a distinct instance with its
         # own _conflict_inputs_cache. Calling conflicts() on the overlay

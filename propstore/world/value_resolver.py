@@ -104,7 +104,7 @@ def collect_known_values(
 ) -> dict[ConceptId, Any]:
     """Resolve numeric values for a list of concept IDs.
 
-    Shared implementation used by BoundWorld and HypotheticalWorld.
+    Shared implementation used by BoundWorld and OverlayWorld.
     """
     known: dict[ConceptId, Any] = {}
     for cid in variable_concepts:
