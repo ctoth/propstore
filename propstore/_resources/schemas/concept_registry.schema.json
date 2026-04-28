@@ -1,0 +1,551 @@
+{
+    "$defs": {
+        "Alias": {
+            "additionalProperties": false,
+            "description": "A name used for this concept in a specific paper or tradition.",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "source"
+            ],
+            "title": "Alias",
+            "type": "object"
+        },
+        "Concept": {
+            "additionalProperties": false,
+            "description": "A true-named quantity, phenomenon, or structural category. One YAML file per concept. Filename matches canonical_name. Concepts have an artifact_id, one or more logical_ids, and a version_id; raw local IDs are not storage identity.",
+            "properties": {
+                "aliases": {
+                    "description": "All known names for this concept across the literature",
+                    "items": {
+                        "$ref": "#/$defs/Alias"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "artifact_id": {
+                    "description": "Durable opaque storage identity for this concept. Format: ps:concept:<opaque-token>.\n",
+                    "type": "string"
+                },
+                "canonical_name": {
+                    "description": "The preferred human-readable name. Lowercase, underscored. Filename MUST match this.\n",
+                    "type": "string"
+                },
+                "created_date": {
+                    "description": "ISO 8601 date when the concept was first added.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "definition": {
+                    "description": "One to three sentences. What IS this thing, precisely enough to distinguish it from near-neighbors.\n",
+                    "type": "string"
+                },
+                "definition_source": {
+                    "description": "Paper directory name where the definition is drawn from.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "domain": {
+                    "description": "Short domain tag for conceptual grouping and logical-id minting.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "form": {
+                    "description": "Reference to a form definition in forms/. The concept's dimensional type signature.\n",
+                    "type": "string"
+                },
+                "form_parameters": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/FormParameters"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Overrides for form-level parameters (e.g. dB reference, compound construction).\n"
+                },
+                "last_modified": {
+                    "description": "ISO 8601 date of last substantive edit.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "logical_ids": {
+                    "description": "Human-facing namespaced handles for this concept. Old source-local IDs survive only here, never as the storage key. The first entry is the primary display handle.\n",
+                    "items": {
+                        "$ref": "#/$defs/LogicalId"
+                    },
+                    "type": "array"
+                },
+                "notes": {
+                    "description": "Free-text notes.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "parameterization_relationships": {
+                    "description": "Algebraic/functional relationships to other parameterizations of the same phenomenon.\n",
+                    "items": {
+                        "$ref": "#/$defs/ParameterizationRelationship"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "range": {
+                    "description": "Valid value range [min, max]. Moved from the old QuantityKind.\n",
+                    "items": {
+                        "type": "number"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "relationships": {
+                    "description": "Typed edges to other concepts",
+                    "items": {
+                        "$ref": "#/$defs/ConceptRelationship"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "replaced_by": {
+                    "description": "Artifact ID of the successor. REQUIRED when status=deprecated.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "$ref": "#/$defs/ConceptStatus"
+                },
+                "version_id": {
+                    "description": "Immutable content-derived version identifier for this serialized concept state. Format: sha256:<64 hex chars>.\n",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "artifact_id",
+                "logical_ids",
+                "version_id",
+                "canonical_name",
+                "status",
+                "definition",
+                "form"
+            ],
+            "title": "Concept",
+            "type": "object"
+        },
+        "ConceptRelationship": {
+            "additionalProperties": false,
+            "description": "A typed, sourced edge to another concept.",
+            "properties": {
+                "conditions": {
+                    "description": "CEL expressions defining when this relationship holds.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "note": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "target": {
+                    "description": "Artifact ID of the related concept",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/$defs/RelationshipType"
+                }
+            },
+            "required": [
+                "type",
+                "target"
+            ],
+            "title": "ConceptRelationship",
+            "type": "object"
+        },
+        "ConceptStatus": {
+            "description": "Lifecycle state. Concepts are born proposed, reviewed to accepted, and never deleted \u2014 only deprecated with a successor link.",
+            "enum": [
+                "proposed",
+                "accepted",
+                "deprecated"
+            ],
+            "title": "ConceptStatus",
+            "type": "string"
+        },
+        "FormParameters": {
+            "additionalProperties": false,
+            "description": "Per-concept overrides for form-level parameters. Used when a form defines parameterized slots (e.g. dB reference for level forms, construction formula for dimensionless compounds, category values).",
+            "properties": {
+                "construction": {
+                    "description": "For dimensionless_compound concepts, the formula that constructs the compound quantity.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "extensible": {
+                    "description": "For category-form concepts, whether unrecognized values are warnings (true) or errors (false). Defaults to true.\n",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "note": {
+                    "description": "Free-text note about the form parameterization.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "reference": {
+                    "description": "For level-form concepts, the reference quantity for the dB scale.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "values": {
+                    "description": "For category-form concepts, the valid value set. CEL expressions comparing this concept against a string not in this set trigger warnings (if extensible) or errors (if not extensible).\n",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "title": "FormParameters",
+            "type": "object"
+        },
+        "FormulaExactness": {
+            "description": "Whether a parameterization relationship is definitional or empirical.",
+            "enum": [
+                "exact",
+                "approximate",
+                "conditional"
+            ],
+            "title": "FormulaExactness",
+            "type": "string"
+        },
+        "LogicalId": {
+            "additionalProperties": false,
+            "description": "Human-facing namespaced handle for a first-class object. Serialized as namespace:value.",
+            "properties": {
+                "namespace": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "namespace",
+                "value"
+            ],
+            "title": "LogicalId",
+            "type": "object"
+        },
+        "ParameterizationRelationship": {
+            "additionalProperties": false,
+            "description": "An algebraic or functional relationship between different parameterizations of the same underlying phenomenon.",
+            "properties": {
+                "bidirectional": {
+                    "type": "boolean"
+                },
+                "conditions": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "exactness": {
+                    "$ref": "#/$defs/FormulaExactness"
+                },
+                "fit_statistics": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "formula": {
+                    "type": "string"
+                },
+                "inputs": {
+                    "description": "Artifact IDs of all quantities appearing in the formula.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "note": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source": {
+                    "type": "string"
+                },
+                "sympy": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "formula",
+                "inputs",
+                "exactness",
+                "source",
+                "bidirectional"
+            ],
+            "title": "ParameterizationRelationship",
+            "type": "object"
+        },
+        "RelationshipType": {
+            "description": "",
+            "enum": [
+                "broader",
+                "narrower",
+                "related",
+                "component_of",
+                "derived_from",
+                "contested_definition"
+            ],
+            "title": "RelationshipType",
+            "type": "string"
+        },
+        "UnitConversion": {
+            "additionalProperties": false,
+            "description": "Conversion from an alternative unit to the concept's primary unit.",
+            "properties": {
+                "multiplier": {
+                    "type": "number"
+                },
+                "offset": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "type": {
+                    "$ref": "#/$defs/UnitConversionType"
+                },
+                "unit": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unit",
+                "type",
+                "multiplier"
+            ],
+            "title": "UnitConversion",
+            "type": "object"
+        },
+        "UnitConversionType": {
+            "description": "",
+            "enum": [
+                "multiplicative",
+                "affine"
+            ],
+            "title": "UnitConversionType",
+            "type": "string"
+        }
+    },
+    "$id": "https://propstore.local/schema/concept-registry",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "additionalProperties": false,
+    "description": "A true-named quantity, phenomenon, or structural category. One YAML file per concept. Filename matches canonical_name. Concepts have an artifact_id, one or more logical_ids, and a version_id; raw local IDs are not storage identity.",
+    "metamodel_version": "1.7.0",
+    "properties": {
+        "aliases": {
+            "description": "All known names for this concept across the literature",
+            "items": {
+                "$ref": "#/$defs/Alias"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "artifact_id": {
+            "description": "Durable opaque storage identity for this concept. Format: ps:concept:<opaque-token>.\n",
+            "type": "string"
+        },
+        "canonical_name": {
+            "description": "The preferred human-readable name. Lowercase, underscored. Filename MUST match this.\n",
+            "type": "string"
+        },
+        "created_date": {
+            "description": "ISO 8601 date when the concept was first added.",
+            "format": "date",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "definition": {
+            "description": "One to three sentences. What IS this thing, precisely enough to distinguish it from near-neighbors.\n",
+            "type": "string"
+        },
+        "definition_source": {
+            "description": "Paper directory name where the definition is drawn from.",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "domain": {
+            "description": "Short domain tag for conceptual grouping and logical-id minting.\n",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "form": {
+            "description": "Reference to a form definition in forms/. The concept's dimensional type signature.\n",
+            "type": "string"
+        },
+        "form_parameters": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/FormParameters"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "Overrides for form-level parameters (e.g. dB reference, compound construction).\n"
+        },
+        "last_modified": {
+            "description": "ISO 8601 date of last substantive edit.",
+            "format": "date",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "logical_ids": {
+            "description": "Human-facing namespaced handles for this concept. Old source-local IDs survive only here, never as the storage key. The first entry is the primary display handle.\n",
+            "items": {
+                "$ref": "#/$defs/LogicalId"
+            },
+            "type": "array"
+        },
+        "notes": {
+            "description": "Free-text notes.",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "parameterization_relationships": {
+            "description": "Algebraic/functional relationships to other parameterizations of the same phenomenon.\n",
+            "items": {
+                "$ref": "#/$defs/ParameterizationRelationship"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "range": {
+            "description": "Valid value range [min, max]. Moved from the old QuantityKind.\n",
+            "items": {
+                "type": "number"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "relationships": {
+            "description": "Typed edges to other concepts",
+            "items": {
+                "$ref": "#/$defs/ConceptRelationship"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "replaced_by": {
+            "description": "Artifact ID of the successor. REQUIRED when status=deprecated.\n",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "status": {
+            "$ref": "#/$defs/ConceptStatus"
+        },
+        "version_id": {
+            "description": "Immutable content-derived version identifier for this serialized concept state. Format: sha256:<64 hex chars>.\n",
+            "type": "string"
+        }
+    },
+    "required": [
+        "artifact_id",
+        "logical_ids",
+        "version_id",
+        "canonical_name",
+        "status",
+        "definition",
+        "form"
+    ],
+    "title": "concept_registry",
+    "type": "object",
+    "version": "0.2.0"
+}
+
