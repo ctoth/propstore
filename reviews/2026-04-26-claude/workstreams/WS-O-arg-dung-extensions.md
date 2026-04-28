@@ -1,6 +1,6 @@
 # WS-O-arg-dung-extensions: argumentation pkg coverage — variant Dung extensions + Caminada labelling-as-semantics operational
 
-**Status**: CLOSED 04281337
+**Status**: CLOSED 00076004
 **Depends on**: WS-O-arg-argumentation-pkg (the existing-bugs sub-stream; bug fixes land first so coverage work is built on a clean kernel)
 **Blocks**: none
 **Owner**: Codex implementation owner + human reviewer required
@@ -153,7 +153,7 @@ paper's figures with page reference in the test docstring.
 | `Amgoud_2008_BipolarityArgumentationFrameworks` | Bipolar refinement | Distinct support modes (deductive/necessary/evidence-based) — for this WS we ship the Cayrol abstract version; document the Amgoud distinction in module docstring as deferred. |
 | `Verheij_2002_ExistenceMultiplicityExtensionsDialectical` | Stage existence/multiplicity | Stage extensions always exist (because conflict-free always exists); used to design tests that pin the existence guarantee. |
 | `Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation` | Principle-based test suite | The 12+ principles (admissibility, conflict-freeness, reinstatement, weak/strong reinstatement, directionality, I-maximality, allowing abstention, language-independence, ...). Each new semantics ships with the principle suite as its acceptance test. |
-| (additional, for prudent) `Coste-Marquis_2005_PrudentSemantics` (already in `papers/` per cluster-B) | Prudent definition | Prudent attack as ancestral attack closure; prudent-conflict-free. |
+| (additional, for prudent) `Coste-Marquis_2005_PrudentSemantics` | Prudent definition | Prudent indirect conflict as odd-length directed attack paths; grounded prudent extension by `F^p_AF` iteration from the empty set. |
 
 If `Coste-Marquis_2005_PrudentSemantics/notes.md` is absent at WS start,
 retrieve via `/research-papers:paper-retriever` and run paper-reader BEFORE
