@@ -21,8 +21,10 @@ def test_build_diagnostics_required_in_world_model_schema() -> None:
     assert "build_diagnostics" in _REQUIRED_SCHEMA
     assert _REQUIRED_SCHEMA["build_diagnostics"] >= {
         "id",
-        "entity_type",
-        "entity_id",
+        "claim_id",
+        "source_kind",
+        "source_ref",
+        "diagnostic_kind",
         "severity",
         "message",
     }
