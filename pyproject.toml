@@ -14,7 +14,7 @@ dependencies = [
     "z3-solver>=4.12",
     "graphviz>=0.20",
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@129569f4f8472402fdae1142bcf485f45010a83d",
-    "formal-argumentation @ git+https://github.com/ctoth/argumentation@f8ebd8575681f150e658c733cf0b25a265966503",
+    "formal-argumentation @ git+https://github.com/ctoth/argumentation@ca1778cdcb16b1fa6360ab323bdae0af19c782fb",
     "bridgman @ git+https://github.com/ctoth/bridgman@35c88af379178d6571f60a6e9450cd61d40d52d1",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
