@@ -1,8 +1,8 @@
 """Content identity for propstore micropublication documents.
 
 Kuhn & Dumontier 2014 motivates embedding hashes in URIs for verifiable
-artifacts and reference trees (artifact pp.1-2). Their implemented modules are
-byte-level files or RDF graphs (artifact p.7), while propstore micropubs are
+artifacts and reference trees (pp. 1-2). Their implemented modules are
+byte-level files or RDF graphs (p. 7), while propstore micropubs are
 typed JSON/YAML documents. This module therefore defines a propstore-specific
 canonical payload and feeds it to the ni-URI primitive; it does not claim full
 Kuhn RA/FA module compatibility.
@@ -31,7 +31,7 @@ def canonicalize_micropub_for_identity(
     Recursive identity fields are excluded because Kuhn's self-reference
     treatment first hashes a representation with the future artifact code
     abstracted away, then verifies by reproducing that abstraction
-    (artifact p.6).
+    (p. 6).
     """
     canonical = copy.deepcopy(document.to_payload())
     for field in MICROPUB_IDENTITY_EXCLUDED_FIELDS:
