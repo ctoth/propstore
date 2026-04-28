@@ -203,8 +203,8 @@ def test_promote_source_branch_does_not_expose_native_git_deletions(tmp_path: Pa
         },
     )
 
-    commit_sha = promote_source_branch(repo, "clean_index_paper")
-    assert commit_sha
+    result = promote_source_branch(repo, "clean_index_paper")
+    assert result.commit_sha
 
     status = subprocess.run(
         ["git", "-C", str(repo.root), "status", "--porcelain"],
@@ -252,9 +252,9 @@ def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path
         },
     )
 
-    commit_sha = promote_source_branch(repo, "paper_source")
+    result = promote_source_branch(repo, "paper_source")
 
-    assert commit_sha
+    assert result.commit_sha
     canonical_source = repo.families.sources.require(
         CanonicalSourceRef("paper_source"),
     )
@@ -682,8 +682,8 @@ def test_promote_source_branch_unicode_name_writes_single_branch_matching_stem(
         },
     )
 
-    commit_sha = promote_source_branch(repo, unicode_name)
-    assert commit_sha
+    result = promote_source_branch(repo, unicode_name)
+    assert result.commit_sha
 
     branch = source_branch_name(unicode_name)
     assert branch.startswith("source/"), branch

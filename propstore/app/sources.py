@@ -208,21 +208,12 @@ def promote_source(
     from propstore.source import promote_source_branch
     from propstore.source.common import (
         load_source_claims_document,
-        load_source_finalize_report,
     )
 
-    promote_source_branch(repo, request.name, strict=request.strict)
+    promotion = promote_source_branch(repo, request.name, strict=request.strict)
     claims_doc = load_source_claims_document(repo, request.name)
-    report = load_source_finalize_report(repo, request.name)
     total_claims = len(claims_doc.claims) if claims_doc is not None else 0
-    blocked_count = 0
-    if report is not None:
-        blocked_count = (
-            len(report.claim_reference_errors)
-            + len(report.justification_reference_errors)
-            + len(report.stance_reference_errors)
-        )
-        blocked_count = min(blocked_count, total_claims)
+    blocked_count = len(promotion.blocked_claims)
     promoted_count = max(0, total_claims - blocked_count)
     return SourcePromoteReport(
         branch=source_branch_name(request.name),

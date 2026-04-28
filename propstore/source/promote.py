@@ -51,6 +51,7 @@ from propstore.repository import Repository
 from propstore.sidecar.sqlite import connect_sidecar
 from quire.documents import convert_document_value
 from propstore.families.documents.sources import (
+    SourceClaimDocument,
     SourceConceptEntryDocument,
     SourceDocument,
     SourceJustificationsDocument,
@@ -78,6 +79,21 @@ class SourceConceptPromotionResolution:
     concept_map: dict[str, str]
     promoted_concept_documents: dict[str, ConceptDocument]
     blocked_concept_refs: dict[str, str]
+
+
+@dataclass(frozen=True)
+class PromotionResult:
+    commit_sha: str
+    blocked_claims: tuple[SourceClaimDocument, ...]
+    blocked_diagnostics: dict[str, tuple[tuple[str, str], ...]]
+    sidecar_mirror_ok: bool
+    sidecar_mirror_error: str | None = None
+
+
+def _freeze_blocked_diagnostics(
+    reasons: dict[str, list[tuple[str, str]]],
+) -> dict[str, tuple[tuple[str, str], ...]]:
+    return {claim_id: tuple(entries) for claim_id, entries in reasons.items()}
 
 
 def _source_concept_ref_requires_mapping(value: str) -> bool:
@@ -615,7 +631,7 @@ def promote_source_branch(
     source_name: str,
     *,
     strict: bool = False,
-) -> str:
+) -> PromotionResult:
     report = load_finalize_report(repo, source_name)
     if report is None:
         raise ValueError(
@@ -864,6 +880,8 @@ def promote_source_branch(
     )
 
     prepared_sidecar_path: Path | None = None
+    sidecar_mirror_ok = True
+    sidecar_mirror_error: str | None = None
     try:
         with repo.head_bound_transaction(repo.snapshot.primary_branch_name(), path="promote") as head_txn:
             if promotion_plan.blocked_claims:
@@ -912,7 +930,11 @@ def promote_source_branch(
                         stance_document,
                     )
             if prepared_sidecar_path is not None:
-                prepared_sidecar_path.replace(repo.sidecar_path)
+                try:
+                    prepared_sidecar_path.replace(repo.sidecar_path)
+                except OSError as exc:
+                    sidecar_mirror_ok = False
+                    sidecar_mirror_error = str(exc)
         sha = head_txn.commit_sha
     finally:
         if prepared_sidecar_path is not None and prepared_sidecar_path.exists():
@@ -920,7 +942,13 @@ def promote_source_branch(
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
 
-    return sha
+    return PromotionResult(
+        commit_sha=sha,
+        blocked_claims=promotion_plan.blocked_claims,
+        blocked_diagnostics=_freeze_blocked_diagnostics(promotion_plan.blocked_reasons),
+        sidecar_mirror_ok=sidecar_mirror_ok,
+        sidecar_mirror_error=sidecar_mirror_error,
+    )
 
 
 def sync_source_branch(
