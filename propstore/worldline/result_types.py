@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from propstore.world.types import (
@@ -42,6 +43,22 @@ def _optional_int(value: Any) -> int | None:
     if value is None:
         return None
     return int(value)
+
+
+class WorldlineCaptureError(Enum):
+    ARGUMENTATION = "argumentation"
+    REVISION = "revision"
+    SENSITIVITY = "sensitivity"
+
+
+def coerce_worldline_capture_error(
+    value: WorldlineCaptureError | str | None,
+) -> WorldlineCaptureError | None:
+    if value is None:
+        return None
+    if isinstance(value, WorldlineCaptureError):
+        return value
+    return WorldlineCaptureError(str(value))
 
 
 @dataclass(frozen=True)
@@ -346,10 +363,11 @@ class WorldlineSensitivityEntry:
 @dataclass(frozen=True)
 class WorldlineSensitivityOutcome:
     entries: tuple[WorldlineSensitivityEntry, ...] = ()
-    error: str | None = None
+    error: WorldlineCaptureError | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "entries", tuple(self.entries))
+        object.__setattr__(self, "error", coerce_worldline_capture_error(self.error))
 
     @classmethod
     def from_value(cls, data: Any) -> WorldlineSensitivityOutcome:
@@ -363,13 +381,13 @@ class WorldlineSensitivityOutcome:
             )
         if isinstance(data, Mapping):
             return cls(
-                error=None if data.get("error") is None else str(data.get("error"))
+                error=coerce_worldline_capture_error(data.get("error"))
             )
         return cls()
 
     def to_dict(self) -> list[dict[str, Any]] | dict[str, Any]:
         if self.error is not None:
-            return {"error": self.error}
+            return {"error": self.error.value}
         return [entry.to_dict() for entry in self.entries]
 
 
@@ -402,7 +420,7 @@ class WorldlineSensitivityReport:
 class WorldlineArgumentationState:
     backend: str | None = None
     status: str | None = None
-    error: str | None = None
+    error: WorldlineCaptureError | None = None
     justified: tuple[str, ...] = ()
     defeated: tuple[str, ...] = ()
     acceptance_probs: Mapping[str, float] = field(default_factory=dict)
@@ -425,6 +443,7 @@ class WorldlineArgumentationState:
     why_out: Mapping[str, ATMSWhyOutReport] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "error", coerce_worldline_capture_error(self.error))
         object.__setattr__(self, "justified", tuple(self.justified))
         object.__setattr__(self, "defeated", tuple(self.defeated))
         object.__setattr__(self, "acceptance_probs", dict(self.acceptance_probs))
@@ -497,7 +516,7 @@ class WorldlineArgumentationState:
         return cls(
             backend=None if data.get("backend") is None else str(data.get("backend")),
             status=None if data.get("status") is None else str(data.get("status")),
-            error=None if data.get("error") is None else str(data.get("error")),
+            error=coerce_worldline_capture_error(data.get("error")),
             justified=tuple(str(item) for item in data.get("justified") or ()),
             defeated=tuple(str(item) for item in data.get("defeated") or ()),
             acceptance_probs={
@@ -551,7 +570,7 @@ class WorldlineArgumentationState:
         if self.status is not None:
             data["status"] = self.status
         if self.error is not None:
-            data["error"] = self.error
+            data["error"] = self.error.value
         if self.justified:
             data["justified"] = list(self.justified)
         if self.defeated:

@@ -4,6 +4,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.worldline.result_types import (
+    WorldlineCaptureError,
+    coerce_worldline_capture_error,
+)
+
 
 def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
     if value is None:
@@ -175,10 +180,11 @@ class WorldlineRevisionState:
     result: WorldlineRevisionResult | None = None
     state: Any | None = None
     status: str | None = None
-    error: str | None = None
+    error: WorldlineCaptureError | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
+        object.__setattr__(self, "error", coerce_worldline_capture_error(self.error))
 
     @classmethod
     def from_mapping(cls, data: object) -> WorldlineRevisionState | None:
@@ -200,7 +206,7 @@ class WorldlineRevisionState:
             result=WorldlineRevisionResult.from_mapping(result_data),
             state=None if state_data is None else dict(state_data),
             status=None if payload.get("status") is None else str(payload.get("status")),
-            error=None if payload.get("error") is None else str(payload.get("error")),
+            error=coerce_worldline_capture_error(payload.get("error")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -217,7 +223,7 @@ class WorldlineRevisionState:
         if self.status is not None:
             data["status"] = self.status
         if self.error is not None:
-            data["error"] = self.error
+            data["error"] = self.error.value
         return data
 
 

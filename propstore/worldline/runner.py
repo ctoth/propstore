@@ -13,6 +13,7 @@ from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
 from propstore.worldline.hashing import compute_worldline_content_hash
 from propstore.worldline.interfaces import HasEnvironment, WorldlineStore
 from propstore.worldline.result_types import (
+    WorldlineCaptureError,
     WorldlineArgumentationState,
     WorldlineDependencies,
     WorldlineSensitivityEntry,
@@ -117,7 +118,7 @@ def run_worldline(
             logger.warning("argumentation capture failed", exc_info=True)
             argumentation_state = WorldlineArgumentationState(
                 status="error",
-                error=f"argumentation capture failed: {exc}",
+                error=WorldlineCaptureError.ARGUMENTATION,
             )
 
     revision_state: WorldlineRevisionState | None = None
@@ -129,7 +130,7 @@ def run_worldline(
             revision_state = WorldlineRevisionState(
                 operation=definition.revision.operation,
                 status="error",
-                error=f"revision capture failed: {exc}",
+                error=WorldlineCaptureError.REVISION,
             )
 
     dependencies = WorldlineDependencies(
@@ -203,7 +204,7 @@ def _capture_sensitivity(
         except Exception as exc:
             logger.warning("sensitivity analysis failed for %s", target_name, exc_info=True)
             outcomes[target_name] = WorldlineSensitivityOutcome(
-                error=f"sensitivity analysis failed: {exc}",
+                error=WorldlineCaptureError.SENSITIVITY,
             )
     if not outcomes:
         return None
