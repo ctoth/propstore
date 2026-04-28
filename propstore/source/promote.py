@@ -805,21 +805,25 @@ def promote_source_branch(
         else slug
     )
 
+    normalized_promoted_claims: list[object] = []
     for claim in promoted_claims:
-        if isinstance(claim, dict):
-            provenance = claim.get("provenance")
-            if isinstance(provenance, dict) and not isinstance(provenance.get("paper"), str):
-                updated_provenance = dict(provenance)
-                updated_provenance["paper"] = promoted_source_paper
-                claim["provenance"] = updated_provenance
-            normalized_claim = _normalize_promoted_claim_context(claim)
-            normalized_claim = normalize_canonical_claim_payload(
+        if not isinstance(claim, dict):
+            normalized_promoted_claims.append(claim)
+            continue
+        normalized_input = dict(claim)
+        provenance = normalized_input.get("provenance")
+        if isinstance(provenance, dict) and not isinstance(provenance.get("paper"), str):
+            updated_provenance = dict(provenance)
+            updated_provenance["paper"] = promoted_source_paper
+            normalized_input["provenance"] = updated_provenance
+        normalized_claim = _normalize_promoted_claim_context(normalized_input)
+        normalized_promoted_claims.append(
+            normalize_canonical_claim_payload(
                 normalized_claim,
                 strip_source_local=True,
             )
-            claim.clear()
-            claim.update(normalized_claim)
-    promoted_claims_doc["claims"] = promoted_claims
+        )
+    promoted_claims_doc["claims"] = normalized_promoted_claims
 
     stances_by_source: dict[str, list[dict[str, Any]]] = {}
     for stance in promoted_stances_doc.get("stances", []) or []:
