@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -48,6 +49,7 @@ _PRINTABLE = st.characters(min_codepoint=32, max_codepoint=126)
 
 
 @settings(max_examples=8, deadline=None)
+@pytest.mark.property
 @given(
     left_body=st.text(alphabet=_PRINTABLE, min_size=1, max_size=50),
     right_body=st.text(alphabet=_PRINTABLE, min_size=1, max_size=50),

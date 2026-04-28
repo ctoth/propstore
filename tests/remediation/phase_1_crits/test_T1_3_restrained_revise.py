@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from hypothesis import given, settings
 
 from propstore.belief_set import Atom, SpohnEpistemicState
@@ -33,6 +34,7 @@ def test_restrained_revision_splits_only_equal_nonminimal_preorder_levels() -> N
     assert revised.ranks[NOT_P_AND_NOT_Q] < revised.ranks[P_AND_Q]
 
 
+@pytest.mark.property
 @given(state=st_state(), formula=st_formula)
 @settings(deadline=None)
 def test_restrained_revision_satisfies_booth_meyer_rr_pairwise_condition(
