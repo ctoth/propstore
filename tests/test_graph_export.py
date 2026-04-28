@@ -361,8 +361,13 @@ class TestUnboundGraph:
         conn = sqlite3.connect(sidecar)
         build_minimal_world_model_schema(conn)
         conn.execute(
-            "INSERT INTO concept (id, canonical_name, status, domain, form, kind_type, form_parameters) "
-            "VALUES ('concept2', 'jnd_threshold', 'accepted', 'speech', 'frequency', 'quantity', NULL)"
+            "INSERT INTO concept ("
+            "id, content_hash, seq, canonical_name, status, domain, "
+            "definition, form, kind_type, form_parameters"
+            ") VALUES ("
+            "'concept2', 'sha256:concept2', 0, 'jnd_threshold', "
+            "'accepted', 'speech', 'JND threshold', 'frequency', "
+            "'quantity', NULL)"
         )
         conn.execute(
             "INSERT INTO claim_core (id, content_hash, seq, type, target_concept, source_paper, provenance_page, provenance_json, context_id) "
