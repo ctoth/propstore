@@ -1,6 +1,6 @@
 # WS-O-arg-dung-extensions: argumentation pkg coverage — variant Dung extensions + Caminada labelling-as-semantics operational
 
-**Status**: OPEN
+**Status**: CLOSED 04281337
 **Depends on**: WS-O-arg-argumentation-pkg (the existing-bugs sub-stream; bug fixes land first so coverage work is built on a clean kernel)
 **Blocks**: none
 **Owner**: Codex implementation owner + human reviewer required

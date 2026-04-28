@@ -85,9 +85,9 @@ side effects. Clean.
 | stage | yes | brute only | hint | `dung.py:378` |
 | cf2 | yes | brute (recursive SCC) | hint | `dung.py:523` |
 | ideal | yes (BUG, see below) | brute | hint | `dung.py:543` |
-| eager (Caminada 2007) | NO | — | — | — |
-| stage2 (Gaggl 2012) | NO | — | — | Gaggl 2012 paper in scope |
-| prudent / strongly admissible | NO | — | — | — |
+| eager (Caminada 2007) | YES | `argumentation.dung.eager_extension` | propstore pin `c941fe4` | Closed by WS-O-arg-dung-extensions (`04281337`) |
+| stage2 (Gaggl 2012/2013) | YES | `argumentation.dung.stage2_extensions` | propstore pin `c941fe4` | Closed by WS-O-arg-dung-extensions (`04281337`) |
+| prudent / strongly admissible | YES | `argumentation.dung.prudent_*` | propstore pin `c941fe4` | Closed prudent extension surface; strongly admissible remains a successor if requested |
 | resolution-based grounded (Baroni-Giacomin) | NO | — | — | — |
 
 The brute paths uniformly enumerate `2^n` subsets (`dung.py:339`,
