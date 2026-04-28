@@ -20,7 +20,10 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+import shutil
 import sqlite3
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
@@ -575,6 +578,38 @@ def _write_promotion_blocked_sidecar_rows(
         conn.close()
 
 
+def _prepare_promotion_blocked_sidecar(
+    sidecar_path: Path,
+    source_branch: str,
+    source_paper: str,
+    blocked_claims,
+    reasons: dict[str, list[tuple[str, str]]],
+) -> Path | None:
+    if not sidecar_path.exists():
+        return None
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{sidecar_path.name}.promotion.",
+        suffix=".tmp",
+        dir=sidecar_path.parent,
+    )
+    os.close(fd)
+    temp_path = Path(temp_name)
+    try:
+        shutil.copy2(sidecar_path, temp_path)
+        _write_promotion_blocked_sidecar_rows(
+            temp_path,
+            source_branch,
+            source_paper,
+            blocked_claims,
+            reasons,
+        )
+    except Exception:
+        temp_path.unlink(missing_ok=True)
+        raise
+    return temp_path
+
+
 def promote_source_branch(
     repo: Repository,
     source_name: str,
@@ -828,54 +863,60 @@ def promote_source_branch(
         blocked_reasons=blocked_reasons,
     )
 
-    with repo.head_bound_transaction(repo.snapshot.primary_branch_name(), path="promote") as head_txn:
-        if promotion_plan.blocked_claims:
-            head_txn.sidecar_write(
-                lambda: _write_promotion_blocked_sidecar_rows(
+    prepared_sidecar_path: Path | None = None
+    try:
+        with repo.head_bound_transaction(repo.snapshot.primary_branch_name(), path="promote") as head_txn:
+            if promotion_plan.blocked_claims:
+                head_txn.assert_current()
+                prepared_sidecar_path = _prepare_promotion_blocked_sidecar(
                     repo.sidecar_path,
                     promotion_plan.source_branch,
                     promotion_plan.slug,
                     promotion_plan.blocked_claims,
                     promotion_plan.blocked_reasons,
                 )
-            )
 
-        with head_txn.families_transact(message=f"Promote source {slug}") as transaction:
-            transaction.sources.save(
-                promotion_plan.source_ref,
-                promotion_plan.promoted_source_document,
-            )
-            transaction.claims.save(
-                promotion_plan.claims_ref,
-                promotion_plan.promoted_claims_document,
-            )
-            if (
-                promotion_plan.promoted_micropubs_ref is not None
-                and promotion_plan.promoted_micropubs_document is not None
-            ):
-                transaction.micropubs.save(
-                    promotion_plan.promoted_micropubs_ref,
-                    promotion_plan.promoted_micropubs_document,
+            with head_txn.families_transact(message=f"Promote source {slug}") as transaction:
+                transaction.sources.save(
+                    promotion_plan.source_ref,
+                    promotion_plan.promoted_source_document,
                 )
-            for concept_ref, concept_document in promotion_plan.promoted_concept_documents.items():
-                transaction.concepts.save(
-                    concept_ref,
-                    concept_document,
+                transaction.claims.save(
+                    promotion_plan.claims_ref,
+                    promotion_plan.promoted_claims_document,
                 )
-            if (
-                promotion_plan.promoted_justifications_ref is not None
-                and promotion_plan.promoted_justifications_document is not None
-            ):
-                transaction.justifications.save(
-                    promotion_plan.promoted_justifications_ref,
-                    promotion_plan.promoted_justifications_document,
-                )
-            for stance_ref, stance_document in promotion_plan.promoted_stance_documents.items():
-                transaction.stances.save(
-                    stance_ref,
-                    stance_document,
-                )
-    sha = head_txn.commit_sha
+                if (
+                    promotion_plan.promoted_micropubs_ref is not None
+                    and promotion_plan.promoted_micropubs_document is not None
+                ):
+                    transaction.micropubs.save(
+                        promotion_plan.promoted_micropubs_ref,
+                        promotion_plan.promoted_micropubs_document,
+                    )
+                for concept_ref, concept_document in promotion_plan.promoted_concept_documents.items():
+                    transaction.concepts.save(
+                        concept_ref,
+                        concept_document,
+                    )
+                if (
+                    promotion_plan.promoted_justifications_ref is not None
+                    and promotion_plan.promoted_justifications_document is not None
+                ):
+                    transaction.justifications.save(
+                        promotion_plan.promoted_justifications_ref,
+                        promotion_plan.promoted_justifications_document,
+                    )
+                for stance_ref, stance_document in promotion_plan.promoted_stance_documents.items():
+                    transaction.stances.save(
+                        stance_ref,
+                        stance_document,
+                    )
+            if prepared_sidecar_path is not None:
+                prepared_sidecar_path.replace(repo.sidecar_path)
+        sha = head_txn.commit_sha
+    finally:
+        if prepared_sidecar_path is not None and prepared_sidecar_path.exists():
+            prepared_sidecar_path.unlink(missing_ok=True)
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
 
