@@ -1812,12 +1812,13 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
             {
                 "source": {"paper": "Smith_2024_TestPaper"},
                 "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "parameter",
-                        "concept": "fundamental_frequency",
-                        "value": 200.0,
-                        "unit": "Hz",
+                        {
+                            "id": "claim1",
+                            "type": "parameter",
+                            "context": "ctx_test",
+                            "concept": "fundamental_frequency",
+                            "value": 200.0,
+                            "unit": "Hz",
                         "provenance": {"paper": "ignored_here", "page": 1},
                     }
                 ]
