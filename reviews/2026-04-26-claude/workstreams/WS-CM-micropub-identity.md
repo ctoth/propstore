@@ -1,6 +1,6 @@
 # WS-CM: Micropub canonical payload and Trusty URI identity
 
-**Status**: OPEN
+**Status**: CLOSED 526cf53b
 **Depends on**: WS-A (schema fidelity; canonical payload construction must use the real micropub schema), RFC 6920 / Kuhn 2014 Trusty URI reference already cited by WS-M.
 **Blocks**: WS-C Step 3 (sidecar micropub dedupe-shape correctness), WS-M Trusty URI provenance integration.
 **Owner**: Codex implementation owner + human reviewer required.
