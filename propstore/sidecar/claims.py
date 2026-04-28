@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Sequence
+from typing import cast
 
 from propstore.sidecar.claim_utils import (
     insert_claim_concept_link_row,
@@ -108,7 +109,7 @@ def populate_claims(
             if key in seen_link_keys:
                 continue
             seen_link_keys.add(key)
-        insert_claim_concept_link_row(conn, row.values)
+        insert_claim_concept_link_row(conn, cast(tuple[object, ...], row.values))
     for stance_row in rows.stance_rows:
         insert_claim_stance_row(conn, stance_row.values)
 
