@@ -45,6 +45,25 @@ def _required_document_mapping(value: object, field_name: str) -> Mapping[str, A
     return value
 
 
+class WorldlineRevisionTargetValidationError(ValueError):
+    """Raised when a revision target cannot be resolved as an atom id."""
+
+
+def _validated_revision_target(operation: str, target: object) -> str | None:
+    if target is None:
+        return None
+    target_id = str(target)
+    if operation == "contract" and not (
+        target_id.startswith("ps:assertion:")
+        or target_id.startswith("assumption:")
+    ):
+        raise WorldlineRevisionTargetValidationError(
+            "Worldline revision target must be an assertion or assumption atom id: "
+            f"{target_id}"
+        )
+    return target_id
+
+
 @dataclass
 class WorldlineInputs:
     """The input specification for a worldline query."""
@@ -122,7 +141,7 @@ class WorldlineRevisionQuery:
         return cls(
             operation=data.operation,
             atom=atom,
-            target=data.target,
+            target=_validated_revision_target(data.operation, data.target),
             conflicts=RevisionConflictSelection(
                 {
                     atom_id: tuple(target_ids)
@@ -139,7 +158,7 @@ class WorldlineRevisionQuery:
         return cls(
             operation=str(data.get("operation", "")),
             atom=RevisionAtomRef.from_mapping(data.get("atom")),
-            target=data.get("target"),
+            target=_validated_revision_target(str(data.get("operation", "")), data.get("target")),
             conflicts=RevisionConflictSelection.from_mapping(data.get("conflicts")),
             operator=data.get("operator"),
         )
