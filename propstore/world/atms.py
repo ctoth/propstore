@@ -287,7 +287,7 @@ def _is_derived_node(node: ATMSNode) -> TypeGuard[ATMSDerivedNode]:
 class ATMSJustification:
     justification_id: str
     antecedent_ids: tuple[str, ...]
-    consequent_ids: tuple[str, ...]
+    consequent_id: str
     informant: str
 
 
@@ -561,6 +561,9 @@ class ATMSEngine:
         self._all_parameterizations = tuple(self._sorted_parameterizations())
         self.nogoods = NogoodSet()
         self._nogood_provenance: dict[EnvironmentKey, tuple[ATMSNogoodProvenanceDetail, ...]] = {}
+        self.fixpoint_reached = False
+        self.iterations_run = 0
+        self.warnings: tuple[str, ...] = ()
         self._build(max_iterations=max_build_iterations)
 
     def claim_label(self, claim_id: str) -> Label | None:
@@ -1332,21 +1335,31 @@ class ATMSEngine:
         self._build_micropublication_nodes_and_justifications()
 
         iteration_count = 0
+        self._refresh_labels()
         while True:
             if iteration_count >= max_iterations:
-                # Zilberstein 1996: bounded exact computation must surface the
-                # interrupted remainder as vacuous instead of assuming convergence.
-                raise EnumerationExceeded(
-                    partial_count=iteration_count,
-                    max_candidates=max_iterations,
+                self.iterations_run = iteration_count
+                self.fixpoint_reached = False
+                self.warnings = (
+                    f"ATMS build stopped before fixpoint after {iteration_count} iterations",
                 )
+                return
+
             iteration_count += 1
-            self._propagate_labels()
-            added_justifications = self._materialize_parameterization_justifications()
             updated_nogoods = self._update_nogoods()
+            if updated_nogoods:
+                self._refresh_labels()
+            added_justifications = self._materialize_parameterization_justifications()
+            if added_justifications:
+                self._refresh_labels()
             if not added_justifications and not updated_nogoods:
-                self._propagate_labels()
+                self.iterations_run = iteration_count
+                self.fixpoint_reached = True
+                self.warnings = ()
                 break
+
+    def _refresh_labels(self) -> None:
+        self._propagate_labels()
 
     def _build_assumption_nodes(self) -> None:
         for assumption in sorted(
@@ -1461,15 +1474,14 @@ class ATMSEngine:
                     continue
 
                 candidate = combine_labels(*antecedent_labels, nogoods=self.nogoods)
-                for consequent_id in justification.consequent_ids:
-                    current = self._nodes[consequent_id].label
-                    merged = merge_labels([current, candidate], nogoods=self.nogoods)
-                    if merged != current:
-                        self._nodes[consequent_id] = replace(
-                            self._nodes[consequent_id],
-                            label=merged,
-                        )
-                        changed = True
+                current = self._nodes[justification.consequent_id].label
+                merged = merge_labels([current, candidate], nogoods=self.nogoods)
+                if merged != current:
+                    self._nodes[justification.consequent_id] = replace(
+                        self._nodes[justification.consequent_id],
+                        label=merged,
+                    )
+                    changed = True
 
     def _materialize_parameterization_justifications(self) -> bool:
         added = False
@@ -1647,7 +1659,7 @@ class ATMSEngine:
         for node_id, node in self._nodes.items():
             if node.kind not in {"claim", "derived"}:
                 continue
-            if not node.label.environments:
+            if not node.label.environments and not self._was_pruned_by_nogood(node_id):
                 continue
             concept_id = _node_concept_id(node)
             value = _node_value(node)
@@ -1753,7 +1765,7 @@ class ATMSEngine:
         justification = ATMSJustification(
             justification_id=justification_id,
             antecedent_ids=tuple(sorted(antecedent_ids)),
-            consequent_ids=(consequent_id,),
+            consequent_id=consequent_id,
             informant=informant,
         )
         self._justifications[justification_id] = justification
@@ -2561,7 +2573,7 @@ class ATMSEngine:
     ) -> ATMSJustificationExplanation | None:
         justification = self._justifications[justification_id]
         candidate = self._justification_candidate_label(justification, nogoods=self.nogoods)
-        consequent = self._nodes[justification.consequent_ids[0]]
+        consequent = self._nodes[justification.consequent_id]
         if not candidate.environments:
             return None
         if consequent.label.environments and not any(
@@ -2603,7 +2615,7 @@ class ATMSEngine:
                 essential_support=nested.essential_support,
                 reason=nested.reason,
                 traces=nested.traces,
-                antecedent_of=justification.consequent_ids[0],
+                antecedent_of=justification.consequent_id,
             )
             antecedents.append(nested_explanation)
 
@@ -2611,7 +2623,7 @@ class ATMSEngine:
             node_id=consequent.node_id,
             justification_id=justification.justification_id,
             antecedent_ids=list(justification.antecedent_ids),
-            consequent_id=justification.consequent_ids[0],
+            consequent_id=justification.consequent_id,
             informant=justification.informant,
             support=self._serialize_label(candidate),
             antecedents=antecedents,
