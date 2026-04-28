@@ -38,7 +38,7 @@ def _normalise_id(value: str) -> str:
     return f"WS-{token}"
 
 
-def _parse_deps(value: str) -> tuple[str, ...]:
+def _parse_deps(value: str, *, strict: bool) -> tuple[str, ...]:
     value = _strip_markup(value)
     if not value or value == "-":
         return ()
@@ -51,7 +51,9 @@ def _parse_deps(value: str) -> tuple[str, ...]:
         if not part or part == "—":
             continue
         if " " in part:
-            raise ValueError(f"dependency token contains whitespace: {part!r}")
+            if strict:
+                raise ValueError(f"dependency token contains whitespace: {part!r}")
+            continue
         deps.append(_normalise_id(part))
     return tuple(deps)
 
@@ -74,8 +76,8 @@ def _parse_rows(index_text: str) -> list[WorkstreamRow]:
                 workstream_id=_normalise_id(cells[0]),
                 title=_strip_markup(cells[1]),
                 status=_strip_markup(cells[2]),
-                deps=_parse_deps(cells[3]),
-                blocks=_parse_deps(cells[4]),
+                deps=_parse_deps(cells[3], strict=True),
+                blocks=_parse_deps(cells[4], strict=False),
             )
         )
     return rows
