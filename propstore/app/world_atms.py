@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -24,6 +24,9 @@ from propstore.world.types import (
 
 if TYPE_CHECKING:
     from propstore.world import BoundWorld, WorldModel
+
+
+SerializedSupport = Mapping[str, Sequence[str]]
 
 
 class WorldAtmsAppError(Exception):
@@ -71,7 +74,7 @@ class AtmsClaimStatusLine:
     claim_id: str
     status: str
     support_quality: str | None = None
-    essential_support: Mapping[str, tuple[str, ...]] | None = None
+    essential_support: SerializedSupport | None = None
     reason: str | None = None
 
 
@@ -82,7 +85,7 @@ class AtmsStatusReport:
 
 @dataclass(frozen=True)
 class AtmsContextReport:
-    environment: Mapping[str, tuple[str, ...]]
+    environment: SerializedSupport
     claims: tuple[AtmsClaimStatusLine, ...]
 
 
@@ -300,11 +303,19 @@ def world_atms_status(repo: Repository, request: AppAtmsViewRequest) -> AtmsStat
 def world_atms_context(repo: Repository, request: AppAtmsViewRequest) -> AtmsContextReport:
     manager, wm, bound, _bindings, concept_id = _bind_atms(repo, request)
     try:
-        environment = tuple(
+        environment_assumption_ids = tuple(
             str(assumption.assumption_id)
             for assumption in bound._environment.assumptions
         )
-        claim_ids = bound.claims_in_environment(environment)
+        environment = {
+            "assumption_ids": list(environment_assumption_ids),
+            "context_ids": (
+                []
+                if bound._environment.context_id is None
+                else [str(bound._environment.context_id)]
+            ),
+        }
+        claim_ids = bound.claims_in_environment(environment_assumption_ids)
         if concept_id:
             resolved = resolve_world_target(wm, concept_id)
             allowed = {

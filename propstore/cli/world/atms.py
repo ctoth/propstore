@@ -1,6 +1,8 @@
 """ATMS-oriented ``pks world`` command adapters."""
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 import click
 
 from propstore.cli.helpers import EXIT_VALIDATION, exit_with_code
@@ -31,6 +33,19 @@ from propstore.cli.world import (
     world,
 )
 from propstore.repository import Repository
+
+
+def _format_support_ids(support: Mapping[str, Sequence[str]] | None) -> str:
+    if support is None:
+        return "[]"
+    assumption_ids = tuple(str(value) for value in support.get("assumption_ids", ()))
+    context_ids = tuple(str(value) for value in support.get("context_ids", ()))
+    parts = []
+    if assumption_ids:
+        parts.append(f"assumptions={_format_assumption_ids(assumption_ids)}")
+    if context_ids:
+        parts.append(f"contexts={_format_assumption_ids(context_ids)}")
+    return "{" + ", ".join(parts) + "}" if parts else "[]"
 
 
 @world.group("atms", no_args_is_help=True)
@@ -67,7 +82,7 @@ def world_atms_status_command(
         emit(
             f"{claim.claim_id}: status={claim.status} "
             f"support_quality={claim.support_quality} "
-            f"essential_support={_format_assumption_ids(claim.essential_support)}"
+            f"essential_support={_format_support_ids(claim.essential_support)}"
         )
         emit(f"  reason: {claim.reason}")
 
@@ -84,7 +99,7 @@ def world_atms_context_command(
     """Show which ATMS-supported claims hold in the current bound environment."""
     repo: Repository = obj["repo"]
     report = world_atms_context(repo, _view_request(args, context))
-    emit(f"Environment: {_format_assumption_ids(report.environment)}")
+    emit(f"Environment: {_format_support_ids(report.environment)}")
 
     if not report.claims:
         emit("No claims have exact ATMS support in the current environment.")
@@ -93,7 +108,7 @@ def world_atms_context_command(
     for claim in report.claims:
         emit(
             f"{claim.claim_id}: status={claim.status} "
-            f"essential_support={_format_assumption_ids(claim.essential_support)}"
+            f"essential_support={_format_support_ids(claim.essential_support)}"
         )
 
 
