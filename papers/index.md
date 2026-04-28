@@ -604,3 +604,8 @@ Directly load-bearing for propstore: it grounds the lazy-until-render discipline
 Čyras and Toni introduce ABA+, extending assumption-based argumentation with a transitive preference relation over assumptions.
 The key mechanism is attack reversal: attacks supported by assumptions strictly less preferred than the attacked assumption are blocked and reversed.
 This is the primary source for WS-O-arg-aba-adf's flat ABA+ preference-filtered attack semantics.
+
+## [Prudent Semantics for Argumentation Frameworks](Coste-Marquis_2005_PrudentSemantics/notes.md)  (abstract-argumentation, argumentation-semantics, prudent-semantics, dung-af, indirect-attack)
+Defines prudent semantics for Dung argumentation frameworks by strengthening admissibility so that no two co-accepted arguments are connected by an odd-length indirect attack path.
+Establishes preferred, stable, grounded, and complete prudent extensions, compares their cautiousness against Dung inference relations, and shows the decision-problem complexity classes do not increase relative to the corresponding standard semantics.
+Directly relevant to propstore's argumentation layer as a coherence policy for preventing indirectly conflicting claims from appearing together in an accepted extension.
