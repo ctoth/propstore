@@ -158,9 +158,9 @@ def test_error_page_has_accessible_heading_and_literal_message() -> None:
     audit = _audit(html)
 
     assert audit.h1_texts == ["Claim Not Found"]
-    assert audit.title_text == "Claim Not Found"
+    assert audit.title_text == "Claim Not Found - propstore"
     assert audit.main_count == 1
-    assert audit.h2_texts == ["Error"]
+    assert audit.h2_texts == ["What happened"]
     assert "Claim &#x27;missing&#x27; not found." in html
 
 
