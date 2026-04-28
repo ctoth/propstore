@@ -180,12 +180,96 @@ _TOKEN_PATTERNS = [
     (r':', TokenType.COLON),
     (r'"(?:[^"\\]|\\.)*"', TokenType.STRING_LIT),
     (r"'(?:[^'\\]|\\.)*'", TokenType.STRING_LIT),
-    (r'\d+\.\d*|\.\d+', TokenType.FLOAT_LIT),
+    (r'(?:\d+\.\d*|\.\d+|\d+)[eE][+-]?\d+|\d+\.\d*|\.\d+', TokenType.FLOAT_LIT),
     (r'\d+', TokenType.INT_LIT),
     (r'[a-zA-Z_][a-zA-Z0-9_]*', TokenType.NAME),
 ]
 
 _COMPILED_PATTERNS = [(re.compile(p), t) for p, t in _TOKEN_PATTERNS]
+
+
+_CEL_SIMPLE_ESCAPES = {
+    "\\": "\\",
+    "?": "?",
+    '"': '"',
+    "'": "'",
+    "`": "`",
+    "a": "\a",
+    "b": "\b",
+    "f": "\f",
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+    "v": "\v",
+}
+
+
+def _decode_cel_code_point(value: int) -> str:
+    if value > 0x10FFFF or 0xD800 <= value <= 0xDFFF:
+        raise ValueError(f"Invalid CEL Unicode code point: {value:#x}")
+    return chr(value)
+
+
+def _decode_cel_string_literal(literal: str) -> str:
+    """Decode a quoted CEL string literal.
+
+    CEL langdef.md String and Bytes Values defines punctuation, whitespace,
+    hex, Unicode, and three-digit octal escapes. Raw/triple/bytes literals
+    are outside this parser subset.
+    """
+    body = literal[1:-1]
+    chars: list[str] = []
+    pos = 0
+    while pos < len(body):
+        char = body[pos]
+        if char in "\r\n":
+            raise ValueError("CEL quoted string literals cannot contain raw newlines")
+        if char != "\\":
+            chars.append(char)
+            pos += 1
+            continue
+
+        pos += 1
+        if pos >= len(body):
+            raise ValueError("CEL string literal ends with a backslash")
+        escape = body[pos]
+        if escape in _CEL_SIMPLE_ESCAPES:
+            chars.append(_CEL_SIMPLE_ESCAPES[escape])
+            pos += 1
+            continue
+        if escape in {"x", "X"}:
+            digits = body[pos + 1:pos + 3]
+            if len(digits) != 2 or not re.fullmatch(r"[0-9a-fA-F]{2}", digits):
+                raise ValueError("CEL \\x escape requires two hexadecimal digits")
+            chars.append(_decode_cel_code_point(int(digits, 16)))
+            pos += 3
+            continue
+        if escape == "u":
+            digits = body[pos + 1:pos + 5]
+            if len(digits) != 4 or not re.fullmatch(r"[0-9a-fA-F]{4}", digits):
+                raise ValueError("CEL \\u escape requires four hexadecimal digits")
+            chars.append(_decode_cel_code_point(int(digits, 16)))
+            pos += 5
+            continue
+        if escape == "U":
+            digits = body[pos + 1:pos + 9]
+            if len(digits) != 8 or not re.fullmatch(r"[0-9a-fA-F]{8}", digits):
+                raise ValueError("CEL \\U escape requires eight hexadecimal digits")
+            chars.append(_decode_cel_code_point(int(digits, 16)))
+            pos += 9
+            continue
+        if escape in "01234567":
+            digits = body[pos:pos + 3]
+            if len(digits) != 3 or not re.fullmatch(r"[0-7]{3}", digits):
+                raise ValueError("CEL octal escape requires three octal digits")
+            value = int(digits, 8)
+            if value > 0o377:
+                raise ValueError("CEL octal escape must be in range 000 to 377")
+            chars.append(chr(value))
+            pos += 3
+            continue
+        raise ValueError(f"Invalid CEL escape sequence: \\{escape}")
+    return "".join(chars)
 
 
 def tokenize(expr: str) -> list[Token]:
@@ -205,11 +289,18 @@ def tokenize(expr: str) -> list[Token]:
                         elif val == "in":
                             token_type = TokenType.IN
                     elif token_type == TokenType.STRING_LIT:
-                        val = val[1:-1]  # strip quotes
-                        val = val.replace('\\"', '"').replace("\\'", "'").replace('\\\\', '\\')
+                        val = _decode_cel_string_literal(val)
                     elif token_type == TokenType.INT_LIT:
+                        if m.end() < len(expr) and re.match(r"[A-Za-z_]", expr[m.end()]):
+                            raise ValueError(
+                                f"Invalid numeric literal at position {pos}: {expr[pos:]!r}"
+                            )
                         val = int(val)
                     elif token_type == TokenType.FLOAT_LIT:
+                        if m.end() < len(expr) and re.match(r"[A-Za-z_]", expr[m.end()]):
+                            raise ValueError(
+                                f"Invalid numeric literal at position {pos}: {expr[pos:]!r}"
+                            )
                         val = float(val)
                     tokens.append(Token(token_type, val, pos, m.end()))
                 pos = m.end()
