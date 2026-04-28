@@ -5,6 +5,7 @@ import sqlite3
 import tests.conftest as project_conftest
 
 from propstore.sidecar import schema
+from propstore.sidecar.rules import create_grounded_fact_table
 
 
 def _table_info(conn: sqlite3.Connection, table: str) -> list[tuple[object, ...]]:
@@ -43,9 +44,11 @@ def test_minimal_world_model_schema_matches_production_builders() -> None:
     schema.build_minimal_world_model_schema(fixture_conn)
     schema.write_schema_metadata(production_conn)
     schema.create_tables(production_conn)
+    schema.create_concept_fts_table(production_conn)
     schema.create_context_tables(production_conn)
     schema.create_claim_tables(production_conn)
     schema.create_micropublication_tables(production_conn)
+    create_grounded_fact_table(production_conn)
 
     assert _table_names(fixture_conn) == _table_names(production_conn)
     for table in sorted(_table_names(production_conn)):
