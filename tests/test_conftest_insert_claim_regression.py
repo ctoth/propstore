@@ -2,12 +2,11 @@
 
 Commit 7 (branch column on claim_core) discovered that ``insert_claim``
 bound ``None`` into the ``seq`` column of ``claim_core``, which is
-declared ``INTEGER NOT NULL`` in ``create_world_model_schema`` (and in
-the canonical ``propstore/sidecar/schema.py``). The bug was latent
-because the only callers that exercised ``insert_claim`` against the
-tightened schema were Commit 7's new tests, which worked around the
-defect with a private ``_insert_claim_row`` helper instead of using
-the conftest helper.
+declared ``INTEGER NOT NULL`` in the canonical
+``propstore/sidecar/schema.py`` schema. The bug was latent because the
+only callers that exercised ``insert_claim`` against the tightened
+schema worked around the defect with a private ``_insert_claim_row``
+helper instead of using the conftest helper.
 
 This regression test pins the contract on the legacy permissive
 ``create_argumentation_schema`` — where ``seq`` is nullable — so that
@@ -31,13 +30,12 @@ def test_insert_claim_without_explicit_seq_defaults_to_non_null(
     """``insert_claim`` must populate ``seq`` with a non-NULL default.
 
     Before the fix, the helper bound ``None`` into the ``seq`` column
-    unconditionally. Against ``create_world_model_schema`` (canonical,
-    ``NOT NULL``) that raised ``IntegrityError``; against
-    ``create_argumentation_schema`` (legacy, nullable) it silently
-    wrote ``NULL``. This test exercises the legacy schema to keep the
-    observation narrow: it asserts that the column now lands with a
-    non-NULL integer, which proves the default was applied regardless
-    of which schema the caller uses.
+    unconditionally. Against the canonical schema that raised
+    ``IntegrityError``; against ``create_argumentation_schema`` (legacy,
+    nullable) it silently wrote ``NULL``. This test exercises the
+    legacy schema to keep the observation narrow: it asserts that the
+    column now lands with a non-NULL integer, which proves the default
+    was applied regardless of which schema the caller uses.
     """
     db_path = tmp_path / "sidecar.sqlite"
     conn = sqlite3.connect(db_path)
