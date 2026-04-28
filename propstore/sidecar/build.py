@@ -19,13 +19,16 @@ import os
 import sqlite3
 import tempfile
 import threading
+import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from quire.hashing import canonical_json_bytes
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
 )
+from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.families.claims.passes import run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
 from propstore.families.contexts.stages import (
@@ -72,14 +75,67 @@ if TYPE_CHECKING:
 
 _SIDECAR_PUBLISH_LOCKS_LOCK = threading.Lock()
 _SIDECAR_PUBLISH_LOCKS: dict[Path, threading.Lock] = {}
+_SIDECAR_CACHE_DEPENDENCIES = (
+    "argumentation",
+    "ast-equiv",
+    "bridgman",
+    "gunray",
+    "quire",
+)
+
+
+def _sidecar_cache_key_inputs(source_revision: str) -> dict[str, object]:
+    return {
+        "source_revision": source_revision,
+        "sidecar_schema_version": sidecar_schema.SCHEMA_VERSION,
+        "family_contract_versions": _family_contract_versions(),
+        "dependency_pins": _dependency_pins(),
+        "build_time_config": {
+            "PROPSTORE_SIDECAR_CACHE_BUST": os.environ.get(
+                "PROPSTORE_SIDECAR_CACHE_BUST",
+                "",
+            ),
+        },
+    }
 
 
 def _sidecar_content_hash(source_revision: str) -> str:
-    payload = (
-        f"schema_version:{sidecar_schema.SCHEMA_VERSION}\n"
-        f"source_revision:{source_revision}\n"
-    )
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        canonical_json_bytes(_sidecar_cache_key_inputs(source_revision))
+    ).hexdigest()
+
+
+def _family_contract_versions() -> dict[str, str]:
+    versions = {
+        "propstore_registry": str(PROPSTORE_FAMILY_REGISTRY.contract_version),
+    }
+    for family in PROPSTORE_FAMILY_REGISTRY.families:
+        versions[family.name] = str(family.contract_version)
+        artifact_family = getattr(family, "artifact_family", None)
+        artifact_name = getattr(artifact_family, "name", None)
+        artifact_version = getattr(artifact_family, "contract_version", None)
+        if isinstance(artifact_name, str) and artifact_version is not None:
+            versions[artifact_name] = str(artifact_version)
+    return dict(sorted(versions.items()))
+
+
+def _dependency_pins(lock_path: Path | None = None) -> dict[str, str]:
+    if lock_path is None:
+        lock_path = Path(__file__).resolve().parents[2] / "uv.lock"
+    if not lock_path.exists():
+        return {}
+    lock = tomllib.loads(lock_path.read_text(encoding="utf-8"))
+    pins: dict[str, str] = {}
+    for package in lock.get("package", ()):
+        if not isinstance(package, dict):
+            continue
+        name = package.get("name")
+        if name not in _SIDECAR_CACHE_DEPENDENCIES:
+            continue
+        version = str(package.get("version") or "")
+        source = package.get("source")
+        pins[str(name)] = f"{version}|{source!r}"
+    return dict(sorted(pins.items()))
 
 
 def _sqlite_sidecar_artifact_paths(sidecar_path: Path) -> tuple[Path, Path, Path]:
