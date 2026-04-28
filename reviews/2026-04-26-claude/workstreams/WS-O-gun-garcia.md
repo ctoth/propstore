@@ -2,7 +2,7 @@
 
 **Status**: OPEN
 **Depends on**: `WS-O-gun-gunray` (existing-bug fixes and `EnumerationExceeded` wire-up must merge first; this WS is a much larger semantic rewrite that builds on the post-bugfix code)
-**Blocks**: WS-K (argumentation pipeline benefits from Garcia-correct defeasibility — the source-trust argumentation-replaces-heuristic decision in D-8 leans on a paper-faithful defeater taxonomy and presumption handling); secondary downstream effect on WS-O-arg-bugs (clean DeLP semantics make the cluster-P HIGH bugs in argumentation more diagnosable because the gunray shape is no longer a moving target).
+**Blocks**: WS-K (argumentation pipeline benefits from Garcia-correct defeasibility — the source-trust argumentation-replaces-heuristic decision in D-8 leans on a paper-faithful defeater taxonomy and presumption handling); secondary downstream effect on WS-O-arg-argumentation-pkg (clean DeLP semantics make the cluster-P HIGH bugs in argumentation more diagnosable because the gunray shape is no longer a moving target).
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1)
 **Spawned by**: D-17 (DECISIONS.md). Q's pushback on the original "split sections vs Antoniou vs Garcia" question chose the **full Garcia rewrite** as the highest-fidelity path to the cluster-B preferred reference.
 
@@ -359,7 +359,7 @@ The full suite runs on every commit. The acceptance gate at the end of the WS is
 
 - This WS depends on **WS-O-gun-gunray** completing first. The existing-bug fixes (HIGH-1 build_arguments perf, HIGH-2 disagrees cache, MED-2 mark memoization, MED-6 superiority validation, anytime EnumerationExceeded wire-up per D-18) land in WS-O-gun-gunray. The Garcia rewrite operates on the post-bugfix code.
 - This WS unblocks **WS-K** (heuristic-discipline). Per D-8 the trust-calibration argumentation pipeline replaces `derive_source_document_trust`; that pipeline depends on a clean Garcia-faithful surface for the per-source rule firings. The proposal_source_trust family design was dropped per D-8; what remains is the meta-paper rule extraction (WS-K2) and the argumentation-pipeline output, both of which need clean DeLP semantics.
-- This WS interacts with **WS-O-arg-bugs** (the cluster-P HIGH bugs in `argumentation`) only via the dialectical-tree shape — both gunray and argumentation expose dialectical surfaces, but they are independent kernels per D-15. No code shared.
+- This WS interacts with **WS-O-arg-argumentation-pkg** (the cluster-P HIGH bugs in `argumentation`) only via the dialectical-tree shape — both gunray and argumentation expose dialectical surfaces, but they are independent kernels per D-15. No code shared.
 - This WS does **not** change Bozzato 2018 / Diller 2025 / Maher 2021 affordances at the propstore boundary. Those gaps (cluster-B M5–M9) are tracked in their own workstreams. The rewrite leaves the door open: cleaner Garcia semantics make Bozzato-style override-with-justification rules easier to integrate later.
 
 ## Scope honesty
