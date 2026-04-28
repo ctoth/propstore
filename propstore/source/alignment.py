@@ -35,6 +35,7 @@ from propstore.core.lemon import (
 )
 from propstore.opinion import Opinion
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
+from propstore.uri_authority import TaggingAuthority
 
 from .common import load_document_from_branch, load_source_document
 from propstore.families.documents.sources import SourceConceptsDocument
@@ -101,7 +102,7 @@ def classify_relation(
 def build_alignment_artifact(
     proposals: list[dict[str, Any]],
     *,
-    authority: str = DEFAULT_URI_AUTHORITY,
+    authority: str | TaggingAuthority = DEFAULT_URI_AUTHORITY,
 ) -> ConceptAlignmentArtifactDocument:
     enriched: list[dict[str, Any]] = []
     id_counts: Counter[str] = Counter()
