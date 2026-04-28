@@ -24,7 +24,7 @@ from .mutation import (
     _require_sidecar,
 )
 from propstore.app.repository_views import repository_view_label
-from propstore.sidecar.sqlite import connect_sidecar
+from propstore.sidecar.sqlite import connect_sidecar_readonly
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -42,7 +42,7 @@ def search_concepts(
 ) -> ConceptSearchReport:
     _ = repository_view_label(request.repository_view)
     sidecar = _require_sidecar(repo)
-    conn = connect_sidecar(sidecar)
+    conn = connect_sidecar_readonly(sidecar)
     try:
         try:
             rows = conn.execute(
