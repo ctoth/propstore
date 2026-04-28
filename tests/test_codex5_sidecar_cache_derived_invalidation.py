@@ -8,6 +8,14 @@ def test_sidecar_cache_key_document_contains_derived_inputs() -> None:
 
     assert key_inputs["source_revision"] == "rev-a"
     assert isinstance(key_inputs["sidecar_schema_version"], int)
+    assert key_inputs["generated_schema_version"]
+    assert {
+        "family": "claims",
+        "name": "claim.compile",
+        "input_stage": "authored",
+        "output_stage": "checked",
+        "version": "1",
+    } in key_inputs["passes"]
     assert "claims_file" in key_inputs["family_contract_versions"]
     assert "concepts" in key_inputs["family_contract_versions"]
     assert "quire" in key_inputs["dependency_pins"]
