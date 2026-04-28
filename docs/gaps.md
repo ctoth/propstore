@@ -57,6 +57,15 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ## Closed gaps (reference only — kept for traceability)
 
+### Closed 2026-04-27 (WS-B render policy and web data leak)
+- T1.1 / Codex #8 — direct blocked claim reads no longer construct `ClaimViewReport`; they raise `ClaimViewBlockedError` and render a generic 404 with no claim payload. Evidence: `tests/test_render_policy_direct_claim.py`.
+- T1.2 / Codex #9 — claim neighborhoods now use policy-filtered stance endpoints and hard-error when the focus claim is hidden. Evidence: `tests/test_render_policy_neighborhood.py`.
+- T1.3 / Codex #10 — concept reports are policy-relative and default counts/prose exclude hidden claims. Evidence: `tests/test_render_policy_concept.py`.
+- T1.5 / Codex #4 — read-only sidecar queries and `WorldModel` open SQLite in `mode=ro` without switching to WAL. Evidence: `tests/test_sidecar_query_read_only.py`.
+- T1.8 — web render-policy float parameters reject non-finite and out-of-range values at the request boundary. Evidence: `tests/test_web_request_float_boundary.py`.
+- T1.9 — `pks web --host 0.0.0.0` requires `--insecure` and the insecure path warns. Evidence: `tests/test_pks_web_insecure_flag.py`.
+- Codex #11 — malformed concept FTS queries raise `ConceptSearchSyntaxError` and return `400 Invalid Search Query`. Evidence: `tests/test_concept_fts_malformed_query.py`.
+
 ### Closed 2026-04-27 (WS-A schema fidelity, fixture parity, identity boundaries)
 - T0.1 / Codex #7 — test fixtures no longer own a hand-written world-model schema. Closed by deleting `tests/conftest.py:create_world_model_schema` and routing tests through production-owned `build_minimal_world_model_schema`. Evidence: `tests/test_fixture_schema_parity.py` and the WS-A targeted gate.
 - T0.2 / Codex #6 — `_REQUIRED_SCHEMA["claim_core"]` now requires the runtime lifecycle columns consumed by `WorldModel`, including `build_diagnostics`. Evidence: `tests/test_required_schema_completeness.py`.
