@@ -38,4 +38,4 @@ def compute_worldline_content_hash(
         "revision": None if revision is None else revision.to_dict(),
     }
     encoded = canonical_dumps(payload).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()[:16]
+    return hashlib.sha256(encoded).hexdigest()[:32]
