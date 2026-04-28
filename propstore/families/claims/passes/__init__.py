@@ -519,6 +519,7 @@ def validate_single_claim_file(
 class ClaimCompilePass:
     family = PropstoreFamily.CLAIMS
     name = "claim.compile"
+    version = "1"
     input_stage = ClaimStage.AUTHORED
     output_stage = ClaimStage.CHECKED
 
