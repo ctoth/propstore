@@ -558,11 +558,10 @@ class ATMSNogoodProvenanceDetail:
 
 @dataclass(frozen=True)
 class ATMSNogoodDetail:
-    environment: Sequence[str]
+    environment: Mapping[str, Sequence[str]]
     provenance: Sequence[ATMSNogoodProvenanceDetail]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "environment", _tuple(self.environment))
         object.__setattr__(self, "provenance", _tuple(self.provenance))
 
 
