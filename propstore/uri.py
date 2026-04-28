@@ -57,11 +57,11 @@ def claim_tag_uri(
 def compute_ni_uri(payload: bytes, *, algorithm: str = "sha-256") -> str:
     """Return an RFC 6920 ni URI for exact bytes.
 
-    Kuhn & Dumontier 2014 uses ni-URIs as a related standard and gives
-    sha-256 examples (artifact p.4). The paper later maps trusty URIs to
-    ni-URIs but notes that the trusty-URI module identifier is lost in that
-    form (artifact p.7). This helper is therefore only the ni-URI byte
-    primitive, not a full Kuhn RA/FA artifact-code implementation.
+    Kuhn & Dumontier 2014 discusses ni-URIs as related work and gives
+    sha-256 examples (p. 4). The paper later maps trusty URIs to ni-URIs
+    but notes that the trusty-URI module identifier is lost in that form
+    (p. 7). This helper is therefore only the ni-URI byte primitive, not
+    a full Kuhn RA/FA artifact-code implementation.
     """
     if algorithm != "sha-256":
         raise ValueError("propstore only emits sha-256 ni URIs")
