@@ -55,7 +55,7 @@ WS-N is preserved as a SUPERSEDED redirect into WS-N1 + WS-N2.
 
 | ID | Title | Status | Deps | Blocks | Findings | Decisions applied |
 |---|---|---|---|---|---|---|
-| **WS-A** | Schema fidelity, fixture parity, identity boundary | OPEN | — | everything | 4 + URI-authority + privileged-namespace section | **D-24 (URI authority + reserved namespace)** |
+| **WS-A** | Schema fidelity, fixture parity, identity boundary | CLOSED e75581b9 | — | everything | 4 + URI-authority + privileged-namespace section | **D-24 (URI authority + reserved namespace)**; report: `reviews/2026-04-26-claude/workstreams/reports/WS-A-closure.md` |
 | WS-B | Render policy & web data leak | OPEN | A | — | 11 (T1.1-T1.3, T1.5, T1.8-T1.9, Codex #4, #8-#11) | **D-21 (hard 403/404 on blocked claim; redacted-page logic deleted)** |
 | **WS-CM** | Micropub canonical payload + Trusty URI identity | OPEN | A | C, M, E | D-7/D-29 cycle break | **D-7, D-29** — one prerequisite owns canonical micropub payload and `ni:///sha-256` id; no placeholder hash |
 | WS-C | Sidecar atomicity & SQLite discipline | OPEN | A, **CM**, **Q-cas** | E | 7 (T1.4, T1.6, T1.7, Codex #1-#3, #5) | **D-6 (reorder)**; consumes micropub identity from WS-CM; cache-key derivation rule (Codex 1.15); branch-head CAS via WS-Q-cas |
