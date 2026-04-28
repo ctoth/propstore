@@ -1,16 +1,16 @@
-"""Tests verifying relate.py uses fuse() and results match consensus_pair."""
-import pytest
-from propstore.opinion import Opinion, consensus_pair, fuse
+"""Tests verifying relate.py uses fuse() and true WBF for finite evidence."""
+
+from propstore.opinion import Opinion, fuse, wbf
 
 
 class TestRelateFuseEquivalence:
-    """Verify that relate.py's switch from consensus_pair to fuse preserves behavior."""
+    """Verify that relate.py's fusion path uses the corrected WBF dispatcher."""
 
-    def test_fuse_matches_consensus_pair_for_two(self):
-        """fuse(a, b) == consensus_pair(a, b) for non-dogmatic inputs."""
+    def test_fuse_matches_wbf_for_two_non_dogmatic_inputs(self):
+        """fuse(a, b) == WBF(a, b) for non-dogmatic inputs."""
         a = Opinion(0.5, 0.1, 0.4, 0.5)
         b = Opinion(0.3, 0.3, 0.4, 0.5)
-        assert fuse(a, b) == consensus_pair(a, b)
+        assert fuse(a, b) == wbf(a, b)
 
     def test_fuse_handles_dogmatic_categorical(self):
         """fuse() handles the case where categorical opinion is dogmatic."""
