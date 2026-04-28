@@ -87,8 +87,11 @@ class HeadBoundTransaction:
     ) -> str:
         if self._commit_sha is not None:
             return self._commit_sha
+        git = self.repo.git
+        if git is None:
+            raise ValueError("head-bound transactions require a git-backed repository")
         try:
-            commit_sha = self.repo.git.commit_batch(
+            commit_sha = git.commit_batch(
                 adds=adds,
                 deletes=deletes,
                 message=message,
