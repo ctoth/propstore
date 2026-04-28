@@ -197,7 +197,7 @@ Direct-download (free, half-day to retrieve all four):
 - **RFC 6920** "Naming Things with Hashes" (`ni://` URI scheme) — required for WS-M Step 1 finalization.
 - **W3C PROV-O / PROV-DM / PROV-N** specifications — required for WS-M's single PROV-O path (Codex 1.5).
 - **W3C OntoLex-Lemon** module specs (synsem, decomp, vartrans, lime) — needed for cluster L Lemon coverage but not required by any WS-A through WS-P spec text.
-- **Google CEL specification** (`cel-spec`) — required for WS-P escape-sequence subset and operational semantics.
+- **Google CEL specification** (`~/src/cel-spec`) — required for WS-P escape-sequence subset and operational semantics.
 
 Books (purchase needed):
 - **Walton, Reed, Macagno (2008) Argumentation Schemes** — for WS-F argument schemes / critical questions.
