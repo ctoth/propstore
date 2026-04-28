@@ -113,9 +113,11 @@ Queryables already present in the current environment are automatically filtered
 
 ### Stability
 
-Is a claim's status stable across all bounded consistent futures? Stability analysis replays all future environments and checks if any consistent future produces a different ATMS status than the current one.
+Is a claim's status stable across all consistent futures in the declared queryable space? Stability analysis replays future environments and checks if any consistent future produces a different ATMS status than the current one.
 
 A stable claim will keep its current status no matter what you learn (within the declared queryable space). An unstable claim has at least one future that flips it — and the engine reports the minimal witnesses.
+
+Future-query APIs require an explicit keyword-only `limit`. Passing `limit=None` enumerates the full queryable power set. Passing an integer budget raises `BudgetExhausted` if the engine cannot reach a sound verdict within that budget; it never returns a guessed stability, relevance, or intervention result from a silently truncated search.
 
 `propstore/world/atms.py:ATMSEngine.node_stability` — claim-level stability
 `propstore/world/atms.py:ATMSEngine.concept_stability` — concept-level (uses BoundWorld value status)

@@ -150,20 +150,20 @@ bound = world.bind(task="speech", policy=policy)
 | `atms_engine` | `() -> ATMSEngine` | The lazy ATMS engine instance. |
 | `claim_status` | `(claim_id) -> ATMSInspection` | ATMS status for a claim (TRUE/IN/OUT). |
 | `claim_essential_support` | `(claim_id) -> EnvironmentKey \| None` | Dixon-style essential support for a claim. |
-| `claim_future_statuses` | `(claim_id, queryables, limit?) -> dict` | Bounded future-environment status changes for one claim. |
-| `concept_future_statuses` | `(concept_id, queryables, limit?) -> dict[str, dict]` | Bounded future-environment status changes for active claims of a concept. |
+| `claim_future_statuses` | `(claim_id, queryables, *, limit) -> dict` | Future-environment status changes for one claim; `limit=None` enumerates the full queryable space. |
+| `concept_future_statuses` | `(concept_id, queryables, *, limit) -> dict[str, dict]` | Future-environment status changes for active claims of a concept; budget exhaustion raises. |
 | `claim_support` | `(claim: dict) -> tuple[Label \| None, SupportQuality]` | Label support and honesty metadata. |
-| `claim_stability` | `(claim_id, queryables, limit?) -> dict` | Bounded ATMS stability analysis. |
-| `claim_is_stable` | `(claim_id, queryables, limit?) -> bool` | Whether a claim is stable across consistent futures. |
-| `concept_stability` | `(concept_id, queryables, limit?) -> dict` | Value-status stability across futures. |
-| `concept_is_stable` | `(concept_id, queryables, limit?) -> bool` | Whether a concept's value is stable across futures. |
-| `claim_relevance` | `(claim_id, queryables, limit?) -> dict` | Which queryables can flip a claim's status. |
-| `claim_relevant_queryables` | `(claim_id, queryables, limit?) -> list[str]` | Bounded queryables that matter to a claim's status. |
-| `concept_relevance` | `(concept_id, queryables, limit?) -> dict` | Which queryables can flip a concept's value. |
-| `concept_relevant_queryables` | `(concept_id, queryables, limit?) -> list[str]` | Bounded queryables that matter to a concept's value status. |
-| `claim_interventions` | `(claim_id, queryables, target_status, ...) -> list[dict]` | Intervention plans for achieving a target claim status. |
-| `concept_interventions` | `(concept_id, queryables, target_value_status, ...) -> list[dict]` | Intervention plans for achieving a target concept value. |
-| `claim_next_queryables` | `(claim_id, queryables, target_status, ...) -> list[dict]` | Next-query suggestions for a claim. |
+| `claim_stability` | `(claim_id, queryables, *, limit) -> dict` | ATMS stability analysis; numeric budgets raise if no verdict is reached. |
+| `claim_is_stable` | `(claim_id, queryables, *, limit) -> bool` | Whether a claim is stable across consistent futures. |
+| `concept_stability` | `(concept_id, queryables, *, limit) -> dict` | Value-status stability across futures. |
+| `concept_is_stable` | `(concept_id, queryables, *, limit) -> bool` | Whether a concept's value is stable across futures. |
+| `claim_relevance` | `(claim_id, queryables, *, limit) -> dict` | Which queryables can flip a claim's status. |
+| `claim_relevant_queryables` | `(claim_id, queryables, *, limit) -> list[str]` | Queryables that matter to a claim's status. |
+| `concept_relevance` | `(concept_id, queryables, *, limit) -> dict` | Which queryables can flip a concept's value. |
+| `concept_relevant_queryables` | `(concept_id, queryables, *, limit) -> list[str]` | Queryables that matter to a concept's value status. |
+| `claim_interventions` | `(claim_id, queryables, target_status, *, limit, ...) -> list[dict]` | Intervention plans for achieving a target claim status. |
+| `concept_interventions` | `(concept_id, queryables, target_value_status, *, limit, ...) -> list[dict]` | Intervention plans for achieving a target concept value. |
+| `claim_next_queryables` | `(claim_id, queryables, target_status, *, limit, ...) -> list[dict]` | Next-query suggestions for a claim. |
 | `concept_next_queryables` | `(concept_id, queryables, target_value_status, ...) -> list[dict]` | Next-query suggestions for a concept. |
 | `why_concept_out` | `(concept_id, queryables?, limit?) -> dict` | Explain why a concept lacks ATMS support. |
 | `explain_nogood` | `(environment) -> dict \| None` | Explain a specific nogood environment. |
