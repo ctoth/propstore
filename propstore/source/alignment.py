@@ -90,13 +90,14 @@ def classify_relation(
 
     left_entry = _proposal_lexical_entry(left)
     right_entry = _proposal_lexical_entry(right)
+    definitions_match = left["definition"] == right["definition"]
     if lexical_entry_identity_key(left_entry) == lexical_entry_identity_key(right_entry):
-        return "attack" if left["definition"] != right["definition"] else "non_attack"
+        return "non_attack" if definitions_match else "attack"
     if lexical_form_identity_key(left_entry) == lexical_form_identity_key(right_entry):
-        return "attack" if left["definition"] != right["definition"] else "non_attack"
+        return "non_attack" if definitions_match else "attack"
     if left_entry.references == right_entry.references:
-        return "non_attack"
-    return "non_attack"
+        return "non_attack" if definitions_match else "attack"
+    return "non_attack" if definitions_match else "attack"
 
 
 def build_alignment_artifact(
