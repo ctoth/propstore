@@ -45,8 +45,6 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 - **10 pyright errors remain in `propstore/source/common.py` after the phase-4 fix.** Commit `5a47bfa` addressed `cli/source.py:33`; the broader `propstore.artifacts` `__getattr__` lazy-dispatch pattern still produces "Object of type 'object' is not callable" errors across other `SOURCE_*_FAMILY` constants and identity helpers. Citation: phase-4 coder report (flag 1). Plan: follow-up typing workstream.
 
-- **Test markers lie about content.** 54 files use `@given`; only 1 carries the `property` pytest marker. `-m property` runs 6 tests when 365 property tests exist. Citation: axis-6 item 13; axis-4. Plan: test-marker audit (not yet scheduled).
-
 - **Seven production modules with zero test references.** 1506 LOC in `diagnostics.py`, `fragility_contributors.py`, `fragility_scoring.py`, `fragility_types.py`, `parameterization_walk.py`, `probabilistic_relations.py`, `source_calibration.py`; plus `conflict_detector/orchestrator.py`. Citation: axis-6 item 14; axis-4. Plan: test-coverage workstream.
 
 - **`papers/index.md` is 21% incomplete.** 44 paper directories have no index entry (Pearl 2000, Pierce 2002, Cousot 1977, Clark 2014, Guha 1991, Halpern 2000 among them); 25 directories have no `notes.md` at all (Toni 2014, Clark 2014, Guha 1991, etc. — cited in code but unverifiable). Citation: axis-9 Category D. Plan: papers-index backfill workstream.
@@ -58,6 +56,15 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 - **Citation-pattern drift across codebase.** `aspic.py`, `world/types.py` (Denoeux→Jøsang), and `wbf()` (WBF name, aCBF computation) cite papers for authority while implementing something different. Citation: axis-6 item 15; axis-9 cross-cutting. Plan: citation-as-claim CI lint (per disciplines.md rule 1) + workstream-specific closures.
 
 ## Closed gaps (reference only — kept for traceability)
+
+### Closed 2026-04-27 (WS-A schema fidelity, fixture parity, identity boundaries)
+- T0.1 / Codex #7 — test fixtures no longer own a hand-written world-model schema. Closed by deleting `tests/conftest.py:create_world_model_schema` and routing tests through production-owned `build_minimal_world_model_schema`. Evidence: `tests/test_fixture_schema_parity.py` and the WS-A targeted gate.
+- T0.2 / Codex #6 — `_REQUIRED_SCHEMA["claim_core"]` now requires the runtime lifecycle columns consumed by `WorldModel`, including `build_diagnostics`. Evidence: `tests/test_required_schema_completeness.py`.
+- Generated schema freshness — generated schema resources are committed and generation is byte-preserving. Evidence: `tests/test_generated_schema_freshness.py`.
+- axis-6 item 13 / axis-4 — Hypothesis property markers no longer lie about coverage. Closed by recursive marker maintenance plus collection-time warning for unmarked `@given` tests. Evidence: `tests/test_property_marker_discipline.py` and `scripts/mark_hypothesis_property_tests.py`.
+- D-24 T0.3 — URI tagging authorities are parsed and validated before interpolation or repository-config use. Evidence: `tests/test_uri_authority_validation.py`.
+- D-24 T0.4 — concept numeric IDs no longer privilege the `propstore` namespace; ambiguous numeric aliases fail unless a namespace is specified. Evidence: `tests/test_no_privileged_namespace.py`.
+- D-24 T0.5/T0.6 — source-local claim namespaces and concept aliases cannot mint or shadow reserved canonical namespaces. Evidence: `tests/test_source_cannot_mint_canonical_ids.py`.
 
 ### Closed 2026-04-17 (WS-C Defeasibility)
 - axis-6 item 6 / axis-7 / axis-9 — defeasibility priority information was unconditionally dropped by `superiority=[]` in the grounding translator and `rule_order=frozenset()` in the ASPIC bridge. Closed by `RulesFileDocument.superiority`, translator strict-partial-order validation and emission, and ASPIC bridge projection of authored schematic superiority onto grounded `PreferenceConfig.rule_order` pairs. Evidence: `tests/test_rule_documents.py`, `tests/test_grounding_translator.py`, `tests/test_defeasible_conformance_tranche.py`, `tests/test_preference.py`, `tests/test_aspic_bridge.py`.
