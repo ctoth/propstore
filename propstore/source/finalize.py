@@ -168,84 +168,83 @@ def finalize_source_branch(
         claims_doc=claims_doc,
     )
     micropub_status = "complete" if micropubs_doc is not None else "empty"
-    with repo.families.transact(
-        message=f"Finalize {source_slug}",
-        branch=source_branch_name(source_name),
-    ) as transaction:
-        ref = SourceRef(source_name)
-        if not claim_errors and not justification_errors and not stance_errors:
-            updated_source, updated_claims, updated_justifications, updated_stances = attach_source_artifact_codes(
-                source_doc.to_payload(),
-                None if claims_doc is None else claims_doc.to_payload(),
-                None if justifications_doc is None else justifications_doc.to_payload(),
-                None if stances_doc is None else stances_doc.to_payload(),
-            )
-            transaction.source_documents.save(
-                ref,
-                convert_document_value(
-                    updated_source,
-                    type(source_doc),
-                    source=f"{source_branch_name(source_name)}:source.yaml",
-                ),
-            )
-            if updated_claims.get("claims"):
-                transaction.source_claims.save(
+    branch = source_branch_name(source_name)
+    with repo.head_bound_transaction(branch, path="finalize") as head_txn:
+        with head_txn.families_transact(message=f"Finalize {source_slug}") as transaction:
+            ref = SourceRef(source_name)
+            if not claim_errors and not justification_errors and not stance_errors:
+                updated_source, updated_claims, updated_justifications, updated_stances = attach_source_artifact_codes(
+                    source_doc.to_payload(),
+                    None if claims_doc is None else claims_doc.to_payload(),
+                    None if justifications_doc is None else justifications_doc.to_payload(),
+                    None if stances_doc is None else stances_doc.to_payload(),
+                )
+                transaction.source_documents.save(
                     ref,
                     convert_document_value(
-                        updated_claims,
-                        SourceClaimsDocument,
-                        source=f"{source_branch_name(source_name)}:claims.yaml",
+                        updated_source,
+                        type(source_doc),
+                        source=f"{source_branch_name(source_name)}:source.yaml",
                     ),
                 )
-            if updated_justifications.get("justifications"):
-                transaction.source_justifications.save(
-                    ref,
-                    convert_document_value(
-                        updated_justifications,
-                        SourceJustificationsDocument,
-                        source=f"{source_branch_name(source_name)}:justifications.yaml",
-                    ),
-                )
-            if updated_stances.get("stances"):
-                transaction.source_stances.save(
-                    ref,
-                    convert_document_value(
-                        updated_stances,
-                        SourceStancesDocument,
-                        source=f"{source_branch_name(source_name)}:stances.yaml",
-                    ),
-                )
-            if micropubs_doc is not None:
-                transaction.source_micropubs.save(
-                    ref,
-                    micropubs_doc,
-                )
-            artifact_code_status = "complete"
+                if updated_claims.get("claims"):
+                    transaction.source_claims.save(
+                        ref,
+                        convert_document_value(
+                            updated_claims,
+                            SourceClaimsDocument,
+                            source=f"{source_branch_name(source_name)}:claims.yaml",
+                        ),
+                    )
+                if updated_justifications.get("justifications"):
+                    transaction.source_justifications.save(
+                        ref,
+                        convert_document_value(
+                            updated_justifications,
+                            SourceJustificationsDocument,
+                            source=f"{source_branch_name(source_name)}:justifications.yaml",
+                        ),
+                    )
+                if updated_stances.get("stances"):
+                    transaction.source_stances.save(
+                        ref,
+                        convert_document_value(
+                            updated_stances,
+                            SourceStancesDocument,
+                            source=f"{source_branch_name(source_name)}:stances.yaml",
+                        ),
+                    )
+                if micropubs_doc is not None:
+                    transaction.source_micropubs.save(
+                        ref,
+                        micropubs_doc,
+                    )
+                artifact_code_status = "complete"
 
-        report = convert_document_value(
-            {
-                "kind": "source_finalize_report",
-                "source": source_id,
-                "status": "ready"
-                if not claim_errors and not justification_errors and not stance_errors
-                else "blocked",
-                "claim_reference_errors": sorted(claim_errors),
-                "justification_reference_errors": sorted(justification_errors),
-                "stance_reference_errors": sorted(stance_errors),
-                "concept_alignment_candidates": concept_alignment_candidates,
-                "parameterization_group_merges": parameterization_group_merges,
-                "artifact_code_status": artifact_code_status,
-                "micropub_status": micropub_status,
-                "calibration": {
-                    "prior_base_rate_status": "covered" if covered else "fallback",
-                    "source_quality_status": "vacuous",
-                    "fallback_to_default_base_rate": not covered,
+            report = convert_document_value(
+                {
+                    "kind": "source_finalize_report",
+                    "source": source_id,
+                    "status": "ready"
+                    if not claim_errors and not justification_errors and not stance_errors
+                    else "blocked",
+                    "claim_reference_errors": sorted(claim_errors),
+                    "justification_reference_errors": sorted(justification_errors),
+                    "stance_reference_errors": sorted(stance_errors),
+                    "concept_alignment_candidates": concept_alignment_candidates,
+                    "parameterization_group_merges": parameterization_group_merges,
+                    "artifact_code_status": artifact_code_status,
+                    "micropub_status": micropub_status,
+                    "calibration": {
+                        "prior_base_rate_status": "covered" if covered else "fallback",
+                        "source_quality_status": "vacuous",
+                        "fallback_to_default_base_rate": not covered,
+                    },
                 },
-            },
-            SourceFinalizeReportDocument,
-            source=f"{source_branch_name(source_name)}:merge/finalize",
-        )
-        transaction.source_finalize_reports.save(ref, report)
-    if transaction.commit_sha is None:
+                SourceFinalizeReportDocument,
+                source=f"{source_branch_name(source_name)}:merge/finalize",
+            )
+            transaction.source_finalize_reports.save(ref, report)
+    if head_txn.commit_sha is None:
         raise ValueError("source finalize transaction did not produce a commit")
-    return transaction.commit_sha
+    return head_txn.commit_sha
