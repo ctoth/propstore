@@ -74,6 +74,20 @@ def write_schema_metadata(conn: sqlite3.Connection) -> None:
     )
 
 
+def create_concept_fts_table(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE VIRTUAL TABLE concept_fts USING fts5(
+            concept_id UNINDEXED,
+            canonical_name,
+            aliases,
+            definition,
+            conditions
+        )
+        """
+    )
+
+
 def create_tables(conn: sqlite3.Connection) -> None:
     conn.executescript("""
         CREATE TABLE source (
@@ -205,6 +219,19 @@ def create_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX idx_param_group ON parameterization_group(group_id);
         CREATE INDEX idx_form_algebra_output ON form_algebra(output_form);
     """)
+
+
+def build_minimal_world_model_schema(conn: sqlite3.Connection) -> None:
+    """Build the production schema surface required by WorldModel tests."""
+    from propstore.sidecar.rules import create_grounded_fact_table
+
+    write_schema_metadata(conn)
+    create_tables(conn)
+    create_concept_fts_table(conn)
+    create_context_tables(conn)
+    create_claim_tables(conn)
+    create_micropublication_tables(conn)
+    create_grounded_fact_table(conn)
 
 
 def create_context_tables(conn: sqlite3.Connection) -> None:
