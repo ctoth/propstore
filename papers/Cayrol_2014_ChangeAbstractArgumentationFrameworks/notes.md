@@ -199,3 +199,8 @@ The necessary/sufficient conditions in Tables 4-5 are directly implementable as 
 ---
 
 **See also:** [[Doutre_2018_ConstraintsChangesSurveyAbstract]] - Comprehensive survey that subsumes and extends this paper's change operations within a broader typology of constraints (structural, semantic, acceptability), changes, and quality criteria for argumentation dynamics.
+
+## Collection Cross-References
+
+### Already in Collection
+- [Prudent Semantics for Argumentation Frameworks](../Coste-Marquis_2005_PrudentSemantics/notes.md) - cited in the bibliography; defines prudent extensions by forbidding odd-path indirect conflicts inside accepted sets, a semantics-level change that complements this paper's structural analysis of how AF extensions change when an argument is added.
