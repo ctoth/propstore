@@ -300,14 +300,14 @@ def test_propose_justification(tmp_path: Path) -> None:
             "--id", "just1",
             "--conclusion", "c2",
             "--premises", "c1",
-            "--rule-kind", "empirical_support",
+            "--rule-kind", "supports",
             "--page", "3",
         ],
     )
 
     assert result.exit_code == 0, result.output
     assert "just1" in result.output
-    assert "empirical_support" in result.output
+    assert "supports" in result.output
 
     # Verify stored justification has resolved artifact ids
     branch_tip = repo.git.branch_sha("source/demo")

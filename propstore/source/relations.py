@@ -22,6 +22,34 @@ from propstore.families.documents.sources import (
     SourceStanceEntryDocument,
     SourceStancesDocument,
 )
+
+_ALLOWED_JUSTIFICATION_RULE_KINDS = frozenset({
+    "reported_claim",
+    "supports",
+    "explains",
+})
+_ALLOWED_JUSTIFICATION_RULE_STRENGTHS = frozenset({
+    "strict",
+    "defeasible",
+})
+
+
+def _validate_justification_rule_fields(
+    *,
+    rule_kind: str | None,
+    rule_strength: str | None,
+) -> None:
+    if rule_kind not in _ALLOWED_JUSTIFICATION_RULE_KINDS:
+        allowed = ", ".join(sorted(_ALLOWED_JUSTIFICATION_RULE_KINDS))
+        raise ValueError(f"rule_kind must be one of: {allowed}")
+    if (
+        rule_strength is not None
+        and rule_strength not in _ALLOWED_JUSTIFICATION_RULE_STRENGTHS
+    ):
+        allowed = ", ".join(sorted(_ALLOWED_JUSTIFICATION_RULE_STRENGTHS))
+        raise ValueError(f"rule_strength must be one of: {allowed}")
+
+
 def normalize_source_justifications_payload(
     data: SourceJustificationsDocument,
     *,
@@ -159,6 +187,10 @@ def commit_source_justification_proposal(
     page: int | None = None,
 ) -> SourceJustificationDocument:
     branch = source_branch_name(source_name)
+    _validate_justification_rule_fields(
+        rule_kind=rule_kind,
+        rule_strength=None,
+    )
     claim_index = load_source_claim_reference_index(repo, source_name)
     existing = load_source_justifications_document(repo, source_name) or SourceJustificationsDocument(justifications=())
     justifications = [entry for entry in existing.justifications if entry.id != just_id]
