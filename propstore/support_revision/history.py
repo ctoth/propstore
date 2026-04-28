@@ -271,9 +271,33 @@ class TransitionJournalEntry:
 
 
 @dataclass(frozen=True)
-class ReplayDeterminismReport:
+class ChainIntegrityReport:
     ok: bool
     checked_entry_hashes: tuple[str, ...] = ()
+    errors: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ReplayDivergence:
+    entry_index: int
+    operator: JournalOperator
+    operator_input: Mapping[str, Any]
+    expected_state_hash: str
+    actual_state_hash: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "entry_index", int(self.entry_index))
+        object.__setattr__(self, "operator", _journal_operator(self.operator))
+        object.__setattr__(self, "operator_input", _to_plain_data(dict(self.operator_input)))
+        object.__setattr__(self, "expected_state_hash", str(self.expected_state_hash))
+        object.__setattr__(self, "actual_state_hash", str(self.actual_state_hash))
+
+
+@dataclass(frozen=True)
+class ReplayReport:
+    ok: bool
+    checked_entry_hashes: tuple[str, ...] = ()
+    divergences: tuple[ReplayDivergence, ...] = ()
     errors: tuple[str, ...] = ()
 
 
@@ -284,7 +308,7 @@ class TransitionJournal:
     def __post_init__(self) -> None:
         object.__setattr__(self, "entries", tuple(self.entries))
 
-    def check_replay_determinism(self) -> ReplayDeterminismReport:
+    def check_chain_integrity(self) -> ChainIntegrityReport:
         errors: list[str] = []
         checked: list[str] = []
         previous_out: str | None = None
@@ -297,9 +321,45 @@ class TransitionJournal:
             if previous_out is not None and previous_out != entry.state_in.content_hash:
                 errors.append(f"entry {index} state_in does not match previous state_out")
             previous_out = entry.state_out.content_hash
-        return ReplayDeterminismReport(
+        return ChainIntegrityReport(
             ok=not errors,
             checked_entry_hashes=tuple(checked),
+            errors=tuple(errors),
+        )
+
+    def replay(self) -> ReplayReport:
+        from propstore.support_revision.dispatch import dispatch
+
+        checked: list[str] = []
+        divergences: list[ReplayDivergence] = []
+        errors: list[str] = []
+        for index, entry in enumerate(self.entries):
+            checked.append(entry.content_hash)
+            try:
+                replayed_state = dispatch(
+                    entry.operator,
+                    state_in=entry.normalized_state_in,
+                    operator_input=entry.operator_input,
+                    policy=entry.version_policy_snapshot,
+                )
+            except Exception as exc:
+                errors.append(f"entry {index} replay failed for {entry.operator.value}: {exc}")
+                continue
+            replayed_snapshot = EpistemicSnapshot.from_state(replayed_state)
+            if replayed_state.to_canonical_dict() != entry.normalized_state_out:
+                divergences.append(
+                    ReplayDivergence(
+                        entry_index=index,
+                        operator=entry.operator,
+                        operator_input=entry.operator_input,
+                        expected_state_hash=entry.state_out.content_hash,
+                        actual_state_hash=replayed_snapshot.content_hash,
+                    )
+                )
+        return ReplayReport(
+            ok=not errors and not divergences,
+            checked_entry_hashes=tuple(checked),
+            divergences=tuple(divergences),
             errors=tuple(errors),
         )
 
