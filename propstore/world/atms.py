@@ -1595,6 +1595,20 @@ class ATMSEngine:
                         environment_b=list(env_b.assumption_ids),
                     ))
 
+        for node_a, node_b in self._derived_value_conflicts():
+            for env_a in node_a.label.environments:
+                for env_b in node_b.label.environments:
+                    nogood_environment = env_a.union(env_b)
+                    environments.append(nogood_environment)
+                    provenance[nogood_environment].append(ATMSNogoodProvenanceDetail(
+                        claim_a_id=node_a.node_id,
+                        claim_b_id=node_b.node_id,
+                        concept_id=node_a.concept_id,
+                        warning_class=None,
+                        environment_a=list(env_a.assumption_ids),
+                        environment_b=list(env_b.assumption_ids),
+                    ))
+
         updated = NogoodSet(tuple(environments))
         if updated == self.nogoods:
             return False
@@ -1604,6 +1618,25 @@ class ATMSEngine:
             for environment in self.nogoods.environments
         }
         return True
+
+    def _derived_value_conflicts(self) -> tuple[tuple[ATMSDerivedNode, ATMSDerivedNode], ...]:
+        grouped: dict[str, list[ATMSDerivedNode]] = defaultdict(list)
+        for node in self._nodes.values():
+            if not _is_derived_node(node):
+                continue
+            if not node.label.environments:
+                continue
+            grouped[node.concept_id].append(node)
+
+        conflicts: list[tuple[ATMSDerivedNode, ATMSDerivedNode]] = []
+        for nodes in grouped.values():
+            ordered = sorted(nodes, key=lambda item: item.node_id)
+            for index, node_a in enumerate(ordered):
+                for node_b in ordered[index + 1:]:
+                    if self._normalize_value(node_a.value) == self._normalize_value(node_b.value):
+                        continue
+                    conflicts.append((node_a, node_b))
+        return tuple(conflicts)
 
     def _provider_node_ids_by_concept(self) -> dict[str, tuple[str, ...]]:
         providers: dict[str, list[str]] = defaultdict(list)
