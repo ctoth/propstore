@@ -361,9 +361,9 @@ D-13 said `verify_equation` is "demoted/deprecated." Codex 2.27 said delete now 
 **Q's pushback**: "why are you so freaking out about CEL what is the big deal here jesus christ who cares about CEL for what reasons what is the dealeo here?"
 **Decision**: **Drop the spec-retrieval ceremony.** No Step 0. No paper-reader pass. No prerequisite spec-ingestion stream.
 
-**Reasoning**: CEL is Google's typed expression language for condition expressions on claims/stances. Not a research paper — a language reference doc. The cel-spec/langdef.md is ~30 KB of grammar and well-defined. The WS-P engineer reads it while writing the parser fix. That's not a workstream — it's normal engineering with a reference open.
+**Reasoning**: CEL is Google's typed expression language for condition expressions on claims/stances. Not a research paper — a language reference doc. The local checkout at `~/src/cel-spec` is available; the language definition is a grammar/reference document, not a paper-ingestion task. The WS-P engineer reads it while writing the parser fix. That's not a workstream — it's normal engineering with a reference open.
 
-**Action**: WS-P drops "CEL spec retrieval pending" framing; treats cel-spec/langdef.md as an ordinary reference. Bug-fixes for escapes, float-exponents, ternary unsoundness, Z3 division-guards, equation-comparison orientation become normal engineering work.
+**Action**: WS-P drops "CEL spec retrieval pending" framing; treats `~/src/cel-spec` as an ordinary local reference. Bug-fixes for escapes, float-exponents, ternary unsoundness, Z3 division-guards, equation-comparison orientation become normal engineering work.
 
 ### D-29 — Micropub identity cycle break
 
