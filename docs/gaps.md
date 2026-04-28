@@ -15,10 +15,6 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ### HIGH
 
-- **CLAUDE.md "Pignistic" claim names Denoeux but implements Jøsang.** `propstore/world/types.py:1064-1066` is labeled `"pignistic"` and cites Denoeux p.17-18, but the implemented formula is Jøsang `b + a·u`; Denoeux's binomial BetP is `b + u/2`. Diverges whenever `a ≠ 0.5`. Citation: axis-6 declared-limitation 2 status "materially false"; axis-3b F2. Plan: WS-Z-types (axis-3b docket).
-
-- **`opinion.wbf()` is algebraically aCBF, not WBF.** `propstore/opinion.py` implementation has three structural divergences from the van der Heijden 2018 WBF formula; worked example drifts 0.175 absolute on uncertainty. Commit `c7a9215` self-acknowledges the open bug. Citation: axis-6 declared-limitation 4 "materially false"; axis-3b F1. Plan: WS-Z-types (axis-3b docket).
-
 - **Sidecar claim SI normalization silently writes non-SI values to `_si` columns.** `propstore/sidecar/claim_utils.py:596-606` — on `ValueError`/`TypeError` from `normalize_to_si`, the code writes `value_si = typed_fields.value` (i.e., the unnormalized value). Downstream queries trust the `_si` suffix. Citation: axis-5 Finding 3.1. Plan: not yet scheduled (axis-5 docket).
 
 ### MED
@@ -56,6 +52,11 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 - **Citation-pattern drift across codebase.** `aspic.py`, `world/types.py` (Denoeux→Jøsang), and `wbf()` (WBF name, aCBF computation) cite papers for authority while implementing something different. Citation: axis-6 item 15; axis-9 cross-cutting. Plan: citation-as-claim CI lint (per disciplines.md rule 1) + workstream-specific closures.
 
 ## Closed gaps (reference only — kept for traceability)
+
+### Closed 2026-04-28 (WS-D subjective-logic operator naming)
+- T2.7 / gaps F1 — `opinion.wbf()` now implements van der Heijden et al. 2018 Definition 4, including Table I WBF output, confidence-weighted base rate, dogmatic/no-evidence cases, and no `_BASE_RATE_CLAMP` in WBF. Evidence: commits `b1dd9c21`, `e197305d`, `7c4f094d`, `02f79021`, `aecf1057`; tests `tests/test_wbf_vs_van_der_heijden_2018_def_4.py`, `tests/test_subjective_logic_operator_audit.py`, `tests/test_consensus_clamp_consistency.py`.
+- T2.8 / gaps F2 — `decision_criterion="pignistic"` now means Smets & Kennes 1994 BetP (`b + u/2` for binomial opinions), while Jøsang 2001 Definition 6 is exposed as `projected_probability` in owner and CLI surfaces. Evidence: commits `a8c73757`, `878df257`, `ed61b5fc`, `a489722f`, `02f79021`, `a00bf3e8`; tests `tests/test_pignistic_vs_smets_kennes_1994.py`, `tests/test_subjective_logic_operator_audit.py`, `tests/test_workstream_d_done.py`.
+- Cluster F HIGH F3/F4/F12 and MED F5/F8/F10 — PrAF defeat summaries no longer fabricate calibrated opinions, stance confidence without sample size is vacuous, COH dogmatic/divergent cases fail loudly, dogmatic Opinion construction requires explicit opt-in, and CEL literals now cover exponent doubles plus CEL string escapes. Evidence: commits `b7518c45`, `2e74c597`, `f93340ae`, `19bb1072`, `d32bc649`, `9b1e362e`, `9376ea55`, `c19b6e11`, `636f975b`, `48679bbf`; tests `tests/test_defeat_summary_opinion_no_fabrication.py`, `tests/test_from_probability_n_one_round_trip.py`, `tests/test_enforce_coh_diverges_loudly.py`, `tests/test_opinion_allow_dogmatic_enforced.py`, `tests/test_cel_float_exponent.py`, `tests/test_cel_string_escapes.py`.
 
 ### Closed 2026-04-28 (WS-E source-promote correctness)
 - T3.5 / Cluster A HIGH-1 / Codex 1.14 — source promote now admits justifications only when every conclusion and premise resolves to either the current promotion batch or the captured primary-branch artifact snapshot; dangling source-local-only references are dropped instead of promoted. Evidence: commits `967b819d`, `3f07c56b`; tests `tests/test_source_promote_dangling_refs.py`.
