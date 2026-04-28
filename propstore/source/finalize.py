@@ -64,7 +64,10 @@ def _compose_source_micropubs(
         if not isinstance(claim.artifact_id, str) or not claim.artifact_id:
             continue
         if not isinstance(claim.context, str) or not claim.context:
-            continue
+            raise ValueError(
+                f"claim {claim.source_local_id or claim.id or claim.artifact_id!r} "
+                "is missing required context"
+            )
         evidence: list[dict[str, str]] = []
         provenance_payload: dict[str, object] | None = None
         if claim.provenance is not None:
@@ -123,9 +126,14 @@ def finalize_source_branch(
     )
 
     claim_errors: list[str] = []
+    micropub_coverage_errors: list[str] = []
     for claim in (() if claims_doc is None else claims_doc.claims):
         if not isinstance(claim.artifact_id, str):
             claim_errors.append(str(claim.id or "?"))
+        if not isinstance(claim.context, str) or not claim.context:
+            micropub_coverage_errors.append(
+                str(claim.source_local_id or claim.id or claim.artifact_id or "?")
+            )
 
     justification_errors: list[str] = []
     for justification in (() if justifications_doc is None else justifications_doc.justifications):
@@ -162,17 +170,29 @@ def finalize_source_branch(
     artifact_code_status = "incomplete"
     source_id = str(source_doc.id or source_tag_uri(repo, source_name))
     source_slug = source_paper_slug(source_name)
-    micropubs_doc = _compose_source_micropubs(
-        source_id=source_id,
-        source_slug=source_slug,
-        claims_doc=claims_doc,
+    micropubs_doc = (
+        None
+        if micropub_coverage_errors
+        else _compose_source_micropubs(
+            source_id=source_id,
+            source_slug=source_slug,
+            claims_doc=claims_doc,
+        )
     )
-    micropub_status = "complete" if micropubs_doc is not None else "empty"
+    if micropub_coverage_errors:
+        micropub_status = "blocked"
+    else:
+        micropub_status = "complete" if micropubs_doc is not None else "empty"
     branch = source_branch_name(source_name)
     with repo.head_bound_transaction(branch, path="finalize") as head_txn:
         with head_txn.families_transact(message=f"Finalize {source_slug}") as transaction:
             ref = SourceRef(source_name)
-            if not claim_errors and not justification_errors and not stance_errors:
+            if (
+                not claim_errors
+                and not micropub_coverage_errors
+                and not justification_errors
+                and not stance_errors
+            ):
                 updated_source, updated_claims, updated_justifications, updated_stances = attach_source_artifact_codes(
                     source_doc.to_payload(),
                     None if claims_doc is None else claims_doc.to_payload(),
@@ -226,9 +246,15 @@ def finalize_source_branch(
                     "kind": "source_finalize_report",
                     "source": source_id,
                     "status": "ready"
-                    if not claim_errors and not justification_errors and not stance_errors
+                    if (
+                        not claim_errors
+                        and not micropub_coverage_errors
+                        and not justification_errors
+                        and not stance_errors
+                    )
                     else "blocked",
                     "claim_reference_errors": sorted(claim_errors),
+                    "micropub_coverage_errors": sorted(micropub_coverage_errors),
                     "justification_reference_errors": sorted(justification_errors),
                     "stance_reference_errors": sorted(stance_errors),
                     "concept_alignment_candidates": concept_alignment_candidates,
