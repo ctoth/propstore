@@ -3,7 +3,7 @@
 **Status**: OPEN (rewritten 2026-04-27 per D-8; revised again per D-19 + Codex 1.16)
 **Depends on**:
 - **WS-A** (schema fidelity) — sidecar Opinion column round-trip and embedding-registry schema migration cannot be verified until WS-A's fixture parity holds.
-- **WS-O-arg-bugs** (argumentation kernel) — the calibration pipeline runs the kernel; any kernel-level bug in DeLP/ASPIC dispatch leaks into trust outputs.
+- **WS-O-arg-argumentation-pkg** (argumentation kernel) — the calibration pipeline runs the kernel; any kernel-level bug in DeLP/ASPIC dispatch leaks into trust outputs.
 
 WS-K does NOT depend on WS-K2. The kernel and all tests use HAND-STUBBED rule fixtures so the source-trust argumentation pipeline can be verified independently. Production trust quality improves once WS-K2 has promoted its first meta-paper rule corpus, but WS-K's implementation, tests, and gating sentinel close on stubs — no cycle with WS-K2.
 **Blocks**: WS-N2 (architectural import-linter rewrite). WS-K writes the layered-contract negative scaffolding; WS-N2 inherits it.
@@ -310,7 +310,7 @@ Done when **every finding in the table at the top is closed**. H10 and H11 are n
 - **WS-A coordination** — the embedding-registry schema migration (Step 3) and the perspective-source-claim column (Step 9) both extend the production sidecar schema. WS-A's `_REQUIRED_SCHEMA` and the production-schema fixture builder must learn these columns at the same commit; do not split.
 - **WS-K2 coordination** — produces the rule corpus under `knowledge/rules/<paper>/`. WS-K consumes; tests use hand-stubbed fixtures so the pipeline can be verified independently of WS-K2's extraction quality.
 - **WS-N2 coordination** — Step 12 writes the layered-contract negative scaffolding; WS-N2 replaces the four `forbidden` contracts with a single `layered` contract.
-- **WS-O-arg-bugs coordination** — kernel ships from the `argumentation` package per D-15. Pin explicitly; re-run on every kernel pin bump.
+- **WS-O-arg-argumentation-pkg coordination** — kernel ships from the `argumentation` package per D-15. Pin explicitly; re-run on every kernel pin bump.
 - **WS-E coordination** — Step 11's proposal lifecycle bug fixes hang off whatever WS-E stabilizes for `propstore/proposals.py`. Rebase if WS-E moves the file.
 
 ## What this WS does NOT do
