@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-import hashlib
-
 from propstore.artifact_codes import attach_source_artifact_codes
-from quire.hashing import canonical_json_sha256
 from propstore.claim_references import (
     ClaimReferenceResolver,
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
+)
+from propstore.families.identity.micropubs import (
+    micropub_artifact_id,
+    micropub_version_id,
 )
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
@@ -31,17 +32,23 @@ from propstore.families.documents.sources import (
     SourceJustificationsDocument,
     SourceStancesDocument,
 )
-from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.micropubs import (
+    MicropublicationDocument,
+    MicropublicationsFileDocument,
+)
 from .registry import preview_source_parameterization_group_merges
 
 
-def _stable_micropub_artifact_id(source_id: str, claim_id: str) -> str:
-    digest = hashlib.sha256(f"{source_id}\0{claim_id}".encode("utf-8")).hexdigest()[:24]
-    return f"ps:micropub:{digest}"
-
-
-def _micropub_version_id(payload: dict[str, object]) -> str:
-    return canonical_json_sha256(payload)
+def _stamp_micropub_identity(payload: dict[str, object]) -> dict[str, object]:
+    document = convert_document_value(
+        {**payload, "artifact_id": ""},
+        MicropublicationDocument,
+        source="source-finalize:micropub-identity",
+    )
+    stamped = dict(payload)
+    stamped["artifact_id"] = micropub_artifact_id(document)
+    stamped["version_id"] = micropub_version_id(document)
+    return stamped
 
 
 def _compose_source_micropubs(
@@ -72,7 +79,6 @@ def _compose_source_micropubs(
                     "page": claim.provenance.page,
                 }
         payload: dict[str, object] = {
-            "artifact_id": _stable_micropub_artifact_id(source_id, claim.artifact_id),
             "context": {"id": claim.context},
             "claims": [claim.artifact_id],
             "source": source_id,
@@ -83,8 +89,7 @@ def _compose_source_micropubs(
             payload["assumptions"] = list(claim.conditions)
         if provenance_payload is not None:
             payload["provenance"] = provenance_payload
-        payload["version_id"] = _micropub_version_id(payload)
-        micropubs.append(payload)
+        micropubs.append(_stamp_micropub_identity(payload))
     if not micropubs:
         return None
     return convert_document_value(
