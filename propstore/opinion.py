@@ -18,18 +18,13 @@ W = 2
 
 _TOL = 1e-9
 
-# Clamp range for fused base rates (review-2026-04-14 Issue 4).
+# Clamp range for fused base rates in propstore-specific operators.
 #
-# Van der Heijden 2018, Definition 4, requires all sources share a
-# single base rate when fusing (the fused opinion inherits it
-# unchanged). propstore routinely fuses opinions produced by different
-# models/pipelines with distinct priors, so we instead compute a
-# confidence-weighted blend across sources and clamp the result to
-# this closed interval. Clamping avoids degenerate 0/1 priors which
-# would make ``maximize_uncertainty`` divide by zero and collapse the
-# ordering key (p.30 Def 16). The deviation is documented in
-# ``papers/vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic``
-# and covered by ``TestWBFAdditionalProperties.test_base_rate_clamping``.
+# WBF no longer uses this clamp: van der Heijden et al. 2018 Definition
+# 4 (p.5) already computes a confidence-weighted base rate from valid
+# input base rates, so the result stays inside the open interval. CCF
+# still uses the clamp because its base-rate handling is a propstore
+# convention layered over the paper's binomial reduction.
 _BASE_RATE_CLAMP = (0.01, 0.99)
 
 
@@ -430,11 +425,11 @@ def discount(trust: Opinion, source: Opinion) -> Opinion:
 
 
 def wbf(*opinions: Opinion) -> Opinion:
-    """N-source Weighted Belief Fusion (van der Heijden 2018, Definition 4).
+    """N-source Weighted Belief Fusion.
 
-    Generalizes consensus_pair to N sources. Each source is weighted by
-    its certainty (1/u_i). For N=2 non-dogmatic opinions, produces
-    identical results to consensus_pair().
+    Implements van der Heijden et al. 2018 Definition 4 (p.5). Table I
+    on p.8 gives the concrete three-source regression example used by
+    the tests.
 
     Definition 4 has separate cases for dogmatic and no-evidence inputs:
     dogmatic sources dominate finite-evidence sources, while all-vacuous
@@ -448,11 +443,10 @@ def wbf(*opinions: Opinion) -> Opinion:
     N = len(opinions)
     dogmatic = [op for op in opinions if op.u < _TOL]
     if dogmatic:
-        # van der Heijden 2018 Definition 4, Case 2: finite-evidence
-        # opinions have negligible weight when any dogmatic source is
-        # present. With exactly one dogmatic source this returns that
-        # source unchanged; with multiple dogmatic sources the limiting
-        # weights are equal in this unweighted API.
+        # van der Heijden et al. 2018 Definition 4 Case 2 / Remark 2
+        # (p.5): finite-evidence opinions have negligible weight when
+        # dogmatic sources are present. This unweighted API represents
+        # the equal-relative-infinity limit for multiple dogmatic inputs.
         count = len(dogmatic)
         b_fused = sum(op.b for op in dogmatic) / count
         d_fused = sum(op.d for op in dogmatic) / count
@@ -461,30 +455,40 @@ def wbf(*opinions: Opinion) -> Opinion:
             b_fused,
             d_fused,
             0.0,
-            _clamp_base_rate(a_fused),
+            a_fused,
             _compose_opinion_provenance("fusion", *dogmatic),
             allow_dogmatic=True,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
         )
 
-    # Precompute products of all uncertainties excluding each index.
-    # prod_except[i] = product(u_j for j != i)
+    if all(op.u > 1.0 - _TOL for op in opinions):
+        return Opinion(
+            0.0,
+            0.0,
+            1.0,
+            sum(op.a for op in opinions) / N,
+            _compose_opinion_provenance("fusion", *opinions),
+        )
+
+    # Definition 4 Case 1. For each source, the belief/disbelief term is
+    # weighted by (1-u_i) times the product of every other uncertainty.
     total_prod = math.prod(op.u for op in opinions)
     prod_except = [total_prod / op.u for op in opinions]
+    weighted_terms = [
+        (1.0 - op.u) * prod_except[i]
+        for i, op in enumerate(opinions)
+    ]
 
-    # Numerators: b_fused_num = sum(b_i * prod(u_j, j!=i))
     num_b = sum(
-        op.b * prod_except[i]
+        op.b * weighted_terms[i]
         for i, op in enumerate(opinions)
     )
     num_d = sum(
-        op.d * prod_except[i]
+        op.d * weighted_terms[i]
         for i, op in enumerate(opinions)
     )
-    num_u = total_prod
+    num_u = sum(1.0 - op.u for op in opinions) * total_prod
 
-    # Normalizing denominator kappa = sum(prod(u_j, j!=i)) - (N-1)*prod(u_j)
-    kappa = sum(prod_except) - (N - 1) * total_prod
-
+    kappa = sum(weighted_terms)
     if abs(kappa) < _TOL:
         raise ValueError("WBF denominator κ ≈ 0")
 
@@ -497,21 +501,16 @@ def wbf(*opinions: Opinion) -> Opinion:
     d_fused = max(0.0, d_fused)
     u_fused = max(0.0, u_fused)
 
-    # Base rate fusion (Jøsang Theorem 7 generalized):
-    # weight_i = (1 - u_i) * prod(u_j for j != i)
-    weights = [(1.0 - op.u) * prod_except[i] for i, op in enumerate(opinions)]
+    # Definition 4 base-rate equation (p.5): confidence-weighted by
+    # (1-u_i), not by the full belief/disbelief denominator above.
+    weights = [1.0 - op.u for op in opinions]
     total_weight = sum(weights)
-    if total_weight < _TOL:
-        # All vacuous — average base rates
-        a_fused = sum(op.a for op in opinions) / N
-    else:
-        a_fused = sum(
-            op.a * w for op, w in zip(opinions, weights)
-        ) / total_weight
+    a_fused = sum(
+        op.a * w for op, w in zip(opinions, weights)
+    ) / total_weight
 
-    # Clamp to `_BASE_RATE_CLAMP` — see constant's comment for the
-    # deviation from van der Heijden 2018.
-    a_fused = _clamp_base_rate(a_fused)
+    if abs((b_fused + d_fused + u_fused) - 1.0) <= 1e-8:
+        u_fused = max(0.0, 1.0 - b_fused - d_fused)
 
     return Opinion(
         b_fused,
