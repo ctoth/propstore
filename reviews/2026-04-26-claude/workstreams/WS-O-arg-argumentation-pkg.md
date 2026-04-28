@@ -1,6 +1,6 @@
 # WS-O-arg: argumentation package HIGH bugs (../argumentation) — kernel correctness
 
-**Status**: OPEN
+**Status**: CLOSED a2f41029
 **Depends on**: nothing internal. Parallel-safe with WS-A and other WS-O-* dependency fixes.
 **Blocks**:
 - **WS-O-arg-aba-adf** — ABA / ABA+ and ADF kernels both extend Dung-shaped extension/labelling apparatus and reuse the encoder. The collision-free defeasible-rule id scheme (Bug 3), the ASP-valid literal sanitisation (Bug 2), and the corrected ideal-extension construction (Bug 1) must be settled before sub-stream work begins; otherwise ABA's flat-attack reduction inherits broken ids and ADF's acceptance-condition encoding inherits broken literals.
