@@ -10,6 +10,7 @@ at build) — no data is refused; the render layer decides what to show.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from collections.abc import Sequence
 
@@ -69,31 +70,82 @@ def populate_claims(
     ``claim_core`` row. Drafts populate normally; render-policy filtering
     (phase 4) decides visibility.
 
-    Bug 5 (v0.3.2): ``artifact_id`` is content-hash-derived, so two
-    claim files that carry the same id carry definitionally identical
-    claim content. The historical crash path happens when a re-promote
-    leaves both the original claim file (``Foo_YEAR_Title.yaml``) and a
-    disambiguated copy (``Foo_YEAR_Title--<hex>.yaml``) on disk — both
-    contribute rows with the same ``artifact_id``. First-writer-wins
-    dedupe is safe here because the content is identical; the UNIQUE
-    constraint on ``claim_core.id`` and the PK constraints on the
-    three payload tables already enforce that invariant. Reproduction
-    in ``tests/remediation/phase_7_race_atomicity/
-    test_T7_5f_sidecar_build_duplicate_claim.py``.
+    ``artifact_id is the logical id`` for a claim. ``version_id`` is the
+    content identity. Duplicate rows with the same ``artifact_id`` and
+    same ``version_id`` are idempotent; duplicate logical ids with
+    different versions emit a blocking ``claim_version_conflict``
+    diagnostic instead of silently taking the first writer.
     """
 
-    seen_claim_ids: set[str] = set()
+    seen_claim_versions: dict[str, str] = {}
+    emitted_conflicts: set[tuple[str, str, str]] = set()
     for row in rows.claim_rows:
         claim_id = row.values.get("id")
-        if isinstance(claim_id, str) and claim_id in seen_claim_ids:
+        version_id = row.values.get("version_id")
+        if isinstance(claim_id, str) and claim_id in seen_claim_versions:
+            existing_version = seen_claim_versions[claim_id]
+            new_version = str(version_id or "")
+            if existing_version == new_version:
+                continue
+            conflict_key = (claim_id, existing_version, new_version)
+            if conflict_key not in emitted_conflicts:
+                _insert_claim_version_conflict(
+                    conn,
+                    claim_id=claim_id,
+                    existing_version=existing_version,
+                    new_version=new_version,
+                    source_ref=str(row.values.get("primary_logical_id") or claim_id),
+                )
+                emitted_conflicts.add(conflict_key)
             continue
         insert_claim_row(conn, row.values)
         if isinstance(claim_id, str):
-            seen_claim_ids.add(claim_id)
+            seen_claim_versions[claim_id] = str(version_id or "")
+    seen_link_keys: set[tuple[object, object, object, object]] = set()
     for row in rows.claim_link_rows:
+        if len(row.values) >= 4:
+            key = (row.values[0], row.values[2], row.values[3], row.values[1])
+            if key in seen_link_keys:
+                continue
+            seen_link_keys.add(key)
         insert_claim_concept_link_row(conn, row.values)
     for stance_row in rows.stance_rows:
         insert_claim_stance_row(conn, stance_row.values)
+
+
+def _insert_claim_version_conflict(
+    conn: sqlite3.Connection,
+    *,
+    claim_id: str,
+    existing_version: str,
+    new_version: str,
+    source_ref: str,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO build_diagnostics (
+            claim_id, source_kind, source_ref, diagnostic_kind,
+            severity, blocking, message, file, detail_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            claim_id,
+            "claim",
+            source_ref,
+            "claim_version_conflict",
+            "error",
+            1,
+            f"Claim logical id {claim_id!r} appears with multiple version_id values",
+            None,
+            json.dumps(
+                {
+                    "existing_version_id": existing_version,
+                    "new_version_id": new_version,
+                },
+                sort_keys=True,
+            ),
+        ),
+    )
 
 
 def populate_stances(
