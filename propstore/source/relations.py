@@ -64,7 +64,7 @@ def commit_source_justifications_batch(
     reader: str | None = None,
     method: str | None = None,
 ) -> str:
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     claim_index = load_source_claim_reference_index(repo, source_name)
     raw = decode_document_path(justifications_file, SourceJustificationsDocument)
@@ -75,7 +75,7 @@ def commit_source_justifications_batch(
             produced_by=ExtractionProvenanceDocument(
                 reader=reader,
                 method=method,
-                timestamp=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             ),
         )
     normalized = normalize_source_justifications_payload(
@@ -123,7 +123,7 @@ def commit_source_stances_batch(
     reader: str | None = None,
     method: str | None = None,
 ) -> str:
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     claim_index = load_source_claim_reference_index(repo, source_name)
     raw = decode_document_path(stances_file, SourceStancesDocument)
@@ -134,7 +134,7 @@ def commit_source_stances_batch(
             produced_by=ExtractionProvenanceDocument(
                 reader=reader,
                 method=method,
-                timestamp=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             ),
         )
     normalized = normalize_source_stances_payload(
