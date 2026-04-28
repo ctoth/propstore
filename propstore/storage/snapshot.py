@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterator, TypeVar
@@ -190,40 +191,49 @@ class RepositorySnapshot:
     ) -> MaterializeReport:
         if commit is not None and branch is not None:
             raise ValueError("materialize accepts either commit or branch, not both")
+        head_txn = None
         if commit is None:
             branch_name = branch or self.current_branch_name() or self.primary_branch_name()
-            commit = self.branch_head(branch_name)
+            head_txn = self.repo.head_bound_transaction(branch_name, path="materialize")
+
+        with head_txn if head_txn is not None else nullcontext():
             if commit is None:
-                raise ValueError(f"Branch {branch_name!r} has no commit")
+                if head_txn is None:
+                    raise ValueError("materialize requires a commit or captured branch head")
+                commit = head_txn.expected_head
+                if commit is None:
+                    raise ValueError(f"Branch {branch_name!r} has no commit")
 
-        snapshot_files = self.files(commit=commit)
-        tracked_paths = {snapshot_file.relpath for snapshot_file in snapshot_files}
-        conflicts: list[str] = []
-        written: list[str] = []
-        for snapshot_file in snapshot_files:
-            destination = self.repo.root / snapshot_file.relpath
-            if destination.exists() and destination.is_file():
-                existing = destination.read_bytes()
-                if existing != snapshot_file.content and not force:
-                    conflicts.append(snapshot_file.relpath)
-                    continue
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(snapshot_file.content)
-            written.append(snapshot_file.relpath)
+            snapshot_files = self.files(commit=commit)
+            if head_txn is not None:
+                head_txn.assert_current()
+            tracked_paths = {snapshot_file.relpath for snapshot_file in snapshot_files}
+            conflicts: list[str] = []
+            written: list[str] = []
+            for snapshot_file in snapshot_files:
+                destination = self.repo.root / snapshot_file.relpath
+                if destination.exists() and destination.is_file():
+                    existing = destination.read_bytes()
+                    if existing != snapshot_file.content and not force:
+                        conflicts.append(snapshot_file.relpath)
+                        continue
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(snapshot_file.content)
+                written.append(snapshot_file.relpath)
 
-        if conflicts:
-            details = ", ".join(sorted(conflicts))
-            raise MaterializeConflictError(f"Refusing to overwrite local edits: {details}")
+            if conflicts:
+                details = ", ".join(sorted(conflicts))
+                raise MaterializeConflictError(f"Refusing to overwrite local edits: {details}")
 
-        deleted, skipped = self._clean_materialized_semantic_files(tracked_paths) if clean else ([], [])
-        return MaterializeReport(
-            source_commit=commit,
-            written_paths=tuple(sorted(written)),
-            deleted_stale_paths=tuple(sorted(deleted)),
-            skipped_ignored_paths=tuple(sorted(skipped)),
-            clean=clean,
-            force=force,
-        )
+            deleted, skipped = self._clean_materialized_semantic_files(tracked_paths) if clean else ([], [])
+            return MaterializeReport(
+                source_commit=commit,
+                written_paths=tuple(sorted(written)),
+                deleted_stale_paths=tuple(sorted(deleted)),
+                skipped_ignored_paths=tuple(sorted(skipped)),
+                clean=clean,
+                force=force,
+            )
 
     def _clean_materialized_semantic_files(self, tracked_paths: set[str]) -> tuple[list[str], list[str]]:
         semantic_roots = tuple(f"{root}/" for root in semantic_init_roots())
