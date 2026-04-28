@@ -192,14 +192,17 @@ def render_concept_page(report: ConceptViewReport) -> str:
 
 def render_error_page(title: str, message: str) -> str:
     return _page(
-        title,
+        f"{title} - propstore",
         f"""
-<h1>{_text(title)}</h1>
-<section aria-labelledby="error-heading">
-  <h2 id="error-heading">Error</h2>
+<h1 id="error-heading">{_text(title)}</h1>
+<section aria-labelledby="error-message-heading">
+  <h2 id="error-message-heading">What happened</h2>
   <p>{_text(message)}</p>
+  <p><a href="/claims">Open the claim index</a></p>
+  <p><a href="/concepts">Search concepts</a></p>
 </section>
 """,
+        main_labelledby="error-heading",
     )
 
 
@@ -315,7 +318,8 @@ def render_neighborhood_page(report: SemanticNeighborhoodReport) -> str:
     )
 
 
-def _page(title: str, body: str) -> str:
+def _page(title: str, body: str, *, main_labelledby: str | None = None) -> str:
+    main_attrs = "" if main_labelledby is None else f" aria-labelledby=\"{_text(main_labelledby)}\""
     return f"""<!doctype html>
 <html lang="en">
   <head>
@@ -324,7 +328,7 @@ def _page(title: str, body: str) -> str:
     <link rel="stylesheet" href="/static/web.css">
   </head>
   <body>
-    <main>
+    <main{main_attrs}>
 {body}
     </main>
   </body>
