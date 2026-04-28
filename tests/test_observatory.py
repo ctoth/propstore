@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 import json
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -136,4 +137,3 @@ def test_epistemic_os_documentation_maps_artifact_to_journal() -> None:
     assert "source artifact -> assertion -> projection -> state -> journal" in text
     assert "Micropublication" in text
     assert "Observatory" in text
-import pytest

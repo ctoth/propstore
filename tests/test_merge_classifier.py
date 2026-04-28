@@ -1,6 +1,7 @@
 """Regression tests for the new repository merge surface."""
 from __future__ import annotations
 
+import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import uuid4
@@ -411,4 +412,3 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
             for claim_id in [*left_ids, *right_ids]
         }
         assert merged_artifact_ids == expected_artifact_ids
-import pytest

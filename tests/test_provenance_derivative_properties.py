@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -95,4 +96,3 @@ class TestPolynomialDerivative:
         derivative = partial_derivative(poly, a)
 
         assert derivative == ProvenancePolynomial.variable(b)
-import pytest

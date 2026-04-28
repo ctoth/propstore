@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -110,4 +111,3 @@ class TestProvenancePolynomialAlgebra:
         repeated = ProvenancePolynomial((PolynomialTerm(1, (VariablePower(x, 3),)),))
 
         assert why_provenance(linear) == why_provenance(repeated)
-import pytest

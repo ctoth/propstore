@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from dataclasses import replace
 
 from hypothesis import given, settings
@@ -170,4 +171,3 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
             legacy_id: EntrenchmentReason(support_count=1),
         },
     )
-import pytest

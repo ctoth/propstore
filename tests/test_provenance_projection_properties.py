@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from dataclasses import dataclass
 
 from hypothesis import given, settings
@@ -119,4 +120,3 @@ class TestProjectionHomomorphisms:
         )
 
         assert tropical_cost(poly, {a: 3.0, b: 4.0, c: 10.0}) == 7.0
-import pytest

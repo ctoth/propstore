@@ -1,6 +1,7 @@
 """Tests for branch-local structured projection into merge summaries."""
 from __future__ import annotations
 
+import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -338,4 +339,3 @@ def test_branch_structured_summary_is_order_invariant(
         assert left_summary.content_signature == right_summary.content_signature
         assert left_summary.stance_rows == right_summary.stance_rows
         assert left_summary.projection.framework == right_summary.projection.framework
-import pytest
