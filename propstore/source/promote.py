@@ -828,63 +828,54 @@ def promote_source_branch(
         blocked_reasons=blocked_reasons,
     )
 
-    # Mirror blocked claims into the sidecar BEFORE the git commit.
-    # Blocked claims stay on their source branch — they do not flow into
-    # the master transaction — so the mirror rows do not depend on the
-    # commit landing. Writing sidecar first means a sidecar-write failure
-    # (Bug 1-class or otherwise) cannot pollute master with a commit
-    # that has no corresponding sidecar state. The sidecar is
-    # content-hash addressed and regenerable from git, so a transient
-    # window where sidecar is ahead of git is safe. If the sidecar file
-    # does not exist this is a no-op.
-    if promotion_plan.blocked_claims:
-        _write_promotion_blocked_sidecar_rows(
-            repo.sidecar_path,
-            promotion_plan.source_branch,
-            promotion_plan.slug,
-            promotion_plan.blocked_claims,
-            promotion_plan.blocked_reasons,
-        )
+    with repo.head_bound_transaction(repo.snapshot.primary_branch_name(), path="promote") as head_txn:
+        if promotion_plan.blocked_claims:
+            head_txn.sidecar_write(
+                lambda: _write_promotion_blocked_sidecar_rows(
+                    repo.sidecar_path,
+                    promotion_plan.source_branch,
+                    promotion_plan.slug,
+                    promotion_plan.blocked_claims,
+                    promotion_plan.blocked_reasons,
+                )
+            )
 
-    with repo.families.transact(
-        message=f"Promote source {slug}",
-        branch=repo.snapshot.primary_branch_name(),
-    ) as transaction:
-        transaction.sources.save(
-            promotion_plan.source_ref,
-            promotion_plan.promoted_source_document,
-        )
-        transaction.claims.save(
-            promotion_plan.claims_ref,
-            promotion_plan.promoted_claims_document,
-        )
-        if (
-            promotion_plan.promoted_micropubs_ref is not None
-            and promotion_plan.promoted_micropubs_document is not None
-        ):
-            transaction.micropubs.save(
-                promotion_plan.promoted_micropubs_ref,
-                promotion_plan.promoted_micropubs_document,
+        with head_txn.families_transact(message=f"Promote source {slug}") as transaction:
+            transaction.sources.save(
+                promotion_plan.source_ref,
+                promotion_plan.promoted_source_document,
             )
-        for concept_ref, concept_document in promotion_plan.promoted_concept_documents.items():
-            transaction.concepts.save(
-                concept_ref,
-                concept_document,
+            transaction.claims.save(
+                promotion_plan.claims_ref,
+                promotion_plan.promoted_claims_document,
             )
-        if (
-            promotion_plan.promoted_justifications_ref is not None
-            and promotion_plan.promoted_justifications_document is not None
-        ):
-            transaction.justifications.save(
-                promotion_plan.promoted_justifications_ref,
-                promotion_plan.promoted_justifications_document,
-            )
-        for stance_ref, stance_document in promotion_plan.promoted_stance_documents.items():
-            transaction.stances.save(
-                stance_ref,
-                stance_document,
-            )
-    sha = transaction.commit_sha
+            if (
+                promotion_plan.promoted_micropubs_ref is not None
+                and promotion_plan.promoted_micropubs_document is not None
+            ):
+                transaction.micropubs.save(
+                    promotion_plan.promoted_micropubs_ref,
+                    promotion_plan.promoted_micropubs_document,
+                )
+            for concept_ref, concept_document in promotion_plan.promoted_concept_documents.items():
+                transaction.concepts.save(
+                    concept_ref,
+                    concept_document,
+                )
+            if (
+                promotion_plan.promoted_justifications_ref is not None
+                and promotion_plan.promoted_justifications_document is not None
+            ):
+                transaction.justifications.save(
+                    promotion_plan.promoted_justifications_ref,
+                    promotion_plan.promoted_justifications_document,
+                )
+            for stance_ref, stance_document in promotion_plan.promoted_stance_documents.items():
+                transaction.stances.save(
+                    stance_ref,
+                    stance_document,
+                )
+    sha = head_txn.commit_sha
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
 
