@@ -47,8 +47,9 @@ def main() -> int:
             ok = False
             continue
 
-        dst.write_text(result.stdout)
-        (RESOURCE_SCHEMA_DIR / json_file).write_text(result.stdout)
+        generated = result.stdout.encode("utf-8")
+        dst.write_bytes(generated)
+        (RESOURCE_SCHEMA_DIR / json_file).write_bytes(generated)
 
     for filename in ("form.schema.json",):
         src = GENERATED_DIR / filename
@@ -57,7 +58,7 @@ def main() -> int:
             print(f"ERROR: {src} not found", file=sys.stderr)
             ok = False
             continue
-        dst.write_text(src.read_text())
+        dst.write_bytes(src.read_bytes())
 
     return 0 if ok else 1
 
