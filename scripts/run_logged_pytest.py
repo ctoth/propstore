@@ -17,7 +17,7 @@ def _has_worker_arg(args: list[str]) -> bool:
 def _default_pytest_args(pytest_args: list[str]) -> list[str]:
     args = ["-vv"]
     if not _has_worker_arg(pytest_args):
-        worker_count = min(os.cpu_count() or 1, 16)
+        worker_count = min(os.cpu_count() or 1, 8)
         args.extend(["-n", str(worker_count), "--dist", "worksteal"])
     return args
 
