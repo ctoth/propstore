@@ -1,0 +1,20 @@
+{
+  "title": "Global Sensitivity Analysis: The Primer",
+  "authors": [
+    "Andrea Saltelli",
+    "Ratto Marco",
+    "A. Terry",
+    "Campolongo Francesca",
+    "Cariboni Jessica",
+    "G. Debora",
+    "Saisana Michaela",
+    "Tarantola Stefano"
+  ],
+  "year": "2008",
+  "doi": "10.1002/9780470725184",
+  "url": "https://www.semanticscholar.org/paper/ebff84ea7e8ca0ee8d0af5ec78da96b821ee6ae6",
+  "pdf_url": "",
+  "bibtex": "@Inproceedings{Saltelli2008GlobalSA,\n author = {Andrea Saltelli and Ratto Marco and A. Terry and Campolongo Francesca and Cariboni Jessica and G. Debora and Saisana Michaela and Tarantola Stefano},\n title = {Global Sensitivity Analysis: The Primer},\n year = {2008}\n}\n",
+  "venue": "",
+  "volume": ""
+}

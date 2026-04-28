@@ -1,0 +1,14 @@
+{
+  "title": "Decision-Making with Belief Functions and Pignistic Probabilities",
+  "authors": [
+    "Nic Wilson"
+  ],
+  "year": "1993",
+  "doi": "10.1007/BFb0028222",
+  "url": "https://www.semanticscholar.org/paper/e84dbdbc29155c9b202f3225a5a62391518da8a2",
+  "pdf_url": "",
+  "bibtex": "@Article{Wilson1993DecisionMakingWB,\n author = {Nic Wilson},\n booktitle = {European Conference on Symbolic and Quantitative Approaches to Reasoning and Uncertainty},\n pages = {364-371},\n title = {Decision-Making with Belief Functions and Pignistic Probabilities},\n year = {1993}\n}\n",
+  "venue": "European Conference on Symbolic and Quantitative Approaches to Reasoning and Uncertainty",
+  "venue_type": "conference",
+  "pages": "364-371"
+}

@@ -284,6 +284,7 @@ This paper is directly relevant to propstore's context and argumentation layers:
 
 ### Already in Collection
 - [[Bozzato_2020_DatalogDefeasibleDLLite]] — cited as the single-context DL-Lite simplification of this paper's CKR framework; Bozzato 2020 adapts the justifiable exception semantics and clashing assumptions from this paper to the lighter DL-Lite_R language
+- [Rational Closure for Defeasible Description Logics](../Casini_2010_RationalClosure/notes.md) — cited as [46] and [55]; the rational-closure approach for defeasible DLs that this paper contrasts with its CKR clashing-assumption semantics. Casini–Straccia attach defeasibility at the *concept* level via a ranking on sequents; this paper attaches it at the *individual* level via context-bound exception assumptions.
 - [[Antoniou_2007_DefeasibleReasoningSemanticWeb]] — cited as related work on defeasible reasoning in Semantic Web; Antoniou uses well-founded semantics for defeasible logic programs, contrasting with CKR's answer-set-based approach
 - [[McCarthy_1993_FormalizingContext]] — cited as foundational work on context formalization; CKR's ist(c, p) style contextualization directly inherits from McCarthy's lifting rules
 - [[McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning]] — cited as [58]; CKR explicitly contrasts its "justifiable exception" semantics against circumscription-based defeasibility

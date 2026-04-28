@@ -308,11 +308,15 @@ tau is a **Herbrand model** of a set of Horn clauses X iff every clause in X is 
 - [[Pollock_1987_DefeasibleReasoning]] — Pollock's rebutting/undercutting defeat distinction is orthogonal to Morris's ranking-based approach; Morris's closure operators resolve conflicts by exceptionality ranking rather than defeat type.
 - [[Dung_1995_AcceptabilityArguments]] — Morris's Rational Closure is an alternative to Dung-style argumentation for resolving defeasible conflicts; both provide formal semantics for which conclusions to accept from conflicting information.
 
+### Now in Collection (previously listed as leads)
+- [Nonmonotonic Reasoning, Preferential Models and Cumulative Logics](../Kraus_1990_NonmonotonicReasoningPreferentialModels/notes.md) — foundational KLM properties paper; defines Ref, LLE, And, Or, RW, CM, RM (the rationality postulates Morris proves Rational and Lexicographic Closure satisfy over Disjunctive Datalog). Morris's proof strategy is to verify each property holds for the BaseRank/SubsetRank-induced closure operator; KLM 1990 is the source of the property list and the preferential-model semantics that justifies them.
+
 ### New Leads (Not Yet in Collection)
-- Kraus, Lehmann, & Magidor (1990) — "Nonmonotonic reasoning, preferential models and cumulative logics" — foundational KLM properties paper; defines the rationality postulates that Morris proves satisfaction of
-- Lehmann & Magidor (1992) — "What does a conditional knowledge base entail?" — defines LM-rationality, the benchmark Morris uses
 - Casini, Meyer, & Varzinczak (2019) — "Taking defeasible entailment beyond rational closure" — direct predecessor; defines propositional Relevant and Lexicographic Closure that Morris extends to Datalog
 - Casini et al. (2014) — "Taking defeasible entailment beyond rational closure" (JELIA) — original propositional definitions adapted in this paper
+
+### Now in Collection (previously listed as leads)
+- [What does a conditional knowledge base entail?](../Lehmann_1989_DoesConditionalKnowledgeBase/notes.md) — defines LM-rationality (the rationality postulate satisfaction standard Morris uses to evaluate the three Datalog closure operators); also the original definition of Rational Closure that Morris extends.
 
 ### Supersedes or Recontextualizes
 - Morris, Ross, & Meyer (2019) workshop paper — this journal paper extends the 2019 workshop paper with full proofs plus Lexicographic and Relevant Closure (the 2019 paper only covered Rational Closure)

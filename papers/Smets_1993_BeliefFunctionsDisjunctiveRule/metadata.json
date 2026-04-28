@@ -1,0 +1,14 @@
+{
+  "title": "Belief functions: The disjunctive rule of combination and the generalized Bayesian theorem",
+  "authors": [
+    "P. Smets"
+  ],
+  "year": "1993",
+  "doi": "10.1016/0888-613X(93)90005-X",
+  "url": "https://www.semanticscholar.org/paper/49f14cc6f671447f6828813158a7f765ab26af58",
+  "pdf_url": "https://doi.org/10.1016/0888-613x(93)90005-x",
+  "bibtex": "@Article{Smets1993BeliefFT,\n author = {P. Smets},\n booktitle = {International Journal of Approximate Reasoning},\n pages = {633-664},\n title = {Belief functions: The disjunctive rule of combination and the generalized Bayesian theorem},\n year = {1993}\n}\n",
+  "venue": "International Journal of Approximate Reasoning",
+  "venue_type": "journal",
+  "pages": "633-664"
+}

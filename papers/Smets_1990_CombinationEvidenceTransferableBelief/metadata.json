@@ -1,0 +1,15 @@
+{
+  "title": "The Combination of Evidence in the Transferable Belief Model",
+  "authors": [
+    "P. Smets"
+  ],
+  "year": "1990",
+  "doi": "10.1109/34.55104",
+  "url": "https://www.semanticscholar.org/paper/535c865eabc9c918406a01031442b02334031160",
+  "pdf_url": "http://iridia0.ulb.ac.be/~psmets/Axioms_for_Dempster_Combi.pdf",
+  "bibtex": "@Article{Smets1990TheCO,\n author = {P. Smets},\n booktitle = {IEEE Transactions on Pattern Analysis and Machine Intelligence},\n journal = {IEEE Trans. Pattern Anal. Mach. Intell.},\n pages = {447-458},\n title = {The Combination of Evidence in the Transferable Belief Model},\n volume = {12},\n year = {1990}\n}\n",
+  "venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence",
+  "venue_type": "journal",
+  "volume": "12",
+  "pages": "447-458"
+}

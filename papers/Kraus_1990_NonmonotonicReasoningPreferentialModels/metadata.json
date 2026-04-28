@@ -1,0 +1,18 @@
+{
+  "title": "Nonmonotonic Reasoning, Preferential Models and Cumulative Logics",
+  "authors": [
+    "Sarit Kraus",
+    "D. Lehmann",
+    "M. Magidor"
+  ],
+  "year": "1990",
+  "arxiv_id": "cs/0202021",
+  "doi": "10.1016/0004-3702(90)90101-5",
+  "abstract": "Abstract Many systems that exhibit nonmonotonic behavior have been described and studied already in the literature. The general notion of nonmonotonic reasoning, though, has almost always been described only negatively, by the property it does not enjoy, i.e. monotonicity. We study here general patterns of nonmonotonic reasoning and try to isolate properties that could help us map the field of nonmonotonic reasoning by reference to positive properties. We concentrate on a number of families of nonmonotonic consequence relations, defined in the style of Gentzen [13]. Both proof-theoretic and semantic points of view are developed in parallel. The former point of view was pioneered by Gabbay [10], while the latter has been advocated by Shoham [38]. Five such families are defined and characterized by representation theorems, relating the two points of view. One of the families of interest, that of preferential relations, turns out to have been studied by Adams [2]. The preferential models proposed here are a much stronger tool than Adams' probabilistic semantics. The basic language used in this paper is that of propositional logic. The extension of our results to first-order predicate calculi and the study of the computational complexity of the decision problems described in this paper will be treated in another paper.",
+  "url": "https://www.semanticscholar.org/paper/abf251dab715b03bb50a9ec932d4b27fe0e9a1d3",
+  "pdf_url": "http://arxiv.org/pdf/cs/0202021",
+  "bibtex": "@Article{Kraus1990NonmonotonicRP,\n author = {Sarit Kraus and D. Lehmann and M. Magidor},\n booktitle = {Artificial Intelligence},\n journal = {ArXiv},\n title = {Nonmonotonic Reasoning, Preferential Models and Cumulative Logics},\n volume = {cs.AI/0202021},\n year = {1990}\n}\n",
+  "venue": "Artificial Intelligence",
+  "venue_type": "journal",
+  "volume": "cs.AI/0202021"
+}

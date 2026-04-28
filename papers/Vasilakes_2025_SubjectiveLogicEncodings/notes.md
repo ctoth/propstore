@@ -289,7 +289,10 @@ SLE achieves best or near-best F1 and NES across datasets. *(p.9)*
 ### New Leads (Not Yet in Collection)
 - Malinin & Gales (2019) — "Reverse KL Divergence Training of Prior Networks" — the loss function SLEs use is essentially theirs; Prior Networks predict Dirichlet distributions directly
 - Uma et al. (2021) — "Learning from Disagreement: A Survey" — comprehensive survey of disagreement-aware learning methods
-- Jøsang (2016) — SL textbook; the comprehensive reference for all operators used in this paper
+- Jøsang (2016) — SL textbook; the comprehensive reference for all operators used in this paper → NOW IN COLLECTION: [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md)
+
+### Now in Collection (previously listed as leads)
+- [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md) — Jøsang 2016 textbook. Vasilakes uses operators (cumulative fusion, trust discounting) defined in Ch. 12 / 14 of this book. The 2016 book is the comprehensive reference; Josang 2001 is the seed paper.
 
 ### Conceptual Links (not citation-based)
 - [[Sensoy_2018_EvidentialDeepLearningQuantifyClassification]] — Sensoy maps evidence counts to Dirichlet parameters for prediction uncertainty; Vasilakes maps annotator opinions to Dirichlet parameters for training targets. Same mathematical bridge (SL opinion ↔ Dirichlet), different direction of application.

@@ -291,13 +291,14 @@ This paper is directly relevant to propstore's need for alternatives to bare-flo
 - [[Dung_1995_AcceptabilityArguments]] — not directly cited, but the subjective logic opinions produced by EDL feed naturally into Dung-style argumentation frameworks as argument strengths
 
 ### New Leads (Not Yet in Collection)
-- Jøsang (2016) — "Subjective Logic: A Formalism for Reasoning Under Uncertainty" — the formal framework underpinning EDL's opinion mapping; essential for implementing belief mass / uncertainty in propstore -> NOW IN COLLECTION (foundational version): [[Josang_2001_LogicUncertainProbabilities]]
+- Jøsang (2016) — "Subjective Logic: A Formalism for Reasoning Under Uncertainty" — the formal framework underpinning EDL's opinion mapping; essential for implementing belief mass / uncertainty in propstore → NOW IN COLLECTION: [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md)
 - Gal and Ghahramani (2016) — "Dropout as a Bayesian Approximation" — primary competing uncertainty method; needed for comparison
 - Malinin and Gales (2018) — "Predictive Uncertainty Estimation via Prior Networks" — concurrent Dirichlet-output approach with different training objective (reverse KL)
 - Lakshminarayanan et al. (2017) — "Simple and Scalable Predictive Uncertainty Estimation Using Deep Ensembles" — ensemble baseline for uncertainty quantification
 
 ### Now in Collection (previously listed as leads)
 - [[Josang_2001_LogicUncertainProbabilities]] — The foundational 2001 paper defining subjective logic's opinion algebra (b, d, u, a), which the 2016 book cited by Sensoy extends. Provides the core bijective mapping between opinions and Beta distributions (Def 12) that underpins EDL's Dirichlet-to-opinion bridge, plus the consensus operator for combining evidence from multiple sources and the discounting operator for trust transitivity.
+- [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md) — Jøsang 2016 textbook directly cited by Sensoy. Provides the comprehensive operator catalogue, the Dirichlet-multinomial-opinion bijection (Def 3.6), and the multinomial extension that underpins EDL's K-class output. Sensoy's evidence parameters `α_k` map to the book's evidence-form Dirichlet `α = r + a·W` with default `W = 2`.
 
 ### Supersedes or Recontextualizes
 - (none)

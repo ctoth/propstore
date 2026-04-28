@@ -1,0 +1,13 @@
+{
+  "title": "Subjective Logic",
+  "authors": [
+    "A. Jøsang"
+  ],
+  "year": "2016",
+  "doi": "10.1007/978-3-319-42337-1",
+  "url": "https://www.semanticscholar.org/paper/8e4cdb42eaa8d028d12163b96e8724f84d3cdb96",
+  "pdf_url": "",
+  "bibtex": "@Inproceedings{Jøsang2016SubjectiveL,\n author = {A. Jøsang},\n booktitle = {Artificial Intelligence: Foundations, Theory, and Algorithms},\n pages = {1-326},\n title = {Subjective Logic},\n year = {2016}\n}\n",
+  "venue": "Artificial Intelligence: Foundations, Theory, and Algorithms",
+  "pages": "1-326"
+}

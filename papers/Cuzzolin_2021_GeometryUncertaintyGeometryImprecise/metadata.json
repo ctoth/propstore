@@ -1,0 +1,12 @@
+{
+  "title": "The Geometry of Uncertainty: The Geometry of Imprecise Probabilities",
+  "authors": [
+    "Fabio Cuzzolin"
+  ],
+  "year": "2021",
+  "doi": "10.1007/978-3-030-63153-6",
+  "url": "https://www.semanticscholar.org/paper/d022226b422d1d46336313c567bd9b2eae83b158",
+  "pdf_url": "",
+  "bibtex": "@Book{Cuzzolin2021TheGO,\n author = {Fabio Cuzzolin},\n booktitle = {Artificial Intelligence: Foundations, Theory, and Algorithms},\n journal = {The Geometry of Uncertainty},\n title = {The Geometry of Uncertainty: The Geometry of Imprecise Probabilities},\n year = {2021}\n}\n",
+  "venue": "Artificial Intelligence: Foundations, Theory, and Algorithms"
+}

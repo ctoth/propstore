@@ -1,0 +1,14 @@
+{
+  "title": "Global sensitivity indices for nonlinear mathematical models and their Monte Carlo estimates",
+  "authors": [
+    "I. M. Soboĺ"
+  ],
+  "year": "2001",
+  "doi": "10.1016/S0378-4754(00)00270-6",
+  "url": "https://www.semanticscholar.org/paper/337c5b072f0bc8b30e03276f02e3fc81e3c0ff2d",
+  "pdf_url": "",
+  "bibtex": "@Article{Soboĺ2001GlobalSI,\n author = {I. M. Soboĺ},\n journal = {Mathematics and Computers in Simulation},\n pages = {271-280},\n title = {Global sensitivity indices for nonlinear mathematical models and their Monte Carlo estimates},\n volume = {55},\n year = {2001}\n}\n",
+  "venue": "Mathematics and Computers in Simulation",
+  "volume": "55",
+  "pages": "271-280"
+}

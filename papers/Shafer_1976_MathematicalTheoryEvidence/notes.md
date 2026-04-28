@@ -204,3 +204,15 @@ This is the foundational text for Dempster-Shafer theory, which is directly rele
 10. Consonance (pp.219-236) — Nested focal elements, possibility theory connection
 11. Statistical Evidence (pp.237-273) — Application to statistical inference
 12. The Dual Nature of Probable Reasoning (pp.274-286) — Role of assumptions, epistemic probability
+
+---
+
+**See also:** [The transferable belief model](../Smets_Kennes_1994_TransferableBeliefModel/notes.md) — Smets & Kennes' 1994 reinterpretation of DS theory: removes the underlying probability requirement, splits credal/pignistic levels, and gives the axiomatic uniqueness theorem for the pignistic transformation.
+
+**See also:** [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md) — Jøsang 2016 cites this book as reference [90] and reinterprets Dempster's rule as belief constraint fusion (BCF), arguing it is appropriate for preference combination but not for cumulative evidence combination. Subjective logic adds a base-rate distribution that DST lacks, and bijects to Beta/Dirichlet PDFs (DST↔SL mapping in book Eq. 5.1: `m(x) = b_X(x), m(X) = u_X`).
+
+---
+
+**See also (citation):** [Quantifying Beliefs by Belief Functions: An Axiomatic Justification](../Smets_1993_QuantifyingBeliefsBeliefFunctions/notes.md) - Smets cites Shafer (1976) as the source of belief functions and provides an axiomatic justification: from axioms A1, R1, R2, M1, M2, M3, and a closure axiom, the credibility function on a finite Boolean algebra must be a Shafer belief function. The 1993 paper closes the gap between Shafer's mathematical theory and the *agent-relative* credal interpretation used in TBM.
+
+**See also (recontextualization):** [The Nature of the Unnormalized Beliefs Encountered in the Transferable Belief Model](../Smets_1992_NatureUnnormalizedBeliefsEncountered/notes.md) - Smets 1992 explicitly rejects the normalization step (`m(A) := m(A)/(1-K)`) that Shafer 1976 imposes, arguing it discards conflict information and is incompatible with refinement of the frame. Smets reinterprets m(empty) > 0 as either inter-source conflict or open-world residual mass, rather than as something to be eliminated.

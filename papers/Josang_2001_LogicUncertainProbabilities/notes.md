@@ -329,6 +329,7 @@ Propstore currently uses bare-float probabilities for claim confidence. Subjecti
 ### Cited By (in Collection)
 - [[Sensoy_2018_EvidentialDeepLearningQuantifyClassification]] — cites the 2016 book version of subjective logic (Josang 2016) as the formal framework underpinning the evidential deep learning approach to opinion-based uncertainty quantification
 - [[Josang_2010_CumulativeAveragingFusionBeliefs]] — cites as ref [1], the foundational binary opinion framework. The 2010 paper extends binary opinions to multinomial opinions over K-ary frames and defines the multiplication operator for combining opinions on different (orthogonal) frames.
+- [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md) — the 2016 textbook is a harmonised, corrected, and expanded specification of this 2001 paper. Notably, the 2016 book restores the marginal base rate (MBR) to binomial deduction (Eq. 9.36) — Jøsang explicitly notes (p.165) that the 2001 deduction operator omitted MBR and was inconsistent under repeated inversion. Read Josang 2001 first for the seed; read Josang 2016 for the comprehensive operator catalogue.
 
 ### Conceptual Links (not citation-based)
 
@@ -340,6 +341,15 @@ Propstore currently uses bare-float probabilities for claim confidence. Subjecti
 
 **Decision-making under belief functions:**
 - [[Denoeux_2018_Decision-MakingBeliefFunctionsReview]] — **Strong.** Denoeux reviews how to make decisions when uncertainty is represented by DS belief functions — exactly the decision problem that arises at propstore's render layer when opinions (rather than bare probabilities) annotate claims. Josang's probability expectation E(x) = b + a*u corresponds to Denoeux's pignistic transformation for decision-making. Denoeux's taxonomy of decision criteria (Hurwicz, minimax regret, E-admissibility) provides the render-time policy options for converting Josang's opinions into actionable decisions.
+- [Decision-Making with Belief Functions and Pignistic Probabilities](../Wilson_1993_Decision-MakingBeliefFunctionsPignistic/notes.md) — **Strong.** Wilson proves (Theorem 5.7) that lower/upper expected utility over pignistic transforms induced by all refinements equals the standard `[Bel, Pl]` envelope expectation. A binomial subjective-logic opinion `(b, d, u)` is structurally a `[b, b+u]` probability interval — exactly `[Bel, Pl]` on a binary frame. Wilson's frame-arbitrariness critique therefore lands on Jøsang's projected-probability `E(x) = b + a*u`: the projection is frame-dependent, while the opinion itself (and its envelope) is the frame-invariant object. Justifies treating SL opinions as imprecise probabilities at the propstore source-of-truth layer rather than collapsing them to projections, with the projection deferred to render-time policy.
 
 **Probabilistic argumentation:**
 - [[Li_2011_ProbabilisticArgumentationFrameworks]] — **Moderate.** Li extends Dung's AF with probabilities on argument/defeat existence; Josang provides the opinion algebra for representing those probabilities with explicit uncertainty. Combining these: instead of bare-float probabilities on argument existence, use subjective logic opinions — enabling the distinction between "50% likely to exist based on strong evidence" vs "50% likely based on ignorance" within probabilistic argumentation frameworks.
+
+---
+
+**See also (conceptual link):** [The transferable belief model](../Smets_Kennes_1994_TransferableBeliefModel/notes.md) — Direct semantic ancestor of Subjective Logic. Jøsang's vacuous opinion `b=d=0, u=1` corresponds to Smets' vacuous BBA `m(Ω)=1`; the SL belief-disbelief-uncertainty barycentric coordinates correspond to TBM's `bel`/`pl` envelope (Wilson bound `bel ≤ BetP ≤ pl`). Open-world philosophy from TBM is adopted by SL.
+
+---
+
+**See also (conceptual link):** [Quantifying Beliefs by Belief Functions: An Axiomatic Justification](../Smets_1993_QuantifyingBeliefsBeliefFunctions/notes.md) - Smets's vacuous credibility function I_Omega (I_Omega(Omega)=1, else 0) is the belief-function counterpart of Jøsang's vacuous opinion (b=d=0, u=1). Both formalisms treat total ignorance as a first-class element of the belief space; Smets's closure axiom shows every belief function is generated from I_Omega via refinement, conditioning (unnormalized Dempster), and simplex combinations - structurally analogous to building subjective opinions by accumulating evidence from a vacuous starting point.

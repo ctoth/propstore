@@ -185,3 +185,6 @@ This paper is directly relevant to propstore's uncertainty representation archit
 - Levi (1980) — The Enterprise of Knowledge — full theory of E-admissibility and S-admissibility
 - Keynes (1921) — A Treatise on Probability — original concept of 'weight of evidence' paralleling epistemic reliability
 - Kahneman & Tversky (1979) — "Prospect Theory" — the reflection and isolation effects that MMEU cannot capture
+
+### Cited By (in Collection)
+- [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md) — Jøsang 2016 cites this paper as book reference [31] in the second-order probability literature. Subjective logic's uncertainty mass formalises the "epistemic reliability" / "second-order probability" intuition Gardenfors & Sahlin motivate philosophically; Jøsang's vacuous opinion `(0,0,1,a)` is a syntactic carrier for the unreliable-probability case.

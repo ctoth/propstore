@@ -124,6 +124,9 @@ This paper is directly useful for propstore if ASPIC+-style reasoning is part of
 - **Reiter_1980_DefaultReasoning** - cited as [16]. Another canonical nonmonotonic logic used for comparison in the discussion section.
 - **Moore_1985_SemanticalConsiderationsNonmonotonicLogic** - cited as [14]. Used alongside circumscription and default logic as a comparison point for ASPIC+'s weakness.
 
+### Now in Collection (previously listed as leads)
+- [Nonmonotonic Reasoning, Preferential Models and Cumulative Logics](../Kraus_1990_NonmonotonicReasoningPreferentialModels/notes.md) — KLM is the foundational axiom system Li uses to classify ASPIC+. Per Li, `|~a` (argument constructibility) satisfies Ref, LLE, RW, Cut, CM, M, T but fails CP — i.e. cumulative monotonic but not fully monotonic in KLM's sense; `|~j` (justified conclusions) is weaker still unless the theory is purely strict. *(Li p.4, p.10)*
+
 ### Cited By (in Collection)
 - None found by title, directory name, or author/year search at reconcile time.
 
@@ -134,7 +137,7 @@ This paper is directly useful for propstore if ASPIC+-style reasoning is part of
 - **Li_2011_ProbabilisticArgumentationFrameworks** - shares Li and Oren authorship and offers a different axis of weakening: uncertainty over AF structure rather than weakness of the consequence relation itself.
 
 ## Related Work Worth Reading
-- **Kraus, Lehmann, and Magidor 1990** - foundational axiom system for cumulative and monotonic logics. *(p.4, p.10)*
+- **Kraus, Lehmann, and Magidor 1990** - foundational axiom system for cumulative and monotonic logics. *(p.4, p.10)* → NOW IN COLLECTION: [Nonmonotonic Reasoning, Preferential Models and Cumulative Logics](../Kraus_1990_NonmonotonicReasoningPreferentialModels/notes.md)
 - **Modgil and Prakken 2014** - ASPIC+ tutorial defining the base framework studied here. *(p.2-4, p.10)*
 - **Dung 1995** - abstract semantics layer used after structured arguments are built. *(p.3, p.10)*
 - **Li and Parsons 2015** - precursor focused on purely defeasible rules. *(p.1, p.10)*

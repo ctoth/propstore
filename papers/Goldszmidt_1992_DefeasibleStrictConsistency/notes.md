@@ -191,10 +191,13 @@ This paper is directly relevant to propstore's argumentation layer:
 
 ### New Leads (Not Yet in Collection)
 - Adams (1975) — "The Logic of Conditionals" — foundational epsilon-semantics that grounds the probabilistic interpretation of defaults used here
-- Lehmann & Magidor (1992) — "Rational Logics and their Models" — defines System Z; this paper proves p-entailment equivalence to System Z
 - Poole (1991) — default logic with specificity; Goldszmidt & Pearl improve on Poole's consistency notion
 
+### Now in Collection (previously listed as leads)
+- [What does a conditional knowledge base entail?](../Lehmann_1989_DoesConditionalKnowledgeBase/notes.md) — Lehmann-Magidor's full journal paper (1989/1992). Defines rational closure, ranked models, and the System Z equivalence to which this paper's p-entailment is shown equivalent (p.1, p.5).
+
 ### Conceptual Links (not citation-based)
+- [Nonmonotonic Reasoning, Preferential Models and Cumulative Logics](../Kraus_1990_NonmonotonicReasoningPreferentialModels/notes.md) — **Strong.** KLM 1990 axiomatizes preferential consequence (system P) but defers Rational Monotonicity to a sequel. Goldszmidt & Pearl's p-entailment is shown equivalent to System Z (Lehmann-Magidor 1992 ranked models), the very system KLM 1990 acknowledge as the desirable target. Probabilistic ε-semantics that grounds the preferential-model program.
 - [[Simari_1992_MathematicalTreatmentDefeasibleReasoning]] — **Strong.** Both papers from 1992 formalize defeasible reasoning from complementary angles. Simari & Loui focus on argument structure (what constitutes a valid argument, how specificity determines defeat); Goldszmidt & Pearl focus on database consistency (when does a collection of defeasible+strict sentences become incoherent). Together they answer "how do arguments work?" and "when is the whole knowledge base broken?" — both questions propstore's argumentation layer must address.
 - [[Darwiche_1997_LogicIteratedBeliefRevision]] — **Strong.** Darwiche & Pearl's iterated belief revision postulates (C1-C4) govern how epistemic states change under revision; Goldszmidt & Pearl's consistency criterion determines when revision is needed (the database is inconsistent). The ranking functions used in Darwiche & Pearl connect directly to Goldszmidt & Pearl's System Z equivalence.
 - [[Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic]] — **Moderate.** AGM provides the revision framework; Goldszmidt & Pearl provide the consistency detection that determines when revision operations are necessary for mixed defeasible/strict databases.

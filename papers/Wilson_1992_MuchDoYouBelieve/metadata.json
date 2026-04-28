@@ -1,0 +1,15 @@
+{
+  "title": "How much do you believe?",
+  "authors": [
+    "Nic Wilson"
+  ],
+  "year": "1992",
+  "doi": "10.1016/0888-613X(92)90029-Y",
+  "url": "https://www.semanticscholar.org/paper/11ecda760e25bf49f7013dbd38c0ec607dfe3100",
+  "pdf_url": "https://doi.org/10.1016/0888-613x(92)90029-y",
+  "bibtex": "@Article{Wilson1992HowMD,\n author = {Nic Wilson},\n booktitle = {International Journal of Approximate Reasoning},\n journal = {Int. J. Approx. Reason.},\n pages = {345-365},\n title = {How much do you believe?},\n volume = {6},\n year = {1992}\n}\n",
+  "venue": "International Journal of Approximate Reasoning",
+  "venue_type": "journal",
+  "volume": "6",
+  "pages": "345-365"
+}

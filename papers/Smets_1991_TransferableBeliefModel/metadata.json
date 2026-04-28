@@ -1,0 +1,15 @@
+{
+  "title": "The Transferable Belief Model",
+  "authors": [
+    "P. Smets",
+    "R. Kennes"
+  ],
+  "year": "1991",
+  "doi": "10.1016/0004-3702(94)90026-4",
+  "url": "https://www.semanticscholar.org/paper/e5d1ac872faa8cee26e5c4a4434b6054315ba898",
+  "pdf_url": "https://link.springer.com/content/pdf/10.1007/978-3-540-44792-4_28.pdf",
+  "bibtex": "@Article{Smets1991TheTB,\n author = {P. Smets and R. Kennes},\n booktitle = {Artificial Intelligence},\n pages = {693-736},\n title = {The Transferable Belief Model},\n year = {1991}\n}\n",
+  "venue": "Artificial Intelligence",
+  "venue_type": "journal",
+  "pages": "693-736"
+}

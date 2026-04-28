@@ -1,0 +1,17 @@
+{
+  "title": "What does a Conditional Knowledge Base Entail?",
+  "authors": [
+    "D. Lehmann",
+    "M. Magidor"
+  ],
+  "year": "1989",
+  "arxiv_id": "cs/0202022",
+  "doi": "10.1016/0004-3702(92)90041-U",
+  "abstract": "Abstract This paper presents a logical approach to nonmonotonic reasoning based on the notion of a nonmonotonic consequence relation. A conditional knowledge base, consisting of a set of conditional assertions of the type if … then … , represents the explicit defeasible knowledge an agent has about the way the world generally behaves. We look for a plausible definition of the set of all conditional assertions entailed by a conditional knowledge base. In a previous paper, Kraus and the authors defined and studied preferential consequence relations. They noticed that not all preferential relations could be considered as reasonable inference procedures. This paper studies a more restricted class of consequence relations, rational relations. It is argued that any reasonable nonmonotonic inference procedure should define a rational relation. It is shown that the rational relations are exactly those that may be represented by a ranked preferential model, or by a (nonstandard) probabilistic model. The rational closure of a conditional knowledge base is defined and shown to provide an attractive answer to the question of the title. Global properties of this closure operation are proved: it is a cumulative operation. It is also computationally tractable. This paper assumes the underlying language is propositional.",
+  "url": "https://www.semanticscholar.org/paper/77879e9e042fecdcea738dd2450547709ea00cc3",
+  "pdf_url": "http://arxiv.org/pdf/cs/0202022",
+  "bibtex": "@Article{Lehmann1989WhatDA,\n author = {D. Lehmann and M. Magidor},\n booktitle = {Artificial Intelligence},\n pages = {212-222},\n title = {What does a Conditional Knowledge Base Entail?},\n year = {1989}\n}\n",
+  "venue": "Artificial Intelligence",
+  "venue_type": "journal",
+  "pages": "212-222"
+}

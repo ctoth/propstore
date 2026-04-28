@@ -239,6 +239,7 @@ This paper is foundational for understanding valuation-based systems, which gene
 - [[Josang_2001_LogicUncertainProbabilities]] — **Strong.** Subjective logic's opinion algebra extends Dempster-Shafer theory. The question of whether Jøsang's consensus fusion satisfies the three Shenoy-Shafer axioms (A1-A3) determines whether local computation on hypertrees applies to opinion fusion networks.
 - [[Falkenhainer_1987_BeliefMaintenanceSystem]] — **Moderate.** The BMS uses Dempster-Shafer intervals for belief propagation in a TMS-like network. Shenoy-Shafer axioms characterize when such propagation can be done locally on tree structures.
 - [[Sensoy_2018_EvidentialDeepLearningQuantifyClassification]] — **Moderate.** Sensoy maps neural network evidence to Dirichlet/subjective logic opinions. The Shenoy-Shafer framework governs whether those opinions can be propagated efficiently through structured networks.
+- [Belief Functions: The Disjunctive Rule of Combination and the Generalized Bayesian Theorem](../Smets_1993_BeliefFunctionsDisjunctiveRule/notes.md) — **Strong.** Same propagation goal, two operator algebras. Shenoy-Shafer axiomatize valuation-based propagation (combination + marginalization) on hypertrees with joint storage `2^{|X|*|Theta|}`; Smets 1993 presents an alternative directed-network propagation specifically for belief functions whose per-edge storage is `|Theta| * 2^|X|` — strictly less. The two operator algebras (valuation network vs conditional-belief edges + DRC/GBT) compute the same posteriors on directed BF graphs.
 
 ### Cited By (in Collection)
 - [[Denoeux_2018_Decision-MakingBeliefFunctionsReview]] — references Denoeux & Shenoy 2018 work on axiomatic utility theory extending this framework to decision-making
@@ -250,3 +251,11 @@ This paper is foundational for understanding valuation-based systems, which gene
 - Pearl (1986, 1988) — Fusion, propagation and structuring in belief networks
 - Kong (1986) — Multivariate belief functions and graphical models
 - Dempster (1967) — Upper and lower probabilities induced by a multivalued mapping
+
+---
+
+**See also (conceptual link):** [The transferable belief model](../Smets_Kennes_1994_TransferableBeliefModel/notes.md) — Smets & Kennes' TBM defers axiomatic justification of Dempster's rule of *combination* to Shafer–Shenoy-style propagation frameworks (refs [14, 19, 20, 27, 40]). Shenoy's axioms apply directly to TBM's credal level once the combination operator is fixed.
+
+---
+
+**See also (conceptual link):** [Quantifying Beliefs by Belief Functions: An Axiomatic Justification](../Smets_1993_QuantifyingBeliefsBeliefFunctions/notes.md) - Smets axiomatizes the credibility function itself (point-valued belief). Shenoy axiomatizes the *propagation/combination operators* across Bayesian and belief-function settings. Complementary: Shenoy fixes the operator algebra, Smets fixes the underlying point-valued measure. Smets's identification of unnormalized Dempster's rule as the unique conditioning operator satisfying homomorphism + preservation lines up with Shenoy's combination-operator axioms when applied at the credal level.

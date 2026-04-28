@@ -1,0 +1,4 @@
+---
+tags: [belief-functions, dempster-shafer, transferable-belief-model, axiomatic, uncertainty]
+---
+Smets gives an axiomatic justification for using Dempster-Shafer belief functions to quantify beliefs at the credal level of the Transferable Belief Model. From axioms over a generic credibility function (equi-credibility of doxastically equivalent propositions, behavior under uninformative coarsening and refinement, conditioning consistency, and a closure property) he derives that credibility functions on a finite Boolean algebra must be belief functions, with plausibility functions as their duals and probability functions excluded because they cannot simultaneously satisfy Gardenfors's homomorphism and preservation conditions. This grounds propstore's typed-provenance treatment of vacuous opinions as a first-class belief state and justifies separating credal-level belief storage from pignistic decision-time projection.

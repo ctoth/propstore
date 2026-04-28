@@ -322,3 +322,7 @@ This paper provides the formal foundation for constructing epistemic entrenchmen
 - [[Cayrol_2014_ChangeAbstractArgumentationFrameworks]] — Moderate: change operations on AFs (adding/removing arguments/attacks) correspond to revision/contraction operations on knowledge sets
 - [[Doutre_2018_ConstraintsChangesSurveyAbstract]] — Moderate: surveys AF dynamics through the lens of belief revision postulates, directly applying AGM concepts from this paper
 - [[Rotstein_2008_ArgumentTheoryChangeRevision]] — Strong: explicitly connects argument theory change to AGM revision, operationalizing this paper's postulates in argumentation frameworks
+
+---
+
+**See also (citation - Smets uses Gardenfors here):** [Quantifying Beliefs by Belief Functions: An Axiomatic Justification](../Smets_1993_QuantifyingBeliefsBeliefFunctions/notes.md) - Smets imports the homomorphism and preservation properties from Gardenfors (1988) and uses their *joint* unsatisfiability in probability theory to reject probability as a credal-level belief representation. Only unnormalized Dempster's rule of conditioning satisfies both. This is one of the strongest applications of Gardenfors's revision properties outside of AGM revision proper.

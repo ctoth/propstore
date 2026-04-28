@@ -1,0 +1,17 @@
+{
+  "title": "Quantifying Beliefs by Belief Functions: An Axiomatic Justification",
+  "authors": [
+    "Philippe Smets"
+  ],
+  "year": "1993",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "We present a set of axioms that justify the use of belief functions to quantify someone's beliefs. We define a credibility function on a propositional space (Omega, R) where R is a Boolean algebra of subsets of the frame of discernment Omega. Axioms are introduced about the credibility values held under coarsening and refinement of the algebra, and under conditioning by new evidence. The axioms entail that the credibility function is essentially a belief function (Dempster-Shafer). Plausibility functions are obtained as duals. Probability functions are not compatible with the axioms because they cannot satisfy simultaneously the homomorphism and preservation properties on conditioning. The axioms thus provide an axiomatic justification for the credal level of the Transferable Belief Model.",
+  "url": "https://www.ijcai.org/Proceedings/93-1/Papers/084.pdf",
+  "pdf_url": "https://www.ijcai.org/Proceedings/93-1/Papers/084.pdf",
+  "venue": "International Joint Conference on Artificial Intelligence (IJCAI-93)",
+  "venue_type": "conference",
+  "pages": "598-603",
+  "s2_id": "4bb419526461e035efecbef96f2acd470ed9ec08",
+  "bibtex": "@inproceedings{Smets1993QuantifyingBeliefsBeliefFunctions,\n  author    = {Philippe Smets},\n  title     = {Quantifying Beliefs by Belief Functions: An Axiomatic Justification},\n  booktitle = {Proceedings of the 13th International Joint Conference on Artificial Intelligence (IJCAI-93)},\n  volume    = {1},\n  pages     = {598--603},\n  year      = {1993}\n}\n"
+}

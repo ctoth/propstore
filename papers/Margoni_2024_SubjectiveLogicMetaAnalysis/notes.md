@@ -250,9 +250,12 @@ This paper is **directly relevant** to propstore's uncertainty and opinion algeb
 - [[Guo_2017_CalibrationModernNeuralNetworks]] — not directly cited but temperature scaling calibration is complementary to SL uncertainty encoding
 
 ### New Leads (Not Yet in Collection)
-- Josang, A. (2016). *Subjective Logic: A Formalism for Reasoning Under Uncertainty.* Springer. — comprehensive SL reference; extends beyond Josang 2001 with WBF, multinomial opinions, hyper opinions
+- Josang, A. (2016). *Subjective Logic: A Formalism for Reasoning Under Uncertainty.* Springer. — comprehensive SL reference; extends beyond Josang 2001 with WBF, multinomial opinions, hyper opinions → NOW IN COLLECTION: [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md)
 - Walkinshaw, N., & Hierons, R. (2023). Modelling second-order uncertainty in state machines. IEEE TSE. — extends SL to software engineering domain
 - Walkinshaw, N., & Shepperd, M. (2020). Reasoning about uncertainty in empirical results. EASE. — predecessor to this paper's methodology
+
+### Now in Collection (previously listed as leads)
+- [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md) — Jøsang 2016 textbook. Margoni applies WBF (Ch. 12.5 of book) to fuse 67 findings; the book is the comprehensive reference for all SL operators used in this paper.
 
 ### Supersedes or Recontextualizes
 - None — this paper is a novel application, not a revision of prior work in the collection

@@ -267,7 +267,7 @@ The paper adopts the "justifiable exception" paradigm (from the CKR framework) r
 - Bozzato et al. 2012 — Effective tableaux for CKR [8]
 - Bozzato & Serafini 2013 — Materialization calculus for contexts in Semantic Web [9]
 - Britz et al. 2008 — Introducing role defeasibility in DLs [11]
-- Casini & Straccia 2010 — Rational closure for DLs [14]
+- Casini & Straccia 2010 — Rational closure for DLs [14] → NOW IN COLLECTION: [Rational Closure for Defeasible Description Logics](../Casini_2010_RationalClosure/notes.md)
 - Eiter et al. 2008 — Combining ASP with DLs for the Semantic Web [15]
 - Giordano et al. 2013 — Non-monotonic DL for reasoning about typicality [18]
 - Pensel & Turhan 2018 — Defeasible EL_⊥ [23]
@@ -276,13 +276,14 @@ The paper adopts the "justifiable exception" paradigm (from the CKR framework) r
 
 ### Already in Collection
 - [[Bozzato_2018_ContextKnowledgeJustifiableExceptions]] — cited as [5,6]; the full multi-context CKR framework with SROIQ-RL expressiveness that this paper simplifies to single-context DL-Lite_R. Provides the hierarchical context coverage relations, defeasible axiom semantics, and clashing assumption mechanism that Bozzato 2020 adapts.
+- [Rational Closure for Defeasible Description Logics](../Casini_2010_RationalClosure/notes.md) — cited as [14]; the rational-closure approach for defeasible DLs explicitly contrasted in §6 against the justifiable-exception semantics. Bozzato et al. argue rational closure does not directly provide a materialization-based reasoning procedure, motivating the datalog translation here.
 
 ### Now in Collection (previously listed as leads)
 - [[Bozzato_2018_ContextKnowledgeJustifiableExceptions]] — The full CKR framework paper. Defines multi-context CKR with defeasible axioms under SROIQ-RL, with coverage relations enabling context inheritance and clashing assumptions for justified exceptions. Provides complete datalog translation, complexity analysis (model checking in P, entailment in coNP), and CKRev prototype. This 2020 paper is the single-context DL-Lite simplification.
+- [Rational Closure for Defeasible Description Logics](../Casini_2010_RationalClosure/notes.md) — Casini & Straccia 2010. Default-assumption reformulation of Lehmann–Magidor rational closure; ports the construction to ALC with EXPTIME-complete decision procedure for C |~ D. The canonical algorithmic alternative that this paper contrasts itself against in §6.
 
 ### New Leads (Not Yet in Collection)
 - Bonatti, Faella, Petrova, Sauro (2015) — "A new semantics for overriding in description logics" — alternative defeasibility semantics via circumscription-based overriding, relevant for comparing exception mechanisms
-- Casini, Straccia (2010) — "Rational closure for defeasible description logics" — rational closure approach as alternative to justifiable exceptions
 - Eiter, Ianni, Lukasiewicz, Schindlauer, Tompits (2008) — "Combining ASP with DLs for the Semantic Web" — ASP+DL integration for semantic web reasoning
 - Giordano, Gliozzi, Olivetti, Pozzato (2013) — "A non-monotonic description logic for reasoning about typicality" — typicality-based defeasibility in DLs
 - Pensel, Turhan (2018) — "Reasoning in the defeasible description logic EL_bot" — defeasible reasoning under rational/relevant semantics

@@ -1,0 +1,17 @@
+{
+  "title": "Rational Closure for Defeasible Description Logics",
+  "authors": [
+    "Giovanni Casini",
+    "Umberto Straccia"
+  ],
+  "year": "2010",
+  "arxiv_id": null,
+  "doi": "10.1007/978-3-642-15675-5_9",
+  "abstract": "In the field of non-monotonic logics, the notion of rational closure is acknowledged as a landmark, and we are going to see that such a construction can be characterised by means of a simple method in the context of propositional logic. We then propose an application of our approach to rational closure in the field of Description Logics, an important knowledge representation formalism, and provide a simple decision procedure for this case.",
+  "url": "https://www.semanticscholar.org/paper/bf7a5be199be130241938637e5040352c341970b",
+  "pdf_url": null,
+  "bibtex": "@Article{Casini2010RationalCF,\n author = {Giovanni Casini and Umberto Straccia},\n booktitle = {European Conference on Logics in Artificial Intelligence},\n pages = {77-90},\n title = {Rational Closure for Defeasible Description Logics},\n year = {2010}\n}\n",
+  "venue": "European Conference on Logics in Artificial Intelligence",
+  "venue_type": "conference",
+  "pages": "77-90"
+}

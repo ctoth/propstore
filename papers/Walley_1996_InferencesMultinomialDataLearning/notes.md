@@ -307,6 +307,7 @@ This paper is foundational for propstore's uncertainty representation. The IDM d
 ### Cited By (in Collection)
 - [[Josang_2001_LogicUncertainProbabilities]] -- cites Walley (1991) for the theory of imprecise probabilities grounding subjective logic's uncertainty representation
 - [[Denoeux_2018_Decision-MakingBeliefFunctionsReview]] -- cites Walley in context of imprecise probability decision criteria
+- [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md) -- cites Walley 1996 as book reference [98]; the IDM is presented as a baseline that subjective logic generalises by adding a base-rate distribution. The book criticises IDM upper/lower probabilities as not being literal bounds (p.85, 9-red-1-black-bag counterexample), recommending interpretation as "rough probability interval."
 
 ### Conceptual Links (not citation-based)
 **Uncertainty representation and evidence-to-opinion mapping:**
@@ -322,3 +323,7 @@ This paper is foundational for propstore's uncertainty representation. The IDM d
 **Multi-source fusion:**
 - [[vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic]] -- van der Heijden proves WBF equivalence to confidence-weighted averaging of Dirichlet distributions; Walley's IDM provides the principled starting point (prior ignorance) from which those Dirichlet distributions are built
 - [[Margoni_2024_SubjectiveLogicMetaAnalysis]] -- Margoni's use of SL for meta-analysis builds on the evidence-to-opinion pipeline that traces back to Walley's IDM as the foundational model for learning from data under prior ignorance
+
+---
+
+**See also (conceptual link):** [The transferable belief model](../Smets_Kennes_1994_TransferableBeliefModel/notes.md) — Walley notes IDM agrees with Smets' belief-function inference at `s=1`. The 1994 paper is the canonical TBM exposition; its sharp dissociation from underlying probability contrasts with Walley's coherent imprecise-probability programme — sibling responses to the same epistemic problem from different formal traditions.

@@ -206,12 +206,16 @@ This paper is **directly relevant** to propstore's subjective logic implementati
 - [[Denoeux_2018_Decision-MakingBeliefFunctionsReview]] — belief function decision theory; related via Dempster-Shafer combination rule that BCF generalizes
 
 ### New Leads (Not Yet in Collection)
-- Jøsang 2016 (book): "Subjective Logic: A Formalism for Reasoning Under Uncertainty" — the comprehensive reference work, contains the formulas this paper corrects (Ch. 12)
+- Jøsang 2016 (book): "Subjective Logic: A Formalism for Reasoning Under Uncertainty" — the comprehensive reference work, contains the formulas this paper corrects (Ch. 12) → NOW IN COLLECTION: [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md)
 - Jøsang & McAnally 2004: "Multiplication and comultiplication of beliefs" — extended operators not yet implemented in propstore
 - Ivanovska et al. 2015: Subjective logic extensions for decision support
 
+### Now in Collection (previously listed as leads)
+- [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md) — The 2016 textbook whose Ch. 12 multi-source CBF and ABF base-rate formulas this paper identifies as incorrect. The book uses simple averaging across sources; van der Heijden proves confidence-weighted averaging is required for equivalence to Dirichlet HPDF averaging (Theorem 1).
+
 ### Supersedes or Recontextualizes
-- [[Josang_2010_CumulativeAveragingFusionBeliefs]] — this paper corrects base rate formulas in the multi-source CBF and ABF definitions from Josang 2010/2016; the original simple-averaged base rates are incorrect and should be replaced with confidence-weighted averaging
+- [[Josang_2010_CumulativeAveragingFusionBeliefs]] — this paper corrects base rate formulas in the multi-source CBF and ABF definitions from Josang 2010; the original simple-averaged base rates are incorrect and should be replaced with confidence-weighted averaging.
+- [Subjective Logic: A Formalism for Reasoning Under Uncertainty](../Josang_2016_SubjectiveLogic/notes.md) — same correction applies to the multi-source CBF and ABF formulas in book Ch. 12. propstore implementations should use van der Heijden's confidence-weighted form, not the book's simple-averaged form.
 
 ### Conceptual Links (not citation-based)
 - [[Margoni_2024_SubjectiveLogicMetaAnalysis]] — uses WBF for multi-source opinion fusion in meta-analysis context; van der Heijden's corrected WBF formula and Dirichlet equivalence proof (Theorem 1) provide the theoretical foundation for Margoni's applied fusion pipeline
