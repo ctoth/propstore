@@ -593,7 +593,8 @@ class BoundWorld(BeliefSpace):
         self,
         claim_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSFutureStatusReport:
         """Return bounded future-environment status changes for one claim."""
         self._require_atms_backend()
@@ -607,7 +608,8 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> dict[str, ATMSFutureStatusReport]:
         """Return bounded future-environment status changes for active claims of a concept."""
         self._require_atms_backend()
@@ -625,7 +627,8 @@ class BoundWorld(BeliefSpace):
         self,
         claim_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSNodeStabilityReport:
         """Return bounded ATMS stability for one claim over replayed future worlds."""
         self._require_atms_backend()
@@ -639,7 +642,8 @@ class BoundWorld(BeliefSpace):
         self,
         claim_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> bool:
         """Whether a claim keeps the same ATMS status in all bounded consistent futures."""
         self._require_atms_backend()
@@ -653,7 +657,8 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSConceptStabilityReport:
         """Return bounded value-status stability for one concept over replayed future worlds."""
         self._require_atms_backend()
@@ -667,7 +672,8 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> bool:
         """Whether a concept keeps the same value status in all bounded consistent futures."""
         self._require_atms_backend()
@@ -681,7 +687,8 @@ class BoundWorld(BeliefSpace):
         self,
         claim_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSNodeRelevanceReport:
         """Return which bounded queryables can flip a claim's ATMS status."""
         self._require_atms_backend()
@@ -695,7 +702,8 @@ class BoundWorld(BeliefSpace):
         self,
         claim_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> list[str]:
         """Return the bounded queryables that matter to a claim's ATMS status."""
         self._require_atms_backend()
@@ -709,7 +717,8 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> ATMSConceptRelevanceReport:
         """Return which bounded queryables can flip a concept's value status."""
         self._require_atms_backend()
@@ -723,7 +732,8 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         queryables: Sequence[QueryableInput],
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> list[str]:
         """Return the bounded queryables that matter to a concept's value status."""
         self._require_atms_backend()
@@ -738,7 +748,8 @@ class BoundWorld(BeliefSpace):
         claim_id: str,
         queryables: Sequence[QueryableInput],
         target_status: ATMSNodeStatus,
-        limit: int = 8,
+        *,
+        limit: int | None,
         max_plans: int | None = None,
     ) -> list[ATMSNodeInterventionPlan]:
         """Return bounded additive intervention plans for one claim."""
@@ -756,7 +767,8 @@ class BoundWorld(BeliefSpace):
         concept_id: str,
         queryables: Sequence[QueryableInput],
         target_value_status: ValueStatus,
-        limit: int = 8,
+        *,
+        limit: int | None,
         max_plans: int | None = None,
     ) -> list[ATMSConceptInterventionPlan]:
         """Return bounded additive intervention plans for one concept."""
@@ -774,7 +786,8 @@ class BoundWorld(BeliefSpace):
         claim_id: str,
         queryables: Sequence[QueryableInput],
         target_status: ATMSNodeStatus,
-        limit: int = 8,
+        *,
+        limit: int | None,
         max_suggestions: int | None = None,
     ) -> list[ATMSNextQuerySuggestion]:
         """Return bounded next-query suggestions derived from claim intervention plans."""
@@ -792,7 +805,8 @@ class BoundWorld(BeliefSpace):
         concept_id: str,
         queryables: Sequence[QueryableInput],
         target_value_status: ValueStatus,
-        limit: int = 8,
+        *,
+        limit: int | None,
         max_suggestions: int | None = None,
     ) -> list[ATMSNextQuerySuggestion]:
         """Return bounded next-query suggestions derived from concept intervention plans."""
@@ -839,7 +853,8 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         queryables: Sequence[QueryableInput] | None = None,
-        limit: int = 8,
+        *,
+        limit: int | None,
     ) -> dict[str, Any]:
         """Explain why a concept currently lacks exact ATMS support."""
         self._require_atms_backend()
