@@ -1244,6 +1244,8 @@ class TestSemanticCorePhase7Worldlines:
             "backend": "claim_graph",
             "justified": ["claim_a"],
             "defeated": ["claim_b"],
+            "extensions": [["claim_a"]],
+            "inference_mode": "grounded",
         }
         assert result.dependencies.stances
 
