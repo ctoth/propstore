@@ -37,7 +37,7 @@ def test_search_concepts_owns_sidecar_query_and_connection(
     ]
     conn.execute.return_value = cursor
 
-    monkeypatch.setattr(concepts_display_mod, "connect_sidecar", lambda path: conn)
+    monkeypatch.setattr(concepts_display_mod, "connect_sidecar_readonly", lambda path: conn)
 
     report = search_concepts(repo, ConceptSearchRequest(query="concept", limit=7))
 
