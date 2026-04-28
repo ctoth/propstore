@@ -210,10 +210,13 @@ This paper is foundational for propstore's argumentation layer. The labelling-ba
 - [[Pollock_1987_DefeasibleReasoning]] — cited as [7]; Pollock's defeasible reasoning with rebutting/undercutting defeat relates to the reinstatement principle formalized here
 - [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — cites this paper as [7/9]; evaluates semi-stable semantics (introduced here) against formal principles, finding it satisfies skepticism adequacy but not resolution adequacy
 - [[Verheij_2002_ExistenceMultiplicityExtensionsDialectical]] — related via Verheij 1996/2003 citations [12/21]; Verheij's admissible stage extensions are proven equivalent to semi-stable extensions (Theorem 12)
+- [Prudent Semantics for Argumentation Frameworks](../Coste-Marquis_2005_PrudentSemantics/notes.md) - cited as [4]; defines a different response to indirect attack, where odd-length attack paths block co-acceptance inside prudent extensions.
 
 ### New Leads (Not Yet in Collection)
 - Jakobovits, Vermeir (1999) — "Robust semantics for argumentation frameworks" — alternative approach to handling the same problematic cases (odd cycles, floating arguments)
-- Coste-Marquis, Devred, Marquis (2005) — "Prudent semantics for argumentation frameworks" — another semantics handling indirect attacks, evaluated alongside semi-stable in Baroni 2007
+
+### Now in Collection (previously listed as leads)
+- [Prudent Semantics for Argumentation Frameworks](../Coste-Marquis_2005_PrudentSemantics/notes.md) - Defines prudent semantics by forbidding indirect conflicts inside accepted sets. It complements Caminada's semi-stable semantics: both handle problematic standard-Dung behavior, but prudent semantics filters co-acceptance by odd-path reachability while semi-stable minimizes undecided arguments through labelling structure.
 
 ### Supersedes or Recontextualizes
 - (none)
@@ -234,6 +237,7 @@ This paper is foundational for propstore's argumentation layer. The labelling-ba
 
 **Extension existence and semantics comparison:**
 - [[Verheij_2002_ExistenceMultiplicityExtensionsDialectical]] — **Strong.** Verheij characterizes when stable extensions exist; semi-stable semantics (introduced here) provides a fallback when they don't, with Theorem 11 proving the two coincide when stable extensions exist.
+- [Prudent Semantics for Argumentation Frameworks](../Coste-Marquis_2005_PrudentSemantics/notes.md) - **Moderate.** Both papers introduce conservative variants of Dung semantics for unintuitive cases. Caminada does so through labellings and semi-stable extensions; Coste-Marquis et al. do so by rejecting extension members connected by odd-length indirect attack paths.
 
 **Structured argumentation:**
 - [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — **Moderate.** ASPIC+ generates Dung-style AFs from structured arguments; the labelling-based semantics defined here can be applied to those generated AFs, providing an alternative to extension-based computation.
