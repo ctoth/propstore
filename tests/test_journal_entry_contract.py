@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from propstore.canonical_json import canonical_dumps
+from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 from propstore.support_revision.history import TransitionJournalEntry, TransitionOperation
+from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from tests.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_iterated import _history_sensitive_base
 
@@ -34,7 +36,7 @@ def test_ws_j_transition_journal_entry_has_typed_replay_contract() -> None:
         "entrenchment_policy_version": "entrenchment.v1",
     }
     operator_input = {
-        "formula": new_atom.atom_id,
+        "formula": belief_atom_to_canonical_dict(new_atom),
         "revision_operator": "restrained",
         "targets": [ids["legacy"]],
     }
@@ -62,3 +64,11 @@ def test_ws_j_transition_journal_entry_has_typed_replay_contract() -> None:
     canonical_dumps(payload["version_policy_snapshot"])
     canonical_dumps(payload["normalized_state_in"])
     canonical_dumps(payload["normalized_state_out"])
+
+    replayed = dispatch(
+        entry.operator,
+        state_in=entry.normalized_state_in,
+        operator_input=entry.operator_input,
+        policy=entry.version_policy_snapshot,
+    )
+    assert replayed.to_canonical_dict() == entry.normalized_state_out
