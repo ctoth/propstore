@@ -185,7 +185,7 @@ def test_concept_route_maps_unknown_concept_to_accessible_error(
     json_response = client.get("/concept/missing.json")
 
     assert html_response.status_code == 404
-    assert "<h1>Concept Not Found</h1>" in html_response.text
+    assert "<h1 id=\"error-heading\">Concept Not Found</h1>" in html_response.text
     assert "Concept &#x27;missing&#x27; not found." in html_response.text
     assert json_response.status_code == 404
     assert json_response.json()["error"]["title"] == "Concept Not Found"
