@@ -17,7 +17,7 @@ def _decorator_name(node: ast.AST) -> str:
 
 def test_every_hypothesis_given_test_is_marked_property() -> None:
     missing: list[str] = []
-    for path in sorted(Path("tests").glob("test_*.py")):
+    for path in sorted(Path("tests").rglob("test_*.py")):
         module = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(module):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
