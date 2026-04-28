@@ -14,6 +14,39 @@ Q resolved the framing/scoping questions across three rounds. Round 1 (2026-04-2
 
 ---
 
+## Execution checklist
+
+This index is the control surface for execution. Do not treat the individual WS
+files as "done" until this table is updated.
+
+Checklist protocol:
+
+1. Pick exactly one unchecked WS row from the table below.
+2. Execute that WS to completion under its own TDD sequence.
+3. Run every acceptance gate listed in the WS file, including the relevant
+   property-based gates from `../PROPERTY-BASED-TDD.md`.
+4. Write a closure report under
+   `reviews/2026-04-26-claude/workstreams/reports/<WS-ID>-closure.md`.
+5. Only after the report exists, update this INDEX row:
+   - change Status from `OPEN` to `CLOSED <sha>`;
+   - add the closure report path to the Decisions/notes cell;
+   - keep any partial/deferred work named explicitly in the report, not hidden
+     in prose.
+
+Closure report minimum contents:
+
+- Workstream id and closing commit.
+- Findings closed, one line each.
+- Tests written first and why they failed before the fix.
+- Logged test commands and log paths.
+- Property-based tests added or explicitly moved to a successor WS.
+- Files changed.
+- Remaining risks or successor workstreams, if any.
+
+If a WS is not fully closed, do not check it off here. Passing tests alone is not
+closure; the row changes only after the WS file, tests, gaps update, property
+gates, and closure report all agree.
+
 ## Status board
 
 WS-N is preserved as a SUPERSEDED redirect into WS-N1 + WS-N2.
