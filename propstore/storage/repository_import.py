@@ -127,6 +127,9 @@ def commit_repository_import(
 ) -> RepositoryImportResult:
     """Commit a planned import onto the destination repository."""
 
+    if plan.warnings:
+        raise ValueError("; ".join(plan.warnings))
+
     primary_branch = repository.snapshot.primary_branch_name()
     if repository.snapshot.branch_head(plan.target_branch) is None and plan.target_branch != primary_branch:
         repository.snapshot.ensure_branch(plan.target_branch)
