@@ -28,19 +28,59 @@ class ConceptIdCandidate:
     counter_ref_sha: str | None
 
 
-def _numeric_concept_id(document: ConceptDocument) -> int | None:
+@dataclass(frozen=True)
+class NumericConceptIdCandidate:
+    namespace: str
+    numeric_id: int
+
+
+class NamespaceAmbiguity(ValueError):
+    def __init__(self, candidates: tuple[NumericConceptIdCandidate, ...]) -> None:
+        self.candidates = candidates
+        formatted = ", ".join(
+            f"{candidate.namespace}:concept{candidate.numeric_id}"
+            for candidate in candidates
+        )
+        super().__init__(f"ambiguous numeric concept IDs: {formatted}")
+
+
+def _numeric_concept_id(
+    document: ConceptDocument,
+    *,
+    namespace: str | None = None,
+) -> int | None:
+    candidates: list[NumericConceptIdCandidate] = []
     for logical_id in document.logical_ids:
-        if logical_id.namespace != "propstore":
+        if namespace is not None and logical_id.namespace != namespace:
             continue
         match = _CONCEPT_ID_RE.match(logical_id.value)
         if match:
-            return int(match.group(1))
+            candidates.append(
+                NumericConceptIdCandidate(
+                    namespace=logical_id.namespace,
+                    numeric_id=int(match.group(1)),
+                )
+            )
 
-    if document.artifact_id is not None:
+    if document.artifact_id is not None and namespace is None:
         match = _CONCEPT_ID_RE.match(document.artifact_id)
         if match:
-            return int(match.group(1))
-    return None
+            candidates.append(
+                NumericConceptIdCandidate(
+                    namespace="artifact_id",
+                    numeric_id=int(match.group(1)),
+                )
+            )
+    unique_candidates = tuple(dict.fromkeys(candidates))
+    namespaces = {candidate.namespace for candidate in unique_candidates}
+    if len(namespaces) > 1:
+        raise NamespaceAmbiguity(unique_candidates)
+    numeric_ids = {candidate.numeric_id for candidate in unique_candidates}
+    if len(numeric_ids) > 1:
+        raise NamespaceAmbiguity(unique_candidates)
+    if not unique_candidates:
+        return None
+    return unique_candidates[0].numeric_id
 
 
 def next_concept_id_for_repo(repo: Repository) -> int:
