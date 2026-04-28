@@ -4,10 +4,12 @@ from importlib import import_module
 import json
 
 from click.testing import CliRunner
+import pytest
 
 from propstore.cli import cli
 from propstore.core.active_claims import ActiveClaim, coerce_active_claim
 from propstore.core.row_types import ConflictRowInput, StanceRowInput
+from propstore.world.atms import BudgetExhausted
 from propstore.world import BoundWorld
 from propstore.core.labels import (
     EnvironmentKey,
@@ -1292,10 +1294,18 @@ def test_atms_future_queryables_respect_limit_and_enumerate_deterministically() 
         QueryableAssumption.from_cel("a == 1"),
     ]
 
-    futures = engine.future_environments(queryables, limit=2)
+    with pytest.raises(BudgetExhausted) as exc_info:
+        engine.future_environments(queryables, limit=2)
 
-    assert [entry.queryable_cels for entry in futures] == [("a == 1",), ("b == 2",)]
-    assert all(entry.queryable_cels != ("a == 1", "b == 2") for entry in futures)
+    assert exc_info.value.examined == 2
+    assert exc_info.value.total == 4
+
+    futures = engine.future_environments(queryables, limit=None)
+    assert [entry.queryable_cels for entry in futures] == [
+        ("a == 1",),
+        ("b == 2",),
+        ("a == 1", "b == 2"),
+    ]
     assert engine.claim_label("claim_future_a") is None
     assert engine.claim_label("claim_future_b") is None
 
@@ -1552,7 +1562,10 @@ def test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_li
     bound = _make_bound(store)
 
     assert bound.claim_interventions("claim_future", ["z == 3"], ATMSNodeStatus.IN, limit=8) == []
-    assert bound.claim_interventions("claim_future", ["a == 1", "b == 2"], ATMSNodeStatus.IN, limit=1) == []
+    with pytest.raises(BudgetExhausted) as exc_info:
+        bound.claim_interventions("claim_future", ["a == 1", "b == 2"], ATMSNodeStatus.IN, limit=1)
+    assert exc_info.value.examined == 1
+    assert exc_info.value.total == 4
     assert [plan.queryable_cels for plan in bound.claim_interventions(
         "claim_future",
         ["b == 2", "a == 1"],
