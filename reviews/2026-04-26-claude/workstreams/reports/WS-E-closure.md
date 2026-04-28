@@ -55,6 +55,7 @@ Status file: `reviews/2026-04-26-claude/workstreams/WS-E-source-promote.md`
 - Full suite first closeout attempt: `logs/test-runs/WS-E-full-final-20260428-033047.log` (`3 failed`, exposing a missing source-claim context in an old fixture plus the required contract-manifest update for `SourceFinalizeReportDocument`).
 - Failure-fix targeted run: `logs/test-runs/WS-E-full-failure-fixes-20260428-033504.log` (`3 passed`)
 - Full suite final rerun: `logs/test-runs/WS-E-full-final-rerun-20260428-033539.log` (`3076 passed`)
+- Sentinel final after evidence update: `logs/test-runs/WS-E-sentinel-final-20260428-034001.log` (`1 passed`)
 - Pyright: `uv run pyright propstore` passed with 0 errors.
 - Import linter: `uv run lint-imports` passed with 4 contracts kept and 0 broken.
 
