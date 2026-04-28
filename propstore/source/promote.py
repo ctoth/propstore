@@ -659,9 +659,10 @@ def promote_source_branch(
     unresolved_concepts: set[str] = set()
 
     source_claim_index = load_source_claim_reference_index(repo, source_name)
+    primary_claim_index = load_primary_branch_claim_reference_index(repo)
     resolver = ClaimReferenceResolver(
         source=source_claim_index,
-        primary=load_primary_branch_claim_reference_index(repo),
+        primary=primary_claim_index,
     )
 
     blocked_artifact_ids, blocked_reasons = _compute_blocked_claim_artifact_ids(
@@ -725,6 +726,18 @@ def promote_source_branch(
         for claim in valid_claims
         if isinstance(claim.artifact_id, str)
     }
+    valid_promotion_reference_ids = valid_artifact_ids | primary_claim_index.artifact_ids
+
+    def reference_resolves_to_promoted_or_primary(reference: object) -> bool:
+        if not isinstance(reference, str) or not reference:
+            return False
+        if reference in valid_promotion_reference_ids:
+            return True
+        source_logical_target = source_claim_index.logical_to_artifact.get(reference)
+        if source_logical_target is not None:
+            return source_logical_target in valid_artifact_ids
+        return reference in primary_claim_index.logical_to_artifact
+
     promoted_micropubs_document = _filter_promoted_micropubs(
         micropubs_doc,
         valid_artifact_ids=valid_artifact_ids,
@@ -738,7 +751,7 @@ def promote_source_branch(
             raise ValueError("stance source_claim must be normalized before promotion")
         # Skip stances whose source_claim is blocked or whose target
         # cannot be resolved under the current resolver.
-        if source_claim not in valid_artifact_ids:
+        if not reference_resolves_to_promoted_or_primary(source_claim):
             continue
         if not resolver.target_is_known(stance.target):
             continue
@@ -767,11 +780,10 @@ def promote_source_branch(
             conclusion = justification.conclusion
             if not isinstance(conclusion, str):
                 continue
-            if conclusion not in valid_artifact_ids and not source_claim_index.has_artifact(conclusion):
+            if not reference_resolves_to_promoted_or_primary(conclusion):
                 continue
             if any(
-                not isinstance(premise, str)
-                or (premise not in valid_artifact_ids and not source_claim_index.has_artifact(premise))
+                not reference_resolves_to_promoted_or_primary(premise)
                 for premise in justification.premises
             ):
                 continue
