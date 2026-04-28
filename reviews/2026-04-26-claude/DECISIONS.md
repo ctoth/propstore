@@ -363,7 +363,7 @@ D-13 said `verify_equation` is "demoted/deprecated." Codex 2.27 said delete now 
 
 **Reasoning**: CEL is Google's typed expression language for condition expressions on claims/stances. Not a research paper — a language reference doc. The local checkout at `~/src/cel-spec` is available; the language definition is a grammar/reference document, not a paper-ingestion task. The WS-P engineer reads it while writing the parser fix. That's not a workstream — it's normal engineering with a reference open.
 
-**Action**: WS-P drops "CEL spec retrieval pending" framing; treats `~/src/cel-spec` as an ordinary local reference. Bug-fixes for escapes, float-exponents, ternary unsoundness, Z3 division-guards, equation-comparison orientation become normal engineering work.
+**Action**: WS-P drops the old missing-CEL-reference framing; treats `~/src/cel-spec` as an ordinary local reference. Bug-fixes for escapes, float-exponents, ternary unsoundness, Z3 division-guards, equation-comparison orientation become normal engineering work.
 
 ### D-29 — Micropub identity cycle break
 
