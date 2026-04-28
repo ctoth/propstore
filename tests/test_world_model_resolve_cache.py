@@ -73,21 +73,23 @@ def _insert_concept(conn: sqlite3.Connection, concept_id: str) -> None:
     conn.execute(
         """
         INSERT INTO concept (
-            id, canonical_name, kind_type, form, form_parameters,
+            id, content_hash, seq, canonical_name, kind_type, form, form_parameters,
             primary_logical_id, logical_ids_json, status, domain, definition
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             concept_id,
+            f"sha256:{concept_id}",
+            0,
             f"canonical_{concept_id}",
             "category",
-            None,
+            "category",
             None,
             f"test:{concept_id}",
             json.dumps([{"namespace": "test", "value": concept_id}]),
+            "accepted",
             None,
-            None,
-            None,
+            f"definition for {concept_id}",
         ),
     )
 
