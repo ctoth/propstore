@@ -204,7 +204,8 @@ def test_build_concept_view_returns_typed_report(
     assert report.form.unit == "Hz"
     assert report.status.state == "known"
     assert report.status.visible_claim_count == 2
-    assert report.status.blocked_claim_count == 1
+    assert report.status.blocked_claim_count == 0
+    assert report.status.total_claim_count == 2
     assert {group.claim_type for group in report.claim_groups} == {"measurement", "parameter"}
     assert report.value_summary.state == "known"
     assert report.value_summary.claim_count == 2
@@ -229,10 +230,11 @@ def test_build_concept_view_reports_blocked_when_all_claims_hidden(
 
     report = build_concept_view(_repo(), ConceptViewRequest(concept_id_or_name="concept1"))
 
-    assert report.status.state == "blocked"
+    assert report.status.state == "missing"
     assert report.status.visible_claim_count == 0
-    assert report.status.blocked_claim_count == 1
-    assert "blocked under the current render policy" in report.status.reason
+    assert report.status.blocked_claim_count == 0
+    assert report.status.total_claim_count == 0
+    assert "No claims refer to this concept" in report.status.reason
 
 
 def test_build_concept_view_counts_about_links_as_related_claims(
