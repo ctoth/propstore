@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 from pathlib import Path
 
 from propstore.uri_authority import TaggingAuthority, parse_tagging_authority
 
 DEFAULT_URI_AUTHORITY = parse_tagging_authority("local@propstore,2026")
+NI_SHA256_PREFIX = "ni:///sha-256;"
 
 
 def normalize_uri_token(value: str) -> str:
@@ -52,10 +54,20 @@ def claim_tag_uri(
     return f"tag:{parsed_authority}:claim/{source_token}:{handle_token}"
 
 
-def ni_uri_for_bytes(payload: bytes) -> str:
+def compute_ni_uri(payload: bytes, *, algorithm: str = "sha-256") -> str:
+    if algorithm != "sha-256":
+        raise ValueError("propstore only emits sha-256 ni URIs")
     digest = hashlib.sha256(payload).digest()
     encoded = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
-    return f"ni:///sha-256;{encoded}"
+    return f"{NI_SHA256_PREFIX}{encoded}"
+
+
+def verify_ni_uri(uri: str, payload: bytes) -> bool:
+    return hmac.compare_digest(uri, compute_ni_uri(payload))
+
+
+def ni_uri_for_bytes(payload: bytes) -> str:
+    return compute_ni_uri(payload)
 
 
 def ni_uri_for_file(path: Path) -> str:
