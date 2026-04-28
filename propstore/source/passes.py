@@ -210,7 +210,7 @@ def _normalize_concept_batch(
         raw_id = payload.get("id")
         effective_name = canonical_name if isinstance(canonical_name, str) and canonical_name else str(raw_id or Path(path).stem or "concept")
         payload.setdefault("canonical_name", effective_name)
-        payload.setdefault("status", "accepted")
+        payload.setdefault("status", "proposed")
         payload.setdefault("definition", effective_name)
         payload.setdefault("form", "structural")
 
