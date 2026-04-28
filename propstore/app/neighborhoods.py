@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
-from propstore.app.claim_views import ClaimViewUnknownClaimError
+from propstore.app.claim_views import ClaimViewBlockedError, ClaimViewUnknownClaimError
 from propstore.app.rendering import (
     AppRenderPolicyRequest,
     RenderPolicySummary,
@@ -125,19 +125,16 @@ def build_semantic_neighborhood(
             raise ClaimViewUnknownClaimError(request.focus_id)
         visible_ids = {str(row.claim_id) for row in world.claims_with_policy(None, policy)}
         focus_id = str(claim.claim_id)
+        if focus_id not in visible_ids:
+            raise ClaimViewBlockedError(focus_id)
         focus = SemanticFocus(
             kind="claim",
             focus_id=focus_id,
             display_id=_claim_display_id(claim),
             sentence=f"You are on claim {_claim_display_id(claim)}.",
         )
-        status = _focus_status(focus_id in visible_ids)
-        stances = [
-            stance
-            for stance in world.all_claim_stances()
-            if str(stance.claim_id) == focus_id
-            or str(stance.target_claim_id) == focus_id
-        ]
+        status = _focus_status(True)
+        stances = world.claim_stances_with_policy(focus_id, policy)
         supporters = tuple(
             str(stance.claim_id)
             for stance in stances
