@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 
+from propstore.canonical_json import canonical_dumps
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.assertions.situated import SituatedAssertion
@@ -166,11 +167,5 @@ def _stable_value(value: object) -> str:
 
 
 def _digest(value: object) -> str:
-    rendered = json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-        default=str,
-    )
+    rendered = canonical_dumps(value)
     return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:32]

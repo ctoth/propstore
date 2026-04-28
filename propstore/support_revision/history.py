@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.canonical_json import canonical_dumps
 from propstore.support_revision.explanation_types import (
     RevisionAtomDetail,
     coerce_revision_atom_detail,
@@ -38,13 +38,7 @@ def _to_plain_data(value: Any) -> Any:
 
 
 def _canonical_json(payload: Mapping[str, Any]) -> str:
-    return json.dumps(
-        _to_plain_data(payload),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-        default=str,
-    )
+    return canonical_dumps(_to_plain_data(payload))
 
 
 def _stable_hash(payload: Mapping[str, Any]) -> str:

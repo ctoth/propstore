@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from typing import Any, cast
 
+from propstore.canonical_json import canonical_dumps
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
@@ -282,12 +282,7 @@ def _capture_praf(
 
 
 def _stance_dependency_key(row: StanceRow) -> str:
-    return json.dumps(
-        row.to_dict(),
-        sort_keys=True,
-        separators=(",", ":"),
-        default=str,
-    )
+    return canonical_dumps(row.to_dict())
 
 
 def active_stance_dependencies(

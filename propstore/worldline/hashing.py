@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Mapping, Sequence
 
+from propstore.canonical_json import canonical_dumps
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
     WorldlineDependencies,
@@ -37,10 +37,5 @@ def compute_worldline_content_hash(
         "argumentation": None if argumentation is None else argumentation.to_dict(),
         "revision": None if revision is None else revision.to_dict(),
     }
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        default=str,
-    ).encode("utf-8")
+    encoded = canonical_dumps(payload).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()[:16]
