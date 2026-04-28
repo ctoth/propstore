@@ -1,0 +1,6 @@
+---
+tags: [belief-functions, imprecise-probability, dempster-shafer, geometry-of-uncertainty, credal-sets, possibility-theory, random-sets, monograph]
+---
+Cuzzolin's 864-page monograph recasts the entire mathematics of uncertainty — belief functions, plausibility, commonality, possibility, credal sets, probability transforms, conditioning, combination, decision-making — as a geometric program over simplicial polytopes, with closed-form L_p-optimal projections, congruences, and fibre-bundle structures throughout.
+The book consolidates twenty years of work into a unified framework, surveys ~40 named imprecise-probability formalisms (Walley, Spohn, Vovk-Shafer, Josang subjective logic, Fagin-Halpern, info-gap, etc.), gives a constructive geometric calculus for Dempster's rule, the affine and epistemic transform families, geometric conditioning, and consonant/consistent approximations, and lays out an explicit research agenda with 25 numbered open questions plus the largest extant belief-theory bibliography (2137 references).
+Directly load-bearing for propstore: it grounds the lazy-until-render discipline (Ch.16), gives a full algebraic toolkit for credal-set rendering and L_p geometric conditioning, and provides comparative formalism literacy across most adjacent literatures already cited in the project.

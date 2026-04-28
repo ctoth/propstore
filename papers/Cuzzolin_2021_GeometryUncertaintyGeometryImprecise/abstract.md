@@ -1,0 +1,15 @@
+# Abstract
+
+## Original Text (Verbatim)
+
+Cuzzolin's monograph does not carry a conventional one-paragraph abstract. The role of an abstract is filled by the book's **Preface** (pp.IX-XIV) and its **back-cover synopsis**. The preface positions the work as follows (key passages, paraphrased close to verbatim from the preface text captured in `chapters/chapter-01-front-intro.md`):
+
+> Probability has multiple competing interpretations and a documented set of pathologies under "really challenging" data. Belief functions, the theory introduced by Dempster (1967) and Shafer (1976), generalise probability to the setting of mass on sets and have proved popular for AI applications. The principal aim of this book is to introduce to the widest possible audience an original *geometric approach to uncertainty* developed during the author's doctoral term in Padua. In this approach, uncertainty measures are seen as points of suitably complex geometric spaces and can be manipulated (combined, conditioned, projected) by geometric operations.
+>
+> The book is divided into five Parts: **Part I — Theories of uncertainty** recapitulates the state of the art in the mathematics of uncertainty with a focus on belief theory; **Part II — The geometry of uncertainty** is the core, introducing the simplicial geometry of belief, plausibility, commonality, and consonant subspaces; **Part III — Geometric interplays** studies probability transforms and consonant/consistent approximations; **Part IV — Geometric reasoning** provides geometric conditioning and decision making; **Part V — The future of uncertainty** outlines a research agenda toward a comprehensive statistical random-set theory.
+>
+> The book also provides what the author believes to be the largest existing bibliography on belief and uncertainty theory.
+
+## Our Interpretation
+
+The book is a master reference for belief-function theory written from a unifying geometric perspective. For propstore, three contributions matter most: (1) the **simplicial geometry of belief space and its companions** (mass space, plausibility space, commonality space, consonant complex, consistent complex, credal-set lattice) which gives a complete vocabulary for storing uncertainty without committing to a single distribution; (2) the **geometric conditioning framework** (Ch.15) that recovers Dempster's, Smets's, Suppes-Zanotti's, and Spies's conditioning rules as L_p projections onto a conditioning simplex, mapping cleanly onto a render-time `condition_norm` policy; and (3) the **credal-set semantics for probability transforms** (Ch.16) in which transforms are foci of pairs of simplices under a rationality principle of homogeneous behaviour, supporting the non-commitment-in-storage discipline that propstore takes as a core design principle. The book is also the canonical landscape document for the ~40 imprecise-probability formalisms that intersect propstore's adjacent literatures, including subjective logic, Spohn epistemic states, Vovk-Shafer game-theoretic probability, and probabilistic argumentation systems.
