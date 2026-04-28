@@ -184,6 +184,7 @@ def finalize_source_branch(
     else:
         micropub_status = "complete" if micropubs_doc is not None else "empty"
     branch = source_branch_name(source_name)
+    sha: str | None = None
     with repo.head_bound_transaction(branch, path="finalize") as head_txn:
         with head_txn.families_transact(message=f"Finalize {source_slug}") as transaction:
             ref = SourceRef(source_name)
@@ -271,6 +272,7 @@ def finalize_source_branch(
                 source=f"{source_branch_name(source_name)}:merge/finalize",
             )
             transaction.source_finalize_reports.save(ref, report)
-    if head_txn.commit_sha is None:
+        sha = head_txn.commit_sha
+    if sha is None:
         raise ValueError("source finalize transaction did not produce a commit")
-    return head_txn.commit_sha
+    return sha
