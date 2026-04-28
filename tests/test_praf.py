@@ -502,16 +502,27 @@ def test_p_defeat_from_opinion_columns():
     assert abs(op.u - 0.2) < 1e-9
     assert op.provenance is not None
 
-    # Without opinion, with confidence — from_probability(0.75, 1) maps to
-    # r=0.75, s=0.25, denom=3.0, b=0.25, d=0.083, u=0.667, E=b+a*u=0.583
-    # The expectation won't match confidence exactly with n=1 evidence,
-    # but the opinion should be constructible and have reasonable values.
+    # Without opinion and without sample size, confidence is not promoted
+    # to fabricated one-sample evidence. It remains vacuous at the stated
+    # relation base rate.
     stance_with_confidence = {"confidence": 0.75, "opinion_base_rate": 0.5}
     op2 = p_defeat_from_stance(stance_with_confidence)
     assert isinstance(op2, Opinion)
-    assert op2.b > 0  # has some belief
-    assert op2.u > 0  # has uncertainty (not dogmatic)
-    assert 0.0 < op2.expectation() < 1.0  # reasonable range
+    assert op2.b == pytest.approx(0.0)
+    assert op2.d == pytest.approx(0.0)
+    assert op2.u == pytest.approx(1.0)
+    assert op2.expectation() == pytest.approx(0.5)
+
+    stance_with_sample_size = {
+        "confidence": 0.75,
+        "effective_sample_size": 10,
+        "opinion_base_rate": 0.5,
+    }
+    op_with_sample_size = p_defeat_from_stance(stance_with_sample_size)
+    assert isinstance(op_with_sample_size, Opinion)
+    assert op_with_sample_size.b > 0
+    assert op_with_sample_size.u < 1.0
+    assert op_with_sample_size.expectation() == pytest.approx(0.75, abs=0.05)
 
     zero_confidence = p_defeat_from_stance({"confidence": 0.0})
     assert isinstance(zero_confidence, NoCalibration)
