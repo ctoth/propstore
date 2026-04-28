@@ -1,0 +1,97 @@
+operators:
+  - id: negation
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Theorem 6, p.18"
+    inputs:
+      - [0.7, 0.1, 0.2, 0.5]
+    expected: [0.1, 0.7, 0.2, 0.5]
+  - id: conjunction
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Theorem 3, p.14"
+    inputs:
+      - [0.7, 0.1, 0.2, 0.5]
+      - [0.5, 0.3, 0.2, 0.4]
+    expected: [0.35, 0.37, 0.28, 0.2]
+  - id: disjunction
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Theorem 4, pp.14-15"
+    inputs:
+      - [0.7, 0.1, 0.2, 0.5]
+      - [0.5, 0.3, 0.2, 0.4]
+    expected: [0.85, 0.03, 0.12, 0.7]
+  - id: consensus_pair
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Theorem 7, p.25"
+    inputs:
+      - [0.6, 0.2, 0.2, 0.5]
+      - [0.2, 0.6, 0.2, 0.5]
+    expected: [0.4444444444444444, 0.4444444444444444, 0.1111111111111111, 0.5]
+  - id: discount
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Definition 14, p.24"
+    inputs:
+      - [0.8, 0.1, 0.1, 0.5]
+      - [0.5, 0.2, 0.3, 0.6]
+    expected: [0.4, 0.16, 0.44, 0.6]
+  - id: maximize_uncertainty
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Definition 16, p.30"
+    inputs:
+      - [0.3, 0.2, 0.5, 0.6]
+    expected: [0.0, 0.0, 1.0, 0.6]
+  - id: wbf
+    paper: vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic
+    anchor: "Definition 4 p.5; Table I p.8"
+    inputs:
+      - [0.10, 0.30, 0.60, 0.5]
+      - [0.40, 0.20, 0.40, 0.5]
+      - [0.70, 0.10, 0.20, 0.5]
+    expected: [0.562, 0.146, 0.292, 0.5]
+    tolerance: 0.0005
+  - id: ccf
+    paper: vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic
+    anchor: "Definition 5 p.6; Table I p.8"
+    inputs:
+      - [0.10, 0.30, 0.60, 0.5]
+      - [0.40, 0.20, 0.40, 0.5]
+      - [0.70, 0.10, 0.20, 0.5]
+    expected: [0.629, 0.182, 0.189, 0.5]
+    tolerance: 0.0005
+scalars:
+  - id: expectation
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Definition 6, p.5"
+    input: [0.5, 0.2, 0.3, 0.7]
+    expected: 0.71
+  - id: pignistic
+    paper: Smets_Kennes_1994_TransferableBeliefModel
+    anchor: "BetP equation, journal p.202"
+    input: [0.5, 0.2, 0.3, 0.7]
+    expected: 0.65
+  - id: projected_probability
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Definition 6, p.5"
+    input: [0.5, 0.2, 0.3, 0.7]
+    expected: 0.71
+  - id: lower_bound
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Belief interval, p.4"
+    input: [0.5, 0.2, 0.3, 0.7]
+    expected: 0.5
+  - id: upper_bound
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Belief interval, p.4"
+    input: [0.5, 0.2, 0.3, 0.7]
+    expected: 0.8
+  - id: hurwicz
+    paper: Denoeux_2018_Decision-MakingBeliefFunctionsReview
+    anchor: "Hurwicz criterion, p.17"
+    input: [0.5, 0.2, 0.3, 0.7]
+    expected: 0.65
+comparisons:
+  - id: ordering_higher_expectation
+    paper: Josang_2001_LogicUncertainProbabilities
+    anchor: "Definition 10, p.9"
+    left: [0.6, 0.2, 0.2, 0.5]
+    right: [0.3, 0.5, 0.2, 0.5]
+    relation: ">"
