@@ -313,7 +313,7 @@ class ATMSNodeStabilityReport:
     claim_id: str | None
     current: ATMSInspection
     stable: bool
-    limit: int
+    limit: int | None
     future_count: int
     consistent_future_count: int
     inconsistent_future_count: int
@@ -328,7 +328,7 @@ class ATMSConceptStabilityReport:
     concept_id: str
     current_status: ValueStatus
     stable: bool
-    limit: int
+    limit: int | None
     future_count: int
     consistent_future_count: int
     inconsistent_future_count: int
