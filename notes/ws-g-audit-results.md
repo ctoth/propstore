@@ -1,5 +1,17 @@
 # WS-G Audit Results
 
+## AGM And Iterated Coverage Gates
+
+- `K-6`, `K-7`, `K-8`, and Harper — unasserted-but-correct. First full audit:
+  `logs/test-runs/WS-G-audit-first-20260429-020058.log`. The final audit
+  matrix passed in `logs/test-runs/WS-G-audit-20260429-020445.log`.
+- Darwiche-Pearl `C1`-`C4` and `CR1`-`CR4` for bullet, lexicographic, and
+  restrained revision — unasserted-but-correct in the deterministic audit
+  matrix. Final audit log: `logs/test-runs/WS-G-audit-20260429-020445.log`.
+- `EE1`-`EE5` — unasserted-but-correct in the audit matrix over the finite
+  representative formula set. Final audit log:
+  `logs/test-runs/WS-G-audit-20260429-020445.log`.
+
 ## IC Merge Coverage Gates
 
 - `IC4` — unasserted-but-correct. First run:
