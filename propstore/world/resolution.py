@@ -709,6 +709,16 @@ def _resolve_praf(
     acceptance = metadata["acceptance_probs"]
     strategy_used = metadata["strategy_used"]
     projection = result.projection
+    omitted_target_arguments = tuple(
+        sorted(set(metadata.get("omitted_arguments", ())) & target_ids)
+    )
+    if omitted_target_arguments:
+        return (
+            None,
+            "PrAF target calibration omitted for "
+            f"{', '.join(omitted_target_arguments)} via {strategy_used} ({semantics})",
+            {},
+        )
 
     if acceptance is None:
         extension_probability = metadata.get("extension_probability")

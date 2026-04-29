@@ -881,6 +881,8 @@ def analyze_praf(
             ("strategy_metadata", dict(praf_result.strategy_metadata or {})),
             ("samples", praf_result.samples),
             ("confidence_interval_half", praf_result.confidence_interval_half),
+            ("omitted_arguments", tuple(sorted(praf.omitted_arguments or ()))),
+            ("omitted_relations", tuple(sorted(praf.omitted_relations or ()))),
             ("comparison", shared.comparison),
         ),
     )
