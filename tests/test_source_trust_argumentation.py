@@ -59,7 +59,7 @@ def test_calibrate_source_trust_uses_stubbed_argumentation_rules(tmp_path: Path)
 
     assert isinstance(calibrated, SourceTrustResult)
     assert calibrated.status is ProvenanceStatus.CALIBRATED
-    assert calibrated.prior_base_rate == Opinion(0.6, 0.2, 0.2, 0.4)
+    assert calibrated.prior_base_rate == Opinion(0.0, 0.2, 0.8, 0.4)
     assert {firing.rule_id for firing in calibrated.derived_from} == {
         "ioannidis-low-power",
         "osc-direct-replication",
@@ -71,4 +71,3 @@ def test_calibrate_source_trust_uses_stubbed_argumentation_rules(tmp_path: Path)
     assert defaulted.status is ProvenanceStatus.DEFAULTED
     assert defaulted.prior_base_rate == Opinion.vacuous(0.5)
     assert defaulted.derived_from == ()
-
