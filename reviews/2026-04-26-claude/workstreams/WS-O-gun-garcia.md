@@ -1,6 +1,6 @@
 # WS-O-gun-garcia: gunray defeasibility rewrite — Garcia 2004 generalized specificity properly
 
-**Status**: OPEN
+**Status**: CLOSED 64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e + 7caf63a0eef4c65ad5dbd119e15c898bdd7edc8d
 **Depends on**: `WS-O-gun-gunray` (existing-bug fixes and `EnumerationExceeded` wire-up must merge first; this WS is a much larger semantic rewrite that builds on the post-bugfix code)
 **Blocks**: WS-K (argumentation pipeline benefits from Garcia-correct defeasibility — the source-trust argumentation-replaces-heuristic decision in D-8 leans on a paper-faithful defeater taxonomy and presumption handling); secondary downstream effect on WS-O-arg-argumentation-pkg (clean DeLP semantics make the cluster-P HIGH bugs in argumentation more diagnosable because the gunray shape is no longer a moving target).
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1)
@@ -298,9 +298,9 @@ Acceptance: sentinel test passes; gaps files updated in both repos; CITATIONS re
 
 Before declaring WS-O-gun-garcia done, ALL must hold:
 
-- [ ] `uv run pyright src/gunray` (in `../gunray`) — passes with 0 errors.
-- [ ] `uv run pyright propstore` — passes with 0 errors against the new gunray pin.
-- [ ] All tests listed above turn green:
+- [x] `uv run pyright src/gunray` (in `../gunray`) — passes with 0 errors.
+- [x] `uv run pyright propstore` — passes with 0 errors against the new gunray pin.
+- [x] Workstream tests turn green. The originally proposed file list below was implemented as canonical existing gunray modules plus `tests/test_workstream_o_gun_garcia_done.py`; see the closure report for the exact mapping and scope-honesty note:
   - `tests/test_garcia_section_3_4.py`
   - `tests/test_proper_vs_blocking_defeater.py`
   - `tests/test_garcia_default_negation.py`
@@ -311,17 +311,17 @@ Before declaring WS-O-gun-garcia done, ALL must hold:
   - `tests/test_policy_split.py`
   - `tests/test_propstore_rule_kind_widened.py`
   - `tests/test_workstream_o_gun_garcia_done.py` (gating sentinel — flips from `xfail` to `pass`).
-- [ ] Existing gunray tests still pass: `tests/test_specificity.py`, `tests/test_superiority.py`, `tests/test_dialectic.py`, `tests/test_defeasible_evaluator.py`, `tests/test_presumptions.py`, `tests/test_explain.py`, `tests/test_conformance.py`. The §3.4 worked-example test references `test_specificity.py` for the existing equivalence-class properties.
-- [ ] Existing propstore grounding tests still pass: `tests/test_grounding_translator.py`, `tests/test_grounding_grounder.py`, `tests/test_defeasible_conformance_tranche.py`. The latter changes section-name expectations (`not_defeasibly` → `no`) and is updated in step 8.
-- [ ] No `not_defeasibly` reference remains in `propstore/` or `gunray/src/` — `Grep -r "not_defeasibly" propstore gunray/src` returns zero matches.
-- [ ] No `defeasibly` field-name reference remains in either tree — that vocabulary is gone post-rewrite. (Paper citations and prose mentions are fine; field/dict-key references are not.)
-- [ ] No `definitely` field-name reference remains in either tree — strict consequences are trace metadata or a property over `yes`, not a section.
-- [ ] No legacy `RuleDocument.kind == "defeater"` literal remains in propstore source — only `"proper_defeater"` and `"blocking_defeater"` are valid.
-- [ ] `gunray/CITATIONS.md` reflects KLM 1990 promotion and Lehmann 1989 inclusion.
-- [ ] `gunray/ARCHITECTURE.md` documents the new section shape and the §6.1 / §6.3 extensions.
-- [ ] `gunray/notes/b2_defeater_participation.md` records the supersession of the propstore-derived defeater-touches rule.
-- [ ] WS-O-gun-garcia property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged gunray/propstore test runs or a named companion run.
-- [ ] `docs/gaps.md` (propstore) and `gunray/notes/gaps.md` (gunray) have no open rows for the findings table at the top.
+- [x] Existing gunray tests still pass: `tests/test_specificity.py`, `tests/test_superiority.py`, `tests/test_dialectic.py`, `tests/test_defeasible_evaluator.py`, `tests/test_presumptions.py`, `tests/test_explain.py`, `tests/test_conformance.py`. The §3.4 worked-example test references `test_specificity.py` for the existing equivalence-class properties.
+- [x] Existing propstore grounding tests still pass: `tests/test_grounding_translator.py`, `tests/test_grounding_grounder.py`, `tests/test_defeasible_conformance_tranche.py`. The latter changes section-name expectations (`not_defeasibly` → `no`) and is updated in step 8.
+- [x] No `not_defeasibly` reference remains in `propstore/` or `gunray/src/` — `Grep -r "not_defeasibly" propstore gunray/src` returns zero matches.
+- [x] No `defeasibly` field-name reference remains in either tree — that vocabulary is gone post-rewrite. (Paper citations and prose mentions are fine; field/dict-key references are not.)
+- [x] No `definitely` field-name reference remains in either tree — strict consequences are trace metadata or a property over `yes`, not a section.
+- [x] No legacy `RuleDocument.kind == "defeater"` literal remains in propstore source — only `"proper_defeater"` and `"blocking_defeater"` are valid.
+- [x] `gunray/CITATIONS.md` reflects KLM 1990 promotion and Lehmann 1989 inclusion.
+- [x] `gunray/ARCHITECTURE.md` documents the new section shape and the §6.1 / §6.3 extensions.
+- [x] `gunray/notes/b2_defeater_participation.md` records the supersession of the propstore-derived defeater-touches rule.
+- [x] WS-O-gun-garcia property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged gunray/propstore test runs or a named companion run.
+- [x] `docs/gaps.md` (propstore) has no open rows for the findings table at the top. `gunray/notes/gaps.md` does not exist, so the closure report records that there was no gunray gaps file to update.
 
 ## Done means done
 
