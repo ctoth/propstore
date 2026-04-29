@@ -8,6 +8,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from hypothesis import assume, given, settings
+from hypothesis import strategies as st
 from argumentation.aspic import Attack, GroundAtom, Literal, PremiseArg, Rule, conc
 from argumentation.bipolar import BipolarArgumentationFramework
 from argumentation.dung import ArgumentationFramework
@@ -512,3 +514,123 @@ def test_praf_paper_td_complete_routes_app_report_to_extension_probability(monke
     assert report.strategy_used == "paper_td"
     assert report.extension_probability == pytest.approx(0.75)
     assert report.acceptance_probabilities == ()
+
+
+@pytest.mark.property
+@given(st.integers(min_value=1, max_value=4))
+@settings(deadline=None, max_examples=20)
+def test_strict_rule_closure_is_monotone_when_strict_rules_are_added(rule_count: int) -> None:
+    claims = [_claim(f"c{i}") for i in range(rule_count + 2)]
+    base_justifications = [_reported("c0")] + [
+        _support(f"strict:c{i}-to-c{i + 1}", f"c{i + 1}", (f"c{i}",), strength="strict")
+        for i in range(rule_count)
+    ]
+    extended_justifications = base_justifications + [
+        _support(
+            f"strict:c{rule_count}-to-c{rule_count + 1}",
+            f"c{rule_count + 1}",
+            (f"c{rule_count}",),
+            strength="strict",
+        )
+    ]
+
+    base = compile_bridge_context(
+        claims,
+        base_justifications,
+        [],
+        bundle=GroundedRulesBundle.empty(),
+    )
+    extended = compile_bridge_context(
+        claims,
+        extended_justifications,
+        [],
+        bundle=GroundedRulesBundle.empty(),
+    )
+
+    assert base.system.strict_rules <= extended.system.strict_rules
+
+
+@pytest.mark.property
+@given(
+    weak_sample_size=st.integers(min_value=1, max_value=10),
+    strong_sample_size=st.integers(min_value=100, max_value=1000),
+    weak_uncertainty=st.floats(min_value=0.7, max_value=0.95, allow_nan=False, allow_infinity=False),
+    strong_uncertainty=st.floats(min_value=0.05, max_value=0.3, allow_nan=False, allow_infinity=False),
+    weak_confidence=st.floats(min_value=0.05, max_value=0.3, allow_nan=False, allow_infinity=False),
+    strong_confidence=st.floats(min_value=0.7, max_value=0.95, allow_nan=False, allow_infinity=False),
+)
+@settings(deadline=None, max_examples=30)
+def test_generated_preference_cases_can_have_attack_without_defeat(
+    weak_sample_size: int,
+    strong_sample_size: int,
+    weak_uncertainty: float,
+    strong_uncertainty: float,
+    weak_confidence: float,
+    strong_confidence: float,
+) -> None:
+    claims = [
+        _claim(
+            "weak",
+            confidence=weak_confidence,
+            sample_size=weak_sample_size,
+            uncertainty=weak_uncertainty,
+        ),
+        _claim(
+            "strong",
+            confidence=strong_confidence,
+            sample_size=strong_sample_size,
+            uncertainty=strong_uncertainty,
+        ),
+    ]
+    csaf = build_bridge_csaf(
+        claims,
+        [_reported("weak"), _reported("strong")],
+        [_stance("weak", "strong", "rebuts")],
+        bundle=GroundedRulesBundle.empty(),
+    )
+
+    assert csaf.framework.attacks is not None
+    assert csaf.framework.defeats <= csaf.framework.attacks
+    assert csaf.framework.attacks - csaf.framework.defeats
+
+
+@pytest.mark.property
+@given(
+    first_rule_id=st.from_regex(r"alpha_[a-z]{1,6}", fullmatch=True),
+    second_rule_id=st.from_regex(r"beta_[a-z]{1,6}", fullmatch=True),
+)
+@settings(deadline=None, max_examples=30)
+def test_alpha_renaming_rule_ids_preserves_claim_acceptance(
+    first_rule_id: str,
+    second_rule_id: str,
+) -> None:
+    assume(first_rule_id != second_rule_id)
+    claims = [_claim("premise"), _claim("goal")]
+    first_csaf = build_bridge_csaf(
+        claims,
+        [_reported("premise"), _support(first_rule_id, "goal", ("premise",))],
+        [],
+        bundle=GroundedRulesBundle.empty(),
+    )
+    second_csaf = build_bridge_csaf(
+        claims,
+        [_reported("premise"), _support(second_rule_id, "goal", ("premise",))],
+        [],
+        bundle=GroundedRulesBundle.empty(),
+    )
+    first_projection = csaf_to_projection(first_csaf, claims)
+    second_projection = csaf_to_projection(second_csaf, claims)
+
+    def accepted_claim_ids(projection: StructuredProjection) -> set[str]:
+        accepted_args = compute_structured_justified_arguments(
+            projection,
+            semantics="grounded",
+            backend=ReasoningBackend.ASPIC,
+        )
+        return {
+            projection.argument_to_claim_id[arg_id]
+            for arg_id in accepted_args
+            if arg_id in projection.argument_to_claim_id
+        }
+
+    assert accepted_claim_ids(first_projection) == accepted_claim_ids(second_projection)
