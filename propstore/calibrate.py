@@ -470,6 +470,56 @@ def calibrated_probability_to_opinion(
 # ---------------------------------------------------------------------------
 
 
+def _validate_binary_calibration_inputs(
+    confidences: list[float],
+    correct: list[bool],
+) -> None:
+    if len(confidences) != len(correct):
+        raise ValueError("confidences and correct must have same length")
+    for confidence in confidences:
+        if confidence < 0.0 or confidence > 1.0:
+            raise ValueError("confidences must be in [0, 1]")
+
+
+def brier_score(confidences: list[float], correct: list[bool]) -> float:
+    """Mean squared probability error.
+
+    Guo et al. 2017 report Brier score alongside ECE and negative
+    log-likelihood as standard calibration metrics.
+    """
+    _validate_binary_calibration_inputs(confidences, correct)
+    if not confidences:
+        return 0.0
+    total = 0.0
+    for confidence, is_correct in zip(confidences, correct):
+        target = 1.0 if is_correct else 0.0
+        total += (confidence - target) ** 2
+    return total / len(confidences)
+
+
+def log_loss(
+    confidences: list[float],
+    correct: list[bool],
+    *,
+    epsilon: float = 1e-15,
+) -> float:
+    """Binary negative log-likelihood with clipping.
+
+    Guo et al. 2017 use NLL/log-loss as the optimization target for
+    temperature scaling and as a calibration quality metric.
+    """
+    _validate_binary_calibration_inputs(confidences, correct)
+    if not confidences:
+        return 0.0
+    if epsilon <= 0.0 or epsilon >= 0.5:
+        raise ValueError("epsilon must be in (0, 0.5)")
+    total = 0.0
+    for confidence, is_correct in zip(confidences, correct):
+        clipped = min(1.0 - epsilon, max(epsilon, confidence))
+        total -= math.log(clipped if is_correct else 1.0 - clipped)
+    return total / len(confidences)
+
+
 def expected_calibration_error(
     confidences: list[float],
     correct: list[bool],
@@ -482,8 +532,7 @@ def expected_calibration_error(
 
     Standard metric for measuring miscalibration.
     """
-    if len(confidences) != len(correct):
-        raise ValueError("confidences and correct must have same length")
+    _validate_binary_calibration_inputs(confidences, correct)
     n = len(confidences)
     if n == 0:
         return 0.0
