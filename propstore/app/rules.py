@@ -1,6 +1,6 @@
 """Rule authoring workflows used by CLI adapters.
 
-Authors DeLP strict, defeasible, and defeater rules into
+Authors DeLP strict, defeasible, proper defeater, and blocking defeater rules into
 ``knowledge/rules/<name>.yaml`` files. Uses the existing
 ``RULE_FILE_FAMILY`` plumbing so rules appear on the primary branch.
 
@@ -8,7 +8,8 @@ Theoretical source:
     Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic Programming:
     An Argumentative Approach. §3 p.3 partitions rule-like objects into
     strict ``L_0 <- L_1,...,L_n``, defeasible ``L_0 -< L_1,...,L_n``,
-    and defeaters; literals may carry strong negation ``~``.
+    and defeaters; literals may carry strong negation ``~`` and body
+    literals may carry default negation ``not``.
 
 Atom DSL
 --------
@@ -40,6 +41,7 @@ from quire.documents import convert_document_value, encode_document
 
 from propstore.families.documents.rules import (
     AtomDocument,
+    BodyLiteralDocument,
     RuleDocument,
     RuleSourceDocument,
     RulesFileDocument,
@@ -49,7 +51,7 @@ from propstore.families.registry import RuleFileRef
 from propstore.repository import Repository
 
 
-_RULE_KINDS = ("strict", "defeasible", "defeater")
+_RULE_KINDS = ("strict", "defeasible", "proper_defeater", "blocking_defeater")
 
 
 class RuleWorkflowError(Exception):
@@ -108,7 +110,8 @@ class RuleAddRequest:
             ``source.paper``. When appending to an existing file, the
             request's paper must match the stored paper.
         rule_id: Authoring id for the rule (e.g. ``"r_ikeda_mi"``).
-        kind: One of ``"strict"``, ``"defeasible"``, ``"defeater"``.
+        kind: One of ``"strict"``, ``"defeasible"``, ``"proper_defeater"``,
+            ``"blocking_defeater"``.
         head: Atom DSL string for the head literal. A leading ``~`` is
             strong negation.
         body: Ordered tuple of atom DSL strings for the body literals.
@@ -213,6 +216,16 @@ def parse_atom(raw: str) -> AtomDocument:
     )
 
 
+def parse_body_literal(raw: str) -> BodyLiteralDocument:
+    token = raw.strip()
+    if token.startswith("not "):
+        return BodyLiteralDocument(
+            kind="default_negated",
+            atom=parse_atom(token[4:].strip()),
+        )
+    return BodyLiteralDocument(kind="positive", atom=parse_atom(token))
+
+
 def _term_payload(term: TermDocument) -> dict[str, object]:
     payload: dict[str, object] = {"kind": term.kind}
     if term.name is not None:
@@ -231,14 +244,21 @@ def _atom_payload(atom: AtomDocument) -> dict[str, object]:
     return payload
 
 
+def _body_literal_payload(literal: BodyLiteralDocument) -> dict[str, object]:
+    return {
+        "kind": literal.kind,
+        "atom": _atom_payload(literal.atom),
+    }
+
+
 def _rule_document_payload(request: RuleAddRequest) -> dict[str, object]:
     head_atom = parse_atom(request.head)
-    body_atoms = tuple(parse_atom(entry) for entry in request.body)
+    body_literals = tuple(parse_body_literal(entry) for entry in request.body)
     return {
         "id": request.rule_id,
         "kind": request.kind,
         "head": _atom_payload(head_atom),
-        "body": [_atom_payload(atom) for atom in body_atoms],
+        "body": [_body_literal_payload(literal) for literal in body_literals],
     }
 
 

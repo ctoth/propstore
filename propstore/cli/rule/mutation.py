@@ -35,7 +35,10 @@ from propstore.repository import Repository
 )
 @click.option(
     "--kind",
-    type=click.Choice(["strict", "defeasible", "defeater"], case_sensitive=False),
+    type=click.Choice(
+        ["strict", "defeasible", "proper_defeater", "blocking_defeater"],
+        case_sensitive=False,
+    ),
     required=True,
     help="Rule kind.",
 )
@@ -50,7 +53,7 @@ from propstore.repository import Repository
 @click.option(
     "--body",
     multiple=True,
-    help="Body atom in the same DSL form. Repeat for each body literal.",
+    help="Body literal in the same DSL form; prefix with 'not ' for default negation.",
 )
 @click.pass_obj
 def add(

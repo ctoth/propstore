@@ -10,6 +10,8 @@ class StanceType(StrEnum):
     UNDERCUTS = "undercuts"
     UNDERMINES = "undermines"
     SUPPORTS = "supports"
+    PROPER_DEFEATER = "proper_defeater"
+    BLOCKING_DEFEATER = "blocking_defeater"
     EXPLAINS = "explains"
     SUPERSEDES = "supersedes"
     ABSTAIN = "abstain"

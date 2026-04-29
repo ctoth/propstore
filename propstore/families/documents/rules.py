@@ -1,8 +1,9 @@
 """Typed document models for DeLP-style rule YAML files.
 
 This module hosts the authored-file schema for Defeasible Logic Programming
-(DeLP) rules. Rules express strict (``<-``), defeasible (``-<``), or
-defeater implications, with strong negation ``~`` on literal heads.
+(DeLP) rules. Rules express strict (``<-``), defeasible (``-<``), proper
+defeater, or blocking defeater implications, with strong negation ``~`` on
+literals and default negation ``not`` as a distinct body-literal kind.
 
 Theoretical source:
     Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic Programming:
@@ -60,16 +61,36 @@ class AtomDocument(DocumentStruct):
     negated: bool = False
 
 
+class BodyLiteralDocument(DocumentStruct):
+    """A DeLP body literal.
+
+    Garcia & Simari 2004 pp. 125-126 Defs. 6.1-6.3 extends DeLP with
+    default negation ``not L``. That is separate from strong negation
+    ``~L`` (carried by ``AtomDocument.negated``), so body entries use an
+    explicit kind instead of overloading atom polarity.
+
+    Attributes:
+        kind: ``"positive"`` for ordinary body literals or
+            ``"default_negated"`` for ``not L``.
+        atom: The underlying literal atom. Its ``negated`` flag still
+            means strong negation.
+    """
+
+    kind: Literal["positive", "default_negated"]
+    atom: AtomDocument
+
+
 class RuleDocument(DocumentStruct):
-    """A DeLP rule — strict, defeasible, or defeater.
+    """A DeLP rule — strict, defeasible, proper defeater, or blocking defeater.
 
     Garcia & Simari 2004 §3 (p.3) partitions rule-like objects into
     strict rules ``L_0 <- L_1, ..., L_n`` (indefeasible, empty body = a
     fact) and defeasible rules ``L_0 -< L_1, ..., L_n`` (tentative
     conclusions, §3 p.3). Section 4 (p.16, Defs 4.1 and 4.2) further
-    recognises proper and blocking defeaters as the only other rule-like
-    constructs in the language; this schema spells that choice out as
-    the ``kind: "defeater"`` discriminant value.
+    recognises proper and blocking defeaters (Defs. 4.1 and 4.2, p. 110);
+    this schema keeps those outcomes separate as ``"proper_defeater"`` and
+    ``"blocking_defeater"`` instead of the old collapsed ``"defeater"``
+    value.
 
     The language is safe (Garcia & Simari 2004 §3.3 p.8): every variable
     appearing in the head of a rule must also appear somewhere in the
@@ -80,15 +101,17 @@ class RuleDocument(DocumentStruct):
 
     Attributes:
         id: A stable authoring identifier for the rule.
-        kind: ``"strict"``, ``"defeasible"``, or ``"defeater"``.
+        kind: ``"strict"``, ``"defeasible"``, ``"proper_defeater"``, or
+            ``"blocking_defeater"``.
         head: The head atom (may carry strong negation via ``negated``).
-        body: Ordered positive-body atoms.
+        body: Ordered body literals. Default-negated literals have
+            ``BodyLiteralDocument.kind == "default_negated"``.
     """
 
     id: str
-    kind: Literal["strict", "defeasible", "defeater"]
+    kind: Literal["strict", "defeasible", "proper_defeater", "blocking_defeater"]
     head: AtomDocument
-    body: tuple[AtomDocument, ...] = ()
+    body: tuple[BodyLiteralDocument, ...] = ()
 
 
 class RuleSourceDocument(DocumentStruct):

@@ -162,9 +162,18 @@ def grounded_rules_to_rules(
 
     for rule_file in bundle.source_rules:
         for rule_doc in rule_file.document.rules:
-            for sigma in _enumerate_substitutions(rule_doc.body, facts):
+            positive_body = tuple(
+                literal.atom
+                for literal in rule_doc.body
+                if literal.kind == "positive"
+            )
+            if len(positive_body) != len(rule_doc.body):
+                raise ValueError(
+                    "ASPIC bridge does not accept default-negated rule bodies"
+                )
+            for sigma in _enumerate_substitutions(positive_body, facts):
                 antecedent_literals: list[Literal] = []
-                for body_atom in rule_doc.body:
+                for body_atom in positive_body:
                     ground = _apply_substitution(body_atom, sigma)
                     antecedent_literals.append(
                         _literal_for_atom(ground, body_atom.negated, literals)

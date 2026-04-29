@@ -64,7 +64,11 @@ import gunray
 
 from argumentation.aspic import GroundAtom
 from argumentation.preference import strict_partial_order_closure
-from propstore.families.documents.rules import AtomDocument, TermDocument
+from propstore.families.documents.rules import (
+    AtomDocument,
+    BodyLiteralDocument,
+    TermDocument,
+)
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.rule_files import LoadedRuleFile
 
@@ -137,16 +141,21 @@ def translate_to_theory(
             schema_rule = gunray.Rule(
                 id=rule_doc.id,
                 head=_stringify_atom(rule_doc.head),
-                body=tuple(_stringify_atom(atom) for atom in rule_doc.body),
+                body=tuple(
+                    _stringify_body_literal(literal)
+                    for literal in rule_doc.body
+                ),
             )
             if rule_doc.kind == "strict":
                 strict_rules.append(schema_rule)
             elif rule_doc.kind == "defeasible":
                 non_strict_rule_ids.add(rule_doc.id)
                 defeasible_rules.append(schema_rule)
-            else:
+            elif rule_doc.kind in ("proper_defeater", "blocking_defeater"):
                 non_strict_rule_ids.add(rule_doc.id)
                 defeaters.append(schema_rule)
+            else:
+                raise ValueError(f"Unknown rule kind {rule_doc.kind!r}")
         authored_superiority.extend(rule_file.document.superiority)
 
     # Group facts by predicate id. Diller, Borg, Bex 2025 §3
@@ -260,6 +269,15 @@ def _stringify_atom(atom: AtomDocument) -> str:
 
     rendered_terms = [_stringify_term(term) for term in atom.terms]
     return f"{predicate}({', '.join(rendered_terms)})"
+
+
+def _stringify_body_literal(literal: BodyLiteralDocument) -> str:
+    atom_text = _stringify_atom(literal.atom)
+    if literal.kind == "positive":
+        return atom_text
+    if literal.kind == "default_negated":
+        return f"not {atom_text}"
+    raise ValueError(f"Unknown body literal kind {literal.kind!r}")
 
 
 def _stringify_term(term: TermDocument) -> str:
