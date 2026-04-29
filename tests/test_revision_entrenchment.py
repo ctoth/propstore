@@ -6,7 +6,7 @@ from pathlib import Path
 from propstore.core.labels import AssumptionRef, Label
 from propstore.support_revision.entrenchment import compute_entrenchment
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
-from tests.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
 
 class _BoundStub:

@@ -8,7 +8,7 @@ from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.operators import contract as contract_base
 from propstore.support_revision.operators import expand as expand_base
 from propstore.support_revision.operators import revise as revise_base
-from tests.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 

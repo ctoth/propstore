@@ -8,7 +8,7 @@ from propstore.support_revision.operators import revise
 from propstore.support_revision.state import RevisionScope
 from tests.test_revision_iterated import _history_sensitive_base
 from tests.test_revision_operators import _base_with_shared_support
-from tests.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
 
 def test_worldline_definition_roundtrip_preserves_revision_query_block() -> None:

@@ -9,7 +9,7 @@ from pathlib import Path
 from propstore.claim_graph import build_argumentation_framework
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import SupportQuality, build_structured_projection
-from tests.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_bound_world import _atom_id_for_claim, _operator_bound
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 

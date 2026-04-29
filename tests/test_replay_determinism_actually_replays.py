@@ -11,7 +11,7 @@ from propstore.support_revision.history import (
 )
 from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
-from tests.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_iterated import _history_sensitive_base
 
 

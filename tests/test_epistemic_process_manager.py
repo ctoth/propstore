@@ -32,7 +32,7 @@ from propstore.world.types import (
     ATMSNodeInterventionPlan,
     ATMSNodeStatus,
 )
-from tests.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_iterated import _history_sensitive_base
 
 

@@ -7,7 +7,7 @@ import pytest
 from propstore.core.anytime import EnumerationExceeded
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 from propstore.support_revision.operators import contract, revise
-from tests.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_operators import _base_with_shared_support
 
 

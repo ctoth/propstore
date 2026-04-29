@@ -5,7 +5,7 @@ from propstore.provenance import ProvenanceStatus
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.operators import contract
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
-from tests.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
 
 def test_contract_surfaces_enumeration_exceeded_past_ceiling() -> None:
