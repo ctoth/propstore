@@ -1,7 +1,7 @@
 # WS-O-arg-vaf-completion closure
 
 **Workstream**: WS-O-arg-vaf-completion
-**Closed by propstore commit**: pending index/status closure
+**Closed by propstore commit**: `01bf1755098761ddc7db74ea7bb69851b08bcc84`
 **Upstream argumentation commit**: `0d036dfef91e8c47ed47e5b030fe9d510bc53295`
 **Propstore implementation evidence through**: `a9e6185dd787e589d127fa9ce1ae48851ee00e26`
 **Date**: 2026-04-28
