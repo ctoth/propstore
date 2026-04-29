@@ -94,6 +94,7 @@ class WorldExtensionsReport:
     acceptance_probabilities: tuple[WorldExtensionsProbability, ...] = ()
     strategy_used: str | None = None
     samples: int | None = None
+    extension_probability: float | None = None
 
 
 def world_extensions(
@@ -229,15 +230,24 @@ def _praf_extensions(
     summary: WorldExtensionsStanceSummary,
 ) -> WorldExtensionsReport:
     from argumentation.probabilistic import compute_probabilistic_acceptance
+    from propstore.core.analyzers import praf_query_parameters
     from propstore.praf import build_praf
 
     praf = build_praf(world, claim_ids, comparison=request.set_comparison)
-    praf_result = compute_probabilistic_acceptance(
-        praf.kernel,
+    query_parameters = praf_query_parameters(
         semantics=request.semantics,
         strategy=request.praf_strategy,
         query_kind="argument_acceptance",
         inference_mode="credulous",
+        default_queried_set=claim_ids,
+    )
+    praf_result = compute_probabilistic_acceptance(
+        praf.kernel,
+        semantics=query_parameters.semantics,
+        strategy=query_parameters.strategy,
+        query_kind=query_parameters.query_kind,
+        inference_mode=query_parameters.inference_mode,
+        queried_set=query_parameters.queried_set,
         mc_epsilon=request.praf_epsilon,
         mc_confidence=request.praf_confidence,
         rng_seed=request.praf_seed,
@@ -262,6 +272,7 @@ def _praf_extensions(
         ),
         strategy_used=str(praf_result.strategy_used),
         samples=praf_result.samples,
+        extension_probability=praf_result.extension_probability,
     )
 
 

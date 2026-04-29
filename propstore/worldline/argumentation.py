@@ -261,31 +261,42 @@ def _capture_praf(
             strategy=praf_strategy,
             query_kind="argument_acceptance",
             inference_mode="credulous",
+            queried_set=active_graph.active_claim_ids,
             mc_epsilon=praf_mc_epsilon,
             mc_confidence=praf_mc_confidence,
             treewidth_cutoff=praf_treewidth_cutoff,
             rng_seed=praf_mc_seed,
         )
         metadata = dict(analyzer_result.metadata)
-        acceptance_probs = dict(metadata["acceptance_probs"])
+        acceptance_probs = dict(metadata["acceptance_probs"] or {})
         strategy_used = metadata["strategy_used"]
         samples = metadata["samples"]
         confidence_interval_half = metadata["confidence_interval_half"]
     else:
         from argumentation.probabilistic import compute_probabilistic_acceptance
+        from propstore.core.analyzers import praf_query_parameters
         from propstore.praf import build_praf
 
+        active_claim_ids = {str(claim_id) for claim_id in active_ids}
         praf = build_praf(
             world,
-            {str(claim_id) for claim_id in active_ids},
+            active_claim_ids,
             comparison=policy.comparison or "elitist",
         )
-        result = compute_probabilistic_acceptance(
-            praf.kernel,
+        query_parameters = praf_query_parameters(
             semantics=normalized_semantics,
             strategy=praf_strategy,
             query_kind="argument_acceptance",
             inference_mode="credulous",
+            default_queried_set=active_claim_ids,
+        )
+        result = compute_probabilistic_acceptance(
+            praf.kernel,
+            semantics=query_parameters.semantics,
+            strategy=query_parameters.strategy,
+            query_kind=query_parameters.query_kind,
+            inference_mode=query_parameters.inference_mode,
+            queried_set=query_parameters.queried_set,
             mc_epsilon=praf_mc_epsilon,
             mc_confidence=praf_mc_confidence,
             treewidth_cutoff=praf_treewidth_cutoff,

@@ -79,6 +79,57 @@ class SharedAnalyzerInput:
     bipolar_framework: BipolarArgumentationFramework
 
 
+@dataclass(frozen=True)
+class PrAFQueryParameters:
+    semantics: str
+    strategy: str
+    query_kind: str
+    inference_mode: str | None
+    queried_set: tuple[str, ...] | None
+
+
+def _normalize_query_claim_ids(
+    values: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None,
+) -> tuple[str, ...] | None:
+    if values is None:
+        return None
+    return tuple(sorted(dict.fromkeys(str(value) for value in values)))
+
+
+def praf_query_parameters(
+    *,
+    semantics: str | ArgumentationSemantics,
+    strategy: str,
+    query_kind: str,
+    inference_mode: str | None,
+    queried_set: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None = None,
+    target_claim_ids: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None = None,
+    default_queried_set: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None = None,
+) -> PrAFQueryParameters:
+    semantics_value = semantics.value if isinstance(semantics, ArgumentationSemantics) else str(semantics)
+    if semantics_value != ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE.value:
+        return PrAFQueryParameters(
+            semantics=semantics_value,
+            strategy=strategy,
+            query_kind=query_kind,
+            inference_mode=inference_mode,
+            queried_set=_normalize_query_claim_ids(queried_set),
+        )
+
+    normalized_queried = (
+        _normalize_query_claim_ids(queried_set)
+        or _normalize_query_claim_ids(target_claim_ids)
+        or _normalize_query_claim_ids(default_queried_set)
+    )
+    return PrAFQueryParameters(
+        semantics=ArgumentationSemantics.COMPLETE.value,
+        strategy="paper_td",
+        query_kind="extension_probability",
+        inference_mode=None,
+        queried_set=normalized_queried,
+    )
+
+
 def _cayrol_derived_defeats(
     defeats: set[tuple[str, str]],
     supports: set[tuple[str, str]],
@@ -764,13 +815,22 @@ def analyze_praf(
     from argumentation.probabilistic import compute_probabilistic_acceptance
 
     praf = build_praf_from_shared_input(shared)
-    praf_result = compute_probabilistic_acceptance(
-        praf.kernel,
+    query_parameters = praf_query_parameters(
         semantics=semantics,
         strategy=strategy,
         query_kind=query_kind,
         inference_mode=inference_mode,
         queried_set=queried_set,
+        target_claim_ids=target_claim_ids,
+        default_queried_set=praf.kernel.framework.arguments,
+    )
+    praf_result = compute_probabilistic_acceptance(
+        praf.kernel,
+        semantics=query_parameters.semantics,
+        strategy=query_parameters.strategy,
+        query_kind=query_parameters.query_kind,
+        inference_mode=query_parameters.inference_mode,
+        queried_set=query_parameters.queried_set,
         mc_epsilon=mc_epsilon,
         mc_confidence=mc_confidence,
         treewidth_cutoff=treewidth_cutoff,

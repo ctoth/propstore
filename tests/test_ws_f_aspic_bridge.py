@@ -5,10 +5,13 @@ from __future__ import annotations
 import ast
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from argumentation.aspic import Attack, GroundAtom, Literal, PremiseArg, Rule
+from argumentation.bipolar import BipolarArgumentationFramework
 from argumentation.dung import ArgumentationFramework
+from argumentation.probabilistic import PrAFResult
 
 from propstore.aspic_bridge import (
     build_bridge_csaf,
@@ -19,10 +22,18 @@ from propstore.aspic_bridge import (
     justifications_to_rules,
     stances_to_contrariness,
 )
+from propstore.app.world_reasoning import (
+    AppWorldExtensionsRequest,
+    WorldExtensionsStanceSummary,
+    _praf_extensions,
+)
 from propstore.aspic_bridge.build import compile_bridge_context
+from propstore.core.analyzers import SharedAnalyzerInput, analyze_praf
+from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import claim_key
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.probabilistic_relations import ClaimGraphRelations
 from propstore.structured_projection import (
     StructuredProjection,
     compute_structured_justified_arguments,
@@ -311,3 +322,127 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
         for rule in defeasible
         if rule.name and rule.name.startswith("named-defeater#")
     )
+
+
+def _minimal_praf_shared_input() -> SharedAnalyzerInput:
+    active_graph = ActiveWorldGraph(
+        compiled=CompiledWorldGraph(
+            claims=(
+                ClaimNode(
+                    claim_id="claim_a",
+                    claim_type="observation",
+                    attributes={"source_prior_base_rate": 0.5},
+                ),
+            )
+        ),
+        active_claim_ids=("claim_a",),
+    )
+    return SharedAnalyzerInput(
+        active_graph=active_graph,
+        comparison="elitist",
+        claims_by_id={
+            "claim_a": {
+                "id": "claim_a",
+                "source_prior_base_rate": 0.5,
+            },
+        },
+        stance_rows=(),
+        relations=ClaimGraphRelations(
+            arguments=frozenset({"claim_a"}),
+            attacks=frozenset(),
+            direct_defeats=frozenset(),
+            supports=frozenset(),
+        ),
+        argumentation_framework=ArgumentationFramework(
+            arguments=frozenset({"claim_a"}),
+            defeats=frozenset(),
+            attacks=frozenset(),
+        ),
+        bipolar_framework=BipolarArgumentationFramework(
+            arguments=frozenset({"claim_a"}),
+            defeats=frozenset(),
+            supports=frozenset(),
+        ),
+    )
+
+
+def test_praf_paper_td_complete_routes_core_analyzer_to_extension_probability() -> None:
+    result = analyze_praf(
+        _minimal_praf_shared_input(),
+        semantics="praf-paper-td-complete",
+        strategy="exact_enum",
+        query_kind="argument_acceptance",
+        inference_mode="credulous",
+        target_claim_ids=("claim_a",),
+    )
+
+    metadata = dict(result.metadata)
+    assert result.semantics == "praf-paper-td-complete"
+    assert metadata["strategy_used"] == "paper_td"
+    assert metadata["query_kind"] == "extension_probability"
+    assert metadata["inference_mode"] is None
+    assert metadata["queried_set"] == ("claim_a",)
+    assert metadata["extension_probability"] == pytest.approx(0.5)
+    assert metadata["acceptance_probs"] is None
+    assert result.projection is not None
+    assert result.projection.survivor_claim_ids == ("claim_a",)
+
+
+def test_praf_paper_td_complete_routes_app_report_to_extension_probability(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, object]] = []
+
+    def fake_build_praf(world: object, claim_ids: set[str], *, comparison: str) -> SimpleNamespace:
+        del world, comparison
+        return SimpleNamespace(kernel=SimpleNamespace(framework=SimpleNamespace(arguments=frozenset(claim_ids))))
+
+    def fake_compute(kernel: object, **kwargs: object) -> PrAFResult:
+        del kernel
+        calls.append(dict(kwargs))
+        return PrAFResult(
+            extension_probability=0.75,
+            strategy_used="paper_td",
+            strategy_requested="paper_td",
+            semantics="complete",
+            query_kind="extension_probability",
+            inference_mode=None,
+            queried_set=("claim_a",),
+        )
+
+    monkeypatch.setattr("propstore.praf.build_praf", fake_build_praf)
+    monkeypatch.setattr("argumentation.probabilistic.compute_probabilistic_acceptance", fake_compute)
+
+    report = _praf_extensions(
+        world=object(),
+        active=(),
+        claim_ids={"claim_a"},
+        request=AppWorldExtensionsRequest(
+            bindings={},
+            backend="praf",
+            semantics="praf-paper-td-complete",
+            praf_strategy="exact_enum",
+        ),
+        active_lines=(),
+        summary=WorldExtensionsStanceSummary(
+            total_stances=0,
+            included_as_attacks=0,
+            vacuous_count=0,
+            excluded_non_attack=0,
+            models=(),
+        ),
+    )
+
+    assert calls == [
+        {
+            "semantics": "complete",
+            "strategy": "paper_td",
+            "query_kind": "extension_probability",
+            "inference_mode": None,
+            "queried_set": ("claim_a",),
+            "mc_epsilon": 0.01,
+            "mc_confidence": 0.95,
+            "rng_seed": None,
+        }
+    ]
+    assert report.strategy_used == "paper_td"
+    assert report.extension_probability == pytest.approx(0.75)
+    assert report.acceptance_probabilities == ()
