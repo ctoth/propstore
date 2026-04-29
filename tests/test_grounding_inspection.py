@@ -26,8 +26,7 @@ def test_grounding_status_report_classifies_ready_surface(tmp_path) -> None:
     assert report.surface.predicate_files == ("reasoning_demo.yaml",)
     assert report.surface.rule_files == ("reasoning_demo.yaml",)
     assert report.facts_count == 1
-    assert dict(report.section_counts)["definitely"] == 1
-    assert dict(report.section_counts)["defeasibly"] == 2
+    assert dict(report.section_counts)["yes"] == 2
 
 
 def test_grounding_show_report_projects_rules_sections_and_arguments(tmp_path) -> None:
@@ -41,8 +40,8 @@ def test_grounding_show_report_projects_rules_sections_and_arguments(tmp_path) -
         "r_flies_from_bird: flies(tweety) -< bird(tweety)"
     ]
     sections = dict(show.sections)
-    assert "bird(tweety)" in sections["definitely"]
-    assert "flies(tweety)" in sections["defeasibly"]
+    assert "bird(tweety)" in sections["yes"]
+    assert "flies(tweety)" in sections["yes"]
     assert "bird(tweety) <= fact" in arguments.arguments
     assert "flies(tweety) <= r_flies_from_bird" in arguments.arguments
 
@@ -53,7 +52,7 @@ def test_grounding_explain_report_exposes_gunray_text(tmp_path) -> None:
     report = inspect_grounding_explain(repo, "flies(tweety)")
 
     assert report.atom == GroundAtom(predicate="flies", arguments=("tweety",))
-    assert report.matched_sections == ("defeasibly",)
+    assert report.matched_sections == ("yes",)
     assert report.explained_atom == report.atom
     assert report.prose == (
         "flies(tweety) is YES.\n"
@@ -77,7 +76,7 @@ def test_grounding_query_report_uses_typed_atom_parser(tmp_path) -> None:
         arguments=(1, 2.5, True, False, "x", "y"),
     )
     assert result.atom == GroundAtom(predicate="flies", arguments=("tweety",))
-    assert result.matched_sections == ("defeasibly",)
+    assert result.matched_sections == ("yes",)
     assert absent.matched_sections == ()
 
 

@@ -497,9 +497,17 @@ def _atom(predicate: str, terms=(), *, negated: bool = False):
 
 
 def _rule_doc(rule_id: str, kind: str, head, *, body=()):
-    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
 
-    return RuleDocument(id=rule_id, kind=kind, head=head, body=tuple(body))
+    return RuleDocument(
+        id=rule_id,
+        kind=kind,
+        head=head,
+        body=tuple(
+            BodyLiteralDocument(kind="positive", atom=atom)
+            for atom in body
+        ),
+    )
 
 
 def _rule_file(rules):
@@ -523,10 +531,10 @@ def _rule_file(rules):
 def _bundle(
     *,
     rules=(),
-    definitely: Mapping[str, frozenset[tuple]] | None = None,
-    defeasibly: Mapping[str, frozenset[tuple]] | None = None,
-    not_defeasibly: Mapping[str, frozenset[tuple]] | None = None,
+    yes: Mapping[str, frozenset[tuple]] | None = None,
+    no: Mapping[str, frozenset[tuple]] | None = None,
     undecided: Mapping[str, frozenset[tuple]] | None = None,
+    unknown: Mapping[str, frozenset[tuple]] | None = None,
 ):
     from propstore.grounding.bundle import GroundedRulesBundle
 
@@ -540,10 +548,10 @@ def _bundle(
         source_facts=(),
         sections=MappingProxyType(
             {
-                "definitely": _freeze(definitely),
-                "defeasibly": _freeze(defeasibly),
-                "not_defeasibly": _freeze(not_defeasibly),
+                "yes": _freeze(yes),
+                "no": _freeze(no),
                 "undecided": _freeze(undecided),
+                "unknown": _freeze(unknown),
             }
         ),
     )
@@ -558,11 +566,11 @@ class TestGroundFactInterventions:
         ordered_facts: tuple[tuple[str, tuple[str, ...]], tuple[str, tuple[str, ...]]],
     ) -> None:
         rows = frozenset(row for _pred, row in ordered_facts)
-        bundle = _bundle(definitely={"bird": rows})
+        bundle = _bundle(yes={"bird": rows})
         ranked = collect_ground_fact_interventions(bundle)
         assert {item.target.intervention_id for item in ranked} == {
-            'ground_fact:definitely:bird:[{"type":"str","value":"opus"}]',
-            'ground_fact:definitely:bird:[{"type":"str","value":"tweety"}]',
+            'ground_fact:yes:bird:[{"type":"str","value":"opus"}]',
+            'ground_fact:yes:bird:[{"type":"str","value":"tweety"}]',
         }
         assert all(item.target.kind is InterventionKind.GROUND_FACT for item in ranked)
 
@@ -575,10 +583,10 @@ class TestGroundFactInterventions:
         )
         supporting_bundle = _bundle(
             rules=(rule,),
-            definitely={"bird": frozenset({("tweety",)})},
+            yes={"bird": frozenset({("tweety",)})},
         )
         unused_bundle = _bundle(
-            definitely={"bird": frozenset({("tweety",)})},
+            yes={"bird": frozenset({("tweety",)})},
         )
         supporting = collect_ground_fact_interventions(supporting_bundle)[0]
         unused = collect_ground_fact_interventions(unused_bundle)[0]
@@ -597,7 +605,7 @@ class TestGroundedRuleInterventions:
         )
         bundle = _bundle(
             rules=(rule,),
-            definitely={"bird": frozenset({("tweety",), ("opus",)})},
+            yes={"bird": frozenset({("tweety",), ("opus",)})},
         )
         ranked = collect_grounded_rule_interventions(bundle)
         assert len(ranked) == 2
@@ -615,17 +623,17 @@ class TestGroundedRuleInterventions:
         )
         defeater_rule = _rule_doc(
             "rule:broken-wing",
-            "defeater",
+            "proper_defeater",
             _atom("flies", (_var("X"),), negated=True),
             body=(_atom("broken_wing", (_var("X"),)),),
         )
         defended_bundle = _bundle(
             rules=(target_rule,),
-            definitely={"bird": frozenset({("tweety",)})},
+            yes={"bird": frozenset({("tweety",)})},
         )
         undercut_bundle = _bundle(
             rules=(target_rule, defeater_rule),
-            definitely={
+            yes={
                 "bird": frozenset({("tweety",)}),
                 "broken_wing": frozenset({("tweety",)}),
             },
@@ -649,13 +657,13 @@ class TestBridgeUndercutInterventions:
         )
         defeater_rule = _rule_doc(
             "rule:broken-wing",
-            "defeater",
+            "proper_defeater",
             _atom("flies", (_var("X"),), negated=True),
             body=(_atom("broken_wing", (_var("X"),)),),
         )
         bundle = _bundle(
             rules=(target_rule, defeater_rule),
-            definitely={
+            yes={
                 "bird": frozenset({("tweety",)}),
                 "broken_wing": frozenset({("tweety",)}),
             },
@@ -679,20 +687,20 @@ class TestBridgeUndercutInterventions:
         )
         defeater_rule = _rule_doc(
             "rule:broken-wing",
-            "defeater",
+            "proper_defeater",
             _atom("flies", (_var("X"),), negated=True),
             body=(_atom("broken_wing", (_var("X"),)),),
         )
         bundle = _bundle(
             rules=(target_rule, defeater_rule),
-            definitely={
+            yes={
                 "bird": frozenset({("tweety",)}),
                 "broken_wing": frozenset({("tweety",)}),
             },
         )
         ranked = collect_bridge_undercut_interventions(bundle, (), [], ())
         assert len(ranked) == 1
-        assert ranked[0].local_fragility > 0.3
+        assert ranked[0].local_fragility == 0.3
         assert "attack_count=" in ranked[0].score_explanation
         assert "defeat_count=" in ranked[0].score_explanation
 

@@ -125,13 +125,18 @@ def _build_rule_document(
     grounder consumes authored strict, defeasible, and defeater rules.
     """
 
-    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
+
+    body_literals = tuple(
+        BodyLiteralDocument(kind="positive", atom=atom)
+        for atom in body
+    )
 
     return RuleDocument(
         id=rule_id,
         kind=kind,  # type: ignore[arg-type]
         head=head,
-        body=tuple(body),
+        body=body_literals,
     )
 
 
@@ -341,7 +346,7 @@ def rule_file_batches() -> st.SearchStrategy:
 # even when one or more sections are empty — that is the
 # non-commitment anchor from Garcia & Simari 2004 §4 (p.25, four-
 # valued answer system).
-_FOUR_SECTIONS = ("definitely", "defeasibly", "not_defeasibly", "undecided")
+_FOUR_SECTIONS = ("yes", "no", "undecided", "unknown")
 
 
 # ── Bundle tests ───────────────────────────────────────────────────
@@ -380,7 +385,7 @@ def test_bundle_sections_are_immutable() -> None:
 
     bundle = ground([], (), _bird_registry())
     with pytest.raises((TypeError, AttributeError)):
-        bundle.sections["definitely"] = {}  # type: ignore[index]
+        bundle.sections["yes"] = {}  # type: ignore[index]
 
 
 def test_bundle_section_keys_are_the_four_gunray_sections() -> None:
@@ -407,11 +412,11 @@ def test_bundle_section_keys_are_the_four_gunray_sections() -> None:
 @pytest.mark.property
 @given(facts=st.deferred(ground_atom_tuples))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_grounder_only_facts_no_rules_definitely_equals_input(facts) -> None:
+def test_grounder_only_facts_no_rules_yes_equals_input(facts) -> None:
     """Diller, Borg, Bex 2025 §3: the fact base is trivially in the
     ground model.
 
-    With no rules, every input fact appears in the ``definitely``
+    With no rules, every input fact appears in the ``yes``
     section under its predicate id, and no new facts are invented.
     Garcia & Simari 2004 §3 treats the Herbrand base as the
     initial state of the derivation.
@@ -421,16 +426,16 @@ def test_grounder_only_facts_no_rules_definitely_equals_input(facts) -> None:
 
     bundle = ground([], facts, _bird_registry())
 
-    # Every input fact shows up under definitely[predicate].
+    # Every input fact shows up under yes[predicate].
     for atom in facts:
-        rows = bundle.sections["definitely"].get(atom.predicate, frozenset())
+        rows = bundle.sections["yes"].get(atom.predicate, frozenset())
         assert tuple(atom.arguments) in {tuple(row) for row in rows}
 
-    # And the definitely section carries no rows the input didn't.
-    total_definitely_rows = sum(
-        len(rows) for rows in bundle.sections["definitely"].values()
+    # And the yes section carries no rows the input didn't.
+    total_yes_rows = sum(
+        len(rows) for rows in bundle.sections["yes"].values()
     )
-    assert total_definitely_rows == len(facts)
+    assert total_yes_rows == len(facts)
 
 
 @pytest.mark.property
@@ -542,11 +547,10 @@ def test_grounder_delp_birds_fly_tweety() -> None:
 
     Expected (from Garcia & Simari 2004 §4 four-valued answer
     system):
-    - ``bird(tweety)`` is strictly provable — it appears in
-      ``definitely['bird']``.
+    - ``bird(tweety)`` is warranted — it appears in ``yes['bird']``.
     - ``flies(tweety)`` is defeasibly provable via the single
       supporting rule with no attacker — it appears in
-      ``defeasibly['flies']``.
+      ``yes['flies']``.
     - The translator produces the gunray ``DefeasibleTheory`` with
       a stringified ``flies(X) -< bird(X)`` defeasible rule and the
       ``{'bird': [('tweety',)]}`` fact base, per Diller, Borg, Bex
@@ -568,12 +572,12 @@ def test_grounder_delp_birds_fly_tweety() -> None:
 
     bundle = ground([rule_file], facts, _bird_registry())
 
-    # bird(tweety) is strictly provable.
-    bird_rows = bundle.sections["definitely"].get("bird", frozenset())
+    # bird(tweety) is warranted.
+    bird_rows = bundle.sections["yes"].get("bird", frozenset())
     assert ("tweety",) in {tuple(row) for row in bird_rows}
 
-    # flies(tweety) is defeasibly provable.
-    flies_rows = bundle.sections["defeasibly"].get("flies", frozenset())
+    # flies(tweety) is warranted.
+    flies_rows = bundle.sections["yes"].get("flies", frozenset())
     assert ("tweety",) in {tuple(row) for row in flies_rows}
 
 
@@ -609,33 +613,33 @@ def test_grounder_multiple_facts_same_predicate_all_grounded() -> None:
 
     flies_rows = {
         tuple(row)
-        for row in bundle.sections["defeasibly"].get("flies", frozenset())
+        for row in bundle.sections["yes"].get("flies", frozenset())
     }
     assert ("tweety",) in flies_rows
     assert ("opus",) in flies_rows
 
 
-def test_grounder_policy_is_configurable() -> None:
-    """``ground(..., policy=...)`` threads the policy through to gunray.
+def test_grounder_marking_policy_is_configurable() -> None:
+    """``ground(..., marking_policy=...)`` threads the policy through to gunray.
 
     Garcia & Simari 2004 §4 (p.25) discusses ambiguity resolution in
     the four-valued answer system. Diller, Borg, Bex 2025 §3 invokes
     gunray's evaluator over the ground model, and gunray's
-    ``GunrayEvaluator.evaluate`` accepts a ``Policy`` enum argument
+    ``GunrayEvaluator.evaluate`` accepts a ``MarkingPolicy`` enum argument
     (``BLOCKING`` is the default). The grounder must accept a
-    ``policy`` keyword and thread it through so callers can switch
+    ``marking_policy`` keyword and thread it through so callers can switch
     regimes.
 
     Post-Block-2 (gunray notes/policy_propagating_fate.md) only
-    ``Policy.BLOCKING`` remains on the dialectical-tree path;
-    ``Policy.PROPAGATING`` was deprecated. This test therefore pins
+    ``MarkingPolicy.BLOCKING`` remains on the dialectical-tree path.
+    This test therefore pins
     the narrower contract: calling with an explicit
-    ``Policy.BLOCKING`` returns the same four-sectioned bundle as
+    ``MarkingPolicy.BLOCKING`` returns the same four-sectioned bundle as
     the default invocation, and both populate the canonical
     birds-fly derivation.
     """
 
-    from gunray.schema import Policy
+    from gunray.schema import MarkingPolicy
 
     from argumentation.aspic import GroundAtom
     from propstore.grounding.grounder import ground
@@ -650,23 +654,26 @@ def test_grounder_policy_is_configurable() -> None:
     facts = (GroundAtom("bird", ("tweety",)),)
 
     bundle_blocking = ground(
-        [rule_file], facts, _bird_registry(), policy=Policy.BLOCKING
+        [rule_file],
+        facts,
+        _bird_registry(),
+        marking_policy=MarkingPolicy.BLOCKING,
     )
     assert set(bundle_blocking.sections.keys()) == set(_FOUR_SECTIONS)
     flies_rows = {
         tuple(row)
-        for row in bundle_blocking.sections["defeasibly"].get(
+        for row in bundle_blocking.sections["yes"].get(
             "flies", frozenset()
         )
     }
     assert ("tweety",) in flies_rows
 
     # Default policy (BLOCKING) also works; both runs populate the
-    # canonical defeasibly-provable row.
+    # canonical warranted row.
     bundle_default = ground([rule_file], facts, _bird_registry())
     default_flies_rows = {
         tuple(row)
-        for row in bundle_default.sections["defeasibly"].get(
+        for row in bundle_default.sections["yes"].get(
             "flies", frozenset()
         )
     }

@@ -269,6 +269,7 @@ def test_projection_preserves_attack_without_defeat_and_rejects_unprojected_atta
 def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
     from propstore.families.documents.rules import (
         AtomDocument,
+        BodyLiteralDocument,
         RuleDocument,
         RuleSourceDocument,
         RulesFileDocument,
@@ -282,17 +283,27 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
         id="birds-fly",
         kind="defeasible",
         head=AtomDocument(predicate="flies", terms=(x,)),
-        body=(AtomDocument(predicate="bird", terms=(x,)),),
+        body=(
+            BodyLiteralDocument(
+                kind="positive",
+                atom=AtomDocument(predicate="bird", terms=(x,)),
+            ),
+        ),
     )
     defeater = RuleDocument(
         id="named-defeater",
-        kind="defeater",
+        kind="proper_defeater",
         head=AtomDocument(
             predicate="birds-fly",
             terms=(TermDocument(kind="const", value="tweety"),),
             negated=True,
         ),
-        body=(AtomDocument(predicate="exception", terms=(x,)),),
+        body=(
+            BodyLiteralDocument(
+                kind="positive",
+                atom=AtomDocument(predicate="exception", terms=(x,)),
+            ),
+        ),
     )
     loaded = LoadedDocument(
         filename="rules.yaml",
@@ -307,13 +318,13 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
         source_rules=(LoadedRuleFile.from_loaded_document(loaded),),
         source_facts=(),
         sections={
-            "definitely": {
+            "yes": {
                 "bird": frozenset({("tweety",)}),
                 "exception": frozenset({("tweety",)}),
             },
-            "defeasibly": {},
-            "not_defeasibly": {},
+            "no": {},
             "undecided": {},
+            "unknown": {},
         },
     )
 

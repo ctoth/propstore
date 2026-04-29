@@ -236,13 +236,16 @@ def _build_defeasible_rule(rule_id: str, head, body):
     ``-<`` arrow.
     """
 
-    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
 
     return RuleDocument(
         id=rule_id,
         kind="defeasible",
         head=head,
-        body=tuple(body),
+        body=tuple(
+            BodyLiteralDocument(kind="positive", atom=atom)
+            for atom in body
+        ),
     )
 
 
@@ -459,10 +462,10 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     # Diller, Borg, Bex 2025 §3: the bundle must carry the four
     # sections; the definitely section echoes the input facts and the
     # defeasibly section contains the ground rule head.
-    assert ("tweety",) in bundle.sections["definitely"].get(
+    assert ("tweety",) in bundle.sections["yes"].get(
         "bird", frozenset()
     )
-    assert ("tweety",) in bundle.sections["defeasibly"].get(
+    assert ("tweety",) in bundle.sections["yes"].get(
         "flies", frozenset()
     )
 
@@ -541,12 +544,12 @@ def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
     bundle = ground(empty_rule_files, facts, registry)
 
     # Facts are still present: Diller, Borg, Bex 2025 §3 Def 7.
-    assert ("tweety",) in bundle.sections["definitely"].get(
+    assert ("tweety",) in bundle.sections["yes"].get(
         "bird", frozenset()
     )
     # No derived ``flies`` entry — the defeasibly section has no
     # row for a predicate that no rule references.
-    assert bundle.sections["defeasibly"].get("flies", frozenset()) == frozenset()
+    assert bundle.sections["yes"].get("flies", frozenset()) == frozenset()
 
     # Querying a literal with no supporting rule now fails loudly:
     # the goal never enters the extended literal map, so the bridge
@@ -628,7 +631,7 @@ def test_tweety_multiple_birds_produces_multiple_arguments() -> None:
     assert GroundAtom(predicate="bird", arguments=("tweety",)) in facts
 
     bundle = ground(rule_files, facts, registry)
-    flies_rows = bundle.sections["defeasibly"].get("flies", frozenset())
+    flies_rows = bundle.sections["yes"].get("flies", frozenset())
     assert ("tweety",) in flies_rows
     assert ("opus",) in flies_rows
 
@@ -730,7 +733,7 @@ def test_tweety_rule_body_fact_missing_produces_zero_arguments() -> None:
     bundle = ground(rule_files, facts, registry)
     # The defeasibly section has no ``flies`` entry because there is
     # nothing to substitute ``X`` with.
-    assert bundle.sections["defeasibly"].get("flies", frozenset()) == frozenset()
+    assert bundle.sections["yes"].get("flies", frozenset()) == frozenset()
 
     csaf = build_bridge_csaf(
         active_claims=[],

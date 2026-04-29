@@ -65,13 +65,16 @@ def _make_rule_document(
     head,
     body=(),
 ):
-    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
 
     return RuleDocument(
         id=rule_id,
         kind="defeasible",
         head=head,
-        body=tuple(body),
+        body=tuple(
+            BodyLiteralDocument(kind="positive", atom=atom)
+            for atom in body
+        ),
     )
 
 
@@ -92,7 +95,7 @@ def _make_rule_file(rules):
     return LoadedRuleFile.from_loaded_document(loaded)
 
 
-def _make_grounded_bundle(rules=(), *, definitely=None, defeasibly=None):
+def _make_grounded_bundle(rules=(), *, yes=None):
     from types import MappingProxyType
 
     def _freeze(section):
@@ -114,10 +117,10 @@ def _make_grounded_bundle(rules=(), *, definitely=None, defeasibly=None):
         source_facts=(),
         sections=MappingProxyType(
             {
-                "definitely": _freeze(definitely),
-                "defeasibly": _freeze(defeasibly),
-                "not_defeasibly": MappingProxyType({}),
+                "yes": _freeze(yes),
+                "no": MappingProxyType({}),
                 "undecided": MappingProxyType({}),
+                "unknown": MappingProxyType({}),
             }
         ),
     )
@@ -158,7 +161,7 @@ def test_query_claim_accepts_ground_atom_goal_without_string_recovery() -> None:
                 (_make_atom("bird", (_make_var("X"),)),),
             ),
         ),
-        definitely={"bird": {("tweety",)}},
+        yes={"bird": {("tweety",)}},
     )
 
     result = query_claim(
@@ -186,7 +189,7 @@ def test_query_claim_treats_strongly_negated_fact_as_argument_against_ground_goa
                 (_make_atom("bird", (_make_var("X"),)),),
             ),
         ),
-        definitely={
+        yes={
             "bird": {("tweety",)},
             "~fly": {("tweety",)},
         },
@@ -214,7 +217,7 @@ def test_query_claim_matches_strongly_negated_body_atoms_from_bundle_sections() 
                 (_make_atom("fly", (_make_var("X"),), negated=True),),
             ),
         ),
-        definitely={
+        yes={
             "~fly": {("tweety",)},
         },
     )
@@ -312,7 +315,7 @@ def test_csaf_to_projection_keeps_grounded_arguments_and_subarguments() -> None:
                 (_make_atom("bird", (_make_var("X"),)),),
             ),
         ),
-        definitely={"bird": {("tweety",)}},
+        yes={"bird": {("tweety",)}},
     )
 
     csaf = build_bridge_csaf(
@@ -389,7 +392,7 @@ def test_undercut_target_justification_id_matches_grounded_rule_base_id() -> Non
                 (_make_atom("bird", (_make_var("X"),)),),
             ),
         ),
-        definitely={"bird": {("tweety",)}},
+        yes={"bird": {("tweety",)}},
     )
     _strict, defeasible, literals = grounded_rules_to_rules(bundle, literals)
 

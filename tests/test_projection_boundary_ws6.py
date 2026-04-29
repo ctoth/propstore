@@ -79,7 +79,7 @@ def test_grounded_backend_projection_has_typed_loss_witness_when_source_assertio
                 (_make_atom("bird", (_make_var("X"),)),),
             ),
         ),
-        definitely={"bird": {("tweety",)}},
+        yes={"bird": {("tweety",)}},
     )
     csaf = build_bridge_csaf([], [], [], bundle=bundle)
 

@@ -115,7 +115,12 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
     body atoms over any subset of that pool, then building the head over
     the subset of variables actually used in the body.
     """
-    from propstore.families.documents.rules import AtomDocument, RuleDocument, TermDocument  # noqa: E402
+    from propstore.families.documents.rules import (  # noqa: E402
+        AtomDocument,
+        BodyLiteralDocument,
+        RuleDocument,
+        TermDocument,
+    )
 
     @st.composite
     def _build(draw: st.DrawFn) -> RuleDocument:
@@ -151,7 +156,11 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
         head_vars = {t.name for t in head.terms if t.kind == "var" and t.name is not None}
         assert head_vars <= used  # strategy guarantees head vars come only from actually-used body vars
 
-        kind = draw(st.sampled_from(["strict", "defeasible", "defeater"]))
+        kind = draw(
+            st.sampled_from(
+                ["strict", "defeasible", "proper_defeater", "blocking_defeater"]
+            )
+        )
         rule_id = draw(
             st.text(
                 alphabet=st.characters(whitelist_categories=("Ll", "Nd")),
@@ -163,7 +172,10 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
             id=rule_id,
             kind=kind,
             head=head,
-            body=tuple(body),
+            body=tuple(
+                BodyLiteralDocument(kind="positive", atom=atom)
+                for atom in body
+            ),
         )
 
     return _build()
@@ -253,8 +265,8 @@ def test_rule_document_safety_body_covers_head_variables(doc) -> None:
         if term.kind == "var" and term.name is not None
     }
     body_vars: set[str] = set()
-    for atom in doc.body:
-        for term in atom.terms:
+    for literal in doc.body:
+        for term in literal.atom.terms:
             if term.kind == "var" and term.name is not None:
                 body_vars.add(term.name)
     assert head_vars <= body_vars, (
@@ -282,10 +294,12 @@ head:
     - {kind: var, name: X}
   negated: false
 body:
-  - predicate: bird
-    terms:
-      - {kind: var, name: X}
-    negated: false
+  - kind: positive
+    atom:
+      predicate: bird
+      terms:
+        - {kind: var, name: X}
+      negated: false
 """
     with pytest.raises(msgspec.ValidationError):
         msgspec.yaml.decode(invalid_yaml, type=RuleDocument, strict=True)
@@ -310,10 +324,12 @@ head:
     - {kind: var, name: X}
   negated: false
 body:
-  - predicate: bird
-    terms:
-      - {kind: var, name: X}
-    negated: false
+  - kind: positive
+    atom:
+      predicate: bird
+      terms:
+        - {kind: var, name: X}
+      negated: false
 mystery_field: hello
 """
     with pytest.raises(msgspec.ValidationError):
@@ -338,10 +354,12 @@ head:
     - {kind: var, name: X}
   negated: false
 body:
-  - predicate: bird
-    terms:
-      - {kind: var, name: X}
-    negated: false
+  - kind: positive
+    atom:
+      predicate: bird
+      terms:
+        - {kind: var, name: X}
+      negated: false
 """
     doc = msgspec.yaml.decode(yaml_text, type=RuleDocument, strict=True)
     assert doc.id == "rule:birds-fly"
@@ -349,8 +367,9 @@ body:
     assert doc.head.predicate == "flies"
     assert doc.head.terms[0].kind == "var"
     assert doc.head.terms[0].name == "X"
-    assert doc.body[0].predicate == "bird"
-    assert doc.body[0].terms[0].name == "X"
+    assert doc.body[0].kind == "positive"
+    assert doc.body[0].atom.predicate == "bird"
+    assert doc.body[0].atom.terms[0].name == "X"
 
 
 def test_rule_document_example_delp_penguin_strict() -> None:
@@ -372,15 +391,17 @@ head:
     - {kind: var, name: X}
   negated: false
 body:
-  - predicate: penguin
-    terms:
-      - {kind: var, name: X}
-    negated: false
+  - kind: positive
+    atom:
+      predicate: penguin
+      terms:
+        - {kind: var, name: X}
+      negated: false
 """
     doc = msgspec.yaml.decode(yaml_text, type=RuleDocument, strict=True)
     assert doc.kind == "strict"
     assert doc.head.predicate == "bird"
-    assert doc.body[0].predicate == "penguin"
+    assert doc.body[0].atom.predicate == "penguin"
 
 
 def test_rule_document_example_delp_strong_negation_head() -> None:
@@ -402,10 +423,12 @@ head:
     - {kind: var, name: X}
   negated: true
 body:
-  - predicate: penguin
-    terms:
-      - {kind: var, name: X}
-    negated: false
+  - kind: positive
+    atom:
+      predicate: penguin
+      terms:
+        - {kind: var, name: X}
+      negated: false
 """
     doc = msgspec.yaml.decode(yaml_text, type=RuleDocument, strict=True)
     assert doc.head.negated is True
@@ -440,6 +463,7 @@ def test_rules_file_document_preserves_authored_superiority() -> None:
     """
     from propstore.families.documents.rules import (  # noqa: E402
         AtomDocument,
+        BodyLiteralDocument,
         RuleDocument,
         RulesFileDocument,
         RuleSourceDocument,
@@ -490,6 +514,7 @@ def test_loaded_rule_file_from_loaded_document() -> None:
     from quire.documents import LoadedDocument
     from propstore.families.documents.rules import (  # noqa: E402
         AtomDocument,
+        BodyLiteralDocument,
         RuleDocument,
         RulesFileDocument,
         RuleSourceDocument,
@@ -506,10 +531,13 @@ def test_loaded_rule_file_from_loaded_document() -> None:
             negated=False,
         ),
         body=(
-            AtomDocument(
-                predicate="bird",
-                terms=(TermDocument(kind="var", name="X"),),
-                negated=False,
+            BodyLiteralDocument(
+                kind="positive",
+                atom=AtomDocument(
+                    predicate="bird",
+                    terms=(TermDocument(kind="var", name="X"),),
+                    negated=False,
+                ),
             ),
         ),
     )

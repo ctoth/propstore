@@ -149,13 +149,18 @@ def _build_rule_document(
     translator only accepts ``kind == "defeasible"``.
     """
 
-    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
+
+    body_literals = tuple(
+        BodyLiteralDocument(kind="positive", atom=atom)
+        for atom in body
+    )
 
     return RuleDocument(
         id=rule_id,
         kind=kind,  # type: ignore[arg-type]
         head=head,
-        body=tuple(body),
+        body=body_literals,
     )
 
 
@@ -321,7 +326,7 @@ def defeasible_rule_file_sequences() -> st.SearchStrategy:
                     rule_id=unique_id,
                     kind=base_rule.kind,
                     head=base_rule.head,
-                    body=base_rule.body,
+                    body=tuple(literal.atom for literal in base_rule.body),
                 )
             )
         # Split rules across 1..len files to exercise multi-file input.
@@ -494,7 +499,7 @@ def test_translate_rule_body_predicates_preserved(rule_files, facts) -> None:
         parsed_body_predicates = [
             parse_atom_text(item).predicate for item in schema_rule.body
         ]
-        expected = [atom.predicate for atom in rule_doc.body]
+        expected = [literal.atom.predicate for literal in rule_doc.body]
         assert parsed_body_predicates == expected
 
 
@@ -505,7 +510,9 @@ def test_translate_rule_body_predicates_preserved(rule_files, facts) -> None:
         min_size=1,
         max_size=8,
     ),
-    kind=st.sampled_from(["strict", "defeasible", "defeater"]),
+    kind=st.sampled_from(
+        ["strict", "defeasible", "proper_defeater", "blocking_defeater"]
+    ),
 )
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_translate_rule_kind_routes_to_matching_schema_slot(rule_id, kind) -> None:
@@ -526,7 +533,9 @@ def test_translate_rule_kind_routes_to_matching_schema_slot(rule_id, kind) -> No
 
     assert len(theory.strict_rules) == (1 if kind == "strict" else 0)
     assert len(theory.defeasible_rules) == (1 if kind == "defeasible" else 0)
-    assert len(theory.defeaters) == (1 if kind == "defeater" else 0)
+    assert len(theory.defeaters) == (
+        1 if kind in ("proper_defeater", "blocking_defeater") else 0
+    )
 
 
 @pytest.mark.property
@@ -703,7 +712,7 @@ def test_translate_defeater_rule_populates_defeaters() -> None:
 
     rule = _build_rule_document(
         rule_id="defeater_penguin",
-        kind="defeater",
+        kind="proper_defeater",
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("penguin", [_build_term_var("X")]),),
     )

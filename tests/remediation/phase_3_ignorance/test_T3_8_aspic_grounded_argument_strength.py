@@ -8,6 +8,7 @@ from quire.documents import LoadedDocument
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
 from propstore.families.documents.rules import (
     AtomDocument,
+    BodyLiteralDocument,
     RuleDocument,
     RuleSourceDocument,
     RulesFileDocument,
@@ -39,9 +40,12 @@ def test_grounded_argument_strength_not_zero() -> None:
             terms=(TermDocument(kind="var", name="X"),),
         ),
         body=(
-            AtomDocument(
-                predicate="bird",
-                terms=(TermDocument(kind="var", name="X"),),
+            BodyLiteralDocument(
+                kind="positive",
+                atom=AtomDocument(
+                    predicate="bird",
+                    terms=(TermDocument(kind="var", name="X"),),
+                ),
             ),
         ),
     )
@@ -50,10 +54,10 @@ def test_grounded_argument_strength_not_zero() -> None:
         source_facts=(),
         sections=MappingProxyType(
             {
-                "definitely": MappingProxyType({"bird": frozenset({("tweety",)})}),
-                "defeasibly": MappingProxyType({}),
-                "not_defeasibly": MappingProxyType({}),
+                "yes": MappingProxyType({"bird": frozenset({("tweety",)})}),
+                "no": MappingProxyType({}),
                 "undecided": MappingProxyType({}),
+                "unknown": MappingProxyType({}),
             }
         ),
     )

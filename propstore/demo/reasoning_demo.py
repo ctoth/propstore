@@ -140,8 +140,11 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                 },
                 "body": [
                     {
-                        "predicate": "bird",
-                        "terms": [{"kind": "var", "name": "X"}],
+                        "kind": "positive",
+                        "atom": {
+                            "predicate": "bird",
+                            "terms": [{"kind": "var", "name": "X"}],
+                        },
                     }
                 ],
             }

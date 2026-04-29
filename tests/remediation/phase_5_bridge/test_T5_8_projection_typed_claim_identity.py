@@ -18,7 +18,7 @@ def test_grounded_predicate_does_not_project_as_same_named_claim() -> None:
                 (_make_atom("bird", (_make_var("X"),)),),
             ),
         ),
-        definitely={"bird": {("tweety",)}},
+        yes={"bird": {("tweety",)}},
     )
     csaf = build_bridge_csaf([], [], [], bundle=bundle)
 

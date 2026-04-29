@@ -78,7 +78,7 @@ if TYPE_CHECKING:
     from argumentation.aspic import Literal, Rule
     from propstore.core.literal_keys import LiteralKey
     from propstore.grounding.bundle import GroundedRulesBundle
-    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +140,10 @@ def _rule_doc(rule_id: str, kind: str, head, body=()):
         id=rule_id,
         kind=kind,  # type: ignore[arg-type]
         head=head,
-        body=tuple(body),
+        body=tuple(
+            BodyLiteralDocument(kind="positive", atom=atom)
+            for atom in body
+        ),
     )
 
 
@@ -170,7 +173,7 @@ def _rule_file(rules):
     return LoadedRuleFile.from_loaded_document(loaded)
 
 
-def _bundle(rules=(), definitely=None, defeasibly=None):
+def _bundle(rules=(), yes=None):
     """Construct a ``GroundedRulesBundle`` with explicit section content.
 
     Accepts two flat ``{predicate_id: frozenset[tuple[Scalar, ...]]}``
@@ -201,10 +204,10 @@ def _bundle(rules=(), definitely=None, defeasibly=None):
 
     sections = MappingProxyType(
         {
-            "definitely": _freeze(definitely),
-            "defeasibly": _freeze(defeasibly),
-            "not_defeasibly": MappingProxyType({}),
+            "yes": _freeze(yes),
+            "no": MappingProxyType({}),
             "undecided": MappingProxyType({}),
+            "unknown": MappingProxyType({}),
         }
     )
     return GroundedRulesBundle(
@@ -229,7 +232,7 @@ def _empty_bundle() -> st.SearchStrategy:
     ``(frozenset(), frozenset(), literals)``.
     """
 
-    return st.builds(lambda _n: _bundle(rules=(), definitely={}, defeasibly={}), st.just(0))
+    return st.builds(lambda _n: _bundle(rules=(), yes={}), st.just(0))
 
 
 @st.composite
@@ -253,7 +256,7 @@ def _single_unary_rule_bundle(draw):
     head = _atom("flies", (_var("X"),))
     rule = _rule_doc("rule:birds-fly", "defeasible", head, body=body)
     facts = {"bird": frozenset((c,) for c in constants)}
-    return _bundle(rules=(rule,), definitely=facts, defeasibly={}), constants
+    return _bundle(rules=(rule,), yes=facts), constants
 
 
 # ---------------------------------------------------------------------------
@@ -443,8 +446,7 @@ def test_delp_birds_fly_tweety_produces_one_rule_instance() -> None:
     )
     bundle = _bundle(
         rules=(rule,),
-        definitely={"bird": frozenset([("tweety",)])},
-        defeasibly={},
+        yes={"bird": frozenset([("tweety",)])},
     )
     strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
     assert strict == frozenset()
@@ -482,8 +484,7 @@ def test_delp_birds_fly_two_birds_produces_two_rule_instances() -> None:
     )
     bundle = _bundle(
         rules=(rule,),
-        definitely={"bird": frozenset([("tweety",), ("opus",)])},
-        defeasibly={},
+        yes={"bird": frozenset([("tweety",), ("opus",)])},
     )
     _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
     assert len(defeasible) == 2
@@ -512,8 +513,7 @@ def test_rule_with_no_matching_fact_produces_zero_instances() -> None:
     )
     bundle = _bundle(
         rules=(rule,),
-        definitely={"mammal": frozenset([("fido",)])},
-        defeasibly={},
+        yes={"mammal": frozenset([("fido",)])},
     )
     strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
     assert strict == frozenset()
@@ -544,11 +544,10 @@ def test_multi_body_rule_requires_all_atoms_to_ground() -> None:
     )
     bundle = _bundle(
         rules=(rule,),
-        definitely={
+        yes={
             "bird": frozenset([("tweety",), ("opus",)]),
             "feathered": frozenset([("tweety",)]),
         },
-        defeasibly={},
     )
     _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
     assert len(defeasible) == 1
@@ -583,8 +582,7 @@ def test_nullary_predicate_rule_produces_one_instance() -> None:
     )
     bundle = _bundle(
         rules=(rule,),
-        definitely={"q": frozenset([()])},
-        defeasibly={},
+        yes={"q": frozenset([()])},
     )
     _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
     assert len(defeasible) == 1
@@ -619,8 +617,7 @@ def test_output_literals_include_grounded_atoms() -> None:
     )
     bundle = _bundle(
         rules=(rule,),
-        definitely={"bird": frozenset([("tweety",)])},
-        defeasibly={},
+        yes={"bird": frozenset([("tweety",)])},
     )
     _strict, defeasible, out_literals = grounded_rules_to_rules(bundle, {})
     # Every literal appearing in an emitted rule must be reachable
@@ -661,8 +658,7 @@ def test_existing_claim_literals_preserved() -> None:
     )
     bundle = _bundle(
         rules=(rule,),
-        definitely={"bird": frozenset([("tweety",)])},
-        defeasibly={},
+        yes={"bird": frozenset([("tweety",)])},
     )
     from propstore.core.literal_keys import claim_key
 
@@ -700,8 +696,7 @@ def test_strict_rule_in_bundle_populates_strict_rules() -> None:
     )
     bundle = _bundle(
         rules=(rule,),
-        definitely={"bird": frozenset([("tweety",)])},
-        defeasibly={},
+        yes={"bird": frozenset([("tweety",)])},
     )
     strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
     assert len(strict) == 1
@@ -726,7 +721,7 @@ def test_defeater_rule_in_bundle_emits_undercutter_rule() -> None:
     defeater_head.negated = True
     rule = _rule_doc(
         "rule:penguins-block-flight",
-        "defeater",
+        "proper_defeater",
         defeater_head,
         body=(_atom("penguin", (_var("X"),)),),
     )
@@ -738,11 +733,10 @@ def test_defeater_rule_in_bundle_emits_undercutter_rule() -> None:
     )
     bundle = _bundle(
         rules=(target_rule, rule),
-        definitely={
+        yes={
             "bird": frozenset([("opus",)]),
             "penguin": frozenset([("opus",)]),
         },
-        defeasibly={},
     )
     _strict, defeasible, out = grounded_rules_to_rules(bundle, {})
     emitted = {rule.name: rule for rule in defeasible if rule.name is not None}

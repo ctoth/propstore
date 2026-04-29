@@ -97,17 +97,17 @@ def _bundle_with_four_statuses():
         source_facts=(),
         sections=MappingProxyType(
             {
-                "definitely": MappingProxyType(
+                "yes": MappingProxyType(
                     {"strict_fact": frozenset({("claim-tweety",)})}
                 ),
-                "defeasibly": MappingProxyType(
-                    {"flies": frozenset({("tweety",)})}
-                ),
-                "not_defeasibly": MappingProxyType(
+                "no": MappingProxyType(
                     {"grounded_out": frozenset({("claim-flight",)})}
                 ),
                 "undecided": MappingProxyType(
                     {"contested": frozenset({("claim-flight",)})}
+                ),
+                "unknown": MappingProxyType(
+                    {"flies": frozenset({("tweety",)})}
                 ),
             }
         ),
@@ -233,8 +233,8 @@ def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
     with WorldModel(sidecar_path=sidecar_path) as world:
         bundle = world.grounding_bundle()
 
-    assert bundle.sections["defeasibly"]["flies"] == frozenset({("tweety",)})
-    assert bundle.sections["not_defeasibly"]["grounded_out"] == frozenset(
+    assert bundle.sections["unknown"]["flies"] == frozenset({("tweety",)})
+    assert bundle.sections["no"]["grounded_out"] == frozenset(
         {("claim-flight",)}
     )
     assert bundle.sections["undecided"]["contested"] == frozenset(

@@ -728,6 +728,7 @@ class TestPreferenceConfig:
         """
         from propstore.families.documents.rules import (
             AtomDocument,
+            BodyLiteralDocument,
             RuleDocument,
             RuleSourceDocument,
             RulesFileDocument,
@@ -741,13 +742,23 @@ class TestPreferenceConfig:
             id="r1",
             kind="defeasible",
             head=AtomDocument(predicate="flies", terms=(variable,)),
-            body=(AtomDocument(predicate="bird", terms=(variable,)),),
+            body=(
+                BodyLiteralDocument(
+                    kind="positive",
+                    atom=AtomDocument(predicate="bird", terms=(variable,)),
+                ),
+            ),
         )
         specific = RuleDocument(
             id="r2",
             kind="defeasible",
             head=AtomDocument(predicate="flies", terms=(variable,), negated=True),
-            body=(AtomDocument(predicate="penguin", terms=(variable,)),),
+            body=(
+                BodyLiteralDocument(
+                    kind="positive",
+                    atom=AtomDocument(predicate="penguin", terms=(variable,)),
+                ),
+            ),
         )
         rule_file = LoadedRuleFile.from_loaded_document(
             LoadedDocument(
@@ -765,13 +776,13 @@ class TestPreferenceConfig:
             source_rules=(rule_file,),
             source_facts=(),
             sections={
-                "definitely": {
+                "yes": {
                     "bird": frozenset({("tweety",)}),
                     "penguin": frozenset({("tweety",)}),
                 },
-                "defeasibly": {},
-                "not_defeasibly": {},
+                "no": {},
                 "undecided": {},
+                "unknown": {},
             },
         )
 

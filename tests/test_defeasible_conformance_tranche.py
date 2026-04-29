@@ -357,13 +357,19 @@ def _build_atom_document(atom_text: str):
 
 
 def _build_rule_document(rule: SuiteRule, *, kind: str):
-    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
 
     return RuleDocument(
         id=rule.id,
         kind=cast("str", kind),
         head=_build_atom_document(rule.head),
-        body=tuple(_build_atom_document(atom_text) for atom_text in rule.body),
+        body=tuple(
+            BodyLiteralDocument(
+                kind="positive",
+                atom=_build_atom_document(atom_text),
+            )
+            for atom_text in rule.body
+        ),
     )
 
 
@@ -375,7 +381,10 @@ def _build_rule_file(theory: SuiteTheory):
     rule_documents = [
         *(_build_rule_document(rule, kind="strict") for rule in theory.strict_rules),
         *(_build_rule_document(rule, kind="defeasible") for rule in theory.defeasible_rules),
-        *(_build_rule_document(rule, kind="defeater") for rule in theory.defeaters),
+        *(
+            _build_rule_document(rule, kind="proper_defeater")
+            for rule in theory.defeaters
+        ),
     ]
     loaded_document = LoadedDocument(
         filename="suite-derived.yaml",

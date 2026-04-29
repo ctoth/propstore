@@ -7,6 +7,7 @@ from quire.documents import LoadedDocument
 
 from propstore.families.documents.rules import (
     AtomDocument,
+    BodyLiteralDocument,
     RuleDocument,
     RuleSourceDocument,
     RulesFileDocument,
@@ -30,7 +31,15 @@ def _atom(predicate: str, terms=(), *, negated: bool = False) -> AtomDocument:
 
 
 def _rule_doc(rule_id: str, kind: str, head: AtomDocument, *, body=()) -> RuleDocument:
-    return RuleDocument(id=rule_id, kind=kind, head=head, body=tuple(body))
+    return RuleDocument(
+        id=rule_id,
+        kind=kind,
+        head=head,
+        body=tuple(
+            BodyLiteralDocument(kind="positive", atom=atom)
+            for atom in body
+        ),
+    )
 
 
 def _rule_file(rules: tuple[RuleDocument, ...]) -> LoadedRuleFile:
@@ -46,21 +55,21 @@ def _rule_file(rules: tuple[RuleDocument, ...]) -> LoadedRuleFile:
     return LoadedRuleFile.from_loaded_document(loaded)
 
 
-def _bundle(*, rules=(), definitely=None) -> GroundedRulesBundle:
+def _bundle(*, rules=(), yes=None) -> GroundedRulesBundle:
     return GroundedRulesBundle(
         source_rules=tuple([_rule_file(tuple(rules))] if rules else []),
         source_facts=(),
         sections=MappingProxyType(
             {
-                "definitely": MappingProxyType(
-                    {} if definitely is None else {
+                "yes": MappingProxyType(
+                    {} if yes is None else {
                         key: frozenset(value)
-                        for key, value in definitely.items()
+                        for key, value in yes.items()
                     }
                 ),
-                "defeasibly": MappingProxyType({}),
-                "not_defeasibly": MappingProxyType({}),
+                "no": MappingProxyType({}),
                 "undecided": MappingProxyType({}),
+                "unknown": MappingProxyType({}),
             }
         ),
     )
@@ -75,13 +84,13 @@ def test_fragility_coefficient_interventions_carry_cited_provenance_notes() -> N
     )
     defeater_rule = _rule_doc(
         "rule:broken-wing",
-        "defeater",
+        "proper_defeater",
         _atom("flies", (_var("X"),), negated=True),
         body=(_atom("broken_wing", (_var("X"),)),),
     )
     bundle = _bundle(
         rules=(target_rule, defeater_rule),
-        definitely={
+        yes={
             "bird": frozenset({("tweety",)}),
             "broken_wing": frozenset({("tweety",)}),
         },

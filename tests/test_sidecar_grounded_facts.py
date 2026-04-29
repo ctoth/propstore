@@ -128,7 +128,7 @@ def _make_bundle(
     # ``grounder.ground`` produces (see
     # ``propstore.grounding.grounder._normalise_sections``).
     normalized: dict[str, Mapping[str, frozenset[tuple[object, ...]]]] = {}
-    for name in ("definitely", "defeasibly", "not_defeasibly", "undecided"):
+    for name in ("yes", "no", "undecided", "unknown"):
         inner = sections.get(name, {})
         inner_frozen: dict[str, frozenset[tuple[object, ...]]] = {}
         for predicate_id, rows in inner.items():
@@ -203,10 +203,10 @@ def bundles_with_facts() -> st.SearchStrategy[GroundedRulesBundle]:
     """
     return st.fixed_dictionaries(
         {
-            "definitely": _INNER_MAP,
-            "defeasibly": _INNER_MAP,
-            "not_defeasibly": _INNER_MAP,
+            "yes": _INNER_MAP,
+            "no": _INNER_MAP,
             "undecided": _INNER_MAP,
+            "unknown": _INNER_MAP,
         }
     ).map(_make_bundle)
 
@@ -281,13 +281,13 @@ def test_grounded_fact_table_primary_key_uniqueness() -> None:
         conn.execute(
             "INSERT INTO grounded_fact (predicate, arguments, section) "
             "VALUES (?, ?, ?)",
-            ("bird", json.dumps(["tweety"]), "definitely"),
+            ("bird", json.dumps(["tweety"]), "yes"),
         )
         with pytest.raises(sqlite3.IntegrityError):
             conn.execute(
                 "INSERT INTO grounded_fact (predicate, arguments, section) "
                 "VALUES (?, ?, ?)",
-                ("bird", json.dumps(["tweety"]), "definitely"),
+                ("bird", json.dumps(["tweety"]), "yes"),
             )
     finally:
         conn.close()
@@ -335,7 +335,7 @@ def test_populate_single_fact_one_section() -> None:
     conn = _fresh_conn_with_schema()
     try:
         bundle = _make_bundle(
-            {"definitely": {"bird": frozenset({("tweety",)})}}
+            {"yes": {"bird": frozenset({("tweety",)})}}
         )
         inserted = populate_grounded_facts(conn, bundle)
         assert inserted == 1
@@ -346,7 +346,7 @@ def test_populate_single_fact_one_section() -> None:
         assert len(rows) == 1
         assert rows[0][0] == "bird"
         assert json.loads(rows[0][1]) == ["tweety"]
-        assert rows[0][2] == "definitely"
+        assert rows[0][2] == "yes"
     finally:
         conn.close()
 
@@ -368,8 +368,8 @@ def test_populate_same_atom_multiple_sections() -> None:
     try:
         bundle = _make_bundle(
             {
-                "definitely": {"bird": frozenset({("tweety",)})},
-                "defeasibly": {"bird": frozenset({("tweety",)})},
+                "yes": {"bird": frozenset({("tweety",)})},
+                "no": {"bird": frozenset({("tweety",)})},
             }
         )
         inserted = populate_grounded_facts(conn, bundle)
@@ -382,7 +382,7 @@ def test_populate_same_atom_multiple_sections() -> None:
                 "WHERE predicate = 'bird'"
             ).fetchall()
         }
-        assert sections == {"definitely", "defeasibly"}
+        assert sections == {"yes", "no"}
     finally:
         conn.close()
 
@@ -403,10 +403,10 @@ def test_populate_all_four_sections() -> None:
     try:
         bundle = _make_bundle(
             {
-                "definitely": {"p": frozenset({(1,)})},
-                "defeasibly": {"q": frozenset({(2,)})},
-                "not_defeasibly": {"r": frozenset({(3,)})},
+                "yes": {"p": frozenset({(1,)})},
+                "no": {"q": frozenset({(2,)})},
                 "undecided": {"s": frozenset({(4,)})},
+                "unknown": {"t": frozenset({(5,)})},
             }
         )
         inserted = populate_grounded_facts(conn, bundle)
@@ -418,10 +418,10 @@ def test_populate_all_four_sections() -> None:
             ).fetchall()
         )
         assert counts == {
-            "definitely": 1,
-            "defeasibly": 1,
-            "not_defeasibly": 1,
+            "yes": 1,
+            "no": 1,
             "undecided": 1,
+            "unknown": 1,
         }
     finally:
         conn.close()
@@ -487,10 +487,10 @@ def test_round_trip_empty_bundle() -> None:
         populate_grounded_facts(conn, bundle)
         result = read_grounded_facts(conn)
         assert set(result.keys()) == {
-            "definitely",
-            "defeasibly",
-            "not_defeasibly",
+            "yes",
+            "no",
             "undecided",
+            "unknown",
         }
         for section_name, inner in result.items():
             assert dict(inner.items()) == {}, (
@@ -516,15 +516,15 @@ def test_round_trip_single_fact() -> None:
     conn = _fresh_conn_with_schema()
     try:
         bundle = _make_bundle(
-            {"definitely": {"bird": frozenset({("tweety",)})}}
+            {"yes": {"bird": frozenset({("tweety",)})}}
         )
         populate_grounded_facts(conn, bundle)
         result = read_grounded_facts(conn)
 
-        assert dict(result["definitely"].items()) == {
+        assert dict(result["yes"].items()) == {
             "bird": frozenset({("tweety",)})
         }
-        for name in ("defeasibly", "not_defeasibly", "undecided"):
+        for name in ("no", "undecided", "unknown"):
             assert dict(result[name].items()) == {}
     finally:
         conn.close()
@@ -586,28 +586,24 @@ def test_round_trip_delp_birds_fly_tweety() -> None:
     try:
         bundle = _make_bundle(
             {
-                "definitely": {"bird": frozenset({("tweety",)})},
-                "defeasibly": {
+                "yes": {
                     "bird": frozenset({("tweety",)}),
                     "flies": frozenset({("tweety",)}),
                 },
             }
         )
         inserted = populate_grounded_facts(conn, bundle)
-        # 1 row for definitely.bird + 2 rows for defeasibly (bird,
-        # flies) = 3 total.
-        assert inserted == 3
+        # 2 rows for yes (bird, flies).
+        assert inserted == 2
 
         result = read_grounded_facts(conn)
-        assert dict(result["definitely"].items()) == {
-            "bird": frozenset({("tweety",)})
-        }
-        assert dict(result["defeasibly"].items()) == {
+        assert dict(result["yes"].items()) == {
             "bird": frozenset({("tweety",)}),
             "flies": frozenset({("tweety",)}),
         }
-        assert dict(result["not_defeasibly"].items()) == {}
+        assert dict(result["no"].items()) == {}
         assert dict(result["undecided"].items()) == {}
+        assert dict(result["unknown"].items()) == {}
     finally:
         conn.close()
 
@@ -633,9 +629,7 @@ def test_populate_requires_schema_created() -> None:
 
     conn = sqlite3.connect(":memory:")
     try:
-        bundle = _make_bundle(
-            {"definitely": {"bird": frozenset({("tweety",)})}}
-        )
+        bundle = _make_bundle({"yes": {"bird": frozenset({("tweety",)})}})
         with pytest.raises(sqlite3.OperationalError):
             populate_grounded_facts(conn, bundle)
     finally:
