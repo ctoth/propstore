@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import sqlite3
 from collections.abc import Sequence
+from typing import Protocol
 
 from propstore.core.embeddings import (
     EmbeddingEntity,
@@ -12,6 +13,23 @@ from propstore.core.embeddings import (
     concept_embedding_text,
 )
 from propstore.core.row_types import ClaimRow, ConceptRow
+
+
+class _EmbeddingModelIdentity(Protocol):
+    @property
+    def provider(self) -> str: ...
+
+    @property
+    def model_name(self) -> str: ...
+
+    @property
+    def model_version(self) -> str: ...
+
+    @property
+    def content_digest(self) -> str: ...
+
+    @property
+    def identity_hash(self) -> str: ...
 
 
 @dataclasses.dataclass
@@ -37,35 +55,42 @@ def _is_missing_table_error(error: sqlite3.OperationalError) -> bool:
 def ensure_embedding_tables(conn: sqlite3.Connection) -> None:
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS embedding_model (
-            model_key TEXT PRIMARY KEY,
+            model_identity_hash TEXT PRIMARY KEY,
+            provider TEXT NOT NULL,
             model_name TEXT NOT NULL,
+            model_version TEXT NOT NULL DEFAULT '',
+            content_digest TEXT NOT NULL,
             dimensions INTEGER NOT NULL,
             created_at TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS embedding_status (
-            model_key TEXT NOT NULL,
+            model_identity_hash TEXT NOT NULL,
             claim_id TEXT NOT NULL,
             content_hash TEXT NOT NULL,
             embedded_at TEXT NOT NULL,
-            PRIMARY KEY (model_key, claim_id)
+            PRIMARY KEY (model_identity_hash, claim_id)
         );
         CREATE TABLE IF NOT EXISTS concept_embedding_status (
-            model_key TEXT NOT NULL,
+            model_identity_hash TEXT NOT NULL,
             concept_id TEXT NOT NULL,
             content_hash TEXT NOT NULL,
             embedded_at TEXT NOT NULL,
-            PRIMARY KEY (model_key, concept_id)
+            PRIMARY KEY (model_identity_hash, concept_id)
         );
+        CREATE INDEX IF NOT EXISTS idx_embedding_status_model_identity
+            ON embedding_status(model_identity_hash);
+        CREATE INDEX IF NOT EXISTS idx_concept_embedding_status_model_identity
+            ON concept_embedding_status(model_identity_hash);
     """)
 
 
 def _ensure_vec_table(
     conn: sqlite3.Connection,
-    model_key: str,
+    model_identity_hash: str,
     dimensions: int,
     prefix: str,
 ) -> None:
-    table_name = f"{prefix}_{model_key}"
+    table_name = f"{prefix}_{model_identity_hash}"
     row = conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
         (table_name,),
@@ -85,7 +110,17 @@ class SidecarEmbeddingRegistry:
             return [
                 dict(row)
                 for row in self._conn.execute(
-                    "SELECT model_key, model_name, dimensions, created_at FROM embedding_model"
+                    """
+                    SELECT
+                        model_identity_hash,
+                        provider,
+                        model_name,
+                        model_version,
+                        content_digest,
+                        dimensions,
+                        created_at
+                    FROM embedding_model
+                    """
                 ).fetchall()
             ]
         except sqlite3.OperationalError as error:
@@ -107,13 +142,16 @@ class _SidecarEntityEmbeddingStore:
     def ensure_storage(self) -> None:
         ensure_embedding_tables(self._conn)
 
-    def existing_content_hashes(self, model_key: str) -> dict[str, str]:
+    def existing_content_hashes(
+        self,
+        model_identity: _EmbeddingModelIdentity,
+    ) -> dict[str, str]:
         existing: dict[str, str] = {}
         try:
             rows = self._conn.execute(
                 f"SELECT {self.status_id_column}, content_hash "
-                f"FROM {self.status_table} WHERE model_key=?",
-                (model_key,),
+                f"FROM {self.status_table} WHERE model_identity_hash=?",
+                (model_identity.identity_hash,),
             ).fetchall()
         except sqlite3.OperationalError as error:
             if not _is_missing_table_error(error):
@@ -125,30 +163,48 @@ class _SidecarEntityEmbeddingStore:
 
     def prepare_model(
         self,
-        model_key: str,
-        model_name: str,
+        model_identity: _EmbeddingModelIdentity,
         dimensions: int,
         created_at: str,
     ) -> None:
         self._conn.execute(
-            "INSERT OR REPLACE INTO embedding_model VALUES (?, ?, ?, ?)",
-            (model_key, model_name, dimensions, created_at),
+            """
+            INSERT OR REPLACE INTO embedding_model (
+                model_identity_hash,
+                provider,
+                model_name,
+                model_version,
+                content_digest,
+                dimensions,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                model_identity.identity_hash,
+                model_identity.provider,
+                model_identity.model_name,
+                model_identity.model_version,
+                model_identity.content_digest,
+                dimensions,
+                created_at,
+            ),
         )
         _ensure_vec_table(
             self._conn,
-            model_key,
+            model_identity.identity_hash,
             dimensions,
             prefix=self.vec_prefix,
         )
 
     def save_embedding(
         self,
-        model_key: str,
+        model_identity: _EmbeddingModelIdentity,
         entity: EmbeddingEntity,
         vector_blob: bytes,
         embedded_at: str,
     ) -> None:
-        table_name = f"{self.vec_prefix}_{model_key}"
+        model_identity_hash = model_identity.identity_hash
+        table_name = f"{self.vec_prefix}_{model_identity_hash}"
         self._conn.execute(f"DELETE FROM [{table_name}] WHERE rowid = ?", (entity.seq,))
         self._conn.execute(
             f"INSERT INTO [{table_name}](rowid, embedding) VALUES (?, ?)",
@@ -156,11 +212,20 @@ class _SidecarEntityEmbeddingStore:
         )
         self._conn.execute(
             f"INSERT OR REPLACE INTO {self.status_table} VALUES (?, ?, ?, ?)",
-            (model_key, entity.entity_id, entity.content_hash, embedded_at),
+            (
+                model_identity_hash,
+                entity.entity_id,
+                entity.content_hash,
+                embedded_at,
+            ),
         )
 
-    def vector_for(self, model_key: str, seq: int) -> bytes | None:
-        table_name = f"{self.vec_prefix}_{model_key}"
+    def vector_for(
+        self,
+        model_identity: _EmbeddingModelIdentity,
+        seq: int,
+    ) -> bytes | None:
+        table_name = f"{self.vec_prefix}_{model_identity.identity_hash}"
         row = self._conn.execute(
             f"SELECT embedding FROM [{table_name}] WHERE rowid = ?",
             (seq,),
@@ -169,11 +234,11 @@ class _SidecarEntityEmbeddingStore:
 
     def similar_entities(
         self,
-        model_key: str,
+        model_identity: _EmbeddingModelIdentity,
         query_vector: bytes,
         k: int,
     ) -> list[dict]:
-        table_name = f"{self.vec_prefix}_{model_key}"
+        table_name = f"{self.vec_prefix}_{model_identity.identity_hash}"
         rows = self._conn.execute(
             f"""SELECT v.rowid, v.distance, {self.join_columns}
                 FROM [{table_name}] v
@@ -355,22 +420,22 @@ class SidecarEmbeddingSnapshotStore:
         ]
         claim_vectors: dict[str, list[tuple[int, str, bytes]]] = {}
         for model in models:
-            model_key = model["model_key"]
-            table_name = f"claim_vec_{model_key}"
+            model_identity_hash = model["model_identity_hash"]
+            table_name = f"claim_vec_{model_identity_hash}"
             try:
                 rows = self._conn.execute(
                     f"""SELECT v.rowid, es.claim_id, v.embedding
                         FROM [{table_name}] v
-                        JOIN embedding_status es ON es.model_key = ?
+                        JOIN embedding_status es ON es.model_identity_hash = ?
                         JOIN claim_core c ON c.seq = v.rowid AND c.id = es.claim_id
-                        WHERE es.model_key = ?""",
-                    (model_key, model_key),
+                        WHERE es.model_identity_hash = ?""",
+                    (model_identity_hash, model_identity_hash),
                 ).fetchall()
             except sqlite3.OperationalError as error:
                 if not _is_missing_table_error(error):
                     raise
                 rows = []
-            claim_vectors[model_key] = [
+            claim_vectors[model_identity_hash] = [
                 (int(row[0]), str(row[1]), row[2])
                 for row in rows
             ]
@@ -389,22 +454,22 @@ class SidecarEmbeddingSnapshotStore:
 
         concept_vectors: dict[str, list[tuple[int, str, bytes]]] = {}
         for model in models:
-            model_key = model["model_key"]
-            table_name = f"concept_vec_{model_key}"
+            model_identity_hash = model["model_identity_hash"]
+            table_name = f"concept_vec_{model_identity_hash}"
             try:
                 rows = self._conn.execute(
                     f"""SELECT v.rowid, cs.concept_id, v.embedding
                         FROM [{table_name}] v
-                        JOIN concept_embedding_status cs ON cs.model_key = ?
+                        JOIN concept_embedding_status cs ON cs.model_identity_hash = ?
                         JOIN concept c ON c.seq = v.rowid AND c.id = cs.concept_id
-                        WHERE cs.model_key = ?""",
-                    (model_key, model_key),
+                        WHERE cs.model_identity_hash = ?""",
+                    (model_identity_hash, model_identity_hash),
                 ).fetchall()
             except sqlite3.OperationalError as error:
                 if not _is_missing_table_error(error):
                     raise
                 rows = []
-            concept_vectors[model_key] = [
+            concept_vectors[model_identity_hash] = [
                 (int(row[0]), str(row[1]), row[2])
                 for row in rows
             ]
@@ -442,39 +507,64 @@ class SidecarEmbeddingSnapshotStore:
             current_claims[str(row["id"])] = (int(row["seq"]), str(row["content_hash"]))
 
         status_lookup = {
-            (status["model_key"], status["claim_id"]): status["content_hash"]
+            (
+                status["model_identity_hash"],
+                status["claim_id"],
+            ): status["content_hash"]
             for status in snapshot.claim_statuses
         }
         embedded_at_lookup = {
-            (status["model_key"], status["claim_id"]): status.get("embedded_at", "")
+            (
+                status["model_identity_hash"],
+                status["claim_id"],
+            ): status.get("embedded_at", "")
             for status in snapshot.claim_statuses
         }
 
         for model in snapshot.models:
-            model_key = model["model_key"]
+            model_identity_hash = model["model_identity_hash"]
             self._conn.execute(
-                "INSERT OR REPLACE INTO embedding_model VALUES (?, ?, ?, ?)",
+                """
+                INSERT OR REPLACE INTO embedding_model (
+                    model_identity_hash,
+                    provider,
+                    model_name,
+                    model_version,
+                    content_digest,
+                    dimensions,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
                 (
-                    model_key,
+                    model_identity_hash,
+                    model["provider"],
                     model["model_name"],
+                    model["model_version"],
+                    model["content_digest"],
                     model["dimensions"],
                     model["created_at"],
                 ),
             )
             _ensure_vec_table(
                 self._conn,
-                model_key,
+                model_identity_hash,
                 int(model["dimensions"]),
                 prefix="claim_vec",
             )
-            table_name = f"claim_vec_{model_key}"
-            for _old_seq, claim_id, blob in snapshot.claim_vectors.get(model_key, []):
+            table_name = f"claim_vec_{model_identity_hash}"
+            for _old_seq, claim_id, blob in snapshot.claim_vectors.get(
+                model_identity_hash,
+                [],
+            ):
                 current = current_claims.get(claim_id)
                 if current is None:
                     report.orphaned += 1
                     continue
                 new_seq, current_hash = current
-                if current_hash != status_lookup.get((model_key, claim_id), ""):
+                if current_hash != status_lookup.get(
+                    (model_identity_hash, claim_id),
+                    "",
+                ):
                     report.stale += 1
                     continue
                 self._conn.execute(
@@ -484,10 +574,10 @@ class SidecarEmbeddingSnapshotStore:
                 self._conn.execute(
                     "INSERT OR REPLACE INTO embedding_status VALUES (?, ?, ?, ?)",
                     (
-                        model_key,
+                        model_identity_hash,
                         claim_id,
                         current_hash,
-                        embedded_at_lookup.get((model_key, claim_id), ""),
+                        embedded_at_lookup.get((model_identity_hash, claim_id), ""),
                     ),
                 )
                 report.restored += 1
@@ -513,30 +603,64 @@ class SidecarEmbeddingSnapshotStore:
             )
 
         status_lookup = {
-            (status["model_key"], status["concept_id"]): status["content_hash"]
+            (
+                status["model_identity_hash"],
+                status["concept_id"],
+            ): status["content_hash"]
             for status in snapshot.concept_statuses
         }
         embedded_at_lookup = {
-            (status["model_key"], status["concept_id"]): status.get("embedded_at", "")
+            (
+                status["model_identity_hash"],
+                status["concept_id"],
+            ): status.get("embedded_at", "")
             for status in snapshot.concept_statuses
         }
 
         for model in snapshot.models:
-            model_key = model["model_key"]
+            model_identity_hash = model["model_identity_hash"]
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO embedding_model (
+                    model_identity_hash,
+                    provider,
+                    model_name,
+                    model_version,
+                    content_digest,
+                    dimensions,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    model_identity_hash,
+                    model["provider"],
+                    model["model_name"],
+                    model["model_version"],
+                    model["content_digest"],
+                    model["dimensions"],
+                    model["created_at"],
+                ),
+            )
             _ensure_vec_table(
                 self._conn,
-                model_key,
+                model_identity_hash,
                 int(model["dimensions"]),
                 prefix="concept_vec",
             )
-            table_name = f"concept_vec_{model_key}"
-            for _old_seq, concept_id, blob in snapshot.concept_vectors.get(model_key, []):
+            table_name = f"concept_vec_{model_identity_hash}"
+            for _old_seq, concept_id, blob in snapshot.concept_vectors.get(
+                model_identity_hash,
+                [],
+            ):
                 current = current_concepts.get(concept_id)
                 if current is None:
                     report.orphaned += 1
                     continue
                 new_seq, current_hash = current
-                if current_hash != status_lookup.get((model_key, concept_id), ""):
+                if current_hash != status_lookup.get(
+                    (model_identity_hash, concept_id),
+                    "",
+                ):
                     report.stale += 1
                     continue
                 self._conn.execute(
@@ -546,10 +670,10 @@ class SidecarEmbeddingSnapshotStore:
                 self._conn.execute(
                     "INSERT OR REPLACE INTO concept_embedding_status VALUES (?, ?, ?, ?)",
                     (
-                        model_key,
+                        model_identity_hash,
                         concept_id,
                         current_hash,
-                        embedded_at_lookup.get((model_key, concept_id), ""),
+                        embedded_at_lookup.get((model_identity_hash, concept_id), ""),
                     ),
                 )
                 report.restored += 1

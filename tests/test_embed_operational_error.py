@@ -45,14 +45,14 @@ class TestEmbedEntitiesStoreProtocol:
                     )
                 ]
 
-            def existing_content_hashes(self, model_key):
+            def existing_content_hashes(self, model_identity):
                 return {}
 
-            def prepare_model(self, model_key, model_name, dimensions, created_at):
-                self.prepared = (model_key, model_name, dimensions, created_at)
+            def prepare_model(self, model_identity, dimensions, created_at):
+                self.prepared = (model_identity, dimensions, created_at)
 
-            def save_embedding(self, model_key, entity, vector_blob, embedded_at):
-                self.saved.append((model_key, entity, vector_blob, embedded_at))
+            def save_embedding(self, model_identity, entity, vector_blob, embedded_at):
+                self.saved.append((model_identity, entity, vector_blob, embedded_at))
 
         store = MemoryStore()
         litellm = MagicMock()
@@ -63,13 +63,18 @@ class TestEmbedEntitiesStoreProtocol:
 
         assert result == {"embedded": 1, "skipped": 0, "errors": 0}
         assert store.prepared is not None
-        assert store.prepared[:3] == ("provider_model", "provider/model", 2)
+        prepared_identity, dimensions, prepared_at = store.prepared
+        assert prepared_identity.provider == "litellm"
+        assert prepared_identity.model_name == "provider/model"
+        assert prepared_identity.model_version == ""
+        assert prepared_identity.content_digest.startswith("sha256:")
+        assert dimensions == 2
         assert len(store.saved) == 1
-        model_key, entity, vector_blob, embedded_at = store.saved[0]
-        assert model_key == "provider_model"
+        saved_identity, entity, vector_blob, embedded_at = store.saved[0]
+        assert saved_identity == prepared_identity
         assert entity.entity_id == "c1"
         assert _deserialize_float32(vector_blob) == [1.0, 2.0]
-        assert embedded_at == store.prepared[3]
+        assert embedded_at == prepared_at
 
 
 class _FailingConnection:
@@ -169,24 +174,27 @@ def _make_conn_with_schema():
     )
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS embedding_model (
-            model_key TEXT PRIMARY KEY,
+            model_identity_hash TEXT PRIMARY KEY,
+            provider TEXT NOT NULL,
             model_name TEXT NOT NULL,
+            model_version TEXT NOT NULL DEFAULT '',
+            content_digest TEXT NOT NULL,
             dimensions INTEGER NOT NULL,
             created_at TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS embedding_status (
-            model_key TEXT NOT NULL,
+            model_identity_hash TEXT NOT NULL,
             claim_id TEXT NOT NULL,
             content_hash TEXT NOT NULL,
             embedded_at TEXT NOT NULL,
-            PRIMARY KEY (model_key, claim_id)
+            PRIMARY KEY (model_identity_hash, claim_id)
         );
         CREATE TABLE IF NOT EXISTS concept_embedding_status (
-            model_key TEXT NOT NULL,
+            model_identity_hash TEXT NOT NULL,
             concept_id TEXT NOT NULL,
             content_hash TEXT NOT NULL,
             embedded_at TEXT NOT NULL,
-            PRIMARY KEY (model_key, concept_id)
+            PRIMARY KEY (model_identity_hash, concept_id)
         );
     """)
     return conn
@@ -224,7 +232,7 @@ class TestEmbedEntitiesOperationalError:
                     )
                 ]
 
-            def existing_content_hashes(self, model_key):
+            def existing_content_hashes(self, model_identity):
                 raise sqlite3.OperationalError("disk I/O error")
 
         mock_litellm = MagicMock()
@@ -255,7 +263,7 @@ class TestEmbedEntitiesOperationalError:
                     )
                 ]
 
-            def existing_content_hashes(self, model_key):
+            def existing_content_hashes(self, model_identity):
                 return {}
 
         mock_litellm = MagicMock()
