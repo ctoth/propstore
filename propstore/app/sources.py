@@ -188,7 +188,6 @@ def init_source(repo: Repository, request: SourceInitRequest) -> SourceBranchRep
 
 
 def finalize_source(repo: Repository, request: SourceNamedRequest) -> SourceBranchReport:
-    from propstore.heuristic.source_trust import derive_source_document_trust
     from propstore.source import finalize_source_branch
     from propstore.source.common import load_source_document
 
@@ -196,7 +195,7 @@ def finalize_source(repo: Repository, request: SourceNamedRequest) -> SourceBran
     finalize_source_branch(
         repo,
         request.name,
-        source_doc=derive_source_document_trust(repo, source_doc),
+        source_doc=source_doc,
     )
     return SourceBranchReport(branch=source_branch_name(request.name))
 
@@ -493,7 +492,6 @@ def propose_source_stance(
 
 
 def _auto_finalize_source(repo: Repository, name: str) -> SourceBatchReport:
-    from propstore.heuristic.source_trust import derive_source_document_trust
     from propstore.source import finalize_source_branch
     from propstore.source.common import load_source_document
 
@@ -501,7 +499,7 @@ def _auto_finalize_source(repo: Repository, name: str) -> SourceBatchReport:
     finalize_source_branch(
         repo,
         name,
-        source_doc=derive_source_document_trust(repo, source_doc),
+        source_doc=source_doc,
     )
     branch = source_branch_name(name)
     return SourceBatchReport(branch=branch, auto_finalized_branch=branch)
