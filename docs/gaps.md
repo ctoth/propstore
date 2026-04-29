@@ -53,6 +53,18 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ## Closed gaps (reference only — kept for traceability)
 
+### Closed 2026-04-29 (WS-H probabilistic argumentation correctness)
+- Codex #14 — `praf-paper-td-complete` now reaches the paper-TD extension-probability contract at the world-resolution boundary as well as the core/app analyzer paths, and `_resolve_praf` handles extension-probability projections instead of assuming `acceptance_probs`. Evidence: tests `tests/test_praf_paper_td_complete_routing.py`, `tests/test_ws_f_aspic_bridge.py::test_praf_paper_td_complete_routes_core_analyzer_to_extension_probability`, `tests/test_ws_f_aspic_bridge.py::test_praf_paper_td_complete_routes_app_report_to_extension_probability`.
+- Codex #15 — uncalibrated PrAF arguments and missing relation calibrations no longer shrink the kernel framework. They remain present with vacuous opinions and explicit omission records. Evidence: `tests/test_praf_uncalibrated_explicit.py`.
+- Codex #16 / Cluster F #4 — raw stance confidence no longer becomes dogmatic evidence or a W=2 prior-dominated probability. Missing effective sample size returns `NoCalibration`. Evidence: `tests/test_praf_raw_confidence_not_dogmatic.py`.
+- Cluster F #3 / #14 — scalar defeat marginals no longer manufacture calibrated subjective-logic evidence; the scalar is represented as a vacuous base-rate-bearing opinion. Evidence: `tests/test_defeat_summary_opinion_honest.py`.
+- Cluster F #12 — COH enforcement exposes typed soft convergence state, rejects dogmatic inputs without a magic pseudo-count, and still raises on non-convergence by default. Evidence: `tests/test_enforce_coh_convergence.py`.
+- Cluster F #16 — local sensitivity results are explicitly labeled `method="local_oat"`, and a separate `GlobalSensitivityResult` / `analyze_global_sensitivity` API carries Sobol first-order and total-index surfaces. Evidence: `tests/test_sensitivity_global_method_or_honest_naming.py`, `tests/test_sensitivity.py`.
+- Cluster F #25 — calibration exposes public `brier_score` and `log_loss` metrics with Guo 2017/NLL grounding. Evidence: `tests/test_calibrate_brier_and_log_loss.py`.
+- Cluster F #15 — `PropstorePrAF` omission maps are mapping-proxy immutable, so the frozen dataclass does not expose mutable omission state. Evidence: `tests/test_praf_frozen_immutable.py`.
+- Codex #17 / DF-QuAD consumer — upstream math remains owned by WS-O-arg-gradual; WS-H keeps a propstore-side scaffold in `tests/test_dfquad_attack_support_per_paper_contract.py` so the consumer pin has an explicit flip point.
+- D-18 / Codex 1.13 — propstore-side argument-enumeration budget surfacing remains gated on WS-M's consumer boundary; WS-H records the skipped budget gate in `tests/test_praf_argument_enumeration_budget.py`.
+
 ### Closed 2026-04-29 (WS-G belief revision, IC merge, and AF-revision consumption)
 - T2.6 — `revise(state, BOTTOM)` now returns the inconsistent belief set with all worlds at infinite Spohn rank instead of returning the unchanged input state. Evidence: commit `42f28877`; tests `tests/test_agm_K_star_2_inconsistent_input.py`, `tests/test_agm_postulate_audit.py`.
 - T2.2 / Codex #23 — AGM contraction now preserves OCF state by Harper-style `min(kappa, kappa * not phi)` ranks rather than flattening through `SpohnEpistemicState.from_belief_set`. Evidence: commit `42f28877`; test `tests/test_agm_contraction_preserves_spohn_state.py`.
