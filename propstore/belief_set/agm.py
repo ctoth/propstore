@@ -7,7 +7,11 @@ from datetime import datetime, timezone
 
 from propstore.belief_set.core import BeliefSet
 from propstore.belief_set.language import Formula, World, negate
+from propstore.core.anytime import EnumerationExceeded
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
+
+
+MAX_ALPHABET_SIZE = 16
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,9 +97,11 @@ def revise(
     formula: Formula,
     *,
     provenance: Provenance | None = None,
+    max_alphabet_size: int = MAX_ALPHABET_SIZE,
 ) -> RevisionOutcome:
     """Darwiche-Pearl 1997 bullet revision over a Spohn ranking."""
     signature = state.alphabet | formula.atoms()
+    _raise_if_alphabet_exceeds_budget(signature, max_alphabet_size)
     working_state = extend_state(state, signature)
     worlds = BeliefSet.all_worlds(signature)
     satisfying = tuple(world for world in worlds if formula.evaluate(world))
@@ -166,6 +172,19 @@ def _normalize_rank(rank: int | float, min_rank: float) -> int | float:
     if normalized.is_integer():
         return int(normalized)
     return normalized
+
+
+def _raise_if_alphabet_exceeds_budget(
+    signature: frozenset[str],
+    max_alphabet_size: int,
+) -> None:
+    if max_alphabet_size < 0:
+        raise ValueError("max_alphabet_size must be non-negative")
+    if len(signature) > max_alphabet_size:
+        raise EnumerationExceeded(
+            partial_count=0,
+            max_candidates=2 ** max_alphabet_size,
+        )
 
 
 def _trace_timestamp() -> datetime:
