@@ -247,39 +247,33 @@ under a budget (`weighted.py:81-113`). Companion function
 `minimum_budget_for_grounded_acceptance` is identical brute
 search (`weighted.py:116-135`).
 
-What is missing:
+Current status after WS-O-arg-vaf-ranking:
 
 - Dunne's α and γ measures (only β here).
 - Coste-Marquis weighted preferred / stable.
-- Bench-Capon 2003 Value-Based Argumentation Frameworks
-  with audience orderings and value annotations. The paper
-  is in the bibliography. `value_based.py` is a separately
-  named module that implements Wallner-2024 ASPIC+
-  filtering, NOT VAFs. Naming overload — surface looks like
-  VAF support, internals are different.
+- Bench-Capon 2003 Value-Based Argumentation Frameworks are
+  now implemented in `vaf.py` and propstore pins upstream
+  commit `c20f12939ccac558f8467d31c67d6cc1aa9e7908`.
+  `value_based.py` was deleted and the Wallner-2024 ASPIC+
+  surface moved to `subjective_aspic.py`.
+- Residual Bench-Capon pp. 438-447 algorithms remain open:
+  argument chains, lines of argument, parity classifications,
+  two-value cycle corollaries, and fact-as-highest-value
+  uncertainty handling.
 
 ### Ranking (Amgoud 2013, Bonzon 2016)
 
-`ranking.py` implements two semantics:
+Closed by WS-O-arg-vaf-ranking. `ranking.py` now exposes the
+seven scoped ranking semantics under the typed `RankingResult`
+contract: Categoriser, Burden, Discussion-based, Counting,
+Tuples-based, h-Categoriser, and Iterated-graded. `ranking_axioms.py`
+exposes the Amgoud 2013 axiom predicate suite. Propstore pins
+upstream commit `c20f12939ccac558f8467d31c67d6cc1aa9e7908`
+and proves the surface in
+`tests/architecture/test_argumentation_pin_vaf_ranking.py`.
 
-- Categoriser (`ranking.py:33`).
-- Burden numbers (`ranking.py:82`).
-
-Bonzon 2016 catalogues 6+ ranking-based semantics
-(Categoriser, Burden, Tuples-based, h-Categoriser,
-Discussion-based, Trust-based) and Amgoud 2013 axiomatises
-ranking-based semantics with Abstraction, Independence, Void
-Precedence, Self-Contradiction, Cardinality Precedence,
-Quality Precedence, Counter-Transitivity, Strict
-Counter-Transitivity, Defense Precedence, Distributed
-Defense Precedence, Strict Addition of Defense Branch.
-None of these axioms are exposed as predicates and only two
-semantics ship.
-
-`categoriser_scores` raises `RuntimeError` after `max_iterations`
-without convergence (`ranking.py:65`). `gradual.py:133`
-returns `converged=False`. Inconsistent error contracts in
-the same module group.
+`gradual.py` still owns its separate convergence contract and is
+left for WS-O-arg-gradual, which consumes `RankingResult`.
 
 ### Gradual (Potyka 2018, Al Anaissy 2024, Rago 2016)
 
@@ -652,10 +646,10 @@ the package:
   at the constructor boundary, but non-flat ABA remains a
   separate feature requiring distinct closure/correspondence
   analysis.
-- **Bench-Capon 2003 VAF** (paper in scope) — value-based
-  argumentation with audience orderings. The module
-  `value_based.py` is named misleadingly; it implements
-  Wallner 2024 ASPIC+ filtering, not VAFs.
+- **Bench-Capon 2003 VAF follow-up** — VAF/AVAF defeat and
+  acceptance are closed by WS-O-arg-vaf-ranking, but the paper's
+  pp. 438-447 line-of-argument and fact-uncertainty algorithms
+  remain unimplemented.
 - **Caminada 2006 labelling-as-semantics** (paper in scope)
   — `labelling.py` ships only a passive container with
   `from_extension`. There is no `legally_in`/`legally_out`
@@ -753,12 +747,10 @@ the package:
    you want propstore to depend on labelling-as-semantics, or
    is the current extension-only API sufficient?
 
-6. **value_based.py naming:** The module name suggests
-   Bench-Capon 2003 VAFs, but the implementation is Wallner
-   2024 ASPIC+ subjective filtering. propstore consumers
-   reading `from argumentation.value_based import ...` will
-   form wrong expectations. Worth flagging upstream rename
-   to `subjective_aspic.py` or similar?
+6. **value_based.py naming:** CLOSED by WS-O-arg-vaf-ranking.
+   The Wallner 2024 ASPIC+ subjective filtering module is now
+   `subjective_aspic.py`, and Bench-Capon VAF support lives in
+   `vaf.py`.
 
 7. **ExtensionRevisionState memory blowup
    (`af_revision.py:60`):** materialises ranking over `2^n`
