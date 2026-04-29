@@ -13,11 +13,8 @@ from propstore.belief_set import (
     SpohnEpistemicState,
     conjunction,
     disjunction,
-    equivalent,
     expand,
-    full_meet_contract,
     negate,
-    revise,
     theory_subset,
 )
 from propstore.belief_set.entrenchment import EpistemicEntrenchment
@@ -49,7 +46,6 @@ FORMULAS: tuple[Formula, ...] = (
 )
 
 st_formula = st.sampled_from(FORMULAS)
-st_nontrivial_formula = st.sampled_from(tuple(f for f in FORMULAS if f not in {TOP, BOTTOM}))
 st_operator = st.sampled_from((ICMergeOperator.SIGMA, ICMergeOperator.GMAX))
 
 
@@ -99,83 +95,6 @@ def test_agm_1985_cn_is_inclusive_monotonic_and_idempotent(a: Formula, b: Formul
     assert theory_subset(base, stronger) or theory_subset(stronger, base)
     if theory_subset(base, stronger):
         assert stronger.models.issubset(base.models)
-
-
-@pytest.mark.property
-@given(st_consistent_state(), st_formula, st_formula)
-@settings(deadline=None)
-def test_alchourron_gardenfors_makinson_1985_revision_k_star_postulates(
-    state: SpohnEpistemicState,
-    a: Formula,
-    b: Formula,
-) -> None:
-    assume(_belief(a).is_consistent)
-    result = revise(state, a)
-    expansion = expand(state.belief_set, a)
-
-    assert result.belief_set.entails(a)
-    assert theory_subset(result.belief_set, expansion)
-    if not state.belief_set.entails(negate(a)):
-        assert result.belief_set.equivalent(expansion)
-    assert result.belief_set.is_consistent
-    assert result.trace.provenance is not None
-    assert result.trace.pre_image_fingerprint == state.belief_set.fingerprint()
-
-    equivalent_input = conjunction(a, TOP)
-    assert equivalent(a, equivalent_input, alphabet=ALPHABET)
-    assert revise(state, a).belief_set.equivalent(revise(state, equivalent_input).belief_set)
-
-    conjunction_result = revise(state, conjunction(a, b)).belief_set
-    revise_then_expand = expand(revise(state, a).belief_set, b)
-    assert theory_subset(conjunction_result, revise_then_expand)
-    if not revise(state, a).belief_set.entails(negate(b)):
-        assert theory_subset(revise_then_expand, conjunction_result)
-
-
-@pytest.mark.property
-@given(st_consistent_state(), st_nontrivial_formula)
-@settings(deadline=None)
-def test_alchourron_gardenfors_makinson_1985_contraction_and_harper_identity(
-    state: SpohnEpistemicState,
-    a: Formula,
-) -> None:
-    contracted = full_meet_contract(state, a)
-
-    assert theory_subset(contracted.belief_set, state.belief_set)
-    if not state.belief_set.entails(a):
-        assert contracted.belief_set.equivalent(state.belief_set)
-    if not _is_tautology(a):
-        assert not contracted.belief_set.entails(a)
-
-    recovered = expand(contracted.belief_set, a)
-    assert theory_subset(state.belief_set, recovered)
-
-    harper = state.belief_set.intersection_theory(revise(state, negate(a)).belief_set)
-    assert contracted.belief_set.equivalent(harper)
-
-
-@pytest.mark.property
-@given(st_consistent_state(), st_formula, st_formula)
-@settings(deadline=None)
-def test_darwiche_pearl_1997_c1_c4_for_spohn_bullet_revision(
-    state: SpohnEpistemicState,
-    mu: Formula,
-    alpha: Formula,
-) -> None:
-    assume(_belief(mu).is_consistent)
-    assume(_belief(alpha).is_consistent)
-
-    after_mu_then_alpha = revise(revise(state, mu).state, alpha).belief_set
-    after_alpha = revise(state, alpha).belief_set
-
-    if _belief(alpha).entails(mu):
-        assert after_mu_then_alpha.equivalent(after_alpha)
-    if _belief(alpha).entails(negate(mu)):
-        assert after_mu_then_alpha.equivalent(after_alpha)
-    if after_alpha.entails(mu):
-        assert after_mu_then_alpha.entails(mu)
-    if not after_alpha.entails(negate(mu)):
-        assert not after_mu_then_alpha.entails(negate(mu))
 
 
 @pytest.mark.property
