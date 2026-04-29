@@ -261,19 +261,21 @@ under a budget (`weighted.py:81-113`). Companion function
 `minimum_budget_for_grounded_acceptance` is identical brute
 search (`weighted.py:116-135`).
 
-Current status after WS-O-arg-vaf-ranking:
+Current status after WS-O-arg-vaf-completion:
 
 - Dunne's α and γ measures (only β here).
 - Coste-Marquis weighted preferred / stable.
 - Bench-Capon 2003 Value-Based Argumentation Frameworks are
   now implemented in `vaf.py` and propstore pins upstream
-  commit `c20f12939ccac558f8467d31c67d6cc1aa9e7908`.
+  commit `0d036dfef91e8c47ed47e5b030fe9d510bc53295`.
   `value_based.py` was deleted and the Wallner-2024 ASPIC+
   surface moved to `subjective_aspic.py`.
-- Residual Bench-Capon pp. 438-447 algorithms remain open:
-  argument chains, lines of argument, parity classifications,
-  two-value cycle corollaries, and fact-as-highest-value
-  uncertainty handling. Tracked by `WS-O-arg-vaf-completion`.
+- Bench-Capon pp. 438-447 completion algorithms are now
+  implemented in `vaf_completion.py`: argument chains, lines
+  of argument, Theorem 6.6 parity classification, Corollary
+  6.7 two-value cycle helper, and fact-as-highest-value
+  uncertainty handling. Propstore proves the surface in
+  `tests/architecture/test_argumentation_pin_vaf_completion.py`.
 
 ### Ranking (Amgoud 2013, Bonzon 2016)
 
@@ -679,10 +681,11 @@ the package:
   at the constructor boundary, but non-flat ABA remains a
   separate feature requiring distinct closure/correspondence
   analysis.
-- **Bench-Capon 2003 VAF follow-up** — VAF/AVAF defeat and
-  acceptance are closed by WS-O-arg-vaf-ranking, but the paper's
-  pp. 438-447 line-of-argument and fact-uncertainty algorithms
-  remain unimplemented. Tracked by `WS-O-arg-vaf-completion`.
+- **Bench-Capon 2003 VAF follow-up** — CLOSED by
+  WS-O-arg-vaf-completion. VAF/AVAF defeat and acceptance are
+  closed by WS-O-arg-vaf-ranking, and the paper's pp. 438-447
+  line-of-argument and fact-uncertainty algorithms are now
+  exposed through `argumentation.vaf_completion`.
 - **Caminada 2006 labelling-as-semantics** (paper in scope)
   — `labelling.py` ships only a passive container with
   `from_extension`. There is no `legally_in`/`legally_out`
@@ -784,7 +787,8 @@ the package:
 6. **value_based.py naming:** CLOSED by WS-O-arg-vaf-ranking.
    The Wallner 2024 ASPIC+ subjective filtering module is now
    `subjective_aspic.py`, and Bench-Capon VAF support lives in
-   `vaf.py`.
+   `vaf.py`; the pp. 438-447 completion surface lives in
+   `vaf_completion.py`.
 
 7. **ExtensionRevisionState memory blowup
    (`af_revision.py:60`):** materialises ranking over `2^n`
