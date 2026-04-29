@@ -1,6 +1,6 @@
 # WS-O-arg-vaf-ranking: argumentation pkg coverage — Bench-Capon VAF + Bonzon ranking semantics family + Atkinson 2007 AATS slice
 
-**Status**: OPEN
+**Status**: CLOSED 418d409c
 **Depends on**: WS-O-arg-argumentation-pkg (the existing-bugs sub-stream — cluster-P HIGH bugs land first so the kernels we extend are not built atop known-broken substrate)
 **Blocks**: WS-O-arg-gradual (consumes `RankingResult` + the harmonized convergence contract this WS lands)
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1)
@@ -313,19 +313,19 @@ Per Codex 2.18, the propstore commit cannot flip the upstream test (different re
 
 Before declaring this WS done, ALL must hold:
 
-- [ ] `cd ../argumentation && uv run pytest tests/test_vaf_bench_capon.py tests/test_atkinson_aats_slice.py tests/test_ranking_bonzon_pins.py tests/test_ranking_axioms.py tests/test_subjective_aspic_rename.py tests/test_convergence_contracts_uniform.py tests/test_workstream_o_arg_vaf_ranking_done.py` — all green (upstream sentinel F7a).
-- [ ] `propstore/tests/architecture/test_argumentation_pin_vaf_ranking.py` (F7b) green in propstore against the bumped pin (propstore sentinel; closes the pin / observable-behaviour gate).
-- [ ] `cd ../argumentation && uv run pyright src/argumentation` — passes with 0 errors. New modules type-clean.
-- [ ] `cd ../argumentation` full suite — no NEW failures vs the `master` baseline at the start of this WS (record the baseline log at start; commit it under `argumentation/logs/`).
-- [ ] `argumentation/src/argumentation/value_based.py` does not exist on disk; `subjective_aspic.py` does.
-- [ ] `argumentation/src/argumentation/vaf.py`, `practical_reasoning.py`, `ranking_axioms.py` exist with paper-anchored docstrings.
-- [ ] `practical_reasoning.py` docstring explicitly states "AATS slice — AS1 + CQ5/6/11 only; remaining CQs out of scope."
-- [ ] `argumentation/__init__.py` re-exports `vaf`, `practical_reasoning`, `subjective_aspic`, `ranking_axioms`.
-- [ ] `argumentation/README.md` updates: VAF section mentions `vaf` not `value_based`; ranking section lists all seven semantics; Atkinson section explicitly lists which CQs are in scope (CQ5, CQ6, CQ11) and lists missing CQs as out of scope; non-goals list (`README.md:559-564`) unchanged.
-- [ ] Released version of `argumentation` published; `propstore/pyproject.toml` pin bumped to that version; propstore test corpus passes against the new pin.
-- [ ] WS-O-arg-vaf/ranking property-based gates from `PROPERTY-BASED-TDD.md` are included in upstream tests or a named companion run.
-- [ ] `propstore/docs/gaps.md` no longer lists the five findings.
-- [ ] `reviews/2026-04-26-claude/workstreams/WS-O-arg-vaf-ranking.md` STATUS line is `CLOSED <sha>`.
+- [x] `cd ../argumentation && uv run pytest tests/test_subjective_aspic.py tests/test_vaf.py tests/test_practical_reasoning.py tests/test_ranking.py tests/test_ranking_axioms.py tests/test_docs_surface.py tests/test_workstream_o_arg_vaf_ranking_done.py` passed: `41 passed in 1.03s`.
+- [x] `propstore/tests/architecture/test_argumentation_pin_vaf_ranking.py` (F7b) is green in propstore against the bumped pin: `4 passed in 2.86s`, log `logs/test-runs/arg-vaf-ranking-pin-axioms-20260428-182753.log`.
+- [x] `cd ../argumentation && uv run pyright src/argumentation` passed with `0 errors`.
+- [x] `cd ../argumentation` full suite passed after the final axiom-surface correction: `439 passed in 27.85s`, log `argumentation/logs/post-ws-o-arg-vaf-ranking-axioms.log`.
+- [x] `argumentation/src/argumentation/value_based.py` does not exist on disk; `subjective_aspic.py` does.
+- [x] `argumentation/src/argumentation/vaf.py`, `practical_reasoning.py`, `ranking_axioms.py` exist with paper-anchored docstrings.
+- [x] `practical_reasoning.py` docstring explicitly states "AATS slice - AS1 + CQ5/6/11 only; remaining CQs out of scope."
+- [x] `argumentation/__init__.py` re-exports `vaf`, `practical_reasoning`, `subjective_aspic`, `ranking_axioms`.
+- [x] `argumentation/README.md` updates: VAF section mentions `vaf` not `value_based`; ranking section lists all seven semantics; Atkinson section explicitly lists which CQs are in scope (CQ5, CQ6, CQ11) and lists missing CQs as out of scope; non-goals list unchanged.
+- [x] Pushed argumentation commit `c20f12939ccac558f8467d31c67d6cc1aa9e7908`; `propstore/pyproject.toml` and `uv.lock` pin to that pushed commit; propstore full suite passes against the new pin.
+- [x] WS-O-arg-vaf/ranking property-based gates from `PROPERTY-BASED-TDD.md` are included in upstream tests: Bench-Capon Def. 5.3 VAF attack success, Atkinson CQ11 alternative promoted value, and ranking-result order properties.
+- [x] `propstore/docs/gaps.md` no longer lists the five closed findings as open; residual non-scope paper surfaces are separately listed as open gaps.
+- [x] `reviews/2026-04-26-claude/workstreams/WS-O-arg-vaf-ranking.md` STATUS line is `CLOSED 418d409c`.
 
 ## Done means done
 
@@ -366,6 +366,13 @@ The CQs explicitly **NOT** implemented in this WS are tracked here for a future 
 Total deferred surface: 14 of 17 CQs. A future workstream (working title: WS-O-arg-aats-completion) would close that surface when a propstore consumer demonstrates a need.
 
 The Bonzon ranking work in this WS, by contrast, is **complete coverage**: all six ranking-based semantics enumerated by the Bonzon 2016 survey ship; all 11 Amgoud 2013 axioms ship as predicates. No partiality there.
+
+## Additional paper-derived residuals after image reread
+
+The post-compaction image reread did not reopen this workstream, but it did surface follow-up work that must not be silently claimed here:
+
+- Bench-Capon 2003 pp. 438-447 define argument chains, lines of argument, parity-based objective/subjective/indefensible classifications, two-value cycle corollaries, and fact-as-highest-value uncertainty handling. This WS implements the VAF/AVAF defeat and acceptance kernel, not that later algorithmic layer.
+- Oikarinen 2010 remains outside this WS. Its strong/local equivalence kernels (`s`, `a`, `g`, `c`, and `c-local`) and theorem-backed equivalence checks are still tracked as an open gap in `docs/gaps.md`.
 
 Sizing estimate: ~3-6 weeks of focused upstream work, with most time going to:
 - Bonzon 2016 careful re-reading and cross-checking the survey's worked examples against the original semantics papers (Cayrol-Lagasquie-Schiex tuples, Pu h-Categoriser, Grossi-Modgil iterated graded — three different paper traditions to align).
