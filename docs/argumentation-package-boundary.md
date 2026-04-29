@@ -2,8 +2,8 @@
 
 Date: 2026-04-18
 Status: implemented for Dung, ASPIC+, bipolar, partial AFs, AF revision,
-probabilistic / quantitative AF kernels, generic semantics dispatch, Dung Z3,
-and generic preference helpers
+probabilistic / quantitative AF kernels, gradual kernels, generic semantics
+dispatch, and generic preference helpers
 
 This document records the boundary between propstore and the external
 `argumentation` Python package.
@@ -27,14 +27,17 @@ The package contains the formal kernels:
 
 ```text
 argumentation.dung
-argumentation.dung_z3
 argumentation.aspic
 argumentation.bipolar
 argumentation.partial_af
 argumentation.af_revision
 argumentation.probabilistic
 argumentation.probabilistic_components
-argumentation.probabilistic_dfquad
+argumentation.dfquad
+argumentation.gradual
+argumentation.matt_toni
+argumentation.equational
+argumentation.gradual_principles
 argumentation.probabilistic_treedecomp
 argumentation.semantics
 argumentation.preference
@@ -44,14 +47,17 @@ argumentation.solver
 The core source files are:
 
 - `argumentation/src/argumentation/dung.py`
-- `argumentation/src/argumentation/dung_z3.py`
 - `argumentation/src/argumentation/aspic.py`
 - `argumentation/src/argumentation/bipolar.py`
 - `argumentation/src/argumentation/partial_af.py`
 - `argumentation/src/argumentation/af_revision.py`
 - `argumentation/src/argumentation/probabilistic.py`
 - `argumentation/src/argumentation/probabilistic_components.py`
-- `argumentation/src/argumentation/probabilistic_dfquad.py`
+- `argumentation/src/argumentation/dfquad.py`
+- `argumentation/src/argumentation/gradual.py`
+- `argumentation/src/argumentation/matt_toni.py`
+- `argumentation/src/argumentation/equational.py`
+- `argumentation/src/argumentation/gradual_principles.py`
 - `argumentation/src/argumentation/probabilistic_treedecomp.py`
 - `argumentation/src/argumentation/semantics.py`
 - `argumentation/src/argumentation/preference.py`
@@ -110,7 +116,11 @@ belief-set formulas remain propstore-owned adapters into that protocol.
 
 `argumentation.probabilistic` owns the float-valued probabilistic AF kernel:
 deterministic fallback, exact enumeration, Monte Carlo with component
-decomposition, tree-decomposition DP, and DF-QuAD / QBAF gradual semantics.
+decomposition, and tree-decomposition DP. `argumentation.dfquad` and
+`argumentation.gradual` own DF-QuAD / QBAF gradual semantics, while
+`argumentation.matt_toni`, `argumentation.equational`, and
+`argumentation.gradual_principles` own their named gradual kernels and principle
+predicates.
 Propstore keeps subjective-logic opinions, calibration, provenance rows, store
 projection, and CLI/worldline policy.
 
@@ -129,6 +139,8 @@ from argumentation.bipolar import BipolarArgumentationFramework
 from argumentation.partial_af import PartialArgumentationFramework
 from argumentation.af_revision import ExtensionRevisionState
 from argumentation.probabilistic import ProbabilisticAF
+from argumentation.dfquad import dfquad_strengths
+from argumentation.gradual import WeightedBipolarGraph
 from argumentation.semantics import extensions
 ```
 
