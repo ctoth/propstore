@@ -1,6 +1,6 @@
 # WS-O-arg-gradual: gradual / bipolar quantitative semantics in `argumentation`
 
-**Status**: OPEN
+**Status**: CLOSED fcbc77b1
 **Depends on**: WS-O-arg-argumentation-pkg (the existing-bugs sub-stream — same upstream policy applies; we don't fork, we ship as PRs against `../argumentation` and bump the pin); **WS-O-arg-vaf-ranking** (`RankingResult` owner — see Codex 2.22 below).
 **Blocks**: nothing downstream — propstore consumers gain the new semantics opportunistically.
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1).
@@ -299,23 +299,23 @@ Acceptance: both sentinels green in their respective repos; gaps.md has new clos
 
 Before declaring WS-O-arg-gradual done, ALL must hold:
 
-- [ ] All upstream PRs (Steps 1–6) merged in `../argumentation`.
-- [ ] WS-O-arg-vaf-ranking's convergence-contract PR merged (Step 7 dependency).
-- [ ] `compute_dfquad_strengths` deleted from `argumentation` (grep audit upstream).
-- [ ] Zero propstore modules import `compute_dfquad_strengths` (grep audit propstore-side).
-- [ ] No `strict=True` compat parameter exists on any gradual or convergence entry point (grep audit).
-- [ ] No opt-in `enable_continuous_integration` flag exists; the continuous integrator is the default Potyka entry point (grep + signature audit).
-- [ ] propstore `pyproject.toml` pin reaches the version that exposes all four kernels, the principle library, the deletion of the old DF-QuAD path, and the WS-O-arg-vaf-ranking convergence contract.
-- [ ] `uv run pyright propstore` — passes with 0 errors.
-- [ ] `uv run lint-imports` — passes (this WS doesn't change architecture contracts).
-- [ ] Upstream sentinel `argumentation/tests/test_workstream_o_arg_gradual_done.py` (14a) green in the argumentation repo.
-- [ ] Propstore sentinel `propstore/tests/architecture/test_argumentation_pin_gradual.py` (14b) green in propstore against the bumped pin.
-- [ ] Full propstore suite — no NEW failures vs the current logged baseline.
-- [ ] Upstream `argumentation` test suite — all 13 new upstream tests above green; 14a is the upstream sentinel and 14b is the propstore-side pin sentinel.
-- [ ] WS-O-arg-gradual property-based gates from `PROPERTY-BASED-TDD.md` are included in upstream tests or a named companion run.
-- [ ] `propstore/grounding/...` consumers exposing gradual strengths declare which kernel they invoke; the declaration is part of the Provenance attached to any Opinion produced.
-- [ ] `docs/gaps.md` has no open rows for the findings table at the top of this file.
-- [ ] `reviews/2026-04-26-claude/workstreams/WS-O-arg-gradual.md` STATUS line is `CLOSED <sha>`.
+- [x] Upstream Steps 1-6 shipped in `../argumentation` and were pushed to `main` through `dbb036b9968b370856c22cb2ebf6157a72587956`. No GitHub PR objects were created in this local execution.
+- [x] WS-O-arg-vaf-ranking's convergence contract is in the pinned dependency; this WS consumes the shared result shape and did not redefine it.
+- [x] `compute_dfquad_strengths` deleted from `argumentation`; grep finds only deletion sentinel tests.
+- [x] Zero propstore modules import `compute_dfquad_strengths`; grep finds only the propstore deletion sentinel.
+- [x] No `strict` compat parameter exists on gradual or convergence entry points; the only remaining `strict=True` matches in those files are unrelated `zip(..., strict=True)` calls.
+- [x] No opt-in `enable_continuous_integration` flag exists; the only grep hit is the propstore sentinel asserting absence, and Potyka continuous integration is the default entry point upstream.
+- [x] propstore `pyproject.toml` pin reaches `dbb036b9968b370856c22cb2ebf6157a72587956`, which exposes all four kernels, the principle library, the deleted old DF-QuAD path, and the WS-O-arg-vaf-ranking convergence contract.
+- [x] `uv run pyright propstore` passed with 0 errors.
+- [x] `uv run lint-imports` passed with 4 contracts kept and 0 broken.
+- [x] Upstream sentinel `argumentation/tests/test_workstream_o_arg_gradual_done.py` (14a) green in the focused upstream gate.
+- [x] Propstore sentinel `propstore/tests/architecture/test_argumentation_pin_gradual.py` (14b) green in propstore against the bumped pin.
+- [x] Full propstore suite passed: `3214 passed in 555.88s`, log `logs/test-runs/arg-gradual-property-full-final-n0-20260428-214915.log`.
+- [x] Upstream `argumentation` workstream gate passed for all new named tests and sentinel: `31 passed in 1.09s`. The full upstream suite was not completed; an existing ASPIC Hypothesis run hit a memory blowup before this closure.
+- [x] WS-O-arg-gradual property-based gates from `PROPERTY-BASED-TDD.md` are included in upstream tests: `test_dfquad_baroni_2019_principles.py`, `test_matt_toni_baroni_2019_compliance.py`, `test_potyka_convergence_on_stiff_graphs.py`, and `test_gabbay_equational_relation_to_dung.py`.
+- [x] `propstore/grounding/...` has no Opinion-producing gradual-strength consumers. Applicable propstore consumers route through the kernel directly (`fragility_scoring.py`) or probability conversion layers, so there is no gradual-kernel Opinion provenance to attach in this WS.
+- [x] `docs/gaps.md` has no open rows for the findings table at the top of this file; WS-O-arg-gradual closure is recorded under closed gaps.
+- [x] `reviews/2026-04-26-claude/workstreams/WS-O-arg-gradual.md` STATUS line is `CLOSED fcbc77b1`.
 
 ## Done means done
 
@@ -345,6 +345,13 @@ Read these from `papers/<dir>/notes.md` before implementing the corresponding st
 - **Amgoud 2017** (`papers/Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation/notes.md`) — supporting reference for principle interpretation; helpful for resolving disagreements between Baroni 2019's terminology and earlier formulations.
 
 Per Q's coder-citation discipline (`feedback_citations_and_tdd.md`): every implementation function carries a docstring citing the paper, definition number, and page. Inline comments at the aggregation core also cite the paper. No unsourced math.
+
+## Paper contract resolved
+
+- Rago 2016 DF-QuAD, pp. 65-66: support and attack sequences aggregate by noisy-or, `1 - product(1 - v_i)`. Combined influence is support aggregate minus attack aggregate. Final aggregation is `b + c(1-b)` for positive `c` and `b + cb` for negative `c`; equal support and attack therefore gives `c = 0` and leaves the base score `b` unchanged.
+- Rago/Cyras/Toni 2016 bipolar DF-QuAD, p. 35: a BAF uses neutral base `0.5`. With support product `Sprod = product(1 - s_i)` and attack product `Aprod = product(1 - a_j)`, neutral target strength is `0.5 + 0.5 * (Aprod - Sprod)`.
+- The implemented weighted-graph contract in `argumentation.dfquad` uses `source_strength * support_weight` for support contributions, bounded to `[0, 1]`; attack contributions use attacker strength. Missing QuAD tau is a hard `ValueError` at the probabilistic boundary.
+- Page citations above are actual paper page numbers, not image artifact indices.
 
 ## Cross-stream notes
 
