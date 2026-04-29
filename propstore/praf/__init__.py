@@ -3,6 +3,7 @@
 from .engine import (
     COHDivergenceError,
     COHDogmaticInputError,
+    EnforceCohResult,
     NoCalibration,
     PreferenceLayerError,
     PropstorePrAF,
@@ -18,6 +19,7 @@ from .projection import build_praf
 __all__ = [
     "COHDivergenceError",
     "COHDogmaticInputError",
+    "EnforceCohResult",
     "NoCalibration",
     "PreferenceLayerError",
     "PropstorePrAF",

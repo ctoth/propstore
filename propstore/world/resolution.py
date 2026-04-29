@@ -649,6 +649,7 @@ def _resolve_praf(
     """
     from propstore.core.analyzers import (
         analyze_praf,
+        praf_query_parameters,
         shared_analyzer_input_from_active_graph,
         shared_analyzer_input_from_store,
     )
@@ -684,12 +685,20 @@ def _resolve_praf(
         if active_graph is not None
         else shared_analyzer_input_from_store(world, active_ids, comparison=comparison)
     )
-    result = analyze_praf(
-        shared,
+    query_parameters = praf_query_parameters(
         semantics=normalized_semantics,
         strategy=strategy,
         query_kind="argument_acceptance",
         inference_mode="credulous",
+        target_claim_ids=target_ids,
+    )
+    result = analyze_praf(
+        shared,
+        semantics=normalized_semantics,
+        strategy=query_parameters.strategy,
+        query_kind=query_parameters.query_kind,
+        inference_mode=query_parameters.inference_mode,
+        queried_set=query_parameters.queried_set,
         mc_epsilon=mc_epsilon,
         mc_confidence=mc_confidence,
         treewidth_cutoff=treewidth_cutoff,
@@ -700,6 +709,30 @@ def _resolve_praf(
     acceptance = metadata["acceptance_probs"]
     strategy_used = metadata["strategy_used"]
     projection = result.projection
+
+    if acceptance is None:
+        extension_probability = metadata.get("extension_probability")
+        best_claims = list(projection.survivor_claim_ids if projection is not None else ())
+        if len(best_claims) == 1:
+            winner = best_claims[0]
+            return (
+                winner,
+                f"PrAF extension probability ({float(extension_probability):.4f}) "
+                f"via {strategy_used} ({semantics})",
+                None,
+            )
+        if not best_claims:
+            return (
+                None,
+                f"no target extension witness via {strategy_used} ({semantics})",
+                None,
+            )
+        return (
+            None,
+            f"{len(best_claims)} claims share extension-probability witness "
+            f"via {strategy_used} ({semantics})",
+            None,
+        )
 
     # Filter to target claims and find winner by highest acceptance prob
     target_probs = {cid: acceptance.get(cid, 0.0) for cid in target_ids}

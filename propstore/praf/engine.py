@@ -6,6 +6,7 @@ keeps propstore-owned calibration, opinion, provenance, and diagnostic surfaces.
 
 from __future__ import annotations
 
+from types import MappingProxyType
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -61,16 +62,34 @@ class PropstorePrAF:
     attack_relations: tuple[ProbabilisticRelation, ...] = ()
     support_relations: tuple[ProbabilisticRelation, ...] = ()
     direct_defeat_relations: tuple[ProbabilisticRelation, ...] = ()
-    omitted_arguments: dict[str, NoCalibration] | None = None
-    omitted_relations: dict[tuple[str, str], NoCalibration] | None = None
+    omitted_arguments: Mapping[str, NoCalibration] | None = None
+    omitted_relations: Mapping[tuple[str, str], NoCalibration] | None = None
 
     @property
     def framework(self):
         return self.kernel.framework
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "omitted_arguments", dict(self.omitted_arguments or {}))
-        object.__setattr__(self, "omitted_relations", dict(self.omitted_relations or {}))
+        object.__setattr__(
+            self,
+            "omitted_arguments",
+            MappingProxyType(dict(self.omitted_arguments or {})),
+        )
+        object.__setattr__(
+            self,
+            "omitted_relations",
+            MappingProxyType(dict(self.omitted_relations or {})),
+        )
+
+
+@dataclass(frozen=True)
+class EnforceCohResult:
+    """Soft-return COH enforcement result with explicit convergence state."""
+
+    praf: PropstorePrAF
+    converged: bool
+    iterations: int
+    max_violation: float
 
 
 def _opinion_expectation_map(
@@ -297,20 +316,19 @@ def p_relation_from_stance(stance: dict) -> Opinion | NoCalibration:
             return _missing_calibration("missing_base_rate", "opinion_base_rate")
         a = float(stance["opinion_base_rate"])
         if confidence_value >= 1.0 - 1e-12:
-            return Opinion.dogmatic_true(
-                a,
-                provenance=_praf_provenance(ProvenanceStatus.STATED, "stance_confidence"),
+            return _missing_calibration(
+                "raw_confidence_not_evidence",
+                "effective_sample_size",
+                "sample_size",
             )
         effective_sample_size = stance.get("effective_sample_size")
         if effective_sample_size is None:
             effective_sample_size = stance.get("sample_size")
         if effective_sample_size is None or float(effective_sample_size) <= 0.0:
-            return Opinion.vacuous(
-                a,
-                provenance=_praf_provenance(
-                    ProvenanceStatus.VACUOUS,
-                    "stance_confidence_without_sample_size",
-                ),
+            return _missing_calibration(
+                "missing_evidence_count",
+                "effective_sample_size",
+                "sample_size",
             )
         return from_probability(
             confidence_value,
@@ -336,16 +354,28 @@ def _has_coh_violation(
     expectations: Mapping[str, float],
     attacks: frozenset[tuple[str, str]],
 ) -> bool:
+    return _max_coh_violation(expectations, attacks) > _COH_TOLERANCE
+
+
+def _max_coh_violation(
+    expectations: Mapping[str, float],
+    attacks: frozenset[tuple[str, str]],
+) -> float:
+    max_violation = 0.0
     for src, tgt in attacks:
         if src == tgt:
-            if expectations[src] > 0.5 + _COH_TOLERANCE:
-                return True
+            max_violation = max(max_violation, expectations[src] - 0.5)
         elif expectations[src] + expectations[tgt] > 1.0 + _COH_TOLERANCE:
-            return True
-    return False
+            max_violation = max(max_violation, expectations[src] + expectations[tgt] - 1.0)
+    return max(0.0, max_violation)
 
 
-def enforce_coh(praf: PropstorePrAF) -> PropstorePrAF:
+def enforce_coh(
+    praf: PropstorePrAF,
+    *,
+    max_iterations: int = _COH_MAX_ITERATIONS,
+    soft: bool = False,
+) -> PropstorePrAF | EnforceCohResult:
     """Enforce COH rationality on propstore opinion-valued argument probabilities."""
     attacks = praf.framework.attacks
     if attacks is None:
@@ -369,7 +399,8 @@ def enforce_coh(praf: PropstorePrAF) -> PropstorePrAF:
             )
 
     changed = False
-    for _ in range(_COH_MAX_ITERATIONS):
+    iterations = 0
+    for _ in range(max_iterations):
         any_violation = False
         for src, tgt in attacks:
             if src == tgt:
@@ -387,13 +418,30 @@ def enforce_coh(praf: PropstorePrAF) -> PropstorePrAF:
                     changed = True
         if not any_violation:
             break
+        iterations += 1
 
-    if _has_coh_violation(expectations, attacks):
+    max_violation = _max_coh_violation(expectations, attacks)
+    converged = max_violation <= _COH_TOLERANCE
+    if not converged:
+        if soft:
+            return EnforceCohResult(
+                praf=praf,
+                converged=False,
+                iterations=iterations,
+                max_violation=max_violation,
+            )
         raise COHDivergenceError(
-            f"enforce_coh did not converge within {_COH_MAX_ITERATIONS} iterations"
+            f"enforce_coh did not converge within {max_iterations} iterations"
         )
 
     if not changed:
+        if soft:
+            return EnforceCohResult(
+                praf=praf,
+                converged=True,
+                iterations=iterations,
+                max_violation=max_violation,
+            )
         return praf
 
     new_p_args: dict[str, Opinion] = {}
@@ -420,7 +468,7 @@ def enforce_coh(praf: PropstorePrAF) -> PropstorePrAF:
         p_supports=_opinion_expectation_map(praf.p_supports),
         base_defeats=praf.base_defeats,
     )
-    return PropstorePrAF(
+    enforced = PropstorePrAF(
         kernel=kernel,
         p_args=new_p_args,
         p_defeats=praf.p_defeats,
@@ -434,6 +482,14 @@ def enforce_coh(praf: PropstorePrAF) -> PropstorePrAF:
         omitted_arguments=praf.omitted_arguments,
         omitted_relations=praf.omitted_relations,
     )
+    if soft:
+        return EnforceCohResult(
+            praf=enforced,
+            converged=True,
+            iterations=iterations,
+            max_violation=max_violation,
+        )
+    return enforced
 
 
 def summarize_defeat_relations(

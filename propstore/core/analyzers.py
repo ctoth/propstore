@@ -708,6 +708,7 @@ def analyze_aspic_backend(
 def build_praf_from_shared_input(shared: SharedAnalyzerInput):
     from argumentation.probabilistic import ProbabilisticAF
     from propstore.praf import NoCalibration, PropstorePrAF, p_arg_from_claim
+    from propstore.opinion import Opinion
 
     p_args = {}
     omitted_arguments = {}
@@ -715,10 +716,11 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
         p_arg = p_arg_from_claim(shared.claims_by_id.get(claim_id, {"claim_id": claim_id}))
         if isinstance(p_arg, NoCalibration):
             omitted_arguments[claim_id] = p_arg
-            continue
-        p_args[claim_id] = p_arg
+            p_args[claim_id] = Opinion.vacuous(0.5, provenance=p_arg.provenance)
+        else:
+            p_args[claim_id] = p_arg
 
-    active_args = frozenset(p_args)
+    active_args = frozenset(shared.argumentation_framework.arguments)
     direct_defeat_map = relation_map(shared.relations.direct_defeat_relations)
     attack_map = relation_map(shared.relations.attack_relations)
     support_map = relation_map(shared.relations.support_relations)
@@ -741,24 +743,27 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
         for edge in missing_relation_edges
     }
 
-    def calibrated_edge(edge: tuple[str, str]) -> bool:
-        return (
-            edge[0] in active_args
-            and edge[1] in active_args
-            and edge not in missing_relation_edges
+    def edge_in_framework(edge: tuple[str, str]) -> bool:
+        return edge[0] in active_args and edge[1] in active_args
+
+    def vacuous_relation(edge: tuple[str, str]) -> Opinion:
+        omitted = omitted_relations.get(edge)
+        return Opinion.vacuous(
+            0.5,
+            provenance=None if omitted is None else omitted.provenance,
         )
 
     defeats = frozenset(
         edge for edge in shared.argumentation_framework.defeats
-        if calibrated_edge(edge)
+        if edge_in_framework(edge)
     )
     attacks = (
         None
         if shared.argumentation_framework.attacks is None
-        else frozenset(edge for edge in shared.argumentation_framework.attacks if calibrated_edge(edge))
+        else frozenset(edge for edge in shared.argumentation_framework.attacks if edge_in_framework(edge))
     )
-    supports = frozenset(edge for edge in shared.relations.supports if calibrated_edge(edge))
-    base_defeats = frozenset(edge for edge in shared.relations.direct_defeats if calibrated_edge(edge))
+    supports = frozenset(edge for edge in shared.relations.supports if edge_in_framework(edge))
+    base_defeats = frozenset(edge for edge in shared.relations.direct_defeats if edge_in_framework(edge))
     framework = ArgumentationFramework(
         arguments=active_args,
         defeats=defeats,
@@ -766,11 +771,20 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
     )
 
     def keep_relation(relation):
-        return relation.source in active_args and relation.target in active_args and relation.edge not in missing_relation_edges
+        return relation.source in active_args and relation.target in active_args
 
-    p_defeats = {edge: opinion for edge, opinion in direct_defeat_map.items() if calibrated_edge(edge)}
-    p_attacks = {edge: opinion for edge, opinion in attack_map.items() if calibrated_edge(edge)}
-    p_supports = {edge: opinion for edge, opinion in support_map.items() if calibrated_edge(edge)}
+    p_defeats = {
+        edge: direct_defeat_map.get(edge, vacuous_relation(edge))
+        for edge in defeats
+    }
+    p_attacks = {
+        edge: attack_map.get(edge, vacuous_relation(edge))
+        for edge in (attacks or frozenset())
+    }
+    p_supports = {
+        edge: support_map.get(edge, vacuous_relation(edge))
+        for edge in supports
+    }
     kernel = ProbabilisticAF(
         framework=framework,
         p_args={arg: opinion.expectation() for arg, opinion in p_args.items()},
