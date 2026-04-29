@@ -27,7 +27,7 @@ def build_grounding_text_explanation(
     registry: PredicateRegistry,
     atom: GroundAtom,
     *,
-    policy: gunray.Policy = gunray.Policy.BLOCKING,
+    marking_policy: gunray.MarkingPolicy = gunray.MarkingPolicy.BLOCKING,
 ) -> GroundingTextExplanation:
     """Render Gunray's textual dialectical explanation for ``atom``.
 
@@ -38,7 +38,7 @@ def build_grounding_text_explanation(
 
     theory = translate_to_theory(rule_files, facts, registry)
     evaluator = gunray.GunrayEvaluator()
-    _, trace = evaluator.evaluate_with_trace(theory, policy)
+    _, trace = evaluator.evaluate_with_trace(theory, marking_policy=marking_policy)
 
     tree = _find_tree(trace, atom.predicate, tuple(atom.arguments))
     explained_atom = atom

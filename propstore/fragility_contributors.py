@@ -395,10 +395,10 @@ def collect_conflict_interventions(
 
 
 _SECTION_FRAGILITY = {
-    "definitely": 0.25,
-    "defeasibly": 0.75,
-    "not_defeasibly": 0.5,
+    "yes": 0.75,
+    "no": 0.5,
     "undecided": 1.0,
+    "unknown": 1.0,
 }
 
 

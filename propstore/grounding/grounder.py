@@ -16,9 +16,9 @@ Theoretical anchors:
       grounder delegates the actual substitution enumeration to
       gunray; propstore owns the envelope.
     - Section 3 (Definition 7, p.3): the fact base is a finite set of
-      ground atoms — trivially in the ground model. The ``definitely``
-      section therefore echoes the input facts when there are no
-      strict rules to derive additional atoms.
+      ground atoms — trivially in the ground model. Garcia YES answers
+      therefore include the input facts when there are no strict rules
+      to derive additional atoms.
     - Section 4: a ground model is the closure of the fact base under
       the rules; every ground atom has a well-defined status. Gunray's
       evaluator returns that model via ``DefeasibleModel.sections``.
@@ -30,13 +30,9 @@ Theoretical anchors:
       ``flies(X) -< bird(X)``. The Phase-1 grounder reproduces this
       textbook derivation end-to-end.
     - Section 4 (p.25): the four-valued answer system
-      ``{YES, NO, UNDECIDED, UNKNOWN}`` maps onto gunray's four
-      section names
-      (``definitely`` / ``defeasibly`` / ``not_defeasibly`` /
-      ``undecided``). Gunray's evaluator drops empty sections from its
-      raw output (see ``gunray.defeasible`` — the result is built via
-      ``{name: facts_map for name, facts_map in sections.items() if
-      facts_map}``); the grounder **re-normalises** the dict so every
+      ``{YES, NO, UNDECIDED, UNKNOWN}`` maps onto gunray's four answer
+      names (``yes`` / ``no`` / ``undecided`` / ``unknown``). The
+      grounder **re-normalises** the dict so every
       bundle exposes all four section keys, even when some are empty.
       That normalisation is the non-commitment anchor for this
       pipeline: the storage layer never silently collapses a verdict.
@@ -62,10 +58,10 @@ from propstore.rule_files import LoadedRuleFile
 # (Diller, Borg, Bex 2025 §3 Definition 9: the grounder output must
 # be a pure function of the program and its fact base).
 _FOUR_SECTIONS: tuple[str, ...] = (
-    "definitely",
-    "defeasibly",
-    "not_defeasibly",
+    "yes",
+    "no",
     "undecided",
+    "unknown",
 )
 
 
@@ -74,7 +70,8 @@ def ground(
     facts: tuple[GroundAtom, ...],
     registry: PredicateRegistry,
     *,
-    policy: gunray.Policy = gunray.Policy.BLOCKING,
+    marking_policy: gunray.MarkingPolicy = gunray.MarkingPolicy.BLOCKING,
+    closure_policy: gunray.ClosurePolicy | None = None,
     return_arguments: bool = False,
 ) -> GroundedRulesBundle:
     """Ground a propstore rule/fact bundle via gunray.
@@ -92,7 +89,7 @@ def ground(
        atoms, groups facts by predicate id, and refuses Phase-2+
        constructs). Diller, Borg, Bex 2025 §3 Definition 7.
     2. Invoke ``GunrayEvaluator().evaluate`` with the requested
-       ``Policy`` to obtain a ``DefeasibleModel``. Garcia & Simari 2004
+       marking/closure policy to obtain a ``DefeasibleModel``. Garcia & Simari 2004
        §4 (p.25): the four-valued answer system is computed here.
     3. Re-normalise the model's sections into an immutable
        four-section view. Gunray's evaluator drops empty sections from
@@ -122,18 +119,8 @@ def ground(
             Phase-2+ validation hooks (Diller, Borg, Bex 2025 §4 arity
             discipline at the grounder boundary); Phase 1 does not
             itself validate against it.
-        policy: Ambiguity-resolution policy threaded through to
-            ``GunrayEvaluator.evaluate``. Garcia & Simari 2004 §4
-            (p.25) discusses ambiguity regimes for the four-valued
-            answer system. Defaults to ``Policy.BLOCKING`` to match
-            gunray's own default; post-Block-2 (see gunray
-            ``notes/policy_propagating_fate.md``) only ``BLOCKING`` is
-            supported on the dialectical-tree path — argument
-            preference is resolved via ``GeneralizedSpecificity``
-            (Simari & Loui 1992 Lemma 2.4) regardless of the policy
-            value. The keyword is still threaded through so callers
-            can opt into closure-style policies (rational, lexicographic,
-            relevant) once propstore surfaces them.
+        marking_policy: Dialectical-tree marking policy.
+        closure_policy: Optional KLM closure policy.
         return_arguments: When ``True``, populate
             ``bundle.arguments`` with the full ordered tuple of
             ``gunray.Argument`` objects produced by
@@ -151,8 +138,8 @@ def ground(
     Returns:
         A ``GroundedRulesBundle`` whose ``sections`` mapping always
         has all four gunray section keys
-        (``definitely`` / ``defeasibly`` / ``not_defeasibly`` /
-        ``undecided``), whose ``source_rules`` is ``tuple(rule_files)``,
+        (``yes`` / ``no`` / ``undecided`` / ``unknown``), whose
+        ``source_rules`` is ``tuple(rule_files)``,
         and whose ``source_facts`` is ``facts``. When
         ``return_arguments=True``, ``arguments`` carries the
         deterministically-sorted tuple of ``gunray.Argument``
@@ -167,7 +154,11 @@ def ground(
     # four-valued answer system here; the ``policy`` keyword selects
     # the ambiguity-resolution regime.
     evaluator = gunray.GunrayEvaluator()
-    raw_model = evaluator.evaluate(theory, policy)
+    raw_model = evaluator.evaluate(
+        theory,
+        marking_policy=marking_policy,
+        closure_policy=closure_policy,
+    )
     grounding_inspection = gunray.inspect_grounding(theory)
 
     # Step 3: re-normalise sections. Garcia & Simari 2004 §4 (p.25)
@@ -254,7 +245,7 @@ def _normalise_sections(
        of the program, so freezing is safe.
     3. **Outer and inner mappings reject assignment.** Wrapped via
        ``types.MappingProxyType`` so attempts to do
-       ``bundle.sections["definitely"] = {}`` raise ``TypeError``.
+       ``bundle.sections["yes"] = {}`` raise ``TypeError``.
 
     The iteration order over ``_FOUR_SECTIONS`` is fixed so two calls
     with the same input produce structurally identical dicts
@@ -278,7 +269,7 @@ def _normalise_sections(
             # Garcia & Simari 2004 §3.1: ground instances are the
             # substituted argument tuples.
             inner_frozen[predicate_id] = frozenset(rows)
-        # Wrap the inner dict so ``bundle.sections["definitely"]
+        # Wrap the inner dict so ``bundle.sections["yes"]
         # ["bird"] = ...`` also raises. Not strictly required by the
         # tests (they only probe the outer mapping) but consistent
         # with the non-commitment discipline.

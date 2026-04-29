@@ -1,7 +1,7 @@
 """Sidecar persistence for grounded facts — chunk 1.6b (green).
 
-This module persists the four gunray sections
-(``definitely`` / ``defeasibly`` / ``not_defeasibly`` / ``undecided``)
+This module persists the four gunray answer sections
+(``yes`` / ``no`` / ``undecided`` / ``unknown``)
 from a :class:`propstore.grounding.bundle.GroundedRulesBundle` into
 the sidecar's SQLite store. Phase 1 scope: only the ``sections`` map
 of the bundle is written to storage; the ``source_rules`` and
@@ -20,10 +20,9 @@ Non-commitment discipline anchor (project CLAUDE.md): storage never
 silently collapses a verdict. All four section keys are always
 present in the read result, even when the bundle is empty. The
 primary key ``(predicate, arguments, section)`` lets a single ground
-atom appear under multiple sections simultaneously — gunray's
-``definitely ⊆ defeasibly`` invariant requires exactly that
-multiplicity, and the storage layer must not silently dedupe it
-away.
+atom appear under multiple sections simultaneously when an upstream
+answer surface does so, and the storage layer must not silently dedupe
+it away.
 
 Theoretical anchors:
 
@@ -46,8 +45,7 @@ Theoretical anchors:
     - Section 3 (pp.3-4): the canonical DeLP example is
       ``bird(tweety) ∈ Facts`` with the defeasible rule
       ``flies(X) -< bird(X)``; grounding produces
-      ``definitely = {bird: {(tweety,)}}`` and
-      ``defeasibly = {bird: {(tweety,)}, flies: {(tweety,)}}``. The
+      ``yes = {bird: {(tweety,)}, flies: {(tweety,)}}``. The
       persistence layer must round-trip that structure byte-for-byte.
     - Section 4 (p.25): the four-valued answer system
       ``{YES, NO, UNDECIDED, UNKNOWN}`` maps onto the four section
@@ -70,10 +68,10 @@ from propstore.grounding.bundle import GroundedRulesBundle
 # tuple order is the deterministic iteration order used by
 # ``populate_grounded_facts`` so row insertion is reproducible.
 _SECTION_NAMES: tuple[str, ...] = (
-    "definitely",
-    "defeasibly",
-    "not_defeasibly",
+    "yes",
+    "no",
     "undecided",
+    "unknown",
 )
 
 
@@ -99,8 +97,7 @@ def create_grounded_fact_table(conn: sqlite3.Connection) -> None:
 
     The ``grounded_fact`` composite primary key enforces set
     semantics per section while still permitting the same ground
-    atom to appear under multiple sections (gunray's
-    ``definitely ⊆ defeasibly`` invariant).
+    atom to appear under multiple sections.
 
     The ``grounded_fact_empty_predicate`` companion table records
     predicate keys whose inner ``frozenset`` is empty — gunray's
@@ -153,8 +150,7 @@ def populate_grounded_facts(
     """Insert every ground atom in ``bundle.sections`` into ``grounded_fact``.
 
     Iterates the four section keys in a deterministic order
-    (``definitely`` → ``defeasibly`` → ``not_defeasibly`` →
-    ``undecided``). Within each section, predicates are iterated in
+    (``yes`` → ``no`` → ``undecided`` → ``unknown``). Within each section, predicates are iterated in
     sorted order and their argument tuples are iterated in a stable
     order derived by sorting on the JSON-encoded argument string, so
     the insert sequence is reproducible even though ``frozenset``

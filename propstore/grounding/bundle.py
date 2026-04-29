@@ -24,10 +24,9 @@ Theoretical anchors:
     Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic
     Programming: An Argumentative Approach.
     - Section 4 (p.25): a defeasible program has a four-valued answer
-      system ``{YES, NO, UNDECIDED, UNKNOWN}``. Gunray maps that system
-      onto four section names
-      (``definitely`` / ``defeasibly`` / ``not_defeasibly`` /
-      ``undecided``). The non-commitment anchor for the propstore
+      system ``{YES, NO, UNDECIDED, UNKNOWN}``. Gunray exposes that
+      system as ``yes`` / ``no`` / ``undecided`` / ``unknown``.
+      The non-commitment anchor for the propstore
       pipeline is that **every bundle exposes all four sections**,
       even when some are empty. Render-time policy filters what to
       surface; storage never drops a section. This is the formal
@@ -62,10 +61,10 @@ def _build_empty_sections() -> Mapping[str, Mapping[str, frozenset[tuple[Scalar,
 
     return MappingProxyType(
         {
-            "definitely": MappingProxyType({}),
-            "defeasibly": MappingProxyType({}),
-            "not_defeasibly": MappingProxyType({}),
+            "yes": MappingProxyType({}),
+            "no": MappingProxyType({}),
             "undecided": MappingProxyType({}),
+            "unknown": MappingProxyType({}),
         }
     )
 
@@ -88,8 +87,7 @@ class GroundedRulesBundle:
             is faithfully retained.
         sections: The four gunray sections as an immutable
             mapping-of-mappings. Outer key: one of
-            ``{"definitely", "defeasibly", "not_defeasibly",
-            "undecided"}``. Inner key: predicate id. Inner value:
+            ``{"yes", "no", "undecided", "unknown"}``. Inner key: predicate id. Inner value:
             ``frozenset`` of argument tuples. Garcia & Simari 2004 §4
             (p.25) four-valued answer system: all four sections are
             always present, even when empty — the grounder re-normalises

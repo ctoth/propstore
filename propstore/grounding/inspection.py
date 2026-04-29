@@ -22,10 +22,10 @@ if TYPE_CHECKING:
 
 
 SECTION_ORDER = (
-    "definitely",
-    "defeasibly",
-    "not_defeasibly",
+    "yes",
+    "no",
     "undecided",
+    "unknown",
 )
 
 

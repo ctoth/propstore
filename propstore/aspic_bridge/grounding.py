@@ -148,15 +148,13 @@ def grounded_rules_to_rules(
     """Translate grounded gunray rules into ASPIC+ rules."""
 
     facts: dict[_GroundFactKey, set[tuple[Scalar, ...]]] = {}
-    for section_name in ("definitely", "defeasibly"):
-        section = bundle.sections.get(section_name, {})
-        for predicate_id, rows in section.items():
-            bucket = facts.setdefault(
-                _decode_grounded_predicate(predicate_id, complement_encoder),
-                set(),
-            )
-            for row in rows:
-                bucket.add(row)
+    for predicate_id, rows in bundle.sections.get("yes", {}).items():
+        bucket = facts.setdefault(
+            _decode_grounded_predicate(predicate_id, complement_encoder),
+            set(),
+        )
+        for row in rows:
+            bucket.add(row)
 
     strict_rules: list[Rule] = []
     defeasible_rules: list[Rule] = []
@@ -295,15 +293,13 @@ def _ground_facts_to_axioms(
     *,
     complement_encoder: ComplementEncoder,
 ) -> KnowledgeBase:
-    """Inject bundle ``definitely`` facts into ``K_n``."""
+    """Inject source ground facts into ``K_n``."""
 
     axioms: set[Literal] = set(kb.axioms)
-    definitely = bundle.sections.get("definitely", {})
-    for predicate_id, rows in definitely.items():
-        predicate, negated = _decode_grounded_predicate(predicate_id, complement_encoder)
-        for row in rows:
-            ground = GroundAtom(predicate=predicate, arguments=tuple(row))
-            axioms.add(_literal_for_atom(ground, negated, literals))
+    for atom in bundle.source_facts:
+        predicate, negated = _decode_grounded_predicate(atom.predicate, complement_encoder)
+        ground = GroundAtom(predicate=predicate, arguments=tuple(atom.arguments))
+        axioms.add(_literal_for_atom(ground, negated, literals))
 
     return KnowledgeBase(axioms=frozenset(axioms), premises=kb.premises)
 
