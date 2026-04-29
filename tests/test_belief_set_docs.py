@@ -8,7 +8,7 @@ def test_belief_set_revision_docs_exist_and_cite_surfaces() -> None:
 
     assert "propstore.belief_set" in text
     assert "Alchourron" in text
-    assert "Gardenfors" in text
+    assert "Gärdenfors" in text
     assert "Darwiche" in text
     assert "Booth" in text
     assert "propstore.support_revision" in text

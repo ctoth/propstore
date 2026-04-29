@@ -5,7 +5,7 @@ differently.
 
 ## Model-Theoretic IC Merge
 
-`propstore.belief_set.ic_merge` is the Konieczny-Pino Perez belief-set merge
+`propstore.belief_set.ic_merge` is the Konieczny-Pino-Pérez belief-set merge
 surface. `merge_belief_profile(alphabet, profile, mu, operator=...)` enumerates
 all `mu-models` over the finite propositional signature, scores each candidate
 world by distance to each profile formula, and returns the winning worlds as a
@@ -21,7 +21,7 @@ Available operators:
 The important architectural point is candidate space: this operator considers
 all worlds satisfying `mu`, including worlds not directly observed in any input
 source. That is the model-theoretic IC-merge behavior required by
-Konieczny-Pino Perez 2002.
+Konieczny-Pino-Pérez 2002.
 
 The property gate is `tests/test_belief_set_postulates.py`, which checks the
 finite IC postulates exercised by the current implementation.
@@ -48,3 +48,21 @@ The assignment-selection gate is
 Use `propstore.belief_set.ic_merge` for formal IC merge over formulas and
 belief bases. Use `propstore.world.assignment_selection_merge` only for
 render-time selection among observed typed assignments.
+
+## Not Implemented
+
+These merge constructions are not present in `propstore.belief_set.ic_merge`:
+
+- Konieczny-Pino-Pérez 2002 `Delta^Max`, introduced alongside the arbitration
+  results on p.790. The current `GMAX` operator is the lexicographic max-vector
+  operator used for Arb coverage; it is not the separate `Delta^Max`
+  construction.
+- Coste-Marquis 2007 abstract-argumentation merging. That is an AF-level merge
+  problem, not a propositional belief-set merge problem, and belongs to the
+  upstream argumentation work tracked by WS-O-arg.
+- Any observed-assignment merge that invents or repairs typed source values.
+  `propstore.world.assignment_selection_merge` only selects among observed
+  assignments and is deliberately separate from IC model enumeration.
+
+The propositional missing merge work rolls into REMEDIATION-PLAN T6.5. The
+argumentation merge work is owned by WS-O-arg.

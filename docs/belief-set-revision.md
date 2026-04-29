@@ -27,10 +27,10 @@ returns a `RevisionOutcome` with a provenance-bearing `RevisionTrace`.
 `full_meet_contract(state, formula)` uses the Harper identity over the finite
 theory.
 
-The literature target is Alchourron-Gardenfors-Makinson 1985 for AGM revision
-and contraction, Gardenfors 1988 for epistemic entrenchment, Darwiche-Pearl
-1997 for iterated revision, and Booth 2006 for restrained revision over
-preorders. `propstore.belief_set.entrenchment.EpistemicEntrenchment` derives
+The literature target is Alchourron-Gärdenfors-Makinson 1985 for AGM revision
+and contraction, Gärdenfors-Makinson 1988 for epistemic entrenchment,
+Darwiche-Pearl 1997 for iterated revision, and Booth-Meyer 2006 for
+restrained revision over preorders. `propstore.belief_set.entrenchment.EpistemicEntrenchment` derives
 formula entrenchment from a Spohn state by ranking negated formulas.
 
 `propstore.belief_set.iterated` contains preorder-level operators:
@@ -56,3 +56,30 @@ Use `propstore.support_revision` only when the desired behavior is
 support-incision over the current ATMS-supported worldline projection. Use
 `propstore.belief_set` for formal AGM, entrenchment, and iterated belief
 revision.
+
+## Not Implemented
+
+These are not present in `propstore.belief_set` and should not be inferred from
+the currently implemented revision, contraction, or iterated operators:
+
+- AGM partial-meet contraction, selection functions `gamma`, and maxichoice
+  contraction from Alchourron-Gärdenfors-Makinson 1985, especially the
+  remainder-set construction in Section 4.
+- Levi and Harper as first-class composer APIs. `revise` and
+  `full_meet_contract` satisfy the relevant finite identities, but there is no
+  public operator-composition surface for them; AGM Observation 2.3 is the
+  cited target in Alchourron-Gärdenfors-Makinson 1985 p.513.
+- Grove 1988 systems of spheres. `SpohnEpistemicState` is an OCF surface, not a
+  sphere-system representation.
+- Katsuno-Mendelzon update from Katsuno-Mendelzon 1991. The current operators
+  are belief revision/contraction operators, not update operators.
+- Hansson safe contraction and belief-base operation families. The
+  `propstore.support_revision` incision machinery is an operational
+  support-loss workflow, not Hansson belief-base contraction.
+- The full Booth-Meyer admissible-revision family. The restrained operator
+  covers the Booth-Meyer 2006 restrained-revision construction; the broader AR
+  family remains deferred.
+
+The propositional AGM items above are tracked as future implementation work in
+REMEDIATION-PLAN T6.5. They are intentionally documented as absent until the
+target architecture adds the full surfaces rather than local approximations.
