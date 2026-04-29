@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -28,18 +30,32 @@ class SpohnEpistemicState:
     """Finite ordinal conditional function over propositional worlds."""
 
     alphabet: frozenset[str]
-    ranks: dict[World, int]
+    ranks: dict[World, int | float]
 
     def __post_init__(self) -> None:
         signature = frozenset(self.alphabet)
         worlds = BeliefSet.all_worlds(signature)
         if set(self.ranks) != set(worlds):
             raise ValueError("SpohnEpistemicState ranks must cover every world in the alphabet")
-        min_rank = min(self.ranks.values(), default=0)
+        if all(math.isinf(float(rank)) for rank in self.ranks.values()):
+            normalized_ranks = {frozenset(world): math.inf for world in self.ranks}
+            object.__setattr__(self, "ranks", normalized_ranks)
+            object.__setattr__(self, "alphabet", signature)
+            return
+
+        finite_ranks = [
+            float(rank)
+            for rank in self.ranks.values()
+            if not math.isinf(float(rank))
+        ]
+        min_rank = min(finite_ranks, default=0.0)
         object.__setattr__(
             self,
             "ranks",
-            {frozenset(world): max(0, int(rank) - min_rank) for world, rank in self.ranks.items()},
+            {
+                frozenset(world): _normalize_rank(rank, min_rank)
+                for world, rank in self.ranks.items()
+            },
         )
         object.__setattr__(self, "alphabet", signature)
 
@@ -47,7 +63,7 @@ class SpohnEpistemicState:
     def from_ranks(
         cls,
         alphabet: frozenset[str],
-        ranks: dict[World, int],
+        ranks: Mapping[World, int | float],
     ) -> SpohnEpistemicState:
         return cls(alphabet=frozenset(alphabet), ranks=dict(ranks))
 
@@ -64,6 +80,8 @@ class SpohnEpistemicState:
     @property
     def belief_set(self) -> BeliefSet:
         min_rank = min(self.ranks.values(), default=0)
+        if math.isinf(float(min_rank)):
+            return BeliefSet.contradiction(self.alphabet)
         return BeliefSet(
             self.alphabet,
             frozenset(world for world, rank in self.ranks.items() if rank == min_rank),
@@ -82,10 +100,13 @@ def revise(
     worlds = BeliefSet.all_worlds(signature)
     satisfying = tuple(world for world in worlds if formula.evaluate(world))
     if not satisfying:
-        result_state = working_state
+        result_state = SpohnEpistemicState.from_ranks(
+            signature,
+            {world: math.inf for world in worlds},
+        )
     else:
         min_formula_rank = min(working_state.ranks[world] for world in satisfying)
-        revised_ranks: dict[World, int] = {}
+        revised_ranks: dict[World, int | float] = {}
         for world in worlds:
             current_rank = working_state.ranks[world]
             if formula.evaluate(world):
@@ -115,9 +136,13 @@ def full_meet_contract(
         )
     revised_by_negation = revise(state, negate(formula), provenance=provenance)
     contracted = state.belief_set.intersection_theory(revised_by_negation.belief_set)
+    contracted_ranks = {
+        world: min(state.ranks[world], revised_by_negation.state.ranks[world])
+        for world in BeliefSet.all_worlds(state.alphabet)
+    }
     return RevisionOutcome(
         belief_set=contracted,
-        state=SpohnEpistemicState.from_belief_set(contracted),
+        state=SpohnEpistemicState.from_ranks(state.alphabet, contracted_ranks),
         trace=revision_trace("contract", state.belief_set, provenance=provenance),
     )
 
@@ -126,11 +151,21 @@ def extend_state(state: SpohnEpistemicState, alphabet: frozenset[str]) -> SpohnE
     if alphabet == state.alphabet:
         return state
     extras = tuple(sorted(alphabet - state.alphabet))
-    ranks: dict[World, int] = {}
+    ranks: dict[World, int | float] = {}
     for world, rank in state.ranks.items():
         for extension in BeliefSet.all_worlds(frozenset(extras)):
             ranks[frozenset(set(world) | set(extension))] = rank
     return SpohnEpistemicState.from_ranks(alphabet, ranks)
+
+
+def _normalize_rank(rank: int | float, min_rank: float) -> int | float:
+    rank_value = float(rank)
+    if math.isinf(rank_value):
+        return math.inf
+    normalized = max(0.0, rank_value - min_rank)
+    if normalized.is_integer():
+        return int(normalized)
+    return normalized
 
 
 def _trace_timestamp() -> datetime:

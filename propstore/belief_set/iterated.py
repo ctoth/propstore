@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from propstore.belief_set.agm import (
     RevisionOutcome,
     SpohnEpistemicState,
@@ -23,7 +25,7 @@ def lexicographic_revise(
             state=working,
             trace=revision_trace("lexicographic_revise", state.belief_set),
         )
-    keys: dict[World, tuple[int, int]] = {
+    keys: dict[World, tuple[int | float, ...]] = {
         world: (0, working.ranks[world])
         if formula.evaluate(world)
         else (1, working.ranks[world])
@@ -63,7 +65,7 @@ def restrained_revise(
     minimal_formula_worlds = frozenset(
         world for world in satisfying if working.ranks[world] == min_formula_rank
     )
-    keys: dict[World, tuple[int, ...]] = {}
+    keys: dict[World, tuple[int | float, ...]] = {}
     for world in worlds:
         if world in minimal_formula_worlds:
             keys[world] = (0,)
@@ -81,7 +83,7 @@ def restrained_revise(
     )
 
 
-def _dense_ranks(keys: dict[World, tuple[int, ...]]) -> dict[World, int]:
+def _dense_ranks(keys: Mapping[World, tuple[int | float, ...]]) -> dict[World, int]:
     ordered_keys = {
         key: index
         for index, key in enumerate(sorted(set(keys.values())))
@@ -93,7 +95,7 @@ def _extend_state(state: SpohnEpistemicState, alphabet: frozenset[str]) -> Spohn
     if alphabet == state.alphabet:
         return state
     extras = tuple(sorted(alphabet - state.alphabet))
-    ranks: dict[World, int] = {}
+    ranks: dict[World, int | float] = {}
     for world, rank in state.ranks.items():
         for extension in BeliefSet.all_worlds(frozenset(extras)):
             ranks[frozenset(set(world) | set(extension))] = rank
