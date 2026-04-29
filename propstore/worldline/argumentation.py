@@ -261,7 +261,6 @@ def _capture_praf(
             strategy=praf_strategy,
             query_kind="argument_acceptance",
             inference_mode="credulous",
-            queried_set=active_graph.active_claim_ids,
             mc_epsilon=praf_mc_epsilon,
             mc_confidence=praf_mc_confidence,
             treewidth_cutoff=praf_treewidth_cutoff,

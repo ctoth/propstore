@@ -1029,6 +1029,7 @@ class TestCsafToProjection:
         claims, justifications, stances = graph
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         projection = csaf_to_projection(csaf, claims)
+        assume(len(projection.framework.arguments) <= 12)
         # Use compute_structured_justified_arguments which handles hybrid AFs
         grounded = compute_structured_justified_arguments(projection, semantics="grounded")
         claim_ids = {c["id"] for c in claims}

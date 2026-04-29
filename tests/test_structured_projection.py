@@ -15,7 +15,7 @@ from propstore.structured_projection import (
     build_structured_projection,
     compute_structured_justified_arguments,
 )
-from argumentation.dung import ArgumentationFramework, grounded_extension
+from argumentation.dung import ArgumentationFramework, complete_extensions
 from propstore.world.bound import BoundWorld
 from propstore.core.labels import Label, compile_environment_assumptions
 from propstore.core.row_types import ConflictRowInput, StanceRowInput
@@ -687,7 +687,7 @@ def test_build_structured_projection_property_threads_selected_preference_config
     assert calls[0]["link"] == link
 
 
-def test_grounded_semantics_uses_plain_dung_grounded_even_when_attacks_exist() -> None:
+def test_aspic_grounded_semantics_respects_attacks_when_attacks_exist() -> None:
     projection = StructuredProjection(
         arguments=(),
         framework=ArgumentationFramework(
@@ -707,10 +707,10 @@ def test_grounded_semantics_uses_plain_dung_grounded_even_when_attacks_exist() -
         semantics="grounded",
     )
 
-    assert justified == frozenset({"arg:a", "arg:b"})
+    assert justified == frozenset()
 
 
-def test_grounded_semantics_has_single_canonical_meaning() -> None:
+def test_aspic_grounded_semantics_has_single_attack_aware_meaning() -> None:
     projection = StructuredProjection(
         arguments=(),
         framework=ArgumentationFramework(
@@ -730,7 +730,7 @@ def test_grounded_semantics_has_single_canonical_meaning() -> None:
         semantics="grounded",
     )
 
-    assert grounded == frozenset({"arg:a", "arg:b"})
+    assert grounded == frozenset()
 
 
 def test_structured_projection_rejects_claim_graph_only_semantics() -> None:
@@ -755,7 +755,7 @@ def test_structured_projection_rejects_claim_graph_only_semantics() -> None:
 @pytest.mark.property
 @given(framework=_frameworks_with_optional_attacks())
 @settings(deadline=None)
-def test_grounded_semantics_property_matches_dung_grounded_extension(
+def test_aspic_grounded_semantics_property_matches_least_complete_extension(
     framework: ArgumentationFramework,
 ) -> None:
     projection = StructuredProjection(
@@ -770,13 +770,12 @@ def test_grounded_semantics_property_matches_dung_grounded_extension(
         semantics="grounded",
     )
 
-    expected_framework = framework
-    if framework.attacks is not None and framework.attacks != framework.defeats:
-        expected_framework = ArgumentationFramework(
-            arguments=framework.arguments,
-            defeats=framework.defeats,
-        )
-    expected = grounded_extension(expected_framework)
+    complete = [frozenset(ext) for ext in complete_extensions(framework)]
+    expected = (
+        frozenset()
+        if not complete
+        else min(complete, key=lambda ext: (len(ext), tuple(sorted(ext))))
+    )
 
     assert justified == expected
 

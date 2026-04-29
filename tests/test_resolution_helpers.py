@@ -382,7 +382,7 @@ def test_aspic_resolution_property_threads_selected_preference_config(
     assert calls[0]["link"] == link
 
 
-def test_structured_resolution_grounded_uses_plain_grounded_extension(monkeypatch) -> None:
+def test_structured_resolution_grounded_respects_attack_conflict_freeness(monkeypatch) -> None:
     projection = SimpleNamespace(
         framework=ArgumentationFramework(
             arguments=frozenset({"arg:a", "arg:b"}),
@@ -414,8 +414,8 @@ def test_structured_resolution_grounded_uses_plain_grounded_extension(monkeypatc
         semantics="grounded",
     )
 
-    assert winner == "claim_a"
-    assert reason == "sole ASPIC+ survivor in grounded extension"
+    assert winner is None
+    assert reason == "all ASPIC+ arguments defeated"
 
 
 def test_assignment_selection_resolution_filters_with_range_mu() -> None:

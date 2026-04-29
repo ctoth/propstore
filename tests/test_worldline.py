@@ -1436,7 +1436,7 @@ class TestSemanticCorePhase7Worldlines:
 
         assert grounded.argumentation is not None
         assert grounded.argumentation.backend == "aspic"
-        assert grounded.argumentation.justified == ("claim_a", "claim_b")
+        assert grounded.argumentation.justified == ()
 
     def test_graph_backed_worldline_materialization_is_stable_under_repeated_execution(
         self,
