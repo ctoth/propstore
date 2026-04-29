@@ -775,7 +775,7 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
 
     p_defeats = {
         edge: direct_defeat_map.get(edge, vacuous_relation(edge))
-        for edge in defeats
+        for edge in base_defeats
     }
     p_attacks = {
         edge: attack_map.get(edge, vacuous_relation(edge))

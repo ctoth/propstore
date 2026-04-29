@@ -373,10 +373,13 @@ def _max_coh_violation(
 def enforce_coh(
     praf: PropstorePrAF,
     *,
-    max_iterations: int = _COH_MAX_ITERATIONS,
+    max_iterations: int | None = None,
     soft: bool = False,
 ) -> PropstorePrAF | EnforceCohResult:
     """Enforce COH rationality on propstore opinion-valued argument probabilities."""
+    if max_iterations is None:
+        max_iterations = _COH_MAX_ITERATIONS
+
     attacks = praf.framework.attacks
     if attacks is None:
         raise PreferenceLayerError("enforce_coh requires explicit pre-preference attacks")
