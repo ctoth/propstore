@@ -74,10 +74,7 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
             label=label if existing is None else existing.label,
         )
 
-    scope = RevisionScope(
-        bindings=dict(bound._environment.bindings),
-        context_id=bound._environment.context_id,
-    )
+    scope = _revision_scope_from_bound(bound)
     assumptions = (
         tuple(
             assumption
@@ -99,6 +96,28 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
             atom_id: tuple(sorted(support))
             for atom_id, support in essential_support.items()
         },
+    )
+
+
+def _revision_scope_from_bound(bound) -> RevisionScope:
+    branch: str | None = None
+    commit: str | None = None
+    merge_parent_commits: tuple[str, ...] = ()
+    repo = getattr(getattr(bound, "_store", None), "_repo", None)
+    snapshot = getattr(repo, "snapshot", None)
+    git = getattr(repo, "git", None)
+    if snapshot is not None and git is not None:
+        branch = snapshot.current_branch_name() or snapshot.primary_branch_name()
+        commit = None if branch is None else snapshot.branch_head(branch)
+        if commit is not None:
+            merge_parent_commits = tuple(git.commit_parent_shas(commit))
+
+    return RevisionScope(
+        bindings=dict(bound._environment.bindings),
+        context_id=bound._environment.context_id,
+        branch=branch,
+        commit=commit,
+        merge_parent_commits=merge_parent_commits,
     )
 
 
