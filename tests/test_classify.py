@@ -1,4 +1,4 @@
-"""Tests for propstore.classify — classifier extraction from relate.py.
+"""Tests for propstore.heuristic.classify — classifier extraction from relate.py.
 
 Tests the LLM stance classifier as a pure function: (claim_a, claim_b, context) -> [forward, reverse].
 Verifies structural invariants, error handling, opinion algebra wiring, enrichment context,
@@ -19,7 +19,7 @@ import pytest
 from hypothesis import given, assume, settings
 from hypothesis import strategies as st
 
-from propstore.calibrate import CalibrationSource, CategoryPrior, CategoryPriorRegistry
+from propstore.heuristic.calibrate import CalibrationSource, CategoryPrior, CategoryPriorRegistry
 from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.stances import VALID_STANCE_TYPES
 
@@ -98,10 +98,10 @@ class TestClassifyReturnsBidirectional:
     """classify_stance_async returns list of two stance dicts (forward + reverse)."""
 
     def test_returns_two_stances(self):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _mock_bidirectional_response(_default_forward(), _default_reverse())
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -116,10 +116,10 @@ class TestClassifyReturnsBidirectional:
         assert len(results) == 2
 
     def test_forward_targets_b(self):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _mock_bidirectional_response(_default_forward(), _default_reverse())
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -133,10 +133,10 @@ class TestClassifyReturnsBidirectional:
         assert results[0]["target"] == "b"
 
     def test_reverse_targets_a(self):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _mock_bidirectional_response(_default_forward(), _default_reverse())
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -149,10 +149,10 @@ class TestClassifyReturnsBidirectional:
         assert results[1]["target"] == "a"
 
     def test_each_has_required_keys(self):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _mock_bidirectional_response(_default_forward(), _default_reverse())
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -167,12 +167,12 @@ class TestClassifyReturnsBidirectional:
             assert required.issubset(r.keys()), f"Missing keys: {required - r.keys()}"
 
     def test_resolution_has_opinion_keys(self):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         fwd = {"type": "rebuts", "strength": "moderate", "note": "contradicts", "conditions_differ": None}
         rev = {"type": "supports", "strength": "weak", "note": "partial", "conditions_differ": None}
         resp = _mock_bidirectional_response(fwd, rev)
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -196,9 +196,9 @@ class TestClassifyReturnsBidirectional:
 
 class TestClassifyErrorOnApiFailure:
     def test_api_exception_returns_error_type(self):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(side_effect=ConnectionError("timeout"))
             mock_req.return_value = mock_litellm
@@ -215,9 +215,9 @@ class TestClassifyErrorOnApiFailure:
             assert r["resolution"]["confidence"] == 0.0
 
     def test_unexpected_runtime_error_propagates(self):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(side_effect=RuntimeError("boom"))
             mock_req.return_value = mock_litellm
@@ -233,7 +233,7 @@ class TestClassifyErrorOnApiFailure:
 
 class TestClassifyErrorOnBadJson:
     def test_json_parse_failure_returns_error(self):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = MagicMock()
         msg = MagicMock()
@@ -242,7 +242,7 @@ class TestClassifyErrorOnBadJson:
         choice.message = msg
         resp.choices = [choice]
 
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -259,12 +259,12 @@ class TestClassifyErrorOnBadJson:
 
 class TestClassifyNoneGetsZeroConfidence:
     def test_none_type_zero_confidence(self):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         fwd = {"type": "none", "strength": "weak", "note": "unrelated", "conditions_differ": None}
         rev = {"type": "none", "strength": "weak", "note": "unrelated", "conditions_differ": None}
         resp = _mock_bidirectional_response(fwd, rev)
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -287,23 +287,23 @@ class TestEnrichmentContext:
     """Pure function tests for _build_enrichment_context."""
 
     def test_enrichment_present_when_close(self):
-        from propstore.classify import build_enrichment_context
+        from propstore.heuristic.classify import build_enrichment_context
         ctx = build_enrichment_context(distance=0.3, threshold=0.75, shared_concept_ids=[])
         assert "highly similar" in ctx.lower()
         assert "0.3000" in ctx
 
     def test_enrichment_absent_when_distant(self):
-        from propstore.classify import build_enrichment_context
+        from propstore.heuristic.classify import build_enrichment_context
         ctx = build_enrichment_context(distance=0.9, threshold=0.75, shared_concept_ids=[])
         assert ctx == ""
 
     def test_shared_concepts_in_enrichment(self):
-        from propstore.classify import build_enrichment_context
+        from propstore.heuristic.classify import build_enrichment_context
         ctx = build_enrichment_context(distance=0.3, threshold=0.75, shared_concept_ids=["thermal_conductivity"])
         assert "thermal_conductivity" in ctx
 
     def test_no_distance_means_no_enrichment(self):
-        from propstore.classify import build_enrichment_context
+        from propstore.heuristic.classify import build_enrichment_context
         ctx = build_enrichment_context(distance=None, threshold=0.75, shared_concept_ids=[])
         assert ctx == ""
 
@@ -322,7 +322,7 @@ class TestEnrichmentMonotonicity:
     )
     @settings(max_examples=100)
     def test_enrichment_iff_below_threshold(self, distance, threshold):
-        from propstore.classify import build_enrichment_context
+        from propstore.heuristic.classify import build_enrichment_context
         ctx = build_enrichment_context(distance=distance, threshold=threshold, shared_concept_ids=[])
         if distance < threshold:
             assert ctx != "", f"Expected enrichment for distance={distance} < threshold={threshold}"
@@ -340,10 +340,10 @@ class TestBidirectionalCompleteness:
     )
     @settings(max_examples=30)
     def test_always_two_results_with_correct_targets(self, text_a, text_b):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _mock_bidirectional_response(_default_forward(), _default_reverse())
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -370,13 +370,13 @@ class TestClassifierOutputStructureInvariant:
     )
     @settings(max_examples=50)
     def test_output_always_has_required_keys(self, fwd_type, fwd_strength, rev_type, rev_strength):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _mock_bidirectional_response(
             {"type": fwd_type, "strength": fwd_strength, "note": "test", "conditions_differ": None},
             {"type": rev_type, "strength": rev_strength, "note": "test", "conditions_differ": None},
         )
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -403,12 +403,12 @@ class TestOpinionAlgebraInvariant:
     )
     @settings(max_examples=30)
     def test_confidence_equals_expectation_and_opinion_sums_to_one(self, strength):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         fwd = {"type": "supports", "strength": strength, "note": "test", "conditions_differ": None}
         rev = {"type": "rebuts", "strength": strength, "note": "test", "conditions_differ": None}
         resp = _mock_bidirectional_response(fwd, rev)
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -452,13 +452,13 @@ class TestCorpusCalibrationReducesUncertainty:
     )
     @settings(max_examples=30)
     def test_uncertainty_decreases_with_corpus_data(self, distances, embedding_distance):
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         fwd = {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None}
         rev = {"type": "none", "strength": "weak", "note": "n/a", "conditions_differ": None}
         resp = _mock_bidirectional_response(fwd, rev)
 
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm
@@ -472,7 +472,7 @@ class TestCorpusCalibrationReducesUncertainty:
                 category_prior_registry=_test_category_prior_registry(),
             ))
 
-        with patch("propstore.classify._require_litellm") as mock_req:
+        with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
             mock_litellm.acompletion = AsyncMock(return_value=resp)
             mock_req.return_value = mock_litellm

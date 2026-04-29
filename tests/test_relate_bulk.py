@@ -63,12 +63,12 @@ def conn():
 
 class TestBulkFetchReturnsAllRequested:
     def test_fetch_three_of_five(self, conn):
-        from propstore.relate import _bulk_get_claim_texts
+        from propstore.heuristic.relate import _bulk_get_claim_texts
         result = _bulk_get_claim_texts(conn, ["c1", "c3", "c5"])
         assert set(result.keys()) == {"c1", "c3", "c5"}
 
     def test_each_has_text_field(self, conn):
-        from propstore.relate import _bulk_get_claim_texts
+        from propstore.heuristic.relate import _bulk_get_claim_texts
         result = _bulk_get_claim_texts(conn, ["c1", "c2", "c4", "c5"])
         for cid, d in result.items():
             assert "text" in d, f"claim {cid} missing 'text'"
@@ -77,7 +77,7 @@ class TestBulkFetchReturnsAllRequested:
 
 class TestBulkFetchMissingIdsSkipped:
     def test_nonexistent_ids_absent(self, conn):
-        from propstore.relate import _bulk_get_claim_texts
+        from propstore.heuristic.relate import _bulk_get_claim_texts
         result = _bulk_get_claim_texts(conn, ["c1", "nonexistent", "c3"])
         assert "nonexistent" not in result
         assert set(result.keys()) == {"c1", "c3"}
@@ -85,7 +85,7 @@ class TestBulkFetchMissingIdsSkipped:
 
 class TestBulkFetchEmptyList:
     def test_empty_input_returns_empty(self, conn):
-        from propstore.relate import _bulk_get_claim_texts
+        from propstore.heuristic.relate import _bulk_get_claim_texts
         result = _bulk_get_claim_texts(conn, [])
         assert result == {}
 
@@ -101,7 +101,7 @@ class TestBulkFetchEquivalence:
     @given(ids=st.lists(st.sampled_from(FIXTURE_IDS), min_size=0, max_size=5, unique=True))
     @settings(max_examples=50, suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_bulk_matches_individual(self, conn, ids):
-        from propstore.relate import _bulk_get_claim_texts, _get_claim_text
+        from propstore.heuristic.relate import _bulk_get_claim_texts, _get_claim_text
 
         bulk = _bulk_get_claim_texts(conn, ids)
         individual = {}

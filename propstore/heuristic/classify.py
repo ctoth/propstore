@@ -20,7 +20,7 @@ import json
 import logging
 from dataclasses import dataclass
 
-from propstore.calibrate import CategoryPriorRegistry, categorical_to_opinion
+from propstore.heuristic.calibrate import CategoryPriorRegistry, categorical_to_opinion
 from propstore.core.base_rates import BaseRateUnresolved
 from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus
@@ -290,7 +290,7 @@ def _build_stance_dict(
             opinion = category_opinion
 
         if opinion is not None and reference_distances is not None and embedding_distance is not None and len(reference_distances) > 0:
-            from propstore.calibrate import CorpusCalibrator
+            from propstore.heuristic.calibrate import CorpusCalibrator
             from propstore.opinion import fuse
             corpus_cal = CorpusCalibrator(reference_distances, corpus_base_rate=opinion.a)
             corpus_opinion = corpus_cal.to_opinion(embedding_distance)
@@ -408,5 +408,5 @@ def classify_stance(
 ) -> list[dict]:
     """Classify the epistemic relationship between two claims via LLM (sync wrapper)."""
     sem = asyncio.Semaphore(1)
-    from propstore.relate import _run_async
+    from propstore.heuristic.relate import _run_async
     return _run_async(classify_stance_async(claim_a, claim_b, model_name, sem))

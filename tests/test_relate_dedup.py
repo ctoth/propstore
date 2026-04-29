@@ -20,7 +20,7 @@ def _dedup_pairs(pairs: list[tuple[str, str, float]]) -> list[tuple[str, str, fl
     This is a test-local copy; the real logic will be inlined in _relate_all_async.
     We test the algorithm here, then verify it's wired in via integration.
     """
-    from propstore.relate import dedup_pairs
+    from propstore.heuristic.relate import dedup_pairs
     return dedup_pairs(pairs)
 
 

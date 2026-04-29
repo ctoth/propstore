@@ -18,8 +18,8 @@ from propstore.app.claims import (
     find_similar_claims,
     relate_claims,
 )
-import propstore.embed as embed_mod
-import propstore.relate as relate_mod
+import propstore.heuristic.embed as embed_mod
+import propstore.heuristic.relate as relate_mod
 from propstore.proposals import stance_proposal_branch
 from propstore.repository import Repository
 from propstore.app.world import WorldSidecarMissingError

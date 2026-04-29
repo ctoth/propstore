@@ -173,7 +173,7 @@ class CorpusCalibrator:
             status=ProvenanceStatus.CALIBRATED,
             witnesses=(
                 ProvenanceWitness(
-                    asserter="propstore.calibrate.CorpusCalibrator",
+                    asserter="propstore.heuristic.calibrate.CorpusCalibrator",
                     timestamp=datetime.now(timezone.utc).strftime(
                         "%Y-%m-%dT%H:%M:%SZ",
                     ),

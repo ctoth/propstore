@@ -467,7 +467,7 @@ def embed_claim_embeddings(
     if not request.claim_id and not request.embed_all:
         raise ClaimWorkflowError("provide a claim ID or use --all")
 
-    from propstore.embed import _load_vec_extension, embed_claims, get_registered_models
+    from propstore.heuristic.embed import _load_vec_extension, embed_claims, get_registered_models
 
     sidecar = _require_sidecar(repo)
     ids = [request.claim_id] if request.claim_id else None
@@ -521,7 +521,7 @@ def find_similar_claims(
     repo: Repository,
     request: ClaimSimilarRequest,
 ) -> ClaimSimilarReport:
-    from propstore.embed import (
+    from propstore.heuristic.embed import (
         _load_vec_extension,
         find_similar,
         find_similar_agree,
@@ -571,10 +571,10 @@ def relate_claims(
     *,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> ClaimRelateReport:
-    from propstore.embed import _load_vec_extension
+    from propstore.heuristic.embed import _load_vec_extension
     from propstore.proposals import commit_stance_proposals, stance_proposal_branch
-    from propstore.relate import relate_all as relate_all_fn
-    from propstore.relate import relate_claim
+    from propstore.heuristic.relate import relate_all as relate_all_fn
+    from propstore.heuristic.relate import relate_claim
 
     try:
         repo.snapshot.head_sha()

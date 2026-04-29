@@ -1,7 +1,7 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from propstore.classify import classify_stance_async
+from propstore.heuristic.classify import classify_stance_async
 
 
 def _claim(claim_id: str) -> dict:
@@ -19,7 +19,7 @@ def _malformed_response() -> MagicMock:
 
 
 def test_malformed_json_does_not_construct_reverse_stance() -> None:
-    with patch("propstore.classify._require_litellm") as require_litellm:
+    with patch("propstore.heuristic.classify._require_litellm") as require_litellm:
         litellm = MagicMock()
         litellm.acompletion = AsyncMock(return_value=_malformed_response())
         require_litellm.return_value = litellm

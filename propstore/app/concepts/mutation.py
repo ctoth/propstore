@@ -520,7 +520,7 @@ def embed_concept_embeddings(
     if not request.concept_id and not request.embed_all:
         raise ConceptWorkflowError("provide a concept ID or use --all")
 
-    from propstore.embed import (
+    from propstore.heuristic.embed import (
         _load_vec_extension,
         embed_concepts,
         get_registered_models,
@@ -583,7 +583,7 @@ def find_similar_concepts(
     repo: Repository,
     request: ConceptSimilarRequest,
 ) -> ConceptSimilarReport:
-    from propstore.embed import (
+    from propstore.heuristic.embed import (
         _load_vec_extension,
         find_similar_concepts as find_similar_concepts_for_model,
         find_similar_concepts_agree,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from propstore.calibrate import (
+from propstore.heuristic.calibrate import (
     CalibrationSource,
     CategoryPrior,
     categorical_to_opinion,

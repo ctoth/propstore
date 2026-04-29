@@ -952,7 +952,7 @@ class TestUnboundQueries:
         assert CONCEPT1_ID in ids
 
     def test_similar_claims_returns_typed_hits(self, world, monkeypatch):
-        import propstore.embed as embed
+        import propstore.heuristic.embed as embed
 
         monkeypatch.setattr(embed, "_load_vec_extension", lambda conn: None)
         monkeypatch.setattr(
@@ -989,7 +989,7 @@ class TestUnboundQueries:
         ]
 
     def test_similar_concepts_returns_typed_hits(self, world, monkeypatch):
-        import propstore.embed as embed
+        import propstore.heuristic.embed as embed
 
         monkeypatch.setattr(embed, "_load_vec_extension", lambda conn: None)
         monkeypatch.setattr(

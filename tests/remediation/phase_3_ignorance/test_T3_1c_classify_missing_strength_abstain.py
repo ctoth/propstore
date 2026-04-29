@@ -1,4 +1,4 @@
-from propstore.classify import classify_stance_from_llm_output
+from propstore.heuristic.classify import classify_stance_from_llm_output
 from propstore.provenance import ProvenanceStatus
 from propstore.stances import StanceType
 

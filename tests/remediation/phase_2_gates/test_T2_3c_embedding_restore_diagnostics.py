@@ -44,9 +44,9 @@ def test_embedding_restore_failures_write_diagnostics(
     )
 
     with (
-        patch("propstore.embed._load_vec_extension", MagicMock()),
-        patch("propstore.embed.extract_embeddings", MagicMock(return_value=snapshot)),
-        patch("propstore.embed.restore_embeddings", MagicMock(side_effect=exc)),
+        patch("propstore.heuristic.embed._load_vec_extension", MagicMock()),
+        patch("propstore.heuristic.embed.extract_embeddings", MagicMock(return_value=snapshot)),
+        patch("propstore.heuristic.embed.restore_embeddings", MagicMock(side_effect=exc)),
     ):
         assert build_sidecar(repo, sidecar_path, force=True) is True
 

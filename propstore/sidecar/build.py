@@ -567,7 +567,7 @@ def build_sidecar(
     if sidecar_path.exists():
         snapshot_conn = None
         try:
-            from propstore.embed import _load_vec_extension, extract_embeddings
+            from propstore.heuristic.embed import _load_vec_extension, extract_embeddings
 
             snapshot_conn = connect_sidecar(sidecar_path)
             snapshot_conn.row_factory = sqlite3.Row
@@ -650,7 +650,7 @@ def build_sidecar(
 
         if embedding_snapshot is not None:
             try:
-                from propstore.embed import _load_vec_extension, restore_embeddings
+                from propstore.heuristic.embed import _load_vec_extension, restore_embeddings
 
                 conn.row_factory = sqlite3.Row
                 _load_vec_extension(conn)

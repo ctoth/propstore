@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import propstore.app.concepts as concepts_mod
 import propstore.app.concepts.display as concepts_display_mod
 import propstore.app.concepts.embedding as concepts_embedding_mod
-import propstore.embed as embed_mod
+import propstore.heuristic.embed as embed_mod
 from propstore.app.concepts import (
     ConceptEmbedRequest,
     ConceptSearchRequest,

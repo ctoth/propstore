@@ -21,7 +21,7 @@ PROVENANCE_RECORDS = Path("propstore/provenance/records.py")
 
 FORBIDDEN_IMPORT_PREFIXES = (
     "propstore.app",
-    "propstore.calibrate",
+    "propstore.heuristic.calibrate",
     "propstore.cli",
     "propstore.condition_classifier",
     "propstore.context_lifting",

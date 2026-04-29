@@ -24,7 +24,7 @@ class TestEmbedEntitiesStoreProtocol:
         from unittest.mock import MagicMock, patch
 
         from propstore.core.embeddings import EmbeddingEntity
-        from propstore.embed import _deserialize_float32, _embed_entities
+        from propstore.heuristic.embed import _deserialize_float32, _embed_entities
 
         class MemoryStore:
             def __init__(self):
@@ -58,7 +58,7 @@ class TestEmbedEntitiesStoreProtocol:
         litellm = MagicMock()
         litellm.embedding.return_value.data = [{"embedding": [1.0, 2.0]}]
 
-        with patch("propstore.embed._require_litellm", return_value=litellm):
+        with patch("propstore.heuristic.embed._require_litellm", return_value=litellm):
             result = _embed_entities(store, "provider/model", entity_ids=["c1"])
 
         assert result == {"embedded": 1, "skipped": 0, "errors": 0}
@@ -208,7 +208,7 @@ class TestEmbedEntitiesOperationalError:
         from unittest.mock import patch, MagicMock
 
         from propstore.core.embeddings import EmbeddingEntity
-        from propstore.embed import _embed_entities
+        from propstore.heuristic.embed import _embed_entities
 
         class FailingStatusStore:
             def ensure_storage(self):
@@ -229,7 +229,7 @@ class TestEmbedEntitiesOperationalError:
 
         mock_litellm = MagicMock()
 
-        with patch("propstore.embed._require_litellm", return_value=mock_litellm):
+        with patch("propstore.heuristic.embed._require_litellm", return_value=mock_litellm):
             # The error should propagate -- not be silently caught
             with pytest.raises(sqlite3.OperationalError, match="disk I/O error"):
                 _embed_entities(FailingStatusStore(), "test-model")
@@ -239,7 +239,7 @@ class TestEmbedEntitiesOperationalError:
         from unittest.mock import MagicMock, patch
 
         from propstore.core.embeddings import EmbeddingEntity
-        from propstore.embed import _embed_entities
+        from propstore.heuristic.embed import _embed_entities
 
         class MemoryEmbeddingStore:
             def ensure_storage(self):
@@ -261,7 +261,7 @@ class TestEmbedEntitiesOperationalError:
         mock_litellm = MagicMock()
         mock_litellm.embedding.side_effect = RuntimeError("boom")
 
-        with patch("propstore.embed._require_litellm", return_value=mock_litellm):
+        with patch("propstore.heuristic.embed._require_litellm", return_value=mock_litellm):
             with pytest.raises(RuntimeError, match="boom"):
                 _embed_entities(MemoryEmbeddingStore(), "test-model")
 
@@ -284,7 +284,7 @@ class TestGetRegisteredModelsOperationalError:
             real_conn, "FROM embedding_model", "database disk image is malformed"
         )
 
-        from propstore.embed import get_registered_models
+        from propstore.heuristic.embed import get_registered_models
 
         with pytest.raises(sqlite3.OperationalError, match="database disk image is malformed"):
             get_registered_models(wrapper)
@@ -309,7 +309,7 @@ class TestExtractEmbeddingsOperationalError:
             real_conn, "FROM embedding_model", "database disk image is malformed"
         )
 
-        from propstore.embed import extract_embeddings
+        from propstore.heuristic.embed import extract_embeddings
 
         with pytest.raises(sqlite3.OperationalError, match="database disk image is malformed"):
             extract_embeddings(wrapper)

@@ -1048,7 +1048,7 @@ class WorldModel(WorldStore):
 
         Requires sqlite-vec extension and pre-computed embeddings.
         """
-        from propstore.embed import find_similar, _load_vec_extension, get_registered_models
+        from propstore.heuristic.embed import find_similar, _load_vec_extension, get_registered_models
         _load_vec_extension(self._conn)
 
         if model_name is None:
@@ -1073,7 +1073,7 @@ class WorldModel(WorldStore):
 
         Requires sqlite-vec extension and pre-computed embeddings.
         """
-        from propstore.embed import find_similar_concepts, _load_vec_extension, get_registered_models
+        from propstore.heuristic.embed import find_similar_concepts, _load_vec_extension, get_registered_models
         _load_vec_extension(self._conn)
 
         if model_name is None:

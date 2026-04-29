@@ -1,4 +1,4 @@
-from propstore.calibrate import CorpusCalibrator
+from propstore.heuristic.calibrate import CorpusCalibrator
 from propstore.provenance import ProvenanceStatus
 
 

@@ -1497,8 +1497,8 @@ class TestConnectionClosedOnError:
 
         with (
             patch("sqlite3.connect", return_value=mock_conn),
-            patch("propstore.embed._load_vec_extension"),
-            patch("propstore.embed.embed_claims", side_effect=RuntimeError("boom")),
+            patch("propstore.heuristic.embed._load_vec_extension"),
+            patch("propstore.heuristic.embed.embed_claims", side_effect=RuntimeError("boom")),
         ):
             runner = CliRunner()
             result = runner.invoke(cli, [

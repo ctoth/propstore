@@ -1,4 +1,4 @@
-"""Tests for propstore.calibrate — calibration module."""
+"""Tests for propstore.heuristic.calibrate — calibration module."""
 
 import math
 import sqlite3
@@ -7,7 +7,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.calibrate import (
+from propstore.heuristic.calibrate import (
     CalibrationSource,
     CorpusCalibrator,
     CategoryPrior,
@@ -398,7 +398,7 @@ class TestCalibrationCountsInfrastructure:
         Per Josang 2001 (p.20-21, Def 12): evidence maps to opinion with
         u = 2/(r+s+2). With 80/100 accuracy, u = 2/102 ~ 0.02.
         """
-        from propstore.calibrate import load_calibration_counts
+        from propstore.heuristic.calibrate import load_calibration_counts
 
         conn = sqlite3.connect(":memory:")
         conn.execute("""
@@ -435,7 +435,7 @@ class TestCalibrationCountsInfrastructure:
         Per Josang 2001 (p.8): when no data exists, the system must represent
         total ignorance, not fabricate confidence.
         """
-        from propstore.calibrate import load_calibration_counts
+        from propstore.heuristic.calibrate import load_calibration_counts
 
         conn = sqlite3.connect(":memory:")
         conn.execute("""
@@ -457,7 +457,7 @@ class TestCalibrationCountsInfrastructure:
 
     def test_load_calibration_counts_missing_table_returns_none(self):
         """A missing calibration_counts table means absent data, not a hard error."""
-        from propstore.calibrate import load_calibration_counts
+        from propstore.heuristic.calibrate import load_calibration_counts
 
         conn = sqlite3.connect(":memory:")
         result = load_calibration_counts(conn)
@@ -466,7 +466,7 @@ class TestCalibrationCountsInfrastructure:
 
     def test_load_calibration_counts_corruption_error_propagates(self):
         """Non-schema OperationalErrors must surface."""
-        from propstore.calibrate import load_calibration_counts
+        from propstore.heuristic.calibrate import load_calibration_counts
 
         real_conn = sqlite3.connect(":memory:")
         real_conn.execute(

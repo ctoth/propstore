@@ -1232,8 +1232,8 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
     from propstore.cli import cli
     from propstore.repository import Repository
     from propstore.proposals import stance_proposal_branch
-    import propstore.embed as embed_mod
-    import propstore.relate as relate_mod
+    import propstore.heuristic.embed as embed_mod
+    import propstore.heuristic.relate as relate_mod
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)

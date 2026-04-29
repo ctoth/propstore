@@ -1,6 +1,6 @@
 """Pair discovery and batch orchestration for epistemic relationship classification.
 
-Classification logic lives in propstore.classify; this module handles pair selection,
+Classification logic lives in propstore.heuristic.classify; this module handles pair selection,
 bulk fetching, deduplication, and async orchestration.
 """
 from __future__ import annotations
@@ -9,7 +9,7 @@ import asyncio
 import sqlite3
 from collections.abc import Callable
 
-from propstore.classify import classify_stance_async
+from propstore.heuristic.classify import classify_stance_async
 
 
 def _run_async(coro):
@@ -95,7 +95,7 @@ async def relate_claim_async(
 
     Single-pass bidirectional classification — each LLM call returns both A->B and B->A.
     """
-    from propstore.embed import find_similar, get_registered_models, _load_vec_extension
+    from propstore.heuristic.embed import find_similar, get_registered_models, _load_vec_extension
 
     _load_vec_extension(conn)
 
@@ -163,7 +163,7 @@ async def relate_all_async(
     on_progress: Callable[[int, int], None] | None,
 ) -> dict:
     """Classify relationships for all claims with concurrent bidirectional LLM calls."""
-    from propstore.embed import find_similar, get_registered_models, _load_vec_extension
+    from propstore.heuristic.embed import find_similar, get_registered_models, _load_vec_extension
 
     _load_vec_extension(conn)
 

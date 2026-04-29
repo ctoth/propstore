@@ -21,7 +21,7 @@ import yaml
 
 from quire.documents import decode_document_path
 
-from propstore.calibrate import (
+from propstore.heuristic.calibrate import (
     CalibrationSource,
     CategoryPrior,
     CategoryPriorRegistry,
@@ -168,14 +168,14 @@ class TestResolutionDictHasOpinionFields:
 
     def test_resolution_has_opinion_keys(self, mock_litellm_response):
         import asyncio
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
         claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.classify._require_litellm") as mock_req:
+            with patch("propstore.heuristic.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=mock_litellm_response)
                 mock_req.return_value = mock_litellm
@@ -223,7 +223,7 @@ class TestConfidenceEqualsExpectation:
     def test_resolution_confidence_matches_expectation(self):
         """The confidence float in the resolution dict must equal Opinion.expectation()."""
         import asyncio
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
             {"type": "rebuts", "strength": "moderate", "note": "test", "conditions_differ": None},
@@ -234,7 +234,7 @@ class TestConfidenceEqualsExpectation:
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.classify._require_litellm") as mock_req:
+            with patch("propstore.heuristic.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
@@ -524,7 +524,7 @@ class TestNoneStanceGetsZeroConfidence:
 
     def test_none_type_zero_confidence(self):
         import asyncio
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
             {"type": "none", "strength": "strong", "note": "unrelated", "conditions_differ": None},
@@ -536,7 +536,7 @@ class TestNoneStanceGetsZeroConfidence:
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.classify._require_litellm") as mock_req:
+            with patch("propstore.heuristic.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
@@ -557,14 +557,14 @@ class TestApiFailureReturnsErrorType:
 
     def test_api_exception_returns_error_not_none(self):
         import asyncio
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
         claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.classify._require_litellm") as mock_req:
+            with patch("propstore.heuristic.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(
                     side_effect=ConnectionError("API unreachable")
@@ -588,7 +588,7 @@ class TestJsonParseFailureReturnsErrorType:
 
     def test_json_parse_failure_returns_error_not_none(self):
         import asyncio
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = MagicMock()
         resp.choices = [MagicMock()]
@@ -599,7 +599,7 @@ class TestJsonParseFailureReturnsErrorType:
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.classify._require_litellm") as mock_req:
+            with patch("propstore.heuristic.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
@@ -621,7 +621,7 @@ class TestGenuineNoneStillWorks:
 
     def test_genuine_none_passes_through(self):
         import asyncio
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
             {"type": "none", "strength": "weak", "note": "entirely different topics", "conditions_differ": None},
@@ -633,7 +633,7 @@ class TestGenuineNoneStillWorks:
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.classify._require_litellm") as mock_req:
+            with patch("propstore.heuristic.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
@@ -667,7 +667,7 @@ class TestCorpusCalibReducesUncertainty:
 
     def test_corpus_calibrator_reduces_uncertainty(self):
         import asyncio
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
             {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None},
@@ -679,7 +679,7 @@ class TestCorpusCalibReducesUncertainty:
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.classify._require_litellm") as mock_req:
+            with patch("propstore.heuristic.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
@@ -696,7 +696,7 @@ class TestCorpusCalibReducesUncertainty:
 
     def test_no_reference_distances_and_no_prior_stays_unresolved(self):
         import asyncio
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
             {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None},
@@ -707,7 +707,7 @@ class TestCorpusCalibReducesUncertainty:
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.classify._require_litellm") as mock_req:
+            with patch("propstore.heuristic.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
@@ -725,7 +725,7 @@ class TestCorpusCalibReducesUncertainty:
 
     def test_corpus_and_categorical_fused_via_wbf(self):
         import asyncio
-        from propstore.classify import classify_stance_async
+        from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
             {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None},
@@ -739,7 +739,7 @@ class TestCorpusCalibReducesUncertainty:
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.classify._require_litellm") as mock_req:
+            with patch("propstore.heuristic.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
@@ -755,7 +755,7 @@ class TestCorpusCalibReducesUncertainty:
         result = results[0]
         u = result["resolution"]["opinion"]["u"]
 
-        from propstore.calibrate import CorpusCalibrator, categorical_to_opinion
+        from propstore.heuristic.calibrate import CorpusCalibrator, categorical_to_opinion
         corpus_op = CorpusCalibrator(reference_distances, corpus_base_rate=0.7).to_opinion(0.3)
         cat_op = categorical_to_opinion(
             "strong",
