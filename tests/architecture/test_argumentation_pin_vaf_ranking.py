@@ -6,7 +6,30 @@ from argumentation.practical_reasoning import (
     PracticalArgument,
     critical_question_objections,
 )
-from argumentation.ranking import RankingResult, categoriser_scores
+from argumentation.ranking import (
+    RankingResult,
+    burden_numbers,
+    categoriser_scores,
+    counting_ranking,
+    discussion_based_ranking,
+    h_categoriser_ranking,
+    iterated_graded_ranking,
+    tuples_ranking,
+)
+from argumentation.ranking_axioms import (
+    abstraction,
+    cardinality_precedence,
+    counter_transitivity,
+    defense_precedence,
+    distributed_defense_precedence,
+    independence,
+    quality_precedence,
+    self_contradiction,
+    strict_addition_of_defense_branch,
+    strict_counter_transitivity,
+    strict_preference_transitive,
+    void_precedence,
+)
 from argumentation.vaf import ValueBasedArgumentationFramework
 
 
@@ -36,6 +59,41 @@ def test_argumentation_pin_ranking_non_convergence_is_typed_result() -> None:
     assert result.converged is False
     assert result.iterations == 1
     assert set(result.scores) == {"a", "b"}
+
+
+def test_argumentation_pin_exposes_complete_ranking_and_axiom_surface() -> None:
+    framework = ArgumentationFramework(
+        arguments=frozenset({"a", "b", "c"}),
+        defeats=frozenset({("a", "b"), ("b", "c")}),
+    )
+
+    for semantic in (
+        categoriser_scores,
+        discussion_based_ranking,
+        counting_ranking,
+        tuples_ranking,
+        h_categoriser_ranking,
+        iterated_graded_ranking,
+    ):
+        assert isinstance(semantic(framework), RankingResult)
+    assert isinstance(burden_numbers(framework, iterations=2), RankingResult)
+
+    result = categoriser_scores(framework)
+    assert abstraction(categoriser_scores, framework)
+    assert independence(categoriser_scores, framework)
+    assert strict_preference_transitive(result)
+    assert void_precedence(framework, result)
+    assert cardinality_precedence(framework, result)
+    for predicate in (
+        counter_transitivity,
+        defense_precedence,
+        distributed_defense_precedence,
+        quality_precedence,
+        self_contradiction,
+        strict_addition_of_defense_branch,
+        strict_counter_transitivity,
+    ):
+        assert predicate(framework, result) in {True, False}
 
 
 def test_argumentation_pin_exposes_atkinson_cq11_objection_generation() -> None:
