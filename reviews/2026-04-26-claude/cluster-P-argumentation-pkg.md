@@ -30,6 +30,15 @@ named submodules. Three further submodules are private to the
 probabilistic stack: `probabilistic_components`,
 `probabilistic_dfquad`, `probabilistic_treedecomp`.
 
+Post-review update, 2026-04-28: WS-O-arg-gradual closes the
+gradual/quantitative gaps on the propstore-pinned dependency.
+Propstore commit `166c6f46` pins pushed upstream commit
+`c8bc3e0fd00de7a9bc400d04890c63362d3268bc`, where the current
+public surface includes `dfquad`, `matt_toni`, `equational`, and
+`gradual_principles`; the old `probabilistic_dfquad` production
+entry point is deleted. The module inventory below records the
+2026-04-26 review baseline unless explicitly marked closed.
+
 Module roles, with line counts and primary references:
 
 | Module | LOC | Role | Source |
@@ -50,12 +59,16 @@ Module roles, with line counts and primary references:
 | `af_revision.py` | 361 | Baumann kernels + Diller revisions + Cayrol classification | Baumann 2014/15, Diller 2015, Cayrol 2014 |
 | `weighted.py` | 157 | Dunne 2011 β-grounded extensions | Dunne et al. 2011 |
 | `ranking.py` | 171 | Categoriser + Burden numbers | Bonzon 2016 (subset) |
-| `gradual.py` | 329 | Potyka quadratic-energy + Shapley impacts | Potyka 2018, Al Anaissy 2024 |
+| `gradual.py` | 329 | Potyka quadratic-energy + Shapley impacts; CLOSED by WS-O-arg-gradual for continuous Potyka default | Potyka 2018, Al Anaissy 2024 |
+| `dfquad.py` | new | CLOSED by WS-O-arg-gradual: DF-QuAD and bipolar DF-QuAD over `WeightedBipolarGraph` | Rago 2016 |
+| `matt_toni.py` | new | CLOSED by WS-O-arg-gradual: game-theoretic argument strength | Matt-Toni 2008 |
+| `equational.py` | new | CLOSED by WS-O-arg-gradual: Gabbay equational schemes | Gabbay 2012 |
+| `gradual_principles.py` | new | CLOSED by WS-O-arg-gradual: Baroni principle predicates and compliance registry | Baroni 2019 |
 | `value_based.py` | 156 | Subjective filter for ASPIC+ inputs | Wallner et al. 2024 |
 | `accrual.py` | 141 | Weak/strong applicability over labellings | Prakken 2019 |
 | `probabilistic.py` | 1419 | PrAF dispatch across 6 strategies | Li 2012, Hunter-Thimm 2017, Popescu-Wallner 2024 |
 | `probabilistic_treedecomp.py` | 1663 | Min-degree TD + grounded DP + paper-faithful Popescu-Wallner | Popescu-Wallner 2024 |
-| `probabilistic_dfquad.py` | 222 | DF-QuAD strengths over QuAD/BAF graphs | Freedman et al. 2025 |
+| `probabilistic_dfquad.py` | 222 | Review-baseline DF-QuAD strengths over QuAD/BAF graphs; production entry point DELETED by WS-O-arg-gradual | Freedman et al. 2025 |
 | `probabilistic_components.py` | 47 | Connected-component decomposition | Hunter-Thimm 2017 |
 
 Cross-module dependency direction is consistent: `dung.py`
@@ -277,6 +290,24 @@ left for WS-O-arg-gradual, which consumes `RankingResult`.
 
 ### Gradual (Potyka 2018, Al Anaissy 2024, Rago 2016)
 
+Status update, 2026-04-28: CLOSED for the D-16 Group D kernels by
+WS-O-arg-gradual. The propstore pin now reaches upstream
+`c8bc3e0fd00de7a9bc400d04890c63362d3268bc`, which ships:
+
+- `argumentation.dfquad` with Rago 2016 DF-QuAD and bipolar
+  DF-QuAD over `WeightedBipolarGraph`; the old
+  `compute_dfquad_strengths` production path is deleted.
+- `argumentation.matt_toni` with Matt-Toni 2008 game strength.
+- `argumentation.gradual` with continuous Potyka integration as
+  the default and explicit discrete fixed-point access.
+- `argumentation.equational` with Gabbay min/max schemes.
+- `argumentation.gradual_principles` with Baroni 2019 principle
+  predicates and declared compliance labels.
+
+The remaining bullets in this subsection are retained as review
+history. Only EulerB / squared-product and sampled Shapley remain
+open from the old list.
+
 `gradual.py` implements:
 
 - `WeightedBipolarGraph` with `[0,1]` initial weights, disjoint
@@ -289,11 +320,10 @@ left for WS-O-arg-gradual, which consumes `RankingResult`.
 - Exact Shapley attack impact via coalition enumeration
   (`gradual.py:207-258`, Al Anaissy Def 13).
 
-Missing:
+Missing at the 2026-04-26 baseline:
 
-- Rago 2016 discontinuity-free QuAD (in scope) — the
-  probabilistic stack ships DF-QuAD but the core gradual
-  module exposes only Potyka quadratic.
+- Rago 2016 discontinuity-free QuAD (in scope) — CLOSED by
+  WS-O-arg-gradual.
 - EulerB / squared-product semantics (Amgoud-Ben Naim).
 - Sampled / approximate Shapley fallback for large fan-in;
   current implementation is `2^n_attacks` energy
@@ -687,13 +717,14 @@ the package:
   (Abstraction, Independence, etc.) are not exposed as
   testable predicates.
 - **Game-theoretic argument strength** (Matt-Toni 2008 in
-  scope) — not implemented.
+  scope) — CLOSED by WS-O-arg-gradual, upstream
+  `c8bc3e0fd00de7a9bc400d04890c63362d3268bc`.
 - **DF-QuAD discontinuity-free strength** in the core
-  gradual module (Rago 2016 in scope) — only used inside the
-  probabilistic dfquad path; `gradual.py` ships Potyka
-  quadratic only.
-- **Equational approach** (Gabbay 2012 in scope) — not
-  implemented.
+  gradual module (Rago 2016 in scope) — CLOSED by
+  WS-O-arg-gradual; the deleted probabilistic-only path is
+  replaced by `argumentation.dfquad`.
+- **Equational approach** (Gabbay 2012 in scope) — CLOSED by
+  WS-O-arg-gradual.
 - **AF dynamics beyond add-argument classification** (Cayrol
   2014 covered; Alfano 2017, Oikarinen 2010 strong-equivalence
   in scope) — kernel-based equivalence is not implemented.
