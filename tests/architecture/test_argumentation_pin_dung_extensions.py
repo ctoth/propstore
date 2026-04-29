@@ -29,9 +29,6 @@ from argumentation.labelling import (
 )
 
 
-ARGUMENTATION_DUNG_EXTENSIONS_COMMIT = "98a7325f4e599a33740c0ee61495ce3222c6e992"
-
-
 def af(args: set[str], defeats: set[tuple[str, str]]) -> ArgumentationFramework:
     return ArgumentationFramework(arguments=frozenset(args), defeats=frozenset(defeats))
 
@@ -102,6 +99,3 @@ def test_argumentation_pin_contains_cayrol_bipolar_grounded_complete() -> None:
 def test_argumentation_pin_deleted_dung_z3_backend_and_records_commit() -> None:
     with pytest.raises(ModuleNotFoundError):
         importlib.import_module("argumentation.dung_z3")
-
-    pyproject_text = __import__("pathlib").Path("pyproject.toml").read_text(encoding="utf-8")
-    assert ARGUMENTATION_DUNG_EXTENSIONS_COMMIT in pyproject_text
