@@ -2,6 +2,11 @@
 
 Classification logic lives in propstore.heuristic.classify; this module handles pair selection,
 bulk fetching, deduplication, and async orchestration.
+
+Embedding-neighbor searches are directed: A's nearest-neighbor distance to B is
+not interchangeable with B's distance to A. ``dedup_pairs`` keeps one unordered
+pair for LLM cost control, but preserves the two directed distances separately
+instead of collapsing them to ``min(forward, reverse)``.
 """
 from __future__ import annotations
 
@@ -64,14 +69,40 @@ def _bulk_get_claim_texts(conn: sqlite3.Connection, claim_ids: list[str]) -> dic
     return result
 
 
-def dedup_pairs(pairs: list[tuple[str, str, float]]) -> list[tuple[str, str, float]]:
-    """Deduplicate (a_id, b_id, distance) pairs by unordered key, keeping shortest distance."""
-    best: dict[frozenset[str], tuple[int, float]] = {}
+def dedup_pairs(
+    pairs: list[tuple[str, str, float]],
+) -> list[tuple[str, str, float, float | None]]:
+    """Deduplicate directed pair distances while preserving mirror disagreement.
+
+    The returned tuple is ``(a_id, b_id, forward_distance, reverse_distance)``.
+    ``forward_distance`` is the best observed distance for ``a_id -> b_id`` in
+    the representative orientation; ``reverse_distance`` is the best observed
+    distance for ``b_id -> a_id`` when that mirror direction was present.
+    """
+
+    best: dict[frozenset[str], tuple[int, str, str, float, float | None]] = {}
     for i, (a, b, dist) in enumerate(pairs):
         key = frozenset({a, b})
-        if key not in best or dist < best[key][1]:
-            best[key] = (i, dist)
-    return [pairs[idx] for idx, _ in sorted(best.values(), key=lambda x: x[0])]
+        if key not in best:
+            best[key] = (i, a, b, dist, None)
+            continue
+
+        first_index, left, right, forward, reverse = best[key]
+        if (a, b) == (left, right):
+            forward = min(forward, dist)
+        elif (a, b) == (right, left):
+            reverse = dist if reverse is None else min(reverse, dist)
+        else:
+            raise ValueError("dedup_pairs requires non-self unordered pairs")
+        best[key] = (first_index, left, right, forward, reverse)
+
+    return [
+        (left, right, forward, reverse)
+        for _index, left, right, forward, reverse in sorted(
+            best.values(),
+            key=lambda item: item[0],
+        )
+    ]
 
 
 def _shared_concept_ids_from_pair(claim_a: dict, claim_b: dict) -> list[str]:
@@ -180,8 +211,8 @@ async def relate_all_async(
     # Bulk-fetch all claim texts upfront
     text_cache = _bulk_get_claim_texts(conn, all_claim_ids)
 
-    # Phase 1: Gather pairs from embeddings (fast, no LLM)
-    pairs: list[tuple[dict, dict, float]] = []
+    # Phase 1: Gather directed pairs from embeddings (fast, no LLM)
+    directed_pairs: list[tuple[dict, dict, float]] = []
     candidate_ids_needed: set[str] = set()
     raw_candidates: list[tuple[str, list[dict]]] = []
     # Track concept_ids from find_similar for shared-concept checks
@@ -208,19 +239,24 @@ async def relate_all_async(
         for c in candidates:
             claim_b = text_cache.get(c["id"])
             if claim_b:
-                pairs.append((claim_a, claim_b, c.get("distance", 1.0)))
+                directed_pairs.append((claim_a, claim_b, c.get("distance", 1.0)))
 
     # Deduplicate mirror pairs
-    raw_id_pairs = [(a["id"], b["id"], dist) for a, b, dist in pairs]
+    raw_id_pairs = [(a["id"], b["id"], dist) for a, b, dist in directed_pairs]
     deduped = dedup_pairs(raw_id_pairs)
-    pairs = [
-        (text_cache[a_id], text_cache[b_id], dist)
-        for a_id, b_id, dist in deduped
+    pairs: list[tuple[dict, dict, float, float | None]] = [
+        (text_cache[a_id], text_cache[b_id], forward_dist, reverse_dist)
+        for a_id, b_id, forward_dist, reverse_dist in deduped
         if a_id in text_cache and b_id in text_cache
     ]
 
     # Collect all distances for corpus calibration (Josang 2001, Theorem 7)
-    reference_distances = [dist for _, _, dist in pairs]
+    reference_distances = [
+        distance
+        for _, _, forward_dist, reverse_dist in pairs
+        for distance in (forward_dist, reverse_dist)
+        if distance is not None
+    ]
 
     # Phase 2: Classify all pairs (single pass, bidirectional)
     semaphore = asyncio.Semaphore(concurrency)
@@ -228,14 +264,14 @@ async def relate_all_async(
         classify_stance_async(
             a, b, model_name, semaphore,
             embedding_model=embedding_model,
-            embedding_distance=dist,
+            embedding_distance=forward_dist,
             shared_concept_ids=_shared_concept_ids_from_pair(
                 {**a, "concept_id": concept_ids.get(a["id"])},
                 {**b, "concept_id": concept_ids.get(b["id"])},
             ),
             reference_distances=reference_distances,
         )
-        for a, b, dist in pairs
+        for a, b, forward_dist, _reverse_dist in pairs
     ]
 
     all_stances: dict[str, list[dict]] = {}
@@ -249,7 +285,10 @@ async def relate_all_async(
         chunk_pairs = pairs[i:i + chunk_size]
         results = await asyncio.gather(*chunk)
 
-        for (claim_a, claim_b, _dist), stance_pair in zip(chunk_pairs, results):
+        for (claim_a, claim_b, _forward_dist, _reverse_dist), stance_pair in zip(
+            chunk_pairs,
+            results,
+        ):
             # Each result is [forward_stance, reverse_stance]
             for stance in stance_pair:
                 # File under the source claim (the one whose perspective this is from)
