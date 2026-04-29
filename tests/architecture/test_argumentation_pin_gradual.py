@@ -13,7 +13,7 @@ from argumentation.dung import ArgumentationFramework
 from argumentation.gradual import GradualStrengthResult, WeightedBipolarGraph
 
 
-PINNED_ARGUMENTATION_COMMIT = "dbb036b9968b370856c22cb2ebf6157a72587956"
+PINNED_ARGUMENTATION_COMMIT = "73e918b09548a89f0c2e280b6998b8017f1415d5"
 
 
 def test_argumentation_pin_exposes_gradual_public_surface() -> None:
