@@ -393,8 +393,8 @@ def imps_rev(
     p_defeats: dict[tuple[str, str], Opinion],
 ) -> float:
     from argumentation.dung import ArgumentationFramework as AF
-    from argumentation.probabilistic import ProbabilisticAF
-    from argumentation.probabilistic_dfquad import compute_dfquad_strengths
+    from argumentation.dfquad import dfquad_strengths
+    from argumentation.gradual import WeightedBipolarGraph
 
     if attack not in framework.defeats:
         return 0.0
@@ -415,29 +415,31 @@ def imps_rev(
             f"unprovenanced_defeats={unprovenanced_defeats}"
         )
 
-    praf = ProbabilisticAF(
-        framework=framework,
-        p_args={argument: opinion.expectation() for argument, opinion in p_args.items()},
-        p_defeats={defeat: opinion.expectation() for defeat, opinion in p_defeats.items()},
+    graph = WeightedBipolarGraph(
+        arguments=framework.arguments,
+        initial_weights=base_scores,
+        attacks=framework.defeats,
+        supports=frozenset(supports),
     )
-    strengths_full = compute_dfquad_strengths(praf, supports, base_scores=base_scores)
+    strengths_full = dfquad_strengths(
+        graph,
+        base_scores=base_scores,
+        support_weights=supports,
+    ).strengths
 
     reduced_framework = AF(
         arguments=framework.arguments,
         defeats=frozenset(defeat for defeat in framework.defeats if defeat != attack),
     )
-    reduced_p_defeats = {key: value for key, value in p_defeats.items() if key != attack}
-    reduced_praf = ProbabilisticAF(
-        framework=reduced_framework,
-        p_args={argument: opinion.expectation() for argument, opinion in p_args.items()},
-        p_defeats={
-            defeat: opinion.expectation()
-            for defeat, opinion in reduced_p_defeats.items()
-        },
+    reduced_graph = WeightedBipolarGraph(
+        arguments=reduced_framework.arguments,
+        initial_weights=base_scores,
+        attacks=reduced_framework.defeats,
+        supports=frozenset(supports),
     )
-    strengths_reduced = compute_dfquad_strengths(
-        reduced_praf,
-        supports,
+    strengths_reduced = dfquad_strengths(
+        reduced_graph,
         base_scores=base_scores,
-    )
+        support_weights=supports,
+    ).strengths
     return strengths_reduced[attack[1]] - strengths_full[attack[1]]
