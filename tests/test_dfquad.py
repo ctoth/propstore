@@ -10,16 +10,17 @@ from __future__ import annotations
 import pytest
 
 from argumentation.dung import ArgumentationFramework
+from argumentation.dfquad import (
+    dfquad_aggregate,
+    dfquad_bipolar_strengths,
+    dfquad_combine,
+    dfquad_strengths,
+)
+from argumentation.gradual import WeightedBipolarGraph
 from argumentation.probabilistic import (
     PrAFResult,
     ProbabilisticAF,
     compute_probabilistic_acceptance,
-)
-from argumentation.probabilistic_dfquad import (
-    compute_dfquad_baf_strengths,
-    compute_dfquad_quad_strengths,
-    dfquad_aggregate,
-    dfquad_combine,
 )
 
 
@@ -62,6 +63,38 @@ def _compute_quad_strengths(
         supports,
         tau=_tau_from_praf(praf),
     )
+
+
+def compute_dfquad_quad_strengths(
+    praf: ProbabilisticAF,
+    supports: dict[tuple[str, str], float],
+    *,
+    tau: dict[str, float],
+) -> dict[str, float]:
+    graph = WeightedBipolarGraph(
+        arguments=praf.framework.arguments,
+        initial_weights=tau,
+        attacks=praf.framework.defeats,
+        supports=frozenset(supports),
+    )
+    return dfquad_strengths(
+        graph,
+        base_scores=tau,
+        support_weights=supports,
+    ).strengths
+
+
+def compute_dfquad_baf_strengths(
+    praf: ProbabilisticAF,
+    supports: dict[tuple[str, str], float],
+) -> dict[str, float]:
+    graph = WeightedBipolarGraph(
+        arguments=praf.framework.arguments,
+        initial_weights={argument: 0.5 for argument in praf.framework.arguments},
+        attacks=praf.framework.defeats,
+        supports=frozenset(supports),
+    )
+    return dfquad_bipolar_strengths(graph).strengths
 
 
 # ---------------------------------------------------------------------------
