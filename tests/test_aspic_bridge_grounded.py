@@ -28,10 +28,10 @@ Target signature per prompts/gunray-chunk-1-7a-bridge-tests.md::
 
 Non-commitment anchor (CLAUDE.md): the bundle carries the full ground
 model with every verdict section present. The bridge reads only from
-``definitely`` and ``defeasibly`` because those are the two sections
-gunray treats as an answered ground atom; ``not_defeasibly`` is
-negation-as-failure territory and ``undecided`` carries no positive
-commitment. Phase 1 implements only the positive fact-base path.
+``yes`` because that is the Garcia section gunray treats as positively
+warranted; ``no`` carries warranted complements, ``undecided`` carries
+blocked literals, and ``unknown`` carries no argument. Phase 1 implements
+only the positive fact-base path.
 
 Theoretical sources cited throughout the tests:
 
@@ -176,11 +176,10 @@ def _rule_file(rules):
 def _bundle(rules=(), yes=None):
     """Construct a ``GroundedRulesBundle`` with explicit section content.
 
-    Accepts two flat ``{predicate_id: frozenset[tuple[Scalar, ...]]}``
-    maps for the ``definitely`` and ``defeasibly`` sections. The other
-    two sections (``not_defeasibly`` / ``undecided``) are always
-    present-and-empty per the non-commitment discipline anchor in the
-    project CLAUDE.md.
+    Accepts a flat ``{predicate_id: frozenset[tuple[Scalar, ...]]}``
+    map for the ``yes`` section. The other Garcia sections (``no`` /
+    ``undecided`` / ``unknown``) are always present-and-empty per the
+    non-commitment discipline anchor in the project CLAUDE.md.
 
     Diller, Borg, Bex 2025 §3 Def 7 (p.3): the fact base inside a
     grounded model is a finite set of ground atoms keyed by predicate

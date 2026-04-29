@@ -19,8 +19,8 @@ evaluator; see report):
 
         dict[str, dict[str, set[tuple[Scalar, ...]]]]
 
-    The outer key is the gunray section name
-    (``definitely`` / ``defeasibly`` / ``not_defeasibly`` / ``undecided``)
+    The outer key is the Garcia answer-section name
+    (``yes`` / ``no`` / ``undecided`` / ``unknown``)
     and the inner key is the predicate id. **Empty sections are
     dropped** by gunray's evaluator (``defeasible.py`` builds the
     result via ``{name: facts_map for ... if facts_map}``), so the
@@ -53,11 +53,11 @@ Theoretical sources:
       ``flies(X) -< bird(X)``. The Phase-1 grounder reproduces this
       textbook derivation end-to-end.
     - Section 4 (p.25): a defeasible program has a four-valued answer
-      system — YES (strict-provable), NO (overruled),
-      UNDECIDED (blocked by equal-strength peer), UNKNOWN
-      (no supporting rule). Gunray's four sections
-      (``definitely`` / ``defeasibly`` / ``not_defeasibly`` /
-      ``undecided``) map onto that answer system. The
+      system — YES (warranted), NO (complement warranted),
+      UNDECIDED (argument exists but neither side is warranted),
+      UNKNOWN (no argument exists). Gunray's four sections
+      (``yes`` / ``no`` / ``undecided`` / ``unknown``) carry that
+      answer system directly. The
       non-commitment anchor here is that **all four sections are
       preserved in the bundle, even when empty** — render-time
       policy decides which to surface; storage never drops one.
@@ -388,14 +388,14 @@ def test_bundle_sections_are_immutable() -> None:
         bundle.sections["yes"] = {}  # type: ignore[index]
 
 
-def test_bundle_section_keys_are_the_four_gunray_sections() -> None:
-    """Bundle exposes all four gunray section names, always.
+def test_bundle_section_keys_are_the_four_garcia_sections() -> None:
+    """Bundle exposes all four Garcia section names, always.
 
     Garcia & Simari 2004 §4 (p.25): the four-valued answer system is
     ``{YES, NO, UNDECIDED, UNKNOWN}`` — every ground literal lands in
     exactly one bucket. Gunray's four sections
-    (``definitely`` / ``defeasibly`` / ``not_defeasibly`` /
-    ``undecided``) map onto that system. **Non-commitment anchor**:
+    (``yes`` / ``no`` / ``undecided`` / ``unknown``)
+    carry that system directly. **Non-commitment anchor**:
     no section is ever dropped, even when empty, so render-time
     policy sees the full shape.
     """

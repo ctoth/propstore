@@ -1,8 +1,8 @@
 """Tests for sidecar grounded-facts persistence — chunk 1.6a (red).
 
-These tests describe the contract for a new sidecar module that
-persists the four gunray sections (``definitely`` / ``defeasibly`` /
-``not_defeasibly`` / ``undecided``) from a
+These tests describe the contract for a sidecar module that
+persists the four Garcia sections (``yes`` / ``no`` /
+``undecided`` / ``unknown``) from a
 ``propstore.grounding.bundle.GroundedRulesBundle`` into the sidecar's
 SQLite store.
 
@@ -51,9 +51,8 @@ Theoretical sources:
       ``bird(tweety) ∈ Facts`` with the defeasible rule
       ``flies(X) -< bird(X)``. That example is re-used here as a
       concrete regression case: the sidecar must round-trip a bundle
-      whose ``definitely`` section contains ``{bird: {(tweety,)}}``
-      and whose ``defeasibly`` section contains both
-      ``{bird: {(tweety,)}}`` and ``{flies: {(tweety,)}}``.
+      whose ``yes`` section contains both ``{bird: {(tweety,)}}``
+      and ``{flies: {(tweety,)}}``.
     - Section 4 (p.25): the four-valued answer system
       ``{YES, NO, UNDECIDED, UNKNOWN}`` maps onto the four section
       names. All four sections are required to round-trip, even when
@@ -392,10 +391,10 @@ def test_populate_all_four_sections() -> None:
     inserts exactly one row per section.
 
     Garcia & Simari 2004 §4 (p.25) four-valued answer system: every
-    verdict in ``{YES, NO, UNDECIDED, UNKNOWN}`` (mapped to
-    ``definitely`` / ``defeasibly`` / ``not_defeasibly`` /
-    ``undecided``) has to be individually persistable — that is the
-    non-commitment discipline anchor.
+    verdict in ``{YES, NO, UNDECIDED, UNKNOWN}`` (stored as
+    ``yes`` / ``no`` / ``undecided`` / ``unknown``) has to be
+    individually persistable — that is the non-commitment discipline
+    anchor.
     """
     from propstore.sidecar.rules import populate_grounded_facts
 
