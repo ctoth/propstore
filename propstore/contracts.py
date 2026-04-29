@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.30")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
+DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
+    "propstore.families.documents.rules.AtomDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.rules.RuleDocument": VersionId("2026.05.01"),
+}
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
     / "contract_manifests"
@@ -183,11 +187,19 @@ def _document_contract(document_type: type[msgspec.Struct]) -> ContractEntry:
     return ContractEntry(
         kind="document_schema",
         name=document_type.__name__,
-        contract_version=PROPSTORE_REGISTRY_CONTRACT_VERSION,
+        contract_version=_document_contract_version(document_type),
         body={
             "module": document_type.__module__,
             "fields": tuple(fields),
         },
+    )
+
+
+def _document_contract_version(document_type: type[msgspec.Struct]) -> VersionId:
+    key = f"{document_type.__module__}.{document_type.__name__}"
+    return DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES.get(
+        key,
+        PROPSTORE_REGISTRY_CONTRACT_VERSION,
     )
 
 

@@ -21,8 +21,10 @@ def test_reasoning_demo_grounding_status(tmp_path) -> None:
     assert result.exit_code == 0, result.output
     assert "Grounding surface: ready" in result.output
     assert "Facts: 1" in result.output
-    assert "definitely: 1" in result.output
-    assert "defeasibly: 2" in result.output
+    assert "yes: 2" in result.output
+    assert "no: 2" in result.output
+    assert "undecided: 0" in result.output
+    assert "unknown: 0" in result.output
 
 
 def test_reasoning_demo_grounding_show_and_query(tmp_path) -> None:
@@ -36,8 +38,8 @@ def test_reasoning_demo_grounding_show_and_query(tmp_path) -> None:
     assert "bird(tweety)" in show_result.output
     assert "Grounded rules (1):" in show_result.output
     assert "r_flies_from_bird: flies(tweety) -< bird(tweety)" in show_result.output
-    assert "definitely:" in show_result.output
-    assert "defeasibly:" in show_result.output
+    assert "yes:" in show_result.output
+    assert "no:" in show_result.output
 
     query_result = runner.invoke(
         cli,
@@ -46,7 +48,7 @@ def test_reasoning_demo_grounding_show_and_query(tmp_path) -> None:
 
     assert query_result.exit_code == 0, query_result.output
     assert "flies(tweety)" in query_result.output
-    assert "status: defeasibly" in query_result.output
+    assert "status: yes" in query_result.output
 
 
 def test_reasoning_demo_grounding_arguments(tmp_path) -> None:
@@ -71,7 +73,7 @@ def test_reasoning_demo_grounding_explain(tmp_path) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    assert "status: defeasibly" in result.output
+    assert "status: yes" in result.output
     assert "Textual explanation:" in result.output
     assert "flies(tweety) is YES." in result.output
     assert "via r_flies_from_bird" in result.output

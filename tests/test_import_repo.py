@@ -323,8 +323,11 @@ def test_repository_import_includes_registered_rules_and_predicates_from_committ
                             },
                             "body": [
                                 {
-                                    "predicate": "bird",
-                                    "terms": [{"kind": "var", "name": "X"}],
+                                    "kind": "positive",
+                                    "atom": {
+                                        "predicate": "bird",
+                                        "terms": [{"kind": "var", "name": "X"}],
+                                    },
                                 }
                             ],
                         }

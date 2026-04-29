@@ -767,7 +767,7 @@ contracts:
     module: propstore.families.documents.source_alignment
 - kind: document_schema
   name: AtomDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: predicate
@@ -867,6 +867,18 @@ contracts:
       required: true
       type: tuple[VariableBindingDocument, ...]
     module: propstore.families.claims.documents
+- kind: document_schema
+  name: BodyLiteralDocument
+  contract_version: 2026.04.30
+  body:
+    fields:
+    - name: kind
+      required: true
+      type: Literal['positive', 'default_negated']
+    - name: atom
+      required: true
+      type: AtomDocument
+    module: propstore.families.documents.rules
 - kind: document_schema
   name: ClaimDocument
   contract_version: 2026.04.30
@@ -1772,7 +1784,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: RuleDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: id
@@ -1780,13 +1792,13 @@ contracts:
       type: str
     - name: kind
       required: true
-      type: Literal['strict', 'defeasible', 'defeater']
+      type: Literal['strict', 'defeasible', 'proper_defeater', 'blocking_defeater']
     - name: head
       required: true
       type: AtomDocument
     - name: body
       required: true
-      type: tuple[AtomDocument, ...]
+      type: tuple[BodyLiteralDocument, ...]
     module: propstore.families.documents.rules
 - kind: document_schema
   name: RuleSourceDocument
