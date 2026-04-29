@@ -3038,4 +3038,4 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         assert result.winning_claim_id is None
         assert result.acceptance_probs == {}
         assert result.reason is not None
-        assert "claims tied at acceptance" in result.reason
+        assert "PrAF target calibration omitted" in result.reason

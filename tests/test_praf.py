@@ -503,15 +503,12 @@ def test_p_defeat_from_opinion_columns():
     assert op.provenance is not None
 
     # Without opinion and without sample size, confidence is not promoted
-    # to fabricated one-sample evidence. It remains vacuous at the stated
-    # relation base rate.
+    # to fabricated one-sample evidence.
     stance_with_confidence = {"confidence": 0.75, "opinion_base_rate": 0.5}
     op2 = p_defeat_from_stance(stance_with_confidence)
-    assert isinstance(op2, Opinion)
-    assert op2.b == pytest.approx(0.0)
-    assert op2.d == pytest.approx(0.0)
-    assert op2.u == pytest.approx(1.0)
-    assert op2.expectation() == pytest.approx(0.5)
+    assert isinstance(op2, NoCalibration)
+    assert op2.reason == "missing_evidence_count"
+    assert op2.missing_fields == ("effective_sample_size", "sample_size")
 
     stance_with_sample_size = {
         "confidence": 0.75,
@@ -590,8 +587,9 @@ def test_build_praf_from_store():
         praf = build_praf(store, {"c1", "c2"})
 
     assert isinstance(praf, PropstorePrAF)
-    # Bare active claims are omitted from PrAF and surfaced as missing calibration.
-    assert praf.framework.arguments == frozenset()
+    # Bare active claims stay in the PrAF topology and are surfaced as
+    # vacuous omissions rather than deleted from the framework.
+    assert praf.framework.arguments == frozenset({"c1", "c2"})
     assert set(praf.omitted_arguments) == {"c1", "c2"}
 
     # There should be a defeat with Opinion-based P_D
@@ -636,8 +634,8 @@ def test_build_praf_omits_uncalibrated_relation_from_probability_envelope():
     praf = build_praf_from_shared_input(shared)
 
     assert praf.framework.arguments == frozenset({"c1", "c2"})
-    assert praf.framework.defeats == frozenset()
-    assert praf.p_defeats == {}
+    assert praf.framework.defeats == frozenset({("c1", "c2")})
+    assert praf.p_defeats[("c1", "c2")].expectation() == pytest.approx(0.5)
     assert praf.omitted_relations == {
         ("c1", "c2"): praf.omitted_relations[("c1", "c2")]
     }
