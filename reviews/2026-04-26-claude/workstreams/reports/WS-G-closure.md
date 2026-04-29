@@ -1,7 +1,7 @@
 # WS-G Closure Report
 
 Workstream: WS-G belief revision, IC merge, and AF-revision consumption
-Closing propstore commit: `b3b91229`
+Closing propstore commit: `e2f6bd62`
 Upstream dependency fix: `formal-argumentation` pushed commit `de6b66f97eb8208e911cb6686f0c2ea6c5d2c69e`
 
 ## Findings Closed
@@ -47,6 +47,10 @@ Upstream dependency fix: `formal-argumentation` pushed commit `de6b66f97eb8208e9
 - Docs: `logs/test-runs/WS-G-docs-20260429-020842.log`
 - Sentinel: `logs/test-runs/WS-G-sentinel-20260429-021115.log`
 - Propstore after dependency pin: `logs/test-runs/WS-G-argumentation-pin-20260429-021729.log`
+- First full suite after pin exposed two legacy-test fallout failures:
+  `logs/test-runs/WS-G-full-20260429-022217.log`
+- Fallout tests fixed: `logs/test-runs/WS-G-full-fallout-20260429-022500.log`
+- Final full suite: `logs/test-runs/WS-G-full-20260429-022534.log` (`3344 passed`)
 
 Upstream dependency evidence:
 

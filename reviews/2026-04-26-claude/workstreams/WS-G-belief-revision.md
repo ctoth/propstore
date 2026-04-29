@@ -1,6 +1,6 @@
 # WS-G: Belief revision — AGM, iterated, IC merge, AGM-AF postulate coverage
 
-**Status**: CLOSED b3b91229
+**Status**: CLOSED e2f6bd62
 **Depends on**: WS-A (foundation), WS-D (operator naming), WS-O-arg (upstream owner of Codex #20 fix in `argumentation` package)
 **Blocks**: nothing internal. Downstream-of WS-A which is the universal foundation.
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1)
