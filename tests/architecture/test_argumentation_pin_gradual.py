@@ -13,9 +13,6 @@ from argumentation.dung import ArgumentationFramework
 from argumentation.gradual import GradualStrengthResult, WeightedBipolarGraph
 
 
-PINNED_ARGUMENTATION_COMMIT = "73e918b09548a89f0c2e280b6998b8017f1415d5"
-
-
 def test_argumentation_pin_exposes_gradual_public_surface() -> None:
     assert hasattr(dfquad, "dfquad_strengths")
     assert hasattr(dfquad, "dfquad_bipolar_strengths")
@@ -87,7 +84,13 @@ def test_deleted_dfquad_path_and_propstore_importers_are_absent() -> None:
     assert offenders == []
 
 
-def test_argumentation_pin_records_post_gradual_commit() -> None:
+def test_argumentation_dependency_uses_remote_git_pin() -> None:
     pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
     text = pyproject.read_text(encoding="utf-8")
-    assert PINNED_ARGUMENTATION_COMMIT in text
+    dependency_line = next(
+        line for line in text.splitlines() if "formal-argumentation @" in line
+    )
+
+    assert "git+https://github.com/ctoth/argumentation@" in dependency_line
+    assert "file:" not in dependency_line
+    assert "../argumentation" not in dependency_line

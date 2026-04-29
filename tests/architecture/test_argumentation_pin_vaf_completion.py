@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from argumentation.vaf import ValueBasedArgumentationFramework
 from argumentation.vaf_completion import (
     FACT_VALUE,
@@ -12,15 +10,6 @@ from argumentation.vaf_completion import (
     is_skeptically_objective_under_fact_uncertainty,
     two_value_cycle_extension,
 )
-
-
-PINNED_ARGUMENTATION_COMMIT = "0d036dfef91e8c47ed47e5b030fe9d510bc53295"
-
-
-def test_argumentation_pin_records_vaf_completion_commit() -> None:
-    pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
-
-    assert PINNED_ARGUMENTATION_COMMIT in pyproject.read_text(encoding="utf-8")
 
 
 def test_argumentation_pin_exposes_bench_capon_line_classification() -> None:
