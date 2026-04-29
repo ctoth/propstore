@@ -16,6 +16,17 @@ class ICMergeOperator(StrEnum):
     GMAX = "gmax"
 
 
+class ICMergeProfileMemberInconsistent(ValueError):
+    """Raised when an IC profile contains an unsatisfiable formula."""
+
+    def __init__(self, formula: Formula) -> None:
+        self.formula = formula
+        super().__init__("IC merge profile member has no models")
+
+    def __str__(self) -> str:
+        return "IC merge profile member has no models"
+
+
 @dataclass(frozen=True, slots=True)
 class ICMergeOutcome:
     belief_set: BeliefSet
@@ -31,7 +42,7 @@ class _DistanceFormulaCacheEntry:
 
 _DISTANCE_FORMULA_CACHE_MAX_SIZE = 128
 _DISTANCE_FORMULA_CACHE: OrderedDict[
-    tuple[int, frozenset[str]],
+    tuple[object, frozenset[str]],
     _DistanceFormulaCacheEntry,
 ] = OrderedDict()
 
@@ -47,6 +58,7 @@ def merge_belief_profile(
     signature = frozenset(alphabet) | mu.atoms()
     for formula in profile:
         signature |= formula.atoms()
+    _raise_for_unsatisfiable_profile_members(profile, signature)
     candidates = tuple(
         world
         for world in BeliefSet.all_worlds(signature)
@@ -78,11 +90,10 @@ def _score_world(
     operator: ICMergeOperator,
 ) -> float | tuple[float, ...]:
     distances = tuple(_distance_to_formula(world, formula, signature) for formula in profile)
-    finite_distances = tuple(distance for distance in distances if not math.isinf(distance))
     if operator == ICMergeOperator.SIGMA:
-        return float(sum(finite_distances))
+        return float(sum(distances))
     if operator == ICMergeOperator.GMAX:
-        return tuple(sorted(finite_distances, reverse=True))
+        return tuple(sorted(distances, reverse=True))
     raise ValueError(f"Unsupported IC merge operator: {operator}")
 
 
@@ -168,9 +179,9 @@ def _distance_formula_cache_entry(
     formula: Formula,
     signature: frozenset[str],
 ) -> _DistanceFormulaCacheEntry:
-    key = (id(formula), signature)
+    key = (formula, signature)
     cached = _DISTANCE_FORMULA_CACHE.get(key)
-    if cached is not None and cached.formula is formula:
+    if cached is not None:
         _DISTANCE_FORMULA_CACHE.move_to_end(key)
         return cached
 
@@ -187,10 +198,17 @@ def _distance_formula_cache_entry(
     _DISTANCE_FORMULA_CACHE[key] = entry
     _DISTANCE_FORMULA_CACHE.move_to_end(key)
     while len(_DISTANCE_FORMULA_CACHE) > _DISTANCE_FORMULA_CACHE_MAX_SIZE:
-        # The entry holds a strong formula reference, so id reuse cannot alias a
-        # later formula while the cache entry remains live.
         _DISTANCE_FORMULA_CACHE.popitem(last=False)
     return entry
+
+
+def _raise_for_unsatisfiable_profile_members(
+    profile: tuple[Formula, ...],
+    signature: frozenset[str],
+) -> None:
+    for formula in profile:
+        if not _distance_formula_cache_entry(formula, signature).models:
+            raise ICMergeProfileMemberInconsistent(formula)
 
 
 def _hamming(left: World, right: World) -> int:

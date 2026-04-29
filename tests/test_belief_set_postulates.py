@@ -83,6 +83,10 @@ def _is_tautology(formula: Formula) -> bool:
     return _belief(formula).models == BeliefSet.all_worlds(ALPHABET)
 
 
+def _profile_members_are_satisfiable(profile: tuple[Formula, ...]) -> bool:
+    return all(_belief(formula).is_consistent for formula in profile)
+
+
 @pytest.mark.property
 @given(st_formula, st_formula)
 @settings(deadline=None)
@@ -207,6 +211,7 @@ def test_konieczny_pino_perez_2002_ic0_ic3_and_ic7_ic8(
     operator: ICMergeOperator,
 ) -> None:
     assume(_belief(mu).is_consistent)
+    assume(_profile_members_are_satisfiable(profile))
 
     result = merge_belief_profile(ALPHABET, profile, mu, operator=operator)
     assert result.belief_set.entails(mu)
@@ -240,6 +245,8 @@ def test_konieczny_pino_perez_2002_ic5_ic6_profile_decomposition(
     operator: ICMergeOperator,
 ) -> None:
     assume(_belief(mu).is_consistent)
+    assume(_profile_members_are_satisfiable(left))
+    assume(_profile_members_are_satisfiable(right))
 
     left_result = merge_belief_profile(ALPHABET, left, mu, operator=operator).belief_set
     right_result = merge_belief_profile(ALPHABET, right, mu, operator=operator).belief_set
