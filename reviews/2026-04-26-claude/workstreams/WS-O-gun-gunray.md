@@ -1,6 +1,6 @@
 # WS-O-gun: gunray fixes — defeasible Datalog grounder (existing bugs + anytime wire-up)
 
-**Status**: OPEN
+**Status**: CLOSED v0.1.0
 **Depends on**: nothing internal — gunray is a sibling repo at `../gunray`.
 **Blocks**: nothing strict, but every cluster R finding rolls into propstore via the `gunray` pin in `pyproject.toml`. WS-M's gunray-boundary fix
 (propstore consumer side) wants the gunray-side fixes here landed and tagged first; coordinate so that propstore lands the new pin in the same window.
