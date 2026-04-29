@@ -108,13 +108,19 @@ def _make_grounded_bundle(rules=(), *, yes=None):
             }
         )
 
+    source_facts = tuple(
+        GroundAtom(predicate, tuple(row))
+        for predicate, rows in (yes or {}).items()
+        for row in rows
+    )
+
     return GroundedRulesBundle(
         source_rules=(
             ()
             if not rules
             else (_make_rule_file(rules),)
         ),
-        source_facts=(),
+        source_facts=source_facts,
         sections=MappingProxyType(
             {
                 "yes": _freeze(yes),

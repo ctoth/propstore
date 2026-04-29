@@ -51,7 +51,7 @@ def test_grounded_argument_strength_not_zero() -> None:
     )
     bundle = GroundedRulesBundle(
         source_rules=(_rule_file(rule),),
-        source_facts=(),
+        source_facts=(GroundAtom("bird", ("tweety",)),),
         sections=MappingProxyType(
             {
                 "yes": MappingProxyType({"bird": frozenset({("tweety",)})}),

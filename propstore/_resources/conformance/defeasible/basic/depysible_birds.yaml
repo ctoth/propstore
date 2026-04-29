@@ -38,9 +38,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
-      bird: [[tina], [tweety]]
-    defeasibly:
+    'yes':
       bird: [[tina], [tweety]]
 - name: depysible_not_flies_tweety
   description: Tweety does not fly for sure by the strict penguin rule.
@@ -76,9 +74,9 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
+    'yes':
       "~flies": [[tweety]]
-    not_defeasibly:
+    'no':
       flies: [[tweety]]
 - name: depysible_flies_tina
   description: Tina's fly query is blocked by the complement literal.
@@ -114,9 +112,9 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
+    'yes':
       "~flies": [[tweety]]
-    not_defeasibly:
+    'no':
       "~flies": [[tina]]
 - name: depysible_chicken_tina
   description: Tina's chicken fact is definitely and defeasibly true.
@@ -152,9 +150,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
-      chicken: [[tina]]
-    defeasibly:
+    'yes':
       chicken: [[tina]]
 - name: depysible_scared_tina
   description: Tina's scared fact is definitely and defeasibly true.
@@ -190,9 +186,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
-      scared: [[tina]]
-    defeasibly:
+    'yes':
       scared: [[tina]]
 - name: depysible_bird_tweety
   description: Tweety joins Tina as a definitely and defeasibly derived bird.
@@ -228,10 +222,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
-      bird: [[tina], [tweety]]
-      penguin: [[tweety]]
-    defeasibly:
+    'yes':
       bird: [[tina], [tweety]]
       penguin: [[tweety]]
 - name: depysible_not_flies_tina
@@ -268,7 +259,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    not_defeasibly:
+    'no':
       "~flies": [[tina]]
 - name: depysible_nests_in_trees_tina
   description: Tina's nesting query is blocked along with Tweety's.
@@ -376,9 +367,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
-      penguin: [[tweety]]
-    defeasibly:
+    'yes':
       penguin: [[tweety]]
 - name: depysible_flies_tweety
   description: Tweety remains not defeasibly flyable under the README theory.
@@ -414,7 +403,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    not_defeasibly:
+    'no':
       flies: [[tweety]]
 - name: depysible_bird_henrietta
   description: Henrietta is a bird in the positive-chicken variant.
@@ -441,9 +430,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
-      bird: [[henrietta]]
-    defeasibly:
+    'yes':
       bird: [[henrietta]]
 - name: depysible_flies_henrietta
   description: Henrietta flies defeasibly in the positive-chicken variant.
@@ -470,7 +457,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    defeasibly:
+    'yes':
       flies: [[henrietta]]
 - name: depysible_nests_in_trees_henrietta
   description: Henrietta nests in trees defeasibly once flying is derived.
@@ -497,5 +484,5 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    defeasibly:
+    'yes':
       nests_in_trees: [[henrietta]]

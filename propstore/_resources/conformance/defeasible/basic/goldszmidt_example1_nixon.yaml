@@ -30,9 +30,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
-      nixonian: [[nixon]]
-    defeasibly:
+    'yes':
       nixonian: [[nixon]]
 - name: goldszmidt_example1_quaker_nixon
   description: >
@@ -57,9 +55,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    definitely:
-      quaker: [[nixon]]
-    defeasibly:
+    'yes':
       quaker: [[nixon]]
 - name: goldszmidt_example1_republican_nixon
   description: >
@@ -84,7 +80,7 @@ tests:
     defeaters: []
     superiority: []
   expect:
-    defeasibly:
+    'yes':
       republican: [[nixon]]
 - name: goldszmidt_example1_pacifist_conflict
   description: >

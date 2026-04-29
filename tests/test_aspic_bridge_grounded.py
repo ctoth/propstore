@@ -134,7 +134,7 @@ def _rule_doc(rule_id: str, kind: str, head, body=()):
     deliberately rejects ``strict`` and ``defeater`` variants.
     """
 
-    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
 
     return RuleDocument(
         id=rule_id,
@@ -210,9 +210,17 @@ def _bundle(rules=(), yes=None):
             "unknown": MappingProxyType({}),
         }
     )
+    from argumentation.aspic import GroundAtom
+
+    source_facts = tuple(
+        GroundAtom(predicate, tuple(row))
+        for predicate, rows in (yes or {}).items()
+        for row in rows
+    )
+
     return GroundedRulesBundle(
         source_rules=tuple(loaded_files),
-        source_facts=(),
+        source_facts=source_facts,
         sections=sections,
     )
 

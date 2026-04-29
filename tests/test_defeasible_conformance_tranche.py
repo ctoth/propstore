@@ -12,7 +12,7 @@ from gunray.conformance_adapter import GunrayConformanceEvaluator
 from gunray.disagreement import complement as gunray_complement
 from gunray.parser import parse_atom_text
 from gunray.schema import DefeasibleTheory as SuiteTheory
-from gunray.schema import Policy
+from gunray.schema import ClosurePolicy, MarkingPolicy
 from gunray.schema import Rule as SuiteRule
 from gunray.types import Constant, GroundAtom as GunrayGroundAtom, Variable
 from propstore.resources import load_resource_text
@@ -286,18 +286,21 @@ def _run_suite_case(evaluator: object, case: SuiteCase) -> None:
 
     if case.expect_per_policy is not None:
         for policy_name, expected in case.expect_per_policy.items():
-            actual_model = evaluate(case.theory, Policy(policy_name))
+            if policy_name in {policy.value for policy in ClosurePolicy}:
+                actual_model = evaluate(case.theory, ClosurePolicy(policy_name))
+            else:
+                actual_model = evaluate(case.theory, MarkingPolicy(policy_name))
             _assert_sections(case.name, expected, _extract_sections(actual_model), policy_name)
         return
 
     if case.expect is None:
         raise AssertionError("Defeasible conformance tranche requires expectations")
-    actual_model = evaluate(case.theory, Policy.BLOCKING)
+    actual_model = evaluate(case.theory, MarkingPolicy.BLOCKING)
     _assert_sections(
         case.name,
         case.expect,
         _extract_sections(actual_model),
-        Policy.BLOCKING.value,
+        MarkingPolicy.BLOCKING.value,
     )
 
 
@@ -470,8 +473,20 @@ def _evaluate_translated_suite_theory(case: SuiteCase, *, policy_name: str | Non
     facts = _build_fact_atoms(case.theory)
     registry = _build_registry(case.theory)
     translated = translate_to_theory([rule_file], facts, registry)
-    policy = None if policy_name is None else Policy(policy_name)
-    return GunrayEvaluator().evaluate(translated, policy)
+    if policy_name is None:
+        return GunrayEvaluator().evaluate(
+            translated,
+            marking_policy=MarkingPolicy.BLOCKING,
+        )
+    if policy_name in {policy.value for policy in ClosurePolicy}:
+        return GunrayEvaluator().evaluate(
+            translated,
+            closure_policy=ClosurePolicy(policy_name),
+        )
+    return GunrayEvaluator().evaluate(
+        translated,
+        marking_policy=MarkingPolicy(policy_name),
+    )
 
 
 @pytest.mark.parametrize(

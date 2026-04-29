@@ -46,21 +46,15 @@ tests:
     conflicts: []
   expect_per_policy:
     rational_closure:
-      definitely:
-        s: [[]]
-        p: [[]]
-      defeasibly:
+      'yes':
         s: [[]]
         p: [[]]
         "~t": [[]]
-      not_defeasibly:
+      'no':
         m: [[]]
         a: [[]]
     lexicographic_closure:
-      definitely:
-        s: [[]]
-        p: [[]]
-      defeasibly:
+      'yes':
         s: [[]]
         p: [[]]
         m: [[]]
@@ -100,17 +94,13 @@ tests:
     conflicts: []
   expect_per_policy:
     rational_closure:
-      definitely:
-        p: [[]]
-      defeasibly:
+      'yes':
         p: [[]]
         m: [[]]
         a: [[]]
         t: [[]]
     lexicographic_closure:
-      definitely:
-        p: [[]]
-      defeasibly:
+      'yes':
         p: [[]]
         m: [[]]
         a: [[]]

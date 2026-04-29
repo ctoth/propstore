@@ -27,15 +27,10 @@ theory:
   superiority:
     - [r2, r1]
 expect:
-  definitely:
-    penguin: [[tweety]]
-    bird: [[freddie], [tweety]]
-    injured: [[freddie]]
-    "~fly": [[freddie]]
-  defeasibly:
+  'yes':
     penguin: [[tweety]]
     bird: [[freddie], [tweety]]
     injured: [[freddie]]
     "~fly": [[freddie], [tweety]]
-  not_defeasibly:
+  'no':
     fly: [[freddie], [tweety]]
