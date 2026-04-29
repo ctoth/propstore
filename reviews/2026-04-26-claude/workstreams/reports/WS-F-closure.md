@@ -1,7 +1,7 @@
 # WS-F Closure Report
 
 Workstream: WS-F ASPIC+ bridge fidelity
-Closing code commit: `c8b0c892`
+Closing code commit: `e89cc387`
 
 ## Findings Closed
 
@@ -28,6 +28,12 @@ Closing code commit: `c8b0c892`
   - `logs/test-runs/WS-F-praf-routing-20260429-010011.log`: PrAF paper-TD routing tests passed.
   - `logs/test-runs/WS-F-coverage-tightening-20260429-010409.log`: undercut/undermine `arguments_against` and canonical-name literal identity tests passed.
   - `logs/test-runs/WS-F-properties-20260429-010940.log`: WS-F property gates passed.
+- Completion sentinel:
+  - `logs/test-runs/WS-F-sentinel-20260429-013032.log`: behavior-based upstream ASPIC public-API/transposition sentinel passed; no exact-SHA assertion.
+- Full-suite closure:
+  - `logs/test-runs/WS-F-full-20260429-011238.log`: first full-suite run exposed stale grounded-semantics/worldline expectations and one large generated ASPIC projection case.
+  - `logs/test-runs/WS-F-full-fix-20260429-012218.log`: targeted stale-expectation fixes passed.
+  - `logs/test-runs/WS-F-full-final-20260429-013140.log`: final full suite passed with 3233 tests.
 
 ## Property Gates
 
@@ -64,7 +70,8 @@ Closing code commit: `c8b0c892`
 - `uv run pyright propstore`: 0 errors, 0 warnings.
 - `uv run lint-imports`: 4 contracts kept, 0 broken.
 - `logs/test-runs/WS-F-aspic-existing-20260429-010521.log`: 135 passed.
-- Full-suite log: to be added after the final full logged run.
+- `logs/test-runs/WS-F-sentinel-20260429-013032.log`: 1 passed.
+- `logs/test-runs/WS-F-full-final-20260429-013140.log`: 3233 passed.
 
 ## Remaining Risks / Successors
 

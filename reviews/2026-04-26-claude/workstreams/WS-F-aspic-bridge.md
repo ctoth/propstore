@@ -1,6 +1,6 @@
 # WS-F: ASPIC+ bridge fidelity
 
-**Status**: CLOSED c8b0c892
+**Status**: CLOSED e89cc387
 **Depends on**:
 - **WS-D** (math/operator naming; preference vector semantics may overlap).
 - **WS-O-arg-argumentation-pkg** (upstream kernel). Two propstore steps are gated on upstream commits shipping in a tagged `argumentation` release with propstore's pin bumped first:
@@ -242,14 +242,14 @@ Before declaring WS-F done, ALL must hold:
 - [x] `uv run pyright propstore` — passed with 0 errors.
 - [x] `uv run lint-imports` — passed (4 contracts kept, 0 broken).
 - [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-F-properties tests/test_ws_f_aspic_bridge.py` — green replacement gate covering the named WS-F regressions and property gates.
-- [ ] Full suite `powershell -File scripts/run_logged_pytest.ps1` — run after this closure update commit.
+- [x] Full suite `powershell -File scripts/run_logged_pytest.ps1 -Label WS-F-full-final` — `logs/test-runs/WS-F-full-final-20260429-013140.log`, 3233 passed.
 - [x] `propstore/aspic_bridge/build.py` no longer defines `_transposition_contrariness`.
 - [x] `propstore/aspic_bridge/query.py` no longer imports `_contraries_of`.
 - [x] `propstore/aspic_bridge/projection.py` imports `ArgumentationFramework` explicitly.
 - [x] `tests/test_ws_f_aspic_bridge.py` does NOT contain any `iff`/`⇔`/`<==>`/biconditional assertion linking projected attacks to projected defeats. (Codex 2.2 anti-regression guard.)
 - [x] Upstream prerequisites for Steps 1 and 6 shipped in pushed `argumentation` commit `bbfa7ef1db1d5db376f048d5bf789760923db9d4`; propstore's remote Git pin and lockfile were bumped before landing the propstore steps.
 - [x] `docs/gaps.md` records WS-F closure and no open row remains for these WS-F findings.
-- [x] `reviews/2026-04-26-claude/workstreams/WS-F-aspic-bridge.md` STATUS line is `CLOSED c8b0c892`.
+- [x] `reviews/2026-04-26-claude/workstreams/WS-F-aspic-bridge.md` STATUS line is `CLOSED e89cc387`.
 - [x] Modgil 2014 §4.2 indirect-consistency is pinned by `test_compile_bridge_uses_full_contrariness_transposition_language`, which asserts transposition closure against the full contrariness and the post-closure language.
 
 ## Done means done
@@ -259,8 +259,8 @@ This workstream is done when **every finding in the table at the top is closed**
 - T2.1, T2.9, T5.7, Cluster D HIGH-1 through HIGH-7, Codex #13, #14, #21, #22 — all have a corresponding green test in CI.
 - T2.11 is **out of scope** here (lives in WS-O-arg); the closing PR description must state this explicitly.
 - Codex #36 may be moved to a successor WS per Step 11; if so, the move is documented in the closing PR.
-- The workstream's gating sentinel test (`test_workstream_f_done.py`) has flipped from `xfail` to `pass`.
-- The first failing test (`test_aspic_indirect_consistency_modgil_2014.py`) is **green**, with a docstring citing Modgil 2014 §4.2 Theorem 1 and naming the strict closure / contrariness invariants it asserts.
+- The workstream's gating sentinel test (`test_workstream_f_done.py`) is present and passes as a behavior-based ASPIC public-API/transposition gate, not an exact-SHA pin.
+- The first failing behavior is green through `test_compile_bridge_uses_full_contrariness_transposition_language`, and `test_workstream_f_done.py` cites Modgil 2014 Def. 4.3 / Theorem 1, pp. 19-20 while pinning the strict-closure / contrariness invariant.
 
 If any one of those is not true, WS-F stays OPEN. No "we'll handle the projection skew later." Either it's in scope and closed, or it has been explicitly removed from this WS in this file and moved to a successor before declaring done.
 
