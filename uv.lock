@@ -991,7 +991,7 @@ wheels = [
 [[package]]
 name = "gunray"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/gunray?rev=9e0947ffdc68edcab4dc1836c4895d94702567e1#9e0947ffdc68edcab4dc1836c4895d94702567e1" }
+source = { git = "https://github.com/ctoth/gunray?rev=64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e#64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e" }
 
 [[package]]
 name = "h11"
@@ -2046,7 +2046,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.136.0" },
     { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation?rev=de6b66f97eb8208e911cb6686f0c2ea6c5d2c69e" },
     { name = "graphviz", specifier = ">=0.20" },
-    { name = "gunray", git = "https://github.com/ctoth/gunray?rev=9e0947ffdc68edcab4dc1836c4895d94702567e1" },
+    { name = "gunray", git = "https://github.com/ctoth/gunray?rev=64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "linkml", specifier = ">=1.9.3,<1.10" },
     { name = "linkml-runtime", specifier = ">=1.9.3,<1.10" },
