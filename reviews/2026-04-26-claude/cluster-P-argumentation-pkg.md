@@ -32,11 +32,12 @@ probabilistic stack: `probabilistic_components`,
 
 Post-review update, 2026-04-28: WS-O-arg-gradual closes the
 gradual/quantitative gaps on the propstore-pinned dependency.
-Propstore commit `166c6f46` pins pushed upstream commit
-`c8bc3e0fd00de7a9bc400d04890c63362d3268bc`, where the current
+Propstore commit `fcbc77b1` pins pushed upstream commit
+`dbb036b9968b370856c22cb2ebf6157a72587956`, where the current
 public surface includes `dfquad`, `matt_toni`, `equational`, and
 `gradual_principles`; the old `probabilistic_dfquad` production
-entry point is deleted. The module inventory below records the
+entry point is deleted, and the named WS-O property/relation gates
+are present upstream. The module inventory below records the
 2026-04-26 review baseline unless explicitly marked closed.
 
 Module roles, with line counts and primary references:
@@ -292,7 +293,7 @@ left for WS-O-arg-gradual, which consumes `RankingResult`.
 
 Status update, 2026-04-28: CLOSED for the D-16 Group D kernels by
 WS-O-arg-gradual. The propstore pin now reaches upstream
-`c8bc3e0fd00de7a9bc400d04890c63362d3268bc`, which ships:
+`dbb036b9968b370856c22cb2ebf6157a72587956`, which ships:
 
 - `argumentation.dfquad` with Rago 2016 DF-QuAD and bipolar
   DF-QuAD over `WeightedBipolarGraph`; the old
@@ -303,6 +304,8 @@ WS-O-arg-gradual. The propstore pin now reaches upstream
 - `argumentation.equational` with Gabbay min/max schemes.
 - `argumentation.gradual_principles` with Baroni 2019 principle
   predicates and declared compliance labels.
+- WS-O property/relation gates for DF-QuAD, Matt-Toni, Potyka,
+  and Gabbay.
 
 The remaining bullets in this subsection are retained as review
 history. Only EulerB / squared-product and sampled Shapley remain
@@ -718,7 +721,7 @@ the package:
   testable predicates.
 - **Game-theoretic argument strength** (Matt-Toni 2008 in
   scope) — CLOSED by WS-O-arg-gradual, upstream
-  `c8bc3e0fd00de7a9bc400d04890c63362d3268bc`.
+  `dbb036b9968b370856c22cb2ebf6157a72587956`.
 - **DF-QuAD discontinuity-free strength** in the core
   gradual module (Rago 2016 in scope) — CLOSED by
   WS-O-arg-gradual; the deleted probabilistic-only path is
