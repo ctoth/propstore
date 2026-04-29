@@ -197,7 +197,6 @@ def _filter_preference_sensitive_stance_attacks(
 def _filter_preference_sensitive_stance_defeats(
     defeat_attacks: frozenset[Attack],
     *,
-    attacks: frozenset[Attack],
     arguments: frozenset[Argument],
     system: ArgumentationSystem,
     kb: KnowledgeBase,
@@ -275,7 +274,6 @@ def build_bridge_csaf(
     )
     defeat_attacks = _filter_preference_sensitive_stance_defeats(
         defeat_attacks,
-        attacks=attacks,
         arguments=arguments,
         system=compiled.system,
         kb=compiled.kb,

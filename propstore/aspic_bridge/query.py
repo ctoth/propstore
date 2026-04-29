@@ -87,6 +87,11 @@ def query_claim(
         include_attackers=True,
         max_depth=max_depth,
     )
+    arguments = frozenset(
+        sub_argument
+        for argument in arguments
+        for sub_argument in sub(argument)
+    )
     attacks = compute_attacks(arguments, compiled.system)
     directed_pairs = preference_sensitive_stance_pairs(stances, compiled.literals)
     attacks = _filter_preference_sensitive_stance_attacks(attacks, directed_pairs)
@@ -99,7 +104,6 @@ def query_claim(
     )
     defeat_attacks = _filter_preference_sensitive_stance_defeats(
         defeat_attacks,
-        attacks=attacks,
         arguments=arguments,
         system=compiled.system,
         kb=compiled.kb,

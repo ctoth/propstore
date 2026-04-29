@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from argumentation.aspic import Attack, GroundAtom, Literal, PremiseArg, Rule
+from argumentation.aspic import Attack, GroundAtom, Literal, PremiseArg, Rule, conc
 from argumentation.bipolar import BipolarArgumentationFramework
 from argumentation.dung import ArgumentationFramework
 from argumentation.probabilistic import PrAFResult
@@ -20,6 +20,7 @@ from propstore.aspic_bridge import (
     csaf_to_projection,
     grounded_rules_to_rules,
     justifications_to_rules,
+    query_claim,
     stances_to_contrariness,
 )
 from propstore.app.world_reasoning import (
@@ -321,6 +322,71 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
         rule.consequent == Literal(GroundAtom(target_name), negated=True)
         for rule in defeasible
         if rule.name and rule.name.startswith("named-defeater#")
+    )
+
+
+def test_arguments_against_includes_undermine_and_undercut_attackers() -> None:
+    claims = [_claim("premise"), _claim("goal"), _claim("anti_premise"), _claim("rule_attack")]
+    justifications = [
+        _reported("premise"),
+        _reported("anti_premise"),
+        _reported("rule_attack"),
+        _support("support:premise-to-goal", "goal", ("premise",)),
+    ]
+    result = query_claim(
+        "goal",
+        claims,
+        justifications,
+        [
+            _stance("anti_premise", "premise", "undermines"),
+            {
+                "claim_id": "rule_attack",
+                "target_claim_id": "goal",
+                "stance_type": "undercuts",
+                "target_justification_id": "support:premise-to-goal",
+            },
+        ],
+        bundle=GroundedRulesBundle.empty(),
+    )
+
+    literals = claims_to_literals(claims)
+    attacker_conclusions = {conc(argument) for argument in result.arguments_against}
+    assert literals[claim_key("anti_premise")] in attacker_conclusions
+    assert literals[claim_key("rule_attack")] in attacker_conclusions
+
+
+def test_claim_canonical_name_collision_does_not_collapse_aspic_literals() -> None:
+    claims = [
+        {
+            **_claim("first"),
+            "concept_id": "shared_concept",
+            "canonical_name": "same canonical concept",
+        },
+        {
+            **_claim("second"),
+            "concept_id": "shared_concept",
+            "canonical_name": "same canonical concept",
+        },
+    ]
+    literals = claims_to_literals(claims)
+
+    first = literals[claim_key("first")]
+    second = literals[claim_key("second")]
+    assert first != second
+    assert first.atom.predicate == "first"
+    assert second.atom.predicate == "second"
+
+    csaf = build_bridge_csaf(
+        claims,
+        [_reported("first"), _reported("second")],
+        [],
+        bundle=GroundedRulesBundle.empty(),
+    )
+    projection = csaf_to_projection(csaf, claims)
+
+    assert set(projection.claim_to_argument_ids) == {"first", "second"}
+    assert set(projection.claim_to_argument_ids["first"]).isdisjoint(
+        projection.claim_to_argument_ids["second"]
     )
 
 
