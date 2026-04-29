@@ -1,10 +1,11 @@
 # WS-O-arg-vaf-completion: Bench-Capon line-of-argument and fact-uncertainty completion
 
-**Status**: OPEN
+**Status**: CLOSED 3fba83e2ec65b6dd0cfe6ce22bb9f8623ca8b411
 **Depends on**: WS-O-arg-vaf-ranking
 **Blocks**: none currently
-**Owner**: future argumentation-package implementation owner + human reviewer
+**Owner**: Codex implementation owner + human reviewer
 **Authoritative**: Bench-Capon 2003 pp. 438-447, reread from page images on 2026-04-28
+**Closure report**: `reviews/2026-04-26-claude/workstreams/reports/WS-O-arg-vaf-completion-closure.md`
 
 ## Why this workstream exists
 
@@ -124,16 +125,16 @@ Update `docs/gaps.md`, `cluster-P-argumentation-pkg.md`, this workstream, and `I
 
 ## Acceptance gates
 
-- [ ] Upstream focused tests for VAF completion pass.
-- [ ] Upstream Hypothesis property gates pass.
-- [ ] `cd ../argumentation && uv run pyright src/argumentation` passes with `0 errors`.
-- [ ] `cd ../argumentation` full suite has no new failures.
-- [ ] Propstore pin references a pushed upstream commit, not a local path.
-- [ ] Propstore sentinel `tests/architecture/test_argumentation_pin_vaf_completion.py` passes through the logged pytest wrapper.
-- [ ] `uv run pyright propstore` passes with `0 errors`.
-- [ ] Propstore full suite passes through the logged pytest wrapper.
-- [ ] `docs/gaps.md` closes the Bench-Capon pp. 438-447 residual gap.
-- [ ] This workstream status is `CLOSED <propstore-sha>`.
+- [x] Upstream focused tests for VAF completion pass: `11 passed in 0.27s`.
+- [x] Upstream Hypothesis property gates pass: generated two-value-cycle and fact-first-audience gates passed with `--hypothesis-show-statistics`.
+- [x] `cd ../argumentation && uv run pyright src/argumentation` passes with `0 errors`.
+- [x] `cd ../argumentation` full suite has no new failures: `479 passed in 58.20s`.
+- [x] Propstore pin references a pushed upstream commit, not a local path: upstream `0d036dfef91e8c47ed47e5b030fe9d510bc53295`, propstore remote-Git dependency-shape sentinel, no exact-SHA test.
+- [x] Propstore sentinel `tests/architecture/test_argumentation_pin_vaf_completion.py` passes through the logged pytest wrapper: `logs\test-runs\argumentation-vaf-completion-pin-20260428-234000.log`.
+- [x] `uv run pyright propstore` passes with `0 errors`.
+- [x] Propstore full suite passes through the logged pytest wrapper: `3217 passed in 459.70s`, `logs\test-runs\argumentation-vaf-completion-full-nosha-20260428-235101.log`.
+- [x] `docs/gaps.md` closes the Bench-Capon pp. 438-447 residual gap.
+- [x] This workstream status is `CLOSED <propstore-sha>`.
 
 ## Done means done
 
