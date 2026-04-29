@@ -376,8 +376,15 @@ class TestStancesToContrariness:
         literals = claims_to_literals(claims)
         _strict, defeasible = justifications_to_rules(justifications, literals)
         cfn = stances_to_contrariness(stances, literals, defeasible)
+        directional_pairs = {
+            (stance["claim_id"], stance["target_claim_id"])
+            for stance in stances
+            if stance["stance_type"] in {"supersedes", "undermines"}
+        }
         for stance in stances:
             if stance["stance_type"] == "rebuts":
+                if (stance["target_claim_id"], stance["claim_id"]) in directional_pairs:
+                    continue
                 tgt = literals[claim_key(stance["target_claim_id"])]
                 src = literals[claim_key(stance["claim_id"])]
                 assert cfn.is_contradictory(src, tgt), (
@@ -390,24 +397,38 @@ class TestStancesToContrariness:
     @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
-    def test_supersedes_produce_preference_sensitive_contradictions(self, graph):
-        """supersedes stances produce preference-sensitive contradictions.
+    def test_supersedes_produce_asymmetric_contraries(self, graph):
+        """supersedes stances produce asymmetric contraries.
 
-        Modgil & Prakken 2018, Def 9 (p.12): contradictory attacks are
-        filtered by preferences, unlike directional contraries.
+        Modgil & Prakken 2018, Def 2 (p.8): directional attacks are
+        represented as contraries, not symmetric contradictions.
         """
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
         _strict, defeasible = justifications_to_rules(justifications, literals)
         cfn = stances_to_contrariness(stances, literals, defeasible)
+        rebut_pairs = {
+            (stance["claim_id"], stance["target_claim_id"])
+            for stance in stances
+            if stance["stance_type"] == "rebuts"
+        }
+        directional_pairs = {
+            (stance["claim_id"], stance["target_claim_id"])
+            for stance in stances
+            if stance["stance_type"] in {"supersedes", "undermines"}
+        }
         for stance in stances:
             if stance["stance_type"] == "supersedes":
+                if (stance["claim_id"], stance["target_claim_id"]) in rebut_pairs:
+                    continue
                 tgt = literals[claim_key(stance["target_claim_id"])]
                 src = literals[claim_key(stance["claim_id"])]
-                assert cfn.is_contradictory(src, tgt), (
+                assert cfn.is_contrary(src, tgt), (
                     f"supersedes {src}->{tgt} not in contrariness"
                 )
-                assert not cfn.is_contrary(src, tgt)
+                assert not cfn.is_contradictory(src, tgt)
+                if (stance["target_claim_id"], stance["claim_id"]) not in directional_pairs:
+                    assert not cfn.is_contrary(tgt, src)
 
     @pytest.mark.property
     @given(claim_graph())

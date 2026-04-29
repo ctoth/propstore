@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from argumentation.aspic import (
     Argument,
@@ -194,6 +194,54 @@ def _filter_preference_sensitive_stance_attacks(
     return frozenset(filtered)
 
 
+def _filter_preference_sensitive_stance_defeats(
+    defeat_attacks: frozenset[Attack],
+    *,
+    attacks: frozenset[Attack],
+    arguments: frozenset[Argument],
+    system: ArgumentationSystem,
+    kb: KnowledgeBase,
+    pref: PreferenceConfig,
+    directed_pairs: frozenset[tuple[Literal, Literal]],
+) -> frozenset[Attack]:
+    if not directed_pairs:
+        return defeat_attacks
+
+    filtered: set[Attack] = set()
+    for attack in defeat_attacks:
+        target_literal = _targeted_literal_for_directional_filter(attack)
+        if target_literal is None:
+            filtered.add(attack)
+            continue
+        attacker_literal = conc(attack.attacker)
+        if (attacker_literal, target_literal) not in directed_pairs:
+            filtered.add(attack)
+            continue
+
+        preference_sensitive_system = replace(
+            system,
+            contrariness=ContrarinessFn(
+                contradictories=system.contrariness.contradictories
+                | frozenset({(attacker_literal, target_literal)}),
+                contraries=frozenset(
+                    pair
+                    for pair in system.contrariness.contraries
+                    if pair != (attacker_literal, target_literal)
+                ),
+            ),
+        )
+        if compute_defeats(
+            frozenset({attack}),
+            arguments,
+            preference_sensitive_system,
+            kb,
+            pref,
+        ):
+            filtered.add(attack)
+
+    return frozenset(filtered)
+
+
 def build_bridge_csaf(
     active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
@@ -216,16 +264,23 @@ def build_bridge_csaf(
 
     arguments = build_arguments(compiled.system, compiled.kb)
     attacks = compute_attacks(arguments, compiled.system)
-    attacks = _filter_preference_sensitive_stance_attacks(
-        attacks,
-        preference_sensitive_stance_pairs(stances, compiled.literals),
-    )
+    directed_pairs = preference_sensitive_stance_pairs(stances, compiled.literals)
+    attacks = _filter_preference_sensitive_stance_attacks(attacks, directed_pairs)
     defeat_attacks = compute_defeats(
         attacks,
         arguments,
         compiled.system,
         compiled.kb,
         compiled.pref,
+    )
+    defeat_attacks = _filter_preference_sensitive_stance_defeats(
+        defeat_attacks,
+        attacks=attacks,
+        arguments=arguments,
+        system=compiled.system,
+        kb=compiled.kb,
+        pref=compiled.pref,
+        directed_pairs=directed_pairs,
     )
     defeat_pairs = frozenset((attack.attacker, attack.target) for attack in defeat_attacks)
 

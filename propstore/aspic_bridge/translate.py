@@ -179,12 +179,8 @@ def stances_to_contrariness(
                 if src != rule_lit:
                     contrary_pairs.add((src, rule_lit))
 
-    directional_unordered = {
-        frozenset((src, tgt))
-        for src, tgt in authored_directional
-    }
     for src, tgt in authored_rebuts:
-        if frozenset((src, tgt)) not in directional_unordered:
+        if (tgt, src) not in authored_directional:
             contradictory_pairs.add((src, tgt))
     contrary_pairs.update(authored_directional)
 

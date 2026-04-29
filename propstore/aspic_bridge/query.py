@@ -23,7 +23,11 @@ from propstore.core.literal_keys import LiteralKey, claim_key, ground_key
 from propstore.core.row_types import StanceRowInput
 from propstore.grounding.bundle import GroundedRulesBundle
 
-from .build import _filter_preference_sensitive_stance_attacks, compile_bridge_context
+from .build import (
+    _filter_preference_sensitive_stance_attacks,
+    _filter_preference_sensitive_stance_defeats,
+    compile_bridge_context,
+)
 from .translate import preference_sensitive_stance_pairs
 
 
@@ -84,16 +88,23 @@ def query_claim(
         max_depth=max_depth,
     )
     attacks = compute_attacks(arguments, compiled.system)
-    attacks = _filter_preference_sensitive_stance_attacks(
-        attacks,
-        preference_sensitive_stance_pairs(stances, compiled.literals),
-    )
+    directed_pairs = preference_sensitive_stance_pairs(stances, compiled.literals)
+    attacks = _filter_preference_sensitive_stance_attacks(attacks, directed_pairs)
     defeat_attacks = compute_defeats(
         attacks,
         arguments,
         compiled.system,
         compiled.kb,
         compiled.pref,
+    )
+    defeat_attacks = _filter_preference_sensitive_stance_defeats(
+        defeat_attacks,
+        attacks=attacks,
+        arguments=arguments,
+        system=compiled.system,
+        kb=compiled.kb,
+        pref=compiled.pref,
+        directed_pairs=directed_pairs,
     )
     defeat_pairs = frozenset((attack.attacker, attack.target) for attack in defeat_attacks)
 
