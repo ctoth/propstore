@@ -2,7 +2,7 @@
 
 Workstream: WS-O-gun gunray fixes and anytime wire-up
 Closing gunray tag: `v0.1.0`
-Closing gunray commit: `1f3f960`
+Closing gunray commit: `27b0a13`
 Propstore metadata closure commit: this report/index update commit
 
 ## Findings Closed
@@ -37,8 +37,12 @@ Gunray acceptance used the direct commands specified by this sibling-repo workst
 
 - `cd ../gunray && uv run pyright src`: 0 errors, 0 warnings, 0 informations.
 - `cd ../gunray && uv run ruff check src tests examples`: all checks passed.
+- `cd ../gunray && uv run ruff check`: all checks passed.
+- `cd ../gunray && uv run ruff format --check`: 83 files already formatted after follow-up format commit `27b0a13`.
+- `cd ../gunray && uv run pyright`: 0 errors, 0 warnings, 0 informations.
 - `cd ../gunray && uv run pytest -m property tests/`: 56 passed, 469 deselected.
 - `cd ../gunray && uv run pytest tests/`: 230 passed, 293 skipped, 2 deselected.
+- `cd ../gunray && uv run pytest`: 230 passed, 293 skipped, 2 deselected.
 - `cd ../gunray && uv run pytest tests/test_dialectic_perf.py`: 5 passed.
 - `cd ../gunray && uv run pytest tests/test_anytime_budget_exhausted.py`: 3 passed.
 
