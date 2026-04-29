@@ -121,6 +121,9 @@ def stances_to_contrariness(
 
     contrary_pairs: set[tuple[Literal, Literal]] = set()
 
+    authored_rebuts: set[tuple[Literal, Literal]] = set()
+    authored_directional: set[tuple[Literal, Literal]] = set()
+
     for stance_input in stances:
         stance = _coerce_bridge_stance_row(stance_input)
         src_key = claim_key(stance.claim_id)
@@ -134,10 +137,9 @@ def stances_to_contrariness(
             continue
 
         if stance.stance_type == "rebuts":
-            contradictory_pairs.add((src, tgt))
-            contradictory_pairs.add((tgt, src))
+            authored_rebuts.add((src, tgt))
         elif stance.stance_type in ("supersedes", "undermines"):
-            contradictory_pairs.add((src, tgt))
+            authored_directional.add((src, tgt))
         elif stance.stance_type == "undercuts":
             target_justification_id = stance.target_justification_id
             matching_rules = [
@@ -176,6 +178,15 @@ def stances_to_contrariness(
                 rule_lit = Literal(atom=GroundAtom(rule.name), negated=False)
                 if src != rule_lit:
                     contrary_pairs.add((src, rule_lit))
+
+    directional_unordered = {
+        frozenset((src, tgt))
+        for src, tgt in authored_directional
+    }
+    for src, tgt in authored_rebuts:
+        if frozenset((src, tgt)) not in directional_unordered:
+            contradictory_pairs.add((src, tgt))
+    contrary_pairs.update(authored_directional)
 
     return ContrarinessFn(
         contradictories=frozenset(contradictory_pairs),
@@ -252,6 +263,10 @@ def _component_wise_dominates(
     )
 
 
+def _democratic_score(vector: MetadataStrengthVector) -> float:
+    return sum(vector.dimensions)
+
+
 def build_preference_config(
     active_claims: Sequence[ActiveClaimInput],
     literals: dict[LiteralKey, Literal],
@@ -296,6 +311,13 @@ def build_preference_config(
                 premise_order.add((lit_a, lit_b))
             elif _component_wise_dominates(vec_b, vec_a):
                 premise_order.add((lit_b, lit_a))
+            elif comparison == "democratic" and not vec_a.is_vacuous and not vec_b.is_vacuous:
+                score_a = _democratic_score(vec_a)
+                score_b = _democratic_score(vec_b)
+                if score_a < score_b:
+                    premise_order.add((lit_a, lit_b))
+                elif score_b < score_a:
+                    premise_order.add((lit_b, lit_a))
 
     return PreferenceConfig(
         rule_order=strict_partial_order_closure(rule_order),

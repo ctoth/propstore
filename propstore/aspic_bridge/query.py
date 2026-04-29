@@ -10,11 +10,12 @@ from argumentation.aspic import (
     Attack,
     GroundAtom,
     Literal,
-    _contraries_of,
     build_arguments_for,
     conc,
+    contraries_of,
     compute_attacks,
     compute_defeats,
+    sub,
 )
 from propstore.core.active_claims import ActiveClaimInput
 from propstore.core.justifications import CanonicalJustification
@@ -97,14 +98,25 @@ def query_claim(
     defeat_pairs = frozenset((attack.attacker, attack.target) for attack in defeat_attacks)
 
     arguments_for = frozenset(argument for argument in arguments if conc(argument) == goal)
-    against_literals = _contraries_of(
+    against_literals = contraries_of(
         goal,
         compiled.system.contrariness,
         compiled.system.language,
     )
-    arguments_against = frozenset(
+    conclusion_attackers = {
         argument for argument in arguments if conc(argument) in against_literals
+    }
+    goal_subarguments = frozenset(
+        sub_argument
+        for argument in arguments_for
+        for sub_argument in sub(argument)
     )
+    attacked_goal_arguments = {
+        attack.attacker
+        for attack in attacks
+        if attack.target_sub in goal_subarguments
+    }
+    arguments_against = frozenset(conclusion_attackers | attacked_goal_arguments)
 
     return ClaimQueryResult(
         claim_id=claim_id,

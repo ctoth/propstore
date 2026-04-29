@@ -668,6 +668,7 @@ _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = 
         ArgumentationSemantics.GROUNDED,
         ArgumentationSemantics.PREFERRED,
         ArgumentationSemantics.STABLE,
+        ArgumentationSemantics.COMPLETE,
         ArgumentationSemantics.ASPIC_DIRECT_GROUNDED,
         ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED,
     }),

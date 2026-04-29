@@ -112,8 +112,8 @@ def test_stances_asymmetric_contrary_for_directional_relations() -> None:
         literals,
         defeasible,
     )
-    assert mixed.is_contradictory(a, b)
     assert mixed.is_contrary(b, a)
+    assert not mixed.is_contradictory(a, b)
     assert not mixed.is_contradictory(b, a)
 
 
@@ -144,7 +144,7 @@ def test_compile_bridge_uses_full_contrariness_transposition_language() -> None:
 
 def test_premise_order_respects_democratic_comparison_for_incomparable_vectors() -> None:
     claims = [
-        _claim("sample", sample_size=1000, uncertainty=1.0, confidence=0.2),
+        _claim("sample", sample_size=1000, uncertainty=0.9, confidence=0.2),
         _claim("certain", sample_size=10, uncertainty=0.1, confidence=0.9),
     ]
     literals = claims_to_literals(claims)
@@ -227,7 +227,7 @@ def test_advertised_aspic_semantics_are_executable() -> None:
 
 def test_projection_preserves_attack_without_defeat_and_rejects_unprojected_attack() -> None:
     claims = [
-        _claim("weak", sample_size=1, uncertainty=1.0, confidence=0.1),
+        _claim("weak", sample_size=1, uncertainty=0.9, confidence=0.1),
         _claim("strong", sample_size=100, uncertainty=0.1, confidence=0.9),
     ]
     justifications = [_reported("weak"), _reported("strong")]

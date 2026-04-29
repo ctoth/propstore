@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from argumentation.aspic import GroundAtom
 from argumentation.dung import (
     ArgumentationFramework,
+    complete_extensions,
     grounded_extension,
     preferred_extensions,
     stable_extensions,
@@ -249,8 +250,19 @@ def compute_structured_justified_arguments(
         semantics,
     )
     framework = projection.framework
-    if normalized_semantics == ArgumentationSemantics.GROUNDED:
+    if normalized_semantics in {
+        ArgumentationSemantics.GROUNDED,
+        ArgumentationSemantics.ASPIC_DIRECT_GROUNDED,
+        ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED,
+    }:
+        if backend == ReasoningBackend.ASPIC and framework.attacks is not None:
+            complete = [frozenset(ext) for ext in complete_extensions(framework)]
+            if not complete:
+                return frozenset()
+            return min(complete, key=lambda ext: (len(ext), tuple(sorted(ext))))
         return grounded_extension(framework)
+    if normalized_semantics == ArgumentationSemantics.COMPLETE:
+        return [frozenset(ext) for ext in complete_extensions(projection.framework)]
     if normalized_semantics == ArgumentationSemantics.PREFERRED:
         return [frozenset(ext) for ext in preferred_extensions(projection.framework)]
     if normalized_semantics == ArgumentationSemantics.STABLE:

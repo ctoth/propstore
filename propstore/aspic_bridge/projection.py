@@ -8,6 +8,7 @@ import statistics
 from collections.abc import Mapping, Sequence
 
 from argumentation.aspic import CSAF, Literal, PremiseArg, conc, prem, sub, top_rule
+from argumentation.dung import ArgumentationFramework
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
@@ -257,21 +258,39 @@ def csaf_to_projection(
             claim_to_args.setdefault(claim_id, []).append(arg_id)
             arg_to_claim[arg_id] = claim_id
 
-    proj_framework = type(csaf.framework)(
+    def require_projected_argument_id(argument, relation: str) -> str:
+        if argument not in csaf.arg_to_id:
+            raise ValueError(
+                f"{relation} references argument outside projected argument domain: "
+                f"{argument!r}"
+            )
+        arg_id = csaf.arg_to_id[argument]
+        if arg_id not in projected_arg_ids:
+            raise ValueError(
+                f"{relation} references filtered argument outside projected argument domain: "
+                f"{arg_id}"
+            )
+        return arg_id
+
+    projected_attacks = frozenset(
+        (
+            require_projected_argument_id(attack.attacker, "attack"),
+            require_projected_argument_id(attack.target, "attack"),
+        )
+        for attack in csaf.attacks
+    )
+    projected_defeats = frozenset(
+        (
+            require_projected_argument_id(attacker, "defeat"),
+            require_projected_argument_id(target, "defeat"),
+        )
+        for attacker, target in csaf.defeats
+    )
+
+    proj_framework = ArgumentationFramework(
         arguments=frozenset(projected_arg_ids),
-        defeats=frozenset(
-            (attacker, target)
-            for attacker, target in csaf.framework.defeats
-            if attacker in projected_arg_ids and target in projected_arg_ids
-        ),
-        attacks=frozenset(
-            (csaf.arg_to_id[attack.attacker], csaf.arg_to_id[attack.target])
-            for attack in csaf.attacks
-            if attack.attacker in csaf.arg_to_id
-            and attack.target in csaf.arg_to_id
-            and csaf.arg_to_id[attack.attacker] in projected_arg_ids
-            and csaf.arg_to_id[attack.target] in projected_arg_ids
-        ),
+        defeats=projected_defeats,
+        attacks=projected_attacks,
     )
 
     return StructuredProjection(

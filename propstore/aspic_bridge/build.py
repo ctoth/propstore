@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from argumentation.aspic import (
     Argument,
@@ -93,24 +93,6 @@ def _build_language(
     return frozenset(language)
 
 
-def _transposition_contrariness(
-    contrariness: ContrarinessFn,
-    preference_sensitive_pairs: frozenset[tuple[Literal, Literal]],
-) -> ContrarinessFn:
-    if not preference_sensitive_pairs:
-        return contrariness
-
-    return ContrarinessFn(
-        contradictories=frozenset(
-            (left, right)
-            for left, right in contrariness.contradictories
-            if (left, right) not in preference_sensitive_pairs
-            and (right, left) not in preference_sensitive_pairs
-        ),
-        contraries=contrariness.contraries,
-    )
-
-
 def compile_bridge_context(
     active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
@@ -145,13 +127,11 @@ def compile_bridge_context(
     )
 
     language = _build_language(literals, strict_rules, defeasible_rules, kb)
-    stance_pairs = preference_sensitive_stance_pairs(stances, literals)
-    closed_strict = transposition_closure(
+    closed_strict, language = transposition_closure(
         strict_rules,
         language,
-        _transposition_contrariness(contrariness, stance_pairs),
+        contrariness,
     )
-    language = _build_language(literals, closed_strict, defeasible_rules, kb)
 
     pref = build_preference_config(
         normalized_claims,

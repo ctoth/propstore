@@ -204,11 +204,19 @@ def grounded_rules_to_rules(
 
     grounded_defeaters: list[Rule] = []
     for antecedents, defeater_head, defeater_name in pending_defeaters:
-        opposing_rules = [
-            rule
-            for rule in defeasible_rules
-            if rule.name is not None and rule.consequent == defeater_head.contrary
-        ]
+        if defeater_head.negated:
+            opposing_rules = [
+                rule
+                for rule in defeasible_rules
+                if rule.name is not None
+                and _source_rule_id(rule.name) == defeater_head.atom.predicate
+            ]
+        else:
+            opposing_rules = [
+                rule
+                for rule in defeasible_rules
+                if rule.name is not None and rule.consequent == defeater_head.contrary
+            ]
         for target_rule in opposing_rules:
             assert target_rule.name is not None
             undercut_literal = _literal_for_atom(
