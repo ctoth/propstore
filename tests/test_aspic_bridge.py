@@ -75,6 +75,10 @@ from propstore.structured_projection import (
 # ── Hypothesis strategies ──────────────────────────────────────────
 
 
+BRIDGE_RATIONALITY_MAX_ARGUMENTS = 10
+BRIDGE_RATIONALITY_MAX_COMPLETE_CANDIDATES = 1 << BRIDGE_RATIONALITY_MAX_ARGUMENTS
+
+
 def _make_claim(
     claim_id: str,
     *,
@@ -204,6 +208,14 @@ def claim_graph(draw, min_claims=2, max_claims=5):
         })
 
     return claims, justifications, stances
+
+
+def _bounded_complete_extensions(csaf: CSAF) -> list[frozenset[str]]:
+    assume(len(csaf.framework.arguments) <= BRIDGE_RATIONALITY_MAX_ARGUMENTS)
+    return complete_extensions(
+        csaf.framework,
+        max_candidates=BRIDGE_RATIONALITY_MAX_COMPLETE_CANDIDATES,
+    )
 
 
 # ── T1: claims_to_literals ─────────────────────────────────────────
@@ -868,7 +880,7 @@ class TestBridgeRationalityPostulates:
         """
         claims, justifications, stances = graph
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
-        for ext_ids in complete_extensions(csaf.framework):
+        for ext_ids in _bounded_complete_extensions(csaf):
             for aid in ext_ids:
                 arg = csaf.id_to_arg[aid]
                 for sub_arg in sub(arg):
@@ -896,7 +908,7 @@ class TestBridgeRationalityPostulates:
             csaf.system.strict_rules,
             csaf.system.contrariness,
         ))
-        for ext_ids in complete_extensions(csaf.framework):
+        for ext_ids in _bounded_complete_extensions(csaf):
             conclusions = [conc(csaf.id_to_arg[aid]) for aid in ext_ids]
             for i, c1 in enumerate(conclusions):
                 for c2 in conclusions[i + 1:]:
@@ -919,7 +931,7 @@ class TestBridgeRationalityPostulates:
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         if csaf.framework.attacks is None:
             return  # no attacks to check
-        for ext_ids in complete_extensions(csaf.framework):
+        for ext_ids in _bounded_complete_extensions(csaf):
             assert conflict_free(ext_ids, csaf.framework.attacks), (
                 f"Extension not attack-conflict-free"
             )
@@ -949,7 +961,7 @@ class TestBridgeRationalityPostulates:
             csaf.arg_to_id[a] for a in csaf.arguments
             if is_firm(a) and is_strict(a)
         }
-        for ext_ids in complete_extensions(csaf.framework):
+        for ext_ids in _bounded_complete_extensions(csaf):
             assert firm_strict_ids <= ext_ids, (
                 f"Firm+strict args not in complete extension: "
                 f"missing {firm_strict_ids - ext_ids}"
