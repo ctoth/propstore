@@ -606,7 +606,10 @@ class TestUnboundQueries:
                     "id": "source-alpha",
                     "kind": "academic_paper",
                     "origin": {"type": "doi", "value": "10.1000/example"},
-                    "trust": {"prior_base_rate": 0.6, "status": "stated"},
+                    "trust": {
+                        "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.6},
+                        "status": "stated",
+                    },
                 },
                 default_flow_style=False,
             )

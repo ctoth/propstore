@@ -12,6 +12,8 @@ import pytest
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
 
+SOURCE_PRIOR_05 = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
+
 
 # ── Shared fakes ─────────────────────────────────────────────────────
 
@@ -53,7 +55,7 @@ class FakeWorld:
                 "content_hash": "hash-a",
                 "claim_probability": 1.0,
                 "effective_sample_size": 10,
-                "source_prior_base_rate": 0.5,
+                "source_prior_base_rate": SOURCE_PRIOR_05,
             },
             "claim_b": {
                 "id": "claim_b",
@@ -62,7 +64,7 @@ class FakeWorld:
                 "content_hash": "hash-b",
                 "claim_probability": 1.0,
                 "effective_sample_size": 10,
-                "source_prior_base_rate": 0.5,
+                "source_prior_base_rate": SOURCE_PRIOR_05,
             },
         }
 

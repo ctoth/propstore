@@ -209,7 +209,10 @@ def test_probability_derivation_without_provenance_does_not_manufacture_status()
 def test_source_trust_status_is_mandatory_at_document_boundary() -> None:
     with pytest.raises(DocumentSchemaError):
         convert_document_value(
-            {"prior_base_rate": 0.5, "quality": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}},
+            {
+                "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+                "quality": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+            },
             SourceTrustDocument,
             source="source.yaml",
         )
@@ -225,7 +228,7 @@ def test_source_trust_status_is_mandatory_at_document_boundary() -> None:
 def test_source_trust_status_round_trips() -> None:
     trust = SourceTrustDocument(
         status=ProvenanceStatus.DEFAULTED,
-        prior_base_rate=0.5,
+        prior_base_rate=Opinion(0.0, 0.0, 1.0, 0.5),
         quality=SourceTrustQualityDocument(
             status=ProvenanceStatus.VACUOUS,
             b=0.0,
@@ -238,7 +241,7 @@ def test_source_trust_status_round_trips() -> None:
 
     assert trust.to_payload() == {
         "status": "defaulted",
-        "prior_base_rate": 0.5,
+        "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
         "quality": {
             "status": "vacuous",
             "b": 0.0,

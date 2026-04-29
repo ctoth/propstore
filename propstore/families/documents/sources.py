@@ -19,6 +19,7 @@ from propstore.core.claim_types import ClaimType
 from propstore.core.exactness_types import Exactness
 from propstore.core.source_types import SourceKind, SourceOriginType
 from quire.documents import DocumentStruct
+from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
 from propstore.stances import StanceType
 
@@ -60,14 +61,19 @@ class SourceTrustQualityDocument(DocumentStruct):
 
 class SourceTrustDocument(DocumentStruct):
     status: ProvenanceStatus
-    prior_base_rate: float | int | None = None
+    prior_base_rate: Opinion | None = None
     quality: SourceTrustQualityDocument | None = None
     derived_from: tuple[str, ...] = ()
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {"status": self.status.value}
         if self.prior_base_rate is not None:
-            payload["prior_base_rate"] = self.prior_base_rate
+            payload["prior_base_rate"] = {
+                "b": self.prior_base_rate.b,
+                "d": self.prior_base_rate.d,
+                "u": self.prior_base_rate.u,
+                "a": self.prior_base_rate.a,
+            }
         if self.quality is not None:
             payload["quality"] = self.quality.to_payload()
         if self.derived_from:

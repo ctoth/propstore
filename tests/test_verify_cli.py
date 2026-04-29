@@ -245,7 +245,11 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
         "id": "tag:local@propstore,2026:source/demo",
         "kind": "academic_paper",
         "origin": {"type": "file", "value": "paper.pdf", "retrieved": "2026-04-04T00:00:00Z", "content_ref": "ni:///sha-256;abc"},
-        "trust": {"prior_base_rate": 0.5, "quality": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}, "derived_from": []},
+        "trust": {
+            "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+            "quality": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+            "derived_from": [],
+        },
         "metadata": {"name": "demo"},
     }
     claims_doc = {
@@ -291,4 +295,3 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
     left_claim = next(claim for claim in left[1]["claims"] if claim["artifact_id"] == "ps:claim:b")
     right_claim = next(claim for claim in right[1]["claims"] if claim["artifact_id"] == "ps:claim:b")
     assert left_claim["artifact_code"] == right_claim["artifact_code"]
-

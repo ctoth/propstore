@@ -20,17 +20,22 @@ from propstore.world import WorldModel
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, make_test_context_commit_entry
 
 
+def _prior_payload(a: float = 0.62) -> dict[str, float]:
+    return {"b": 0.0, "d": 0.0, "u": 1.0, "a": a}
+
+
 def test_p_arg_from_claim_uses_prior_base_rate_when_no_claim_evidence() -> None:
-    opinion = p_arg_from_claim({"source_prior_base_rate": 0.62})
+    prior = _prior_payload(0.62)
+    opinion = p_arg_from_claim({"source_prior_base_rate": prior})
     assert isinstance(opinion, Opinion)
-    assert opinion == Opinion.vacuous(a=0.62)
+    assert opinion == Opinion(**prior)
     assert opinion.provenance is not None
 
 
 def test_p_arg_from_claim_builds_claim_evidence_opinion() -> None:
     opinion = p_arg_from_claim(
         {
-            "source_prior_base_rate": 0.62,
+            "source_prior_base_rate": _prior_payload(0.62),
             "claim_probability": 0.8,
             "effective_sample_size": 10,
         }
@@ -70,7 +75,7 @@ def test_initial_source_document_does_not_fabricate_default_prior(tmp_path: Path
 
 def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
     claim = {
-        "source_prior_base_rate": 0.62,
+        "source_prior_base_rate": _prior_payload(0.62),
         "claim_probability": 0.8,
         "effective_sample_size": 10,
         "source_quality_opinion": {
@@ -95,7 +100,7 @@ def test_p_arg_from_claim_accepts_typed_claim_rows() -> None:
             "artifact_id": "claim-1",
             "source": {
                 "trust": {
-                    "prior_base_rate": 0.62,
+                    "prior_base_rate": _prior_payload(0.62),
                     "quality": {
                         "b": 0.7,
                         "d": 0.1,
@@ -141,7 +146,7 @@ def test_p_arg_from_claim_expectation_stays_in_unit_interval(
 ) -> None:
     opinion = p_arg_from_claim(
         {
-            "source_prior_base_rate": prior,
+            "source_prior_base_rate": _prior_payload(prior),
             "claim_probability": probability,
             "effective_sample_size": n_eff,
         }
@@ -154,7 +159,7 @@ def test_p_arg_from_claim_rejects_invalid_source_quality_shape() -> None:
     with pytest.raises(ValueError):
         p_arg_from_claim(
             {
-                "source_prior_base_rate": 0.62,
+                "source_prior_base_rate": _prior_payload(0.62),
                 "source_quality_opinion": {"b": 0.7},
             }
         )
@@ -234,7 +239,7 @@ def _seed_calibration_claim(repo: Repository) -> None:
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
 
 
-def test_source_finalize_derives_prior_base_rate_from_calibration_claims(tmp_path: Path) -> None:
+def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     _seed_calibration_claim(repo)
     runner = CliRunner()
@@ -270,11 +275,12 @@ def test_source_finalize_derives_prior_base_rate_from_calibration_claims(tmp_pat
 
     branch_tip = repo.git.branch_sha("source/demo")
     source_doc = yaml.safe_load(repo.git.read_file("source.yaml", commit=branch_tip))
-    assert source_doc["trust"]["prior_base_rate"] == pytest.approx(0.36)
-    assert source_doc["trust"]["derived_from"]
+    assert source_doc["trust"]["status"] == "defaulted"
+    assert "prior_base_rate" not in source_doc["trust"]
+    assert "derived_from" not in source_doc["trust"]
 
 
-def test_world_model_claim_rows_include_calibrated_source_prior(tmp_path: Path) -> None:
+def test_world_model_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     _seed_calibration_claim(repo)
     runner = CliRunner()
@@ -359,8 +365,7 @@ def test_world_model_claim_rows_include_calibrated_source_prior(tmp_path: Path) 
 
     assert claim is not None
     claim_data = coerce_claim_row(claim).to_dict()
-    assert claim_data["source"]["trust"]["prior_base_rate"] == pytest.approx(0.36)
-    opinion = p_arg_from_claim(claim_data)
-    assert isinstance(opinion, Opinion)
-    assert opinion == Opinion.vacuous(a=0.36)
-    assert opinion.provenance is not None
+    assert "prior_base_rate" not in claim_data["source"].get("trust", {})
+    result = p_arg_from_claim(claim_data)
+    assert isinstance(result, NoCalibration)
+    assert result.reason == "missing_claim_calibration"

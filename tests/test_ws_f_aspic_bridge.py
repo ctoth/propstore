@@ -404,13 +404,14 @@ def test_claim_canonical_name_collision_does_not_collapse_aspic_literals() -> No
 
 
 def _minimal_praf_shared_input() -> SharedAnalyzerInput:
+    prior = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
     active_graph = ActiveWorldGraph(
         compiled=CompiledWorldGraph(
             claims=(
                 ClaimNode(
                     claim_id="claim_a",
                     claim_type="observation",
-                    attributes={"source_prior_base_rate": 0.5},
+                    attributes={"source_prior_base_rate": prior},
                 ),
             )
         ),
@@ -422,7 +423,7 @@ def _minimal_praf_shared_input() -> SharedAnalyzerInput:
         claims_by_id={
             "claim_a": {
                 "id": "claim_a",
-                "source_prior_base_rate": 0.5,
+                "source_prior_base_rate": prior,
             },
         },
         stance_rows=(),

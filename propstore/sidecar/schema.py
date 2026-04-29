@@ -98,7 +98,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             origin_value TEXT,
             origin_retrieved TEXT,
             origin_content_ref TEXT,
-            prior_base_rate REAL,
+            prior_base_rate TEXT,
             quality_json TEXT,
             derived_from_json TEXT,
             artifact_code TEXT

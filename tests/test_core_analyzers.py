@@ -74,7 +74,7 @@ def _accepted_extensions(result) -> set[frozenset[str]]:
 class _StoreWithSourcePrior:
     def __init__(self, wrapped: SQLiteArgumentationStore, prior: float) -> None:
         self._wrapped = wrapped
-        self._prior = prior
+        self._prior = {"b": 0.0, "d": 0.0, "u": 1.0, "a": prior}
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
         return {

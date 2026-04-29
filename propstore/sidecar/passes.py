@@ -88,6 +88,20 @@ from propstore.sidecar.claim_utils import (
 from propstore.stances import VALID_STANCE_TYPES
 
 
+def _opinion_json(opinion) -> str | None:
+    if opinion is None:
+        return None
+    return json.dumps(
+        {
+            "b": opinion.b,
+            "d": opinion.d,
+            "u": opinion.u,
+            "a": opinion.a,
+        },
+        sort_keys=True,
+    )
+
+
 def _concept_symbol_candidates(record: ConceptRecord) -> tuple[str, ...]:
     return record.reference_keys()
 
@@ -109,7 +123,7 @@ def compile_source_sidecar_rows(
                     origin.value,
                     origin.retrieved,
                     origin.content_ref,
-                    trust.prior_base_rate,
+                    _opinion_json(trust.prior_base_rate),
                     None
                     if trust.quality is None
                     else json.dumps(trust.quality.to_payload()),

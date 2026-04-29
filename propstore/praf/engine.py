@@ -156,6 +156,32 @@ def _opinion_from_payload(
     )
 
 
+def _source_prior_opinion(raw: object) -> Opinion | None:
+    if raw is None:
+        return None
+    if isinstance(raw, Opinion):
+        return raw
+    if isinstance(raw, str):
+        import json
+
+        decoded = json.loads(raw)
+        raw = decoded
+    if isinstance(raw, tuple):
+        raw = dict(raw)
+    if not isinstance(raw, Mapping):
+        raise ValueError("source_prior_base_rate must be an opinion mapping")
+    required = {"b", "d", "u", "a"}
+    if not required.issubset(raw):
+        raise ValueError("source_prior_base_rate must contain b, d, u, and a")
+    return Opinion(
+        float(raw["b"]),
+        float(raw["d"]),
+        float(raw["u"]),
+        float(raw["a"]),
+        _praf_provenance(ProvenanceStatus.STATED, "source_prior_base_rate"),
+    )
+
+
 def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
     """Derive argument-existence opinion from a calibrated claim row."""
     if isinstance(claim, ClaimRow):
@@ -194,16 +220,14 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
         if prior_base_rate is None:
             return _missing_calibration("missing_base_rate", "source_prior_base_rate")
 
-        prior = float(prior_base_rate)
-        omega_prior = Opinion.vacuous(
-            a=prior,
-            provenance=_praf_provenance(ProvenanceStatus.VACUOUS, "claim_prior"),
-        )
+        omega_prior = _source_prior_opinion(prior_base_rate)
+        if omega_prior is None:
+            return _missing_calibration("missing_base_rate", "source_prior_base_rate")
         if claim_probability is not None and effective_sample_size is not None:
             omega_claim = from_probability(
                 float(claim_probability),
                 float(effective_sample_size),
-                prior,
+                omega_prior.a,
                 provenance=_praf_provenance(ProvenanceStatus.CALIBRATED, "claim_evidence"),
             )
         else:
@@ -258,16 +282,14 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
     if prior_base_rate is None:
         return _missing_calibration("missing_base_rate", "source_prior_base_rate")
 
-    prior = float(prior_base_rate)
-    omega_prior = Opinion.vacuous(
-        a=prior,
-        provenance=_praf_provenance(ProvenanceStatus.VACUOUS, "claim_prior"),
-    )
+    omega_prior = _source_prior_opinion(prior_base_rate)
+    if omega_prior is None:
+        return _missing_calibration("missing_base_rate", "source_prior_base_rate")
     if claim_probability is not None and effective_sample_size is not None:
         omega_claim = from_probability(
             float(claim_probability),
             float(effective_sample_size),
-            prior,
+            omega_prior.a,
             provenance=_praf_provenance(ProvenanceStatus.CALIBRATED, "claim_evidence"),
         )
     else:

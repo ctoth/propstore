@@ -161,7 +161,7 @@ def test_track_e_praf_analyzer_can_use_paper_td_package_strategy() -> None:
         claims_by_id={
             "claim_a": {
                 "id": "claim_a",
-                "source_prior_base_rate": 0.5,
+                "source_prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
             },
         },
         stance_rows=(),

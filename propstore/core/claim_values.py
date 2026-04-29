@@ -81,6 +81,15 @@ def _opinion_from_mapping(raw: object) -> Opinion | None:
     )
 
 
+def _opinion_to_mapping(opinion: Opinion) -> dict[str, float]:
+    return {
+        "b": opinion.b,
+        "d": opinion.d,
+        "u": opinion.u,
+        "a": opinion.a,
+    }
+
+
 @dataclass(frozen=True)
 class SourceOrigin:
     origin_type: SourceOriginType | None = None
@@ -140,7 +149,7 @@ class SourceOrigin:
 
 @dataclass(frozen=True)
 class SourceTrust:
-    prior_base_rate: float | None = None
+    prior_base_rate: Opinion | None = None
     quality: Opinion | None = None
     derived_from: tuple[str, ...] = field(default_factory=tuple)
 
@@ -149,11 +158,7 @@ class SourceTrust:
         if data is None:
             return None
         trust = cls(
-            prior_base_rate=(
-                None
-                if data.get("prior_base_rate") is None
-                else float(data["prior_base_rate"])
-            ),
+            prior_base_rate=_opinion_from_mapping(data.get("prior_base_rate")),
             quality=_opinion_from_mapping(data.get("quality")),
             derived_from=_parse_list_json(data.get("derived_from")),
         )
@@ -170,17 +175,17 @@ class SourceTrust:
     def quality_dict(self) -> dict[str, float] | None:
         if self.quality is None:
             return None
-        return {
-            "b": self.quality.b,
-            "d": self.quality.d,
-            "u": self.quality.u,
-            "a": self.quality.a,
-        }
+        return _opinion_to_mapping(self.quality)
+
+    def prior_base_rate_dict(self) -> dict[str, float] | None:
+        if self.prior_base_rate is None:
+            return None
+        return _opinion_to_mapping(self.prior_base_rate)
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
         if self.prior_base_rate is not None:
-            data["prior_base_rate"] = self.prior_base_rate
+            data["prior_base_rate"] = self.prior_base_rate_dict()
         if self.quality is not None:
             data["quality"] = self.quality_dict()
         if self.derived_from:

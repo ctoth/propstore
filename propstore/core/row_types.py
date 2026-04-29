@@ -453,18 +453,12 @@ class ClaimRow:
                     else str(row_map["source_origin_content_ref"])
                 ),
             ),
-            trust=SourceTrust(
-                prior_base_rate=(
-                    None
-                    if row_map.get("source_prior_base_rate") is None
-                    else float(row_map["source_prior_base_rate"])
-                ),
-                quality=None if quality_trust is None else quality_trust.quality,
-                derived_from=(
-                    ()
-                    if derived_from_trust is None
-                    else derived_from_trust.derived_from
-                ),
+            trust=SourceTrust.from_mapping(
+                {
+                    "prior_base_rate": row_map.get("source_prior_base_rate"),
+                    "quality": row_map.get("source_quality_json"),
+                    "derived_from": row_map.get("source_derived_from_json"),
+                }
             ),
         )
         source = ClaimSource.from_mapping(nested_source, slug=flat_source.slug)
@@ -650,6 +644,11 @@ class ClaimRow:
             if self.source is None or self.source.trust is None
             else self.source.trust.quality_dict()
         )
+        source_prior_base_rate = (
+            None
+            if self.source is None or self.source.trust is None
+            else self.source.trust.prior_base_rate_dict()
+        )
         source_derived_from = (
             None
             if self.source is None or self.source.trust is None or not self.source.trust.derived_from
@@ -717,9 +716,7 @@ class ClaimRow:
                 else self.source.origin.content_ref
             ),
             "source_prior_base_rate": (
-                None
-                if self.source is None or self.source.trust is None
-                else self.source.trust.prior_base_rate
+                source_prior_base_rate
             ),
             "source_quality_json": (
                 None if source_quality is None else json.dumps(source_quality)

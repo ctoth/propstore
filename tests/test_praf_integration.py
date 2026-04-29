@@ -12,6 +12,8 @@ from argumentation.dung import ArgumentationFramework
 from propstore.opinion import Opinion
 from propstore.stances import StanceType
 
+SOURCE_PRIOR_05 = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
+
 
 # ---------------------------------------------------------------------------
 # Helpers: minimal mock store and belief space for resolution tests
@@ -78,10 +80,10 @@ def _make_claims_and_stances_deterministic():
     claims = [
         {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
          "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2024-01-01"}'},
+         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2024-01-01"}'},
         {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
          "sample_size": 10, "claim_probability": 1.0, "effective_sample_size": 10,
-         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2023-01-01"}'},
+         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2023-01-01"}'},
     ]
     stances = [
         {
@@ -104,10 +106,10 @@ def _make_claims_and_stances_uncertain():
     claims = [
         {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
          "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2024-01-01"}'},
+         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2024-01-01"}'},
         {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
          "sample_size": 10, "claim_probability": 1.0, "effective_sample_size": 10,
-         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2023-01-01"}'},
+         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2023-01-01"}'},
     ]
     stances = [
         {
@@ -462,10 +464,10 @@ def test_build_praf_uncertain_defeat_probabilities():
     claims = [
         {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
          "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2024-01-01"}'},
+         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2024-01-01"}'},
         {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
          "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2023-01-01"}'},
+         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2023-01-01"}'},
     ]
     stances = [
         {
@@ -512,10 +514,10 @@ def test_build_praf_no_stances():
     claims = [
         {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
          "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2024-01-01"}'},
+         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2024-01-01"}'},
         {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
          "sample_size": 10, "claim_probability": 1.0, "effective_sample_size": 10,
-         "source_prior_base_rate": 0.5, "provenance_json": '{"date": "2023-01-01"}'},
+         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2023-01-01"}'},
     ]
     store = _MockStore(claims, stances=[])
 
