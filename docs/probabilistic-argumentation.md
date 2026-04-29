@@ -101,18 +101,18 @@ exact Dung evaluation, avoiding unnecessary sampling.
 
 DF-QuAD (Freedman et al. 2025, p.3) computes continuous argument strengths in
 [0,1] rather than binary acceptance. Implemented in
-`argumentation.probabilistic_dfquad`.
+`argumentation.dfquad` over `argumentation.gradual.WeightedBipolarGraph`.
 
 The evaluation formula: sigma(a) = f_agg(tau(a), f_comb(v_a+, v_a-))
 
-**Combination function** (`argumentation.probabilistic_dfquad`): aggregates
+**Combination function** (`argumentation.dfquad`): aggregates
 influence from supporters and attackers using noisy-OR:
 
 - support = 1 - product(1 - s for s in supporter_strengths)
 - attack = 1 - product(1 - a for a in attacker_strengths)
 - combined = support - attack
 
-**Aggregation function** (`argumentation.probabilistic_dfquad`): combines base
+**Aggregation function** (`argumentation.dfquad`): combines base
 score with combined influence:
 
 - If combined >= 0: base + combined * (1 - base) (push toward 1)
