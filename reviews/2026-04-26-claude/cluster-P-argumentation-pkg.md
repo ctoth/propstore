@@ -259,7 +259,7 @@ Current status after WS-O-arg-vaf-ranking:
 - Residual Bench-Capon pp. 438-447 algorithms remain open:
   argument chains, lines of argument, parity classifications,
   two-value cycle corollaries, and fact-as-highest-value
-  uncertainty handling.
+  uncertainty handling. Tracked by `WS-O-arg-vaf-completion`.
 
 ### Ranking (Amgoud 2013, Bonzon 2016)
 
@@ -649,7 +649,7 @@ the package:
 - **Bench-Capon 2003 VAF follow-up** — VAF/AVAF defeat and
   acceptance are closed by WS-O-arg-vaf-ranking, but the paper's
   pp. 438-447 line-of-argument and fact-uncertainty algorithms
-  remain unimplemented.
+  remain unimplemented. Tracked by `WS-O-arg-vaf-completion`.
 - **Caminada 2006 labelling-as-semantics** (paper in scope)
   — `labelling.py` ships only a passive container with
   `from_extension`. There is no `legally_in`/`legally_out`
