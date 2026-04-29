@@ -2,33 +2,35 @@ from __future__ import annotations
 
 import math
 
+import pytest
+
 from propstore.belief_set import Atom, TOP, conjunction, negate
 from propstore.belief_set.ic_merge import (
+    ICMergeProfileMemberInconsistent,
     ICMergeOperator,
     _distance_to_formula,
     merge_belief_profile,
 )
 
 
-def test_unsat_profile_member_does_not_shift_winner() -> None:
+def test_unsat_profile_member_is_rejected_at_merge_boundary() -> None:
     alphabet = frozenset({"p", "q"})
     phi1 = Atom("p")
     phi2 = Atom("q")
     unsat = conjunction(phi1, negate(phi1))
 
     for operator in (ICMergeOperator.SIGMA, ICMergeOperator.GMAX):
-        profile_without = (phi1, phi2)
         profile_with_unsat = (phi1, phi2, unsat)
 
-        assert (
-            merge_belief_profile(alphabet, profile_without, TOP, operator=operator).belief_set
-            == merge_belief_profile(
+        with pytest.raises(ICMergeProfileMemberInconsistent) as exc_info:
+            merge_belief_profile(
                 alphabet,
                 profile_with_unsat,
                 TOP,
                 operator=operator,
-            ).belief_set
-        )
+            )
+
+        assert exc_info.value.formula == unsat
 
 
 def test_unsat_formula_distance_is_infinite() -> None:

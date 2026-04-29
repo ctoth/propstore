@@ -8,6 +8,7 @@ from propstore.belief_set import Atom, Formula, conjunction, negate
 from argumentation.af_revision import (
     AFChangeKind,
     ExtensionRevisionState,
+    NoStableExtensionsError,
     baumann_2015_kernel_union_expand,
     cayrol_2014_classify_grounded_argument_addition,
     diller_2015_revise_by_framework,
@@ -111,7 +112,13 @@ def test_diller_2015_a_star_1_a_star_6_framework_revision(
     state: ExtensionRevisionState,
     framework: ArgumentationFramework,
 ) -> None:
-    target_extensions = tuple(stable_extensions(framework)) or (frozenset(),)
+    target_extensions = tuple(stable_extensions(framework))
+    if not target_extensions:
+        with pytest.raises(NoStableExtensionsError) as exc_info:
+            diller_2015_revise_by_framework(state, framework, semantics="stable")
+        assert exc_info.value.framework == framework
+        return
+
     result = diller_2015_revise_by_framework(state, framework, semantics="stable")
 
     assert frozenset(result.extensions) <= frozenset(target_extensions)
