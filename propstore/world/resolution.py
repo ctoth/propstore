@@ -715,9 +715,14 @@ def _resolve_praf(
         best_claims = list(projection.survivor_claim_ids if projection is not None else ())
         if len(best_claims) == 1:
             winner = best_claims[0]
+            probability_text = (
+                "unknown"
+                if extension_probability is None
+                else f"{float(extension_probability):.4f}"
+            )
             return (
                 winner,
-                f"PrAF extension probability ({float(extension_probability):.4f}) "
+                f"PrAF extension probability ({probability_text}) "
                 f"via {strategy_used} ({semantics})",
                 None,
             )
