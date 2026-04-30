@@ -1,6 +1,6 @@
 # WS-K2: Meta-paper rule extraction pipeline (LLM with proposal-review gate)
 
-**Status**: OPEN
+**Status**: CLOSED 4a2ce545
 **Depends on**: WS-A (schema parity — required so the predicates schema and rule documents round-trip through sidecar without drift) and WS-K consumer API for the end-to-end firing test only (`tests/test_extracted_rules_fire_against_argumentation.py`). WS-K itself ships independently against hand-stubbed rule fixtures; WS-K2 only needs the WS-K kernel API to be in tree so the joint sentinel can fire promoted rules through it.
 **Blocks**: nothing structural. WS-K's source-trust pipeline closes on stubs without WS-K2; WS-K2 enriches it with promoted real rules afterward.
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1)
@@ -298,11 +298,11 @@ The predicate prompt is fed:
 Strict JSON, schema-validated. Each declaration object has fields: `name`, `arity`, `arg_types` (a tuple matching `arity`), `description`. `name` matches `[a-z_][a-z0-9_]*`; `arity` ≥ 1; the first `arg_type` must be `paper_id` (every meta-paper predicate is paper-scoped).
 
 ### Iteration loop
-Same shape as the rule loop below: per-paper acceptance/rejection logged, prompt edited, version bumped, prior version archived. Predicate-prompt versions live under `propstore/heuristic/predicate_extraction_prompts/v<N>.txt`.
+Same shape as the rule loop below: per-paper acceptance/rejection logged, prompt edited, version bumped, prior version archived. Predicate-prompt versions live under `propstore/heuristic/__resources__/predicate_extraction_prompts/v<N>.txt`.
 
 ## The rule-extraction prompt — design
 
-The prompt is the iterated artifact. Its version is recorded in the proposal provenance via `prompt_sha`. The template lives at `propstore/heuristic/rule_extraction_prompt.txt` and is loaded as a string asset; the sha is computed at extraction time and stamped on every proposal.
+The prompt is the iterated artifact. Its version is recorded in the proposal provenance via `prompt_sha`. The template lives at `propstore/heuristic/__resources__/rule_extraction_prompt.txt` and is loaded through the package resource loader; the sha is computed at extraction time and stamped on every proposal.
 
 ### Inputs
 1. The meta-paper's `notes.md` (full content).
@@ -367,7 +367,7 @@ Acceptance: `tests/test_proposal_predicates_family.py`, `tests/test_propose_pred
 
 ### Step 3 — Author the rule-extraction prompt and seed examples
 
-- Hand-author `propstore/heuristic/rule_extraction_prompt.txt` (v1).
+- Hand-author `propstore/heuristic/__resources__/rule_extraction_prompt.txt` (v1).
 - Hand-author `propstore/heuristic/rule_extraction_examples.yaml` with three exemplar rules from Ioannidis_2005 (strict / defeasible / defeater).
 - Compute `prompt_sha` deterministically over the prompt template at module-load time; cache for stamping into provenance.
 - Acceptance: prompt template loads, sha is reproducible across runs.
@@ -375,7 +375,7 @@ Acceptance: `tests/test_proposal_predicates_family.py`, `tests/test_propose_pred
 ### Step 4 — Implement `propose_rules_for_paper`
 
 - New module `propstore/heuristic/rule_extraction.py` housing `propose_rules_for_paper`, a `_validate_against_predicates` helper (loads canonical `knowledge/predicates/<paper>/declarations.yaml`), and persistence mirroring `propstore/proposals.py:commit_stance_proposals` but writing into `proposal_rules`.
-- The LLM call shape mirrors `propstore/classify.py:classify_stance_async`. The prompt template is loaded from disk; the response is parsed against the rule output schema; each candidate rule has its `predicates_referenced` admission-checked against the loaded predicate vocabulary; rules referencing unregistered predicates are rejected at extraction time and recorded as `Provenance(status=VACUOUS, operations=("rule_extraction_predicate_unknown",))`.
+- The LLM call shape mirrors `propstore/classify.py:classify_stance_async`. The prompt template is loaded through the package resource loader; the response is parsed against the rule output schema; each candidate rule has its `predicates_referenced` admission-checked against the loaded predicate vocabulary; rules referencing unregistered predicates are rejected at extraction time and recorded as `Provenance(status=VACUOUS, operations=("rule_extraction_predicate_unknown",))`.
 - Persistence uses `repo.families.transact(...)` with `commit_sha` inside the `with` block.
 - Acceptance: `tests/test_propose_rules_lifecycle.py` turns green.
 
@@ -402,7 +402,7 @@ Acceptance: `tests/test_proposal_predicates_family.py`, `tests/test_propose_pred
 
 ### Step 8 — Iterate the prompt
 
-Read the rejection log; identify top three failure modes; edit `rule_extraction_prompt.txt` to address them; bump version, archive prior version under `propstore/heuristic/rule_extraction_prompts/v<N>.txt`; record rationale under `reviews/2026-04-26-claude/workstreams/WS-K2-prompt-iterations/v<N+1>.md`; re-run extraction on below-threshold papers; re-review. Repeat until ≥ 70% globally and ≥ 50% per-paper.
+Read the rejection log; identify top three failure modes; edit `propstore/heuristic/__resources__/rule_extraction_prompt.txt` to address them; bump version, archive prior version under `propstore/heuristic/__resources__/rule_extraction_prompts/v<N>.txt`; record rationale under `reviews/2026-04-26-claude/workstreams/WS-K2-prompt-iterations/v<N+1>.md`; re-run extraction on below-threshold papers; re-review. Repeat until ≥ 70% globally and ≥ 50% per-paper.
 
 ### Step 9 — End-to-end test against the WS-K argumentation pipeline
 
@@ -426,21 +426,21 @@ Read the rejection log; identify top three failure modes; edit `rule_extraction_
 
 Before declaring WS-K2 done, ALL must hold:
 
-- [ ] `uv run pyright propstore` — passes with 0 errors on the new `predicate_extraction.py`, `rule_extraction.py`, `proposals_predicates.py`, `proposals_rules.py`, and the `families/documents/predicates.py` and `families/documents/rules.py` additions.
-- [ ] `uv run lint-imports` — passes; the new heuristic modules live under the heuristic layer and do not import any source-writer module.
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-K2 tests/test_proposal_rules_family.py tests/test_proposal_predicates_family.py tests/test_propose_predicates_lifecycle.py tests/test_promote_predicates_proposals.py tests/test_propose_rules_lifecycle.py tests/test_promote_rules_proposals.py tests/test_extracted_rules_lint_clean.py tests/test_extracted_rules_fire_against_argumentation.py tests/test_workstream_k2_done.py` — all green.
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-K2-cli tests/test_cli_propose_rules_help.py tests/test_cli_propose_rules_dry_run.py tests/test_cli_propose_rules_with_mocked_llm.py tests/test_cli_promote_rules_selective.py tests/test_cli_promote_rules_unknown_id.py tests/test_cli_review_no_commit.py` — all green.
-- [ ] Full suite — no NEW failures vs the WS-K-stabilized baseline.
-- [ ] `knowledge/predicates/<paper>/declarations.yaml` exists for every target paper; every predicate the table lists is registered against its first-registered-by paper.
-- [ ] `knowledge/rules/<paper-name>/` contains promoted rules for every paper whose acceptance survived the loop.
-- [ ] `propstore/families/registry.py` exposes `PROPOSAL_RULES_FAMILY` and `PROPOSAL_PREDICATES_FAMILY`.
-- [ ] `propstore/heuristic/predicate_extraction.py`, `propstore/heuristic/rule_extraction.py`, `propstore/proposals_predicates.py`, `propstore/proposals_rules.py` exist with the documented surfaces.
-- [ ] `propstore/heuristic/rule_extraction_prompt.txt` and `propstore/heuristic/predicate_extraction_prompt.txt` are at their latest committed versions; archived prompt versions live under `propstore/heuristic/rule_extraction_prompts/` and `propstore/heuristic/predicate_extraction_prompts/`.
-- [ ] `reviews/2026-04-26-claude/workstreams/WS-K2-acceptance-log.csv` shows ≥ 70% global acceptance; per-paper acceptance ≥ 50%.
-- [ ] `reviews/2026-04-26-claude/workstreams/WS-K2-rejection-log.csv` and `WS-K2-prompt-iterations/v<N>.md` files exist and explain every prompt revision.
-- [ ] WS-K2 property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-K2 test run or a named companion run.
-- [ ] `docs/gaps.md` records WS-K2 closure with the 13 paper list and the achieved acceptance rate.
-- [ ] STATUS line is `CLOSED <sha>`.
+- [x] `uv run pyright propstore` — passes with 0 errors on the new `predicate_extraction.py`, `rule_extraction.py`, `proposals_predicates.py`, `proposals_rules.py`, and the `families/documents/predicates.py` and `families/documents/rules.py` additions. Evidence: `uv run pyright propstore`, 0 errors.
+- [x] `uv run lint-imports` — passes; the new heuristic modules live under the heuristic layer and do not import any source-writer module. Evidence: `uv run lint-imports`, 5 kept / 0 broken.
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-K2 tests/test_proposal_rules_family.py tests/test_proposal_predicates_family.py tests/test_propose_predicates_lifecycle.py tests/test_promote_predicates_proposals.py tests/test_propose_rules_lifecycle.py tests/test_promote_rules_proposals.py tests/test_extracted_rules_lint_clean.py tests/test_extracted_rules_fire_against_argumentation.py tests/test_workstream_k2_done.py` — all green. Evidence: `logs/test-runs/WS-K2-20260429-205025.log`.
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-K2-cli tests/test_cli_propose_rules_help.py tests/test_cli_propose_rules_dry_run.py tests/test_cli_propose_rules_with_mocked_llm.py tests/test_cli_promote_rules_selective.py tests/test_cli_promote_rules_unknown_id.py tests/test_cli_review_no_commit.py` — all green. Evidence: `logs/test-runs/WS-K2-cli-20260429-205025.log`.
+- [x] Full suite — no NEW failures vs the WS-K-stabilized baseline. Evidence: `logs/test-runs/WS-K2-full-after-resources-20260429-211305.log`, 3425 passed / 2 skipped.
+- [x] `knowledge/predicates/<paper>/declarations.yaml` exists for every target paper; every predicate the table lists is registered against its first-registered-by paper. Evidence: nested `knowledge` commit `47c82cc`.
+- [x] `knowledge/rules/<paper-name>/` contains promoted rules for every paper whose acceptance survived the loop. Evidence: nested `knowledge` commit `47c82cc`.
+- [x] `propstore/families/registry.py` exposes `PROPOSAL_RULES_FAMILY` and `PROPOSAL_PREDICATES_FAMILY`.
+- [x] `propstore/heuristic/predicate_extraction.py`, `propstore/heuristic/rule_extraction.py`, `propstore/proposals_predicates.py`, `propstore/proposals_rules.py` exist with the documented surfaces.
+- [x] `propstore/heuristic/__resources__/rule_extraction_prompt.txt` and `propstore/heuristic/__resources__/predicate_extraction_prompt.txt` are at their latest committed versions; archived prompt versions live under `propstore/heuristic/__resources__/rule_extraction_prompts/` and `propstore/heuristic/__resources__/predicate_extraction_prompts/`.
+- [x] `reviews/2026-04-26-claude/workstreams/WS-K2-acceptance-log.csv` shows ≥ 70% global acceptance; per-paper acceptance ≥ 50%. Evidence: 26/26 accepted, 100% global and 100% per paper.
+- [x] `reviews/2026-04-26-claude/workstreams/WS-K2-rejection-log.csv` and `WS-K2-prompt-iterations/v<N>.md` files exist and explain every prompt revision.
+- [x] WS-K2 property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-K2 test run or a named companion run. Evidence: `logs/test-runs/WS-K2-property-gates-20260429-210148.log`.
+- [x] `docs/gaps.md` records WS-K2 closure with the 13 paper list and the achieved acceptance rate.
+- [x] STATUS line is `CLOSED 4a2ce545`.
 
 ## Done means done
 

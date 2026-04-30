@@ -21,11 +21,14 @@ from propstore.families.registry import (
     PredicateFileRef,
     PredicateProposalRef,
 )
+from propstore.resources import load_package_resource_text
 from propstore.repository import Repository
 
 
-PROMPT_PATH = Path(__file__).with_name("predicate_extraction_prompt.txt")
-PROMPT_TEMPLATE = PROMPT_PATH.read_text(encoding="utf-8")
+PROMPT_TEMPLATE = load_package_resource_text(
+    "propstore.heuristic",
+    "predicate_extraction_prompt.txt",
+)
 PROMPT_SHA = hashlib.sha256(PROMPT_TEMPLATE.encode("utf-8")).hexdigest()
 
 

@@ -26,11 +26,14 @@ from propstore.families.registry import (
     RuleFileRef,
     RuleProposalRef,
 )
+from propstore.resources import load_package_resource_text
 from propstore.repository import Repository
 
 
-PROMPT_PATH = Path(__file__).with_name("rule_extraction_prompt.txt")
-PROMPT_TEMPLATE = PROMPT_PATH.read_text(encoding="utf-8")
+PROMPT_TEMPLATE = load_package_resource_text(
+    "propstore.heuristic",
+    "rule_extraction_prompt.txt",
+)
 PROMPT_SHA = hashlib.sha256(PROMPT_TEMPLATE.encode("utf-8")).hexdigest()
 _ATOM_RE = re.compile(r"^\s*(~)?\s*([A-Za-z_][A-Za-z_0-9]*)\s*(\((.*)\))?\s*$")
 

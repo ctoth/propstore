@@ -55,6 +55,19 @@ def load_resource_text(relative_path: str) -> str:
     return resource.read_text(encoding="utf-8")
 
 
+def load_package_resource_text(
+    package: str,
+    relative_path: str,
+    *,
+    resource_dir: str = "__resources__",
+) -> str:
+    """Load a text resource from a package-local resource directory."""
+    from importlib.resources import files
+
+    resource = files(package).joinpath(resource_dir, relative_path)
+    return resource.read_text(encoding="utf-8")
+
+
 def load_resource_json(relative_path: str) -> dict | list:
     """Load a JSON resource from ``propstore/_resources``."""
     return json.loads(load_resource_text(relative_path))
