@@ -598,11 +598,9 @@ def relate_claims(
                     request.top_k,
                 )
             )
-            if not stances:
-                return ClaimRelateReport(branch=stance_proposal_branch())
             commit_sha, committed_relpaths = commit_stance_proposals(
                 repo,
-                {request.claim_id: list(stances)},
+                {request.claim_id: list(stances)} if stances else {},
                 request.model,
             )
             return ClaimRelateReport(
@@ -623,19 +621,15 @@ def relate_claims(
             stances_by_claim = _required_stances_by_claim(
                 result.get("stances_by_claim", {})
             )
-            commit_sha: str | None = None
-            relpaths: tuple[str, ...] = ()
-            if stances_by_claim:
-                commit_sha, committed_relpaths = commit_stance_proposals(
-                    repo,
-                    stances_by_claim,
-                    request.model,
-                )
-                relpaths = tuple(committed_relpaths)
+            commit_sha, committed_relpaths = commit_stance_proposals(
+                repo,
+                stances_by_claim,
+                request.model,
+            )
             return ClaimRelateReport(
                 branch=stance_proposal_branch(),
                 commit_sha=commit_sha,
-                relpaths=relpaths,
+                relpaths=tuple(committed_relpaths),
                 claims_processed=_required_int(result, "claims_processed"),
                 stances_found=_required_int(result, "stances_found"),
                 no_relation=_required_int(result, "no_relation"),

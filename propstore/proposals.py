@@ -216,10 +216,10 @@ def commit_stance_proposals(
     model_name: str,
     *,
     branch: str | None = None,
-) -> tuple[str, list[str]]:
+) -> tuple[str | None, list[str]]:
     """Commit stance proposal snapshots to the proposal branch."""
     if not stances_by_claim:
-        raise ValueError("stances_by_claim must not be empty")
+        return None, []
 
     target_branch = stance_proposal_branch() if branch is None else branch
     sha: str | None = None
