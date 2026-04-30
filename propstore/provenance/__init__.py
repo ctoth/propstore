@@ -177,8 +177,9 @@ def _canonical_provenance(
         status=provenance.status,
         witnesses=_canonical_witnesses(provenance.witnesses),
         graph_name=graph_name,
+        # Derived source pointers are a set; causal operation chains are not.
         derived_from=_dedupe_sorted(provenance.derived_from),
-        operations=_dedupe_sorted(provenance.operations),
+        operations=_dedupe_preserve_order(list(provenance.operations)),
     )
 
 
@@ -206,12 +207,7 @@ def compose_provenance(*records: Provenance, operation: str) -> Provenance:
         derived_from.extend(record.derived_from)
         operations.extend(record.operations)
         for witness in record.witnesses:
-            key = (
-                witness.asserter,
-                witness.timestamp,
-                witness.source_artifact_code,
-                witness.method,
-            )
+            key = _witness_key(witness)
             if key in witness_keys:
                 continue
             witness_keys.add(key)
