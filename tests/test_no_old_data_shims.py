@@ -13,7 +13,7 @@ def test_d3_old_data_shim_symbols_are_deleted() -> None:
         "Fall back to raw confidence when opinion is missing (old data)": Path(
             "propstore/world/types.py"
         ),
-        "fallback: treat whole response as forward": Path("propstore/classify.py"),
+        "fallback: treat whole response as forward": Path("propstore/heuristic/classify.py"),
         "for backwards compatibility": Path("propstore/grounding/grounder.py"),
         '"propstore/aspic_bridge.py"': Path("pyproject.toml"),
     }

@@ -1193,9 +1193,8 @@ class DecisionValueSource(Enum):
     """Provenance tag for the value returned by ``apply_decision_criterion``.
 
     Per CLAUDE.md "Honest ignorance over fabricated confidence": a value
-    derived from a calibrated opinion tuple must be distinguishable from a
-    value that is merely the legacy ``confidence`` scalar passed through, and
-    both must be distinguishable from "no data at all".
+    derived from a calibrated opinion tuple must be distinguishable from
+    "no data at all".
 
     This is a plain ``Enum`` (NOT ``StrEnum``, NOT ``Literal``) so that
     callers must use identity comparisons (``source is OPINION``) rather
@@ -1204,7 +1203,6 @@ class DecisionValueSource(Enum):
     """
 
     OPINION = "opinion"
-    CONFIDENCE_FALLBACK = "confidence_fallback"
     NO_DATA = "no_data"
 
 
@@ -1231,7 +1229,7 @@ def apply_decision_criterion(
     criterion: str = "pignistic",
     pessimism_index: float = 0.5,
 ) -> DecisionValue:
-    """Apply decision criterion to opinion data, falling back to raw confidence.
+    """Apply decision criterion to complete opinion data.
 
     Decision criteria determine how belief-function uncertainty maps to
     actionable values at render time. The binomial pignistic path follows
@@ -1239,16 +1237,16 @@ def apply_decision_criterion(
     The projected-probability path follows Jøsang 2001 Definition 6 (p.5).
 
     Args:
-        opinion_b/d/u/a: Opinion components (may be None for old data)
-        confidence: Scalar fallback (existing backward-compat field)
+        opinion_b/d/u/a: Opinion components.
+        confidence: Ignored scalar claim confidence retained at call sites
+            that still carry this field for unrelated render reporting.
         criterion: One of "pignistic", "projected_probability",
             "lower_bound", "upper_bound", "hurwicz"
         pessimism_index: α for Hurwicz criterion
 
     Returns:
         ``DecisionValue`` whose ``source`` distinguishes a calibrated
-        opinion result (``OPINION``) from a raw confidence passthrough
-        (``CONFIDENCE_FALLBACK``) or total absence of data (``NO_DATA``).
+        opinion result (``OPINION``) from total absence of data (``NO_DATA``).
         ``value`` is ``None`` only when ``source is DecisionValueSource.NO_DATA``.
     """
     # If opinion components are all present, compute from opinion
@@ -1280,12 +1278,7 @@ def apply_decision_criterion(
             raise ValueError(f"Unknown decision criterion: {criterion!r}")
         return DecisionValue(value=value, source=DecisionValueSource.OPINION)
 
-    # Fall back to raw confidence when opinion is missing (old data).
-    if confidence is not None:
-        return DecisionValue(
-            value=confidence,
-            source=DecisionValueSource.CONFIDENCE_FALLBACK,
-        )
+    _ = confidence
     return DecisionValue(value=None, source=DecisionValueSource.NO_DATA)
 
 

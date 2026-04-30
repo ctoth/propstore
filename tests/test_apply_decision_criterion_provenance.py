@@ -1,16 +1,14 @@
 """Tests for the typed-provenance return of `apply_decision_criterion`.
 
 Per the honest-ignorance discipline (CLAUDE.md): a calibrated opinion result
-must be distinguishable from a raw confidence fallback at the type level.
+must be distinguishable from missing opinion data at the type level.
 `apply_decision_criterion` returns `DecisionValue(value, source)` where
-`source` is a `DecisionValueSource` enum with three variants:
+`source` is a `DecisionValueSource` enum with two variants:
 
 - ``OPINION``: all four opinion components were present and the value was
   computed via the requested criterion (pignistic / lower_bound / upper_bound
   / hurwicz).
-- ``CONFIDENCE_FALLBACK``: the opinion tuple was incomplete but the legacy
-  ``confidence`` scalar was present and was returned as-is.
-- ``NO_DATA``: neither the opinion tuple nor the confidence were present.
+- ``NO_DATA``: the opinion tuple was incomplete or absent.
   ``value`` is ``None``.
 """
 
@@ -38,30 +36,29 @@ def test_full_opinion_tagged_as_opinion():
     assert result.value == pytest.approx(0.75)
 
 
-def test_missing_opinion_with_confidence_tagged_as_fallback():
-    """All four opinion components None + confidence set → CONFIDENCE_FALLBACK."""
+def test_missing_opinion_with_confidence_returns_no_data():
+    """All four opinion components None + confidence set -> NO_DATA."""
     result = apply_decision_criterion(
         None, None, None, None, confidence=0.75, criterion="pignistic",
     )
     assert isinstance(result, DecisionValue)
-    assert result.source is DecisionValueSource.CONFIDENCE_FALLBACK
-    assert result.value == pytest.approx(0.75)
+    assert result.source is DecisionValueSource.NO_DATA
+    assert result.value is None
 
 
-def test_partial_opinion_tagged_as_fallback():
-    """Partial opinion tuple (e.g. b set, u missing) + confidence → CONFIDENCE_FALLBACK.
+def test_partial_opinion_returns_no_data():
+    """Partial opinion tuple (e.g. b set, u missing) + confidence -> NO_DATA.
 
     The current implementation requires *all four* opinion components to be
-    present before computing from opinion. Any None among the four falls
-    through to the confidence path. This test pins that contract under the
-    new tagged return.
+    present before computing from opinion. Any None among the four returns
+    honest no-data rather than using raw confidence.
     """
     result = apply_decision_criterion(
         0.6, 0.1, None, 0.5, confidence=0.4, criterion="pignistic",
     )
     assert isinstance(result, DecisionValue)
-    assert result.source is DecisionValueSource.CONFIDENCE_FALLBACK
-    assert result.value == pytest.approx(0.4)
+    assert result.source is DecisionValueSource.NO_DATA
+    assert result.value is None
 
 
 def test_no_data_returns_no_data_with_none_value():

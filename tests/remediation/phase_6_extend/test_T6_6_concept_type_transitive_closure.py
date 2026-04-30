@@ -22,7 +22,7 @@ def _concept(name: str, relationships=()) -> LoadedConcept:
     record = ConceptRecord(
         artifact_id=artifact_id,
         canonical_name=name,
-        status="active",
+        status="accepted",
         definition=f"Test concept {name}.",
         form="entity",
         logical_ids=(LogicalId(namespace="propstore", value=name),),

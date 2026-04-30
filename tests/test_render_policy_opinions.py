@@ -205,19 +205,19 @@ def test_vacuous_opinion_all_criteria():
     assert hurwicz.value == pytest.approx(0.5)
 
 
-# ── Fallback: None opinion uses raw confidence ───────────────────
+# ── Missing opinion data stays unknown ───────────────────────────
 
-def test_fallback_to_confidence_when_opinion_missing():
-    """When opinion columns are NULL (old data), fall back to raw confidence.
+def test_missing_opinion_ignores_raw_confidence():
+    """When opinion columns are NULL, raw confidence is not a substitute.
 
     The tagged return must mark the difference between a calibrated opinion
-    result and a confidence passthrough, per the honest-ignorance discipline.
+    result and missing opinion data, per the honest-ignorance discipline.
     """
     result = apply_decision_criterion(
         None, None, None, None, confidence=0.8, criterion="pignistic",
     )
-    assert result.source is DecisionValueSource.CONFIDENCE_FALLBACK
-    assert result.value == pytest.approx(0.8)
+    assert result.source is DecisionValueSource.NO_DATA
+    assert result.value is None
 
     result_none = apply_decision_criterion(
         None, None, None, None, confidence=None, criterion="pignistic",
@@ -283,18 +283,18 @@ def test_generated_decision_criteria_stay_inside_belief_plausibility(opinion):
         (0.7, 0.1, 0.2, None),
     ],
 )
-def test_partial_opinion_is_fallback_not_opinion(components):
-    """Partial opinion columns are explicitly classified as fallback/no-data.
+def test_partial_opinion_is_no_data_not_opinion(components):
+    """Partial opinion columns are explicitly classified as no-data.
 
     A default base rate or partial tuple must not be silently promoted to
     a calibrated opinion at the render boundary.
     """
     b, d, u, a = components
-    fallback = apply_decision_criterion(
+    missing = apply_decision_criterion(
         b, d, u, a, confidence=0.8, criterion="pignistic",
     )
-    assert fallback.source is DecisionValueSource.CONFIDENCE_FALLBACK
-    assert fallback.value == pytest.approx(0.8)
+    assert missing.source is DecisionValueSource.NO_DATA
+    assert missing.value is None
 
     no_data = apply_decision_criterion(
         b, d, u, a, confidence=None, criterion="pignistic",

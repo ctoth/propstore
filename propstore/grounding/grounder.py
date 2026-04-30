@@ -125,13 +125,9 @@ def ground(
         return_arguments: When ``True``, populate
             ``bundle.arguments`` with the full ordered tuple of
             ``gunray.Argument`` objects produced by
-            ``gunray.build_arguments(theory)``. Defaults to ``False``
-            for backwards compatibility — existing callers pay no
-            argument-enumeration cost. Block 3 of the gunray
-            refactor exposes this typed view alongside the legacy
-            section projection; callers that operate on arguments
-            (dialectical renderer, claim graph) opt in via this
-            keyword. Garcia & Simari 2004 §3 Def 3.6 (argument as
+            ``gunray.build_arguments(theory)``. Callers that operate on
+            arguments (dialectical renderer, claim graph) opt in via
+            this keyword. Garcia & Simari 2004 §3 Def 3.6 (argument as
             minimal consistent defeasible derivation) and Diller,
             Borg, Bex 2025 §4 (arguments as the atomic unit of the
             dialectical-tree procedure).
