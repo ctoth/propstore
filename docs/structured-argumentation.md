@@ -22,7 +22,7 @@ Each canonical justification becomes a `Rule` mapping premise literals to a conc
 - `"strict"` produces a strict rule (no name, cannot be undercut)
 - `"defeasible"` produces a defeasible rule (named by justification ID, can be undercut per Def 8c)
 
-Rules where premise or conclusion literals are missing (because the corresponding claim is inactive) are silently dropped.
+Rules whose premise or conclusion literals are unavailable because the corresponding claim is inactive are omitted from active rule assembly.
 
 `propstore/aspic_bridge/translate.py` — `justifications_to_rules()`
 

@@ -41,7 +41,7 @@ As the concept registry grows through paper processing, duplicate concepts may e
 3. **Merge** — deprecate duplicate concepts with `replaced_by` pointers, rewrite claims
 4. **Re-embed** — normalized concepts produce cleaner claim similarity
 
-This is automated — no human review required. The `proposed -> accepted -> deprecated` lifecycle tracks concept maturity. Reconciliation runs after each batch of papers.
+Reconciliation proposes duplicate concepts and merge candidates; promotion is review-gated through the source/proposal lifecycle. The `proposed -> accepted -> deprecated` lifecycle tracks concept maturity.
 
 ## Promote workflow
 
