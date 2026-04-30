@@ -17,6 +17,10 @@ if TYPE_CHECKING:
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.30")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
 DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
+    "propstore.families.documents.sources.SourceStanceEntryDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.sources.SourceTrustDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.stances.StanceEntryDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.stances.StanceFileDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.AtomDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.RuleDocument": VersionId("2026.05.01"),
 }

@@ -2288,10 +2288,13 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceStanceEntryDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: source_claim
+      required: true
+      type: str | None
+    - name: perspective_source_claim_id
       required: true
       type: str | None
     - name: target
@@ -2336,7 +2339,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceTrustDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: status
@@ -2344,7 +2347,7 @@ contracts:
       type: ProvenanceStatus
     - name: prior_base_rate
       required: true
-      type: float | int | None
+      type: Opinion | None
     - name: quality
       required: true
       type: SourceTrustQualityDocument | None
@@ -2402,10 +2405,13 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: StanceEntryDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: source_claim
+      required: true
+      type: str | None
+    - name: perspective_source_claim_id
       required: true
       type: str | None
     - name: target
@@ -2435,7 +2441,7 @@ contracts:
     module: propstore.families.documents.stances
 - kind: document_schema
   name: StanceFileDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: source_claim
@@ -2448,6 +2454,9 @@ contracts:
       required: true
       type: str | None
     - name: classification_date
+      required: true
+      type: str | None
+    - name: promoted_from_sha
       required: true
       type: str | None
     module: propstore.families.documents.stances

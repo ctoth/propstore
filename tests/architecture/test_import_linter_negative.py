@@ -2,7 +2,26 @@ from __future__ import annotations
 
 import os
 import subprocess
+import time
+from contextlib import contextmanager
 from pathlib import Path
+
+
+@contextmanager
+def _import_linter_lock():
+    lock_path = Path(".tmp/import-linter-tests.lock")
+    lock_path.parent.mkdir(exist_ok=True)
+    while True:
+        try:
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            time.sleep(0.05)
+    try:
+        yield
+    finally:
+        os.close(fd)
+        lock_path.unlink(missing_ok=True)
 
 
 def test_import_linter_rejects_heuristic_importing_source_finalize() -> None:
@@ -12,16 +31,17 @@ def test_import_linter_rejects_heuristic_importing_source_finalize() -> None:
         command.extend(["--locked", "--no-sources"])
     command.append("lint-imports")
 
-    try:
-        fixture.write_text("from propstore.source import finalize\n")
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    finally:
-        fixture.unlink(missing_ok=True)
+    with _import_linter_lock():
+        try:
+            fixture.write_text("from propstore.source import finalize\n")
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        finally:
+            fixture.unlink(missing_ok=True)
 
     output = result.stdout + result.stderr
     assert result.returncode != 0, output
