@@ -190,13 +190,16 @@ def compare_algorithm_claims(
     if not body_a or not body_b:
         raise ClaimComparisonError("Both claims must be algorithm claims with a body.")
 
-    result = ast_compare(
-        body_a,
-        _algorithm_variables(claim_a),
-        body_b,
-        _algorithm_variables(claim_b),
-        known_values=dict(request.known_values) if request.known_values else None,
-    )
+    try:
+        result = ast_compare(
+            body_a,
+            _algorithm_variables(claim_a),
+            body_b,
+            _algorithm_variables(claim_b),
+            known_values=dict(request.known_values) if request.known_values else None,
+        )
+    except RecursionError as exc:
+        raise ClaimComparisonError("Algorithm comparison exceeded recursion depth.") from exc
     return ClaimCompareReport(
         tier=result.tier,
         equivalent=result.equivalent,

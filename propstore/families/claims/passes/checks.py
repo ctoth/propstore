@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 import bridgman
 
-from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
+from ast_equiv import AlgorithmParseError, extract_free_variables, parse_algorithm
 
 from propstore.families.claims.documents import (
     AlgorithmParseCheck,
@@ -826,8 +826,7 @@ def _validate_algorithm_unbound_names(
 
     body = claim.get("body")
     if body and tree is not None:
-        ast_names = extract_names(tree)
-        unbound = ast_names - KNOWN_BUILTINS - declared_names
+        unbound = extract_free_variables(tree) - declared_names
         for name in sorted(unbound):
             _record(
                 diagnostics,

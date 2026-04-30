@@ -875,8 +875,8 @@ class TestAlgorithmConflicts:
         algo_records = [r for r in records if r.concept_id == "concept1"]
         assert len(algo_records) == 0
 
-    def test_algorithm_sympy_tier_still_conflicts(self, monkeypatch):
-        """SymPy-only equivalence is not enough to suppress a conflict."""
+    def test_algorithm_sympy_tier_suppresses_conflict(self, monkeypatch):
+        """Any proven ast-equiv tier suppresses an algorithm conflict."""
         from ast_equiv import Tier
         from propstore.conflict_detector import algorithms
 
@@ -908,9 +908,7 @@ class TestAlgorithmConflicts:
         records = detect_conflicts([cf], make_concept_registry())
 
         algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
-        assert len(algo_records) == 1
-        assert algo_records[0].concept_id == "concept1"
-        assert f"tier:{Tier.SYMPY}" in algo_records[0].derivation_chain
+        assert algo_records == []
 
     def test_algorithm_different_conflict(self):
         """Two genuinely different algorithm claims for same concept -> conflict detected."""

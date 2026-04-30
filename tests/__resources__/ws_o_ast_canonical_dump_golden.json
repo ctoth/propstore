@@ -1,0 +1,7 @@
+{
+  "body": "def compute(x):\n    return x / 2 + x / 2\n",
+  "bindings": {
+    "x": "signal"
+  },
+  "canonical_dump": "1:e309ea695a8badf729e2a3652eeb3f33081524957c7820e0a3639e450f11c9b7"
+}

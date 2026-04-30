@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from ast_equiv import AlgorithmParseError, compare as ast_compare
-from ast_equiv.sympy_bridge import AstToSympyError
 
 from propstore.core.claim_types import ClaimType
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
@@ -532,7 +531,7 @@ class ActiveClaimResolver:
                 {},
                 known_values={str(concept_id): value for concept_id, value in known_values.items()},
             )
-        except (ValueError, SyntaxError, AlgorithmParseError, AstToSympyError) as exc:
+        except (ValueError, SyntaxError, AlgorithmParseError, RecursionError) as exc:
             logging.warning(
                 "ast_compare failed for algorithm-vs-direct comparison %s: %s",
                 claim.claim_id,
@@ -574,7 +573,7 @@ class ActiveClaimResolver:
                             else None
                         ),
                     )
-                except (ValueError, SyntaxError, AlgorithmParseError, AstToSympyError) as exc:
+                except (ValueError, SyntaxError, AlgorithmParseError, RecursionError) as exc:
                     logging.warning("ast_compare failed in algorithm equivalence check: %s", exc)
                     return _PARSE_FAILED
                 comparison = _comparison_from_equivalence(result.equivalent)
