@@ -1,6 +1,6 @@
 # WS-K: Heuristic discipline & layer-3 boundary
 
-**Status**: OPEN (rewritten 2026-04-27 per D-8; revised again per D-19 + Codex 1.16)
+**Status**: CLOSED e6269474 (rewritten 2026-04-27 per D-8; revised again per D-19 + Codex 1.16)
 **Depends on**:
 - **WS-A** (schema fidelity) — sidecar Opinion column round-trip and embedding-registry schema migration cannot be verified until WS-A's fixture parity holds.
 - **WS-O-arg-argumentation-pkg** (argumentation kernel) — the calibration pipeline runs the kernel; any kernel-level bug in DeLP/ASPIC dispatch leaks into trust outputs.

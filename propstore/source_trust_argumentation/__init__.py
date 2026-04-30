@@ -22,7 +22,7 @@ from argumentation.dung import ArgumentationFramework, grounded_extension
 from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
-from propstore.source.common import load_source_metadata
+from propstore.families.registry import SourceRef
 
 
 @dataclass(frozen=True)
@@ -130,7 +130,7 @@ def calibrate_source_trust(
     world_snapshot: object | None = None,
 ) -> SourceTrustResult:
     rules = tuple(rule_corpus) if rule_corpus is not None else _load_rules_from_repo(repo)
-    metadata_payload = load_source_metadata(repo, source_name) or {}
+    metadata_payload = repo.families.source_metadata.load(SourceRef(source_name)) or {}
     fired_rules = tuple(rule for rule in rules if _rule_matches(rule, metadata_payload))
     repo_head = repo.git.head_sha() if repo.git is not None else None
     world_sha = str(world_snapshot or repo_head or "")

@@ -19,8 +19,6 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ### MED
 
-- **`dedup_pairs` collapses mirror pairs without provenance.** `propstore/relate.py:67-74` — when `(A,B,0.3)` and `(B,A,0.4)` both exist, keeps the cheaper pair and throws away the other. Silent collapse of two rival evidence records at pair-selection time instead of render time. Citation: axis-1 Finding 1.2. Plan: not yet scheduled.
-
 - **`finalize_source_branch` mutates authored payloads in place.** `propstore/source/finalize.py:96-140` — finalize saves `SOURCE_*_FAMILY` updated documents, overwriting the originals on the source branch. If the user re-runs extract-claims before promote, the finalized layer gets clobbered. The branch preserves one stance (latest finalize), not rival authored-vs-finalized. Citation: axis-1 Finding 1.3. Plan: not yet scheduled.
 
 - **Probabilistic argumentation treewidth bound doesn't deliver.** `propstore/praf/treedecomp.py:13-17` self-documents row count as `O(2^|defeats| * 2^|args|)`, not the Popescu & Wallner 2024 `O(2^tw)` bound the engine dispatch assumes. Queries the engine considers cheap may be exponentially expensive. Citation: axis-6 item 5; axis-3a. Plan: WS-C or independent.
@@ -52,6 +50,9 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 - **Citation-pattern drift across codebase.** `aspic.py`, `world/types.py` (Denoeux→Jøsang), and `wbf()` (WBF name, aCBF computation) cite papers for authority while implementing something different. Citation: axis-6 item 15; axis-9 cross-cutting. Plan: citation-as-claim CI lint (per disciplines.md rule 1) + workstream-specific closures.
 
 ## Closed gaps (reference only — kept for traceability)
+
+### Closed 2026-04-29 (WS-K heuristic discipline, source trust, and proposal lifecycle)
+- WS-K closed `e6269474` — top-level heuristic modules were moved under `propstore/heuristic/`; `derive_source_document_trust` and `_sanitize_model_key` were deleted; embedding model identity now uses a typed provider/model/version/spec tuple; source trust calibration runs through `propstore.source_trust_argumentation`; stance classification issues independent directional LLM calls; stance filing preserves perspective-specific source claims; proposal lifecycle H14-H18 bugs are covered; and the `heuristic -> source.finalize` import-linter negative scaffold is in place. Evidence: `tests/test_heuristic_package_layout.py`, `tests/test_no_derive_source_document_trust.py`, `tests/test_no_embedding_key_collision.py`, `tests/test_source_trust_argumentation.py`, `tests/test_trust_calibration_runs_at_promote.py`, `tests/test_classify_forward_reverse_independent.py`, `tests/test_relate_perspective_isolation.py`, `tests/test_classify_no_silent_fallback.py`, `tests/test_commit_stance_proposals_commit_sha_inside_with.py`, `tests/test_plan_stance_proposal_promotion_typo_path.py`, `tests/test_promote_stance_proposals_idempotency.py`, `tests/test_proposal_paths_no_placeholder_owner.py`, `tests/test_commit_stance_proposals_empty_input.py`, `tests/architecture/test_import_linter_negative.py`, and `tests/test_workstream_k_done.py`.
 
 ### Closed 2026-04-29 (WS-O-gun-garcia Garcia 2004 defeasibility rewrite)
 - Cluster-R MED-4 / `not_defeasibly` — propstore now consumes gunray's Garcia 2004 four-section surface directly: `yes`, `no`, `undecided`, `unknown`. Production references to `not_defeasibly` are gone from `propstore/` and `gunray/src/`; stale propstore grounding test prose was updated to the Garcia names. Evidence: propstore commits `545cfd7f`, `e30f13a3`, `7caf63a0`; gunray commit `64c4f3d`; tests `tests/test_defeasible_conformance_tranche.py`, `tests/test_grounding_grounder.py`, `tests/test_sidecar_grounded_facts.py`.
