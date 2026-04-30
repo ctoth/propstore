@@ -72,7 +72,8 @@ def ground(
     *,
     marking_policy: gunray.MarkingPolicy = gunray.MarkingPolicy.BLOCKING,
     closure_policy: gunray.ClosurePolicy | None = None,
-    return_arguments: bool = False,
+    return_arguments: bool = True,
+    max_arguments: int | None = None,
 ) -> GroundedRulesBundle:
     """Ground a propstore rule/fact bundle via gunray.
 
@@ -154,12 +155,29 @@ def ground(
     # four-valued answer system here; the ``policy`` keyword selects
     # the ambiguity-resolution regime.
     evaluator = gunray.GunrayEvaluator()
-    raw_model = evaluator.evaluate(
-        theory,
-        marking_policy=marking_policy,
-        closure_policy=closure_policy,
-    )
-    grounding_inspection = gunray.inspect_grounding(theory)
+    try:
+        raw_model, trace = evaluator.evaluate_with_trace(
+            theory,
+            marking_policy=marking_policy,
+            closure_policy=closure_policy,
+            max_arguments=max_arguments,
+        )
+    except gunray.EnumerationExceeded as exc:
+        partial_trace = exc.partial_trace
+        return GroundedRulesBundle(
+            source_rules=tuple(rule_files),
+            source_facts=facts,
+            sections=_normalise_sections({}),
+            arguments=_sort_arguments(tuple(exc.partial_arguments)),
+            grounding_inspection=(
+                None
+                if partial_trace is None
+                else getattr(partial_trace, "grounding_inspection", None)
+            ),
+            status="budget_exceeded",
+            budget_reason=exc.reason,
+        )
+    grounding_inspection = getattr(trace, "grounding_inspection", None)
 
     # Step 3: re-normalise sections. Garcia & Simari 2004 §4 (p.25)
     # non-commitment anchor: every bundle must expose all four section
@@ -180,13 +198,7 @@ def ground(
     # granularity.
     sorted_arguments: tuple[gunray.Argument, ...] = ()
     if return_arguments:
-        argument_set = gunray.build_arguments(theory)
-        sorted_arguments = tuple(
-            sorted(
-                argument_set,
-                key=_argument_sort_key,
-            )
-        )
+        sorted_arguments = _sort_arguments(tuple(getattr(trace, "arguments", ())))
 
     # Step 4: package into the immutable bundle. Diller, Borg, Bex
     # 2025 §3: the rule base and fact base travel with the model so
@@ -198,6 +210,17 @@ def ground(
         arguments=sorted_arguments,
         grounding_inspection=grounding_inspection,
     )
+
+
+def _sort_arguments(
+    arguments: tuple["gunray.Argument", ...],
+) -> tuple["gunray.Argument", ...]:
+    if not arguments:
+        return ()
+    try:
+        return tuple(sorted(arguments, key=_argument_sort_key))
+    except AttributeError:
+        return tuple(sorted(arguments, key=str))
 
 
 def _argument_sort_key(
