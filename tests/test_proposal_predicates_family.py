@@ -13,7 +13,7 @@ def test_proposal_predicates_family_is_registered(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     ref = PredicateProposalRef("Ioannidis_2005_WhyMostPublishedResearch")
 
-    assert repo.families.proposal_predicates.artifact_family is PROPOSAL_PREDICATES_FAMILY
+    assert repo.families.proposal_predicates.family is PROPOSAL_PREDICATES_FAMILY
     assert repo.families.proposal_predicates.address(ref).require_path() == (
         "predicates/Ioannidis_2005_WhyMostPublishedResearch/declarations.yaml"
     )

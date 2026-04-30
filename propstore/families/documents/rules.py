@@ -114,6 +114,31 @@ class RuleDocument(DocumentStruct):
     body: tuple[BodyLiteralDocument, ...] = ()
 
 
+class RuleExtractionProvenance(DocumentStruct):
+    """Prompt, source, and predicate-vocabulary provenance for a proposed rule."""
+
+    operations: tuple[str, ...]
+    agent: str
+    model: str
+    prompt_sha: str
+    notes_sha: str
+    predicates_sha: str
+    status: str
+
+
+class RuleProposalDocument(DocumentStruct):
+    """Proposal-branch payload for one extracted rule."""
+
+    source_paper: str
+    rule_id: str
+    proposed_rule: RuleDocument
+    predicates_referenced: tuple[str, ...]
+    extraction_provenance: RuleExtractionProvenance
+    extraction_date: str
+    page_reference: str | None = None
+    promoted_from_sha: str | None = None
+
+
 class RuleSourceDocument(DocumentStruct):
     """Provenance block for a rules file.
 
@@ -152,3 +177,4 @@ class RulesFileDocument(DocumentStruct):
     source: RuleSourceDocument
     rules: tuple[RuleDocument, ...] = ()
     superiority: tuple[tuple[str, str], ...] = ()
+    promoted_from_sha: str | None = None

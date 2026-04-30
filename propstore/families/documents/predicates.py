@@ -38,7 +38,23 @@ idempotent under strict decoding.
 
 from __future__ import annotations
 
+import re
+from typing import Literal
+
 from quire.documents import DocumentStruct
+
+
+PredicateArgType = Literal["paper_id", "int", "float", "str", "bool"] | str
+_BASE_ARG_TYPES = frozenset({"paper_id", "int", "float", "str", "bool"})
+_ENUM_TYPE_RE = re.compile(r"^enum:[A-Za-z0-9_-]+(\|[A-Za-z0-9_-]+)+$")
+
+
+def validate_predicate_arg_type(arg_type: str) -> None:
+    if arg_type in _BASE_ARG_TYPES:
+        return
+    if _ENUM_TYPE_RE.match(arg_type):
+        return
+    raise ValueError(f"unsupported predicate arg type: {arg_type!r}")
 
 
 class PredicateDocument(DocumentStruct):
@@ -79,6 +95,47 @@ class PredicateDocument(DocumentStruct):
     description: str | None = None
 
 
+class PredicateDeclaration(DocumentStruct):
+    """Proposal-side predicate declaration extracted from a meta-paper."""
+
+    name: str
+    arity: int
+    description: str
+    arg_types: tuple[PredicateArgType, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.arity < 0:
+            raise ValueError("predicate arity must be >= 0")
+        if len(self.arg_types) != self.arity:
+            raise ValueError(
+                f"predicate {self.name!r}: arg_types length {len(self.arg_types)} "
+                f"does not match arity {self.arity}"
+            )
+        for arg_type in self.arg_types:
+            validate_predicate_arg_type(str(arg_type))
+
+
+class PredicateExtractionProvenance(DocumentStruct):
+    """Prompt and source provenance for proposed predicate declarations."""
+
+    operations: tuple[str, ...]
+    agent: str
+    model: str
+    prompt_sha: str
+    notes_sha: str
+    status: str
+
+
+class PredicateProposalDocument(DocumentStruct):
+    """Proposal-branch payload for a paper's predicate vocabulary."""
+
+    source_paper: str
+    proposed_declarations: tuple[PredicateDeclaration, ...]
+    extraction_provenance: PredicateExtractionProvenance
+    extraction_date: str
+    promoted_from_sha: str | None = None
+
+
 class PredicatesFileDocument(DocumentStruct):
     """Top-level envelope for an authored predicates YAML file.
 
@@ -94,3 +151,4 @@ class PredicatesFileDocument(DocumentStruct):
     """
 
     predicates: tuple[PredicateDocument, ...] = ()
+    promoted_from_sha: str | None = None

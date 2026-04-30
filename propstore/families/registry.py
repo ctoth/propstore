@@ -8,10 +8,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from quire.artifacts import (
+    ArtifactAddress,
     ArtifactFamily,
     BranchPlacement,
     FixedFilePlacement,
     FlatYamlPlacement,
+    PathArtifactLocator,
+    ScannedArtifact,
     SingletonFilePlacement,
     TemplateFilePlacement,
     encode_ref_value,
@@ -39,8 +42,8 @@ from propstore.families.contexts.documents import ContextDocument
 from propstore.families.forms.documents import FormDocument
 from propstore.families.documents.merge import MergeManifestDocument
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
-from propstore.families.documents.predicates import PredicatesFileDocument
-from propstore.families.documents.rules import RulesFileDocument
+from propstore.families.documents.predicates import PredicateProposalDocument, PredicatesFileDocument
+from propstore.families.documents.rules import RuleProposalDocument, RulesFileDocument
 from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
 from propstore.families.documents.sources import (
     SourceClaimsDocument,
@@ -122,6 +125,15 @@ if TYPE_CHECKING:
         name: str
 
     @dataclass(frozen=True)
+    class PredicateProposalRef:
+        source_paper: str
+
+    @dataclass(frozen=True)
+    class RuleProposalRef:
+        source_paper: str
+        rule_id: str
+
+    @dataclass(frozen=True)
     class StanceFileRef:
         source_claim: str
 
@@ -156,6 +168,8 @@ class PropstoreFamily(str, Enum):
     SOURCE_STANCES = "source_stances"
     SOURCE_FINALIZE_REPORTS = "source_finalize_reports"
     PROPOSAL_STANCES = "proposal_stances"
+    PROPOSAL_PREDICATES = "proposal_predicates"
+    PROPOSAL_RULES = "proposal_rules"
     CONCEPT_ALIGNMENTS = "concept_alignments"
     MERGE_MANIFESTS = "merge_manifests"
 
@@ -172,6 +186,16 @@ if not TYPE_CHECKING:
     JustificationsFileRef = single_field_ref_type("JustificationsFileRef", "name", module=__name__)
     PredicateFileRef = single_field_ref_type("PredicateFileRef", "name", module=__name__)
     RuleFileRef = single_field_ref_type("RuleFileRef", "name", module=__name__)
+
+    @dataclass(frozen=True)
+    class PredicateProposalRef:
+        source_paper: str
+
+    @dataclass(frozen=True)
+    class RuleProposalRef:
+        source_paper: str
+        rule_id: str
+
     StanceFileRef = single_field_ref_type("StanceFileRef", "source_claim", module=__name__)
     ConceptAlignmentRef = single_field_ref_type("ConceptAlignmentRef", "slug", module=__name__)
     MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
@@ -210,6 +234,151 @@ class SourceBranchPlacement(BranchPlacement):
         return body
 
 
+@dataclass(frozen=True)
+class PredicateProposalPlacement:
+    branch: BranchPlacement
+
+    def address_for(self, owner: Repository, ref: PredicateProposalRef) -> ArtifactAddress:
+        return ArtifactAddress(
+            branch=self.branch.branch_name(owner, ref),
+            locator=PathArtifactLocator(
+                f"predicates/{ref.source_paper}/declarations.yaml"
+            ),
+        )
+
+    def iter_refs(
+        self,
+        owner: Repository,
+        backend: Any,
+        *,
+        branch: str | None = None,
+        commit: str | None = None,
+    ):
+        for scanned in self.iter_artifacts(owner, backend, branch=branch, commit=commit):
+            yield scanned.ref
+
+    def iter_artifacts(
+        self,
+        owner: Repository,
+        backend: Any,
+        *,
+        branch: str | None = None,
+        commit: str | None = None,
+    ):
+        if backend is None:
+            raise ValueError("listing predicate proposals requires a backend")
+        branch_name = branch or self.branch.branch_name(owner)
+        target_commit = commit or backend.branch_sha(branch_name)
+        if target_commit is None:
+            return
+        for relpath, content in backend.iter_subtree_files("predicates", commit=target_commit):
+            parts = relpath.replace("\\", "/").split("/")
+            if len(parts) != 2 or parts[1] != "declarations.yaml":
+                continue
+            path = f"predicates/{relpath}"
+            yield ScannedArtifact(
+                ref=PredicateProposalRef(parts[0]),
+                address=ArtifactAddress(
+                    branch=branch_name,
+                    locator=PathArtifactLocator(path),
+                    commit=target_commit,
+                ),
+                content=content,
+            )
+
+    def ref_from_locator(self, locator: object) -> PredicateProposalRef:
+        if not isinstance(locator, PathArtifactLocator):
+            raise TypeError("predicate proposal placement only supports path locators")
+        path = str(locator.path).replace("\\", "/")
+        prefix = "predicates/"
+        suffix = "/declarations.yaml"
+        if not path.startswith(prefix) or not path.endswith(suffix):
+            raise ValueError(f"expected predicates/<paper>/declarations.yaml, got {path!r}")
+        return PredicateProposalRef(path.removeprefix(prefix).removesuffix(suffix))
+
+    def ref_from_loaded(self, loaded: object) -> PredicateProposalRef:
+        return self.ref_from_locator(PathArtifactLocator(str(getattr(loaded, "source"))))
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "kind": "predicate-proposal",
+            "template": "predicates/{source_paper}/declarations.yaml",
+            "branch": self.branch.contract_body(),
+        }
+
+
+@dataclass(frozen=True)
+class RuleProposalPlacement:
+    branch: BranchPlacement
+
+    def address_for(self, owner: Repository, ref: RuleProposalRef) -> ArtifactAddress:
+        return ArtifactAddress(
+            branch=self.branch.branch_name(owner, ref),
+            locator=PathArtifactLocator(
+                f"rules/{ref.source_paper}/{ref.rule_id}.yaml"
+            ),
+        )
+
+    def iter_refs(
+        self,
+        owner: Repository,
+        backend: Any,
+        *,
+        branch: str | None = None,
+        commit: str | None = None,
+    ):
+        for scanned in self.iter_artifacts(owner, backend, branch=branch, commit=commit):
+            yield scanned.ref
+
+    def iter_artifacts(
+        self,
+        owner: Repository,
+        backend: Any,
+        *,
+        branch: str | None = None,
+        commit: str | None = None,
+    ):
+        if backend is None:
+            raise ValueError("listing rule proposals requires a backend")
+        branch_name = branch or self.branch.branch_name(owner)
+        target_commit = commit or backend.branch_sha(branch_name)
+        if target_commit is None:
+            return
+        for relpath, content in backend.iter_subtree_files("rules", commit=target_commit):
+            parts = relpath.replace("\\", "/").split("/")
+            if len(parts) != 2 or not parts[1].endswith(".yaml"):
+                continue
+            path = f"rules/{relpath}"
+            yield ScannedArtifact(
+                ref=RuleProposalRef(parts[0], parts[1].removesuffix(".yaml")),
+                address=ArtifactAddress(
+                    branch=branch_name,
+                    locator=PathArtifactLocator(path),
+                    commit=target_commit,
+                ),
+                content=content,
+            )
+
+    def ref_from_locator(self, locator: object) -> RuleProposalRef:
+        if not isinstance(locator, PathArtifactLocator):
+            raise TypeError("rule proposal placement only supports path locators")
+        path = str(locator.path).replace("\\", "/")
+        parts = path.split("/")
+        if len(parts) != 3 or parts[0] != "rules" or not parts[2].endswith(".yaml"):
+            raise ValueError(f"expected rules/<paper>/<rule-id>.yaml, got {path!r}")
+        return RuleProposalRef(parts[1], parts[2].removesuffix(".yaml"))
+
+    def ref_from_loaded(self, loaded: object) -> RuleProposalRef:
+        return self.ref_from_locator(PathArtifactLocator(str(getattr(loaded, "source"))))
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "kind": "rule-proposal",
+            "template": "rules/{source_paper}/{rule_id}.yaml",
+            "branch": self.branch.contract_body(),
+        }
+
+
 SOURCE_BRANCH = SourceBranchPlacement(
     policy="template",
     template="source/{stem}",
@@ -217,6 +386,8 @@ SOURCE_BRANCH = SourceBranchPlacement(
     codec="safe_slug",
 )
 PROPOSAL_STANCE_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/stances")
+PROPOSAL_PREDICATE_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/predicates")
+PROPOSAL_RULE_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/rules")
 PROPOSAL_CONCEPT_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/concepts")
 
 
@@ -334,6 +505,12 @@ PROPOSAL_STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceFileRef](
     ref_field="source_claim",
     codec="colon_to_double_underscore",
     branch=PROPOSAL_STANCE_BRANCH,
+)
+PROPOSAL_PREDICATE_PLACEMENT = PredicateProposalPlacement(
+    branch=PROPOSAL_PREDICATE_BRANCH,
+)
+PROPOSAL_RULE_PLACEMENT = RuleProposalPlacement(
+    branch=PROPOSAL_RULE_BRANCH,
 )
 CONCEPT_ALIGNMENT_PLACEMENT = FlatYamlPlacement["Repository", ConceptAlignmentRef](
     "merge/concepts",
@@ -510,6 +687,22 @@ PROPOSAL_STANCE_FAMILY = ArtifactFamily["Repository", StanceFileRef, StanceFileD
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=StanceFileDocument,
     placement=PROPOSAL_STANCE_PLACEMENT,
+)
+
+PROPOSAL_PREDICATES_FAMILY = ArtifactFamily[
+    "Repository", PredicateProposalRef, PredicateProposalDocument
+](
+    name="proposal_predicates",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    doc_type=PredicateProposalDocument,
+    placement=PROPOSAL_PREDICATE_PLACEMENT,
+)
+
+PROPOSAL_RULES_FAMILY = ArtifactFamily["Repository", RuleProposalRef, RuleProposalDocument](
+    name="proposal_rules",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    doc_type=RuleProposalDocument,
+    placement=PROPOSAL_RULE_PLACEMENT,
 )
 
 CONCEPT_ALIGNMENT_FAMILY = ArtifactFamily["Repository", ConceptAlignmentRef, ConceptAlignmentArtifactDocument](
@@ -781,6 +974,18 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             name=PropstoreFamily.PROPOSAL_STANCES.value,
             contract_version=PROPOSAL_STANCE_FAMILY.contract_version,
             artifact_family=PROPOSAL_STANCE_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.PROPOSAL_PREDICATES,
+            name=PropstoreFamily.PROPOSAL_PREDICATES.value,
+            contract_version=PROPOSAL_PREDICATES_FAMILY.contract_version,
+            artifact_family=PROPOSAL_PREDICATES_FAMILY,
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.PROPOSAL_RULES,
+            name=PropstoreFamily.PROPOSAL_RULES.value,
+            contract_version=PROPOSAL_RULES_FAMILY.contract_version,
+            artifact_family=PROPOSAL_RULES_FAMILY,
         ),
         FamilyDefinition(
             key=PropstoreFamily.CONCEPT_ALIGNMENTS,

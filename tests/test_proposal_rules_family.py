@@ -11,7 +11,7 @@ def test_proposal_rules_family_is_registered(tmp_path) -> None:
         rule_id="rule-001",
     )
 
-    assert repo.families.proposal_rules.artifact_family is PROPOSAL_RULES_FAMILY
+    assert repo.families.proposal_rules.family is PROPOSAL_RULES_FAMILY
     assert repo.families.proposal_rules.address(ref).require_path() == (
         "rules/Ioannidis_2005_WhyMostPublishedResearch/rule-001.yaml"
     )
