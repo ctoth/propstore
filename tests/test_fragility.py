@@ -773,10 +773,12 @@ class TestRankFragility:
         sig = inspect.signature(rank_fragility)
         assert "ranking_policy" in sig.parameters
 
-    def test_bound_world_still_exposes_fragility_method(self) -> None:
+    def test_bound_world_does_not_own_fragility_adapter(self) -> None:
+        from propstore.fragility import query_fragility
         from propstore.world.bound import BoundWorld
 
-        assert hasattr(BoundWorld, "fragility")
+        assert callable(query_fragility)
+        assert not hasattr(BoundWorld, "fragility")
 
     def test_heuristic_roi_policy_sorts_by_roi(self) -> None:
         from unittest.mock import patch
