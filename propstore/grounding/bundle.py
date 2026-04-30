@@ -111,6 +111,8 @@ class GroundedRulesBundle:
     sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]
     arguments: tuple["Argument", ...] = field(default_factory=tuple)
     grounding_inspection: "GroundingInspection | None" = None
+    status: str = "complete"
+    budget_reason: str | None = None
 
     @classmethod
     def empty(cls) -> "GroundedRulesBundle":
