@@ -1,0 +1,16 @@
+{
+  "declarations": [
+    {
+      "name": "sample_size",
+      "arity": 2,
+      "arg_types": ["paper_id", "int"],
+      "description": "Paper-level sample size."
+    },
+    {
+      "name": "bias",
+      "arity": 2,
+      "arg_types": ["paper_id", "float"],
+      "description": "Study-setting bias."
+    }
+  ]
+}

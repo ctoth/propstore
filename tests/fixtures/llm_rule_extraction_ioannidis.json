@@ -1,0 +1,28 @@
+{
+  "rules": [
+    {
+      "rule_id": "rule-001",
+      "rule_type": "defeasible",
+      "head": "low_trust(P)",
+      "body": ["sample_size(P, 30)", "bias(P, 0.8)"],
+      "predicates_referenced": ["sample_size/2", "bias/2"],
+      "page_reference": "Ioannidis 2005 p. 0697"
+    },
+    {
+      "rule_id": "rule-002",
+      "rule_type": "defeasible",
+      "head": "low_trust(P)",
+      "body": ["bias(P, 0.9)"],
+      "predicates_referenced": ["bias/2"],
+      "page_reference": "Ioannidis 2005 p. 0698"
+    },
+    {
+      "rule_id": "rule-003",
+      "rule_type": "defeasible",
+      "head": "high_trust(P)",
+      "body": ["sample_size(P, 500)"],
+      "predicates_referenced": ["sample_size/2"],
+      "page_reference": "Ioannidis 2005 p. 0699"
+    }
+  ]
+}
