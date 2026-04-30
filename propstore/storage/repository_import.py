@@ -195,8 +195,11 @@ def commit_repository_import(
         commit_sha = head_txn.commit_sha
     if commit_sha is None:
         raise ValueError("repo import transaction did not produce a commit")
+    git = repository.git
+    if git is None:
+        raise ValueError("repository import provenance requires a git-backed repository")
     write_provenance_note(
-        repository.git.raw_repo,
+        git.raw_repo,
         commit_sha,
         Provenance(
             status=ProvenanceStatus.STATED,
