@@ -1006,8 +1006,11 @@ def promote_source_branch(
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
     source_branch_tip = repo.snapshot.branch_head(promotion_plan.source_branch)
+    git = repo.git
+    if git is None:
+        raise ValueError("source promotion provenance requires a git-backed repository")
     write_provenance_note(
-        repo.git.raw_repo,
+        git.raw_repo,
         sha,
         Provenance(
             status=ProvenanceStatus.STATED,
