@@ -11,7 +11,7 @@ from propstore.core.concept_status import ConceptStatus
 from propstore.core.graph_relation_types import GraphRelationType
 from tests.family_helpers import build_sidecar
 from propstore.families.identity.concepts import derive_concept_artifact_id
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
@@ -156,7 +156,7 @@ def graph_build_world(tmp_path):
 
     repo = Repository(knowledge)
     build_sidecar(knowledge, repo.sidecar_path)
-    return WorldModel(repo)
+    return WorldQuery(repo)
 
 
 def test_build_compiled_world_graph_preserves_sidecar_rows(graph_build_world) -> None:
@@ -255,7 +255,7 @@ def test_build_compiled_world_graph_is_row_order_independent(graph_build_world) 
     assert reversed_rows == original
 
 
-def test_world_model_compiled_graph_hook_is_stable(graph_build_world) -> None:
+def test_world_query_compiled_graph_hook_is_stable(graph_build_world) -> None:
     first = graph_build_world.compiled_graph()
     second = graph_build_world.compiled_graph()
 
@@ -263,7 +263,7 @@ def test_world_model_compiled_graph_hook_is_stable(graph_build_world) -> None:
     assert first is not second
 
 
-def test_world_model_compiled_graph_matches_normalized_storage_projection(
+def test_world_query_compiled_graph_matches_normalized_storage_projection(
     graph_build_world,
 ) -> None:
     from propstore.core.graph_build import build_compiled_world_graph

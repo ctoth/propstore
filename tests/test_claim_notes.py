@@ -1,7 +1,7 @@
 """TDD tests for the notes field on claims.
 
 Tests that claims can carry an optional free-text notes string, that
-it roundtrips through validation, sidecar storage, and WorldModel queries.
+it roundtrips through validation, sidecar storage, and WorldQuery queries.
 """
 
 import sqlite3
@@ -17,7 +17,7 @@ from propstore.core.row_types import coerce_claim_row
 from tests.family_helpers import build_sidecar
 from tests.family_helpers import load_claim_files
 from propstore.families.claims.passes import validate_claims
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 from tests.conftest import (
     TEST_CONTEXT_ID,
     attach_claim_version_id,
@@ -222,10 +222,10 @@ class TestClaimNotesSidecar:
         assert row["notes"] == "This is a test note"
         conn.close()
 
-    def test_world_model_get_claim_returns_notes(
+    def test_world_query_get_claim_returns_notes(
         self, concept_dir, sidecar_path
     ):
-        """After building sidecar, WorldModel.get_claim returns notes field."""
+        """After building sidecar, WorldQuery.get_claim returns notes field."""
         knowledge = concept_dir.parent
         claims_dir = knowledge / "claims"
         claims_dir.mkdir(exist_ok=True)
@@ -238,7 +238,7 @@ class TestClaimNotesSidecar:
                     "concept": "concept1",
                     "value": 200.0,
                     "unit": "Hz",
-                    "notes": "WorldModel test note",
+                    "notes": "WorldQuery test note",
                     "provenance": {"paper": "wm_notes_paper", "page": 1},
                 },
             ],
@@ -250,17 +250,17 @@ class TestClaimNotesSidecar:
 
         build_sidecar(knowledge, sidecar_path, force=True)
 
-        # WorldModel expects a repo-like object with .sidecar_path
+        # WorldQuery expects a repo-like object with .sidecar_path
         class _FakeRepo:
             def __init__(self, path):
                 self.sidecar_path = path
 
-        wm = WorldModel(_FakeRepo(sidecar_path))
+        wm = WorldQuery(_FakeRepo(sidecar_path))
         claim = wm.get_claim(make_claim_identity("claim1", namespace="wm_notes_paper")["artifact_id"])
         assert claim is not None
         claim_data = coerce_claim_row(claim).to_dict()
         assert "notes" in claim_data, f"notes not in claim dict, keys: {list(claim_data.keys())}"
-        assert claim_data["notes"] == "WorldModel test note"
+        assert claim_data["notes"] == "WorldQuery test note"
         wm.close()
 
 

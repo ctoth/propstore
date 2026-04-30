@@ -29,7 +29,7 @@ from quire.git_store import GitStore
 from propstore.storage import init_git_store
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
@@ -286,12 +286,12 @@ def physics_knowledge(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def physics_world(physics_knowledge):
-    """Build sidecar and create WorldModel for physics knowledge."""
+    """Build sidecar and create WorldQuery for physics knowledge."""
     repo = physics_knowledge
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
     build_sidecar(repo, repo.sidecar_path)
-    return WorldModel(repo)
+    return WorldQuery(repo)
 
 
 @pytest.fixture(scope="module")
@@ -373,12 +373,12 @@ def chained_physics_knowledge(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def chained_physics_world(chained_physics_knowledge):
-    """Build sidecar and create WorldModel for chained-derivation testing."""
+    """Build sidecar and create WorldQuery for chained-derivation testing."""
     repo = chained_physics_knowledge
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
     build_sidecar(repo, repo.sidecar_path)
-    return WorldModel(repo)
+    return WorldQuery(repo)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -2174,7 +2174,7 @@ class TestWorldlineCLIFlags:
 
         seen: dict[str, object] = {}
 
-        class _FakeWorldModel:
+        class _FakeWorldQuery:
             def __init__(self, repo):
                 self.repo = repo
 
@@ -2193,7 +2193,7 @@ class TestWorldlineCLIFlags:
                 dependencies={"claims": [], "stances": [], "contexts": []},
             )
 
-        monkeypatch.setattr("propstore.world.WorldModel", _FakeWorldModel)
+        monkeypatch.setattr("propstore.world.WorldQuery", _FakeWorldQuery)
         monkeypatch.setattr("propstore.worldline.run_worldline", fake_run_worldline)
 
         @click.group()
@@ -2287,7 +2287,7 @@ class TestWorldlineCLIFlags:
         wl_dir = tmp_path / "worldlines"
         wl_dir.mkdir()
 
-        class _FakeWorldModel:
+        class _FakeWorldQuery:
             def __init__(self, repo):
                 self.repo = repo
 
@@ -2319,7 +2319,7 @@ class TestWorldlineCLIFlags:
                 dependencies={"claims": ["claim:one"], "stances": [], "contexts": []},
             )
 
-        monkeypatch.setattr("propstore.world.WorldModel", _FakeWorldModel)
+        monkeypatch.setattr("propstore.world.WorldQuery", _FakeWorldQuery)
         monkeypatch.setattr("propstore.worldline.run_worldline", fake_run_worldline)
         fake_repo = _FakeWorldlineRepo(wl_dir)
 

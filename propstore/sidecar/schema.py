@@ -223,7 +223,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
 
 
 def build_minimal_world_model_schema(conn: sqlite3.Connection) -> None:
-    """Build the production schema surface required by WorldModel tests."""
+    """Build the production schema surface required by WorldQuery tests."""
     from propstore.sidecar.rules import create_grounded_fact_table
 
     write_schema_metadata(conn)

@@ -3,33 +3,33 @@
 propstore can be used as a Python library, not just via the `pks` CLI. Import from `propstore` directly. This is useful for notebooks, scripts, and integration with other tools.
 
 ```python
-from propstore import WorldModel
+from propstore import WorldQuery
 
-world = WorldModel.from_path("knowledge")
+world = WorldQuery.from_path("knowledge")
 bound = world.bind(task="speech")
 result = bound.value_of("fundamental_frequency")
 print(result.status, result.claims)
 ```
 
-Source: `propstore/world/model.py` (WorldModel), `propstore/world/bound.py` (BoundWorld), `propstore/world/overlay.py` (OverlayWorld), `propstore/world/types.py` (result types, enums, policies).
+Source: `propstore/world/model.py` (WorldQuery), `propstore/world/bound.py` (BoundWorld), `propstore/world/overlay.py` (OverlayWorld), `propstore/world/types.py` (result types, enums, policies).
 
-## WorldModel
+## WorldQuery
 
-The top-level entry point. A WorldModel wraps a compiled sidecar database and provides concept/claim lookup, similarity search, and the `bind()` method that produces query surfaces.
+The top-level entry point. A WorldQuery wraps a compiled sidecar database and provides concept/claim lookup, similarity search, and the `bind()` method that produces query surfaces.
 
-WorldModel expects a current, versioned sidecar schema. On open it validates the `meta` table, schema version, required tables, and required columns, and raises `ValueError` if the sidecar is stale or partial.
+WorldQuery expects a current, versioned sidecar schema. On open it validates the `meta` table, schema version, required tables, and required columns, and raises `ValueError` if the sidecar is stale or partial.
 
 ### Construction
 
 | Constructor | Signature | Description |
 |-------------|-----------|-------------|
-| `WorldModel.from_path` | `(knowledge_dir: str \| Path) -> WorldModel` | Opens from a knowledge directory. Expects sidecar at `{knowledge_dir}/sidecar/propstore.sqlite`. |
-| `WorldModel(...)` | `(repo=repo)` or `(sidecar_path=path)` | Direct constructor from a `Repository` object or an explicit sidecar path. |
+| `WorldQuery.from_path` | `(knowledge_dir: str \| Path) -> WorldQuery` | Opens from a knowledge directory. Expects sidecar at `{knowledge_dir}/sidecar/propstore.sqlite`. |
+| `WorldQuery(...)` | `(repo=repo)` or `(sidecar_path=path)` | Direct constructor from a `Repository` object or an explicit sidecar path. |
 
-WorldModel supports the context manager protocol:
+WorldQuery supports the context manager protocol:
 
 ```python
-with WorldModel.from_path("knowledge") as world:
+with WorldQuery.from_path("knowledge") as world:
     bound = world.bind(task="speech")
     result = bound.value_of("fundamental_frequency")
 ```
@@ -108,7 +108,7 @@ with WorldModel.from_path("knowledge") as world:
 
 ## BoundWorld
 
-A condition-bound view of the knowledge base. Created via `WorldModel.bind()`, not typically constructed directly. This is the primary query surface.
+A condition-bound view of the knowledge base. Created via `WorldQuery.bind()`, not typically constructed directly. This is the primary query surface.
 
 ```python
 bound = world.bind(task="speech")
@@ -429,9 +429,9 @@ def analyze(space: BeliefSpace, concept_id: str):
 ### Basic value lookup
 
 ```python
-from propstore import WorldModel
+from propstore import WorldQuery
 
-world = WorldModel.from_path("knowledge")
+world = WorldQuery.from_path("knowledge")
 bound = world.bind(task="speech")
 
 result = bound.value_of("fundamental_frequency")
@@ -445,9 +445,9 @@ elif result.status == "no_claims":
 ### Conflict resolution with different strategies
 
 ```python
-from propstore import WorldModel, ResolutionStrategy
+from propstore import WorldQuery, ResolutionStrategy
 
-world = WorldModel.from_path("knowledge")
+world = WorldQuery.from_path("knowledge")
 bound = world.bind(task="speech")
 
 # Try different strategies on the same conflicted concept
@@ -460,9 +460,9 @@ for strategy in ResolutionStrategy:
 ### Hypothetical queries
 
 ```python
-from propstore import WorldModel, OverlayWorld, SyntheticClaim
+from propstore import WorldQuery, OverlayWorld, SyntheticClaim
 
-world = WorldModel.from_path("knowledge")
+world = WorldQuery.from_path("knowledge")
 bound = world.bind(task="speech")
 
 # What if we remove a controversial claim?
@@ -486,9 +486,9 @@ print(f"With new measurement: {result.status}, {len(result.claims)} claims")
 ### ATMS analysis
 
 ```python
-from propstore import WorldModel, RenderPolicy, ReasoningBackend
+from propstore import WorldQuery, RenderPolicy, ReasoningBackend
 
-world = WorldModel.from_path("knowledge")
+world = WorldQuery.from_path("knowledge")
 policy = RenderPolicy(reasoning_backend=ReasoningBackend.ATMS)
 bound = world.bind(task="speech", policy=policy)
 
@@ -505,9 +505,9 @@ if result.label:
 ### Chain derivation
 
 ```python
-from propstore import WorldModel
+from propstore import WorldQuery
 
-world = WorldModel.from_path("knowledge")
+world = WorldQuery.from_path("knowledge")
 
 # Derive a target concept through its parameterization graph
 chain = world.chain_query("jitter_percent", task="speech")
@@ -521,9 +521,9 @@ if chain.unresolved_dependencies:
 ### Fragility ranking
 
 ```python
-from propstore import WorldModel, RenderPolicy, ReasoningBackend
+from propstore import WorldQuery, RenderPolicy, ReasoningBackend
 
-world = WorldModel.from_path("knowledge")
+world = WorldQuery.from_path("knowledge")
 policy = RenderPolicy(reasoning_backend=ReasoningBackend.ATMS)
 bound = world.bind(task="speech", policy=policy)
 

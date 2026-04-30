@@ -32,7 +32,7 @@ def _table_names(conn: sqlite3.Connection) -> set[str]:
     return {str(row[0]) for row in rows}
 
 
-def test_world_model_fixture_schema_is_built_by_production_helper() -> None:
+def test_world_query_fixture_schema_is_built_by_production_helper() -> None:
     assert not hasattr(project_conftest, "create_world_model_schema")
     assert hasattr(schema, "build_minimal_world_model_schema")
 

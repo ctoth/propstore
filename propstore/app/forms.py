@@ -117,9 +117,9 @@ def show_form(
     uses: tuple[FormAlgebraUse, ...] = ()
     if repo.sidecar_path.exists():
         try:
-            from propstore.world import WorldModel
+            from propstore.world import WorldQuery
 
-            with WorldModel(repo) as world:
+            with WorldQuery(repo) as world:
                 decompositions = tuple(
                     FormAlgebraDecomposition(
                         input_forms=tuple(json.loads(entry["input_forms"])),

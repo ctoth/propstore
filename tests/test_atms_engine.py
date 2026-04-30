@@ -991,7 +991,7 @@ def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
                 return False
             return set(left).isdisjoint(right)
 
-    class FakeWorldModel(_ATMSStore):
+    class FakeWorldQuery(_ATMSStore):
         def __init__(self, repo) -> None:
             super().__init__(
                 claims=[
@@ -1034,7 +1034,7 @@ def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
             return None
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
+    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
 
@@ -1063,7 +1063,7 @@ def test_world_extensions_cli_rejects_atms_backend_explicitly(monkeypatch) -> No
         def active_claims(self, concept_id: str | None = None) -> list[dict]:
             return [{"id": "claim_exact", "concept_id": "concept1", "type": "parameter", "value": 1.0}]
 
-    class FakeWorldModel:
+    class FakeWorldQuery:
         def __init__(self, repo) -> None:
             self.repo = repo
 
@@ -1074,7 +1074,7 @@ def test_world_extensions_cli_rejects_atms_backend_explicitly(monkeypatch) -> No
             return None
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
+    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
     result = runner.invoke(cli, ["world", "extensions", "--backend", "atms"])
@@ -1771,7 +1771,7 @@ def test_atms_cli_surfaces_future_analysis(monkeypatch) -> None:
     class FakeRepo:
         pass
 
-    class FakeWorldModel(_ATMSStore):
+    class FakeWorldQuery(_ATMSStore):
         def __init__(self, repo) -> None:
             super().__init__(
                 claims=[
@@ -1817,7 +1817,7 @@ def test_atms_cli_surfaces_future_analysis(monkeypatch) -> None:
             return None
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
+    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
 
@@ -1856,7 +1856,7 @@ def test_atms_cli_surfaces_interventions_and_next_queries(monkeypatch) -> None:
     class FakeRepo:
         pass
 
-    class FakeWorldModel(_ATMSStore):
+    class FakeWorldQuery(_ATMSStore):
         def __init__(self, repo) -> None:
             super().__init__(
                 claims=[
@@ -1895,7 +1895,7 @@ def test_atms_cli_surfaces_interventions_and_next_queries(monkeypatch) -> None:
             return None
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
+    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
 

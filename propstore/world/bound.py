@@ -1,4 +1,4 @@
-"""BoundWorld — condition-bound view over a WorldModel."""
+"""BoundWorld — condition-bound view over a WorldQuery."""
 
 from __future__ import annotations
 

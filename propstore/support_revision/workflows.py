@@ -15,7 +15,7 @@ if TYPE_CHECKING:
         EpistemicState,
         RevisionResult,
     )
-    from propstore.world import BoundWorld, WorldModel
+    from propstore.world import BoundWorld, WorldQuery
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class IteratedRevisionReport:
 
 
 def _bind_revision_world(
-    world: WorldModel,
+    world: WorldQuery,
     request: RevisionWorldRequest,
 ) -> BoundWorld:
     return world.bind(
@@ -49,21 +49,21 @@ def _bind_revision_world(
 
 
 def revision_base(
-    world: WorldModel,
+    world: WorldQuery,
     request: RevisionWorldRequest,
 ) -> BeliefBase:
     return _bind_revision_world(world, request).revision_base()
 
 
 def revision_entrenchment(
-    world: WorldModel,
+    world: WorldQuery,
     request: RevisionWorldRequest,
 ):
     return _bind_revision_world(world, request).revision_entrenchment()
 
 
 def expand_revision(
-    world: WorldModel,
+    world: WorldQuery,
     request: RevisionWorldRequest,
     atom: Mapping[str, Any],
 ) -> RevisionResult:
@@ -71,7 +71,7 @@ def expand_revision(
 
 
 def contract_revision(
-    world: WorldModel,
+    world: WorldQuery,
     request: RevisionWorldRequest,
     targets: tuple[str, ...],
 ) -> RevisionResult:
@@ -81,7 +81,7 @@ def contract_revision(
 
 
 def revise_world(
-    world: WorldModel,
+    world: WorldQuery,
     request: RevisionWorldRequest,
     atom: Mapping[str, Any],
     conflicts: tuple[str, ...],
@@ -94,7 +94,7 @@ def revise_world(
 
 
 def explain_revision_operation(
-    world: WorldModel,
+    world: WorldQuery,
     request: RevisionWorldRequest,
     *,
     operation: str,
@@ -125,14 +125,14 @@ def explain_revision_operation(
 
 
 def epistemic_state(
-    world: WorldModel,
+    world: WorldQuery,
     request: RevisionWorldRequest,
 ) -> EpistemicState:
     return _bind_revision_world(world, request).epistemic_state()
 
 
 def iterated_revise_world(
-    world: WorldModel,
+    world: WorldQuery,
     request: RevisionWorldRequest,
     *,
     atom: Mapping[str, Any],

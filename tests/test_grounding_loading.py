@@ -6,7 +6,7 @@ from propstore.repository import Repository
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.loading import build_grounded_bundle
 from tests.family_helpers import build_sidecar
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 
 
 def test_build_grounded_bundle_returns_explicit_empty_for_rule_free_repo(tmp_path) -> None:
@@ -47,11 +47,11 @@ def test_build_grounded_bundle_rejects_rules_without_predicates(tmp_path) -> Non
         raise AssertionError("Expected grounding load boundary to reject rules/ without predicates/")
 
 
-def test_world_model_grounding_bundle_uses_repo_knowledge_root_and_caches(tmp_path) -> None:
+def test_world_query_grounding_bundle_uses_repo_knowledge_root_and_caches(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     build_sidecar(repo, repo.sidecar_path, force=True)
 
-    wm = WorldModel(repo)
+    wm = WorldQuery(repo)
     try:
         first = wm.grounding_bundle()
         second = wm.grounding_bundle()

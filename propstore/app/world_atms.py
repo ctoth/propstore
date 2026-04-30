@@ -23,7 +23,7 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
-    from propstore.world import BoundWorld, WorldModel
+    from propstore.world import BoundWorld, WorldQuery
 
 
 SerializedSupport = Mapping[str, Sequence[str]]
@@ -228,7 +228,7 @@ def _queryables(queryables: tuple[str, ...]):
 
 
 def bind_atms_world(
-    world: "WorldModel",
+    world: "WorldQuery",
     request: ATMSBindRequest,
 ) -> "BoundWorld":
     return world.bind(

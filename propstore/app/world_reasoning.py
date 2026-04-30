@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from propstore.core.active_claims import ActiveClaim
     from propstore.core.graph_types import ActiveWorldGraph
     from propstore.core.labels import Label, SupportQuality
-    from propstore.world import WorldModel
+    from propstore.world import WorldQuery
 
 
 class WorldReasoningAppError(Exception):
@@ -222,7 +222,7 @@ def world_extensions(
 
 
 def _praf_extensions(
-    world: "WorldModel",
+    world: "WorldQuery",
     active: Sequence["ActiveClaim"],
     claim_ids: set[str],
     request: AppWorldExtensionsRequest,
@@ -277,7 +277,7 @@ def _praf_extensions(
 
 
 def _claim_lines(
-    world: "WorldModel",
+    world: "WorldQuery",
     active: Sequence["ActiveClaim"],
 ) -> tuple[WorldExtensionsClaimLine, ...]:
     from propstore.core.row_types import coerce_concept_row

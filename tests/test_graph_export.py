@@ -9,7 +9,7 @@ from tests.family_helpers import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.sidecar.schema import build_minimal_world_model_schema
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 from tests.conftest import (
     normalize_claims_payload,
     normalize_concept_payloads,
@@ -17,7 +17,7 @@ from tests.conftest import (
 )
 
 
-# ── Fixtures (duplicated from test_world_model.py) ────────────────────
+# ── Fixtures (duplicated from test_world_query.py) ────────────────────
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -305,9 +305,9 @@ def claim_files(concept_dir):
 
 @pytest.fixture
 def world(concept_dir, repo, claim_files):
-    """Build sidecar and return a WorldModel."""
+    """Build sidecar and return a WorldQuery."""
     build_sidecar(concept_dir.parent, repo.sidecar_path)
-    return WorldModel(repo)
+    return WorldQuery(repo)
 
 
 # ── Tests ─────────────────────────────────────────────────────────────
@@ -395,7 +395,7 @@ class TestUnboundGraph:
         class _Repo:
             sidecar_path = sidecar
 
-        with WorldModel(_Repo()) as world:
+        with WorldQuery(_Repo()) as world:
             graph = build_knowledge_graph(world)
 
         claim_of_edges = [

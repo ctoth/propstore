@@ -15,7 +15,7 @@ from propstore.support_revision.workflows import (
     revision_base,
     revision_entrenchment,
 )
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 from tests.test_revision_phase1_cli import revision_cli_workspace
 
 
@@ -27,7 +27,7 @@ def _revision_request() -> RevisionWorldRequest:
 
 
 def _projected_assertion_id(repo: Repository) -> str:
-    with WorldModel(repo) as wm:
+    with WorldQuery(repo) as wm:
         base = revision_base(wm, _revision_request())
     assertion_ids = [
         atom.atom_id
@@ -40,7 +40,7 @@ def _projected_assertion_id(repo: Repository) -> str:
 
 def test_revision_workflow_reports_base_and_entrenchment(revision_cli_workspace) -> None:
     repo = Repository.find(revision_cli_workspace)
-    with WorldModel(repo) as wm:
+    with WorldQuery(repo) as wm:
         base = revision_base(wm, _revision_request())
         entrenchment = revision_entrenchment(wm, _revision_request())
     assertion_id = _projected_assertion_id(repo)
@@ -53,7 +53,7 @@ def test_revision_workflow_runs_expand_contract_and_revise(revision_cli_workspac
     repo = Repository.find(revision_cli_workspace)
     assertion_id = _projected_assertion_id(repo)
     atom = {"kind": "assertion", "id": assertion_id}
-    with WorldModel(repo) as wm:
+    with WorldQuery(repo) as wm:
         expanded = expand_revision(wm, _revision_request(), atom)
         contracted = contract_revision(wm, _revision_request(), (assertion_id,))
         revised = revise_world(wm, _revision_request(), atom, (assertion_id,))
@@ -68,7 +68,7 @@ def test_revision_workflow_explains_and_iterates(revision_cli_workspace) -> None
     repo = Repository.find(revision_cli_workspace)
     assertion_id = _projected_assertion_id(repo)
     atom = {"kind": "assertion", "id": assertion_id}
-    with WorldModel(repo) as wm:
+    with WorldQuery(repo) as wm:
         explanation = explain_revision_operation(
             wm,
             _revision_request(),

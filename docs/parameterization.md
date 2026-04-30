@@ -45,7 +45,7 @@ Concepts linked by parameterization edges form connected components called **par
 
 Groups are computed by `build_groups()` in `propstore/parameterization_groups.py` using union-find with path compression and union-by-rank. For each concept's `parameterization_relationships`, the function unions the output concept with each input concept. Concepts with no parameterization links appear as singleton groups.
 
-The sidecar build step (`propstore/build_sidecar.py`) persists groups to a `parameterization_group` table, mapping each concept to a sequential group ID (0, 1, 2...). At query time, `WorldModel._group_members(concept_id)` retrieves all concepts in the same group -- this is the scope for chain queries and transitive conflict detection.
+The sidecar build step (`propstore/build_sidecar.py`) persists groups to a `parameterization_group` table, mapping each concept to a sequential group ID (0, 1, 2...). At query time, `WorldQuery._group_members(concept_id)` retrieves all concepts in the same group -- this is the scope for chain queries and transitive conflict detection.
 
 ## Deriving Values
 
@@ -67,7 +67,7 @@ Evaluation delegates to `evaluate_parameterization()` in `propstore/propagation.
 
 When a single derivation step is not enough -- because the necessary inputs are themselves derived quantities -- `chain_query()` performs iterative fixpoint derivation across the entire parameter space group.
 
-`WorldModel.chain_query()` (`propstore/world/model.py`, line 734):
+`WorldQuery.chain_query()` (`propstore/world/model.py`, line 734):
 
 1. **Bind** the world with optional policy and bindings
 2. **Get the parameterization group** for the target concept

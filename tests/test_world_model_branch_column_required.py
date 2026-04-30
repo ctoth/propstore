@@ -9,7 +9,7 @@ These tests pin two guarantees:
 
 2. A legacy-shaped sidecar (schema_version matches the current constant,
    all other required tables and columns present, but `claim_core.branch`
-   absent) is rejected by `WorldModel` with a `ValueError` whose message
+   absent) is rejected by `WorldQuery` with a `ValueError` whose message
    mentions both `branch` and `claim_core`. This is the end-to-end
    proof that the `_claim_select_sql` conditional fallback is gone and
    the validator is the gatekeeper.
@@ -30,7 +30,7 @@ from pathlib import Path
 import pytest
 
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
-from propstore.world.model import _REQUIRED_SCHEMA, WorldModel
+from propstore.world.model import _REQUIRED_SCHEMA, WorldQuery
 
 
 def test_branch_column_in_required_schema() -> None:
@@ -76,7 +76,7 @@ def _build_legacy_sidecar(path: Path) -> None:
 
 
 def test_legacy_sidecar_without_branch_column_is_rejected(tmp_path: Path) -> None:
-    """`WorldModel` must reject a sidecar where `claim_core.branch` is absent.
+    """`WorldQuery` must reject a sidecar where `claim_core.branch` is absent.
 
     We construct a sidecar that satisfies every other row of
     `_REQUIRED_SCHEMA` verbatim and writes the current `SCHEMA_VERSION`
@@ -89,7 +89,7 @@ def test_legacy_sidecar_without_branch_column_is_rejected(tmp_path: Path) -> Non
     _build_legacy_sidecar(sidecar_path)
 
     with pytest.raises(ValueError) as excinfo:
-        WorldModel(sidecar_path=sidecar_path)
+        WorldQuery(sidecar_path=sidecar_path)
 
     message = str(excinfo.value)
     assert "branch" in message, (

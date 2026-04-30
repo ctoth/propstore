@@ -87,7 +87,7 @@ class TestInit:
         propstore = importlib.import_module("propstore")
 
         assert propstore.RenderPolicy.__name__ == "RenderPolicy"
-        assert propstore.WorldModel.__name__ == "WorldModel"
+        assert propstore.WorldQuery.__name__ == "WorldQuery"
 
     def test_init_creates_store_only_repository(self, empty_workspace: Path) -> None:
         runner = CliRunner()

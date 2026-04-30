@@ -229,7 +229,7 @@ def test_verify_tree_atms_failure_propagates(tmp_path: Path) -> None:
     repo, claim_id = _prepare_promoted_source(tmp_path)
     runner = CliRunner()
 
-    with patch("propstore.world.WorldModel.bind", side_effect=RuntimeError("atms boom")):
+    with patch("propstore.world.WorldQuery.bind", side_effect=RuntimeError("atms boom")):
         result = runner.invoke(cli, ["-C", str(repo.root), "verify", "tree", claim_id])
 
     assert result.exit_code != 0

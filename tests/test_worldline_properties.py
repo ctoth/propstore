@@ -16,7 +16,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from tests.family_helpers import build_sidecar
-from propstore.world import OverlayWorld, WorldModel
+from propstore.world import OverlayWorld, WorldQuery
 from propstore.worldline import WorldlineDefinition, run_worldline
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
@@ -142,7 +142,7 @@ def property_world(property_kb):
     repo = Repository(property_kb)
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
     build_sidecar(property_kb, repo.sidecar_path)
-    return WorldModel(repo)
+    return WorldQuery(repo)
 
 
 def _run(world, targets, bindings=None, overrides=None, strategy=None):

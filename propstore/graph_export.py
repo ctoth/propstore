@@ -21,7 +21,7 @@ from propstore.core.row_types import (
 from propstore.world import WorldStore, BeliefSpace
 
 if TYPE_CHECKING:
-    from propstore.world import WorldModel
+    from propstore.world import WorldQuery
 
 
 def _coerce_claim_like(claim_input):
@@ -143,7 +143,7 @@ class GraphExportReport:
 
 
 def export_knowledge_graph(
-    world: WorldModel,
+    world: WorldQuery,
     request: GraphExportRequest,
 ) -> GraphExportReport:
     bound = (

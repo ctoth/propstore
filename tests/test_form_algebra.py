@@ -4,7 +4,7 @@ Tests written BEFORE implementation. Each test class corresponds to a plan step:
 - TestDimsSignature: dims_signature() utility (Step 1)
 - TestFormTable: form table in sidecar (Step 2)
 - TestFormAlgebra: auto-derived form algebra from concept parameterizations (Step 3)
-- TestWorldModelFormQueries: WorldModel form query methods (Step 4)
+- TestWorldQueryFormQueries: WorldQuery form query methods (Step 4)
 """
 
 from __future__ import annotations
@@ -426,18 +426,18 @@ class TestFormAlgebra:
         assert count == 1  # deduped
 
 
-# ── Step 4: WorldModel form queries ──────────────────────────────────
+# ── Step 4: WorldQuery form queries ──────────────────────────────────
 
 
 @pytest.fixture
 def world_model(physics_project):
-    """Build sidecar and return a WorldModel."""
+    """Build sidecar and return a WorldQuery."""
     from propstore.repository import Repository
-    from propstore.world import WorldModel
+    from propstore.world import WorldQuery
     knowledge = physics_project / "knowledge"
     repo = Repository(knowledge)
     build_sidecar(knowledge, repo.sidecar_path, force=True)
-    return WorldModel(repo)
+    return WorldQuery(repo)
 
 
 # ── Step 5: CLI commands (enhance existing) ─────────────────────────
@@ -490,8 +490,8 @@ class TestFormShowAlgebra:
 
 
 def _repo_from_world(wm):
-    """Extract the Repository from a WorldModel (it stores it internally)."""
-    # WorldModel stores conn but we need the repo — reconstruct from sidecar path
+    """Extract the Repository from a WorldQuery (it stores it internally)."""
+    # WorldQuery stores conn but we need the repo — reconstruct from sidecar path
     from propstore.repository import Repository
     db_path = wm._conn.execute("PRAGMA database_list").fetchone()[2]
     from pathlib import Path
@@ -499,7 +499,7 @@ def _repo_from_world(wm):
     return Repository(sidecar_path.parent.parent)
 
 
-class TestWorldModelFormQueries:
+class TestWorldQueryFormQueries:
     def test_forms_by_dimensions(self, world_model):
         results = world_model.forms_by_dimensions({"M": 1, "L": 1, "T": -2})
         form_names = [r["name"] for r in results]

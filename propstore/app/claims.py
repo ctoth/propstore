@@ -10,7 +10,7 @@ from typing import Mapping
 
 from propstore.repository import Repository
 from propstore.sidecar.sqlite import connect_sidecar
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 from quire.tree_path import TreePath as KnowledgePath
 
 
@@ -170,7 +170,7 @@ class ClaimRelateReport:
 
 
 def compare_algorithm_claims(
-    world: WorldModel,
+    world: WorldQuery,
     request: ClaimCompareRequest,
 ) -> ClaimCompareReport:
     from ast_equiv import compare as ast_compare
@@ -209,10 +209,10 @@ def compare_algorithm_claims_from_repo(
     repo: Repository,
     request: ClaimCompareRequest,
 ) -> ClaimCompareReport:
-    from propstore.world import WorldModel
+    from propstore.world import WorldQuery
 
     try:
-        with WorldModel(repo) as world:
+        with WorldQuery(repo) as world:
             return compare_algorithm_claims(world, request)
     except FileNotFoundError as exc:
         raise ClaimSidecarMissingError(

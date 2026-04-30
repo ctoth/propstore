@@ -2,7 +2,7 @@
 
 from propstore.world.bound import BoundWorld
 from propstore.world.overlay import OverlayWorld
-from propstore.world.model import WorldModel
+from propstore.world.model import WorldQuery
 from propstore.world.resolution import resolve
 from propstore.world.types import (
     ATMSInspection,
@@ -60,6 +60,6 @@ __all__ = [
     "ValueResult",
     "ValueResultReason",
     "ValueStatus",
-    "WorldModel",
+    "WorldQuery",
     "resolve",
 ]

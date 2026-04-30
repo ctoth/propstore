@@ -40,7 +40,7 @@ class FakeBound:
 
 
 class FakeWorld:
-    """Minimal WorldModel stub with two conflicting claims and stances.
+    """Minimal WorldQuery stub with two conflicting claims and stances.
 
     Provides the interface that worldline.run_worldline() requires:
     bind, resolve_concept, get_concept, get_claim, has_table, stances_between.

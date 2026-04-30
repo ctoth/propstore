@@ -54,7 +54,7 @@ from propstore.world.queries import (
 )
 
 if TYPE_CHECKING:
-    from propstore.world import BoundWorld, WorldModel
+    from propstore.world import BoundWorld, WorldQuery
 
 
 class WorldAppError(Exception):
@@ -158,11 +158,11 @@ class AppWorldConsistencyRequest:
 
 
 @contextmanager
-def open_app_world_model(repo: Repository) -> Iterator[WorldModel]:
-    from propstore.world import WorldModel
+def open_app_world_model(repo: Repository) -> Iterator[WorldQuery]:
+    from propstore.world import WorldQuery
 
     try:
-        world = WorldModel(repo)
+        world = WorldQuery(repo)
     except FileNotFoundError as exc:
         raise WorldSidecarMissingError() from exc
     try:
@@ -172,7 +172,7 @@ def open_app_world_model(repo: Repository) -> Iterator[WorldModel]:
 
 
 def bind_world(
-    world: WorldModel,
+    world: WorldQuery,
     bindings: Mapping[str, str],
     *,
     context_id: str | None = None,
@@ -185,7 +185,7 @@ def bind_world(
     return world.bind(environment=environment, policy=policy)
 
 
-def resolve_world_target(world: WorldModel, target: str) -> str:
+def resolve_world_target(world: WorldQuery, target: str) -> str:
     return world.resolve_concept(target) or target
 
 

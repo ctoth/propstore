@@ -1,4 +1,4 @@
-"""WorldModel — read-only reasoner over a compiled sidecar."""
+"""WorldQuery — read-only reasoner over a compiled sidecar."""
 
 from __future__ import annotations
 
@@ -214,11 +214,11 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
 }
 
 
-class WorldModel(WorldStore):
+class WorldQuery(WorldStore):
     """Read-only reasoner over a compiled sidecar."""
 
     @classmethod
-    def from_path(cls, knowledge_dir: str | Path) -> WorldModel:
+    def from_path(cls, knowledge_dir: str | Path) -> WorldQuery:
         """Open a world model from a knowledge directory path."""
         sidecar = Path(knowledge_dir) / "sidecar" / "propstore.sqlite"
         return cls(sidecar_path=sidecar)
@@ -235,7 +235,7 @@ class WorldModel(WorldStore):
             resolved = repo.sidecar_path
         else:
             raise TypeError(
-                "WorldModel requires either sidecar_path or repo argument"
+                "WorldQuery requires either sidecar_path or repo argument"
             )
         if not resolved.exists():
             raise FileNotFoundError(
@@ -262,7 +262,7 @@ class WorldModel(WorldStore):
         self._concept_logical_id_index: dict[str, str] | None = None
         self._validate_schema()
 
-    def __enter__(self) -> WorldModel:
+    def __enter__(self) -> WorldQuery:
         return self
 
     def __exit__(self, *exc: object) -> None:
@@ -578,7 +578,7 @@ class WorldModel(WorldStore):
         Both composite ``"namespace:value"`` keys AND bare ``"value"``
         keys populate the same map so the cache covers every form the
         pre-memoized fallback already supported. A single SELECT +
-        Python pass replaces per-miss full-table scans. WorldModel is
+        Python pass replaces per-miss full-table scans. WorldQuery is
         immutable per open sidecar (all rows live under a read-only
         connection, cleared only by ``close()``), so the index is safe
         to build once and reuse for the lifetime of the instance.

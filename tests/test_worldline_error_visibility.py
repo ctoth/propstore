@@ -69,7 +69,7 @@ class _FakeDerivedResult:
 
 
 class _FakeWorld:
-    """Minimal stand-in for WorldModel."""
+    """Minimal stand-in for WorldQuery."""
 
     _bound: _FakeBound | None = None
 
@@ -98,7 +98,7 @@ class _FakeWorld:
 
 
 class _FakeBound:
-    """Minimal stand-in for a bound WorldModel."""
+    """Minimal stand-in for a bound WorldQuery."""
 
     _bindings: dict = {}
 

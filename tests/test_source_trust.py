@@ -16,7 +16,7 @@ from propstore.source.common import initial_source_document
 from tests.family_helpers import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, make_test_context_commit_entry
 
 
@@ -280,7 +280,7 @@ def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(tmp_p
     assert "derived_from" not in source_doc["trust"]
 
 
-def test_world_model_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) -> None:
+def test_world_query_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     _seed_calibration_claim(repo)
     runner = CliRunner()
@@ -357,7 +357,7 @@ def test_world_model_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) ->
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
     claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
     claim_id = claims_doc["claims"][0]["artifact_id"]
-    wm = WorldModel(repo)
+    wm = WorldQuery(repo)
     try:
         claim = wm.get_claim(claim_id)
     finally:

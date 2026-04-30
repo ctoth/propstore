@@ -50,7 +50,7 @@ from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.types import QueryableAssumption
 
 if TYPE_CHECKING:
-    from propstore.world import WorldModel
+    from propstore.world import WorldQuery
 
 
 @dataclass(frozen=True)
@@ -68,7 +68,7 @@ class FragilityRequest:
 
 
 def query_fragility(
-    world: WorldModel,
+    world: WorldQuery,
     request: FragilityRequest,
 ) -> FragilityReport:
     bound = world.bind(

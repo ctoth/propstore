@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from propstore.world.bound import BoundWorld
     from propstore.world.overlay import OverlayWorld
-    from propstore.world.model import WorldModel
+    from propstore.world.model import WorldQuery
     from propstore.world.types import (
         DerivedResult,
         ReasoningBackend,
@@ -29,7 +29,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "ResolutionStrategy": ("propstore.world.types", "ResolutionStrategy"),
     "SyntheticClaim": ("propstore.world.types", "SyntheticClaim"),
     "ValueResult": ("propstore.world.types", "ValueResult"),
-    "WorldModel": ("propstore.world.model", "WorldModel"),
+    "WorldQuery": ("propstore.world.model", "WorldQuery"),
 }
 
 __all__ = [
@@ -42,7 +42,7 @@ __all__ = [
     "ResolutionStrategy",
     "SyntheticClaim",
     "ValueResult",
-    "WorldModel",
+    "WorldQuery",
 ]
 
 

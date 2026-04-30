@@ -23,7 +23,7 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
-    from propstore.world import WorldModel
+    from propstore.world import WorldQuery
 
 
 _INVESTIGATION_PLAN_VERSION = "propstore.investigation_plan.v1"
@@ -284,7 +284,7 @@ class InterventionPlan:
 
 
 def plan_fragility_investigation(
-    world: "WorldModel",
+    world: "WorldQuery",
     request: FragilityRequest,
     *,
     objective: str,

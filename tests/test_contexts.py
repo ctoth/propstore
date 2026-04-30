@@ -428,8 +428,8 @@ class TestBoundWorldContextLifting:
         assert {str(claim.claim_id) for claim in bound.active_claims("c1")} == {"claim_child"}
 
 
-class TestWorldModelContextLifting:
-    def test_world_model_bind_loads_lifting_rules_from_sidecar(self, tmp_path: Path) -> None:
+class TestWorldQueryContextLifting:
+    def test_world_query_bind_loads_lifting_rules_from_sidecar(self, tmp_path: Path) -> None:
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
         build_minimal_world_model_schema(conn)
@@ -455,9 +455,9 @@ class TestWorldModelContextLifting:
         class _Repo:
             sidecar_path = sidecar
 
-        from propstore.world import WorldModel
+        from propstore.world import WorldQuery
 
-        wm = WorldModel(_Repo())
+        wm = WorldQuery(_Repo())
         try:
             bound = wm.bind(Environment(context_id="ctx_child"))
             assert {str(claim.claim_id) for claim in bound.active_claims("c1")} == {

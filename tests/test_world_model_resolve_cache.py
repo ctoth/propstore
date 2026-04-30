@@ -1,8 +1,8 @@
 """Regression tests for resolve_claim / resolve_concept fallback memoization.
 
-The WorldModel fallback branches used to issue a fresh full-table
+The WorldQuery fallback branches used to issue a fresh full-table
 ``SELECT id, logical_ids_json FROM <table>`` on every miss, JSON-decoding
-every row in Python. WorldModel is immutable per open sidecar, so the
+every row in Python. WorldQuery is immutable per open sidecar, so the
 logical-id → artifact-id mapping can be built once on first miss and
 reused thereafter. These tests exercise that memoization by counting
 SQL ``execute`` calls across repeated fallback lookups.
@@ -18,7 +18,7 @@ from typing import Any
 import pytest
 
 from propstore.sidecar.schema import build_minimal_world_model_schema
-from propstore.world.model import WorldModel
+from propstore.world.model import WorldQuery
 
 
 # ── test fixture helpers ─────────────────────────────────────────────
@@ -126,7 +126,7 @@ class _CountingConnection:
     ``sqlite3.Connection.execute`` is a C-level attribute and cannot be
     reassigned on the instance. Instead the whole connection is wrapped
     and ``world._conn`` is repointed at the proxy — all
-    ``self._conn.execute(...)`` calls inside ``WorldModel`` route through
+    ``self._conn.execute(...)`` calls inside ``WorldQuery`` route through
     ``__getattr__`` → the wrapped ``execute`` method on this proxy.
     """
 
@@ -148,7 +148,7 @@ class _CountingConnection:
 def test_resolve_claim_logical_id_lookup_does_not_scale_with_n(tmp_path):
     sidecar = _build_claim_sidecar(tmp_path, n_rows=200)
 
-    world = WorldModel(sidecar_path=sidecar)
+    world = WorldQuery(sidecar_path=sidecar)
     try:
         counter = _CountingConnection(world._conn)
         world._conn = counter  # type: ignore[assignment]
@@ -183,7 +183,7 @@ def test_resolve_claim_logical_id_lookup_does_not_scale_with_n(tmp_path):
 def test_resolve_claim_cached_lookup_handles_bare_value_key(tmp_path):
     sidecar = _build_claim_sidecar(tmp_path, n_rows=50)
 
-    world = WorldModel(sidecar_path=sidecar)
+    world = WorldQuery(sidecar_path=sidecar)
     try:
         # Prime the cache via a miss.
         assert world.resolve_claim("test:claim_missing") is None
@@ -206,7 +206,7 @@ def test_resolve_claim_cached_lookup_handles_bare_value_key(tmp_path):
 def test_resolve_concept_logical_id_lookup_does_not_scale_with_n(tmp_path):
     sidecar = _build_concept_sidecar(tmp_path, n_rows=200)
 
-    world = WorldModel(sidecar_path=sidecar)
+    world = WorldQuery(sidecar_path=sidecar)
     try:
         counter = _CountingConnection(world._conn)
         world._conn = counter  # type: ignore[assignment]
@@ -240,7 +240,7 @@ def test_resolve_concept_logical_id_lookup_does_not_scale_with_n(tmp_path):
 def test_resolve_concept_canonical_name_path_still_reachable(tmp_path):
     sidecar = _build_concept_sidecar(tmp_path, n_rows=20)
 
-    world = WorldModel(sidecar_path=sidecar)
+    world = WorldQuery(sidecar_path=sidecar)
     try:
         # Force the cache to populate via a miss first.
         assert world.resolve_concept("test:concept_missing") is None

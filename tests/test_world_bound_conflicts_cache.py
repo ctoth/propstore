@@ -21,7 +21,7 @@ import pytest
 
 import propstore.world.bound as bound_module
 from propstore.world.bound import BoundWorld
-from tests.test_world_model import (
+from tests.test_world_query import (
     CONCEPT1_ID,
     CONCEPT2_ID,
     claim_files,

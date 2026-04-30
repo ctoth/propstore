@@ -206,7 +206,7 @@ def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
         create_tables,
         write_schema_metadata,
     )
-    from propstore.world.model import WorldModel
+    from propstore.world.model import WorldQuery
 
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = sqlite3.connect(sidecar_path)
@@ -230,7 +230,7 @@ def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
     conn.commit()
     conn.close()
 
-    with WorldModel(sidecar_path=sidecar_path) as world:
+    with WorldQuery(sidecar_path=sidecar_path) as world:
         bundle = world.grounding_bundle()
 
     assert bundle.sections["unknown"]["flies"] == frozenset({("tweety",)})

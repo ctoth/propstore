@@ -38,7 +38,7 @@ from propstore.sidecar.schema import (
     write_schema_metadata,
 )
 from propstore.sidecar.rules import create_grounded_fact_table
-from propstore.world.model import WorldModel
+from propstore.world.model import WorldQuery
 from propstore.world.types import RenderPolicy
 
 
@@ -166,8 +166,8 @@ def lifecycle_sidecar(tmp_path: Path) -> Path:
         create_grounded_fact_table(conn)
         # ``concept_fts`` is normally built by
         # ``propstore.sidecar.concepts.build_concept_fts_index`` during the
-        # full build; WorldModel validates its presence. Create a stub
-        # virtual table so the render-policy fixture can open a WorldModel
+        # full build; WorldQuery validates its presence. Create a stub
+        # virtual table so the render-policy fixture can open a WorldQuery
         # without running the entire compile path.
         conn.execute(
             """
@@ -223,8 +223,8 @@ def lifecycle_sidecar(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def wm(lifecycle_sidecar: Path) -> WorldModel:
-    model = WorldModel(sidecar_path=lifecycle_sidecar)
+def wm(lifecycle_sidecar: Path) -> WorldQuery:
+    model = WorldQuery(sidecar_path=lifecycle_sidecar)
     yield model
     model.close()
 
@@ -249,7 +249,7 @@ def test_fixture_sidecar_is_schema_v3(lifecycle_sidecar: Path) -> None:
 # ── Default policy filters ──────────────────────────────────────────
 
 
-def test_default_policy_hides_draft(wm: WorldModel) -> None:
+def test_default_policy_hides_draft(wm: WorldQuery) -> None:
     """Default ``RenderPolicy()`` hides ``stage='draft'`` rows.
 
     Per ws-z-render-gates.md exit criterion: ``pks sidecar query`` default output
@@ -264,7 +264,7 @@ def test_default_policy_hides_draft(wm: WorldModel) -> None:
     assert "claim_final" in ids
 
 
-def test_default_policy_hides_build_status_blocked(wm: WorldModel) -> None:
+def test_default_policy_hides_build_status_blocked(wm: WorldQuery) -> None:
     """Default policy hides ``build_status='blocked'`` rows (Phase 3
     Gate 1 raw-id quarantine)."""
     rows = wm.claims_with_policy(None, RenderPolicy())
@@ -272,7 +272,7 @@ def test_default_policy_hides_build_status_blocked(wm: WorldModel) -> None:
     assert "claim_raw_id" not in ids
 
 
-def test_default_policy_hides_promotion_status_blocked(wm: WorldModel) -> None:
+def test_default_policy_hides_promotion_status_blocked(wm: WorldQuery) -> None:
     """Default policy hides ``promotion_status='blocked'`` mirror rows
     (Phase 3 Gate 3 partial-promote mirror)."""
     rows = wm.claims_with_policy(None, RenderPolicy())
@@ -280,14 +280,14 @@ def test_default_policy_hides_promotion_status_blocked(wm: WorldModel) -> None:
     assert "claim_promote_blocked" not in ids
 
 
-def test_default_policy_only_surfaces_clean_claims(wm: WorldModel) -> None:
+def test_default_policy_only_surfaces_clean_claims(wm: WorldQuery) -> None:
     """Default policy ONLY returns the single ingested final claim."""
     rows = wm.claims_with_policy(None, RenderPolicy())
     ids = {str(row.claim_id) for row in rows}
     assert ids == {"claim_final"}
 
 
-def test_default_policy_omits_build_diagnostics(wm: WorldModel) -> None:
+def test_default_policy_omits_build_diagnostics(wm: WorldQuery) -> None:
     """Default policy returns no ``build_diagnostics`` rows.
 
     Per ws-z-render-gates.md: diagnostics ride alongside in storage but
@@ -301,7 +301,7 @@ def test_default_policy_omits_build_diagnostics(wm: WorldModel) -> None:
 # ── Opt-in flags ────────────────────────────────────────────────────
 
 
-def test_include_drafts_surfaces_draft_rows(wm: WorldModel) -> None:
+def test_include_drafts_surfaces_draft_rows(wm: WorldQuery) -> None:
     """``include_drafts=True`` lifts the draft filter while leaving the
     other lifecycle filters in effect."""
     policy = RenderPolicy(include_drafts=True)
@@ -314,7 +314,7 @@ def test_include_drafts_surfaces_draft_rows(wm: WorldModel) -> None:
     assert "claim_promote_blocked" not in ids
 
 
-def test_include_blocked_surfaces_build_status_blocked(wm: WorldModel) -> None:
+def test_include_blocked_surfaces_build_status_blocked(wm: WorldQuery) -> None:
     """``include_blocked=True`` lifts the build_status filter."""
     policy = RenderPolicy(include_blocked=True)
     rows = wm.claims_with_policy(None, policy)
@@ -323,7 +323,7 @@ def test_include_blocked_surfaces_build_status_blocked(wm: WorldModel) -> None:
     assert "claim_final" in ids
 
 
-def test_include_blocked_surfaces_promotion_status_blocked(wm: WorldModel) -> None:
+def test_include_blocked_surfaces_promotion_status_blocked(wm: WorldQuery) -> None:
     """``include_blocked=True`` ALSO lifts the promotion_status filter —
     per the scout proposal, the single flag controls both blocked
     variants because they are conceptually the same render concern
@@ -334,7 +334,7 @@ def test_include_blocked_surfaces_promotion_status_blocked(wm: WorldModel) -> No
     assert "claim_promote_blocked" in ids
 
 
-def test_show_quarantined_surfaces_diagnostics(wm: WorldModel) -> None:
+def test_show_quarantined_surfaces_diagnostics(wm: WorldQuery) -> None:
     """``show_quarantined=True`` returns all ``build_diagnostics`` rows;
     the default policy returns none."""
     policy = RenderPolicy(show_quarantined=True)
@@ -344,7 +344,7 @@ def test_show_quarantined_surfaces_diagnostics(wm: WorldModel) -> None:
     assert kinds == {"raw_id_input", "promotion_blocked"}
 
 
-def test_all_flags_on_surfaces_everything(wm: WorldModel) -> None:
+def test_all_flags_on_surfaces_everything(wm: WorldQuery) -> None:
     """All three flags on → every lifecycle row is visible + diagnostics
     surfaced. The full cross-cut."""
     policy = RenderPolicy(

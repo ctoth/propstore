@@ -22,6 +22,6 @@ def test_heuristic_source_trust_exports_no_world_query_calibrator() -> None:
     source = Path("propstore/heuristic/source_trust.py").read_text()
 
     assert "derive_source_document_trust" not in source
-    assert "WorldModel" not in source
+    assert "WorldQuery" not in source
     assert "chain_query" not in source
 

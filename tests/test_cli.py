@@ -30,7 +30,7 @@ from propstore.repository import Repository
 from propstore.sensitivity import SensitivityRequest, query_sensitivity
 from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
-from propstore.world import RenderPolicy, ResolutionStrategy, WorldModel
+from propstore.world import RenderPolicy, ResolutionStrategy, WorldQuery
 from propstore.world.consistency import (
     WorldConsistencyRequest,
     check_world_consistency,
@@ -1625,7 +1625,7 @@ class TestClaimShow:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             with pytest.raises(ClaimComparisonError):
                 compare_algorithm_claims(
                     wm,
@@ -1835,7 +1835,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = explain_world_claim(
                 wm,
                 WorldExplainRequest(claim_id="freq_paper:freq_claim1"),
@@ -1850,7 +1850,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = list_world_algorithms(wm, WorldAlgorithmsRequest())
 
         assert report.algorithms == ()
@@ -1882,7 +1882,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             expected_concept_id = wm.resolve_concept("speech:fundamental_frequency")
             report = derive_world_value(
                 wm,
@@ -1901,7 +1901,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = diff_hypothetical_world(
                 wm,
                 WorldHypotheticalRequest(
@@ -1921,7 +1921,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = resolve_world_value(
                 wm,
                 WorldResolveRequest(
@@ -1941,7 +1941,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = query_world_chain(
                 wm,
                 WorldChainRequest(
@@ -1964,7 +1964,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = export_knowledge_graph(
                 wm,
                 GraphExportRequest(bindings={}),
@@ -1980,7 +1980,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = check_world_consistency(
                 repo,
                 wm,
@@ -1995,7 +1995,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = check_world_consistency(
                 repo,
                 wm,
@@ -2010,7 +2010,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             expected_concept_id = wm.resolve_concept("speech:fundamental_frequency")
             report = query_sensitivity(
                 wm,
@@ -2028,7 +2028,7 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = query_fragility(
                 wm,
                 FragilityRequest(
@@ -2065,7 +2065,7 @@ class TestWorldQuerySIValues:
 
     def test_owner_world_bind_report_shows_si_value(self, freq_workspace: Path) -> None:
         repo = Repository.find(freq_workspace)
-        with WorldModel(repo) as wm:
+        with WorldQuery(repo) as wm:
             report = query_bound_world(
                 wm,
                 WorldBindRequest(bindings={}, target="speech:fundamental_frequency"),

@@ -202,14 +202,14 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 - T1.1 / Codex #8 — direct blocked claim reads no longer construct `ClaimViewReport`; they raise `ClaimViewBlockedError` and render a generic 404 with no claim payload. Evidence: `tests/test_render_policy_direct_claim.py`.
 - T1.2 / Codex #9 — claim neighborhoods now use policy-filtered stance endpoints and hard-error when the focus claim is hidden. Evidence: `tests/test_render_policy_neighborhood.py`.
 - T1.3 / Codex #10 — concept reports are policy-relative and default counts/prose exclude hidden claims. Evidence: `tests/test_render_policy_concept.py`.
-- T1.5 / Codex #4 — read-only sidecar queries and `WorldModel` open SQLite in `mode=ro` without switching to WAL. Evidence: `tests/test_sidecar_query_read_only.py`.
+- T1.5 / Codex #4 — read-only sidecar queries and `WorldQuery` open SQLite in `mode=ro` without switching to WAL. Evidence: `tests/test_sidecar_query_read_only.py`.
 - T1.8 — web render-policy float parameters reject non-finite and out-of-range values at the request boundary. Evidence: `tests/test_web_request_float_boundary.py`.
 - T1.9 — `pks web --host 0.0.0.0` requires `--insecure` and the insecure path warns. Evidence: `tests/test_pks_web_insecure_flag.py`.
 - Codex #11 — malformed concept FTS queries raise `ConceptSearchSyntaxError` and return `400 Invalid Search Query`. Evidence: `tests/test_concept_fts_malformed_query.py`.
 
 ### Closed 2026-04-27 (WS-A schema fidelity, fixture parity, identity boundaries)
 - T0.1 / Codex #7 — test fixtures no longer own a hand-written world-model schema. Closed by deleting `tests/conftest.py:create_world_model_schema` and routing tests through production-owned `build_minimal_world_model_schema`. Evidence: `tests/test_fixture_schema_parity.py` and the WS-A targeted gate.
-- T0.2 / Codex #6 — `_REQUIRED_SCHEMA["claim_core"]` now requires the runtime lifecycle columns consumed by `WorldModel`, including `build_diagnostics`. Evidence: `tests/test_required_schema_completeness.py`.
+- T0.2 / Codex #6 — `_REQUIRED_SCHEMA["claim_core"]` now requires the runtime lifecycle columns consumed by `WorldQuery`, including `build_diagnostics`. Evidence: `tests/test_required_schema_completeness.py`.
 - Generated schema freshness — generated schema resources are committed and generation is byte-preserving. Evidence: `tests/test_generated_schema_freshness.py`.
 - axis-6 item 13 / axis-4 — Hypothesis property markers no longer lie about coverage. Closed by recursive marker maintenance plus collection-time warning for unmarked `@given` tests. Evidence: `tests/test_property_marker_discipline.py` and `scripts/mark_hypothesis_property_tests.py`.
 - D-24 T0.3 — URI tagging authorities are parsed and validated before interpolation or repository-config use. Evidence: `tests/test_uri_authority_validation.py`.
@@ -235,7 +235,7 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 - axis-3c / axis-6 item 2 — AF revision was absent from the old revision package. Closed by implementing Baumann/Diller/Cayrol-facing operators in `argumentation.af_revision` with property tests, while the old active-claim projection adapter moved under the honest support-incision package. Evidence: `tests/test_af_revision_postulates.py` and `tests/test_revision_retirement.py`.
 
 ### Closed 2026-04-17 (WS-A Phase 4)
-- axis-3d / axis-6 item 3 — semantic substrate remained incomplete at contexts and micropublications. Closed by WS-A Phase 4: `context_hierarchy.py` was replaced by `context_lifting.py`; `ClaimDocument.context` is required; nested `ist(c, p)` proposition documents exist; source finalize/promote emits canonical `micropubs/{source}.yaml`; sidecar `micropublication` and `micropublication_claim` tables materialize bundles; `WorldModel.all_micropublications()` returns typed `ActiveMicropublication` records; `EnvironmentKey` includes `context_ids`; ATMS seeds context nodes and micropublication nodes. Evidence: `docs/contexts-and-micropubs.md`, `tests/test_context_lifting_phase4.py`, `tests/test_micropublications_phase4.py`, `tests/test_labels_properties.py`, and `tests/test_atms_engine.py`.
+- axis-3d / axis-6 item 3 — semantic substrate remained incomplete at contexts and micropublications. Closed by WS-A Phase 4: `context_hierarchy.py` was replaced by `context_lifting.py`; `ClaimDocument.context` is required; nested `ist(c, p)` proposition documents exist; source finalize/promote emits canonical `micropubs/{source}.yaml`; sidecar `micropublication` and `micropublication_claim` tables materialize bundles; `WorldQuery.all_micropublications()` returns typed `ActiveMicropublication` records; `EnvironmentKey` includes `context_ids`; ATMS seeds context nodes and micropublication nodes. Evidence: `docs/contexts-and-micropubs.md`, `tests/test_context_lifting_phase4.py`, `tests/test_micropublications_phase4.py`, `tests/test_labels_properties.py`, and `tests/test_atms_engine.py`.
 
 ### Closed 2026-04-16 (this commit)
 - axis-1 Finding 3.1 — raw-id claim quarantine. Closed by commit `67fccc1` (WS-Z-gates phase 3).

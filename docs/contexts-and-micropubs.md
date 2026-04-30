@@ -41,7 +41,7 @@ Source branches author and finalize micropublication bundles:
 2. `pks source finalize SOURCE` composes `micropubs.yaml` from the source-local claim, evidence, stance, assumption, and provenance material.
 3. `pks source promote SOURCE` writes canonical `micropubs/{source}.yaml` atomically with valid promoted claim members.
 4. The sidecar build creates `micropublication` and `micropublication_claim` tables from canonical micropublication artifacts.
-5. `WorldModel.all_micropublications()` returns typed `ActiveMicropublication` objects for runtime reasoning.
+5. `WorldQuery.all_micropublications()` returns typed `ActiveMicropublication` objects for runtime reasoning.
 
 The CLI inspection surface is:
 

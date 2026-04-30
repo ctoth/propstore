@@ -1,4 +1,4 @@
-"""Tests for WorldModel — condition-binding reasoner over compiled sidecar.
+"""Tests for WorldQuery — condition-binding reasoner over compiled sidecar.
 
 TDD tests:
 - Construction, unbound queries, explain, bind/active_claims, value_of, bound conflicts
@@ -53,7 +53,7 @@ from propstore.world import (
     SyntheticClaim,
     ValueResult,
     ValueStatus,
-    WorldModel,
+    WorldQuery,
     resolve,
 )
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
@@ -549,15 +549,15 @@ def claim_files(concept_dir):
 
 @pytest.fixture
 def world(concept_dir, repo, claim_files):
-    """Build sidecar and return a WorldModel."""
+    """Build sidecar and return a WorldQuery."""
     knowledge = concept_dir.parent
     build_sidecar(knowledge, repo.sidecar_path)
-    return WorldModel(repo)
+    return WorldQuery(repo)
 
 
 # ── Construction ─────────────────────────────────────────────────────
 
-class TestWorldModelConstruction:
+class TestWorldQueryConstruction:
     def test_construct_from_repo(self, world):
         assert world is not None
         assert isinstance(world, WorldStore)
@@ -566,7 +566,7 @@ class TestWorldModelConstruction:
         from propstore.repository import Repository
         repo = Repository.init(tmp_path / "empty_knowledge")
         with pytest.raises(FileNotFoundError):
-            WorldModel(repo)
+            WorldQuery(repo)
 
     def test_context_manager(self, world):
         with world:
@@ -636,7 +636,7 @@ class TestUnboundQueries:
         )
 
         build_sidecar(knowledge, repo.sidecar_path, force=True)
-        wm = WorldModel(repo)
+        wm = WorldQuery(repo)
         claim = wm.get_claim(_claim_artifact("alpha_source", "claim_slug"))
         assert claim is not None
         claim_data = claim.to_dict()
@@ -722,7 +722,7 @@ class TestUnboundQueries:
         repo = Repository(knowledge)
         build_sidecar(knowledge, repo.sidecar_path)
 
-        wm = WorldModel(repo)
+        wm = WorldQuery(repo)
         try:
             assert [str(claim.claim_id) for claim in wm.claims_for("fundamental_frequency")] == [
                 make_claim_identity("claim1", namespace="paper")["artifact_id"]
@@ -779,7 +779,7 @@ class TestUnboundQueries:
         repo = Repository(knowledge)
         build_sidecar(knowledge, repo.sidecar_path)
 
-        wm = WorldModel(repo)
+        wm = WorldQuery(repo)
         try:
             assert [str(claim.claim_id) for claim in wm.claims_for("F0")] == [
                 make_claim_identity("claim1", namespace="paper")["artifact_id"]
@@ -818,7 +818,7 @@ class TestUnboundQueries:
         class _Repo:
             sidecar_path = sidecar
 
-        wm = WorldModel(_Repo())
+        wm = WorldQuery(_Repo())
         try:
             claims = wm.claims_for("concept2")
             assert [str(claim.claim_id) for claim in claims] == ["measurement1"]
@@ -858,7 +858,7 @@ class TestUnboundQueries:
         class _Repo:
             sidecar_path = sidecar
 
-        wm = WorldModel(_Repo())
+        wm = WorldQuery(_Repo())
         try:
             claims = wm.claims_with_policy("concept2", RenderPolicy())
             assert [str(claim.claim_id) for claim in claims] == ["observation1"]
@@ -895,7 +895,7 @@ class TestUnboundQueries:
         class _Repo:
             sidecar_path = sidecar
 
-        wm = WorldModel(_Repo())
+        wm = WorldQuery(_Repo())
         try:
             claims = wm.claims_related_to_concept("concept2")
             assert [str(claim.claim_id) for claim in claims] == ["observation1"]
@@ -932,7 +932,7 @@ class TestUnboundQueries:
         class _Repo:
             sidecar_path = sidecar
 
-        wm = WorldModel(_Repo())
+        wm = WorldQuery(_Repo())
         try:
             assert [str(claim.claim_id) for claim in wm.claims_for("concept2")] == ["measurement1"]
             assert [str(claim.claim_id) for claim in wm.claims_for("concept2")] == ["measurement1"]
@@ -2370,13 +2370,13 @@ def algo_claim_files(algo_concept_dir):
 
 @pytest.fixture
 def algo_world(algo_concept_dir, algo_repo, algo_claim_files):
-    """Build sidecar and return a WorldModel with algorithm claims."""
+    """Build sidecar and return a WorldQuery with algorithm claims."""
     knowledge = algo_concept_dir.parent
     build_sidecar(knowledge, algo_repo.sidecar_path)
-    return WorldModel(algo_repo)
+    return WorldQuery(algo_repo)
 
 
-class TestAlgorithmWorldModel:
+class TestAlgorithmWorldQuery:
     def test_algorithm_for_returns_claims(self, algo_world):
         """algorithm_for returns relevant algorithm claims."""
         bound = algo_world.bind(task="speech")
@@ -2657,7 +2657,7 @@ class TestFloatEqualityBugs:
         )
 
         with patch("argumentation.probabilistic.compute_probabilistic_acceptance", return_value=mock_praf_result):
-            # WorldModel IS the WorldStore — pass it directly
+            # WorldQuery IS the WorldStore — pass it directly
             winner_id, reason, probs = _resolve_praf(
                 target_claims, active_claims, world,
                 semantics="grounded", comparison="elitist",
@@ -2710,11 +2710,11 @@ class TestFloatEqualityBugs:
         )
 
 
-# ── F19: WorldModel sidecar_path construction ─────────────────────────
+# ── F19: WorldQuery sidecar_path construction ─────────────────────────
 
 
-class TestWorldModelSidecarPath:
-    """WorldModel should accept a sidecar_path: Path directly, without
+class TestWorldQuerySidecarPath:
+    """WorldQuery should accept a sidecar_path: Path directly, without
     requiring a Repository object.  This is Finding 4 from the architecture
     audit: world/model.py (Layer 5 render) should not depend on
     propstore.repository (Layer 6 CLI/agent workflow).
@@ -2724,7 +2724,7 @@ class TestWorldModelSidecarPath:
     """
 
     def test_worldmodel_constructable_with_sidecar_path(self, tmp_path):
-        """WorldModel.__init__ should accept a bare sidecar_path: Path.
+        """WorldQuery.__init__ should accept a bare sidecar_path: Path.
 
         Currently fails because __init__ signature is (self, repo: Repository)
         and immediately does repo.sidecar_path, which raises AttributeError
@@ -2736,9 +2736,9 @@ class TestWorldModelSidecarPath:
         build_minimal_world_model_schema(conn)
         conn.close()
 
-        # This should work: construct WorldModel from a Path to the sidecar db.
+        # This should work: construct WorldQuery from a Path to the sidecar db.
         # It currently FAILS because __init__ expects a Repository, not a Path.
-        wm = WorldModel(sidecar_path=db_path)
+        wm = WorldQuery(sidecar_path=db_path)
         assert wm is not None
         wm.close()
 
@@ -2749,7 +2749,7 @@ class TestWorldModelSidecarPath:
         conn.close()
 
         with pytest.raises(ValueError, match="Unsupported sidecar schema"):
-            WorldModel(sidecar_path=db_path)
+            WorldQuery(sidecar_path=db_path)
 
     def test_worldmodel_rejects_unsupported_schema_version(self, tmp_path):
         db_path = tmp_path / "propstore.sqlite"
@@ -2762,7 +2762,7 @@ class TestWorldModelSidecarPath:
         conn.close()
 
         with pytest.raises(ValueError, match="Unsupported sidecar schema version"):
-            WorldModel(sidecar_path=db_path)
+            WorldQuery(sidecar_path=db_path)
 
     @pytest.mark.parametrize(
         ("mutation", "message"),
@@ -2791,10 +2791,10 @@ class TestWorldModelSidecarPath:
         conn.close()
 
         with pytest.raises(ValueError, match="Unsupported sidecar schema"):
-            WorldModel(sidecar_path=db_path)
+            WorldQuery(sidecar_path=db_path)
 
     def test_worldmodel_importable_without_cli(self):
-        """propstore.world.model.WorldModel.from_path should not require
+        """propstore.world.model.WorldQuery.from_path should not require
         propstore.repository at runtime.
 
         Currently fails because from_path() line 46 does:
@@ -2828,14 +2828,14 @@ class TestWorldModelSidecarPath:
             # Call from_path — this should NOT need propstore.cli.
             # Currently FAILS because from_path() does a runtime import of
             # propstore.repository.Repository at line 46.
-            from propstore.world.model import WorldModel as WM
+            from propstore.world.model import WorldQuery as WM
 
             try:
                 WM.from_path("/nonexistent")
             except ImportError as exc:
                 if "propstore.cli" in str(exc):
                     pytest.fail(
-                        f"Layer violation: WorldModel.from_path() imports from "
+                        f"Layer violation: WorldQuery.from_path() imports from "
                         f"propstore.cli at runtime: {exc}"
                     )
                 raise

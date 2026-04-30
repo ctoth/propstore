@@ -9,7 +9,7 @@ from propstore.core.environment import Environment
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
-    from propstore.world import WorldModel
+    from propstore.world import WorldQuery
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ class WorldConsistencyReport:
 
 def check_world_consistency(
     repo: Repository,
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldConsistencyRequest,
 ) -> WorldConsistencyReport:
     if request.transitive:
@@ -64,7 +64,7 @@ def check_world_consistency(
 
 def _check_transitive_consistency(
     repo: Repository,
-    world: WorldModel,
+    world: WorldQuery,
 ) -> WorldConsistencyReport:
     from propstore.conflict_detector import detect_transitive_conflicts
     from propstore.conflict_detector.collectors import conflict_claims_from_claim_files

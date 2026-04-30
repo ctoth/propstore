@@ -6,7 +6,7 @@ import yaml
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from tests.family_helpers import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
@@ -303,10 +303,10 @@ def claim_files(concept_dir):
 
 @pytest.fixture
 def world(concept_dir, repo, claim_files):
-    """Build sidecar and return a WorldModel."""
+    """Build sidecar and return a WorldQuery."""
     knowledge = concept_dir.parent
     build_sidecar(knowledge, repo.sidecar_path)
-    return WorldModel(repo)
+    return WorldQuery(repo)
 
 
 # ── Nonlinear fixture (separate, minimal) ────────────────────────────
@@ -414,7 +414,7 @@ def nonlinear_world(tmp_path):
 
     repo = Repository(knowledge)
     build_sidecar(knowledge, repo.sidecar_path)
-    return WorldModel(repo)
+    return WorldQuery(repo)
 
 
 # ── Tests ─────────────────────────────────────────────────────────────

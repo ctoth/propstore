@@ -62,7 +62,7 @@ See [Semantic Merge](docs/semantic-merge.md) for the full architecture and [Git 
 - Versions knowledge repos with git-backed storage (Dulwich), enabling historical builds and branch-based isolation
 - Inspects and commits branch merges through a formal partial-argumentation layer before writing two-parent git commits
 - Validates dimensional consistency of claims via Pint and bridgman, with SI normalization at build time
-- Provides a Python API for programmatic access (WorldModel, BoundWorld, HypotheticalWorld)
+- Provides a Python API for programmatic access (WorldQuery, BoundWorld, HypotheticalWorld)
 - Represents uncertainty honestly via subjective logic opinions with calibrated evidence mapping
 
 ## Reasoning Backends
@@ -351,7 +351,7 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 - [Semantic Merge](docs/semantic-merge.md) — formal repository merge frameworks, completion queries, exact AF merge operators, branch reasoning
 - [Git Backend](docs/git-backend.md) — Dulwich-backed versioning, KnowledgeRepo, TreeReader, branch primitives
 - [Units and Forms](docs/units-and-forms.md) — dimensional type system, SI normalization, form algebra
-- [Python API](docs/python-api.md) — WorldModel, BoundWorld, HypotheticalWorld, result types
+- [Python API](docs/python-api.md) — WorldQuery, BoundWorld, HypotheticalWorld, result types
 - [Integration](docs/integration.md) — how this fits with `research-papers-plugin`
 
 ## Future Work

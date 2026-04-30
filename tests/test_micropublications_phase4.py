@@ -11,7 +11,7 @@ from quire.documents import convert_document_value
 from propstore.cli import cli
 from propstore.repository import Repository
 from tests.family_helpers import build_sidecar
-from propstore.world import WorldModel
+from propstore.world import WorldQuery
 from propstore.world.types import Environment, ReasoningBackend, RenderPolicy
 
 
@@ -245,7 +245,7 @@ def test_promoted_micropub_builds_as_atms_node(tmp_path: Path) -> None:
     micropub_id = promoted["micropubs"][0]["artifact_id"]
 
     assert build_sidecar(repo, repo.sidecar_path, force=True) is True
-    world = WorldModel(repo)
+    world = WorldQuery(repo)
     assert [entry.artifact_id for entry in world.all_micropublications()] == [micropub_id]
 
     bound = world.bind(

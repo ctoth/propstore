@@ -100,7 +100,7 @@ def analyze_sensitivity(
 
     Parameters
     ----------
-    world : WorldModel
+    world : WorldQuery
         The world model providing parameterization data.
     concept_id : str
         The output concept to analyze.

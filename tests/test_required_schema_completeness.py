@@ -1,4 +1,4 @@
-"""Structural pins for columns WorldModel requires at sidecar open time."""
+"""Structural pins for columns WorldQuery requires at sidecar open time."""
 
 from __future__ import annotations
 

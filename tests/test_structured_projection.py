@@ -1015,7 +1015,7 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
         def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
             return Label.empty(), SupportQuality.EXACT
 
-    class FakeWorldModel:
+    class FakeWorldQuery:
         def __init__(self, repo) -> None:
             self.repo = repo
 
@@ -1055,7 +1055,7 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
         raise AssertionError("claim_graph path should not run for --backend aspic")
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
+    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
     monkeypatch.setattr(
         "propstore.claim_graph.compute_claim_graph_justified_claims",
         _unexpected_claim_graph,
@@ -1102,7 +1102,7 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
         def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
             return Label.empty(), SupportQuality.EXACT
 
-    class FakeWorldModel:
+    class FakeWorldQuery:
         def __init__(self, repo) -> None:
             self.repo = repo
 
@@ -1139,7 +1139,7 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
         }
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
+    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
     monkeypatch.setattr(
         "propstore.relation_analysis.stance_summary",
         lambda *args, **kwargs: {

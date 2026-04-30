@@ -253,7 +253,7 @@ During sidecar build, `_populate_form_algebra()` (`build_sidecar.py`) processes 
 
 ### Queries
 
-`WorldModel` (`propstore/world/model.py`) provides two query methods:
+`WorldQuery` (`propstore/world/model.py`) provides two query methods:
 
 - `form_algebra_for(form_name)` -- returns all entries where `output_form` matches: "what decomposes into this form?"
 - `form_algebra_using(form_name)` -- returns all entries where the form appears in `input_forms`: "where is this form used as an input?"

@@ -602,9 +602,9 @@ def build_repository(
         from collections import defaultdict
 
         from propstore.conflict_detector import ConflictClass
-        from propstore.world import WorldModel
+        from propstore.world import WorldQuery
 
-        wm = WorldModel(repo, sidecar_path=sidecar_path)
+        wm = WorldQuery(repo, sidecar_path=sidecar_path)
         stats = wm.stats()
         claim_count = stats.claims
         conflicts = wm.conflicts()

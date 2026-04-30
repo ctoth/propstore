@@ -32,7 +32,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from propstore.world import RenderPolicy, WorldModel
+from propstore.world import RenderPolicy, WorldQuery
 from propstore.world.queries import (
     WorldConceptQueryRequest,
     WorldStatusRequest,
@@ -219,7 +219,7 @@ class TestWorldStatusFlags:
         seeded_workspace: Path,
     ) -> None:
         repo = Repository.find(seeded_workspace / "knowledge")
-        wm = WorldModel(repo)
+        wm = WorldQuery(repo)
         try:
             report = get_world_status(
                 wm,
@@ -236,7 +236,7 @@ class TestWorldStatusFlags:
         seeded_workspace: Path,
     ) -> None:
         repo = Repository.find(seeded_workspace / "knowledge")
-        wm = WorldModel(repo)
+        wm = WorldQuery(repo)
         try:
             report = get_world_status(
                 wm,
@@ -325,7 +325,7 @@ class TestWorldQueryFlags:
     def test_owner_report_default_hides_draft(self, seeded_workspace: Path) -> None:
         aid = _concept_id(seeded_workspace)
         repo = Repository.find(seeded_workspace / "knowledge")
-        wm = WorldModel(repo)
+        wm = WorldQuery(repo)
         try:
             report = query_world_concept(
                 wm,
@@ -343,7 +343,7 @@ class TestWorldQueryFlags:
     ) -> None:
         aid = _concept_id(seeded_workspace)
         repo = Repository.find(seeded_workspace / "knowledge")
-        wm = WorldModel(repo)
+        wm = WorldQuery(repo)
         try:
             report = query_world_concept(
                 wm,

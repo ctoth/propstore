@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 from propstore.world.types import RenderPolicy
 
 if TYPE_CHECKING:
-    from propstore.world.model import WorldModel
+    from propstore.world.model import WorldQuery
 
 
 class WorldQueryError(Exception):
@@ -46,7 +46,7 @@ class WorldStatusReport:
 
 
 def get_world_status(
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldStatusRequest,
 ) -> WorldStatusReport:
     stats = world.stats()
@@ -281,7 +281,7 @@ def _maybe_float(value: object) -> float | None:
 
 def _format_value_with_si(
     claim: Mapping[str, object],
-    world: WorldModel | None = None,
+    world: WorldQuery | None = None,
 ) -> str:
     value = claim.get("value")
     unit = claim.get("unit")
@@ -312,11 +312,11 @@ def _format_value_with_si(
     return f"value={value}"
 
 
-def resolve_world_target(world: WorldModel, target: str) -> str:
+def resolve_world_target(world: WorldQuery, target: str) -> str:
     return world.resolve_concept(target) or target
 
 
-def world_concept_display_id(world: WorldModel, concept_id: str) -> str:
+def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
     from propstore.core.row_types import coerce_concept_row
 
     concept = world.get_concept(concept_id)
@@ -340,7 +340,7 @@ def world_claim_display_id(claim: Mapping[str, object] | Any) -> str:
 
 
 def _world_chain_concept_line(
-    world: WorldModel,
+    world: WorldQuery,
     concept_id: str,
 ) -> WorldChainConceptLine:
     from propstore.core.row_types import coerce_concept_row
@@ -358,7 +358,7 @@ def _world_chain_concept_line(
 
 
 def query_world_concept(
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldConceptQueryRequest,
 ) -> WorldConceptQueryReport:
     from propstore.core.row_types import coerce_claim_row, coerce_concept_row
@@ -399,7 +399,7 @@ def query_world_concept(
 
 
 def query_bound_world(
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldBindRequest,
 ) -> WorldBindReport:
     from propstore.core.environment import Environment
@@ -448,7 +448,7 @@ def query_bound_world(
 
 
 def explain_world_claim(
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldExplainRequest,
 ) -> WorldExplainReport:
     from propstore.core.row_types import coerce_claim_row
@@ -492,7 +492,7 @@ def explain_world_claim(
 
 
 def list_world_algorithms(
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldAlgorithmsRequest,
 ) -> WorldAlgorithmsReport:
     from propstore.core.algorithm_stage import coerce_algorithm_stage
@@ -534,7 +534,7 @@ def list_world_algorithms(
 
 
 def derive_world_value(
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldDeriveRequest,
 ) -> WorldDeriveReport:
     from propstore.core.environment import Environment
@@ -556,7 +556,7 @@ def derive_world_value(
 
 
 def diff_hypothetical_world(
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldHypotheticalRequest,
 ) -> WorldHypotheticalReport:
     from propstore.cel_types import to_cel_exprs
@@ -598,7 +598,7 @@ def diff_hypothetical_world(
 
 
 def resolve_world_value(
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldResolveRequest,
 ) -> WorldResolveReport:
     from propstore.core.environment import Environment
@@ -636,7 +636,7 @@ def resolve_world_value(
 
 
 def query_world_chain(
-    world: WorldModel,
+    world: WorldQuery,
     request: WorldChainRequest,
 ) -> WorldChainReport:
     from propstore.world import DerivedResult, ResolutionStrategy
