@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -16,6 +17,7 @@ from propstore.provenance import (
 
 
 @given(st.integers(min_value=2, max_value=8))
+@pytest.mark.property
 def test_combine_labels_preserves_semiring_coefficients(coefficient: int) -> None:
     variable = SourceVariableId("urn:var:semiring")
     label = Label(
