@@ -13,7 +13,7 @@ The important consequence is:
 
 - source branch artifacts remain the epistemic source of truth
 - the formal merge object is the semantic merge state
-- any merged claim file such as `claims/merged.yaml` is a materialized projection for storage/export convenience, not the ontological truth of the merge
+- materialized merge claim files are storage/export projections, not the ontological truth of the merge
 
 ## What Exists Now
 
@@ -22,12 +22,13 @@ The storage layer exposes these public merge modules:
 | Module | What it does |
 |---|---|
 | `argumentation.partial_af` | `PartialArgumentationFramework`, completion enumeration, exact per-pair edit distance, exact AF merge operators, skeptical and credulous completion queries |
-| `propstore/storage/merge_classifier.py` | `MergeArgument`, `RepositoryMergeFramework`, `build_merge_framework()` — direct storage emission of the formal merge object |
-| `propstore/storage/merge_commit.py` | `create_merge_commit()` — two-parent storage merge built from the formal merge object |
-| `propstore/storage/merge_report.py` | storage-facing summary/report helper over merge frameworks |
-| `propstore/storage/structured_merge.py` | branch-local structured summaries via ASPIC projection, then exact merge candidates over those summaries |
+| `propstore/merge/merge_classifier.py` | `MergeArgument`, `RepositoryMergeFramework`, `IntegrityConstraint`, `build_merge_framework()` — direct storage emission of the formal merge object |
+| `propstore/merge/merge_commit.py` | `create_merge_commit()` — two-parent storage merge built from the formal merge object |
+| `propstore/merge/merge_report.py` | storage-facing summary/report helper over merge frameworks |
+| `propstore/merge/structured_merge.py` | branch-local structured summaries via ASPIC projection, then exact merge candidates over those summaries |
+| `propstore/families/sameas/` | graded sameAs assertion documents for explicit identity evidence |
 
-`propstore/storage/__init__.py` re-exports the public merge surface.
+The CLI and application layers consume these owner modules rather than owning merge semantics themselves.
 
 ## Formal Mapping
 
@@ -36,6 +37,8 @@ The storage layer exposes these public merge modules:
 | branch | isolated source belief state | implemented operationally |
 | merge-base | common ancestor for source comparison | implemented |
 | repo merge object | partial argumentation framework over emitted alternatives | implemented |
+| n-ary profile input | additional branch snapshots beyond the two git parents | implemented for merge-framework construction |
+| integrity constraint surface | required/forbidden artifact pruning for candidate arguments | implemented first slice |
 | completion query | skeptical / credulous acceptance over completions | implemented |
 | exact AF merge operators | Sum / Max / Leximax over tiny AF profiles | implemented |
 | storage merge commit | provenance-preserving two-parent commit | implemented |
@@ -45,19 +48,25 @@ The literature alignment is:
 
 - **Coste-Marquis et al. 2007**: partial frameworks, consensual expansion, completions, AF-level merge operators
 - **Konieczny & Pino Perez 2002**: operator vocabulary and aggregation intuition
+- **Halpin et al. 2010 / Beek et al. 2018**: sameAs links are explicit graded evidence, not unconditional union-find closure
+- **Buneman et al. 2001**: materialized alternatives carry source witness basis and where/why provenance
+- **Roddick 1995**: non-claim file disagreement is surfaced as conflict, not silently resolved by side bias
 - **Modgil / Prakken / ASPIC+**: branch-local structured summaries
 
 ## Repository Merge Object
 
-`propstore/storage/merge_classifier.py`
+`propstore/merge/merge_classifier.py`
 
 ### `build_merge_framework()`
 
 ```python
 def build_merge_framework(
-    kr: GitStore,
+    snapshot: RepositorySnapshot,
     branch_a: str,
     branch_b: str,
+    *,
+    integrity_constraint: IntegrityConstraint | None = None,
+    additional_branches: Sequence[str] = (),
 ) -> RepositoryMergeFramework
 ```
 
@@ -66,25 +75,30 @@ This is the public storage merge boundary.
 It:
 
 1. finds the merge base
-2. loads claims from base, left, and right snapshots via `GitTreeReader`
+2. loads claims from base and branch snapshots through the repository family layer
 3. emits branch-specific alternatives as `MergeArgument` objects
 4. constructs a `PartialArgumentationFramework` over the emitted alternatives
+5. optionally prunes emitted alternatives against the integrity-constraint surface
 
 The output is:
 
 - `RepositoryMergeFramework.branch_a`, `branch_b`
 - `RepositoryMergeFramework.arguments`: emitted alternatives with provenance
 - `RepositoryMergeFramework.framework`: the formal partial framework
+- `RepositoryMergeFramework.semantic_candidates`: non-collapsed semantic-near matches that require explicit identity evidence before convergence
 
 ### `MergeArgument`
 
 Each emitted alternative carries:
 
-- `claim_id`: emitted ID, possibly disambiguated
-- `canonical_claim_id`: original semantic claim identity before emission
+- `assertion_id`: situated assertion identity, including provenance and conditions
+- `artifact_id`: canonical claim artifact identity
+- `logical_id`: source logical handle when available
+- `canonical_claim_id`: merge grouping key; logical-id aliases do not union artifacts unless accepted sameAs evidence supports that grouping
 - `concept_id`
-- `claim`: full claim dict ready for storage serialization
+- `claim`: typed merge claim ready for storage serialization
 - `branch_origins`: source branches supporting this emitted alternative
+- `witness_basis`: source artifact/paper/page/branch witness records
 
 ### How disagreement is represented
 
@@ -93,8 +107,20 @@ The public output is no longer a six-valued merge enum. Instead:
 - **compatible / identical / one-sided edit** cases collapse to one emitted alternative where appropriate
 - **conflict** cases emit both branch alternatives and mark them as mutual `attack`
 - **phi-node / regime split** cases emit both branch alternatives and mark them as mutual `ignorance`
+- **untranslatable condition** cases emit ignorance rather than being relabelled as phi-nodes
+- **unknown detector output** remains explicit ignorance; the merge layer no longer guesses from concept equality
 
-The internal left-v-right conflict check still uses the existing conflict detector to distinguish genuine overlap from regime split. But that distinction now feeds the formal merge object directly instead of becoming the public API.
+The internal conflict check still uses the existing conflict detector to distinguish genuine overlap from regime split. That distinction feeds the formal merge object directly instead of becoming a storage-time commitment. Comparisons without source-paper provenance fail instead of inventing a synthetic source.
+
+### sameAs Discipline
+
+Logical-id aliases are not transitive truth. Shared handles can suggest candidate identity, but they do not trigger unconditional union-find closure. Explicit sameAs evidence lives under the `sameas/` family with graded Halpin-style relation values:
+
+- `sim:sameIndividual`
+- `sim:claimsIdentical`
+- `sim:almostSameAs`
+
+The merge boundary keeps artifacts distinct unless accepted sameAs evidence supports convergence.
 
 ## Partial Framework Kernel
 
@@ -166,18 +192,18 @@ Currently supported semantics are:
 
 ## Storage Merge Commits
 
-`propstore/storage/merge_commit.py`
+`propstore/merge/merge_commit.py`
 
 ### `create_merge_commit()`
 
 ```python
 def create_merge_commit(
-    kr: GitStore,
+    snapshot: RepositorySnapshot,
     branch_a: str,
     branch_b: str,
     message: str = "",
     *,
-    target_branch: str = "master",
+    target_branch: str | None = None,
 ) -> str
 ```
 
@@ -185,9 +211,11 @@ This creates a two-parent commit from the formal merge framework.
 
 Behavior:
 
-- non-claim files are merged left-over-right
+- non-claim file disagreements raise an explicit conflict instead of silently choosing a side
 - claim content is serialized from `RepositoryMergeFramework.arguments`
-- conflicting emitted alternatives keep disambiguated IDs and `branch_origin` provenance
+- conflicting emitted alternatives keep canonical artifact IDs and branch-origin provenance
+- manifest rows include witness-basis records
+- claim-file source papers come from the materialized source claims, not a synthetic `"merged"` paper
 - the commit stores both parents and updates `target_branch`
 
 This is the storage representation of a merge, not the query-time merge operator.
@@ -195,7 +223,7 @@ It should be read as a projection artifact, not as the thing that makes the disa
 
 ## Structured Merge Slice
 
-`propstore/storage/structured_merge.py`
+`propstore/merge/structured_merge.py`
 
 ### `build_branch_structured_summary()`
 
@@ -211,6 +239,10 @@ Then it builds a branch-local ASPIC projection via `build_aspic_projection()`.
 Builds two branch-local structured summaries, extracts their AFs, and feeds those AFs through the exact operator layer (`sum`, `max`, or `leximax`).
 
 This is the first implemented slice of the structured boundary. It is a branch-local structured summary pipeline, not yet a full theorem about instantiate-then-merge versus merge-then-instantiate.
+
+### `argumentation_evidence_from_projection()`
+
+Structured merge evidence supports grounded, preferred, and stable semantics. For multi-extension semantics, `accepted_assertion_ids` is the credulous set and `skeptical_assertion_ids` is the skeptical set.
 
 ## CLI Surface
 
@@ -236,7 +268,7 @@ Creates the two-parent storage merge commit from the same formal merge object an
 
 - `surface: storage_merge_commit`
 - `branch_a`, `branch_b`, and `target_branch`
-- `claims_path: claims/merged.yaml`
+- materialized claim files grouped by source and rival origin
 - `manifest_path: merge/manifest.yaml`
 - `commit_sha`
 
@@ -248,6 +280,7 @@ Creates the two-parent storage merge commit from the same formal merge object an
 - full structured merge equivalence theorems are not yet established
 - the exact AF merge operators are not optimized for large profiles
 - source-weighted structured preference aggregation is not yet implemented
+- the first IC surface is a repository merge constraint hook, not a full proof that every IC0-IC8 postulate holds for every future merge policy
 
 ## References
 
