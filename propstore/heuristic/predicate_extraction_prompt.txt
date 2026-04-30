@@ -1,0 +1,6 @@
+Extract paper-scoped predicate declarations from the supplied meta-paper notes.
+
+Return strict JSON with a top-level "declarations" list. Each declaration must
+have name, arity, arg_types, and description. The first arg_type must be
+"paper_id". Supported arg_types are paper_id, int, float, str, bool, and
+enum:<member>|<member>|...
