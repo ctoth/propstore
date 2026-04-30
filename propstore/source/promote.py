@@ -48,6 +48,12 @@ from propstore.families.registry import (
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.provenance import (
+    Provenance,
+    ProvenanceStatus,
+    ProvenanceWitness,
+    write_provenance_note,
+)
 from propstore.repository import Repository
 from propstore.sidecar.sqlite import connect_sidecar
 from quire.documents import convert_document_value
@@ -69,6 +75,7 @@ from .common import (
     load_source_justifications_document,
     load_source_micropubs_document,
     load_source_stances_document,
+    utc_now,
     normalize_source_slug,
     source_branch_name,
     source_paper_slug,
@@ -998,6 +1005,25 @@ def promote_source_branch(
             prepared_sidecar_path.unlink(missing_ok=True)
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
+    source_branch_tip = repo.snapshot.branch_head(promotion_plan.source_branch)
+    write_provenance_note(
+        repo.git.raw_repo,
+        sha,
+        Provenance(
+            status=ProvenanceStatus.STATED,
+            graph_name=f"urn:propstore:source-promote:{sha}",
+            witnesses=(
+                ProvenanceWitness(
+                    asserter="urn:propstore:agent:source-promote",
+                    timestamp=utc_now(),
+                    source_artifact_code=promotion_plan.source_branch,
+                    method="promote",
+                ),
+            ),
+            derived_from=(() if source_branch_tip is None else (source_branch_tip,)),
+            operations=("promote",),
+        ),
+    )
     _commit_promote_time_trust_calibration(
         repo,
         source_name,
