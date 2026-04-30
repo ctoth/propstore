@@ -122,15 +122,18 @@ def propose_predicates_for_paper(
     model_name: str,
     prompt_version: str = "v1",
     dry_run: bool = False,
+    llm_response: str | None = None,
 ) -> PredicateProposalResult:
     notes = _paper_notes(source_paper)
-    raw = _llm_call(
-        model_name=model_name,
-        prompt=PROMPT_TEMPLATE,
-        prompt_version=prompt_version,
-        source_paper=source_paper,
-        notes=notes,
-    )
+    raw = llm_response
+    if raw is None:
+        raw = _llm_call(
+            model_name=model_name,
+            prompt=PROMPT_TEMPLATE,
+            prompt_version=prompt_version,
+            source_paper=source_paper,
+            notes=notes,
+        )
     declarations = _declarations_from_payload(_loads_payload(raw))
     document = _proposal_document(
         source_paper=source_paper,

@@ -194,17 +194,20 @@ def propose_rules_for_paper(
     model_name: str,
     prompt_version: str = "v1",
     dry_run: bool = False,
+    llm_response: str | None = None,
 ) -> RuleProposalResult:
     notes = _paper_notes(source_paper)
     registered, predicates_sha = _registered_predicates(repo, source_paper)
-    raw = _llm_call(
-        model_name=model_name,
-        prompt=PROMPT_TEMPLATE,
-        prompt_version=prompt_version,
-        source_paper=source_paper,
-        notes=notes,
-        predicates=sorted(registered),
-    )
+    raw = llm_response
+    if raw is None:
+        raw = _llm_call(
+            model_name=model_name,
+            prompt=PROMPT_TEMPLATE,
+            prompt_version=prompt_version,
+            source_paper=source_paper,
+            notes=notes,
+            predicates=sorted(registered),
+        )
     raw_rules = _loads_payload(raw).get("rules")
     if not isinstance(raw_rules, list):
         raise ValueError("rule extraction output requires rules list")
