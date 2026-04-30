@@ -3,10 +3,9 @@
 This module persists the four gunray answer sections
 (``yes`` / ``no`` / ``undecided`` / ``unknown``)
 from a :class:`propstore.grounding.bundle.GroundedRulesBundle` into
-the sidecar's SQLite store. Phase 1 scope: only the ``sections`` map
-of the bundle is written to storage; the ``source_rules`` and
-``source_facts`` fields are carried by the bundle itself but are not
-part of the grounded-fact table contract.
+the sidecar's SQLite store. The grounding inputs are persisted with
+explicit JSON payloads rather than Python object pickles because the
+sidecar is a durable boundary, not an in-process cache.
 
 The design follows the existing sidecar convention of *one topic
 module per subsystem* (``claims.py``, ``concepts.py``, ``sources.py``);
@@ -57,13 +56,18 @@ Theoretical anchors:
 from __future__ import annotations
 
 import json
-import pickle
 import sqlite3
 from collections.abc import Mapping
+from pathlib import Path
 from types import MappingProxyType
 
+import gunray
+import msgspec
 from argumentation.aspic import Scalar
+from argumentation.aspic import GroundAtom as AspicGroundAtom
+from propstore.families.documents.rules import RulesFileDocument
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.rule_files import LoadedRuleFile
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system. The
 # tuple order is the deterministic iteration order used by
@@ -240,7 +244,7 @@ def _persist_bundle_inputs(conn: sqlite3.Connection, bundle: GroundedRulesBundle
             conn.execute(
                 "INSERT INTO grounded_bundle_input "
                 "(kind, position, payload) VALUES (?, ?, ?)",
-                (kind, position, pickle.dumps(value)),
+                (kind, position, _encode_bundle_input(kind, value)),
             )
 
 
@@ -249,7 +253,145 @@ def _read_bundle_inputs(conn: sqlite3.Connection, kind: str) -> tuple[object, ..
         "SELECT payload FROM grounded_bundle_input WHERE kind = ? ORDER BY position",
         (kind,),
     )
-    return tuple(pickle.loads(payload) for (payload,) in cursor.fetchall())
+    return tuple(_decode_bundle_input(kind, payload) for (payload,) in cursor.fetchall())
+
+
+def _encode_bundle_input(kind: str, value: object) -> bytes:
+    payload = _bundle_input_payload(kind, value)
+    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _decode_bundle_input(kind: str, payload: bytes) -> object:
+    decoded = json.loads(payload.decode("utf-8"))
+    if not isinstance(decoded, dict) or decoded.get("kind") != kind:
+        raise ValueError(f"grounded bundle input payload has wrong kind for {kind!r}")
+    tag = decoded.get("tag")
+    value = decoded.get("value")
+    if tag == "json":
+        return value
+    if tag == "aspic_ground_atom":
+        if not isinstance(value, dict):
+            raise ValueError("aspic ground atom payload must be an object")
+        return AspicGroundAtom(
+            predicate=str(value["predicate"]),
+            arguments=tuple(value["arguments"]),
+        )
+    if tag == "gunray_argument":
+        if not isinstance(value, dict):
+            raise ValueError("gunray argument payload must be an object")
+        return gunray.Argument(
+            rules=frozenset(_decode_gunray_rule(rule) for rule in value["rules"]),
+            conclusion=_decode_gunray_atom(value["conclusion"]),
+        )
+    if tag == "loaded_rule_file":
+        if not isinstance(value, dict):
+            raise ValueError("loaded rule file payload must be an object")
+        document = msgspec.convert(value["document"], type=RulesFileDocument)
+        source_path = value.get("source_path")
+        knowledge_root = value.get("knowledge_root")
+        return LoadedRuleFile(
+            filename=str(value["filename"]),
+            source_path=None if source_path is None else Path(str(source_path)),
+            knowledge_root=None if knowledge_root is None else Path(str(knowledge_root)),
+            document=document,
+        )
+    raise ValueError(f"unsupported grounded bundle input tag {tag!r}")
+
+
+def _bundle_input_payload(kind: str, value: object) -> dict[str, object]:
+    if _is_json_value(value):
+        return {"kind": kind, "tag": "json", "value": value}
+    if isinstance(value, AspicGroundAtom):
+        return {
+            "kind": kind,
+            "tag": "aspic_ground_atom",
+            "value": {
+                "predicate": value.predicate,
+                "arguments": list(value.arguments),
+            },
+        }
+    if isinstance(value, gunray.Argument):
+        return {
+            "kind": kind,
+            "tag": "gunray_argument",
+            "value": {
+                "rules": [
+                    _encode_gunray_rule(rule)
+                    for rule in sorted(value.rules, key=_rule_key)
+                ],
+                "conclusion": _encode_gunray_atom(value.conclusion),
+            },
+        }
+    if isinstance(value, LoadedRuleFile):
+        return {
+            "kind": kind,
+            "tag": "loaded_rule_file",
+            "value": {
+                "filename": value.filename,
+                "source_path": None if value.source_path is None else str(value.source_path),
+                "knowledge_root": (
+                    None if value.knowledge_root is None else str(value.knowledge_root)
+                ),
+                "document": msgspec.to_builtins(value.document),
+            },
+        }
+    raise TypeError(f"cannot persist grounded bundle {kind} input {type(value).__name__}")
+
+
+def _is_json_value(value: object) -> bool:
+    if value is None or isinstance(value, str | int | float | bool):
+        return True
+    if isinstance(value, tuple | list):
+        return all(_is_json_value(item) for item in value)
+    if isinstance(value, dict):
+        return all(
+            isinstance(key, str) and _is_json_value(item)
+            for key, item in value.items()
+        )
+    return False
+
+
+def _encode_gunray_atom(atom: gunray.GroundAtom) -> dict[str, object]:
+    return {"predicate": atom.predicate, "arguments": list(atom.arguments)}
+
+
+def _decode_gunray_atom(payload: object) -> gunray.GroundAtom:
+    if not isinstance(payload, dict):
+        raise ValueError("gunray atom payload must be an object")
+    return gunray.GroundAtom(
+        predicate=str(payload["predicate"]),
+        arguments=tuple(payload["arguments"]),
+    )
+
+
+def _encode_gunray_rule(rule: gunray.GroundDefeasibleRule) -> dict[str, object]:
+    return {
+        "rule_id": rule.rule_id,
+        "kind": rule.kind,
+        "head": _encode_gunray_atom(rule.head),
+        "body": [_encode_gunray_atom(atom) for atom in rule.body],
+        "default_negated_body": [
+            _encode_gunray_atom(atom) for atom in rule.default_negated_body
+        ],
+    }
+
+
+def _decode_gunray_rule(payload: object) -> gunray.GroundDefeasibleRule:
+    if not isinstance(payload, dict):
+        raise ValueError("gunray rule payload must be an object")
+    return gunray.GroundDefeasibleRule(
+        rule_id=str(payload["rule_id"]),
+        kind=str(payload["kind"]),
+        head=_decode_gunray_atom(payload["head"]),
+        body=tuple(_decode_gunray_atom(atom) for atom in payload["body"]),
+        default_negated_body=tuple(
+            _decode_gunray_atom(atom) for atom in payload["default_negated_body"]
+        ),
+    )
+
+
+def _rule_key(rule: gunray.GroundDefeasibleRule) -> tuple[str, str, str]:
+    return (rule.rule_id, rule.kind, repr(rule.head))
 
 
 def read_grounded_facts(
