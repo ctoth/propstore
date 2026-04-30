@@ -25,13 +25,13 @@ from propstore.core.conditions.ir import (
 @dataclass(frozen=True)
 class _Projection:
     term: Any
-    guards: tuple[Any, ...] = ()
+    defined: Any = z3.BoolVal(True)
 
 
 def condition_ir_to_z3(condition: ConditionIR) -> Any:
     projection = _project(condition)
-    if projection.guards and _is_boolean_term(projection.term):
-        return z3.And(*projection.guards, projection.term)
+    if _is_boolean_term(projection.term):
+        return z3.And(projection.defined, projection.term)
     return projection.term
 
 
@@ -56,9 +56,9 @@ def _project(condition: ConditionIR) -> _Projection:
     if isinstance(condition, ConditionUnary):
         operand = _project(condition.operand)
         if condition.op == ConditionUnaryOp.NOT:
-            return _Projection(z3.Not(operand.term), operand.guards)
+            return _Projection(z3.Not(operand.term), operand.defined)
         if condition.op == ConditionUnaryOp.NEGATE:
-            return _Projection(-operand.term, operand.guards)
+            return _Projection(-operand.term, operand.defined)
         raise ValueError(f"unsupported unary condition op: {condition.op}")
     if isinstance(condition, ConditionBinary):
         return _project_binary(condition)
@@ -94,34 +94,48 @@ def _reference_term(condition: ConditionReference) -> Any:
 def _project_binary(condition: ConditionBinary) -> _Projection:
     left = _project(condition.left)
     right = _project(condition.right)
-    guards = left.guards + right.guards
+    defined = z3.And(left.defined, right.defined)
 
     if condition.op == ConditionBinaryOp.AND:
-        return _Projection(z3.And(left.term, right.term), guards)
+        return _Projection(
+            z3.And(left.term, right.term),
+            z3.Or(
+                z3.And(left.defined, z3.Not(left.term)),
+                z3.And(right.defined, z3.Not(right.term)),
+                defined,
+            ),
+        )
     if condition.op == ConditionBinaryOp.OR:
-        return _Projection(z3.Or(left.term, right.term), guards)
+        return _Projection(
+            z3.Or(left.term, right.term),
+            z3.Or(
+                z3.And(left.defined, left.term),
+                z3.And(right.defined, right.term),
+                defined,
+            ),
+        )
     if condition.op == ConditionBinaryOp.EQUAL:
-        return _Projection(left.term == right.term, guards)
+        return _Projection(left.term == right.term, defined)
     if condition.op == ConditionBinaryOp.NOT_EQUAL:
-        return _Projection(left.term != right.term, guards)
+        return _Projection(left.term != right.term, defined)
     if condition.op == ConditionBinaryOp.LESS_THAN:
-        return _Projection(left.term < right.term, guards)
+        return _Projection(left.term < right.term, defined)
     if condition.op == ConditionBinaryOp.LESS_THAN_OR_EQUAL:
-        return _Projection(left.term <= right.term, guards)
+        return _Projection(left.term <= right.term, defined)
     if condition.op == ConditionBinaryOp.GREATER_THAN:
-        return _Projection(left.term > right.term, guards)
+        return _Projection(left.term > right.term, defined)
     if condition.op == ConditionBinaryOp.GREATER_THAN_OR_EQUAL:
-        return _Projection(left.term >= right.term, guards)
+        return _Projection(left.term >= right.term, defined)
     if condition.op == ConditionBinaryOp.ADD:
-        return _Projection(left.term + right.term, guards)
+        return _Projection(left.term + right.term, defined)
     if condition.op == ConditionBinaryOp.SUBTRACT:
-        return _Projection(left.term - right.term, guards)
+        return _Projection(left.term - right.term, defined)
     if condition.op == ConditionBinaryOp.MULTIPLY:
-        return _Projection(left.term * right.term, guards)
+        return _Projection(left.term * right.term, defined)
     if condition.op == ConditionBinaryOp.DIVIDE:
         return _Projection(
             left.term / right.term,
-            guards + (right.term != z3.RealVal(0),),
+            z3.And(defined, right.term != z3.RealVal(0)),
         )
     raise ValueError(f"unsupported binary condition op: {condition.op}")
 
@@ -129,13 +143,13 @@ def _project_binary(condition: ConditionBinary) -> _Projection:
 def _project_membership(condition: ConditionMembership) -> _Projection:
     element = _project(condition.element)
     options = tuple(_project(option) for option in condition.options)
-    guards = element.guards + tuple(guard for option in options for guard in option.guards)
+    defined = z3.And(element.defined, *(option.defined for option in options))
     clauses = tuple(element.term == option.term for option in options)
     if not clauses:
-        return _Projection(z3.BoolVal(False), guards)
+        return _Projection(z3.BoolVal(False), defined)
     if len(clauses) == 1:
-        return _Projection(clauses[0], guards)
-    return _Projection(z3.Or(*clauses), guards)
+        return _Projection(clauses[0], defined)
+    return _Projection(z3.Or(*clauses), defined)
 
 
 def _project_choice(condition: ConditionChoice) -> _Projection:
@@ -144,7 +158,13 @@ def _project_choice(condition: ConditionChoice) -> _Projection:
     when_false = _project(condition.when_false)
     return _Projection(
         z3.If(test.term, when_true.term, when_false.term),
-        test.guards + when_true.guards + when_false.guards,
+        z3.And(
+            test.defined,
+            z3.Or(
+                z3.And(test.term, when_true.defined),
+                z3.And(z3.Not(test.term), when_false.defined),
+            ),
+        ),
     )
 
 
