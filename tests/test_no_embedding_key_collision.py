@@ -3,6 +3,10 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
 from propstore.sidecar.embedding_store import ensure_embedding_tables
 
 
@@ -109,3 +113,46 @@ def test_embedding_sanitizer_deleted() -> None:
 
     assert "_sanitize_model_key" not in embed_source
 
+
+_identity_text = st.text(
+    alphabet=st.characters(
+        blacklist_categories=("Cs",),
+        blacklist_characters=("\x00",),
+    ),
+    min_size=1,
+    max_size=24,
+)
+
+
+@pytest.mark.property
+@given(
+    tuples=st.lists(
+        st.tuples(
+            _identity_text,
+            _identity_text,
+            _identity_text,
+            st.integers(min_value=1, max_value=4096).map(lambda value: f"dim:{value}"),
+        ),
+        min_size=1,
+        max_size=20,
+        unique=True,
+    )
+)
+@settings(max_examples=100)
+def test_embedding_model_identity_hash_is_injective_over_generated_tuples(
+    tuples: list[tuple[str, str, str, str]],
+) -> None:
+    """WS-K property: identity uses the full provider/name/revision/spec tuple."""
+    from propstore.heuristic.embedding_identity import EmbeddingModelIdentity
+
+    identities = [
+        EmbeddingModelIdentity(
+            provider=provider,
+            model_name=model_name,
+            model_version=model_version,
+            content_digest=content_digest,
+        )
+        for provider, model_name, model_version, content_digest in tuples
+    ]
+
+    assert len({identity.identity_hash for identity in identities}) == len(tuples)

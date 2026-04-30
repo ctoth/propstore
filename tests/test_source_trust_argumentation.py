@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
+
+import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.registry import SourceRef
@@ -71,3 +76,50 @@ def test_calibrate_source_trust_uses_stubbed_argumentation_rules(tmp_path: Path)
     assert defaulted.status is ProvenanceStatus.DEFAULTED
     assert defaulted.prior_base_rate == Opinion.vacuous(0.5)
     assert defaulted.derived_from == ()
+
+
+@pytest.mark.property
+@given(
+    domain=st.sampled_from(["psychology", "medicine", "economics"]),
+    replication=st.sampled_from(["direct", "conceptual"]),
+    effect=st.sampled_from(["support", "attack"]),
+    weight=st.floats(min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False),
+    base_rate=st.floats(min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False),
+)
+@settings(max_examples=32)
+def test_generated_source_trust_rules_emit_provenanced_argumentation_output(
+    domain: str,
+    replication: str,
+    effect: str,
+    weight: float,
+    base_rate: float,
+) -> None:
+    """WS-K property: trust is calibrated by rule firings with provenance."""
+    from propstore.source_trust_argumentation import calibrate_source_trust
+
+    with tempfile.TemporaryDirectory() as directory:
+        repo = Repository.init(Path(directory) / "knowledge")
+        _source(repo, "generated", {"domain": domain, "replication": replication})
+
+        result = calibrate_source_trust(
+            repo,
+            "generated",
+            rule_corpus=(
+                {
+                    "id": "generated-rule",
+                    "effect": effect,
+                    "conditions": {"domain": domain, "replication": replication},
+                    "weight": weight,
+                    "base_rate": base_rate,
+                },
+            ),
+        )
+
+    assert result.status is ProvenanceStatus.CALIBRATED
+    assert result.derived_from
+    assert result.derived_from[0].rule_id == "generated-rule"
+    assert result.derived_from[0].effect == effect
+    assert isinstance(result.prior_base_rate, Opinion)
+    assert result.prior_base_rate.a == pytest.approx(base_rate)
+    assert result.world_snapshot_sha
+    assert result.kernel_version
