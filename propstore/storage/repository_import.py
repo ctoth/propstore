@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -15,6 +17,17 @@ from propstore.source.stages import (
     PlannedSemanticWrite,
     SourceImportAuthoredWrites,
     SourceImportNormalizedWrites,
+)
+from propstore.provenance import (
+    Provenance,
+    ProvenanceStatus,
+    ProvenanceWitness,
+    write_provenance_note,
+)
+from propstore.provenance.records import (
+    ImportRunProvenanceRecord,
+    LicenseProvenanceRecord,
+    SourceVersionProvenanceRecord,
 )
 
 if TYPE_CHECKING:
@@ -32,6 +45,7 @@ class RepositoryImportPlan:
     writes: dict[str, PlannedSemanticWrite]
     deletes: list[str]
     touched_paths: list[str]
+    import_run: ImportRunProvenanceRecord
     warnings: list[str] = field(default_factory=list)
 
 
@@ -63,6 +77,31 @@ def _iter_semantic_paths(repository: Repository, *, commit: str) -> dict[str, by
             roots=semantic_import_roots(),
         )
     }
+
+
+def _import_run_record(
+    *,
+    source_repository: str,
+    source_commit: str,
+    repository_name: str,
+) -> ImportRunProvenanceRecord:
+    source_digest = hashlib.sha256(source_repository.encode("utf-8")).hexdigest()
+    source = SourceVersionProvenanceRecord(
+        source_id=f"urn:propstore:repository:{source_digest}",
+        version_id=source_commit,
+        content_hash=f"git:{source_commit}",
+    )
+    license_record = LicenseProvenanceRecord(
+        license_id="urn:propstore:license:unspecified",
+        label="Unspecified",
+    )
+    return ImportRunProvenanceRecord(
+        run_id=f"urn:propstore:repository-import:{source_commit}",
+        importer_id="urn:propstore:agent:repository-import",
+        imported_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        source=source,
+        license=license_record,
+    )
 
 
 def plan_repository_import(
@@ -115,6 +154,11 @@ def plan_repository_import(
         writes=writes,
         deletes=deletes,
         touched_paths=touched_paths,
+        import_run=_import_run_record(
+            source_repository=str(source_repository.root),
+            source_commit=source_commit,
+            repository_name=repository_name,
+        ),
         warnings=warnings,
     )
 
@@ -151,6 +195,24 @@ def commit_repository_import(
         commit_sha = head_txn.commit_sha
     if commit_sha is None:
         raise ValueError("repo import transaction did not produce a commit")
+    write_provenance_note(
+        repository.git.raw_repo,
+        commit_sha,
+        Provenance(
+            status=ProvenanceStatus.STATED,
+            graph_name=f"urn:propstore:repository-import:{commit_sha}",
+            witnesses=(
+                ProvenanceWitness(
+                    asserter=plan.import_run.importer_id,
+                    timestamp=plan.import_run.imported_at,
+                    source_artifact_code=plan.source_repository,
+                    method="repository-import",
+                ),
+            ),
+            derived_from=(plan.source_commit,),
+            operations=("repository-import",),
+        ),
+    )
 
     return RepositoryImportResult(
         surface="repository_import_commit",
