@@ -30,6 +30,7 @@ def test_semantic_registry_declares_complete_canonical_family_set() -> None:
         "forms",
         "predicates",
         "rules",
+        "sameas",
         "stances",
         "worldlines",
     }

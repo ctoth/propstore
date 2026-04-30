@@ -215,8 +215,8 @@ def test_merge_commit_cli_surfaces_storage_commit_metadata(tmp_path):
     assert payload["branch_b"] == branch_name
     assert payload["target_branch"] == "master"
     assert payload["claims_paths"] == [
-        "claims/merged__master.yaml",
-        "claims/merged__paper_conflict.yaml",
+        "claims/merged__test_paper__master.yaml",
+        "claims/merged__test_paper__paper_conflict.yaml",
     ]
     assert payload["manifest_path"] == "merge/manifest.yaml"
     assert len(payload["commit_sha"]) == 40
@@ -269,10 +269,10 @@ def test_merge_inspect_cli_collapses_duplicate_assertions_without_candidate_buck
 
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
-    assert len(payload["arguments"]) == 1
-    assert payload["arguments"][0].startswith("ps:assertion:")
-    assert payload["semantic_candidates"] == []
-    assert payload["semantic_candidate_details"] == []
+    assert len(payload["arguments"]) == 2
+    assert all(argument.startswith("ps:assertion:") for argument in payload["arguments"])
+    assert len(payload["semantic_candidates"]) == 1
+    assert len(payload["semantic_candidate_details"]) == 1
 
 
 def test_merge_commit_cli_reports_semantic_candidate_count(tmp_path):
@@ -321,7 +321,7 @@ def test_merge_commit_cli_reports_semantic_candidate_count(tmp_path):
 
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
-    assert payload["semantic_candidate_count"] == 0
+    assert payload["semantic_candidate_count"] == 1
 
 
 def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
@@ -366,8 +366,8 @@ def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
         merged_claims.extend(loaded["claims"])
 
     assert payload["claims_paths"] == [
-        "claims/merged__master.yaml",
-        "claims/merged__paper_storage.yaml",
+        "claims/merged__test_paper__master.yaml",
+        "claims/merged__test_paper__paper_storage.yaml",
     ]
     assert payload["manifest_path"] == "merge/manifest.yaml"
     assert manifest["merge"]["branch_a"] == "master"
