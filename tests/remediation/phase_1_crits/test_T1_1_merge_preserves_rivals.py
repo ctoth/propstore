@@ -92,8 +92,15 @@ def test_merge_preserves_rival_bodies(left_body: str, right_body: str) -> None:
             for claim in claim_file_payload(claim_file).get("claims", [])
             if claim["artifact_id"] in materialized_claim_ids
         ]
+        version_ids = {
+            claim["version_id"]
+            for claim_file in claim_files
+            for claim in claim_file_payload(claim_file).get("claims", [])
+            if claim["artifact_id"] in materialized_claim_ids
+        }
 
-        assert len(materialized_claim_ids) == 2
+        assert len(materialized_claim_ids) == 1
         assert len(bodies) == 2
+        assert len(version_ids) == 2
         assert left_body in bodies
         assert right_body in bodies
