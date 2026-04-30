@@ -180,6 +180,7 @@ def commit_stance_proposals(
         raise ValueError("stances_by_claim must not be empty")
 
     target_branch = stance_proposal_branch(repo) if branch is None else branch
+    sha: str | None = None
     with repo.families.transact(
         message=(
             f"Record {len(stances_by_claim)} stance proposal file(s)"
@@ -196,7 +197,8 @@ def commit_stance_proposals(
                 build_stance_document(source_claim_id, stances, model_name),
             )
             relpaths.append(repo.families.proposal_stances.address(ref).require_path())
-    sha = transaction.commit_sha
+        transaction.transaction.commit()
+        sha = transaction.commit_sha
     if sha is None:
         raise ValueError("stance proposal transaction did not produce a commit")
     return sha, sorted(relpaths)
