@@ -474,6 +474,7 @@ class SourceJustificationsDocument(DocumentStruct):
 
 class SourceStanceEntryDocument(DocumentStruct):
     source_claim: str | None = None
+    perspective_source_claim_id: str | None = None
     target: str | None = None
     type: StanceType | None = None
     strength: str | None = None
@@ -487,6 +488,8 @@ class SourceStanceEntryDocument(DocumentStruct):
         payload: dict[str, Any] = {}
         if self.source_claim is not None:
             payload["source_claim"] = self.source_claim
+        if self.perspective_source_claim_id is not None:
+            payload["perspective_source_claim_id"] = self.perspective_source_claim_id
         if self.target is not None:
             payload["target"] = self.target
         if self.type is not None:

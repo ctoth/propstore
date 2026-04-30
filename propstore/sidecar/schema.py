@@ -166,6 +166,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             relation_type TEXT NOT NULL,
             target_kind TEXT NOT NULL,
             target_id TEXT NOT NULL,
+            perspective_source_claim_id TEXT,
             target_justification_id TEXT,
             conditions_cel TEXT,
             strength TEXT,

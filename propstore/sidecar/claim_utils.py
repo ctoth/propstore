@@ -180,11 +180,12 @@ def insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> None
         """
         INSERT INTO relation_edge (
             source_kind, source_id, relation_type, target_kind, target_id,
-            target_justification_id, strength, conditions_differ, note,
-            resolution_method, resolution_model, embedding_model,
-            embedding_distance, pass_number, confidence, opinion_belief,
-            opinion_disbelief, opinion_uncertainty, opinion_base_rate
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            perspective_source_claim_id, target_justification_id, strength,
+            conditions_differ, note, resolution_method, resolution_model,
+            embedding_model, embedding_distance, pass_number, confidence,
+            opinion_belief, opinion_disbelief, opinion_uncertainty,
+            opinion_base_rate
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             "claim",
@@ -192,6 +193,7 @@ def insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> None
             stance_row[2],
             "claim",
             stance_row[1],
+            stance_row[17],
             stance_row[3],
             stance_row[4],
             normalize_conditions_differ(stance_row[5]),
@@ -643,6 +645,7 @@ def extract_deferred_stance_rows_with_diagnostics(
             opinion_columns[1],
             opinion_columns[2],
             opinion_columns[3],
+            claim_id,
         ))
     return rows, tuple(diagnostics)
 

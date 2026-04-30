@@ -327,6 +327,7 @@ class TestSidecarPopulatesOpinionColumns:
                 relation_type TEXT NOT NULL,
                 target_kind TEXT NOT NULL,
                 target_id TEXT NOT NULL,
+                perspective_source_claim_id TEXT,
                 target_justification_id TEXT,
                 strength TEXT,
                 conditions_differ TEXT,
@@ -402,6 +403,7 @@ class TestSidecarPopulatesOpinionColumns:
         assert row["opinion_disbelief"] == pytest.approx(0.0)
         assert row["opinion_uncertainty"] == pytest.approx(1.0)
         assert row["opinion_base_rate"] == pytest.approx(0.7)
+        assert row["perspective_source_claim_id"] == "c1"
         conn.close()
 
 
@@ -440,6 +442,7 @@ class TestSidecarHandlesOldFormatYaml:
                 relation_type TEXT NOT NULL,
                 target_kind TEXT NOT NULL,
                 target_id TEXT NOT NULL,
+                perspective_source_claim_id TEXT,
                 target_justification_id TEXT,
                 strength TEXT,
                 conditions_differ TEXT,

@@ -648,6 +648,10 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
                 f"stance file {filename} stance #{index}",
             )
             opinion_columns = resolution_opinion_columns(resolution)
+            perspective_source_claim = resolve_claim_reference(
+                stance.perspective_source_claim_id or data.source_claim,
+                claim_reference_map,
+            ) or source_claim
             rows.append(
                 ClaimStanceInsertRow(
                     (
@@ -668,6 +672,7 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
                         opinion_columns[1],
                         opinion_columns[2],
                         opinion_columns[3],
+                        perspective_source_claim,
                     )
                 )
             )

@@ -289,12 +289,9 @@ async def relate_all_async(
             chunk_pairs,
             results,
         ):
-            # Each result is [forward_stance, reverse_stance]
-            for stance in stance_pair:
-                # File under the source claim (the one whose perspective this is from)
-                # Forward: A's perspective -> file under A
-                # Reverse: B's perspective -> file under B
-                source_id = claim_a["id"] if stance["target"] == claim_b["id"] else claim_b["id"]
+            for index, stance in enumerate(stance_pair):
+                source_id = claim_a["id"] if index == 0 else claim_b["id"]
+                stance = {**stance, "perspective_source_claim_id": source_id}
                 if stance["type"] != "none":
                     all_stances.setdefault(source_id, []).append(stance)
                     total_stances += 1

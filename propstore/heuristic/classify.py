@@ -193,6 +193,7 @@ def _build_error_stance(
     embedding_distance: float | None,
     note: str,
     *,
+    perspective_source_claim_id: str | None = None,
     prompt: str | None = None,
     raw_response: object | None = None,
     llm_call_id: str | None = None,
@@ -214,7 +215,10 @@ def _build_error_stance(
             "raw_response": raw_response,
         },
     }
-    return {**base, "target": target_id}
+    payload = {**base, "target": target_id}
+    if perspective_source_claim_id is not None:
+        payload["perspective_source_claim_id"] = perspective_source_claim_id
+    return payload
 
 
 def _build_error_pair(
@@ -276,6 +280,7 @@ def _build_stance_dict(
     calibration_counts: dict[tuple[int, str], tuple[int, int]] | None,
     category_prior_registry: CategoryPriorRegistry | None,
     *,
+    perspective_source_claim_id: str,
     prompt: str,
     raw_response: dict,
     llm_call_id: str,
@@ -327,6 +332,7 @@ def _build_stance_dict(
 
     return {
         "target": target_id,
+        "perspective_source_claim_id": perspective_source_claim_id,
         "type": stance_type,
         "strength": strength,
         "note": raw.get("note", ""),
@@ -410,6 +416,7 @@ async def _classify_one_direction(
                 embedding_model,
                 embedding_distance,
                 "classification failed",
+                perspective_source_claim_id=source_claim["id"],
                 prompt=prompt,
             )
 
@@ -421,6 +428,7 @@ async def _classify_one_direction(
             embedding_model,
             embedding_distance,
             "missing response content",
+            perspective_source_claim_id=source_claim["id"],
             prompt=prompt,
         )
 
@@ -435,6 +443,7 @@ async def _classify_one_direction(
             embedding_model,
             embedding_distance,
             "JSON parse failed",
+            perspective_source_claim_id=source_claim["id"],
             prompt=prompt,
             raw_response=text,
             llm_call_id=call_id,
@@ -446,6 +455,7 @@ async def _classify_one_direction(
             embedding_model,
             embedding_distance,
             "non-object response",
+            perspective_source_claim_id=source_claim["id"],
             prompt=prompt,
             raw_response=result,
             llm_call_id=call_id,
@@ -460,6 +470,7 @@ async def _classify_one_direction(
         reference_distances,
         calibration_counts,
         category_prior_registry,
+        perspective_source_claim_id=source_claim["id"],
         prompt=prompt,
         raw_response=result,
         llm_call_id=call_id,

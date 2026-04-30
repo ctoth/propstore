@@ -363,6 +363,7 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
             relation_type TEXT NOT NULL,
             target_kind TEXT NOT NULL,
             target_id TEXT NOT NULL,
+            perspective_source_claim_id TEXT,
             conditions_cel TEXT,
             target_justification_id TEXT,
             strength TEXT,
