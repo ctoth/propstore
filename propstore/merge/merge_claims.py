@@ -130,10 +130,8 @@ def _semantic_payload(document: ClaimDocument) -> dict[str, Any]:
         "id",
         "logical_ids",
         "version_id",
-        "provenance",
         "stances",
         "context",
-        "conditions",
     ):
         payload.pop(key, None)
     return payload
