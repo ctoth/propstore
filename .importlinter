@@ -18,6 +18,14 @@ source_modules =
 forbidden_modules =
     propstore.heuristic
 
+[importlinter:contract:heuristic-source-finalize]
+name = heuristic -> source.finalize
+type = forbidden
+source_modules =
+    propstore.heuristic
+forbidden_modules =
+    propstore.source.finalize
+
 [importlinter:contract:concept-argumentation]
 name = concept -> argumentation
 type = forbidden
