@@ -657,15 +657,19 @@ def _resolve_type(node: ASTNode, expr: str, registry: Mapping[str, ConceptInfo],
     if isinstance(node, UnaryOpNode):
         if node.op == "!":
             inner = _resolve_type(node.operand, expr, registry, errors)
-            if inner == ExprType.NUMERIC:
-                errors.append(CelError(expr, "Cannot negate a numeric expression with '!'"))
+            if inner == ExprType.UNKNOWN:
+                return ExprType.UNKNOWN
+            if inner != ExprType.BOOLEAN:
+                errors.append(CelError(expr, f"Operand of '!' must be boolean, got {inner.value}"))
+                return ExprType.UNKNOWN
             return ExprType.BOOLEAN
         if node.op == "-":
             inner = _resolve_type(node.operand, expr, registry, errors)
-            if inner == ExprType.STRING:
-                errors.append(CelError(expr, "Cannot negate a string expression"))
-            if inner == ExprType.BOOLEAN:
-                errors.append(CelError(expr, "Cannot negate a boolean expression with unary minus"))
+            if inner == ExprType.UNKNOWN:
+                return ExprType.UNKNOWN
+            if inner != ExprType.NUMERIC:
+                errors.append(CelError(expr, f"Operand of unary '-' must be numeric, got {inner.value}"))
+                return ExprType.UNKNOWN
             return ExprType.NUMERIC
 
     if isinstance(node, BinaryOpNode):
@@ -675,9 +679,16 @@ def _resolve_type(node: ASTNode, expr: str, registry: Mapping[str, ConceptInfo],
         return _check_in(node, expr, registry, errors)
 
     if isinstance(node, TernaryNode):
-        _check_node(node.condition, expr, registry, errors)
+        condition_type = _resolve_type(node.condition, expr, registry, errors)
+        if condition_type not in {ExprType.BOOLEAN, ExprType.UNKNOWN}:
+            errors.append(CelError(expr, f"Ternary condition must be boolean, got {condition_type.value}"))
         t1 = _resolve_type(node.true_branch, expr, registry, errors)
-        _resolve_type(node.false_branch, expr, registry, errors)
+        t2 = _resolve_type(node.false_branch, expr, registry, errors)
+        if t1 == ExprType.UNKNOWN or t2 == ExprType.UNKNOWN:
+            return ExprType.UNKNOWN
+        if t1 != t2:
+            errors.append(CelError(expr, f"Ternary branches must have the same type, got {t1.value} and {t2.value}"))
+            return ExprType.UNKNOWN
         return t1
 
     return ExprType.UNKNOWN
