@@ -21,7 +21,7 @@ def derive_claim_artifact_id(namespace: str, value: str) -> str:
     normalized_value = logical_ids.normalize_logical_value(value)
     digest = hashlib.sha256(
         f"{normalized_namespace}:{normalized_value}".encode("utf-8")
-    ).hexdigest()[:16]
+    ).hexdigest()
     return f"ps:claim:{digest}"
 
 
