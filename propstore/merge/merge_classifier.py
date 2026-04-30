@@ -172,12 +172,20 @@ def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
 def _canonical_claim_groups(
     *indexes: dict[str, _IndexedClaim],
 ) -> dict[str, str]:
-    logical_id_counts: Counter[str] = Counter()
+    artifact_ids_by_logical_id: dict[str, set[str]] = {}
     claims_by_artifact_id: dict[str, _IndexedClaim] = {}
     for index in indexes:
         for artifact_id, claim in index.items():
             claims_by_artifact_id.setdefault(artifact_id, claim)
-            logical_id_counts.update(claim.logical_ids)
+            for logical_id in claim.logical_ids:
+                artifact_ids_by_logical_id.setdefault(logical_id, set()).add(artifact_id)
+
+    logical_id_counts = Counter(
+        {
+            logical_id: len(artifact_ids)
+            for logical_id, artifact_ids in artifact_ids_by_logical_id.items()
+        }
+    )
 
     groups: dict[str, str] = {}
     for artifact_id, claim in claims_by_artifact_id.items():

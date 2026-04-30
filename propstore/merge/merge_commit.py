@@ -6,6 +6,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.registry import ClaimsFileRef, MergeManifestRef
 from propstore.merge.merge_classifier import MergeArgument
 from propstore.merge.merge_classifier import build_merge_framework
@@ -54,6 +55,7 @@ def _materialized_claim_payload(argument: MergeArgument, *, has_rivals: bool) ->
     provenance = payload.get("provenance")
     if isinstance(provenance, dict) and len(argument.branch_origins) == 1:
         provenance.setdefault("branch_origin", argument.branch_origins[0])
+        payload["version_id"] = compute_claim_version_id(payload)
     return payload
 
 
