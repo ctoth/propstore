@@ -523,13 +523,13 @@ class TestSidecarHandlesOldFormatYaml:
 
 
 # ---------------------------------------------------------------------------
-# Test 8: none stance gets zero confidence
+# Test 8: none stance gets null confidence
 # ---------------------------------------------------------------------------
 
-class TestNoneStanceGetsZeroConfidence:
-    """Stances with type='none' must still get confidence 0.0."""
+class TestNoneStanceGetsNullConfidence:
+    """Stances with type='none' carry null confidence rather than a fabricated zero."""
 
-    def test_none_type_zero_confidence(self):
+    def test_none_type_null_confidence(self):
         import asyncio
         from propstore.heuristic.classify import classify_stance_async
 
@@ -552,7 +552,7 @@ class TestNoneStanceGetsZeroConfidence:
                 )
 
         results = asyncio.run(run())
-        assert results[0]["resolution"]["confidence"] == 0.0
+        assert results[0]["resolution"]["confidence"] is None
         assert results[0]["resolution"]["opinion"] is None
 
 
@@ -650,7 +650,7 @@ class TestGenuineNoneStillWorks:
 
         results = asyncio.run(run())
         assert results[0]["type"] == "none"
-        assert results[0]["resolution"]["confidence"] == 0.0
+        assert results[0]["resolution"]["confidence"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -727,7 +727,7 @@ class TestCorpusCalibReducesUncertainty:
         results = asyncio.run(run())
         result = results[0]
         assert result["resolution"]["opinion"] is None
-        assert result["resolution"]["confidence"] == pytest.approx(0.0)
+        assert result["resolution"]["confidence"] is None
         assert result["resolution"]["unresolved_calibration"]["reason"] == "missing_base_rate"
 
     def test_corpus_and_categorical_fused_via_wbf(self):

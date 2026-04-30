@@ -286,6 +286,29 @@ def _build_stance_dict(
     llm_call_id: str,
 ) -> dict:
     """Build a single stance dict from raw LLM output for one direction."""
+    if not _is_directional_stance_payload(raw):
+        shape_unknown_opinion = _vacuous_classifier_opinion("llm_output_shape_unknown")
+        return {
+            "target": target_id,
+            "perspective_source_claim_id": perspective_source_claim_id,
+            "type": StanceType.ABSTAIN.value,
+            "strength": "weak",
+            "note": "LLM output shape unknown",
+            "conditions_differ": None,
+            "resolution": {
+                "method": "nli",
+                "model": model_name,
+                "embedding_model": embedding_model,
+                "embedding_distance": embedding_distance,
+                "confidence": None,
+                "opinion": _opinion_payload(shape_unknown_opinion),
+                "unresolved_calibration": None,
+                "llm_call_id": llm_call_id,
+                "prompt": prompt,
+                "raw_response": raw_response,
+            },
+        }
+
     stance_type = raw.get("type", "none")
     if stance_type not in VALID_STANCE_TYPES:
         stance_type = "none"
@@ -312,9 +335,9 @@ def _build_stance_dict(
             corpus_opinion = corpus_cal.to_opinion(embedding_distance)
             opinion = fuse(opinion, corpus_opinion)
 
-        confidence = 0.0 if opinion is None else opinion.expectation()
+        confidence = None if opinion is None else opinion.expectation()
     else:
-        confidence = 0.0
+        confidence = None
         opinion = None
 
     resolution = {
@@ -339,6 +362,19 @@ def _build_stance_dict(
         "conditions_differ": raw.get("conditions_differ"),
         "resolution": resolution,
     }
+
+
+def _is_directional_stance_payload(raw: dict) -> bool:
+    if "forward" in raw or "reverse" in raw:
+        return False
+    raw_type = raw.get("type")
+    if not isinstance(raw_type, str) or raw_type not in VALID_STANCE_TYPES:
+        return False
+    if not isinstance(raw.get("strength"), str):
+        return False
+    if "note" not in raw:
+        return False
+    return "conditions_differ" in raw
 
 
 def _directional_prompt(

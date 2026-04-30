@@ -259,8 +259,8 @@ class TestClassifyErrorOnBadJson:
             assert r["type"] == "error"
 
 
-class TestClassifyNoneGetsZeroConfidence:
-    def test_none_type_zero_confidence(self):
+class TestClassifyNoneGetsNullConfidence:
+    def test_none_type_null_confidence(self):
         from propstore.heuristic.classify import classify_stance_async
 
         fwd = {"type": "none", "strength": "weak", "note": "unrelated", "conditions_differ": None}
@@ -278,7 +278,7 @@ class TestClassifyNoneGetsZeroConfidence:
 
         for r in results:
             assert r["type"] == "none"
-            assert r["resolution"]["confidence"] == 0.0
+            assert r["resolution"]["confidence"] is None
 
 
 # ---------------------------------------------------------------------------
