@@ -164,4 +164,4 @@ def _stable_json(value: object) -> str:
 
 
 def _digest(value: object) -> str:
-    return hashlib.sha256(_stable_json(value).encode("utf-8")).hexdigest()[:32]
+    return hashlib.sha256(_stable_json(value).encode("utf-8")).hexdigest()
