@@ -78,6 +78,15 @@ class UnknownProposalPath(ValueError):
         )
 
 
+class ProposalAlreadyPromoted(ValueError):
+    def __init__(self, source_claim: str, promoted_from_sha: str) -> None:
+        self.source_claim = source_claim
+        self.promoted_from_sha = promoted_from_sha
+        super().__init__(
+            f"Stance proposal for {source_claim!r} was already promoted from {promoted_from_sha}"
+        )
+
+
 def plan_stance_proposal_promotion(
     repo: Repository,
     *,
@@ -132,6 +141,8 @@ def plan_stance_proposal_promotion(
 def promote_stance_proposals(
     repo: Repository,
     plan: StanceProposalPromotionPlan,
+    *,
+    force: bool = False,
 ) -> StanceProposalPromotionResult:
     moved = len(plan.items)
     if moved > 0:
@@ -142,9 +153,29 @@ def promote_stance_proposals(
         ) as transaction:
             for item in plan.items:
                 ref = StanceFileRef(item.source_claim)
+                existing = repo.families.stances.load(ref)
+                if (
+                    existing is not None
+                    and existing.promoted_from_sha is not None
+                    and not force
+                ):
+                    raise ProposalAlreadyPromoted(
+                        item.source_claim,
+                        existing.promoted_from_sha,
+                    )
+                proposal_document = repo.families.proposal_stances.require(
+                    ref,
+                    commit=plan.proposal_tip,
+                )
+                proposal_payload = proposal_document.to_payload()
+                proposal_payload["promoted_from_sha"] = plan.proposal_tip
                 transaction.stances.save(
                     ref,
-                    repo.families.proposal_stances.require(ref, commit=plan.proposal_tip),
+                    convert_document_value(
+                        proposal_payload,
+                        StanceFileDocument,
+                        source=repo.families.stances.address(ref).require_path(),
+                    ),
                 )
     return StanceProposalPromotionResult(
         moved=moved,

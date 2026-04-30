@@ -51,6 +51,7 @@ class StanceFileDocument(DocumentStruct):
     stances: tuple[StanceEntryDocument, ...]
     classification_model: str | None = None
     classification_date: str | None = None
+    promoted_from_sha: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -61,4 +62,6 @@ class StanceFileDocument(DocumentStruct):
             payload["classification_model"] = self.classification_model
         if self.classification_date is not None:
             payload["classification_date"] = self.classification_date
+        if self.promoted_from_sha is not None:
+            payload["promoted_from_sha"] = self.promoted_from_sha
         return payload

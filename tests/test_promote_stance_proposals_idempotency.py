@@ -8,6 +8,7 @@ from propstore.proposals import (
     plan_stance_proposal_promotion,
     promote_stance_proposals,
 )
+from propstore.families.registry import StanceFileRef
 from propstore.repository import Repository
 
 
@@ -37,7 +38,9 @@ def test_promote_stance_proposals_records_source_sha_and_rejects_repeat(tmp_path
     assert plan.proposal_tip is not None
 
     promote_stance_proposals(repo, plan)
-    promoted = repo.families.stances.require_handle(plan.items[0].source_claim)
+    promoted = repo.families.stances.require_handle(
+        StanceFileRef(plan.items[0].source_claim)
+    )
     assert promoted.document.promoted_from_sha == plan.proposal_tip
 
     with pytest.raises(ProposalAlreadyPromoted) as excinfo:
