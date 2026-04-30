@@ -40,7 +40,6 @@ def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import CompiledWorldGraph
-    from propstore.world.types import ChainResult, ResolutionStrategy
     from propstore.z3_conditions import Z3ConditionSolver
 
 
@@ -221,6 +220,6 @@ class WorldStore(Protocol):
     def chain_query(
         self,
         target_concept_id: str,
-        strategy: ResolutionStrategy | None = None,
+        strategy: Any | None = None,
         **bindings: Any,
-    ) -> ChainResult: ...
+    ) -> Any: ...

@@ -34,7 +34,6 @@ from propstore.core.labels import (
     combine_labels,
     merge_labels,
 )
-from propstore.fragility_types import RankingPolicy
 from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
 from propstore.world.types import (
     ATMSConceptInterventionPlan,
@@ -65,7 +64,6 @@ from propstore.world.types import (
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
-    from propstore.fragility import FragilityReport
     from propstore.context_lifting import LiftingSystem
     from propstore.world.atms import ATMSEngine
 
@@ -823,36 +821,6 @@ class BoundWorld(BeliefSpace):
             target_value_status,
             limit=limit,
             max_suggestions=max_suggestions,
-        )
-
-    def fragility(
-        self,
-        *,
-        concept_id: str | None = None,
-        queryables: list | None = None,
-        top_k: int = 20,
-        include_atms: bool = True,
-        include_discovery: bool = True,
-        include_conflict: bool = True,
-        include_grounding: bool = True,
-        include_bridge: bool = True,
-        ranking_policy: RankingPolicy = RankingPolicy.HEURISTIC_ROI,
-        atms_limit: int = 8,
-    ) -> "FragilityReport":
-        """Rank intervention targets by fragility — what to inspect next."""
-        from propstore.fragility import rank_fragility
-        return rank_fragility(
-            self,
-            concept_id=concept_id,
-            queryables=queryables,
-            top_k=top_k,
-            include_atms=include_atms,
-            include_discovery=include_discovery,
-            include_conflict=include_conflict,
-            include_grounding=include_grounding,
-            include_bridge=include_bridge,
-            ranking_policy=ranking_policy,
-            atms_limit=atms_limit,
         )
 
     def why_concept_out(

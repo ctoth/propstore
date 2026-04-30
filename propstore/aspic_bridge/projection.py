@@ -12,7 +12,7 @@ from argumentation.dung import ArgumentationFramework
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
-from propstore.core.labels import Label, SupportQuality
+from propstore.core.labels import Label, SupportMetadata, SupportQuality
 from propstore.core.literal_keys import ClaimLiteralKey
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.preference import claim_strength
@@ -23,7 +23,6 @@ from propstore.structured_projection import (
     StructuredArgument,
     StructuredProjection,
 )
-from propstore.world.types import SupportMetadata
 
 from .build import build_bridge_csaf
 from .extract import _extract_justifications, _extract_stance_rows

@@ -20,7 +20,7 @@ def import_repository(
     target_branch: str | None = None,
     message: str | None = None,
 ) -> Mapping[str, object]:
-    from propstore.storage.repository_import import (
+    from propstore.importing.repository_import import (
         commit_repository_import,
         plan_repository_import,
     )

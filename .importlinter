@@ -2,42 +2,14 @@
 root_package = propstore
 include_external_packages = True
 
-[importlinter:contract:storage-merge]
-name = storage -> merge
-type = forbidden
-source_modules =
-    propstore.storage
-forbidden_modules =
-    propstore.merge
-
-[importlinter:contract:source-heuristic]
-name = source -> heuristic
-type = forbidden
-source_modules =
-    propstore.source
-forbidden_modules =
-    propstore.heuristic
-
-[importlinter:contract:heuristic-source-finalize]
-name = heuristic -> source.finalize
-type = forbidden
-source_modules =
-    propstore.heuristic
-forbidden_modules =
-    propstore.source.finalize
-
-[importlinter:contract:concept-argumentation]
-name = concept -> argumentation
-type = forbidden
-source_modules =
-    propstore.core.lemon
-forbidden_modules =
-    argumentation
-
-[importlinter:contract:worldline-support-revision]
-name = worldline -> support_revision
-type = forbidden
-source_modules =
-    propstore.worldline
-forbidden_modules =
-    propstore.support_revision
+[importlinter:contract:propstore-six-layers]
+name = propstore six-layer architecture
+type = layers
+layers =
+    web : cli
+    app
+    argumentation : aspic_bridge : world : belief_set
+    heuristic
+    source
+    storage
+containers = propstore

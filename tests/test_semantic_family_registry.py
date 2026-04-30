@@ -155,7 +155,7 @@ def test_repository_init_does_not_materialize_semantic_roots(tmp_path: Path) -> 
 
 
 def test_repository_import_module_has_no_local_semantic_root_dispatch() -> None:
-    import propstore.storage.repository_import as repository_import
+    import propstore.importing.repository_import as repository_import
 
     source = inspect.getsource(repository_import)
 

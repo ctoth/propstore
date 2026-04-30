@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from propstore.repository import Repository
-from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 from tests.conftest import TEST_CONTEXT_ID
 
 

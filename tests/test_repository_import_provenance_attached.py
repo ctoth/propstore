@@ -13,7 +13,7 @@ def _init_project(root: Path) -> Repository:
 
 
 def test_repository_import_attaches_import_provenance_note(tmp_path) -> None:
-    from propstore.storage.repository_import import (
+    from propstore.importing.repository_import import (
         commit_repository_import,
         plan_repository_import,
     )

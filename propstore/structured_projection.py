@@ -26,16 +26,15 @@ from propstore.core.active_claims import (
 )
 from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
-from propstore.core.labels import Label, SupportQuality
+from propstore.core.labels import Label, SupportMetadata, SupportQuality
+from propstore.core.reasoning import (
+    ArgumentationSemantics,
+    ReasoningBackend,
+    validate_backend_semantics,
+)
 from propstore.core.results import AnalyzerResult
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.provenance.records import ProjectionFrameProvenanceRecord
-from propstore.world.types import (
-    ArgumentationSemantics,
-    ReasoningBackend,
-    SupportMetadata,
-    validate_backend_semantics,
-)
 
 
 @dataclass(frozen=True)

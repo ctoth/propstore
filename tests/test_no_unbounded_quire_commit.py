@@ -7,7 +7,7 @@ from pathlib import Path
 _SCOPED_MUTATION_FILES = (
     Path("propstore/source/finalize.py"),
     Path("propstore/source/promote.py"),
-    Path("propstore/storage/repository_import.py"),
+    Path("propstore/importing/repository_import.py"),
     Path("propstore/storage/snapshot.py"),
 )
 

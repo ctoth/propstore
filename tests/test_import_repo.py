@@ -81,7 +81,7 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
     source_claim_ids: list[str],
     stale_claim_ids: list[str],
 ):
-    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     assume(set(source_claim_ids).isdisjoint(stale_claim_ids))
 
@@ -141,7 +141,7 @@ def test_repository_import_normalizes_concepts_and_claim_refs_under_random_snaps
     tmp_path,
     concept_ids: list[str],
 ):
-    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / f"dest_{uuid4().hex}")
     source = _init_project(tmp_path / f"repo-b_{uuid4().hex}")
@@ -208,7 +208,7 @@ def test_repository_import_normalizes_concepts_and_claim_refs_under_random_snaps
 
 
 def test_plan_repository_import_requires_git_backed_source(tmp_path):
-    from propstore.storage.repository_import import plan_repository_import
+    from propstore.importing.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source_project = tmp_path / "source"
@@ -219,7 +219,7 @@ def test_plan_repository_import_requires_git_backed_source(tmp_path):
 
 
 def test_plan_repository_import_uses_committed_head_snapshot(tmp_path):
-    from propstore.storage.repository_import import plan_repository_import
+    from propstore.importing.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -247,7 +247,7 @@ def test_plan_repository_import_uses_committed_head_snapshot(tmp_path):
 
 
 def test_plan_repository_import_uses_default_branch_name_from_source_repository(tmp_path):
-    from propstore.storage.repository_import import plan_repository_import
+    from propstore.importing.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -262,7 +262,7 @@ def test_plan_repository_import_uses_default_branch_name_from_source_repository(
 
 
 def test_plan_repository_import_limits_to_semantic_tree_and_excludes_sidecar(tmp_path):
-    from propstore.storage.repository_import import plan_repository_import
+    from propstore.importing.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -289,7 +289,7 @@ def test_plan_repository_import_limits_to_semantic_tree_and_excludes_sidecar(tmp
 
 
 def test_repository_import_includes_registered_rules_and_predicates_from_committed_snapshot(tmp_path):
-    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -365,7 +365,7 @@ def test_repository_import_includes_registered_rules_and_predicates_from_committ
 
 
 def test_commit_repository_import_writes_commit_to_target_branch_and_returns_result(tmp_path):
-    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
@@ -404,7 +404,7 @@ def test_commit_repository_import_writes_commit_to_target_branch_and_returns_res
 
 
 def test_commit_repository_import_does_not_mutate_master_unless_targeted(tmp_path):
-    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
@@ -431,7 +431,7 @@ def test_commit_repository_import_does_not_mutate_master_unless_targeted(tmp_pat
 
 
 def test_commit_repository_import_does_not_materialize_master_or_other_branches(tmp_path):
-    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     source = _init_project(tmp_path / "repo-b")
     source_git = source.git
@@ -457,7 +457,7 @@ def test_commit_repository_import_does_not_materialize_master_or_other_branches(
 
 
 def test_plan_repository_import_deletes_paths_missing_from_latest_source_snapshot(tmp_path):
-    from propstore.storage.repository_import import plan_repository_import
+    from propstore.importing.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
@@ -487,7 +487,7 @@ def test_plan_repository_import_deletes_paths_missing_from_latest_source_snapsho
 
 
 def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
-    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -540,7 +540,7 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
 
 
 def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_path):
-    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -599,7 +599,7 @@ def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_
 
 
 def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_ids(tmp_path):
-    from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -712,9 +712,9 @@ def test_import_repo_cli_can_target_master_without_materializing_worktree(tmp_pa
     )
 
 
-def test_import_repository_exports_from_storage_surface():
-    from propstore import storage as storage_module
+def test_import_repository_exports_from_importing_surface():
+    from propstore import importing as importing_module
 
-    assert storage_module is not None
-    assert hasattr(storage_module, "plan_repository_import")
-    assert hasattr(storage_module, "commit_repository_import")
+    assert importing_module is not None
+    assert hasattr(importing_module, "plan_repository_import")
+    assert hasattr(importing_module, "commit_repository_import")

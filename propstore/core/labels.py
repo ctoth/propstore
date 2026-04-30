@@ -22,6 +22,8 @@ from propstore.provenance.nogoods import NogoodWitness, ProvenanceNogood, live
 from propstore.provenance.support import SupportEvidence, SupportQuality
 from propstore.provenance.variables import SourceVariableId
 
+SupportMetadata = Mapping[str, tuple["Label | None", SupportQuality]]
+
 
 @dataclass(frozen=True, order=True)
 class AssumptionRef:

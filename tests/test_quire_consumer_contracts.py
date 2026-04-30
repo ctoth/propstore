@@ -14,7 +14,7 @@ from propstore.families.documents.sources import SourceDocument
 from propstore.families.registry import SourceRef, semantic_import_roots
 from propstore.repository import Repository
 from propstore.source.common import initial_source_document, source_branch_name
-from propstore.storage.repository_import import commit_repository_import, plan_repository_import
+from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
 
 _SLUG = st.from_regex(r"[a-z][a-z0-9_]{0,12}", fullmatch=True)

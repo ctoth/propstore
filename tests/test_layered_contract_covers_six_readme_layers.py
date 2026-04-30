@@ -36,6 +36,26 @@ def _contract_sections(parser: configparser.ConfigParser) -> list[str]:
     ]
 
 
+def _normalized_layer_rows(
+    parser: configparser.ConfigParser, section: str
+) -> tuple[str, ...]:
+    containers = tuple(
+        line.strip()
+        for line in parser.get(section, "containers").splitlines()
+        if line.strip()
+    )
+    assert containers == ("propstore",)
+    rows: list[str] = []
+    for row in parser.get(section, "layers").splitlines():
+        row = row.strip()
+        if not row:
+            continue
+        delimiter = ":" if ":" in row else "|"
+        modules = [module.strip() for module in row.split(delimiter)]
+        rows.append(" | ".join(f"propstore.{module}" for module in modules))
+    return tuple(rows)
+
+
 def test_importlinter_declares_one_six_layer_contract() -> None:
     parser = _load_importlinter_config()
     contract_sections = _contract_sections(parser)
@@ -46,11 +66,7 @@ def test_importlinter_declares_one_six_layer_contract() -> None:
     assert parser.get(section, "type") == "layers"
     assert parser.get(section, "name") == "propstore six-layer architecture"
     assert parser.get(section, "containers") == "propstore"
-    assert tuple(
-        line.strip()
-        for line in parser.get(section, "layers").splitlines()
-        if line.strip()
-    ) == EXPECTED_LAYER_ROWS
+    assert _normalized_layer_rows(parser, section) == EXPECTED_LAYER_ROWS
 
 
 def test_legacy_forbidden_contracts_are_deleted() -> None:

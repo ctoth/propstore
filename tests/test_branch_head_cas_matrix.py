@@ -18,7 +18,7 @@ from propstore.source import (
     promote_source_branch,
     source_branch_name,
 )
-from propstore.storage.repository_import import (
+from propstore.importing.repository_import import (
     commit_repository_import,
     plan_repository_import,
 )
