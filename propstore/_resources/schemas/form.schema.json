@@ -65,6 +65,39 @@
         "additionalProperties": false
       }
     },
+    "delta_alternatives": {
+      "type": "array",
+      "description": "Alternative temperature-delta unit conversions. These conversions represent intervals and must not carry absolute-temperature affine offsets.",
+      "items": {
+        "type": "object",
+        "required": ["unit", "type"],
+        "properties": {
+          "unit": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["multiplicative", "affine", "logarithmic"]
+          },
+          "multiplier": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "base": {
+            "type": "number"
+          },
+          "divisor": {
+            "type": "number"
+          },
+          "reference": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "kind": {
       "type": "string",
       "description": "Kind of quantity this form represents.",
