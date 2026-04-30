@@ -46,6 +46,10 @@ def test_argumentation_pin_exposes_caf_range_and_well_formed_helpers() -> None:
         framework=af({"a1", "a2", "b"}, {("b", "a1")}),
         claims={"a1": "A", "a2": "A", "b": "B"},
     )
+    not_well_formed = ClaimAugmentedAF(
+        framework=af({"a1", "a2", "b"}, {("a1", "b")}),
+        claims={"a1": "A", "a2": "A", "b": "B"},
+    )
     well_formed = ClaimAugmentedAF(
         framework=af({"a1", "a2", "b"}, {("a1", "b"), ("a2", "b")}),
         claims={"a1": "A", "a2": "A", "b": "B"},
@@ -53,5 +57,5 @@ def test_argumentation_pin_exposes_caf_range_and_well_formed_helpers() -> None:
 
     assert defeated_claims(partial_attack, frozenset({"b"})) == frozenset()
     assert claim_range(partial_attack, frozenset({"b"})) == frozenset({"B"})
-    assert not is_well_formed(partial_attack)
+    assert not is_well_formed(not_well_formed)
     assert is_well_formed(well_formed)
