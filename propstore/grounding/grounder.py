@@ -35,7 +35,7 @@ Theoretical anchors:
       grounder **re-normalises** the dict so every
       bundle exposes all four section keys, even when some are empty.
       That normalisation is the non-commitment anchor for this
-      pipeline: the storage layer never silently collapses a verdict.
+      pipeline: the storage layer never silently collapses a grounded classification.
 """
 
 from __future__ import annotations
@@ -97,7 +97,7 @@ def ground(
        its output — the grounder restores them so every bundle exposes
        all four section keys, even when some are empty. Garcia &
        Simari 2004 §4 (p.25) non-commitment anchor: storage never
-       silently collapses a verdict, so the render layer always sees
+       silently collapses a grounded classification, so the render layer always sees
        the full shape.
     4. Package the normalised sections together with the original
        ``rule_files`` and ``facts`` into a frozen

@@ -31,7 +31,7 @@ Theoretical anchors:
       even when some are empty. Render-time policy filters what to
       surface; storage never drops a section. This is the formal
       non-commitment discipline at the semantic core — the repository
-      holds the full answer record without privileging one verdict.
+      holds the full answer record without privileging one grounded classification.
 """
 
 from __future__ import annotations

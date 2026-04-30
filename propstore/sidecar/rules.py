@@ -16,7 +16,7 @@ schema and read/write functions physically next to one another makes
 the module self-contained.
 
 Non-commitment discipline anchor (project CLAUDE.md): storage never
-silently collapses a verdict. All four section keys are always
+silently collapses a grounded classification. All four section keys are always
 present in the read result, even when the bundle is empty. The
 primary key ``(predicate, arguments, section)`` lets a single ground
 atom appear under multiple sections simultaneously when an upstream
@@ -50,7 +50,7 @@ Theoretical anchors:
       ``{YES, NO, UNDECIDED, UNKNOWN}`` maps onto the four section
       names. All four sections are always returned by
       :func:`read_grounded_facts`, even when some are empty, because
-      storage is forbidden from collapsing a verdict.
+      storage is forbidden from collapsing a grounded classification.
 """
 
 from __future__ import annotations
@@ -126,10 +126,10 @@ def create_grounded_fact_table(conn: sqlite3.Connection) -> None:
     across variable-arity atoms.
 
     Garcia & Simari 2004 §4 (p.25) non-commitment discipline: an
-    empty inner set is still a *verdict* — "predicate p is known to
+    empty inner set is still a *grounded classification* — "predicate p is known to
     the program and its derivation for section s is empty" — and
     storage must not silently drop it. The empty-predicate table is
-    how that verdict is persisted.
+    how that grounded classification is persisted.
     """
     conn.execute(
         "CREATE TABLE IF NOT EXISTS grounded_fact ("
@@ -183,10 +183,10 @@ def populate_grounded_facts(
     rows has to match the number of ground atoms in the bundle's
     ground model exactly — no duplicates, no drops.
 
-    Garcia & Simari 2004 §4 (p.25): each four-valued verdict is
+    Garcia & Simari 2004 §4 (p.25): each four-valued grounded classification is
     itself a set of ground atoms; the composite primary key hardens
     that set semantics at the storage layer so duplicates within a
-    verdict raise loudly instead of being silently coalesced.
+    grounded classification raise loudly instead of being silently coalesced.
     """
     inserted = 0
     _persist_bundle_inputs(conn, bundle)
@@ -200,8 +200,8 @@ def populate_grounded_facts(
             if not rows:
                 # Predicate is mentioned in this section with zero
                 # ground atoms (see Garcia & Simari 2004 §4 (p.25)
-                # non-commitment discipline — an empty verdict is
-                # still a verdict). Persist the presence record to
+                # non-commitment discipline — an empty grounded classification is
+                # still a grounded classification). Persist the presence record to
                 # the companion table so the round-trip preserves
                 # the predicate key. Empty-predicate markers do NOT
                 # count toward the inserted total because they are
@@ -411,7 +411,7 @@ def read_grounded_facts(
 
     Garcia & Simari 2004 §4 (p.25) non-commitment discipline: all
     four section keys are always present in the read result. Storage
-    never silently drops a verdict, so an empty bundle still yields
+    never silently drops a grounded classification, so an empty bundle still yields
     four empty inner maps.
 
     Diller, Borg, Bex 2025 §3 Definition 9: the grounder is a
@@ -441,7 +441,7 @@ def read_grounded_facts(
     # Merge empty-predicate markers. These contribute predicate keys
     # whose inner ``frozenset`` is empty, preserving the
     # non-commitment-discipline guarantee that storage never silently
-    # drops a verdict (Garcia & Simari 2004 §4 (p.25)).
+    # drops a grounded classification (Garcia & Simari 2004 §4 (p.25)).
     empty_cursor = conn.execute(
         "SELECT section, predicate FROM grounded_fact_empty_predicate"
     )

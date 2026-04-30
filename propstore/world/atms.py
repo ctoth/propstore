@@ -330,7 +330,7 @@ _FutureEntryT = TypeVar(
 
 
 class BudgetExhausted(RuntimeError):
-    """Raised when a future-query budget is exhausted before a sound verdict."""
+    """Raised when a future-query budget is exhausted before a sound grounded classification."""
 
     def __init__(self, *, examined: int, total: int) -> None:
         self.examined = examined
