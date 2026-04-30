@@ -9,6 +9,7 @@ from hypothesis import strategies as st
 
 
 @given(st.binary(min_size=0, max_size=512))
+@pytest.mark.property
 def test_trusty_uri_sha256_round_trips(payload: bytes) -> None:
     from propstore.provenance.trusty import compute_ni_uri, verify_ni_uri
 
