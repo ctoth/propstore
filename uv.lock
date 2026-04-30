@@ -704,7 +704,7 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/argumentation?rev=a167cccffb36e5e847fe35f0f461c8897198b087#a167cccffb36e5e847fe35f0f461c8897198b087" }
+source = { git = "https://github.com/ctoth/argumentation?rev=5b56b9dc9ca41b3dba9ee047f4add9c1d941f4b8#5b56b9dc9ca41b3dba9ee047f4add9c1d941f4b8" }
 
 [[package]]
 name = "fqdn"
@@ -2044,7 +2044,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.3.3" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
-    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation?rev=a167cccffb36e5e847fe35f0f461c8897198b087" },
+    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation?rev=5b56b9dc9ca41b3dba9ee047f4add9c1d941f4b8" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray?rev=64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e" },
     { name = "lark", specifier = ">=1.2.2" },
