@@ -290,7 +290,7 @@ class PolicyProfile:
         return data
 
     def _derived_profile_id(self) -> str:
-        return f"urn:propstore:policy-profile:{self.content_hash[:32]}"
+        return f"urn:propstore:policy-profile:{self.content_hash}"
 
     def _content_payload(self) -> dict[str, Any]:
         return {
@@ -342,7 +342,7 @@ def policy_assertions(
     context = ContextReference(context_id)
     condition = ConditionRef.unconditional()
     provenance = ProvenanceGraphRef(
-        f"urn:propstore:policy-provenance:{profile.content_hash[:32]}"
+        f"urn:propstore:policy-provenance:{profile.content_hash}"
     )
     return (
         _policy_assertion(
