@@ -718,7 +718,7 @@ def test_propose_concept_values_rejected_for_non_category(tmp_path: Path) -> Non
     )
 
     assert result.exit_code != 0, result.output
-    assert "only valid with --form=category" in result.output
+    assert "values are only valid when form is category" in result.output
 
 
 def test_propose_concept_category_without_values_still_works(tmp_path: Path) -> None:

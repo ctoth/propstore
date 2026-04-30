@@ -125,7 +125,7 @@ def _build_loaded_concept(canonical_name: str, relationships):
     record = ConceptRecord(
         artifact_id=artifact_id,
         canonical_name=canonical_name,
-        status="active",
+        status="accepted",
         definition=f"Test concept named {canonical_name}.",
         form="Entity",
         logical_ids=(logical_id,),
