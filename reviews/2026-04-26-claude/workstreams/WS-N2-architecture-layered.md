@@ -1,6 +1,6 @@
 # WS-N2: Architecture — final layered import-linter contract over six README layers
 
-**Status**: OPEN
+**Status**: CLOSED 05f9f482
 **Depends on**:
 - **WS-K** (heuristic relocation — moves `embed.py`, `classify.py`, `relate.py`, `calibrate.py` under `propstore/heuristic/` so Layer 3 in the layered contract has a real namespace to bind).
 - **WS-N1** (shims gone, CLI ownership extracted, `_canonical_json` collapsed, renames complete — without these, the layered contract surfaces noise that obscures the layering invariant).
@@ -159,14 +159,14 @@ Before declaring WS-N2 done, ALL must hold:
 
 - [x] `uv run pyright propstore` — passes with 0 errors. Evidence: 2026-04-30 local run.
 - [x] `uv run lint-imports` — passes against the new layered contract with **zero residual violations** (per D-27: hard-fail clean only, no allowlist, no soft-gate). Evidence: 2026-04-30 local run, `propstore six-layer architecture KEPT`.
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-N2 tests/test_import_linter_negative.py tests/test_layered_contract_covers_six_readme_layers.py tests/remediation/phase_4_layers/test_T4_1_importlinter_layers.py tests/test_workstream_n2_done.py` — all green. Evidence: pending closure gate.
-- [ ] Full suite `powershell -File scripts/run_logged_pytest.ps1` — no NEW failures vs the WS-A baseline. Evidence: pending closure full-suite gate.
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-N2 tests/test_import_linter_negative.py tests/test_layered_contract_covers_six_readme_layers.py tests/remediation/phase_4_layers/test_T4_1_importlinter_layers.py tests/test_workstream_n2_done.py` — all green. Evidence: `logs/test-runs/WS-N2-20260430-150618.log`.
+- [x] Full suite `powershell -File scripts/run_logged_pytest.ps1` — no NEW failures vs the WS-A baseline. Evidence: `logs/test-runs/WS-N2-full-rerun-20260430-151015.log` (`3495 passed, 2 skipped`).
 - [x] `.importlinter` contains exactly one `[importlinter:contract:*]` block, of `type = layers`, with the six README layers in order.
 - [x] No `forbidden` contracts remain.
 - [x] The negative-test harness rejects an injected violation for every layer pair.
 - [x] No `tests/_allowlists/layered_contract_residual.txt` (or equivalent) exists in the tree (per D-27).
 - [x] `docs/gaps.md` has no open rows for T0.3 or T5.3.
-- [ ] This file's STATUS line is `CLOSED <sha>`.
+- [x] This file's STATUS line is `CLOSED 05f9f482`.
 
 ## Done means done
 
