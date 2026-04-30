@@ -761,14 +761,8 @@ def test_bundle_arguments_is_immutable_tuple() -> None:
     assert isinstance(bundle.arguments, tuple)
 
 
-def test_ground_default_arguments_field_is_empty() -> None:
-    """``ground(...)`` without ``return_arguments`` returns an empty tuple.
-
-    Backwards compatibility: the default invocation of ``ground``
-    continues to return bundles whose ``arguments`` field is the
-    empty tuple. Block 3 opt-in is explicit — callers must set
-    ``return_arguments=True`` to incur the argument-enumeration cost.
-    """
+def test_ground_default_arguments_field_is_populated() -> None:
+    """WS-M: ``ground(...)`` defaults to carrying gunray trace arguments."""
 
     from argumentation.aspic import GroundAtom
     from propstore.grounding.grounder import ground
@@ -783,7 +777,7 @@ def test_ground_default_arguments_field_is_empty() -> None:
     facts = (GroundAtom("bird", ("tweety",)),)
 
     bundle = ground([rule_file], facts, _bird_registry())
-    assert bundle.arguments == ()
+    assert bundle.arguments
 
 
 def test_ground_return_arguments_populates_tuple() -> None:
