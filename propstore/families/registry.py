@@ -7,14 +7,12 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import quire.artifacts as quire_artifacts
 from quire.artifacts import (
-    ArtifactAddress,
     ArtifactFamily,
     BranchPlacement,
     FixedFilePlacement,
     FlatYamlPlacement,
-    PathArtifactLocator,
-    ScannedArtifact,
     SingletonFilePlacement,
     TemplateFilePlacement,
     encode_ref_value,
@@ -206,7 +204,7 @@ CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
 IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
 SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.30")
 SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.30")
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.30")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.01")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
@@ -238,10 +236,10 @@ class SourceBranchPlacement(BranchPlacement):
 class PredicateProposalPlacement:
     branch: BranchPlacement
 
-    def address_for(self, owner: Repository, ref: PredicateProposalRef) -> ArtifactAddress:
-        return ArtifactAddress(
+    def address_for(self, owner: Repository, ref: PredicateProposalRef):
+        return quire_artifacts.ArtifactAddress(
             branch=self.branch.branch_name(owner, ref),
-            locator=PathArtifactLocator(
+            locator=quire_artifacts.PathArtifactLocator(
                 f"predicates/{ref.source_paper}/declarations.yaml"
             ),
         )
@@ -276,18 +274,18 @@ class PredicateProposalPlacement:
             if len(parts) != 2 or parts[1] != "declarations.yaml":
                 continue
             path = f"predicates/{relpath}"
-            yield ScannedArtifact(
+            yield quire_artifacts.ScannedArtifact(
                 ref=PredicateProposalRef(parts[0]),
-                address=ArtifactAddress(
+                address=quire_artifacts.ArtifactAddress(
                     branch=branch_name,
-                    locator=PathArtifactLocator(path),
+                    locator=quire_artifacts.PathArtifactLocator(path),
                     commit=target_commit,
                 ),
                 content=content,
             )
 
     def ref_from_locator(self, locator: object) -> PredicateProposalRef:
-        if not isinstance(locator, PathArtifactLocator):
+        if not isinstance(locator, quire_artifacts.PathArtifactLocator):
             raise TypeError("predicate proposal placement only supports path locators")
         path = str(locator.path).replace("\\", "/")
         prefix = "predicates/"
@@ -297,7 +295,9 @@ class PredicateProposalPlacement:
         return PredicateProposalRef(path.removeprefix(prefix).removesuffix(suffix))
 
     def ref_from_loaded(self, loaded: object) -> PredicateProposalRef:
-        return self.ref_from_locator(PathArtifactLocator(str(getattr(loaded, "source"))))
+        return self.ref_from_locator(
+            quire_artifacts.PathArtifactLocator(str(getattr(loaded, "source")))
+        )
 
     def contract_body(self) -> dict[str, object]:
         return {
@@ -311,10 +311,10 @@ class PredicateProposalPlacement:
 class RuleProposalPlacement:
     branch: BranchPlacement
 
-    def address_for(self, owner: Repository, ref: RuleProposalRef) -> ArtifactAddress:
-        return ArtifactAddress(
+    def address_for(self, owner: Repository, ref: RuleProposalRef):
+        return quire_artifacts.ArtifactAddress(
             branch=self.branch.branch_name(owner, ref),
-            locator=PathArtifactLocator(
+            locator=quire_artifacts.PathArtifactLocator(
                 f"rules/{ref.source_paper}/{ref.rule_id}.yaml"
             ),
         )
@@ -349,18 +349,18 @@ class RuleProposalPlacement:
             if len(parts) != 2 or not parts[1].endswith(".yaml"):
                 continue
             path = f"rules/{relpath}"
-            yield ScannedArtifact(
+            yield quire_artifacts.ScannedArtifact(
                 ref=RuleProposalRef(parts[0], parts[1].removesuffix(".yaml")),
-                address=ArtifactAddress(
+                address=quire_artifacts.ArtifactAddress(
                     branch=branch_name,
-                    locator=PathArtifactLocator(path),
+                    locator=quire_artifacts.PathArtifactLocator(path),
                     commit=target_commit,
                 ),
                 content=content,
             )
 
     def ref_from_locator(self, locator: object) -> RuleProposalRef:
-        if not isinstance(locator, PathArtifactLocator):
+        if not isinstance(locator, quire_artifacts.PathArtifactLocator):
             raise TypeError("rule proposal placement only supports path locators")
         path = str(locator.path).replace("\\", "/")
         parts = path.split("/")
@@ -369,7 +369,9 @@ class RuleProposalPlacement:
         return RuleProposalRef(parts[1], parts[2].removesuffix(".yaml"))
 
     def ref_from_loaded(self, loaded: object) -> RuleProposalRef:
-        return self.ref_from_locator(PathArtifactLocator(str(getattr(loaded, "source"))))
+        return self.ref_from_locator(
+            quire_artifacts.PathArtifactLocator(str(getattr(loaded, "source")))
+        )
 
     def contract_body(self) -> dict[str, object]:
         return {

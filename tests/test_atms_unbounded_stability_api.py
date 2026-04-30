@@ -83,7 +83,11 @@ def test_ws_i_propstore_call_sites_pass_explicit_limit_keyword() -> None:
     targets = {"is_stable", "node_relevance", "node_interventions"}
     offenders: list[str] = []
     for path in Path("propstore").rglob("*.py"):
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        try:
+            source = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            continue
+        tree = ast.parse(source, filename=str(path))
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue

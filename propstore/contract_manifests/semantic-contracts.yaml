@@ -212,6 +212,44 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
+  name: proposal_predicates
+  contract_version: 2026.04.27
+  body:
+    coerce_payload: null
+    decode_bytes: null
+    doc_type: propstore.families.documents.predicates.PredicateProposalDocument
+    document_payload: null
+    encode_document: null
+    normalize_for_write: null
+    placement:
+      branch:
+        fixed_branch: proposal/predicates
+        policy: fixed
+      kind: predicate-proposal
+      template: predicates/{source_paper}/declarations.yaml
+    render_document: null
+    scan_type: null
+    validate_for_write: null
+- kind: artifact_family
+  name: proposal_rules
+  contract_version: 2026.04.27
+  body:
+    coerce_payload: null
+    decode_bytes: null
+    doc_type: propstore.families.documents.rules.RuleProposalDocument
+    document_payload: null
+    encode_document: null
+    normalize_for_write: null
+    placement:
+      branch:
+        fixed_branch: proposal/rules
+        policy: fixed
+      kind: rule-proposal
+      template: rules/{source_paper}/{rule_id}.yaml
+    render_document: null
+    scan_type: null
+    validate_for_write: null
+- kind: artifact_family
   name: proposal_stance_file
   contract_version: 2026.04.27
   body:
@@ -1699,6 +1737,24 @@ contracts:
       type: str | None
     module: propstore.families.concepts.documents
 - kind: document_schema
+  name: PredicateDeclaration
+  contract_version: 2026.05.01
+  body:
+    fields:
+    - name: name
+      required: true
+      type: str
+    - name: arity
+      required: true
+      type: int
+    - name: description
+      required: true
+      type: str
+    - name: arg_types
+      required: true
+      type: tuple[PredicateArgType, ...]
+    module: propstore.families.documents.predicates
+- kind: document_schema
   name: PredicateDocument
   contract_version: 2026.04.30
   body:
@@ -1720,13 +1776,61 @@ contracts:
       type: str | None
     module: propstore.families.documents.predicates
 - kind: document_schema
+  name: PredicateExtractionProvenance
+  contract_version: 2026.05.01
+  body:
+    fields:
+    - name: operations
+      required: true
+      type: tuple[str, ...]
+    - name: agent
+      required: true
+      type: str
+    - name: model
+      required: true
+      type: str
+    - name: prompt_sha
+      required: true
+      type: str
+    - name: notes_sha
+      required: true
+      type: str
+    - name: status
+      required: true
+      type: str
+    module: propstore.families.documents.predicates
+- kind: document_schema
+  name: PredicateProposalDocument
+  contract_version: 2026.05.01
+  body:
+    fields:
+    - name: source_paper
+      required: true
+      type: str
+    - name: proposed_declarations
+      required: true
+      type: tuple[PredicateDeclaration, ...]
+    - name: extraction_provenance
+      required: true
+      type: PredicateExtractionProvenance
+    - name: extraction_date
+      required: true
+      type: str
+    - name: promoted_from_sha
+      required: true
+      type: str | None
+    module: propstore.families.documents.predicates
+- kind: document_schema
   name: PredicatesFileDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: predicates
       required: true
       type: tuple[PredicateDocument, ...]
+    - name: promoted_from_sha
+      required: true
+      type: str | None
     module: propstore.families.documents.predicates
 - kind: document_schema
   name: ProvenanceDocument
@@ -1801,6 +1905,63 @@ contracts:
       type: tuple[BodyLiteralDocument, ...]
     module: propstore.families.documents.rules
 - kind: document_schema
+  name: RuleExtractionProvenance
+  contract_version: 2026.05.01
+  body:
+    fields:
+    - name: operations
+      required: true
+      type: tuple[str, ...]
+    - name: agent
+      required: true
+      type: str
+    - name: model
+      required: true
+      type: str
+    - name: prompt_sha
+      required: true
+      type: str
+    - name: notes_sha
+      required: true
+      type: str
+    - name: predicates_sha
+      required: true
+      type: str
+    - name: status
+      required: true
+      type: str
+    module: propstore.families.documents.rules
+- kind: document_schema
+  name: RuleProposalDocument
+  contract_version: 2026.05.01
+  body:
+    fields:
+    - name: source_paper
+      required: true
+      type: str
+    - name: rule_id
+      required: true
+      type: str
+    - name: proposed_rule
+      required: true
+      type: RuleDocument
+    - name: predicates_referenced
+      required: true
+      type: tuple[str, ...]
+    - name: extraction_provenance
+      required: true
+      type: RuleExtractionProvenance
+    - name: extraction_date
+      required: true
+      type: str
+    - name: page_reference
+      required: true
+      type: str | None
+    - name: promoted_from_sha
+      required: true
+      type: str | None
+    module: propstore.families.documents.rules
+- kind: document_schema
   name: RuleSourceDocument
   contract_version: 2026.04.30
   body:
@@ -1811,7 +1972,7 @@ contracts:
     module: propstore.families.documents.rules
 - kind: document_schema
   name: RulesFileDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: source
@@ -1823,6 +1984,9 @@ contracts:
     - name: superiority
       required: true
       type: tuple[tuple[str, str], ...]
+    - name: promoted_from_sha
+      required: true
+      type: str | None
     module: propstore.families.documents.rules
 - kind: document_schema
   name: SourceAttackTargetDocument
@@ -2888,7 +3052,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: family-registry
   name: propstore
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     families:
     - contract_version: 2026.04.29
@@ -2954,6 +3118,12 @@ contracts:
     - contract_version: 2026.04.27
       key: proposal_stances
       name: proposal_stances
+    - contract_version: 2026.04.27
+      key: proposal_predicates
+      name: proposal_predicates
+    - contract_version: 2026.04.27
+      key: proposal_rules
+      name: proposal_rules
     - contract_version: 2026.04.27
       key: concept_alignments
       name: concept_alignments
@@ -3247,6 +3417,40 @@ contracts:
       importable: true
       init_directory: true
       semantic: true
+- kind: family
+  name: proposal_predicates
+  contract_version: 2026.04.27
+  body:
+    accessor: proposal_predicates
+    artifact_family: proposal_predicates
+    artifact_family_contract:
+      doc_type: propstore.families.documents.predicates.PredicateProposalDocument
+      placement:
+        branch:
+          fixed_branch: proposal/predicates
+          policy: fixed
+        kind: predicate-proposal
+        template: predicates/{source_paper}/declarations.yaml
+    artifact_family_contract_version: 2026.04.27
+    foreign_keys: []
+    key: proposal_predicates
+- kind: family
+  name: proposal_rules
+  contract_version: 2026.04.27
+  body:
+    accessor: proposal_rules
+    artifact_family: proposal_rules
+    artifact_family_contract:
+      doc_type: propstore.families.documents.rules.RuleProposalDocument
+      placement:
+        branch:
+          fixed_branch: proposal/rules
+          policy: fixed
+        kind: rule-proposal
+        template: rules/{source_paper}/{rule_id}.yaml
+    artifact_family_contract_version: 2026.04.27
+    foreign_keys: []
+    key: proposal_rules
 - kind: family
   name: proposal_stances
   contract_version: 2026.04.27
@@ -3854,4 +4058,4 @@ contracts:
     invariants: []
 registry:
   name: propstore
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01

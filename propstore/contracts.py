@@ -14,7 +14,8 @@ from quire.versions import VersionId
 if TYPE_CHECKING:
     from propstore.families.claims.documents import ClaimTypeContract
 
-PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.04.30")
+PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.01")
+DOCUMENT_SCHEMA_CONTRACT_VERSION = VersionId("2026.04.30")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
 DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.documents.sources.SourceStanceEntryDocument": VersionId("2026.05.01"),
@@ -23,6 +24,13 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.documents.stances.StanceFileDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.AtomDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.RuleDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.predicates.PredicateDeclaration": VersionId("2026.05.01"),
+    "propstore.families.documents.predicates.PredicateExtractionProvenance": VersionId("2026.05.01"),
+    "propstore.families.documents.predicates.PredicateProposalDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.predicates.PredicatesFileDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.rules.RuleExtractionProvenance": VersionId("2026.05.01"),
+    "propstore.families.documents.rules.RuleProposalDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.rules.RulesFileDocument": VersionId("2026.05.01"),
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
@@ -203,7 +211,7 @@ def _document_contract_version(document_type: type[msgspec.Struct]) -> VersionId
     key = f"{document_type.__module__}.{document_type.__name__}"
     return DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES.get(
         key,
-        PROPSTORE_REGISTRY_CONTRACT_VERSION,
+        DOCUMENT_SCHEMA_CONTRACT_VERSION,
     )
 
 
