@@ -117,10 +117,6 @@ class _NamedGraphDocument(DocumentStruct):
     provenance: Provenance
 
 
-def _sha_text(value: str) -> str:
-    return value if value.startswith("ni:///sha-1;") else f"ni:///sha-1;{value}"
-
-
 def _object_sha_bytes(object_sha: bytes | str) -> bytes:
     if isinstance(object_sha, bytes):
         return object_sha
