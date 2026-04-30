@@ -24,8 +24,8 @@ def _import_linter_lock():
         lock_path.unlink(missing_ok=True)
 
 
-def test_import_linter_rejects_heuristic_importing_source_finalize() -> None:
-    fixture = Path("propstore/heuristic/_import_linter_negative_fixture.py")
+def test_import_linter_rejects_source_importing_heuristic() -> None:
+    fixture = Path("propstore/source/_import_linter_negative_fixture.py")
     command = ["uv", "run"]
     if os.environ.get("PROPSTORE_UV_NO_SOURCES") == "1":
         command.extend(["--locked", "--no-sources"])
@@ -33,7 +33,7 @@ def test_import_linter_rejects_heuristic_importing_source_finalize() -> None:
 
     with _import_linter_lock():
         try:
-            fixture.write_text("from propstore.source import finalize\n")
+            fixture.write_text("import propstore.heuristic\n")
             result = subprocess.run(
                 command,
                 capture_output=True,
@@ -45,4 +45,4 @@ def test_import_linter_rejects_heuristic_importing_source_finalize() -> None:
 
     output = result.stdout + result.stderr
     assert result.returncode != 0, output
-    assert "heuristic -> source.finalize" in output
+    assert "propstore six-layer architecture" in output
