@@ -105,7 +105,7 @@ class InvestigationPlan:
         object.__setattr__(self, "assertion_ids", _strings(self.assertion_ids))
         if self.source_report_hash is not None:
             object.__setattr__(self, "source_report_hash", str(self.source_report_hash))
-        object.__setattr__(self, "plan_id", f"urn:propstore:investigation-plan:{self.content_hash[:32]}")
+        object.__setattr__(self, "plan_id", f"urn:propstore:investigation-plan:{self.content_hash}")
 
     @classmethod
     def from_fragility_report(
@@ -207,7 +207,7 @@ class InterventionPlan:
         object.__setattr__(self, "consistent", bool(self.consistent))
         object.__setattr__(self, "minimality_basis", str(self.minimality_basis))
         object.__setattr__(self, "assertion_ids", _strings(self.assertion_ids))
-        object.__setattr__(self, "plan_id", f"urn:propstore:intervention-plan:{self.content_hash[:32]}")
+        object.__setattr__(self, "plan_id", f"urn:propstore:intervention-plan:{self.content_hash}")
 
     @classmethod
     def from_atms_plan(
@@ -329,7 +329,7 @@ class ProcessJob:
         object.__setattr__(self, "work_item", _plain(dict(self.work_item)))
         object.__setattr__(self, "assertion_ids", _strings(self.assertion_ids))
         object.__setattr__(self, "journal_entry_hashes", _strings(self.journal_entry_hashes))
-        object.__setattr__(self, "job_id", f"urn:propstore:process-job:{self.content_hash[:32]}")
+        object.__setattr__(self, "job_id", f"urn:propstore:process-job:{self.content_hash}")
 
     @classmethod
     def for_plan(
