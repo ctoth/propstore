@@ -93,7 +93,7 @@ def _projection_atom_for_literal(
         )
     provenance = None
     if source_assertion_ids:
-        frame_digest = hashlib.sha256(backend_atom_id.encode("utf-8")).hexdigest()[:32]
+        frame_digest = hashlib.sha256(backend_atom_id.encode("utf-8")).hexdigest()
         provenance = ProjectionFrameProvenanceRecord(
             frame_id=f"urn:propstore:projection:aspic:{frame_digest}",
             backend="aspic",
