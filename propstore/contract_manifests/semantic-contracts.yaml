@@ -315,7 +315,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_claims
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     coerce_payload: null
     decode_bytes: null
@@ -326,7 +326,7 @@ contracts:
     placement:
       branch:
         codec: safe_slug
-        collision_suffix: sha1-12
+        collision_suffix: sha256
         policy: template
         ref_field: name
         template: source/{stem}
@@ -337,7 +337,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_concepts
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     coerce_payload: null
     decode_bytes: null
@@ -348,7 +348,7 @@ contracts:
     placement:
       branch:
         codec: safe_slug
-        collision_suffix: sha1-12
+        collision_suffix: sha256
         policy: template
         ref_field: name
         template: source/{stem}
@@ -359,7 +359,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_document
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     coerce_payload: null
     decode_bytes: null
@@ -370,7 +370,7 @@ contracts:
     placement:
       branch:
         codec: safe_slug
-        collision_suffix: sha1-12
+        collision_suffix: sha256
         policy: template
         ref_field: name
         template: source/{stem}
@@ -381,7 +381,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_finalize_report
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     coerce_payload: null
     decode_bytes: null
@@ -392,7 +392,7 @@ contracts:
     placement:
       branch:
         codec: safe_slug
-        collision_suffix: sha1-12
+        collision_suffix: sha256
         policy: template
         ref_field: name
         template: source/{stem}
@@ -405,7 +405,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_justifications
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     coerce_payload: null
     decode_bytes: null
@@ -416,7 +416,7 @@ contracts:
     placement:
       branch:
         codec: safe_slug
-        collision_suffix: sha1-12
+        collision_suffix: sha256
         policy: template
         ref_field: name
         template: source/{stem}
@@ -427,7 +427,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_metadata
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     coerce_payload: quire.documents.codecs.coerce_json_mapping
     decode_bytes: quire.documents.codecs.decode_json_mapping
@@ -438,7 +438,7 @@ contracts:
     placement:
       branch:
         codec: safe_slug
-        collision_suffix: sha1-12
+        collision_suffix: sha256
         policy: template
         ref_field: name
         template: source/{stem}
@@ -449,7 +449,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_micropubs
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     coerce_payload: null
     decode_bytes: null
@@ -460,7 +460,7 @@ contracts:
     placement:
       branch:
         codec: safe_slug
-        collision_suffix: sha1-12
+        collision_suffix: sha256
         policy: template
         ref_field: name
         template: source/{stem}
@@ -471,7 +471,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_notes
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     coerce_payload: quire.documents.codecs.coerce_text_document
     decode_bytes: quire.documents.codecs.decode_text_document
@@ -482,7 +482,7 @@ contracts:
     placement:
       branch:
         codec: safe_slug
-        collision_suffix: sha1-12
+        collision_suffix: sha256
         policy: template
         ref_field: name
         template: source/{stem}
@@ -493,7 +493,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_stances
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     coerce_payload: null
     decode_bytes: null
@@ -504,7 +504,7 @@ contracts:
     placement:
       branch:
         codec: safe_slug
-        collision_suffix: sha1-12
+        collision_suffix: sha256
         policy: template
         ref_field: name
         template: source/{stem}
@@ -3133,7 +3133,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: family-registry
   name: propstore
-  contract_version: 2026.05.02
+  contract_version: 2026.05.03
   body:
     families:
     - contract_version: 2026.04.29
@@ -3172,31 +3172,31 @@ contracts:
     - contract_version: 2026.04.27
       key: justifications
       name: justifications
-    - contract_version: 2026.04.30
+    - contract_version: 2026.05.02
       key: source_documents
       name: source_documents
-    - contract_version: 2026.04.30
+    - contract_version: 2026.05.02
       key: source_notes
       name: source_notes
-    - contract_version: 2026.04.30
+    - contract_version: 2026.05.02
       key: source_metadata
       name: source_metadata
-    - contract_version: 2026.04.30
+    - contract_version: 2026.05.02
       key: source_concepts
       name: source_concepts
-    - contract_version: 2026.04.30
+    - contract_version: 2026.05.02
       key: source_claims
       name: source_claims
-    - contract_version: 2026.04.30
+    - contract_version: 2026.05.02
       key: source_micropubs
       name: source_micropubs
-    - contract_version: 2026.04.30
+    - contract_version: 2026.05.02
       key: source_justifications
       name: source_justifications
-    - contract_version: 2026.04.30
+    - contract_version: 2026.05.02
       key: source_stances
       name: source_stances
-    - contract_version: 2026.04.30
+    - contract_version: 2026.05.02
       key: source_finalize_reports
       name: source_finalize_reports
     - contract_version: 2026.04.27
@@ -3607,7 +3607,7 @@ contracts:
       semantic: true
 - kind: family
   name: source_claims
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     accessor: source_claims
     artifact_family: source_claims
@@ -3616,18 +3616,18 @@ contracts:
       placement:
         branch:
           codec: safe_slug
-          collision_suffix: sha1-12
+          collision_suffix: sha256
           policy: template
           ref_field: name
           template: source/{stem}
         filename: claims.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.30
+    artifact_family_contract_version: 2026.05.02
     foreign_keys: []
     key: source_claims
 - kind: family
   name: source_concepts
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     accessor: source_concepts
     artifact_family: source_concepts
@@ -3636,18 +3636,18 @@ contracts:
       placement:
         branch:
           codec: safe_slug
-          collision_suffix: sha1-12
+          collision_suffix: sha256
           policy: template
           ref_field: name
           template: source/{stem}
         filename: concepts.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.30
+    artifact_family_contract_version: 2026.05.02
     foreign_keys: []
     key: source_concepts
 - kind: family
   name: source_documents
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     accessor: source_documents
     artifact_family: source_document
@@ -3656,18 +3656,18 @@ contracts:
       placement:
         branch:
           codec: safe_slug
-          collision_suffix: sha1-12
+          collision_suffix: sha256
           policy: template
           ref_field: name
           template: source/{stem}
         filename: source.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.30
+    artifact_family_contract_version: 2026.05.02
     foreign_keys: []
     key: source_documents
 - kind: family
   name: source_finalize_reports
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     accessor: source_finalize_reports
     artifact_family: source_finalize_report
@@ -3676,7 +3676,7 @@ contracts:
       placement:
         branch:
           codec: safe_slug
-          collision_suffix: sha1-12
+          collision_suffix: sha256
           policy: template
           ref_field: name
           template: source/{stem}
@@ -3684,12 +3684,12 @@ contracts:
         kind: template-file
         ref_field: name
         template: merge/finalize/{stem}.yaml
-    artifact_family_contract_version: 2026.04.30
+    artifact_family_contract_version: 2026.05.02
     foreign_keys: []
     key: source_finalize_reports
 - kind: family
   name: source_justifications
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     accessor: source_justifications
     artifact_family: source_justifications
@@ -3698,18 +3698,18 @@ contracts:
       placement:
         branch:
           codec: safe_slug
-          collision_suffix: sha1-12
+          collision_suffix: sha256
           policy: template
           ref_field: name
           template: source/{stem}
         filename: justifications.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.30
+    artifact_family_contract_version: 2026.05.02
     foreign_keys: []
     key: source_justifications
 - kind: family
   name: source_metadata
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     accessor: source_metadata
     artifact_family: source_metadata
@@ -3718,18 +3718,18 @@ contracts:
       placement:
         branch:
           codec: safe_slug
-          collision_suffix: sha1-12
+          collision_suffix: sha256
           policy: template
           ref_field: name
           template: source/{stem}
         filename: metadata.json
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.30
+    artifact_family_contract_version: 2026.05.02
     foreign_keys: []
     key: source_metadata
 - kind: family
   name: source_micropubs
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     accessor: source_micropubs
     artifact_family: source_micropubs
@@ -3738,18 +3738,18 @@ contracts:
       placement:
         branch:
           codec: safe_slug
-          collision_suffix: sha1-12
+          collision_suffix: sha256
           policy: template
           ref_field: name
           template: source/{stem}
         filename: micropubs.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.30
+    artifact_family_contract_version: 2026.05.02
     foreign_keys: []
     key: source_micropubs
 - kind: family
   name: source_notes
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     accessor: source_notes
     artifact_family: source_notes
@@ -3758,18 +3758,18 @@ contracts:
       placement:
         branch:
           codec: safe_slug
-          collision_suffix: sha1-12
+          collision_suffix: sha256
           policy: template
           ref_field: name
           template: source/{stem}
         filename: notes.md
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.30
+    artifact_family_contract_version: 2026.05.02
     foreign_keys: []
     key: source_notes
 - kind: family
   name: source_stances
-  contract_version: 2026.04.30
+  contract_version: 2026.05.02
   body:
     accessor: source_stances
     artifact_family: source_stances
@@ -3778,13 +3778,13 @@ contracts:
       placement:
         branch:
           codec: safe_slug
-          collision_suffix: sha1-12
+          collision_suffix: sha256
           policy: template
           ref_field: name
           template: source/{stem}
         filename: stances.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.04.30
+    artifact_family_contract_version: 2026.05.02
     foreign_keys: []
     key: source_stances
 - kind: family
@@ -4167,4 +4167,4 @@ contracts:
     invariants: []
 registry:
   name: propstore
-  contract_version: 2026.05.02
+  contract_version: 2026.05.03
