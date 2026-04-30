@@ -1,6 +1,6 @@
 # WS-M: Provenance — Trusty URI, PROV-O export, gunray boundary, full-hash identity
 
-**Status**: CLOSED 932bb92a
+**Status**: CLOSED 623f892d
 **Depends on**: WS-CM (canonical micropub payload + Trusty URI identity), WS-E (assertion-id provenance, sameAs grading), **WS-O-gun** (per Codex 1.13 + D-18: gunray must wire `EnumerationExceeded`/`max_arguments` before propstore can default `return_arguments=True`), RFC 6920 (`ni://` URI scheme), W3C PROV-O / PROV-DM / PROV-N — last three pending retrieval per `reviews/2026-04-26-claude/REMEDIATION-PLAN.md:298`.
 **Blocks**: nothing downstream of this file. WS-N's architecture contracts can lean on WS-M but do not require it to land first.
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1).
@@ -273,21 +273,21 @@ Acceptance: `tests/test_workstream_m_done.py` passes.
 
 Before declaring WS-M done, ALL must hold:
 
-- [ ] `uv run pyright propstore` — passes with 0 errors.
-- [ ] `uv run lint-imports` — passes.
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-M tests/test_trusty_uri_verification.py tests/test_no_truncated_identity.py tests/test_prov_o_export.py tests/test_compose_provenance_causal_order.py tests/test_witness_key_uniformity.py tests/test_why_support_subsumes.py tests/test_polynomial_provenance_preserved_through_combine.py tests/test_grounded_bundle_round_trip.py tests/test_grounder_budget_exceeded.py tests/test_grounder_default_returns_arguments.py tests/test_micropub_identity_consumes_wscm.py tests/test_repository_import_provenance_attached.py tests/test_promote_writes_provenance_note.py tests/test_workstream_m_done.py` — all green (default-arguments test green only after WS-O-gun closes).
-- [ ] WS-M property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-M test run or a named companion run.
-- [ ] Full suite no new failures vs `logs/test-runs/pytest-20260426-154852.log`.
-- [ ] `propstore/provenance/__init__.py` no longer contains the bare `_sha_text` template; every `ni:///` URI is verifiable.
-- [ ] `grep -nR "prov:Activity" propstore/` returns at least one match — and only inside the export-only module (Codex 1.5).
-- [ ] `grep -nR "write_provenance_note\|read_provenance_note" propstore/source/` returns at least two matches.
-- [ ] `grep -nR "provenance" propstore/storage/repository_import.py` returns at least one match.
-- [ ] `propstore/sidecar/rules.py:read_grounded_bundle` no longer returns empty `source_rules`/`source_facts`.
-- [ ] AST audit (`tests/test_no_truncated_identity.py`): zero `[:N]` slices on hex digests in production identity paths; render-only allowlist documented.
-- [ ] No `propstore migrate-*` command exists (Codex 1.4).
-- [ ] PROV-O is reachable only from the export module — internal storage/source/sidecar code does not import `prov_o`.
-- [ ] `docs/gaps.md` has no open rows for the findings listed above.
-- [ ] STATUS line is `CLOSED <sha>`.
+- [x] `uv run pyright propstore` — passes with 0 errors (`2026-04-30` post-fix rerun).
+- [x] `uv run lint-imports` — passes (`2026-04-30` post-fix rerun).
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-M ...` — all targeted WS-M gates green in `logs/test-runs/WS-M-final-targeted-20260430-021537.log`; post-full regression set green in `logs/test-runs/WS-M-full-failure-set-rerun-20260430-023309.log`.
+- [x] WS-M property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-M test run or a named companion run.
+- [x] Full suite no new failures: `logs/test-runs/WS-M-full-rerun-20260430-023410.log` reports 3473 passed, 2 skipped.
+- [x] `propstore/provenance/__init__.py` no longer contains the bare `_sha_text` template; every `ni:///` URI is verifiable.
+- [x] `rg -n -F "prov:Activity" propstore` returns matches only inside `propstore/provenance/prov_o.py`.
+- [x] `rg -n "write_provenance_note|read_provenance_note" propstore/source` returns the source promotion call path.
+- [x] `rg -n -F "provenance" propstore/storage/repository_import.py` returns the repository import provenance path.
+- [x] `propstore/sidecar/rules.py:read_grounded_bundle` no longer returns empty `source_rules`/`source_facts`.
+- [x] AST audit (`tests/test_no_truncated_identity.py`): zero `[:N]` slices on hex digests in production identity paths; render-only allowlist documented.
+- [x] No `propstore migrate-*` command exists (Codex 1.4).
+- [x] PROV-O is reachable only from the export module — internal storage/source/sidecar code does not import `prov_o`.
+- [x] `docs/gaps.md` has no open rows for the findings listed above.
+- [x] STATUS line is `CLOSED 623f892d`.
 
 ## Done means done
 

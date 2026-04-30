@@ -1,7 +1,7 @@
 # WS-M Closure Report
 
 Workstream id: WS-M
-Closing implementation commit: `932bb92a`
+Closing implementation commit: `623f892d`
 
 ## Findings Closed
 
@@ -32,6 +32,14 @@ The initial WS-M red run was `logs/test-runs/WS-M-red-20260430-014826.log`: 22 f
 - `logs/test-runs/WS-M-step7-20260430-020549.log` — 18 passed.
 - `logs/test-runs/WS-M-step8-20260430-020732.log` — 12 passed.
 - `logs/test-runs/WS-M-preclose-20260430-020753.log` — 22 passed.
+- `logs/test-runs/WS-M-final-targeted-20260430-021537.log` — 23 passed.
+- `logs/test-runs/WS-M-full-failure-set-rerun-20260430-023309.log` — 9 passed; covers the post-full regression fixes for causal operation order, JSON sidecar input persistence, reasoning demo build/run, and contract manifest drift.
+- `logs/test-runs/WS-M-full-rerun-20260430-023410.log` — 3473 passed, 2 skipped.
+
+Static gates:
+
+- `uv run pyright propstore` — 0 errors, 0 warnings.
+- `uv run lint-imports` — 5 contracts kept, 0 broken.
 
 ## Property Gates
 
@@ -39,7 +47,7 @@ Hypothesis gates added for SHA-256 `ni` URI round-trip, WhySupport inclusion sem
 
 ## Files Changed
 
-Core provenance, URI wrappers, PROV-O export, full-hash identity sites, grounder/bundle/sidecar persistence, repository import, source promote, and WS-M tests were changed. `docs/gaps.md`, this WS file, and the workstream index record closure.
+Core provenance, URI wrappers, PROV-O export, full-hash identity sites, grounder/bundle/sidecar persistence, repository import, source promote, source-branch contract manifests, and WS-M tests were changed. `docs/gaps.md`, this WS file, and the workstream index record closure.
 
 ## Remaining Risks
 
