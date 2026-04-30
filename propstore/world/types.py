@@ -174,7 +174,7 @@ class QueryableAssumption:
         source: str = "future",
     ) -> QueryableAssumption:
         normalized_cel = to_cel_expr(cel)
-        digest = hashlib.sha1(f"queryable\0{source}\0{normalized_cel}".encode("utf-8")).hexdigest()[:12]
+        digest = hashlib.sha256(f"queryable\0{source}\0{normalized_cel}".encode("utf-8")).hexdigest()
         return cls(
             assumption_id=to_queryable_id(f"queryable:{source}:{digest}"),
             cel=normalized_cel,
