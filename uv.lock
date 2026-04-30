@@ -220,7 +220,7 @@ wheels = [
 [[package]]
 name = "bridgman"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/bridgman?rev=00757823d5a9ec3f6422df3afd61259b9e042b5d#00757823d5a9ec3f6422df3afd61259b9e042b5d" }
+source = { git = "https://github.com/ctoth/bridgman?rev=d0f20b5db359e4c95ff0ab08f494f2e09718063c#d0f20b5db359e4c95ff0ab08f494f2e09718063c" }
 
 [[package]]
 name = "certifi"
@@ -2040,7 +2040,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=129569f4f8472402fdae1142bcf485f45010a83d" },
-    { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=00757823d5a9ec3f6422df3afd61259b9e042b5d" },
+    { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=d0f20b5db359e4c95ff0ab08f494f2e09718063c" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
