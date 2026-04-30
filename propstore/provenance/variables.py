@@ -56,4 +56,4 @@ def derive_source_variable_id(
     normalized_role = SourceRole(role)
     body = "\0".join((normalized_role.value, str(artifact_id), str(canonical_body_hash)))
     digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
-    return SourceVariableId(f"ps:source:{normalized_role.value}:{digest[:32]}")
+    return SourceVariableId(f"ps:source:{normalized_role.value}:{digest}")
