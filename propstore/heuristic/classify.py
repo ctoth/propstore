@@ -3,8 +3,8 @@
 Separated from relate.py: this module is a pure function mapping
 (claim_a, claim_b, context) -> [forward_stance, reverse_stance].
 
-Single LLM call classifies both directions. Enrichment context is conditionally
-included when embedding distance is below threshold.
+Forward and reverse stances are classified with independent LLM calls. Enrichment
+context is conditionally included when embedding distance is below threshold.
 
 Literature grounding:
 - Josang 2001 (p.8, Def 9): vacuous opinion for total ignorance
@@ -15,10 +15,12 @@ Literature grounding:
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import importlib
 import json
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 from propstore.heuristic.calibrate import CategoryPriorRegistry, categorical_to_opinion
 from propstore.core.base_rates import BaseRateUnresolved
@@ -51,13 +53,13 @@ def _response_content_text(response: object) -> str | None:
     return content if isinstance(content, str) else None
 
 
-_CLASSIFICATION_PROMPT = """Given two propositional claims from scientific papers, classify their epistemic relationship in BOTH directions.
+_DIRECTIONAL_CLASSIFICATION_PROMPT = """Given two propositional claims from scientific papers, classify their epistemic relationship in exactly one direction.
 
-Claim A (from {source_a}):
-  "{statement_a}"
+Claim {source_label} (from {source_paper}):
+  "{source_statement}"
 
-Claim B (from {source_b}):
-  "{statement_b}"
+Claim {target_label} (from {target_paper}):
+  "{target_statement}"
 
 {enrichment_context}
 
@@ -70,12 +72,10 @@ Valid relationship types:
 - supersedes: replaces the other entirely (newer data, better method, corrects error)
 - none: no meaningful epistemic relationship
 
-Classify BOTH directions:
-1. "forward": the relationship FROM Claim A's perspective TOWARD Claim B
-2. "reverse": the relationship FROM Claim B's perspective TOWARD Claim A
+Classify one direction only: FROM Claim {source_label}'s perspective TOWARD Claim {target_label}.
 
 Respond with ONLY a JSON object (no markdown, no explanation):
-{{"forward": {{"type": "<type or none>", "strength": "<strong|moderate|weak>", "note": "<1 sentence>", "conditions_differ": "<or null>"}}, "reverse": {{"type": "<type or none>", "strength": "<strong|moderate|weak>", "note": "<1 sentence>", "conditions_differ": "<or null>"}}}}"""
+{{"type": "<type or none>", "strength": "<strong|moderate|weak>", "note": "<1 sentence>", "conditions_differ": "<or null>"}}"""
 
 
 _ENRICHMENT_THRESHOLD_DEFAULT = 0.75
@@ -192,6 +192,10 @@ def _build_error_stance(
     embedding_model: str | None,
     embedding_distance: float | None,
     note: str,
+    *,
+    prompt: str | None = None,
+    raw_response: object | None = None,
+    llm_call_id: str | None = None,
 ) -> dict:
     """Build a single error stance without inferring an unobserved direction."""
     base = {
@@ -205,6 +209,9 @@ def _build_error_stance(
             "embedding_model": embedding_model,
             "embedding_distance": embedding_distance,
             "confidence": 0.0,
+            "llm_call_id": llm_call_id,
+            "prompt": prompt,
+            "raw_response": raw_response,
         },
     }
     return {**base, "target": target_id}
@@ -268,6 +275,10 @@ def _build_stance_dict(
     reference_distances: list[float] | None,
     calibration_counts: dict[tuple[int, str], tuple[int, int]] | None,
     category_prior_registry: CategoryPriorRegistry | None,
+    *,
+    prompt: str,
+    raw_response: dict,
+    llm_call_id: str,
 ) -> dict:
     """Build a single stance dict from raw LLM output for one direction."""
     stance_type = raw.get("type", "none")
@@ -309,6 +320,9 @@ def _build_stance_dict(
         "confidence": confidence,
         "opinion": _opinion_payload(opinion),
         "unresolved_calibration": _unresolved_payload(unresolved),
+        "llm_call_id": llm_call_id,
+        "prompt": prompt,
+        "raw_response": raw_response,
     }
 
     return {
@@ -319,6 +333,137 @@ def _build_stance_dict(
         "conditions_differ": raw.get("conditions_differ"),
         "resolution": resolution,
     }
+
+
+def _directional_prompt(
+    source_claim: dict,
+    target_claim: dict,
+    *,
+    source_label: str,
+    target_label: str,
+    enrichment_context: str,
+) -> str:
+    return _DIRECTIONAL_CLASSIFICATION_PROMPT.format(
+        source_label=source_label,
+        source_paper=source_claim.get("source_paper", "unknown"),
+        source_statement=source_claim["text"],
+        target_label=target_label,
+        target_paper=target_claim.get("source_paper", "unknown"),
+        target_statement=target_claim["text"],
+        enrichment_context=enrichment_context,
+    )
+
+
+def _llm_call_id(*, model_name: str, prompt: str, response_text: str) -> str:
+    payload = json.dumps(
+        {
+            "model": model_name,
+            "prompt": prompt,
+            "response": response_text,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+async def _classify_one_direction(
+    litellm: Any,
+    *,
+    source_claim: dict,
+    target_claim: dict,
+    source_label: str,
+    target_label: str,
+    model_name: str,
+    semaphore: asyncio.Semaphore,
+    embedding_model: str | None,
+    embedding_distance: float | None,
+    enrichment_context: str,
+    reference_distances: list[float] | None,
+    calibration_counts: dict[tuple[int, str], tuple[int, int]] | None,
+    category_prior_registry: CategoryPriorRegistry | None,
+) -> dict:
+    prompt = _directional_prompt(
+        source_claim,
+        target_claim,
+        source_label=source_label,
+        target_label=target_label,
+        enrichment_context=enrichment_context,
+    )
+    async with semaphore:
+        try:
+            response = await litellm.acompletion(
+                model=model_name,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+            )
+        except (ConnectionError, TimeoutError, OSError, ValueError) as exc:
+            logging.warning(
+                "Stance classification failed for %s vs %s: %s",
+                source_claim["id"],
+                target_claim["id"],
+                exc,
+            )
+            return _build_error_stance(
+                target_claim["id"],
+                model_name,
+                embedding_model,
+                embedding_distance,
+                "classification failed",
+                prompt=prompt,
+            )
+
+    response_text = _response_content_text(response)
+    if response_text is None:
+        return _build_error_stance(
+            target_claim["id"],
+            model_name,
+            embedding_model,
+            embedding_distance,
+            "missing response content",
+            prompt=prompt,
+        )
+
+    text = response_text.strip()
+    call_id = _llm_call_id(model_name=model_name, prompt=prompt, response_text=text)
+    try:
+        result = json.loads(text)
+    except json.JSONDecodeError:
+        return _build_error_stance(
+            target_claim["id"],
+            model_name,
+            embedding_model,
+            embedding_distance,
+            "JSON parse failed",
+            prompt=prompt,
+            raw_response=text,
+            llm_call_id=call_id,
+        )
+    if not isinstance(result, dict):
+        return _build_error_stance(
+            target_claim["id"],
+            model_name,
+            embedding_model,
+            embedding_distance,
+            "non-object response",
+            prompt=prompt,
+            raw_response=result,
+            llm_call_id=call_id,
+        )
+
+    return _build_stance_dict(
+        result,
+        target_claim["id"],
+        model_name,
+        embedding_model,
+        embedding_distance,
+        reference_distances,
+        calibration_counts,
+        category_prior_registry,
+        prompt=prompt,
+        raw_response=result,
+        llm_call_id=call_id,
+    )
 
 
 async def classify_stance_async(
@@ -338,7 +483,7 @@ async def classify_stance_async(
 ) -> list[dict]:
     """Classify epistemic relationship between two claims in both directions.
 
-    Single LLM call, returns [forward_stance, reverse_stance].
+    Two independent LLM calls, returns [forward_stance, reverse_stance].
     Forward: A's perspective toward B. Reverse: B's perspective toward A.
     """
     litellm = _require_litellm()
@@ -348,54 +493,37 @@ async def classify_stance_async(
             embedding_distance, enrichment_threshold, shared_concept_ids,
         )
 
-    prompt = _CLASSIFICATION_PROMPT.format(
-        source_a=claim_a.get("source_paper", "unknown"),
-        statement_a=claim_a["text"],
-        source_b=claim_b.get("source_paper", "unknown"),
-        statement_b=claim_b["text"],
-        enrichment_context=enrichment_context,
-    )
-
-    async with semaphore:
-        try:
-            response = await litellm.acompletion(
-                model=model_name,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-            )
-        except (ConnectionError, TimeoutError, OSError, ValueError) as exc:
-            logging.warning("Stance classification failed for %s vs %s: %s", claim_a["id"], claim_b["id"], exc)
-            return _build_error_pair(claim_a["id"], claim_b["id"], model_name, embedding_model, embedding_distance, "classification failed")
-
-    response_text = _response_content_text(response)
-    if response_text is None:
-        return _build_error_pair(claim_a["id"], claim_b["id"], model_name, embedding_model, embedding_distance, "missing response content")
-
-    text = response_text.strip()
-    try:
-        result = json.loads(text)
-    except json.JSONDecodeError:
-        return [
-            _build_error_stance(
-                claim_b["id"],
-                model_name,
-                embedding_model,
-                embedding_distance,
-                "JSON parse failed",
-            )
-        ]
-
-    # Extract forward and reverse from bidirectional response
-    forward_raw = result.get("forward", result)  # fallback: treat whole response as forward
-    reverse_raw = result.get("reverse", {"type": "none", "strength": "weak", "note": "not classified", "conditions_differ": None})
-
-    forward = _build_stance_dict(
-        forward_raw, claim_b["id"], model_name, embedding_model, embedding_distance,
-        reference_distances, calibration_counts, category_prior_registry,
-    )
-    reverse = _build_stance_dict(
-        reverse_raw, claim_a["id"], model_name, embedding_model, embedding_distance,
-        reference_distances, calibration_counts, category_prior_registry,
+    forward, reverse = await asyncio.gather(
+        _classify_one_direction(
+            litellm,
+            source_claim=claim_a,
+            target_claim=claim_b,
+            source_label="A",
+            target_label="B",
+            model_name=model_name,
+            semaphore=semaphore,
+            embedding_model=embedding_model,
+            embedding_distance=embedding_distance,
+            enrichment_context=enrichment_context,
+            reference_distances=reference_distances,
+            calibration_counts=calibration_counts,
+            category_prior_registry=category_prior_registry,
+        ),
+        _classify_one_direction(
+            litellm,
+            source_claim=claim_b,
+            target_claim=claim_a,
+            source_label="B",
+            target_label="A",
+            model_name=model_name,
+            semaphore=semaphore,
+            embedding_model=embedding_model,
+            embedding_distance=embedding_distance,
+            enrichment_context=enrichment_context,
+            reference_distances=reference_distances,
+            calibration_counts=calibration_counts,
+            category_prior_registry=category_prior_registry,
+        ),
     )
 
     return [forward, reverse]

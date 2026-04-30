@@ -18,7 +18,7 @@ def _malformed_response() -> MagicMock:
     return response
 
 
-def test_malformed_json_does_not_construct_reverse_stance() -> None:
+def test_malformed_json_produces_independent_directional_errors() -> None:
     with patch("propstore.heuristic.classify._require_litellm") as require_litellm:
         litellm = MagicMock()
         litellm.acompletion = AsyncMock(return_value=_malformed_response())
@@ -33,6 +33,8 @@ def test_malformed_json_does_not_construct_reverse_stance() -> None:
             ),
         )
 
-    assert len(results) == 1
-    assert results[0]["target"] == "claim-b"
-    assert results[0]["type"] == "error"
+    assert litellm.acompletion.await_count == 2
+    assert len(results) == 2
+    assert [result["target"] for result in results] == ["claim-b", "claim-a"]
+    assert [result["type"] for result in results] == ["error", "error"]
+    assert results[0]["resolution"]["llm_call_id"] != results[1]["resolution"]["llm_call_id"]

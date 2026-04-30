@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 from hypothesis import given, assume, settings
@@ -33,10 +33,12 @@ def _make_claim(id_: str, text: str = "some claim", source: str = "paper") -> di
 
 
 def _mock_bidirectional_response(forward: dict, reverse: dict) -> MagicMock:
-    """Build a mock litellm response returning bidirectional JSON."""
+    """Build a mock response returning forward then reverse directional JSON."""
     resp = MagicMock()
     msg = MagicMock()
-    msg.content = json.dumps({"forward": forward, "reverse": reverse})
+    type(msg).content = PropertyMock(
+        side_effect=[json.dumps(forward), json.dumps(reverse)] * 100
+    )
     choice = MagicMock()
     choice.message = msg
     resp.choices = [choice]

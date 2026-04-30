@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import sqlite3
 import json
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock, PropertyMock
 
 import pytest
 import yaml
@@ -81,12 +81,16 @@ def _opinion_payload(
 # ---------------------------------------------------------------------------
 
 def _bidirectional_response(forward: dict, reverse: dict | None = None) -> MagicMock:
-    """Build a mock litellm response with bidirectional JSON."""
+    """Build a mock response returning forward then reverse directional JSON."""
     if reverse is None:
         reverse = {"type": "none", "strength": "weak", "note": "reverse", "conditions_differ": None}
     resp = MagicMock()
     resp.choices = [MagicMock()]
-    resp.choices[0].message.content = json.dumps({"forward": forward, "reverse": reverse})
+    message = MagicMock()
+    type(message).content = PropertyMock(
+        side_effect=[json.dumps(forward), json.dumps(reverse)] * 100
+    )
+    resp.choices[0].message = message
     return resp
 
 
