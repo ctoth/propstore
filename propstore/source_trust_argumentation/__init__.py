@@ -56,16 +56,59 @@ def _load_rules_from_repo(repo: Repository) -> tuple[Mapping[str, Any], ...]:
     if not rules_root.exists():
         rules_root = repo.root / "rules"
     if not rules_root.exists():
+        project_rules = Path(__file__).resolve().parents[2] / "knowledge" / "rules"
+        if project_rules.exists():
+            rules_root = project_rules
+    if not rules_root.exists():
         return ()
 
     rules: list[Mapping[str, Any]] = []
     for path in sorted(rules_root.rglob("*.yaml")):
         loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-        if isinstance(loaded, Mapping):
+        if isinstance(loaded, Mapping) and isinstance(loaded.get("rules"), Sequence):
+            paper = str(
+                loaded.get("source", {}).get("paper", path.parent.name)
+                if isinstance(loaded.get("source"), Mapping)
+                else path.parent.name
+            )
+            for rule in loaded["rules"]:
+                if isinstance(rule, Mapping):
+                    rules.append(_source_trust_rule_from_document(paper, rule))
+        elif isinstance(loaded, Mapping):
             rules.append(dict(loaded))
         elif isinstance(loaded, Sequence) and not isinstance(loaded, str):
             rules.extend(dict(item) for item in loaded if isinstance(item, Mapping))
     return tuple(rules)
+
+
+def _source_trust_rule_from_document(
+    paper: str,
+    rule: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    conditions: dict[str, object] = {}
+    body = rule.get("body", ())
+    if isinstance(body, Sequence) and not isinstance(body, str):
+        for literal in body:
+            if not isinstance(literal, Mapping) or literal.get("kind") != "positive":
+                continue
+            atom = literal.get("atom")
+            if not isinstance(atom, Mapping):
+                continue
+            terms = atom.get("terms", ())
+            if not isinstance(terms, Sequence) or isinstance(terms, str) or len(terms) < 2:
+                continue
+            value_term = terms[1]
+            if isinstance(value_term, Mapping) and value_term.get("kind") == "const":
+                conditions[str(atom["predicate"])] = value_term.get("value")
+    head = rule.get("head", {})
+    head_predicate = str(head.get("predicate", "")) if isinstance(head, Mapping) else ""
+    return {
+        "id": f"{paper}:{rule['id']}",
+        "effect": "support" if head_predicate == "high_trust" else "attack",
+        "weight": 0.25,
+        "base_rate": 0.5,
+        "conditions": conditions,
+    }
 
 
 def _rule_matches(rule: Mapping[str, Any], metadata_payload: Mapping[str, object]) -> bool:
