@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from propstore.families.documents.predicates import (
     PredicateDocument,
@@ -15,7 +16,7 @@ from propstore.families.registry import (
 )
 from propstore.proposals import UnknownProposalPath
 
-if False:
+if TYPE_CHECKING:
     from propstore.repository import Repository
 
 
