@@ -108,7 +108,7 @@ NUMBER: /(?:\d+\.\d*|\d*\.\d+|\d+)(?:[eE][+-]?\d+)?/
 %ignore WS_INLINE
 """
 
-_ALLOWED_FUNCTIONS = frozenset({"log", "ln", "exp", "sqrt"})
+_ALLOWED_FUNCTIONS = frozenset({"abs", "log", "ln", "exp", "sqrt"})
 
 
 class _EquationTransformer(Transformer):
