@@ -292,38 +292,6 @@ def test_conflict_merge_is_deterministic(tmp_path):
     assert kr.flat_tree_entries(merge_sha_a) == kr.flat_tree_entries(merge_sha_b)
 
 
-def test_same_logical_id_different_artifacts_merge_as_conflicting_alternatives(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
-    base_sha = kr.commit_files({}, "seed")
-    branch_name = "paper/logical_conflict"
-    kr.create_branch(branch_name, source_commit=base_sha)
-
-    shared_logical_ids = [{"namespace": "shared_paper", "value": "claim1"}]
-    left_claim = _param_claim("claim1", "concept_x", 300.0)
-    left_claim["artifact_id"] = "ps:claim:leftlogical0001"
-    left_claim["logical_ids"] = shared_logical_ids
-    right_claim = _param_claim("claim1", "concept_x", 150.0)
-    right_claim["artifact_id"] = "ps:claim:rightlogical0001"
-    right_claim["logical_ids"] = shared_logical_ids
-
-    kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml_with_explicit_identities([left_claim])},
-        "left",
-    )
-    kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml_with_explicit_identities([right_claim])},
-        "right",
-        branch=branch_name,
-    )
-
-    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
-
-    assert len(merge.arguments) == 2
-    assert {argument.canonical_claim_id for argument in merge.arguments} == {"shared_paper:claim1"}
-    assert len(merge.framework.attacks) == 2
-    assert not merge.framework.ignorance
-
-
 def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(

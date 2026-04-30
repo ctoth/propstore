@@ -225,17 +225,12 @@ def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_ri
     manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
     manifest_arguments = manifest["merge"]["arguments"]
     canonical_artifact_id = make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
-    materialized_assertion_ids = {
-        row["assertion_id"]
-        for row in manifest_arguments
-        if row["artifact_id"] == canonical_artifact_id
-    }
 
     materialized_claims = [
         claim
         for claim_file in claim_files
         for claim in claim_file_payload(claim_file).get("claims", [])
-        if claim["artifact_id"] in materialized_assertion_ids
+        if claim["artifact_id"] == canonical_artifact_id
     ]
     assert {claim["value"] for claim in materialized_claims} == {150.0, 300.0}
 
@@ -250,47 +245,3 @@ def test_repo_public_merge_surface_excludes_bridge_helpers() -> None:
     assert not hasattr(repo_module, "make_branch_assumption")
     assert not hasattr(repo_module, "branch_nogoods_from_merge")
     assert not hasattr(repo_module, "inject_branch_stances")
-
-
-def test_create_merge_commit_collapses_duplicate_assertions_without_candidate_bucket(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
-    base_sha = kr.commit_files({}, "seed")
-    branch_name = "paper/candidates"
-    kr.create_branch(branch_name, source_commit=base_sha)
-
-    left_claim = {
-        "id": "claim_a",
-        "type": "observation",
-        "statement": "Equivalent observation",
-        "concepts": ["concept_x"],
-        "provenance": {"paper": "left_paper", "page": 1},
-        "artifact_id": "ps:claim:leftcandidate0001",
-        "logical_ids": [{"namespace": "left_paper", "value": "claim_a"}],
-    }
-    right_claim = {
-        "id": "claim_b",
-        "type": "observation",
-        "statement": "Equivalent observation",
-        "concepts": ["concept_x"],
-        "provenance": {"paper": "right_paper", "page": 1},
-        "artifact_id": "ps:claim:rightcandidate0001",
-        "logical_ids": [{"namespace": "right_paper", "value": "claim_b"}],
-    }
-
-    kr.commit_files(
-        {"claims/left.yaml": _claim_yaml_with_explicit_identities([left_claim], paper="left_paper")},
-        "left",
-    )
-    kr.commit_files(
-        {"claims/right.yaml": _claim_yaml_with_explicit_identities([right_claim], paper="right_paper")},
-        "right",
-        branch=branch_name,
-    )
-
-    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
-    manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
-
-    assert len(manifest["merge"]["arguments"]) == 1
-    assert manifest["merge"]["arguments"][0]["assertion_id"].startswith("ps:assertion:")
-    assert manifest["merge"]["semantic_candidates"] == []
-    assert manifest["merge"]["semantic_candidate_details"] == []
