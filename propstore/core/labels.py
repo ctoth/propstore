@@ -272,13 +272,13 @@ def combine_labels(
 
     support = ProvenancePolynomial.one()
     for label in labels:
-        if not label.environments:
+        if label.support.polynomial.is_zero():
             return Label(())
         support = support * label.support.polynomial
-        environments = normalize_environments(_polynomial_to_environments(support), nogoods=nogoods)
-        if not environments:
+        if nogoods is not None:
+            support = live(support, nogoods.provenance_nogoods)
+        if support.is_zero():
             return Label(())
-        support = _environments_to_polynomial(environments)
     return Label(support=SupportEvidence(support, SupportQuality.EXACT))
 
 
