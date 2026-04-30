@@ -293,6 +293,27 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
+  name: same_as_file
+  contract_version: 2026.04.27
+  body:
+    coerce_payload: null
+    decode_bytes: null
+    doc_type: propstore.families.sameas.documents.SameAsFileDocument
+    document_payload: null
+    encode_document: null
+    normalize_for_write: null
+    placement:
+      branch:
+        policy: primary
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: sameas
+      ref_field: name
+    render_document: null
+    scan_type: null
+    validate_for_write: null
+- kind: artifact_family
   name: source_claims
   contract_version: 2026.04.30
   body:
@@ -1504,7 +1525,7 @@ contracts:
     module: propstore.families.contexts.documents
 - kind: document_schema
   name: MergeManifestArgumentDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: assertion_id
@@ -1522,6 +1543,9 @@ contracts:
     - name: branch_origins
       required: true
       type: tuple[str, ...]
+    - name: witness_basis
+      required: true
+      type: tuple[MergeManifestWitnessDocument, ...]
     - name: materialized
       required: true
       type: bool
@@ -1555,6 +1579,27 @@ contracts:
     - name: semantic_candidate_details
       required: true
       type: tuple[MergeSemanticCandidateDetailDocument, ...]
+    module: propstore.families.documents.merge
+- kind: document_schema
+  name: MergeManifestWitnessDocument
+  contract_version: 2026.04.30
+  body:
+    fields:
+    - name: source_artifact_id
+      required: true
+      type: str
+    - name: source_paper
+      required: true
+      type: str | None
+    - name: source_page
+      required: true
+      type: int | None
+    - name: branch_origin
+      required: true
+      type: str | None
+    - name: rule_chain
+      required: true
+      type: tuple[str, ...]
     module: propstore.families.documents.merge
 - kind: document_schema
   name: MergeSemanticCandidateArgumentDocument
@@ -1834,13 +1879,16 @@ contracts:
     module: propstore.families.documents.predicates
 - kind: document_schema
   name: ProvenanceDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: page
       required: true
       type: int
     - name: paper
+      required: true
+      type: str | None
+    - name: branch_origin
       required: true
       type: str | None
     - name: date
@@ -1988,6 +2036,39 @@ contracts:
       required: true
       type: str | None
     module: propstore.families.documents.rules
+- kind: document_schema
+  name: SameAsAssertionDocument
+  contract_version: 2026.04.30
+  body:
+    fields:
+    - name: left_artifact_id
+      required: true
+      type: str
+    - name: right_artifact_id
+      required: true
+      type: str
+    - name: relation
+      required: true
+      type: SameAsRelation
+    - name: evidence_source
+      required: true
+      type: str
+    - name: provenance
+      required: true
+      type: dict[str, Any]
+    - name: confidence
+      required: true
+      type: float | int | None
+    module: propstore.families.sameas.documents
+- kind: document_schema
+  name: SameAsFileDocument
+  contract_version: 2026.04.30
+  body:
+    fields:
+    - name: assertions
+      required: true
+      type: tuple[SameAsAssertionDocument, ...]
+    module: propstore.families.sameas.documents
 - kind: document_schema
   name: SourceAttackTargetDocument
   contract_version: 2026.04.30
@@ -3052,7 +3133,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: family-registry
   name: propstore
-  contract_version: 2026.05.01
+  contract_version: 2026.05.02
   body:
     families:
     - contract_version: 2026.04.29
@@ -3076,6 +3157,9 @@ contracts:
     - contract_version: 2026.04.27
       key: stances
       name: stances
+    - contract_version: 2026.04.27
+      key: sameas
+      name: sameas
     - contract_version: 2026.04.27
       key: worldlines
       name: worldlines
@@ -3493,6 +3577,31 @@ contracts:
     metadata:
       collection_field: rules
       import_order: 50
+      importable: true
+      init_directory: true
+      semantic: true
+- kind: family
+  name: sameas
+  contract_version: 2026.04.27
+  body:
+    accessor: sameas
+    artifact_family: same_as_file
+    artifact_family_contract:
+      doc_type: propstore.families.sameas.documents.SameAsFileDocument
+      placement:
+        branch:
+          policy: primary
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: sameas
+        ref_field: name
+    artifact_family_contract_version: 2026.04.27
+    foreign_keys: []
+    key: sameas
+    metadata:
+      collection_field: assertions
+      import_order: 65
       importable: true
       init_directory: true
       semantic: true
@@ -4058,4 +4167,4 @@ contracts:
     invariants: []
 registry:
   name: propstore
-  contract_version: 2026.05.01
+  contract_version: 2026.05.02

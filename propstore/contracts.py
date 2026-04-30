@@ -14,7 +14,7 @@ from quire.versions import VersionId
 if TYPE_CHECKING:
     from propstore.families.claims.documents import ClaimTypeContract
 
-PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.01")
+PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.02")
 DOCUMENT_SCHEMA_CONTRACT_VERSION = VersionId("2026.04.30")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
 DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
@@ -31,6 +31,8 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.documents.rules.RuleExtractionProvenance": VersionId("2026.05.01"),
     "propstore.families.documents.rules.RuleProposalDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.RulesFileDocument": VersionId("2026.05.01"),
+    "propstore.families.claims.documents.ProvenanceDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.merge.MergeManifestArgumentDocument": VersionId("2026.05.01"),
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
@@ -138,6 +140,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.concepts import documents as concepts
     from propstore.families.contexts import documents as contexts
     from propstore.families.forms import documents as forms
+    from propstore.families.sameas import documents as sameas
 
     modules = (
         claims,
@@ -148,6 +151,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         micropubs,
         predicates,
         rules,
+        sameas,
         source_alignment,
         sources,
         stances,
