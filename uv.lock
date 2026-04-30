@@ -194,7 +194,7 @@ wheels = [
 [[package]]
 name = "ast-equiv"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/ast-equiv?rev=129569f4f8472402fdae1142bcf485f45010a83d#129569f4f8472402fdae1142bcf485f45010a83d" }
+source = { git = "https://github.com/ctoth/ast-equiv?rev=b7423889daef74154193317099ae9992ecbcd958#b7423889daef74154193317099ae9992ecbcd958" }
 dependencies = [
     { name = "sympy" },
 ]
@@ -2039,7 +2039,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=129569f4f8472402fdae1142bcf485f45010a83d" },
+    { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=b7423889daef74154193317099ae9992ecbcd958" },
     { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=d0f20b5db359e4c95ff0ab08f494f2e09718063c" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "dulwich", specifier = ">=1.1.0" },
