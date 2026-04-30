@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import logging
 from tokenize import TokenError
 
-from sympy import Symbol, SympifyError
+from sympy import Function, Symbol, SympifyError
 from sympy.parsing.sympy_parser import parse_expr
 
 
@@ -41,8 +41,11 @@ def _build_local_dict(text: str) -> dict[str, Symbol]:
     This prevents SymPy from interpreting identifiers like 'beta', 'gamma',
     'zeta' as built-in special functions.
     """
-    names = set(_IDENTIFIER_RE.findall(text)) - _SYMPY_BUILTINS
-    return {name: Symbol(name) for name in names}
+    function_names = set(re.findall(r"\b([A-Za-z_]\w*)\s*\(", text)) - _SYMPY_BUILTINS
+    names = set(_IDENTIFIER_RE.findall(text)) - _SYMPY_BUILTINS - function_names
+    local_dict = {name: Symbol(name) for name in names}
+    local_dict.update({name: Function(name) for name in function_names})
+    return local_dict
 
 
 @dataclass(frozen=True)
@@ -51,8 +54,15 @@ class SympyGenerationResult:
     error: str | None
 
 
-def generate_sympy_with_error(expression: str | None) -> SympyGenerationResult:
-    """Generate a SymPy expression and preserve the failure reason."""
+@dataclass(frozen=True)
+class SympyEquationGenerationResult:
+    lhs: str | None
+    rhs: str | None
+    error: str | None
+
+
+def generate_sympy_rhs_with_error(expression: str | None) -> SympyGenerationResult:
+    """Generate a SymPy RHS expression and preserve the failure reason."""
     if not expression or not isinstance(expression, str):
         return SympyGenerationResult(None, "missing expression")
 
@@ -79,8 +89,8 @@ def generate_sympy_with_error(expression: str | None) -> SympyGenerationResult:
         return SympyGenerationResult(None, str(exc))
 
 
-def generate_sympy(expression: str | None) -> str | None:
-    """Generate a SymPy-parseable string from a human-readable math expression.
+def generate_sympy_rhs(expression: str | None) -> str | None:
+    """Generate a SymPy-parseable RHS string from human-readable math.
 
     Args:
         expression: Human-readable math string (e.g., "Fa = 1 / (2 * pi * Ta)")
@@ -88,7 +98,28 @@ def generate_sympy(expression: str | None) -> str | None:
     Returns:
         SymPy-parseable string of the RHS, or None if parsing fails.
     """
-    return generate_sympy_with_error(expression).expression
+    return generate_sympy_rhs_with_error(expression).expression
+
+
+def generate_sympy_equation(expression: str | None) -> SympyEquationGenerationResult:
+    """Generate structured SymPy strings for both sides of an equation."""
+    if not expression or not isinstance(expression, str):
+        return SympyEquationGenerationResult(None, None, "missing expression")
+    text = expression.strip().replace("^", "**")
+    if not text:
+        return SympyEquationGenerationResult(None, None, "empty expression")
+    if text.count("=") != 1:
+        return SympyEquationGenerationResult(None, None, "equation must contain exactly one '='")
+    lhs_text, rhs_text = (part.strip() for part in text.split("=", 1))
+    if not lhs_text or not rhs_text:
+        return SympyEquationGenerationResult(None, None, "equation must have non-empty left and right sides")
+    try:
+        lhs = parse_expr(lhs_text, local_dict=_build_local_dict(lhs_text))
+        rhs = parse_expr(rhs_text, local_dict=_build_local_dict(rhs_text))
+        return SympyEquationGenerationResult(str(lhs), str(rhs), None)
+    except (SympifyError, TypeError, ValueError, SyntaxError, TokenError) as exc:
+        logging.warning("SymPy parse_expr failed for equation %r: %s", text, exc)
+        return SympyEquationGenerationResult(None, None, str(exc))
 
 
 def check_symbols(

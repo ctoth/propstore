@@ -515,9 +515,9 @@ def resolve_equation_sympy(
         return explicit_sympy, None
     if not expression:
         return None, None
-    from propstore.sympy_generator import generate_sympy_with_error
+    from propstore.sympy_generator import generate_sympy_rhs_with_error
 
-    sympy_result = generate_sympy_with_error(expression)
+    sympy_result = generate_sympy_rhs_with_error(expression)
     return sympy_result.expression, sympy_result.error
 
 

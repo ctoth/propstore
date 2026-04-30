@@ -7,15 +7,15 @@ and symbol validation against variable bindings.
 import pytest
 from unittest.mock import patch
 
-from propstore.sympy_generator import generate_sympy, check_symbols
+from propstore.sympy_generator import generate_sympy_rhs, check_symbols
 
 
-class TestGenerateSympy:
-    """Tests for generate_sympy()."""
+class TestGenerateSympyRhs:
+    """Tests for generate_sympy_rhs()."""
 
     def test_simple_equation(self):
         """Fa = 1 / (2 * pi * Ta) -> valid SymPy RHS."""
-        result = generate_sympy("Fa = 1 / (2 * pi * Ta)")
+        result = generate_sympy_rhs("Fa = 1 / (2 * pi * Ta)")
         assert result is not None
         # Verify it's parseable by SymPy
         import sympy
@@ -24,7 +24,7 @@ class TestGenerateSympy:
 
     def test_caret_to_power(self):
         """(2*pi*Ta*f)^2 -> converts ^ to **, returns valid SymPy."""
-        result = generate_sympy("(2*pi*Ta*f)^2")
+        result = generate_sympy_rhs("(2*pi*Ta*f)^2")
         assert result is not None
         import sympy
         expr = sympy.sympify(result)
@@ -34,12 +34,12 @@ class TestGenerateSympy:
 
     def test_unparseable_returns_none(self):
         """Unparseable garbage returns None."""
-        result = generate_sympy("unparseable garbage !@#")
+        result = generate_sympy_rhs("unparseable garbage !@#")
         assert result is None
 
     def test_rd_equation(self):
         """Rd = (Uo / Ee) * (F0 / 110) * 1000 -> valid SymPy with correct symbols."""
-        result = generate_sympy("Rd = (Uo / Ee) * (F0 / 110) * 1000")
+        result = generate_sympy_rhs("Rd = (Uo / Ee) * (F0 / 110) * 1000")
         assert result is not None
         import sympy
         expr = sympy.sympify(result)
@@ -51,7 +51,7 @@ class TestGenerateSympy:
 
     def test_simple_subtraction(self):
         """OQ = 1 - CQ -> valid SymPy."""
-        result = generate_sympy("OQ = 1 - CQ")
+        result = generate_sympy_rhs("OQ = 1 - CQ")
         assert result is not None
         import sympy
         expr = sympy.sympify(result)
@@ -60,12 +60,12 @@ class TestGenerateSympy:
 
     def test_empty_expression_returns_none(self):
         """Empty expression returns None."""
-        assert generate_sympy("") is None
-        assert generate_sympy("   ") is None
+        assert generate_sympy_rhs("") is None
+        assert generate_sympy_rhs("   ") is None
 
     def test_expression_without_equals(self):
         """Expression without = is treated as the whole expression."""
-        result = generate_sympy("x**2 + y**2")
+        result = generate_sympy_rhs("x**2 + y**2")
         assert result is not None
         import sympy
         expr = sympy.sympify(result)
@@ -75,17 +75,17 @@ class TestGenerateSympy:
 
     def test_none_input_returns_none(self):
         """None input returns None."""
-        assert generate_sympy(None) is None
+        assert generate_sympy_rhs(None) is None
 
     def test_unexpected_parse_runtime_error_propagates(self):
-        from propstore.sympy_generator import generate_sympy_with_error
+        from propstore.sympy_generator import generate_sympy_rhs_with_error
 
         with patch(
             "propstore.sympy_generator.parse_expr",
             side_effect=RuntimeError("boom"),
         ):
             with pytest.raises(RuntimeError, match="boom"):
-                generate_sympy_with_error("x + 1")
+                generate_sympy_rhs_with_error("x + 1")
 
 
 class TestCheckSymbols:

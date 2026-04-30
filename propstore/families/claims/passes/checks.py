@@ -664,12 +664,12 @@ def _validate_equation_sympy_generation(
     filename: str,
     diagnostics: list[PassDiagnostic],
 ) -> None:
-    from propstore.sympy_generator import generate_sympy_with_error
+    from propstore.sympy_generator import generate_sympy_rhs_with_error
 
     expression = claim.get("expression")
     sympy_field = claim.get("sympy")
     if sympy_field:
-        sympy_result = generate_sympy_with_error(sympy_field)
+        sympy_result = generate_sympy_rhs_with_error(sympy_field)
         if sympy_result.expression is None:
             _record(
                 diagnostics,
@@ -682,7 +682,7 @@ def _validate_equation_sympy_generation(
                 artifact_id=cid,
             )
     elif expression:
-        generated = generate_sympy_with_error(expression)
+        generated = generate_sympy_rhs_with_error(expression)
         if generated.expression is None:
             _record(
                 diagnostics,
