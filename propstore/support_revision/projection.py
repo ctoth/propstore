@@ -187,4 +187,4 @@ def _stable_value(value: object) -> str:
 
 def _digest(value: object) -> str:
     rendered = canonical_dumps(value)
-    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:32]
+    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
