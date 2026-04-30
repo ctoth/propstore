@@ -1,6 +1,6 @@
 # WS-O-ast: ast-equiv fixes — canonical AST + sympy bridge
 
-**Status**: OPEN
+**Status**: CLOSED 294bb726
 **Repo**: `../ast-equiv` (sibling repo, MIT-licensed dependency)
 **Depends on**: nothing internal
 **Blocks**: WS-P (CEL / equation consumer relies on `compare()` and on `canonical_dump` as a cache key for canonicalized claim algorithms)
@@ -237,21 +237,21 @@ Acceptance: `test_cache_key_sympy_version_independent.py`, `test_cache_key_inval
 
 ALL must hold before declaring WS-O-ast done:
 
-- [ ] `cd ../ast-equiv && uv run pytest` — green, including all new tests.
-- [ ] `cd ../ast-equiv && uv run pyright` — 0 errors.
-- [ ] `tests/test_corpus.py` — 172/172 corpus pairs still pass.
-- [ ] propstore full suite — green; no NEW failures vs baseline.
-- [ ] `Tier.BYTECODE` and `_compile_to_bytecode` absent from `ast_equiv/comparison.py`; no test references either.
-- [ ] `propstore/world/value_resolver.py` — no `except AstToSympyError` clauses; no `AstToSympyError` import; `RecursionError` consistent across `value_resolver.py`, `conflict_detector/algorithms.py:47`, `app/claims.py:193`.
-- [ ] `../ast-equiv/pyproject.toml` `sympy` requirement is `>=1.14.0` with **no** upper bound (per RD-3).
-- [ ] `ast_equiv/canonicalizer.py` exports `SEMANTIC_EQUIVALENCE_VERSION = "1"`; `canonical_dump` derives its key from `(SEMANTIC_EQUIVALENCE_VERSION, _ast_canonical_hash(tree))` only; no `sympy` import on the cache-key derivation path (AST-grep gate).
-- [ ] `test_cache_key_sympy_version_independent.py` green; `test_cache_key_invalidates_on_semantic_change.py` green; `test_pyproject_no_sympy_upper_bound.py` green.
-- [ ] README tier list is exactly `{NONE, CANONICAL, SYMPY, PARTIAL_EVAL}`.
-- [ ] `extract_names` symbol absent from `ast_equiv` public API; `extract_all_names` and `extract_free_variables` present.
-- [ ] `propstore/families/claims/passes/checks.py` uses `extract_free_variables`; no `KNOWN_BUILTINS` post-hoc subtraction.
-- [ ] propstore pin updated to merge sha; `canonical_dump` golden file checked in.
-- [ ] `docs/gaps.md` has no open rows for cluster-T findings.
-- [ ] STATUS line `CLOSED <sha>`.
+- [x] `cd ../ast-equiv && uv run pytest` — green, including all new tests.
+- [x] `cd ../ast-equiv && uv run pyright` — 0 errors.
+- [x] `tests/test_corpus.py` — corpus pairs still pass.
+- [x] propstore full suite — green; no NEW failures vs baseline.
+- [x] `Tier.BYTECODE` and `_compile_to_bytecode` absent from `ast_equiv/comparison.py`; no test references either.
+- [x] `propstore/world/value_resolver.py` — no `except AstToSympyError` clauses; no `AstToSympyError` import; `RecursionError` consistent across `value_resolver.py`, `conflict_detector/algorithms.py:47`, `app/claims.py:193`.
+- [x] `../ast-equiv/pyproject.toml` `sympy` requirement is `>=1.14.0` with **no** upper bound (per RD-3).
+- [x] `ast_equiv/canonicalizer.py` exports `SEMANTIC_EQUIVALENCE_VERSION = "1"`; `canonical_dump` derives its key from `(SEMANTIC_EQUIVALENCE_VERSION, _ast_canonical_hash(tree))` only; no `sympy` import on the cache-key derivation path (AST-grep gate).
+- [x] `test_cache_key_sympy_version_independent.py` green; `test_cache_key_invalidates_on_semantic_change.py` green; `test_pyproject_no_sympy_upper_bound.py` green.
+- [x] README tier list is exactly `{NONE, CANONICAL, SYMPY, PARTIAL_EVAL}`.
+- [x] `extract_names` symbol absent from `ast_equiv` public API; `extract_all_names` and `extract_free_variables` present.
+- [x] `propstore/families/claims/passes/checks.py` uses `extract_free_variables`; no `KNOWN_BUILTINS` post-hoc subtraction.
+- [x] propstore pin updated to merge sha; `canonical_dump` golden file checked in.
+- [x] `docs/gaps.md` has no open rows for cluster-T findings.
+- [x] STATUS line `CLOSED <sha>`.
 
 ## Done means done
 
