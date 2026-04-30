@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from propstore.families.concepts.stages import parse_concept_record_document
-from propstore.families.forms.documents import FormDocument
+from propstore.families.forms.documents import FormAlternativeDocument, FormDocument
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry, FormDefinition, LoadedForm
 from propstore.families.registry import FormRef
@@ -51,9 +52,9 @@ class FormAddRequest:
     unit_symbol: str | None = None
     qudt: str | None = None
     base: str | None = None
-    dimensions_json: str | None = None
-    dimensionless: str | None = None
-    common_alternatives_json: str | None = None
+    dimensions: Mapping[str, int] | None = None
+    dimensionless: bool | None = None
+    common_alternatives: tuple[FormAlternativeDocument, ...] = ()
     note: str | None = None
 
 
@@ -231,29 +232,13 @@ def search_form_items(
     return tuple(matches)
 
 
-def _parse_json_option(raw: str, *, option_name: str) -> object:
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise FormWorkflowError(f"Invalid JSON for {option_name}: {raw}") from exc
-
-
 def _form_add_payload(request: FormAddRequest) -> dict[str, object]:
-    dims_parsed: object | None = None
-    if request.dimensions_json is not None:
-        dims_parsed = _parse_json_option(
-            request.dimensions_json,
-            option_name="--dimensions",
-        )
-        if not isinstance(dims_parsed, dict):
-            raise FormWorkflowError("--dimensions must decode to a JSON object")
-
     if request.dimensionless is not None:
-        is_dimless = request.dimensionless.lower() in ("true", "1", "yes")
-    elif isinstance(dims_parsed, dict) and len(dims_parsed) > 0:
+        is_dimless = request.dimensionless
+    elif request.dimensions is not None and len(request.dimensions) > 0:
         is_dimless = False
     else:
-        is_dimless = isinstance(dims_parsed, dict) and len(dims_parsed) == 0
+        is_dimless = request.dimensions is not None and len(request.dimensions) == 0
 
     data: dict[str, object] = {
         "name": request.name,
@@ -265,13 +250,10 @@ def _form_add_payload(request: FormAddRequest) -> dict[str, object]:
         data["unit_symbol"] = request.unit_symbol
     if request.qudt is not None:
         data["qudt"] = request.qudt
-    if dims_parsed is not None:
-        data["dimensions"] = dims_parsed
-    if request.common_alternatives_json is not None:
-        data["common_alternatives"] = _parse_json_option(
-            request.common_alternatives_json,
-            option_name="--common-alternatives",
-        )
+    if request.dimensions is not None:
+        data["dimensions"] = dict(request.dimensions)
+    if request.common_alternatives:
+        data["common_alternatives"] = list(request.common_alternatives)
     if request.note is not None:
         data["note"] = request.note
     return data

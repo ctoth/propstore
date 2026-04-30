@@ -139,11 +139,17 @@ def world_revision_explain(repo: Repository, request: AppRevisionExplainRequest)
     from propstore.support_revision.workflows import explain_revision_operation
 
     if request.operation == "expand" and request.atom is None:
-        raise WorldRevisionValidationError("--atom is required for --operation expand")
+        raise WorldRevisionValidationError(
+            "revision atom is required for expand"
+        )
     if request.operation == "contract" and not request.targets:
-        raise WorldRevisionValidationError("--target is required for --operation contract")
+        raise WorldRevisionValidationError(
+            "revision targets are required for contract"
+        )
     if request.operation == "revise" and request.atom is None:
-        raise WorldRevisionValidationError("--atom is required for --operation revise")
+        raise WorldRevisionValidationError(
+            "revision atom is required for revise"
+        )
     with open_app_world_model(repo) as world:
         try:
             return explain_revision_operation(

@@ -1,12 +1,16 @@
 """pks form — subcommands for managing form definitions."""
 from __future__ import annotations
 
+import json
+
 import click
 
 from propstore.cli.output import emit, emit_error, emit_section, emit_success
 
 from quire.documents import encode_document
+from quire.documents import convert_document_value
 from propstore.cli.helpers import EXIT_ERROR, exit_with_code, fail
+from propstore.families.forms.documents import FormAlternativeDocument
 from propstore.repository import Repository
 from propstore.app.forms import (
     FormAddRequest,
@@ -26,6 +30,60 @@ from propstore.app.forms import (
 @click.group()
 def form() -> None:
     """Manage form definitions."""
+
+
+def _parse_dimensions_option(raw: str | None) -> dict[str, int] | None:
+    if raw is None:
+        return None
+    try:
+        loaded: object = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(f"Invalid JSON for --dimensions: {exc}") from exc
+    if not isinstance(loaded, dict):
+        raise click.ClickException("--dimensions must decode to a JSON object")
+    dimensions: dict[str, int] = {}
+    for key, value in loaded.items():
+        if not isinstance(key, str):
+            raise click.ClickException("--dimensions keys must be strings")
+        if not isinstance(value, int):
+            raise click.ClickException("--dimensions values must be integers")
+        dimensions[key] = value
+    return dimensions
+
+
+def _parse_dimensionless_option(raw: str | None) -> bool | None:
+    if raw is None:
+        return None
+    normalized = raw.strip().casefold()
+    if normalized in {"true", "1", "yes"}:
+        return True
+    if normalized in {"false", "0", "no"}:
+        return False
+    raise click.ClickException("--dimensionless must be true or false")
+
+
+def _parse_common_alternatives_option(raw: str | None) -> tuple[FormAlternativeDocument, ...]:
+    if raw is None:
+        return ()
+    try:
+        loaded: object = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(
+            f"Invalid JSON for --common-alternatives: {exc}"
+        ) from exc
+    if not isinstance(loaded, list):
+        raise click.ClickException("--common-alternatives must decode to a JSON array")
+    try:
+        return tuple(
+            convert_document_value(
+                item,
+                FormAlternativeDocument,
+                source="--common-alternatives",
+            )
+            for item in loaded
+        )
+    except Exception as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 # ── form list ────────────────────────────────────────────────────────
@@ -163,9 +221,9 @@ def add(
         unit_symbol=unit_symbol,
         qudt=qudt,
         base=base,
-        dimensions_json=dimensions,
-        dimensionless=dimensionless,
-        common_alternatives_json=common_alternatives,
+        dimensions=_parse_dimensions_option(dimensions),
+        dimensionless=_parse_dimensionless_option(dimensionless),
+        common_alternatives=_parse_common_alternatives_option(common_alternatives),
         note=note,
     )
     try:

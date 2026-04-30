@@ -6,7 +6,6 @@ from click.testing import CliRunner
 from propstore.app.forms import (
     FormAddRequest,
     FormNotFoundError,
-    FormWorkflowError,
     add_form,
     list_form_items,
     remove_form,
@@ -30,7 +29,7 @@ def test_form_workflows_add_list_validate_and_remove(tmp_path) -> None:
         FormAddRequest(
             name="frequency_like",
             unit_symbol="Hz",
-            dimensions_json='{"T": -1}',
+            dimensions={"T": -1},
             note="Frequency-like test form.",
         ),
         dry_run=False,
@@ -54,17 +53,6 @@ def test_form_workflows_report_json_and_missing_errors(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     try:
-        add_form(
-            repo,
-            FormAddRequest(name="bad_dims", dimensions_json="{not-json"),
-            dry_run=True,
-        )
-    except FormWorkflowError as exc:
-        assert "Invalid JSON for --dimensions" in str(exc)
-    else:
-        raise AssertionError("expected malformed dimensions failure")
-
-    try:
         remove_form(repo, "missing", force=False, dry_run=False)
     except FormNotFoundError as exc:
         assert exc.name == "missing"
@@ -79,7 +67,7 @@ def test_form_search_matches_unit_and_name(tmp_path) -> None:
         FormAddRequest(
             name="frequency_like",
             unit_symbol="Hz",
-            dimensions_json='{"T": -1}',
+            dimensions={"T": -1},
         ),
         dry_run=False,
     )

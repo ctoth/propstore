@@ -61,6 +61,12 @@ def _run_mutation(action) -> None:
         fail(exc, exit_code=EXIT_ERROR)
     _render_mutation_report(report)
 
+
+def _parse_comma_values(raw: str | None) -> tuple[str, ...]:
+    if raw is None:
+        return ()
+    return tuple(value.strip() for value in raw.split(",") if value.strip())
+
 # ── concept add ──────────────────────────────────────────────────────
 
 
@@ -119,7 +125,7 @@ def add(
                 name=name,
                 definition=definition,
                 form_name=form_name,
-                values=values,
+                values=_parse_comma_values(values),
                 closed=closed,
                 dry_run=dry_run,
             ),

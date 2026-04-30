@@ -1,6 +1,7 @@
 """pks worldline — CLI commands for materialized query artifacts."""
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
 from typing import TypeGuard
 
@@ -9,6 +10,7 @@ import click
 from propstore.app.worldlines import (
     JsonObject,
     JsonValue,
+    WorldlineValidationError,
     argumentation_semantics_values,
     reasoning_backend_values,
 )
@@ -45,6 +47,26 @@ def _parse_kv_args(args: tuple[str, ...]) -> JsonObject:
         key: coerce_worldline_cli_value(value)
         for key, value in parsed.items()
     }
+
+
+def parse_worldline_revision_atom(raw: str | None) -> JsonObject | None:
+    if raw is None:
+        return None
+    try:
+        loaded: object = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(f"Invalid --revision-atom JSON: {exc}") from exc
+    if not isinstance(loaded, Mapping):
+        raise click.ClickException("--revision-atom must decode to a JSON object")
+    result: dict[str, JsonValue] = {}
+    for key, value in loaded.items():
+        if not isinstance(key, str):
+            raise click.ClickException("--revision-atom keys must be strings")
+        try:
+            result[key] = coerce_worldline_cli_value(value)
+        except WorldlineValidationError as exc:
+            raise click.ClickException(str(exc)) from exc
+    return result
 
 
 @click.group()

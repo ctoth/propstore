@@ -76,7 +76,7 @@ class SourceConceptProposalRequest:
     concept_name: str
     definition: str
     form_name: str
-    values: str | None = None
+    values: tuple[str, ...] = ()
     closed: bool = False
 
 
@@ -374,15 +374,13 @@ def propose_source_concept(
     from propstore.source import commit_source_concept_proposal
 
     if request.closed and request.form_name != "category":
-        raise SourceAppError("--closed is only valid with --form=category")
-    if request.values is not None and request.form_name != "category":
-        raise SourceAppError("--values is only valid with --form=category")
+        raise SourceAppError("closed categories require form category")
+    if request.values and request.form_name != "category":
+        raise SourceAppError("values are only valid when form is category")
 
     form_parameters: SourceConceptFormParametersDocument | None = None
-    if request.values is not None:
-        value_list = tuple(
-            value.strip() for value in request.values.split(",") if value.strip()
-        )
+    if request.values:
+        value_list = tuple(value.strip() for value in request.values if value.strip())
         form_parameters = SourceConceptFormParametersDocument(
             values=value_list,
             extensible=False if request.closed else None,

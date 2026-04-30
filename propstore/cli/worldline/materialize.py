@@ -15,12 +15,12 @@ from propstore.app.worldlines import (
     WorldlineValidationError,
     create_worldline as run_create_worldline,
     materialize_worldline,
-    parse_worldline_revision_atom,
 )
 from propstore.cli.worldline import (
     _apply_reasoning_options,
     _apply_revision_options,
     _parse_kv_args,
+    parse_worldline_revision_atom,
     worldline,
 )
 from propstore.cli.worldline.rendering import target_value_lines

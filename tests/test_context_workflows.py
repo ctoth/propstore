@@ -387,7 +387,7 @@ def test_context_lifting_rule_workflows_validate_source_and_cel(tmp_path) -> Non
         repo,
         FormAddRequest(
             name="boolean",
-            dimensionless="true",
+            dimensionless=True,
         ),
         dry_run=False,
     )

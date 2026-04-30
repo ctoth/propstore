@@ -21,6 +21,12 @@ from propstore.repository import Repository
 from propstore.cli.source import source
 
 
+def _parse_comma_values(raw: str | None) -> tuple[str, ...]:
+    if raw is None:
+        return ()
+    return tuple(value.strip() for value in raw.split(",") if value.strip())
+
+
 @source.command("propose-concept")
 @click.argument("source_name", metavar="SOURCE_NAME")
 @click.option("--concept-name", required=True)
@@ -47,7 +53,7 @@ def propose_concept(
                 concept_name=concept_name,
                 definition=definition,
                 form_name=form_name,
-                values=values,
+                values=_parse_comma_values(values),
                 closed=closed,
             ),
         )

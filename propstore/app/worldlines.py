@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TypeAlias, TypeGuard
@@ -77,16 +76,6 @@ def _coerce_json_object(value: object, *, field_name: str) -> dict[str, JsonValu
             raise WorldlineValidationError(f"{field_name}.{key} is not JSON-serializable")
         result[key] = item
     return result
-
-
-def parse_worldline_revision_atom(raw: str | None) -> JsonObject | None:
-    if raw is None:
-        return None
-    try:
-        loaded: object = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise WorldlineValidationError(f"Invalid --revision-atom JSON: {exc}") from exc
-    return _coerce_json_object(loaded, field_name="--revision-atom")
 
 
 def reasoning_backend_values() -> tuple[str, ...]:
@@ -370,11 +359,13 @@ def build_worldline_revision_dict(
     if options.operation is None:
         return None
     if options.operation in {"expand", "revise", "iterated_revise"} and options.atom is None:
-        raise WorldlineValidationError(f"--revision-atom is required for {options.operation}")
+        raise WorldlineValidationError(f"revision atom is required for {options.operation}")
     if options.operation == "contract" and options.target is None:
-        raise WorldlineValidationError("--revision-target is required for contract")
+        raise WorldlineValidationError("revision target is required for contract")
     if options.operation == "iterated_revise" and options.operator is None:
-        raise WorldlineValidationError("--revision-operator is required for iterated_revise")
+        raise WorldlineValidationError(
+            "revision operator is required for iterated_revise"
+        )
 
     revision: dict[str, JsonValue] = {"operation": options.operation}
     if options.atom is not None:
@@ -452,7 +443,7 @@ def materialize_worldline(
     else:
         if not request.targets:
             raise WorldlineValidationError(
-                "--target required when creating a new worldline"
+                "targets are required when creating a new worldline"
             )
         definition = _definition_from_request(request)
 

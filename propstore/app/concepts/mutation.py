@@ -256,7 +256,7 @@ class ConceptAddRequest:
     name: str
     definition: str
     form_name: str
-    values: str | None = None
+    values: tuple[str, ...] = ()
     closed: bool = False
     dry_run: bool = False
 
@@ -518,7 +518,7 @@ def embed_concept_embeddings(
     on_progress: Callable[[str, int, int], None] | None = None,
 ) -> ConceptEmbedReport:
     if not request.concept_id and not request.embed_all:
-        raise ConceptWorkflowError("provide a concept ID or use --all")
+        raise ConceptWorkflowError("provide a concept ID or request all concepts")
 
     from propstore.heuristic.embed import (
         _load_vec_extension,
@@ -1083,19 +1083,19 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
     }
 
     if request.form_name == "category":
-        if request.values is None:
-            raise ConceptMutationError("--values is required when --form=category")
-        value_list = [value.strip() for value in request.values.split(",") if value.strip()]
+        if not request.values:
+            raise ConceptMutationError("values are required when form is category")
+        value_list = [value.strip() for value in request.values if value.strip()]
         if not value_list:
-            raise ConceptMutationError("--values must contain at least one value")
+            raise ConceptMutationError("values must contain at least one value")
         form_parameters: dict[str, object] = {"values": value_list}
         if request.closed:
             form_parameters["extensible"] = False
         data["form_parameters"] = form_parameters
-    elif request.values is not None:
-        raise ConceptMutationError("--values is only valid with --form=category")
+    elif request.values:
+        raise ConceptMutationError("values are only valid when form is category")
     elif request.closed:
-        raise ConceptMutationError("--closed is only valid with --form=category")
+        raise ConceptMutationError("closed categories require form category")
 
     for _attempt in range(64):
         candidate = candidate_concept_id_for_repo(repo)
@@ -1595,7 +1595,7 @@ def set_concept_description_kind(
     for raw_slot in request.slots:
         slot_name, separator, type_handle = raw_slot.partition("=")
         if not separator or not slot_name or not type_handle:
-            raise ConceptMutationError("--slot must use name=type-concept")
+            raise ConceptMutationError("slot must use name=type-concept")
         slot_payloads.append(
             {
                 "name": slot_name,

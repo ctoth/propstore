@@ -33,7 +33,7 @@ def embed_concept_embeddings(
     on_progress: Callable[[str, int, int], None] | None = None,
 ) -> ConceptEmbedReport:
     if not request.concept_id and not request.embed_all:
-        raise ConceptWorkflowError("provide a concept ID or use --all")
+        raise ConceptWorkflowError("provide a concept ID or request all concepts")
 
     from propstore.heuristic.embed import (
         _load_vec_extension,

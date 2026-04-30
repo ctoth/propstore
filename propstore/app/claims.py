@@ -465,7 +465,7 @@ def embed_claim_embeddings(
     on_progress: Callable[[str, int, int], None] | None = None,
 ) -> ClaimEmbedReport:
     if not request.claim_id and not request.embed_all:
-        raise ClaimWorkflowError("provide a claim ID or use --all")
+        raise ClaimWorkflowError("provide a claim ID or request all claims")
 
     from propstore.heuristic.embed import _load_vec_extension, embed_claims, get_registered_models
 
@@ -634,4 +634,4 @@ def relate_claims(
                 stances_found=_required_int(result, "stances_found"),
                 no_relation=_required_int(result, "no_relation"),
             )
-    raise ClaimWorkflowError("provide a claim ID or use --all")
+    raise ClaimWorkflowError("provide a claim ID or request all claims")
