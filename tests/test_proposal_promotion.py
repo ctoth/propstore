@@ -44,7 +44,7 @@ def test_stance_proposal_promotion_plan_selects_committed_proposals(tmp_path) ->
 
     plan = plan_stance_proposal_promotion(repo)
 
-    assert plan.branch == stance_proposal_branch(repo)
+    assert plan.branch == stance_proposal_branch()
     assert plan.proposal_tip is not None
     assert len(plan.items) == 1
     assert plan.items[0].source_claim == "claim_a"

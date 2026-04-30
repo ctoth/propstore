@@ -185,7 +185,7 @@ def test_relate_claims_commits_single_claim_proposals_to_branch(
         ),
     )
 
-    assert report.branch == stance_proposal_branch(repo)
+    assert report.branch == stance_proposal_branch()
     assert report.commit_sha is not None
     assert report.relpaths == ("stances/claim-a.yaml",)
     data = yaml.safe_load(

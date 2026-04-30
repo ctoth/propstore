@@ -9,10 +9,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
+from quire.artifacts import encode_ref_value
 from quire.documents import encode_document
-from propstore.families.registry import PROPOSAL_STANCE_FAMILY
+from propstore.families.registry import PROPOSAL_STANCE_BRANCH
+from propstore.families.registry import PROPOSAL_STANCE_PLACEMENT
 from propstore.families.registry import StanceFileRef
 from propstore.families.documents.stances import StanceFileDocument
 from quire.documents import convert_document_value
@@ -28,18 +30,19 @@ def stance_proposal_filename(source_claim_id: str) -> str:
 
 def stance_proposal_relpath(source_claim_id: str) -> str:
     """Return the repo-relative stance proposal path."""
-    return PROPOSAL_STANCE_FAMILY.address_for(
-        cast("Repository", object()),
-        StanceFileRef(source_claim_id),
-    ).require_path()
+    stem = encode_ref_value(source_claim_id, PROPOSAL_STANCE_PLACEMENT.codec)
+    return (
+        f"{PROPOSAL_STANCE_PLACEMENT.namespace}/"
+        f"{stem}{PROPOSAL_STANCE_PLACEMENT.extension}"
+    )
 
 
-def stance_proposal_branch(repo: Repository | None = None) -> str:
+def stance_proposal_branch() -> str:
     """Return the proposal branch declared by the stance proposal placement."""
-    return PROPOSAL_STANCE_FAMILY.address_for(
-        cast("Repository", object()) if repo is None else repo,
-        StanceFileRef("placeholder"),
-    ).branch
+    branch = PROPOSAL_STANCE_BRANCH.fixed_branch
+    if branch is None:
+        raise ValueError("proposal stance branch placement must be fixed")
+    return branch
 
 
 @dataclass(frozen=True)
@@ -92,7 +95,7 @@ def plan_stance_proposal_promotion(
     *,
     path: str | None = None,
 ) -> StanceProposalPromotionPlan:
-    proposal_branch = stance_proposal_branch(repo)
+    proposal_branch = stance_proposal_branch()
     proposal_tip = repo.snapshot.branch_head(proposal_branch)
     if proposal_tip is None:
         return StanceProposalPromotionPlan(
@@ -218,7 +221,7 @@ def commit_stance_proposals(
     if not stances_by_claim:
         raise ValueError("stances_by_claim must not be empty")
 
-    target_branch = stance_proposal_branch(repo) if branch is None else branch
+    target_branch = stance_proposal_branch() if branch is None else branch
     sha: str | None = None
     with repo.families.transact(
         message=(

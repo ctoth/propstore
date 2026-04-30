@@ -1207,7 +1207,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
         },
         "test-model",
     )
-    proposal_branch = stance_proposal_branch(repo)
+    proposal_branch = stance_proposal_branch()
     proposal_sha = git.branch_sha(proposal_branch)
     assert proposal_sha is not None
 
@@ -1260,7 +1260,7 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
         ["-C", str(root), "claim", "relate", "claim_a", "--model", "test-model"],
     )
     assert result.exit_code == 0, result.output
-    proposal_branch = stance_proposal_branch(repo)
+    proposal_branch = stance_proposal_branch()
     assert proposal_branch in result.output
 
     proposal_sha = repo.git.branch_sha(proposal_branch)
