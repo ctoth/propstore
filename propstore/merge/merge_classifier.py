@@ -7,12 +7,15 @@ argumentation framework over the claim alternatives that survive the merge.
 from __future__ import annotations
 
 import json
+from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from enum import Enum
 from itertools import product
 from typing import Any
 
 from propstore.merge.merge_claims import MergeClaim
+from propstore.merge.witness import ProvenanceWitness
 from argumentation.partial_af import PartialArgumentationFramework
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.z3_conditions import Z3TranslationError
@@ -24,6 +27,7 @@ class _DiffKind(Enum):
     CONFLICT = "conflict"
     PHI_NODE = "phi_node"
     UNKNOWN = "unknown"
+    UNTRANSLATABLE = "untranslatable"
 
     @classmethod
     def from_conflict_class(cls, conflict_class: object) -> _DiffKind:
@@ -54,6 +58,31 @@ class _IndexedClaim:
     concept_id: str
 
 
+class MergeComparisonProvenanceError(ValueError):
+    """Raised when a merge comparison lacks source provenance."""
+
+
+class IntegrityConstraintViolation(ValueError):
+    """Raised when a requested merge cannot satisfy its integrity constraint."""
+
+
+@dataclass(frozen=True)
+class IntegrityConstraint:
+    required_artifact_ids: frozenset[str] = frozenset()
+    forbidden_artifact_ids: frozenset[str] = frozenset()
+
+    def accepts(self, argument: MergeArgument) -> bool:
+        return argument.artifact_id not in self.forbidden_artifact_ids
+
+    def assert_satisfied(self, arguments: Sequence[MergeArgument]) -> None:
+        present = {argument.artifact_id for argument in arguments}
+        missing = self.required_artifact_ids - present
+        if missing:
+            raise IntegrityConstraintViolation(
+                f"merge candidates do not satisfy required artifact ids: {sorted(missing)!r}"
+            )
+
+
 @dataclass(frozen=True)
 class MergeArgument:
     """A claim alternative emitted by the repository merge boundary."""
@@ -65,6 +94,7 @@ class MergeArgument:
     concept_id: str
     claim: MergeClaim
     branch_origins: tuple[str, ...]
+    witness_basis: tuple[ProvenanceWitness, ...]
 
 
 @dataclass(frozen=True)
@@ -142,59 +172,21 @@ def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
 def _canonical_claim_groups(
     *indexes: dict[str, _IndexedClaim],
 ) -> dict[str, str]:
-    parent: dict[str, str] = {}
-
-    def _find(artifact_id: str) -> str:
-        root = parent.setdefault(artifact_id, artifact_id)
-        while parent[root] != root:
-            parent[root] = parent[parent[root]]
-            root = parent[root]
-        return root
-
-    def _union(left: str, right: str) -> None:
-        left_root = _find(left)
-        right_root = _find(right)
-        if left_root != right_root:
-            parent[right_root] = left_root
-
-    artifact_ids_by_logical_id: dict[str, set[str]] = {}
-    all_artifacts: set[str] = set()
+    logical_id_counts: Counter[str] = Counter()
+    claims_by_artifact_id: dict[str, _IndexedClaim] = {}
     for index in indexes:
         for artifact_id, claim in index.items():
-            all_artifacts.add(artifact_id)
-            parent.setdefault(artifact_id, artifact_id)
-            for logical_id in claim.logical_ids:
-                artifact_ids_by_logical_id.setdefault(logical_id, set()).add(artifact_id)
+            claims_by_artifact_id.setdefault(artifact_id, claim)
+            logical_id_counts.update(claim.logical_ids)
 
-    for artifact_ids in artifact_ids_by_logical_id.values():
-        ordered = sorted(artifact_ids)
-        if not ordered:
+    groups: dict[str, str] = {}
+    for artifact_id, claim in claims_by_artifact_id.items():
+        primary = claim.primary_logical_id
+        if primary is not None and logical_id_counts[primary] == 1:
+            groups[artifact_id] = primary
             continue
-        first = ordered[0]
-        for other in ordered[1:]:
-            _union(first, other)
-
-    component_members: dict[str, list[str]] = {}
-    for artifact_id in all_artifacts:
-        component_members.setdefault(_find(artifact_id), []).append(artifact_id)
-
-    component_label: dict[str, str] = {}
-    for root, artifact_ids in component_members.items():
-        logical_candidates = sorted(
-            {
-                logical_id
-                for artifact_id in artifact_ids
-                for index in indexes
-                if artifact_id in index
-                for logical_id in index[artifact_id].logical_ids
-            }
-        )
-        component_label[root] = logical_candidates[0] if logical_candidates else sorted(artifact_ids)[0]
-
-    return {
-        artifact_id: component_label[_find(artifact_id)]
-        for artifact_id in all_artifacts
-    }
+        groups[artifact_id] = artifact_id
+    return groups
 
 
 def _classify_pair(
@@ -213,7 +205,9 @@ def _classify_pair(
             right_claim.provenance_payload().get("paper")
         )
     if not isinstance(comparison_source, str) or not comparison_source:
-        comparison_source = "merge_comparison"
+        raise MergeComparisonProvenanceError(
+            "cannot classify merge pair without source-paper provenance"
+        )
 
     left_conflict_claim = conflict_claim_from_payload(
         left_claim.to_payload(include_branch_origin=False),
@@ -233,11 +227,12 @@ def _classify_pair(
             cel_registry={},
         )
     except Z3TranslationError:
-        left_conditions = sorted(left_claim.document.conditions)
-        right_conditions = sorted(right_claim.document.conditions)
-        if left_conditions != right_conditions:
-            return _DiffKind.PHI_NODE
-        raise
+        return _DiffKind.UNTRANSLATABLE
+
+    left_conditions = sorted(left_claim.document.conditions)
+    right_conditions = sorted(right_claim.document.conditions)
+    if left_conditions != right_conditions:
+        return _DiffKind.PHI_NODE
 
     for record in records:
         if _DiffKind.from_conflict_class(record.warning_class) == _DiffKind.CONFLICT:
@@ -251,9 +246,7 @@ def _classify_pair(
         if _DiffKind.from_conflict_class(record.warning_class) == _DiffKind.UNKNOWN:
             return _DiffKind.UNKNOWN
 
-    if _extract_concept(left_claim) != _extract_concept(right_claim):
-        return _DiffKind.COMPATIBLE
-    return _DiffKind.CONFLICT
+    return _DiffKind.UNKNOWN
 
 
 def _emit_argument(
@@ -269,6 +262,7 @@ def _emit_argument(
     if annotate_branch_origin is not None:
         merged_claim = _annotate_provenance(merged_claim, annotate_branch_origin)
     assertion_id = str(merged_claim.assertion_id)
+    witness_basis = (ProvenanceWitness.from_merge_claim(merged_claim),)
     emitted.append(
         MergeArgument(
             assertion_id=assertion_id,
@@ -278,6 +272,7 @@ def _emit_argument(
             concept_id=concept_id,
             claim=merged_claim,
             branch_origins=branch_origins,
+            witness_basis=witness_basis,
         )
     )
     return assertion_id
@@ -287,11 +282,17 @@ def build_merge_framework(
     snapshot: RepositorySnapshot,
     branch_a: str,
     branch_b: str,
+    *,
+    integrity_constraint: IntegrityConstraint | None = None,
+    additional_branches: Sequence[str] = (),
 ) -> RepositoryMergeFramework:
-    """Build the direct repository merge object for two branches."""
+    """Build the direct repository merge object for a branch profile."""
     base_sha = snapshot.merge_base(branch_a, branch_b)
-    left_sha = snapshot.branch_head(branch_a)
-    right_sha = snapshot.branch_head(branch_b)
+    branch_names = (branch_a, branch_b, *tuple(additional_branches))
+    branch_heads = {
+        branch_name: snapshot.branch_head(branch_name)
+        for branch_name in branch_names
+    }
 
     base_idx = _index_claims(
         [
@@ -299,21 +300,18 @@ def build_merge_framework(
             for handle in snapshot.repo.families.claims.iter_handles(commit=base_sha)
         ]
     )
-    left_idx = _index_claims(
-        [
-            handle
-            for handle in snapshot.repo.families.claims.iter_handles(commit=left_sha)
-        ]
-    )
-    right_idx = _index_claims(
-        [
-            handle
-            for handle in snapshot.repo.families.claims.iter_handles(commit=right_sha)
-        ]
-    )
-    canonical_groups = _canonical_claim_groups(base_idx, left_idx, right_idx)
+    branch_indexes = {
+        branch_name: _index_claims(
+            [
+                handle
+                for handle in snapshot.repo.families.claims.iter_handles(commit=commit)
+            ]
+        )
+        for branch_name, commit in branch_heads.items()
+    }
+    canonical_groups = _canonical_claim_groups(base_idx, *branch_indexes.values())
 
-    all_ids = sorted(set(base_idx) | set(left_idx) | set(right_idx))
+    all_ids = sorted(set(base_idx).union(*(set(index) for index in branch_indexes.values())))
     emitted: list[MergeArgument] = []
     attacks: set[tuple[str, str]] = set()
     ignorance: set[tuple[str, str]] = set()
@@ -321,95 +319,101 @@ def build_merge_framework(
     for artifact_id in all_ids:
         canonical_claim_id = canonical_groups.get(artifact_id, artifact_id)
         base_claim = base_idx.get(artifact_id)
-        left_claim = left_idx.get(artifact_id)
-        right_claim = right_idx.get(artifact_id)
+        branch_claims = tuple(
+            (branch_name, index[artifact_id])
+            for branch_name, index in branch_indexes.items()
+            if artifact_id in index
+        )
+        if not branch_claims:
+            continue
 
         concept_id = ""
-        for candidate in (left_claim, right_claim, base_claim):
+        for candidate in (*[claim for _, claim in branch_claims], base_claim):
             if candidate is not None:
                 concept_id = candidate.concept_id
                 break
 
-        in_left = left_claim is not None
-        in_right = right_claim is not None
-        in_base = base_claim is not None
-
-        if in_left and in_right:
-            if _claims_equal(left_claim.claim, right_claim.claim):
-                _emit_argument(
-                    emitted,
-                    claim=left_claim,
-                    canonical_claim_id=canonical_claim_id,
-                    concept_id=concept_id,
-                    branch_origins=(branch_a, branch_b),
-                )
-                continue
-
-            if in_base and _claims_equal(left_claim.claim, base_claim.claim):
-                _emit_argument(
-                    emitted,
-                    claim=right_claim,
-                    canonical_claim_id=canonical_claim_id,
-                    concept_id=concept_id,
-                    branch_origins=(branch_b,),
-                )
-                continue
-
-            if in_base and _claims_equal(right_claim.claim, base_claim.claim):
-                _emit_argument(
-                    emitted,
-                    claim=left_claim,
-                    canonical_claim_id=canonical_claim_id,
-                    concept_id=concept_id,
-                    branch_origins=(branch_a,),
-                )
-                continue
-
-            diff_kind = _classify_pair(left_claim.claim, right_claim.claim)
-            left_claim_id = _emit_argument(
+        if len(branch_claims) == 1:
+            branch_name, indexed_claim = branch_claims[0]
+            _emit_argument(
                 emitted,
-                claim=left_claim,
+                claim=indexed_claim,
                 canonical_claim_id=canonical_claim_id,
                 concept_id=concept_id,
-                branch_origins=(branch_a,),
-                annotate_branch_origin=branch_a,
+                branch_origins=(branch_name,),
             )
-            right_claim_id = _emit_argument(
+            continue
+
+        first_claim = branch_claims[0][1]
+        if all(_claims_equal(first_claim.claim, indexed.claim) for _, indexed in branch_claims[1:]):
+            _emit_argument(
                 emitted,
-                claim=right_claim,
+                claim=first_claim,
                 canonical_claim_id=canonical_claim_id,
                 concept_id=concept_id,
-                branch_origins=(branch_b,),
-                annotate_branch_origin=branch_b,
+                branch_origins=tuple(branch_name for branch_name, _ in branch_claims),
             )
+            continue
+
+        changed_claims = branch_claims
+        if base_claim is not None:
+            changed_claims = tuple(
+                (branch_name, indexed)
+                for branch_name, indexed in branch_claims
+                if not _claims_equal(indexed.claim, base_claim.claim)
+            )
+            if len(changed_claims) == 1:
+                branch_name, indexed_claim = changed_claims[0]
+                _emit_argument(
+                    emitted,
+                    claim=indexed_claim,
+                    canonical_claim_id=canonical_claim_id,
+                    concept_id=concept_id,
+                    branch_origins=(branch_name,),
+                )
+                continue
+            if not changed_claims:
+                _emit_argument(
+                    emitted,
+                    claim=first_claim,
+                    canonical_claim_id=canonical_claim_id,
+                    concept_id=concept_id,
+                    branch_origins=tuple(branch_name for branch_name, _ in branch_claims),
+                )
+                continue
+
+        emitted_for_artifact: list[tuple[str, str, _IndexedClaim]] = []
+        for branch_name, indexed_claim in changed_claims:
+            assertion_id = _emit_argument(
+                    emitted,
+                    claim=indexed_claim,
+                    canonical_claim_id=canonical_claim_id,
+                    concept_id=concept_id,
+                    branch_origins=(branch_name,),
+                    annotate_branch_origin=branch_name,
+            )
+            emitted_for_artifact.append((branch_name, assertion_id, indexed_claim))
+        for left, right in product(emitted_for_artifact, emitted_for_artifact):
+            if left[0] >= right[0]:
+                continue
+            diff_kind = _classify_pair(left[2].claim, right[2].claim)
+            pair = (left[1], right[1])
+            reverse_pair = (right[1], left[1])
             if diff_kind == _DiffKind.CONFLICT:
-                attacks.add((left_claim_id, right_claim_id))
-                attacks.add((right_claim_id, left_claim_id))
-            elif diff_kind in (_DiffKind.PHI_NODE, _DiffKind.UNKNOWN):
-                ignorance.add((left_claim_id, right_claim_id))
-                ignorance.add((right_claim_id, left_claim_id))
-            continue
-
-        if in_left:
-            _emit_argument(
-                emitted,
-                claim=left_claim,
-                canonical_claim_id=canonical_claim_id,
-                concept_id=concept_id,
-                branch_origins=(branch_a,),
-            )
-            continue
-
-        if in_right:
-            _emit_argument(
-                emitted,
-                claim=right_claim,
-                canonical_claim_id=canonical_claim_id,
-                concept_id=concept_id,
-                branch_origins=(branch_b,),
-            )
+                attacks.add(pair)
+                attacks.add(reverse_pair)
+            elif diff_kind in (_DiffKind.PHI_NODE, _DiffKind.UNKNOWN, _DiffKind.UNTRANSLATABLE):
+                ignorance.add(pair)
+                ignorance.add(reverse_pair)
 
     emitted = _deduplicate_arguments(emitted)
+    if integrity_constraint is not None:
+        emitted = [
+            argument
+            for argument in emitted
+            if integrity_constraint.accepts(argument)
+        ]
+        integrity_constraint.assert_satisfied(emitted)
     emitted.sort(key=lambda argument: (argument.canonical_claim_id, argument.assertion_id))
     argument_index = {argument.assertion_id: argument for argument in emitted}
 
@@ -441,7 +445,7 @@ def build_merge_framework(
             if diff_kind == _DiffKind.CONFLICT:
                 attacks.add(pair)
                 attacks.add(reverse_pair)
-            elif diff_kind in (_DiffKind.PHI_NODE, _DiffKind.UNKNOWN):
+            elif diff_kind in (_DiffKind.PHI_NODE, _DiffKind.UNKNOWN, _DiffKind.UNTRANSLATABLE):
                 ignorance.add(pair)
                 ignorance.add(reverse_pair)
 
@@ -486,12 +490,21 @@ def _deduplicate_arguments(arguments: list[MergeArgument]) -> list[MergeArgument
         by_assertion_id[argument.assertion_id] = replace(
             existing,
             branch_origins=tuple(sorted(set(existing.branch_origins) | set(argument.branch_origins))),
+            witness_basis=tuple(
+                {
+                    witness: None
+                    for witness in (*existing.witness_basis, *argument.witness_basis)
+                }
+            ),
         )
     return list(by_assertion_id.values())
 
 
 __all__ = [
     "MergeArgument",
+    "IntegrityConstraint",
+    "IntegrityConstraintViolation",
+    "MergeComparisonProvenanceError",
     "RepositoryMergeFramework",
     "build_merge_framework",
 ]
