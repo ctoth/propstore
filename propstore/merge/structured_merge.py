@@ -26,6 +26,7 @@ class BranchArgumentationEvidence:
     semantics: str
     accepted_assertion_ids: tuple[str, ...]
     witness_assertion_ids: tuple[str, ...]
+    skeptical_assertion_ids: tuple[str, ...] = ()
     decision_owner: str = "merge_policy"
 
 
@@ -70,18 +71,35 @@ def argumentation_evidence_from_projection(
     claim_assertion_ids: Mapping[str, Sequence[str]],
     semantics: str = "grounded",
 ) -> BranchArgumentationEvidence:
-    if semantics != "grounded":
-        raise ValueError("structured merge evidence currently supports grounded semantics")
-    from argumentation.dung import grounded_extension
+    from propstore.structured_projection import compute_structured_justified_arguments
 
-    accepted_argument_ids = grounded_extension(projection.framework)
+    justified = compute_structured_justified_arguments(
+        projection,
+        semantics=semantics,
+    )
+    if isinstance(justified, frozenset):
+        accepted_argument_ids = justified
+        skeptical_argument_ids = justified
+    else:
+        accepted_argument_ids = frozenset().union(*justified) if justified else frozenset()
+        skeptical_argument_ids = (
+            frozenset.intersection(*justified)
+            if justified
+            else frozenset()
+        )
     accepted_assertion_ids: list[str] = []
+    skeptical_assertion_ids: list[str] = []
     witness_assertion_ids: list[str] = []
     for argument_id in sorted(accepted_argument_ids):
         claim_id = projection.argument_to_claim_id.get(argument_id)
         if claim_id is None:
             continue
         accepted_assertion_ids.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
+    for argument_id in sorted(skeptical_argument_ids):
+        claim_id = projection.argument_to_claim_id.get(argument_id)
+        if claim_id is None:
+            continue
+        skeptical_assertion_ids.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
     for claim_id in sorted(projection.claim_to_argument_ids):
         witness_assertion_ids.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
     return BranchArgumentationEvidence(
@@ -89,6 +107,7 @@ def argumentation_evidence_from_projection(
         backend="argumentation",
         semantics=semantics,
         accepted_assertion_ids=_sorted_unique(accepted_assertion_ids),
+        skeptical_assertion_ids=_sorted_unique(skeptical_assertion_ids),
         witness_assertion_ids=_sorted_unique(witness_assertion_ids),
     )
 
