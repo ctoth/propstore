@@ -1,0 +1,27 @@
+examples:
+  - rule_id: ioannidis-small-sample-low-trust
+    rule_type: defeasible
+    head: low_trust(P)
+    body:
+      - sample_size(P, 30)
+    predicates_referenced:
+      - sample_size/2
+    page_reference: Ioannidis 2005 p. 0697
+  - rule_id: ioannidis-bias-low-trust
+    rule_type: defeasible
+    head: low_trust(P)
+    body:
+      - bias(P, 0.8)
+    predicates_referenced:
+      - bias/2
+    page_reference: Ioannidis 2005 p. 0698
+  - rule_id: ioannidis-large-powered-high-trust
+    rule_type: strict
+    head: high_trust(P)
+    body:
+      - sample_size(P, 500)
+      - statistical_power(P, 0.8)
+    predicates_referenced:
+      - sample_size/2
+      - statistical_power/2
+    page_reference: Ioannidis 2005 p. 0699

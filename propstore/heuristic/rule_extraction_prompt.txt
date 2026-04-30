@@ -1,0 +1,6 @@
+Extract paper-scoped DeLP rules from the supplied meta-paper notes.
+
+Return strict JSON with a top-level "rules" list. Each rule must have rule_id,
+rule_type, head, body, predicates_referenced, and page_reference. Use only the
+registered predicate vocabulary provided in the prompt; predicate references are
+arity-qualified as name/arity.
