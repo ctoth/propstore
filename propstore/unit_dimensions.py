@@ -13,20 +13,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from bridgman import dims_equal
+from bridgman import canonicalize_dims, dims_equal
 
 
 # ── Types ────────────────────────────────────────────────────────────
 
 Dimensions = dict[str, int]  # e.g. {"M": 1, "L": -1, "T": -2}
-
-# physgen uses unicode theta for temperature; form YAMLs use ascii Theta.
-_DIM_KEY_NORMALIZE = {"Θ": "Theta", "θ": "Theta"}
-
-def _normalize_dim_key(k: str) -> str:
-    return _DIM_KEY_NORMALIZE.get(k, k)
-
-
 
 # ── Load shipped lookup table ────────────────────────────────────────
 
@@ -52,9 +44,7 @@ def _get_symbol_table() -> dict[str, Dimensions]:
     if resource_exists("physgen_units.json"):
         raw = json.loads(load_resource_text("physgen_units.json"))
         for symbol, dims in raw.items():
-            table[symbol] = {
-                _normalize_dim_key(k): v for k, v in dims.items() if v != 0
-            }
+            table[symbol] = canonicalize_dims(dims)
 
     _symbol_table = table
     return table
@@ -71,9 +61,7 @@ def register_form_units(forms_dir: Path) -> None:
     table = _get_symbol_table()
     for form_def in load_all_forms(forms_dir).values():
         for eu in form_def.extra_units:
-            table[eu.symbol] = {
-                k: int(v) for k, v in eu.dimensions.items() if v != 0
-            }
+            table[eu.symbol] = canonicalize_dims(eu.dimensions)
 
 
 # ── Public API ───────────────────────────────────────────────────────

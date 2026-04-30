@@ -7,6 +7,8 @@ import pytest
 import yaml
 
 from tests.conftest import TEST_CONTEXT_ID
+from propstore.cel_checker import KindType
+from propstore.families.forms.stages import FormDefinition
 from tests.family_helpers import load_claim_files
 from tests.test_validate_claims import (
     make_claim_file_data,
@@ -74,11 +76,12 @@ def test_claim_dimensional_error_records_error(tmp_path) -> None:
             "form": "duration_ratio",
             "status": "accepted",
             "definition": "Angle-like dimensionless value.",
-            "_form_definition": type(
-                "FormDefinition",
-                (),
-                {"dimensions": None, "is_dimensionless": True},
-            )(),
+            "_form_definition": FormDefinition(
+                name="duration_ratio",
+                kind=KindType.QUANTITY,
+                dimensions=None,
+                is_dimensionless=True,
+            ),
         },
         _concept_artifact("concept2"): {
             "artifact_id": _concept_artifact("concept2"),
@@ -86,11 +89,12 @@ def test_claim_dimensional_error_records_error(tmp_path) -> None:
             "form": "distance",
             "status": "accepted",
             "definition": "Length.",
-            "_form_definition": type(
-                "FormDefinition",
-                (),
-                {"dimensions": {"L": 1}, "is_dimensionless": False},
-            )(),
+            "_form_definition": FormDefinition(
+                name="distance",
+                kind=KindType.QUANTITY,
+                dimensions={"L": 1},
+                is_dimensionless=False,
+            ),
         },
     }
     claim = make_equation_claim(
@@ -156,7 +160,7 @@ def test_concept_dimensional_error_records_error(tmp_path) -> None:
         parameterization_relationships=[
             {
                 "formula": "angle = sin(length) * scale",
-                "sympy": "Eq(concept3, sin(concept1) * concept2)",
+                "sympy": "Eq(angle, sin(length) * scale)",
                 "inputs": ["concept1", "concept2"],
                 "exactness": "exact",
                 "source": "Test_2026",

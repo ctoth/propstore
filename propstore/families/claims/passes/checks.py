@@ -770,7 +770,17 @@ def _validate_equation_dimensional_consistency(
                 filename=filename,
                 artifact_id=cid,
             )
-    except (KeyError, SyntaxError, bridgman.DimensionalError, TypeError):
+    except bridgman.DimensionalError as exc:
+        _record(
+            diagnostics,
+            message=(
+                f"equation claim '{cid}' dimensional verification error "
+                f"for sympy '{sympy_str}': {exc}"
+            ),
+            filename=filename,
+            artifact_id=cid,
+        )
+    except (KeyError, SyntaxError, TypeError):
         pass
 
 

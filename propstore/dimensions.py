@@ -178,10 +178,9 @@ def verify_form_algebra_dimensions(
 
 
 def dims_signature(dimensions: dict[str, int] | None) -> str | None:
-    """Canonical sorted, zero-stripped dimension signature."""
+    """Canonical Bridgman dimension signature."""
     if dimensions is None:
         return None
-    cleaned = {k: v for k, v in dimensions.items() if v != 0}
-    if not cleaned:
-        return ""
-    return ",".join(f"{k}:{v}" for k, v in sorted(cleaned.items()))
+    from bridgman import dims_signature as bridgman_dims_signature
+
+    return bridgman_dims_signature(dimensions)

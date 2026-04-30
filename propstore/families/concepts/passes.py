@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Mapping
 
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
-from bridgman import verify_expr, dims_of_expr, DimensionalError
+from bridgman import verify_expr, DimensionalError
 
 from quire.documents import load_document_dir
 from propstore.families.claims.documents import ClaimsFileDocument
@@ -613,9 +613,19 @@ def _check_concepts(
                                 dim_map: dict[str, dict[str, int]] = {}
                                 # Output concept
                                 dim_map[cid] = dict(output_dims)
+                                canonical_name = data.get("canonical_name")
+                                if isinstance(canonical_name, str) and canonical_name:
+                                    dim_map[canonical_name] = dict(output_dims)
+                                if c.source_local_id:
+                                    dim_map[c.source_local_id] = dict(output_dims)
                                 # Input concepts
                                 for inp_id, input_dims_map in zip(inputs, concrete_input_dims):
                                     dim_map[inp_id] = dict(input_dims_map)
+                                    inp_c = id_to_concept.get(inp_id)
+                                    if inp_c is not None:
+                                        dim_map[inp_c.record.canonical_name] = dict(input_dims_map)
+                                        if inp_c.source_local_id:
+                                            dim_map[inp_c.source_local_id] = dict(input_dims_map)
                                 if verify_expr(parsed, dim_map):
                                     sympy_verified = True
                                 else:
@@ -629,8 +639,13 @@ def _check_concepts(
                                         f"failed for '{sympy_expr_str}': inputs "
                                         f"[{', '.join(input_strs)}] → output "
                                         f"'{output_form_def.name}' {format_dims(output_dims)}")
-                                    sympy_verified = True  # skip brute-force, sympy gave definitive answer
-                            except (DimensionalError, KeyError, TypeError, SyntaxError):
+                            except DimensionalError as exc:
+                                result.errors.append(
+                                    f"{c.filename}: sympy dimensional verification "
+                                    f"error for '{sympy_expr_str}': {exc}"
+                                )
+                                sympy_verified = True
+                            except (KeyError, TypeError, SyntaxError):
                                 pass  # fall through to brute-force check
 
                         if not sympy_verified:

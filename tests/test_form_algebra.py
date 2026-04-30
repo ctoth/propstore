@@ -232,13 +232,13 @@ class TestFormAlgebraExceptionVisibility:
 
 class TestDimsSignature:
     def test_basic(self):
-        assert dims_signature({"M": 1, "L": 1, "T": -2}) == "L:1,M:1,T:-2"
+        assert dims_signature({"M": 1, "L": 1, "T": -2}) == "M:1,L:1,T:-2"
 
     def test_none_returns_none(self):
         assert dims_signature(None) is None
 
-    def test_empty_returns_empty_string(self):
-        assert dims_signature({}) == ""
+    def test_empty_returns_dimensionless_signature(self):
+        assert dims_signature({}) == "1"
 
     def test_strips_zero_exponents(self):
         assert dims_signature({"M": 1, "L": 0, "T": 0}) == "M:1"
@@ -246,8 +246,8 @@ class TestDimsSignature:
     def test_sorted_by_key(self):
         assert dims_signature({"T": -2, "M": 1}) == "M:1,T:-2"
 
-    def test_all_zeros_returns_empty(self):
-        assert dims_signature({"M": 0, "L": 0}) == ""
+    def test_all_zeros_returns_dimensionless_signature(self):
+        assert dims_signature({"M": 0, "L": 0}) == "1"
 
 
 # ── Step 2: form table ──────────────────────────────────────────────
