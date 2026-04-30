@@ -41,7 +41,7 @@ def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -
         separators=(",", ":"),
         ensure_ascii=False,
     )
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
     return f"claim_{digest}"
 
 
