@@ -1,6 +1,6 @@
 # WS-L: Merge non-commitment & sameAs discipline
 
-**Status**: CLOSED 8485babf
+**Status**: CLOSED e69f1d09
 **Depends on**: WS-E (source/promote provenance must be present in claim documents before assertion-id can fold it)
 **Blocks**: nothing
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1)
