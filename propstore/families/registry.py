@@ -227,7 +227,7 @@ class SourceBranchPlacement(BranchPlacement):
         safe_stem = encode_ref_value(value, self.codec)
         stem = safe_stem
         if safe_stem != value:
-            digest = hashlib.sha1(value.encode("utf-8")).hexdigest()[:12]
+            digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
             stem = f"{safe_stem}--{digest}"
         if not self.template:
             raise ValueError("source branch placement requires a template")
@@ -235,7 +235,7 @@ class SourceBranchPlacement(BranchPlacement):
 
     def contract_body(self) -> dict[str, object]:
         body = super().contract_body()
-        body["collision_suffix"] = "sha1-12"
+        body["collision_suffix"] = "sha256"
         return body
 
 
