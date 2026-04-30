@@ -57,6 +57,7 @@ Theoretical anchors:
 from __future__ import annotations
 
 import json
+import pickle
 import sqlite3
 from collections.abc import Mapping
 from types import MappingProxyType
@@ -141,6 +142,14 @@ def create_grounded_fact_table(conn: sqlite3.Connection) -> None:
         "PRIMARY KEY (section, predicate)"
         ")"
     )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS grounded_bundle_input ("
+        "kind TEXT NOT NULL, "
+        "position INTEGER NOT NULL, "
+        "payload BLOB NOT NULL, "
+        "PRIMARY KEY (kind, position)"
+        ")"
+    )
 
 
 def populate_grounded_facts(
@@ -176,6 +185,7 @@ def populate_grounded_facts(
     verdict raise loudly instead of being silently coalesced.
     """
     inserted = 0
+    _persist_bundle_inputs(conn, bundle)
     sections = bundle.sections
     for section_name in _SECTION_NAMES:
         inner_map = sections.get(section_name)
@@ -217,6 +227,29 @@ def populate_grounded_facts(
                 )
                 inserted += 1
     return inserted
+
+
+def _persist_bundle_inputs(conn: sqlite3.Connection, bundle: GroundedRulesBundle) -> None:
+    rows = (
+        ("source_rule", bundle.source_rules),
+        ("source_fact", bundle.source_facts),
+        ("argument", bundle.arguments),
+    )
+    for kind, values in rows:
+        for position, value in enumerate(values):
+            conn.execute(
+                "INSERT INTO grounded_bundle_input "
+                "(kind, position, payload) VALUES (?, ?, ?)",
+                (kind, position, pickle.dumps(value)),
+            )
+
+
+def _read_bundle_inputs(conn: sqlite3.Connection, kind: str) -> tuple[object, ...]:
+    cursor = conn.execute(
+        "SELECT payload FROM grounded_bundle_input WHERE kind = ? ORDER BY position",
+        (kind,),
+    )
+    return tuple(pickle.loads(payload) for (payload,) in cursor.fetchall())
 
 
 def read_grounded_facts(
@@ -295,15 +328,14 @@ def read_grounded_facts(
 def read_grounded_bundle(conn: sqlite3.Connection) -> GroundedRulesBundle:
     """Rehydrate a runtime grounding bundle from sidecar materialization.
 
-    WS7 makes the sidecar the runtime source for grounded rule output.
-    The sidecar persists the backend's four-status section map; source
-    rules and source facts are intentionally empty here because runtime
-    argumentation should not rebuild the repository compiler inputs from
-    files after sidecar build has materialized the result.
+    The sidecar persists both the backend's four-status section map and
+    the rule/fact/argument inputs that produced it, so downstream runtime
+    argumentation can retain the complete grounding provenance.
     """
 
     return GroundedRulesBundle(
-        source_rules=(),
-        source_facts=(),
+        source_rules=_read_bundle_inputs(conn, "source_rule"),  # type: ignore[arg-type]
+        source_facts=_read_bundle_inputs(conn, "source_fact"),  # type: ignore[arg-type]
         sections=read_grounded_facts(conn),
+        arguments=_read_bundle_inputs(conn, "argument"),  # type: ignore[arg-type]
     )
