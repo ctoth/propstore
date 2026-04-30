@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import inspect
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -312,18 +311,7 @@ def _render_type(value: object) -> str:
     return str(value).replace("typing.", "")
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--write", action="store_true")
-    args = parser.parse_args(argv)
-    payload = build_propstore_contract_manifest().to_yaml()
-    if args.write:
-        CONTRACT_MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-        CONTRACT_MANIFEST_PATH.write_bytes(payload)
-    else:
-        print(payload.decode("utf-8"), end="")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+def write_propstore_contract_manifest(path: Path = CONTRACT_MANIFEST_PATH) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(build_propstore_contract_manifest().to_yaml())
+    return path

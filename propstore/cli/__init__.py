@@ -15,6 +15,7 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
     "checkout": ("propstore.cli.history_cmds", "checkout_cmd", "Checkout a repository commit."),
     "claim": ("propstore.cli.claim", "claim", "Manage claims."),
     "concept": ("propstore.cli.concept", "concept", "Manage concepts in the registry."),
+    "contract-manifest": ("propstore.cli.contracts", "contract_manifest", "Render or write contract manifest."),
     "context": ("propstore.cli.context", "context", "Manage contexts."),
     "diff": ("propstore.cli.history_cmds", "diff_cmd", "Show repository changes."),
     "export-aliases": ("propstore.cli.compiler_cmds", "export_aliases", "Export concept aliases."),

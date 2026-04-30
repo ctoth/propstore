@@ -20,7 +20,6 @@ Supports two file types:
 from __future__ import annotations
 
 import re
-import sys
 from datetime import datetime, timezone
 from enum import StrEnum
 from pathlib import Path
@@ -417,8 +416,7 @@ def stamp_file(
     elif path.suffix in (".yaml", ".yml"):
         result, changed = _stamp_yaml(text, agent, skill, status, plugin_version, timestamp)
     else:
-        print(f"Unsupported file type: {path.suffix}", file=sys.stderr)
-        return False
+        raise ValueError(f"Unsupported file type: {path.suffix}")
 
     if changed:
         path.write_text(result, encoding="utf-8")

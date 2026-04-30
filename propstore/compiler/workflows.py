@@ -83,6 +83,13 @@ class BuildPhiGroup:
 
 
 @dataclass(frozen=True)
+class BuildEmbeddingSnapshotReport:
+    model_count: int
+    claim_vector_count: int
+    concept_vector_count: int
+
+
+@dataclass(frozen=True)
 class RepositoryBuildReport:
     concept_count: int
     claim_count: int
@@ -92,6 +99,7 @@ class RepositoryBuildReport:
     rebuilt: bool
     conflicts: tuple[BuildConflictLine, ...] = ()
     phi_groups: tuple[BuildPhiGroup, ...] = ()
+    embedding_snapshot: BuildEmbeddingSnapshotReport | None = None
     messages: tuple[PassDiagnostic, ...] = ()
     no_concepts: bool = False
     sidecar_missing: bool = False
@@ -561,6 +569,17 @@ def build_repository(
     build_messages.extend(claim_messages)
 
     sidecar_path = Path(output) if output else repo.sidecar_path
+    embedding_snapshots: list[BuildEmbeddingSnapshotReport] = []
+
+    def _record_embedding_snapshot(report) -> None:
+        embedding_snapshots.append(
+            BuildEmbeddingSnapshotReport(
+                model_count=report.model_count,
+                claim_vector_count=report.claim_vector_count,
+                concept_vector_count=report.concept_vector_count,
+            )
+        )
+
     rebuilt = build_sidecar(
         repo,
         sidecar_path,
@@ -574,6 +593,7 @@ def build_repository(
         concept_diagnostics=tuple(concept_messages),
         context_files=tuple(ctx_list),
         context_diagnostics=tuple(context_messages),
+        on_embedding_snapshot=_record_embedding_snapshot,
     )
 
     warning_count = len(concept_result.warnings)
@@ -640,6 +660,7 @@ def build_repository(
             BuildPhiGroup(key=key, claim_ids=tuple(sorted(claim_ids)))
             for key, claim_ids in phi_groups.items()
         ),
+        embedding_snapshot=embedding_snapshots[-1] if embedding_snapshots else None,
         messages=tuple(build_messages),
         sidecar_missing=sidecar_missing,
     )

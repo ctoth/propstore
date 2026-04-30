@@ -92,6 +92,15 @@ def build(obj: dict, output: str | None, force: bool) -> None:
             f"{', '.join(group.claim_ids)}",
             err=True,
         )
+    if report.embedding_snapshot is not None:
+        snapshot = report.embedding_snapshot
+        emit(
+            "  Embedding snapshot: "
+            f"{snapshot.model_count} model(s), "
+            f"{snapshot.claim_vector_count} claim vecs, "
+            f"{snapshot.concept_vector_count} concept vecs",
+            err=True,
+        )
 
     status = "rebuilt" if report.rebuilt else "unchanged"
     emit(

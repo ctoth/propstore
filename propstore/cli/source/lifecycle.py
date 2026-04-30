@@ -209,13 +209,16 @@ def stamp_provenance(
         "Deprecated: use --reader/--method flags on source add-claim, "
         "source add-justification, or source add-stance instead."
     )
-    stamped_path = stamp_source_provenance(
-        SourceStampProvenanceRequest(
-            file_path=file_path,
-            agent=agent,
-            skill_name=skill_name,
-            status=ProvenanceStatus(status_value.lower()),
-            plugin_version=plugin_version,
+    try:
+        stamped_path = stamp_source_provenance(
+            SourceStampProvenanceRequest(
+                file_path=file_path,
+                agent=agent,
+                skill_name=skill_name,
+                status=ProvenanceStatus(status_value.lower()),
+                plugin_version=plugin_version,
+            )
         )
-    )
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
     emit_success(f"Stamped provenance on {stamped_path}")

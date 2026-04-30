@@ -20,8 +20,9 @@ import sqlite3
 import tempfile
 import threading
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from quire.hashing import canonical_json_bytes
 from propstore.claims import ClaimFileEntry
@@ -85,6 +86,13 @@ _SIDECAR_CACHE_DEPENDENCIES = (
     "gunray",
     "quire",
 )
+
+
+@dataclass(frozen=True)
+class EmbeddingSnapshotReport:
+    model_count: int
+    claim_vector_count: int
+    concept_vector_count: int
 
 
 def _sidecar_cache_key_inputs(source_revision: str) -> dict[str, object]:
@@ -410,6 +418,7 @@ def build_sidecar(
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
     context_files: tuple[LoadedContext, ...] | None = None,
     context_diagnostics: tuple[PassDiagnostic, ...] = (),
+    on_embedding_snapshot: Callable[[EmbeddingSnapshotReport], None] | None = None,
 ) -> bool:
     """Build the SQLite sidecar from repository artifact families."""
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
@@ -574,20 +583,20 @@ def build_sidecar(
             _load_vec_extension(snapshot_conn)
             embedding_snapshot = extract_embeddings(snapshot_conn)
             if embedding_snapshot is not None:
-                import sys
-
                 claim_count = sum(
                     len(vectors) for vectors in embedding_snapshot.claim_vectors.values()
                 )
                 concept_count = sum(
                     len(vectors) for vectors in embedding_snapshot.concept_vectors.values()
                 )
-                print(
-                    "  Embedding snapshot: "
-                    f"{len(embedding_snapshot.models)} model(s), "
-                    f"{claim_count} claim vecs, {concept_count} concept vecs",
-                    file=sys.stderr,
-                )
+                if on_embedding_snapshot is not None:
+                    on_embedding_snapshot(
+                        EmbeddingSnapshotReport(
+                            model_count=len(embedding_snapshot.models),
+                            claim_vector_count=claim_count,
+                            concept_vector_count=concept_count,
+                        )
+                    )
         except ImportError:
             pass
         finally:
