@@ -826,7 +826,8 @@ def _validate_algorithm_unbound_names(
 
     body = claim.get("body")
     if body and tree is not None:
-        unbound = extract_free_variables(tree) - declared_names
+        referenced_names = extract_free_variables(tree) | _algorithm_parameter_names(tree)
+        unbound = referenced_names - declared_names
         for name in sorted(unbound):
             _record(
                 diagnostics,
@@ -838,6 +839,22 @@ def _validate_algorithm_unbound_names(
                 filename=filename,
                 artifact_id=cid,
             )
+
+
+def _algorithm_parameter_names(tree: Any) -> set[str]:
+    for node in getattr(tree, "body", ()):
+        if not hasattr(node, "args"):
+            continue
+        args = node.args
+        return {
+            arg.arg
+            for arg in (
+                *getattr(args, "posonlyargs", ()),
+                *getattr(args, "args", ()),
+                *getattr(args, "kwonlyargs", ()),
+            )
+        }
+    return set()
 
 
 def _validate_unit_against_form(

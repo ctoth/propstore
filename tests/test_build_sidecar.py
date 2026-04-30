@@ -12,6 +12,7 @@ import yaml
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
+from ast_equiv import canonical_dump
 from quire.documents import DocumentSchemaError
 from propstore.repository import Repository
 from tests.family_helpers import build_sidecar as _build_sidecar
@@ -1984,8 +1985,7 @@ class TestAlgorithmBindings:
     def test_algorithm_canonical_ast_includes_bindings(
         self, concept_dir, knowledge_reader, sidecar_path,
     ):
-        """When variables is a list of dicts (per schema), canonical_ast must
-        contain the concept names from the bindings, not the raw variable names."""
+        """List-of-dict variables must feed durable concept bindings into canonical_ast."""
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
 
@@ -2018,10 +2018,13 @@ class TestAlgorithmBindings:
         assert row is not None, "algorithm claim must be stored"
         ast_text = row["canonical_ast"]
         assert ast_text is not None, "canonical_ast must not be None"
-        # With correct bindings, 'x' should be replaced by the durable concept artifact ID.
-        assert CONCEPT1_ID in ast_text, (
-            f"canonical_ast should contain concept binding '{CONCEPT1_ID}' "
-            f"but got: {ast_text}"
+        expected = canonical_dump(
+            "def compute(x):\n    return x * 2\n",
+            {"x": CONCEPT1_ID},
+        )
+        assert ast_text == expected, (
+            "canonical_ast should be the versioned key produced with durable "
+            f"concept binding '{CONCEPT1_ID}', but got: {ast_text}"
         )
 
 
