@@ -42,7 +42,7 @@ class WhySupport:
             self.other_variables + other.other_variables,
         )
 
-    def subsumes(self, other: WhySupport) -> bool:
+    def is_subsumed_by(self, other: WhySupport) -> bool:
         return (
             set(self.assumption_ids).issubset(other.assumption_ids)
             and set(self.context_ids).issubset(other.context_ids)
@@ -104,7 +104,7 @@ def normalize_why_supports(supports: list[WhySupport]) -> tuple[WhySupport, ...]
     )
     minimal: list[WhySupport] = []
     for candidate in ordered:
-        if any(existing.subsumes(candidate) for existing in minimal):
+        if any(existing.is_subsumed_by(candidate) for existing in minimal):
             continue
         minimal.append(candidate)
     return tuple(minimal)
