@@ -657,4 +657,4 @@ def _digest(value: object) -> str:
         ensure_ascii=True,
         default=str,
     )
-    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:32]
+    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
