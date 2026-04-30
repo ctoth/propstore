@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
 
 from propstore.cel_types import CelExpr
@@ -35,6 +35,8 @@ def detect_parameter_conflicts(
     *,
     lifting_system: LiftingSystem | None = None,
     solver=None,
+    forms=None,
+    concept_forms: Mapping[str, str] | None = None,
 ) -> tuple[list[ConflictRecord], dict[str, list[ConflictClaim]]]:
     records: list[ConflictRecord] = []
     by_concept = _collect_parameter_claims(claims)
@@ -67,6 +69,8 @@ def detect_parameter_conflicts(
                 cel_registry,
                 lifting_system=lifting_system,
                 solver=z3_solver,
+                forms=forms,
+                concept_forms=concept_forms,
             )
             continue
 
@@ -77,6 +81,8 @@ def detect_parameter_conflicts(
             all_conditions,
             eq_classes,
             lifting_system=lifting_system,
+            forms=forms,
+            concept_forms=concept_forms,
         )
         _detect_cross_class_parameter_conflicts(
             records,
@@ -101,6 +107,8 @@ def _detect_pairwise_parameter_conflicts(
     *,
     lifting_system: LiftingSystem | None,
     solver=None,
+    forms=None,
+    concept_forms: Mapping[str, str] | None = None,
 ) -> None:
     for i in range(len(claims)):
         for j in range(i + 1, len(claims)):
@@ -109,7 +117,14 @@ def _detect_pairwise_parameter_conflicts(
             value_a = claim_a.value
             value_b = claim_b.value
 
-            if _values_compatible(value_a, value_b, claim_a=claim_a, claim_b=claim_b):
+            if _values_compatible(
+                value_a,
+                value_b,
+                claim_a=claim_a,
+                claim_b=claim_b,
+                forms=forms,
+                concept_form=None if concept_forms is None else concept_forms.get(concept_id),
+            ):
                 continue
             if _append_context_classified_record(
                 records,
@@ -150,6 +165,8 @@ def _detect_equivalent_parameter_conflicts(
     eq_classes: list[list[int]],
     *,
     lifting_system: LiftingSystem | None,
+    forms=None,
+    concept_forms: Mapping[str, str] | None = None,
 ) -> None:
     for group in eq_classes:
         for ii in range(len(group)):
@@ -159,7 +176,14 @@ def _detect_equivalent_parameter_conflicts(
                 claim_b = claims[idx_b]
                 value_a = claim_a.value
                 value_b = claim_b.value
-                if _values_compatible(value_a, value_b, claim_a=claim_a, claim_b=claim_b):
+                if _values_compatible(
+                    value_a,
+                    value_b,
+                    claim_a=claim_a,
+                    claim_b=claim_b,
+                    forms=forms,
+                    concept_form=None if concept_forms is None else concept_forms.get(concept_id),
+                ):
                     continue
                 if _append_context_classified_record(
                     records,
@@ -197,6 +221,8 @@ def _detect_cross_class_parameter_conflicts(
     z3_solver,
     *,
     lifting_system: LiftingSystem | None,
+    forms=None,
+    concept_forms: Mapping[str, str] | None = None,
 ) -> None:
     from propstore.z3_conditions import SolverSat, SolverUnknown, SolverUnsat, Z3TranslationError
     import z3
@@ -228,7 +254,14 @@ def _detect_cross_class_parameter_conflicts(
                     claim_b = claims[idx_b]
                     value_a = claim_a.value
                     value_b = claim_b.value
-                    if _values_compatible(value_a, value_b, claim_a=claim_a, claim_b=claim_b):
+                    if _values_compatible(
+                        value_a,
+                        value_b,
+                        claim_a=claim_a,
+                        claim_b=claim_b,
+                        forms=forms,
+                        concept_form=None if concept_forms is None else concept_forms.get(concept_id),
+                    ):
                         continue
                     if _append_context_classified_record(
                         records,

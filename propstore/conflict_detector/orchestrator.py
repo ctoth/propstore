@@ -86,6 +86,8 @@ def detect_conflicts(
         cel_registry,
         lifting_system=lifting_system,
         solver=condition_solver,
+        forms=_forms_from_conflict_concept_registry(concept_registry),
+        concept_forms=_concept_forms_from_conflict_concept_registry(concept_registry),
     )
     records.extend(parameter_records)
     records.extend(
@@ -212,6 +214,46 @@ def _expand_lifted_conflict_claims(
 def _claim_derivation_chain(claim: ConflictClaim) -> tuple[str, ...]:
     chain = getattr(claim, "derivation_chain", ())
     return tuple(str(item) for item in chain)
+
+
+def _forms_from_conflict_concept_registry(concept_registry: Mapping[str, dict]) -> dict[str, object]:
+    forms: dict[str, object] = {}
+    for value in concept_registry.values():
+        if not isinstance(value, dict):
+            continue
+        form_name = value.get("form")
+        form_definition = value.get("_form_definition")
+        if isinstance(form_name, str) and form_definition is not None:
+            forms.setdefault(form_name, form_definition)
+    return forms
+
+
+def _concept_forms_from_conflict_concept_registry(concept_registry: Mapping[str, dict]) -> dict[str, str]:
+    concept_forms: dict[str, str] = {}
+    for key, value in concept_registry.items():
+        if not isinstance(value, dict):
+            continue
+        form_name = value.get("form")
+        if not isinstance(form_name, str):
+            continue
+        _add_concept_form_key(concept_forms, key, form_name)
+        for id_key in ("artifact_id", "id"):
+            _add_concept_form_key(concept_forms, value.get(id_key), form_name)
+        for logical_id in value.get("logical_ids", ()):
+            if not isinstance(logical_id, dict):
+                continue
+            namespace = logical_id.get("namespace")
+            local_value = logical_id.get("value")
+            if isinstance(local_value, str):
+                _add_concept_form_key(concept_forms, local_value, form_name)
+            if isinstance(namespace, str) and isinstance(local_value, str):
+                _add_concept_form_key(concept_forms, f"{namespace}:{local_value}", form_name)
+    return concept_forms
+
+
+def _add_concept_form_key(target: dict[str, str], key: object, form_name: str) -> None:
+    if isinstance(key, str) and key:
+        target.setdefault(key, form_name)
 
 
 def _lifting_rule_applies(claim: ConflictClaim, rule: LiftingRule, solver) -> bool:
