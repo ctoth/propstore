@@ -14,12 +14,12 @@ from propstore.families.identity.concepts import compute_concept_version_id
 def concept_content_hash(data: dict) -> str:
     version_id = data.get("version_id")
     if isinstance(version_id, str) and version_id:
-        return version_id.removeprefix("sha256:")[:16]
+        return version_id.removeprefix("sha256:")
     h = hashlib.sha256()
     h.update((data.get("canonical_name", "")).encode())
     h.update((data.get("domain", "")).encode())
     h.update((data.get("definition", "")).encode())
-    return h.hexdigest()[:16]
+    return h.hexdigest()
 
 
 def concept_logical_ids(concept: dict) -> list[dict[str, str]]:
