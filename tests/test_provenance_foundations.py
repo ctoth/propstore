@@ -80,10 +80,9 @@ def test_named_graph_encoding_requires_explicit_uri_graph_name() -> None:
         )
 
 
-def test_named_graph_payload_is_canonical_under_record_ordering() -> None:
-    # Carroll 2005 page image 001 gives graph names rigid identity; Green 2007
-    # notes require provenance combination to behave algebraically rather than
-    # depend on input ordering.
+def test_named_graph_payload_canonicalizes_sets_but_preserves_operation_order() -> None:
+    # Witnesses and derived graph names are sets for identity purposes. Operations
+    # are a causal trace, so their first-observed order is semantically meaningful.
     first = Provenance(
         status=ProvenanceStatus.CALIBRATED,
         witnesses=(_witness("b"), _witness("a"), _witness("b")),
@@ -100,9 +99,17 @@ def test_named_graph_payload_is_canonical_under_record_ordering() -> None:
     )
 
     encoded = encode_named_graph(first)
+    second_encoded = encode_named_graph(second)
 
-    assert encoded == encode_named_graph(second)
-    assert decode_named_graph(encoded) == second
+    assert encoded != second_encoded
+    assert decode_named_graph(encoded) == Provenance(
+        status=ProvenanceStatus.CALIBRATED,
+        witnesses=(_witness("a"), _witness("b")),
+        graph_name="urn:propstore:provenance:canonical",
+        derived_from=("urn:graph:a", "urn:graph:z"),
+        operations=("projection", "import"),
+    )
+    assert decode_named_graph(second_encoded) == second
 
     payload = json.loads(encoded)
     assert payload["@id"] == "urn:propstore:provenance:canonical"
@@ -121,7 +128,7 @@ def test_named_graph_payload_is_canonical_under_record_ordering() -> None:
         },
     ]
     assert payload["provenance"]["derived_from"] == ["urn:graph:a", "urn:graph:z"]
-    assert payload["provenance"]["operations"] == ["import", "projection"]
+    assert payload["provenance"]["operations"] == ["projection", "import"]
 
 
 def test_git_notes_round_trip_named_graph_content() -> None:
