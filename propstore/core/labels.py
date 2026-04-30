@@ -388,5 +388,5 @@ def _polynomial_to_environments(poly: ProvenancePolynomial) -> tuple[Environment
 
 
 def _stable_id(kind: str, source: str, body: str) -> AssumptionId:
-    digest = hashlib.sha1(f"{kind}\0{source}\0{body}".encode("utf-8")).hexdigest()[:12]
+    digest = hashlib.sha256(f"{kind}\0{source}\0{body}".encode("utf-8")).hexdigest()
     return to_assumption_id(f"{kind}:{source}:{digest}")
