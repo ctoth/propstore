@@ -3,12 +3,21 @@ from __future__ import annotations
 from quire.documents import DocumentStruct
 
 
+class MergeManifestWitnessDocument(DocumentStruct):
+    source_artifact_id: str
+    source_paper: str | None = None
+    source_page: int | None = None
+    branch_origin: str | None = None
+    rule_chain: tuple[str, ...] = ()
+
+
 class MergeManifestArgumentDocument(DocumentStruct):
     assertion_id: str
     artifact_id: str
     logical_id: str
     canonical_claim_id: str | None = None
     branch_origins: tuple[str, ...] = ()
+    witness_basis: tuple[MergeManifestWitnessDocument, ...] = ()
     materialized: bool = False
 
 

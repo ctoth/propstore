@@ -296,6 +296,7 @@ class ClaimSourceDocument(DocumentStruct):
 class ProvenanceDocument(DocumentStruct):
     page: int
     paper: str | None = None
+    branch_origin: str | None = None
     date: str | None = None
     figure: str | None = None
     quote_fragment: str | None = None
@@ -306,6 +307,8 @@ class ProvenanceDocument(DocumentStruct):
         payload: dict[str, Any] = {"page": self.page}
         if self.paper is not None:
             payload["paper"] = self.paper
+        if self.branch_origin is not None:
+            payload["branch_origin"] = self.branch_origin
         if self.date is not None:
             payload["date"] = self.date
         if self.figure is not None:
