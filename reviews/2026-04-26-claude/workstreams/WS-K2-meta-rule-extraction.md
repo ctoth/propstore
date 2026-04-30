@@ -1,6 +1,6 @@
 # WS-K2: Meta-paper rule extraction pipeline (LLM with proposal-review gate)
 
-**Status**: CLOSED 4a2ce545
+**Status**: CLOSED 2f76cb38
 **Depends on**: WS-A (schema parity — required so the predicates schema and rule documents round-trip through sidecar without drift) and WS-K consumer API for the end-to-end firing test only (`tests/test_extracted_rules_fire_against_argumentation.py`). WS-K itself ships independently against hand-stubbed rule fixtures; WS-K2 only needs the WS-K kernel API to be in tree so the joint sentinel can fire promoted rules through it.
 **Blocks**: nothing structural. WS-K's source-trust pipeline closes on stubs without WS-K2; WS-K2 enriches it with promoted real rules afterward.
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1)
@@ -440,7 +440,7 @@ Before declaring WS-K2 done, ALL must hold:
 - [x] `reviews/2026-04-26-claude/workstreams/WS-K2-rejection-log.csv` and `WS-K2-prompt-iterations/v<N>.md` files exist and explain every prompt revision.
 - [x] WS-K2 property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-K2 test run or a named companion run. Evidence: `logs/test-runs/WS-K2-property-gates-20260429-210148.log`.
 - [x] `docs/gaps.md` records WS-K2 closure with the 13 paper list and the achieved acceptance rate.
-- [x] STATUS line is `CLOSED 4a2ce545`.
+- [x] STATUS line is `CLOSED 2f76cb38`.
 
 ## Done means done
 

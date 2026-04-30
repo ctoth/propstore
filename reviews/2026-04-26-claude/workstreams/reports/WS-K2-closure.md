@@ -1,7 +1,7 @@
 # WS-K2 Closure
 
 Workstream: WS-K2 meta-rule extraction pipeline
-Closing implementation commit: `4a2ce545`
+Closing implementation commit: `2f76cb38`
 Knowledge corpus commit: `47c82cc` in nested `knowledge/`
 
 ## Findings Closed
