@@ -59,5 +59,5 @@ def derive_assertion_id(identity: object) -> AssertionId:
         separators=(",", ":"),
         ensure_ascii=True,
     )
-    digest = hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:32]
+    digest = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
     return AssertionId(f"ps:assertion:{digest}")
