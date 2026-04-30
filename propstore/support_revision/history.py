@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from propstore.canonical_json import canonical_dumps
+from quire.hashing import canonical_json_bytes
 from propstore.support_revision.explanation_types import (
     RevisionAtomDetail,
     coerce_revision_atom_detail,
@@ -44,12 +44,12 @@ def _to_plain_data(value: Any) -> Any:
     return value
 
 
-def _canonical_json(payload: Mapping[str, Any]) -> str:
-    return canonical_dumps(_to_plain_data(payload))
-
-
 def _stable_hash(payload: Mapping[str, Any]) -> str:
-    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+    return hashlib.sha256(canonical_json_bytes(_to_plain_data(payload))).hexdigest()
+
+
+def _canonical_text(payload: Mapping[str, Any]) -> str:
+    return canonical_json_bytes(_to_plain_data(payload)).decode("ascii")
 
 
 def _journal_operator(value: JournalOperator | str) -> JournalOperator:
@@ -122,7 +122,7 @@ class EpistemicSnapshot:
         return data
 
     def to_canonical_json(self) -> str:
-        return _canonical_json(self.to_dict())
+        return _canonical_text(self.to_dict())
 
     def _hash_payload(self) -> dict[str, Any]:
         return {
@@ -197,10 +197,10 @@ class TransitionJournalEntry:
         )
         object.__setattr__(self, "normalized_state_in", _to_plain_data(dict(self.normalized_state_in)))
         object.__setattr__(self, "normalized_state_out", _to_plain_data(dict(self.normalized_state_out)))
-        canonical_dumps(self.operator_input)
-        canonical_dumps(self.version_policy_snapshot)
-        canonical_dumps(self.normalized_state_in)
-        canonical_dumps(self.normalized_state_out)
+        canonical_json_bytes(_to_plain_data(self.operator_input))
+        canonical_json_bytes(_to_plain_data(self.version_policy_snapshot))
+        canonical_json_bytes(_to_plain_data(self.normalized_state_in))
+        canonical_json_bytes(_to_plain_data(self.normalized_state_out))
         object.__setattr__(self, "policy_payload", _to_plain_data(dict(self.policy_payload)))
         object.__setattr__(
             self,

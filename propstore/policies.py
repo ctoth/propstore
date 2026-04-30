@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
+
+from quire.hashing import canonical_json_bytes
 
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
@@ -39,18 +40,8 @@ def _plain(value: Any) -> Any:
     return value
 
 
-def _canonical_json(value: Any) -> str:
-    return json.dumps(
-        _plain(value),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-        default=str,
-    )
-
-
 def _hash(value: Any) -> str:
-    return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+    return hashlib.sha256(canonical_json_bytes(_plain(value))).hexdigest()
 
 
 @dataclass(frozen=True, order=True)

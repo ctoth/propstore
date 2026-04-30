@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
+
+from quire.hashing import canonical_json_bytes
 
 from propstore.fragility import FragilityReport, FragilityRequest, query_fragility
 from propstore.policies import PolicyProfile
@@ -47,18 +48,8 @@ def _plain(value: Any) -> Any:
     return value
 
 
-def _canonical_json(payload: Mapping[str, Any]) -> str:
-    return json.dumps(
-        _plain(payload),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-        default=str,
-    )
-
-
 def _hash(payload: Mapping[str, Any]) -> str:
-    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+    return hashlib.sha256(canonical_json_bytes(_plain(payload))).hexdigest()
 
 
 def _mapping(value: object, field_name: str) -> Mapping[str, Any]:
