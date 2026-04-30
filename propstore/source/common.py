@@ -42,7 +42,7 @@ def source_paper_slug(name: str) -> str:
     the master-branch artifact filename (e.g. ``claims/<stem>.yaml``)
     shares one logical id with the source branch ``source/<stem>``.
     When the safe-slug transform changes any character, the branch
-    placement appends a 12-char sha1 digest for disambiguation; this
+    placement appends a full sha256 digest for disambiguation; this
     helper does the same.
 
     Distinct from ``normalize_source_slug``: the latter is also used
@@ -66,7 +66,7 @@ def source_paper_slug(name: str) -> str:
     if not cleaned:
         return "source"
     if cleaned != stripped:
-        digest = hashlib.sha1(stripped.encode("utf-8")).hexdigest()[:12]
+        digest = hashlib.sha256(stripped.encode("utf-8")).hexdigest()
         return f"{cleaned}--{digest}"
     return cleaned
 
