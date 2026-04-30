@@ -42,6 +42,7 @@ from propstore.families.registry import (
     ConceptFileRef,
     JustificationsFileRef,
     MicropubsFileRef,
+    SourceRef,
     StanceFileRef,
 )
 from propstore.families.concepts.documents import ConceptDocument
@@ -55,7 +56,9 @@ from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
     SourceDocument,
     SourceJustificationsDocument,
+    SourceTrustDocument,
 )
+from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
 from propstore.families.documents.stances import StanceFileDocument
 
 from .common import (
@@ -88,6 +91,43 @@ class PromotionResult:
     blocked_diagnostics: dict[str, tuple[tuple[str, str], ...]]
     sidecar_mirror_ok: bool
     sidecar_mirror_error: str | None = None
+
+
+def _source_trust_payload(result: SourceTrustResult) -> dict[str, object]:
+    trust = SourceTrustDocument(
+        status=result.status,
+        prior_base_rate=result.prior_base_rate,
+        derived_from=tuple(firing.rule_id for firing in result.derived_from),
+    )
+    return trust.to_payload()
+
+
+def _commit_promote_time_trust_calibration(
+    repo: Repository,
+    source_name: str,
+    *,
+    promotion_commit_sha: str,
+) -> str | None:
+    calibration = calibrate_source_trust(
+        repo,
+        source_name,
+        world_snapshot=promotion_commit_sha,
+    )
+    source_doc = load_source_document(repo, source_name)
+    updated_payload = source_doc.to_payload()
+    updated_payload["trust"] = _source_trust_payload(calibration)
+    if updated_payload["trust"] == source_doc.trust.to_payload():
+        return None
+    updated_source_doc = convert_document_value(
+        updated_payload,
+        SourceDocument,
+        source=f"{source_branch_name(source_name)}:source.yaml",
+    )
+    return repo.families.source_documents.save(
+        SourceRef(source_name),
+        updated_source_doc,
+        message=f"Calibrate source trust for {source_paper_slug(source_name)}",
+    )
 
 
 def _freeze_blocked_diagnostics(
@@ -958,6 +998,11 @@ def promote_source_branch(
             prepared_sidecar_path.unlink(missing_ok=True)
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
+    _commit_promote_time_trust_calibration(
+        repo,
+        source_name,
+        promotion_commit_sha=sha,
+    )
 
     return PromotionResult(
         commit_sha=sha,
