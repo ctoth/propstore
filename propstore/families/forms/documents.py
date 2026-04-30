@@ -30,6 +30,7 @@ class FormDocument(DocumentStruct):
     qudt: str | None = None
     parameters: dict[str, Any] = msgspec.field(default_factory=dict)
     common_alternatives: tuple[FormAlternativeDocument, ...] = ()
+    delta_alternatives: tuple[FormAlternativeDocument, ...] = ()
     kind: str | None = None
     note: str | None = None
     dimensions: dict[str, int] | None = None

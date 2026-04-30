@@ -61,7 +61,11 @@ def register_form_units(forms_dir: Path) -> None:
     table = _get_symbol_table()
     for form_def in load_all_forms(forms_dir).values():
         for eu in form_def.extra_units:
-            table[eu.symbol] = canonicalize_dims(eu.dimensions)
+            dims = canonicalize_dims(eu.dimensions)
+            table[eu.symbol] = dims
+            from propstore.dimensions import register_extra_unit_with_pint
+
+            register_extra_unit_with_pint(eu.symbol, dims)
 
 
 # ── Public API ───────────────────────────────────────────────────────

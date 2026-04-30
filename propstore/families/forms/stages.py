@@ -37,6 +37,7 @@ class FormDefinition:
     dimensions: dict[str, int] | None = None
     extra_units: tuple[dimension_api.ExtraUnitDefinition, ...] = ()
     conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
+    delta_conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -111,6 +112,18 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
             divisor=float(alt.divisor),
             reference=float(alt.reference),
         )
+    delta_conversions: dict[str, dimension_api.UnitConversion] = {}
+    for alt in data.delta_alternatives:
+        delta_conversions[alt.unit] = dimension_api.UnitConversion(
+            unit=alt.unit,
+            type=alt.type,
+            multiplier=float(alt.multiplier),
+            offset=float(alt.offset),
+            base=float(alt.base),
+            divisor=float(alt.divisor),
+            reference=float(alt.reference),
+        )
+        allowed.add(alt.unit)
 
     return FormDefinition(
         name=form_name,
@@ -122,6 +135,7 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
         dimensions=None if data.dimensions is None else dict(data.dimensions),
         extra_units=extra_units,
         conversions=conversions,
+        delta_conversions=delta_conversions,
     )
 
 

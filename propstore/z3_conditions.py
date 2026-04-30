@@ -13,8 +13,9 @@ determines which type each concept gets.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
+from types import MappingProxyType
 from typing import Any
 
 from propstore.cel_checker import (
@@ -127,7 +128,12 @@ class Z3ConditionSolver:
         *,
         timeout_ms: int = DEFAULT_Z3_TIMEOUT_MS,
     ) -> None:
-        self._registry = registry
+        self._registry = MappingProxyType(
+            {
+                name: replace(info, category_values=list(info.category_values))
+                for name, info in registry.items()
+            }
+        )
         self._registry_fingerprint = cel_registry_fingerprint(registry)
         if timeout_ms <= 0:
             raise ValueError("Z3 timeout must be a positive number of milliseconds")

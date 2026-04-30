@@ -19,6 +19,7 @@ class DimensionalForm(Protocol):
     unit_symbol: str | None
     dimensions: dict[str, int] | None
     conversions: dict[str, "UnitConversion"]
+    delta_conversions: dict[str, "UnitConversion"]
 
 
 # Module-level unit registry for pint conversions.
@@ -71,6 +72,13 @@ def normalize_to_si(value: float, unit: str | None, form: DimensionalForm) -> fl
         raise ValueError(
             f"Cannot convert '{unit}' for dimensionless form '{form.name}'"
         )
+    if unit in form.delta_conversions:
+        conv = form.delta_conversions[unit]
+        if conv.type != "multiplicative":
+            raise ValueError(
+                f"Delta unit '{unit}' for form '{form.name}' must be multiplicative"
+            )
+        return value * conv.multiplier
     if unit in form.conversions:
         conv = form.conversions[unit]
         if conv.type == "logarithmic":
@@ -96,6 +104,13 @@ def from_si(si_value: float, unit: str | None, form: DimensionalForm) -> float:
         raise ValueError(
             f"Cannot convert to '{unit}' for dimensionless form '{form.name}'"
         )
+    if unit in form.delta_conversions:
+        conv = form.delta_conversions[unit]
+        if conv.type != "multiplicative":
+            raise ValueError(
+                f"Delta unit '{unit}' for form '{form.name}' must be multiplicative"
+            )
+        return si_value / conv.multiplier
     if unit in form.conversions:
         conv = form.conversions[unit]
         if conv.type == "logarithmic":
@@ -128,6 +143,49 @@ def can_convert_unit_to(unit: str, target_unit: str | None) -> bool:
         ValueError,
     ):
         return False
+
+
+_PINT_DIMENSION_BASES = {
+    "M": "kilogram",
+    "L": "meter",
+    "T": "second",
+    "I": "ampere",
+    "Theta": "kelvin",
+    "N": "mole",
+    "J": "candela",
+}
+
+
+def register_extra_unit_with_pint(symbol: str, dimensions: dict[str, int]) -> None:
+    """Register a form-declared unit symbol in the module Pint registry."""
+    if can_convert_unit_to(symbol, _pint_expression_for_dimensions(dimensions)):
+        return
+    expression = _pint_expression_for_dimensions(dimensions)
+    if expression == "dimensionless":
+        definition = f"{symbol} = []"
+    else:
+        definition = f"{symbol} = {expression}"
+    try:
+        ureg.define(definition)
+    except pint.errors.RedefinitionError as exc:
+        if can_convert_unit_to(symbol, expression):
+            return
+        raise ValueError(f"Unit symbol '{symbol}' is already defined incompatibly") from exc
+
+
+def _pint_expression_for_dimensions(dimensions: dict[str, int]) -> str:
+    factors: list[str] = []
+    for key, exponent in sorted(dimensions.items()):
+        if exponent == 0:
+            continue
+        base = _PINT_DIMENSION_BASES.get(key)
+        if base is None:
+            raise ValueError(f"Cannot register Pint unit for unknown dimension '{key}'")
+        if exponent == 1:
+            factors.append(base)
+        else:
+            factors.append(f"{base} ** {exponent}")
+    return " * ".join(factors) if factors else "dimensionless"
 
 
 def forms_with_dimensions(
