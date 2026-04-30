@@ -68,6 +68,16 @@ class StanceProposalPromotionResult:
     promoted_items: tuple[StanceProposalPromotionItem, ...]
 
 
+class UnknownProposalPath(ValueError):
+    def __init__(self, requested_path: str, available_filenames: tuple[str, ...]) -> None:
+        self.requested_path = requested_path
+        self.available_filenames = available_filenames
+        available = ", ".join(available_filenames) if available_filenames else "<none>"
+        super().__init__(
+            f"Unknown stance proposal path {requested_path!r}; available: {available}"
+        )
+
+
 def plan_stance_proposal_promotion(
     repo: Repository,
     *,
@@ -94,11 +104,9 @@ def plan_stance_proposal_promotion(
         requested_name = Path(path).name
         if not requested_name.endswith(".yaml"):
             requested_name = stance_proposal_filename(requested_name)
-        selected_refs = (
-            [available_by_name[requested_name]]
-            if requested_name in available_by_name
-            else []
-        )
+        if requested_name not in available_by_name:
+            raise UnknownProposalPath(path, tuple(sorted(available_by_name)))
+        selected_refs = [available_by_name[requested_name]]
     else:
         selected_refs = [available_by_name[name] for name in sorted(available_by_name)]
 
