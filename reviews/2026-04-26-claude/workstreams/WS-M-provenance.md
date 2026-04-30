@@ -1,6 +1,6 @@
 # WS-M: Provenance — Trusty URI, PROV-O export, gunray boundary, full-hash identity
 
-**Status**: OPEN
+**Status**: CLOSED 932bb92a
 **Depends on**: WS-CM (canonical micropub payload + Trusty URI identity), WS-E (assertion-id provenance, sameAs grading), **WS-O-gun** (per Codex 1.13 + D-18: gunray must wire `EnumerationExceeded`/`max_arguments` before propstore can default `return_arguments=True`), RFC 6920 (`ni://` URI scheme), W3C PROV-O / PROV-DM / PROV-N — last three pending retrieval per `reviews/2026-04-26-claude/REMEDIATION-PLAN.md:298`.
 **Blocks**: nothing downstream of this file. WS-N's architecture contracts can lean on WS-M but do not require it to land first.
 **Owner**: Codex implementation owner + human reviewer required (per Codex 2.1).
