@@ -54,4 +54,4 @@ tracked through WS-O-arg, with propstore consuming only public API surfaces:
   implemented public revision/expansion adapters.
 - A propstore-owned AF revision kernel. D-12 keeps the kernel in
   `argumentation`; propstore may add a thin public-API consumer adapter but must
-  not recreate `propstore.belief_set.af_revision`.
+  not recreate an embedded AF revision kernel.

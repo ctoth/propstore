@@ -5,11 +5,12 @@ differently.
 
 ## Model-Theoretic IC Merge
 
-`propstore.belief_set.ic_merge` is the Konieczny-Pino-Pérez belief-set merge
-surface. `merge_belief_profile(alphabet, profile, mu, operator=...)` enumerates
-all `mu-models` over the finite propositional signature, scores each candidate
-world by distance to each profile formula, and returns the winning worlds as a
-`BeliefSet`.
+`belief_set.ic_merge` is the Konieczny-Pino-Pérez belief-set merge surface in
+the external `formal-belief-set` dependency.
+`merge_belief_profile(alphabet, profile, mu, operator=...)` enumerates all
+`mu-models` over the finite propositional signature, scores each candidate world
+by distance to each profile formula, and returns the winning worlds as a
+`belief_set.BeliefSet`.
 
 Available operators:
 
@@ -23,7 +24,7 @@ all worlds satisfying `mu`, including worlds not directly observed in any input
 source. That is the model-theoretic IC-merge behavior required by
 Konieczny-Pino-Pérez 2002.
 
-The property gate is `tests/test_belief_set_postulates.py`, which checks the
+The property gate lives in the external package test suite and checks the
 finite IC postulates exercised by the current implementation.
 
 ## Assignment Selection
@@ -45,13 +46,13 @@ The assignment-selection gate is
 
 ## Choosing The Surface
 
-Use `propstore.belief_set.ic_merge` for formal IC merge over formulas and
-belief bases. Use `propstore.world.assignment_selection_merge` only for
+Use `belief_set.ic_merge` for formal IC merge over formulas and belief bases.
+Use `propstore.world.assignment_selection_merge` only for
 render-time selection among observed typed assignments.
 
 ## Not Implemented
 
-These merge constructions are not present in `propstore.belief_set.ic_merge`:
+These merge constructions are not present in `belief_set.ic_merge`:
 
 - Konieczny-Pino-Pérez 2002 `Delta^Max`, introduced alongside the arbitration
   results on p.790. The current `GMAX` operator is the lexicographic max-vector

@@ -1,7 +1,8 @@
 """Support-incision helpers for scoped worldline capture.
 
-This package is not AGM belief revision. Formal AGM, iterated revision, IC
-merge, and AF revision live in ``propstore.belief_set``.
+This package is not AGM belief revision. Formal AGM, iterated revision, and IC
+merge live in the external ``belief_set`` package. Formal AF revision lives in
+``argumentation.af_revision``.
 """
 
 from propstore.support_revision.af_adapter import (
