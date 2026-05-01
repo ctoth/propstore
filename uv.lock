@@ -704,7 +704,7 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/argumentation.git#ba308610261f4da1069abadece34808a945e940b" }
+source = { git = "https://github.com/ctoth/argumentation.git#cec32693701144f2fa3f2c74d6d3c08d0d1b806e" }
 
 [[package]]
 name = "fqdn"
