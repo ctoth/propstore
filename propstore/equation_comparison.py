@@ -343,6 +343,18 @@ def _compare_normalizations(
         if not assumptions and (left.domain_sensitive or right.domain_sensitive):
             return EquationComparisonStatus.UNKNOWN
         return EquationComparisonStatus.EQUIVALENT
+    if not assumptions and (left.domain_sensitive or right.domain_sensitive):
+        positive_assumptions = tuple(
+            Positive(str(symbol)) for symbol in sorted(delta.free_symbols, key=str)
+        )
+        positive_delta = _simplify_residual(
+            _with_positive_symbols(left.residual - right.residual, sympy),
+            sympy,
+            positive_assumptions,
+        )
+        if positive_delta == 0:
+            return EquationComparisonStatus.UNKNOWN
+        return EquationComparisonStatus.DIFFERENT
     if assumptions:
         return EquationComparisonStatus.DIFFERENT
     if _is_polynomial(delta, sympy):
@@ -352,6 +364,14 @@ def _compare_normalizations(
 
 def _has_domain_sensitive_functions(expr, sympy) -> bool:
     return bool(expr.atoms(sympy.Function))
+
+
+def _with_positive_symbols(expr, sympy):
+    replacements = {
+        symbol: sympy.Symbol(str(symbol), positive=True, finite=True)
+        for symbol in expr.free_symbols
+    }
+    return expr.xreplace(replacements)
 
 
 def _is_polynomial(expr, sympy) -> bool:
