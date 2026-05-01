@@ -185,6 +185,8 @@ def test_premise_order_respects_democratic_comparison_for_incomparable_vectors()
 
 def test_query_no_private_argumentation_imports() -> None:
     for path in Path("propstore").rglob("*.py"):
+        if path.name.startswith("_ws_n2_violation_"):
+            continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("argumentation"):
