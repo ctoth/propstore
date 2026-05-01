@@ -244,6 +244,20 @@ The file contains the full `WorldlineDefinition`: question fields (id, name, cre
 - **Provenance** -- "what claims contributed to this answer?" The dependency sets and derivation trace give full attribution.
 - **Sensitivity** -- "which inputs matter most for this derived value?" Elasticity and partial derivatives are computed and stored per-target.
 
+## Counterfactual primitives
+
+Propstore has three distinct world-query primitives. They must not be collapsed:
+
+- `OverlayWorld` adds context-local synthetic claims and lets the ordinary conflict-resolution policy adjudicate them against stored claims. It answers "what if this assertion were also present?" It does not perform Pearl-style causal surgery.
+- `ObservationWorld` records deterministic observations without severing any structural edges. In WS-J2 it is intentionally deterministic-only: if the observed value disagrees with the SCM solution under the current exogenous assignment, construction raises `ObservationInconsistent`. Bayesian observation and posterior updates are deferred to WS-J7.
+- `InterventionWorld` applies Pearl `do()` semantics over a structural causal model. Per Pearl 2000, p. 70, `do(X=x)` replaces the structural equation for `X` with the constant `X=x`, deleting incoming arrows to `X`; descendants are then recomputed in the surgically modified model.
+
+`propstore.world.scm.StructuralCausalModel` is the finite deterministic SCM snapshot used by `InterventionWorld`. It separates exogenous variables, endogenous variables, structural equations, and actual exogenous assignment. The model is a snapshot of the compiled parameterization graph; it is not a replacement for the claim graph and does not mutate stored claims.
+
+Actual-cause queries use `actual_cause(world, effect, candidate_cause)` over an `InterventionWorld`. The evaluator implements Halpern 2015 modified HP causality: AC1 checks the actual cause/effect, AC2 searches only witnesses whose held variables equal their actual values, and AC3 rejects non-minimal conjunctive causes. The pinning tests use Halpern 2015 p. 5 Suzy/Billy, pp. 4-5 disjunctive forest fire, and pp. 7-8 voting examples.
+
+The trace sentinels are disjoint by design: overlays use `__override_`, interventions use `__intervention_`, and observations use `__observation_`.
+
 ## References
 
 - de Kleer, J. (1986). An assumption-based TMS. *Artificial Intelligence*, 28(2), 127-162. ATMS labels: every datum indexed by minimal assumption sets.
