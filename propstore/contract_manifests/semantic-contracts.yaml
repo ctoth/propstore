@@ -1378,7 +1378,7 @@ contracts:
     module: propstore.families.forms.documents
 - kind: document_schema
   name: FormDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.01
   body:
     fields:
     - name: name
@@ -1400,6 +1400,9 @@ contracts:
       required: true
       type: dict[str, Any]
     - name: common_alternatives
+      required: true
+      type: tuple[FormAlternativeDocument, ...]
+    - name: delta_alternatives
       required: true
       type: tuple[FormAlternativeDocument, ...]
     - name: kind
