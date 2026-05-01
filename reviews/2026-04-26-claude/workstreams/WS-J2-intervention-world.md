@@ -193,11 +193,13 @@ def actual_cause(
    - Assert that `actual_cause(world, effect="bottle shatters", candidate_cause={"BT": True})` returns `holds=False`, criterion `AC2` (Billy's throw is *not* an actual cause of the shatter under HP-modified, even though Billy threw — because the witness needed for AC2 doesn't exist in HP-modified the way it did in HP-2000).
    - **Must fail today**: no `actual_cause` API exists.
 
-4. **`tests/test_actual_cause_forest_fire.py`** (new — Halpern 2005 Fig 1 / Halpern 2015 §5 disjunctive model)
+4. **`tests/test_actual_cause_forest_fire.py`** (new — Halpern 2015 disjunctive model)
    - SCM: exogenous `L, MD` (lightning, match-dropper), endogenous `FF` (forest fire) with disjunctive equation `FF = L ∨ MD`.
    - Actual world: both `L=1` and `MD=1`, so `FF=1`.
-   - Query `actual_cause(world, effect="FF=1", candidate_cause={"L": 1})`. Under HP-modified, the answer for the *disjunctive* model is **yes** with witness `W = {MD}` set to `0` and `x' = {"L": 0}`. Halpern 2015 §5.1 walks this verbatim.
-   - Symmetric assertion for `MD`.
+   - Query `actual_cause(world, effect="FF=1", candidate_cause={"L": 1})`. Under HP-modified, the answer for the *disjunctive* model is **no** for singleton `L=1`; `L=1` is part of the joint cause, not an individual cause, because `MD` may only be held at its actual value `1`.
+   - Symmetric negative assertion for singleton `MD=1`.
+   - Query `actual_cause(world, effect="FF=1", candidate_cause={"L": 1, "MD": 1})`; the joint cause satisfies AC1/AC2/AC3 with `x' = {"L": 0, "MD": 0}`.
+   - Citation: Halpern 2015 notes lines 101-108 and 199 state that disjunctive forest-fire singletons are parts of a joint cause under modified HP, not individual causes.
    - **Must fail today**: no implementation.
 
 5. **`tests/test_actual_cause_voting.py`** (new — Halpern 2015 §5.2 voting example)
