@@ -56,7 +56,7 @@
 
 [Weslake, 2015] B. Weslake. A partial theory of actual causation. British Journal for the Philosophy of Science, 2015. To appear.
 
-[Zultan et al., 2012] R. Zultan, T. Gerstenberg, and D.. A. Lagnado. Finding fault: causality and counterfactuals in group attributions. Cognition, 125:429-440, 2012.
+[Zultan et al., 2012] R. Zultan, T. Gerstenberg, and D. A. Lagnado. Finding fault: causality and counterfactuals in group attributions. Cognition, 125:429-440, 2012.
 
 ## Key Citations for Follow-up
 
