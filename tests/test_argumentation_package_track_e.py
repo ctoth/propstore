@@ -136,7 +136,7 @@ def test_track_e_core_analyzer_reports_optional_aspic_backend_absence() -> None:
     assert result.semantics == "grounded"
     assert metadata["backend_requested"] == "clingo"
     assert metadata["package_status"] == "unavailable_backend"
-    assert metadata["reason"] == "backend is not installed or registered"
+    assert metadata["reason"] == "binary not found on PATH"
     assert isinstance(metadata["encoding_signature"], str)
     assert result.extensions == ()
 

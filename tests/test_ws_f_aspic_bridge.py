@@ -282,7 +282,7 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
 
     x = TermDocument(kind="var", name="X")
     target = RuleDocument(
-        id="birds-fly",
+        id="birds_fly",
         kind="defeasible",
         head=AtomDocument(predicate="flies", terms=(x,)),
         body=(
@@ -296,7 +296,7 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
         id="named-defeater",
         kind="proper_defeater",
         head=AtomDocument(
-            predicate="birds-fly",
+            predicate="birds_fly",
             terms=(TermDocument(kind="const", value="tweety"),),
             negated=True,
         ),
@@ -332,7 +332,7 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
 
     _strict, defeasible, _literals = grounded_rules_to_rules(bundle, {})
 
-    target_name = next(rule.name for rule in defeasible if rule.name and rule.name.startswith("birds-fly#"))
+    target_name = next(rule.name for rule in defeasible if rule.name and rule.name.startswith("birds_fly#"))
     assert any(
         rule.consequent == Literal(GroundAtom(target_name), negated=True)
         for rule in defeasible

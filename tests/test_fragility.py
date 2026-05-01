@@ -700,9 +700,9 @@ class TestBridgeUndercutInterventions:
         )
         ranked = collect_bridge_undercut_interventions(bundle, (), [], ())
         assert len(ranked) == 1
-        assert ranked[0].local_fragility == 0.3
-        assert "attack_count=" in ranked[0].score_explanation
-        assert "defeat_count=" in ranked[0].score_explanation
+        assert ranked[0].local_fragility == 0.9
+        assert "attack_count=1" in ranked[0].score_explanation
+        assert "defeat_count=1" in ranked[0].score_explanation
 
 
 class TestInteractions:

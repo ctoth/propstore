@@ -689,11 +689,12 @@ def test_existing_claim_literals_preserved() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_strict_rule_in_bundle_populates_strict_rules() -> None:
-    """A ``kind='strict'`` RuleDocument becomes a strict ASPIC+ rule."""
+def test_strict_rule_in_bundle_resolves_to_axiom() -> None:
+    """A fact-only strict RuleDocument is simplified into the axiom base."""
 
     from argumentation.aspic import GroundAtom, Literal
     from propstore.aspic_bridge import grounded_rules_to_rules
+    from propstore.aspic_bridge.grounding import _ground_facts_to_axioms
 
     rule = _rule_doc(
         "rule:hard-birds-fly",
@@ -706,15 +707,18 @@ def test_strict_rule_in_bundle_populates_strict_rules() -> None:
         yes={"bird": frozenset([("tweety",)])},
     )
     strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    assert len(strict) == 1
-    emitted = next(iter(strict))
-    assert emitted.kind == "strict"
-    assert emitted.name is None
-    assert emitted.consequent.atom == GroundAtom("flies", ("tweety",))
-    assert emitted.antecedents == (
-        Literal(atom=GroundAtom("bird", ("tweety",)), negated=False),
-    )
+    assert strict == frozenset()
     assert defeasible == frozenset()
+    from argumentation.aspic import KnowledgeBase
+    from propstore.grounding.gunray_complement import GUNRAY_COMPLEMENT_ENCODER
+
+    kb = _ground_facts_to_axioms(
+        bundle,
+        {},
+        KnowledgeBase(axioms=frozenset(), premises=frozenset()),
+        complement_encoder=GUNRAY_COMPLEMENT_ENCODER,
+    )
+    assert Literal(GroundAtom("flies", ("tweety",))) in kb.axioms
 
 
 def test_defeater_rule_in_bundle_emits_undercutter_rule() -> None:
