@@ -1,9 +1,12 @@
 """Public render/store interfaces for propstore."""
 
 from propstore.world.bound import BoundWorld
+from propstore.world.actual_cause import actual_cause
+from propstore.world.intervention import InterventionWorld, ObservationWorld
 from propstore.world.overlay import OverlayWorld
 from propstore.world.model import WorldQuery
 from propstore.world.resolution import resolve
+from propstore.world.scm import StructuralCausalModel, StructuralEquation
 from propstore.world.types import (
     ATMSInspection,
     ATMSNodeStatus,
@@ -50,6 +53,8 @@ __all__ = [
     "DecisionValueSource",
     "DerivedResult",
     "Environment",
+    "InterventionWorld",
+    "ObservationWorld",
     "OverlayWorld",
     "QueryableAssumption",
     "ReasoningBackend",
@@ -57,9 +62,12 @@ __all__ = [
     "ResolvedResult",
     "ResolutionStrategy",
     "SyntheticClaim",
+    "StructuralCausalModel",
+    "StructuralEquation",
     "ValueResult",
     "ValueResultReason",
     "ValueStatus",
     "WorldQuery",
+    "actual_cause",
     "resolve",
 ]

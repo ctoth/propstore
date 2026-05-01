@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import deque
+from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -1323,6 +1324,38 @@ class WorldQuery(WorldStore):
                 lifting_system=lifting_system,
             ),
         )
+
+    def intervene(
+        self,
+        assignment: Mapping[str, Any],
+        *,
+        exogenous_assignment: Mapping[str, Any] | None = None,
+    ):
+        """Return a Pearl-style intervention world over this compiled graph."""
+        from propstore.world.intervention import InterventionWorld
+        from propstore.world.scm import StructuralCausalModel
+
+        scm = StructuralCausalModel.from_compiled_graph(
+            self.compiled_graph(),
+            exogenous_assignment=exogenous_assignment,
+        )
+        return InterventionWorld(scm, assignment)
+
+    def observe(
+        self,
+        assignment: Mapping[str, Any],
+        *,
+        exogenous_assignment: Mapping[str, Any] | None = None,
+    ):
+        """Return a deterministic observation world over this compiled graph."""
+        from propstore.world.intervention import ObservationWorld
+        from propstore.world.scm import StructuralCausalModel
+
+        scm = StructuralCausalModel.from_compiled_graph(
+            self.compiled_graph(),
+            exogenous_assignment=exogenous_assignment,
+        )
+        return ObservationWorld(scm, assignment)
 
     # ── Chain query ──────────────────────────────────────────────────
 
