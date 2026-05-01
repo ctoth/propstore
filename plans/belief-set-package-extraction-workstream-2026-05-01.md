@@ -38,7 +38,6 @@ layout:
 ```text
 belief-set/
   README.md
-  CONTRIBUTING.md
   pyproject.toml
   belief_set/
     __init__.py
@@ -275,7 +274,6 @@ Create the sibling repository/package using the flat layout:
 ```text
 belief-set/
   README.md
-  CONTRIBUTING.md
   pyproject.toml
   belief_set/
     __init__.py
@@ -294,7 +292,7 @@ Package requirements:
 Acceptance in `belief-set`:
 
 ```powershell
-rg -n -F "propstore" belief_set tests README.md CONTRIBUTING.md pyproject.toml
+rg -n -F "propstore" belief_set tests README.md pyproject.toml
 uv run pyright belief_set
 uv run pytest -vv
 ```
@@ -591,7 +589,7 @@ Get-ChildItem papers\Alchourron_1985_TheoryChange,papers\Booth_2006_AdmissibleRe
 Get-ChildItem -Recurse papers\Alchourron_1985_TheoryChange,papers\Booth_2006_AdmissibleRestrainedRevision,papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic,papers\Konieczny_2002_MergingInformationUnderConstraints,papers\Spohn_1988_OrdinalConditionalFunctionsDynamic -Include *.pdf,*.png
 git status --short -- papers
 git status --ignored --short -- papers
-rg -n -F "propstore" papers README.md CONTRIBUTING.md docs
+rg -n -F "propstore" papers README.md docs
 ```
 
 The `Get-ChildItem ... -Include *.pdf,*.png` command should be reviewed as an
@@ -628,7 +626,6 @@ Status: pending
 Add or complete external package documentation:
 
 - `README.md`
-- `CONTRIBUTING.md`
 - optional `docs/architecture.md` if the README would become too dense
 
 Documentation must cover:
@@ -650,7 +647,7 @@ Documentation must cover:
 Required full package gate:
 
 ```powershell
-rg -n -F "propstore" belief_set tests README.md CONTRIBUTING.md docs
+rg -n -F "propstore" belief_set tests README.md docs
 uv run pyright belief_set
 uv run pytest -vv
 ```
@@ -812,7 +809,7 @@ External package final verification:
 
 ```powershell
 cd ..\belief-set
-rg -n -F "propstore" belief_set tests README.md CONTRIBUTING.md docs
+rg -n -F "propstore" belief_set tests README.md docs
 uv run pyright belief_set
 uv run pytest -vv
 ```
