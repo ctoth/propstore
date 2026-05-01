@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from typing import Any, TypeAlias
 
 from propstore.core.graph_types import CompiledWorldGraph, ParameterizationEdge
-from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.id_types import ConceptId
 
 Value: TypeAlias = Any
 
@@ -16,18 +16,18 @@ Value: TypeAlias = Any
 class StructuralEquation:
     """An equation F_X determining one endogenous variable from its parents."""
 
-    target: ConceptId | str
-    parents: tuple[ConceptId | str, ...]
+    target: str
+    parents: tuple[str, ...]
     evaluate: Callable[[Mapping[str, Value]], Value]
     provenance: object | None = None
     domain: tuple[Value, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "target", to_concept_id(self.target))
+        object.__setattr__(self, "target", str(self.target))
         object.__setattr__(
             self,
             "parents",
-            tuple(to_concept_id(parent) for parent in self.parents),
+            tuple(str(parent) for parent in self.parents),
         )
 
     @classmethod
@@ -40,7 +40,7 @@ class StructuralEquation:
         domain: tuple[Value, ...] = (),
     ) -> StructuralEquation:
         return cls(
-            target=target,
+            target=str(target),
             parents=(),
             evaluate=lambda _values, value=value: value,
             provenance=provenance,
@@ -52,28 +52,28 @@ class StructuralEquation:
 class StructuralCausalModel:
     """Finite recursive SCM with deterministic structural equations."""
 
-    exogenous: frozenset[ConceptId | str]
-    endogenous: frozenset[ConceptId | str]
-    equations: Mapping[ConceptId | str, StructuralEquation]
-    exogenous_assignment: Mapping[ConceptId | str, Value]
-    domains: Mapping[ConceptId | str, tuple[Value, ...]] = field(default_factory=dict)
+    exogenous: frozenset[str]
+    endogenous: frozenset[str]
+    equations: Mapping[str, StructuralEquation]
+    exogenous_assignment: Mapping[str, Value]
+    domains: Mapping[str, tuple[Value, ...]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         equations = {
-            to_concept_id(target): equation
+            str(target): equation
             for target, equation in self.equations.items()
         }
-        endogenous = frozenset(to_concept_id(value) for value in self.endogenous) | frozenset(equations)
+        endogenous = frozenset(str(value) for value in self.endogenous) | frozenset(equations)
         exogenous_assignment = {
-            to_concept_id(name): value
+            str(name): value
             for name, value in self.exogenous_assignment.items()
         }
         exogenous = (
-            frozenset(to_concept_id(value) for value in self.exogenous)
+            frozenset(str(value) for value in self.exogenous)
             | frozenset(exogenous_assignment)
         ) - endogenous
         domains = {
-            to_concept_id(name): tuple(values)
+            str(name): tuple(values)
             for name, values in self.domains.items()
         }
         for name, value in {**exogenous_assignment, **self._constant_values(equations)}.items():
@@ -92,9 +92,9 @@ class StructuralCausalModel:
 
     @staticmethod
     def _constant_values(
-        equations: Mapping[ConceptId, StructuralEquation],
-    ) -> dict[ConceptId, Value]:
-        values: dict[ConceptId, Value] = {}
+        equations: Mapping[str, StructuralEquation],
+    ) -> dict[str, Value]:
+        values: dict[str, Value] = {}
         for target, equation in equations.items():
             if equation.parents:
                 continue
@@ -112,13 +112,13 @@ class StructuralCausalModel:
         exogenous_assignment: Mapping[ConceptId | str, Value] | None = None,
     ) -> StructuralCausalModel:
         equations = {
-            edge.output_concept_id: _structural_equation_from_edge(edge)
+            str(edge.output_concept_id): _structural_equation_from_edge(edge)
             for edge in graph.parameterizations
             if edge.sympy
         }
-        endogenous = frozenset(edge.output_concept_id for edge in graph.parameterizations)
+        endogenous = frozenset(str(edge.output_concept_id) for edge in graph.parameterizations)
         parent_ids = frozenset(
-            parent
+            str(parent)
             for edge in graph.parameterizations
             for parent in edge.input_concept_ids
         )
@@ -131,10 +131,10 @@ class StructuralCausalModel:
 
     def intervene(
         self,
-        assignment: Mapping[ConceptId | str, Value],
+        assignment: Mapping[str, Value],
     ) -> StructuralCausalModel:
         normalized = {
-            to_concept_id(name): value
+            str(name): value
             for name, value in assignment.items()
         }
         equations = dict(self.equations)
@@ -166,11 +166,11 @@ class StructuralCausalModel:
             domains=domains,
         )
 
-    def evaluate(self) -> dict[ConceptId, Value]:
-        values: dict[ConceptId, Value] = dict(self.exogenous_assignment)
-        visiting: set[ConceptId] = set()
+    def evaluate(self) -> dict[str, Value]:
+        values: dict[str, Value] = dict(self.exogenous_assignment)
+        visiting: set[str] = set()
 
-        def resolve(name: ConceptId) -> Value:
+        def resolve(name: str) -> Value:
             if name in values:
                 return values[name]
             equation = self.equations.get(name)
@@ -192,8 +192,8 @@ class StructuralCausalModel:
             resolve(name)
         return values
 
-    def descendants_of(self, roots: set[ConceptId | str]) -> frozenset[ConceptId]:
-        frontier = {to_concept_id(root) for root in roots}
+    def descendants_of(self, roots: set[ConceptId | str]) -> frozenset[str]:
+        frontier = {str(root) for root in roots}
         descendants = set(frontier)
         changed = True
         while changed:
@@ -207,7 +207,7 @@ class StructuralCausalModel:
         return frozenset(descendants)
 
     def domain_for(self, concept_id: ConceptId | str) -> tuple[Value, ...]:
-        name = to_concept_id(concept_id)
+        name = str(concept_id)
         if name in self.domains:
             return self.domains[name]
         actual = self.evaluate().get(name)
@@ -239,8 +239,8 @@ def _structural_equation_from_edge(edge: ParameterizationEdge) -> StructuralEqua
         return result.value
 
     return StructuralEquation(
-        target=edge.output_concept_id,
-        parents=edge.input_concept_ids,
+        target=str(edge.output_concept_id),
+        parents=tuple(str(parent) for parent in edge.input_concept_ids),
         evaluate=evaluate,
         provenance=edge.provenance,
     )

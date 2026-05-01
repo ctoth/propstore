@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from itertools import combinations, product
 from typing import Literal
 
-from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.id_types import ConceptId
 from propstore.world.intervention import InterventionWorld
 from propstore.world.scm import StructuralCausalModel, Value
 
@@ -54,7 +54,7 @@ def actual_cause(
     """Evaluate modified-HP actual causality over a finite recursive SCM."""
     scm = world.scm
     cause = {
-        to_concept_id(concept_id): value
+        str(concept_id): value
         for concept_id, value in candidate_cause.items()
     }
     ac1_values = scm.evaluate()
@@ -107,9 +107,9 @@ def actual_cause(
 def _find_ac2_witness(
     scm: StructuralCausalModel,
     effect: EffectPredicate,
-    cause: Mapping[ConceptId, Value],
+    cause: Mapping[str, Value],
     *,
-    actual_values: Mapping[ConceptId, Value],
+    actual_values: Mapping[str, Value],
     max_witnesses: int,
 ) -> ActualCauseWitness | None:
     rest = sorted(scm.endogenous - frozenset(cause))
@@ -140,10 +140,10 @@ def _find_ac2_witness(
 def _minimality_counterexample(
     scm: StructuralCausalModel,
     effect: EffectPredicate,
-    cause: Mapping[ConceptId, Value],
+    cause: Mapping[str, Value],
     *,
     max_witnesses: int,
-) -> dict[ConceptId, Value] | None:
+) -> dict[str, Value] | None:
     if len(cause) <= 1:
         return None
     items = sorted(cause.items())
@@ -169,8 +169,8 @@ def _minimality_counterexample(
 
 def _alternative_assignments(
     scm: StructuralCausalModel,
-    cause: Mapping[ConceptId, Value],
-) -> Iterable[dict[ConceptId, Value]]:
+    cause: Mapping[str, Value],
+) -> Iterable[dict[str, Value]]:
     names = sorted(cause)
     alternatives: list[list[Value]] = []
     for name in names:
@@ -182,19 +182,19 @@ def _alternative_assignments(
         yield dict(zip(names, values))
 
 
-def _subsets(values: list[ConceptId]) -> Iterable[tuple[ConceptId, ...]]:
+def _subsets(values: list[str]) -> Iterable[tuple[str, ...]]:
     for size in range(len(values) + 1):
         yield from combinations(values, size)
 
 
 def _matches(
-    values: Mapping[ConceptId, Value],
-    expected: Mapping[ConceptId, Value],
+    values: Mapping[str, Value],
+    expected: Mapping[str, Value],
 ) -> bool:
     return all(values.get(name) == value for name, value in expected.items())
 
 
-def _string_values(values: Mapping[ConceptId, Value]) -> dict[str, Value]:
+def _string_values(values: Mapping[str, Value]) -> dict[str, Value]:
     return {
         str(name): value
         for name, value in values.items()

@@ -76,7 +76,7 @@ class InterventionWorld:
     ) -> None:
         self._base_scm = scm
         self._assignment = {
-            to_concept_id(concept_id): value
+            str(concept_id): value
             for concept_id, value in assignment.items()
         }
         self.scm = scm.intervene(self._assignment)
@@ -99,16 +99,17 @@ class InterventionWorld:
         return self._base_scm
 
     @property
-    def assignment(self) -> Mapping[ConceptId, Value]:
+    def assignment(self) -> Mapping[str, Value]:
         return dict(self._assignment)
 
-    def evaluate(self) -> Mapping[ConceptId, Value]:
+    def evaluate(self) -> Mapping[str, Value]:
         return self.scm.evaluate()
 
     def derived_value(self, concept_id: ConceptId | str) -> CausalValueResult:
         typed_concept_id = to_concept_id(concept_id)
         values = self.scm.evaluate()
-        if typed_concept_id not in values:
+        concept_key = str(typed_concept_id)
+        if concept_key not in values:
             return CausalValueResult(
                 concept_id=typed_concept_id,
                 status=ValueStatus.NO_RELATIONSHIP,
@@ -116,7 +117,7 @@ class InterventionWorld:
         return CausalValueResult(
             concept_id=typed_concept_id,
             status=ValueStatus.DERIVED,
-            value=values[typed_concept_id],
+            value=values[concept_key],
         )
 
     def diff(self) -> dict[str, InterventionDiffEntry]:
@@ -130,7 +131,7 @@ class InterventionWorld:
             new_value = post_values.get(concept_id)
             if old_value != new_value:
                 result[str(concept_id)] = InterventionDiffEntry(
-                    concept_id=concept_id,
+                    concept_id=to_concept_id(concept_id),
                     old_value=old_value,
                     new_value=new_value,
                 )
@@ -150,7 +151,7 @@ class ObservationWorld:
     ) -> None:
         self.scm = scm
         self._assignment = {
-            to_concept_id(concept_id): value
+            str(concept_id): value
             for concept_id, value in assignment.items()
         }
         values = scm.evaluate()
@@ -164,13 +165,14 @@ class ObservationWorld:
                 )
 
     @property
-    def assignment(self) -> Mapping[ConceptId, Value]:
+    def assignment(self) -> Mapping[str, Value]:
         return dict(self._assignment)
 
     def derived_value(self, concept_id: ConceptId | str) -> CausalValueResult:
         typed_concept_id = to_concept_id(concept_id)
         values = self.scm.evaluate()
-        if typed_concept_id not in values:
+        concept_key = str(typed_concept_id)
+        if concept_key not in values:
             return CausalValueResult(
                 concept_id=typed_concept_id,
                 status=ValueStatus.NO_RELATIONSHIP,
@@ -178,7 +180,7 @@ class ObservationWorld:
         return CausalValueResult(
             concept_id=typed_concept_id,
             status=ValueStatus.DERIVED,
-            value=values[typed_concept_id],
+            value=values[concept_key],
         )
 
     def trace_ids(self) -> tuple[str, ...]:
@@ -187,7 +189,7 @@ class ObservationWorld:
 
 def _trace_ids(
     prefix: str,
-    assignment: Mapping[ConceptId, Value],
+    assignment: Mapping[str, Value],
 ) -> tuple[str, ...]:
     return tuple(
         f"{prefix}{concept_id}"
