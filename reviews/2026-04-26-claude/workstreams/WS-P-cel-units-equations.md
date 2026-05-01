@@ -1,6 +1,6 @@
 # WS-P: CEL / units / equations
 
-**Status**: OPEN
+**Status**: CLOSED 99f2a666
 **Depends on**: WS-O-bri (bridgman dimensional-error contract), WS-O-ast (ast-equiv free-variable + tier semantics post-D-14)
 **Blocks**: none — terminal node
 **Owner**: Codex implementation owner + human reviewer required
@@ -516,18 +516,18 @@ Acceptance: a property test asserts that any unit declared on a form is also `ca
 
 Before declaring WS-P done, ALL must hold:
 
-- [ ] `uv run pyright propstore` — passes with 0 errors (no new ones introduced).
-- [ ] `uv run lint-imports` — passes (this WS does not change architecture; no contract changes expected).
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-P tests/test_cel_ternary_unification.py tests/test_z3_division_definedness.py tests/test_parameter_conflict_unit_aware.py tests/test_equation_orientation.py tests/test_log_product_under_positive_reals.py tests/test_exp_sum_under_reals.py tests/test_sqrt_square_under_nonnegative_reals.py tests/test_equation_signature_role_invariance.py tests/test_sympy_generator_no_lhs_drop.py tests/test_algorithm_sympy_tier_not_conflict.py tests/test_algorithm_free_variable_locals.py tests/test_temperature_delta_unit.py tests/test_cel_float_exponent.py tests/test_cel_string_escapes.py tests/test_workstream_p_done.py` — all green.
-- [ ] Existing focused suites stay green: `tests/test_cel_checker.py`, `tests/test_cel_types.py`, `tests/test_cel_validation.py`, `tests/test_checked_condition_ir.py`, `tests/test_value_comparison_units.py`, `tests/test_equation_comparison.py`, `tests/test_equation_comparison_properties.py`, `tests/test_conflict_detector.py`.
-- [ ] Full suite — no NEW failures vs the WS-A-rebased baseline.
-- [ ] `tests/conftest.py` does not pull in any deleted symbol.
-- [ ] `git grep "Tier\.BYTECODE" propstore/ tests/` returns zero hits (Codex 1.9 / D-14 enforcement).
-- [ ] `git grep "FreshConst" propstore/` returns zero hits in any division-handling code path (Codex 1.10 enforcement). The Z3 backend models partiality via `defined: Bool` predicates only.
-- [ ] Every symbolic equivalence test added by WS-P follows `test_<identity>_under_<domain>.py` naming and asserts BOTH the in-domain `EQUIVALENT` and out-of-domain `UNKNOWN` cases (Codex 1.11 enforcement).
-- [ ] WS-P property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-P test run or a named companion run.
-- [ ] `docs/gaps.md` has no open rows for the findings listed above.
-- [ ] STATUS line is `CLOSED <sha>`.
+- [x] `uv run pyright propstore` — passed with 0 errors.
+- [x] `uv run lint-imports` — passed.
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-P tests/test_cel_ternary_unification.py tests/test_z3_division_definedness.py tests/test_parameter_conflict_unit_aware.py tests/test_equation_orientation.py tests/test_log_product_under_positive_reals.py tests/test_exp_sum_under_reals.py tests/test_sqrt_square_under_nonnegative_reals.py tests/test_equation_signature_role_invariance.py tests/test_sympy_generator_no_lhs_drop.py tests/test_algorithm_sympy_tier_not_conflict.py tests/test_algorithm_free_variable_locals.py tests/test_temperature_delta_unit.py tests/test_cel_float_exponent.py tests/test_cel_string_escapes.py tests/test_workstream_p_done.py` — passed, log `logs/test-runs/WS-P-20260430-180542.log`.
+- [x] Existing focused suites stay green: `tests/test_cel_checker.py`, `tests/test_cel_types.py`, `tests/test_cel_validation.py`, `tests/test_checked_condition_ir.py`, `tests/test_value_comparison_units.py`, `tests/test_equation_comparison.py`, `tests/test_equation_comparison_properties.py`, `tests/test_conflict_detector.py` — passed, log `logs/test-runs/WS-P-focused-20260430-180610.log`.
+- [x] Full suite — passed, `3547 passed, 2 skipped`, log `logs/test-runs/WS-P-full-final-20260430-182050.log`.
+- [x] `tests/conftest.py` does not pull in any deleted symbol.
+- [x] `git grep "Tier\.BYTECODE" -- propstore tests` returns zero hits.
+- [x] `git grep "FreshConst" -- propstore` returns zero hits.
+- [x] Every symbolic equivalence test added by WS-P follows `test_<identity>_under_<domain>.py` naming and asserts BOTH the in-domain `EQUIVALENT` and out-of-domain `UNKNOWN` cases.
+- [x] WS-P property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-P run or focused companion runs.
+- [x] `docs/gaps.md` has no open rows for the findings listed above; closure is recorded under Closed gaps.
+- [x] STATUS line is `CLOSED 99f2a666`.
 
 ## Done means done
 
