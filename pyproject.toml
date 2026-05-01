@@ -14,11 +14,11 @@ dependencies = [
     "z3-solver>=4.12",
     "graphviz>=0.20",
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@b7423889daef74154193317099ae9992ecbcd958",
-    "formal-argumentation @ git+https://github.com/ctoth/argumentation@6ce162c3c95f6f6c416bb063aa2a4232a38a38a0",
+    "formal-argumentation",
     "bridgman @ git+https://github.com/ctoth/bridgman@f4ecfa842d7d9913b20ee9a10fcfda77973962aa",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
-    "gunray @ git+https://github.com/ctoth/gunray@64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e",
+    "gunray",
     "quire @ git+https://github.com/ctoth/quire@23bbac27e83fef8c69817c945c8ba72b3941be83",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
@@ -33,6 +33,10 @@ embeddings = [
 
 [project.scripts]
 pks = "propstore.cli:cli"
+
+[tool.uv.sources]
+formal-argumentation = { git = "https://github.com/ctoth/argumentation.git" }
+gunray = { git = "https://github.com/ctoth/gunray.git" }
 
 [build-system]
 requires = ["hatchling"]

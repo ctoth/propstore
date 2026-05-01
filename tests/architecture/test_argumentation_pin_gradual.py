@@ -84,13 +84,12 @@ def test_deleted_dfquad_path_and_propstore_importers_are_absent() -> None:
     assert offenders == []
 
 
-def test_argumentation_dependency_uses_remote_git_pin() -> None:
+def test_argumentation_dependency_uses_remote_git_source() -> None:
     pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
     text = pyproject.read_text(encoding="utf-8")
-    dependency_line = next(
-        line for line in text.splitlines() if "formal-argumentation @" in line
-    )
 
-    assert "git+https://github.com/ctoth/argumentation@" in dependency_line
-    assert "file:" not in dependency_line
-    assert "../argumentation" not in dependency_line
+    assert '"formal-argumentation",' in text
+    assert 'formal-argumentation = { git = "https://github.com/ctoth/argumentation.git" }' in text
+    assert "formal-argumentation @" not in text
+    assert "file:" not in text
+    assert "../argumentation" not in text

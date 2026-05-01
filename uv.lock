@@ -704,7 +704,7 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/argumentation?rev=6ce162c3c95f6f6c416bb063aa2a4232a38a38a0#6ce162c3c95f6f6c416bb063aa2a4232a38a38a0" }
+source = { git = "https://github.com/ctoth/argumentation.git#ba308610261f4da1069abadece34808a945e940b" }
 
 [[package]]
 name = "fqdn"
@@ -991,7 +991,7 @@ wheels = [
 [[package]]
 name = "gunray"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/gunray?rev=64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e#64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e" }
+source = { git = "https://github.com/ctoth/gunray.git#a06da9c06a8c20262edec56f8a1f55dc1901781d" }
 
 [[package]]
 name = "h11"
@@ -2044,9 +2044,9 @@ requires-dist = [
     { name = "click", specifier = ">=8.3.3" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
-    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation?rev=6ce162c3c95f6f6c416bb063aa2a4232a38a38a0" },
+    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git" },
     { name = "graphviz", specifier = ">=0.20" },
-    { name = "gunray", git = "https://github.com/ctoth/gunray?rev=64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e" },
+    { name = "gunray", git = "https://github.com/ctoth/gunray.git" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "linkml", specifier = ">=1.9.3,<1.10" },
     { name = "linkml-runtime", specifier = ">=1.9.3,<1.10" },
