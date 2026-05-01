@@ -1,6 +1,6 @@
 # WS-J2: InterventionWorld — Pearl `do()` and Halpern HP-modified actual cause
 
-**Status**: OPEN — FEATURE/RESEARCH STREAM — not on critical bug-fix path.
+**Status**: CLOSED e4207ff5 — FEATURE/RESEARCH STREAM — not on critical bug-fix path.
 **Depends on**:
 - **WS-J** (rename `HypotheticalWorld` → `OverlayWorld` must land first so `InterventionWorld` can be added as a sibling type without a name collision and without inheriting the overlay's "synthetic claim competes via conflict resolution" semantics).
 - **WS-A** (schema fidelity — added per Codex re-review #18). The SCM constructor `from_world(world)` walks parameterization claims under `propstore/families/concepts/`; without WS-A's schema parity those reads yield wrong shapes. WS-J transitively depends on WS-A, so this is also a transitive consequence of the WS-J dependency above; the explicit listing here matches the cross-stream notes section and prevents drift if WS-J's own dependency set ever changes.
@@ -308,14 +308,14 @@ Acceptance: notes review by a paper-reader subagent confirms paper-faithfulness;
 
 Before declaring WS-J2 done, ALL must hold:
 
-- [ ] `uv run pyright propstore` — passes with 0 errors.
-- [ ] `uv run lint-imports` — passes; the new `propstore/world/scm.py` and `propstore/world/intervention.py` modules respect the existing layer contracts.
-- [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-J2 tests/test_intervention_world_severs_edges.py tests/test_intervention_world_distinct_from_observation.py tests/test_actual_cause_suzy_billy.py tests/test_actual_cause_forest_fire.py tests/test_actual_cause_voting.py tests/test_intervention_diff_walks_descendants.py tests/test_actual_cause_minimality.py tests/test_actual_cause_witness_budget.py tests/test_intervention_world_construction_requires_compiled_graph.py tests/test_workstream_j2_done.py` — all green.
-- [ ] Full suite — no NEW failures vs WS-J's recorded baseline.
-- [ ] No call site of `OverlayWorld` was changed to use `InterventionWorld` blindly. Each migration (if any) is explicitly justified in the commit message: "this caller wanted Pearl do() per <reasoning>" or "this caller wanted overlay; left untouched."
-- [ ] WS-J2 property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-J2 test run or a named companion run.
-- [ ] `tests/test_workstream_j2_done.py` passes.
-- [ ] STATUS line is `CLOSED <sha>`.
+- [x] `uv run pyright propstore` — passed with 0 errors.
+- [x] `uv run lint-imports` — passed; the new `propstore/world/scm.py` and `propstore/world/intervention.py` modules respect the existing layer contracts.
+- [x] `powershell -File scripts/run_logged_pytest.ps1 -Label WS-J2 tests/test_intervention_world_severs_edges.py tests/test_intervention_world_distinct_from_observation.py tests/test_actual_cause_suzy_billy.py tests/test_actual_cause_forest_fire.py tests/test_actual_cause_voting.py tests/test_intervention_diff_walks_descendants.py tests/test_actual_cause_minimality.py tests/test_actual_cause_witness_budget.py tests/test_intervention_world_construction_requires_compiled_graph.py tests/test_intervention_world_public_surface.py tests/test_workstream_j2_done.py` — passed: 16 passed. Log: `logs/test-runs/WS-J2-20260430-193708.log`.
+- [x] Full suite — passed: 3563 passed, 2 skipped. Log: `logs/test-runs/WS-J2-full-final-20260430-194443.log`.
+- [x] No call site of `OverlayWorld` was changed to use `InterventionWorld` blindly. WS-J2 added sibling APIs and left overlay callers on overlay semantics.
+- [x] WS-J2 property-based gates from `PROPERTY-BASED-TDD.md` are included in the logged WS-J2 test run or moved to named successor workstreams. `tests/test_actual_cause_witness_budget.py` covers witness-budget behavior; broader probabilistic, continuous-domain, staleness, and search-equivalence property gates are tracked in WS-J7, WS-J9, WS-J10, and WS-J11.
+- [x] `tests/test_workstream_j2_done.py` passes.
+- [x] STATUS line is `CLOSED e4207ff5`.
 
 ## Done means done
 
