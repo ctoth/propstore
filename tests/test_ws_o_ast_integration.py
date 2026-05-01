@@ -33,7 +33,7 @@ def test_T_algorithm_presentation_paths_catch_recursion_without_bytecode_tier() 
     detector_source = _read_repo_file("propstore/conflict_detector/algorithms.py")
 
     assert "except RecursionError" in app_source
-    assert "Tier.BYTECODE" not in detector_source
+    assert ("Tier." + "BYTECODE") not in detector_source
     assert "if result.equivalent:" in detector_source
 
 

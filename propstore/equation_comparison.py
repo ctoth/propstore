@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
 from functools import lru_cache
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Sequence, cast
 
 from propstore.equation_parser import (
     BinaryExpr,
@@ -338,7 +338,8 @@ def _compare_normalizations(
     sympy = _get_sympy()
     if sympy is None or left.residual is None or right.residual is None:
         return EquationComparisonStatus.UNKNOWN
-    delta = _simplify_residual(left.residual - right.residual, sympy, assumptions)
+    residual_delta = cast(Any, left.residual) - cast(Any, right.residual)
+    delta = _simplify_residual(residual_delta, sympy, assumptions)
     if delta == 0:
         if not assumptions and (left.domain_sensitive or right.domain_sensitive):
             return EquationComparisonStatus.UNKNOWN
@@ -348,7 +349,7 @@ def _compare_normalizations(
             Positive(str(symbol)) for symbol in sorted(delta.free_symbols, key=str)
         )
         positive_delta = _simplify_residual(
-            _with_positive_symbols(left.residual - right.residual, sympy),
+            _with_positive_symbols(residual_delta, sympy),
             sympy,
             positive_assumptions,
         )
