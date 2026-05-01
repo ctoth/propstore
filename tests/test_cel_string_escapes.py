@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
-from propstore.cel_checker import TokenType, tokenize
+from propstore.cel_checker import TokenType, check_cel_expr, tokenize
 
 
 @pytest.mark.parametrize(
@@ -43,3 +45,38 @@ def test_cel_string_escape_sequences(expr: str, expected: str) -> None:
 def test_cel_invalid_string_escapes_rejected(expr: str) -> None:
     with pytest.raises(ValueError):
         tokenize(expr)
+
+
+_ESCAPE_CASES = (
+    (r"\n", "\n"),
+    (r"\r", "\r"),
+    (r"\t", "\t"),
+    (r"\a", "\a"),
+    (r"\b", "\b"),
+    (r"\f", "\f"),
+    (r"\v", "\v"),
+    (r"\?", "?"),
+    (r"\"", '"'),
+    (r"\'", "'"),
+    (r"\\", "\\"),
+    (r"\`", "`"),
+    (r"\u00e9", "\u00e9"),
+    (r"\x4A", "J"),
+    (r"\000", "\x00"),
+    (r"\U0001F62C", "\U0001F62C"),
+)
+
+
+@pytest.mark.property
+@given(parts=st.lists(st.sampled_from(_ESCAPE_CASES), min_size=1, max_size=12))
+@settings(deadline=None, max_examples=40)
+def test_cel_string_escape_sequences_round_trip_through_parser(parts) -> None:
+    """CEL langdef String Values: supported escapes decode consistently."""
+    source = '"' + "".join(encoded for encoded, _ in parts) + '"'
+    expected = "".join(decoded for _, decoded in parts)
+
+    token = tokenize(source)[0]
+
+    assert token.type == TokenType.STRING_LIT
+    assert token.value == expected
+    check_cel_expr(f"{source} == {source}", {})

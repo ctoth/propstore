@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from ast_equiv import Tier
+import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
+from unittest.mock import patch
 
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
@@ -67,3 +71,25 @@ def test_none_tier_non_equivalence_still_reports_conflict(monkeypatch) -> None:
     )
 
     assert len(records) == 1
+
+
+@pytest.mark.property
+@given(tier=st.sampled_from([Tier.CANONICAL, Tier.SYMPY, Tier.PARTIAL_EVAL]))
+@settings(deadline=None, max_examples=12)
+def test_generated_true_equivalence_tiers_suppress_conflict(tier: Tier) -> None:
+    from propstore.conflict_detector import algorithms
+
+    class Result:
+        equivalent = True
+        similarity = 1.0
+
+        def __init__(self, tier: Tier) -> None:
+            self.tier = tier
+
+    with patch.object(algorithms, "ast_compare", lambda *args, **kwargs: Result(tier)):
+        records = algorithms.detect_algorithm_conflicts(
+            [_claim("a", "def f(x):\n    return x\n"), _claim("b", "def f(x):\n    return x\n")],
+            _registry(),
+        )
+
+    assert records == []
