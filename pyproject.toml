@@ -15,7 +15,7 @@ dependencies = [
     "graphviz>=0.20",
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@b7423889daef74154193317099ae9992ecbcd958",
     "formal-argumentation @ git+https://github.com/ctoth/argumentation@5b56b9dc9ca41b3dba9ee047f4add9c1d941f4b8",
-    "bridgman @ git+https://github.com/ctoth/bridgman@d0f20b5db359e4c95ff0ab08f494f2e09718063c",
+    "bridgman @ git+https://github.com/ctoth/bridgman@f4ecfa842d7d9913b20ee9a10fcfda77973962aa",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
     "gunray @ git+https://github.com/ctoth/gunray@64c4f3d340e0ac54651a9e5dd94bdf4df3d6cb7e",
