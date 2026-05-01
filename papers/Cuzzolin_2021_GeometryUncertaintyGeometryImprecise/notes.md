@@ -293,7 +293,7 @@ See [`abstract.md`](abstract.md) for the back-cover/preface summary and our inte
 **Halpern (Fagin-Halpern conditioning, Ch.4.5):**
 - [Causes and Explanations: A Structural-Model Approach](../Halpern_2000_CausesExplanationsStructural-ModelApproach/notes.md) — Halpern is co-author of the Fagin-Halpern conditioning rule that Cuzzolin geometrises.
 - [Causes and Explanations: A Structural Model Approach (Part I)](../Halpern_2005_CausesExplanationsStructuralModel/notes.md) — Same.
-- [A Modification of the Halpern-Pearl Definition of Causality](../Halpern_2015_ModificationHalpern-PearlDefinitionCausality/notes.md) — Same.
+- [A Modification of the Halpern-Pearl Definition of Causality](../Halpern_2015_ModificationHalpern-PearlDefinitionCausality/notes.md) — Refines the HP actual-causality witness condition by allowing contingency variables only at actual values; relevant as a causality-side counterpart to Cuzzolin's survey of uncertainty calculi and graphical/probabilistic reasoning.
 
 **AGM and belief revision (Ch.4 conditioning ≈ AGM revision; Ch.17 future research):**
 - [On the Logic of Theory Change](../Alchourron_1985_TheoryChange/notes.md) — AGM `[26]`. Cuzzolin's Ch.15 geometric conditioning is implicitly a family of L_p-parameterised AGM-like revision operators.
