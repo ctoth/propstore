@@ -609,3 +609,8 @@ This is the primary source for WS-O-arg-aba-adf's flat ABA+ preference-filtered 
 Defines prudent semantics for Dung argumentation frameworks by strengthening admissibility so that no two co-accepted arguments are connected by an odd-length indirect attack path.
 Establishes preferred, stable, grounded, and complete prudent extensions, compares their cautiousness against Dung inference relations, and shows the decision-problem complexity classes do not increase relative to the corresponding standard semantics.
 Directly relevant to propstore's argumentation layer as a coherence policy for preventing indirectly conflicting claims from appearing together in an accepted extension.
+
+## [A Modification of the Halpern-Pearl Definition of Causality](Halpern_2015_ModificationHalpern-PearlDefinitionCausality/notes.md)  (causality, structural-equations, actual-causation, counterfactuals, complexity)
+Formalizes a stricter modified HP actual-causality definition whose AC2 witness variables may be held only at their actual values.
+Shows the modified definition handles standard preemption and overdetermination counterexamples more cleanly, agrees with original/updated HP where it accepts causes, and lowers general causality decision complexity to D_1^P-complete.
+Relevant to propstore's causal semantics because it gives a typed witness discipline for structural-equation actual-cause queries and separates causes from parts of causes.
