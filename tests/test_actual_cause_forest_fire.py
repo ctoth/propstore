@@ -7,7 +7,7 @@ from tests.intervention_world_helpers import bool_scm, equation
 
 
 def _disjunctive_forest_fire_world() -> InterventionWorld:
-    # Halpern 2015 notes lines 101-108 and 199: with FF = max(L, MD),
+    # Halpern 2015 pp. 4-5; notes.md lines 101-108 and 199: with FF = max(L, MD),
     # singleton L=1 and MD=1 are parts of a joint cause under modified HP,
     # not individual causes.
     scm = bool_scm(
