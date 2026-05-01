@@ -5,8 +5,12 @@ year: 2015
 venue: "arXiv preprint"
 doi_url: ""
 pages: 12
+produced_by:
+  agent: "GPT-5 Codex"
+  skill: "paper-reader"
+  status: "stated"
+  timestamp: "2026-05-01T00:47:15Z"
 ---
-
 # A Modification of the Halpern-Pearl Definition of Causality
 
 ## One-Sentence Summary
