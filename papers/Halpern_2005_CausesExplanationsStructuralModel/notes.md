@@ -146,7 +146,7 @@ This paper is foundational for any system that needs to reason about actual caus
 ## Open Questions
 
 - [ ] How does computational complexity of AC2 checking scale for realistic models? (Eiter & Lukasiewicz 2002 address tractable cases)
-- [ ] How does the 2015 Halpern modification (arxiv 1505.00162) change the definition and its properties?
+- [ ] How does the 2015 Halpern modification (arxiv 1505.00162) change the definition and its properties? [Addressed by Halpern_2015_ModificationHalpern-PearlDefinitionCausality - it restricts AC2 witnesses so non-causal variables may be held only at their actual values, removes the separate sufficiency clause, and lowers the general decision problem to D_1^P-complete.]
 - [ ] Can the ranking/normality extension be formalized as argumentation preferences?
 - [ ] How does this relate to ASPIC+ preference orderings in the argumentation layer?
 
@@ -156,15 +156,17 @@ This paper is foundational for any system that needs to reason about actual caus
 - (none — no papers in the collection directly cite this paper or are cited by it)
 
 ### New Leads (Not Yet in Collection)
-- Halpern (2015) — "A Modification of the Halpern-Pearl Definition of Causality" (arxiv 1505.00162) — updated definition addressing remaining problems with AC2
 - Pearl (2000) — "Causality: Models, Reasoning, and Inference" — comprehensive textbook treatment of structural causal models
 - Eiter & Lukasiewicz (2002) — tractable cases for HP causality checking
+
+### Now in Collection (previously listed as leads)
+- [A Modification of the Halpern-Pearl Definition of Causality](../Halpern_2015_ModificationHalpern-PearlDefinitionCausality/notes.md) - modifies the HP AC2 witness discipline by allowing non-causal variables in the contingency only at their actual values; this directly answers the open question about how the 2015 version changes the definition and complexity.
 
 ### Supersedes or Recontextualizes
 - (none in collection)
 
 ### Cited By (in Collection)
-- (none found)
+- [A Modification of the Halpern-Pearl Definition of Causality](../Halpern_2015_ModificationHalpern-PearlDefinitionCausality/notes.md) - cites the 2005 HP definition as the updated baseline it simplifies and strengthens.
 
 ### Conceptual Links (not citation-based)
 - [[Ginsberg_1985_Counterfactuals]] — **Strong.** Ginsberg formalizes counterfactual reasoning via three-valued truth functions and closure operations, proving equivalence with Lewis's possible-worlds semantics (Theorem 4). Halpern-Pearl use counterfactuals as the core mechanism for causality but operationalize them via structural equations and interventions rather than possible worlds. Both papers share the fundamental insight that counterfactual evaluation requires determining what to hold fixed and what to vary — Ginsberg via sublanguage selection, HP via the (Z, W) partition in AC2.
@@ -172,7 +174,7 @@ This paper is foundational for any system that needs to reason about actual caus
 
 ## Related Work Worth Reading
 
-- Halpern [2015] "A Modification of the Halpern-Pearl Definition of Causality" — updated definition addressing remaining problems
+- Halpern [2015] "A Modification of the Halpern-Pearl Definition of Causality" — updated definition addressing remaining problems -> NOW IN COLLECTION: [A Modification of the Halpern-Pearl Definition of Causality](../Halpern_2015_ModificationHalpern-PearlDefinitionCausality/notes.md)
 - Halpern & Pearl [2001/2005] Part II: Explanations — companion paper on causal explanation
 - Pearl [2000] "Causality: Models, Reasoning, and Inference" — comprehensive textbook treatment
 - Eiter & Lukasiewicz [2002] — tractable cases for HP causality
