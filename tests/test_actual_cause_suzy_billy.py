@@ -7,7 +7,7 @@ from tests.intervention_world_helpers import bool_scm, equation
 
 
 def _suzy_billy_world() -> InterventionWorld:
-    # Halpern 2015 notes lines 115-129: rich rock-throwing model with
+    # Halpern 2015 p. 5; notes.md lines 115-129: rich rock-throwing model with
     # ST=SH=1, BT=1, BH=0, BS=1 in the actual context.
     scm = bool_scm(
         endogenous={"ST", "BT", "SH", "BH", "BS"},
