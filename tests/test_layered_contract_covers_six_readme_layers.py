@@ -7,7 +7,7 @@ from pathlib import Path
 EXPECTED_LAYER_ROWS = (
     "propstore.web | propstore.cli",
     "propstore.app",
-    "propstore.argumentation | propstore.aspic_bridge | propstore.world | propstore.belief_set",
+    "propstore.argumentation | propstore.aspic_bridge | propstore.world",
     "propstore.heuristic",
     "propstore.source",
     "propstore.storage",

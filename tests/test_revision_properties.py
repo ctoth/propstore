@@ -71,8 +71,8 @@ def test_normalize_revision_input_resolves_existing_assertion_atom_by_assertion_
 class TestGeneratedRevisionPostulates:
     """Generated checks for the finite support-incision adapter.
 
-    Formal literature postulate tests live under the ``propstore.belief_set``
-    test suites.
+    Formal literature postulate tests live in the external ``belief_set``
+    package.
     """
 
     pytestmark = pytest.mark.property

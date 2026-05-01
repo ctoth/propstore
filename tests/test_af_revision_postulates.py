@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.belief_set import Atom, Formula, conjunction, negate
+from belief_set import Atom, Formula, conjunction, negate
 from argumentation.af_revision import (
     AFChangeKind,
     ExtensionRevisionState,

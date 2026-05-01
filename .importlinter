@@ -8,7 +8,7 @@ type = layers
 layers =
     web : cli
     app
-    argumentation : aspic_bridge : world : belief_set
+    argumentation : aspic_bridge : world
     heuristic
     source
     storage
