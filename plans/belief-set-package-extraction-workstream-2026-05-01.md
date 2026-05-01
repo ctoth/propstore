@@ -540,6 +540,33 @@ belief-set/papers/Konieczny_2002_MergingInformationUnderConstraints/
 belief-set/papers/Spohn_1988_OrdinalConditionalFunctionsDynamic/
 ```
 
+Important: PDFs and page PNGs are gitignored in propstore. Do not rely on
+normal `git mv` or `git add` behavior to carry complete paper directories.
+Before moving any paper directory, inventory tracked and ignored assets:
+
+```powershell
+Get-ChildItem -Recurse papers\Alchourron_1985_TheoryChange,papers\Booth_2006_AdmissibleRestrainedRevision,papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic,papers\Konieczny_2002_MergingInformationUnderConstraints,papers\Spohn_1988_OrdinalConditionalFunctionsDynamic | Select-Object FullName, Length
+git ls-files -- papers\Alchourron_1985_TheoryChange papers\Booth_2006_AdmissibleRestrainedRevision papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic papers\Konieczny_2002_MergingInformationUnderConstraints papers\Spohn_1988_OrdinalConditionalFunctionsDynamic
+git status --ignored --short -- papers\Alchourron_1985_TheoryChange papers\Booth_2006_AdmissibleRestrainedRevision papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic papers\Konieczny_2002_MergingInformationUnderConstraints papers\Spohn_1988_OrdinalConditionalFunctionsDynamic
+```
+
+In the external package, decide explicitly whether the package should carry:
+
+- notes-only paper directories; or
+- complete paper directories including PDFs and page PNGs.
+
+If complete paper directories are part of the package, force-add those ignored
+assets in the external package:
+
+```powershell
+git add -- papers
+git add -f -- papers\**\*.pdf papers\**\*.png
+git status --short -- papers
+```
+
+If notes-only directories are chosen, document that decision in the package
+README and do not claim PDFs or page images moved.
+
 Remove the moved directories from propstore and update `papers/index.md` or any
 other current propstore paper index so it no longer claims ownership of moved
 paper directories.
@@ -552,6 +579,8 @@ Acceptance in `belief-set`:
 
 ```powershell
 Get-ChildItem papers\Alchourron_1985_TheoryChange,papers\Booth_2006_AdmissibleRestrainedRevision,papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic,papers\Konieczny_2002_MergingInformationUnderConstraints,papers\Spohn_1988_OrdinalConditionalFunctionsDynamic
+Get-ChildItem -Recurse papers\Alchourron_1985_TheoryChange,papers\Booth_2006_AdmissibleRestrainedRevision,papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic,papers\Konieczny_2002_MergingInformationUnderConstraints,papers\Spohn_1988_OrdinalConditionalFunctionsDynamic -Include *.pdf,*.png
+git status --short -- papers
 rg -n -F "propstore" papers README.md CONTRIBUTING.md docs
 ```
 
