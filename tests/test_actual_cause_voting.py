@@ -37,7 +37,7 @@ def _voting_world(yes_count: int, no_count: int) -> InterventionWorld:
 
 
 def test_seven_four_majority_vote_is_not_individual_modified_hp_cause() -> None:
-    # Halpern 2015 notes lines 174 and 187-195: modified HP blocks voting
+    # Halpern 2015 pp. 7-8; notes.md lines 174 and 187-195: modified HP blocks voting
     # anomalies produced by non-actual off-path contingencies.
     verdict = actual_cause(
         _voting_world(yes_count=7, no_count=4),
