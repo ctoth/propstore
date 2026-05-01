@@ -540,9 +540,10 @@ belief-set/papers/Konieczny_2002_MergingInformationUnderConstraints/
 belief-set/papers/Spohn_1988_OrdinalConditionalFunctionsDynamic/
 ```
 
-Important: PDFs and page PNGs are gitignored in propstore. Do not rely on
-normal `git mv` or `git add` behavior to carry complete paper directories.
-Before moving any paper directory, inventory tracked and ignored assets:
+Important: PDFs and page PNGs are gitignored in propstore and must stay out of
+Git in the external package. The paper move is a notes/metadata move, not a
+binary artifact move. Before moving any paper directory, inventory tracked and
+ignored assets so ignored binaries are deliberately excluded:
 
 ```powershell
 Get-ChildItem -Recurse papers\Alchourron_1985_TheoryChange,papers\Booth_2006_AdmissibleRestrainedRevision,papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic,papers\Konieczny_2002_MergingInformationUnderConstraints,papers\Spohn_1988_OrdinalConditionalFunctionsDynamic | Select-Object FullName, Length
@@ -550,22 +551,18 @@ git ls-files -- papers\Alchourron_1985_TheoryChange papers\Booth_2006_Admissible
 git status --ignored --short -- papers\Alchourron_1985_TheoryChange papers\Booth_2006_AdmissibleRestrainedRevision papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic papers\Konieczny_2002_MergingInformationUnderConstraints papers\Spohn_1988_OrdinalConditionalFunctionsDynamic
 ```
 
-In the external package, decide explicitly whether the package should carry:
-
-- notes-only paper directories; or
-- complete paper directories including PDFs and page PNGs.
-
-If complete paper directories are part of the package, force-add those ignored
-assets in the external package:
+In the external package, copy and add only tracked text/metadata paper files:
 
 ```powershell
 git add -- papers
-git add -f -- papers\**\*.pdf papers\**\*.png
 git status --short -- papers
+git status --ignored --short -- papers
 ```
 
-If notes-only directories are chosen, document that decision in the package
-README and do not claim PDFs or page images moved.
+Do not run `git add -f` for paper PDFs or page PNGs. Do not claim PDFs or page
+images moved. Document in the package README that the package carries processed
+paper notes and metadata only, with binary source PDFs/page images intentionally
+excluded from Git.
 
 Remove the moved directories from propstore and update `papers/index.md` or any
 other current propstore paper index so it no longer claims ownership of moved
@@ -581,8 +578,13 @@ Acceptance in `belief-set`:
 Get-ChildItem papers\Alchourron_1985_TheoryChange,papers\Booth_2006_AdmissibleRestrainedRevision,papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic,papers\Konieczny_2002_MergingInformationUnderConstraints,papers\Spohn_1988_OrdinalConditionalFunctionsDynamic
 Get-ChildItem -Recurse papers\Alchourron_1985_TheoryChange,papers\Booth_2006_AdmissibleRestrainedRevision,papers\Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic,papers\Konieczny_2002_MergingInformationUnderConstraints,papers\Spohn_1988_OrdinalConditionalFunctionsDynamic -Include *.pdf,*.png
 git status --short -- papers
+git status --ignored --short -- papers
 rg -n -F "propstore" papers README.md CONTRIBUTING.md docs
 ```
+
+The `Get-ChildItem ... -Include *.pdf,*.png` command should be reviewed as an
+exclusion check, not as an add list. If it returns files, those files must remain
+untracked/ignored.
 
 Propstore acceptance:
 
