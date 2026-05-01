@@ -737,26 +737,16 @@ class TestPartitionExceptionHandling:
 
 @z3_only
 class TestZ3GuardStateLeak:
-    """Tests for _current_guards shared mutable state fragility.
+    """Tests for the division definedness projection.
 
-    Finding C1/C2 from audit-z3-cel-conflict.md: _current_guards is an
-    instance attribute set per-condition in _condition_to_z3(), never
-    initialized in __init__. This makes _translate() crash when called
-    directly, and means guard state leaks across translations.
+    Finding C1/C2 from audit-z3-cel-conflict.md originally exposed a mutable
+    ``_current_guards`` bag. The implementation now carries definedness in the
+    translated projection itself, so direct translation and cached condition
+    translation must both preserve the denominator-non-zero condition.
     """
 
     def test_two_division_conditions_get_independent_guards(self):
-        """Two conditions dividing by the same variable should each get
-        independent guards.  After translating both via _condition_to_z3,
-        the _current_guards attribute should be initialized and each
-        condition's cached Z3 expression should independently include
-        the denominator-non-zero guard.
-
-        This test verifies that _current_guards is properly initialized
-        as an instance attribute (not set ad-hoc inside _condition_to_z3).
-        It checks hasattr BEFORE any translation — which fails because
-        __init__ never creates _current_guards.
-        """
+        """Each cached condition expression embeds its own definedness guard."""
         import z3 as _z3
 
         registry = {
@@ -764,15 +754,6 @@ class TestZ3GuardStateLeak:
             "y": ConceptInfo(id="y", canonical_name="y", kind=KindType.QUANTITY),
         }
         solver = Z3ConditionSolver(registry)
-
-        # _current_guards should exist as an instance attribute from __init__,
-        # so that any method can safely reference it.  Currently it doesn't —
-        # it's only created inside _condition_to_z3().
-        assert hasattr(solver, "_current_guards"), (
-            "_current_guards must be initialized in __init__ so that "
-            "_translate can safely reference it without going through "
-            "_condition_to_z3 first"
-        )
 
         # Translate two conditions that both divide by y
         expr_a = solver._condition_to_z3("a / y > 0")
@@ -794,14 +775,9 @@ class TestZ3GuardStateLeak:
         assert s2.check() == _z3.unsat, "Condition B must guard against y==0"
 
     def test_direct_translate_does_not_crash_on_division_guard(self):
-        """Calling _translate() directly (bypassing _condition_to_z3) on an
-        AST containing division should not raise AttributeError.
+        """Direct AST translation returns value and definedness together."""
+        import z3 as _z3
 
-        Currently _current_guards is only set inside _condition_to_z3(),
-        so calling _translate() on a division node will crash at line 163
-        with: AttributeError: 'Z3ConditionSolver' object has no attribute
-        '_current_guards'.
-        """
         from propstore.cel_checker import BinaryOpNode, NameNode, LiteralNode
 
         registry = {
@@ -825,7 +801,12 @@ class TestZ3GuardStateLeak:
         )
 
         # _translate() called directly (not through _condition_to_z3) should
-        # not crash.  Currently it does because _current_guards is not
-        # initialized in __init__.
-        result = solver._translate(cmp_node)
-        assert result is not None
+        # not require any solver instance guard state.
+        projection = solver._translate(cmp_node)
+
+        ctx = solver._ctx
+        y = solver._get_real("y")
+        s = _z3.Solver(ctx=ctx)
+        s.add(projection.defined)
+        s.add(y == _z3.RealVal(0, ctx))
+        assert s.check() == _z3.unsat
