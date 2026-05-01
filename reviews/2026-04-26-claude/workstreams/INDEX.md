@@ -89,6 +89,15 @@ WS-N is preserved as a SUPERSEDED redirect into WS-N1 + WS-N2.
 | WS-O-ast | ast-equiv fixes | CLOSED 294bb726 | — | (informal upstream of P) | 13 minus bytecode tier | **D-14 (delete bytecode tier)**; RD-1 through RD-4 resolved — real-domain assumptions, `extract_names` API, SymPy version-independent cache key (Codex 2.29); error handling locked — single typed `UNKNOWN` from `compare()` (Codex 2.30); pushed ast-equiv `b7423889daef74154193317099ae9992ecbcd958`; report: `reviews/2026-04-26-claude/workstreams/reports/WS-O-ast-closure.md` |
 | WS-P | CEL / units / equations | CLOSED 99f2a666 | O-bri, O-ast | — | 12 (T2.4, T2.12-T2.13, Codex #28-#34 + cluster G HIGH/MED) | inherits D-13; D-28 drops CEL spec ceremony; BYTECODE references removed per D-14 (Codex 1.9); definedness predicate `(value, defined)` replaces FreshConst-for-division (Codex 1.10); domain-aware test names + assertions for `log(xy)=log(x)+log(y)` etc. (Codex 1.11); report: `reviews/2026-04-26-claude/workstreams/reports/WS-P-closure.md` |
 | **WS-J2** | InterventionWorld (Pearl do, Halpern HP-modified) | OPEN (feature/research) | D, J | — | new spec; AC1/AC2/AC3 + SCM data structure | **D-11 path B**; **D-22** — feature/research stream, not on critical bug-fix path; escalates if downstream reliance discovered |
+| **WS-J3** | Spohn OCF kappa revision state | OPEN | J | J4 | deferred from WS-J | follow-up stub: `reviews/2026-04-26-claude/workstreams/WS-J3-spohn-kappa.md` |
+| **WS-J4** | Bonanno ternary belief merge | OPEN | J, J3 | — | deferred from WS-J | follow-up stub: `reviews/2026-04-26-claude/workstreams/WS-J4-bonanno-merge.md` |
+| **WS-J5** | Context lifting fixpoint closure | OPEN | J | — | deferred from WS-J | follow-up stub: `reviews/2026-04-26-claude/workstreams/WS-J5-lifting-closure.md` |
+| **WS-J6** | Cheap worldline staleness fingerprints | OPEN | J | — | deferred from WS-J | follow-up stub: `reviews/2026-04-26-claude/workstreams/WS-J6-worldline-stale-fingerprint.md` |
+| **WS-J7** | Probabilistic counterfactuals and Bayesian observation | OPEN | J2 | — | deferred from WS-J2 | follow-up stub for probabilistic counterfactuals and full Bayesian observation |
+| **WS-J8** | Responsibility and blame | OPEN | J2 | — | deferred from WS-J2 | follow-up stub for Chockler-Halpern responsibility/blame |
+| **WS-J9** | Continuous-domain interventions | OPEN | J2 | — | deferred from WS-J2 | follow-up stub for non-finite intervention domains |
+| **WS-J10** | Actual-cause result staleness fingerprints | OPEN | J2 | — | deferred from WS-J2 | follow-up stub for materialized actual-cause cache safety |
+| **WS-J11** | Actual-cause search optimization | OPEN | J2 | — | deferred from WS-J2 | follow-up stub for SAT/SMT or paper-grounded AC2 search optimization |
 
 **Total findings closed when all WSes ship**: ~210 plus the WS-CM cycle-break and the property-based TDD gates. INDEX file does not count.
 
@@ -126,7 +135,16 @@ WS-D (math naming: D-1 wbf, D-2 BetP)
  ├── WS-H (probabilistic) ◀── WS-O-gun, WS-O-arg-gradual
  ├── WS-I (ATMS)
  │    └── WS-J (overlay/hash; depends on I per Codex 2.8)
- │         └── WS-J2 (Pearl do; feature/research per D-22)
+ │         ├── WS-J2 (Pearl do; feature/research per D-22)
+ │         │    ├── WS-J7 (probabilistic counterfactuals)
+ │         │    ├── WS-J8 (responsibility/blame)
+ │         │    ├── WS-J9 (continuous interventions)
+ │         │    ├── WS-J10 (actual-cause stale fingerprints)
+ │         │    └── WS-J11 (actual-cause search optimization)
+ │         ├── WS-J3 (Spohn OCF)
+ │         │    └── WS-J4 (Bonanno merge)
+ │         ├── WS-J5 (lifting closure)
+ │         └── WS-J6 (worldline stale fingerprints)
  │
 WS-O-arg (HIGH bugs / kernel) ─── blocks ──┐
  ├── WS-O-arg-aba-adf (ABA+ flat / ADF AST)│
