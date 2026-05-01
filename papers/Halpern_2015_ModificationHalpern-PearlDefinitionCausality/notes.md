@@ -211,3 +211,27 @@ This paper is directly relevant to propstore's causal and counterfactual semanti
 - Aleksandrowicz et al. 2014, Eiter and Lukasiewicz 2002, and Hopkins 2001 for complexity results on HP causality. *(p.2, p.9, p.11-p.12)*
 - Hitchcock 2001, Hall 2007, Pearl 1998/2000 for path/beam-style alternatives. *(p.8-p.9, p.11-p.12)*
 - Halpern and Hitchcock 2015, Chockler and Halpern 2004, Zultan et al. 2012 for normality, responsibility, and blame extensions. *(p.7-p.8, p.11-p.12)*
+
+## Collection Cross-References
+
+### Already in Collection
+- [Causes and Explanations: A Structural-Model Approach. Part I: Causes](../Halpern_2005_CausesExplanationsStructuralModel/notes.md) - the updated HP definition that this paper modifies by replacing AC2 with the actual-value-only witness condition.
+- [Causality: Models, Reasoning, and Inference](../Pearl_2000_CausalityModelsReasoningInference/notes.md) - foundational SCM, intervention, counterfactual, and causal-beam framework that supplies the broader setting for HP-style actual causality.
+- [Counterfactuals](../Ginsberg_1985_Counterfactuals/notes.md) - related counterfactual-reasoning formalism; useful contrast because Ginsberg selects what to hold fixed through sublanguage choice, while modified HP makes the witness restriction explicit in structural models.
+
+### New Leads (Not Yet in Collection)
+- Hopkins and Pearl (2003) - "Clarifying the usage of structural models for commonsense causal reasoning" - source of the example that motivated the updated HP definition.
+- Aleksandrowicz et al. (2014) - "The computational complexity of structure-based causality" - immediate complexity baseline for the updated HP definition.
+- Hall (2007) - "Structural equations and causation" - H-account path-based alternative criticized in Section 4.
+- Hitchcock (2001) - "The intransitivity of causation revealed in equations and graphs" - path-reduction alternative criticized in Section 4.
+- Halpern and Hitchcock (2015) - "Graded causation and defaults" - normality/default extension that complements modified HP.
+
+### Supersedes or Recontextualizes
+- [Causes and Explanations: A Structural-Model Approach. Part I: Causes](../Halpern_2005_CausesExplanationsStructuralModel/notes.md) - recontextualizes the 2005 AC2 witness discipline: the 2015 modification keeps the HP structural-model framework but rejects non-actual off-path contingency values.
+
+### Cited By (in Collection)
+- [Causes and Explanations: A Structural-Model Approach. Part I: Causes](../Halpern_2005_CausesExplanationsStructuralModel/notes.md) - had listed the 2015 modification as a lead/open question for how HP AC2 changes.
+- [Geometry of Uncertainty: Geometry of Imprecise Probabilities](../Cuzzolin_2021_GeometryUncertaintyGeometryImprecise/notes.md) - links this paper in its Halpern/correlation-to-causality cross-reference cluster.
+
+### Conceptual Links (not citation-based)
+- [Counterfactuals](../Ginsberg_1985_Counterfactuals/notes.md) - moderate connection: both formalize counterfactual reasoning by deciding what may vary and what must stay fixed; Ginsberg does this via context-dependent language restriction, while Halpern does it through structural-equation interventions and actual-value witness constraints.
