@@ -23,6 +23,7 @@ dependencies = [
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
     "linkml-runtime>=1.9.3,<1.10",
+    "formal-belief-set",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +38,7 @@ pks = "propstore.cli:cli"
 [tool.uv.sources]
 formal-argumentation = { git = "https://github.com/ctoth/argumentation.git" }
 gunray = { git = "https://github.com/ctoth/gunray.git" }
+formal-belief-set = { git = "https://github.com/ctoth/belief-set", rev = "a2df03e8fdd7adc7b4d792898d5a836c5d3f1f77" }
 
 [build-system]
 requires = ["hatchling"]

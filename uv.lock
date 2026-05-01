@@ -707,6 +707,11 @@ version = "0.2.0"
 source = { git = "https://github.com/ctoth/argumentation.git#cec32693701144f2fa3f2c74d6d3c08d0d1b806e" }
 
 [[package]]
+name = "formal-belief-set"
+version = "0.1.0"
+source = { git = "https://github.com/ctoth/belief-set?rev=a2df03e8fdd7adc7b4d792898d5a836c5d3f1f77#a2df03e8fdd7adc7b4d792898d5a836c5d3f1f77" }
+
+[[package]]
 name = "fqdn"
 version = "1.5.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2003,6 +2008,7 @@ dependencies = [
     { name = "dulwich" },
     { name = "fastapi" },
     { name = "formal-argumentation" },
+    { name = "formal-belief-set" },
     { name = "graphviz" },
     { name = "gunray" },
     { name = "lark" },
@@ -2045,6 +2051,7 @@ requires-dist = [
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
     { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git" },
+    { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=a2df03e8fdd7adc7b4d792898d5a836c5d3f1f77" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray.git" },
     { name = "lark", specifier = ">=1.2.2" },
