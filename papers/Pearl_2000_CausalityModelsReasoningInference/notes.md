@@ -203,3 +203,8 @@ Pearl's SCM framework provides the formal foundation for causal reasoning that c
 - Tian and Pearl (2002) -- completeness proof for the do-calculus in semi-Markovian models
 - Bareinboim and Pearl (2016) -- causal inference and the data-fusion problem (transportability)
 - Robins (1986) -- potential outcomes framework that Pearl's work synthesizes with
+
+## Collection Cross-References
+
+### Cited By (in Collection)
+- [A Modification of the Halpern-Pearl Definition of Causality](../Halpern_2015_ModificationHalpern-PearlDefinitionCausality/notes.md) - cites Pearl's SCM and causal-beam setting as the broader structural-equation background for actual causality.
