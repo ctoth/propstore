@@ -1,4 +1,0 @@
----
-tags: [belief-revision, epistemic-states, ordinal-conditional-functions, conditionalization]
----
-Introduces ordinal conditional functions (OCFs/kappa-functions) as a qualitative, ordinal-valued representation of epistemic states that assigns disbelief grades to propositions and supports reversible, iterated belief change via A_n-conditionalization with an explicit firmness parameter. OCFs solve the closure problem of simple conditional functions (SCFs), prove commutativity of conditionalization, and establish independence/conditional independence properties that parallel probability theory. This is the foundational epistemic state representation referenced by Darwiche & Pearl 1997 for iterated revision, providing both the distance metric for belief merging and the concrete state object that makes the C1-C4 postulates satisfiable.

@@ -1,4 +1,0 @@
----
-tags: [belief-revision, epistemic-entrenchment, agm, knowledge-representation, rationality-postulates]
----
-Defines epistemic entrenchment as a total preorder over sentences that determines retraction priority during belief revision and contraction, and proves a representation theorem showing AGM-rational contraction functions and entrenchment orderings satisfying five postulates (transitivity, dominance, conjunctiveness, minimality, maximality) are exactly interchangeable via two bridging conditions. The information required to specify the ordering is linear in the number of atomic facts, with exactly n! valid orderings for n atoms. Directly relevant to propstore's fragility analysis: entrenchment is the formal inverse of fragility, and the bridging conditions provide constructive algorithms for converting between justification-based retraction priority and belief revision operations.

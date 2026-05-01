@@ -1,4 +1,0 @@
----
-tags: [belief-revision, agm, theory-change, contraction, epistemic-logic]
----
-Defines the AGM postulates for rational belief contraction and revision, and constructs explicit partial meet contraction and revision functions via selection over remainder sets (maximal consistent subsets). Representation theorems prove that the six basic postulates characterize exactly the class of partial meet functions, while supplementary postulates narrow this to transitively relational ones; the Levi and Harper identities establish duality between contraction and revision. Directly foundational for the propstore's ATMS-based world model, as Dixon (1993) proved ATMS context switching is behaviourally equivalent to AGM operations, making these postulates the correctness criteria for belief change in the system.

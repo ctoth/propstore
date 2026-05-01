@@ -1,4 +1,0 @@
----
-tags: [belief-revision, iterated-revision, agm, epistemic-states]
----
-Booth and Meyer identify "admissible revision" as the principled subclass of Darwiche-Pearl iterated belief revision operators that excludes natural revision while including lexicographic and the newly introduced "restrained" revision. Restrained revision is proven to be the most conservative admissible operator, decomposable as backwards revision followed by natural revision, with exact axiomatic characterization. For propstore, the paper clarifies that argumentation-based preferences and revision operators compose rather than compete: argumentation determines defeat structure while admissible revision operators implement principled epistemic state updates, with the choice between restrained (conservative) and lexicographic (aggressive) depending on source reliability context.
