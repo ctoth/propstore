@@ -98,7 +98,10 @@ def values_compatible(
                 form_def = forms[concept_form]
                 unit_a = _claim_field(claim_a, "unit")
                 unit_b = _claim_field(claim_b, "unit")
-                if unit_a is not None or unit_b is not None:
+                if (
+                    (unit_a is not None or unit_b is not None)
+                    and form_def.unit_symbol is not None
+                ):
                     interval_a = _normalize_interval(interval_a, unit_a, form_def)
                     interval_b = _normalize_interval(interval_b, unit_b, form_def)
             return intervals_compatible(interval_a, interval_b, tolerance)
@@ -130,3 +133,4 @@ def _claim_field(claim: object, key: str) -> Any:
     if callable(getter):
         return getter(key)
     return getattr(claim, key, None)
+
