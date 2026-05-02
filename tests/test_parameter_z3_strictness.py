@@ -6,7 +6,7 @@ from propstore.cel_checker import ConceptInfo, KindType
 from propstore.conflict_detector.collectors import conflict_claim_from_payload
 from propstore.conflict_detector.models import ConflictClaim
 from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
-from propstore.z3_conditions import Z3ConditionSolver, Z3TranslationError
+from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
 
 
 def _make_claims(claims: list[dict]) -> list[ConflictClaim]:
@@ -27,9 +27,16 @@ def test_z3_partition_failure_raises() -> None:
             id="freq",
             canonical_name="freq",
             kind=KindType.QUANTITY,
-        )
+        ),
+        "source": ConceptInfo(
+            id="source",
+            canonical_name="source",
+            kind=KindType.CATEGORY,
+            category_values=["test_paper"],
+            category_extensible=False,
+        ),
     }
-    solver = Z3ConditionSolver(cel_registry)
+    solver = ConditionSolver(cel_registry)
     claims = _make_claims(
         [
             {"id": "p1", "type": "parameter", "concept": "freq", "body": "100", "conditions": ["freq > 50"]},
