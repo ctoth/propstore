@@ -47,7 +47,7 @@ from propstore.fragility_types import (
     RankingPolicy,
 )
 from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.world.types import QueryableAssumption
+from propstore.world.types import GroundingBundleStore, QueryableAssumption
 
 if TYPE_CHECKING:
     from propstore.world import WorldQuery
@@ -195,8 +195,11 @@ def rank_fragility(
     if include_conflict:
         interventions.extend(collect_conflict_interventions(bound, concept_ids))
 
-    bundle_getter = getattr(bound._store, "grounding_bundle", None)
-    bundle = bundle_getter() if callable(bundle_getter) else GroundedRulesBundle.empty()
+    bundle = (
+        bound._store.grounding_bundle()
+        if isinstance(bound._store, GroundingBundleStore)
+        else GroundedRulesBundle.empty()
+    )
 
     if include_grounding:
         interventions.extend(collect_ground_fact_interventions(bundle))
