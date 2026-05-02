@@ -12,6 +12,8 @@ from propstore.core.conditions.registry import (
     synthetic_category_concept,
     with_synthetic_concepts,
 )
+from propstore.core.conditions import checked_condition_set
+from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import to_context_id
 
@@ -80,6 +82,7 @@ def detect_conflicts(
     condition_solver = _build_condition_solver(cel_registry)
     claims = _expand_lifted_conflict_claims(
         claims,
+        cel_registry=cel_registry,
         lifting_system=lifting_system,
         solver=condition_solver,
     )
@@ -148,6 +151,7 @@ def _build_condition_solver(cel_registry):
 def _expand_lifted_conflict_claims(
     claims: Sequence[ConflictClaim],
     *,
+    cel_registry: Mapping[str, ConceptInfo],
     lifting_system: LiftingSystem | None,
     solver,
 ) -> list[ConflictClaim]:
@@ -186,7 +190,7 @@ def _expand_lifted_conflict_claims(
             )
             applies = cache.decisions.get(decision_key)
             if applies is None:
-                applies = _lifting_rule_applies(claim, rule, solver)
+                applies = _lifting_rule_applies(claim, rule, solver, cel_registry)
                 cache.decisions[decision_key] = applies
             if not applies:
                 continue
@@ -262,12 +266,28 @@ def _add_concept_form_key(target: dict[str, str], key: object, form_name: str) -
         target.setdefault(key, form_name)
 
 
-def _lifting_rule_applies(claim: ConflictClaim, rule: LiftingRule, solver) -> bool:
+def _lifting_rule_applies(
+    claim: ConflictClaim,
+    rule: LiftingRule,
+    solver,
+    cel_registry: Mapping[str, ConceptInfo],
+) -> bool:
     if not rule.conditions:
         return True
     if solver is None:
         return all(condition in claim.conditions for condition in rule.conditions)
-    return bool(solver.implies(claim.conditions, rule.conditions))
+    return bool(
+        solver.implies(
+            checked_condition_set(
+                check_condition_ir(str(condition), cel_registry)
+                for condition in claim.conditions
+            ),
+            checked_condition_set(
+                check_condition_ir(str(condition), cel_registry)
+                for condition in rule.conditions
+            ),
+        )
+    )
 
 
 def _validate_conflict_concept_registry(concept_registry: dict[str, dict]) -> None:
