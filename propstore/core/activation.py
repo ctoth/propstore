@@ -9,6 +9,7 @@ from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import with_standard_synthetic_bindings
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
 from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
@@ -140,6 +141,33 @@ def _retry_with_standard_bindings(
     return ConditionSolver(augmented_registry)
 
 
+def _binding_kind(value: object) -> KindType:
+    if isinstance(value, bool):
+        return KindType.BOOLEAN
+    if isinstance(value, int | float):
+        return KindType.QUANTITY
+    return KindType.CATEGORY
+
+
+def _solver_with_environment_bindings(
+    solver: ConditionSolver,
+    environment: Environment,
+) -> ConditionSolver:
+    registry = with_standard_synthetic_bindings(solver.registry)
+    for name, value in environment.bindings.items():
+        if name in registry:
+            continue
+        registry[name] = ConceptInfo(
+            id=f"ps:binding:{name}",
+            canonical_name=name,
+            kind=_binding_kind(value),
+            category_extensible=True,
+        )
+    if registry == dict(solver.registry):
+        return solver
+    return ConditionSolver(registry)
+
+
 def is_claim_node_active(
     claim: ClaimNode,
     *,
@@ -166,9 +194,11 @@ def is_claim_node_active(
     if solver is None:
         raise ValueError("A condition solver is required for conditional activation")
 
+    query_solver = _solver_with_environment_bindings(solver, environment)
+
     try:
-        registry = solver.registry
-        return not solver.are_disjoint(
+        registry = query_solver.registry
+        return not query_solver.are_disjoint(
             checked_condition_set(
                 check_condition_ir(str(condition), registry)
                 for condition in binding_conditions
@@ -183,7 +213,7 @@ def is_claim_node_active(
         raise
     except Z3TranslationError:
         retry_solver = _retry_with_standard_bindings(
-            solver,
+            query_solver,
         )
         retry_registry = retry_solver.registry
         try:
@@ -231,9 +261,11 @@ def is_active_claim_active(
     if solver is None:
         raise ValueError("A condition solver is required for conditional activation")
 
+    query_solver = _solver_with_environment_bindings(solver, environment)
+
     try:
-        registry = solver.registry
-        return not solver.are_disjoint(
+        registry = query_solver.registry
+        return not query_solver.are_disjoint(
             checked_condition_set(
                 check_condition_ir(str(condition), registry)
                 for condition in binding_conditions
@@ -245,7 +277,7 @@ def is_active_claim_active(
         raise
     except Z3TranslationError:
         retry_solver = _retry_with_standard_bindings(
-            solver,
+            query_solver,
         )
         retry_registry = retry_solver.registry
         try:
