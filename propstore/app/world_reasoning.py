@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
 from propstore.app.world import bind_world, open_app_world_model
 from propstore.repository import Repository
-from propstore.world.types import normalize_reasoning_backend
+from propstore.world.types import GroundingBundleStore, normalize_reasoning_backend
 
 if TYPE_CHECKING:
     from propstore.core.active_claims import ActiveClaim
@@ -158,13 +158,8 @@ def world_extensions(
             )
 
             grounding_bundle = GroundedRulesBundle.empty()
-            bundle_getter = getattr(world, "grounding_bundle", None)
-            if callable(bundle_getter):
-                typed_bundle_getter = cast(
-                    Callable[[], GroundedRulesBundle],
-                    bundle_getter,
-                )
-                grounding_bundle = typed_bundle_getter()
+            if isinstance(world, GroundingBundleStore):
+                grounding_bundle = world.grounding_bundle()
 
             aspic_projection = build_structured_projection(
                 world,
