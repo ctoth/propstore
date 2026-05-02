@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore.merge import merge_classifier
-from propstore.z3_conditions import Z3TranslationError
+from propstore.core.conditions.solver import Z3TranslationError
 from tests.ws_l_merge_helpers import merge_claim_from_payload, param_claim
 
 
