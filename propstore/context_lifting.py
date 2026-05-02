@@ -17,7 +17,9 @@ from propstore.core.id_types import ContextId, to_context_id
 from propstore.defeasibility import (
     DecidabilityStatus,
     ExceptionDefeat,
+    ExceptionPatternSolver,
     JustifiableException,
+    CelScalar,
     build_exception_defeat,
 )
 from propstore.provenance import (
@@ -26,6 +28,12 @@ from propstore.provenance import (
     SourceVariableId,
     SupportEvidence,
     SupportQuality,
+)
+from propstore.z3_conditions import (
+    SolverSat,
+    SolverUnknown,
+    SolverUnsat,
+    Z3TranslationError,
 )
 
 
@@ -93,6 +101,7 @@ class LiftingDecisionProvenance:
     justification: str | None = None
     exception_id: str | None = None
     clashing_set: tuple[str, ...] = ()
+    diagnostic: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "rule_id", str(self.rule_id))
@@ -104,6 +113,8 @@ class LiftingDecisionProvenance:
             object.__setattr__(self, "justification", str(self.justification))
         if self.exception_id is not None:
             object.__setattr__(self, "exception_id", str(self.exception_id))
+        if self.diagnostic is not None:
+            object.__setattr__(self, "diagnostic", str(self.diagnostic))
         object.__setattr__(
             self,
             "clashing_set",
@@ -124,6 +135,8 @@ class LiftingDecisionProvenance:
             payload["justification"] = self.justification
         if self.clashing_set:
             payload["clashing_set"] = list(self.clashing_set)
+        if self.diagnostic is not None:
+            payload["diagnostic"] = self.diagnostic
         return payload
 
 
@@ -241,20 +254,22 @@ class LiftingSystem:
 
     def effective_assumptions(self, target: ContextId | str) -> tuple[CelExpr, ...]:
         target_id = to_context_id(target)
-        assumptions: list[CelExpr] = list(self.context_assumptions.get(target_id, ()))
-        for rule in self.lifting_rules:
-            if rule.target.id != target_id:
-                continue
-            assumptions.extend(rule.conditions)
-        return tuple(dict.fromkeys(assumptions))
+        return tuple(dict.fromkeys(self.context_assumptions.get(target_id, ())))
 
     def materialize_lifted_assertions(
         self,
         assertions: tuple[IstProposition, ...],
+        *,
+        solver: ExceptionPatternSolver | None = None,
+        bindings: Mapping[str, CelScalar] | None = None,
     ) -> tuple[LiftedAssertion, ...]:
         materialized: list[LiftedAssertion] = []
         for assertion in assertions:
-            for decision in self.lift_decisions_for(assertion):
+            for decision in self.lift_decisions_for(
+                assertion,
+                solver=solver,
+                bindings=bindings,
+            ):
                 target_assertion = IstProposition(
                     context=decision.target_context,
                     proposition_id=assertion.proposition_id,
@@ -295,13 +310,24 @@ class LiftingSystem:
     def lift_decisions_for(
         self,
         assertion: IstProposition,
+        *,
+        solver: ExceptionPatternSolver | None = None,
+        bindings: Mapping[str, CelScalar] | None = None,
     ) -> tuple[LiftingDecision, ...]:
         decisions: list[LiftingDecision] = []
         for rule in self.lifting_rules:
             if rule.source.id != assertion.context.id:
                 continue
             exception = self._exception_for(rule, assertion)
-            decisions.append(self._decision_for(rule, assertion, exception))
+            decisions.append(
+                self._decision_for(
+                    rule,
+                    assertion,
+                    exception,
+                    solver=solver,
+                    bindings=bindings or {},
+                )
+            )
         return tuple(decisions)
 
     def lift_decisions_between(
@@ -309,6 +335,9 @@ class LiftingSystem:
         source: ContextId | str,
         target: ContextId | str,
         proposition_id: str,
+        *,
+        solver: ExceptionPatternSolver | None = None,
+        bindings: Mapping[str, CelScalar] | None = None,
     ) -> tuple[LiftingDecision, ...]:
         target_id = to_context_id(target)
         assertion = IstProposition(
@@ -317,7 +346,11 @@ class LiftingSystem:
         )
         return tuple(
             decision
-            for decision in self.lift_decisions_for(assertion)
+            for decision in self.lift_decisions_for(
+                assertion,
+                solver=solver,
+                bindings=bindings,
+            )
             if decision.target_context.id == target_id
         )
 
@@ -326,16 +359,38 @@ class LiftingSystem:
         rule: LiftingRule,
         assertion: IstProposition,
         exception: LiftingException | None,
+        *,
+        solver: ExceptionPatternSolver | None,
+        bindings: Mapping[str, CelScalar],
     ) -> LiftingDecision:
         support = _support_for_source("lifting_rule", rule.id)
+        rule_status, diagnostic, witness = _evaluate_rule_conditions(
+            rule,
+            solver=solver,
+            bindings=bindings,
+        )
         provenance = LiftingDecisionProvenance(
             rule_id=rule.id,
             source_context_id=to_context_id(rule.source.id),
             target_context_id=to_context_id(rule.target.id),
             source_proposition_id=assertion.proposition_id,
-            status=LiftingDecisionStatus.LIFTED,
+            status=rule_status,
             justification=rule.justification,
+            diagnostic=diagnostic,
         )
+        if rule_status is not LiftingDecisionStatus.LIFTED:
+            return LiftingDecision(
+                source_context=rule.source,
+                target_context=rule.target,
+                proposition_id=assertion.proposition_id,
+                status=rule_status,
+                mode=rule.mode,
+                rule_id=rule.id,
+                rule_conditions=rule.conditions,
+                support=support,
+                provenance=provenance,
+                solver_witness=witness,
+            )
         if exception is None:
             return LiftingDecision(
                 source_context=rule.source,
@@ -347,6 +402,7 @@ class LiftingSystem:
                 rule_conditions=rule.conditions,
                 support=support,
                 provenance=provenance,
+                solver_witness=witness,
             )
 
         defeat = _lifting_exception_defeat(rule, assertion, exception)
@@ -415,3 +471,44 @@ def _lifting_exception_defeat(
         exception=justifiable,
         solver_support=_support_for_source("lifting_rule", rule.id),
     )
+
+
+def _evaluate_rule_conditions(
+    rule: LiftingRule,
+    *,
+    solver: ExceptionPatternSolver | None,
+    bindings: Mapping[str, CelScalar],
+) -> tuple[LiftingDecisionStatus, str | None, NogoodWitness | None]:
+    if not rule.conditions:
+        return LiftingDecisionStatus.LIFTED, None, None
+    if solver is None:
+        return (
+            LiftingDecisionStatus.UNKNOWN,
+            "lifting rule conditions require a solver",
+            NogoodWitness("lifting-rule-condition", "solver unavailable"),
+        )
+
+    for condition in rule.conditions:
+        try:
+            result = solver.is_condition_satisfied_result(condition, bindings)
+        except Z3TranslationError as exc:
+            return (
+                LiftingDecisionStatus.UNKNOWN,
+                f"lifting rule condition is not translatable: {exc}",
+                NogoodWitness("lifting-rule-condition", str(exc)),
+            )
+        if isinstance(result, SolverSat):
+            continue
+        if isinstance(result, SolverUnsat):
+            return (
+                LiftingDecisionStatus.BLOCKED,
+                f"lifting rule condition is unsatisfied: {condition}",
+                NogoodWitness("lifting-rule-condition", str(condition)),
+            )
+        if isinstance(result, SolverUnknown):
+            return (
+                LiftingDecisionStatus.UNKNOWN,
+                f"lifting rule condition is unknown: {result.hint}",
+                NogoodWitness("lifting-rule-condition", result.hint),
+            )
+    return LiftingDecisionStatus.LIFTED, None, None
