@@ -71,7 +71,7 @@ def show(obj: dict, artifact_id: str) -> None:
 @click.option("--target-context", required=True)
 @click.pass_obj
 def lift(obj: dict, artifact_id: str, target_context: str) -> None:
-    """Report whether a micropublication can lift to a target context."""
+    """Report micropublication lifting decisions for a target context."""
     repo: Repository = obj["repo"]
     try:
         report = inspect_micropub_lift(
@@ -83,9 +83,22 @@ def lift(obj: dict, artifact_id: str, target_context: str) -> None:
         fail(exc)
     if not report.liftable:
         emit(
-            f"not liftable: {report.artifact_id} {report.source_context} -> {report.target_context}"
+            f"no lifted decision: {report.artifact_id} {report.source_context} -> {report.target_context}"
         )
         exit_with_code(EXIT_ERROR)
     emit(
-        f"liftable: {report.artifact_id} {report.source_context} -> {report.target_context}"
+        f"lifting decisions: {report.artifact_id} {report.source_context} -> {report.target_context}"
+    )
+    emit_table(
+        ("CLAIM", "RULE", "STATUS", "MODE", "EXCEPTION"),
+        [
+            (
+                decision.proposition_id,
+                decision.rule_id,
+                decision.status,
+                decision.mode,
+                decision.exception_id or "",
+            )
+            for decision in report.decisions
+        ],
     )
