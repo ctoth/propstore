@@ -304,6 +304,23 @@ class LiftingSystem:
             decisions.append(self._decision_for(rule, assertion, exception))
         return tuple(decisions)
 
+    def lift_decisions_between(
+        self,
+        source: ContextId | str,
+        target: ContextId | str,
+        proposition_id: str,
+    ) -> tuple[LiftingDecision, ...]:
+        target_id = to_context_id(target)
+        assertion = IstProposition(
+            context=_assertions.ContextReference(to_context_id(source)),
+            proposition_id=proposition_id,
+        )
+        return tuple(
+            decision
+            for decision in self.lift_decisions_for(assertion)
+            if decision.target_context.id == target_id
+        )
+
     def _decision_for(
         self,
         rule: LiftingRule,
