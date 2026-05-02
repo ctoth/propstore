@@ -119,7 +119,7 @@ def test_micropub_cli_renders_bundle_show_and_lift(tmp_path) -> None:
             "ctx_target",
         ],
     )
-    not_liftable = runner.invoke(
+    no_lift = runner.invoke(
         cli,
         [
             "-C",
@@ -142,5 +142,5 @@ def test_micropub_cli_renders_bundle_show_and_lift(tmp_path) -> None:
     assert "lifting decisions: ps:micropub:test ctx_source -> ctx_target" in lift.output
     assert "claim:one" in lift.output
     assert "lifted" in lift.output
-    assert not_liftable.exit_code == 1, not_liftable.output
-    assert "no lifted decision: ps:micropub:test ctx_source -> ctx_other" in not_liftable.output
+    assert no_lift.exit_code == 1, no_lift.output
+    assert "no lifted decision: ps:micropub:test ctx_source -> ctx_other" in no_lift.output
