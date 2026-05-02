@@ -21,6 +21,7 @@ from propstore.compiler.ir import SemanticClaim
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
 from propstore.core.claim_types import ClaimType
+from propstore.core.conditions import checked_condition_set_to_json
 from propstore.dimensions import normalize_to_si
 from propstore.families.claims.documents import (
     ClaimConceptLinkDeclaration,
@@ -326,14 +327,15 @@ def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
     conn.execute(
         """
         INSERT INTO claim_text_payload (
-            claim_id, conditions_cel, statement, expression, sympy_generated,
+            claim_id, conditions_cel, conditions_ir, statement, expression, sympy_generated,
             sympy_error, name, measure, listener_population, methodology,
             notes, description, auto_summary
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             row["id"],
             row["conditions_cel"],
+            row["conditions_ir"],
             row["statement"],
             row["expression"],
             row["sympy_generated"],
@@ -675,6 +677,14 @@ def prepare_claim_insert_row(
     claim_type = normalized_claim.get("type")
     provenance = normalized_claim.get("provenance", {})
     conditions = normalized_claim.get("conditions")
+    conditions_ir = (
+        json.dumps(
+            checked_condition_set_to_json(claim.checked_conditions),
+            sort_keys=True,
+        )
+        if isinstance(claim, SemanticClaim) and claim.checked_conditions is not None
+        else normalized_claim.get("conditions_ir")
+    )
     typed_fields = extract_typed_claim_fields(normalized_claim)
     expression = typed_fields.expression
     sympy_generated, sympy_error = resolve_equation_sympy(
@@ -736,6 +746,7 @@ def prepare_claim_insert_row(
         "lower_bound_si": lower_bound_si,
         "upper_bound_si": upper_bound_si,
         "conditions_cel": json.dumps(conditions) if conditions else None,
+        "conditions_ir": conditions_ir if isinstance(conditions_ir, str) else None,
         "statement": typed_fields.statement,
         "expression": typed_fields.expression,
         "sympy_generated": sympy_generated,
