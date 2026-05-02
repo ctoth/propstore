@@ -5,8 +5,12 @@ year: 2017
 venue: "Proceedings of Web Intelligence, Leipzig, Germany, August 2017; final DOI venue WI 2017"
 doi_url: "https://doi.org/10.1145/3106426.3106497"
 pages: 8
+produced_by:
+  agent: "GPT-5 Codex"
+  skill: "paper-reader"
+  status: "stated"
+  timestamp: "2026-05-02T00:50:02Z"
 ---
-
 # CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories
 
 ## One-Sentence Summary
