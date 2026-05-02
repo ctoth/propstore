@@ -197,6 +197,7 @@ This paper is directly relevant to propstore's concept layer and vocabulary reco
 ### Already in Collection
 - [[Raad_2019_SameAsProblemSurvey]] — survey by the same research group (Raad, Beek, van Harmelen) that builds on this paper's dataset to categorize identity link errors and detection approaches
 - [Is my:sameAs the same as your:sameAs? Lenticular Lenses for Context-Specific Identity](../Idrissou_2017_LenticularLensesContextSpecificIdentity/notes.md) — context-specific identity framework cited by this paper; provides a constructive alternative to global identity closure by representing task-specific linksets, lenses, and provenance-rich correspondence metadata.
+- [Ontology Alignment for Linked Open Data](../Jain_2010_OntologyAlignmentLinkedOpen/notes.md) - cited as prior work on ontology alignment for linked open data; complements sameAs.cc by addressing schema-level LOD links rather than instance identity closure.
 
 ### Cited By (in Collection)
 - [[Raad_2019_SameAsProblemSurvey]] — cites this paper as the large-scale empirical dataset underpinning the survey's analysis of identity link proliferation and error propagation
