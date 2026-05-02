@@ -20,7 +20,7 @@ from bridgman import verify_expr, DimensionalError
 
 from quire.documents import load_document_dir
 from propstore.families.claims.documents import ClaimsFileDocument
-from propstore.cel_checker import check_cel_expr
+from propstore.core.conditions import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.families.identity.logical_ids import (
@@ -558,12 +558,12 @@ def _check_concepts(
             if cel_registry is not None:
                 for cel_expr in rel.get("conditions", []) or []:
                     try:
-                        checked = check_cel_expr(cel_expr, cel_registry)
+                        checked = check_condition_ir(cel_expr, cel_registry)
                     except ValueError as exc:
                         result.errors.append(f"{c.filename}: CEL error: {exc}")
                         continue
                     for warning in checked.warnings:
-                        result.warnings.append(f"{c.filename}: CEL warning: {warning.message}")
+                        result.warnings.append(f"{c.filename}: CEL warning: {warning}")
 
         # ── Parameterization inputs ─────────────────────────────
         for param in data.get("parameterization_relationships", []) or []:
@@ -702,12 +702,12 @@ def _check_concepts(
             if cel_registry is not None:
                 for cel_expr in param.get("conditions", []) or []:
                     try:
-                        checked = check_cel_expr(cel_expr, cel_registry)
+                        checked = check_condition_ir(cel_expr, cel_registry)
                     except ValueError as exc:
                         result.errors.append(f"{c.filename}: CEL error: {exc}")
                         continue
                     for warning in checked.warnings:
-                        result.warnings.append(f"{c.filename}: CEL warning: {warning.message}")
+                        result.warnings.append(f"{c.filename}: CEL warning: {warning}")
 
             # canonical_claim must reference an existing claim
             canonical_claim = param.get("canonical_claim")
