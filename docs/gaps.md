@@ -15,6 +15,8 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ### HIGH
 
+- **Context lifting collapses context before formal argumentation projection.** `propstore/aspic_bridge/translate.py::claims_to_literals` still emits unqualified claim-id atoms, while `propstore/context_lifting.py` still exposes boolean `can_lift` and lifting materialization status instead of one evidence-bearing lifted/blocked/unknown decision carrier. This loses the McCarthy/Guha `ist(c,p)` identity before ASPIC/Dung and makes CKR-style justified exceptions a separate path. Citation: `plans/context-lifting-argumentation-gunray-workstream-2026-05-02.md`; Phase 0 contract tests `tests/architecture/test_ist_projection_contract.py`, `tests/architecture/test_lifting_decision_contract.py`, and `tests/architecture/test_backend_identity_contracts.py`. Plan: execute the IST context-lifting / argumentation / Gunray workstream through Phases 1-8.
+
 - **Sidecar claim SI normalization silently writes non-SI values to `_si` columns.** `propstore/sidecar/claim_utils.py:596-606` — on `ValueError`/`TypeError` from `normalize_to_si`, the code writes `value_si = typed_fields.value` (i.e., the unnormalized value). Downstream queries trust the `_si` suffix. Citation: axis-5 Finding 3.1. Plan: not yet scheduled (axis-5 docket).
 
 ### MED
