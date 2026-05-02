@@ -43,6 +43,18 @@ from propstore.core.conditions.sql_backend import (
     SqlConditionFragment,
     condition_ir_to_sql,
 )
+from propstore.core.conditions.solver import (
+    DEFAULT_Z3_TIMEOUT_MS,
+    ConditionSolver,
+    SolverResult,
+    SolverSat,
+    SolverUnknown,
+    SolverUnknownReason,
+    SolverUnsat,
+    Z3TranslationError,
+    Z3UnknownError,
+    solver_result_from_z3,
+)
 from propstore.core.conditions.z3_backend import (
     condition_ir_to_z3,
     z3_bindings_for_values,
@@ -65,6 +77,7 @@ def __getattr__(name: str):
 __all__ = [
     "CheckedCondition",
     "CheckedConditionSet",
+    "ConditionSolver",
     "ConditionBinary",
     "ConditionBinaryOp",
     "ConditionChoice",
@@ -76,6 +89,7 @@ __all__ = [
     "ConditionUnary",
     "ConditionUnaryOp",
     "ConditionValueKind",
+    "DEFAULT_Z3_TIMEOUT_MS",
     "EstreeArrayExpression",
     "EstreeBinaryExpression",
     "EstreeCallExpression",
@@ -87,6 +101,13 @@ __all__ = [
     "EstreeMemberExpression",
     "EstreeUnaryExpression",
     "SqlConditionFragment",
+    "SolverResult",
+    "SolverSat",
+    "SolverUnknown",
+    "SolverUnknownReason",
+    "SolverUnsat",
+    "Z3TranslationError",
+    "Z3UnknownError",
     "checked_condition_set",
     "condition_ir_from_json",
     "condition_ir_to_estree",
@@ -96,5 +117,6 @@ __all__ = [
     "condition_ir_to_z3",
     "evaluate_estree_expression",
     "evaluate_condition_ir",
+    "solver_result_from_z3",
     "z3_bindings_for_values",
 ]
