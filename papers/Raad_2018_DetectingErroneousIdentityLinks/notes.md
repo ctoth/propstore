@@ -245,4 +245,9 @@ This paper provides a concrete, scalable scoring model for identity-link evaluat
 - Beek et al. 2018 on sameAs.cc closure of 500M `owl:sameAs` statements; this paper relies on the same infrastructure for equality-set partitioning. *(p.15-p.16)*
 - Guéret et al. 2012 on assessing linked-data mappings using network measures; direct predecessor for network metrics. *(p.16)*
 - Halpin et al. 2010 on when `owl:sameAs` is not the same; core conceptual background for the sameAs problem. *(p.16)*
-- Valdestilhas et al. 2017 on time-efficient erroneous-link detection in large link repositories; closely related scalable identity-error detection. *(p.16)*
+- Valdestilhas et al. 2017 on time-efficient erroneous-link detection in large link repositories; closely related scalable identity-error detection. *(p.16)* → NOW IN COLLECTION: [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md)
+
+## Collection Cross-References
+
+### Now in Collection (previously listed as leads)
+- [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md) — Provides a scalable graph-partitioning baseline for erroneous identity-link detection. It flags same-dataset duplicate resources inside transitive identity clusters, complementing Raad et al.'s topology/community-score approach to suspicious links.
