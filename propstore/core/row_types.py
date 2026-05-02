@@ -279,6 +279,7 @@ class ClaimRow:
     sample_size: int | None = None
     unit: str | None = None
     conditions_cel: str | None = None
+    conditions_ir: str | None = None
     statement: str | None = None
     expression: str | None = None
     sympy_generated: str | None = None
@@ -335,6 +336,7 @@ class ClaimRow:
             "sample_size",
             "unit",
             "conditions_cel",
+            "conditions_ir",
             "statement",
             "expression",
             "sympy_generated",
@@ -528,6 +530,9 @@ class ClaimRow:
             conditions_cel=(
                 None if row_map.get("conditions_cel") is None else str(row_map["conditions_cel"])
             ),
+            conditions_ir=(
+                None if row_map.get("conditions_ir") is None else str(row_map["conditions_ir"])
+            ),
             statement=None if row_map.get("statement") is None else str(row_map["statement"]),
             expression=None if row_map.get("expression") is None else str(row_map["expression"]),
             sympy_generated=(
@@ -668,6 +673,7 @@ class ClaimRow:
             "sample_size": self.sample_size,
             "unit": self.unit,
             "conditions_cel": self.conditions_cel,
+            "conditions_ir": self.conditions_ir,
             "statement": self.statement,
             "expression": self.expression,
             "sympy_generated": self.sympy_generated,
@@ -846,6 +852,7 @@ class ParameterizationRow:
     sympy: str | None = None
     exactness: Exactness | None = None
     conditions_cel: str | None = None
+    conditions_ir: str | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -865,6 +872,8 @@ class ParameterizationRow:
             data["exactness"] = self.exactness.value
         if self.conditions_cel is not None:
             data["conditions_cel"] = self.conditions_cel
+        if self.conditions_ir is not None:
+            data["conditions_ir"] = self.conditions_ir
         data.update(self.attributes)
         return data
 
@@ -878,7 +887,7 @@ class ParameterizationRow:
         attributes = {
             str(key): value
             for key, value in row_map.items()
-            if key not in {"output_concept_id", "concept_ids", "formula", "sympy", "exactness", "conditions_cel"}
+            if key not in {"output_concept_id", "concept_ids", "formula", "sympy", "exactness", "conditions_cel", "conditions_ir"}
             and value is not None
         }
         resolved_output_concept_id = row_map.get("output_concept_id", output_concept_id)
@@ -894,6 +903,11 @@ class ParameterizationRow:
                 None
                 if row_map.get("conditions_cel") is None
                 else str(row_map["conditions_cel"])
+            ),
+            conditions_ir=(
+                None
+                if row_map.get("conditions_ir") is None
+                else str(row_map["conditions_ir"])
             ),
             attributes=attributes,
         )
