@@ -17,7 +17,12 @@ from propstore.families.contexts.documents import ContextDocument
 from propstore.cel_checker import synthetic_category_concept
 from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
-from propstore.context_lifting import IstProposition, LiftingRule, LiftingSystem
+from propstore.context_lifting import (
+    IstProposition,
+    LiftingDecisionStatus,
+    LiftingRule,
+    LiftingSystem,
+)
 from propstore.core.assertions import ContextReference
 from propstore.families.contexts import load_contexts
 from propstore.families.contexts.passes import run_context_pipeline
@@ -239,7 +244,11 @@ class TestLiftingSystem:
                 ),
             )
         ) == ()
-        assert not system.can_lift("ctx_root", "ctx_child")
+        assert system.lift_decisions_between(
+            "ctx_root",
+            "ctx_child",
+            "claim_root",
+        ) == ()
 
     def test_explicit_lifting_rule_controls_visibility(self) -> None:
         system = loaded_contexts_to_lifting_system([
@@ -260,19 +269,18 @@ class TestLiftingSystem:
             ),
         ])
 
-        materialized = system.materialize_lifted_assertions(
-            (
-                IstProposition(
-                    context=ContextReference("ctx_root"),
-                    proposition_id="claim_root",
-                ),
-            )
+        assertion = IstProposition(
+            context=ContextReference("ctx_root"),
+            proposition_id="claim_root",
         )
+        decisions = system.lift_decisions_for(assertion)
+
         assert {
-            (str(item.source_context.id), str(item.target_context.id))
-            for item in materialized
-        } == {("ctx_root", "ctx_child")}
-        assert system.effective_assumptions("ctx_child") == ("audience == 'researcher'",)
+            (str(item.source_context.id), str(item.target_context.id), item.status)
+            for item in decisions
+        } == {("ctx_root", "ctx_child", LiftingDecisionStatus.UNKNOWN)}
+        assert system.materialize_lifted_assertions((assertion,)) == ()
+        assert system.effective_assumptions("ctx_child") == ()
 
     @pytest.mark.property
     @given(

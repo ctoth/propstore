@@ -242,16 +242,6 @@ class LiftingSystem:
         object.__setattr__(self, "context_assumptions", assumptions)
         object.__setattr__(self, "_context_ids", context_ids)
 
-    def can_lift(self, source: ContextId | str, target: ContextId | str) -> bool:
-        source_id = to_context_id(source)
-        target_id = to_context_id(target)
-        if source_id == target_id:
-            return True
-        return any(
-            rule.source.id == source_id and rule.target.id == target_id
-            for rule in self.lifting_rules
-        )
-
     def effective_assumptions(self, target: ContextId | str) -> tuple[CelExpr, ...]:
         target_id = to_context_id(target)
         return tuple(dict.fromkeys(self.context_assumptions.get(target_id, ())))

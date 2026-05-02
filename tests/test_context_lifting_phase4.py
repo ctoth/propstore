@@ -168,6 +168,8 @@ def test_nested_ist_proposition_round_trips_context_stack(context_ids: list[str]
 def test_lifting_system_is_explicit_rule_based() -> None:
     from propstore.core.assertions import ContextReference
     from propstore.context_lifting import (
+        IstProposition,
+        LiftingDecisionStatus,
         LiftingMode,
         LiftingRule,
         LiftingSystem,
@@ -187,6 +189,25 @@ def test_lifting_system_is_explicit_rule_based() -> None:
         ),
     )
 
-    assert system.can_lift("ctx_source", "ctx_target")
-    assert not system.can_lift("ctx_target", "ctx_source")
+    forward_decisions = system.lift_decisions_between(
+        "ctx_source",
+        "ctx_target",
+        "claim_source",
+    )
+    reverse_decisions = system.lift_decisions_between(
+        "ctx_target",
+        "ctx_source",
+        "claim_source",
+    )
+
+    assert tuple(decision.status for decision in forward_decisions) == (
+        LiftingDecisionStatus.UNKNOWN,
+    )
+    assert reverse_decisions == ()
+    assert system.materialize_lifted_assertions((
+        IstProposition(
+            context=ContextReference("ctx_source"),
+            proposition_id="claim_source",
+        ),
+    )) == ()
     assert system.effective_assumptions("ctx_target") == ()
