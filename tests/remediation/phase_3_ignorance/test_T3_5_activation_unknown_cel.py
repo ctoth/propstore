@@ -7,7 +7,7 @@ import pytest
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.activation import UnknownConceptInCEL, is_active_claim_active
 from propstore.core.environment import Environment
-from propstore.z3_conditions import Z3ConditionSolver
+from propstore.core.conditions.solver import ConditionSolver
 
 
 def test_unknown_cel_identifier_raises_with_context() -> None:
@@ -23,7 +23,7 @@ def test_unknown_cel_identifier_raises_with_context() -> None:
         is_active_claim_active(
             claim,
             environment=Environment(bindings={"framework": "general"}),
-            solver=Z3ConditionSolver({}),
+            solver=ConditionSolver({}),
         )
 
     assert "some_unknown_concept" in str(ei.value)
