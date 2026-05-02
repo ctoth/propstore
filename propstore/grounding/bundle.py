@@ -70,6 +70,40 @@ def _build_empty_sections() -> Mapping[str, Mapping[str, frozenset[tuple[Scalar,
 
 
 @dataclass(frozen=True)
+class GroundingProjectionFrame:
+    backend_atom: GroundAtom
+    backend_atom_id: str
+    section: str
+    source_rule_ids: tuple[str, ...] = ()
+    source_fact_ids: tuple[str, ...] = ()
+    substitutions: tuple[tuple[tuple[str, Scalar], ...], ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "section", str(self.section))
+        object.__setattr__(
+            self,
+            "source_rule_ids",
+            tuple(sorted({str(rule_id) for rule_id in self.source_rule_ids})),
+        )
+        object.__setattr__(
+            self,
+            "source_fact_ids",
+            tuple(sorted({str(fact_id) for fact_id in self.source_fact_ids})),
+        )
+        object.__setattr__(
+            self,
+            "substitutions",
+            tuple(
+                tuple(
+                    (str(name), value)
+                    for name, value in substitution
+                )
+                for substitution in self.substitutions
+            ),
+        )
+
+
+@dataclass(frozen=True)
 class GroundedRulesBundle:
     """Immutable record of one grounding-pipeline invocation.
 
@@ -111,6 +145,7 @@ class GroundedRulesBundle:
     sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]
     arguments: tuple["Argument", ...] = field(default_factory=tuple)
     grounding_inspection: "GroundingInspection | None" = None
+    projection_frames: tuple[GroundingProjectionFrame, ...] = field(default_factory=tuple)
     status: str = "complete"
     budget_reason: str | None = None
 
