@@ -6,6 +6,8 @@ from propstore.core.conditions.checked import (
     CheckedCondition,
     CheckedConditionSet,
     checked_condition_set,
+    checked_condition_set_from_json,
+    checked_condition_set_to_json,
 )
 from propstore.core.conditions.codec import condition_ir_from_json, condition_ir_to_json
 from propstore.core.conditions.estree_backend import (
@@ -109,6 +111,8 @@ __all__ = [
     "Z3TranslationError",
     "Z3UnknownError",
     "checked_condition_set",
+    "checked_condition_set_from_json",
+    "checked_condition_set_to_json",
     "condition_ir_from_json",
     "condition_ir_to_estree",
     "condition_ir_to_json",
