@@ -89,7 +89,7 @@ def test_argumentation_dependency_uses_remote_git_source() -> None:
     text = pyproject.read_text(encoding="utf-8")
 
     assert '"formal-argumentation",' in text
-    assert 'formal-argumentation = { git = "https://github.com/ctoth/argumentation.git" }' in text
+    assert 'formal-argumentation = { git = "https://github.com/ctoth/argumentation.git", rev = "' in text
     assert "formal-argumentation @" not in text
     assert "file:" not in text
     assert "../argumentation" not in text
