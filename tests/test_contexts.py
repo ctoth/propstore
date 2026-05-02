@@ -371,10 +371,10 @@ class TestContextSidecar:
 class TestBoundWorldContextLifting:
     class _Store:
         def __init__(self, claims: list[dict]) -> None:
-            from propstore.z3_conditions import Z3ConditionSolver
+            from propstore.core.conditions.solver import ConditionSolver
 
             self._claims = claims
-            self._solver = Z3ConditionSolver({})
+            self._solver = ConditionSolver({})
 
         def claims_for(self, concept_id):
             return [
