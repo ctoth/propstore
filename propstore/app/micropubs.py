@@ -45,10 +45,6 @@ class MicropubLiftReport:
     target_context: str
     decisions: tuple[MicropubLiftDecisionItem, ...]
 
-    @property
-    def liftable(self) -> bool:
-        return any(decision.status == "lifted" for decision in self.decisions)
-
 
 @dataclass(frozen=True)
 class MicropubListItem:

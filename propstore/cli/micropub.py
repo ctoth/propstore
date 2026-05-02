@@ -81,7 +81,7 @@ def lift(obj: dict, artifact_id: str, target_context: str) -> None:
         )
     except MicropubNotFoundError as exc:
         fail(exc)
-    if not report.liftable:
+    if not any(decision.status == "lifted" for decision in report.decisions):
         emit(
             f"no lifted decision: {report.artifact_id} {report.source_context} -> {report.target_context}"
         )

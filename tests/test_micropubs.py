@@ -83,11 +83,9 @@ def test_micropub_reports_load_find_and_lift(tmp_path) -> None:
     assert entry.ref.name == "demo"
     assert entry.document.context.id == "ctx_source"
     assert [(item.bundle, item.artifact_id) for item in items] == [("demo", "ps:micropub:test")]
-    assert lift.liftable is True
     assert [(decision.proposition_id, decision.status) for decision in lift.decisions] == [
         ("claim:one", "lifted"),
     ]
-    assert reverse.liftable is False
     assert reverse.decisions == ()
 
 

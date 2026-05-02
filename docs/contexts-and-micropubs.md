@@ -31,7 +31,7 @@ These notes cite the processed paper artifacts under `papers/`. This closure sli
 
 `ClaimDocument` requires a `context: ContextReference`. Nested `ist` propositions are represented at the document boundary with atomic and recursive proposition variants, so storage can express `ist(c1, ist(c2, p))` without inventing a second claim language.
 
-`context_hierarchy.py` is gone. Runtime context activation uses `context_lifting.py` and `LiftingSystem`; authored contexts do not inherit visibility by ancestry. A claim active by context lifting is active because an explicit rule permits movement between contexts.
+`context_hierarchy.py` is gone. Runtime context activation uses `context_lifting.py` and `LiftingSystem`; authored contexts do not inherit visibility by ancestry. Context movement is represented as typed lifting decisions over `ist(source, proposition) -> ist(target, proposition)`. A lifted assertion is materialized only for a `lifted` decision; `blocked` and `unknown` decisions remain provenance and inspection records.
 
 ## Micropublication Flow
 

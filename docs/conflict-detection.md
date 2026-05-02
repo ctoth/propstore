@@ -186,7 +186,7 @@ Only "real" conflict classes produce defeats:
 | `OVERLAP` | Yes | Partial disagreement, conservative treatment |
 | `PARAM_CONFLICT` | Yes | Derivation chain contradiction |
 | `PHI_NODE` | No | Not a real disagreement -- different regimes |
-| `CONTEXT_PHI_NODE` | No | Not a real disagreement -- non-liftable contexts |
+| `CONTEXT_PHI_NODE` | No | Not a real disagreement -- no applicable lifted decision in either direction |
 | `COMPATIBLE` | No | Not recorded at all |
 
 ### Defeat generation
