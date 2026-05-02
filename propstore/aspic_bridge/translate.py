@@ -334,17 +334,19 @@ def build_preference_config(
     if unknown_rule_pairs:
         raise ValueError("rule_order contains rules outside defeasible_rules")
 
-    claim_ids = [
-        str(key.proposition_id)
-        for key in literals
-        if isinstance(key, IstLiteralKey) and str(key.proposition_id) in claim_by_id
+    claim_keys = [
+        _claim_literal_key(claim)
+        for claim in normalized_claims
+        if _claim_literal_key(claim) in literals
     ]
-    for index, claim_id_a in enumerate(claim_ids):
-        for claim_id_b in claim_ids[index + 1 :]:
+    for index, key_a in enumerate(claim_keys):
+        for key_b in claim_keys[index + 1 :]:
+            claim_id_a = str(key_a.proposition_id)
+            claim_id_b = str(key_b.proposition_id)
             vec_a = metadata_strength_vector(claim_by_id[claim_id_a])
             vec_b = metadata_strength_vector(claim_by_id[claim_id_b])
-            lit_a = literals[_literal_key_for_proposition(claim_id_a, literals)]
-            lit_b = literals[_literal_key_for_proposition(claim_id_b, literals)]
+            lit_a = literals[key_a]
+            lit_b = literals[key_b]
 
             if _component_wise_dominates(vec_a, vec_b):
                 premise_order.add((lit_a, lit_b))
