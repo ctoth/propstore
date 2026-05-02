@@ -1,22 +1,56 @@
 """CEL condition expression type-checker for the propstore concept registry.
 
-Parses a subset of CEL sufficient for the condition expressions used in
-concept relationships and parameterization relationships. Type-checks
-every name reference against the concept registry's kind system.
+Parses CEL via the `cel_parser` package and type-checks every name reference
+against the concept registry's kind system. The parser produces a proto-faithful
+AST where every operator is a `Call(function="_+_", target=None, args=...)`;
+this module dispatches on those canonical function names.
 
-The expressions are simple: comparisons, arithmetic, &&, ||, in-lists.
-We parse a sufficient subset rather than implementing full CEL.
+For the wider concept-typing API surface (`KindType`, `ConceptInfo`,
+`check_cel_expr`, `check_cel_condition_set`, `cel_registry_fingerprint`,
+`scope_cel_registry`, `with_synthetic_concepts`, `synthetic_category_concept`,
+`with_standard_synthetic_bindings`), see the public functions below.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+
+from cel_parser import (
+    OP_ADD,
+    OP_AND,
+    OP_DIV,
+    OP_EQ,
+    OP_GE,
+    OP_GT,
+    OP_IN,
+    OP_LE,
+    OP_LT,
+    OP_MOD,
+    OP_MUL,
+    OP_NE,
+    OP_NEG,
+    OP_NOT,
+    OP_OR,
+    OP_SUB,
+    OP_TERNARY,
+    BoolLit,
+    BytesLit,
+    Call,
+    CreateList,
+    DoubleLit,
+    Expr,
+    Ident,
+    IntLit,
+    NullLit,
+    ParseError,
+    StringLit,
+    UintLit,
+    parse,
+)
 
 from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES as _STANDARD_SYNTHETIC_BINDING_NAMES
 from propstore.cel_types import (
@@ -41,12 +75,13 @@ class KindType(Enum):
 @dataclass
 class ConceptInfo:
     """Minimal concept info needed for type-checking."""
+
     id: str
     canonical_name: str
     kind: KindType
-    # For category kinds: the valid value set
     category_values: list[str] = field(default_factory=list)
     category_extensible: bool = True
+
 
 def scope_cel_registry(
     registry: Mapping[str, ConceptInfo],
@@ -119,415 +154,21 @@ class CelError:
         return f"{prefix}: {self.message} in expression: {self.expression}"
 
 
-@dataclass(frozen=True)
-class CelSourceSpan:
-    start: int
-    end: int
-
-    def __post_init__(self) -> None:
-        if self.start < 0:
-            raise ValueError("CEL source span start must be non-negative")
-        if self.end < self.start:
-            raise ValueError("CEL source span end must not precede start")
-
-
-# ── Tokenizer ────────────────────────────────────────────────────────
-
-class TokenType(Enum):
-    NAME = "NAME"
-    INT_LIT = "INT_LIT"
-    FLOAT_LIT = "FLOAT_LIT"
-    STRING_LIT = "STRING_LIT"
-    BOOL_LIT = "BOOL_LIT"
-    OP = "OP"          # +, -, *, /, ==, !=, <, >, <=, >=, &&, ||, !
-    LPAREN = "LPAREN"
-    RPAREN = "RPAREN"
-    LBRACKET = "LBRACKET"
-    RBRACKET = "RBRACKET"
-    COMMA = "COMMA"
-    IN = "IN"
-    QUESTION = "QUESTION"
-    COLON = "COLON"
-    EOF = "EOF"
-
-
-@dataclass
-class Token:
-    type: TokenType
-    value: Any
-    pos: int
-    end: int
-
-
-_TOKEN_PATTERNS = [
-    (r'\s+', None),  # skip whitespace
-    (r'&&', TokenType.OP),
-    (r'\|\|', TokenType.OP),
-    (r'==', TokenType.OP),
-    (r'!=', TokenType.OP),
-    (r'<=', TokenType.OP),
-    (r'>=', TokenType.OP),
-    (r'<', TokenType.OP),
-    (r'>', TokenType.OP),
-    (r'[+\-*/]', TokenType.OP),
-    (r'!', TokenType.OP),
-    (r'\(', TokenType.LPAREN),
-    (r'\)', TokenType.RPAREN),
-    (r'\[', TokenType.LBRACKET),
-    (r'\]', TokenType.RBRACKET),
-    (r',', TokenType.COMMA),
-    (r'\?', TokenType.QUESTION),
-    (r':', TokenType.COLON),
-    (r'"(?:[^"\\]|\\.)*"', TokenType.STRING_LIT),
-    (r"'(?:[^'\\]|\\.)*'", TokenType.STRING_LIT),
-    (r'(?:\d+\.\d*|\.\d+|\d+)[eE][+-]?\d+|\d+\.\d*|\.\d+', TokenType.FLOAT_LIT),
-    (r'\d+', TokenType.INT_LIT),
-    (r'[a-zA-Z_][a-zA-Z0-9_]*', TokenType.NAME),
-]
-
-_COMPILED_PATTERNS = [(re.compile(p), t) for p, t in _TOKEN_PATTERNS]
-
-
-_CEL_SIMPLE_ESCAPES = {
-    "\\": "\\",
-    "?": "?",
-    '"': '"',
-    "'": "'",
-    "`": "`",
-    "a": "\a",
-    "b": "\b",
-    "f": "\f",
-    "n": "\n",
-    "r": "\r",
-    "t": "\t",
-    "v": "\v",
-}
-
-
-def _decode_cel_code_point(value: int) -> str:
-    if value > 0x10FFFF or 0xD800 <= value <= 0xDFFF:
-        raise ValueError(f"Invalid CEL Unicode code point: {value:#x}")
-    return chr(value)
-
-
-def _decode_cel_string_literal(literal: str) -> str:
-    """Decode a quoted CEL string literal.
-
-    CEL langdef.md String and Bytes Values defines punctuation, whitespace,
-    hex, Unicode, and three-digit octal escapes. Raw/triple/bytes literals
-    are outside this parser subset.
-    """
-    body = literal[1:-1]
-    chars: list[str] = []
-    pos = 0
-    while pos < len(body):
-        char = body[pos]
-        if char in "\r\n":
-            raise ValueError("CEL quoted string literals cannot contain raw newlines")
-        if char != "\\":
-            chars.append(char)
-            pos += 1
-            continue
-
-        pos += 1
-        if pos >= len(body):
-            raise ValueError("CEL string literal ends with a backslash")
-        escape = body[pos]
-        if escape in _CEL_SIMPLE_ESCAPES:
-            chars.append(_CEL_SIMPLE_ESCAPES[escape])
-            pos += 1
-            continue
-        if escape in {"x", "X"}:
-            digits = body[pos + 1:pos + 3]
-            if len(digits) != 2 or not re.fullmatch(r"[0-9a-fA-F]{2}", digits):
-                raise ValueError("CEL \\x escape requires two hexadecimal digits")
-            chars.append(_decode_cel_code_point(int(digits, 16)))
-            pos += 3
-            continue
-        if escape == "u":
-            digits = body[pos + 1:pos + 5]
-            if len(digits) != 4 or not re.fullmatch(r"[0-9a-fA-F]{4}", digits):
-                raise ValueError("CEL \\u escape requires four hexadecimal digits")
-            chars.append(_decode_cel_code_point(int(digits, 16)))
-            pos += 5
-            continue
-        if escape == "U":
-            digits = body[pos + 1:pos + 9]
-            if len(digits) != 8 or not re.fullmatch(r"[0-9a-fA-F]{8}", digits):
-                raise ValueError("CEL \\U escape requires eight hexadecimal digits")
-            chars.append(_decode_cel_code_point(int(digits, 16)))
-            pos += 9
-            continue
-        if escape in "01234567":
-            digits = body[pos:pos + 3]
-            if len(digits) != 3 or not re.fullmatch(r"[0-7]{3}", digits):
-                raise ValueError("CEL octal escape requires three octal digits")
-            value = int(digits, 8)
-            if value > 0o377:
-                raise ValueError("CEL octal escape must be in range 000 to 377")
-            chars.append(chr(value))
-            pos += 3
-            continue
-        raise ValueError(f"Invalid CEL escape sequence: \\{escape}")
-    return "".join(chars)
-
-
-def tokenize(expr: str) -> list[Token]:
-    tokens: list[Token] = []
-    pos = 0
-    while pos < len(expr):
-        matched = False
-        for pattern, token_type in _COMPILED_PATTERNS:
-            m = pattern.match(expr, pos)
-            if m:
-                if token_type is not None:
-                    val = m.group()
-                    if token_type == TokenType.NAME:
-                        if val == "true" or val == "false":
-                            token_type = TokenType.BOOL_LIT
-                            val = val == "true"
-                        elif val == "in":
-                            token_type = TokenType.IN
-                    elif token_type == TokenType.STRING_LIT:
-                        val = _decode_cel_string_literal(val)
-                    elif token_type == TokenType.INT_LIT:
-                        if m.end() < len(expr) and re.match(r"[A-Za-z_]", expr[m.end()]):
-                            raise ValueError(
-                                f"Invalid numeric literal at position {pos}: {expr[pos:]!r}"
-                            )
-                        val = int(val)
-                    elif token_type == TokenType.FLOAT_LIT:
-                        if m.end() < len(expr) and re.match(r"[A-Za-z_]", expr[m.end()]):
-                            raise ValueError(
-                                f"Invalid numeric literal at position {pos}: {expr[pos:]!r}"
-                            )
-                        val = float(val)
-                    tokens.append(Token(token_type, val, pos, m.end()))
-                pos = m.end()
-                matched = True
-                break
-        if not matched:
-            raise ValueError(f"Unexpected character at position {pos}: {expr[pos:]!r}")
-    tokens.append(Token(TokenType.EOF, None, pos, pos))
-    return tokens
-
-
-# ── Parser → AST ─────────────────────────────────────────────────────
-# Recursive descent. Produces a simple AST for type-checking.
-
-class ASTNode:
-    span: CelSourceSpan
-
-
-@dataclass
-class NameNode(ASTNode):
-    name: str
-    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
-
-
-@dataclass
-class LiteralNode(ASTNode):
-    value: Any
-    lit_type: str  # "int", "float", "string", "bool"
-    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
-
-
-@dataclass
-class BinaryOpNode(ASTNode):
-    op: str
-    left: ASTNode
-    right: ASTNode
-    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
-
-
-@dataclass
-class UnaryOpNode(ASTNode):
-    op: str
-    operand: ASTNode
-    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
-
-
-@dataclass
-class InNode(ASTNode):
-    """name in [list]"""
-    expr: ASTNode
-    values: list[ASTNode]
-    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
-
-
-@dataclass
-class TernaryNode(ASTNode):
-    condition: ASTNode
-    true_branch: ASTNode
-    false_branch: ASTNode
-    span: CelSourceSpan = field(default_factory=lambda: CelSourceSpan(0, 0))
-
-
-class Parser:
-    def __init__(self, tokens: list[Token]):
-        self.tokens = tokens
-        self.pos = 0
-
-    def peek(self) -> Token:
-        return self.tokens[self.pos]
-
-    def advance(self) -> Token:
-        t = self.tokens[self.pos]
-        self.pos += 1
-        return t
-
-    def expect(self, token_type: TokenType) -> Token:
-        t = self.advance()
-        if t.type != token_type:
-            raise ValueError(f"Expected {token_type}, got {t.type} ({t.value!r})")
-        return t
-
-    def parse(self) -> ASTNode:
-        node = self.parse_ternary()
-        if self.peek().type != TokenType.EOF:
-            raise ValueError(f"Unexpected token after expression: {self.peek().value!r}")
-        return node
-
-    def parse_ternary(self) -> ASTNode:
-        node = self.parse_or()
-        if self.peek().type == TokenType.QUESTION:
-            self.advance()
-            true_branch = self.parse_ternary()
-            self.expect(TokenType.COLON)
-            false_branch = self.parse_ternary()
-            return TernaryNode(
-                node,
-                true_branch,
-                false_branch,
-                span=_covering_span(node, false_branch),
-            )
-        return node
-
-    def parse_or(self) -> ASTNode:
-        left = self.parse_and()
-        while self.peek().type == TokenType.OP and self.peek().value == "||":
-            self.advance()
-            right = self.parse_and()
-            left = BinaryOpNode("||", left, right, span=_covering_span(left, right))
-        return left
-
-    def parse_and(self) -> ASTNode:
-        left = self.parse_comparison()
-        while self.peek().type == TokenType.OP and self.peek().value == "&&":
-            self.advance()
-            right = self.parse_comparison()
-            left = BinaryOpNode("&&", left, right, span=_covering_span(left, right))
-        return left
-
-    def parse_comparison(self) -> ASTNode:
-        left = self.parse_additive()
-        if self.peek().type == TokenType.OP and self.peek().value in ("==", "!=", "<", ">", "<=", ">="):
-            op = self.advance().value
-            right = self.parse_additive()
-            return BinaryOpNode(op, left, right, span=_covering_span(left, right))
-        if self.peek().type == TokenType.IN:
-            self.advance()
-            self.expect(TokenType.LBRACKET)
-            values = []
-            if self.peek().type != TokenType.RBRACKET:
-                values.append(self.parse_primary())
-                while self.peek().type == TokenType.COMMA:
-                    self.advance()
-                    values.append(self.parse_primary())
-            self.expect(TokenType.RBRACKET)
-            right_edge = values[-1] if values else left
-            return InNode(left, values, span=_covering_span(left, right_edge))
-        return left
-
-    def parse_additive(self) -> ASTNode:
-        left = self.parse_multiplicative()
-        while self.peek().type == TokenType.OP and self.peek().value in ("+", "-"):
-            op = self.advance().value
-            right = self.parse_multiplicative()
-            left = BinaryOpNode(op, left, right, span=_covering_span(left, right))
-        return left
-
-    def parse_multiplicative(self) -> ASTNode:
-        left = self.parse_unary()
-        while self.peek().type == TokenType.OP and self.peek().value in ("*", "/"):
-            op = self.advance().value
-            right = self.parse_unary()
-            left = BinaryOpNode(op, left, right, span=_covering_span(left, right))
-        return left
-
-    def parse_unary(self) -> ASTNode:
-        if self.peek().type == TokenType.OP and self.peek().value == "!":
-            op = self.advance()
-            operand = self.parse_unary()
-            return UnaryOpNode(
-                "!",
-                operand,
-                span=CelSourceSpan(op.pos, operand.span.end),
-            )
-        if self.peek().type == TokenType.OP and self.peek().value == "-":
-            op = self.advance()
-            operand = self.parse_unary()
-            return UnaryOpNode(
-                "-",
-                operand,
-                span=CelSourceSpan(op.pos, operand.span.end),
-            )
-        return self.parse_primary()
-
-    def parse_primary(self) -> ASTNode:
-        t = self.peek()
-        if t.type == TokenType.NAME:
-            self.advance()
-            return NameNode(t.value, span=CelSourceSpan(t.pos, t.end))
-        if t.type == TokenType.INT_LIT:
-            self.advance()
-            return LiteralNode(t.value, "int", span=CelSourceSpan(t.pos, t.end))
-        if t.type == TokenType.FLOAT_LIT:
-            self.advance()
-            return LiteralNode(t.value, "float", span=CelSourceSpan(t.pos, t.end))
-        if t.type == TokenType.STRING_LIT:
-            self.advance()
-            return LiteralNode(t.value, "string", span=CelSourceSpan(t.pos, t.end))
-        if t.type == TokenType.BOOL_LIT:
-            self.advance()
-            return LiteralNode(t.value, "bool", span=CelSourceSpan(t.pos, t.end))
-        if t.type == TokenType.LPAREN:
-            self.advance()
-            node = self.parse_ternary()
-            self.expect(TokenType.RPAREN)
-            return node
-        raise ValueError(f"Unexpected token: {t.type} ({t.value!r}) at position {t.pos}")
-
-
-def _covering_span(left: ASTNode, right: ASTNode) -> CelSourceSpan:
-    return CelSourceSpan(left.span.start, right.span.end)
-
-
-def parse_cel(expr: str | CelExpr) -> ASTNode:
-    tokens = tokenize(str(expr))
-    parser = Parser(tokens)
-    return parser.parse()
-
-
-def parse_cel_expr(expr: str | CelExpr) -> ParsedCelExpr:
-    source = to_cel_expr(expr)
-    return ParsedCelExpr(source=source, ast=parse_cel(source))
-
-
 # ── Type Checker ─────────────────────────────────────────────────────
 
-# Type results from sub-expressions
+
 class ExprType(Enum):
     NUMERIC = "numeric"
     STRING = "string"
     BOOLEAN = "boolean"
-    UNKNOWN = "unknown"  # for mixed/error cases
+    UNKNOWN = "unknown"
 
 
-ARITHMETIC_OPS = {"+", "-", "*", "/"}
-ORDERING_OPS = {"<", ">", "<=", ">="}
-EQUALITY_OPS = {"==", "!="}
-LOGICAL_OPS = {"&&", "||"}
+# Canonical operator function names grouped by category.
+ARITHMETIC_FUNCTIONS = {OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD}
+ORDERING_FUNCTIONS = {OP_LT, OP_LE, OP_GT, OP_GE}
+EQUALITY_FUNCTIONS = {OP_EQ, OP_NE}
+LOGICAL_FUNCTIONS = {OP_AND, OP_OR}
 
 _DISALLOWED_KIND_USAGE: dict[str, dict[KindType, str]] = {
     "arithmetic": {
@@ -547,24 +188,25 @@ def check_cel_expression(
 ) -> list[CelError]:
     """Type-check a CEL expression against the concept registry.
 
-    Args:
-        expr: CEL expression string
-        registry: mapping from canonical_name to ConceptInfo
-
-    Returns:
-        List of errors/warnings. Empty list means the expression is valid.
+    Returns a list of errors/warnings; empty means the expression is valid.
     """
     source = to_cel_expr(expr)
     errors: list[CelError] = []
 
     try:
-        ast = parse_cel(source)
-    except ValueError as e:
-        errors.append(CelError(str(source), f"Parse error: {e}"))
+        ast = parse(str(source))
+    except ParseError as exc:
+        errors.append(CelError(str(source), f"Parse error: {exc}"))
         return errors
 
     _check_node(ast, str(source), registry, errors)
     return errors
+
+
+def parse_cel_expr(expr: str | CelExpr) -> ParsedCelExpr:
+    """Parse CEL source and brand it as `ParsedCelExpr`."""
+    source = to_cel_expr(expr)
+    return ParsedCelExpr(source=source, ast=parse(str(source)))
 
 
 def cel_registry_fingerprint(
@@ -593,8 +235,8 @@ def check_cel_expr(
     """Parse and type-check one CEL expression, returning a checked carrier."""
     source = to_cel_expr(expr)
     try:
-        ast = parse_cel(source)
-    except ValueError as exc:
+        ast = parse(str(source))
+    except ParseError as exc:
         raise ValueError(f"Parse error: {exc}") from exc
     errors: list[CelError] = []
     _check_node(ast, str(source), registry, errors)
@@ -615,10 +257,7 @@ def check_cel_condition_set(
     registry: Mapping[str, ConceptInfo],
 ) -> CheckedCelConditionSet:
     """Parse, type-check, deduplicate, and sort a conjunction of CEL conditions."""
-    checked = [
-        check_cel_expr(condition, registry)
-        for condition in conditions
-    ]
+    checked = [check_cel_expr(condition, registry) for condition in conditions]
     if not checked:
         return CheckedCelConditionSet(
             conditions=(),
@@ -627,24 +266,77 @@ def check_cel_condition_set(
     return checked_condition_set(checked)
 
 
-def _resolve_type(node: ASTNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> ExprType:
-    """Determine the type of an AST node and accumulate errors."""
-    if isinstance(node, LiteralNode):
-        if node.lit_type in ("int", "float"):
-            return ExprType.NUMERIC
-        if node.lit_type == "string":
-            return ExprType.STRING
-        if node.lit_type == "bool":
-            return ExprType.BOOLEAN
+# ── AST inspection helpers ───────────────────────────────────────────
+
+
+def _is_unary_call(node: Expr, function: str) -> bool:
+    return (
+        isinstance(node, Call)
+        and node.target is None
+        and node.function == function
+        and len(node.args) == 1
+    )
+
+
+def _is_binary_call(node: Expr, function: str) -> bool:
+    return (
+        isinstance(node, Call)
+        and node.target is None
+        and node.function == function
+        and len(node.args) == 2
+    )
+
+
+def _is_in_call(node: Expr) -> bool:
+    return (
+        isinstance(node, Call)
+        and node.target is None
+        and node.function == OP_IN
+        and len(node.args) == 2
+    )
+
+
+def _is_ternary_call(node: Expr) -> bool:
+    return (
+        isinstance(node, Call)
+        and node.target is None
+        and node.function == OP_TERNARY
+        and len(node.args) == 3
+    )
+
+
+# ── Type resolution ──────────────────────────────────────────────────
+
+
+def _resolve_type(
+    node: Expr,
+    expr: str,
+    registry: Mapping[str, ConceptInfo],
+    errors: list[CelError],
+) -> ExprType:
+    if isinstance(node, (IntLit, DoubleLit, UintLit)):
+        return ExprType.NUMERIC
+    if isinstance(node, StringLit):
+        return ExprType.STRING
+    if isinstance(node, BytesLit):
+        return ExprType.STRING
+    if isinstance(node, BoolLit):
+        return ExprType.BOOLEAN
+    if isinstance(node, NullLit):
         return ExprType.UNKNOWN
 
-    if isinstance(node, NameNode):
+    if isinstance(node, Ident):
         info = registry.get(node.name)
         if info is None:
             errors.append(CelError(expr, f"Undefined concept: '{node.name}'"))
             return ExprType.UNKNOWN
         if info.kind == KindType.STRUCTURAL:
-            errors.append(CelError(expr, f"Structural concept '{node.name}' cannot appear in CEL expressions"))
+            errors.append(
+                CelError(
+                    expr,
+                    f"Structural concept '{node.name}' cannot appear in CEL expressions",
+                )
+            )
             return ExprType.UNKNOWN
         if info.kind in (KindType.QUANTITY, KindType.TIMEPOINT):
             return ExprType.NUMERIC
@@ -654,151 +346,235 @@ def _resolve_type(node: ASTNode, expr: str, registry: Mapping[str, ConceptInfo],
             return ExprType.BOOLEAN
         return ExprType.UNKNOWN
 
-    if isinstance(node, UnaryOpNode):
-        if node.op == "!":
-            inner = _resolve_type(node.operand, expr, registry, errors)
-            if inner == ExprType.UNKNOWN:
-                return ExprType.UNKNOWN
-            if inner != ExprType.BOOLEAN:
-                errors.append(CelError(expr, f"Operand of '!' must be boolean, got {inner.value}"))
-                return ExprType.UNKNOWN
-            return ExprType.BOOLEAN
-        if node.op == "-":
-            inner = _resolve_type(node.operand, expr, registry, errors)
-            if inner == ExprType.UNKNOWN:
-                return ExprType.UNKNOWN
-            if inner != ExprType.NUMERIC:
-                errors.append(CelError(expr, f"Operand of unary '-' must be numeric, got {inner.value}"))
-                return ExprType.UNKNOWN
-            return ExprType.NUMERIC
-
-    if isinstance(node, BinaryOpNode):
-        return _check_binary(node, expr, registry, errors)
-
-    if isinstance(node, InNode):
-        return _check_in(node, expr, registry, errors)
-
-    if isinstance(node, TernaryNode):
-        condition_type = _resolve_type(node.condition, expr, registry, errors)
-        if condition_type not in {ExprType.BOOLEAN, ExprType.UNKNOWN}:
-            errors.append(CelError(expr, f"Ternary condition must be boolean, got {condition_type.value}"))
-        t1 = _resolve_type(node.true_branch, expr, registry, errors)
-        t2 = _resolve_type(node.false_branch, expr, registry, errors)
-        if t1 == ExprType.UNKNOWN or t2 == ExprType.UNKNOWN:
+    if _is_unary_call(node, OP_NOT):
+        assert isinstance(node, Call)
+        inner = _resolve_type(node.args[0], expr, registry, errors)
+        if inner == ExprType.UNKNOWN:
             return ExprType.UNKNOWN
-        if t1 != t2:
-            errors.append(CelError(expr, f"Ternary branches must have the same type, got {t1.value} and {t2.value}"))
+        if inner != ExprType.BOOLEAN:
+            errors.append(
+                CelError(expr, f"Operand of '!' must be boolean, got {inner.value}")
+            )
             return ExprType.UNKNOWN
-        return t1
-
-    return ExprType.UNKNOWN
-
-
-def _check_binary(node: BinaryOpNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> ExprType:
-    left_type = _resolve_type(node.left, expr, registry, errors)
-    right_type = _resolve_type(node.right, expr, registry, errors)
-
-    if node.op in LOGICAL_OPS:
-        # Both sides must be boolean-compatible
-        _bool_compatible = {ExprType.BOOLEAN, ExprType.UNKNOWN}
-        if left_type not in _bool_compatible:
-            errors.append(CelError(expr, f"Left operand of '{node.op}' must be boolean, got {left_type.value}"))
-        if right_type not in _bool_compatible:
-            errors.append(CelError(expr, f"Right operand of '{node.op}' must be boolean, got {right_type.value}"))
         return ExprType.BOOLEAN
-
-    if node.op in ARITHMETIC_OPS:
-        _check_disallowed_kind_usage(
-            node.left, expr, registry, errors, operation_class="arithmetic"
-        )
-        _check_disallowed_kind_usage(
-            node.right, expr, registry, errors, operation_class="arithmetic"
-        )
+    if _is_unary_call(node, OP_NEG):
+        assert isinstance(node, Call)
+        inner = _resolve_type(node.args[0], expr, registry, errors)
+        if inner == ExprType.UNKNOWN:
+            return ExprType.UNKNOWN
+        if inner != ExprType.NUMERIC:
+            errors.append(
+                CelError(
+                    expr,
+                    f"Operand of unary '-' must be numeric, got {inner.value}",
+                )
+            )
+            return ExprType.UNKNOWN
         return ExprType.NUMERIC
 
-    if node.op in ORDERING_OPS:
-        _check_disallowed_kind_usage(
-            node.left, expr, registry, errors, operation_class="ordering comparison"
-        )
-        _check_disallowed_kind_usage(
-            node.right, expr, registry, errors, operation_class="ordering comparison"
-        )
-        _check_comparison_type_mismatch(
-            node.left,
-            node.right,
-            left_type,
-            right_type,
-            expr,
-            registry,
-            errors,
-        )
-        return ExprType.BOOLEAN
+    if _is_in_call(node):
+        assert isinstance(node, Call)
+        return _check_in_call(node, expr, registry, errors)
 
-    if node.op in EQUALITY_OPS:
-        _check_comparison_type_mismatch(
-            node.left,
-            node.right,
-            left_type,
-            right_type,
-            expr,
-            registry,
-            errors,
-        )
-        # Check category value sets
-        _check_category_value(node.left, node.right, expr, registry, errors)
-        _check_category_value(node.right, node.left, expr, registry, errors)
-        return ExprType.BOOLEAN
+    if _is_ternary_call(node):
+        assert isinstance(node, Call)
+        return _check_ternary_call(node, expr, registry, errors)
+
+    if isinstance(node, Call) and node.target is None and len(node.args) == 2:
+        if node.function in LOGICAL_FUNCTIONS:
+            return _check_logical(node, expr, registry, errors)
+        if node.function in ARITHMETIC_FUNCTIONS:
+            return _check_arithmetic(node, expr, registry, errors)
+        if node.function in ORDERING_FUNCTIONS:
+            return _check_ordering(node, expr, registry, errors)
+        if node.function in EQUALITY_FUNCTIONS:
+            return _check_equality(node, expr, registry, errors)
 
     return ExprType.UNKNOWN
 
 
-def _check_in(node: InNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> ExprType:
-    """Type-check 'x in [a, b, c]'."""
-    _resolve_type(node.expr, expr, registry, errors)
+def _check_logical(
+    node: Call,
+    expr: str,
+    registry: Mapping[str, ConceptInfo],
+    errors: list[CelError],
+) -> ExprType:
+    left, right = node.args
+    left_type = _resolve_type(left, expr, registry, errors)
+    right_type = _resolve_type(right, expr, registry, errors)
+    op = _short_op(node.function)
+    bool_compatible = {ExprType.BOOLEAN, ExprType.UNKNOWN}
+    if left_type not in bool_compatible:
+        errors.append(
+            CelError(expr, f"Left operand of '{op}' must be boolean, got {left_type.value}")
+        )
+    if right_type not in bool_compatible:
+        errors.append(
+            CelError(
+                expr, f"Right operand of '{op}' must be boolean, got {right_type.value}"
+            )
+        )
+    return ExprType.BOOLEAN
 
-    # Check if the LHS is a category concept — validate values against value set
-    if isinstance(node.expr, NameNode):
-        info = registry.get(node.expr.name)
-        if info and info.kind == KindType.CATEGORY:
-            for val_node in node.values:
-                if isinstance(val_node, LiteralNode) and val_node.lit_type == "string":
+
+def _check_arithmetic(
+    node: Call,
+    expr: str,
+    registry: Mapping[str, ConceptInfo],
+    errors: list[CelError],
+) -> ExprType:
+    left, right = node.args
+    _resolve_type(left, expr, registry, errors)
+    _resolve_type(right, expr, registry, errors)
+    _check_disallowed_kind_usage(left, expr, registry, errors, operation_class="arithmetic")
+    _check_disallowed_kind_usage(right, expr, registry, errors, operation_class="arithmetic")
+    return ExprType.NUMERIC
+
+
+def _check_ordering(
+    node: Call,
+    expr: str,
+    registry: Mapping[str, ConceptInfo],
+    errors: list[CelError],
+) -> ExprType:
+    left, right = node.args
+    left_type = _resolve_type(left, expr, registry, errors)
+    right_type = _resolve_type(right, expr, registry, errors)
+    _check_disallowed_kind_usage(
+        left, expr, registry, errors, operation_class="ordering comparison"
+    )
+    _check_disallowed_kind_usage(
+        right, expr, registry, errors, operation_class="ordering comparison"
+    )
+    _check_comparison_type_mismatch(
+        left, right, left_type, right_type, expr, registry, errors
+    )
+    return ExprType.BOOLEAN
+
+
+def _check_equality(
+    node: Call,
+    expr: str,
+    registry: Mapping[str, ConceptInfo],
+    errors: list[CelError],
+) -> ExprType:
+    left, right = node.args
+    left_type = _resolve_type(left, expr, registry, errors)
+    right_type = _resolve_type(right, expr, registry, errors)
+    _check_comparison_type_mismatch(
+        left, right, left_type, right_type, expr, registry, errors
+    )
+    _check_category_value(left, right, expr, registry, errors)
+    _check_category_value(right, left, expr, registry, errors)
+    return ExprType.BOOLEAN
+
+
+def _check_in_call(
+    node: Call,
+    expr: str,
+    registry: Mapping[str, ConceptInfo],
+    errors: list[CelError],
+) -> ExprType:
+    """Type-check `x in [a, b, c]`."""
+    element, list_expr = node.args
+    _resolve_type(element, expr, registry, errors)
+    if not isinstance(list_expr, CreateList):
+        errors.append(
+            CelError(expr, "Right side of 'in' must be a list literal")
+        )
+        return ExprType.BOOLEAN
+    values = list(list_expr.elements)
+
+    if isinstance(element, Ident):
+        info = registry.get(element.name)
+        if info is not None and info.kind == KindType.CATEGORY:
+            for val_node in values:
+                if isinstance(val_node, StringLit):
                     if val_node.value not in info.category_values:
                         if info.category_extensible:
-                            errors.append(CelError(
-                                expr,
-                                f"Value '{val_node.value}' not in value set for category concept '{node.expr.name}' (extensible, may be valid)",
-                                is_warning=True,
-                            ))
+                            errors.append(
+                                CelError(
+                                    expr,
+                                    f"Value '{val_node.value}' not in value set for category concept '{element.name}' (extensible, may be valid)",
+                                    is_warning=True,
+                                )
+                            )
                         else:
-                            errors.append(CelError(
-                                expr,
-                                f"Value '{val_node.value}' not in value set for category concept '{node.expr.name}'",
-                            ))
-        if info and info.kind == KindType.BOOLEAN:
-            errors.append(CelError(expr, f"Boolean concept '{node.expr.name}' cannot be used with 'in' operator"))
-        if info and info.kind in (KindType.QUANTITY, KindType.TIMEPOINT):
-            # quantity/timepoint in [...] is ok for numeric lists
-            for val_node in node.values:
-                if isinstance(val_node, LiteralNode) and val_node.lit_type == "string":
-                    errors.append(CelError(expr, f"String literal in 'in' list for quantity concept '{node.expr.name}'"))
+                            errors.append(
+                                CelError(
+                                    expr,
+                                    f"Value '{val_node.value}' not in value set for category concept '{element.name}'",
+                                )
+                            )
+        if info is not None and info.kind == KindType.BOOLEAN:
+            errors.append(
+                CelError(
+                    expr,
+                    f"Boolean concept '{element.name}' cannot be used with 'in' operator",
+                )
+            )
+        if info is not None and info.kind in (KindType.QUANTITY, KindType.TIMEPOINT):
+            for val_node in values:
+                if isinstance(val_node, StringLit):
+                    errors.append(
+                        CelError(
+                            expr,
+                            f"String literal in 'in' list for quantity concept '{element.name}'",
+                        )
+                    )
 
     return ExprType.BOOLEAN
 
 
-def _check_node(node: ASTNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> None:
-    """Top-level check — just resolves type and accumulates errors."""
+def _check_ternary_call(
+    node: Call,
+    expr: str,
+    registry: Mapping[str, ConceptInfo],
+    errors: list[CelError],
+) -> ExprType:
+    condition, true_branch, false_branch = node.args
+    condition_type = _resolve_type(condition, expr, registry, errors)
+    if condition_type not in {ExprType.BOOLEAN, ExprType.UNKNOWN}:
+        errors.append(
+            CelError(
+                expr,
+                f"Ternary condition must be boolean, got {condition_type.value}",
+            )
+        )
+    t1 = _resolve_type(true_branch, expr, registry, errors)
+    t2 = _resolve_type(false_branch, expr, registry, errors)
+    if t1 == ExprType.UNKNOWN or t2 == ExprType.UNKNOWN:
+        return ExprType.UNKNOWN
+    if t1 != t2:
+        errors.append(
+            CelError(
+                expr,
+                f"Ternary branches must have the same type, got {t1.value} and {t2.value}",
+            )
+        )
+        return ExprType.UNKNOWN
+    return t1
+
+
+def _check_node(
+    node: Expr,
+    expr: str,
+    registry: Mapping[str, ConceptInfo],
+    errors: list[CelError],
+) -> None:
+    """Top-level check — resolves type and accumulates errors."""
     _resolve_type(node, expr, registry, errors)
 
 
 def _check_disallowed_kind_usage(
-    node: ASTNode,
+    node: Expr,
     expr: str,
     registry: Mapping[str, ConceptInfo],
     errors: list[CelError],
     *,
     operation_class: str,
 ) -> None:
-    if isinstance(node, NameNode):
+    if isinstance(node, Ident):
         info = registry.get(node.name)
         message_template = (
             None
@@ -810,8 +586,8 @@ def _check_disallowed_kind_usage(
 
 
 def _check_comparison_type_mismatch(
-    left: ASTNode,
-    right: ASTNode,
+    left: Expr,
+    right: Expr,
     left_type: ExprType,
     right_type: ExprType,
     expr: str,
@@ -823,30 +599,20 @@ def _check_comparison_type_mismatch(
         return
     if left_type == right_type:
         return
-    if not isinstance(left, NameNode) and not isinstance(right, NameNode):
+    if not isinstance(left, Ident) and not isinstance(right, Ident):
         return
 
     if _check_concept_literal_type_mismatch(
-        left,
-        right,
-        right_type,
-        expr,
-        registry,
-        errors,
+        left, right, right_type, expr, registry, errors
     ):
         return
     if _check_concept_literal_type_mismatch(
-        right,
-        left,
-        left_type,
-        expr,
-        registry,
-        errors,
+        right, left, left_type, expr, registry, errors
     ):
         return
 
-    left_name = left.name if isinstance(left, NameNode) else None
-    right_name = right.name if isinstance(right, NameNode) else None
+    left_name = left.name if isinstance(left, Ident) else None
+    right_name = right.name if isinstance(right, Ident) else None
     left_info = registry.get(left_name) if left_name is not None else None
     right_info = registry.get(right_name) if right_name is not None else None
     if left_info is not None and right_info is not None:
@@ -869,40 +635,68 @@ def _check_comparison_type_mismatch(
 
 
 def _check_concept_literal_type_mismatch(
-    concept_node: ASTNode,
-    other_node: ASTNode,
+    concept_node: Expr,
+    other_node: Expr,
     other_type: ExprType,
     expr: str,
     registry: Mapping[str, ConceptInfo],
     errors: list[CelError],
 ) -> bool:
     """Check that a concept isn't being compared to a mismatched literal type."""
-    if not isinstance(concept_node, NameNode) or not isinstance(other_node, LiteralNode):
+    if not isinstance(concept_node, Ident):
+        return False
+    if not _is_literal(other_node):
         return False
     info = registry.get(concept_node.name)
     if info is None:
         return False
 
     if info.kind in (KindType.QUANTITY, KindType.TIMEPOINT) and other_type == ExprType.STRING:
-        errors.append(CelError(expr, f"Quantity concept '{concept_node.name}' compared to string literal"))
+        errors.append(
+            CelError(
+                expr,
+                f"Quantity concept '{concept_node.name}' compared to string literal",
+            )
+        )
         return True
     if info.kind == KindType.CATEGORY and other_type == ExprType.NUMERIC:
-        errors.append(CelError(expr, f"Category concept '{concept_node.name}' compared to numeric literal"))
+        errors.append(
+            CelError(
+                expr,
+                f"Category concept '{concept_node.name}' compared to numeric literal",
+            )
+        )
         return True
     if info.kind == KindType.BOOLEAN and other_type == ExprType.STRING:
-        errors.append(CelError(expr, f"Boolean concept '{concept_node.name}' compared to string literal"))
+        errors.append(
+            CelError(
+                expr,
+                f"Boolean concept '{concept_node.name}' compared to string literal",
+            )
+        )
         return True
     if info.kind == KindType.BOOLEAN and other_type == ExprType.NUMERIC:
-        errors.append(CelError(expr, f"Boolean concept '{concept_node.name}' compared to numeric literal"))
+        errors.append(
+            CelError(
+                expr,
+                f"Boolean concept '{concept_node.name}' compared to numeric literal",
+            )
+        )
         return True
     return False
 
 
-def _check_category_value(concept_node: ASTNode, value_node: ASTNode, expr: str, registry: Mapping[str, ConceptInfo], errors: list[CelError]) -> None:
+def _check_category_value(
+    concept_node: Expr,
+    value_node: Expr,
+    expr: str,
+    registry: Mapping[str, ConceptInfo],
+    errors: list[CelError],
+) -> None:
     """If concept_node is a category and value_node is a string literal, check the value set."""
-    if not isinstance(concept_node, NameNode) or not isinstance(value_node, LiteralNode):
+    if not isinstance(concept_node, Ident):
         return
-    if value_node.lit_type != "string":
+    if not isinstance(value_node, StringLit):
         return
     info = registry.get(concept_node.name)
     if info is None or info.kind != KindType.CATEGORY:
@@ -910,13 +704,42 @@ def _check_category_value(concept_node: ASTNode, value_node: ASTNode, expr: str,
 
     if value_node.value not in info.category_values:
         if info.category_extensible:
-            errors.append(CelError(
-                expr,
-                f"Value '{value_node.value}' not in value set for category concept '{concept_node.name}' (extensible, may be valid)",
-                is_warning=True,
-            ))
+            errors.append(
+                CelError(
+                    expr,
+                    f"Value '{value_node.value}' not in value set for category concept '{concept_node.name}' (extensible, may be valid)",
+                    is_warning=True,
+                )
+            )
         else:
-            errors.append(CelError(
-                expr,
-                f"Value '{value_node.value}' not in value set for category concept '{concept_node.name}'",
-            ))
+            errors.append(
+                CelError(
+                    expr,
+                    f"Value '{value_node.value}' not in value set for category concept '{concept_node.name}'",
+                )
+            )
+
+
+def _is_literal(node: Expr) -> bool:
+    return isinstance(node, (IntLit, UintLit, DoubleLit, StringLit, BytesLit, BoolLit, NullLit))
+
+
+_SHORT_OPS: dict[str, str] = {
+    OP_ADD: "+",
+    OP_SUB: "-",
+    OP_MUL: "*",
+    OP_DIV: "/",
+    OP_MOD: "%",
+    OP_EQ: "==",
+    OP_NE: "!=",
+    OP_LT: "<",
+    OP_LE: "<=",
+    OP_GT: ">",
+    OP_GE: ">=",
+    OP_AND: "&&",
+    OP_OR: "||",
+}
+
+
+def _short_op(function: str) -> str:
+    return _SHORT_OPS.get(function, function)
