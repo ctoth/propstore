@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from propstore.families.claims.documents import ClaimDocument
-from propstore.cel_checker import check_cel_expr
-from propstore.cel_types import CheckedCelExpr, checked_condition_set
+from propstore.core.conditions import check_condition_ir
+from propstore.core.conditions.checked import CheckedCondition, checked_condition_set
 from quire.documents import convert_document_value
 from propstore.claims import (
     ClaimFileEntry,
@@ -373,12 +373,15 @@ def compile_claim_files(
 
             conditions = resolved_claim.get("conditions")
             if conditions and isinstance(conditions, list):
-                checked_conditions: list[CheckedCelExpr] = []
+                checked_conditions: list[CheckedCondition] = []
                 for cel_expr in conditions:
                     if not isinstance(cel_expr, str):
                         continue
                     try:
-                        checked = check_cel_expr(cel_expr, effective_context.cel_registry)
+                        checked = check_condition_ir(
+                            cel_expr,
+                            effective_context.cel_registry,
+                        )
                     except ValueError as exc:
                         file_diagnostics.append(claim_diagnostic(
                             level="error",
@@ -393,7 +396,7 @@ def compile_claim_files(
                             level="warning",
                             message=(
                                 f"claim '{cid}' CEL warning: "
-                                f"{warning.message}"
+                                f"{warning}"
                             ),
                             filename=filename,
                             artifact_id=cid,
