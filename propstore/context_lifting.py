@@ -29,7 +29,7 @@ from propstore.provenance import (
     SupportEvidence,
     SupportQuality,
 )
-from propstore.z3_conditions import (
+from propstore.core.conditions.solver import (
     SolverSat,
     SolverUnknown,
     SolverUnsat,
