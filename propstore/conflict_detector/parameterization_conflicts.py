@@ -168,21 +168,37 @@ def _evaluate_parameterization_with_registry(
 
 
 def _merge_contexts_for_derivation(
-    contexts: Sequence[str | None],
+    context_sources: Sequence[tuple[str | None, tuple[str, ...]]],
     lifting_system: LiftingSystem | None,
 ) -> str | None | _Sentinel:
-    concrete = [context for context in contexts if context]
+    concrete = [
+        (context, claim_ids)
+        for context, claim_ids in context_sources
+        if context is not None
+    ]
     if not concrete:
         return None
+    contexts = [context for context, _claim_ids in concrete]
     if lifting_system is None:
-        return concrete[0] if len(set(concrete)) == 1 else None
+        return contexts[0] if len(set(contexts)) == 1 else None
+
+    from propstore.context_lifting import LiftingDecisionStatus
 
     candidates = [
         candidate
-        for candidate in concrete
+        for candidate in contexts
         if all(
-            candidate == other or lifting_system.can_lift(other, candidate)
-            for other in concrete
+            candidate == other
+            or any(
+                decision.status is LiftingDecisionStatus.LIFTED
+                for claim_id in claim_ids
+                for decision in lifting_system.lift_decisions_between(
+                    other,
+                    candidate,
+                    claim_id,
+                )
+            )
+            for other, claim_ids in concrete
         )
     ]
     if not candidates:
@@ -286,7 +302,7 @@ def _derive_state(
         return None
 
     merged_context = _merge_contexts_for_derivation(
-        [state.context_id for state in input_states],
+        [(state.context_id, state.source_claim_ids) for state in input_states],
         lifting_system,
     )
     if merged_context is _INCOHERENT_CONTEXT:
