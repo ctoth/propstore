@@ -19,9 +19,8 @@ Three call sites consume this validator:
 
 The validator raises ``CelIngestValidationError`` (a ``ValueError``
 subclass) with a clear message that names the offending artifact,
-condition index, and concept. This preserves the exact text emitted by
-``propstore.cel_checker.check_cel_expr`` while wrapping it in a
-contextual envelope.
+condition index, and concept. This preserves the condition frontend error
+text while wrapping it in a contextual envelope.
 """
 
 from __future__ import annotations
@@ -72,18 +71,17 @@ def validate_cel_expression(
 ) -> None:
     """Type-check one CEL expression; raise ``CelIngestValidationError`` on failure.
 
-    Delegates to ``propstore.cel_checker.check_cel_expr`` and wraps its
-    ``ValueError`` with a message that includes ``location`` context.
+    Delegates to ``propstore.core.conditions.check_condition_ir`` and wraps
+    its ``ValueError`` with a message that includes ``location`` context.
     Structural concept rejection is one specific failure the checker
     reports; other CEL type errors are surfaced identically.
     """
-    # Import inside the function to avoid a module-load cycle: cel_checker
-    # is a heavy module and this file is imported from CLI paths that do
-    # not always need it.
-    from propstore.cel_checker import check_cel_expr
+    # Import inside the function to keep CLI paths from loading the condition
+    # frontend unless validation is actually requested.
+    from propstore.core.conditions import check_condition_ir
 
     try:
-        check_cel_expr(expression, registry)
+        check_condition_ir(expression, registry)
     except ValueError as exc:
         raise CelIngestValidationError(
             f"{location.render()} = {expression!r}: {exc}"
