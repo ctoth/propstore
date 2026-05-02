@@ -12,6 +12,7 @@ from propstore.core.conditions.registry import (
     synthetic_category_concept,
     with_synthetic_concepts,
 )
+from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import to_context_id
 
 from .algorithms import detect_algorithm_conflicts
@@ -141,11 +142,7 @@ def _raise_on_synthetic_collisions(
 
 
 def _build_condition_solver(cel_registry):
-    try:
-        from propstore.z3_conditions import Z3ConditionSolver
-    except ImportError:
-        return None
-    return Z3ConditionSolver(cel_registry)
+    return ConditionSolver(cel_registry)
 
 
 def _expand_lifted_conflict_claims(
