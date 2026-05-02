@@ -20,6 +20,24 @@ from propstore.sidecar.schema import create_context_tables, populate_contexts
 from propstore.sidecar.stages import ContextSidecarRows
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
+from propstore.z3_conditions import (
+    SolverSat,
+    SolverUnknown,
+    SolverUnknownReason,
+    SolverUnsat,
+    Z3TranslationError,
+)
+
+
+class _ConditionSolver:
+    def __init__(self, result):
+        self.result = result
+
+    def is_condition_satisfied_result(self, condition, bindings):
+        result = self.result
+        if isinstance(result, Exception):
+            raise result
+        return result
 
 
 def test_lifting_materializes_ist_assertion_with_rule_provenance() -> None:
@@ -96,6 +114,51 @@ def test_lifting_exception_is_local_and_blocks_only_matching_target() -> None:
     assert by_target["ctx_target"].status is LiftingDecisionStatus.BLOCKED
     assert by_target["ctx_target"].exception_id == "except-target-alpha"
     assert by_target["ctx_sibling"].status is LiftingDecisionStatus.LIFTED
+
+
+def test_lifting_rule_conditions_are_decision_gates() -> None:
+    source = ContextReference("ctx_source")
+    target = ContextReference("ctx_target")
+    system = LiftingSystem(
+        contexts=(source, target),
+        lifting_rules=(
+            LiftingRule(
+                id="lift-source-target",
+                source=source,
+                target=target,
+                conditions=("license == 'bridge'",),
+            ),
+        ),
+    )
+    assertion = IstProposition(context=source, proposition_id="claim_alpha")
+
+    lifted = system.lift_decisions_for(
+        assertion,
+        solver=_ConditionSolver(SolverSat()),
+        bindings={"license": "bridge"},
+    )[0]
+    blocked = system.lift_decisions_for(
+        assertion,
+        solver=_ConditionSolver(SolverUnsat()),
+        bindings={"license": "closed"},
+    )[0]
+    unknown = system.lift_decisions_for(
+        assertion,
+        solver=_ConditionSolver(SolverUnknown(SolverUnknownReason.TIMEOUT, "timeout")),
+        bindings={"license": "bridge"},
+    )[0]
+    authoring_unbound = system.lift_decisions_for(
+        assertion,
+        solver=_ConditionSolver(Z3TranslationError("unknown concept")),
+        bindings={},
+    )[0]
+
+    assert lifted.status is LiftingDecisionStatus.LIFTED
+    assert blocked.status is LiftingDecisionStatus.BLOCKED
+    assert unknown.status is LiftingDecisionStatus.UNKNOWN
+    assert authoring_unbound.status is LiftingDecisionStatus.UNKNOWN
+    assert unknown.solver_witness is not None
+    assert authoring_unbound.provenance.diagnostic is not None
 
 
 def test_lifting_system_does_not_expose_visibility_as_semantics() -> None:
