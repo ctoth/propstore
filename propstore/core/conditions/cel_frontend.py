@@ -112,6 +112,8 @@ _BINARY_OP_MAP: dict[str, ConditionBinaryOp] = {
 def _lower_node(
     node: Expr,
     registry: Mapping[str, ConceptInfo],
+    *,
+    allow_string_literal: bool = False,
 ) -> ConditionIR:
     if isinstance(node, Ident):
         return _lower_name(node, registry)
@@ -129,6 +131,8 @@ def _lower_node(
             span=_condition_span(node.span),
         )
     if isinstance(node, StringLit):
+        if not allow_string_literal:
+            raise TypeError(f"bare string literal cannot form ConditionIR at {node.span}")
         return ConditionLiteral(
             value=node.value,
             value_kind=ConditionValueKind.STRING,
@@ -152,8 +156,16 @@ def _lower_node(
             cond, then_branch, else_branch = node.args
             return ConditionChoice(
                 condition=_lower_node(cond, registry),
-                when_true=_lower_node(then_branch, registry),
-                when_false=_lower_node(else_branch, registry),
+                when_true=_lower_node(
+                    then_branch,
+                    registry,
+                    allow_string_literal=allow_string_literal,
+                ),
+                when_false=_lower_node(
+                    else_branch,
+                    registry,
+                    allow_string_literal=allow_string_literal,
+                ),
                 span=_condition_span(node.span),
             )
         if node.function == OP_IN and len(node.args) == 2:
@@ -165,16 +177,26 @@ def _lower_node(
             return ConditionMembership(
                 element=_lower_node(element, registry),
                 options=tuple(
-                    _lower_node(value, registry) for value in list_expr.elements
+                    _lower_node(value, registry, allow_string_literal=True)
+                    for value in list_expr.elements
                 ),
                 span=_condition_span(node.span),
             )
         if node.function in _BINARY_OP_MAP and len(node.args) == 2:
             left, right = node.args
+            allow_child_strings = node.function in (OP_EQ, OP_NE)
             return ConditionBinary(
                 op=_BINARY_OP_MAP[node.function],
-                left=_lower_node(left, registry),
-                right=_lower_node(right, registry),
+                left=_lower_node(
+                    left,
+                    registry,
+                    allow_string_literal=allow_child_strings,
+                ),
+                right=_lower_node(
+                    right,
+                    registry,
+                    allow_string_literal=allow_child_strings,
+                ),
                 span=_condition_span(node.span),
             )
 
@@ -200,6 +222,10 @@ def _lower_name(
         source_name=node.name,
         value_kind=_value_kind(info.kind),
         span=_condition_span(node.span),
+        category_values=tuple(info.category_values),
+        category_extensible=(
+            info.category_extensible if info.kind == KindType.CATEGORY else None
+        ),
     )
 
 
@@ -208,8 +234,10 @@ def _condition_span(span: SourceSpan) -> ConditionSourceSpan:
 
 
 def _value_kind(kind: KindType) -> ConditionValueKind:
-    if kind in (KindType.QUANTITY, KindType.TIMEPOINT):
+    if kind == KindType.QUANTITY:
         return ConditionValueKind.NUMERIC
+    if kind == KindType.TIMEPOINT:
+        return ConditionValueKind.TIMEPOINT
     if kind == KindType.CATEGORY:
         return ConditionValueKind.STRING
     if kind == KindType.BOOLEAN:

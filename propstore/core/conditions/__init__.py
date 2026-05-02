@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from propstore.core.conditions.cel_frontend import check_condition_ir, condition_ir_from_cel
 from propstore.core.conditions.checked import (
     CheckedCondition,
     CheckedConditionSet,
     checked_condition_set,
 )
+from propstore.core.conditions.codec import condition_ir_from_json, condition_ir_to_json
 from propstore.core.conditions.estree_backend import (
     EstreeArrayExpression,
     EstreeBinaryExpression,
@@ -48,6 +48,20 @@ from propstore.core.conditions.z3_backend import (
     z3_bindings_for_values,
 )
 
+
+def __getattr__(name: str):
+    if name in {"check_condition_ir", "condition_ir_from_cel"}:
+        from propstore.core.conditions.cel_frontend import (
+            check_condition_ir,
+            condition_ir_from_cel,
+        )
+
+        return {
+            "check_condition_ir": check_condition_ir,
+            "condition_ir_from_cel": condition_ir_from_cel,
+        }[name]
+    raise AttributeError(name)
+
 __all__ = [
     "CheckedCondition",
     "CheckedConditionSet",
@@ -73,13 +87,13 @@ __all__ = [
     "EstreeMemberExpression",
     "EstreeUnaryExpression",
     "SqlConditionFragment",
-    "check_condition_ir",
     "checked_condition_set",
+    "condition_ir_from_json",
     "condition_ir_to_estree",
+    "condition_ir_to_json",
     "condition_ir_to_python_ast",
     "condition_ir_to_sql",
     "condition_ir_to_z3",
-    "condition_ir_from_cel",
     "evaluate_estree_expression",
     "evaluate_condition_ir",
     "z3_bindings_for_values",

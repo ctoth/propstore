@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+import json
 
+from propstore.core.conditions.codec import condition_ir_to_json
 from propstore.core.conditions.ir import ConditionIR
 
 
@@ -14,6 +16,7 @@ class CheckedCondition:
     ir: ConditionIR
     registry_fingerprint: str
     warnings: tuple[str, ...] = ()
+    encoded_ir: str | None = None
 
     def __post_init__(self) -> None:
         source = self.source.strip()
@@ -25,6 +28,16 @@ class CheckedCondition:
         object.__setattr__(self, "source", source)
         object.__setattr__(self, "registry_fingerprint", fingerprint)
         object.__setattr__(self, "warnings", tuple(self.warnings))
+        encoded_ir = self.encoded_ir
+        if encoded_ir is None:
+            encoded_ir = json.dumps(
+                condition_ir_to_json(self.ir),
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        elif encoded_ir.strip() == "":
+            raise ValueError("checked condition encoded IR must be non-empty")
+        object.__setattr__(self, "encoded_ir", encoded_ir)
 
 
 @dataclass(frozen=True)

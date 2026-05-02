@@ -22,6 +22,7 @@ class ConditionSourceSpan:
 
 class ConditionValueKind(StrEnum):
     NUMERIC = "numeric"
+    TIMEPOINT = "timepoint"
     STRING = "string"
     BOOLEAN = "boolean"
 
@@ -53,7 +54,17 @@ class ConditionLiteral:
     span: ConditionSourceSpan
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "value_kind", ConditionValueKind(self.value_kind))
+        value_kind = ConditionValueKind(self.value_kind)
+        if value_kind in (ConditionValueKind.NUMERIC, ConditionValueKind.TIMEPOINT):
+            if isinstance(self.value, bool) or not isinstance(self.value, int | float):
+                raise TypeError("boolean literal cannot be numeric")
+        elif value_kind == ConditionValueKind.BOOLEAN:
+            if not isinstance(self.value, bool):
+                raise TypeError("condition boolean literal value must be bool")
+        elif value_kind == ConditionValueKind.STRING:
+            if not isinstance(self.value, str):
+                raise TypeError("condition string literal value must be str")
+        object.__setattr__(self, "value_kind", value_kind)
 
 
 @dataclass(frozen=True)
@@ -62,6 +73,8 @@ class ConditionReference:
     source_name: str
     value_kind: ConditionValueKind
     span: ConditionSourceSpan
+    category_values: tuple[str, ...] = ()
+    category_extensible: bool | None = None
 
     def __post_init__(self) -> None:
         concept_id = to_concept_id(self.concept_id)
@@ -73,6 +86,17 @@ class ConditionReference:
         object.__setattr__(self, "concept_id", concept_id)
         object.__setattr__(self, "source_name", source_name)
         object.__setattr__(self, "value_kind", ConditionValueKind(self.value_kind))
+        object.__setattr__(
+            self,
+            "category_values",
+            tuple(str(value) for value in self.category_values),
+        )
+        if self.category_extensible is not None:
+            object.__setattr__(
+                self,
+                "category_extensible",
+                bool(self.category_extensible),
+            )
 
 
 @dataclass(frozen=True)
