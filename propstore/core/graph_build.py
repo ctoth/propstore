@@ -7,10 +7,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from propstore.conflict_detector import ConflictClass
-from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import to_cel_exprs
 from propstore.core.claim_types import ClaimType
-from propstore.core.conditions import check_condition_ir, checked_condition_set
+from propstore.core.conditions import CheckedConditionSet, checked_condition_set_from_json
 from propstore.core.environment import (
     ClaimCatalogStore,
     ClaimStanceInventoryStore,
@@ -36,7 +35,6 @@ from propstore.core.graph_types import (
     ProvenanceRecord,
     RelationEdge,
 )
-from propstore.core.conditions.registry import with_standard_synthetic_bindings
 from propstore.core.row_types import (
     ClaimRow,
     coerce_claim_row,
@@ -178,6 +176,50 @@ def _parse_json_list(value: Any) -> tuple[str, ...]:
     return tuple(str(item) for item in value)
 
 
+def _checked_conditions_from_json_text(
+    value: str | None,
+    *,
+    owner: str,
+) -> CheckedConditionSet | None:
+    if not value:
+        return None
+    loaded = json.loads(value)
+    if not isinstance(loaded, Mapping):
+        raise ValueError(f"{owner} conditions_ir must decode to a mapping")
+    return checked_condition_set_from_json(loaded)
+
+
+def _claim_checked_conditions(row: ClaimRow) -> CheckedConditionSet | None:
+    if row.conditions_ir:
+        return _checked_conditions_from_json_text(
+            row.conditions_ir,
+            owner=f"claim {row.claim_id}",
+        )
+    if row.conditions_cel:
+        raise ValueError(
+            f"claim {row.claim_id} has conditions_cel without conditions_ir; rebuild the sidecar"
+        )
+    return None
+
+
+def _parameterization_condition_sources(
+    parameterization: ParameterizationRow,
+) -> tuple[str, ...]:
+    if parameterization.conditions_ir:
+        condition_set = _checked_conditions_from_json_text(
+            parameterization.conditions_ir,
+            owner=f"parameterization {parameterization.output_concept_id}",
+        )
+        return () if condition_set is None else condition_set.sources
+    if parameterization.conditions_cel:
+        raise ValueError(
+            "parameterization "
+            f"{parameterization.output_concept_id} has conditions_cel without "
+            "conditions_ir; rebuild the sidecar"
+        )
+    return ()
+
+
 def _parse_json_concept_ids(value: Any) -> tuple[ConceptId, ...]:
     return to_concept_ids(_parse_json_list(value))
 
@@ -247,10 +289,6 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         )
         for row in concept_rows
     )
-    cel_registry = with_standard_synthetic_bindings(
-        build_store_cel_registry(concept_rows)
-    )
-
     claim_display_ids = {
             str(row.claim_id): (
                 _display_claim_id_from_row(row)
@@ -269,12 +307,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     value_concept_id=row.value_concept_id,
                     scalar_value=row.value,
                     checked_conditions=(
-                        None
-                        if not row.conditions_cel
-                        else checked_condition_set(
-                            check_condition_ir(condition, cel_registry)
-                            for condition in _parse_json_list(row.conditions_cel)
-                        )
+                        _claim_checked_conditions(row)
                     ),
                     provenance=_row_provenance(
                         row,
@@ -354,7 +387,9 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     formula=parameterization.formula,
                     sympy=parameterization.sympy,
                     exactness=parameterization.exactness,
-                    conditions=to_cel_exprs(_parse_json_list(parameterization.conditions_cel)),
+                    conditions=to_cel_exprs(
+                        _parameterization_condition_sources(parameterization)
+                    ),
                     provenance=_row_provenance(
                         {
                             **parameterization.attributes,
