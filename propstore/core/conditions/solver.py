@@ -67,7 +67,10 @@ class Z3UnknownError(Exception):
 
 
 def solver_result_from_z3(solver: z3.Solver) -> SolverResult:
-    check_result = solver.check()
+    try:
+        check_result = solver.check()
+    except z3.Z3Exception as exc:
+        raise Z3TranslationError(str(exc)) from exc
     if check_result == z3.sat:
         return SolverSat(solver.model())
     if check_result == z3.unsat:
@@ -129,13 +132,16 @@ class ConditionSolver:
         condition: CheckedCondition,
         bindings: Mapping[str, Any],
     ) -> SolverResult:
-        expr = self._condition_to_z3(condition)
-        solver = self._new_solver()
-        solver.add(expr)
-        self._add_temporal_constraints(solver)
-        for name, value in bindings.items():
-            solver.add(self._binding_to_z3(name, value))
-        return solver_result_from_z3(solver)
+        try:
+            expr = self._condition_to_z3(condition)
+            solver = self._new_solver()
+            solver.add(expr)
+            self._add_temporal_constraints(solver)
+            for name, value in bindings.items():
+                solver.add(self._binding_to_z3(name, value))
+            return solver_result_from_z3(solver)
+        except z3.Z3Exception as exc:
+            raise Z3TranslationError(str(exc)) from exc
 
     def are_disjoint(
         self,
@@ -152,13 +158,16 @@ class ConditionSolver:
         conditions_a: Sequence[CheckedCondition] | CheckedConditionSet,
         conditions_b: Sequence[CheckedCondition] | CheckedConditionSet,
     ) -> SolverResult:
-        expr_a = self._conditions_to_z3(conditions_a)
-        expr_b = self._conditions_to_z3(conditions_b)
-        solver = self._new_solver()
-        solver.add(expr_a)
-        solver.add(expr_b)
-        self._add_temporal_constraints(solver)
-        return solver_result_from_z3(solver)
+        try:
+            expr_a = self._conditions_to_z3(conditions_a)
+            expr_b = self._conditions_to_z3(conditions_b)
+            solver = self._new_solver()
+            solver.add(expr_a)
+            solver.add(expr_b)
+            self._add_temporal_constraints(solver)
+            return solver_result_from_z3(solver)
+        except z3.Z3Exception as exc:
+            raise Z3TranslationError(str(exc)) from exc
 
     def are_equivalent(
         self,
@@ -175,21 +184,24 @@ class ConditionSolver:
         conditions_a: Sequence[CheckedCondition] | CheckedConditionSet,
         conditions_b: Sequence[CheckedCondition] | CheckedConditionSet,
     ) -> SolverResult:
-        expr_a = self._conditions_to_z3(conditions_a)
-        expr_b = self._conditions_to_z3(conditions_b)
-        first = self._new_solver()
-        first.add(expr_a)
-        first.add(z3.Not(expr_b))
-        self._add_temporal_constraints(first)
-        left_result = solver_result_from_z3(first)
-        if not isinstance(left_result, SolverUnsat):
-            return left_result
+        try:
+            expr_a = self._conditions_to_z3(conditions_a)
+            expr_b = self._conditions_to_z3(conditions_b)
+            first = self._new_solver()
+            first.add(expr_a)
+            first.add(z3.Not(expr_b))
+            self._add_temporal_constraints(first)
+            left_result = solver_result_from_z3(first)
+            if not isinstance(left_result, SolverUnsat):
+                return left_result
 
-        second = self._new_solver()
-        second.add(expr_b)
-        second.add(z3.Not(expr_a))
-        self._add_temporal_constraints(second)
-        return solver_result_from_z3(second)
+            second = self._new_solver()
+            second.add(expr_b)
+            second.add(z3.Not(expr_a))
+            self._add_temporal_constraints(second)
+            return solver_result_from_z3(second)
+        except z3.Z3Exception as exc:
+            raise Z3TranslationError(str(exc)) from exc
 
     def implies(
         self,
@@ -206,13 +218,16 @@ class ConditionSolver:
         antecedent_conditions: Sequence[CheckedCondition] | CheckedConditionSet,
         consequent_conditions: Sequence[CheckedCondition] | CheckedConditionSet,
     ) -> SolverResult:
-        antecedent_expr = self._conditions_to_z3(antecedent_conditions)
-        consequent_expr = self._conditions_to_z3(consequent_conditions)
-        solver = self._new_solver()
-        solver.add(antecedent_expr)
-        solver.add(z3.Not(consequent_expr))
-        self._add_temporal_constraints(solver)
-        return solver_result_from_z3(solver)
+        try:
+            antecedent_expr = self._conditions_to_z3(antecedent_conditions)
+            consequent_expr = self._conditions_to_z3(consequent_conditions)
+            solver = self._new_solver()
+            solver.add(antecedent_expr)
+            solver.add(z3.Not(consequent_expr))
+            self._add_temporal_constraints(solver)
+            return solver_result_from_z3(solver)
+        except z3.Z3Exception as exc:
+            raise Z3TranslationError(str(exc)) from exc
 
     def partition_equivalence_classes(
         self,
