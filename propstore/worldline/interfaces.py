@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.environment import WorldStore, Environment
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.world.types import BeliefSpace, RenderPolicy
+
+if TYPE_CHECKING:
+    from propstore.context_lifting import LiftingSystem
 
 
 class WorldlineBoundView(BeliefSpace, Protocol):
@@ -20,6 +23,11 @@ class HasBindings(Protocol):
 @runtime_checkable
 class HasEnvironment(Protocol):
     _environment: Environment
+
+
+@runtime_checkable
+class HasLiftingSystem(Protocol):
+    _lifting_system: LiftingSystem | None
 
 
 @runtime_checkable
