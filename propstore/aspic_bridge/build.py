@@ -24,6 +24,7 @@ from argumentation.aspic import (
     transposition_closure,
 )
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
+from propstore.context_lifting import LiftingDecision
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey
 from propstore.core.row_types import StanceRowInput
@@ -36,6 +37,7 @@ from .grounding import (
     grounded_rule_order_from_bundle,
     grounded_rules_to_rules,
 )
+from .lifting_projection import LiftingProjection, project_lifting_decisions
 from .translate import (
     build_preference_config,
     claims_to_kb,
@@ -56,6 +58,7 @@ class BridgeCompilation:
     kb: KnowledgeBase
     pref: PreferenceConfig
     system: ArgumentationSystem
+    lifting_projection: LiftingProjection
 
 
 def _build_language(
@@ -99,6 +102,7 @@ def compile_bridge_context(
     stances: Sequence[StanceRowInput],
     *,
     bundle: GroundedRulesBundle,
+    lifting_decisions: Sequence[LiftingDecision] = (),
     comparison: str = "elitist",
     link: str = "last",
 ) -> BridgeCompilation:
@@ -106,8 +110,12 @@ def compile_bridge_context(
 
     normalized_claims = tuple(coerce_active_claims(active_claims))
     literals = claims_to_literals(normalized_claims)
+    lifting_projection = project_lifting_decisions(literals, lifting_decisions)
+    literals = lifting_projection.literals
 
     strict_rules, defeasible_rules = justifications_to_rules(justifications, literals)
+    strict_rules |= lifting_projection.strict_rules
+    defeasible_rules |= lifting_projection.defeasible_rules
     grounded_strict, grounded_defeasible, literals = grounded_rules_to_rules(
         bundle,
         literals,
@@ -156,6 +164,7 @@ def compile_bridge_context(
         kb=kb,
         pref=pref,
         system=system,
+        lifting_projection=lifting_projection,
     )
 
 
@@ -247,6 +256,7 @@ def build_bridge_csaf(
     stances: Sequence[StanceRowInput],
     *,
     bundle: GroundedRulesBundle,
+    lifting_decisions: Sequence[LiftingDecision] = (),
     comparison: str = "elitist",
     link: str = "last",
 ) -> CSAF:
@@ -257,6 +267,7 @@ def build_bridge_csaf(
         justifications,
         stances,
         bundle=bundle,
+        lifting_decisions=lifting_decisions,
         comparison=comparison,
         link=link,
     )
