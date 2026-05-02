@@ -225,29 +225,9 @@ source = { git = "https://github.com/ctoth/bridgman?rev=f4ecfa842d7d9913b20ee9a1
 [[package]]
 name = "cel-parser"
 version = "0.1.0"
-source = { editable = "../cel-parser" }
+source = { git = "https://github.com/ctoth/cel-parser.git?rev=96fc4808ef78257ea03549e6298629a9583865c8#96fc4808ef78257ea03549e6298629a9583865c8" }
 dependencies = [
     { name = "lark" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.112" },
-    { name = "lark", specifier = ">=1.2.2" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0" },
-    { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.3" },
-    { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.8" },
-]
-provides-extras = ["dev"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.112" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-cov", specifier = ">=6.0" },
-    { name = "pytest-timeout", specifier = ">=2.3" },
-    { name = "pytest-xdist", specifier = ">=3.8" },
 ]
 
 [[package]]
@@ -732,7 +712,7 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/argumentation.git#269852ab4d7d5a0b5e084ea3b17a48ad913ab70d" }
+source = { git = "https://github.com/ctoth/argumentation.git?rev=269852ab4d7d5a0b5e084ea3b17a48ad913ab70d#269852ab4d7d5a0b5e084ea3b17a48ad913ab70d" }
 
 [[package]]
 name = "formal-belief-set"
@@ -1024,7 +1004,7 @@ wheels = [
 [[package]]
 name = "gunray"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/gunray.git#a06da9c06a8c20262edec56f8a1f55dc1901781d" }
+source = { git = "https://github.com/ctoth/gunray.git?rev=a06da9c06a8c20262edec56f8a1f55dc1901781d#a06da9c06a8c20262edec56f8a1f55dc1901781d" }
 
 [[package]]
 name = "h11"
@@ -2076,14 +2056,14 @@ dev = [
 requires-dist = [
     { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=b7423889daef74154193317099ae9992ecbcd958" },
     { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=f4ecfa842d7d9913b20ee9a10fcfda77973962aa" },
-    { name = "cel-parser", editable = "../cel-parser" },
+    { name = "cel-parser", git = "https://github.com/ctoth/cel-parser.git?rev=96fc4808ef78257ea03549e6298629a9583865c8" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
-    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git" },
+    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git?rev=269852ab4d7d5a0b5e084ea3b17a48ad913ab70d" },
     { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=e5b11b8265dc688807a68aec3bc2f3bd9d537cc4" },
     { name = "graphviz", specifier = ">=0.20" },
-    { name = "gunray", git = "https://github.com/ctoth/gunray.git" },
+    { name = "gunray", git = "https://github.com/ctoth/gunray.git?rev=a06da9c06a8c20262edec56f8a1f55dc1901781d" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "linkml", specifier = ">=1.9.3,<1.10" },
     { name = "linkml-runtime", specifier = ">=1.9.3,<1.10" },
