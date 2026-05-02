@@ -5,8 +5,12 @@ year: 2010
 venue: "ISWC 2010, The Semantic Web - ISWC 2010, LNCS 6496"
 doi_url: "https://doi.org/10.1007/978-3-642-17746-0_26"
 pages: "402-417"
+produced_by:
+  agent: "Codex GPT-5"
+  skill: "paper-reader"
+  status: "stated"
+  timestamp: "2026-05-02T00:50:20Z"
 ---
-
 # Ontology Alignment for Linked Open Data
 
 ## One-Sentence Summary
