@@ -89,12 +89,28 @@ Boundary-relevant belief dynamics papers from `../belief-set/papers`:
 Add a first-class projection carrier:
 
 ```python
-IstLiteralKey(context_id: ContextId, proposition_id: ClaimId | str)
+IstLiteralKey(context_id: ContextId, proposition_id: ClaimId)
 ```
 
 Every context-scoped claim projects to an `ist(context, proposition)` literal.
 The proposition remains the claim/assertion identity; the context is no longer
 metadata that disappears before ASPIC/Dung.
+
+ASPIC backend atom shape:
+
+```python
+Literal(
+    atom=GroundAtom(
+        predicate="ist",
+        arguments=(str(context_id), str(proposition_id)),
+    ),
+    negated=False,
+)
+```
+
+The key and the atom must both carry context. Storing context only in the
+`LiteralKey` is insufficient because downstream ASPIC, Dung, projection, and
+worldline code consumes `Literal.atom` after the key has disappeared.
 
 ### Lifting Decision
 
@@ -116,6 +132,12 @@ LiftingDecision(
     solver_witness=None,
 )
 ```
+
+`UNKNOWN` is pinned to Garcia and Simari 2004's four-valued answer discipline
+and to propstore's existing solver-unknown boundary: when the reasoner cannot
+soundly decide a lifting rule condition, the result is not converted into a
+positive lift or a blocking exception. It is carried as incomplete-soundness
+evidence.
 
 `can_lift` may remain only as a presentation helper if needed, but production
 reasoning must consume the typed decision.
@@ -174,22 +196,98 @@ projections, not belief-set operations.
 - Do not pre-materialize lifted assertions as committed canonical truth.
   Storage may cache inspected materializations, but render and projection policy
   must decide what is active.
+- Sidecar rows may store decision inspection records, but provenance graph
+  content remains in the provenance carrier and git notes. Sidecar rows must not
+  become claim identity.
 - Every red test must cite the paper commitment it pins.
+- Every phase that opens or closes an architectural gap updates `docs/gaps.md`
+  in the same commit.
 - Every phase ends with a logged targeted pytest run and `uv run pyright
   propstore` when production Python changed.
 
 ## Mechanical Order
 
-This checklist is already topologically ordered. During execution, run a small
-order-check script or use a dependency table before starting implementation.
-The allowed order is:
+This checklist is already topologically ordered. Before implementation starts,
+add or run a reusable order-check script that verifies the dependency graph
+below:
 
 ```text
-0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
+-1 -> 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 ```
 
 Do not start a later phase while an earlier phase has unchecked production
 items unless the user explicitly defers it.
+
+## Per-Phase Completion Checklist
+
+Every implementation phase must end with:
+
+- the phase's red tests failing before production edits and passing after;
+- the phase's logged pytest gate;
+- `uv run pyright propstore` when propstore production Python changed;
+- `docs/gaps.md` updated in the same commit for opened or closed gaps;
+- `git status --short -- <owned paths>` clean after the phase commit.
+
+If a phase slice produces no kept improvement, revert that slice completely
+before trying a second approach. If two consecutive slices on the same target
+produce no kept improvement, stop and report the exact blocked phase item.
+
+Temporal CEL scope: lifting conditions may reuse the existing TIMEPOINT/Z3 path
+for Allen-like or time-scoped conditions, but this workstream does not change
+`KindType.TIMEPOINT` semantics. Any TIMEPOINT failure is a condition-solver
+issue and must be surfaced as `UNKNOWN`/incomplete-soundness, not as an
+implicit lift.
+
+## Phase -1 - Baseline and Dependency Inventory
+
+Purpose: establish the repo state before destructive interface replacement.
+
+Baseline commands:
+
+```powershell
+powershell -File scripts/run_logged_pytest.ps1 -Label ist-workstream-baseline tests
+uv run pyright propstore
+```
+
+Dependency package baselines:
+
+```powershell
+Push-Location ..\argumentation
+uv run pytest
+uv run pyright src
+Pop-Location
+
+Push-Location ..\gunray
+uv run pytest
+uv run pyright src
+Pop-Location
+
+Push-Location ..\belief-set
+uv run pytest
+uv run pyright belief_set
+Pop-Location
+```
+
+Inventory commands:
+
+```powershell
+rg -n -F "can_lift(" propstore tests docs
+rg -n -F "LiftingException" propstore tests docs
+rg -n -F "LiftingMaterializationStatus" propstore tests docs
+rg -n -F "LiteralKey" propstore tests
+rg -n -F "belief_set" propstore/context_lifting.py propstore/aspic_bridge propstore/grounding
+rg -n -F "can_lift" propstore/cli propstore/app C:\Users\Q\code\research-papers-plugin
+rg -n -F "from argumentation import" propstore ..\argumentation\src
+```
+
+Required artifact:
+
+- Add a dated baseline note under `notes/` listing command outcomes, log paths,
+  and the exact inventory counts. If any baseline fails for unrelated existing
+  worktree reasons, record that plainly before starting Phase 0.
+- Include an import-baseline note for `argumentation.__init__` so Phase 8 can
+  measure whether root-package import behavior improved rather than widened
+  scope unexpectedly.
 
 ## Phase 0 - Paper-Backed Contract Inventory
 
@@ -214,11 +312,16 @@ Red tests:
 - `tests/architecture/test_lifting_decision_contract.py`
   - asserts production lifting decisions expose status, mode, rule id,
     support, provenance, and optional exception/witness.
-  - cites Guha DCR-P/DCR-T and Bozzato justified exceptions.
+  - cites Guha DCR-P/DCR-T, Bozzato justified exceptions, and Garcia 2004
+    `UNKNOWN` for incomplete query status.
 - `tests/architecture/test_backend_identity_contracts.py`
   - asserts Gunray ground atoms and ASPIC literals are backend atoms with
     projection-frame provenance, not propstore source identity.
   - cites Diller 2025 and Modgil/Prakken 2018.
+- `tests/architecture/test_belief_set_boundary_contract.py`
+  - asserts `propstore/context_lifting.py`, `propstore/aspic_bridge/**`, and
+    `propstore/grounding/**` do not import `belief_set`.
+  - cites AGM/IC papers only as excluded boundary surfaces.
 
 Green implementation:
 
@@ -228,7 +331,7 @@ Green implementation:
 Gate:
 
 ```powershell
-powershell -File scripts/run_logged_pytest.ps1 -Label ist-contracts tests/architecture/test_ist_projection_contract.py tests/architecture/test_lifting_decision_contract.py tests/architecture/test_backend_identity_contracts.py
+powershell -File scripts/run_logged_pytest.ps1 -Label ist-contracts tests/architecture/test_ist_projection_contract.py tests/architecture/test_lifting_decision_contract.py tests/architecture/test_backend_identity_contracts.py tests/architecture/test_belief_set_boundary_contract.py
 ```
 
 ## Phase 1 - `ist(c,p)` Literal Identity
@@ -241,27 +344,40 @@ Red tests:
   `IstLiteralKey("ctx_a", "claim_x")`.
 - Two claims with the same proposition and different contexts produce distinct
   ASPIC literals.
+- The produced ASPIC literal atom is exactly `GroundAtom("ist",
+  ("ctx_a", "claim_x"))`, not `GroundAtom("claim_x")` with context hidden in
+  metadata.
+- `IstLiteralKey` equality and hashing are distinct from `ClaimLiteralKey` and
+  `GroundLiteralKey`.
 - Non-contextual claims either fail at the boundary or use an explicit
   repository root context. No silent unqualified literal path remains.
 
 Green implementation:
 
 - Add `IstLiteralKey` in `propstore/core/literal_keys.py`.
+- Expand the `LiteralKey` union and update every `match`, `isinstance`, dict
+  key, serialization, and projection consumer identified by the Phase -1
+  inventory.
 - Update `propstore/aspic_bridge/translate.py::claims_to_literals`.
 - Update projection provenance in `propstore/aspic_bridge/projection.py`.
 - Update every caller and test fixture that assumed claim id alone was the
   ASPIC atom identity.
+- Keep the Phase 0 belief-set import-boundary test in the Phase 1 gate so drift
+  is caught before later phases.
 
 Gate:
 
 ```powershell
-powershell -File scripts/run_logged_pytest.ps1 -Label ist-literals tests/test_ws_f_aspic_bridge.py tests/test_structured_projection.py tests/test_context_lifting_phase4.py
+powershell -File scripts/run_logged_pytest.ps1 -Label ist-literals tests/test_ws_f_aspic_bridge.py tests/test_structured_projection.py tests/test_context_lifting_phase4.py tests/architecture/test_belief_set_boundary_contract.py
 uv run pyright propstore
 ```
 
-## Phase 2 - Delete Boolean Lifting as Semantic API
+## Phase 2 - Unified Lifting Decisions and CKR Exceptions
 
-Purpose: replace boolean lift checks with typed lifting decisions.
+Purpose: replace boolean lift checks and the lifting-exception-only path with
+one typed decision and exception carrier. This phase intentionally combines the
+old Phase 2 and Phase 4 concerns so `BLOCKED` never depends on a future
+exception migration.
 
 Red tests:
 
@@ -269,6 +385,17 @@ Red tests:
   or `UNKNOWN`, never `True`.
 - A conditional lifting rule with satisfied CEL conditions returns `LIFTED`
   with a solver witness.
+- `LiftingMaterializationStatus` is gone from production code or is renamed and
+  absorbed into `LiftingDecisionStatus`; no parallel status enum survives.
+- A current `LiftingException(id, rule_id, target, proposition_id,
+  clashing_set, justification)` maps to the shared exception carrier with:
+  `id` as exception identity, `rule_id` as target rule provenance,
+  `target/proposition_id` as defeated `ist` use, `clashing_set` as justification
+  evidence, and `justification` as explanatory provenance.
+- A lifting exception and a `JustifiableException` produce the same
+  `ExceptionDefeat` carrier shape.
+- Exception support composes with lifting-rule support by provenance polynomial
+  multiplication.
 - Existing context conflict classification consumes decisions, not `can_lift`.
 - Micropub lift inspection renders a decision report, not just `liftable: bool`.
 
@@ -276,6 +403,13 @@ Green implementation:
 
 - Add `LiftingDecision`, `LiftingDecisionStatus`, and typed provenance fields in
   `propstore/context_lifting.py`.
+- Replace `LiftingException` production semantics with the shared
+  `defeasibility` exception carrier in the same slice.
+- Delete the old lifting-exception-only production path in the same commit that
+  introduces `BLOCKED` decisions.
+- Rename the existing `LiftingDecisionCache` in
+  `propstore/conflict_detector/orchestrator.py` if needed so it cannot be
+  confused with the domain decision object.
 - Replace semantic callers in `propstore/core/activation.py`,
   `propstore/conflict_detector/context.py`,
   `propstore/conflict_detector/orchestrator.py`,
@@ -285,7 +419,7 @@ Green implementation:
 Gate:
 
 ```powershell
-powershell -File scripts/run_logged_pytest.ps1 -Label lifting-decisions tests/test_context_lifting_ws5.py tests/test_context_lifting_phase4.py tests/test_conflict_orchestrator_isolation.py tests/test_micropublications_phase4.py
+powershell -File scripts/run_logged_pytest.ps1 -Label lifting-decisions tests/test_context_lifting_ws5.py tests/test_context_lifting_phase4.py tests/test_conflict_orchestrator_isolation.py tests/test_micropublications_phase4.py tests/test_defeasibility_support_contract.py tests/test_defeasibility_satisfaction.py
 uv run pyright propstore
 ```
 
@@ -300,53 +434,31 @@ Red tests:
 - `Z3TranslationError` yields an authoring-boundary diagnostic, not a silent
   lift.
 - Rule conditions and target context assumptions are not conflated.
+- Cached sidecar materialization rows are inspection records only: changing a
+  lifting rule, exception, or condition changes the decision on rebuild and does
+  not make the old row canonical truth.
 
 Green implementation:
 
-- Thread a condition solver or `ExceptionPatternSolver`-compatible protocol
-  into lifting decision construction.
+- Thread the existing `ExceptionPatternSolver` protocol into lifting decision
+  construction. The Z3 implementation adapts `Z3ConditionSolver` to that
+  protocol; callers do not receive a second condition-solver API.
 - Separate rule applicability conditions from target context assumptions in
   `effective_assumptions`.
 - Update sidecar materialization rows to persist decision status and witness
-  provenance.
+  references. If the sidecar schema changes, increment the sidecar schema
+  version and add a schema/version test. Full provenance graph content remains
+  in the provenance carrier and git notes.
 
 Gate:
 
 ```powershell
 powershell -File scripts/run_logged_pytest.ps1 -Label condition-gated-lifting tests/test_context_lifting_ws5.py tests/test_z3_conditions.py tests/test_sidecar_contexts.py
+uv run pks build
 uv run pyright propstore
 ```
 
-## Phase 4 - Unified CKR Exception Carrier
-
-Purpose: make blocked lifting and contextual justifiable exceptions one
-evidence-bearing mechanism.
-
-Red tests:
-
-- A lifting exception and a `JustifiableException` produce the same
-  `ExceptionDefeat` carrier shape.
-- Multiple applicable exceptions report a policy issue once.
-- A clashing set blocks only the matching target context and proposition.
-- Exception support composes with lifting-rule support by provenance polynomial
-  multiplication.
-
-Green implementation:
-
-- Replace `LiftingException` production semantics with the shared
-  `defeasibility` exception carrier.
-- Update `apply_exception_defeats_to_csaf` so blocked lifting undercuts the
-  generated lifting rule.
-- Delete any old lifting-exception-only production path.
-
-Gate:
-
-```powershell
-powershell -File scripts/run_logged_pytest.ps1 -Label ckr-exception-unification tests/test_defeasibility_support_contract.py tests/test_defeasibility_satisfaction.py tests/test_defeasibility_aspic_integration.py tests/test_context_lifting_ws5.py
-uv run pyright propstore
-```
-
-## Phase 5 - ASPIC Lifting Projection
+## Phase 4 - ASPIC Lifting Projection
 
 Purpose: make lifting rules produce inspectable arguments.
 
@@ -360,6 +472,8 @@ Red tests:
   defeats.
 - Projection provenance maps every target `ist` literal back to source
   assertion id and lifting rule id.
+- `apply_exception_defeats_to_csaf` undercuts generated lifting rules through
+  the same shared exception carrier used by contextual exceptions.
 
 Green implementation:
 
@@ -375,7 +489,7 @@ powershell -File scripts/run_logged_pytest.ps1 -Label aspic-lifting-projection t
 uv run pyright propstore
 ```
 
-## Phase 6 - Gunray Grounding Projection Frames
+## Phase 5 - Gunray Grounding Projection Frames
 
 Purpose: prevent Gunray backend atoms from becoming propstore identity.
 
@@ -394,10 +508,12 @@ Green implementation:
 - Tighten `propstore/grounding/bundle.py`,
   `propstore/grounding/grounder.py`, and
   `propstore/aspic_bridge/grounding.py` around projection-frame records.
-- Review `argumentation.datalog_grounding`: keep it only if it remains a pure
-  optional formal reduction over Gunray public types; otherwise move the
-  propstore-specific projection responsibility back into propstore and update
-  callers.
+- Keep `argumentation.datalog_grounding` as the optional formal reduction over
+  Gunray public types. Do not move it in this workstream. Add import-boundary
+  tests proving it imports no propstore modules and consumes only Gunray public
+  API.
+- Propstore remains responsible for `GroundedRulesBundle`, source rule/fact
+  provenance, projection frames, sidecar rows, and render policy.
 
 Gate:
 
@@ -406,7 +522,7 @@ powershell -File scripts/run_logged_pytest.ps1 -Label gunray-projection-frames t
 uv run pyright propstore
 ```
 
-## Phase 7 - World, ATMS, Conflict, and Worldline Convergence
+## Phase 6 - World, ATMS, Conflict, and Worldline Convergence
 
 Purpose: make every runtime view consume the same situated projection.
 
@@ -435,7 +551,37 @@ powershell -File scripts/run_logged_pytest.ps1 -Label situated-runtime-convergen
 uv run pyright propstore
 ```
 
-## Phase 8 - Package Boundary Cleanup
+## Phase 7 - Cross-Repo Coordination and Dependency Pins
+
+Purpose: make dependency package changes reproducible from clean checkouts.
+
+Rules:
+
+- If `argumentation`, Gunray, or `belief_set` changes, push that repository
+  first.
+- Propstore may pin only a pushed remote tag or immutable pushed commit SHA.
+- Never pin to a local path, editable path, local repository URL, or unpushed
+  branch.
+
+Required order:
+
+1. Finish and test dependency repo changes.
+2. Push dependency commits.
+3. Update propstore `pyproject.toml` / `uv.lock` to pushed immutable refs.
+4. Run propstore targeted gates affected by the dependency.
+5. Run propstore full completion gate.
+
+Gates:
+
+```powershell
+git -C ..\argumentation status --short
+git -C ..\gunray status --short
+git -C ..\belief-set status --short
+rg -n -F 'path = "../' pyproject.toml uv.lock
+rg -n -F 'file://' pyproject.toml uv.lock
+```
+
+## Phase 8 - Package, CLI, Workflow, and Documentation Cleanup
 
 Purpose: remove architectural residue after the new path is live.
 
@@ -448,6 +594,12 @@ Red tests:
 - No production semantic code calls `LiftingSystem.can_lift`.
 - No production context-lifting code imports `belief_set`; belief-set use stays
   behind formal revision or IC-merge adapters.
+- CLI/app reports expose typed lifting decision fields rather than `liftable:
+  bool`.
+- Research workflow and skill code has no stale `can_lift` or
+  `LiftingException` assumptions.
+- `docs/gaps.md`, `docs/contexts-and-micropubs.md`, `docs/argumentation.md`,
+  and CLI docs describe the final path only.
 
 Green implementation:
 
@@ -455,11 +607,16 @@ Green implementation:
 - Update propstore import sites.
 - Add import-boundary tests in all three repos as appropriate.
 - Pin propstore only to pushed remote dependency commits, never local paths.
+- Audit `propstore/cli/**`, `propstore/app/**`,
+  `C:/Users/Q/code/research-papers-plugin/**`, and local skills for stale
+  lifting APIs.
 
 Gates:
 
 ```powershell
 powershell -File scripts/run_logged_pytest.ps1 -Label boundary-cleanup tests/architecture/test_import_boundaries.py tests/architecture/test_forbidden_symbols.py
+rg -n -F "can_lift" propstore/cli propstore/app C:\Users\Q\code\research-papers-plugin
+rg -n -F "LiftingException" propstore/cli propstore/app C:\Users\Q\code\research-papers-plugin
 uv run pyright propstore
 ```
 
@@ -490,6 +647,7 @@ After every phase-specific gate passes, run:
 
 ```powershell
 powershell -File scripts/run_logged_pytest.ps1 -Label ist-argumentation-gunray-full tests
+uv run pks build
 uv run pyright propstore
 ```
 
@@ -519,6 +677,8 @@ rg -n -F "can_lift(" propstore tests docs
 rg -n -F "LiftingException" propstore tests docs
 rg -n -F "IstLiteralKey" propstore tests docs
 rg -n -F "belief_set" propstore/context_lifting.py propstore/aspic_bridge propstore/grounding
+rg -n -F "can_lift(" ..\argumentation ..\gunray ..\belief-set
+rg -n -F "LiftingException" ..\argumentation ..\gunray ..\belief-set
 ```
 
 Expected final state:
