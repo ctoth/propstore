@@ -243,7 +243,7 @@ def _lifting_dependencies(
     if environment is None or lifting_system is None:
         return [], []
 
-    from propstore.context_lifting import LiftingMaterializationStatus
+    from propstore.context_lifting import LiftingDecisionStatus
 
     rule_ids: set[str] = set()
     blocked_exception_ids: set[str] = set()
@@ -262,7 +262,7 @@ def _lifting_dependencies(
                 continue
             rule_ids.add(materialization.rule_id)
             if (
-                materialization.status is LiftingMaterializationStatus.BLOCKED
+                materialization.status is LiftingDecisionStatus.BLOCKED
                 and materialization.exception_id is not None
             ):
                 blocked_exception_ids.add(materialization.exception_id)
