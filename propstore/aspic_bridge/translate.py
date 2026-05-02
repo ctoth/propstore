@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from argumentation.aspic import (
@@ -15,7 +15,12 @@ from argumentation.aspic import (
 )
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.justifications import CanonicalJustification
-from propstore.core.literal_keys import ClaimLiteralKey, LiteralKey, claim_key
+from propstore.core.literal_keys import (
+    IstLiteralKey,
+    LiteralKey,
+    REPOSITORY_ROOT_CONTEXT_ID,
+    claim_key,
+)
 from propstore.core.row_types import StanceRow, StanceRowInput, coerce_stance_row
 from argumentation.preference import strict_partial_order_closure
 
@@ -32,13 +37,45 @@ def _coerce_bridge_stance_row(row: StanceRowInput) -> StanceRow:
     return coerce_stance_row(row)
 
 
+def _claim_context_id(claim: ActiveClaim) -> str:
+    if claim.context_id is None:
+        return str(REPOSITORY_ROOT_CONTEXT_ID)
+    return str(claim.context_id)
+
+
+def _claim_literal_key(claim: ActiveClaim) -> IstLiteralKey:
+    return claim_key(str(claim.claim_id), context_id=_claim_context_id(claim))
+
+
+def _literal_key_for_proposition(
+    proposition_id: str,
+    literals: Mapping[LiteralKey, Literal],
+) -> LiteralKey:
+    matches = [
+        key
+        for key in literals
+        if isinstance(key, IstLiteralKey) and str(key.proposition_id) == str(proposition_id)
+    ]
+    if not matches:
+        return claim_key(str(proposition_id))
+    if len(matches) > 1:
+        contexts = ", ".join(sorted(str(key.context_id) for key in matches))
+        raise ValueError(
+            f"claim {proposition_id!r} is ambiguous across contexts: {contexts}"
+        )
+    return matches[0]
+
+
 def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[LiteralKey, Literal]:
     """Map each claim to a positive ASPIC+ literal."""
 
     normalized_claims = coerce_active_claims(active_claims)
     return {
-        claim_key(str(claim.claim_id)): Literal(
-            atom=GroundAtom(str(claim.claim_id)),
+        _claim_literal_key(claim): Literal(
+            atom=GroundAtom(
+                "ist",
+                (_claim_context_id(claim), str(claim.claim_id)),
+            ),
             negated=False,
         )
         for claim in normalized_claims
@@ -63,8 +100,14 @@ def justifications_to_rules(
                 f"{justification.justification_id!r} must be rejected or represented explicitly"
             )
 
-        conclusion_literal_key = claim_key(justification.conclusion_claim_id)
-        premise_keys = tuple(claim_key(pid) for pid in justification.premise_claim_ids)
+        conclusion_literal_key = _literal_key_for_proposition(
+            justification.conclusion_claim_id,
+            literals,
+        )
+        premise_keys = tuple(
+            _literal_key_for_proposition(pid, literals)
+            for pid in justification.premise_claim_ids
+        )
         if conclusion_literal_key not in literals:
             continue
         unknown_premises = [
@@ -126,8 +169,8 @@ def stances_to_contrariness(
 
     for stance_input in stances:
         stance = _coerce_bridge_stance_row(stance_input)
-        src_key = claim_key(stance.claim_id)
-        tgt_key = claim_key(stance.target_claim_id)
+        src_key = _literal_key_for_proposition(stance.claim_id, literals)
+        tgt_key = _literal_key_for_proposition(stance.target_claim_id, literals)
         if src_key not in literals or tgt_key not in literals:
             continue
 
@@ -199,8 +242,8 @@ def preference_sensitive_stance_pairs(
         stance = _coerce_bridge_stance_row(stance_input)
         if stance.stance_type not in ("supersedes", "undermines"):
             continue
-        src_key = claim_key(stance.claim_id)
-        tgt_key = claim_key(stance.target_claim_id)
+        src_key = _literal_key_for_proposition(stance.claim_id, literals)
+        tgt_key = _literal_key_for_proposition(stance.target_claim_id, literals)
         if src_key not in literals or tgt_key not in literals:
             continue
         src = literals[src_key]
@@ -229,7 +272,7 @@ def claims_to_kb(
     premises: set[Literal] = set()
 
     for claim_id in reported_claim_ids:
-        literal_key = claim_key(claim_id)
+        literal_key = _literal_key_for_proposition(claim_id, literals)
         if literal_key not in literals:
             continue
         claim = claim_by_id.get(claim_id)
@@ -292,16 +335,16 @@ def build_preference_config(
         raise ValueError("rule_order contains rules outside defeasible_rules")
 
     claim_ids = [
-        key.claim_id
+        str(key.proposition_id)
         for key in literals
-        if isinstance(key, ClaimLiteralKey) and key.claim_id in claim_by_id
+        if isinstance(key, IstLiteralKey) and str(key.proposition_id) in claim_by_id
     ]
     for index, claim_id_a in enumerate(claim_ids):
         for claim_id_b in claim_ids[index + 1 :]:
             vec_a = metadata_strength_vector(claim_by_id[claim_id_a])
             vec_b = metadata_strength_vector(claim_by_id[claim_id_b])
-            lit_a = literals[claim_key(claim_id_a)]
-            lit_b = literals[claim_key(claim_id_b)]
+            lit_a = literals[_literal_key_for_proposition(claim_id_a, literals)]
+            lit_b = literals[_literal_key_for_proposition(claim_id_b, literals)]
 
             if _component_wise_dominates(vec_a, vec_b):
                 premise_order.add((lit_a, lit_b))

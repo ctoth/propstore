@@ -13,7 +13,7 @@ from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_a
 from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.labels import Label, SupportMetadata, SupportQuality
-from propstore.core.literal_keys import ClaimLiteralKey
+from propstore.core.literal_keys import IstLiteralKey
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.preference import claim_strength
 from propstore.provenance.records import ProjectionFrameProvenanceRecord
@@ -166,9 +166,9 @@ def csaf_to_projection(
     normalized_claims = coerce_active_claims(active_claims)
     claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
     claim_literal_ids = {
-        literal: str(key.claim_id)
+        literal: str(key.proposition_id)
         for key, literal in claims_to_literals(normalized_claims).items()
-        if isinstance(key, ClaimLiteralKey)
+        if isinstance(key, IstLiteralKey)
     }
 
     projected_args: list[StructuredArgument] = []

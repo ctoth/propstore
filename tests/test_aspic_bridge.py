@@ -243,18 +243,19 @@ class TestClaimsToLiterals:
         """No two claims share an atom."""
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
-        atoms = [lit.atom.predicate for lit in literals.values()]
+        atoms = [lit.atom for lit in literals.values()]
         assert len(atoms) == len(set(atoms)), "Duplicate atoms in literals"
 
     @pytest.mark.property
     @given(claim_graph())
     @settings(deadline=None)
-    def test_literal_atom_is_claim_id(self, graph):
-        """Each literal's atom equals its claim_id."""
+    def test_literal_atom_is_contextual_ist(self, graph):
+        """Each claim literal is an explicit ist(context, claim_id) atom."""
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
         for key, lit in literals.items():
-            assert lit.atom.predicate == key.claim_id
+            assert lit.atom.predicate == "ist"
+            assert lit.atom.arguments == (str(key.context_id), str(key.proposition_id))
             assert lit.negated is False
 
     @pytest.mark.property

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import pytest
 from argumentation.aspic import GroundAtom
 
 from propstore.aspic_bridge.translate import claims_to_literals
 import propstore.core.literal_keys as literal_keys
+from propstore.core.literal_keys import REPOSITORY_ROOT_CONTEXT_ID
 
 
 def test_contextual_claim_projects_to_ist_literal_key_and_backend_atom() -> None:
@@ -49,8 +49,11 @@ def test_contextual_claim_does_not_project_to_unqualified_claim_atom() -> None:
     assert all(literal.atom != GroundAtom("claim_x") for literal in literals.values())
 
 
-def test_non_contextual_claim_requires_explicit_projection_policy() -> None:
+def test_non_contextual_claim_uses_explicit_repository_root_context() -> None:
     """Guha 1991 pngs/page-007: the first `ist` argument denotes a context."""
 
-    with pytest.raises(ValueError, match="context"):
-        claims_to_literals([{"id": "claim_without_context"}])
+    literals = claims_to_literals([{"id": "claim_without_context"}])
+
+    assert {literal.atom for literal in literals.values()} == {
+        GroundAtom("ist", (str(REPOSITORY_ROOT_CONTEXT_ID), "claim_without_context"))
+    }

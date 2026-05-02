@@ -388,8 +388,10 @@ def test_claim_canonical_name_collision_does_not_collapse_aspic_literals() -> No
     first = literals[claim_key("first")]
     second = literals[claim_key("second")]
     assert first != second
-    assert first.atom.predicate == "first"
-    assert second.atom.predicate == "second"
+    assert first.atom.predicate == "ist"
+    assert second.atom.predicate == "ist"
+    assert first.atom.arguments[-1] == "first"
+    assert second.atom.arguments[-1] == "second"
 
     csaf = build_bridge_csaf(
         claims,

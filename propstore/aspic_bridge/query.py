@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from argumentation.aspic import (
     Argument,
@@ -19,7 +19,7 @@ from argumentation.aspic import (
 )
 from propstore.core.active_claims import ActiveClaimInput
 from propstore.core.justifications import CanonicalJustification
-from propstore.core.literal_keys import LiteralKey, claim_key, ground_key
+from propstore.core.literal_keys import IstLiteralKey, LiteralKey, claim_key, ground_key
 from propstore.core.row_types import StanceRowInput
 from propstore.grounding.bundle import GroundedRulesBundle
 
@@ -43,10 +43,23 @@ class ClaimQueryResult:
     defeats: frozenset[tuple[Argument, Argument]]
 
 
-def _query_goal_key(goal_ref: str | GroundAtom | LiteralKey) -> LiteralKey:
+def _query_goal_key(
+    goal_ref: str | GroundAtom | LiteralKey,
+    literals: Mapping[LiteralKey, Literal],
+) -> LiteralKey:
     """Convert a query boundary input to the internal typed literal-key surface."""
 
     if isinstance(goal_ref, str):
+        matches = [
+            key
+            for key in literals
+            if isinstance(key, IstLiteralKey) and str(key.proposition_id) == goal_ref
+        ]
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            contexts = ", ".join(sorted(str(key.context_id) for key in matches))
+            raise ValueError(f"claim {goal_ref!r} is ambiguous across contexts: {contexts}")
         return claim_key(goal_ref)
     if isinstance(goal_ref, GroundAtom):
         return ground_key(goal_ref, False)
@@ -75,7 +88,7 @@ def query_claim(
         link=link,
     )
 
-    goal_key = _query_goal_key(claim_id)
+    goal_key = _query_goal_key(claim_id, compiled.literals)
     if goal_key not in compiled.literals:
         raise KeyError(claim_id)
     goal = compiled.literals[goal_key]

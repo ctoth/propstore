@@ -5,6 +5,8 @@ from propstore.aspic_bridge import claims_to_literals
 from propstore.core.literal_keys import (
     ClaimLiteralKey,
     GroundLiteralKey,
+    IstLiteralKey,
+    REPOSITORY_ROOT_CONTEXT_ID,
     claim_key,
     ground_key,
 )
@@ -40,7 +42,17 @@ def test_claim_literal_key_preserves_claim_id() -> None:
     key = ClaimLiteralKey("claim-123")
 
     assert key.claim_id == "claim-123"
-    assert key == claim_key("claim-123")
+    assert key != claim_key("claim-123")
+
+
+def test_ist_literal_key_preserves_context_and_proposition() -> None:
+    key = IstLiteralKey(context_id="ctx-a", proposition_id="claim-123")
+
+    assert str(key.context_id) == "ctx-a"
+    assert str(key.proposition_id) == "claim-123"
+    assert key == claim_key("claim-123", context_id="ctx-a")
+    assert key != ClaimLiteralKey("claim-123")
+    assert key != ground_key(GroundAtom("claim-123"), negated=False)
 
 
 def test_ground_literal_key_preserves_atom_shape() -> None:
@@ -63,3 +75,8 @@ def test_claims_to_literals_uses_typed_claim_keys() -> None:
     ])
 
     assert set(literals) == {claim_key("claim-typed")}
+    literal = literals[claim_key("claim-typed")]
+    assert literal.atom == GroundAtom(
+        "ist",
+        (str(REPOSITORY_ROOT_CONTEXT_ID), "claim-typed"),
+    )

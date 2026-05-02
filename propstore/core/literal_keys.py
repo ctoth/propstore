@@ -15,6 +15,10 @@ from dataclasses import dataclass
 from typing import TypeAlias
 
 from argumentation.aspic import GroundAtom, Scalar
+from propstore.core.id_types import ClaimId, ContextId, to_claim_id, to_context_id
+
+
+REPOSITORY_ROOT_CONTEXT_ID = to_context_id("propstore:context:root")
 
 
 @dataclass(frozen=True)
@@ -22,6 +26,18 @@ class ClaimLiteralKey:
     """Identity key for a claim-backed propositional literal."""
 
     claim_id: str
+
+
+@dataclass(frozen=True)
+class IstLiteralKey:
+    """Identity key for a context-scoped proposition literal."""
+
+    context_id: ContextId
+    proposition_id: ClaimId
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "context_id", to_context_id(self.context_id))
+        object.__setattr__(self, "proposition_id", to_claim_id(self.proposition_id))
 
 
 @dataclass(frozen=True)
@@ -38,13 +54,20 @@ class GroundLiteralKey:
     negated: bool
 
 
-LiteralKey: TypeAlias = ClaimLiteralKey | GroundLiteralKey
+LiteralKey: TypeAlias = ClaimLiteralKey | IstLiteralKey | GroundLiteralKey
 
 
-def claim_key(claim_id: str) -> ClaimLiteralKey:
-    """Return the canonical typed key for a claim literal."""
+def claim_key(
+    claim_id: str,
+    *,
+    context_id: ContextId | str = REPOSITORY_ROOT_CONTEXT_ID,
+) -> IstLiteralKey:
+    """Return the canonical typed key for a situated claim literal."""
 
-    return ClaimLiteralKey(claim_id=claim_id)
+    return IstLiteralKey(
+        context_id=to_context_id(context_id),
+        proposition_id=to_claim_id(claim_id),
+    )
 
 
 def ground_key(atom: GroundAtom, negated: bool) -> GroundLiteralKey:
@@ -60,7 +83,9 @@ def ground_key(atom: GroundAtom, negated: bool) -> GroundLiteralKey:
 __all__ = [
     "ClaimLiteralKey",
     "GroundLiteralKey",
+    "IstLiteralKey",
     "LiteralKey",
+    "REPOSITORY_ROOT_CONTEXT_ID",
     "claim_key",
     "ground_key",
 ]
