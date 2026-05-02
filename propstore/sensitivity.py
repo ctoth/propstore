@@ -133,7 +133,7 @@ def analyze_sensitivity(
     # Find first compatible parameterization
     param = None
     for p in params:
-        if bound.is_param_compatible(p.conditions_cel):
+        if bound.is_param_compatible(p):
             param = p
             break
 

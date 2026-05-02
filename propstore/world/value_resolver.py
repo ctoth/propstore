@@ -126,7 +126,7 @@ class ActiveClaimResolver:
         self,
         *,
         parameterizations_for: Callable[[ConceptId | str], list[ParameterizationRow]],
-        is_param_compatible: Callable[[str | None], bool],
+        is_param_compatible: Callable[[ParameterizationRow], bool],
         value_of: Callable[[ConceptId | str], ValueResult],
         extract_variable_concepts: Callable[[ActiveClaim], list[str]],
         collect_known_values: Callable[[Sequence[ConceptId | str]], dict[ConceptId, Any]],
@@ -164,7 +164,7 @@ class ActiveClaimResolver:
         derived_candidates: list[DerivedResult] = []
 
         for param in params:
-            if not self._is_param_compatible(param.conditions_cel):
+            if not self._is_param_compatible(param):
                 continue
             saw_compatible_candidate = True
 

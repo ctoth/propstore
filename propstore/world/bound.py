@@ -7,11 +7,11 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from propstore.core.conditions import checked_condition_set
+from propstore.core.conditions import checked_condition_set, checked_condition_set_from_json
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo
 from propstore.cel_registry import build_store_cel_registry
-from propstore.cel_types import CelExpr, to_cel_exprs
+from propstore.cel_types import CelExpr
 from propstore.core.activation import is_active_claim_active
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.claim_types import ClaimType
@@ -20,6 +20,7 @@ from propstore.core.id_types import ConceptId, to_claim_id, to_concept_id, to_co
 from propstore.core.row_types import (
     ClaimRowInput,
     ConflictRow,
+    ParameterizationRow,
     StanceRow,
     coerce_claim_row,
     coerce_concept_row,
@@ -256,7 +257,7 @@ class BoundWorld(BeliefSpace):
                 )
                 for row in self._store.parameterizations_for(concept_id)
             ],
-            is_param_compatible=self.is_param_compatible,
+            is_param_compatible=self.is_parameterization_compatible,
             value_of=self.value_of,
             extract_variable_concepts=self.extract_variable_concepts,
             collect_known_values=self.collect_known_values,
@@ -319,17 +320,22 @@ class BoundWorld(BeliefSpace):
             lifting_system=self._lifting_system,
         )
 
-    def is_param_compatible(self, conditions_cel: str | None) -> bool:
+    def is_param_compatible(self, parameterization: ParameterizationRow) -> bool:
+        return self.is_parameterization_compatible(parameterization)
+
+    def is_parameterization_compatible(self, parameterization: ParameterizationRow) -> bool:
         """Check if parameterization conditions are compatible with bindings."""
-        if not conditions_cel:
+        if not parameterization.conditions_ir:
+            if parameterization.conditions_cel:
+                raise ValueError(
+                    "parameterization row is missing conditions_ir; rebuild the sidecar"
+                )
             return True
-        loaded_conditions = json.loads(conditions_cel)
-        conds = to_cel_exprs(
-            loaded_conditions
-            if isinstance(loaded_conditions, list)
-            else (loaded_conditions,)
-        )
-        if not conds:
+        loaded_conditions = json.loads(parameterization.conditions_ir)
+        if not isinstance(loaded_conditions, Mapping):
+            raise ValueError("parameterization conditions_ir must decode to a mapping")
+        condition_set = checked_condition_set_from_json(loaded_conditions)
+        if not condition_set.conditions:
             return True
         if not self._binding_conds:
             return True
@@ -340,10 +346,7 @@ class BoundWorld(BeliefSpace):
                 check_condition_ir(str(condition), registry)
                 for condition in self._binding_conds
             ),
-            checked_condition_set(
-                check_condition_ir(str(condition), registry)
-                for condition in conds
-            ),
+            condition_set,
         )
 
     def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
