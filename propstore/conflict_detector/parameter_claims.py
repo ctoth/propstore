@@ -7,6 +7,15 @@ from typing import TYPE_CHECKING
 
 from propstore.cel_types import CelExpr
 from propstore.condition_classifier import classify_conditions as _classify_conditions
+from propstore.core.conditions import CheckedConditionSet, checked_condition_set
+from propstore.core.conditions.cel_frontend import check_condition_ir
+from propstore.core.conditions.solver import (
+    ConditionSolver,
+    SolverSat,
+    SolverUnknown,
+    SolverUnsat,
+    Z3TranslationError,
+)
 from propstore.value_comparison import (
     value_str as _value_str,
     values_compatible as _values_compatible,
@@ -22,11 +31,7 @@ if TYPE_CHECKING:
 
 
 def _build_z3_solver(cel_registry: dict[str, ConceptInfo]):
-    try:
-        from propstore.z3_conditions import Z3ConditionSolver
-    except ImportError as exc:
-        raise RuntimeError("Z3 condition reasoning is required but unavailable") from exc
-    return Z3ConditionSolver(cel_registry)
+    return ConditionSolver(cel_registry)
 
 
 def detect_parameter_conflicts(
@@ -47,12 +52,18 @@ def detect_parameter_conflicts(
             continue
 
         all_conditions = [sorted(claim.conditions) for claim in claims]
+        checked_conditions = [
+            checked_condition_set(
+                check_condition_ir(str(condition), cel_registry)
+                for condition in conditions
+            )
+            for conditions in all_conditions
+        ]
 
         if len(claims) > 2:
-            from propstore.z3_conditions import Z3TranslationError
             import z3
             try:
-                eq_classes = z3_solver.partition_equivalence_classes(all_conditions)
+                eq_classes = z3_solver.partition_equivalence_classes(checked_conditions)
             except (Z3TranslationError, z3.Z3Exception) as exc:
                 raise RuntimeError(
                     f"Z3 partitioning failed during parameter conflict detection: {exc}"
@@ -92,6 +103,7 @@ def detect_parameter_conflicts(
             eq_classes,
             cel_registry,
             z3_solver,
+            checked_conditions,
             lifting_system=lifting_system,
         )
 
@@ -219,20 +231,20 @@ def _detect_cross_class_parameter_conflicts(
     eq_classes: list[list[int]],
     cel_registry: dict[str, ConceptInfo],
     z3_solver,
+    checked_conditions: list[CheckedConditionSet],
     *,
     lifting_system: LiftingSystem | None,
     forms=None,
     concept_forms: Mapping[str, str] | None = None,
 ) -> None:
-    from propstore.z3_conditions import SolverSat, SolverUnknown, SolverUnsat, Z3TranslationError
     import z3
 
     for left_index in range(len(eq_classes)):
         for right_index in range(left_index + 1, len(eq_classes)):
             group_i = eq_classes[left_index]
             group_j = eq_classes[right_index]
-            rep_i = all_conditions[group_i[0]]
-            rep_j = all_conditions[group_j[0]]
+            rep_i = checked_conditions[group_i[0]]
+            rep_j = checked_conditions[group_j[0]]
             try:
                 disjointness = z3_solver.are_disjoint_result(rep_i, rep_j)
             except (Z3TranslationError, z3.Z3Exception) as exc:
