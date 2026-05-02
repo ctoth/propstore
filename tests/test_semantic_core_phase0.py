@@ -3,24 +3,21 @@ from __future__ import annotations
 import json
 
 from propstore.world import BoundWorld, Environment, OverlayWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
+from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.row_types import ConflictRowInput, StanceRowInput
-
-
-class _ExactMatchSolver:
-    def are_disjoint(self, left: list[str], right: list[str]) -> bool:
-        return set(left).isdisjoint(right)
+from tests.atms_helpers import condition_registry_for_rows, rows_with_condition_ir
 
 
 class _Store:
     def __init__(self) -> None:
-        self._claims = [
+        claims = [
             self._claim("claim_low", "concept1", value=10.0, sample_size=5),
             self._claim("claim_high", "concept1", value=20.0, sample_size=50),
             self._claim("claim_left", "concept2", value=5.0),
             self._claim("claim_right", "concept4", value=7.0),
         ]
-        self._parameterizations = {
+        parameterizations = {
             "concept3": [
                 {
                     "concept_ids": json.dumps(["concept2", "concept4"]),
@@ -31,6 +28,18 @@ class _Store:
                 }
             ]
         }
+        all_rows = claims + [
+            row
+            for rows in parameterizations.values()
+            for row in rows
+        ]
+        self._condition_registry = condition_registry_for_rows(all_rows)
+        self._claims = rows_with_condition_ir(claims, self._condition_registry)
+        self._parameterizations = {
+            concept_id: rows_with_condition_ir(rows, self._condition_registry)
+            for concept_id, rows in parameterizations.items()
+        }
+        self._solver = ConditionSolver(self._condition_registry)
 
     @staticmethod
     def _claim(
@@ -84,8 +93,8 @@ class _Store:
     def parameterizations_for(self, concept_id: str) -> list[dict]:
         return list(self._parameterizations.get(concept_id, []))
 
-    def condition_solver(self) -> _ExactMatchSolver:
-        return _ExactMatchSolver()
+    def condition_solver(self) -> ConditionSolver:
+        return self._solver
 
     def conflicts(self) -> list[ConflictRowInput]:
         return []
