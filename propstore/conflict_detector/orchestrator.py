@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
+from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES
 from propstore.core.conditions.registry import (
     ConceptInfo,
     synthetic_category_concept,
@@ -63,7 +64,9 @@ def detect_conflicts(
             extensible=False,
         ),
     ]
-    for synthetic_name in ("domain", "source_kind", "origin_type", "name"):
+    for synthetic_name in STANDARD_SYNTHETIC_BINDING_NAMES:
+        if synthetic_name == "source":
+            continue
         if synthetic_name in cel_registry:
             continue
         synthetic_concepts.append(
