@@ -484,7 +484,12 @@ class TestContextAwareConflicts:
             ),
         )
 
-        assert _classify_pair_context("ctx_a", "ctx_b", system) is None
+        assert _classify_pair_context(
+            "ctx_a",
+            "ctx_b",
+            system,
+            claim_a_id="claim_alpha",
+        ) is None
 
 
 class TestContextCLIIntegration:
