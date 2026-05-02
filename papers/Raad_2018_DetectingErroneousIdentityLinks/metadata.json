@@ -2,17 +2,15 @@
   "title": "Detecting Erroneous Identity Links on the Web Using Network Metrics",
   "authors": [
     "Joe Raad",
-    "W. Beek",
-    "F. V. Harmelen",
+    "Wouter Beek",
+    "Frank van Harmelen",
     "Nathalie Pernelle",
     "Fatiha Saïs"
   ],
   "year": "2018",
+  "arxiv_id": null,
   "doi": "10.1007/978-3-030-00671-6_23",
-  "url": "https://www.semanticscholar.org/paper/2572c374da7d6c9db7fed61e0a04d1a2a98b892e",
-  "pdf_url": "https://research.vu.nl/files/75391299/Raad2018_Chapter_DetectingErroneousIdentityLink.pdf",
-  "bibtex": "@Article{Raad2018DetectingEI,\n author = {Joe Raad and W. Beek and F. V. Harmelen and Nathalie Pernelle and Fatiha Saïs},\n booktitle = {International Workshop on the Semantic Web},\n pages = {391-407},\n title = {Detecting Erroneous Identity Links on the Web Using Network Metrics},\n year = {2018}\n}\n",
-  "venue": "International Workshop on the Semantic Web",
-  "venue_type": "conference",
-  "pages": "391-407"
+  "abstract": "In the absence of a central naming authority on the Semantic Web, it is common for different datasets to refer to the same thing by different IRIs. Whenever multiple names are used to denote the same thing, owl:sameAs statements are needed in order to link the data and foster reuse. Studies that date back as far as 2009, have observed that the owl:sameAs property is sometimes used incorrectly. In this paper, we show how network metrics such as the community structure of the owl:sameAs graph can be used in order to detect such possibly erroneous statements. One benefit of the here presented approach is that it can be applied to the network of owl:sameAs links itself, and does not rely on any additional knowledge. In order to illustrate its ability to scale, the approach is evaluated on the largest collection of identity links to date, containing over 558M owl:sameAs links scraped from the LOD Cloud.",
+  "url": "https://doi.org/10.1007/978-3-030-00671-6_23",
+  "pdf_url": "https://www.cs.vu.nl/~frankh/postscript/ISWC2018.pdf"
 }
