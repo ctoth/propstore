@@ -7,6 +7,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+from propstore.core.conditions import checked_condition_set
+from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo
 from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import CelExpr, to_cel_exprs
@@ -332,7 +334,17 @@ class BoundWorld(BeliefSpace):
         if not self._binding_conds:
             return True
         solver = self._store.condition_solver()
-        return not solver.are_disjoint(self._binding_conds, conds)
+        registry = getattr(solver, "_registry")
+        return not solver.are_disjoint(
+            checked_condition_set(
+                check_condition_ir(str(condition), registry)
+                for condition in self._binding_conds
+            ),
+            checked_condition_set(
+                check_condition_ir(str(condition), registry)
+                for condition in conds
+            ),
+        )
 
     def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         all_claims = [
