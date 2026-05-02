@@ -277,7 +277,7 @@ rg -n -F "LiftingMaterializationStatus" propstore tests docs
 rg -n -F "LiteralKey" propstore tests
 rg -n -F "belief_set" propstore/context_lifting.py propstore/aspic_bridge propstore/grounding
 rg -n -F "can_lift" propstore/cli propstore/app C:\Users\Q\code\research-papers-plugin
-rg -n -F "from argumentation import" propstore ..\argumentation\src
+rg -n -F "from argumentation" propstore tests docs
 ```
 
 Required artifact:
@@ -303,6 +303,14 @@ Paper-image verification:
 - Record the exact paper directory, page image filename, and cited definition
   or theorem in the test docstring or adjacent test comment.
 - Do not use PDF text extraction as evidence for a test expectation.
+- Minimum page-image checklist before Phase 0 tests are accepted:
+  - Bozzato 2018 definitions 4-6 for justified exceptions and clashing
+    assumptions.
+  - Garcia and Simari 2004 section 4 for four-valued answer status.
+  - Guha 1991 section 3 for DCR-P, DCR-T, and articulation axioms.
+  - Modgil and Prakken 2018 sections 3-4 for defeats and
+    attack-conflict-free extensions.
+  - Diller 2025 section 4 for non-approximated predicates.
 
 Red tests:
 
@@ -321,6 +329,11 @@ Red tests:
 - `tests/architecture/test_belief_set_boundary_contract.py`
   - asserts `propstore/context_lifting.py`, `propstore/aspic_bridge/**`, and
     `propstore/grounding/**` do not import `belief_set`.
+  - is a regression guard that passes today and must continue to pass through
+    every later phase; it is not a phase-driving red test.
+  - positively asserts that every propstore import edge to `belief_set` goes
+    through `propstore.support_revision` or a named future formal-revision or
+    IC-merge adapter.
   - cites AGM/IC papers only as excluded boundary surfaces.
 
 Green implementation:
@@ -437,6 +450,9 @@ Red tests:
 - Cached sidecar materialization rows are inspection records only: changing a
   lifting rule, exception, or condition changes the decision on rebuild and does
   not make the old row canonical truth.
+- Create `tests/test_sidecar_contexts.py` for decision-status persistence,
+  witness references, sidecar schema/version bump behavior, and invalidation of
+  inspection rows after lifting-rule, exception, or condition changes.
 
 Green implementation:
 
@@ -469,7 +485,7 @@ Red tests:
 - For each `BLOCKED` decision, the lifting-rule argument is defeated or absent
   according to the exception status.
 - ASPIC extensions are attack-conflict-free against raw attacks, not merely
-  defeats.
+  defeats; cite Modgil and Prakken 2018 sections 3-4 in the test docstring.
 - Projection provenance maps every target `ist` literal back to source
   assertion id and lifting rule id.
 - `apply_exception_defeats_to_csaf` undercuts generated lifting rules through
@@ -565,7 +581,8 @@ Rules:
 
 Required order:
 
-1. Finish and test dependency repo changes.
+1. All dependency repo full pytest and pyright gates are green at the SHA to be
+   pinned.
 2. Push dependency commits.
 3. Update propstore `pyproject.toml` / `uv.lock` to pushed immutable refs.
 4. Run propstore targeted gates affected by the dependency.
@@ -603,6 +620,10 @@ Red tests:
 
 Green implementation:
 
+- `argumentation.__init__` shallowing must ship as its own pushed
+  `argumentation` commit. Re-pin propstore to that pushed SHA per Phase 7
+  before running propstore boundary-cleanup gates. Do not edit the local
+  argumentation checkout and rely on path-based resolution.
 - Update `../argumentation/src/argumentation/__init__.py` if needed.
 - Update propstore import sites.
 - Add import-boundary tests in all three repos as appropriate.
@@ -675,11 +696,15 @@ Before declaring the workstream complete, search must show:
 ```powershell
 rg -n -F "can_lift(" propstore tests docs
 rg -n -F "LiftingException" propstore tests docs
+rg -n -F "LiftingMaterializationStatus" propstore tests docs
 rg -n -F "IstLiteralKey" propstore tests docs
 rg -n -F "belief_set" propstore/context_lifting.py propstore/aspic_bridge propstore/grounding
 rg -n -F "can_lift(" ..\argumentation ..\gunray ..\belief-set
 rg -n -F "LiftingException" ..\argumentation ..\gunray ..\belief-set
 ```
+
+`LiftingMaterializationStatus` may appear only in historical notes, reviews, or
+`docs/gaps.md`; it must have no production hits.
 
 Expected final state:
 
