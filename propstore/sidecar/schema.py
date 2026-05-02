@@ -45,7 +45,7 @@ import sqlite3
 
 from propstore.sidecar.stages import ContextSidecarRows
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 SIDECAR_META_KEY = "sidecar"
 
 
@@ -150,6 +150,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             sympy TEXT,
             exactness TEXT NOT NULL,
             conditions_cel TEXT,
+            conditions_ir TEXT,
             FOREIGN KEY (output_concept_id) REFERENCES concept(id)
         );
 
@@ -455,6 +456,7 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
         CREATE TABLE claim_text_payload (
             claim_id TEXT PRIMARY KEY,
             conditions_cel TEXT,
+            conditions_ir TEXT,
             statement TEXT,
             expression TEXT,
             sympy_generated TEXT,

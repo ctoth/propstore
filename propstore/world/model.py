@@ -88,7 +88,7 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "logical_ids_json",
     },
     "alias": {"concept_id", "alias_name"},
-    "parameterization": {"output_concept_id"},
+    "parameterization": {"output_concept_id", "conditions_ir"},
     "parameterization_group": {"group_id", "concept_id"},
     "relation_edge": {
         "source_kind",
@@ -168,6 +168,7 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
     "claim_text_payload": {
         "claim_id",
         "conditions_cel",
+        "conditions_ir",
         "statement",
         "expression",
         "sympy_generated",
@@ -461,6 +462,7 @@ class WorldQuery(WorldStore):
                 num.sample_size,
                 num.unit,
                 txt.conditions_cel,
+                txt.conditions_ir,
                 txt.statement,
                 txt.expression,
                 txt.sympy_generated,
