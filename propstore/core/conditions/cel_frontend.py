@@ -38,16 +38,21 @@ from cel_parser import (
     Expr,
     Ident,
     IntLit,
+    ParseError,
     SourceSpan,
     StringLit,
     UintLit,
+    parse,
 )
 
 from propstore.cel_checker import (
-    CheckedCelExpr,
-    check_cel_expr,
+    check_cel_expression,
 )
-from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.registry import (
+    ConceptInfo,
+    KindType,
+    condition_registry_fingerprint,
+)
 from propstore.core.conditions.checked import CheckedCondition
 from propstore.core.conditions.ir import (
     ConditionBinary,
@@ -68,28 +73,37 @@ def condition_ir_from_cel(
     source: str,
     registry: Mapping[str, ConceptInfo],
 ) -> ConditionIR:
-    checked = check_cel_expr(source, registry)
-    return _condition_ir_from_checked(checked, registry)
+    errors = check_cel_expression(source, registry)
+    hard_errors = [error for error in errors if not error.is_warning]
+    if hard_errors:
+        message = "; ".join(error.message for error in hard_errors)
+        raise ValueError(message)
+    try:
+        ast = parse(source)
+    except ParseError as exc:
+        raise ValueError(f"Parse error: {exc}") from exc
+    return _lower_node(ast, registry)
 
 
 def check_condition_ir(
     source: str,
     registry: Mapping[str, ConceptInfo],
 ) -> CheckedCondition:
-    checked = check_cel_expr(source, registry)
+    errors = check_cel_expression(source, registry)
+    hard_errors = [error for error in errors if not error.is_warning]
+    if hard_errors:
+        message = "; ".join(error.message for error in hard_errors)
+        raise ValueError(message)
+    try:
+        ast = parse(source)
+    except ParseError as exc:
+        raise ValueError(f"Parse error: {exc}") from exc
     return CheckedCondition(
-        source=str(checked.source),
-        ir=_condition_ir_from_checked(checked, registry),
-        registry_fingerprint=str(checked.registry_fingerprint),
-        warnings=tuple(warning.message for warning in checked.warnings),
+        source=source,
+        ir=_lower_node(ast, registry),
+        registry_fingerprint=str(condition_registry_fingerprint(registry)),
+        warnings=tuple(error.message for error in errors if error.is_warning),
     )
-
-
-def _condition_ir_from_checked(
-    checked: CheckedCelExpr,
-    registry: Mapping[str, ConceptInfo],
-) -> ConditionIR:
-    return _lower_node(checked.ast, registry)
 
 
 # Map cel-parser canonical function names to ConditionBinaryOp values.
