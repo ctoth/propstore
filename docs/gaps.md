@@ -53,7 +53,7 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ### Closed 2026-05-02 (WS-P2 condition semantics surface)
 
-- WS-P2 closed `dbc1e3c4` — CEL is now an authoring frontend only; checked semantic conditions are carried as `CheckedConditionSet` / `ConditionIR`; `propstore/z3_conditions.py` is deleted; public condition queries use `propstore.core.conditions.solver.ConditionSolver`; sidecar/graph runtime paths consume encoded condition IR rather than reparsing CEL; condition architecture docs name the new `core.conditions` owner surface. Evidence: `reviews/2026-04-26-claude/workstreams/reports/WS-P2-closure.md`, final full-suite log `logs/test-runs/WS-P2-full-20260502-134333.log`, and final `uv run pyright propstore` with 0 errors.
+- WS-P2 closed `c5464445` — CEL is now an authoring frontend only; checked semantic conditions are carried as `CheckedConditionSet` / `ConditionIR`; `propstore/z3_conditions.py` and `propstore/cel_checker.py` are deleted; public condition queries use `propstore.core.conditions.solver.ConditionSolver`; raw `z3` imports are confined to the condition solver/backend boundary; sidecar/graph runtime paths consume encoded condition IR rather than reparsing CEL; condition architecture docs name the new `core.conditions` owner surface. Evidence: `reviews/2026-04-26-claude/workstreams/reports/WS-P2-closure.md`, final full-suite log `logs/test-runs/WS-P2-full-final2-20260502-143135.log`, and final `uv run pyright propstore` with 0 errors.
 
 ### Closed 2026-05-02 (IST context lifting / argumentation / Gunray workstream)
 
