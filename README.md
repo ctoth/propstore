@@ -11,7 +11,7 @@ Layer 6: Agent Workflow    — extract-claims, reconcile, relate, adjudicate
 Layer 5: Render            — resolution strategies, world queries, worldlines, hypotheticals
 Layer 4: Argumentation     — external formal kernels, propstore adapters, PrAF, ATMS
 Layer 3: Heuristic         — embeddings, LLM stance classification (proposals only)
-Layer 2: Theory / Typing   — forms, dimensions, CEL type-checking, Z3 conditions
+Layer 2: Theory / Typing   — forms, dimensions, CEL frontend, checked conditions
 Layer 1: Source Storage    — claims, concepts, contexts, stances, provenance (immutable)
         └── propstore/repo/ — git-backed storage, branch isolation, semantic merge
 ```
@@ -50,8 +50,8 @@ See [Semantic Merge](docs/semantic-merge.md) for the full architecture and [Git 
 
 - Validates forms, concepts, contexts, and claims against LinkML schemas and CEL type-checking
 - Compiles a knowledge repo into a queryable SQLite sidecar
-- Uses one Z3-backed CEL runtime across validation, activation, conflict detection, and IC-merge
-- Detects condition-sensitive conflicts with Z3, including regime splits vs real disagreement
+- Uses one checked condition runtime across validation, activation, conflict detection, and IC-merge
+- Detects condition-sensitive conflicts, including regime splits vs real disagreement
 - Projects claim relations into argumentation frameworks via multiple reasoning backends (see below)
 - Computes grounded, complete, preferred, and stable extensions
 - Runs hypothetical add/remove overlays without mutating the base world
@@ -263,7 +263,7 @@ uv run pks -C knowledge world bind task=speech speaker_sex=male fundamental_freq
 
 Most claim stores stop at ingestion or retrieval. `propstore` tries to push further into compilation and reasoning:
 
-- Claims are scoped by typed CEL conditions, so disagreement can be classified as real conflict, partial overlap, or clean regime split
+- Claims are scoped by checked `ConditionIR` lowered from authored CEL, so disagreement can be classified as real conflict, partial overlap, or clean regime split
 - Closed categories (`extensible: false`) use finite enum semantics; open categories (`extensible: true`) stay open-domain symbolic strings
 - Stances and conflict records can be projected into multiple reasoning backends — from flat Dung AFs through structured ASPIC+ arguments to probabilistic acceptance
 - Uncertainty is represented honestly via subjective logic opinions with calibrated evidence mapping, not collapsed to point estimates
@@ -342,7 +342,7 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 - [ATMS](docs/atms.md) — assumption-based truth maintenance, label propagation, bounded replay, interventions
 - [Revision](proposals/true-agm-revision-proposal.md) — operator-based one-shot and iterated AGM-style revision over derived belief state
 - [Bipolar Argumentation](docs/bipolar-argumentation.md) — Cayrol 2005, derived defeats, three admissibility variants
-- [Conflict Detection](docs/conflict-detection.md) — Z3 condition reasoning, regime splits, six conflict classes
+- [Conflict Detection](docs/conflict-detection.md) — checked condition reasoning, regime splits, six conflict classes
 - [Parameterization and Sensitivity](docs/parameterization.md) — derivation chains, chain queries, elasticity analysis
 - [Algorithm Comparison](docs/algorithm-comparison.md) — ast-equiv four-tier equivalence ladder
 - [Fragility Analysis](docs/fragility.md) — parametric, epistemic, and conflict fragility with ROI ranking

@@ -95,8 +95,9 @@ policy, or CLI presentation. That is propstore's domain.
 ## Extracted Adjacent Helpers
 
 `argumentation.dung_z3` owns the optional Z3-backed Dung backend. Solver-result
-wrappers live in `argumentation.solver`; CEL and propstore condition solving
-remain in propstore.
+wrappers live in `argumentation.solver`; CEL authoring, `ConditionIR`,
+`CheckedCondition`, and `ConditionSolver` remain in
+`propstore.core.conditions`.
 
 `argumentation.preference` owns the generic helpers:
 

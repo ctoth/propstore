@@ -275,7 +275,7 @@ A known boundary, failure case, or applicability constraint:
 
 ## Conditions
 
-Claims and relationships can be scoped by **conditions** — CEL (Common Expression Language) expressions that define when they hold:
+Claims and relationships can be scoped by **conditions** -- CEL (Common Expression Language) expressions that define when they hold:
 
 ```yaml
 conditions:
@@ -283,7 +283,16 @@ conditions:
   - "task == 'speech'"
 ```
 
-The compiler type-checks conditions against the concept registry, and production runtime evaluation uses the same Z3-backed CEL semantics:
+CEL is an authoring frontend. The compiler checks each condition against the
+condition registry in `propstore.core.conditions.cel_frontend`, lowers it to
+`ConditionIR`, and stores a checked semantic payload alongside the authored
+source text. Runtime activation, conflict detection, graph queries, and
+parameterization compatibility consume `CheckedConditionSet` or encoded
+`ConditionIR`; they do not reparse `conditions_cel`.
+
+If condition IR storage changes, the sidecar is rebuilt. Derived sidecar
+storage intentionally has no compatibility reader for older condition payload
+shapes.
 
 - quantity concepts use numeric comparisons
 - boolean concepts use boolean logic

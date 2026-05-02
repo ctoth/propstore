@@ -38,7 +38,7 @@ The architectural payoff of propstore's non-commitment discipline extended into 
 - **Description-kinds are concepts** (lemon `LexicalEntry` + `LexicalSense`): `Observation`, `Measurement`, `Assertion`, `Decision`, `Reaction`.
 - **Particular descriptions are claims** (in `claim_core`) whose predicate is a description-kind concept and whose bindings fill the kind's participant slots.
 - **Pustejovsky qualia + Dowty proto-roles decorate description-kind senses** — qualia license type coercion across kinds; proto-roles carry graded entailments on participant slots.
-- **Temporal anchoring uses `KindType.TIMEPOINT`** (maps to `z3.Real`) plus `Z3ConditionSolver` providing Allen-1983 interval reasoning. Description-claims locate in time via TIMEPOINT-valued slot bindings; `DescriptionTemporalAnchor` and `description_temporal_relation` are a thin Allen-relation layer over the existing solver, not a second temporal system.
+- **Temporal anchoring uses `KindType.TIMEPOINT`** plus `ConditionSolver` providing Allen-1983 interval reasoning. Description-claims locate in time via TIMEPOINT-valued slot bindings; `DescriptionTemporalAnchor` and `description_temporal_relation` are a thin Allen-relation layer over `propstore.core.conditions`, not a second temporal system.
 - **Coreference is a Dung argument resolved at render time.** `MergedDescriptionCluster` is a query-time view over merge proposals; acceptance is policy-dependent; rival cluster-hypotheses survive in storage.
 - **Causation is a description-kind.** `CausalConnectionAssertion(target_descriptions, account, provenance)` where `account ∈ {stated, counterfactual, statistical, mechanistic}`. Transitivity is conditional on the account, not a unified causal closure.
 - **Contexts are interpretable as description-clusters** (WS-A P4). `ist(c, p)` reads as "p is true in the cluster I am calling c." Composes with WS-C CKR exceptions: "this generalization holds across cluster c, except in the cases described by these other description-claims."
@@ -63,7 +63,7 @@ Per `disciplines.md` rule 1: every paper resolves to a `papers/<dir>/` location 
 - **Pustejovsky 1991, *The Generative Lexicon*** — `papers/Pustejovsky_1991_GenerativeLexicon/`. Qualia and type coercion.
 - **Dowty 1991, *Thematic Proto-Roles*** — `papers/Dowty_1991_ThematicProtoRoles/`. Proto-agent / proto-patient graded entailments.
 - **Fillmore 1982, *Frame Semantics*** — `papers/Fillmore_1982_FrameSemantics/`. Cognitive-frame motivation; not an implementation target.
-- **Allen 1983, *Maintaining Knowledge About Temporal Intervals*** — interval relations over `KindType.TIMEPOINT` via `Z3ConditionSolver`; already consumed.
+- **Allen 1983, *Maintaining Knowledge About Temporal Intervals*** — interval relations over `KindType.TIMEPOINT` via `ConditionSolver`; already consumed.
 
 ## 8. Cross-references within propstore
 

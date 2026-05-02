@@ -95,20 +95,20 @@ This is equivalent to McCarthy's `ist(specialize-time(c, 2021), p)` -- the propo
 
 ### Automatic interval ordering
 
-When the CEL registry contains TIMEPOINT concepts forming an interval pair (names ending in `_from` and `_until` with a matching prefix), the Z3 solver automatically adds `from_var <= until_var`. This prevents nonsensical inverted intervals (e.g. `valid_from=300, valid_until=100`) and is required for correct disjointness detection.
+When the condition registry contains TIMEPOINT concepts forming an interval pair (names ending in `_from` and `_until` with a matching prefix), `ConditionSolver` automatically adds `from_var <= until_var`. This prevents nonsensical inverted intervals (e.g. `valid_from=300, valid_until=100`) and is required for correct disjointness detection.
 
 The detection is prefix-based, so custom interval pairs like `experiment_from` / `experiment_until` get the same constraint automatically.
 
 ### Temporal disjointness (Allen 1983)
 
-Two claims with non-overlapping temporal scopes are non-conflicting. The Z3 solver detects this via UNSAT of the conjunction:
+Two claims with non-overlapping temporal scopes are non-conflicting. `ConditionSolver` detects this via UNSAT of the conjunction:
 
 - Claim A: `valid_from >= 100 && valid_until <= 200`
 - Claim B: `valid_from >= 300 && valid_until <= 400`
 
-These are disjoint because no assignment can satisfy both condition sets while maintaining `valid_from <= valid_until`. This encodes Allen's `before` relation (`e1 < s2`) as Z3 real arithmetic.
+These are disjoint because no assignment can satisfy both condition sets while maintaining `valid_from <= valid_until`. This encodes Allen's `before` relation (`e1 < s2`) as backend arithmetic.
 
-See [conflict-detection.md](conflict-detection.md) for full details on Z3 disjointness checking.
+See [conflict-detection.md](conflict-detection.md) for full details on checked condition disjointness.
 
 ## Dimensional Signatures
 

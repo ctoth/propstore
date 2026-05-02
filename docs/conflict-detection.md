@@ -1,6 +1,6 @@
 # Conflict Detection
 
-When two claims bind to the same concept with different values, propstore classifies the disagreement. Not all disagreements are conflicts -- some are legitimate regime splits where claims hold under provably disjoint conditions. The conflict detector determines which case applies through the same Z3-backed CEL runtime used by activation and IC-merge.
+When two claims bind to the same concept with different values, propstore classifies the disagreement. Not all disagreements are conflicts -- some are legitimate regime splits where claims hold under provably disjoint conditions. The conflict detector determines which case applies through the same `propstore.core.conditions` runtime used by activation and IC-merge.
 
 ## Conflict classes
 
@@ -21,9 +21,9 @@ The detection order matters: value compatibility is checked first (yielding `COM
 
 The orchestrator (`conflict_detector/orchestrator.py:detect_conflicts`) coordinates the full pipeline:
 
-1. **Build type registries.** A CEL registry is constructed from the concept registry, and a shared `Z3ConditionSolver` is built for the run.
+1. **Build type registries.** A condition registry is constructed from the concept registry, and a shared `ConditionSolver` is built for the run.
 
-2. **Run type-specific detectors.** Four detectors run in sequence, each sharing the Z3 solver:
+2. **Run type-specific detectors.** Four detectors run in sequence, each sharing the condition solver:
    - Parameter claim conflicts (`conflict_detector/parameter_claims.py`)
    - Measurement conflicts (`conflict_detector/measurements.py`)
    - Equation conflicts (`conflict_detector/equations.py`)
@@ -37,7 +37,7 @@ Each type-specific detector follows the same pattern:
 2. For each group with 2+ claims, check all pairs
 3. Skip if values are compatible (`values_compatible()`)
 4. Try context-based classification first (`CONTEXT_PHI_NODE` short-circuits further analysis)
-5. Fall through to condition classification through the shared Z3 solver
+5. Fall through to condition classification through the shared condition solver
 
 ### Type-specific grouping and comparison
 
@@ -64,9 +64,9 @@ the equation detector logs a warning before skipping that pair.
 
 **Algorithm claims** are grouped by concept ID. Comparison uses `ast_compare()` from the `ast_equiv` package, which produces a similarity score and tier. Equivalent claims at tier <= 2 are treated as compatible.
 
-## Z3 condition reasoning
+## Condition reasoning
 
-The `Z3ConditionSolver` (`z3_conditions.py`) translates CEL condition ASTs into Z3 expressions and answers two questions: are these conditions disjoint? Are they equivalent?
+`ConditionSolver` translates checked `ConditionIR` into backend constraints and answers semantic queries: are these conditions disjoint, equivalent, implied, or satisfied by a concrete environment? CEL is parsed only in `propstore.core.conditions.cel_frontend`; conflict detection consumes `CheckedConditionSet` values produced by compiler/runtime boundaries.
 
 ### Type mapping
 
@@ -81,7 +81,7 @@ Each concept's kind determines its Z3 representation:
 | `BOOLEAN` | `z3.Bool` | Boolean conditions map directly |
 | `STRUCTURAL` / unknown | hard error | Structural and unknown names are rejected everywhere |
 
-CEL AST nodes translate to Z3 as follows: `LiteralNode` becomes `z3.RealVal` or `z3.BoolVal`, `NameNode` becomes a typed Z3 variable, `BinaryOpNode` maps to arithmetic and comparison operators, `UnaryOpNode` maps to `z3.Not` or negation, `InNode` becomes a disjunction of equalities, and `TernaryNode` becomes `z3.If`.
+`ConditionIR` nodes translate to backend constraints as follows: literals become typed backend constants, references become typed variables, binary nodes map to arithmetic and comparison operators, unary nodes map to boolean negation or numeric negation, membership becomes a disjunction of equalities, and ternaries become conditional expressions.
 
 Category comparisons get special handling: closed categories resolve literals against the EnumSort's value map, while open categories compare symbolic strings directly. As a result, `task != 'speech'` does not collapse to closed-world reasoning when `task` is open.
 
@@ -102,7 +102,7 @@ If both hold, the conditions are equivalent -- claims under equivalent condition
 
 ### Division-by-zero guards
 
-When translating division expressions, the solver collects non-zero guards (`right != 0`) and conjoins them into the final Z3 expression. Without this, Z3 would treat `x/0` as an uninterpreted total function, producing unsound results.
+When translating division expressions, the solver collects non-zero guards (`right != 0`) and conjoins them into the final backend expression. Without this, SMT arithmetic would treat `x/0` as an unconstrained total function, producing unsound results.
 
 ### Temporal disjointness
 
@@ -111,7 +111,7 @@ When TIMEPOINT concepts form interval pairs (names ending in `_from` and `_until
 1. **Inverted intervals are UNSAT.** Conditions requiring `valid_from >= 300` and `valid_until <= 100` are internally inconsistent because 300 <= 100 is false.
 2. **Non-overlapping intervals are disjoint.** Two claims scoped to `[100, 200]` and `[300, 400]` via `valid_from >= 100 && valid_until <= 200` and `valid_from >= 300 && valid_until <= 400` are detected as disjoint because no assignment satisfies both with valid ordering.
 
-This implements Allen's (1983) interval algebra `before` relation (`e1 < s2`) as Z3 real arithmetic constraints. Temporal conditions compose with non-temporal conditions: if either temporal scope or quantity scope is disjoint, the conjunction is disjoint.
+This implements Allen's (1983) interval algebra `before` relation (`e1 < s2`) as backend arithmetic constraints. Temporal conditions compose with non-temporal conditions: if either temporal scope or quantity scope is disjoint, the conjunction is disjoint.
 
 Prefix-matching detection is automatic, so user-defined interval pairs (e.g. `experiment_from`/`experiment_until`) get the same constraint without configuration.
 
@@ -136,7 +136,7 @@ Three levels of caching reduce redundant Z3 work:
 - **Condition expression cache:** single condition string to Z3 expression
 - **Condition set cache:** normalized condition tuple to conjoined Z3 expression
 
-Conflict detection, activation, and IC-merge all rely on the same Z3-backed CEL semantics and cache the same parsed/translated condition structure.
+Conflict detection, activation, and IC-merge all rely on the same checked condition semantics and cache the same translated `ConditionIR` structure.
 
 ## Regime splits
 
@@ -146,7 +146,7 @@ Regime splits are not conflicts. A claim that "fundamental frequency is 120 Hz w
 
 Two paths produce regime splits:
 
-- **Condition-based (`PHI_NODE`):** Z3 or interval arithmetic proves that the condition sets cannot be simultaneously satisfied.
+- **Condition-based (`PHI_NODE`):** `ConditionSolver` proves that the condition sets cannot be simultaneously satisfied.
 - **Context-based (`CONTEXT_PHI_NODE`):** The lifting system reports that the two claims belong to distinct contexts with no explicit lifting path in either direction. This check runs before condition analysis and short-circuits further classification.
 
 ## Transitive conflicts (PARAM_CONFLICT)

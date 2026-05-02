@@ -1,15 +1,21 @@
 # Typed CEL Expressions
 
-Propstore treats CEL expressions as a domain language, not generic text.
+Propstore treats CEL as an authoring frontend. CEL source can appear in YAML,
+CLI input, JSON, and SQLite display columns, but semantic code does not reason
+over parser ASTs or raw strings.
 
 The production lifecycle is:
 
-1. Authored YAML, CLI input, JSON, and SQLite rows carry textual CEL.
-2. Decode boundaries brand that text as `CelExpr`.
-3. Registry-aware validation constructs `CheckedCelExpr`.
-4. Condition-set validation constructs `CheckedCelConditionSet`.
-5. The Z3 backend translates checked expressions and caches by source plus
-   registry fingerprint.
+1. Authored text is decoded as `CelExpr` at IO boundaries.
+2. `propstore.core.conditions.cel_frontend` parses and type-checks the source
+   against the condition registry.
+3. The frontend lowers the source to `ConditionIR`.
+4. `CheckedCondition` records the source text, semantic IR, warnings, encoded
+   IR, and registry fingerprint.
+5. `CheckedConditionSet` represents the normalized conjunction used by
+   compiler, sidecar, graph, activation, conflict detection, and world paths.
+6. `ConditionSolver` answers runtime queries over checked conditions; Z3 is an
+   internal backend behind `propstore.core.conditions.z3_backend`.
 
 ## Raw CEL
 
@@ -19,29 +25,21 @@ It means only that a string is intended to be CEL source. It does not mean the
 expression parsed, type-checked, or references concepts that exist in a given
 registry.
 
-Use `CelExpr` for:
+Use `CelExpr` for decoded authored source and display-oriented storage fields.
+Do not pass it through core semantic/runtime paths as the condition carrier.
 
-- decoded claim, concept, and source-local `conditions`
-- queryable assumptions
-- environment assumptions
-- binding-derived CEL source
-- storage values immediately after decode
+## Checked Conditions
 
-Serialization still emits normal strings.
+`CheckedCondition` is the checked semantic condition object. It carries:
 
-## Checked CEL
-
-`CheckedCelExpr` is a frozen object created by the CEL checker.
-
-It carries:
-
-- the raw `CelExpr`
-- the parsed AST
+- the authored source text
+- the lowered `ConditionIR`
 - a registry fingerprint
 - checker warnings
+- canonical encoded IR for derived storage
 
-It cannot be constructed accidentally as a string alias. Hard parse or type
-errors prevent construction.
+It does not store CEL parser ASTs or Z3 expressions. Hard parse, type, or
+unsupported-CEL errors prevent construction.
 
 CEL validity is registry-relative. An expression such as `valid_from >= 100`
 is checked only with respect to a registry where `valid_from` exists and has
@@ -49,20 +47,19 @@ numeric or timepoint semantics.
 
 ## Checked Condition Sets
 
-`CheckedCelConditionSet` represents a normalized conjunction of checked CEL
-expressions.
+`CheckedConditionSet` represents a normalized conjunction of
+`CheckedCondition` objects.
 
 It deduplicates by source text, sorts deterministically, and requires all
 members to share one registry fingerprint.
 
 ## Runtime Contract
 
-The Z3 solver accepts `CelExpr`, `CheckedCelExpr`, and
-`CheckedCelConditionSet`. Callers that already have a registry should prefer
-checked values. The solver validates any raw `CelExpr` before translation and
-caches checked expressions so repeated reasoning does not reparse or recheck
-the same source repeatedly.
+`ConditionSolver` accepts `CheckedCondition` sequences or
+`CheckedConditionSet`. It rejects registry fingerprint mismatches and translates
+only semantic `ConditionIR` into backend constraints.
 
-Storage and display layers may still expose plain strings. Core semantic paths
-should carry `CelExpr` or checked CEL carriers.
-
+Storage and display layers may retain authored strings. Sidecar and graph
+runtime payloads expose checked semantic conditions or versioned encoded
+`ConditionIR`; if the derived storage schema changes, rebuild the sidecar
+rather than reading old shapes.

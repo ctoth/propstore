@@ -52,10 +52,10 @@ causal accounts.
 
 `propstore.core.lemon.temporal` defines `DescriptionTemporalAnchor`,
 `AllenRelation`, and `description_temporal_relation`. The module intentionally
-reuses `KindType.TIMEPOINT` and `Z3ConditionSolver`: Allen relations between
-description-claim intervals are CEL constraints over `left_from`, `left_until`,
-`right_from`, and `right_until`, so the existing TIMEPOINT ordering guarantees
-still apply and no event-specific temporal solver exists.
+reuses `KindType.TIMEPOINT` and `ConditionSolver`: Allen relations between
+description-claim intervals are checked conditions over `left_from`,
+`left_until`, `right_from`, and `right_until`, so the existing TIMEPOINT
+ordering guarantees still apply and no event-specific temporal solver exists.
 
 ## Worldline Review
 

@@ -103,7 +103,7 @@ with WorldQuery.from_path("knowledge") as world:
 |--------|-----------|-------------|
 | `stats` | `() -> dict` | Counts of concepts, claims, conflicts. |
 | `has_table` | `(name) -> bool` | Check if a sidecar table exists. |
-| `condition_solver` | `() -> Z3ConditionSolver` | Lazy shared CEL runtime for activation, conflict detection, and assignment-selection merge. |
+| `condition_solver` | `() -> ConditionSolver` | Lazy shared `propstore.core.conditions` runtime for activation, conflict detection, and assignment-selection merge. |
 | `close` | `() -> None` | Close the SQLite connection. |
 
 ## BoundWorld
