@@ -5,42 +5,49 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cel_checker import ConceptInfo, KindType
-from propstore.z3_conditions import Z3ConditionSolver
+from propstore.core.conditions.cel_frontend import check_condition_ir
+from propstore.core.conditions.solver import ConditionSolver
 
 
-def _solver() -> Z3ConditionSolver:
-    return Z3ConditionSolver(
-        {
-            "enabled": ConceptInfo("enabled-id", "enabled", KindType.BOOLEAN),
-            "x": ConceptInfo("x-id", "x", KindType.QUANTITY),
-        }
-    )
+def _registry() -> dict[str, ConceptInfo]:
+    return {
+        "enabled": ConceptInfo("enabled-id", "enabled", KindType.BOOLEAN),
+        "x": ConceptInfo("x-id", "x", KindType.QUANTITY),
+    }
+
+
+def _solver() -> ConditionSolver:
+    return ConditionSolver(_registry())
+
+
+def _condition(source: str):
+    return check_condition_ir(source, _registry())
 
 
 def test_or_short_circuits_undefined_division_when_left_disjunct_true() -> None:
     assert _solver().is_condition_satisfied(
-        "enabled || (1 / x > 0)",
+        _condition("enabled || (1 / x > 0)"),
         {"enabled": True, "x": 0.0},
     )
 
 
 def test_or_short_circuits_undefined_division_when_right_disjunct_true() -> None:
     assert _solver().is_condition_satisfied(
-        "(1 / x > 0) || true",
+        _condition("(1 / x > 0) || true"),
         {"enabled": False, "x": 0.0},
     )
 
 
 def test_ternary_ignores_undefined_unselected_branch() -> None:
     assert _solver().is_condition_satisfied(
-        "enabled ? true : (1 / x > 0)",
+        _condition("enabled ? true : (1 / x > 0)"),
         {"enabled": True, "x": 0.0},
     )
 
 
 def test_bare_division_condition_is_not_satisfied_when_denominator_is_zero() -> None:
     assert not _solver().is_condition_satisfied(
-        "1 / x > 0",
+        _condition("1 / x > 0"),
         {"enabled": True, "x": 0.0},
     )
 
@@ -52,11 +59,11 @@ def test_generated_or_short_circuits_division_definedness(numerator: int) -> Non
     solver = _solver()
 
     assert solver.is_condition_satisfied(
-        f"enabled || ({numerator} / x > 0)",
+        _condition(f"enabled || ({numerator} / x > 0)"),
         {"enabled": True, "x": 0.0},
     )
     assert not solver.is_condition_satisfied(
-        f"false || ({numerator} / x > 0)",
+        _condition(f"false || ({numerator} / x > 0)"),
         {"enabled": False, "x": 0.0},
     )
 
@@ -76,6 +83,6 @@ def test_generated_ternary_short_circuits_division_definedness(
     )
 
     assert solver.is_condition_satisfied(
-        expression,
+        _condition(expression),
         {"enabled": choice, "x": 0.0},
     )
