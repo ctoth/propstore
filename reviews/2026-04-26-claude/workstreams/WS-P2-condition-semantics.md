@@ -68,16 +68,25 @@ fallback readers, compatibility shims, or dual old/new production paths.
 
 - `propstore.core.conditions.ir`
   - Owns the closed semantic condition ADT.
-  - Must distinguish `TIMEPOINT` from ordinary numeric values.
+  - Must add `ConditionValueKind.TIMEPOINT`; do not collapse TIMEPOINT into
+    ordinary numeric values.
   - Must carry category semantics needed by backends: open/closed flag and
     declared value set.
   - Must reject ill-typed literals at construction.
+
+- `propstore.core.conditions.codec`
+  - Owns the versioned JSON encoding and decoding for `ConditionIR`.
+  - The encoding is the sidecar/graph storage shape for checked semantic
+    conditions.
+  - It must round-trip all IR node variants and fail hard on unknown encoding
+    versions or unknown node/operator/kind tags.
 
 - `propstore.core.conditions.checked`
   - Owns `CheckedCondition` and `CheckedConditionSet`.
   - This is the only checked condition carrier.
   - It stores source text for diagnostics and display, semantic IR for runtime,
-    warnings, and registry fingerprint. It does not store CEL parser ASTs.
+    warnings, registry fingerprint, and the canonical encoded IR form needed by
+    derived storage. It does not store CEL parser ASTs.
 
 - `propstore.core.conditions.cel_frontend`
   - The only production frontend for authored CEL source.
@@ -164,30 +173,41 @@ was wrong.
    - Closed category references carry declared values and
      `category_extensible=False`.
    - Open category references carry `category_extensible=True`.
-   - Numeric literals reject `bool`.
+   - Numeric literals reject `bool` at `ConditionLiteral` construction time.
    - Bare string expressions fail unless they appear in supported comparison or
      membership positions.
 
-3. `tests/test_condition_solver_temporal_ordering.py`
+3. `tests/test_condition_ir_encoding.py`
+   - Every `ConditionIR` node variant round-trips through the versioned JSON
+     codec.
+   - The encoded form preserves TIMEPOINT and category metadata.
+   - Unknown encoding versions, node tags, operator tags, and value-kind tags
+     fail hard.
+
+4. `tests/test_condition_solver_temporal_ordering.py`
    - `valid_from > valid_until` is unsatisfiable when registry declares matching
      TIMEPOINT interval endpoints.
    - The ordering applies in satisfaction, disjointness, equivalence, and
      implication queries.
 
-4. `tests/test_condition_architecture_boundaries.py`
+5. `tests/test_condition_architecture_boundaries.py`
    - No production import of `propstore.z3_conditions`.
    - No production import of `cel_parser` outside
      `propstore.core.conditions.cel_frontend` and tests dedicated to frontend
      behavior.
+   - Until `cel_checker` is folded or deleted, `cel_checker` may import
+     `cel_parser` only as an internal helper consumed by `cel_frontend`.
+   - By Step 5, the only allowed production `cel_parser` importer is
+     `propstore.core.conditions.cel_frontend`.
    - `CheckedCondition` does not store `ast`, `cel_ast`, `z3`, or backend helper
      names.
 
-5. `tests/test_condition_runtime_no_reparse.py`
+6. `tests/test_condition_runtime_no_reparse.py`
    - Activation, conflict classification, context lifting, world query, and
      assignment-selection merge receive checked condition carriers or encoded
      `ConditionIR`, not raw `CelExpr` reparsed in the runtime query path.
 
-6. `tests/test_condition_docs_done.py`
+7. `tests/test_condition_docs_done.py`
    - Asserts the architecture docs name the final modules and do not document
      `propstore.z3_conditions` or `CheckedCelExpr` as production APIs.
 
@@ -215,7 +235,9 @@ does not own them.
 
 Acceptance:
 
-- `rg -F "from propstore.cel_checker import ConceptInfo" propstore tests`
+- `rg -F "from propstore.cel_checker import ConceptInfo" propstore`
+  returns no production imports.
+- `rg -F "from propstore.cel_checker import KindType" propstore`
   returns no production imports.
 - `uv run pyright propstore` passes.
 
@@ -223,7 +245,7 @@ Acceptance:
 
 Update `ConditionIR` and `CheckedCondition` before adding solver behavior:
 
-- add `TIMEPOINT`;
+- add `ConditionValueKind.TIMEPOINT`;
 - add category metadata to references;
 - validate literal kind/value pairs in constructors;
 - preserve source spans;
@@ -231,9 +253,13 @@ Update `ConditionIR` and `CheckedCondition` before adding solver behavior:
 
 Update `cel_frontend` to lower CEL into the stronger IR.
 
+Create `propstore/core/conditions/codec.py` with a versioned JSON encoding for
+`ConditionIR`. The codec is part of the type boundary, not a sidecar-specific
+helper.
+
 Acceptance:
 
-- `powershell -File scripts/run_logged_pytest.ps1 -Label condition-ir tests/test_condition_ir.py tests/test_checked_condition_ir.py tests/test_condition_ir_semantic_metadata.py`
+- `powershell -File scripts/run_logged_pytest.ps1 -Label condition-ir tests/test_condition_ir.py tests/test_checked_condition_ir.py tests/test_condition_ir_semantic_metadata.py tests/test_condition_ir_encoding.py`
 - `uv run pyright propstore`
 
 ### Step 3 - Implement the final solver surface
@@ -280,11 +306,15 @@ Required caller sweep:
 - `propstore/context_lifting.py`
 - `propstore/defeasibility.py`
 - `propstore/conflict_detector/*`
+- `propstore/conflict_detector/parameter_claims.py`
 - `propstore/merge/merge_classifier.py`
 - `propstore/world/assignment_selection_merge.py`
 - `propstore/world/model.py`
 - `propstore/world/types.py`
 - tests that monkeypatch `propstore.z3_conditions`
+- `tests/test_z3_conditions.py` is deleted; any unique behavior it covers is
+  ported first into `tests/test_condition_solver_parity.py` or another
+  `tests/test_condition_solver_*` file.
 
 Acceptance:
 
@@ -299,6 +329,9 @@ Delete `CheckedCelExpr` and `CheckedCelConditionSet` as production carriers.
 
 Update:
 
+- `propstore/core/conditions/cel_frontend.py`
+  - rewrite the post-parse path so it produces `ConditionIR` directly and does
+    not instantiate `CheckedCelExpr`;
 - `propstore/compiler/ir.py`
 - `propstore/families/claims/passes/__init__.py`
 - `propstore/families/concepts/passes.py`
@@ -306,6 +339,14 @@ Update:
   checked condition carrier
 - sidecar build/read models
 - graph build/runtime types
+- `propstore/cel_types.py`
+  - delete `CheckedCelExpr`, `CheckedCelConditionSet`,
+    `ParsedCelExpr`, and checked-CEL normalization helpers;
+- `propstore/cel_checker.py`
+  - either fold the remaining type-checker into
+    `propstore.core.conditions.cel_frontend` and delete the module, or reduce it
+    to a private helper consumed only by `cel_frontend`. It must not be a second
+    public CEL frontend and must not re-export checked carrier types.
 
 Authored source strings may remain at IO/display boundaries. Core semantic
 paths must use `CheckedConditionSet` or encoded `ConditionIR`.
@@ -313,6 +354,9 @@ paths must use `CheckedConditionSet` or encoded `ConditionIR`.
 Acceptance:
 
 - `rg -F "CheckedCel" propstore tests` has no production references.
+- `rg -F "from propstore.cel_checker" propstore` has no production
+  references outside `propstore/core/conditions/cel_frontend.py` if
+  `cel_checker.py` remains as an internal helper.
 - `powershell -File scripts/run_logged_pytest.ps1 -Label checked-condition-cutover tests/test_validate_claims.py tests/test_cel_validation.py tests/test_condition_runtime_no_reparse.py`
 - `uv run pyright propstore`
 
@@ -322,6 +366,9 @@ Replace runtime dependence on JSON CEL strings as the canonical condition
 payload. The sidecar may retain authored source text for display and rebuild,
 but runtime query rows/graph nodes must expose typed condition carriers or an
 encoded `ConditionIR` payload.
+
+The encoded payload is the versioned `ConditionIR` JSON form defined in
+`propstore.core.conditions.codec`; do not invent a sidecar-local encoding.
 
 Do not add fallback readers for old sidecars. A sidecar is derived state; if the
 schema changes, rebuild it.
@@ -378,6 +425,11 @@ Add or update architecture tests to make the new boundary enforceable:
 - `propstore.core.conditions.z3_backend` may import `z3` but not `cel_parser`.
 - no production module imports deleted solver surfaces.
 
+Coordinate this with the closed WS-N2 architecture contract. If the package
+layer contract needs to know about a new `core.conditions` owner surface, amend
+the root `.importlinter` contract in this step and rerun the WS-N2
+negative-injection architecture gate instead of adding only local spot checks.
+
 Acceptance:
 
 - `powershell -File scripts/run_logged_pytest.ps1 -Label condition-architecture tests/architecture tests/test_condition_architecture_boundaries.py`
@@ -404,6 +456,9 @@ This workstream is complete only when all of the following are true:
 - `propstore/z3_conditions.py` is deleted.
 - No production code imports `propstore.z3_conditions`.
 - `CheckedCelExpr` and `CheckedCelConditionSet` are not production carriers.
+- `propstore/cel_checker.py` is deleted or reduced to a re-export-free private
+  helper consumed only by `propstore.core.conditions.cel_frontend`; no other
+  production module imports it.
 - CEL parser ASTs do not cross the CEL frontend boundary.
 - Core semantic/runtime paths consume `CheckedConditionSet` or encoded
   `ConditionIR`, not reparsed raw CEL strings.
