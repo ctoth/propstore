@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 from propstore.canonical_json import canonical_dumps
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
@@ -11,6 +10,7 @@ from propstore.core.row_types import StanceRow, coerce_stance_row
 from propstore.core.environment import StanceStore
 from propstore.world.types import (
     ClaimSupportView,
+    GroundingBundleStore,
     HasATMSEngine,
     RenderPolicy,
     coerce_queryable_assumptions,
@@ -173,7 +173,6 @@ def _capture_aspic(
     normalized_semantics: Any,
 ) -> WorldlineArgumentationState | None:
     from propstore.world.types import ReasoningBackend
-    from propstore.grounding.bundle import GroundedRulesBundle
     from propstore.structured_projection import (
         build_structured_projection,
         compute_structured_justified_arguments,
@@ -184,15 +183,13 @@ def _capture_aspic(
         for claim in active:
             support_metadata[str(claim.claim_id)] = bound.claim_support(claim)
 
-    grounding_bundle = getattr(world, "grounding_bundle", None)
-    if not callable(grounding_bundle):
+    if not isinstance(world, GroundingBundleStore):
         return None
-    typed_grounding_bundle = cast(Callable[[], GroundedRulesBundle], grounding_bundle)
 
     projection = build_structured_projection(
         world,
         active,
-        bundle=typed_grounding_bundle(),
+        bundle=world.grounding_bundle(),
         support_metadata=support_metadata,
         comparison=policy.comparison,
         link=policy.link,
