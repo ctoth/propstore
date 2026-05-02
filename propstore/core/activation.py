@@ -7,16 +7,15 @@ from typing import TYPE_CHECKING, Any
 
 from propstore.core.active_claims import ActiveClaim
 from propstore.cel_types import CelExpr, to_cel_exprs
-from propstore.cel_checker import (
-    ASTNode,
-    BinaryOpNode,
-    InNode,
-    NameNode,
-    TernaryNode,
-    UnaryOpNode,
-    parse_cel,
-    with_standard_synthetic_bindings,
+from cel_parser import (
+    Call,
+    CreateList,
+    Expr,
+    Ident,
+    ParseError,
+    parse as parse_cel,
 )
+from propstore.cel_checker import with_standard_synthetic_bindings
 from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.environment import Environment
@@ -53,7 +52,7 @@ def _claim_projected_into_environment(
     if claim_context_id == str(environment.context_id):
         return True
 
-    from propstore.context_lifting import LiftingMaterializationStatus
+    from propstore.context_lifting import LiftingDecisionStatus
 
     materializations = claim_lifting_materializations(
         claim_context_id=claim_context_id,
@@ -63,7 +62,7 @@ def _claim_projected_into_environment(
     )
     return any(
         materialization.target_context.id == environment.context_id
-        and materialization.status is LiftingMaterializationStatus.LIFTED
+        and materialization.status is LiftingDecisionStatus.LIFTED
         for materialization in materializations
     )
 
@@ -143,31 +142,37 @@ class UnknownConceptInCEL(ValueError):
         super().__init__(f"Unknown CEL concept '{concept_name}' {context}")
 
 
-def _names_from_ast(node: ASTNode) -> set[str]:
-    if isinstance(node, NameNode):
-        return {node.name}
-    if isinstance(node, BinaryOpNode):
-        return _names_from_ast(node.left) | _names_from_ast(node.right)
-    if isinstance(node, UnaryOpNode):
-        return _names_from_ast(node.operand)
-    if isinstance(node, InNode):
-        names = _names_from_ast(node.expr)
-        for value in node.values:
-            names.update(_names_from_ast(value))
-        return names
-    if isinstance(node, TernaryNode):
-        return (
-            _names_from_ast(node.condition)
-            | _names_from_ast(node.true_branch)
-            | _names_from_ast(node.false_branch)
-        )
-    return set()
+def _names_from_ast(node: Expr) -> set[str]:
+    """Collect all bare-identifier names referenced in an expression."""
+    if isinstance(node, Ident):
+        return {node.name} if node.name else set()
+    names: set[str] = set()
+    target = getattr(node, "target", None)
+    if isinstance(target, Expr):
+        names |= _names_from_ast(target)
+    args = getattr(node, "args", None)
+    if args:
+        for arg in args:
+            if isinstance(arg, Expr):
+                names |= _names_from_ast(arg)
+    operand = getattr(node, "operand", None)
+    if isinstance(operand, Expr):
+        names |= _names_from_ast(operand)
+    elements = getattr(node, "elements", None)
+    if elements:
+        for elem in elements:
+            if isinstance(elem, Expr):
+                names |= _names_from_ast(elem)
+    if isinstance(node, CreateList):
+        for elem in node.elements:
+            names |= _names_from_ast(elem)
+    return names
 
 
 def _cel_identifier_names(condition: CelExpr) -> set[str]:
     try:
-        return _names_from_ast(parse_cel(condition))
-    except ValueError:
+        return _names_from_ast(parse_cel(str(condition)))
+    except ParseError:
         return set()
 
 
