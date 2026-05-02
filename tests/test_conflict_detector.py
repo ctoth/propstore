@@ -1211,6 +1211,84 @@ class TestTransitiveContextSemantics:
         assert lifted_conflicts[0].conditions_a == ["task == 'whisper'"]
         assert lifted_conflicts[0].conditions_b == ["task == 'whisper'"]
 
+    def test_lifting_rules_project_claims_through_authored_paths(self):
+        """Shared target conflicts should emerge through multi-hop authored lifting paths."""
+        from propstore.core.assertions import ContextReference
+        from propstore.context_lifting import (
+            LiftingRule,
+            LiftingSystem,
+        )
+
+        cf_a = make_claim_file(
+            [
+                make_parameter_claim(
+                    "claim_a",
+                    "concept1",
+                    200.0,
+                    conditions=["task == 'speech'"],
+                ) | {"context": "ctx_alpha"},
+            ],
+            filename="paper_a",
+        )
+        cf_b = make_claim_file(
+            [
+                make_parameter_claim(
+                    "claim_b",
+                    "concept1",
+                    350.0,
+                    conditions=["task == 'singing'"],
+                ) | {"context": "ctx_beta"},
+            ],
+            filename="paper_b",
+        )
+        lifting_system = LiftingSystem(
+            contexts=(
+                ContextReference("ctx_alpha"),
+                ContextReference("ctx_beta"),
+                ContextReference("ctx_intermediate"),
+                ContextReference("ctx_shared"),
+            ),
+            lifting_rules=(
+                LiftingRule(
+                    id="lift_alpha",
+                    source=ContextReference("ctx_alpha"),
+                    target=ContextReference("ctx_intermediate"),
+                    conditions=("task == 'speech'",),
+                ),
+                LiftingRule(
+                    id="lift_beta",
+                    source=ContextReference("ctx_beta"),
+                    target=ContextReference("ctx_intermediate"),
+                    conditions=("task == 'singing'",),
+                ),
+                LiftingRule(
+                    id="lift_intermediate",
+                    source=ContextReference("ctx_intermediate"),
+                    target=ContextReference("ctx_shared"),
+                ),
+            ),
+            context_assumptions={
+                "ctx_shared": ("task == 'whisper'",),
+            },
+        )
+
+        records = detect_conflicts(
+            [cf_a, cf_b],
+            make_concept_registry(),
+            lifting_system=lifting_system,
+        )
+
+        lifted_conflicts = [
+            record
+            for record in records
+            if record.warning_class == ConflictClass.CONFLICT
+        ]
+        assert len(lifted_conflicts) == 1
+        assert lifted_conflicts[0].claim_a_id == "claim_a"
+        assert lifted_conflicts[0].claim_b_id == "claim_b"
+        assert lifted_conflicts[0].conditions_a == ["task == 'whisper'"]
+        assert lifted_conflicts[0].conditions_b == ["task == 'whisper'"]
+
     def test_lifting_rules_require_claims_to_satisfy_selector_conditions(self):
         """Lift selectors should not apply when the claim only remains compatible by omission."""
         from propstore.core.assertions import ContextReference
