@@ -7,8 +7,26 @@ from propstore.conflict_detector.models import ConflictClass
 from propstore.conflict_detector.parameter_claims import (
     _detect_cross_class_parameter_conflicts,
 )
+from propstore.core.conditions import checked_condition_set
+from propstore.core.conditions.cel_frontend import check_condition_ir
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.merge.merge_classifier import _DiffKind
-from propstore.z3_conditions import SolverUnknown, SolverUnknownReason
+from propstore.core.conditions.solver import (
+    SolverSat,
+    SolverUnknown,
+    SolverUnknownReason,
+)
+
+
+def _registry():
+    return {
+        "x": ConceptInfo(id="x", canonical_name="x", kind=KindType.QUANTITY),
+    }
+
+
+def _condition_set(*sources: str):
+    registry = _registry()
+    return checked_condition_set(check_condition_ir(source, registry) for source in sources)
 
 
 class UnknownEquivalenceSolver:
@@ -21,8 +39,6 @@ class UnknownEquivalenceSolver:
 
 class UnknownDisjointSolver:
     def are_equivalent_result(self, conditions_a, conditions_b):
-        from propstore.z3_conditions import SolverSat
-
         return SolverSat()
 
     def are_disjoint_result(self, conditions_a, conditions_b):
@@ -33,7 +49,7 @@ def test_condition_classifier_returns_unknown_for_solver_unknown_equivalence():
     result = _try_z3_classify(
         ["x > 1"],
         ["x > 2"],
-        {},
+        _registry(),
         solver=UnknownEquivalenceSolver(),
     )
 
@@ -44,7 +60,7 @@ def test_condition_classifier_returns_unknown_for_solver_unknown_disjointness():
     result = _try_z3_classify(
         ["x > 1"],
         ["x > 2"],
-        {},
+        _registry(),
         solver=UnknownDisjointSolver(),
     )
 
@@ -68,6 +84,7 @@ def test_parameter_cross_class_conflict_preserves_unknown_warning_class():
         [[0], [1]],
         {},
         UnknownDisjointSolver(),
+        [_condition_set("x > 1"), _condition_set("x > 2")],
         lifting_system=None,
     )
 
