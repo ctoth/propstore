@@ -2,7 +2,7 @@
 
 Workstream: WS-P2 - Condition semantics surface
 
-Closing code commit: `dbc1e3c4`
+Closing code commit: `c5464445`
 
 Closure date: 2026-05-02
 
@@ -15,6 +15,7 @@ Closure date: 2026-05-02
 - P2-5 solver semantic parity gap: `ConditionSolver` preserves the pinned Z3 semantics, unknown handling, fingerprint checks, temporal ordering, category behavior, and context isolation.
 - P2-6 runtime reparsing: runtime paths consume checked carriers or encoded condition IR from sidecar/graph storage instead of reparsing CEL as the semantic payload.
 - P2-7 architecture docs drift: condition architecture docs now name `core.conditions` as the owner surface and describe CEL as an authoring frontend.
+- Post-closure rule review finding: `propstore/cel_checker.py` is deleted rather than retained as a compatibility re-export, and raw `z3` imports are confined to the condition solver/backend boundary.
 
 ## Tests Written First
 
@@ -39,8 +40,20 @@ I verified the final passing gates in this session. I do not have a single prese
 - Merge translation/regime guard: `logs/test-runs/WS-P2-merge-translation-20260502-133804.log` - 2 passed.
 - Superseded full-suite failure: `logs/test-runs/WS-P2-full-20260502-133355.log` - 1 failed before `242bcc68`.
 - Superseded full-suite pass before final Pyright typing repair: `logs/test-runs/WS-P2-full-20260502-133830.log` - 3425 passed, 2 skipped.
-- Final current-code full suite: `logs/test-runs/WS-P2-full-20260502-134333.log` - 3425 passed, 2 skipped.
+- Superseded full-suite pass before CEL checker shim deletion and raw-Z3 import confinement: `logs/test-runs/WS-P2-full-20260502-134333.log` - 3425 passed, 2 skipped.
+- CEL checker shim deletion targeted gate: `logs/test-runs/WS-P2-shim-delete-20260502-140520.log` - 118 passed.
+- Post-shim architecture gate: `logs/test-runs/condition-architecture-20260502-140724.log` - 97 passed.
+- Post-shim checked-condition cutover gate: `logs/test-runs/checked-condition-cutover-20260502-140839.log` - 112 passed.
+- Post-shim docs gate: `logs/test-runs/condition-docs-20260502-140907.log` - 2 passed.
+- Post-shim full suite: `logs/test-runs/WS-P2-full-20260502-140951.log` - 3425 passed, 2 skipped.
+- Raw-Z3 boundary solver rerun: `logs/test-runs/WS-P2-solver-z3-boundary-rerun-20260502-141957.log` - 17 passed.
+- Raw-Z3 parameter-conflict boundary gate: `logs/test-runs/WS-P2-parameter-z3-boundary-20260502-142148.log` - 10 passed.
+- Raw-Z3 architecture gate before explicit import-boundary test: `logs/test-runs/condition-architecture-final-20260502-142248.log` - 97 passed.
+- Full suite before explicit raw-Z3 architecture test: `logs/test-runs/WS-P2-full-final-20260502-142315.log` - 3425 passed, 2 skipped.
+- Explicit raw-Z3 import-boundary architecture gate: `logs/test-runs/condition-architecture-z3-boundary-20260502-143040.log` - 32 passed.
+- Final current-code full suite: `logs/test-runs/WS-P2-full-final2-20260502-143135.log` - 3426 passed, 2 skipped.
 - Final Pyright: `uv run pyright propstore` - 0 errors, 0 warnings, 0 informations.
+- Final Claude rule review after `c5464445`: `CLOSE`; blockers: none.
 
 ## Property Gates
 
@@ -61,7 +74,7 @@ Principal production surfaces changed:
 - `propstore/core/conditions/z3_backend.py`
 - `propstore/core/conditions/__init__.py`
 - `propstore/z3_conditions.py` deleted
-- `propstore/cel_checker.py`
+- `propstore/cel_checker.py` deleted
 - `propstore/cel_types.py`
 - `propstore/compiler/ir.py`
 - `propstore/families/claims/passes/__init__.py`
@@ -102,6 +115,7 @@ Principal tests changed or added:
 - `tests/test_condition_architecture_boundaries.py`
 - `tests/test_condition_runtime_no_reparse.py`
 - `tests/test_condition_docs_done.py`
+- `tests/test_cel_checker.py`
 - `tests/test_condition_classifier.py`
 - `tests/test_conflict_detector.py`
 - `tests/test_context_lifting_ws5.py`
@@ -118,8 +132,12 @@ Principal tests changed or added:
 ## Done Checks
 
 - `propstore/z3_conditions.py` is deleted.
+- `propstore/cel_checker.py` is deleted.
 - `rg -F "propstore.z3_conditions" propstore tests docs README.md` finds only tests that enforce absence.
+- Production imports of `propstore.cel_checker` are absent; `tests/test_cel_checker.py` now asserts the deleted module raises `ModuleNotFoundError`.
 - `rg -F "CheckedCel" propstore tests docs README.md` finds only the docs sentinel test.
+- Raw `z3` imports are confined to `propstore/core/conditions/solver.py` and `propstore/core/conditions/z3_backend.py`, enforced by `tests/test_condition_architecture_boundaries.py::test_raw_z3_import_is_confined_to_condition_solver_boundary`.
+- Production `cel_parser` imports are confined to `propstore/core/conditions/cel_frontend.py`.
 - Final full logged suite passed.
 - Final `uv run pyright propstore` passed.
 
