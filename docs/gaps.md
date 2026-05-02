@@ -51,6 +51,10 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ## Closed gaps (reference only — kept for traceability)
 
+### Closed 2026-05-02 (WS-P2 condition semantics surface)
+
+- WS-P2 closed `dbc1e3c4` — CEL is now an authoring frontend only; checked semantic conditions are carried as `CheckedConditionSet` / `ConditionIR`; `propstore/z3_conditions.py` is deleted; public condition queries use `propstore.core.conditions.solver.ConditionSolver`; sidecar/graph runtime paths consume encoded condition IR rather than reparsing CEL; condition architecture docs name the new `core.conditions` owner surface. Evidence: `reviews/2026-04-26-claude/workstreams/reports/WS-P2-closure.md`, final full-suite log `logs/test-runs/WS-P2-full-20260502-134333.log`, and final `uv run pyright propstore` with 0 errors.
+
 ### Closed 2026-05-02 (IST context lifting / argumentation / Gunray workstream)
 
 - Context lifting now projects contextual claims as `ist(context, proposition)` literals, lifting uses typed lifted/blocked/unknown decisions, CKR lifting exceptions share the exception-defeat carrier, ASPIC and Gunray boundaries retain projection provenance, and `LiftingSystem.can_lift` is gone. Evidence: `plans/context-lifting-argumentation-gunray-workstream-2026-05-02.md`; tests `tests/architecture/test_ist_projection_contract.py`, `tests/architecture/test_lifting_decision_contract.py`, `tests/architecture/test_backend_identity_contracts.py`, `tests/test_context_lifting_ws5.py`, `tests/test_ws_f_aspic_bridge.py`, `tests/test_grounding_grounder.py`, `tests/test_world_query.py`; propstore pin to pushed `formal-argumentation` commit `9320e00ebdfe24ae9cb23f50947bd4e1544cc863`.
