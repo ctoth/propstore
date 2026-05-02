@@ -67,6 +67,8 @@ from argumentation.aspic import Scalar
 from argumentation.aspic import GroundAtom as AspicGroundAtom
 from propstore.families.documents.rules import RulesFileDocument
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.grounder import ground
+from propstore.grounding.predicates import PredicateRegistry
 from propstore.rule_files import LoadedRuleFile
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system. The
@@ -468,16 +470,35 @@ def read_grounded_facts(
 
 
 def read_grounded_bundle(conn: sqlite3.Connection) -> GroundedRulesBundle:
-    """Rehydrate a runtime grounding bundle from sidecar materialization.
+    """Rehydrate a runtime grounding bundle from persisted grounding inputs.
 
-    The sidecar persists both the backend's four-status section map and
-    the rule/fact/argument inputs that produced it, so downstream runtime
-    argumentation can retain the complete grounding provenance.
+    The sidecar persists the source rule/fact inputs and the materialized
+    four-status section map. Re-running the typed grounder here restores the
+    Gunray inspection frame required by ASPIC projection, then verifies that
+    the recomputed sections match the stored materialization.
     """
 
-    return GroundedRulesBundle(
-        source_rules=_read_bundle_inputs(conn, "source_rule"),  # type: ignore[arg-type]
-        source_facts=_read_bundle_inputs(conn, "source_fact"),  # type: ignore[arg-type]
-        sections=read_grounded_facts(conn),
-        arguments=_read_bundle_inputs(conn, "argument"),  # type: ignore[arg-type]
+    stored_sections = read_grounded_facts(conn)
+    bundle = ground(
+        _read_source_rules(conn),
+        _read_source_facts(conn),
+        PredicateRegistry(()),
+        return_arguments=True,
     )
+    if bundle.sections != stored_sections:
+        raise ValueError("persisted grounded facts diverge from grounded inputs")
+    return bundle
+
+
+def _read_source_rules(conn: sqlite3.Connection) -> tuple[LoadedRuleFile, ...]:
+    values = _read_bundle_inputs(conn, "source_rule")
+    if not all(isinstance(value, LoadedRuleFile) for value in values):
+        raise TypeError("grounded source_rule inputs must be LoadedRuleFile values")
+    return values
+
+
+def _read_source_facts(conn: sqlite3.Connection) -> tuple[AspicGroundAtom, ...]:
+    values = _read_bundle_inputs(conn, "source_fact")
+    if not all(isinstance(value, AspicGroundAtom) for value in values):
+        raise TypeError("grounded source_fact inputs must be ASPIC GroundAtom values")
+    return values
