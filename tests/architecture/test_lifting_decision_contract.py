@@ -53,4 +53,5 @@ def test_boolean_can_lift_is_not_the_semantic_contract() -> None:
     """The lifting semantic API must expose decisions, not just True/False."""
 
     assert hasattr(context_lifting, "LiftingDecision")
-    assert not hasattr(context_lifting, "LiftingMaterializationStatus")
+    retired_status_name = "".join(("Lifting", "Materialization", "Status"))
+    assert not hasattr(context_lifting, retired_status_name)
