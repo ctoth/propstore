@@ -5,32 +5,39 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from propstore.cel_types import CelExpr
+from propstore.core.conditions import checked_condition_set
+from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo
+from propstore.core.conditions.solver import SolverSat, SolverUnknown, SolverUnsat
 from propstore.conflict_detector.models import ConflictClass
-from propstore.z3_conditions import SolverSat, SolverUnknown, SolverUnsat
 
 if TYPE_CHECKING:
-    from propstore.z3_conditions import Z3ConditionSolver
+    from propstore.core.conditions.solver import ConditionSolver
 
 
 def _try_z3_classify(
     conditions_a: list[CelExpr],
     conditions_b: list[CelExpr],
     cel_registry: dict[str, ConceptInfo] | None,
-    solver: Z3ConditionSolver | None = None,
+    solver: ConditionSolver | None = None,
 ) -> ConflictClass:
     """Classify conditions using Z3, failing loudly if Z3 is unavailable."""
     if cel_registry is None:
         raise ValueError("classify_conditions requires a CEL registry for Z3 reasoning")
 
     if solver is None:
-        try:
-            from propstore.z3_conditions import Z3ConditionSolver
-        except ImportError as exc:
-            raise RuntimeError("Z3 condition reasoning is required but unavailable") from exc
-        solver = Z3ConditionSolver(cel_registry)
+        from propstore.core.conditions.solver import ConditionSolver
 
-    equivalence = solver.are_equivalent_result(conditions_a, conditions_b)
+        solver = ConditionSolver(cel_registry)
+
+    checked_a = checked_condition_set(
+        check_condition_ir(str(condition), cel_registry) for condition in conditions_a
+    )
+    checked_b = checked_condition_set(
+        check_condition_ir(str(condition), cel_registry) for condition in conditions_b
+    )
+
+    equivalence = solver.are_equivalent_result(checked_a, checked_b)
     if isinstance(equivalence, SolverUnknown):
         return ConflictClass.UNKNOWN
     if isinstance(equivalence, SolverUnsat):
@@ -38,7 +45,7 @@ def _try_z3_classify(
     if not isinstance(equivalence, SolverSat):
         raise TypeError(f"Unexpected solver result: {type(equivalence).__name__}")
 
-    disjointness = solver.are_disjoint_result(conditions_a, conditions_b)
+    disjointness = solver.are_disjoint_result(checked_a, checked_b)
     if isinstance(disjointness, SolverUnknown):
         return ConflictClass.UNKNOWN
     if isinstance(disjointness, SolverUnsat):
@@ -53,7 +60,7 @@ def classify_conditions(
     conditions_b: list[CelExpr],
     cel_registry: dict[str, ConceptInfo] | None = None,
     *,
-    solver: Z3ConditionSolver | None = None,
+    solver: ConditionSolver | None = None,
 ) -> ConflictClass:
     """Classify a pair of differing-value claims based on their conditions."""
     normalized_a = sorted(conditions_a)
