@@ -364,12 +364,21 @@ class ParameterizationEdge:
     sympy: str | None = None
     exactness: Exactness | None = None
     conditions: tuple[CelExpr, ...] = ()
+    checked_conditions: CheckedConditionSet | None = None
     provenance: ProvenanceRecord | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "exactness", coerce_exactness(self.exactness))
         object.__setattr__(self, "input_concept_ids", tuple(self.input_concept_ids))
-        object.__setattr__(self, "conditions", to_cel_exprs(self.conditions))
+        object.__setattr__(
+            self,
+            "conditions",
+            (
+                self.checked_conditions.sources
+                if self.checked_conditions is not None
+                else to_cel_exprs(self.conditions)
+            ),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -384,6 +393,11 @@ class ParameterizationEdge:
             data["exactness"] = self.exactness.value
         if self.conditions:
             data["conditions"] = list(self.conditions)
+        if self.checked_conditions is not None:
+            data["conditions_ir"] = [
+                _condition_to_dict(condition)
+                for condition in self.checked_conditions.conditions
+            ]
         if self.provenance is not None:
             data["provenance"] = self.provenance.to_dict()
         return data
@@ -398,6 +412,7 @@ class ParameterizationEdge:
             sympy=(None if data.get("sympy") is None else str(data["sympy"])),
             exactness=coerce_exactness(data.get("exactness")),
             conditions=to_cel_exprs(str(item) for item in data.get("conditions") or ()),
+            checked_conditions=_condition_set_from_dicts(data.get("conditions_ir")),
             provenance=(
                 None
                 if provenance_data is None

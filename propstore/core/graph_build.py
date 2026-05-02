@@ -390,6 +390,10 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     conditions=to_cel_exprs(
                         _parameterization_condition_sources(parameterization)
                     ),
+                    checked_conditions=_checked_conditions_from_json_text(
+                        parameterization.conditions_ir,
+                        owner=f"parameterization {parameterization.output_concept_id}",
+                    ),
                     provenance=_row_provenance(
                         {
                             **parameterization.attributes,
