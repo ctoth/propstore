@@ -17,13 +17,20 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from itertools import combinations, product
 from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
-from propstore.cel_checker import ASTNode, BinaryOpNode, LiteralNode, NameNode, UnaryOpNode, parse_cel
+from propstore.core.conditions import (
+    CheckedCondition,
+    CheckedConditionSet,
+    check_condition_ir,
+    checked_condition_set_from_json,
+    checked_condition_set_to_json,
+)
+from propstore.core.conditions.registry import ConceptInfo
 from propstore.core.anytime import EnumerationExceeded
 from propstore.core.environment import WorldStore, MicropublicationCatalogStore
 from propstore.core.graph_build import build_compiled_world_graph
@@ -131,7 +138,10 @@ class _ATMSRuntimeLike(Protocol):
     def conflicts(self) -> Callable[[], list[ConflictRowInput]]: ...
 
     @property
-    def is_param_compatible(self) -> Callable[[str | None], bool]: ...
+    def is_param_compatible(self) -> Callable[[ParameterizationRow], bool]: ...
+
+    @property
+    def condition_registry(self) -> Mapping[str, ConceptInfo]: ...
 
     @property
     def claim_support(self) -> Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]: ...
@@ -151,7 +161,7 @@ class _ATMSBoundLike(Protocol):
     _lifting_system: LiftingSystem | None
     _policy: Any
 
-    def is_param_compatible(self, conditions_cel: str | None) -> bool: ...
+    def is_param_compatible(self, parameterization: ParameterizationRow) -> bool: ...
     def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]: ...
     def value_of(self, concept_id: str) -> ValueResult: ...
     def rebind(
@@ -299,7 +309,8 @@ class _ATMSRuntime:
     all_micropublications: Callable[[], list[ActiveMicropublicationInput]]
     active_claims: Callable[[], list[ActiveClaim]]
     conflicts: Callable[[], list[ConflictRowInput]]
-    is_param_compatible: Callable[[str | None], bool]
+    is_param_compatible: Callable[[ParameterizationRow], bool]
+    condition_registry: Mapping[str, ConceptInfo]
     claim_support: Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]
     concept_status: Callable[[str], ValueStatus]
     replay: Callable[[tuple[QueryableAssumption, ...]], "_ATMSRuntime"]
@@ -363,6 +374,11 @@ def _claim_node_to_active_claim(claim_node: ClaimNode) -> ActiveClaim:
         "type": claim_node.claim_type,
         "value": claim_node.scalar_value,
     }
+    if claim_node.checked_conditions is not None:
+        row_data["conditions_ir"] = json.dumps(
+            checked_condition_set_to_json(claim_node.checked_conditions),
+            sort_keys=True,
+        )
     if claim_node.value_concept_id is not None:
         row_data["concept_links"] = [{
             "claim_id": claim_node.claim_id,
@@ -382,6 +398,14 @@ def _parameterization_edge_to_row(edge: ParameterizationEdge) -> Parameterizatio
         sympy=edge.sympy,
         exactness=edge.exactness,
         conditions_cel=(None if not edge.conditions else json.dumps(list(edge.conditions))),
+        conditions_ir=(
+            None
+            if edge.checked_conditions is None
+            else json.dumps(
+                checked_condition_set_to_json(edge.checked_conditions),
+                sort_keys=True,
+            )
+        ),
     )
 
 
@@ -524,7 +548,8 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
         all_parameterizations=_all_parameterizations,
         active_claims=_active_claims,
         conflicts=_conflicts,
-        is_param_compatible=lambda conditions_cel: bound.is_param_compatible(conditions_cel),
+        is_param_compatible=lambda parameterization: bound.is_param_compatible(parameterization),
+        condition_registry=bound._store.condition_solver().registry,
         all_micropublications=_all_micropublications,
         claim_support=lambda claim: bound.claim_support(claim),
         concept_status=lambda concept_id: bound.value_of(concept_id).status,
@@ -1402,7 +1427,7 @@ class ATMSEngine:
             self._claim_artifact_node_ids[str(claim.artifact_id)] = node_id
 
             for antecedents in self._exact_antecedent_sets(
-                claim.conditions_cel_json,
+                claim.checked_conditions,
                 context_id=claim.context_id,
             ):
                 self._add_justification(
@@ -1489,11 +1514,11 @@ class ATMSEngine:
 
         for index, param_input in enumerate(self._all_parameterizations):
             param = coerce_parameterization_row(param_input)
-            if not self._runtime.is_param_compatible(param.conditions_cel):
+            if not self._runtime.is_param_compatible(param):
                 continue
 
             condition_antecedents = self._exact_antecedent_sets(
-                param.conditions_cel,
+                self._parameterization_condition_set(param),
             )
             if not condition_antecedents:
                 continue
@@ -1683,7 +1708,7 @@ class ATMSEngine:
 
     def _exact_antecedent_sets(
         self,
-        conditions_cel: str | None,
+        condition_set: CheckedConditionSet | None,
         *,
         context_id: str | None = None,
     ) -> list[tuple[str, ...]]:
@@ -1694,24 +1719,17 @@ class ATMSEngine:
                 return []
             context_antecedents = (context_node_id,)
 
-        if not conditions_cel:
-            return [context_antecedents]
-
-        try:
-            conditions = json.loads(conditions_cel)
-        except (TypeError, json.JSONDecodeError):
-            return []
-        if not conditions:
+        if condition_set is None or not condition_set.conditions:
             return [context_antecedents]
 
         matching_node_groups: list[list[str]] = []
-        for condition in conditions:
+        for condition in condition_set.conditions:
             matches = [
                 node_id
                 for node_id, node in self._nodes.items()
                 if node.kind == "assumption"
                 and (assumption := _node_assumption(node)) is not None
-                and self._cel_conditions_equivalent(assumption.cel, str(condition))
+                and self._condition_matches_assumption(condition, assumption.cel)
             ]
             if not matches:
                 return []
@@ -1722,30 +1740,36 @@ class ATMSEngine:
             for node_ids in product(*matching_node_groups)
         ]
 
-    @classmethod
-    def _cel_conditions_equivalent(cls, left: str, right: str) -> bool:
-        if left == right:
+    @staticmethod
+    def _parameterization_condition_set(
+        parameterization: ParameterizationRow,
+    ) -> CheckedConditionSet | None:
+        if not parameterization.conditions_ir:
+            if parameterization.conditions_cel:
+                raise ValueError(
+                    "parameterization row is missing conditions_ir; rebuild the sidecar"
+                )
+            return None
+        loaded = json.loads(parameterization.conditions_ir)
+        if not isinstance(loaded, Mapping):
+            raise ValueError("parameterization conditions_ir must decode to a mapping")
+        return checked_condition_set_from_json(loaded)
+
+    def _condition_matches_assumption(
+        self,
+        condition: CheckedCondition,
+        assumption_cel: str,
+    ) -> bool:
+        if condition.source == assumption_cel:
             return True
         try:
-            return cls._canonical_cel_ast(parse_cel(left)) == cls._canonical_cel_ast(parse_cel(right))
+            assumption = check_condition_ir(
+                assumption_cel,
+                self._runtime.condition_registry,
+            )
         except ValueError:
             return False
-
-    @classmethod
-    def _canonical_cel_ast(cls, node: ASTNode) -> object:
-        if isinstance(node, NameNode):
-            return ("name", node.name)
-        if isinstance(node, LiteralNode):
-            return ("literal", node.lit_type, node.value)
-        if isinstance(node, UnaryOpNode):
-            return ("unary", node.op, cls._canonical_cel_ast(node.operand))
-        if isinstance(node, BinaryOpNode):
-            left = cls._canonical_cel_ast(node.left)
-            right = cls._canonical_cel_ast(node.right)
-            if node.op in {"==", "!=", "&&", "||"}:
-                left, right = sorted((left, right), key=repr)
-            return ("binary", node.op, left, right)
-        return repr(node)
+        return assumption.encoded_ir == condition.encoded_ir
 
     def _add_justification(
         self,
