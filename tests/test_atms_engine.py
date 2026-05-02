@@ -8,6 +8,7 @@ import pytest
 
 from propstore.cli import cli
 from propstore.core.active_claims import ActiveClaim, coerce_active_claim
+from propstore.core.conditions import checked_condition_set_to_json
 from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world.atms import BudgetExhausted
 from propstore.world import BoundWorld
@@ -266,6 +267,7 @@ class _GraphOnlyATMSRuntime:
             )
         )
         self._bound = bound
+        self.condition_registry = bound._store.condition_solver().registry
 
     @staticmethod
     def _claim_node_to_claim(claim_node) -> ActiveClaim:
@@ -284,6 +286,11 @@ class _GraphOnlyATMSRuntime:
                     "ordinal": 0,
                 }
             ]
+        if claim_node.checked_conditions is not None:
+            row["conditions_ir"] = json.dumps(
+                checked_condition_set_to_json(claim_node.checked_conditions),
+                sort_keys=True,
+            )
         return coerce_active_claim(row)
 
     def is_parameterization_compatible(self, conditions: tuple[str, ...]) -> bool:
@@ -316,8 +323,9 @@ class _GraphOnlyATMSRuntime:
         ]
 
     def all_parameterizations(self) -> list[dict]:
-        return [
-            {
+        rows = []
+        for edge in self.active_graph.compiled.parameterizations:
+            row = {
                 "output_concept_id": edge.output_concept_id,
                 "concept_ids": json.dumps(list(edge.input_concept_ids)),
                 "formula": edge.formula,
@@ -325,8 +333,13 @@ class _GraphOnlyATMSRuntime:
                 "exactness": edge.exactness,
                 "conditions_cel": (None if not edge.conditions else json.dumps(list(edge.conditions))),
             }
-            for edge in self.active_graph.compiled.parameterizations
-        ]
+            if edge.checked_conditions is not None:
+                row["conditions_ir"] = json.dumps(
+                    checked_condition_set_to_json(edge.checked_conditions),
+                    sort_keys=True,
+                )
+            rows.append(row)
+        return rows
 
     def all_micropublications(self) -> list[dict]:
         return []
