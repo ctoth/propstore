@@ -1,0 +1,17 @@
+{
+  "title": "SameAs Networks and Beyond: Analyzing Deployment Status and Implications of owl: sameAs in Linked Data",
+  "authors": [
+    "L. Ding",
+    "Joshua Shinavier",
+    "Zhenning Shangguan",
+    "Deborah L. McGuinness"
+  ],
+  "year": "2010",
+  "doi": "10.1007/978-3-642-17746-0_10",
+  "url": "https://www.semanticscholar.org/paper/8ffcfda64f697e90d7e0aea79dbe81975dec4562",
+  "pdf_url": "https://link.springer.com/content/pdf/10.1007%2F978-3-642-17746-0_10.pdf",
+  "bibtex": "@Article{Ding2010SameAsNA,\n author = {L. Ding and Joshua Shinavier and Zhenning Shangguan and Deborah L. McGuinness},\n booktitle = {International Workshop on the Semantic Web},\n pages = {145-160},\n title = {SameAs Networks and Beyond: Analyzing Deployment Status and Implications of owl: sameAs in Linked Data},\n year = {2010}\n}\n",
+  "venue": "International Workshop on the Semantic Web",
+  "venue_type": "conference",
+  "pages": "145-160"
+}
