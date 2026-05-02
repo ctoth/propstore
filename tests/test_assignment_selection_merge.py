@@ -37,72 +37,99 @@ assignment_selection_module = importlib.import_module("propstore.world.assignmen
 
 
 def _eval_cel_ast_oracle(node, bindings):
-    from propstore.cel_checker import (
-        BinaryOpNode,
-        InNode,
-        LiteralNode,
-        NameNode,
-        TernaryNode,
-        UnaryOpNode,
+    from cel_parser import (
+        OP_ADD,
+        OP_AND,
+        OP_DIV,
+        OP_EQ,
+        OP_GE,
+        OP_GT,
+        OP_IN,
+        OP_LE,
+        OP_LT,
+        OP_MUL,
+        OP_NE,
+        OP_NEG,
+        OP_NOT,
+        OP_OR,
+        OP_SUB,
+        OP_TERNARY,
+        BoolLit,
+        Call,
+        CreateList,
+        DoubleLit,
+        Ident,
+        IntLit,
+        StringLit,
+        UintLit,
     )
 
-    if isinstance(node, LiteralNode):
+    if isinstance(node, (IntLit, UintLit, DoubleLit, StringLit, BoolLit)):
         return node.value
-    if isinstance(node, NameNode):
+    if isinstance(node, Ident):
         if node.name not in bindings:
             raise ValueError(f"Undefined concept: '{node.name}'")
         return bindings[node.name]
-    if isinstance(node, UnaryOpNode):
-        operand = _eval_cel_ast_oracle(node.operand, bindings)
-        if node.op == "!":
-            return not operand
-        if node.op == "-":
-            return -operand
-        raise ValueError(f"Unknown CEL unary operator: {node.op}")
-    if isinstance(node, BinaryOpNode):
-        left = _eval_cel_ast_oracle(node.left, bindings)
-        right = _eval_cel_ast_oracle(node.right, bindings)
-        if node.op == "&&":
-            return bool(left) and bool(right)
-        if node.op == "||":
-            return bool(left) or bool(right)
-        if node.op == "+":
-            return left + right
-        if node.op == "-":
-            return left - right
-        if node.op == "*":
-            return left * right
-        if node.op == "/":
-            return left / right
-        if node.op == "<":
-            return left < right
-        if node.op == ">":
-            return left > right
-        if node.op == "<=":
-            return left <= right
-        if node.op == ">=":
-            return left >= right
-        if node.op == "==":
-            return left == right
-        if node.op == "!=":
-            return left != right
-        raise ValueError(f"Unknown CEL binary operator: {node.op}")
-    if isinstance(node, InNode):
-        expr = _eval_cel_ast_oracle(node.expr, bindings)
-        return expr in [_eval_cel_ast_oracle(value, bindings) for value in node.values]
-    if isinstance(node, TernaryNode):
-        condition = _eval_cel_ast_oracle(node.condition, bindings)
-        branch = node.true_branch if condition else node.false_branch
-        return _eval_cel_ast_oracle(branch, bindings)
-    raise TypeError(f"Unsupported CEL AST node: {type(node)}")
+    if isinstance(node, Call) and node.target is None:
+        fn = node.function
+        if fn == OP_NOT and len(node.args) == 1:
+            return not _eval_cel_ast_oracle(node.args[0], bindings)
+        if fn == OP_NEG and len(node.args) == 1:
+            return -_eval_cel_ast_oracle(node.args[0], bindings)
+        if fn == OP_TERNARY and len(node.args) == 3:
+            cond = _eval_cel_ast_oracle(node.args[0], bindings)
+            branch = node.args[1] if cond else node.args[2]
+            return _eval_cel_ast_oracle(branch, bindings)
+        if fn == OP_IN and len(node.args) == 2:
+            element = _eval_cel_ast_oracle(node.args[0], bindings)
+            list_expr = node.args[1]
+            if not isinstance(list_expr, CreateList):
+                raise TypeError("'in' rhs must be a list literal")
+            return element in [
+                _eval_cel_ast_oracle(value, bindings) for value in list_expr.elements
+            ]
+        if len(node.args) == 2:
+            left = _eval_cel_ast_oracle(node.args[0], bindings)
+            right = _eval_cel_ast_oracle(node.args[1], bindings)
+            if fn == OP_AND:
+                return bool(left) and bool(right)
+            if fn == OP_OR:
+                return bool(left) or bool(right)
+            if fn == OP_ADD:
+                return left + right
+            if fn == OP_SUB:
+                return left - right
+            if fn == OP_MUL:
+                return left * right
+            if fn == OP_DIV:
+                return left / right
+            if fn == OP_LT:
+                return left < right
+            if fn == OP_GT:
+                return left > right
+            if fn == OP_LE:
+                return left <= right
+            if fn == OP_GE:
+                return left >= right
+            if fn == OP_EQ:
+                return left == right
+            if fn == OP_NE:
+                return left != right
+        raise ValueError(f"Unknown CEL operator: {fn}")
+    raise TypeError(f"Unsupported CEL AST node: {type(node).__name__}")
 
 
 def _eval_cel_constraint_bruteforce_oracle(assignment, constraint) -> bool:
-    from propstore.cel_checker import check_cel_expression, parse_cel, scope_cel_registry
+    from cel_parser import parse as parse_cel
+    from propstore.cel_checker import check_cel_expression
+    from propstore.core.conditions.registry import scope_condition_registry
 
     if not constraint.cel:
         raise ValueError("CEL integrity constraint requires a non-empty cel expression")
-    registry = scope_cel_registry(constraint.metadata["registry"], constraint.concept_ids)
+    registry = scope_condition_registry(
+        constraint.metadata["registry"],
+        constraint.concept_ids,
+    )
     errors = check_cel_expression(constraint.cel, registry)
     hard_errors = [error for error in errors if not error.is_warning]
     if hard_errors:
