@@ -552,6 +552,16 @@ def _bundle(
     )
 
 
+def _bird_yes_intervention(items: list[RankedIntervention]) -> RankedIntervention:
+    return next(
+        item
+        for item in items
+        if isinstance(item.target.payload, GroundFactTarget)
+        and item.target.payload.section == "yes"
+        and item.target.payload.predicate_id == "bird"
+    )
+
+
 class TestGroundFactInterventions:
     @pytest.mark.property
     @given(st.permutations([("bird", ("tweety",)), ("bird", ("opus",))]))
@@ -583,8 +593,10 @@ class TestGroundFactInterventions:
         unused_bundle = _bundle(
             yes={"bird": frozenset({("tweety",)})},
         )
-        supporting = collect_ground_fact_interventions(supporting_bundle)[0]
-        unused = collect_ground_fact_interventions(unused_bundle)[0]
+        supporting = _bird_yes_intervention(
+            collect_ground_fact_interventions(supporting_bundle)
+        )
+        unused = _bird_yes_intervention(collect_ground_fact_interventions(unused_bundle))
         assert supporting.local_fragility > unused.local_fragility
         assert "antecedent_dependency_count=1" in supporting.score_explanation
         assert "antecedent_dependency_count=0" in unused.score_explanation
