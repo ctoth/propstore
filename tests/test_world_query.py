@@ -17,6 +17,17 @@ import yaml
 
 from propstore.core.claim_types import ClaimType
 from propstore.conflict_detector import ConflictClass
+from propstore.core.conditions import (
+    ConditionSolver,
+    check_condition_ir,
+    checked_condition_set,
+    checked_condition_set_to_json,
+)
+from propstore.core.conditions.registry import (
+    ConceptInfo,
+    KindType,
+    with_standard_synthetic_bindings,
+)
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.core.row_types import (
     ConflictRowInput,
@@ -2874,13 +2885,21 @@ class TestOverlayWorldATMS:
             assert "downgraded ATMS backend to claim_graph" not in result.reason
 
 
-class _Phase6ExactMatchSolver:
-    def are_disjoint(self, left: list[str], right: list[str]) -> bool:
-        return set(left).isdisjoint(right)
-
-
 class _Phase6HypotheticalStore:
     def __init__(self) -> None:
+        self._condition_registry = with_standard_synthetic_bindings(
+            {
+                "concept_x": ConceptInfo(
+                    id="concept_x",
+                    canonical_name="concept_x",
+                    kind=KindType.QUANTITY,
+                )
+            }
+        )
+        self._condition_solver = ConditionSolver(self._condition_registry)
+        condition_set = checked_condition_set(
+            [check_condition_ir("mode == 'speech'", self._condition_registry)]
+        )
         self._claims = [
             {
                 "id": "claim_a",
@@ -2892,6 +2911,10 @@ class _Phase6HypotheticalStore:
                 "sample_size": 50,
                 "confidence": 1.0,
                 "conditions_cel": json.dumps(["mode == 'speech'"]),
+                "conditions_ir": json.dumps(
+                    checked_condition_set_to_json(condition_set),
+                    sort_keys=True,
+                ),
             },
         ]
 
@@ -2923,8 +2946,8 @@ class _Phase6HypotheticalStore:
     def parameterizations_for(self, concept_id: str) -> list[dict]:
         return []
 
-    def condition_solver(self) -> _Phase6ExactMatchSolver:
-        return _Phase6ExactMatchSolver()
+    def condition_solver(self) -> ConditionSolver:
+        return self._condition_solver
 
     def explain(self, claim_id: str) -> list[StanceRowInput]:
         return []
