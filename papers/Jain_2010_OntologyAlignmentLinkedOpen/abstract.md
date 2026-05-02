@@ -1,0 +1,11 @@
+# Abstract
+
+## Original Text (Verbatim)
+
+The Web of Data currently coming into existence through the Linked Open Data (LOD) effort is a major milestone in realizing the Semantic Web vision. However, the development of applications based on LOD faces difficulties due to the fact that the different LOD datasets are rather loosely connected pieces of information. In particular, links between LOD datasets are almost exclusively on the level of instances, and schema-level information is being ignored. In this paper, we therefore present a system for finding schema-level links between LOD datasets in the sense of ontology alignment. Our system, called BLOOMS, is based on the idea of bootstrapping information already present on the LOD cloud. We also present a comprehensive evaluation which shows that BLOOMS outperforms state-of-the-art ontology alignment systems on LOD datasets. At the same time, BLOOMS is also competitive compared with these other systems on the Ontology Evaluation Alignment Initiative Benchmark datasets.
+
+---
+
+## Our Interpretation
+
+The paper addresses the gap between instance-level linked data and schema-level interoperability. Its core contribution is BLOOMS, which uses Wikipedia/DBpedia category structure as noisy background knowledge to infer subclass and equivalence links between LOD schemas. For this project, the useful part is the explicit, directional alignment decision rule and its evaluable thresholds.
