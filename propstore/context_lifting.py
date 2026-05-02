@@ -276,25 +276,6 @@ class LiftingSystem:
                             justification=decision.provenance.justification,
                         )
                     )
-                    continue
-                exception_id = None
-                clashing_set: tuple[str, ...] = ()
-                if decision.exception is not None:
-                    exception_id = decision.provenance.exception_id
-                    clashing_set = decision.exception.exception.justification_claims
-                materialized.append(
-                    LiftedAssertion(
-                        assertion=target_assertion,
-                        source_assertion=assertion,
-                        rule_id=decision.rule_id,
-                        mode=decision.mode,
-                        status=decision.status,
-                        decision=decision,
-                        exception_id=exception_id,
-                        justification=decision.provenance.justification,
-                        clashing_set=clashing_set,
-                    )
-                )
         return tuple(materialized)
 
     def lift_decisions_for(
