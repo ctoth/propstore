@@ -31,11 +31,12 @@ from propstore.core.labels import Label, SupportQuality
 from propstore.core.row_types import ClaimRowInput, ConceptRowInput, coerce_claim_row, coerce_concept_row
 from propstore.world.types import (
     ArgumentationSemantics,
-    WorldStore,
     BeliefSpace,
     ClaimSupportView,
+    GroundingBundleStore,
     HasActiveGraph,
     HasATMSEngine,
+    WorldStore,
     AssignmentSelectionProblem,
     IntegrityConstraint,
     IntegrityConstraintKind,
@@ -550,15 +551,13 @@ def _resolve_structured_argumentation(
             claim_id = _claim_id(claim)
             support_metadata[claim_id] = view.claim_support(claim)
 
-    grounding_bundle = getattr(world, "grounding_bundle", None)
-    if not callable(grounding_bundle):
+    if not isinstance(world, GroundingBundleStore):
         return None, "ASPIC backend requires a grounded bundle-capable store"
 
-    typed_grounding_bundle = cast(Callable[[], GroundedRulesBundle], grounding_bundle)
     projection = build_structured_projection(
         world,
         cast(list[ActiveClaimInput], active_claim_rows),
-        bundle=typed_grounding_bundle(),
+        bundle=world.grounding_bundle(),
         support_metadata=support_metadata,
         comparison=comparison,
         link=link,
