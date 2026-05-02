@@ -7,8 +7,8 @@ from typing import Any
 
 from quire.references import ReferenceResolution as ResolvedReference
 
-from propstore.cel_types import CheckedCelConditionSet
 from propstore.claims import ClaimFileEntry
+from propstore.core.conditions.checked import CheckedConditionSet
 from propstore.families.claims.documents import ClaimDocument
 from propstore.semantic_passes.types import PassDiagnostic
 
@@ -37,7 +37,7 @@ class SemanticClaim:
     variable_refs: tuple[ResolvedReference, ...] = ()
     parameter_refs: tuple[ResolvedReference, ...] = ()
     stances: tuple[SemanticStance, ...] = ()
-    checked_conditions: CheckedCelConditionSet | None = None
+    checked_conditions: CheckedConditionSet | None = None
 
 
 @dataclass(frozen=True)
