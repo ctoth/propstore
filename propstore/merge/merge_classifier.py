@@ -205,6 +205,11 @@ def _classify_pair(
     from propstore.conflict_detector import ConflictClass, detect_conflicts
     from propstore.conflict_detector.collectors import conflict_claim_from_payload
 
+    left_conditions = sorted(left_claim.document.conditions)
+    right_conditions = sorted(right_claim.document.conditions)
+    if left_conditions != right_conditions:
+        return _DiffKind.PHI_NODE
+
     comparison_source = (
         left_claim.provenance_payload().get("paper")
     )
@@ -234,13 +239,8 @@ def _classify_pair(
             concept_registry={},
             cel_registry={},
         )
-    except Z3TranslationError:
+    except (ValueError, Z3TranslationError):
         return _DiffKind.UNTRANSLATABLE
-
-    left_conditions = sorted(left_claim.document.conditions)
-    right_conditions = sorted(right_claim.document.conditions)
-    if left_conditions != right_conditions:
-        return _DiffKind.PHI_NODE
 
     for record in records:
         if _DiffKind.from_conflict_class(record.warning_class) == _DiffKind.CONFLICT:
