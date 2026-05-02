@@ -48,6 +48,7 @@ from propstore.core.row_types import ConflictRow, StanceRow
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
+    from propstore.grounding.bundle import GroundedRulesBundle
 
 _T = TypeVar("_T")
 
@@ -1178,6 +1179,11 @@ class HasATMSEngine(Protocol):
 @runtime_checkable
 class HasActiveGraph(Protocol):
     _active_graph: ActiveWorldGraph | None
+
+
+@runtime_checkable
+class GroundingBundleStore(Protocol):
+    def grounding_bundle(self) -> GroundedRulesBundle: ...
 
 
 @runtime_checkable
