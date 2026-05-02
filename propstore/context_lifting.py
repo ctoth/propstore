@@ -13,6 +13,7 @@ from enum import StrEnum
 
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core import assertions as _assertions
+from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.id_types import ContextId, to_context_id
 from propstore.defeasibility import (
     DecidabilityStatus,
@@ -458,10 +459,21 @@ def _evaluate_rule_conditions(
             "lifting rule conditions require a solver",
             NogoodWitness("lifting-rule-condition", "solver unavailable"),
         )
+    try:
+        registry = getattr(solver, "_registry")
+    except AttributeError:
+        return (
+            LiftingDecisionStatus.UNKNOWN,
+            "lifting rule conditions require a condition registry",
+            NogoodWitness("lifting-rule-condition", "condition registry unavailable"),
+        )
 
     for condition in rule.conditions:
         try:
-            result = solver.is_condition_satisfied_result(condition, bindings)
+            result = solver.is_condition_satisfied_result(
+                check_condition_ir(str(condition), registry),
+                bindings,
+            )
         except Z3TranslationError as exc:
             return (
                 LiftingDecisionStatus.UNKNOWN,
