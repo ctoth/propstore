@@ -187,6 +187,7 @@ Directly relevant to propstore's concept identity and vocabulary reconciliation 
 
 ### Cited By (in Collection)
 - [[Raad_2019_SameAsProblemSurvey]] — categorizes de Melo 2013 as a "network analysis approach" to erroneous identity link detection (p.4 of Raad)
+- [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md) — cites de Melo as related work on identity constraints and erroneous sameAs detection; CEDAL takes a provenance-preserving graph-partitioning route rather than minimum-multicut repair.
 
 ### New Leads (Not Yet in Collection)
 - Halpin et al. (2010) — "When owl:sameAs Isn't the Same" — foundational critique of sameAs semantics, introduced contextual identity
