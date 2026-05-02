@@ -2,19 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any
 
 from propstore.core.active_claims import ActiveClaim
 from propstore.cel_types import CelExpr, to_cel_exprs
-from cel_parser import (
-    Call,
-    CreateList,
-    Expr,
-    Ident,
-    ParseError,
-    parse as parse_cel,
-)
 from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import with_standard_synthetic_bindings
@@ -106,27 +97,10 @@ def _claim_context_id(claim: ClaimNode) -> str | None:
     return None if context_id is None else str(context_id)
 
 
-def _claim_conditions(claim: ClaimNode) -> tuple[CelExpr, ...]:
-    raw = _claim_attributes(claim).get("conditions_cel")
-    if not raw:
-        return ()
-    if isinstance(raw, str):
-        loaded = json.loads(raw)
-        if not loaded:
-            return ()
-        return to_cel_exprs(str(item) for item in loaded)
-    if isinstance(raw, (list, tuple)):
-        return to_cel_exprs(str(item) for item in raw)
-    return to_cel_exprs((str(raw),))
-
-
 def _claim_node_source_artifact(claim: ClaimNode) -> str | None:
     if claim.provenance is not None and claim.provenance.source_id is not None:
         return claim.provenance.source_id
     return claim.claim_id
-
-
-_NON_BINDING_NAMES = frozenset({"true", "false", "in"})
 
 
 class UnknownConceptInCEL(ValueError):
@@ -143,56 +117,21 @@ class UnknownConceptInCEL(ValueError):
         super().__init__(f"Unknown CEL concept '{concept_name}' {context}")
 
 
-def _names_from_ast(node: Expr) -> set[str]:
-    """Collect all bare-identifier names referenced in an expression."""
-    if isinstance(node, Ident):
-        return {node.name} if node.name else set()
-    names: set[str] = set()
-    target = getattr(node, "target", None)
-    if isinstance(target, Expr):
-        names |= _names_from_ast(target)
-    args = getattr(node, "args", None)
-    if args:
-        for arg in args:
-            if isinstance(arg, Expr):
-                names |= _names_from_ast(arg)
-    operand = getattr(node, "operand", None)
-    if isinstance(operand, Expr):
-        names |= _names_from_ast(operand)
-    elements = getattr(node, "elements", None)
-    if elements:
-        for elem in elements:
-            if isinstance(elem, Expr):
-                names |= _names_from_ast(elem)
-    if isinstance(node, CreateList):
-        for elem in node.elements:
-            names |= _names_from_ast(elem)
-    return names
-
-
-def _cel_identifier_names(condition: CelExpr) -> set[str]:
-    try:
-        return _names_from_ast(parse_cel(str(condition)))
-    except ParseError:
-        return set()
-
-
-def _synthetic_names_from_conditions(*condition_groups: tuple[CelExpr, ...] | list[CelExpr]) -> list[str]:
-    names: set[str] = set()
-    for group in condition_groups:
-        for condition in group:
-            for match in _cel_identifier_names(condition):
-                if match not in _NON_BINDING_NAMES:
-                    names.add(match)
-    return sorted(names)
+def _raise_unknown_concept_if_present(
+    exc: ValueError,
+    *,
+    source_artifact: str | None,
+) -> None:
+    message = str(exc)
+    prefix = "Undefined concept: '"
+    if prefix not in message:
+        return
+    concept_name = message.split(prefix, 1)[1].split("'", 1)[0]
+    raise UnknownConceptInCEL(concept_name, source_artifact=source_artifact) from exc
 
 
 def _retry_with_standard_bindings(
     solver: ConditionSolver,
-    *,
-    binding_conditions: tuple[CelExpr, ...] | list[CelExpr],
-    claim_conditions: tuple[CelExpr, ...] | list[CelExpr],
-    source_artifact: str | None,
 ) -> ConditionSolver:
     try:
         base_registry = getattr(solver, "_registry")
@@ -200,13 +139,6 @@ def _retry_with_standard_bindings(
         return solver
 
     augmented_registry = with_standard_synthetic_bindings(base_registry)
-    extra_names = [
-        name
-        for name in _synthetic_names_from_conditions(binding_conditions, claim_conditions)
-        if name not in augmented_registry
-    ]
-    if extra_names:
-        raise UnknownConceptInCEL(extra_names[0], source_artifact=source_artifact)
     if augmented_registry == dict(base_registry):
         return solver
     return ConditionSolver(augmented_registry)
@@ -228,8 +160,8 @@ def is_claim_node_active(
     ):
         return False
 
-    claim_conditions = _claim_conditions(claim)
-    if not claim_conditions:
+    claim_conditions = claim.checked_conditions
+    if claim_conditions is None or not claim_conditions.conditions:
         return True
 
     binding_conditions = _binding_conditions(environment)
@@ -245,29 +177,36 @@ def is_claim_node_active(
                 check_condition_ir(str(condition), registry)
                 for condition in binding_conditions
             ),
-            checked_condition_set(
-                check_condition_ir(str(condition), registry)
-                for condition in claim_conditions
-            ),
+            claim_conditions,
         )
+    except ValueError as exc:
+        _raise_unknown_concept_if_present(
+            exc,
+            source_artifact=_claim_node_source_artifact(claim),
+        )
+        raise
     except Z3TranslationError:
         retry_solver = _retry_with_standard_bindings(
             solver,
-            binding_conditions=binding_conditions,
-            claim_conditions=claim_conditions,
-            source_artifact=_claim_node_source_artifact(claim),
         )
         retry_registry = getattr(retry_solver, "_registry")
-        return not retry_solver.are_disjoint(
-            checked_condition_set(
-                check_condition_ir(str(condition), retry_registry)
-                for condition in binding_conditions
-            ),
-            checked_condition_set(
-                check_condition_ir(str(condition), retry_registry)
-                for condition in claim_conditions
-            ),
-        )
+        try:
+            return not retry_solver.are_disjoint(
+                checked_condition_set(
+                    check_condition_ir(str(condition), retry_registry)
+                    for condition in binding_conditions
+                ),
+                checked_condition_set(
+                    check_condition_ir(source, retry_registry)
+                    for source in claim_conditions.sources
+                ),
+            )
+        except ValueError as exc:
+            _raise_unknown_concept_if_present(
+                exc,
+                source_artifact=_claim_node_source_artifact(claim),
+            )
+            raise
 
 
 def is_active_claim_active(
@@ -308,24 +247,28 @@ def is_active_claim_active(
                 for condition in claim_conditions
             ),
         )
+    except ValueError as exc:
+        _raise_unknown_concept_if_present(exc, source_artifact=claim.artifact_id)
+        raise
     except Z3TranslationError:
         retry_solver = _retry_with_standard_bindings(
             solver,
-            binding_conditions=binding_conditions,
-            claim_conditions=claim_conditions,
-            source_artifact=claim.artifact_id,
         )
         retry_registry = getattr(retry_solver, "_registry")
-        return not retry_solver.are_disjoint(
-            checked_condition_set(
-                check_condition_ir(str(condition), retry_registry)
-                for condition in binding_conditions
-            ),
-            checked_condition_set(
-                check_condition_ir(str(condition), retry_registry)
-                for condition in claim_conditions
-            ),
-        )
+        try:
+            return not retry_solver.are_disjoint(
+                checked_condition_set(
+                    check_condition_ir(str(condition), retry_registry)
+                    for condition in binding_conditions
+                ),
+                checked_condition_set(
+                    check_condition_ir(str(condition), retry_registry)
+                    for condition in claim_conditions
+                ),
+            )
+        except ValueError as exc:
+            _raise_unknown_concept_if_present(exc, source_artifact=claim.artifact_id)
+            raise
 
 
 def activate_compiled_world_graph(
