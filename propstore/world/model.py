@@ -37,6 +37,7 @@ from propstore.core.row_types import (
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 from propstore.sidecar.sqlite import connect_sidecar_readonly
+from propstore.core.conditions.solver import ConditionSolver
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -54,7 +55,6 @@ from propstore.world.types import (
     ValueResult,
     ValueStatus,
 )
-from propstore.z3_conditions import Z3ConditionSolver
 
 
 _KIND_TYPE_MAP = {
@@ -252,7 +252,7 @@ class WorldQuery(WorldStore):
         self._repo = repo
         self._knowledge_root = knowledge_root
         self._grounding_bundle_cache = None
-        self._solver: Z3ConditionSolver | None = None
+        self._solver: ConditionSolver | None = None
         self._registry: dict[str, ConceptInfo] | None = None
         self._lifting_system: LiftingSystem | None = None
         self._lifting_system_loaded = False
@@ -335,11 +335,11 @@ class WorldQuery(WorldStore):
 
     # ── Lazy Z3 setup ────────────────────────────────────────────────
 
-    def _ensure_solver(self) -> Z3ConditionSolver:
+    def _ensure_solver(self) -> ConditionSolver:
         if self._solver is not None:
             return self._solver
         registry = self._build_registry()
-        self._solver = Z3ConditionSolver(registry)
+        self._solver = ConditionSolver(registry)
         return self._solver
 
     def _build_registry(self) -> dict[str, ConceptInfo]:
@@ -365,7 +365,7 @@ class WorldQuery(WorldStore):
         self._registry = registry
         return registry
 
-    def condition_solver(self) -> Z3ConditionSolver:
+    def condition_solver(self) -> ConditionSolver:
         return self._ensure_solver()
 
     def _load_lifting_system(self) -> LiftingSystem | None:
