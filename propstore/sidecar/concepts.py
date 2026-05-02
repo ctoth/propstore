@@ -54,7 +54,7 @@ def populate_concept_sidecar_rows(
         conn.execute(
             "INSERT INTO parameterization "
             "(output_concept_id, concept_ids, formula, sympy, exactness, "
-            "conditions_cel) VALUES (?, ?, ?, ?, ?, ?)",
+            "conditions_cel, conditions_ir) VALUES (?, ?, ?, ?, ?, ?, ?)",
             row.values,
         )
 

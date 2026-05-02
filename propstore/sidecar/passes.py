@@ -19,6 +19,12 @@ from propstore.context_lifting import IstProposition, LiftedAssertion, LiftingDe
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.compiler.ir import ClaimCompilationBundle
+from propstore.core.conditions import (
+    check_condition_ir,
+    checked_condition_set,
+    checked_condition_set_to_json,
+)
+from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
 from propstore.families.contexts.stages import (
@@ -248,6 +254,7 @@ def compile_context_lifting_materialization_rows(
 def compile_concept_sidecar_rows(
     concepts: list[LoadedConcept],
     form_registry: dict[str, FormDefinition],
+    cel_registry: dict[str, ConceptInfo],
 ) -> ConceptSidecarRows:
     form_rows: list[FormInsertRow] = []
     concept_rows: list[ConceptInsertRow] = []
@@ -278,6 +285,8 @@ def compile_concept_sidecar_rows(
                 )
             )
         )
+
+    condition_registry = with_standard_synthetic_bindings(cel_registry)
 
     for seq, concept in enumerate(concepts, 1):
         record = concept.record
@@ -373,6 +382,19 @@ def compile_concept_sidecar_rows(
                 if parameterization.conditions
                 else None
             )
+            conditions_ir = (
+                json.dumps(
+                    checked_condition_set_to_json(
+                        checked_condition_set(
+                            check_condition_ir(condition, condition_registry)
+                            for condition in parameterization.conditions
+                        )
+                    ),
+                    sort_keys=True,
+                )
+                if parameterization.conditions
+                else None
+            )
             parameterization_rows.append(
                 ConceptParameterizationInsertRow(
                     (
@@ -382,6 +404,7 @@ def compile_concept_sidecar_rows(
                         parameterization.sympy,
                         parameterization.exactness,
                         conditions_json,
+                        conditions_ir,
                     )
                 )
             )
@@ -1095,6 +1118,7 @@ def compile_sidecar_build_plan(
         concept_rows=compile_concept_sidecar_rows(
             repository_checked_bundle.concepts,
             repository_checked_bundle.form_registry,
+            dict(repository_checked_bundle.compilation_context.cel_registry),
         ),
         context_rows=compile_context_sidecar_rows(
             repository_checked_bundle.context_files,
