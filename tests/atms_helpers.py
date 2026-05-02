@@ -72,6 +72,39 @@ def condition_ir_json(value: object, registry: Mapping[str, ConceptInfo]) -> str
     )
 
 
+def condition_registry_for_rows(
+    rows: Iterable[Mapping[str, object]],
+) -> dict[str, ConceptInfo]:
+    sources: list[str] = []
+    for row in rows:
+        sources.extend(condition_sources_from_json(row.get("conditions_cel")))
+    return condition_registry_for_sources(sources)
+
+
+def row_with_condition_ir(
+    row: Mapping[str, object],
+    registry: Mapping[str, ConceptInfo],
+) -> dict:
+    normalized = dict(row)
+    if normalized.get("conditions_cel") and not normalized.get("conditions_ir"):
+        normalized["conditions_ir"] = condition_ir_json(
+            normalized.get("conditions_cel"),
+            registry,
+        )
+    return normalized
+
+
+def rows_with_condition_ir(
+    rows: Iterable[Mapping[str, object]],
+    registry: Mapping[str, ConceptInfo],
+) -> list[dict]:
+    return [row_with_condition_ir(row, registry) for row in rows]
+
+
+def condition_solver_for_rows(rows: Iterable[Mapping[str, object]]) -> ConditionSolver:
+    return ConditionSolver(condition_registry_for_rows(rows))
+
+
 def condition_sources(value: object) -> tuple[str, ...]:
     if value is None:
         return ()
