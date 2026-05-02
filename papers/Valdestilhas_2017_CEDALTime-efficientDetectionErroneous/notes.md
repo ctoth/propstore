@@ -220,3 +220,22 @@ CEDAL is directly relevant to propstore's identity and concept-merge discipline.
 - Nentwig et al. 2014, "LinkLion: A link repository for the web of data" for the repository used in the evaluation. *(p.8, reference [14])*
 - Tarjan 1975, "Efficiency of a good but not linear set union algorithm" for the union-find basis. *(p.8, reference [21])*
 - Zaveri et al. 2015, "Quality assessment for linked data: A survey" for quality dimensions used to frame error types. *(p.8, reference [26])*
+
+## Collection Cross-References
+
+### Already in Collection
+- [Not Quite the Same: Identity Constraints for the Web of Linked Data](../Melo_2013_NotQuiteSameIdentity/notes.md) — cited as a prior constraint-based erroneous-identity-link method; CEDAL differs by preserving link provenance and scaling through graph partitioning rather than solving a repair optimization.
+
+### New Leads (Not Yet in Collection)
+- Nentwig et al. (2014) — "LinkLion: A link repository for the web of data" — needed for the evaluated repository, linkset provenance model, and reproducibility of the reported 19.2M-link run.
+- Zaveri et al. (2015) — "Quality assessment for linked data: A survey" — quality-dimension framework behind the paper's semantic accuracy and consistency/conciseness error typing.
+- Tarjan (1975) — "Efficiency of a good but not linear set union algorithm" — algorithmic basis for the union-find partitioning used by CEDAL.
+
+### Cited By (in Collection)
+- [The sameAs Problem: A Survey on Identity Management in the Web of Data](../Raad_2019_SameAsProblemSurvey/notes.md) — cites CEDAL as a combined terminological/structural erroneous-link detection method for the sameAs problem.
+- [Detecting Erroneous Identity Links on the Web Using Network Metrics](../Raad_2018_DetectingErroneousIdentityLinks/notes.md) — cites CEDAL as a closely related scalable erroneous-identity-link detection baseline.
+
+### Conceptual Links (not citation-based)
+- [sameAs.cc: The Closure of 500M owl:sameAs Statements](../Beek_2018_SameAs.ccClosure500MOwl/notes.md) — Strong: sameAs.cc computes massive `owl:sameAs` closure with union-find and exposes closure-propagated identity errors; CEDAL supplies a complementary same-dataset duplicate check for detecting those errors without accepting closure as clean identity.
+- [When owl:sameAs Isn't the Same: An Analysis of Identity in Linked Data](../Halpin_2010_OwlSameAsIsntSame/notes.md) — Moderate: Halpin et al. argue many `owl:sameAs` assertions are semantically too strong; CEDAL gives a graph/provenance method for surfacing one concrete failure mode of that overcommitment.
+- [Detecting Erroneous Identity Links on the Web Using Network Metrics](../Raad_2018_DetectingErroneousIdentityLinks/notes.md) — Strong: Raad et al. score suspicious links from graph topology and community structure, while CEDAL flags same-dataset contradictions from partition structure; both are scalable, non-reasoner approaches to erroneous identity detection.
