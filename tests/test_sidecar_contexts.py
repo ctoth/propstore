@@ -10,11 +10,21 @@ from propstore.context_lifting import (
 )
 from propstore.core.assertions import ContextReference
 from propstore.sidecar.passes import compile_context_lifting_materialization_rows
-from propstore.z3_conditions import SolverSat, SolverUnknown, SolverUnknownReason
+from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.solver import SolverSat, SolverUnknown, SolverUnknownReason
 
 
 class _ConditionSolver:
     def __init__(self, result):
+        self._registry = {
+            "license": ConceptInfo(
+                id="license",
+                canonical_name="license",
+                kind=KindType.CATEGORY,
+                category_values=["bridge", "open"],
+                category_extensible=True,
+            )
+        }
         self.result = result
 
     def is_condition_satisfied_result(self, condition, bindings):
