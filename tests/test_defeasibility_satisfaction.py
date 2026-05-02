@@ -125,13 +125,15 @@ def test_exception_lifts_iff_lifting_rule_licenses_target_context() -> None:
 
 def test_solver_unknown_is_not_treated_as_an_exception() -> None:
     class UnknownSolver:
-        _registry = {
-            "age": ConceptInfo(
-                id="concept:age",
-                canonical_name="age",
-                kind=KindType.QUANTITY,
-            )
-        }
+        @property
+        def registry(self):
+            return {
+                "age": ConceptInfo(
+                    id="concept:age",
+                    canonical_name="age",
+                    kind=KindType.QUANTITY,
+                )
+            }
 
         def is_condition_satisfied_result(self, condition, bindings):
             return SolverUnknown(SolverUnknownReason.TIMEOUT, "test timeout")

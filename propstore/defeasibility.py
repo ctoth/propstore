@@ -8,17 +8,19 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import Protocol, TypeAlias
 
-from cel_parser import (
-    Call,
-    CreateList,
-    Expr,
-    Ident,
-    ParseError,
-    parse as parse_cel,
-)
 from propstore.cel_types import CelExpr, to_cel_expr
-from propstore.core.conditions import CheckedCondition
+from propstore.core.conditions import (
+    CheckedCondition,
+    ConditionBinary,
+    ConditionChoice,
+    ConditionIR,
+    ConditionLiteral,
+    ConditionMembership,
+    ConditionReference,
+    ConditionUnary,
+)
 from propstore.core.conditions.cel_frontend import check_condition_ir
+from propstore.core.conditions.registry import ConceptInfo
 from argumentation.aspic import Argument, CSAF, conc
 from argumentation.dung import ArgumentationFramework
 from propstore.provenance import (
@@ -63,6 +65,9 @@ class PatternSelectionStatus(StrEnum):
 
 
 class ExceptionPatternSolver(Protocol):
+    @property
+    def registry(self) -> Mapping[str, ConceptInfo]: ...
+
     def is_condition_satisfied_result(
         self,
         condition: CheckedCondition,
@@ -438,23 +443,22 @@ def _pattern_selects_use(
         return False
 
     bindings = use.binding_map()
-    names = _cel_names(pattern)
-    if names is None:
-        return PatternSelectionStatus.AUTHORING_UNBOUND
-    if not names <= set(bindings):
-        return PatternSelectionStatus.AUTHORING_UNBOUND
     if solver is None:
         return PatternSelectionStatus.INCOMPLETE_SOUND
-    try:
-        registry = getattr(solver, "_registry")
-    except AttributeError:
+    registry = getattr(solver, "registry", None)
+    if registry is None:
         return PatternSelectionStatus.INCOMPLETE_SOUND
 
     try:
-        result = solver.is_condition_satisfied_result(
-            check_condition_ir(str(pattern), registry),
-            bindings,
-        )
+        condition = check_condition_ir(str(pattern), registry)
+    except (ValueError, Z3TranslationError):
+        return PatternSelectionStatus.AUTHORING_UNBOUND
+    names = _condition_ir_names(condition.ir)
+    if not names <= set(bindings):
+        return PatternSelectionStatus.AUTHORING_UNBOUND
+
+    try:
+        result = solver.is_condition_satisfied_result(condition, bindings)
     except Z3TranslationError:
         return PatternSelectionStatus.AUTHORING_UNBOUND
     if isinstance(result, SolverSat):
@@ -466,33 +470,34 @@ def _pattern_selects_use(
     return PatternSelectionStatus.INCOMPLETE_SOUND
 
 
-def _cel_names(pattern: CelExpr) -> frozenset[str] | None:
-    try:
-        ast = parse_cel(str(pattern))
-    except ParseError:
-        return None
+def _condition_ir_names(condition: ConditionIR) -> frozenset[str]:
     names: set[str] = set()
-    _collect_cel_names(ast, names)
+    _collect_condition_ir_names(condition, names)
     return frozenset(names)
 
 
-def _collect_cel_names(node: Expr, names: set[str]) -> None:
-    """Walk an Expr tree and record every bare-identifier name."""
-    if isinstance(node, Ident):
-        if node.name:
-            names.add(node.name)
+def _collect_condition_ir_names(condition: ConditionIR, names: set[str]) -> None:
+    if isinstance(condition, ConditionReference):
+        names.add(condition.source_name)
         return
-    target = getattr(node, "target", None)
-    if isinstance(target, Expr):
-        _collect_cel_names(target, names)
-    args = getattr(node, "args", None)
-    if args:
-        for arg in args:
-            if isinstance(arg, Expr):
-                _collect_cel_names(arg, names)
-    if isinstance(node, CreateList):
-        for elem in node.elements:
-            _collect_cel_names(elem, names)
+    if isinstance(condition, ConditionLiteral):
+        return
+    if isinstance(condition, ConditionUnary):
+        _collect_condition_ir_names(condition.operand, names)
+        return
+    if isinstance(condition, ConditionBinary):
+        _collect_condition_ir_names(condition.left, names)
+        _collect_condition_ir_names(condition.right, names)
+        return
+    if isinstance(condition, ConditionMembership):
+        _collect_condition_ir_names(condition.item, names)
+        for element in condition.elements:
+            _collect_condition_ir_names(element, names)
+        return
+    if isinstance(condition, ConditionChoice):
+        _collect_condition_ir_names(condition.condition, names)
+        _collect_condition_ir_names(condition.when_true, names)
+        _collect_condition_ir_names(condition.when_false, names)
 
 
 def _compose_support_quality(left: SupportQuality, right: SupportQuality) -> SupportQuality:
