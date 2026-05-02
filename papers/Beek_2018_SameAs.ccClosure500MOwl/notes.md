@@ -216,6 +216,7 @@ This paper is directly relevant to propstore's concept layer and vocabulary reco
 ### Conceptual Links (not citation-based)
 - [[Raad_2019_SameAsProblemSurvey]] — Strong: same research group, directly builds on this dataset. Raad 2019 categorizes the identity errors that this paper's closure reveals (e.g., the 177K-member identity set conflating Einstein with countries). Together they form a problem-statement + solution pair for identity quality on the Semantic Web.
 - [[Melo_2013_NotQuiteSameIdentity]] — Strong: de Melo's constraint-based cleaning method (minimum multicut with LP relaxation) directly addresses the erroneous identity links that sameAs.cc closure reveals. The unique name assumption constraints de Melo formalizes would detect violations in the largest identity sets here.
+- [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md) — Strong: sameAs.cc computes large-scale `owl:sameAs` closure with union-find, while CEDAL uses graph partitioning to detect same-dataset duplicate resources before treating the resulting closure as clean identity.
 - [Is my:sameAs the same as your:sameAs? Lenticular Lenses for Context-Specific Identity](../Idrissou_2017_LenticularLensesContextSpecificIdentity/notes.md) — Strong: sameAs.cc shows why naive transitive identity closure is dangerous at Web scale, while Lenticular Lenses show how to keep equality contextual and provenance-bearing before such closure is used.
 
 ## Related Work Worth Reading
