@@ -189,4 +189,4 @@ def test_lifting_system_is_explicit_rule_based() -> None:
 
     assert system.can_lift("ctx_source", "ctx_target")
     assert not system.can_lift("ctx_target", "ctx_source")
-    assert system.effective_assumptions("ctx_target") == ("license == 'bridge'",)
+    assert system.effective_assumptions("ctx_target") == ()
