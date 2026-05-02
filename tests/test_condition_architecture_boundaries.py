@@ -7,6 +7,10 @@ from pathlib import Path
 PRODUCTION_ROOT = Path("propstore")
 CONDITION_FRONTEND = Path("propstore/core/conditions/cel_frontend.py")
 CONDITION_CHECKED = Path("propstore/core/conditions/checked.py")
+CONDITION_Z3_IMPORTERS = {
+    Path("propstore/core/conditions/solver.py"),
+    Path("propstore/core/conditions/z3_backend.py"),
+}
 
 
 def _production_python_files() -> tuple[Path, ...]:
@@ -41,6 +45,21 @@ def test_no_production_imports_deleted_z3_conditions_surface() -> None:
             or imported.startswith("propstore.z3_conditions.")
         )
         for path in _production_python_files()
+    }
+    offenders = {path: imports for path, imports in offenders.items() if imports}
+
+    assert offenders == {}
+
+
+def test_raw_z3_import_is_confined_to_condition_solver_boundary() -> None:
+    offenders = {
+        str(path): sorted(
+            imported
+            for imported in _imports(path)
+            if imported == "z3" or imported.startswith("z3.")
+        )
+        for path in _production_python_files()
+        if path not in CONDITION_Z3_IMPORTERS
     }
     offenders = {path: imports for path, imports in offenders.items() if imports}
 
