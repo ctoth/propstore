@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 import json
-from typing import Any
+from typing import Any, cast
 
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.claim_types import ClaimType, coerce_claim_type
@@ -124,14 +124,18 @@ def _condition_from_dict(data: Mapping[str, Any]) -> CheckedCondition:
     registry_fingerprint = data.get("registry_fingerprint")
     if not isinstance(registry_fingerprint, str) or not registry_fingerprint:
         raise ValueError("graph condition requires registry_fingerprint")
-    warnings = data.get("warnings") or ()
-    if not isinstance(warnings, list | tuple):
+    raw_warnings = data.get("warnings") or ()
+    if not isinstance(raw_warnings, list | tuple):
         raise ValueError("graph condition warnings must be a sequence")
+    warnings = tuple(
+        str(warning)
+        for warning in cast(tuple[object, ...] | list[object], raw_warnings)
+    )
     return CheckedCondition(
         source=source,
         ir=condition_ir_from_json(json.loads(encoded_ir)),
         registry_fingerprint=registry_fingerprint,
-        warnings=tuple(str(warning) for warning in warnings),
+        warnings=warnings,
         encoded_ir=encoded_ir,
     )
 
@@ -143,13 +147,13 @@ def _condition_set_from_dicts(
         return None
     if not isinstance(values, list | tuple):
         raise ValueError("graph claim conditions_ir must be a sequence")
-    conditions = tuple(
-        _condition_from_dict(item)
-        for item in values
-        if isinstance(item, Mapping)
-    )
-    if len(conditions) != len(values):
-        raise ValueError("graph claim conditions_ir entries must be mappings")
+    raw_values = cast(tuple[object, ...] | list[object], values)
+    conditions_list: list[CheckedCondition] = []
+    for item in raw_values:
+        if not isinstance(item, Mapping):
+            raise ValueError("graph claim conditions_ir entries must be mappings")
+        conditions_list.append(_condition_from_dict(cast(Mapping[str, Any], item)))
+    conditions = tuple(conditions_list)
     return CheckedConditionSet(
         conditions=conditions,
         registry_fingerprint=conditions[0].registry_fingerprint,
