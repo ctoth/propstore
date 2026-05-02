@@ -124,7 +124,12 @@ def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, Concep
                     ),
                 })
         registry[cid] = cdata
-    return registry, build_store_cel_registry(rows)
+    condition_solver = getattr(world, "condition_solver", None)
+    if callable(condition_solver):
+        cel_registry = dict(condition_solver().registry)
+    else:
+        cel_registry = build_store_cel_registry(rows)
+    return registry, cel_registry
 
 
 def _recomputed_conflicts(
