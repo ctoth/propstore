@@ -3,10 +3,11 @@ from __future__ import annotations
 from enum import StrEnum
 
 from quire.documents import DocumentStruct
+from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.solver import ConditionSolver
 from propstore.cel_types import CelExpr
 from propstore.provenance import Provenance
-from propstore.z3_conditions import Z3ConditionSolver
 
 
 class AllenRelation(StrEnum):
@@ -93,11 +94,15 @@ def description_temporal_relation(
 ) -> bool:
     """Evaluate an Allen relation between description-claim temporal anchors."""
 
-    solver = Z3ConditionSolver(_description_temporal_registry())
+    registry = _description_temporal_registry()
+    solver = ConditionSolver(registry)
     bindings = {
         "left_from": left.valid_from,
         "left_until": left.valid_until,
         "right_from": right.valid_from,
         "right_until": right.valid_until,
     }
-    return solver.is_condition_satisfied(_RELATION_EXPRESSIONS[relation], bindings)
+    return solver.is_condition_satisfied(
+        check_condition_ir(str(_RELATION_EXPRESSIONS[relation]), registry),
+        bindings,
+    )
