@@ -1484,13 +1484,13 @@ class TestParameterZ3FailureHandling:
     def test_z3_partition_error_raises(self):
         """Z3 partition failure should raise; there is no pairwise fallback."""
         from unittest.mock import patch
-        from propstore.z3_conditions import Z3TranslationError, Z3ConditionSolver
+        from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
         from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 
         cel_registry = {"freq": ConceptInfo(
             id="freq", canonical_name="freq", kind=KindType.QUANTITY,
         )}
-        solver = Z3ConditionSolver(cel_registry)
+        solver = ConditionSolver(cel_registry)
 
         # 3 claims triggers the Z3 partition path
         cf = make_claim_file([
@@ -1510,13 +1510,13 @@ class TestParameterZ3FailureHandling:
     def test_z3_partition_unexpected_error_propagates(self):
         """RuntimeError in partition should propagate."""
         from unittest.mock import patch
-        from propstore.z3_conditions import Z3ConditionSolver
+        from propstore.core.conditions.solver import ConditionSolver
         from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 
         cel_registry = {"freq": ConceptInfo(
             id="freq", canonical_name="freq", kind=KindType.QUANTITY,
         )}
-        solver = Z3ConditionSolver(cel_registry)
+        solver = ConditionSolver(cel_registry)
 
         cf = make_claim_file([
             {"id": "p1", "type": "parameter", "output_concept": "freq", "body": "100", "conditions": ["freq > 50"]},
@@ -1535,13 +1535,13 @@ class TestParameterZ3FailureHandling:
     def test_z3_disjoint_unexpected_error_propagates(self):
         """RuntimeError in are_disjoint should propagate, not be swallowed."""
         from unittest.mock import patch
-        from propstore.z3_conditions import Z3ConditionSolver
+        from propstore.core.conditions.solver import ConditionSolver
         from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 
         cel_registry = {"freq": ConceptInfo(
             id="freq", canonical_name="freq", kind=KindType.QUANTITY,
         )}
-        solver = Z3ConditionSolver(cel_registry)
+        solver = ConditionSolver(cel_registry)
 
         cf = make_claim_file([
             {"id": "p1", "type": "parameter", "output_concept": "freq", "body": "100", "conditions": ["freq > 50"]},
