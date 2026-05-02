@@ -58,5 +58,8 @@ def test_world_query_grounding_bundle_uses_repo_knowledge_root_and_caches(tmp_pa
     finally:
         wm.close()
 
-    assert first == GroundedRulesBundle.empty()
+    assert first.source_rules == GroundedRulesBundle.empty().source_rules
+    assert first.source_facts == GroundedRulesBundle.empty().source_facts
+    assert first.sections == GroundedRulesBundle.empty().sections
+    assert first.grounding_inspection is not None
     assert first is second
