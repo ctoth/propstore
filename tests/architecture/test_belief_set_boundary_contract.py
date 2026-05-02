@@ -19,7 +19,11 @@ def _module_name(path: Path) -> str:
 
 
 def _imports_belief_set(path: Path) -> bool:
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return False
+    tree = ast.parse(text, filename=str(path))
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             if any(alias.name == "belief_set" or alias.name.startswith("belief_set.") for alias in node.names):
@@ -34,7 +38,7 @@ def _production_python_files(root: Path = Path("propstore")) -> list[Path]:
     return [
         path
         for path in root.rglob("*.py")
-        if "__pycache__" not in path.parts
+        if "__pycache__" not in path.parts and path.exists()
     ]
 
 
