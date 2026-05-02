@@ -27,10 +27,12 @@ from propstore.core.conditions import (
     CheckedCondition,
     CheckedConditionSet,
     check_condition_ir,
+    checked_condition_set,
     checked_condition_set_from_json,
     checked_condition_set_to_json,
 )
 from propstore.core.conditions.registry import ConceptInfo
+from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
 from propstore.core.anytime import EnumerationExceeded
 from propstore.core.environment import WorldStore, MicropublicationCatalogStore
 from propstore.core.graph_build import build_compiled_world_graph
@@ -1769,7 +1771,15 @@ class ATMSEngine:
             )
         except ValueError:
             return False
-        return assumption.encoded_ir == condition.encoded_ir
+        if assumption.encoded_ir == condition.encoded_ir:
+            return True
+        try:
+            return ConditionSolver(self._runtime.condition_registry).are_equivalent(
+                checked_condition_set([condition]),
+                checked_condition_set([assumption]),
+            )
+        except (ValueError, Z3TranslationError):
+            return False
 
     def _add_justification(
         self,
