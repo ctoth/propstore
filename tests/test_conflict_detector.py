@@ -1487,9 +1487,18 @@ class TestParameterZ3FailureHandling:
         from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
         from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 
-        cel_registry = {"freq": ConceptInfo(
-            id="freq", canonical_name="freq", kind=KindType.QUANTITY,
-        )}
+        cel_registry = {
+            "freq": ConceptInfo(
+                id="freq", canonical_name="freq", kind=KindType.QUANTITY,
+            ),
+            "source": ConceptInfo(
+                id="source",
+                canonical_name="source",
+                kind=KindType.CATEGORY,
+                category_values=["test_paper"],
+                category_extensible=False,
+            ),
+        }
         solver = ConditionSolver(cel_registry)
 
         # 3 claims triggers the Z3 partition path
@@ -1513,9 +1522,18 @@ class TestParameterZ3FailureHandling:
         from propstore.core.conditions.solver import ConditionSolver
         from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 
-        cel_registry = {"freq": ConceptInfo(
-            id="freq", canonical_name="freq", kind=KindType.QUANTITY,
-        )}
+        cel_registry = {
+            "freq": ConceptInfo(
+                id="freq", canonical_name="freq", kind=KindType.QUANTITY,
+            ),
+            "source": ConceptInfo(
+                id="source",
+                canonical_name="source",
+                kind=KindType.CATEGORY,
+                category_values=["test_paper"],
+                category_extensible=False,
+            ),
+        }
         solver = ConditionSolver(cel_registry)
 
         cf = make_claim_file([
@@ -1538,9 +1556,18 @@ class TestParameterZ3FailureHandling:
         from propstore.core.conditions.solver import ConditionSolver
         from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 
-        cel_registry = {"freq": ConceptInfo(
-            id="freq", canonical_name="freq", kind=KindType.QUANTITY,
-        )}
+        cel_registry = {
+            "freq": ConceptInfo(
+                id="freq", canonical_name="freq", kind=KindType.QUANTITY,
+            ),
+            "source": ConceptInfo(
+                id="source",
+                canonical_name="source",
+                kind=KindType.CATEGORY,
+                category_values=["test_paper"],
+                category_extensible=False,
+            ),
+        }
         solver = ConditionSolver(cel_registry)
 
         cf = make_claim_file([
