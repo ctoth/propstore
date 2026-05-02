@@ -712,7 +712,7 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/argumentation.git?rev=269852ab4d7d5a0b5e084ea3b17a48ad913ab70d#269852ab4d7d5a0b5e084ea3b17a48ad913ab70d" }
+source = { git = "https://github.com/ctoth/argumentation.git?rev=9320e00ebdfe24ae9cb23f50947bd4e1544cc863#9320e00ebdfe24ae9cb23f50947bd4e1544cc863" }
 
 [[package]]
 name = "formal-belief-set"
@@ -2060,7 +2060,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.3.3" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
-    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git?rev=269852ab4d7d5a0b5e084ea3b17a48ad913ab70d" },
+    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git?rev=9320e00ebdfe24ae9cb23f50947bd4e1544cc863" },
     { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=e5b11b8265dc688807a68aec3bc2f3bd9d537cc4" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray.git?rev=a06da9c06a8c20262edec56f8a1f55dc1901781d" },

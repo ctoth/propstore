@@ -38,7 +38,7 @@ pks = "propstore.cli:cli"
 
 [tool.uv.sources]
 cel-parser = { git = "https://github.com/ctoth/cel-parser.git", rev = "96fc4808ef78257ea03549e6298629a9583865c8" }
-formal-argumentation = { git = "https://github.com/ctoth/argumentation.git", rev = "269852ab4d7d5a0b5e084ea3b17a48ad913ab70d" }
+formal-argumentation = { git = "https://github.com/ctoth/argumentation.git", rev = "9320e00ebdfe24ae9cb23f50947bd4e1544cc863" }
 gunray = { git = "https://github.com/ctoth/gunray.git", rev = "a06da9c06a8c20262edec56f8a1f55dc1901781d" }
 
 [build-system]
