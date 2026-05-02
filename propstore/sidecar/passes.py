@@ -15,7 +15,7 @@ from propstore.claims import (
     claim_file_filename,
     claim_file_stage,
 )
-from propstore.context_lifting import IstProposition, LiftedAssertion
+from propstore.context_lifting import IstProposition, LiftedAssertion, LiftingDecision
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.compiler.ir import ClaimCompilationBundle
@@ -189,10 +189,14 @@ def compile_context_sidecar_rows(
 
     materialization_rows = ()
     if authored_ist_assertions:
+        lifting_system = loaded_contexts_to_lifting_system(contexts)
+        decisions = tuple(
+            decision
+            for assertion in authored_ist_assertions
+            for decision in lifting_system.lift_decisions_for(assertion)
+        )
         materialization_rows = compile_context_lifting_materialization_rows(
-            loaded_contexts_to_lifting_system(contexts).materialize_lifted_assertions(
-                tuple(authored_ist_assertions)
-            )
+            decisions
         )
 
     return ContextSidecarRows(
@@ -204,10 +208,27 @@ def compile_context_sidecar_rows(
 
 
 def compile_context_lifting_materialization_rows(
-    materializations: Sequence[LiftedAssertion],
+    materializations: Sequence[LiftedAssertion | LiftingDecision],
 ) -> tuple[ContextLiftingMaterializationInsertRow, ...]:
     rows: list[ContextLiftingMaterializationInsertRow] = []
     for materialization in materializations:
+        if isinstance(materialization, LiftingDecision):
+            provenance = materialization.provenance.to_payload()
+            exception_id = materialization.provenance.exception_id
+            rows.append(
+                ContextLiftingMaterializationInsertRow(
+                    (
+                        materialization.rule_id,
+                        str(materialization.source_context.id),
+                        str(materialization.target_context.id),
+                        materialization.proposition_id,
+                        materialization.status.value,
+                        exception_id,
+                        json.dumps(provenance, sort_keys=True),
+                    )
+                )
+            )
+            continue
         rows.append(
             ContextLiftingMaterializationInsertRow(
                 (

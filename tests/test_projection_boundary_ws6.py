@@ -57,7 +57,10 @@ def test_aspic_projection_arguments_expose_typed_source_projection_records() -> 
 
     assert isinstance(projected.projection, ProjectionAtom)
     assert projected.projection.backend == "aspic"
-    assert projected.projection.backend_atom == GroundAtom("claim-a")
+    assert projected.projection.backend_atom == GroundAtom(
+        "ist",
+        ("propstore:context:root", "claim-a"),
+    )
     assert projected.projection.source_assertion_ids == (source_id,)
     assert projected.projection.provenance is not None
     assert projected.projection.provenance.backend == "aspic"

@@ -15,6 +15,7 @@ def _production_files() -> list[Path]:
         path
         for path in PROPSTORE.rglob("*.py")
         if "__pycache__" not in path.parts
+        and not path.name.startswith("_ws_n2_violation_")
     )
 
 

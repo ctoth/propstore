@@ -96,17 +96,8 @@ def _make_rule_file(rules):
 
 
 def _make_grounded_bundle(rules=(), *, yes=None):
-    from types import MappingProxyType
-
-    def _freeze(section):
-        if section is None:
-            return MappingProxyType({})
-        return MappingProxyType(
-            {
-                predicate: frozenset(rows)
-                for predicate, rows in section.items()
-            }
-        )
+    from propstore.grounding.grounder import ground
+    from propstore.grounding.predicates import PredicateRegistry
 
     source_facts = tuple(
         GroundAtom(predicate, tuple(row))
@@ -114,21 +105,11 @@ def _make_grounded_bundle(rules=(), *, yes=None):
         for row in rows
     )
 
-    return GroundedRulesBundle(
-        source_rules=(
-            ()
-            if not rules
-            else (_make_rule_file(rules),)
-        ),
-        source_facts=source_facts,
-        sections=MappingProxyType(
-            {
-                "yes": _freeze(yes),
-                "no": MappingProxyType({}),
-                "undecided": MappingProxyType({}),
-                "unknown": MappingProxyType({}),
-            }
-        ),
+    return ground(
+        () if not rules else (_make_rule_file(rules),),
+        source_facts,
+        PredicateRegistry(()),
+        return_arguments=True,
     )
 
 
@@ -154,7 +135,10 @@ def test_ground_literals_do_not_collide_with_claim_id_namespace() -> None:
     )
 
     assert claim_literal is not ground_literal
-    assert claim_literal.atom.arguments == ()
+    assert claim_literal.atom == GroundAtom(
+        "ist",
+        ("propstore:context:root", "bird(tweety)"),
+    )
     assert ground_literal.atom.arguments == ("tweety",)
 
 

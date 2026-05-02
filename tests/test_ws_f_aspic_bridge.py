@@ -396,18 +396,17 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
             rules=(target, defeater),
         ),
     )
-    bundle = GroundedRulesBundle(
-        source_rules=(LoadedRuleFile.from_loaded_document(loaded),),
-        source_facts=(),
-        sections={
-            "yes": {
-                "bird": frozenset({("tweety",)}),
-                "exception": frozenset({("tweety",)}),
-            },
-            "no": {},
-            "undecided": {},
-            "unknown": {},
-        },
+    from propstore.grounding.grounder import ground
+    from propstore.grounding.predicates import PredicateRegistry
+
+    bundle = ground(
+        (LoadedRuleFile.from_loaded_document(loaded),),
+        (
+            GroundAtom("bird", ("tweety",)),
+            GroundAtom("exception", ("tweety",)),
+        ),
+        PredicateRegistry(()),
+        return_arguments=True,
     )
 
     _strict, defeasible, _literals = grounded_rules_to_rules(bundle, {})

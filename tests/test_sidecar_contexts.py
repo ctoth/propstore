@@ -42,13 +42,13 @@ def test_sidecar_materialization_rows_persist_decision_status_and_witness_refere
         context=ContextReference("ctx_source"),
         proposition_id="claim_alpha",
     )
-    materializations = _system("license == 'bridge'").materialize_lifted_assertions(
-        (assertion,),
+    decisions = _system("license == 'bridge'").lift_decisions_for(
+        assertion,
         solver=_ConditionSolver(SolverUnknown(SolverUnknownReason.TIMEOUT, "timeout")),
         bindings={"license": "bridge"},
     )
 
-    row = compile_context_lifting_materialization_rows(materializations)[0]
+    row = compile_context_lifting_materialization_rows(decisions)[0]
     values = row.values
     provenance = json.loads(values[6])
 
@@ -63,8 +63,8 @@ def test_sidecar_materialization_rows_are_recomputed_inspection_records() -> Non
         proposition_id="claim_alpha",
     )
     old_row = compile_context_lifting_materialization_rows(
-        _system("license == 'bridge'").materialize_lifted_assertions(
-            (assertion,),
+        _system("license == 'bridge'").lift_decisions_for(
+            assertion,
             solver=_ConditionSolver(
                 SolverUnknown(SolverUnknownReason.TIMEOUT, "timeout")
             ),
@@ -72,8 +72,8 @@ def test_sidecar_materialization_rows_are_recomputed_inspection_records() -> Non
         )
     )[0]
     new_row = compile_context_lifting_materialization_rows(
-        _system("license == 'open'").materialize_lifted_assertions(
-            (assertion,),
+        _system("license == 'open'").lift_decisions_for(
+            assertion,
             solver=_ConditionSolver(SolverSat()),
             bindings={"license": "open"},
         )

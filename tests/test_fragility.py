@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from types import MappingProxyType
 from unittest.mock import MagicMock
 
 import pytest
@@ -536,24 +535,20 @@ def _bundle(
     undecided: Mapping[str, frozenset[tuple]] | None = None,
     unknown: Mapping[str, frozenset[tuple]] | None = None,
 ):
-    from propstore.grounding.bundle import GroundedRulesBundle
+    from argumentation.aspic import GroundAtom
+    from propstore.grounding.grounder import ground
+    from propstore.grounding.predicates import PredicateRegistry
 
-    def _freeze(section: Mapping[str, frozenset[tuple]] | None):
-        if section is None:
-            return MappingProxyType({})
-        return MappingProxyType({key: frozenset(value) for key, value in section.items()})
-
-    return GroundedRulesBundle(
-        source_rules=tuple([_rule_file(rules)] if rules else []),
-        source_facts=(),
-        sections=MappingProxyType(
-            {
-                "yes": _freeze(yes),
-                "no": _freeze(no),
-                "undecided": _freeze(undecided),
-                "unknown": _freeze(unknown),
-            }
-        ),
+    source_facts = tuple(
+        GroundAtom(predicate, tuple(row))
+        for predicate, rows in (yes or {}).items()
+        for row in rows
+    )
+    return ground(
+        tuple([_rule_file(rules)] if rules else []),
+        source_facts,
+        PredicateRegistry(()),
+        return_arguments=True,
     )
 
 

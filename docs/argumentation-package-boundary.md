@@ -80,8 +80,8 @@ These propstore surfaces stay in propstore:
 - `propstore/core/analyzers.py`
 - `propstore/praf/` adapters, opinion/calibration helpers, provenance
   projection, and store-facing construction
-- `propstore/belief_set/` claim/context belief revision surfaces other than
-  AF-level revision
+- `propstore/support_revision/` operational support-incision adapters; formal
+  AGM and IC-merge kernels stay in the external `belief_set` package
 - `propstore/world/`
 - `propstore/worldline/`
 - `propstore/storage/`

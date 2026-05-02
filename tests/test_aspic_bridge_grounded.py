@@ -217,10 +217,14 @@ def _bundle(rules=(), yes=None):
         for row in rows
     )
 
-    return GroundedRulesBundle(
-        source_rules=tuple(loaded_files),
-        source_facts=source_facts,
-        sections=sections,
+    from propstore.grounding.grounder import ground
+    from propstore.grounding.predicates import PredicateRegistry
+
+    return ground(
+        tuple(loaded_files),
+        source_facts,
+        PredicateRegistry(()),
+        return_arguments=True,
     )
 
 

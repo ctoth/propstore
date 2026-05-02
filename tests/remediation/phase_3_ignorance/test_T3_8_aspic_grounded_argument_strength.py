@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from types import MappingProxyType
-
 from argumentation.aspic import GroundAtom
 from quire.documents import LoadedDocument
 
@@ -14,7 +12,8 @@ from propstore.families.documents.rules import (
     RulesFileDocument,
     TermDocument,
 )
-from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.grounder import ground
+from propstore.grounding.predicates import PredicateRegistry
 from propstore.rule_files import LoadedRuleFile
 
 
@@ -49,17 +48,11 @@ def test_grounded_argument_strength_not_zero() -> None:
             ),
         ),
     )
-    bundle = GroundedRulesBundle(
-        source_rules=(_rule_file(rule),),
-        source_facts=(GroundAtom("bird", ("tweety",)),),
-        sections=MappingProxyType(
-            {
-                "yes": MappingProxyType({"bird": frozenset({("tweety",)})}),
-                "no": MappingProxyType({}),
-                "undecided": MappingProxyType({}),
-                "unknown": MappingProxyType({}),
-            }
-        ),
+    bundle = ground(
+        (_rule_file(rule),),
+        (GroundAtom("bird", ("tweety",)),),
+        PredicateRegistry(()),
+        return_arguments=True,
     )
     csaf = build_bridge_csaf([], [], [], bundle=bundle)
 

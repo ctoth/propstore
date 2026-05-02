@@ -218,6 +218,13 @@ def _bounded_complete_extensions(csaf: CSAF) -> list[frozenset[str]]:
     )
 
 
+def _conclusion_claim_id(arg) -> str | None:
+    literal = conc(arg)
+    if literal.atom.predicate == "ist" and len(literal.atom.arguments) == 2:
+        return str(literal.atom.arguments[1])
+    return literal.atom.predicate
+
+
 # ── T1: claims_to_literals ─────────────────────────────────────────
 
 
@@ -857,9 +864,9 @@ class TestBuildBridgeCsaf:
         justified_claim_ids = set()
         for arg_id in grounded:
             arg = csaf.id_to_arg[arg_id]
-            c = conc(arg)
-            if c.atom.predicate in reported_claim_ids:
-                justified_claim_ids.add(c.atom.predicate)
+            claim_id = _conclusion_claim_id(arg)
+            if claim_id in reported_claim_ids:
+                justified_claim_ids.add(claim_id)
         assert reported_claim_ids <= justified_claim_ids, (
             f"Claims without attack not all justified: "
             f"missing {reported_claim_ids - justified_claim_ids}"
@@ -1089,9 +1096,9 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
-        assert "A" in justified_atoms, "Stronger claim A should be justified"
-        assert "B" not in justified_atoms, "Weaker claim B should be defeated"
+        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
+        assert "A" in justified_claims, "Stronger claim A should be justified"
+        assert "B" not in justified_claims, "Weaker claim B should be defeated"
 
     def test_strict_inference_not_undercut(self):
         """A strict justification cannot be undercut.
@@ -1121,9 +1128,9 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
+        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
         # derived should survive — strict rules can't be undercut
-        assert "derived" in justified_atoms, (
+        assert "derived" in justified_claims, (
             "Strict inference should not be undercut"
         )
 
@@ -1147,8 +1154,8 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
-        assert "axiom" in justified_atoms, (
+        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
+        assert "axiom" in justified_claims, (
             "Axiom premise should not be undermined"
         )
 
@@ -1190,15 +1197,15 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
-        assert "A" in justified_atoms, "A should survive (not attacked)"
+        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
+        assert "A" in justified_claims, "A should survive (not attacked)"
         # Under last-link with no rule ordering, the defeasible arg for B
         # and C's premise arg are in mutual defeat — grounded is conservative.
         # C's premise-only argument IS stronger (B < C in premise_order),
         # but the defeasible arg for B creates an incomparable attack.
         # Both B and C may be excluded from the grounded extension.
         # The key invariant: A is safe regardless.
-        assert "B" not in justified_atoms or "C" not in justified_atoms, (
+        assert "B" not in justified_claims or "C" not in justified_claims, (
             "B and C are contradictory — at most one can be justified"
         )
 
@@ -1217,9 +1224,9 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, [], bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
-        assert justified_atoms >= {"X", "Y", "Z"}, (
-            f"All claims should survive, got {justified_atoms}"
+        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
+        assert justified_claims >= {"X", "Y", "Z"}, (
+            f"All claims should survive, got {justified_claims}"
         )
 
 

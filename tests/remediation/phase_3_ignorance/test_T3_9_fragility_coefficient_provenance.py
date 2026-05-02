@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from itertools import chain
-from types import MappingProxyType
 
+from argumentation.aspic import GroundAtom
 from quire.documents import LoadedDocument
 
 from propstore.families.documents.rules import (
@@ -19,6 +19,8 @@ from propstore.fragility_contributors import (
     collect_grounded_rule_interventions,
 )
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.grounder import ground
+from propstore.grounding.predicates import PredicateRegistry
 from propstore.rule_files import LoadedRuleFile
 
 
@@ -56,22 +58,16 @@ def _rule_file(rules: tuple[RuleDocument, ...]) -> LoadedRuleFile:
 
 
 def _bundle(*, rules=(), yes=None) -> GroundedRulesBundle:
-    return GroundedRulesBundle(
-        source_rules=tuple([_rule_file(tuple(rules))] if rules else []),
-        source_facts=(),
-        sections=MappingProxyType(
-            {
-                "yes": MappingProxyType(
-                    {} if yes is None else {
-                        key: frozenset(value)
-                        for key, value in yes.items()
-                    }
-                ),
-                "no": MappingProxyType({}),
-                "undecided": MappingProxyType({}),
-                "unknown": MappingProxyType({}),
-            }
-        ),
+    source_facts = tuple(
+        GroundAtom(predicate, tuple(row))
+        for predicate, rows in (yes or {}).items()
+        for row in rows
+    )
+    return ground(
+        tuple([_rule_file(tuple(rules))] if rules else []),
+        source_facts,
+        PredicateRegistry(()),
+        return_arguments=True,
     )
 
 
