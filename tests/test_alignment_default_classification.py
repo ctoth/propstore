@@ -21,7 +21,7 @@ def _proposal(
     return payload
 
 
-def test_alignment_default_classifies_distinct_conflicting_proposals_as_attack() -> None:
+def test_alignment_default_keeps_distinct_conflicting_proposals_non_attacking() -> None:
     left = _proposal(
         handle="velocity",
         name="velocity",
@@ -33,7 +33,7 @@ def test_alignment_default_classifies_distinct_conflicting_proposals_as_attack()
         definition="A scalar magnitude without direction.",
     )
 
-    assert classify_relation(left, right) == "attack"
+    assert classify_relation(left, right) == "non_attack"
 
 
 def test_alignment_shared_reference_classifies_conflicting_definitions_as_attack() -> None:

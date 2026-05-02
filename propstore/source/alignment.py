@@ -97,7 +97,7 @@ def classify_relation(
         return "non_attack" if definitions_match else "attack"
     if left_entry.references == right_entry.references:
         return "non_attack" if definitions_match else "attack"
-    return "non_attack" if definitions_match else "attack"
+    return "non_attack"
 
 
 def build_alignment_artifact(
