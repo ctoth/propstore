@@ -17,6 +17,8 @@ from cel_parser import (
     parse as parse_cel,
 )
 from propstore.cel_types import CelExpr, to_cel_expr
+from propstore.core.conditions import CheckedCondition
+from propstore.core.conditions.cel_frontend import check_condition_ir
 from argumentation.aspic import Argument, CSAF, conc
 from argumentation.dung import ArgumentationFramework
 from propstore.provenance import (
@@ -63,7 +65,7 @@ class PatternSelectionStatus(StrEnum):
 class ExceptionPatternSolver(Protocol):
     def is_condition_satisfied_result(
         self,
-        condition: CelExpr,
+        condition: CheckedCondition,
         bindings: Mapping[str, CelScalar],
     ) -> SolverResult: ...
 
@@ -443,9 +445,16 @@ def _pattern_selects_use(
         return PatternSelectionStatus.AUTHORING_UNBOUND
     if solver is None:
         return PatternSelectionStatus.INCOMPLETE_SOUND
+    try:
+        registry = getattr(solver, "_registry")
+    except AttributeError:
+        return PatternSelectionStatus.INCOMPLETE_SOUND
 
     try:
-        result = solver.is_condition_satisfied_result(pattern, bindings)
+        result = solver.is_condition_satisfied_result(
+            check_condition_ir(str(pattern), registry),
+            bindings,
+        )
     except Z3TranslationError:
         return PatternSelectionStatus.AUTHORING_UNBOUND
     if isinstance(result, SolverSat):
