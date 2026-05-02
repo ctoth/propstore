@@ -24,8 +24,10 @@ from propstore.cel_checker import (
     KindType,
     check_cel_expression,
 )
+from propstore.core.conditions import checked_condition_set
+from propstore.core.conditions.cel_frontend import check_condition_ir
+from propstore.core.conditions.solver import ConditionSolver
 from propstore.form_utils import kind_type_from_form_name
-from propstore.z3_conditions import Z3ConditionSolver
 
 
 def _temporal_registry() -> dict[str, ConceptInfo]:
@@ -47,6 +49,12 @@ def _temporal_registry() -> dict[str, ConceptInfo]:
             kind=KindType.QUANTITY,
         ),
     }
+
+
+def _condition_set(sources, registry):
+    return checked_condition_set(
+        check_condition_ir(str(source), registry) for source in sources
+    )
 
 
 # ── KindType.TIMEPOINT registration ────────────────────────────────
@@ -110,22 +118,28 @@ class TestTemporalDisjointness:
     def test_non_overlapping_intervals_are_disjoint(self) -> None:
         """Two claims scoped to [100,200] and [300,400] cannot conflict."""
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         conditions_a = ["valid_from >= 100", "valid_until <= 200"]
         conditions_b = ["valid_from >= 300", "valid_until <= 400"]
 
-        assert solver.are_disjoint(conditions_a, conditions_b)
+        assert solver.are_disjoint(
+            _condition_set(conditions_a, registry),
+            _condition_set(conditions_b, registry),
+        )
 
     def test_overlapping_intervals_are_not_disjoint(self) -> None:
         """Two claims scoped to [100,300] and [200,400] CAN conflict."""
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         conditions_a = ["valid_from >= 100", "valid_until <= 300"]
         conditions_b = ["valid_from >= 200", "valid_until <= 400"]
 
-        assert not solver.are_disjoint(conditions_a, conditions_b)
+        assert not solver.are_disjoint(
+            _condition_set(conditions_a, registry),
+            _condition_set(conditions_b, registry),
+        )
 
     def test_adjacent_intervals_are_disjoint(self) -> None:
         """[100,200] and [200,300] — boundary-touching with <= and >= is disjoint
@@ -135,26 +149,32 @@ class TestTemporalDisjointness:
         valid_until are DIFFERENT variables, so the conjunction is satisfiable
         only if a single assignment works for all four variables."""
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         conditions_a = ["valid_from >= 100", "valid_until <= 200"]
         conditions_b = ["valid_from >= 200", "valid_until <= 300"]
 
         # These share the point valid_from=200, valid_until=200 in both sets
         # so they are NOT disjoint (the conjunction is SAT)
-        assert not solver.are_disjoint(conditions_a, conditions_b)
+        assert not solver.are_disjoint(
+            _condition_set(conditions_a, registry),
+            _condition_set(conditions_b, registry),
+        )
 
     def test_strictly_before_is_disjoint(self) -> None:
         """Allen's before(A, B): e1 < s2 — strictly separated intervals."""
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         # Claim A: valid_until < 200 (ends before 200)
         # Claim B: valid_from > 200 (starts after 200)
         conditions_a = ["valid_from >= 100", "valid_until < 200"]
         conditions_b = ["valid_from > 200", "valid_until <= 400"]
 
-        assert solver.are_disjoint(conditions_a, conditions_b)
+        assert solver.are_disjoint(
+            _condition_set(conditions_a, registry),
+            _condition_set(conditions_b, registry),
+        )
 
 
 # ── Z3 temporal conditions with bindings ───────────────────────────
@@ -165,35 +185,35 @@ class TestTemporalBindings:
 
     def test_timepoint_binding_satisfies_condition(self) -> None:
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         assert solver.is_condition_satisfied(
-            "valid_from >= 100",
+            check_condition_ir("valid_from >= 100", registry),
             {"valid_from": 150},
         )
 
     def test_timepoint_binding_violates_condition(self) -> None:
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         assert not solver.is_condition_satisfied(
-            "valid_from >= 100",
+            check_condition_ir("valid_from >= 100", registry),
             {"valid_from": 50},
         )
 
     def test_temporal_interval_binding(self) -> None:
         """A binding within a temporal interval satisfies both bounds."""
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         # Condition: valid_from >= 100 AND valid_until <= 200
         # Binding: valid_from=150, valid_until=180 — should satisfy
         assert solver.is_condition_satisfied(
-            "valid_from >= 100",
+            check_condition_ir("valid_from >= 100", registry),
             {"valid_from": 150, "valid_until": 180},
         )
         assert solver.is_condition_satisfied(
-            "valid_until <= 200",
+            check_condition_ir("valid_until <= 200", registry),
             {"valid_from": 150, "valid_until": 180},
         )
 
@@ -207,32 +227,41 @@ class TestMixedTemporalConditions:
     def test_temporal_and_quantity_disjoint(self) -> None:
         """Different time AND different temperature — disjoint."""
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         conditions_a = ["valid_from >= 100", "valid_until <= 200", "temperature > 300"]
         conditions_b = ["valid_from >= 300", "valid_until <= 400", "temperature < 200"]
 
-        assert solver.are_disjoint(conditions_a, conditions_b)
+        assert solver.are_disjoint(
+            _condition_set(conditions_a, registry),
+            _condition_set(conditions_b, registry),
+        )
 
     def test_temporal_disjoint_quantity_overlapping(self) -> None:
         """Different time, same temperature — disjoint (time alone suffices)."""
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         conditions_a = ["valid_from >= 100", "valid_until <= 200", "temperature > 300"]
         conditions_b = ["valid_from >= 300", "valid_until <= 400", "temperature > 300"]
 
-        assert solver.are_disjoint(conditions_a, conditions_b)
+        assert solver.are_disjoint(
+            _condition_set(conditions_a, registry),
+            _condition_set(conditions_b, registry),
+        )
 
     def test_temporal_overlapping_quantity_disjoint(self) -> None:
         """Same time, different temperature — disjoint (temperature suffices)."""
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         conditions_a = ["valid_from >= 100", "valid_until <= 300", "temperature > 400"]
         conditions_b = ["valid_from >= 200", "valid_until <= 400", "temperature < 200"]
 
-        assert solver.are_disjoint(conditions_a, conditions_b)
+        assert solver.are_disjoint(
+            _condition_set(conditions_a, registry),
+            _condition_set(conditions_b, registry),
+        )
 
 
 # ── valid_from <= valid_until automatic constraint ─────────────────
@@ -248,7 +277,7 @@ class TestTemporalOrderingConstraint:
         """Conditions requiring valid_from > valid_until should be UNSAT
         when the ordering constraint is active."""
         registry = _temporal_registry()
-        solver = Z3ConditionSolver(registry)
+        solver = ConditionSolver(registry)
 
         # These conditions require valid_from=300 and valid_until=100,
         # which violates valid_from <= valid_until
@@ -258,4 +287,7 @@ class TestTemporalOrderingConstraint:
         # should be internally inconsistent (UNSAT with anything)
         conditions_any = ["temperature > 0"]
 
-        assert solver.are_disjoint(conditions_bad, conditions_any)
+        assert solver.are_disjoint(
+            _condition_set(conditions_bad, registry),
+            _condition_set(conditions_any, registry),
+        )
