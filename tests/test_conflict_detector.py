@@ -1199,7 +1199,10 @@ class TestTransitiveContextSemantics:
             lifting_system=lifting_system,
         )
 
-        assert any(record.warning_class == ConflictClass.PHI_NODE for record in records)
+        assert any(
+            record.warning_class == ConflictClass.CONTEXT_PHI_NODE
+            for record in records
+        )
         lifted_conflicts = [
             record
             for record in records
@@ -1354,7 +1357,10 @@ class TestTransitiveContextSemantics:
         )
 
         assert all(record.warning_class != ConflictClass.CONFLICT for record in records)
-        assert any(record.warning_class == ConflictClass.PHI_NODE for record in records)
+        assert any(
+            record.warning_class == ConflictClass.CONTEXT_PHI_NODE
+            for record in records
+        )
 
 
 # ── Exception-handling tests (Group 2) ──────────────────────────────
