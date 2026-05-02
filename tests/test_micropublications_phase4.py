@@ -217,7 +217,7 @@ def test_micropub_cli_show_bundle_and_lift(tmp_path: Path) -> None:
         ],
     )
     assert lift_result.exit_code == 0, lift_result.output
-    assert "liftable" in lift_result.output
+    assert "lifting decisions" in lift_result.output
 
 
 def test_promoted_micropub_builds_as_atms_node(tmp_path: Path) -> None:
