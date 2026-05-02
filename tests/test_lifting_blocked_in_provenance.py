@@ -51,9 +51,9 @@ def test_ws_j_worldline_dependencies_include_blocked_lifting_exception() -> None
 
     class _Store:
         def __init__(self) -> None:
-            from propstore.z3_conditions import Z3ConditionSolver
+            from propstore.core.conditions.solver import ConditionSolver
 
-            self._solver = Z3ConditionSolver({})
+            self._solver = ConditionSolver({})
             self._claims = {
                 "claim_alpha": {
                     "id": "claim_alpha",
