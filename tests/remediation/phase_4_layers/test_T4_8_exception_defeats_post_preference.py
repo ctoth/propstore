@@ -65,6 +65,13 @@ def _csaf_with_ckr_exception():
     return csaf, result
 
 
+def _conclusion_claim_id(arg) -> str:
+    literal = conc(arg)
+    if literal.atom.predicate == "ist" and len(literal.atom.arguments) == 2:
+        return str(literal.atom.arguments[1])
+    return literal.atom.predicate
+
+
 def test_ckr_exception_defeats_in_defeats_only_not_attacks() -> None:
     csaf, result = _csaf_with_ckr_exception()
 
@@ -73,12 +80,12 @@ def test_ckr_exception_defeats_in_defeats_only_not_attacks() -> None:
     attacker_ids = {
         enriched.arg_to_id[arg]
         for arg in enriched.arguments
-        if conc(arg).atom.predicate == "claim:exception-justification"
+        if _conclusion_claim_id(arg) == "claim:exception-justification"
     }
     target_ids = {
         enriched.arg_to_id[arg]
         for arg in enriched.arguments
-        if conc(arg).atom.predicate == "claim:target"
+        if _conclusion_claim_id(arg) == "claim:target"
     }
     ckr_edges = {
         (attacker_id, target_id)
