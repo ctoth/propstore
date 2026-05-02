@@ -144,7 +144,7 @@ Directly relevant to propstore's concept identity layer. The paper formalizes ex
 - Nikolov et al. (2007) "Knofuss: a comprehensive architecture for knowledge fusion" — addresses entity resolution *(ref 15)*
 - Volz et al. (2009) "Discovering and maintaining links on the web of data" — link maintenance *(ref 17)*
 - Jentzsch et al. (2009) "Enabling tailored therapeutics with linked data" — example of biomedical sameAs use *(ref 10)*
-- McCusker & McGuinness (2010) "Towards identity in linked data" — companion work on identity *(ref 12)*
+- McCusker & McGuinness (2010) "Towards identity in linked data" — companion work on identity *(ref 12)* -> NOW IN COLLECTION: [Towards Identity in Linked Data](../McCusker_2010_TowardsIdentityLinkedData/notes.md)
 
 ## Collection Cross-References
 
@@ -160,7 +160,9 @@ Directly relevant to propstore's concept identity layer. The paper formalizes ex
 ### New Leads (Not Yet in Collection)
 - Ding et al. (2010) — "owl:sameAs and linked data: An empirical study" — parallel empirical study from Falcon search engine; larger scale, different methodology
 - Bouquet et al. (2008) — "Entity name system: The backbone of an open and scalable web of data" — alternative architecture for identity resolution
-- McCusker & McGuinness (2010) — "Towards identity in linked data" — companion work by co-authors with deeper formal treatment
+
+### Now in Collection (previously listed as leads)
+- [Towards Identity in Linked Data](../McCusker_2010_TowardsIdentityLinkedData/notes.md) — companion OWLED paper by McCusker and McGuinness that decomposes identity-like relations by reflexivity, symmetry, and transitivity and shows how to reconstruct isomorphism selectively through SPARQL or OWL 2 property chains.
 
 ### Conceptual Links (not citation-based)
 - [[McCarthy_1993_FormalizingContext]] — Strong: Halpin's referential opacity argument (contexts where substitutivity fails) directly instantiates McCarthy's `ist(c, p)` formalization of context-dependent truth. The Similarity Ontology's sim:hasContext property on named graphs is a Linked Data realization of McCarthy's context lifting.
