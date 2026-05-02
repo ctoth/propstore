@@ -12,7 +12,8 @@ from propstore.provenance import (
     SupportEvidence,
     SupportQuality,
 )
-from propstore.z3_conditions import SolverUnknown, SolverUnknownReason
+from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.solver import SolverUnknown, SolverUnknownReason
 
 
 def _support() -> SupportEvidence:
@@ -35,6 +36,14 @@ def _exception(pattern: str) -> JustifiableException:
 
 def test_unbound_exception_pattern_is_distinct_from_solver_unknown() -> None:
     class UnknownSolver:
+        _registry = {
+            "age": ConceptInfo(
+                id="age",
+                canonical_name="age",
+                kind=KindType.QUANTITY,
+            )
+        }
+
         def is_condition_satisfied_result(self, condition, bindings):
             return SolverUnknown(SolverUnknownReason.TIMEOUT, "test timeout")
 
