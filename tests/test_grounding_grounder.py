@@ -780,6 +780,34 @@ def test_ground_default_arguments_field_is_populated() -> None:
     assert bundle.arguments
 
 
+def test_ground_projection_frames_preserve_backend_atom_and_sources() -> None:
+    """Gunray-derived atoms carry projection frames, not propstore identity."""
+
+    from argumentation.aspic import GroundAtom
+    from propstore.grounding.grounder import ground
+
+    rule = _build_rule_document(
+        rule_id="birds_fly",
+        kind="defeasible",
+        head=_build_atom("flies", [_build_term_var("X")]),
+        body=(_build_atom("bird", [_build_term_var("X")]),),
+    )
+    rule_file = _build_rule_file([rule])
+    facts = (GroundAtom("bird", ("tweety",)),)
+
+    bundle = ground([rule_file], facts, _bird_registry())
+
+    by_predicate = {
+        frame.backend_atom.predicate: frame
+        for frame in bundle.projection_frames
+    }
+    assert by_predicate["bird"].source_fact_ids
+    assert by_predicate["bird"].backend_atom_id
+    assert by_predicate["flies"].source_rule_ids == ("birds_fly",)
+    assert by_predicate["flies"].substitutions == ((("X", "tweety"),),)
+    assert by_predicate["flies"].section == "yes"
+
+
 def test_ground_return_arguments_populates_tuple() -> None:
     """``ground(..., return_arguments=True)`` fills ``bundle.arguments``.
 
