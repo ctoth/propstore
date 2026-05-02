@@ -29,11 +29,25 @@ class MicropubEntry:
 
 
 @dataclass(frozen=True)
+class MicropubLiftDecisionItem:
+    proposition_id: str
+    rule_id: str
+    status: str
+    mode: str
+    exception_id: str | None = None
+    justification: str | None = None
+
+
+@dataclass(frozen=True)
 class MicropubLiftReport:
     artifact_id: str
     source_context: str
     target_context: str
-    liftable: bool
+    decisions: tuple[MicropubLiftDecisionItem, ...]
+
+    @property
+    def liftable(self) -> bool:
+        return any(decision.status == "lifted" for decision in self.decisions)
 
 
 @dataclass(frozen=True)
@@ -83,11 +97,27 @@ def inspect_micropub_lift(
     ]
     system = loaded_contexts_to_lifting_system(contexts)
     source_context = entry.document.context.id
+    decisions = tuple(
+        MicropubLiftDecisionItem(
+            proposition_id=claim_id,
+            rule_id=decision.rule_id,
+            status=decision.status.value,
+            mode=decision.mode.value,
+            exception_id=decision.provenance.exception_id,
+            justification=decision.provenance.justification,
+        )
+        for claim_id in entry.document.claims
+        for decision in system.lift_decisions_between(
+            source_context,
+            target_context,
+            claim_id,
+        )
+    )
     return MicropubLiftReport(
         artifact_id=artifact_id,
         source_context=source_context,
         target_context=target_context,
-        liftable=system.can_lift(source_context, target_context),
+        decisions=decisions,
     )
 
 
