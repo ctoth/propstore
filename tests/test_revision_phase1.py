@@ -3,14 +3,20 @@ from __future__ import annotations
 import json
 
 from propstore.world import BoundWorld, Environment, ReasoningBackend, RenderPolicy
+from propstore.core.conditions import ConditionSolver
 from propstore.core.row_types import ConflictRowInput, StanceRowInput
-from tests.atms_helpers import _ExactMatchSolver, _OverlapSolver, leaf_lifting_system
+from tests.atms_helpers import (
+    condition_registry_for_rows,
+    leaf_lifting_system,
+    rows_with_condition_ir,
+)
 
 
 class _RevisionStore:
-    def __init__(self, *, claims: list[dict], solver=None) -> None:
-        self._claims = list(claims)
-        self._solver = solver or _ExactMatchSolver()
+    def __init__(self, *, claims: list[dict]) -> None:
+        self._condition_registry = condition_registry_for_rows(claims)
+        self._claims = rows_with_condition_ir(claims, self._condition_registry)
+        self._solver = ConditionSolver(self._condition_registry)
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
@@ -103,7 +109,6 @@ def test_project_belief_base_includes_exact_support_claims_and_active_assumption
                 "conditions_cel": json.dumps(["x > 0"]),
             },
         ],
-        solver=_OverlapSolver(),
     )
     bound = _make_bound(store, bindings={"x": 1})
 
