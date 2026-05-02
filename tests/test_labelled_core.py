@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from propstore.world.bound import BoundWorld
+from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
@@ -17,34 +18,70 @@ from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world.types import DerivedResult, Environment, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
 
-from tests.atms_helpers import _ExactMatchSolver, _OverlapSolver, leaf_lifting_system
+from tests.atms_helpers import (
+    condition_registry_for_rows,
+    leaf_lifting_system,
+    rows_with_condition_ir,
+)
 
 
 class _StubStore:
     def __init__(self) -> None:
-        self._claims = [
+        self._set_rows(
+            [
+                {
+                    "id": "claim_x",
+                    "concept_id": "concept1",
+                    "type": "parameter",
+                    "value": 2.0,
+                    "conditions_cel": json.dumps(["x == 1"]),
+                },
+                {
+                    "id": "claim_y",
+                    "concept_id": "concept2",
+                    "type": "parameter",
+                    "value": 3.0,
+                    "conditions_cel": json.dumps(["y == 2"]),
+                },
+                {
+                    "id": "claim_unconditional",
+                    "concept_id": "concept4",
+                    "type": "parameter",
+                    "value": 9.0,
+                    "conditions_cel": None,
+                },
+            ],
             {
-                "id": "claim_x",
-                "concept_id": "concept1",
-                "type": "parameter",
-                "value": 2.0,
-                "conditions_cel": json.dumps(["x == 1"]),
+                "concept3": [
+                    {
+                        "concept_ids": json.dumps(["concept1", "concept2"]),
+                        "sympy": "Eq(concept3, concept1 + concept2)",
+                        "formula": "z = x + y",
+                        "exactness": "exact",
+                        "conditions_cel": None,
+                    }
+                ]
             },
-            {
-                "id": "claim_y",
-                "concept_id": "concept2",
-                "type": "parameter",
-                "value": 3.0,
-                "conditions_cel": json.dumps(["y == 2"]),
-            },
-            {
-                "id": "claim_unconditional",
-                "concept_id": "concept4",
-                "type": "parameter",
-                "value": 9.0,
-                "conditions_cel": None,
-            },
+        )
+
+    def _set_rows(
+        self,
+        claims: list[dict],
+        parameterizations: dict[str, list[dict]] | None = None,
+    ) -> None:
+        parameterizations = {} if parameterizations is None else parameterizations
+        all_rows = claims + [
+            row
+            for rows in parameterizations.values()
+            for row in rows
         ]
+        self._condition_registry = condition_registry_for_rows(all_rows)
+        self._claims = rows_with_condition_ir(claims, self._condition_registry)
+        self._parameterizations = {
+            concept_id: rows_with_condition_ir(rows, self._condition_registry)
+            for concept_id, rows in parameterizations.items()
+        }
+        self._solver = ConditionSolver(self._condition_registry)
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
@@ -52,18 +89,10 @@ class _StubStore:
         return [claim for claim in self._claims if claim["concept_id"] == concept_id]
 
     def parameterizations_for(self, concept_id: str) -> list[dict]:
-        if concept_id != "concept3":
-            return []
-        return [{
-            "concept_ids": json.dumps(["concept1", "concept2"]),
-            "sympy": "Eq(concept3, concept1 + concept2)",
-            "formula": "z = x + y",
-            "exactness": "exact",
-            "conditions_cel": None,
-        }]
+        return list(self._parameterizations.get(concept_id, ()))
 
-    def condition_solver(self) -> _ExactMatchSolver:
-        return _ExactMatchSolver()
+    def condition_solver(self) -> ConditionSolver:
+        return self._solver
 
     def conflicts(self) -> list[ConflictRowInput]:
         return []
@@ -243,7 +272,7 @@ def test_bound_world_uses_singleton_binding_labels() -> None:
 def test_context_scoped_claim_gets_explicit_context_label() -> None:
     class ContextScopedStore(_StubStore):
         def __init__(self) -> None:
-            self._claims = [
+            self._set_rows([
                 {
                     "id": "claim_ctx",
                     "concept_id": "concept_ctx",
@@ -252,7 +281,7 @@ def test_context_scoped_claim_gets_explicit_context_label() -> None:
                     "conditions_cel": None,
                     "context_id": "ctx_general",
                 }
-            ]
+            ])
 
     bound = BoundWorld(
         ContextScopedStore(),
@@ -277,7 +306,7 @@ def test_context_scoped_claim_gets_explicit_context_label() -> None:
 def test_semantically_active_claim_without_exact_assumption_match_gets_no_label() -> None:
     class SemanticOverlapStore(_StubStore):
         def __init__(self) -> None:
-            self._claims = [
+            self._set_rows([
                 {
                     "id": "claim_overlap",
                     "concept_id": "concept_overlap",
@@ -285,10 +314,7 @@ def test_semantically_active_claim_without_exact_assumption_match_gets_no_label(
                     "value": 11.0,
                     "conditions_cel": json.dumps(["x > 0"]),
                 }
-            ]
-
-        def condition_solver(self) -> _OverlapSolver:
-            return _OverlapSolver()
+            ])
 
     bound = BoundWorld(
         SemanticOverlapStore(),
