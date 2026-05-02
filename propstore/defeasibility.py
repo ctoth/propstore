@@ -8,14 +8,13 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import Protocol, TypeAlias
 
-from propstore.cel_checker import (
-    ASTNode,
-    BinaryOpNode,
-    InNode,
-    NameNode,
-    TernaryNode,
-    UnaryOpNode,
-    parse_cel,
+from cel_parser import (
+    Call,
+    CreateList,
+    Expr,
+    Ident,
+    ParseError,
+    parse as parse_cel,
 )
 from propstore.cel_types import CelExpr, to_cel_expr
 from argumentation.aspic import Argument, CSAF, conc
@@ -413,8 +412,15 @@ def _arguments_concluding(csaf: CSAF, claim_id: str) -> set[Argument]:
     return {
         argument
         for argument in csaf.arguments
-        if conc(argument).atom.predicate == claim_id
+        if _literal_concludes_claim(conc(argument), claim_id)
     }
+
+
+def _literal_concludes_claim(literal, claim_id: str) -> bool:
+    atom = literal.atom
+    if atom.predicate == claim_id:
+        return True
+    return atom.predicate == "ist" and atom.arguments[-1:] == (claim_id,)
 
 
 def _pattern_selects_use(
@@ -453,34 +459,31 @@ def _pattern_selects_use(
 
 def _cel_names(pattern: CelExpr) -> frozenset[str] | None:
     try:
-        ast = parse_cel(pattern)
-    except ValueError:
+        ast = parse_cel(str(pattern))
+    except ParseError:
         return None
     names: set[str] = set()
     _collect_cel_names(ast, names)
     return frozenset(names)
 
 
-def _collect_cel_names(node: ASTNode, names: set[str]) -> None:
-    if isinstance(node, NameNode):
-        names.add(node.name)
+def _collect_cel_names(node: Expr, names: set[str]) -> None:
+    """Walk an Expr tree and record every bare-identifier name."""
+    if isinstance(node, Ident):
+        if node.name:
+            names.add(node.name)
         return
-    if isinstance(node, BinaryOpNode):
-        _collect_cel_names(node.left, names)
-        _collect_cel_names(node.right, names)
-        return
-    if isinstance(node, UnaryOpNode):
-        _collect_cel_names(node.operand, names)
-        return
-    if isinstance(node, InNode):
-        _collect_cel_names(node.expr, names)
-        for value in node.values:
-            _collect_cel_names(value, names)
-        return
-    if isinstance(node, TernaryNode):
-        _collect_cel_names(node.condition, names)
-        _collect_cel_names(node.true_branch, names)
-        _collect_cel_names(node.false_branch, names)
+    target = getattr(node, "target", None)
+    if isinstance(target, Expr):
+        _collect_cel_names(target, names)
+    args = getattr(node, "args", None)
+    if args:
+        for arg in args:
+            if isinstance(arg, Expr):
+                _collect_cel_names(arg, names)
+    if isinstance(node, CreateList):
+        for elem in node.elements:
+            _collect_cel_names(elem, names)
 
 
 def _compose_support_quality(left: SupportQuality, right: SupportQuality) -> SupportQuality:
