@@ -20,7 +20,8 @@ from propstore.sidecar.schema import create_context_tables, populate_contexts
 from propstore.sidecar.stages import ContextSidecarRows
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
-from propstore.z3_conditions import (
+from propstore.core.conditions.solver import (
+    ConditionSolver,
     SolverSat,
     SolverUnknown,
     SolverUnknownReason,
@@ -170,9 +171,7 @@ def test_lifting_system_does_not_expose_visibility_as_semantics() -> None:
 def test_bound_world_projection_honors_local_lifting_exception() -> None:
     class _Store:
         def __init__(self) -> None:
-            from propstore.z3_conditions import Z3ConditionSolver
-
-            self._solver = Z3ConditionSolver({})
+            self._solver = ConditionSolver({})
             self._claims = [
                 {"id": "claim_alpha", "concept_id": "c1", "context_id": "ctx_source"},
                 {"id": "claim_local", "concept_id": "c1", "context_id": "ctx_target"},
