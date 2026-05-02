@@ -1,20 +1,15 @@
 import pytest
 
-from propstore.cel_checker import (
-    BinaryOpNode,
-    CheckedCelExpr,
+from propstore.cel_types import CelExpr, CelRegistryFingerprint, to_cel_expr
+from propstore.core.conditions import check_condition_ir
+from propstore.core.conditions.checked import (
+    CheckedConditionSet,
+    checked_condition_set,
+)
+from propstore.core.conditions.registry import (
     ConceptInfo,
     KindType,
-    cel_registry_fingerprint,
-    check_cel_condition_set,
-    check_cel_expr,
-    parse_cel_expr,
-)
-from propstore.cel_types import (
-    CelRegistryFingerprint,
-    CheckedCelConditionSet,
-    CelExpr,
-    to_cel_expr,
+    condition_registry_fingerprint,
 )
 
 
@@ -44,39 +39,21 @@ def test_raw_cel_source_rejects_non_strings():
         to_cel_expr(3)
 
 
-def test_parse_cel_expr_returns_source_and_ast():
-    parsed = parse_cel_expr(CelExpr("x > 1"))
-
-    assert parsed.source == "x > 1"
-    assert isinstance(parsed.ast, BinaryOpNode)
-
-
-def test_checked_cel_expr_requires_checker_construction(registry):
-    parsed = parse_cel_expr("x > 1")
-
-    with pytest.raises(TypeError, match="must be created by the CEL checker"):
-        CheckedCelExpr(
-            source=parsed.source,
-            ast=parsed.ast,
-            registry_fingerprint=cel_registry_fingerprint(registry),
-        )
-
-
-def test_check_cel_expr_carries_ast_fingerprint_and_warnings(registry):
-    checked = check_cel_expr("task == 'novel'", registry)
+def test_check_condition_ir_carries_source_fingerprint_and_warnings(registry):
+    checked = check_condition_ir("task == 'novel'", registry)
 
     assert checked.source == "task == 'novel'"
-    assert isinstance(checked.ast, BinaryOpNode)
-    assert checked.registry_fingerprint == cel_registry_fingerprint(registry)
+    assert checked.registry_fingerprint == condition_registry_fingerprint(registry)
+    assert checked.encoded_ir is not None
     assert len(checked.warnings) == 1
 
 
-def test_check_cel_expr_rejects_hard_errors(registry):
+def test_check_condition_ir_rejects_hard_errors(registry):
     with pytest.raises(ValueError, match="Undefined concept"):
-        check_cel_expr("missing > 1", registry)
+        check_condition_ir("missing > 1", registry)
 
 
-def test_registry_fingerprint_changes_with_cel_semantics(registry):
+def test_registry_fingerprint_changes_with_condition_semantics(registry):
     changed = dict(registry)
     changed["task"] = ConceptInfo(
         "ps:concept:task",
@@ -86,25 +63,27 @@ def test_registry_fingerprint_changes_with_cel_semantics(registry):
         category_extensible=False,
     )
 
-    assert cel_registry_fingerprint(registry) != cel_registry_fingerprint(changed)
+    assert condition_registry_fingerprint(registry) != condition_registry_fingerprint(changed)
 
 
 def test_checked_condition_set_normalizes_and_deduplicates(registry):
-    condition_set = check_cel_condition_set(
-        [CelExpr("task == 'speech'"), CelExpr("x > 1"), CelExpr("x > 1")],
-        registry,
+    condition_set = checked_condition_set(
+        [
+            check_condition_ir(CelExpr("task == 'speech'"), registry),
+            check_condition_ir(CelExpr("x > 1"), registry),
+            check_condition_ir(CelExpr("x > 1"), registry),
+        ]
     )
 
     assert condition_set.sources == ("task == 'speech'", "x > 1")
-    assert condition_set.registry_fingerprint == cel_registry_fingerprint(registry)
+    assert condition_set.registry_fingerprint == condition_registry_fingerprint(registry)
 
 
 def test_checked_condition_set_rejects_mixed_registry_fingerprints(registry):
-    checked = check_cel_expr("x > 1", registry)
+    checked = check_condition_ir("x > 1", registry)
 
     with pytest.raises(ValueError, match="registry fingerprint"):
-        CheckedCelConditionSet(
+        CheckedConditionSet(
             conditions=(checked,),
             registry_fingerprint=CelRegistryFingerprint("other"),
         )
-
