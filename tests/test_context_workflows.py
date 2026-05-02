@@ -302,7 +302,7 @@ def test_context_lifting_rule_workflows_crud(tmp_path) -> None:
         ContextLiftingRuleAddRequest(
             rule_id="lift_source_target",
             source_context="ctx_source",
-            conditions=("license == 'bridge'",),
+            conditions=("framework == 'bridge'",),
             justification="Bridge rule",
         ),
         dry_run=True,
@@ -313,7 +313,7 @@ def test_context_lifting_rule_workflows_crud(tmp_path) -> None:
         ContextLiftingRuleAddRequest(
             rule_id="lift_source_target",
             source_context="ctx_source",
-            conditions=("license == 'bridge'",),
+            conditions=("framework == 'bridge'",),
             justification="Bridge rule",
         ),
         dry_run=False,
@@ -458,7 +458,7 @@ def test_context_lifting_cli_crud(tmp_path) -> None:
             "--source",
             "ctx_source",
             "--condition",
-            "license == 'bridge'",
+            "framework == 'bridge'",
             "--justification",
             "Bridge rule",
         ],
