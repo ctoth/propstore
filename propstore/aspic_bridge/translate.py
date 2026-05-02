@@ -272,11 +272,11 @@ def claims_to_kb(
     premises: set[Literal] = set()
 
     for claim_id in reported_claim_ids:
-        literal_key = _literal_key_for_proposition(claim_id, literals)
-        if literal_key not in literals:
-            continue
         claim = claim_by_id.get(claim_id)
         if claim is None:
+            continue
+        literal_key = _claim_literal_key(claim)
+        if literal_key not in literals:
             continue
         literal = literals[literal_key]
         if _claim_attr(claim, "premise_kind") == "necessary":
