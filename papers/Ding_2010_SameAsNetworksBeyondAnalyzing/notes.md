@@ -174,3 +174,26 @@ This paper is directly relevant to a provenance- and claim-oriented knowledge sy
 - Jaffri, Glaser, and Millard, "URI disambiguation in the context of linked data", for context-dependent equivalence and co-reference management *(p.147, p.158-p.159)*.
 - Ge et al., "Object Link Structure in the Semantic Web", for graph-structure analysis and object link graphs related to schema-level relations *(p.158)*.
 - Nikolov, Uren, and Motta, "Data Linking: Capturing and Utilising Implicit Schema-level Relations", for deriving schema-level mappings from instance-level links *(p.158-p.160)*.
+
+## Collection Cross-References
+
+### Already in Collection
+- [When owl:sameAs Isn't the Same: An Analysis of Identity in Linked Data](../Halpin_2010_OwlSameAsIsntSame/notes.md) - cited for the critique that deployed owl:sameAs often fails strict identity semantics and motivates weaker or contextual identity relations.
+- [Towards Identity in Linked Data](../McCusker_2010_TowardsIdentityLinkedData/notes.md) - cited for provenance and ground-truth risks created by treating owl:sameAs as unconditional identity.
+
+### New Leads (Not Yet in Collection)
+- Jaffri, Glaser, and Millard (2008) - "URI disambiguation in the context of linked data" - relevant for context-dependent co-reference management.
+- Vatant (2007) - "Using owl:sameAs in linked data" - relevant for non-symmetric mashup-oriented sameAs usage.
+- Ge et al. (2010) - "Object Link Structure in the Semantic Web" - relevant for graph-structure analysis and schema-level relations from instance links.
+- Nikolov, Uren, and Motta (2010) - "Data Linking: Capturing and Utilising Implicit Schema-level Relations" - relevant for deriving schema-level mappings from instance-level links.
+
+### Supersedes or Recontextualizes
+- This paper recontextualizes the semantic critiques in Halpin et al. and McCusker and McGuinness by adding large-scale BTC 2010 deployment statistics and graph abstractions, but it does not supersede their semantic or provenance analyses.
+
+### Cited By (in Collection)
+- [The sameAs Problem: A Survey on Identity Management in the Web of Data](../Raad_2019_SameAsProblemSurvey/notes.md) - cites this paper as an early large-scale analysis of owl:sameAs deployment and implications.
+
+### Conceptual Links (not citation-based)
+- [sameAs.cc: The Closure of 500M owl:sameAs Statements](../Beek_2018_SameAs.ccClosure500MOwl/notes.md) - continues the large-scale sameAs-network line of work with closure over hundreds of millions of explicit links, while Ding et al. emphasize BTC 2010 deployment structure, PLD abstraction, and class-level effects.
+- [Is my:sameAs the same as your:sameAs? Lenticular Lenses for Context-Specific Identity](../Idrissou_2017_LenticularLensesContextSpecificIdentity/notes.md) - addresses the same problem from a context-specific identity perspective, complementing Ding et al.'s evidence that deployed sameAs links should not be flattened into unconditional global equality.
+- [Not Quite the Same: Identity Constraints for the Web of Linked Data](../Melo_2013_NotQuiteSameIdentity/notes.md) - provides a constraint-based approach to detecting problematic identity links, which is a downstream use case suggested by Ding et al.'s class-level similarity and error-detection discussion.
