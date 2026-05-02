@@ -6,7 +6,7 @@ import sqlite3
 from propstore.context_lifting import (
     IstProposition,
     LiftingException,
-    LiftingMaterializationStatus,
+    LiftingDecisionStatus,
     LiftingRule,
     LiftingSystem,
 )
@@ -43,7 +43,7 @@ def test_lifting_materializes_ist_assertion_with_rule_provenance() -> None:
 
     assert len(materializations) == 1
     lifted = materializations[0]
-    assert lifted.status is LiftingMaterializationStatus.LIFTED
+    assert lifted.status is LiftingDecisionStatus.LIFTED
     assert lifted.assertion == IstProposition(
         context=target,
         proposition_id="claim_alpha",
@@ -93,9 +93,9 @@ def test_lifting_exception_is_local_and_blocks_only_matching_target() -> None:
         str(item.target_context.id): item
         for item in materializations
     }
-    assert by_target["ctx_target"].status is LiftingMaterializationStatus.BLOCKED
+    assert by_target["ctx_target"].status is LiftingDecisionStatus.BLOCKED
     assert by_target["ctx_target"].exception_id == "except-target-alpha"
-    assert by_target["ctx_sibling"].status is LiftingMaterializationStatus.LIFTED
+    assert by_target["ctx_sibling"].status is LiftingDecisionStatus.LIFTED
 
 
 def test_lifting_system_does_not_expose_visibility_as_semantics() -> None:
