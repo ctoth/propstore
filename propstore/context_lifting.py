@@ -10,11 +10,23 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
 
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core import assertions as _assertions
 from propstore.core.id_types import ContextId, to_context_id
+from propstore.defeasibility import (
+    DecidabilityStatus,
+    ExceptionDefeat,
+    JustifiableException,
+    build_exception_defeat,
+)
+from propstore.provenance import (
+    NogoodWitness,
+    ProvenancePolynomial,
+    SourceVariableId,
+    SupportEvidence,
+    SupportQuality,
+)
 
 
 @dataclass(frozen=True)
@@ -29,9 +41,10 @@ class LiftingMode(StrEnum):
     DECONTEXTUALIZATION = "decontextualization"
 
 
-class LiftingMaterializationStatus(StrEnum):
+class LiftingDecisionStatus(StrEnum):
     LIFTED = "lifted"
     BLOCKED = "blocked"
+    UNKNOWN = "unknown"
 
 
 @dataclass(frozen=True)
@@ -71,12 +84,84 @@ class LiftingException:
 
 
 @dataclass(frozen=True)
+class LiftingDecisionProvenance:
+    rule_id: str
+    source_context_id: ContextId
+    target_context_id: ContextId
+    source_proposition_id: str
+    status: LiftingDecisionStatus
+    justification: str | None = None
+    exception_id: str | None = None
+    clashing_set: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "rule_id", str(self.rule_id))
+        object.__setattr__(self, "source_context_id", to_context_id(self.source_context_id))
+        object.__setattr__(self, "target_context_id", to_context_id(self.target_context_id))
+        object.__setattr__(self, "source_proposition_id", str(self.source_proposition_id))
+        object.__setattr__(self, "status", LiftingDecisionStatus(self.status))
+        if self.justification is not None:
+            object.__setattr__(self, "justification", str(self.justification))
+        if self.exception_id is not None:
+            object.__setattr__(self, "exception_id", str(self.exception_id))
+        object.__setattr__(
+            self,
+            "clashing_set",
+            tuple(str(item) for item in self.clashing_set),
+        )
+
+    def to_payload(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "rule_id": self.rule_id,
+            "source_context_id": str(self.source_context_id),
+            "target_context_id": str(self.target_context_id),
+            "source_proposition_id": self.source_proposition_id,
+            "status": self.status.value,
+        }
+        if self.exception_id is not None:
+            payload["exception_id"] = self.exception_id
+        if self.justification is not None:
+            payload["justification"] = self.justification
+        if self.clashing_set:
+            payload["clashing_set"] = list(self.clashing_set)
+        return payload
+
+
+@dataclass(frozen=True)
+class LiftingDecision:
+    source_context: _assertions.ContextReference
+    target_context: _assertions.ContextReference
+    proposition_id: str
+    status: LiftingDecisionStatus
+    mode: LiftingMode
+    rule_id: str
+    rule_conditions: tuple[CelExpr, ...]
+    support: SupportEvidence
+    provenance: LiftingDecisionProvenance
+    exception: ExceptionDefeat | None = None
+    solver_witness: NogoodWitness | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "proposition_id", str(self.proposition_id))
+        object.__setattr__(self, "status", LiftingDecisionStatus(self.status))
+        object.__setattr__(self, "mode", LiftingMode(self.mode))
+        object.__setattr__(self, "rule_conditions", to_cel_exprs(self.rule_conditions))
+        if not isinstance(self.support, SupportEvidence):
+            raise TypeError("LiftingDecision support must be SupportEvidence")
+        if not isinstance(self.provenance, LiftingDecisionProvenance):
+            raise TypeError("LiftingDecision provenance must be LiftingDecisionProvenance")
+        if self.exception is not None and not isinstance(self.exception, ExceptionDefeat):
+            raise TypeError("LiftingDecision exception must be ExceptionDefeat")
+
+
+@dataclass(frozen=True)
 class LiftedAssertion:
     assertion: IstProposition
     source_assertion: IstProposition
     rule_id: str
     mode: LiftingMode
-    status: LiftingMaterializationStatus
+    status: LiftingDecisionStatus
+    decision: LiftingDecision
     exception_id: str | None = None
     justification: str | None = None
     clashing_set: tuple[str, ...] = ()
@@ -94,20 +179,10 @@ class LiftedAssertion:
         return self.assertion.proposition_id
 
     @property
-    def provenance(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "rule_id": self.rule_id,
-            "source_context_id": str(self.source_context.id),
-            "target_context_id": str(self.target_context.id),
-            "source_proposition_id": self.source_assertion.proposition_id,
-            "status": self.status.value,
-        }
-        if self.exception_id is not None:
-            payload["exception_id"] = self.exception_id
-        if self.justification is not None:
-            payload["justification"] = self.justification
-        if self.clashing_set:
-            payload["clashing_set"] = list(self.clashing_set)
+    def provenance(self) -> dict[str, object]:
+        payload = self.decision.provenance.to_payload()
+        if self.decision.exception is not None:
+            payload["defeated_use"] = self.decision.exception.defeated_use
         return payload
 
 
@@ -179,39 +254,108 @@ class LiftingSystem:
     ) -> tuple[LiftedAssertion, ...]:
         materialized: list[LiftedAssertion] = []
         for assertion in assertions:
-            for rule in self.lifting_rules:
-                if rule.source.id != assertion.context.id:
-                    continue
-                exception = self._exception_for(rule, assertion)
+            for decision in self.lift_decisions_for(assertion):
                 target_assertion = IstProposition(
-                    context=rule.target,
+                    context=decision.target_context,
                     proposition_id=assertion.proposition_id,
                 )
-                if exception is None:
+                if decision.status is LiftingDecisionStatus.LIFTED:
                     materialized.append(
                         LiftedAssertion(
                             assertion=target_assertion,
                             source_assertion=assertion,
-                            rule_id=rule.id,
-                            mode=rule.mode,
-                            status=LiftingMaterializationStatus.LIFTED,
-                            justification=rule.justification,
+                            rule_id=decision.rule_id,
+                            mode=decision.mode,
+                            status=decision.status,
+                            decision=decision,
+                            justification=decision.provenance.justification,
                         )
                     )
                     continue
+                exception_id = None
+                clashing_set: tuple[str, ...] = ()
+                if decision.exception is not None:
+                    exception_id = decision.provenance.exception_id
+                    clashing_set = decision.exception.exception.justification_claims
                 materialized.append(
                     LiftedAssertion(
                         assertion=target_assertion,
                         source_assertion=assertion,
-                        rule_id=rule.id,
-                        mode=rule.mode,
-                        status=LiftingMaterializationStatus.BLOCKED,
-                        exception_id=exception.id,
-                        justification=exception.justification,
-                        clashing_set=exception.clashing_set,
+                        rule_id=decision.rule_id,
+                        mode=decision.mode,
+                        status=decision.status,
+                        decision=decision,
+                        exception_id=exception_id,
+                        justification=decision.provenance.justification,
+                        clashing_set=clashing_set,
                     )
                 )
         return tuple(materialized)
+
+    def lift_decisions_for(
+        self,
+        assertion: IstProposition,
+    ) -> tuple[LiftingDecision, ...]:
+        decisions: list[LiftingDecision] = []
+        for rule in self.lifting_rules:
+            if rule.source.id != assertion.context.id:
+                continue
+            exception = self._exception_for(rule, assertion)
+            decisions.append(self._decision_for(rule, assertion, exception))
+        return tuple(decisions)
+
+    def _decision_for(
+        self,
+        rule: LiftingRule,
+        assertion: IstProposition,
+        exception: LiftingException | None,
+    ) -> LiftingDecision:
+        support = _support_for_source("lifting_rule", rule.id)
+        provenance = LiftingDecisionProvenance(
+            rule_id=rule.id,
+            source_context_id=to_context_id(rule.source.id),
+            target_context_id=to_context_id(rule.target.id),
+            source_proposition_id=assertion.proposition_id,
+            status=LiftingDecisionStatus.LIFTED,
+            justification=rule.justification,
+        )
+        if exception is None:
+            return LiftingDecision(
+                source_context=rule.source,
+                target_context=rule.target,
+                proposition_id=assertion.proposition_id,
+                status=LiftingDecisionStatus.LIFTED,
+                mode=rule.mode,
+                rule_id=rule.id,
+                rule_conditions=rule.conditions,
+                support=support,
+                provenance=provenance,
+            )
+
+        defeat = _lifting_exception_defeat(rule, assertion, exception)
+        blocked_provenance = LiftingDecisionProvenance(
+            rule_id=rule.id,
+            source_context_id=to_context_id(rule.source.id),
+            target_context_id=to_context_id(rule.target.id),
+            source_proposition_id=assertion.proposition_id,
+            status=LiftingDecisionStatus.BLOCKED,
+            justification=exception.justification,
+            exception_id=exception.id,
+            clashing_set=exception.clashing_set,
+        )
+        return LiftingDecision(
+            source_context=rule.source,
+            target_context=rule.target,
+            proposition_id=assertion.proposition_id,
+            status=LiftingDecisionStatus.BLOCKED,
+            mode=rule.mode,
+            rule_id=rule.id,
+            rule_conditions=rule.conditions,
+            support=defeat.support,
+            provenance=blocked_provenance,
+            exception=defeat,
+            solver_witness=defeat.solver_witness,
+        )
 
     def _exception_for(
         self,
@@ -227,3 +371,30 @@ class LiftingSystem:
                 continue
             return exception
         return None
+
+
+def _support_for_source(kind: str, source_id: str) -> SupportEvidence:
+    return SupportEvidence(
+        ProvenancePolynomial.variable(SourceVariableId(f"ps:source:{kind}:{source_id}")),
+        SupportQuality.EXACT,
+    )
+
+
+def _lifting_exception_defeat(
+    rule: LiftingRule,
+    assertion: IstProposition,
+    exception: LiftingException,
+) -> ExceptionDefeat:
+    justifiable = JustifiableException(
+        target_claim=exception.proposition_id,
+        exception_pattern="true",
+        justification_claims=exception.clashing_set,
+        context=str(exception.target.id),
+        support=_support_for_source("lifting_exception", exception.id),
+        decidability_status=DecidabilityStatus.DECIDABLE,
+    )
+    return build_exception_defeat(
+        defeated_use=f"ist({rule.target.id}, {assertion.proposition_id})",
+        exception=justifiable,
+        solver_support=_support_for_source("lifting_rule", rule.id),
+    )
