@@ -193,6 +193,9 @@ Directly relevant to propstore's concept identity and vocabulary reconciliation 
 - Ding et al. (2010) — "owl:sameAs and Linked Data: An empirical study" — large-scale empirical analysis of sameAs usage
 - Garg, Vazirani, and Yannakakis (1996) — "Approximate max-flow min-cut/multiflow theorems" — algorithmic foundation for LP relaxation
 
+### Now in Collection (previously listed as leads)
+- [Ontology Alignment for Linked Open Data](../Jain_2010_OntologyAlignmentLinkedOpen/notes.md) - BLOOMS constructs schema-level subclass/equivalence links for LOD using Wikipedia/DBpedia category forests. This complements de Melo's identity-link repair: both address Linked Data integration, but at different relation layers.
+
 ### Conceptual Links (not citation-based)
 - [[Raad_2019_SameAsProblemSurvey]] — Strong: surveys the entire owl:sameAs identity problem space that de Melo addresses computationally. Raad categorizes de Melo's method as network-based detection and places it among terminological, semantic, and content-based alternatives.
 - [[Beek_2018_SameAs.ccClosure500MOwl]] — Strong: Beek's sameAs.cc dataset (558M statements, 49M identity sets) is the natural target for de Melo's constraint-based cleaning. The largest identity sets (177K+ members conflating unrelated entities) are exactly the kind of constraint violations de Melo's method detects.
@@ -201,6 +204,6 @@ Directly relevant to propstore's concept identity and vocabulary reconciliation 
 ## Related Work Worth Reading
 - Halpin, H., Hayes, P.J., McCusker, J.P., McGuinness, D.L., and Thompson, H.S. 2010. When owl:sameAs isn't the same. *Int'l Semantic Web Conference*. -- Analysis of sameAs semantics *(p.6)*
 - Ding, L., Shinavier, J., Finin, T., and McGuinness, D.L. 2010. owl:sameAs and Linked Data: An empirical study. *2nd Web Science Conference*. -- Empirical sameAs analysis *(p.6)*
-- Jain, P., Hitzler, P., Sheth, A.P., Verma, K., and Yeh, P.Z. 2010. Ontology alignment: linked open data. *ISWC 2010*. -- Graph-based disambiguation of Linked Data *(p.6)*
+- Jain, P., Hitzler, P., Sheth, A.P., Verma, K., and Yeh, P.Z. 2010. Ontology alignment: linked open data. *ISWC 2010*. -- Graph-based disambiguation of Linked Data *(p.6)* -> NOW IN COLLECTION: [Ontology Alignment for Linked Open Data](../Jain_2010_OntologyAlignmentLinkedOpen/notes.md)
 - Garg, N., Vazirani, V.V., and Yannakakis, M. 1996. Approximate max-flow min-cut/multiflow theorems and their applications. *SIAM Journal on Computing*. -- LP relaxation technique used *(p.3)*
 - Kuhn, H.W. 1955. The Hungarian method for the assignment problem. -- Foundation for bipartite matching *(p.3)*
