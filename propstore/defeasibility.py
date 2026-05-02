@@ -28,7 +28,7 @@ from propstore.provenance import (
     live,
     why_provenance,
 )
-from propstore.z3_conditions import (
+from propstore.core.conditions.solver import (
     SolverResult,
     SolverSat,
     SolverUnknown,
