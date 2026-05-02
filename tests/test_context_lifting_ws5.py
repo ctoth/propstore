@@ -28,10 +28,20 @@ from propstore.core.conditions.solver import (
     SolverUnsat,
     Z3TranslationError,
 )
+from propstore.core.conditions.registry import ConceptInfo, KindType
 
 
 class _ConditionSolver:
     def __init__(self, result):
+        self._registry = {
+            "license": ConceptInfo(
+                id="concept:license",
+                canonical_name="license",
+                kind=KindType.CATEGORY,
+                category_values=["bridge", "closed"],
+                category_extensible=True,
+            )
+        }
         self.result = result
 
     def is_condition_satisfied_result(self, condition, bindings):
