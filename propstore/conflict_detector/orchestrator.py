@@ -31,7 +31,9 @@ class SyntheticConceptCollision(ValueError):
 
 @dataclass
 class LiftingDecisionCache:
-    decisions: dict[tuple[str, str, str | None], bool] = field(default_factory=dict)
+    decisions: dict[tuple[str, str, str, tuple[str, ...]], bool] = field(
+        default_factory=dict
+    )
 
 
 def detect_conflicts(
@@ -173,11 +175,18 @@ def _expand_lifted_conflict_claims(
     }
 
     cache = LiftingDecisionCache()
-    for claim in claims:
+    queue = list(claims)
+    while queue:
+        claim = queue.pop(0)
         if claim.context_id is None:
             continue
         for rule in rules_by_source.get(str(claim.context_id), ()):
-            decision_key = (claim.claim_id, str(rule.source.id), str(rule.target.id))
+            decision_key = (
+                claim.claim_id,
+                str(rule.source.id),
+                str(rule.target.id),
+                tuple(str(condition) for condition in claim.conditions),
+            )
             applies = cache.decisions.get(decision_key)
             if applies is None:
                 applies = _lifting_rule_applies(claim, rule, solver)
@@ -201,13 +210,13 @@ def _expand_lifted_conflict_claims(
             if key in seen:
                 continue
             seen.add(key)
-            expanded.append(
-                replace(
-                    claim,
-                    context_id=str(target_id),
-                    conditions=target_conditions,
-                )
+            lifted_claim = replace(
+                claim,
+                context_id=str(target_id),
+                conditions=target_conditions,
             )
+            expanded.append(lifted_claim)
+            queue.append(lifted_claim)
     return expanded
 
 
