@@ -39,7 +39,7 @@ class ConditionZ3Encoder:
         ctx: z3.Context | None = None,
     ) -> None:
         self._registry = registry or {}
-        self.ctx = ctx or z3.Context()
+        self.ctx = ctx
         self.true = z3.BoolVal(True, self.ctx)
         self.false = z3.BoolVal(False, self.ctx)
         self._reals: dict[str, Any] = {}
