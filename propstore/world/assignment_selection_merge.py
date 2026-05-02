@@ -17,12 +17,11 @@ from dataclasses import dataclass
 from itertools import product
 from typing import Any, overload
 
-from propstore.cel_checker import (
-    check_cel_expr,
-)
-from propstore.cel_types import CheckedCelExpr
 from propstore.core.anytime import EnumerationExceeded
+from propstore.core.conditions import CheckedCondition
+from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import scope_condition_registry
+from propstore.core.conditions.solver import ConditionSolver
 from propstore.world.types import (
     AssignmentSelectionProblem,
     AssignmentSelectionResult,
@@ -190,12 +189,14 @@ def _cel_bindings(
     return bindings
 
 
-def _validate_cel_constraint(constraint: IntegrityConstraint) -> tuple[dict[str, Any], CheckedCelExpr]:
+def _validate_cel_constraint(
+    constraint: IntegrityConstraint,
+) -> tuple[dict[str, Any], CheckedCondition]:
     if not constraint.cel:
         raise ValueError("CEL integrity constraint requires a non-empty cel expression")
     registry = _scoped_cel_registry(constraint)
     try:
-        checked = check_cel_expr(constraint.cel, registry)
+        checked = check_condition_ir(str(constraint.cel), registry)
     except ValueError as exc:
         raise ValueError(str(exc)) from exc
     return registry, checked
@@ -214,11 +215,7 @@ def _eval_cel_constraint_z3(
 ) -> bool:
     registry, checked = _validate_cel_constraint(constraint)
     bindings = _cel_bindings(assignment, constraint, registry)
-    try:
-        from propstore.z3_conditions import Z3ConditionSolver
-    except ImportError as exc:
-        raise RuntimeError("Z3 is required for CEL assignment-selection merge evaluation") from exc
-    solver = Z3ConditionSolver(registry)
+    solver = ConditionSolver(registry)
     return solver.is_condition_satisfied(checked, bindings)
 
 
@@ -226,11 +223,7 @@ def _compile_cel_constraint(
     constraint: IntegrityConstraint,
 ) -> _CompiledConstraint:
     registry, checked = _validate_cel_constraint(constraint)
-    try:
-        from propstore.z3_conditions import Z3ConditionSolver
-    except ImportError as exc:
-        raise RuntimeError("Z3 is required for CEL assignment-selection merge evaluation") from exc
-    solver = Z3ConditionSolver(registry)
+    solver = ConditionSolver(registry)
 
     def _holds(assignment: MergeAssignment) -> bool:
         bindings = _cel_bindings(assignment, constraint, registry)
