@@ -13,8 +13,8 @@ STANDARD_SYNTHETIC_BINDING_DESCRIPTIONS: dict[str, str] = {
     "origin_type": "Source origin type binding exposed from provenance metadata.",
     "name": "Generic runtime name binding used by some authored CEL surfaces.",
     "framework": "Framework binding exposed by generated or runtime conditions.",
+    "mode": "Runtime mode binding used by generated or overlay conditions.",
     "variant": "Variant binding exposed by generated or runtime conditions.",
 }
 
 STANDARD_SYNTHETIC_BINDING_NAMES = tuple(STANDARD_SYNTHETIC_BINDING_DESCRIPTIONS)
-
