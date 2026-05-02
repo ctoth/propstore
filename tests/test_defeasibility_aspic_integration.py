@@ -71,6 +71,11 @@ def _csaf():
     )
 
 
+def _concludes_claim(arg, claim_id: str) -> bool:
+    atom = conc(arg).atom
+    return atom.predicate == "ist" and atom.arguments[-1:] == (claim_id,)
+
+
 def test_exception_defeat_adds_justification_argument_defeat_to_csaf() -> None:
     csaf = _csaf()
     result = evaluate_contextual_claim(
@@ -84,12 +89,12 @@ def test_exception_defeat_adds_justification_argument_defeat_to_csaf() -> None:
     attacker_ids = {
         integrated.arg_to_id[arg]
         for arg in integrated.arguments
-        if conc(arg).atom.predicate == "claim:exception-justification"
+        if _concludes_claim(arg, "claim:exception-justification")
     }
     target_ids = {
         integrated.arg_to_id[arg]
         for arg in integrated.arguments
-        if conc(arg).atom.predicate == "claim:target"
+        if _concludes_claim(arg, "claim:target")
     }
     assert attacker_ids
     assert target_ids
@@ -113,12 +118,12 @@ def test_exception_defeat_participates_in_dung_extension_computation() -> None:
     target_ids = {
         integrated.arg_to_id[arg]
         for arg in integrated.arguments
-        if conc(arg).atom.predicate == "claim:target"
+        if _concludes_claim(arg, "claim:target")
     }
     attacker_ids = {
         integrated.arg_to_id[arg]
         for arg in integrated.arguments
-        if conc(arg).atom.predicate == "claim:exception-justification"
+        if _concludes_claim(arg, "claim:exception-justification")
     }
     assert attacker_ids <= grounded
     assert target_ids.isdisjoint(grounded)
