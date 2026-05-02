@@ -1,6 +1,6 @@
 # WS-P2: Condition Semantics Surface
 
-**Status**: CLOSED dbc1e3c4
+**Status**: CLOSED c5464445
 **Depends on**: WS-P, WS-N2
 **Blocks**: none
 **Owner**: Codex implementation owner + human reviewer required
