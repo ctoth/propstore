@@ -18,7 +18,11 @@ from propstore.provenance import (
     SupportEvidence,
     SupportQuality,
 )
-from propstore.z3_conditions import SolverUnknown, SolverUnknownReason, Z3ConditionSolver
+from propstore.core.conditions.solver import (
+    ConditionSolver,
+    SolverUnknown,
+    SolverUnknownReason,
+)
 
 
 def _support(*variables: SourceVariableId) -> SupportEvidence:
@@ -46,8 +50,8 @@ def _exception(
     )
 
 
-def _age_solver() -> Z3ConditionSolver:
-    return Z3ConditionSolver(
+def _age_solver() -> ConditionSolver:
+    return ConditionSolver(
         {
             "age": ConceptInfo(
                 id="concept:age",
@@ -121,6 +125,14 @@ def test_exception_lifts_iff_lifting_rule_licenses_target_context() -> None:
 
 def test_solver_unknown_is_not_treated_as_an_exception() -> None:
     class UnknownSolver:
+        _registry = {
+            "age": ConceptInfo(
+                id="concept:age",
+                canonical_name="age",
+                kind=KindType.QUANTITY,
+            )
+        }
+
         def is_condition_satisfied_result(self, condition, bindings):
             return SolverUnknown(SolverUnknownReason.TIMEOUT, "test timeout")
 
