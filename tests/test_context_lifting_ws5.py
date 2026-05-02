@@ -103,17 +103,17 @@ def test_lifting_exception_is_local_and_blocks_only_matching_target() -> None:
         ),
     )
 
-    materializations = system.materialize_lifted_assertions(
-        (IstProposition(context=source, proposition_id="claim_alpha"),)
-    )
+    assertion = IstProposition(context=source, proposition_id="claim_alpha")
+    decisions = system.lift_decisions_for(assertion)
 
-    by_target = {
-        str(item.target_context.id): item
-        for item in materializations
-    }
+    by_target = {str(item.target_context.id): item for item in decisions}
     assert by_target["ctx_target"].status is LiftingDecisionStatus.BLOCKED
-    assert by_target["ctx_target"].exception_id == "except-target-alpha"
+    assert by_target["ctx_target"].provenance.exception_id == "except-target-alpha"
     assert by_target["ctx_sibling"].status is LiftingDecisionStatus.LIFTED
+    assert {
+        str(item.target_context.id)
+        for item in system.materialize_lifted_assertions((assertion,))
+    } == {"ctx_sibling"}
 
 
 def test_lifting_rule_conditions_are_decision_gates() -> None:
