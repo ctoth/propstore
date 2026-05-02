@@ -780,18 +780,17 @@ class TestPreferenceConfig:
                 ),
             )
         )
-        bundle = GroundedRulesBundle(
-            source_rules=(rule_file,),
-            source_facts=(),
-            sections={
-                "yes": {
-                    "bird": frozenset({("tweety",)}),
-                    "penguin": frozenset({("tweety",)}),
-                },
-                "no": {},
-                "undecided": {},
-                "unknown": {},
-            },
+        from propstore.grounding.grounder import ground
+        from propstore.grounding.predicates import PredicateRegistry
+
+        bundle = ground(
+            (rule_file,),
+            (
+                GroundAtom("bird", ("tweety",)),
+                GroundAtom("penguin", ("tweety",)),
+            ),
+            PredicateRegistry(()),
+            return_arguments=True,
         )
 
         csaf = build_bridge_csaf([], [], [], bundle=bundle)
