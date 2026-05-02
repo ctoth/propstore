@@ -7,8 +7,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from propstore.conflict_detector import ConflictClass
+from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import to_cel_exprs
 from propstore.core.claim_types import ClaimType
+from propstore.core.conditions import check_condition_ir, checked_condition_set
 from propstore.core.environment import (
     ClaimCatalogStore,
     ClaimStanceInventoryStore,
@@ -244,6 +246,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         )
         for row in concept_rows
     )
+    cel_registry = build_store_cel_registry(concept_rows)
 
     claim_display_ids = {
             str(row.claim_id): (
@@ -262,6 +265,14 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     claim_type=(row.claim_type or ClaimType.UNKNOWN),
                     value_concept_id=row.value_concept_id,
                     scalar_value=row.value,
+                    checked_conditions=(
+                        None
+                        if not row.conditions_cel
+                        else checked_condition_set(
+                            check_condition_ir(condition, cel_registry)
+                            for condition in _parse_json_list(row.conditions_cel)
+                        )
+                    ),
                     provenance=_row_provenance(
                         row,
                         source_table="claim",
