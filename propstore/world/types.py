@@ -59,7 +59,6 @@ def _tuple(values: Iterable[_T]) -> tuple[_T, ...]:
 
 def _tuple_of_tuples(values: Iterable[Iterable[_T]]) -> tuple[tuple[_T, ...], ...]:
     return tuple(tuple(value) for value in values)
-    from propstore.z3_conditions import Z3ConditionSolver
 
 
 def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
