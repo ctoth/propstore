@@ -110,6 +110,10 @@ class ConditionSolver:
     def registry_fingerprint(self) -> str:
         return str(self._registry_fingerprint)
 
+    @property
+    def registry(self) -> Mapping[str, ConceptInfo]:
+        return self._registry
+
     def is_condition_satisfied(
         self,
         condition: CheckedCondition,

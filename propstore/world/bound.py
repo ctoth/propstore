@@ -334,7 +334,7 @@ class BoundWorld(BeliefSpace):
         if not self._binding_conds:
             return True
         solver = self._store.condition_solver()
-        registry = getattr(solver, "_registry")
+        registry = solver.registry
         return not solver.are_disjoint(
             checked_condition_set(
                 check_condition_ir(str(condition), registry)

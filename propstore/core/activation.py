@@ -133,11 +133,7 @@ def _raise_unknown_concept_if_present(
 def _retry_with_standard_bindings(
     solver: ConditionSolver,
 ) -> ConditionSolver:
-    try:
-        base_registry = getattr(solver, "_registry")
-    except AttributeError:
-        return solver
-
+    base_registry = solver.registry
     augmented_registry = with_standard_synthetic_bindings(base_registry)
     if augmented_registry == dict(base_registry):
         return solver
@@ -171,7 +167,7 @@ def is_claim_node_active(
         raise ValueError("A condition solver is required for conditional activation")
 
     try:
-        registry = getattr(solver, "_registry")
+        registry = solver.registry
         return not solver.are_disjoint(
             checked_condition_set(
                 check_condition_ir(str(condition), registry)
@@ -189,7 +185,7 @@ def is_claim_node_active(
         retry_solver = _retry_with_standard_bindings(
             solver,
         )
-        retry_registry = getattr(retry_solver, "_registry")
+        retry_registry = retry_solver.registry
         try:
             return not retry_solver.are_disjoint(
                 checked_condition_set(
@@ -236,7 +232,7 @@ def is_active_claim_active(
         raise ValueError("A condition solver is required for conditional activation")
 
     try:
-        registry = getattr(solver, "_registry")
+        registry = solver.registry
         return not solver.are_disjoint(
             checked_condition_set(
                 check_condition_ir(str(condition), registry)
@@ -254,7 +250,7 @@ def is_active_claim_active(
         retry_solver = _retry_with_standard_bindings(
             solver,
         )
-        retry_registry = getattr(retry_solver, "_registry")
+        retry_registry = retry_solver.registry
         try:
             return not retry_solver.are_disjoint(
                 checked_condition_set(
