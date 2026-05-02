@@ -5,6 +5,11 @@ from propstore.grounding.gunray_complement import GUNRAY_COMPLEMENT_ENCODER
 
 from .build import build_bridge_csaf
 from .grounding import grounded_rules_to_rules as _grounded_rules_to_rules
+from .lifting_projection import (
+    LiftingProjection,
+    LiftingProjectionRecord,
+    project_lifting_decisions,
+)
 from .projection import build_aspic_projection, csaf_to_projection
 from .query import ClaimQueryResult, query_claim
 from .translate import (
@@ -38,6 +43,9 @@ __all__ = [
     "csaf_to_projection",
     "grounded_rules_to_rules",
     "justifications_to_rules",
+    "LiftingProjection",
+    "LiftingProjectionRecord",
+    "project_lifting_decisions",
     "query_claim",
     "stances_to_contrariness",
 ]
