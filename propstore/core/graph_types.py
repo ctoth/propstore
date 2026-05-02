@@ -8,6 +8,7 @@ from typing import Any
 
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.core.conditions.checked import CheckedConditionSet
 from propstore.core.environment import Environment
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.graph_relation_types import (
@@ -189,6 +190,10 @@ class ClaimNode:
     claim_type: ClaimType
     value_concept_id: ConceptId | None = None
     scalar_value: float | str | None = None
+    checked_conditions: CheckedConditionSet | None = field(
+        default=None,
+        compare=False,
+    )
     provenance: ProvenanceRecord | None = None
     label: Label | None = field(default=None, compare=False)
     attributes: tuple[tuple[str, Any], ...] = ()
