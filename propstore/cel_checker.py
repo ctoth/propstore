@@ -12,7 +12,7 @@ type-checking only.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 
@@ -51,16 +51,11 @@ from cel_parser import (
 
 from propstore.cel_types import (
     CelExpr,
-    CheckedCelConditionSet,
-    CheckedCelExpr,
-    ParsedCelExpr,
-    checked_condition_set,
     to_cel_expr,
 )
 from propstore.core.conditions.registry import (
     ConceptInfo,
     KindType,
-    condition_registry_fingerprint,
 )
 
 
@@ -122,50 +117,6 @@ def check_cel_expression(
 
     _check_node(ast, str(source), registry, errors)
     return errors
-
-
-def parse_cel_expr(expr: str | CelExpr) -> ParsedCelExpr:
-    """Parse CEL source and brand it as `ParsedCelExpr`."""
-    source = to_cel_expr(expr)
-    return ParsedCelExpr(source=source, ast=parse(str(source)))
-
-
-def check_cel_expr(
-    expr: str | CelExpr,
-    registry: Mapping[str, ConceptInfo],
-) -> CheckedCelExpr:
-    """Parse and type-check one CEL expression, returning a checked carrier."""
-    source = to_cel_expr(expr)
-    try:
-        ast = parse(str(source))
-    except ParseError as exc:
-        raise ValueError(f"Parse error: {exc}") from exc
-    errors: list[CelError] = []
-    _check_node(ast, str(source), registry, errors)
-    hard_errors = [error for error in errors if not error.is_warning]
-    if hard_errors:
-        message = "; ".join(error.message for error in hard_errors)
-        raise ValueError(message)
-    return CheckedCelExpr._create(
-        source=source,
-        ast=ast,
-        registry_fingerprint=condition_registry_fingerprint(registry),
-        warnings=tuple(error for error in errors if error.is_warning),
-    )
-
-
-def check_cel_condition_set(
-    conditions: Sequence[str | CelExpr],
-    registry: Mapping[str, ConceptInfo],
-) -> CheckedCelConditionSet:
-    """Parse, type-check, deduplicate, and sort a conjunction of CEL conditions."""
-    checked = [check_cel_expr(condition, registry) for condition in conditions]
-    if not checked:
-        return CheckedCelConditionSet(
-            conditions=(),
-            registry_fingerprint=condition_registry_fingerprint(registry),
-        )
-    return checked_condition_set(checked)
 
 
 # ── AST inspection helpers ───────────────────────────────────────────
