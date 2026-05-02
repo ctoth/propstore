@@ -5,18 +5,23 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 
-from argumentation.aspic import GroundAtom, KnowledgeBase, Literal, Rule
+from argumentation.aspic import (
+    ArgumentationSystem,
+    ContrarinessFn,
+    GroundAtom,
+    KnowledgeBase,
+    Literal,
+    PreferenceConfig,
+    Rule,
+)
 from argumentation.datalog_grounding import (
     GroundedDatalogTheory,
-    ground_defeasible_theory,
     grounding_inspection_to_aspic,
 )
 from argumentation.preference import strict_partial_order_closure
 from propstore.core.literal_keys import LiteralKey, ground_key
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.complement import ComplementEncoder
-from propstore.grounding.predicates import PredicateRegistry
-from propstore.grounding.translator import translate_to_theory
 
 _GroundFactKey = tuple[str, bool]
 
@@ -85,21 +90,35 @@ def _project_bundle(bundle: GroundedRulesBundle) -> GroundedDatalogTheory:
             inspection,
             superiority=_source_superiority(bundle),
         )
-
-    theory = translate_to_theory(
-        bundle.source_rules,
-        _fallback_facts(bundle),
-        PredicateRegistry(()),
+    if not bundle.source_rules and not bundle.source_facts:
+        return _empty_grounded_theory()
+    raise ValueError(
+        "GroundedRulesBundle must carry Gunray grounding_inspection for ASPIC projection"
     )
-    return ground_defeasible_theory(theory)
 
 
-def _fallback_facts(bundle: GroundedRulesBundle) -> tuple[GroundAtom, ...]:
-    facts: set[GroundAtom] = set(bundle.source_facts)
-    for predicate_id, rows in bundle.sections.get("yes", {}).items():
-        for row in rows:
-            facts.add(GroundAtom(predicate_id, tuple(row)))
-    return tuple(sorted(facts, key=lambda atom: (atom.predicate, atom.arguments)))
+def _empty_grounded_theory() -> GroundedDatalogTheory:
+    return GroundedDatalogTheory(
+        system=ArgumentationSystem(
+            language=frozenset(),
+            contrariness=ContrarinessFn(
+                contradictories=frozenset(),
+                contraries=frozenset(),
+            ),
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset(),
+        ),
+        kb=KnowledgeBase(axioms=frozenset(), premises=frozenset()),
+        pref=PreferenceConfig(
+            rule_order=frozenset(),
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="last",
+        ),
+        inspection=None,  # type: ignore[arg-type]
+        source_to_ground_rules={},
+        non_approximated_predicates=frozenset(),
+    )
 
 
 def _extend_literals(
