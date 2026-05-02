@@ -37,7 +37,10 @@ def test_z3_solver_snapshots_category_registry(original: list[str], added: str) 
 
     registry["kind"].category_values.append(added)
 
-    with pytest.raises(Z3TranslationError, match="not in value set|Unknown category value"):
+    with pytest.raises(
+        Z3TranslationError,
+        match="different condition registry|not in value set|Unknown category value",
+    ):
         solver.is_condition_satisfied(
             check_condition_ir(f"kind == '{added}'", registry),
             {"kind": added},
