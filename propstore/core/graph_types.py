@@ -4,11 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+import json
 from typing import Any
 
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.claim_types import ClaimType, coerce_claim_type
-from propstore.core.conditions.checked import CheckedConditionSet
+from propstore.core.conditions.checked import (
+    CheckedCondition,
+    CheckedConditionSet,
+)
+from propstore.core.conditions.codec import condition_ir_from_json
 from propstore.core.environment import Environment
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.graph_relation_types import (
@@ -98,6 +103,57 @@ def label_from_dict(data: list[list[str]] | None) -> Label | None:
     if data is None:
         return None
     return Label(tuple(EnvironmentKey(to_assumption_ids(environment)) for environment in data))
+
+
+def _condition_to_dict(condition: CheckedCondition) -> dict[str, Any]:
+    return {
+        "source": condition.source,
+        "registry_fingerprint": condition.registry_fingerprint,
+        "warnings": list(condition.warnings),
+        "encoded_ir": condition.encoded_ir,
+    }
+
+
+def _condition_from_dict(data: Mapping[str, Any]) -> CheckedCondition:
+    encoded_ir = data.get("encoded_ir")
+    if not isinstance(encoded_ir, str) or not encoded_ir:
+        raise ValueError("graph condition requires encoded_ir")
+    source = data.get("source")
+    if not isinstance(source, str) or not source:
+        raise ValueError("graph condition requires source")
+    registry_fingerprint = data.get("registry_fingerprint")
+    if not isinstance(registry_fingerprint, str) or not registry_fingerprint:
+        raise ValueError("graph condition requires registry_fingerprint")
+    warnings = data.get("warnings") or ()
+    if not isinstance(warnings, list | tuple):
+        raise ValueError("graph condition warnings must be a sequence")
+    return CheckedCondition(
+        source=source,
+        ir=condition_ir_from_json(json.loads(encoded_ir)),
+        registry_fingerprint=registry_fingerprint,
+        warnings=tuple(str(warning) for warning in warnings),
+        encoded_ir=encoded_ir,
+    )
+
+
+def _condition_set_from_dicts(
+    values: object,
+) -> CheckedConditionSet | None:
+    if not values:
+        return None
+    if not isinstance(values, list | tuple):
+        raise ValueError("graph claim conditions_ir must be a sequence")
+    conditions = tuple(
+        _condition_from_dict(item)
+        for item in values
+        if isinstance(item, Mapping)
+    )
+    if len(conditions) != len(values):
+        raise ValueError("graph claim conditions_ir entries must be mappings")
+    return CheckedConditionSet(
+        conditions=conditions,
+        registry_fingerprint=conditions[0].registry_fingerprint,
+    )
 
 
 @dataclass(frozen=True, order=True)
@@ -211,6 +267,11 @@ class ClaimNode:
             data["value_concept_id"] = self.value_concept_id
         if self.scalar_value is not None:
             data["scalar_value"] = self.scalar_value
+        if self.checked_conditions is not None and self.checked_conditions.conditions:
+            data["conditions_ir"] = [
+                _condition_to_dict(condition)
+                for condition in self.checked_conditions.conditions
+            ]
         if self.provenance is not None:
             data["provenance"] = self.provenance.to_dict()
         if self.label is not None:
@@ -231,6 +292,7 @@ class ClaimNode:
             ),
             claim_type=_require_claim_type(data["claim_type"]),
             scalar_value=data.get("scalar_value"),
+            checked_conditions=_condition_set_from_dicts(data.get("conditions_ir")),
             provenance=(
                 None
                 if provenance_data is None
