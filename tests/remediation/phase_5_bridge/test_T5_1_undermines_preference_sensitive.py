@@ -29,6 +29,13 @@ def _reported(claim_id: str) -> CanonicalJustification:
     )
 
 
+def _conclusion_claim_id(arg) -> str:
+    literal = conc(arg)
+    if literal.atom.predicate == "ist" and len(literal.atom.arguments) == 2:
+        return str(literal.atom.arguments[1])
+    return literal.atom.predicate
+
+
 def test_undermines_is_preference_sensitive() -> None:
     claims = [
         _claim("claim:strong-target", confidence=0.9, sample_size=200),
@@ -56,12 +63,12 @@ def test_undermines_is_preference_sensitive() -> None:
     attacker_ids = {
         csaf.arg_to_id[arg]
         for arg in csaf.arguments
-        if conc(arg).atom.predicate == "claim:weak-attacker"
+        if _conclusion_claim_id(arg) == "claim:weak-attacker"
     }
     target_ids = {
         csaf.arg_to_id[arg]
         for arg in csaf.arguments
-        if conc(arg).atom.predicate == "claim:strong-target"
+        if _conclusion_claim_id(arg) == "claim:strong-target"
     }
     undermining_edges = {
         (attacker_id, target_id)
