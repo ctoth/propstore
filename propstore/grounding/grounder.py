@@ -40,13 +40,14 @@ Theoretical anchors:
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 
 import gunray
 
 from argumentation.aspic import GroundAtom, Scalar
-from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.bundle import GroundedRulesBundle, GroundingProjectionFrame
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.grounding.translator import translate_to_theory
 from propstore.rule_files import LoadedRuleFile
@@ -205,6 +206,11 @@ def ground(
         sections=normalized_sections,
         arguments=sorted_arguments,
         grounding_inspection=grounding_inspection,
+        projection_frames=_projection_frames(
+            facts,
+            normalized_sections,
+            grounding_inspection,
+        ),
     )
 
 
@@ -295,3 +301,71 @@ def _normalise_sections(
         normalized[name] = MappingProxyType(inner_frozen)
 
     return MappingProxyType(normalized)
+
+
+def _projection_frames(
+    source_facts: tuple[GroundAtom, ...],
+    sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]],
+    inspection: "gunray.GroundingInspection | None",
+) -> tuple[GroundingProjectionFrame, ...]:
+    frames: dict[str, GroundingProjectionFrame] = {}
+    for fact in source_facts:
+        atom = GroundAtom(fact.predicate, tuple(fact.arguments))
+        backend_atom_id = _backend_atom_id(atom)
+        frames[backend_atom_id] = GroundingProjectionFrame(
+            backend_atom=atom,
+            backend_atom_id=backend_atom_id,
+            section=_section_for_atom(atom, sections),
+            source_fact_ids=(backend_atom_id,),
+        )
+
+    if inspection is None:
+        return tuple(sorted(frames.values(), key=lambda frame: frame.backend_atom_id))
+
+    for instance in _inspection_rule_instances(inspection):
+        atom = GroundAtom(instance.head.predicate, tuple(instance.head.arguments))
+        backend_atom_id = _backend_atom_id(atom)
+        existing = frames.get(backend_atom_id)
+        source_fact_ids = () if existing is None else existing.source_fact_ids
+        frames[backend_atom_id] = GroundingProjectionFrame(
+            backend_atom=atom,
+            backend_atom_id=backend_atom_id,
+            section=_section_for_atom(atom, sections),
+            source_rule_ids=(instance.rule_id,),
+            source_fact_ids=source_fact_ids,
+            substitutions=(tuple(instance.substitution),),
+        )
+    return tuple(sorted(frames.values(), key=lambda frame: frame.backend_atom_id))
+
+
+def _inspection_rule_instances(
+    inspection: "gunray.GroundingInspection",
+) -> tuple["gunray.GroundRuleInstance", ...]:
+    return tuple(
+        getattr(inspection, name, ())
+        for name in ("strict_rules", "defeasible_rules", "defeater_rules")
+    )[0] + tuple(getattr(inspection, "defeasible_rules", ())) + tuple(
+        getattr(inspection, "defeater_rules", ())
+    )
+
+
+def _section_for_atom(
+    atom: GroundAtom,
+    sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]],
+) -> str:
+    args = tuple(atom.arguments)
+    for section_name in _FOUR_SECTIONS:
+        if args in sections.get(section_name, {}).get(atom.predicate, frozenset()):
+            return section_name
+    return "unknown"
+
+
+def _backend_atom_id(atom: GroundAtom) -> str:
+    return json.dumps(
+        {
+            "predicate": atom.predicate,
+            "arguments": list(atom.arguments),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
