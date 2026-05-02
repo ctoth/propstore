@@ -114,6 +114,18 @@ def _bundle_with_four_statuses():
     )
 
 
+def _runtime_grounded_bundle():
+    from propstore.grounding.grounder import ground
+    from propstore.grounding.predicates import PredicateRegistry
+
+    return ground(
+        (),
+        (GroundAtom("bird", ("tweety",)),),
+        PredicateRegistry(()),
+        return_arguments=True,
+    )
+
+
 def test_ws7_extract_facts_materializes_claim_structural_sources() -> None:
     from propstore.grounding.facts import GroundingFactInputs, extract_facts
 
@@ -180,7 +192,7 @@ def test_ws7_sidecar_runtime_bundle_preserves_four_statuses() -> None:
     from propstore.sidecar.rules import (
         create_grounded_fact_table,
         populate_grounded_facts,
-        read_grounded_bundle,
+        read_grounded_facts,
     )
 
     conn = sqlite3.connect(":memory:")
@@ -188,9 +200,9 @@ def test_ws7_sidecar_runtime_bundle_preserves_four_statuses() -> None:
     bundle = _bundle_with_four_statuses()
 
     populate_grounded_facts(conn, bundle)
-    restored = read_grounded_bundle(conn)
+    restored = read_grounded_facts(conn)
 
-    assert restored.sections == bundle.sections
+    assert restored == bundle.sections
 
 
 def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
@@ -226,17 +238,12 @@ def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
     create_context_tables(conn)
     create_claim_tables(conn)
     create_grounded_fact_table(conn)
-    populate_grounded_facts(conn, _bundle_with_four_statuses())
+    populate_grounded_facts(conn, _runtime_grounded_bundle())
     conn.commit()
     conn.close()
 
     with WorldQuery(sidecar_path=sidecar_path) as world:
         bundle = world.grounding_bundle()
 
-    assert bundle.sections["unknown"]["flies"] == frozenset({("tweety",)})
-    assert bundle.sections["no"]["grounded_out"] == frozenset(
-        {("claim-flight",)}
-    )
-    assert bundle.sections["undecided"]["contested"] == frozenset(
-        {("claim-flight",)}
-    )
+    assert bundle.sections["yes"]["bird"] == frozenset({("tweety",)})
+    assert bundle.grounding_inspection is not None
