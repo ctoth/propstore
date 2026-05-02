@@ -54,6 +54,7 @@ I verified the final passing gates in this session. I do not have a single prese
 - Final current-code full suite: `logs/test-runs/WS-P2-full-final2-20260502-143135.log` - 3426 passed, 2 skipped.
 - Final Pyright: `uv run pyright propstore` - 0 errors, 0 warnings, 0 informations.
 - Final Claude rule review after `c5464445`: `CLOSE`; blockers: none.
+- Closure-artifact docs sentinel after final evidence refresh: `logs/test-runs/condition-docs-final-20260502-144400.log` - 2 passed.
 
 ## Property Gates
 
