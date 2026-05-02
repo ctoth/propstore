@@ -5,18 +5,15 @@ against the concept registry's kind system. The parser produces a proto-faithful
 AST where every operator is a `Call(function="_+_", target=None, args=...)`;
 this module dispatches on those canonical function names.
 
-For the wider concept-typing API surface (`KindType`, `ConceptInfo`,
-`check_cel_expr`, `check_cel_condition_set`, `cel_registry_fingerprint`,
-`scope_cel_registry`, `with_synthetic_concepts`, `synthetic_category_concept`,
-`with_standard_synthetic_bindings`), see the public functions below.
+For the wider concept-typing API surface, use
+``propstore.core.conditions.registry``. This module owns CEL syntax and
+type-checking only.
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
-from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from enum import Enum
 
 from cel_parser import (
@@ -52,95 +49,19 @@ from cel_parser import (
     parse,
 )
 
-from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES as _STANDARD_SYNTHETIC_BINDING_NAMES
 from propstore.cel_types import (
     CelExpr,
-    CelRegistryFingerprint,
     CheckedCelConditionSet,
     CheckedCelExpr,
     ParsedCelExpr,
     checked_condition_set,
     to_cel_expr,
 )
-
-
-class KindType(Enum):
-    QUANTITY = "quantity"
-    CATEGORY = "category"
-    BOOLEAN = "boolean"
-    STRUCTURAL = "structural"
-    TIMEPOINT = "timepoint"
-
-
-@dataclass
-class ConceptInfo:
-    """Minimal concept info needed for type-checking."""
-
-    id: str
-    canonical_name: str
-    kind: KindType
-    category_values: list[str] = field(default_factory=list)
-    category_extensible: bool = True
-
-
-def scope_cel_registry(
-    registry: Mapping[str, ConceptInfo],
-    concept_ids: set[str] | frozenset[str] | list[str] | tuple[str, ...],
-) -> dict[str, ConceptInfo]:
-    """Return the canonical-name keyed subset for the requested concept ids."""
-    scoped_ids = {str(concept_id) for concept_id in concept_ids}
-    return {
-        canonical_name: info
-        for canonical_name, info in registry.items()
-        if info.id in scoped_ids
-    }
-
-
-def with_synthetic_concepts(
-    registry: Mapping[str, ConceptInfo],
-    concepts: Iterable[ConceptInfo],
-) -> dict[str, ConceptInfo]:
-    """Return a copy of *registry* augmented with synthetic CEL concepts."""
-    result = dict(registry)
-    for info in concepts:
-        result[info.canonical_name] = info
-    return result
-
-
-def synthetic_category_concept(
-    *,
-    concept_id: str,
-    canonical_name: str,
-    values: Sequence[str],
-    extensible: bool,
-) -> ConceptInfo:
-    """Build a synthetic category concept for CEL-only runtime state."""
-    return ConceptInfo(
-        id=concept_id,
-        canonical_name=canonical_name,
-        kind=KindType.CATEGORY,
-        category_values=[value for value in values if isinstance(value, str)],
-        category_extensible=extensible,
-    )
-
-
-def with_standard_synthetic_bindings(
-    registry: Mapping[str, ConceptInfo],
-) -> dict[str, ConceptInfo]:
-    """Augment a registry with standard non-concept CEL binding dimensions."""
-    synthetic_concepts = [
-        synthetic_category_concept(
-            concept_id=f"ps:concept:__{canonical_name}__",
-            canonical_name=canonical_name,
-            values=(),
-            extensible=True,
-        )
-        for canonical_name in _STANDARD_SYNTHETIC_BINDING_NAMES
-        if canonical_name not in registry
-    ]
-    if not synthetic_concepts:
-        return dict(registry)
-    return with_synthetic_concepts(registry, synthetic_concepts)
+from propstore.core.conditions.registry import (
+    ConceptInfo,
+    KindType,
+    condition_registry_fingerprint,
+)
 
 
 @dataclass
@@ -209,25 +130,6 @@ def parse_cel_expr(expr: str | CelExpr) -> ParsedCelExpr:
     return ParsedCelExpr(source=source, ast=parse(str(source)))
 
 
-def cel_registry_fingerprint(
-    registry: Mapping[str, ConceptInfo],
-) -> CelRegistryFingerprint:
-    """Return a deterministic fingerprint of CEL-relevant registry semantics."""
-    payload = [
-        {
-            "canonical_name": canonical_name,
-            "id": info.id,
-            "kind": info.kind.value,
-            "category_values": sorted(info.category_values),
-            "category_extensible": info.category_extensible,
-        }
-        for canonical_name, info in sorted(registry.items())
-    ]
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-    return CelRegistryFingerprint(f"sha256:{digest}")
-
-
 def check_cel_expr(
     expr: str | CelExpr,
     registry: Mapping[str, ConceptInfo],
@@ -247,7 +149,7 @@ def check_cel_expr(
     return CheckedCelExpr._create(
         source=source,
         ast=ast,
-        registry_fingerprint=cel_registry_fingerprint(registry),
+        registry_fingerprint=condition_registry_fingerprint(registry),
         warnings=tuple(error for error in errors if error.is_warning),
     )
 
@@ -261,7 +163,7 @@ def check_cel_condition_set(
     if not checked:
         return CheckedCelConditionSet(
             conditions=(),
-            registry_fingerprint=cel_registry_fingerprint(registry),
+            registry_fingerprint=condition_registry_fingerprint(registry),
         )
     return checked_condition_set(checked)
 

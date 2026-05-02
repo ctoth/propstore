@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from propstore.cel_checker import (
+from propstore.core.conditions.registry import (
     ConceptInfo,
     synthetic_category_concept,
     with_synthetic_concepts,

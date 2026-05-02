@@ -9,7 +9,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Mapping, cast
 
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
-from propstore.cel_checker import ConceptInfo
+from propstore.core.conditions.registry import ConceptInfo
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.claims import ClaimFileEntry
 from quire.references import (

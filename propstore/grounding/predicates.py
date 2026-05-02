@@ -38,7 +38,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-from propstore.cel_checker import KindType
+from propstore.core.conditions.registry import KindType
 from propstore.families.documents.predicates import PredicateDocument
 from propstore.predicate_files import LoadedPredicateFile
 

@@ -14,7 +14,7 @@ from .context import _append_context_classified_record, _claim_context
 from .models import ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.cel_checker import ConceptInfo
+    from propstore.core.conditions.registry import ConceptInfo
     from propstore.context_lifting import LiftingSystem
 
 

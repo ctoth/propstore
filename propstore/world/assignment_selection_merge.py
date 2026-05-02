@@ -19,10 +19,10 @@ from typing import Any, overload
 
 from propstore.cel_checker import (
     check_cel_expr,
-    scope_cel_registry,
 )
 from propstore.cel_types import CheckedCelExpr
 from propstore.core.anytime import EnumerationExceeded
+from propstore.core.conditions.registry import scope_condition_registry
 from propstore.world.types import (
     AssignmentSelectionProblem,
     AssignmentSelectionResult,
@@ -176,7 +176,7 @@ def _scoped_cel_registry(constraint: IntegrityConstraint) -> dict[str, Any]:
     registry = constraint.metadata.get("registry")
     if not isinstance(registry, Mapping):
         raise TypeError("CEL integrity constraint requires metadata['registry']")
-    return scope_cel_registry(registry, constraint.concept_ids)
+    return scope_condition_registry(registry, constraint.concept_ids)
 
 
 def _cel_bindings(

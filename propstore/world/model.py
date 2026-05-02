@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from propstore.cel_checker import (
+from propstore.core.conditions.registry import (
     ConceptInfo,
     KindType,
     with_standard_synthetic_bindings,

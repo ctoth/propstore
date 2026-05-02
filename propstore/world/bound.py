@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from propstore.cel_checker import ConceptInfo
+from propstore.core.conditions.registry import ConceptInfo
 from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.activation import is_active_claim_active

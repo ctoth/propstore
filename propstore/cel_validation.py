@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from propstore.cel_checker import ConceptInfo
+    from propstore.core.conditions.registry import ConceptInfo
 
 
 class CelIngestValidationError(ValueError):

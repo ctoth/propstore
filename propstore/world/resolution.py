@@ -13,9 +13,9 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import cast
 
-from propstore.cel_checker import (
+from propstore.core.conditions.registry import (
     ConceptInfo,
-    scope_cel_registry,
+    scope_condition_registry,
 )
 from propstore.cel_registry import build_store_cel_registry
 from propstore.core.active_claims import (
@@ -302,7 +302,7 @@ def _cel_registry_for_concepts(
         if (concept := world.get_concept(concept_id)) is not None
     ]
     registry = build_store_cel_registry(rows)
-    return scope_cel_registry(registry, tuple(concept_ids))
+    return scope_condition_registry(registry, tuple(concept_ids))
 
 
 def _enriched_policy_integrity_constraints(

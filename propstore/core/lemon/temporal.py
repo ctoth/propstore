@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import StrEnum
 
 from quire.documents import DocumentStruct
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.cel_types import CelExpr
 from propstore.provenance import Provenance
 from propstore.z3_conditions import Z3ConditionSolver

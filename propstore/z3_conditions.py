@@ -18,17 +18,34 @@ from enum import StrEnum
 from types import MappingProxyType
 from typing import Any
 
+from cel_parser import (
+    OP_ADD,
+    OP_AND,
+    OP_DIV,
+    OP_EQ,
+    OP_GE,
+    OP_GT,
+    OP_IN,
+    OP_LE,
+    OP_LT,
+    OP_MUL,
+    OP_NE,
+    OP_NEG,
+    OP_NOT,
+    OP_OR,
+    OP_SUB,
+    OP_TERNARY,
+    BoolLit,
+    Call,
+    CreateList,
+    DoubleLit,
+    Expr,
+    Ident,
+    IntLit,
+    StringLit,
+    UintLit,
+)
 from propstore.cel_checker import (
-    ASTNode,
-    BinaryOpNode,
-    ConceptInfo,
-    InNode,
-    KindType,
-    LiteralNode,
-    NameNode,
-    TernaryNode,
-    UnaryOpNode,
-    cel_registry_fingerprint,
     check_cel_condition_set,
     check_cel_expr,
 )
@@ -38,8 +55,22 @@ from propstore.cel_types import (
     CheckedCelExpr,
     checked_condition_set,
 )
+from propstore.core.conditions.registry import (
+    ConceptInfo,
+    KindType,
+    condition_registry_fingerprint,
+)
 
 import z3
+
+
+_BINARY_OPS = frozenset(
+    {
+        OP_ADD, OP_SUB, OP_MUL, OP_DIV,
+        OP_EQ, OP_NE, OP_LT, OP_LE, OP_GT, OP_GE,
+        OP_AND, OP_OR,
+    }
+)
 
 
 DEFAULT_Z3_TIMEOUT_MS = 30_000
@@ -134,7 +165,7 @@ class Z3ConditionSolver:
                 for name, info in registry.items()
             }
         )
-        self._registry_fingerprint = cel_registry_fingerprint(registry)
+        self._registry_fingerprint = condition_registry_fingerprint(registry)
         if timeout_ms <= 0:
             raise ValueError("Z3 timeout must be a positive number of milliseconds")
         self._timeout_ms = timeout_ms
@@ -194,36 +225,34 @@ class Z3ConditionSolver:
             raise Z3TranslationError(f"Undefined concept: '{name}'")
         return info
 
-    def _translate(self, node: ASTNode) -> _Z3Projection:
+    def _translate(self, node: Expr) -> _Z3Projection:
         """Translate a CEL AST node to a Z3 expression."""
-        if isinstance(node, LiteralNode):
-            return self._translate_literal(node)
-        if isinstance(node, NameNode):
-            return self._translate_name(node)
-        if isinstance(node, BinaryOpNode):
-            return self._translate_binary(node)
-        if isinstance(node, UnaryOpNode):
-            return self._translate_unary(node)
-        if isinstance(node, InNode):
-            return self._translate_in(node)
-        if isinstance(node, TernaryNode):
-            return self._translate_ternary(node)
-        raise Z3TranslationError(f"Unknown AST node type: {type(node)}")
-
-    def _translate_literal(self, node: LiteralNode) -> _Z3Projection:
-        if node.lit_type in ("int", "float"):
-            return _Z3Projection(z3.RealVal(node.value, self._ctx), self._defined_true)
-        if node.lit_type == "bool":
-            return _Z3Projection(z3.BoolVal(node.value, self._ctx), self._defined_true)
-        if node.lit_type == "string":
-            # String literals are resolved against enum sorts at comparison time
-            # Return a sentinel — actual resolution happens in _translate_binary
+        if isinstance(node, (IntLit, UintLit, DoubleLit)):
+            return _Z3Projection(
+                z3.RealVal(node.value, self._ctx), self._defined_true
+            )
+        if isinstance(node, BoolLit):
+            return _Z3Projection(
+                z3.BoolVal(node.value, self._ctx), self._defined_true
+            )
+        if isinstance(node, StringLit):
             raise Z3TranslationError(
                 f"Bare string literal '{node.value}' — should be resolved at comparison site"
             )
-        raise Z3TranslationError(f"Unknown literal type: {node.lit_type}")
+        if isinstance(node, Ident):
+            return self._translate_name(node)
+        if isinstance(node, Call) and node.target is None:
+            if node.function in _BINARY_OPS and len(node.args) == 2:
+                return self._translate_binary(node)
+            if node.function in (OP_NOT, OP_NEG) and len(node.args) == 1:
+                return self._translate_unary(node)
+            if node.function == OP_IN and len(node.args) == 2:
+                return self._translate_in(node)
+            if node.function == OP_TERNARY and len(node.args) == 3:
+                return self._translate_ternary(node)
+        raise Z3TranslationError(f"Unknown AST node type: {type(node).__name__}")
 
-    def _translate_name(self, node: NameNode) -> _Z3Projection:
+    def _translate_name(self, node: Ident) -> _Z3Projection:
         info = self._require_concept(node.name)
         if info.kind in (KindType.QUANTITY, KindType.TIMEPOINT):
             return _Z3Projection(self._get_real(node.name), self._defined_true)
@@ -238,11 +267,12 @@ class Z3ConditionSolver:
             f"Structural concept '{node.name}' cannot appear in CEL expressions"
         )
 
-    def _translate_binary(self, node: BinaryOpNode) -> _Z3Projection:
-        # Logical operators
-        if node.op == "&&":
-            left = self._translate(node.left)
-            right = self._translate(node.right)
+    def _translate_binary(self, node: Call) -> _Z3Projection:
+        op = node.function
+        left_node, right_node = node.args
+        if op == OP_AND:
+            left = self._translate(left_node)
+            right = self._translate(right_node)
             return _Z3Projection(
                 z3.And(left.value, right.value),
                 z3.Or(
@@ -251,9 +281,9 @@ class Z3ConditionSolver:
                     z3.And(left.defined, right.defined),
                 ),
             )
-        if node.op == "||":
-            left = self._translate(node.left)
-            right = self._translate(node.right)
+        if op == OP_OR:
+            left = self._translate(left_node)
+            right = self._translate(right_node)
             return _Z3Projection(
                 z3.Or(left.value, right.value),
                 z3.Or(
@@ -263,54 +293,51 @@ class Z3ConditionSolver:
                 ),
             )
 
-        # Category comparisons need special handling
-        if node.op in ("==", "!="):
+        if op in (OP_EQ, OP_NE):
             result = self._try_category_comparison(node)
             if result is not None:
                 return result
 
-        left = self._translate(node.left)
-        right = self._translate(node.right)
+        left = self._translate(left_node)
+        right = self._translate(right_node)
         defined = z3.And(left.defined, right.defined)
 
-        # Arithmetic
-        if node.op == "+":
+        if op == OP_ADD:
             return _Z3Projection(left.value + right.value, defined)
-        if node.op == "-":
+        if op == OP_SUB:
             return _Z3Projection(left.value - right.value, defined)
-        if node.op == "*":
+        if op == OP_MUL:
             return _Z3Projection(left.value * right.value, defined)
-        if node.op == "/":
+        if op == OP_DIV:
             zero = z3.RealVal(0, self._ctx)
             return _Z3Projection(
                 left.value / right.value,
                 z3.And(defined, right.value != zero),
             )
 
-        # Comparisons
-        if node.op == "<":
+        if op == OP_LT:
             return _Z3Projection(left.value < right.value, defined)
-        if node.op == ">":
+        if op == OP_GT:
             return _Z3Projection(left.value > right.value, defined)
-        if node.op == "<=":
+        if op == OP_LE:
             return _Z3Projection(left.value <= right.value, defined)
-        if node.op == ">=":
+        if op == OP_GE:
             return _Z3Projection(left.value >= right.value, defined)
-        if node.op == "==":
+        if op == OP_EQ:
             return _Z3Projection(left.value == right.value, defined)
-        if node.op == "!=":
+        if op == OP_NE:
             return _Z3Projection(left.value != right.value, defined)
 
-        raise Z3TranslationError(f"Unknown binary operator: {node.op}")
+        raise Z3TranslationError(f"Unknown binary operator: {op}")
 
-    def _try_category_comparison(self, node: BinaryOpNode) -> _Z3Projection | None:
+    def _try_category_comparison(self, node: Call) -> _Z3Projection | None:
         """Handle category == 'value' or category != 'value'."""
-        # Identify which side is the name and which is the string literal
+        left_node, right_node = node.args
         name_node, lit_node = None, None
-        if isinstance(node.left, NameNode) and isinstance(node.right, LiteralNode) and node.right.lit_type == "string":
-            name_node, lit_node = node.left, node.right
-        elif isinstance(node.right, NameNode) and isinstance(node.left, LiteralNode) and node.left.lit_type == "string":
-            name_node, lit_node = node.right, node.left
+        if isinstance(left_node, Ident) and isinstance(right_node, StringLit):
+            name_node, lit_node = left_node, right_node
+        elif isinstance(right_node, Ident) and isinstance(left_node, StringLit):
+            name_node, lit_node = right_node, left_node
         else:
             return None
 
@@ -321,9 +348,9 @@ class Z3ConditionSolver:
         if info.category_extensible:
             const = self._get_string(name_node.name)
             value = z3.StringVal(lit_node.value, self._ctx)
-            if node.op == "==":
+            if node.function == OP_EQ:
                 return _Z3Projection(const == value, self._defined_true)
-            if node.op == "!=":
+            if node.function == OP_NE:
                 return _Z3Projection(const != value, self._defined_true)
             return None
 
@@ -334,31 +361,34 @@ class Z3ConditionSolver:
                 f"Unknown category value '{lit_node.value}' for concept '{name_node.name}'"
             )
 
-        if node.op == "==":
+        if node.function == OP_EQ:
             return _Z3Projection(const == z3_val, self._defined_true)
-        if node.op == "!=":
+        if node.function == OP_NE:
             return _Z3Projection(const != z3_val, self._defined_true)
         return None
 
-    def _translate_unary(self, node: UnaryOpNode) -> _Z3Projection:
-        operand = self._translate(node.operand)
-        if node.op == "!":
+    def _translate_unary(self, node: Call) -> _Z3Projection:
+        operand = self._translate(node.args[0])
+        if node.function == OP_NOT:
             return _Z3Projection(z3.Not(operand.value), operand.defined)
-        if node.op == "-":
+        if node.function == OP_NEG:
             return _Z3Projection(-operand.value, operand.defined)
-        raise Z3TranslationError(f"Unknown unary operator: {node.op}")
+        raise Z3TranslationError(f"Unknown unary operator: {node.function}")
 
-    def _translate_in(self, node: InNode) -> _Z3Projection:
+    def _translate_in(self, node: Call) -> _Z3Projection:
         """Translate 'expr in [v1, v2, ...]'."""
-        # Check if LHS is a category concept
-        if isinstance(node.expr, NameNode):
-            info = self._require_concept(node.expr.name)
+        element, list_expr = node.args
+        if not isinstance(list_expr, CreateList):
+            raise Z3TranslationError("'in' rhs must be a list literal")
+        values = list_expr.elements
+        if isinstance(element, Ident):
+            info = self._require_concept(element.name)
             if info.kind == KindType.CATEGORY:
                 if info.category_extensible:
-                    const = self._get_string(node.expr.name)
+                    const = self._get_string(element.name)
                     clauses = []
-                    for v in node.values:
-                        if not isinstance(v, LiteralNode) or v.lit_type != "string":
+                    for v in values:
+                        if not isinstance(v, StringLit):
                             raise Z3TranslationError("Non-string in category 'in' list")
                         clauses.append(const == z3.StringVal(v.value, self._ctx))
                     if not clauses:
@@ -366,14 +396,14 @@ class Z3ConditionSolver:
                     value = z3.Or(*clauses) if len(clauses) > 1 else clauses[0]
                     return _Z3Projection(value, self._defined_true)
 
-                const, val_map = self._get_enum(node.expr.name)
+                const, val_map = self._get_enum(element.name)
                 clauses = []
-                for v in node.values:
-                    if isinstance(v, LiteralNode) and v.lit_type == "string":
+                for v in values:
+                    if isinstance(v, StringLit):
                         z3_val = val_map.get(v.value)
                         if z3_val is None:
                             raise Z3TranslationError(
-                                f"Unknown category value '{v.value}' for concept '{node.expr.name}'"
+                                f"Unknown category value '{v.value}' for concept '{element.name}'"
                             )
                         clauses.append(const == z3_val)
                     else:
@@ -383,11 +413,10 @@ class Z3ConditionSolver:
                 value = z3.Or(*clauses) if len(clauses) > 1 else clauses[0]
                 return _Z3Projection(value, self._defined_true)
 
-        # Numeric 'in' — x in [1, 2, 3] -> x == 1 || x == 2 || x == 3
-        lhs = self._translate(node.expr)
+        lhs = self._translate(element)
         clauses = []
         defined = lhs.defined
-        for v in node.values:
+        for v in values:
             projected = self._translate(v)
             defined = z3.And(defined, projected.defined)
             clauses.append(lhs.value == projected.value)
@@ -396,10 +425,11 @@ class Z3ConditionSolver:
         value = z3.Or(*clauses) if len(clauses) > 1 else clauses[0]
         return _Z3Projection(value, defined)
 
-    def _translate_ternary(self, node: TernaryNode) -> _Z3Projection:
-        cond = self._translate(node.condition)
-        true_br = self._translate(node.true_branch)
-        false_br = self._translate(node.false_branch)
+    def _translate_ternary(self, node: Call) -> _Z3Projection:
+        cond_node, true_node, false_node = node.args
+        cond = self._translate(cond_node)
+        true_br = self._translate(true_node)
+        false_br = self._translate(false_node)
         return _Z3Projection(
             z3.If(cond.value, true_br.value, false_br.value),
             z3.And(

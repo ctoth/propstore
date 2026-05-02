@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from propstore.cel_types import CelExpr
-from propstore.cel_checker import ConceptInfo
+from propstore.core.conditions.registry import ConceptInfo
 from propstore.conflict_detector.models import ConflictClass
 from propstore.z3_conditions import SolverSat, SolverUnknown, SolverUnsat
 

@@ -20,7 +20,8 @@ from bridgman import verify_expr, DimensionalError
 
 from quire.documents import load_document_dir
 from propstore.families.claims.documents import ClaimsFileDocument
-from propstore.cel_checker import ConceptInfo, KindType, check_cel_expr
+from propstore.cel_checker import check_cel_expr
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.families.identity.logical_ids import (
     CONCEPT_ARTIFACT_ID_RE,

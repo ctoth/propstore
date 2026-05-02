@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
 
-from propstore.cel_checker import ConceptInfo
+from propstore.core.conditions.registry import ConceptInfo
 
 from .models import ConflictClass, ConflictRecord
 

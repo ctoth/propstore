@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from propstore import dimensions as dimension_api
-from propstore.cel_checker import KindType
+from propstore.core.conditions.registry import KindType
 from propstore.families.forms.documents import FormDocument
 from quire.documents import decode_document_path
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path

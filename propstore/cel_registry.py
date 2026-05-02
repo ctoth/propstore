@@ -6,7 +6,7 @@ import json
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.families.concepts.stages import ConceptRecord
 from propstore.core.row_types import ConceptRow
 from propstore.families.forms.stages import kind_type_from_form_name

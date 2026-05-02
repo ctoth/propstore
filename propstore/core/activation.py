@@ -15,7 +15,7 @@ from cel_parser import (
     ParseError,
     parse as parse_cel,
 )
-from propstore.cel_checker import with_standard_synthetic_bindings
+from propstore.core.conditions.registry import with_standard_synthetic_bindings
 from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.environment import Environment
