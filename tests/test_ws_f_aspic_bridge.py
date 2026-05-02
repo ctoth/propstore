@@ -31,7 +31,15 @@ from propstore.app.world_reasoning import (
     _praf_extensions,
 )
 from propstore.aspic_bridge.build import compile_bridge_context
+from propstore.context_lifting import (
+    IstProposition,
+    LiftingException,
+    LiftingDecisionStatus,
+    LiftingRule,
+    LiftingSystem,
+)
 from propstore.core.analyzers import SharedAnalyzerInput, analyze_praf
+from propstore.core.assertions import ContextReference
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import claim_key
@@ -196,6 +204,13 @@ def test_query_no_private_argumentation_imports() -> None:
 
 
 def test_aspic_grounded_is_attack_conflict_free() -> None:
+    """ASPIC grounded extensions must be conflict-free against raw attacks.
+
+    This pins Modgil and Prakken 2018 sections 3-4: attacks and defeats are
+    distinct, and attack-conflict-freeness cannot be weakened to defeat-only
+    conflict-freeness.
+    """
+
     projection = StructuredProjection(
         arguments=(),
         framework=ArgumentationFramework(
@@ -214,6 +229,71 @@ def test_aspic_grounded_is_attack_conflict_free() -> None:
     )
 
     assert not ({"a", "b"} <= justified)
+
+
+def test_lifted_bridge_decision_projects_target_ist_argument() -> None:
+    source = ContextReference("ctx_source")
+    target = ContextReference("ctx_target")
+    system = LiftingSystem(
+        contexts=(source, target),
+        lifting_rules=(LiftingRule("lift-source-target", source, target),),
+    )
+    decisions = system.lift_decisions_for(
+        IstProposition(context=source, proposition_id="claim_alpha")
+    )
+
+    compiled = compile_bridge_context(
+        [{**_claim("claim_alpha"), "context_id": "ctx_source"}],
+        [_reported("claim_alpha")],
+        [],
+        bundle=GroundedRulesBundle.empty(),
+        lifting_decisions=decisions,
+    )
+    csaf = build_bridge_csaf(
+        [{**_claim("claim_alpha"), "context_id": "ctx_source"}],
+        [_reported("claim_alpha")],
+        [],
+        bundle=GroundedRulesBundle.empty(),
+        lifting_decisions=decisions,
+    )
+    target_literal = compiled.literals[claim_key("claim_alpha", context_id="ctx_target")]
+
+    assert any(rule.consequent == target_literal for rule in compiled.system.strict_rules)
+    assert any(conc(argument) == target_literal for argument in csaf.arguments)
+    assert compiled.lifting_projection.records[0].rule_id == "lift-source-target"
+    assert compiled.lifting_projection.records[0].status is LiftingDecisionStatus.LIFTED
+
+
+def test_blocked_lifting_decision_does_not_project_target_argument() -> None:
+    source = ContextReference("ctx_source")
+    target = ContextReference("ctx_target")
+    system = LiftingSystem(
+        contexts=(source, target),
+        lifting_rules=(LiftingRule("lift-source-target", source, target),),
+        lifting_exceptions=(
+            LiftingException(
+                id="except-alpha",
+                rule_id="lift-source-target",
+                target=target,
+                proposition_id="claim_alpha",
+                clashing_set=("claim_beta",),
+            ),
+        ),
+    )
+    decisions = system.lift_decisions_for(
+        IstProposition(context=source, proposition_id="claim_alpha")
+    )
+    csaf = build_bridge_csaf(
+        [{**_claim("claim_alpha"), "context_id": "ctx_source"}],
+        [_reported("claim_alpha")],
+        [],
+        bundle=GroundedRulesBundle.empty(),
+        lifting_decisions=decisions,
+    )
+
+    target_literal = Literal(GroundAtom("ist", ("ctx_target", "claim_alpha")))
+    assert decisions[0].status is LiftingDecisionStatus.BLOCKED
+    assert not any(conc(argument) == target_literal for argument in csaf.arguments)
 
 
 def test_advertised_aspic_semantics_are_executable() -> None:
