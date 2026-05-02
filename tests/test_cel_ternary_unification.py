@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.cel_checker import ConceptInfo, KindType, check_cel_expr
+from propstore.core.conditions import check_condition_ir
+from propstore.core.conditions.registry import ConceptInfo, KindType
 
 
 def _registry() -> dict[str, ConceptInfo]:
@@ -25,9 +26,9 @@ def test_cel_ternary_rejects_non_boolean_condition_and_mixed_branches(
     message: str,
 ) -> None:
     with pytest.raises(ValueError, match=message):
-        check_cel_expr(expr, _registry())
+        check_condition_ir(expr, _registry())
 
 
 @pytest.mark.parametrize("expr", ["cond ? x : y", 'cond ? "a" : "b"'])
 def test_cel_ternary_accepts_boolean_condition_and_unified_branches(expr: str) -> None:
-    check_cel_expr(expr, _registry())
+    check_condition_ir(expr, _registry())
