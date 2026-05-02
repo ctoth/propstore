@@ -53,6 +53,13 @@ def _exception(justification_claim: str, variable: str) -> JustifiableException:
     )
 
 
+def _conclusion_claim_id(argument) -> str:
+    literal = conc(argument)
+    if literal.atom.predicate == "ist" and len(literal.atom.arguments) == 2:
+        return str(literal.atom.arguments[1])
+    return literal.atom.predicate
+
+
 def test_zero_attacker_exception_does_not_suppress_sibling_exception_defeats() -> None:
     csaf = build_bridge_csaf(
         [_claim("claim:target"), _claim("claim:exception-justification")],
@@ -73,12 +80,12 @@ def test_zero_attacker_exception_does_not_suppress_sibling_exception_defeats() -
     attacker_ids = {
         integrated.arg_to_id[argument]
         for argument in integrated.arguments
-        if conc(argument).atom.predicate == "claim:exception-justification"
+        if _conclusion_claim_id(argument) == "claim:exception-justification"
     }
     target_ids = {
         integrated.arg_to_id[argument]
         for argument in integrated.arguments
-        if conc(argument).atom.predicate == "claim:target"
+        if _conclusion_claim_id(argument) == "claim:target"
     }
 
     assert attacker_ids
