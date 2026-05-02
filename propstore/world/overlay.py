@@ -11,6 +11,13 @@ from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
 from propstore.core.claim_types import ClaimType
+from propstore.core.conditions import (
+    CheckedConditionSet,
+    check_condition_ir,
+    checked_condition_set,
+    checked_condition_set_to_json,
+)
+from propstore.core.conditions.registry import ConceptInfo
 from propstore.core.environment import (
     WorldStore,
     ClaimCatalogStore,
@@ -163,6 +170,7 @@ def _claim_node_for_synthetic(
     synthetic: SyntheticClaim,
     *,
     compiled: CompiledWorldGraph,
+    cel_registry: Mapping[str, ConceptInfo],
 ) -> ClaimNode:
     existing = next(
         (claim for claim in compiled.claims if claim.claim_id == synthetic.id),
@@ -179,14 +187,41 @@ def _claim_node_for_synthetic(
         attributes["confidence"] = synthetic.confidence
     else:
         attributes.pop("confidence", None)
+    checked_conditions = _synthetic_checked_conditions(
+        synthetic,
+        cel_registry=cel_registry,
+    )
     return ClaimNode(
         claim_id=to_claim_id(synthetic.id),
         value_concept_id=to_concept_id(synthetic.concept_id),
         claim_type=synthetic.type,
         scalar_value=synthetic.value,
+        checked_conditions=checked_conditions,
         provenance=(existing.provenance if existing is not None else None),
         label=(existing.label if existing is not None else None),
         attributes=tuple(attributes.items()),
+    )
+
+
+def _synthetic_checked_conditions(
+    synthetic: SyntheticClaim,
+    *,
+    cel_registry: Mapping[str, ConceptInfo],
+) -> CheckedConditionSet | None:
+    if not synthetic.conditions:
+        return None
+    return checked_condition_set(
+        check_condition_ir(condition, cel_registry)
+        for condition in synthetic.conditions
+    )
+
+
+def _conditions_ir_json(condition_set: CheckedConditionSet | None) -> str | None:
+    if condition_set is None:
+        return None
+    return json.dumps(
+        checked_condition_set_to_json(condition_set),
+        sort_keys=True,
     )
 
 
@@ -210,8 +245,15 @@ def _synthetic_row(
     synthetic: SyntheticClaim,
     *,
     existing_row: ClaimRowInput | None,
+    cel_registry: Mapping[str, ConceptInfo],
 ) -> ClaimRow:
     conditions_cel = json.dumps(synthetic.conditions) if synthetic.conditions else None
+    conditions_ir = _conditions_ir_json(
+        _synthetic_checked_conditions(
+            synthetic,
+            cel_registry=cel_registry,
+        )
+    )
     if existing_row is None:
         return ClaimRow(
             claim_id=to_claim_id(synthetic.id),
@@ -226,6 +268,7 @@ def _synthetic_row(
             value=synthetic.value,
             sample_size=synthetic.sample_size,
             conditions_cel=conditions_cel,
+            conditions_ir=conditions_ir,
             attributes=(
                 {"confidence": synthetic.confidence}
                 if synthetic.confidence is not None
@@ -248,6 +291,7 @@ def _synthetic_row(
         value=synthetic.value,
         sample_size=synthetic.sample_size if synthetic.sample_size is not None else row.sample_size,
         conditions_cel=conditions_cel,
+        conditions_ir=conditions_ir,
         attributes=(
             {
                 **dict(row.attributes),
@@ -486,10 +530,15 @@ class OverlayWorld(BeliefSpace):
         ]
 
         self._base_compiled = _compiled_graph_for_bound(base)
+        cel_registry = base._store.condition_solver().registry
         if self._base_compiled is not None:
             self._graph_delta = GraphDelta(
                 add_claims=tuple(
-                    _claim_node_for_synthetic(synthetic, compiled=self._base_compiled)
+                    _claim_node_for_synthetic(
+                        synthetic,
+                        compiled=self._base_compiled,
+                        cel_registry=cel_registry,
+                    )
                     for synthetic in self._synthetics
                 ),
                 remove_claim_ids=to_claim_ids(self._removed_ids),
@@ -514,7 +563,11 @@ class OverlayWorld(BeliefSpace):
                 continue
             if replacement is not None:
                 overlay_claims.append(
-                    _synthetic_row(replacement, existing_row=claim)
+                    _synthetic_row(
+                        replacement,
+                        existing_row=claim,
+                        cel_registry=cel_registry,
+                    )
                 )
             else:
                 overlay_claims.append(claim)
@@ -527,6 +580,7 @@ class OverlayWorld(BeliefSpace):
                 _synthetic_row(
                     synthetic,
                     existing_row=base_claim_rows_by_id.get(synthetic.id),
+                    cel_registry=cel_registry,
                 )
             )
 
