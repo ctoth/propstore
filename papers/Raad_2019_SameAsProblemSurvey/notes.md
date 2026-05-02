@@ -158,16 +158,17 @@ Directly relevant to propstore's identity management problem. The propstore syst
 - [[Beek_2018_SameAs.ccClosure500MOwl]] — Collects 558M explicit owl:sameAs statements from the LOD Cloud, computes equivalence closure (49M non-singleton identity sets via union-find), and reveals that transitive closure propagates identity errors (largest set: 177,794 members conflating Einstein with countries). Provides the empirical data this survey paper analyzes.
 - [[Melo_2013_NotQuiteSameIdentity]] — Formalizes identity constraint detection as a minimum multicut problem (NP-hard), provides LP relaxation and Hungarian algorithm solutions, and demonstrates removal of 500K+ constraint violations from BTC 2011 sameAs data. Raad's survey categorizes this as a "network analysis approach" to erroneous link detection.
 - [[Halpin_2010_OwlSameAsIsntSame]] — Foundational critique of owl:sameAs semantics. Proposes Similarity Ontology with eight graded identity properties (sameIndividual, claimsIdentical, almostSameAs, etc.). Empirical Mechanical Turk experiment shows ~50% of owl:sameAs in LOD Cloud are not true identity. Introduced the "contextual identity" concept that Raad's survey builds upon.
+- [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md) — Provides the concrete combined terminological/structural method Raad classifies: union-find graph partitioning detects same-dataset duplicate resources in transitive identity clusters, processing 19.2M LinkLion `owl:sameAs` links in 4.6 minutes and preserving provenance for review.
 
 ### New Leads (Not Yet in Collection)
 - ~~Halpin et al. (2010) — "When owl:sameAs Isn't the Same" — foundational critique of sameAs semantics, introduced contextual identity~~ → NOW IN COLLECTION: [[Halpin_2010_OwlSameAsIsntSame]]
 - ~~de Melo (2013) — "Not Quite the Same: Identity Constraints for the Web of Linked Data" — alternative identity constraints for linked data~~ → NOW IN COLLECTION: [[Melo_2013_NotQuiteSameIdentity]]
-- Valdestilhas et al. (2017) — "Cedal: Time-efficient Detection of Erroneous Links" — combined terminological + structural detection
+- ~~Valdestilhas et al. (2017) — "Cedal: Time-efficient Detection of Erroneous Links" — combined terminological + structural detection~~ → NOW IN COLLECTION: [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md)
 - Raad et al. (2018) — "Constructing and Evaluating Identity Links on the Web Using Network Statistics" — network-based link quality evaluation
 
 ## Related Work Worth Reading
 - Halpin et al. 2010 — "When owl:sameAs Isn't the Same" — foundational critique of sameAs semantics → NOW IN COLLECTION: [[Halpin_2010_OwlSameAsIsntSame]]
 - de Melo 2013 — "Not Quite the Same: Identity Constraints for the Web of Linked Data" — alternative identity constraints -> NOW IN COLLECTION: [[Melo_2013_NotQuiteSameIdentity]]
 - Beek et al. 2018 — "sameAs.cc: The Closure of 500M owl:sameAs Statements" — large-scale identity network analysis -> NOW IN COLLECTION: [[Beek_2018_SameAs.ccClosure500MOwl]]
-- Valdestilhas et al. 2017 — Error detection combining terminological and structural features
+- Valdestilhas et al. 2017 — Error detection combining terminological and structural features → NOW IN COLLECTION: [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md)
 - Raad et al. 2018 — Network-based approaches for evaluating identity links using graph metrics
