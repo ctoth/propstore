@@ -36,6 +36,7 @@ from propstore.core.graph_types import (
     ProvenanceRecord,
     RelationEdge,
 )
+from propstore.core.conditions.registry import with_standard_synthetic_bindings
 from propstore.core.row_types import (
     ClaimRow,
     coerce_claim_row,
@@ -246,7 +247,9 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         )
         for row in concept_rows
     )
-    cel_registry = build_store_cel_registry(concept_rows)
+    cel_registry = with_standard_synthetic_bindings(
+        build_store_cel_registry(concept_rows)
+    )
 
     claim_display_ids = {
             str(row.claim_id): (
