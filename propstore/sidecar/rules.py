@@ -494,11 +494,11 @@ def _read_source_rules(conn: sqlite3.Connection) -> tuple[LoadedRuleFile, ...]:
     values = _read_bundle_inputs(conn, "source_rule")
     if not all(isinstance(value, LoadedRuleFile) for value in values):
         raise TypeError("grounded source_rule inputs must be LoadedRuleFile values")
-    return values
+    return tuple(value for value in values if isinstance(value, LoadedRuleFile))
 
 
 def _read_source_facts(conn: sqlite3.Connection) -> tuple[AspicGroundAtom, ...]:
     values = _read_bundle_inputs(conn, "source_fact")
     if not all(isinstance(value, AspicGroundAtom) for value in values):
         raise TypeError("grounded source_fact inputs must be ASPIC GroundAtom values")
-    return values
+    return tuple(value for value in values if isinstance(value, AspicGroundAtom))
