@@ -45,7 +45,7 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 - **CLAUDE.md "Defs 1-22" shorthand for Modgil & Prakken 2018.** Paper extends through Def 23+; Def 1 is plain Dung AFs, not ASPIC+. Citation: axis-9 Finding A.4. Plan: CLAUDE.md rewrite.
 
-- **CLAUDE.md TIMEPOINT claim points at wrong file.** Line 16 semantic claim is correct but the implicit pointer (prompt says check `cel_types.py`) is wrong — `KindType` lives in `propstore/cel_checker.py:38`. Citation: axis-9 Finding A.1. Plan: CLAUDE.md rewrite.
+- **CLAUDE.md TIMEPOINT claim points at wrong file.** Line 16 semantic claim is correct but the implicit pointer (prompt says check `cel_types.py`) is wrong — `KindType` lives in `propstore/core/conditions/registry.py`. Citation: axis-9 Finding A.1. Plan: CLAUDE.md rewrite.
 
 - **Citation-pattern drift across codebase.** `aspic.py`, `world/types.py` (Denoeux→Jøsang), and `wbf()` (WBF name, aCBF computation) cite papers for authority while implementing something different. Citation: axis-6 item 15; axis-9 cross-cutting. Plan: citation-as-claim CI lint (per disciplines.md rule 1) + workstream-specific closures.
 
