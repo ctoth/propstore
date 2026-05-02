@@ -84,7 +84,11 @@ def test_micropub_reports_load_find_and_lift(tmp_path) -> None:
     assert entry.document.context.id == "ctx_source"
     assert [(item.bundle, item.artifact_id) for item in items] == [("demo", "ps:micropub:test")]
     assert lift.liftable is True
+    assert [(decision.proposition_id, decision.status) for decision in lift.decisions] == [
+        ("claim:one", "lifted"),
+    ]
     assert reverse.liftable is False
+    assert reverse.decisions == ()
 
 
 def test_micropub_reports_raise_typed_not_found(tmp_path) -> None:
@@ -137,6 +141,8 @@ def test_micropub_cli_renders_bundle_show_and_lift(tmp_path) -> None:
     assert show.exit_code == 0, show.output
     assert "claims:" in show.output
     assert lift.exit_code == 0, lift.output
-    assert "liftable: ps:micropub:test ctx_source -> ctx_target" in lift.output
+    assert "lifting decisions: ps:micropub:test ctx_source -> ctx_target" in lift.output
+    assert "claim:one" in lift.output
+    assert "lifted" in lift.output
     assert not_liftable.exit_code == 1, not_liftable.output
-    assert "not liftable: ps:micropub:test ctx_source -> ctx_other" in not_liftable.output
+    assert "no lifted decision: ps:micropub:test ctx_source -> ctx_other" in not_liftable.output
