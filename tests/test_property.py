@@ -14,6 +14,7 @@ from cel_parser import (
     DoubleLit,
     Ident,
     IntLit,
+    RESERVED_WORDS,
     StringLit,
     parse,
 )
@@ -62,7 +63,7 @@ def detect_conflicts(claim_files, registry, lifting_system=None):
 @settings()
 def test_parser_simple_int_comparison(name, op, val):
     """Parser should handle any simple 'ident op integer' expression."""
-    assume(name not in ("true", "false", "in"))
+    assume(name not in RESERVED_WORDS)
     expr = f"{name} {op} {val}"
     ast = parse(expr)
     assert isinstance(ast, Call)
@@ -77,7 +78,7 @@ def test_parser_simple_int_comparison(name, op, val):
 @settings()
 def test_parser_simple_float_comparison(name, op, val):
     """Parser should handle any simple 'ident op float' expression."""
-    assume(name not in ("true", "false", "in"))
+    assume(name not in RESERVED_WORDS)
     expr = f"{name} {op} {val}"
     ast = parse(expr)
     assert isinstance(ast, Call)
@@ -91,7 +92,7 @@ def test_parser_simple_float_comparison(name, op, val):
 @settings()
 def test_parser_string_equality(name, val):
     """Parser should handle 'ident == string_literal' expressions."""
-    assume(name not in ("true", "false", "in"))
+    assume(name not in RESERVED_WORDS)
     expr = f"{name} == '{val}'"
     ast = parse(expr)
     assert isinstance(ast, Call)
@@ -112,8 +113,8 @@ def test_parser_string_equality(name, val):
 @settings()
 def test_parser_compound_expression(name_a, name_b, op_a, op_b, val_a, val_b):
     """Parser should handle compound expressions with &&."""
-    assume(name_a not in ("true", "false", "in"))
-    assume(name_b not in ("true", "false", "in"))
+    assume(name_a not in RESERVED_WORDS)
+    assume(name_b not in RESERVED_WORDS)
     expr = f"{name_a} {op_a} {val_a} && {name_b} {op_b} {val_b}"
     ast = parse(expr)
     assert isinstance(ast, Call)
