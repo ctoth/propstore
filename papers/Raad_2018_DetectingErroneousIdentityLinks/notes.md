@@ -249,5 +249,30 @@ This paper provides a concrete, scalable scoring model for identity-link evaluat
 
 ## Collection Cross-References
 
+### Already in Collection
+- [sameAs.cc: The Closure of 500M owl:sameAs Statements](../Beek_2018_SameAs.ccClosure500MOwl/notes.md) — cited as the infrastructure and dataset basis: sameAs.cc computes the `owl:sameAs` closure/equality sets that this paper then scores for erroneous identity links.
+- [When owl:sameAs Isn't the Same: An Analysis of Identity in Linked Data](../Halpin_2010_OwlSameAsIsntSame/notes.md) — cited as foundational evidence that `owl:sameAs` is often semantically too strong and motivates detecting false identity links.
+- [Not Quite the Same: Identity Constraints for the Web of Linked Data](../Melo_2013_NotQuiteSameIdentity/notes.md) — cited as a UNA/constraint-based erroneous-identity-link approach; this paper differs by using only identity-graph topology and community structure.
+- [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md) — cited as a scalable large-repository erroneous-link detector; CEDAL uses same-dataset contradiction structure while this paper scores graph-topological community bridges.
+
 ### Now in Collection (previously listed as leads)
 - [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md) — Provides a scalable graph-partitioning baseline for erroneous identity-link detection. It flags same-dataset duplicate resources inside transitive identity clusters, complementing Raad et al.'s topology/community-score approach to suspicious links.
+
+### New Leads (Not Yet in Collection)
+- Beek, Schlobach, and van Harmelen (2016) — "A contextualised semantics for owl:sameas" — important for replacing global identity collapse with context-sensitive semantics.
+- Guéret et al. (2012) — "Assessing linked data mappings using network measures" — direct predecessor for network-metric evaluation of linked-data mappings.
+- Raad, Pernelle, and Saïs (2017) — "Detection of contextual identity links in a knowledge base" — same author group's contextual-identity line, useful for connecting topology-only scores to context-aware identity.
+- Paulheim (2014) — "Identifying wrong links between datasets by multi-dimensional outlier detection" — content/outlier alternative to topology-only scoring.
+
+### Cited By (in Collection)
+- [The sameAs Problem: A Survey on Identity Management in the Web of Data](../Raad_2019_SameAsProblemSurvey/notes.md) — lists a Raad et al. 2018 network-statistics identity-link evaluation lead; this retrieval disambiguates that lead to this ISWC 2018 paper's exact title and DOI.
+- [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md) — already cross-references this paper as a scalable graph/community-structure complement to CEDAL.
+
+### Supersedes or Recontextualizes
+- [sameAs.cc: The Closure of 500M owl:sameAs Statements](../Beek_2018_SameAs.ccClosure500MOwl/notes.md) — recontextualizes sameAs.cc closure as a substrate that should be quality-scored before being trusted as clean identity; the largest identity sets are not merely descriptive artifacts but inputs to error detection.
+
+### Conceptual Links (not citation-based)
+- [The sameAs Problem: A Survey on Identity Management in the Web of Data](../Raad_2019_SameAsProblemSurvey/notes.md) — Strong: the survey provides the taxonomy of identity-link failure modes; this paper is the concrete network/community method for one of those detection families.
+- [sameAs.cc: The Closure of 500M owl:sameAs Statements](../Beek_2018_SameAs.ccClosure500MOwl/notes.md) — Strong: sameAs.cc computes closure and reveals massive equality-set contamination; this paper adds a ranking layer to identify suspicious links within that same graph surface.
+- [When owl:sameAs Isn't the Same: An Analysis of Identity in Linked Data](../Halpin_2010_OwlSameAsIsntSame/notes.md) — Strong: Halpin et al. argue that many `owl:sameAs` assertions are too strong; this paper operationalizes that critique as a scalable graph score.
+- [CEDAL: Time-Efficient Detection of Erroneous Links in Large-Scale Link Repositories](../Valdestilhas_2017_CEDALTime-efficientDetectionErroneous/notes.md) — Strong: both avoid full semantic reasoning at LOD scale, but they detect different error signatures: CEDAL flags same-dataset contradictions, while Raad et al. flag sparse or bridge-like community topology.
