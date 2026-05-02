@@ -9,13 +9,28 @@ from propstore.cel_types import CelExpr
 from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.context_lifting import LiftingSystem
+    from propstore.context_lifting import LiftingDecision, LiftingSystem
+
+
+def _lifted_decisions(
+    decisions: tuple[LiftingDecision, ...],
+) -> tuple[LiftingDecision, ...]:
+    from propstore.context_lifting import LiftingDecisionStatus
+
+    return tuple(
+        decision
+        for decision in decisions
+        if decision.status is LiftingDecisionStatus.LIFTED
+    )
 
 
 def _classify_pair_context(
     context_a: str | None,
     context_b: str | None,
     lifting_system: LiftingSystem | None,
+    *,
+    claim_a_id: str | None = None,
+    claim_b_id: str | None = None,
 ) -> ConflictClass | None:
     """Check if two claims' contexts make them non-conflicting."""
     if lifting_system is None:
@@ -24,9 +39,13 @@ def _classify_pair_context(
         return None
     if context_a == context_b:
         return None
-    if lifting_system.can_lift(context_a, context_b):
+    if claim_a_id is not None and _lifted_decisions(
+        lifting_system.lift_decisions_between(context_a, context_b, claim_a_id)
+    ):
         return None
-    if lifting_system.can_lift(context_b, context_a):
+    if claim_b_id is not None and _lifted_decisions(
+        lifting_system.lift_decisions_between(context_b, context_a, claim_b_id)
+    ):
         return None
     return ConflictClass.CONTEXT_PHI_NODE
 
@@ -50,7 +69,13 @@ def _append_context_classified_record(
     lifting_system: LiftingSystem | None,
     derivation_chain: str | None = None,
 ) -> bool:
-    context_class = _classify_pair_context(context_a, context_b, lifting_system)
+    context_class = _classify_pair_context(
+        context_a,
+        context_b,
+        lifting_system,
+        claim_a_id=claim_a_id,
+        claim_b_id=claim_b_id,
+    )
     if context_class is None:
         return False
     records.append(ConflictRecord(
