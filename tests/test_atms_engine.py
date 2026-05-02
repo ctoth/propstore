@@ -32,7 +32,14 @@ from propstore.world.types import (
 )
 from propstore.worldline import WorldlineDefinition, run_worldline
 
-from tests.atms_helpers import _ExactMatchSolver, _OverlapSolver, leaf_lifting_system
+from tests.atms_helpers import (
+    _ExactMatchSolver,
+    _OverlapSolver,
+    condition_ir_json,
+    condition_registry_for_sources,
+    condition_sources_from_json,
+    leaf_lifting_system,
+)
 
 
 def test_atms_bind_workflow_applies_atms_policy_and_context() -> None:
@@ -69,11 +76,30 @@ class _ATMSStore:
         micropublications: list[dict] | None = None,
         solver=None,
     ) -> None:
-        self._claims = [_normalize_test_claim(claim) for claim in claims]
-        self._parameterizations = list(parameterizations or [])
+        all_sources: list[str] = []
+        for row in claims:
+            all_sources.extend(condition_sources_from_json(row.get("conditions_cel")))
+        for row in parameterizations or []:
+            all_sources.extend(condition_sources_from_json(row.get("conditions_cel")))
+        self._condition_registry = condition_registry_for_sources(all_sources)
+        self._claims = [
+            _normalize_test_claim(claim, condition_registry=self._condition_registry)
+            for claim in claims
+        ]
+        self._parameterizations = [
+            _normalize_test_parameterization(
+                row,
+                condition_registry=self._condition_registry,
+            )
+            for row in (parameterizations or [])
+        ]
         self._conflicts = list(conflicts or [])
         self._micropublications = list(micropublications or [])
-        self._solver = solver or _ExactMatchSolver()
+        self._solver = solver if hasattr(solver, "registry") else None
+        if self._solver is None:
+            from propstore.core.conditions import ConditionSolver
+
+            self._solver = ConditionSolver(self._condition_registry)
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
@@ -130,8 +156,17 @@ class _ATMSStore:
         return {"id": concept_id, "canonical_name": concept_id}
 
 
-def _normalize_test_claim(claim: dict) -> dict:
+def _normalize_test_claim(
+    claim: dict,
+    *,
+    condition_registry,
+) -> dict:
     normalized = dict(claim)
+    if normalized.get("conditions_cel") and not normalized.get("conditions_ir"):
+        normalized["conditions_ir"] = condition_ir_json(
+            normalized.get("conditions_cel"),
+            condition_registry,
+        )
     concept_id = normalized.pop("concept_id", None)
     if concept_id is not None and "concept_links" not in normalized:
         normalized["concept_links"] = [
@@ -142,6 +177,20 @@ def _normalize_test_claim(claim: dict) -> dict:
                 "ordinal": 0,
             }
         ]
+    return normalized
+
+
+def _normalize_test_parameterization(
+    row: dict,
+    *,
+    condition_registry,
+) -> dict:
+    normalized = dict(row)
+    if normalized.get("conditions_cel") and not normalized.get("conditions_ir"):
+        normalized["conditions_ir"] = condition_ir_json(
+            normalized.get("conditions_cel"),
+            condition_registry,
+        )
     return normalized
 
 
@@ -169,7 +218,12 @@ def _make_bound(
     solver=None,
 ) -> BoundWorld:
     if solver is not None:
-        store._solver = solver
+        if hasattr(solver, "registry"):
+            store._solver = solver
+        else:
+            from propstore.core.conditions import ConditionSolver
+
+            store._solver = ConditionSolver(store._condition_registry)
     bindings = {} if bindings is None else bindings
     environment = Environment(
         bindings=bindings,
