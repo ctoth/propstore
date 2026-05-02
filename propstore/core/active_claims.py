@@ -130,13 +130,14 @@ class ActiveClaim:
             raise ValueError(
                 "conditional claim row is missing conditions_ir; rebuild the sidecar"
             )
+        conditions: tuple[CelExpr, ...]
+        if checked_conditions is not None:
+            conditions = to_cel_exprs(checked_conditions.sources)
+        else:
+            conditions = _parse_conditions(row.conditions_cel)
         return cls(
             row=row,
-            conditions=(
-                checked_conditions.sources
-                if checked_conditions is not None
-                else _parse_conditions(row.conditions_cel)
-            ),
+            conditions=conditions,
             checked_conditions=checked_conditions,
             variables=variables,
             branch=(None if branch is None else str(branch)),

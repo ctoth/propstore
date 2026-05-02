@@ -37,6 +37,7 @@ from propstore.core.graph_types import (
 )
 from propstore.core.row_types import (
     ClaimRow,
+    ParameterizationRow,
     coerce_claim_row,
     coerce_concept_row,
     coerce_conflict_row,
