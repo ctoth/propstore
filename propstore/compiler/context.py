@@ -9,7 +9,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Mapping, cast
 
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
-from propstore.core.conditions.registry import ConceptInfo
+from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.claims import ClaimFileEntry
 from quire.references import (
@@ -82,7 +82,9 @@ def _build_context_from_concepts(
             else _build_claim_lookup(claim_files)
         ),
         cel_registry=_freeze_mapping(
-            build_canonical_cel_registry(concept.record for concept in concepts)
+            with_standard_synthetic_bindings(
+                build_canonical_cel_registry(concept.record for concept in concepts)
+            )
         ),
     )
 
