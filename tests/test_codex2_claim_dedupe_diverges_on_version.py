@@ -47,6 +47,7 @@ def _claim_row(
         "lower_bound_si": None,
         "upper_bound_si": None,
         "conditions_cel": None,
+        "conditions_ir": None,
         "statement": "observation",
         "expression": None,
         "sympy_generated": None,

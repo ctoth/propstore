@@ -232,7 +232,7 @@ def wm(lifecycle_sidecar: Path) -> WorldQuery:
 # ── Schema sanity check ──────────────────────────────────────────────
 
 
-def test_fixture_sidecar_is_schema_v3(lifecycle_sidecar: Path) -> None:
+def test_fixture_sidecar_is_schema_v6(lifecycle_sidecar: Path) -> None:
     """Sanity: the fixture must actually use the current schema version."""
     conn = sqlite3.connect(lifecycle_sidecar)
     try:
@@ -241,7 +241,7 @@ def test_fixture_sidecar_is_schema_v3(lifecycle_sidecar: Path) -> None:
             (SIDECAR_META_KEY,),
         ).fetchone()
         assert row is not None
-        assert row[0] == SCHEMA_VERSION == 5
+        assert row[0] == SCHEMA_VERSION == 6
     finally:
         conn.close()
 

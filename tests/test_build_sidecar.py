@@ -416,7 +416,7 @@ class TestTableCreation:
         conn.close()
 
 
-class TestSchemaV5:
+class TestSchemaV6:
     """Sidecar schema additions for build-to-render gate removal.
 
     Implements `reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md`
@@ -425,7 +425,7 @@ class TestSchemaV5:
     quarantine reasons that the render layer filters per policy.
     """
 
-    def test_schema_version_is_five(self, knowledge_reader, sidecar_path):
+    def test_schema_version_is_six(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute(
@@ -433,7 +433,7 @@ class TestSchemaV5:
         ).fetchone()
         conn.close()
         assert row is not None
-        assert row[0] == 5
+        assert row[0] == 6
 
     def test_build_diagnostics_table_exists(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)

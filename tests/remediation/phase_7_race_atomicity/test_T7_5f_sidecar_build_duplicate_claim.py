@@ -49,6 +49,7 @@ def _make_claim_row(artifact_id: str, source_paper: str, seq: int) -> dict:
         "lower_bound_si": None,
         "upper_bound_si": None,
         "conditions_cel": None,
+        "conditions_ir": None,
         "statement": "observation",
         "expression": None,
         "sympy_generated": None,
