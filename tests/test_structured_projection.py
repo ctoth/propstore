@@ -17,12 +17,17 @@ from propstore.structured_projection import (
 )
 from argumentation.dung import ArgumentationFramework, complete_extensions
 from propstore.world.bound import BoundWorld
+from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import Label, compile_environment_assumptions
 from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world.resolution import resolve
 from propstore.world.types import Environment, ReasoningBackend, ResolutionStrategy
 from propstore.worldline import WorldlineDefinition, run_worldline
-from tests.atms_helpers import leaf_lifting_system
+from tests.atms_helpers import (
+    condition_registry_for_rows,
+    leaf_lifting_system,
+    rows_with_condition_ir,
+)
 
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
@@ -50,32 +55,18 @@ def _output_concept_id(claim: dict) -> str | None:
     return claim.get("concept_id")
 
 
-class _ExactMatchSolver:
-    def are_disjoint(self, left: list[str], right: list[str]) -> bool:
-        return set(left).isdisjoint(right)
-
-
-class _OverlapSolver:
-    def are_disjoint(self, left: list[str], right: list[str]) -> bool:
-        if "x == 1" in left and "x > 0" in right:
-            return False
-        if "x > 0" in left and "x == 1" in right:
-            return False
-        return set(left).isdisjoint(right)
-
-
 class _ProjectionStore:
     def __init__(
         self,
         *,
         claims: list[dict],
         stances: list[dict] | None = None,
-        solver=None,
         has_stance_table: bool = True,
     ) -> None:
-        self._claims = list(claims)
+        self._condition_registry = condition_registry_for_rows(claims)
+        self._claims = rows_with_condition_ir(claims, self._condition_registry)
         self._stances = list(stances or [])
-        self._solver = solver or _ExactMatchSolver()
+        self._solver = ConditionSolver(self._condition_registry)
         self._has_stance_table = has_stance_table
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
@@ -250,7 +241,6 @@ def test_structured_projection_keeps_semantic_overlap_unlabeled() -> None:
                 "conditions_cel": json.dumps(["x > 0"]),
             }
         ],
-        solver=_OverlapSolver(),
     )
     bound = _make_bound(store, bindings={"x": 1})
     active = bound.active_claims()
