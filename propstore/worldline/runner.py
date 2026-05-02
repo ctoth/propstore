@@ -6,14 +6,13 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from propstore.core.activation import claim_lifting_materializations
 from propstore.core.id_types import ConceptId, ContextId, to_concept_id
 from propstore.core.row_types import coerce_claim_row
 from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
 from propstore.worldline.hashing import compute_worldline_content_hash
-from propstore.worldline.interfaces import HasEnvironment, WorldlineStore
+from propstore.worldline.interfaces import HasEnvironment, HasLiftingSystem, WorldlineStore
 from propstore.worldline.result_types import (
     WorldlineCaptureError,
     WorldlineArgumentationState,
@@ -238,32 +237,35 @@ def _lifting_dependencies(
     if context_id is None:
         return [], []
 
-    environment = getattr(bound, "_environment", None)
-    lifting_system = getattr(bound, "_lifting_system", None)
-    if environment is None or lifting_system is None:
+    if not isinstance(bound, HasEnvironment):
         return [], []
+    if not isinstance(bound, HasLiftingSystem) or bound._lifting_system is None:
+        return [], []
+    environment = bound._environment
+    lifting_system = bound._lifting_system
 
-    from propstore.context_lifting import LiftingDecisionStatus
+    from propstore.context_lifting import IstProposition, LiftingDecisionStatus
+    from propstore.core.assertions import ContextReference
 
     rule_ids: set[str] = set()
     blocked_exception_ids: set[str] = set()
     for claim_input in world.claims_for(None):
         claim = coerce_claim_row(claim_input)
-        materializations = claim_lifting_materializations(
-            claim_context_id=(
-                None if claim.context_id is None else str(claim.context_id)
-            ),
-            claim_id=str(claim.claim_id),
-            environment=environment,
-            lifting_system=lifting_system,
+        if claim.context_id is None or claim.context_id == environment.context_id:
+            continue
+        decisions = lifting_system.lift_decisions_for(
+            IstProposition(
+                context=ContextReference(str(claim.context_id)),
+                proposition_id=str(claim.claim_id),
+            )
         )
-        for materialization in materializations:
-            if materialization.target_context.id != context_id:
+        for decision in decisions:
+            if decision.target_context.id != context_id:
                 continue
-            rule_ids.add(materialization.rule_id)
+            rule_ids.add(decision.rule_id)
             if (
-                materialization.status is LiftingDecisionStatus.BLOCKED
-                and materialization.exception_id is not None
+                decision.status is LiftingDecisionStatus.BLOCKED
+                and decision.provenance.exception_id is not None
             ):
-                blocked_exception_ids.add(materialization.exception_id)
+                blocked_exception_ids.add(decision.provenance.exception_id)
     return sorted(rule_ids), sorted(blocked_exception_ids)
