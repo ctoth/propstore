@@ -490,9 +490,9 @@ def _collect_condition_ir_names(condition: ConditionIR, names: set[str]) -> None
         _collect_condition_ir_names(condition.right, names)
         return
     if isinstance(condition, ConditionMembership):
-        _collect_condition_ir_names(condition.item, names)
-        for element in condition.elements:
-            _collect_condition_ir_names(element, names)
+        _collect_condition_ir_names(condition.element, names)
+        for option in condition.options:
+            _collect_condition_ir_names(option, names)
         return
     if isinstance(condition, ConditionChoice):
         _collect_condition_ir_names(condition.condition, names)

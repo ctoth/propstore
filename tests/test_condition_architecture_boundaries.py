@@ -10,7 +10,11 @@ CONDITION_CHECKED = Path("propstore/core/conditions/checked.py")
 
 
 def _production_python_files() -> tuple[Path, ...]:
-    return tuple(sorted(PRODUCTION_ROOT.rglob("*.py")))
+    return tuple(
+        path
+        for path in sorted(PRODUCTION_ROOT.rglob("*.py"))
+        if path.exists()
+    )
 
 
 def _imports(path: Path) -> set[str]:
