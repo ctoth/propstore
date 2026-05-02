@@ -1,0 +1,18 @@
+{
+  "title": "Ontology Alignment for Linked Open Data",
+  "authors": [
+    "Prateek Jain",
+    "P. Hitzler",
+    "A. Sheth",
+    "Kunal Verma",
+    "P. Yeh"
+  ],
+  "year": "2010",
+  "doi": "10.1007/978-3-642-17746-0_26",
+  "url": "https://www.semanticscholar.org/paper/476f95f11745c2be4d1cb44793f51669aa3ce6e6",
+  "pdf_url": "https://link.springer.com/content/pdf/10.1007%2F978-3-642-17746-0_26.pdf",
+  "bibtex": "@Article{Jain2010OntologyAF,\n author = {Prateek Jain and P. Hitzler and A. Sheth and Kunal Verma and P. Yeh},\n booktitle = {International Workshop on the Semantic Web},\n pages = {402-417},\n title = {Ontology Alignment for Linked Open Data},\n year = {2010}\n}\n",
+  "venue": "International Workshop on the Semantic Web",
+  "venue_type": "conference",
+  "pages": "402-417"
+}
