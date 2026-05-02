@@ -15,7 +15,7 @@ from propstore.cel_types import CelExpr
 from propstore.core.activation import is_active_claim_active
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.claim_types import ClaimType
-from propstore.core.environment import ConceptCatalogStore, WorldStore
+from propstore.core.environment import ConceptCatalogStore, ConditionSolverStore, WorldStore
 from propstore.core.id_types import ConceptId, to_claim_id, to_concept_id, to_context_id
 from propstore.core.row_types import (
     ClaimRowInput,
@@ -124,9 +124,8 @@ def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, Concep
                     ),
                 })
         registry[cid] = cdata
-    condition_solver = getattr(world, "condition_solver", None)
-    if callable(condition_solver):
-        cel_registry = dict(condition_solver().registry)
+    if isinstance(world, ConditionSolverStore):
+        cel_registry = dict(world.condition_solver().registry)
     else:
         cel_registry = build_store_cel_registry(rows)
     return registry, cel_registry
