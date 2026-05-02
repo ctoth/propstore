@@ -15,16 +15,17 @@ from cel_parser import (
     ParseError,
     parse as parse_cel,
 )
+from propstore.core.conditions import checked_condition_set
+from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import with_standard_synthetic_bindings
+from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
 from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.environment import Environment
 from propstore.core.labels import binding_condition_to_cel
-from propstore.z3_conditions import Z3TranslationError
 
 if TYPE_CHECKING:
     from propstore.context_lifting import LiftingSystem
-    from propstore.z3_conditions import Z3ConditionSolver
 
 
 def _binding_conditions(environment: Environment) -> tuple[CelExpr, ...]:
@@ -187,18 +188,16 @@ def _synthetic_names_from_conditions(*condition_groups: tuple[CelExpr, ...] | li
 
 
 def _retry_with_standard_bindings(
-    solver: Z3ConditionSolver,
+    solver: ConditionSolver,
     *,
     binding_conditions: tuple[CelExpr, ...] | list[CelExpr],
     claim_conditions: tuple[CelExpr, ...] | list[CelExpr],
     source_artifact: str | None,
-) -> Z3ConditionSolver:
+) -> ConditionSolver:
     try:
         base_registry = getattr(solver, "_registry")
     except AttributeError:
         return solver
-
-    from propstore.z3_conditions import Z3ConditionSolver
 
     augmented_registry = with_standard_synthetic_bindings(base_registry)
     extra_names = [
@@ -210,14 +209,14 @@ def _retry_with_standard_bindings(
         raise UnknownConceptInCEL(extra_names[0], source_artifact=source_artifact)
     if augmented_registry == dict(base_registry):
         return solver
-    return Z3ConditionSolver(augmented_registry)
+    return ConditionSolver(augmented_registry)
 
 
 def is_claim_node_active(
     claim: ClaimNode,
     *,
     environment: Environment,
-    solver: Z3ConditionSolver | None,
+    solver: ConditionSolver | None,
     lifting_system: LiftingSystem | None = None,
 ) -> bool:
     claim_context_id = _claim_context_id(claim)
@@ -240,16 +239,34 @@ def is_claim_node_active(
         raise ValueError("A condition solver is required for conditional activation")
 
     try:
-        return not solver.are_disjoint(binding_conditions, claim_conditions)
+        registry = getattr(solver, "_registry")
+        return not solver.are_disjoint(
+            checked_condition_set(
+                check_condition_ir(str(condition), registry)
+                for condition in binding_conditions
+            ),
+            checked_condition_set(
+                check_condition_ir(str(condition), registry)
+                for condition in claim_conditions
+            ),
+        )
     except Z3TranslationError:
-        return not _retry_with_standard_bindings(
+        retry_solver = _retry_with_standard_bindings(
             solver,
             binding_conditions=binding_conditions,
             claim_conditions=claim_conditions,
             source_artifact=_claim_node_source_artifact(claim),
-        ).are_disjoint(
-            binding_conditions,
-            claim_conditions,
+        )
+        retry_registry = getattr(retry_solver, "_registry")
+        return not retry_solver.are_disjoint(
+            checked_condition_set(
+                check_condition_ir(str(condition), retry_registry)
+                for condition in binding_conditions
+            ),
+            checked_condition_set(
+                check_condition_ir(str(condition), retry_registry)
+                for condition in claim_conditions
+            ),
         )
 
 
@@ -257,7 +274,7 @@ def is_active_claim_active(
     claim: ActiveClaim,
     *,
     environment: Environment,
-    solver: Z3ConditionSolver | None,
+    solver: ConditionSolver | None,
     lifting_system: LiftingSystem | None = None,
 ) -> bool:
     claim_context_id = claim.context_id
@@ -280,16 +297,34 @@ def is_active_claim_active(
         raise ValueError("A condition solver is required for conditional activation")
 
     try:
-        return not solver.are_disjoint(binding_conditions, claim_conditions)
+        registry = getattr(solver, "_registry")
+        return not solver.are_disjoint(
+            checked_condition_set(
+                check_condition_ir(str(condition), registry)
+                for condition in binding_conditions
+            ),
+            checked_condition_set(
+                check_condition_ir(str(condition), registry)
+                for condition in claim_conditions
+            ),
+        )
     except Z3TranslationError:
-        return not _retry_with_standard_bindings(
+        retry_solver = _retry_with_standard_bindings(
             solver,
             binding_conditions=binding_conditions,
             claim_conditions=claim_conditions,
             source_artifact=claim.artifact_id,
-        ).are_disjoint(
-            binding_conditions,
-            claim_conditions,
+        )
+        retry_registry = getattr(retry_solver, "_registry")
+        return not retry_solver.are_disjoint(
+            checked_condition_set(
+                check_condition_ir(str(condition), retry_registry)
+                for condition in binding_conditions
+            ),
+            checked_condition_set(
+                check_condition_ir(str(condition), retry_registry)
+                for condition in claim_conditions
+            ),
         )
 
 
@@ -297,7 +332,7 @@ def activate_compiled_world_graph(
     compiled: CompiledWorldGraph,
     *,
     environment: Environment,
-    solver: Z3ConditionSolver,
+    solver: ConditionSolver,
     lifting_system: LiftingSystem | None = None,
 ) -> ActiveWorldGraph:
     active_claim_ids: list[ClaimId] = []
