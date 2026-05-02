@@ -72,6 +72,16 @@ Primary Gunray papers from `../gunray/papers`:
   `Maher_2021_DefeasibleReasoningDatalog`, `Goldszmidt_1992_*`, and
   `Antoniou_2007_*` guide explicit out-of-contract choices.
 
+Boundary-relevant belief dynamics papers from `../belief-set/papers`:
+
+- `Alchourron_1985_TheoryChange`, `Gärdenfors_1988_*`, and
+  `Spohn_1988_*` specify the formal AGM, entrenchment, and OCF operators owned
+  by `belief_set`.
+- `Konieczny_2002_MergingInformationUnderConstraints` specifies formal IC
+  merge over propositional belief bases.
+- These papers matter as boundaries: this workstream must not reimplement AGM,
+  IC merge, or Spohn revision under the context-lifting/argumentation names.
+
 ## Target Architecture
 
 ### Propstore Carrier
@@ -137,11 +147,27 @@ Gunray atoms are backend encodings, not propstore identity.
 import propstore and does not own contexts, lifting, CEL, source identity,
 sidecars, or provenance.
 
+### Belief-Set Boundary
+
+`belief_set` owns finite propositional AGM revision, contraction, iterated
+revision, epistemic entrenchment, Spohn states, and IC merge. It is not part of
+the `ist(c,p)` projection path and must not receive propstore contexts, lifting
+rules, Gunray atoms, ASPIC arguments, source identity, sidecar rows, or
+provenance objects.
+
+Propstore may adapt a rendered, finite propositional abstraction into
+`belief_set` only when the task is explicitly formal belief revision or IC
+merge. Context lifting and exception defeats remain propstore-to-argumentation
+projections, not belief-set operations.
+
 ## Non-Negotiable Rules
 
 - Delete the old production semantic path before adding the new one.
 - Do not preserve boolean lifting and `ist`-literal lifting in parallel.
 - Do not move context lifting into `argumentation`.
+- Do not move context lifting into `belief_set` or encode contexts as raw
+  propositional atoms for revision unless a phase explicitly defines a
+  belief-revision projection and integrity constraint.
 - Do not let Gunray own propstore identity, context policy, or source truth.
 - Do not add adapter aliases such as `can_lift_decision(...)` while keeping the
   old boolean call graph.
@@ -420,6 +446,8 @@ Red tests:
 - Propstore imports only explicit `argumentation` modules it uses.
 - No production propstore code imports Gunray internal modules.
 - No production semantic code calls `LiftingSystem.can_lift`.
+- No production context-lifting code imports `belief_set`; belief-set use stays
+  behind formal revision or IC-merge adapters.
 
 Green implementation:
 
@@ -449,6 +477,13 @@ uv run pytest tests/test_public_api.py tests/test_workstream_o_gun_contract.py
 uv run pyright src
 ```
 
+In `../belief-set`:
+
+```powershell
+uv run pytest tests/test_belief_set_postulates.py tests/test_belief_set_iterated_postulates.py tests/test_ic_merge_Maj_Arb.py
+uv run pyright belief_set
+```
+
 ## Full Completion Gate
 
 After every phase-specific gate passes, run:
@@ -470,6 +505,11 @@ Push-Location ..\gunray
 uv run pytest
 uv run pyright src
 Pop-Location
+
+Push-Location ..\belief-set
+uv run pytest
+uv run pyright belief_set
+Pop-Location
 ```
 
 Before declaring the workstream complete, search must show:
@@ -478,6 +518,7 @@ Before declaring the workstream complete, search must show:
 rg -n -F "can_lift(" propstore tests docs
 rg -n -F "LiftingException" propstore tests docs
 rg -n -F "IstLiteralKey" propstore tests docs
+rg -n -F "belief_set" propstore/context_lifting.py propstore/aspic_bridge propstore/grounding
 ```
 
 Expected final state:
@@ -486,6 +527,8 @@ Expected final state:
 - no lifting-exception-only production path;
 - `IstLiteralKey` is present at every ASPIC projection boundary where context is
   in scope.
+- no context-lifting, ASPIC-bridge, or Gunray-grounding production path imports
+  `belief_set`.
 
 ## Completion Definition
 
@@ -497,7 +540,9 @@ The workstream is complete only when all of the following are true:
 - Blocked lifting and CKR justifiable exceptions share one defeat carrier.
 - Gunray outputs are carried through typed projection frames and never become
   propstore identity.
+- Belief-set remains a formal belief-dynamics dependency only; this workstream
+  does not repurpose it as a context or argumentation engine.
 - Bound world, conflict detection, ATMS, structured projection, and worldlines
   agree on lifted/blocked/unknown status.
-- Full propstore, argumentation, and gunray gates pass.
+- Full propstore, argumentation, gunray, and belief-set gates pass.
 - Documentation describes the final architecture without old/new dual paths.
