@@ -21,7 +21,8 @@ import pytest
 
 from propstore.conflict_detector.models import ConflictClaim
 from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
-from propstore.z3_conditions import Z3TranslationError
+from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.solver import Z3TranslationError
 
 
 def _three_parameter_claims_on_concept() -> tuple[ConflictClaim, ...]:
@@ -47,7 +48,13 @@ def test_partitioning_runtime_error_includes_underlying_cause_text() -> None:
     with pytest.raises(RuntimeError) as info:
         detect_parameter_conflicts(
             _three_parameter_claims_on_concept(),
-            cel_registry={},
+            cel_registry={
+                "intention_to_treat": ConceptInfo(
+                    id="intention_to_treat",
+                    canonical_name="intention_to_treat",
+                    kind=KindType.BOOLEAN,
+                )
+            },
             solver=stub,
         )
 
@@ -70,7 +77,13 @@ def test_disjointness_runtime_error_includes_underlying_cause_text() -> None:
     with pytest.raises(RuntimeError) as info:
         detect_parameter_conflicts(
             _three_parameter_claims_on_concept(),
-            cel_registry={},
+            cel_registry={
+                "intention_to_treat": ConceptInfo(
+                    id="intention_to_treat",
+                    canonical_name="intention_to_treat",
+                    kind=KindType.BOOLEAN,
+                )
+            },
             solver=stub,
         )
 
