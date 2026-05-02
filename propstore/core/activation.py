@@ -221,8 +221,8 @@ def is_active_claim_active(
     ):
         return False
 
-    claim_conditions = claim.conditions
-    if not claim_conditions:
+    claim_conditions = claim.checked_conditions
+    if claim_conditions is None or not claim_conditions.conditions:
         return True
 
     binding_conditions = _binding_conditions(environment)
@@ -238,10 +238,7 @@ def is_active_claim_active(
                 check_condition_ir(str(condition), registry)
                 for condition in binding_conditions
             ),
-            checked_condition_set(
-                check_condition_ir(str(condition), registry)
-                for condition in claim_conditions
-            ),
+            claim_conditions,
         )
     except ValueError as exc:
         _raise_unknown_concept_if_present(exc, source_artifact=claim.artifact_id)
@@ -258,8 +255,8 @@ def is_active_claim_active(
                     for condition in binding_conditions
                 ),
                 checked_condition_set(
-                    check_condition_ir(str(condition), retry_registry)
-                    for condition in claim_conditions
+                    check_condition_ir(source, retry_registry)
+                    for source in claim_conditions.sources
                 ),
             )
         except ValueError as exc:

@@ -9,6 +9,7 @@ from typing import Any
 
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.claim_types import ClaimType
+from propstore.core.conditions import CheckedConditionSet, checked_condition_set_from_json
 from propstore.core.id_types import ClaimId, ConceptId, ContextId, LogicalId, to_concept_id
 from propstore.core.row_types import (
     ClaimConceptLinkRow,
@@ -97,10 +98,22 @@ def _parse_variables(
     return ()
 
 
+def _parse_checked_conditions(raw: object) -> CheckedConditionSet | None:
+    if raw is None or raw == "":
+        return None
+    if not isinstance(raw, str):
+        raise ValueError("checked claim conditions must be encoded as JSON text")
+    loaded = json.loads(raw)
+    if not isinstance(loaded, Mapping):
+        raise ValueError("checked claim conditions must decode to a mapping")
+    return checked_condition_set_from_json(loaded)
+
+
 @dataclass(frozen=True)
 class ActiveClaim:
     row: ClaimRow
     conditions: tuple[CelExpr, ...] = field(default_factory=tuple)
+    checked_conditions: CheckedConditionSet | None = None
     variables: tuple[ActiveClaimVariable, ...] = field(default_factory=tuple)
     branch: str | None = None
 
@@ -112,9 +125,19 @@ class ActiveClaim:
     def from_claim_row(cls, row: ClaimRow) -> ActiveClaim:
         variables = _parse_variables(row.variables_json)
         branch = row.attributes.get("branch")
+        checked_conditions = _parse_checked_conditions(row.conditions_ir)
+        if row.conditions_cel and checked_conditions is None:
+            raise ValueError(
+                "conditional claim row is missing conditions_ir; rebuild the sidecar"
+            )
         return cls(
             row=row,
-            conditions=_parse_conditions(row.conditions_cel),
+            conditions=(
+                checked_conditions.sources
+                if checked_conditions is not None
+                else _parse_conditions(row.conditions_cel)
+            ),
+            checked_conditions=checked_conditions,
             variables=variables,
             branch=(None if branch is None else str(branch)),
         )
