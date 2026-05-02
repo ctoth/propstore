@@ -308,6 +308,7 @@ def test_world_query_compiled_graph_matches_normalized_storage_projection(
                     num.sample_size,
                     num.unit,
                     txt.conditions_cel,
+                    txt.conditions_ir,
                     txt.statement,
                     txt.expression,
                     txt.sympy_generated,
