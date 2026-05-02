@@ -155,6 +155,31 @@ This paper is useful for propstore because it treats schema alignment as explici
 - [ ] Can the asymmetric overlap decision rule be generalized into a typed argumentation or belief-revision surface for conflicting alignments? *(p.405-p.406)*
 - [ ] How would BLOOMS behave on much larger ontologies than those in Table 3? *(p.416)*
 
+## Collection Cross-References
+
+### Already in Collection
+- (none found among cited references; key cited works such as Euzenat 2004, Euzenat and Shvaiko 2007, Bizer et al. 2009, and UMBEL technical documentation were not found as collected papers.)
+
+### Cited By (in Collection)
+- [sameAs.cc: The Closure of 500M owl:sameAs Statements](../Beek_2018_SameAs.ccClosure500MOwl/notes.md) - cites this paper as prior work on ontology alignment for linked open data; Beek 2018 operates mainly at the instance identity-link layer, while BLOOMS targets schema/class alignment.
+- [Not Quite the Same: Identity Constraints for the Web of Linked Data](../Melo_2013_NotQuiteSameIdentity/notes.md) - lists this paper as graph-based disambiguation/alignment work for Linked Data; Melo 2013 addresses identity-link repair, a complementary problem to BLOOMS' schema-link construction.
+
+### New Leads (Not Yet in Collection)
+- Euzenat (2004) - "An API for ontology alignment" - Alignment API used by BLOOMS for post-processing and output format.
+- Euzenat and Shvaiko (2007) - "Ontology matching" - foundational ontology matching text cited for the field.
+- Bizer, Heath, and Berners-Lee (2009) - "Linked data - the story so far" - Linked Data background for the LOD cloud problem framing.
+- Bergman and Giasson - "UMBEL ontology, volume 1, technical documentation" - related schema-level reference framework for LOD.
+
+### Supersedes or Recontextualizes
+- (none identified; this paper is an early schema-alignment proposal rather than a direct correction of collected papers.)
+
+### Conceptual Links (not citation-based)
+- [When owl:sameAs Isn't the Same: An Analysis of Identity in Linked Data](../Halpin_2010_OwlSameAsIsntSame/notes.md) - Strong: same ISWC 2010 volume and same Web of Data context, but Halpin critiques overly strong instance identity while BLOOMS argues that LOD also needs schema-level subclass/equivalence links. Together they separate "what counts as the same individual" from "how class vocabularies align."
+- [The sameAs Problem: A Survey on Identity Management in the Web of Data](../Raad_2019_SameAsProblemSurvey/notes.md) - Moderate: Raad 2019 surveys identity-link creation and repair, while BLOOMS creates schema-level links; both show that LOD integration needs typed, policy-aware links rather than undifferentiated similarity.
+- [SameAs Networks and Beyond: Analyzing Deployment Status and Implications of owl:sameAs in Linked Data](../Ding_2010_SameAsNetworksBeyondAnalyzing/notes.md) - Strong: Ding 2010 uses sameAs networks and class-level similarity signals for ontology mapping/error detection, overlapping BLOOMS' goal of schema-level support but deriving evidence from identity-network structure rather than Wikipedia category forests.
+- [Is my:sameAs the same as your:sameAs? Lenticular Lenses for Context-Specific Identity](../Idrissou_2017_LenticularLensesContextSpecificIdentity/notes.md) - Moderate: Lenticular Lenses makes identity links contextual and provenance-bearing; BLOOMS' directional schema alignments would benefit from the same context/provenance discipline rather than globally asserted class links.
+- [Not Quite the Same: Identity Constraints for the Web of Linked Data](../Melo_2013_NotQuiteSameIdentity/notes.md) - Moderate: Melo 2013 provides graph constraints and repair for erroneous identity links, complementary to BLOOMS' construction of schema links; both imply that link quality must be evaluated, not just generated.
+
 ## Related Work Worth Reading
 - Bizer, Heath, and Berners-Lee on Linked Data foundations. *(p.416)*
 - Euzenat's Alignment API and Euzenat/Shvaiko's Ontology Matching text for ontology alignment foundations. *(p.416-p.417)*
