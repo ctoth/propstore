@@ -742,9 +742,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
         assert not hasattr(assignment_selection_module, "_eval_cel_constraint_bruteforce")
 
     def test_cel_constraints_reuse_one_solver_per_problem(self, monkeypatch):
-        import propstore.z3_conditions as z3_conditions
-
-        real_solver = z3_conditions.Z3ConditionSolver
+        real_solver = assignment_selection_module.ConditionSolver
         init_count = 0
 
         class CountingSolver(real_solver):
@@ -776,7 +774,7 @@ class TestAssignmentLevelAssignmentSelectionMerge:
             operator=MergeOperator.SIGMA,
         )
 
-        monkeypatch.setattr(z3_conditions, "Z3ConditionSolver", CountingSolver)
+        monkeypatch.setattr(assignment_selection_module, "ConditionSolver", CountingSolver)
         result = solve_assignment_selection_merge(problem)
 
         assert result.winners
