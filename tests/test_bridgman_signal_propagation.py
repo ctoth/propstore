@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 from tests.conftest import TEST_CONTEXT_ID
-from propstore.cel_checker import KindType
+from propstore.core.conditions.registry import KindType
 from propstore.families.forms.stages import FormDefinition
 from tests.family_helpers import load_claim_files
 from tests.test_validate_claims import (

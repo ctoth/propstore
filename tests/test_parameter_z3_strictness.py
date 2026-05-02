@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.conflict_detector.collectors import conflict_claim_from_payload
 from propstore.conflict_detector.models import ConflictClaim
 from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts

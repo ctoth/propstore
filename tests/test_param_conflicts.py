@@ -19,7 +19,7 @@ from propstore.conflict_detector.parameterization_conflicts import (
 )
 from tests.conftest import make_cel_registry, make_concept_identity
 
-from propstore.cel_checker import KindType
+from propstore.core.conditions.registry import KindType
 
 
 def _frequency_form() -> FormDefinition:

@@ -14,7 +14,7 @@ from hypothesis import strategies as st
 
 from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.families.contexts.documents import ContextDocument
-from propstore.cel_checker import synthetic_category_concept
+from propstore.core.conditions.registry import synthetic_category_concept
 from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
 from propstore.context_lifting import (

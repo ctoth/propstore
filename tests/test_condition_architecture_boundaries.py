@@ -48,10 +48,7 @@ def test_no_production_imports_deleted_z3_conditions_surface() -> None:
 
 
 def test_cel_parser_import_is_confined_to_condition_frontend_boundary() -> None:
-    allowed = {
-        CONDITION_FRONTEND,
-        Path("propstore/cel_checker.py"),
-    }
+    allowed = {CONDITION_FRONTEND}
     offenders = {
         str(path): sorted(
             imported

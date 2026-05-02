@@ -19,13 +19,9 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.cel_checker import (
-    ConceptInfo,
-    KindType,
-    check_cel_expression,
-)
 from propstore.core.conditions import checked_condition_set
-from propstore.core.conditions.cel_frontend import check_condition_ir
+from propstore.core.conditions.cel_frontend import check_cel_expression, check_condition_ir
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.form_utils import kind_type_from_form_name
 

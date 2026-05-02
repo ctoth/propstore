@@ -3,7 +3,7 @@ from __future__ import annotations
 from hypothesis import given, strategies as st
 import pytest
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
 

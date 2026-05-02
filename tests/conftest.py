@@ -18,7 +18,7 @@ from hypothesis import settings
 
 from quire.documents import convert_document_value as convert_document
 from propstore.families.registry import CONCEPT_FILE_FAMILY
-from propstore.cel_checker import KindType
+from propstore.core.conditions.registry import KindType
 from propstore.families.concepts.stages import concept_document_to_record_payload
 from propstore.families.identity.claims import (
     compute_claim_version_id,

@@ -11,17 +11,20 @@ import pytest
 from hypothesis import given, assume, settings
 from hypothesis import strategies as st
 
-from propstore.cel_checker import (
-    BinaryOpNode,
-    CelError,
-    ConceptInfo,
-    KindType,
-    TernaryNode,
-    UnaryOpNode,
-    check_cel_expression,
-    parse_cel,
-    tokenize,
+from cel_parser import (
+    OP_AND,
+    OP_GT,
+    OP_MUL,
+    OP_NEG,
+    OP_NOT,
+    Call,
+    Ident,
+    IntLit,
+    StringLit,
+    parse as parse_cel,
 )
+from propstore.core.conditions.cel_frontend import CelError, check_cel_expression
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES
 from propstore.cel_registry import (
     build_canonical_cel_registry,
@@ -67,109 +70,49 @@ def registry():
     }
 
 
-# ── Tokenizer tests ──────────────────────────────────────────────────
+# ── Parser tests (against cel-parser AST) ───────────────────────────
 
-class TestTokenizer:
-    def test_simple_comparison(self):
-        tokens = tokenize("F0 > 200")
-        assert tokens[0].value == "F0"
-        assert tokens[1].value == ">"
-        assert tokens[2].value == 200
-
-    def test_string_literal(self):
-        tokens = tokenize("task == 'singing'")
-        assert tokens[2].value == "singing"
-
-    def test_double_quoted_string(self):
-        tokens = tokenize('task == "singing"')
-        assert tokens[2].value == "singing"
-
-    def test_logical_operators(self):
-        tokens = tokenize("F0 > 200 && task == 'singing'")
-        ops = [t.value for t in tokens if t.type.name == "OP"]
-        assert ">" in ops
-        assert "&&" in ops
-        assert "==" in ops
-
-    def test_float_literal(self):
-        tokens = tokenize("F1 / F0 > 3.0")
-        floats = [t for t in tokens if t.type.name == "FLOAT_LIT"]
-        assert len(floats) == 1
-        assert floats[0].value == 3.0
-
-    def test_in_keyword(self):
-        tokens = tokenize("task in ['speech', 'singing']")
-        in_tokens = [t for t in tokens if t.type.name == "IN"]
-        assert len(in_tokens) == 1
-
-    def test_boolean_literal(self):
-        tokens = tokenize("phonation_present == true")
-        bools = [t for t in tokens if t.type.name == "BOOL_LIT"]
-        assert len(bools) == 1
-        assert bools[0].value is True
-
-    def test_negation(self):
-        tokens = tokenize("!phonation_present")
-        assert tokens[0].value == "!"
-
-    def test_string_literal_unescapes_quotes(self):
-        """Escaped quotes inside string literals should be unescaped."""
-        tokens = tokenize(r'category == "has \"inner\" quotes"')
-        string_token = [t for t in tokens if t.type.name == "STRING_LIT"][0]
-        assert string_token.value == 'has "inner" quotes'
-
-    def test_string_literal_unescapes_backslash(self):
-        """Escaped backslashes inside string literals should be unescaped."""
-        tokens = tokenize(r'category == "path\\to\\file"')
-        string_token = [t for t in tokens if t.type.name == "STRING_LIT"][0]
-        assert string_token.value == "path\\to\\file"
-
-    def test_single_quoted_string_unescapes(self):
-        """Single-quoted strings should also unescape."""
-        tokens = tokenize(r"category == 'it\'s here'")
-        string_token = [t for t in tokens if t.type.name == "STRING_LIT"][0]
-        assert string_token.value == "it's here"
-
-
-# ── Parser tests ─────────────────────────────────────────────────────
 
 class TestParser:
     def test_simple_comparison(self):
         ast = parse_cel("F0 > 200")
-        assert ast.__class__.__name__ == "BinaryOpNode"
+        assert isinstance(ast, Call)
+        assert ast.function == OP_GT
 
     def test_compound_expression(self):
         ast = parse_cel("F0 > 200 && task == 'singing'")
-        assert isinstance(ast, BinaryOpNode)
-        assert ast.op == "&&"
+        assert isinstance(ast, Call)
+        assert ast.function == OP_AND
 
     def test_ratio_comparison(self):
         ast = parse_cel("F1 / F0 > 3.0")
-        assert isinstance(ast, BinaryOpNode)
-        assert ast.op == ">"
+        assert isinstance(ast, Call)
+        assert ast.function == OP_GT
 
     def test_in_expression(self):
         ast = parse_cel("task in ['speech', 'singing']")
-        assert ast.__class__.__name__ == "InNode"
+        assert isinstance(ast, Call)
+        assert ast.function == "@in"
 
     def test_parenthesized(self):
         ast = parse_cel("(F0 + F1) * 2")
-        assert isinstance(ast, BinaryOpNode)
-        assert ast.op == "*"
+        assert isinstance(ast, Call)
+        assert ast.function == OP_MUL
 
     def test_ternary(self):
         ast = parse_cel("phonation_present ? F0 : 0")
-        assert isinstance(ast, TernaryNode)
+        assert isinstance(ast, Call)
+        assert ast.function == "_?_:_"
 
     def test_negation(self):
         ast = parse_cel("!phonation_present")
-        assert isinstance(ast, UnaryOpNode)
-        assert ast.op == "!"
+        assert isinstance(ast, Call)
+        assert ast.function == OP_NOT
 
     def test_unary_minus(self):
         ast = parse_cel("-F0")
-        assert isinstance(ast, UnaryOpNode)
-        assert ast.op == "-"
+        assert isinstance(ast, Call)
+        assert ast.function == OP_NEG
 
 
 # ── Type checker: quantity concepts ──────────────────────────────────
@@ -626,8 +569,8 @@ class TestBuildCelRegistry:
             build_store_cel_registry([row])
 
     def test_standard_synthetic_names_are_not_checker_owned(self):
-        checker_module = importlib.import_module("propstore.cel_checker")
-        assert not hasattr(checker_module, "STANDARD_SYNTHETIC_BINDING_NAMES")
+        with pytest.raises(ModuleNotFoundError):
+            importlib.import_module("propstore.cel_checker")
         assert "source" in STANDARD_SYNTHETIC_BINDING_NAMES
 
 

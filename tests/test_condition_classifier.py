@@ -8,12 +8,12 @@ from propstore.conflict_detector.models import ConflictClass
 
 def _make_registry():
     """Minimal CEL registry for testing."""
-    from propstore.cel_checker import ConceptInfo, KindType
+    from propstore.core.conditions.registry import ConceptInfo, KindType
     return {"freq": ConceptInfo(id="freq", canonical_name="freq", kind=KindType.QUANTITY)}
 
 
 def _make_open_category_registry():
-    from propstore.cel_checker import ConceptInfo, KindType
+    from propstore.core.conditions.registry import ConceptInfo, KindType
 
     return {
         "task": ConceptInfo(

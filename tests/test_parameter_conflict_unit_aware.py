@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore import dimensions
-from propstore.cel_checker import KindType
+from propstore.core.conditions.registry import KindType
 from propstore.conflict_detector import detect_conflicts
 from propstore.families.forms.stages import FormDefinition
 from tests.conftest import make_cel_registry, make_concept_registry

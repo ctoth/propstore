@@ -4,15 +4,14 @@ import importlib
 
 import pytest
 
-from propstore.cel_checker import (
-    BinaryOpNode,
-    CelSourceSpan,
-    ConceptInfo,
-    KindType,
-    LiteralNode,
-    NameNode,
-    parse_cel,
+from cel_parser import (
+    OP_GT,
+    Call,
+    Ident,
+    IntLit,
+    parse as parse_cel,
 )
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions import (
     ConditionBinary,
     ConditionBinaryOp,
@@ -86,12 +85,14 @@ def test_condition_ir_from_cel_lowers_typed_comparison() -> None:
 def test_cel_ast_nodes_preserve_source_spans() -> None:
     ast = parse_cel("temperature > 21")
 
-    assert isinstance(ast, BinaryOpNode)
-    assert ast.span == CelSourceSpan(0, 16)
-    assert isinstance(ast.left, NameNode)
-    assert ast.left.span == CelSourceSpan(0, 11)
-    assert isinstance(ast.right, LiteralNode)
-    assert ast.right.span == CelSourceSpan(14, 16)
+    assert isinstance(ast, Call)
+    assert ast.function == OP_GT
+    assert (ast.span.start, ast.span.end) == (0, 16)
+    left, right = ast.args
+    assert isinstance(left, Ident)
+    assert (left.span.start, left.span.end) == (0, 11)
+    assert isinstance(right, IntLit)
+    assert (right.span.start, right.span.end) == (14, 16)
 
 
 def test_condition_ir_preserves_child_spans_from_cel_frontend() -> None:

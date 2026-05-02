@@ -6,7 +6,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from unittest.mock import patch
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
 from propstore.conflict_detector.models import ConflictClaim, ConflictClaimVariable
 

@@ -13,7 +13,7 @@ import pytest
 from hypothesis import given, settings, assume, HealthCheck
 from hypothesis import strategies as st
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 import propstore.storage as repo_api
 from propstore.world.assignment_selection_merge import (
     MergeOperator,
@@ -121,7 +121,7 @@ def _eval_cel_ast_oracle(node, bindings):
 
 def _eval_cel_constraint_bruteforce_oracle(assignment, constraint) -> bool:
     from cel_parser import parse as parse_cel
-    from propstore.cel_checker import check_cel_expression
+    from propstore.core.conditions.cel_frontend import check_cel_expression
     from propstore.core.conditions.registry import scope_condition_registry
 
     if not constraint.cel:

@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.solver import ConditionSolver
 

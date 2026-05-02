@@ -6,7 +6,7 @@ import inspect
 
 import pytest
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.conflict_detector import orchestrator
 
 

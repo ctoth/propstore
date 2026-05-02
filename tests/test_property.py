@@ -9,12 +9,16 @@ import pytest
 from hypothesis import given, assume, settings
 from hypothesis import strategies as st
 
-from propstore.cel_checker import (
-    ConceptInfo,
-    KindType,
-    check_cel_expression,
-    tokenize,
+from cel_parser import (
+    Call,
+    DoubleLit,
+    Ident,
+    IntLit,
+    StringLit,
+    parse,
 )
+from propstore.core.conditions.cel_frontend import check_cel_expression
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.conflict_detector import (
     ConflictClass,
     detect_conflicts as _detect_conflicts,
@@ -56,40 +60,44 @@ def detect_conflicts(claim_files, registry, lifting_system=None):
 @pytest.mark.property
 @given(name=_VALID_IDENT, op=_VALID_OP, val=_VALID_INT)
 @settings()
-def test_tokenizer_simple_int_comparison(name, op, val):
-    """Tokenizer should handle any simple 'ident op integer' expression."""
+def test_parser_simple_int_comparison(name, op, val):
+    """Parser should handle any simple 'ident op integer' expression."""
     assume(name not in ("true", "false", "in"))
     expr = f"{name} {op} {val}"
-    tokens = tokenize(expr)
-    # Should produce at least 3 tokens: ident, op, number
-    assert len(tokens) >= 3
-    assert tokens[0].value == name
-    assert tokens[1].value == op
+    ast = parse(expr)
+    assert isinstance(ast, Call)
+    assert len(ast.args) == 2
+    left, right = ast.args
+    assert isinstance(left, Ident) and left.name == name
+    assert isinstance(right, IntLit) and right.value == val
 
 
 @pytest.mark.property
 @given(name=_VALID_IDENT, op=_VALID_OP, val=_VALID_FLOAT)
 @settings()
-def test_tokenizer_simple_float_comparison(name, op, val):
-    """Tokenizer should handle any simple 'ident op float' expression."""
+def test_parser_simple_float_comparison(name, op, val):
+    """Parser should handle any simple 'ident op float' expression."""
     assume(name not in ("true", "false", "in"))
     expr = f"{name} {op} {val}"
-    tokens = tokenize(expr)
-    assert len(tokens) >= 3
-    assert tokens[0].value == name
+    ast = parse(expr)
+    assert isinstance(ast, Call)
+    left, right = ast.args
+    assert isinstance(left, Ident) and left.name == name
+    assert isinstance(right, DoubleLit)
 
 
 @pytest.mark.property
 @given(name=_VALID_IDENT, val=_VALID_STRING_LIT)
 @settings()
-def test_tokenizer_string_equality(name, val):
-    """Tokenizer should handle 'ident == string_literal' expressions."""
+def test_parser_string_equality(name, val):
+    """Parser should handle 'ident == string_literal' expressions."""
     assume(name not in ("true", "false", "in"))
     expr = f"{name} == '{val}'"
-    tokens = tokenize(expr)
-    assert len(tokens) >= 3
-    assert tokens[0].value == name
-    assert tokens[2].value == val
+    ast = parse(expr)
+    assert isinstance(ast, Call)
+    left, right = ast.args
+    assert isinstance(left, Ident) and left.name == name
+    assert isinstance(right, StringLit) and right.value == val
 
 
 @pytest.mark.property
@@ -102,16 +110,14 @@ def test_tokenizer_string_equality(name, val):
     val_b=_VALID_INT,
 )
 @settings()
-def test_tokenizer_compound_expression(name_a, name_b, op_a, op_b, val_a, val_b):
-    """Tokenizer should handle compound expressions with &&."""
+def test_parser_compound_expression(name_a, name_b, op_a, op_b, val_a, val_b):
+    """Parser should handle compound expressions with &&."""
     assume(name_a not in ("true", "false", "in"))
     assume(name_b not in ("true", "false", "in"))
     expr = f"{name_a} {op_a} {val_a} && {name_b} {op_b} {val_b}"
-    tokens = tokenize(expr)
-    # Should have tokens for both sides plus the && operator
-    assert len(tokens) >= 7
-    ops = [t.value for t in tokens if t.type.name == "OP"]
-    assert "&&" in ops
+    ast = parse(expr)
+    assert isinstance(ast, Call)
+    assert ast.function == "_&&_"
 
 
 # ── Numeric interval comparison property tests ───────────────────────

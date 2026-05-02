@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.cel_checker import check_cel_expression
+from propstore.core.conditions.cel_frontend import check_cel_expression
 from propstore.core.conditions.registry import ConceptInfo, KindType
 
 

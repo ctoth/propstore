@@ -25,7 +25,7 @@ from propstore.conflict_detector.collectors import (
 )
 from propstore.conflict_detector.models import ConflictClaim
 from propstore.claims import loaded_claim_file_from_payload
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.families.contexts.stages import LoadedContext
 from tests.conftest import make_cel_registry, make_concept_identity, make_concept_registry
 

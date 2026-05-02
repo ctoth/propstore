@@ -23,7 +23,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.cel_validation import (
     CelExpressionLocation,
     CelIngestValidationError,
