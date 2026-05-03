@@ -263,12 +263,18 @@ def _noop_external_surfaces(monkeypatch: pytest.MonkeyPatch) -> None:
     """Default the cross-module surfaces called by build_repository_overview
     to empty no-ops so individual tests don't have to. Tests that exercise
     a specific surface can override these monkeypatches."""
+    from propstore.app.repository_history import LogReport
     from propstore.app.sources import SourceListReport
 
     monkeypatch.setattr(
         repository_overview,
         "list_sources",
         lambda _repo: SourceListReport(items=()),
+    )
+    monkeypatch.setattr(
+        repository_overview,
+        "build_log_report",
+        lambda _repo, **_kwargs: LogReport(branch="master", entries=()),
     )
 
 
@@ -406,6 +412,9 @@ def test_overview_row_propagates_unexpected_exception(
 def test_overview_unwired_sections_are_not_implemented(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Notable conflicts is the only section that has not been wired yet —
+    the cached aggregate surface does not exist (see docs/gaps.md). Sources
+    and recent_activity are wired now and should not appear here."""
     fake = (
         KindContributor(
             kind="anything",
@@ -418,9 +427,7 @@ def test_overview_unwired_sections_are_not_implemented(
 
     report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
 
-    assert report.source_pointers == ()
     assert report.provenance_summary.state == "not_implemented"
-    assert report.recent_activity.state == "not_implemented"
     assert report.notable_conflicts.state == "not_implemented"
 
 
@@ -482,6 +489,114 @@ def test_overview_source_pointers_match_list_sources_items(
     assert {p.slug for p in report.source_pointers} == {"paper-foo", "paper-bar"}
     for pointer in report.source_pointers:
         assert pointer.state == "known"
+
+
+def test_overview_recent_activity_maps_log_records_to_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from propstore.app.repository_history import LogRecord, LogReport
+
+    fake_log = LogReport(
+        branch="master",
+        entries=(
+            LogRecord(
+                sha="abc123",
+                time="2026-05-02T10:00:00",
+                branch="master",
+                operation="concept.add",
+                message="Add concept: example",
+                parents=("def456",),
+            ),
+            LogRecord(
+                sha="def456",
+                time="2026-05-01T09:00:00",
+                branch="master",
+                operation="papers.import",
+                message="Import 3 paper claim file(s)",
+                parents=(),
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        repository_overview,
+        "build_log_report",
+        lambda _repo, **_kwargs: fake_log,
+    )
+
+    fake = (
+        KindContributor(
+            kind="any",
+            href=None,
+            count=lambda _repo: 0,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    activity = report.recent_activity
+    assert activity.state == "known"
+    assert len(activity.entries) == 2
+    assert activity.entries[0].when == "2026-05-02T10:00:00"
+    assert "concept.add" in activity.entries[0].what
+    assert "example" in activity.entries[0].what
+    assert activity.entries[1].when == "2026-05-01T09:00:00"
+
+
+def test_overview_recent_activity_empty_when_log_report_has_no_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from propstore.app.repository_history import LogReport
+
+    monkeypatch.setattr(
+        repository_overview,
+        "build_log_report",
+        lambda _repo, **_kwargs: LogReport(branch="master", entries=()),
+    )
+
+    fake = (
+        KindContributor(
+            kind="any",
+            href=None,
+            count=lambda _repo: 0,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    activity = report.recent_activity
+    assert activity.state == "vacuous"
+    assert activity.entries == ()
+
+
+def test_overview_recent_activity_is_vacuous_when_branch_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from propstore.app.repository_history import BranchNotFoundError
+
+    def _raises(_repo: Repository, **_kwargs: object) -> object:
+        raise BranchNotFoundError("Branch not found: master")
+
+    monkeypatch.setattr(repository_overview, "build_log_report", _raises)
+
+    fake = (
+        KindContributor(
+            kind="any",
+            href=None,
+            count=lambda _repo: 0,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    activity = report.recent_activity
+    assert activity.state == "vacuous"
+    assert "branch" in activity.sentence.lower() or "not found" in activity.sentence.lower()
 
 
 def test_overview_source_pointers_empty_when_list_sources_returns_empty(

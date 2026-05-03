@@ -31,6 +31,11 @@ from propstore.app.rendering import (
     build_render_policy,
     summarize_render_policy,
 )
+from propstore.app.repository_history import (
+    BranchNotFoundError,
+    LogRecord,
+    build_log_report,
+)
 from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     repository_view_label,
@@ -48,6 +53,12 @@ inventory count. Existing ``list_*`` surfaces paginate; we send a high
 limit and report what came back. A future unbounded ``count_*`` surface
 will replace this; tracked in ``docs/gaps.md``.
 """
+
+_RECENT_ACTIVITY_COUNT = 10
+"""Upper bound on log entries projected into ``RecentActivity.entries``."""
+
+_RECENT_ACTIVITY_MESSAGE_TRUNCATE = 80
+"""Maximum message length carried in ``RecentActivityEntry.what``."""
 
 
 @dataclass(frozen=True)
@@ -180,11 +191,7 @@ def build_repository_overview(
             counts=(),
             sentence="Provenance aggregation is not yet computed.",
         ),
-        recent_activity=RecentActivity(
-            state="not_implemented",
-            entries=(),
-            sentence="Recent activity is not yet computed.",
-        ),
+        recent_activity=_build_recent_activity(repo),
         notable_conflicts=NotableConflicts(
             state="not_implemented",
             entries=(),
@@ -193,6 +200,46 @@ def build_repository_overview(
         prose_summary=(
             f"Repository at {repository_state}; {len(inventory_rows)} inventory kinds."
         ),
+    )
+
+
+def _build_recent_activity(repo: Repository) -> RecentActivity:
+    try:
+        log_report = build_log_report(
+            repo,
+            count=_RECENT_ACTIVITY_COUNT,
+            branch_name=None,
+            show_files=False,
+        )
+    except BranchNotFoundError as exc:
+        return RecentActivity(
+            state="vacuous",
+            entries=(),
+            sentence=f"Recent activity unavailable: {exc!s}.",
+        )
+    if not log_report.entries:
+        return RecentActivity(
+            state="vacuous",
+            entries=(),
+            sentence="No commits on the current branch yet.",
+        )
+    return RecentActivity(
+        state="known",
+        entries=tuple(_recent_entry_from_log(record) for record in log_report.entries),
+        sentence=(
+            f"Last {len(log_report.entries)} commits on {log_report.branch}."
+        ),
+    )
+
+
+def _recent_entry_from_log(record: LogRecord) -> RecentActivityEntry:
+    message = record.message
+    if len(message) > _RECENT_ACTIVITY_MESSAGE_TRUNCATE:
+        message = message[: _RECENT_ACTIVITY_MESSAGE_TRUNCATE - 1] + "…"
+    return RecentActivityEntry(
+        when=record.time,
+        what=f"{record.operation}: {message}",
+        href=None,
     )
 
 
