@@ -410,6 +410,56 @@ def test_overview_unwired_sections_are_not_implemented(
     assert report.notable_conflicts.state == "not_implemented"
 
 
+def test_provenance_summary_placeholder_is_honest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Until an app-layer count-by-provenance-state surface exists, the
+    placeholder must be honest: state=not_implemented, empty counts, and
+    a sentence that mentions provenance so a reader can tell what the
+    section is for. Tracked in docs/gaps.md."""
+    fake = (
+        KindContributor(
+            kind="any",
+            href=None,
+            count=lambda _repo: 0,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+    summary = report.provenance_summary
+
+    assert summary.state == "not_implemented"
+    assert summary.counts == ()
+    assert "provenance" in summary.sentence.lower()
+
+
+@pytest.mark.skip(
+    reason=(
+        "Aggregation surface count_claims_by_provenance_state(repo) does "
+        "not yet exist in the app layer; tracked in docs/gaps.md. This "
+        "test pins the IDEAL contract for when that surface lands."
+    )
+)
+def test_provenance_summary_aggregates_typed_state_counts() -> None:
+    from propstore.provenance import ProvenanceStatus
+
+    expected_states = {
+        ProvenanceStatus.MEASURED.value,
+        ProvenanceStatus.CALIBRATED.value,
+        ProvenanceStatus.STATED.value,
+        ProvenanceStatus.DEFAULTED.value,
+        ProvenanceStatus.VACUOUS.value,
+    }
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+    summary = report.provenance_summary
+
+    assert summary.state == "known"
+    assert {entry.state for entry in summary.counts} <= expected_states
+    assert sum(entry.count for entry in summary.counts) > 0
+
+
 # Production-wiring tests — these intentionally pin the kind names "claims"
 # and "concepts" to specific underlying list_* functions, since the plan
 # requires verifying the production registry's wiring for those two kinds.
