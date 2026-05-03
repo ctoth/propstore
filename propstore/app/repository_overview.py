@@ -197,9 +197,34 @@ def build_repository_overview(
             entries=(),
             sentence="Notable conflicts are not yet computed.",
         ),
-        prose_summary=(
-            f"Repository at {repository_state}; {len(inventory_rows)} inventory kinds."
+        prose_summary=_compose_prose_summary(
+            repository_state, inventory_rows, policy
         ),
+    )
+
+
+def _compose_prose_summary(
+    repository_state: str,
+    inventory_rows: tuple[InventoryRow, ...],
+    policy: RenderPolicySummary,
+) -> str:
+    known_rows = tuple(row for row in inventory_rows if row.state == "known")
+    total = sum(row.count for row in known_rows)
+    if not inventory_rows:
+        return (
+            f"Repository at {repository_state}; no inventory kinds registered "
+            f"under {policy.semantics} semantics."
+        )
+    if not known_rows:
+        return (
+            f"Repository at {repository_state}; 0 indexed entries visible across "
+            f"{len(inventory_rows)} inventory kinds (sidecar unavailable) under "
+            f"{policy.semantics} semantics."
+        )
+    return (
+        f"Repository at {repository_state}; {total} indexed entries across "
+        f"{len(known_rows)} of {len(inventory_rows)} inventory kinds under "
+        f"{policy.semantics} semantics."
     )
 
 

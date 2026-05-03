@@ -625,6 +625,68 @@ def test_overview_source_pointers_empty_when_list_sources_returns_empty(
     assert report.source_pointers == ()
 
 
+def test_overview_prose_summary_mentions_repository_state_total_and_policy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The prose summary on the /-index page must orient a reader to:
+    the repository state label, the total inventory count, and the
+    default render-policy semantics. Verified via substring."""
+    fake = (
+        KindContributor(
+            kind="alpha",
+            href="/alpha",
+            count=lambda _repo: 3,
+            sidecar_missing=(),
+        ),
+        KindContributor(
+            kind="beta",
+            href="/beta",
+            count=lambda _repo: 5,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    summary = report.prose_summary
+    assert summary
+    assert report.repository_state in summary
+    # 3 + 5 = 8 known entries; the prose must surface the synthesized total.
+    assert "8" in summary
+    # Default render policy semantics ("grounded" by default).
+    assert report.render_policy.semantics in summary
+
+
+def test_overview_prose_summary_handles_only_vacuous_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """If every inventory row is vacuous (sidecar missing), the prose
+    summary must still be a non-empty sentence mentioning that no
+    indexed entries are visible — it must not raise or fabricate."""
+
+    class _Missing(Exception):
+        pass
+
+    def _raises(_repo: Repository) -> int:
+        raise _Missing("no sidecar")
+
+    fake = (
+        KindContributor(
+            kind="x",
+            href=None,
+            count=_raises,
+            sidecar_missing=(_Missing,),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert report.prose_summary
+    assert "0" in report.prose_summary or "no" in report.prose_summary.lower()
+
+
 def test_notable_conflicts_placeholder_is_honest(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
