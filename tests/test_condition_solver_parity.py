@@ -102,25 +102,35 @@ def test_condition_solver_boolean_equivalence_implication_and_partitioning() -> 
     ]
 
 
-def test_condition_solver_preserves_unknown_result_surface() -> None:
+def test_condition_solver_preserves_unknown_result_surface(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from propstore.core.conditions.solver import (
         ConditionSolver,
         SolverUnknown,
+        SolverUnknownReason,
         Z3UnknownError,
     )
 
-    solver = ConditionSolver(_registry(), timeout_ms=1)
-    result = solver.are_disjoint_result(
-        _condition_set("fundamental_frequency * subglottal_pressure > 1"),
-        _condition_set("fundamental_frequency * subglottal_pressure < -1"),
+    solver = ConditionSolver(_registry())
+    forced_unknown = SolverUnknown(
+        reason=SolverUnknownReason.TIMEOUT,
+        hint="forced unknown for surface contract test",
     )
+    def _force_unknown(
+        conditions_a: object, conditions_b: object
+    ) -> SolverUnknown:
+        del conditions_a, conditions_b
+        return forced_unknown
 
-    if isinstance(result, SolverUnknown):
-        with pytest.raises(Z3UnknownError):
-            solver.are_disjoint(
-                _condition_set("fundamental_frequency * subglottal_pressure > 1"),
-                _condition_set("fundamental_frequency * subglottal_pressure < -1"),
-            )
+    monkeypatch.setattr(solver, "are_disjoint_result", _force_unknown)
+
+    with pytest.raises(Z3UnknownError) as excinfo:
+        solver.are_disjoint(
+            _condition_set("voiced == true"),
+            _condition_set("voiced == false"),
+        )
+    assert excinfo.value.result is forced_unknown
 
 
 def test_condition_solver_rejects_registry_fingerprint_mismatch() -> None:
