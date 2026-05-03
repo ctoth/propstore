@@ -331,6 +331,7 @@ def render_error_page(title: str, message: str) -> str:
 <section aria-labelledby="error-message-heading">
   <h2 id="error-message-heading">What happened</h2>
   <p>{_text(message)}</p>
+  <p><a href="/">Open the propstore index</a></p>
   <p><a href="/claims">Open the claim index</a></p>
   <p><a href="/concepts">Search concepts</a></p>
 </section>

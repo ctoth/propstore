@@ -162,6 +162,7 @@ def test_error_page_has_accessible_heading_and_literal_message() -> None:
     assert audit.main_count == 1
     assert audit.h2_texts == ["What happened"]
     assert "Claim &#x27;missing&#x27; not found." in html
+    assert 'href="/"' in html
 
 
 def test_web_surface_has_no_hover_or_pointer_required_css() -> None:
