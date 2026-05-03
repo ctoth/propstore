@@ -24,6 +24,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from propstore.support_revision.history import TransitionJournal
 from propstore.support_revision.projection import snapshot_to_claim_ids
+from propstore.support_revision.scope_policy import scope_policy
 from propstore.world.types import ClaimView
 
 
@@ -38,6 +39,12 @@ class BeliefSpaceQuery(Protocol):
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Any]: ...
 
 
+@scope_policy(
+    extract_from="journal",
+    extract_step="k",
+    degrade={"rebind": ("bindings",)},
+    require={"heavy": ("commit",)},
+)
 def at_journal_step(
     belief_space: BeliefSpaceQuery,
     journal: TransitionJournal,
