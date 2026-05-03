@@ -625,6 +625,51 @@ def test_overview_source_pointers_empty_when_list_sources_returns_empty(
     assert report.source_pointers == ()
 
 
+def test_notable_conflicts_placeholder_is_honest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The /-index page must not call detect_claim_conflicts on every render
+    (it triggers a full compilation pass). Until a cheap cached aggregate
+    surface exists, notable_conflicts ships state="not_implemented" with an
+    honest sentence mentioning conflicts. Tracked in docs/gaps.md."""
+    fake = (
+        KindContributor(
+            kind="any",
+            href=None,
+            count=lambda _repo: 0,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+    conflicts = report.notable_conflicts
+
+    assert conflicts.state == "not_implemented"
+    assert conflicts.entries == ()
+    assert "conflict" in conflicts.sentence.lower()
+
+
+@pytest.mark.skip(
+    reason=(
+        "Cached count-of-active-attackers(repo) surface does not yet "
+        "exist; running detect_claim_conflicts on every /-index render "
+        "is too expensive (full compilation pass). Tracked in "
+        "docs/gaps.md. This test pins the IDEAL contract for when the "
+        "cheap cached surface lands."
+    )
+)
+def test_notable_conflicts_lists_top_contested_claims() -> None:
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+    conflicts = report.notable_conflicts
+
+    assert conflicts.state == "known"
+    assert len(conflicts.entries) > 0
+    for entry in conflicts.entries:
+        assert entry.claim_id
+        assert "attack" in entry.sentence.lower() or "conflict" in entry.sentence.lower()
+
+
 @pytest.mark.skip(
     reason=(
         "Aggregation surface count_claims_by_provenance_state(repo) does "
