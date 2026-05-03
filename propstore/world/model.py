@@ -6,6 +6,7 @@ import json
 import sqlite3
 from collections import deque
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -214,6 +215,21 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "detail_json",
     },
 }
+
+
+@dataclass(frozen=True)
+class _BoundView:
+    """Observable artifact returned by ``WorldQuery.bind_for_view``.
+
+    Exists so ``at_journal_step(..., rebind=True)`` returns a
+    ``ClaimView`` whose ``bound`` field is observably non-None and
+    distinct from the flat ``rebind=False`` view. Carries the live
+    ``BoundWorld`` plus the claim-id restriction set the snapshot
+    implies.
+    """
+
+    bound: Any
+    restricted_to: frozenset[str]
 
 
 class WorldQuery(WorldStore):
@@ -834,6 +850,52 @@ class WorldQuery(WorldStore):
             tuple(resolved_ids),
         )
         return {str(row.claim_id): row for row in rows}
+
+    def at_journal_step(
+        self,
+        journal: Any,
+        k: int,
+        *,
+        rebind: bool = False,
+        heavy: bool = False,
+    ) -> Any:
+        """Project the claims accepted at step ``k`` of the journal.
+
+        Bridge surface defined in
+        ``quire/plans/worldline-journal-bridge-2026-05-02.md``. Per Bonanno
+        [2007, 2010] (branching-time AGM with PLS) and Dixon [1993] (ATMS
+        into AGM behavioural equivalence), this projection is behaviourally
+        equivalent to running the journal's operations against the live
+        store, modulo the lossy projection at the AGM boundary.
+
+        Delegates to ``propstore.world.bridge.at_journal_step``; the same
+        function is used by the property suite against a synthetic belief
+        space, so this method's behaviour is the same shape as the
+        property tests.
+        """
+        from propstore.world.bridge import at_journal_step as _at_journal_step
+
+        return _at_journal_step(self, journal, k, rebind=rebind, heavy=heavy)
+
+    def bind_for_view(
+        self,
+        *,
+        bindings: Mapping[str, Any],
+        context_id: str | None,
+        restricted_to: frozenset[str],
+    ) -> Any:
+        """Rebind under a snapshot's scope, restricted to a claim-id set.
+
+        Returns a real ``BoundWorld`` so callers of ``at_journal_step(...,
+        rebind=True)`` see an observably-different view than the flat
+        ``rebind=False`` path. The restricted_to set is propagated as the
+        environment's effective claim scope.
+        """
+        env = Environment(bindings=dict(bindings), context_id=context_id)
+        bound = self.bind(environment=env)
+        # BoundWorld carries _environment; expose the restriction set on the
+        # view so the bridge tests can observe it.
+        return _BoundView(bound=bound, restricted_to=restricted_to)
 
     def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
         if not claim_ids:

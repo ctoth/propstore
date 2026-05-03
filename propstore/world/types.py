@@ -788,6 +788,34 @@ class SyntheticClaim:
             self.confidence = float(self.confidence)
 
 
+@dataclass(frozen=True)
+class ClaimView:
+    """Bridge return type for ``at_journal_step``.
+
+    Carries the claim-id-keyed claim rows projected from a journal step,
+    the snapshot's ``RevisionScope`` (so callers know what bindings/
+    context the view is taken under), an optional ``bound`` artifact
+    (populated when ``rebind=True`` to make the rebind path observably
+    distinct from the flat view), and an optional tuple of stances
+    (populated only by the heavy variant).
+
+    See ``propstore.world.bridge.at_journal_step``.
+    """
+
+    claims: Mapping[str, Any]
+    scope: Any  # RevisionScope from support_revision.state — kept loose to avoid import cycle
+    bound: Any | None = None
+    stances: tuple[Any, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "claims", dict(self.claims))
+        object.__setattr__(self, "stances", tuple(self.stances))
+
+    def claim_ids(self) -> set[str]:
+        """Return the set of claim id strings in this view."""
+        return {str(key) for key in self.claims}
+
+
 @dataclass
 class ChainStep:
     concept_id: str
