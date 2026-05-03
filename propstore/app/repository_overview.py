@@ -35,6 +35,7 @@ from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     repository_view_label,
 )
+from propstore.app.sources import SourceListItem, list_sources
 from propstore.app.world import WorldSidecarMissingError
 from propstore.repository import Repository
 
@@ -173,7 +174,7 @@ def build_repository_overview(
         repository_state=repository_state,
         render_policy=policy,
         inventory_rows=inventory_rows,
-        source_pointers=(),
+        source_pointers=_build_source_pointers(repo),
         provenance_summary=ProvenanceSummary(
             state="not_implemented",
             counts=(),
@@ -192,6 +193,22 @@ def build_repository_overview(
         prose_summary=(
             f"Repository at {repository_state}; {len(inventory_rows)} inventory kinds."
         ),
+    )
+
+
+def _build_source_pointers(repo: Repository) -> tuple[SourcePointer, ...]:
+    report = list_sources(repo)
+    return tuple(_source_pointer_from_item(item) for item in report.items)
+
+
+def _source_pointer_from_item(item: SourceListItem) -> SourcePointer:
+    return SourcePointer(
+        state="known",
+        source_id=item.name,
+        slug=item.name,
+        kind="source",
+        sentence=f"Source {item.name} on branch {item.branch} at {item.tip_sha[:8]}.",
+        href=None,
     )
 
 

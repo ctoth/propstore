@@ -258,6 +258,20 @@ def _fake_repo() -> Repository:
     return cast(Repository, object())
 
 
+@pytest.fixture(autouse=True)
+def _noop_external_surfaces(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default the cross-module surfaces called by build_repository_overview
+    to empty no-ops so individual tests don't have to. Tests that exercise
+    a specific surface can override these monkeypatches."""
+    from propstore.app.sources import SourceListReport
+
+    monkeypatch.setattr(
+        repository_overview,
+        "list_sources",
+        lambda _repo: SourceListReport(items=()),
+    )
+
+
 def test_kind_contributor_is_frozen_dataclass_with_count_callable() -> None:
     contributor = KindContributor(
         kind="example",
@@ -433,6 +447,67 @@ def test_provenance_summary_placeholder_is_honest(
     assert summary.state == "not_implemented"
     assert summary.counts == ()
     assert "provenance" in summary.sentence.lower()
+
+
+def test_overview_source_pointers_match_list_sources_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from propstore.app.sources import SourceListItem, SourceListReport
+
+    fake_report = SourceListReport(
+        items=(
+            SourceListItem(name="paper-foo", branch="source/paper-foo", tip_sha="abc"),
+            SourceListItem(name="paper-bar", branch="source/paper-bar", tip_sha="def"),
+        ),
+    )
+    monkeypatch.setattr(
+        repository_overview,
+        "list_sources",
+        lambda _repo: fake_report,
+    )
+
+    fake = (
+        KindContributor(
+            kind="any",
+            href=None,
+            count=lambda _repo: 0,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert len(report.source_pointers) == 2
+    assert {p.slug for p in report.source_pointers} == {"paper-foo", "paper-bar"}
+    for pointer in report.source_pointers:
+        assert pointer.state == "known"
+
+
+def test_overview_source_pointers_empty_when_list_sources_returns_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from propstore.app.sources import SourceListReport
+
+    monkeypatch.setattr(
+        repository_overview,
+        "list_sources",
+        lambda _repo: SourceListReport(items=()),
+    )
+
+    fake = (
+        KindContributor(
+            kind="any",
+            href=None,
+            count=lambda _repo: 0,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert report.source_pointers == ()
 
 
 @pytest.mark.skip(
