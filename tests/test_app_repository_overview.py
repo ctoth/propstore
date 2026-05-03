@@ -1,20 +1,30 @@
-"""Construction tests for the repository-overview app-layer report shapes.
+"""Construction and composition tests for the repository-overview report.
 
-These tests pin the dataclass surface for the `/`-index page report. Per
-plan, only the dataclasses live here at this step — `build_repository_overview`
-is added in a later step.
+Step 1 pins the dataclass surface. Step 2 adds composition via
+`KIND_REGISTRY` and `build_repository_overview`.
 """
 
 from __future__ import annotations
 
 import dataclasses
-from typing import get_args
+from typing import cast, get_args
 
 import pytest
 
-from propstore.app.rendering import RenderPolicySummary
+from propstore.app.claim_views import ClaimSummaryEntry, ClaimSummaryReport
+from propstore.app.concepts import (
+    ConceptListEntry,
+    ConceptListReport,
+    ConceptSidecarMissingError,
+)
+from propstore.app.rendering import (
+    AppRenderPolicyRequest,
+    RenderPolicySummary,
+)
+from propstore.app import repository_overview
 from propstore.app.repository_overview import (
     InventoryRow,
+    KindContributor,
     NotableConflictPointer,
     NotableConflicts,
     OverviewState,
@@ -25,9 +35,11 @@ from propstore.app.repository_overview import (
     RepositoryOverviewReport,
     RepositoryOverviewRequest,
     SourcePointer,
+    build_repository_overview,
 )
-from propstore.app.rendering import AppRenderPolicyRequest
 from propstore.app.repository_views import AppRepositoryViewRequest
+from propstore.app.world import WorldSidecarMissingError
+from propstore.repository import Repository
 
 
 def _render_policy_summary() -> RenderPolicySummary:
@@ -235,3 +247,268 @@ def test_repository_overview_report_carries_all_typed_sections() -> None:
 
     with pytest.raises(dataclasses.FrozenInstanceError):
         report.repository_state = "other"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# Step 2 — KIND_REGISTRY composition
+# ---------------------------------------------------------------------------
+
+
+def _fake_repo() -> Repository:
+    return cast(Repository, object())
+
+
+def test_kind_contributor_is_frozen_dataclass_with_count_callable() -> None:
+    contributor = KindContributor(
+        kind="example",
+        href="/example",
+        count=lambda _repo: 0,
+        sidecar_missing=(),
+    )
+
+    assert contributor.kind == "example"
+    assert contributor.href == "/example"
+    assert callable(contributor.count)
+    assert contributor.sidecar_missing == ()
+
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        contributor.kind = "other"  # type: ignore[misc]
+
+
+def test_kind_registry_is_a_nonempty_tuple_of_kind_contributors() -> None:
+    registry = repository_overview.KIND_REGISTRY
+
+    assert isinstance(registry, tuple)
+    assert len(registry) > 0
+    for entry in registry:
+        assert isinstance(entry, KindContributor)
+
+
+def test_kind_registry_kinds_are_unique() -> None:
+    kinds = tuple(kc.kind for kc in repository_overview.KIND_REGISTRY)
+    assert len(kinds) == len(set(kinds))
+
+
+def _replace_registry(
+    monkeypatch: pytest.MonkeyPatch,
+    contributors: tuple[KindContributor, ...],
+) -> None:
+    monkeypatch.setattr(repository_overview, "KIND_REGISTRY", contributors)
+
+
+def test_overview_inventory_has_one_row_per_registered_kind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = tuple(
+        KindContributor(
+            kind=f"kind-{i}",
+            href=f"/{i}",
+            count=lambda _repo, _i=i: 100 + _i,
+            sidecar_missing=(),
+        )
+        for i in range(3)
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert {row.kind for row in report.inventory_rows} == {kc.kind for kc in fake}
+    assert len(report.inventory_rows) == len(fake)
+
+
+def test_overview_row_count_and_state_when_counter_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = (
+        KindContributor(
+            kind="exemplar",
+            href="/exemplar",
+            count=lambda _repo: 42,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    row = report.inventory_rows[0]
+    assert row.count == 42
+    assert row.state == "known"
+    assert row.kind == "exemplar"
+    assert row.href == "/exemplar"
+
+
+def test_overview_row_state_is_vacuous_when_counter_raises_sidecar_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeMissing(Exception):
+        pass
+
+    def _raises(_repo: Repository) -> int:
+        raise FakeMissing("sidecar gone")
+
+    fake = (
+        KindContributor(
+            kind="vacant",
+            href="/vacant",
+            count=_raises,
+            sidecar_missing=(FakeMissing,),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert len(report.inventory_rows) == 1
+    row = report.inventory_rows[0]
+    assert row.state == "vacuous"
+    assert row.count == 0
+    assert "vacant" in row.sentence or "sidecar" in row.sentence.lower()
+
+
+def test_overview_row_propagates_unexpected_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Unrelated(Exception):
+        pass
+
+    def _raises(_repo: Repository) -> int:
+        raise Unrelated("not a sidecar issue")
+
+    fake = (
+        KindContributor(
+            kind="boom",
+            href=None,
+            count=_raises,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    with pytest.raises(Unrelated):
+        build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+
+def test_overview_unwired_sections_are_not_implemented(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = (
+        KindContributor(
+            kind="anything",
+            href=None,
+            count=lambda _repo: 0,
+            sidecar_missing=(),
+        ),
+    )
+    _replace_registry(monkeypatch, fake)
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert report.source_pointers == ()
+    assert report.provenance_summary.state == "not_implemented"
+    assert report.recent_activity.state == "not_implemented"
+    assert report.notable_conflicts.state == "not_implemented"
+
+
+# Production-wiring tests — these intentionally pin the kind names "claims"
+# and "concepts" to specific underlying list_* functions, since the plan
+# requires verifying the production registry's wiring for those two kinds.
+
+
+def _claim_summary_entry(claim_id: str) -> ClaimSummaryEntry:
+    return ClaimSummaryEntry(
+        claim_id=claim_id,
+        logical_id=claim_id,
+        concept_id="c1",
+        concept_name="example",
+        concept_display="example",
+        claim_type="parameter",
+        value_display="x",
+        condition_display="(vacuous)",
+        status_state="known",
+        status_reason="visible",
+    )
+
+
+def _isolate_to_kind(monkeypatch: pytest.MonkeyPatch, kind: str) -> None:
+    """Replace KIND_REGISTRY with only the contributor for the named kind."""
+    target = next(
+        kc for kc in repository_overview.KIND_REGISTRY if kc.kind == kind
+    )
+    monkeypatch.setattr(repository_overview, "KIND_REGISTRY", (target,))
+
+
+def test_real_registry_claims_count_matches_list_claim_views_entries_length(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_report = ClaimSummaryReport(
+        entries=tuple(_claim_summary_entry(f"c{i}") for i in range(5))
+    )
+    monkeypatch.setattr(
+        repository_overview,
+        "list_claim_views",
+        lambda _repo, _req: fake_report,
+    )
+    _isolate_to_kind(monkeypatch, "claims")
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert report.inventory_rows[0].kind == "claims"
+    assert report.inventory_rows[0].count == 5
+    assert report.inventory_rows[0].state == "known"
+
+
+def test_real_registry_concepts_count_matches_list_concepts_entries_length(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_report = ConceptListReport(
+        concepts_found=True,
+        entries=tuple(
+            ConceptListEntry(handle=f"h{i}", canonical_name=f"n{i}", status="active")
+            for i in range(7)
+        ),
+    )
+    monkeypatch.setattr(
+        repository_overview,
+        "list_concepts",
+        lambda _repo, _req: fake_report,
+    )
+    _isolate_to_kind(monkeypatch, "concepts")
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert report.inventory_rows[0].kind == "concepts"
+    assert report.inventory_rows[0].count == 7
+    assert report.inventory_rows[0].state == "known"
+
+
+def test_real_registry_concepts_row_is_vacuous_on_concept_sidecar_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _raises(_repo: Repository, _req: object) -> ConceptListReport:
+        raise ConceptSidecarMissingError("sidecar not found")
+
+    monkeypatch.setattr(repository_overview, "list_concepts", _raises)
+    _isolate_to_kind(monkeypatch, "concepts")
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert report.inventory_rows[0].kind == "concepts"
+    assert report.inventory_rows[0].state == "vacuous"
+    assert report.inventory_rows[0].count == 0
+
+
+def test_real_registry_claims_row_is_vacuous_on_world_sidecar_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _raises(_repo: Repository, _req: object) -> ClaimSummaryReport:
+        raise WorldSidecarMissingError()
+
+    monkeypatch.setattr(repository_overview, "list_claim_views", _raises)
+    _isolate_to_kind(monkeypatch, "claims")
+
+    report = build_repository_overview(_fake_repo(), RepositoryOverviewRequest())
+
+    assert report.inventory_rows[0].kind == "claims"
+    assert report.inventory_rows[0].state == "vacuous"
+    assert report.inventory_rows[0].count == 0
