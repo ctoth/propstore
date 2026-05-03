@@ -21,6 +21,14 @@ from propstore.app.neighborhoods import (
     SemanticNode,
 )
 from propstore.app.rendering import RenderPolicySummary
+from propstore.app.repository_overview import (
+    InventoryRow,
+    NotableConflicts,
+    ProvenanceSummary,
+    RecentActivity,
+    RepositoryOverviewReport,
+    SourcePointer,
+)
 
 
 class LinkRow(NamedTuple):
@@ -188,6 +196,131 @@ def render_concept_page(report: ConceptViewReport) -> str:
   ])}
 """,
     )
+
+
+def render_index_page(report: RepositoryOverviewReport) -> str:
+    title = "propstore"
+    return _page(
+        f"{title} - propstore",
+        f"""
+<h1>{_text(title)}</h1>
+<p>{_text(report.prose_summary)}</p>
+{_render_policy_section(report.render_policy, repository_state=report.repository_state)}
+<section aria-labelledby="inventory-heading">
+  <h2 id="inventory-heading">Inventory</h2>
+  {_inventory_table(report.inventory_rows)}
+</section>
+<section aria-labelledby="sources-heading">
+  <h2 id="sources-heading">Sources</h2>
+  {_source_pointers_table(report.source_pointers)}
+</section>
+<section aria-labelledby="recent-activity-heading">
+  <h2 id="recent-activity-heading">Recent Activity</h2>
+  {_recent_activity_section(report.recent_activity)}
+</section>
+<section aria-labelledby="notable-conflicts-heading">
+  <h2 id="notable-conflicts-heading">Notable Conflicts</h2>
+  {_notable_conflicts_section(report.notable_conflicts)}
+</section>
+<section aria-labelledby="provenance-heading">
+  <h2 id="provenance-heading">Provenance</h2>
+  {_provenance_summary_section(report.provenance_summary)}
+</section>
+<section aria-labelledby="navigation-heading">
+  <h2 id="navigation-heading">Navigation</h2>
+  <ul>
+    <li><a href="/claims">Open the claim inventory</a></li>
+    <li><a href="/concepts">Open the concept inventory</a></li>
+  </ul>
+</section>
+""",
+    )
+
+
+def _inventory_table(rows: tuple[InventoryRow, ...]) -> str:
+    if not rows:
+        return _table(
+            ("Kind", "Count", "State", "Sentence"),
+            [("none", "not applicable", "not applicable", "not applicable")],
+        )
+    link_rows: list[LinkRow] = []
+    plain_rows: list[tuple[str, ...]] = []
+    for row in rows:
+        cells = (str(row.count), _state_label(row.state), row.sentence)
+        if row.href is not None:
+            link_rows.append(LinkRow(row.kind, row.href, cells))
+        else:
+            plain_rows.append((row.kind, *cells))
+    if not plain_rows:
+        return _link_table(
+            ("Kind", "Count", "State", "Sentence"),
+            link_rows,
+        )
+    if not link_rows:
+        return _table(
+            ("Kind", "Count", "State", "Sentence"),
+            plain_rows,
+        )
+    head = "".join(
+        f"<th scope=\"col\">{_text(header)}</th>"
+        for header in ("Kind", "Count", "State", "Sentence")
+    )
+    body_lines: list[str] = []
+    for link_row in link_rows:
+        cells = [
+            f"<td><a href=\"{_text(link_row.href)}\">{_text(link_row.link_text)}</a></td>"
+        ]
+        cells.extend(f"<td>{_text(cell)}</td>" for cell in link_row.cells)
+        body_lines.append("<tr>" + "".join(cells) + "</tr>")
+    for row_tuple in plain_rows:
+        cells = [f"<td>{_text(cell)}</td>" for cell in row_tuple]
+        body_lines.append("<tr>" + "".join(cells) + "</tr>")
+    body = "\n".join(body_lines)
+    return f"<table><thead><tr>{head}</tr></thead><tbody>\n{body}\n</tbody></table>"
+
+
+def _source_pointers_table(pointers: tuple[SourcePointer, ...]) -> str:
+    if not pointers:
+        return "<p>No sources are present in this repository.</p>"
+    rows: list[tuple[str, ...]] = []
+    for pointer in pointers:
+        identifier = pointer.source_id or pointer.slug or "unknown"
+        rows.append(
+            (
+                identifier,
+                pointer.kind or "missing",
+                _state_label(pointer.state),
+                pointer.sentence,
+            )
+        )
+    return _table(
+        ("Source", "Kind", "State", "Sentence"),
+        rows,
+    )
+
+
+def _recent_activity_section(activity: RecentActivity) -> str:
+    if activity.state != "known":
+        return f"<p>{_text(activity.sentence)}</p>"
+    rows = [(entry.when, entry.what) for entry in activity.entries]
+    return f"""<p>{_text(activity.sentence)}</p>
+{_table(("When", "What"), rows)}"""
+
+
+def _notable_conflicts_section(conflicts: NotableConflicts) -> str:
+    if conflicts.state != "known":
+        return f"<p>{_text(conflicts.sentence)}</p>"
+    rows = [(entry.claim_id, entry.sentence) for entry in conflicts.entries]
+    return f"""<p>{_text(conflicts.sentence)}</p>
+{_table(("Claim", "Sentence"), rows)}"""
+
+
+def _provenance_summary_section(summary: ProvenanceSummary) -> str:
+    if summary.state != "known":
+        return f"<p>{_text(summary.sentence)}</p>"
+    rows = [(entry.state, str(entry.count)) for entry in summary.counts]
+    return f"""<p>{_text(summary.sentence)}</p>
+{_table(("Provenance State", "Count"), rows)}"""
 
 
 def render_error_page(title: str, message: str) -> str:

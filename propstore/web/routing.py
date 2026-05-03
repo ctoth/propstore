@@ -41,6 +41,11 @@ from propstore.app.neighborhoods import (
     SemanticNeighborhoodUnsupportedFocusError,
     build_semantic_neighborhood,
 )
+from propstore.app.repository_overview import (
+    RepositoryOverviewReport,
+    RepositoryOverviewRequest,
+    build_repository_overview,
+)
 from propstore.app.repository_views import RepositoryViewUnsupportedStateError
 from propstore.app.rendering import RenderPolicyValidationError
 from propstore.app.world import WorldSidecarMissingError
@@ -51,6 +56,7 @@ from propstore.web.html import (
     render_concept_page,
     render_concept_index_page,
     render_error_page,
+    render_index_page,
     render_neighborhood_page,
 )
 from propstore.web.requests import (
@@ -91,6 +97,20 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/index.json")
+    def index_json(request: Request) -> JSONResponse:
+        report_or_response = _overview_report(request, wants_json=True)
+        if isinstance(report_or_response, JSONResponse):
+            return report_or_response
+        return JSONResponse(to_json_compatible(report_or_response))
+
+    @app.get("/")
+    def index_html(request: Request) -> HTMLResponse:
+        report_or_response = _overview_report(request, wants_json=False)
+        if isinstance(report_or_response, HTMLResponse):
+            return report_or_response
+        return HTMLResponse(render_index_page(report_or_response))
 
     @app.get("/claims.json")
     def claims_json(request: Request) -> JSONResponse:
@@ -174,6 +194,44 @@ def register_routes(app: FastAPI) -> None:
         if isinstance(report_or_response, HTMLResponse):
             return report_or_response
         return HTMLResponse(render_claim_page(report_or_response))
+
+
+@overload
+def _overview_report(
+    request: Request,
+    *,
+    wants_json: Literal[True],
+) -> RepositoryOverviewReport | JSONResponse:
+    ...
+
+
+@overload
+def _overview_report(
+    request: Request,
+    *,
+    wants_json: Literal[False],
+) -> RepositoryOverviewReport | HTMLResponse:
+    ...
+
+
+def _overview_report(
+    request: Request,
+    *,
+    wants_json: bool,
+) -> RepositoryOverviewReport | JSONResponse | HTMLResponse:
+    try:
+        render_policy = parse_render_policy_request(dict(request.query_params))
+        repository_view = parse_repository_view_request(dict(request.query_params))
+        report = build_repository_overview(
+            _repo_from_request(request),
+            RepositoryOverviewRequest(
+                render_policy=render_policy,
+                repository_view=repository_view,
+            ),
+        )
+    except _EXPECTED_WEB_ERRORS as exc:
+        return _expected_error_response(exc, wants_json=wants_json)
+    return report
 
 
 @overload
