@@ -70,6 +70,15 @@ def _query_for(atom_id: str) -> WorldlineRevisionQuery:
     return query
 
 
+def _contract_query_for(atom_id: str) -> WorldlineRevisionQuery:
+    query = WorldlineRevisionQuery.from_dict({
+        "operation": "contract",
+        "target": atom_id,
+    })
+    assert query is not None
+    return query
+
+
 @st.composite
 def _journal_inputs(draw):
     count = draw(st.integers(min_value=1, max_value=5))
@@ -242,3 +251,42 @@ def test_p_cap_5_at_step_cli_matches_world_query_method(tmp_path: Path, monkeypa
 
     assert result.exit_code == 0, result.output
     assert result.output.splitlines() == expected
+
+
+def test_phase2_acceptance_captures_revise_revise_contract_journal() -> None:
+    from propstore.worldline.revision_capture import capture_journal
+
+    first = make_assertion_atom(
+        relation_local="rrc_rel_1",
+        subject="rrc_subject_1",
+        value="rrc_value_1",
+        source_claim_local_ids=("rrc_claim_1",),
+    )
+    second = make_assertion_atom(
+        relation_local="rrc_rel_2",
+        subject="rrc_subject_2",
+        value="rrc_value_2",
+        source_claim_local_ids=("rrc_claim_2",),
+    )
+    initial_state = make_state(atoms=(first, second), accepted_atom_ids=())
+
+    journal = capture_journal(
+        _JournalBound(initial_state),
+        (
+            _query_for(first.atom_id),
+            _query_for(second.atom_id),
+            _contract_query_for(first.atom_id),
+        ),
+    )
+    direct = direct_dispatch(journal, 2)
+
+    assert len(journal.entries) == 3
+    assert [entry.operation.name for entry in journal.entries] == [
+        "revise",
+        "revise",
+        "contract",
+    ]
+    assert journal.check_chain_integrity().ok
+    assert journal.replay().ok
+    assert journal.entries[-1].normalized_state_out == direct.to_canonical_dict()
+    assert first.atom_id not in journal.entries[-1].state_out.state.accepted_atom_ids
