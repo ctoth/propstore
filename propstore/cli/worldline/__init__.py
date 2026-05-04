@@ -143,5 +143,6 @@ def _apply_revision_options(func):
 
 # Import command modules after the group and shared decorators are defined.
 from propstore.cli.worldline import display as _display
+from propstore.cli.worldline import journal as _journal
 from propstore.cli.worldline import materialize as _materialize
 from propstore.cli.worldline import mutation as _mutation

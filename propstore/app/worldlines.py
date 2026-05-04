@@ -145,6 +145,31 @@ class WorldlineRunReport:
 
 
 @dataclass(frozen=True)
+class WorldlineBuildJournalRequest:
+    name: str
+
+
+@dataclass(frozen=True)
+class WorldlineJournalReport:
+    name: str
+    step_count: int
+
+
+@dataclass(frozen=True)
+class WorldlineAtStepRequest:
+    name: str
+    step: int
+    heavy: bool = False
+
+
+@dataclass(frozen=True)
+class WorldlineAtStepReport:
+    name: str
+    step: int
+    claim_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class WorldlineShowRequest:
     name: str
     check_staleness: bool = False
@@ -457,6 +482,53 @@ def materialize_worldline(
         message=f"Materialize worldline: {request.name}",
     )
     return WorldlineRunReport(name=request.name, result=result)
+
+
+def build_worldline_journal(
+    repo: Repository,
+    request: WorldlineBuildJournalRequest,
+) -> WorldlineJournalReport:
+    from propstore.worldline.revision_capture import capture_journal
+
+    ref = WorldlineRef(request.name)
+    definition = load_worldline_definition(repo, request.name)
+    if definition.revision is None:
+        raise WorldlineValidationError("worldline has no revision query to capture")
+
+    with open_app_world_model(repo) as world:
+        bound = world.bind(definition.inputs.environment, policy=definition.policy)
+        journal = capture_journal(bound, (definition.revision,))
+    definition.journal = journal
+    repo.families.worldlines.save(
+        ref,
+        definition.to_document(),
+        message=f"Build worldline journal: {request.name}",
+    )
+    return WorldlineJournalReport(
+        name=request.name,
+        step_count=len(journal.entries),
+    )
+
+
+def worldline_at_step(
+    repo: Repository,
+    request: WorldlineAtStepRequest,
+) -> WorldlineAtStepReport:
+    definition = load_worldline_definition(repo, request.name)
+    if definition.journal is None:
+        raise WorldlineValidationError("worldline has no journal; run 'pks worldline build-journal' first")
+
+    with open_app_world_model(repo) as world:
+        view = world.at_journal_step(
+            definition.journal,
+            request.step,
+            heavy=request.heavy,
+        )
+    return WorldlineAtStepReport(
+        name=request.name,
+        step=request.step,
+        claim_ids=tuple(sorted(view.claim_ids())),
+    )
 
 
 def worldline_is_stale(repo: Repository, name: str) -> bool:
