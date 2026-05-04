@@ -14,6 +14,7 @@ from propstore.families.documents.worldlines import (
     WorldlineResultDocument,
 )
 from quire.documents import convert_document_value, to_document_builtins
+from propstore.support_revision.history import TransitionJournal
 from propstore.world.types import Environment, RenderPolicy
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
@@ -298,6 +299,7 @@ class WorldlineDefinition:
     policy: RenderPolicy = field(default_factory=RenderPolicy)
     targets: list[str] = field(default_factory=list)
     revision: WorldlineRevisionQuery | None = None
+    journal: TransitionJournal | None = None
     results: WorldlineResult | None = None
 
     @classmethod
@@ -324,6 +326,16 @@ class WorldlineDefinition:
             policy=RenderPolicy.from_dict(policy_payload),
             targets=list(data.targets),
             revision=WorldlineRevisionQuery.from_document(data.revision),
+            journal=(
+                None
+                if data.journal is None
+                else TransitionJournal.from_mapping(
+                    _required_document_mapping(
+                        to_document_builtins(data.journal),
+                        "journal",
+                    )
+                )
+            ),
             results=WorldlineResult.from_document(data.results),
         )
 
@@ -343,6 +355,13 @@ class WorldlineDefinition:
             policy=RenderPolicy.from_dict(data.get("policy")),
             targets=list(targets),
             revision=WorldlineRevisionQuery.from_dict(data.get("revision")),
+            journal=(
+                None
+                if data.get("journal") is None
+                else TransitionJournal.from_mapping(
+                    _required_document_mapping(data.get("journal"), "journal")
+                )
+            ),
             results=WorldlineResult.from_dict(data.get("results")),
         )
 
@@ -365,6 +384,8 @@ class WorldlineDefinition:
 
         if self.revision is not None:
             data["revision"] = self.revision.to_dict()
+        if self.journal is not None:
+            data["journal"] = self.journal.to_dict()
         if self.results is not None:
             data["results"] = self.results.to_dict()
         return data

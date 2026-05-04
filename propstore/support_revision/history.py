@@ -239,6 +239,52 @@ class TransitionJournalEntry:
             policy_payload={} if policy_payload is None else policy_payload,
         )
 
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> TransitionJournalEntry:
+        payload = _required_mapping(data, "journal entry")
+        schema_version = str(payload.get("schema_version") or "")
+        if schema_version != TransitionJournalVersion:
+            raise ValueError(f"unsupported transition journal version: {schema_version}")
+        explanation_payload = _required_mapping(payload.get("explanation") or {}, "explanation")
+        entry = cls(
+            state_in=EpistemicSnapshot.from_mapping(
+                _required_mapping(payload.get("state_in"), "state_in")
+            ),
+            operation=TransitionOperation.from_mapping(
+                _required_mapping(payload.get("operation"), "operation")
+            ),
+            policy_id=str(payload.get("policy_id") or ""),
+            operator=_journal_operator(str(payload.get("operator") or "")),
+            operator_input=_required_mapping(payload.get("operator_input"), "operator_input"),
+            version_policy_snapshot=_version_policy_snapshot(
+                _required_mapping(
+                    payload.get("version_policy_snapshot"),
+                    "version_policy_snapshot",
+                )
+            ),
+            normalized_state_in=_required_mapping(
+                payload.get("normalized_state_in"),
+                "normalized_state_in",
+            ),
+            normalized_state_out=_required_mapping(
+                payload.get("normalized_state_out"),
+                "normalized_state_out",
+            ),
+            state_out=EpistemicSnapshot.from_mapping(
+                _required_mapping(payload.get("state_out"), "state_out")
+            ),
+            explanation={
+                str(atom_id): coerce_revision_atom_detail(detail)
+                for atom_id, detail in explanation_payload.items()
+            },
+            policy_payload=_required_mapping(payload.get("policy") or {}, "policy"),
+            schema_version=schema_version,
+        )
+        recorded_hash = payload.get("content_hash")
+        if recorded_hash is not None and str(recorded_hash) != entry.content_hash:
+            raise ValueError("transition journal entry content_hash does not match payload")
+        return entry
+
     @property
     def content_hash(self) -> str:
         return _stable_hash(self._hash_payload())
@@ -307,6 +353,25 @@ class TransitionJournal:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "entries", tuple(self.entries))
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> TransitionJournal:
+        payload = _required_mapping(data, "journal")
+        schema_version = str(payload.get("schema_version") or "")
+        if schema_version != TransitionJournalVersion:
+            raise ValueError(f"unsupported transition journal version: {schema_version}")
+        return cls(
+            entries=tuple(
+                TransitionJournalEntry.from_mapping(_required_mapping(entry, "entries[]"))
+                for entry in (payload.get("entries") or ())
+            )
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": TransitionJournalVersion,
+            "entries": [entry.to_dict() for entry in self.entries],
+        }
 
     def check_chain_integrity(self) -> ChainIntegrityReport:
         errors: list[str] = []

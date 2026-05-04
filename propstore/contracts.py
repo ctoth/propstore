@@ -17,6 +17,7 @@ PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.02")
 DOCUMENT_SCHEMA_CONTRACT_VERSION = VersionId("2026.04.30")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
 DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
+    "propstore.families.documents.worldlines.WorldlineDefinitionDocument": VersionId("2026.05.04"),
     "propstore.families.documents.sources.SourceStanceEntryDocument": VersionId("2026.05.01"),
     "propstore.families.documents.sources.SourceTrustDocument": VersionId("2026.05.01"),
     "propstore.families.documents.stances.StanceEntryDocument": VersionId("2026.05.01"),

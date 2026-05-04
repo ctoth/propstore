@@ -209,6 +209,7 @@ if not TYPE_CHECKING:
 ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
 CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
 IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
+WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.04")
 SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.03")
@@ -602,7 +603,7 @@ SAMEAS_FILE_FAMILY = ArtifactFamily["Repository", SameAsFileRef, SameAsFileDocum
 
 WORLDLINE_FAMILY = ArtifactFamily["Repository", WorldlineRef, WorldlineDefinitionDocument](
     name="worldline",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=WorldlineDefinitionDocument,
     placement=WORLDLINE_PLACEMENT,
 )
@@ -924,7 +925,10 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             name=PropstoreFamily.WORLDLINES.value,
             contract_version=WORLDLINE_FAMILY.contract_version,
             artifact_family=WORLDLINE_FAMILY,
-            metadata=_semantic_metadata(importable=True, import_order=70),
+            metadata={
+                **_semantic_metadata(importable=True, import_order=70),
+                "trajectory_field": "journal",
+            },
         ),
         FamilyDefinition(
             key=PropstoreFamily.SOURCES,

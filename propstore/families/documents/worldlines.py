@@ -131,6 +131,11 @@ class WorldlineRevisionStateDocument(DocumentStruct):
     error: str | None = None
 
 
+class WorldlineJournalDocument(DocumentStruct):
+    schema_version: str
+    entries: tuple[dict[str, Any], ...] = ()
+
+
 class WorldlineResultDocument(DocumentStruct):
     computed: str
     content_hash: str
@@ -150,4 +155,5 @@ class WorldlineDefinitionDocument(DocumentStruct):
     inputs: WorldlineInputsDocument | None = None
     policy: WorldlinePolicyDocument | None = None
     revision: WorldlineRevisionQueryDocument | None = None
+    journal: WorldlineJournalDocument | None = None
     results: WorldlineResultDocument | None = None
