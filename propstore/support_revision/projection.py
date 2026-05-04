@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from typing import TYPE_CHECKING
 
 from propstore.canonical_json import canonical_dumps
 from propstore.core.active_claims import ActiveClaim
@@ -12,6 +13,9 @@ from propstore.core.labels import SupportQuality
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 
 from propstore.support_revision.state import AssertionAtom, BeliefBase, RevisionScope
+
+if TYPE_CHECKING:
+    from propstore.support_revision.history import EpistemicSnapshot
 
 
 def snapshot_to_claim_ids(snapshot: "EpistemicSnapshot") -> set[str]:

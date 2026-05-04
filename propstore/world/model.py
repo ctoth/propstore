@@ -891,7 +891,10 @@ class WorldQuery(WorldStore):
         ``rebind=False`` path. The restricted_to set is propagated as the
         environment's effective claim scope.
         """
-        env = Environment(bindings=dict(bindings), context_id=context_id)
+        env = Environment(
+            bindings=dict(bindings),
+            context_id=None if context_id is None else to_context_id(context_id),
+        )
         bound = self.bind(environment=env)
         # BoundWorld carries _environment; expose the restriction set on the
         # view so the bridge tests can observe it.
