@@ -488,6 +488,7 @@ def build_worldline_journal(
     repo: Repository,
     request: WorldlineBuildJournalRequest,
 ) -> WorldlineJournalReport:
+    from propstore.policies import policy_profile_from_render_policy
     from propstore.worldline.revision_capture import capture_journal
 
     ref = WorldlineRef(request.name)
@@ -498,7 +499,11 @@ def build_worldline_journal(
     with open_app_world_model(repo) as world:
         bound = world.bind(definition.inputs.environment, policy=definition.policy)
         try:
-            journal = capture_journal(bound, (definition.revision,))
+            journal = capture_journal(
+                bound,
+                (definition.revision,),
+                policy_payload=policy_profile_from_render_policy(definition.policy).to_dict(),
+            )
         except ValueError as exc:
             raise WorldlineValidationError(str(exc)) from exc
     definition.journal = journal

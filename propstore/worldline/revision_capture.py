@@ -78,8 +78,12 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
 def capture_journal(
     bound: Any,
     operations: Sequence[Any],
+    *,
+    policy_id: str = _POLICY_ID,
+    policy_payload: Mapping[str, Any] | None = None,
 ) -> TransitionJournal:
     state = _initial_epistemic_state(bound)
+    captured_policy_payload = {} if policy_payload is None else dict(policy_payload)
     entries: list[TransitionJournalEntry] = []
     for operation_query in operations:
         operator, operation, operator_input = _journal_operator_input(
@@ -96,13 +100,13 @@ def capture_journal(
             TransitionJournalEntry.from_states(
                 state_in=state,
                 operation=operation,
-                policy_id=_POLICY_ID,
+                policy_id=policy_id,
                 operator=operator,
                 operator_input=operator_input,
                 version_policy_snapshot=_VERSION_POLICY_SNAPSHOT,
                 state_out=state_out,
                 explanation={},
-                policy_payload={},
+                policy_payload=captured_policy_payload,
             )
         )
         state = state_out

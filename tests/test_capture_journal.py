@@ -215,6 +215,7 @@ def test_p_cap_4_journal_document_roundtrips_through_yaml_codec() -> None:
 
 def test_p_cap_5_build_journal_cli_matches_in_memory(monkeypatch) -> None:
     from propstore.cli.worldline.journal import worldline_build_journal
+    from propstore.policies import policy_profile_from_render_policy
     from propstore.worldline.revision_capture import capture_journal
 
     atom = make_assertion_atom(
@@ -246,7 +247,11 @@ def test_p_cap_5_build_journal_cli_matches_in_memory(monkeypatch) -> None:
 
     assert result.exit_code == 0, result.output
     saved = WorldlineDefinition.from_document(repo.families.worldlines.saved["cli_build"])
-    expected = capture_journal(_JournalBound(initial_state), (query,))
+    expected = capture_journal(
+        _JournalBound(initial_state),
+        (query,),
+        policy_payload=policy_profile_from_render_policy(definition.policy).to_dict(),
+    )
     assert saved.journal == expected
 
 
