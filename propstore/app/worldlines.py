@@ -497,7 +497,10 @@ def build_worldline_journal(
 
     with open_app_world_model(repo) as world:
         bound = world.bind(definition.inputs.environment, policy=definition.policy)
-        journal = capture_journal(bound, (definition.revision,))
+        try:
+            journal = capture_journal(bound, (definition.revision,))
+        except ValueError as exc:
+            raise WorldlineValidationError(str(exc)) from exc
     definition.journal = journal
     repo.families.worldlines.save(
         ref,
@@ -517,13 +520,18 @@ def worldline_at_step(
     definition = load_worldline_definition(repo, request.name)
     if definition.journal is None:
         raise WorldlineValidationError("worldline has no journal; run 'pks worldline build-journal' first")
+    if request.step < 0:
+        raise WorldlineValidationError("journal step must be non-negative")
 
     with open_app_world_model(repo) as world:
-        view = world.at_journal_step(
-            definition.journal,
-            request.step,
-            heavy=request.heavy,
-        )
+        try:
+            view = world.at_journal_step(
+                definition.journal,
+                request.step,
+                heavy=request.heavy,
+            )
+        except (IndexError, ValueError) as exc:
+            raise WorldlineValidationError(str(exc)) from exc
     return WorldlineAtStepReport(
         name=request.name,
         step=request.step,

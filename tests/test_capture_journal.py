@@ -294,6 +294,74 @@ def test_p_cap_5_at_step_cli_matches_world_query_method(tmp_path: Path, monkeypa
     assert result.output.splitlines() == expected
 
 
+def test_build_journal_cli_reports_invalid_revision_without_traceback(monkeypatch) -> None:
+    from propstore.cli.worldline.journal import worldline_build_journal
+
+    atom = make_assertion_atom(
+        relation_local="invalid_rel",
+        subject="invalid_subject",
+        value="invalid_value",
+        source_claim_local_ids=("invalid_claim",),
+    )
+    initial_state = make_state(atoms=(atom,), accepted_atom_ids=())
+    definition = WorldlineDefinition.from_dict({
+        "id": "invalid_revision",
+        "targets": ["target"],
+        "revision": {
+            "operation": "unknown",
+            "atom": {"kind": "assertion", "id": atom.atom_id},
+        },
+    })
+    repo = _WorldlineRepo(definition)
+
+    @contextmanager
+    def _open_world(_repo):
+        yield _JournalWorld(_JournalBound(initial_state))
+
+    monkeypatch.setattr("propstore.app.worldlines.open_app_world_model", _open_world)
+
+    result = CliRunner().invoke(
+        worldline_build_journal,
+        ["invalid_revision"],
+        obj={"repo": repo},
+    )
+
+    assert result.exit_code != 0
+    assert "Unknown revision operation" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_at_step_cli_reports_out_of_range_step_without_traceback(monkeypatch) -> None:
+    from propstore.cli.worldline.journal import worldline_at_step
+
+    class _StepErrorWorld:
+        def at_journal_step(self, journal, step, *, heavy=False):
+            raise IndexError(f"step {step} out of range")
+
+    definition = WorldlineDefinition.from_dict({
+        "id": "bad_step",
+        "targets": ["target"],
+        "journal": TransitionJournal(entries=()).to_dict(),
+    })
+    repo = _WorldlineRepo(definition)
+
+    @contextmanager
+    def _open_world(_repo):
+        yield _StepErrorWorld()
+
+    monkeypatch.setattr("propstore.app.worldlines.open_app_world_model", _open_world)
+
+    result = CliRunner().invoke(
+        worldline_at_step,
+        ["bad_step", "999"],
+        obj={"repo": repo},
+    )
+
+    assert result.exit_code != 0
+    assert "step 999 out of range" in result.output
+    assert "Traceback" not in result.output
+
+
 def test_phase2_acceptance_captures_revise_revise_contract_journal() -> None:
     from propstore.worldline.revision_capture import capture_journal
 
