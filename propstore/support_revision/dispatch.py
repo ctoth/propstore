@@ -6,7 +6,7 @@ from typing import Any
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.history import JournalOperator
 from propstore.support_revision.iterated import advance_epistemic_state, iterated_revise
-from propstore.support_revision.operators import contract, revise
+from propstore.support_revision.operators import contract, expand, revise
 from propstore.support_revision.snapshot_types import (
     EpistemicStateSnapshot,
     belief_atom_from_canonical_dict,
@@ -45,6 +45,17 @@ def dispatch(
         return next_state
 
     entrenchment = _entrenchment_from_state(state)
+    if op is JournalOperator.EXPAND:
+        atom = _formula_atom(payload)
+        result = expand(state.base, atom)
+        return advance_epistemic_state(
+            state,
+            result,
+            entrenchment,
+            operator=op.value,
+            input_atom_id=atom.atom_id,
+        )
+
     if op is JournalOperator.REVISE:
         atom = _formula_atom(payload)
         conflicts_payload = payload.get("conflicts") or {}

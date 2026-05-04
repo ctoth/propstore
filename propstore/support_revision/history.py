@@ -20,6 +20,7 @@ TransitionJournalVersion = "propstore.transition_journal.v1"
 
 
 class JournalOperator(Enum):
+    EXPAND = "expand"
     REVISE = "revise"
     CONTRACT = "contract"
     ITERATED_REVISE = "iterated_revise"

@@ -8,9 +8,12 @@ import pytest
 from click.testing import CliRunner
 from hypothesis import given
 from hypothesis import strategies as st
+import msgspec
 
+from quire.documents import decode_document_bytes
+from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 from propstore.families.registry import WorldlineRef
-from propstore.support_revision.history import TransitionJournal
+from propstore.support_revision.history import JournalOperator, TransitionJournal
 from propstore.support_revision.state import EpistemicState
 from propstore.worldline import WorldlineDefinition
 from propstore.worldline.definition import WorldlineRevisionQuery
@@ -74,6 +77,15 @@ def _contract_query_for(atom_id: str) -> WorldlineRevisionQuery:
     query = WorldlineRevisionQuery.from_dict({
         "operation": "contract",
         "target": atom_id,
+    })
+    assert query is not None
+    return query
+
+
+def _expand_query_for(atom_id: str) -> WorldlineRevisionQuery:
+    query = WorldlineRevisionQuery.from_dict({
+        "operation": "expand",
+        "atom": {"kind": "assertion", "id": atom_id},
     })
     assert query is not None
     return query
@@ -170,6 +182,35 @@ def test_p_cap_4_journal_bearing_worldline_definition_roundtrips() -> None:
     assert loaded.journal is not None
     assert loaded.journal == journal
     assert loaded.to_dict()["journal"] == journal.to_dict()
+
+
+def test_p_cap_4_journal_document_roundtrips_through_yaml_codec() -> None:
+    from propstore.worldline import WorldlineDefinition
+    from propstore.worldline.revision_capture import capture_journal
+
+    atom = make_assertion_atom(
+        relation_local="yaml_rel",
+        subject="yaml_subject",
+        value="yaml_value",
+        source_claim_local_ids=("yaml_claim",),
+    )
+    initial_state = make_state(atoms=(atom,), accepted_atom_ids=())
+    journal = capture_journal(_JournalBound(initial_state), (_query_for(atom.atom_id),))
+    definition = WorldlineDefinition.from_dict({
+        "id": "journal_yaml",
+        "targets": ["target"],
+        "journal": journal.to_dict(),
+    })
+
+    encoded = msgspec.yaml.encode(definition.to_document())
+    decoded = decode_document_bytes(
+        encoded,
+        WorldlineDefinitionDocument,
+        source="journal_yaml.yaml",
+    )
+    loaded = WorldlineDefinition.from_document(decoded)
+
+    assert loaded.journal == journal
 
 
 def test_p_cap_5_build_journal_cli_matches_in_memory(monkeypatch) -> None:
@@ -290,3 +331,26 @@ def test_phase2_acceptance_captures_revise_revise_contract_journal() -> None:
     assert journal.replay().ok
     assert journal.entries[-1].normalized_state_out == direct.to_canonical_dict()
     assert first.atom_id not in journal.entries[-1].state_out.state.accepted_atom_ids
+
+
+def test_capture_journal_preserves_expand_as_expand_operator() -> None:
+    from propstore.worldline.revision_capture import capture_journal
+
+    atom = make_assertion_atom(
+        relation_local="expand_rel",
+        subject="expand_subject",
+        value="expand_value",
+        source_claim_local_ids=("expand_claim",),
+    )
+    initial_state = make_state(atoms=(atom,), accepted_atom_ids=())
+
+    journal = capture_journal(
+        _JournalBound(initial_state),
+        (_expand_query_for(atom.atom_id),),
+    )
+
+    assert len(journal.entries) == 1
+    assert journal.entries[0].operation.name == "expand"
+    assert journal.entries[0].operator is JournalOperator.EXPAND
+    assert journal.replay().ok
+    assert atom.atom_id in journal.entries[0].state_out.state.accepted_atom_ids

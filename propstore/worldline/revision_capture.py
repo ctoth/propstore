@@ -149,7 +149,7 @@ def _journal_operator_input(
     if operation == "expand":
         atom = _normalize_query_atom(state, revision_query.atom)
         return (
-            JournalOperator.REVISE,
+            JournalOperator.EXPAND,
             TransitionOperation(
                 name=operation,
                 input_atom_id=atom.atom_id,
