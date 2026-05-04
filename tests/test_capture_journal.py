@@ -83,3 +83,46 @@ def test_p_cap_2_capture_replay_matches_direct_dispatch(data) -> None:
     assert not replayed.errors
     assert not replayed.divergences
     assert journal.entries[-1].normalized_state_out == direct.to_canonical_dict()
+
+
+def test_p_cap_3_legacy_worldline_definition_roundtrips_without_journal() -> None:
+    from propstore.worldline import WorldlineDefinition
+
+    definition = WorldlineDefinition.from_dict({
+        "id": "legacy_without_journal",
+        "targets": ["target"],
+    })
+
+    document = definition.to_document()
+    loaded = WorldlineDefinition.from_document(document)
+
+    assert loaded.journal is None
+    assert "journal" not in loaded.to_dict()
+
+
+def test_p_cap_4_journal_bearing_worldline_definition_roundtrips() -> None:
+    from propstore.worldline import WorldlineDefinition
+    from propstore.worldline.revision_capture import capture_journal
+
+    atom = make_assertion_atom(
+        relation_local="document_rel",
+        subject="document_subject",
+        value="document_value",
+        source_claim_local_ids=("document_claim",),
+    )
+    initial_state = make_state(atoms=(atom,), accepted_atom_ids=())
+    query = _query_for(atom.atom_id)
+    journal = capture_journal(_JournalBound(initial_state), (query,))
+
+    definition = WorldlineDefinition.from_dict({
+        "id": "journal_bearing",
+        "targets": ["target"],
+        "journal": journal.to_dict(),
+    })
+
+    document = definition.to_document()
+    loaded = WorldlineDefinition.from_document(document)
+
+    assert loaded.journal is not None
+    assert loaded.journal == journal
+    assert loaded.to_dict()["journal"] == journal.to_dict()
