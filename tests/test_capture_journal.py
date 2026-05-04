@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import contextmanager
+from pathlib import Path
 
 import pytest
+from click.testing import CliRunner
 from hypothesis import given
 from hypothesis import strategies as st
 
+from propstore.families.registry import WorldlineRef
 from propstore.support_revision.history import TransitionJournal
 from propstore.support_revision.state import EpistemicState
+from propstore.worldline import WorldlineDefinition
 from propstore.worldline.definition import WorldlineRevisionQuery
 from tests.fixtures.journal import (
     direct_dispatch,
     make_assertion_atom,
     make_state,
+    single_chapter_journal,
 )
 
 
@@ -22,6 +28,36 @@ class _JournalBound:
 
     def epistemic_state(self) -> EpistemicState:
         return self.initial_state
+
+
+class _JournalWorld:
+    def __init__(self, bound: _JournalBound) -> None:
+        self._bound = bound
+
+    def bind(self, environment=None, *, policy=None, **conditions):
+        return self._bound
+
+
+class _WorldlineFamilyStore:
+    def __init__(self, definition: WorldlineDefinition) -> None:
+        self.saved: dict[str, object] = {definition.id: definition.to_document()}
+
+    def load(self, ref: WorldlineRef):
+        return self.saved.get(ref.name)
+
+    def save(self, ref: WorldlineRef, document, *, message: str):
+        self.saved[ref.name] = document
+        return "commit:journal"
+
+
+class _WorldlineFamilies:
+    def __init__(self, definition: WorldlineDefinition) -> None:
+        self.worldlines = _WorldlineFamilyStore(definition)
+
+
+class _WorldlineRepo:
+    def __init__(self, definition: WorldlineDefinition) -> None:
+        self.families = _WorldlineFamilies(definition)
 
 
 def _query_for(atom_id: str) -> WorldlineRevisionQuery:
@@ -101,7 +137,6 @@ def test_p_cap_3_legacy_worldline_definition_roundtrips_without_journal() -> Non
 
 
 def test_p_cap_4_journal_bearing_worldline_definition_roundtrips() -> None:
-    from propstore.worldline import WorldlineDefinition
     from propstore.worldline.revision_capture import capture_journal
 
     atom = make_assertion_atom(
@@ -126,3 +161,84 @@ def test_p_cap_4_journal_bearing_worldline_definition_roundtrips() -> None:
     assert loaded.journal is not None
     assert loaded.journal == journal
     assert loaded.to_dict()["journal"] == journal.to_dict()
+
+
+def test_p_cap_5_build_journal_cli_matches_in_memory(monkeypatch) -> None:
+    from propstore.cli.worldline.journal import worldline_build_journal
+    from propstore.worldline.revision_capture import capture_journal
+
+    atom = make_assertion_atom(
+        relation_local="cli_build_rel",
+        subject="cli_build_subject",
+        value="cli_build_value",
+        source_claim_local_ids=("cli_build_claim",),
+    )
+    initial_state = make_state(atoms=(atom,), accepted_atom_ids=())
+    query = _query_for(atom.atom_id)
+    definition = WorldlineDefinition.from_dict({
+        "id": "cli_build",
+        "targets": ["target"],
+        "revision": query.to_dict(),
+    })
+    repo = _WorldlineRepo(definition)
+
+    @contextmanager
+    def _open_world(_repo):
+        yield _JournalWorld(_JournalBound(initial_state))
+
+    monkeypatch.setattr("propstore.app.worldlines.open_app_world_model", _open_world)
+
+    result = CliRunner().invoke(
+        worldline_build_journal,
+        ["cli_build"],
+        obj={"repo": repo},
+    )
+
+    assert result.exit_code == 0, result.output
+    saved = WorldlineDefinition.from_document(repo.families.worldlines.saved["cli_build"])
+    expected = capture_journal(_JournalBound(initial_state), (query,))
+    assert saved.journal == expected
+
+
+def test_p_cap_5_at_step_cli_matches_world_query_method(tmp_path: Path, monkeypatch) -> None:
+    from propstore.cli.worldline.journal import worldline_at_step
+    from tests.test_world_query_at_journal_step_method import (
+        _claim_id,
+        _world_query_for_claims,
+    )
+
+    atom = make_assertion_atom(
+        relation_local="cli_step_rel",
+        subject="cli_step_subject",
+        value="cli_step_value",
+        source_claim_local_ids=("cli_step_claim",),
+    )
+    journal = single_chapter_journal(
+        initial_state=make_state(atoms=(), accepted_atom_ids=()),
+        revision_atoms=(atom,),
+    )
+    definition = WorldlineDefinition.from_dict({
+        "id": "cli_step",
+        "targets": ["target"],
+        "journal": journal.to_dict(),
+    })
+    repo = _WorldlineRepo(definition)
+    world = _world_query_for_claims(tmp_path, _claim_id("cli_step_claim"))
+
+    @contextmanager
+    def _open_world(_repo):
+        yield world
+
+    monkeypatch.setattr("propstore.app.worldlines.open_app_world_model", _open_world)
+    try:
+        expected = sorted(world.at_journal_step(journal, 0).claim_ids())
+        result = CliRunner().invoke(
+            worldline_at_step,
+            ["cli_step", "0"],
+            obj={"repo": repo},
+        )
+    finally:
+        world.close()
+
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines() == expected

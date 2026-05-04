@@ -112,6 +112,9 @@ def test_worldline_commands_live_outside_group_module() -> None:
     materialize = Path("propstore/cli/worldline/materialize.py").read_text(
         encoding="utf-8"
     )
+    journal = Path("propstore/cli/worldline/journal.py").read_text(
+        encoding="utf-8"
+    )
     display = Path("propstore/cli/worldline/display.py").read_text(
         encoding="utf-8"
     )
@@ -123,6 +126,8 @@ def test_worldline_commands_live_outside_group_module() -> None:
     assert "def worldline_create(" in materialize
     assert "def worldline_run(" in materialize
     assert "def worldline_refresh(" in materialize
+    assert 'def worldline_build_journal(' in journal
+    assert 'def worldline_at_step(' in journal
     assert "def worldline_show(" in display
     assert "def worldline_list(" in display
     assert "def worldline_diff(" in display
