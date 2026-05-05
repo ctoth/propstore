@@ -36,6 +36,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from threading import Lock
 
 from quire.documents import convert_document_value, encode_document
 
@@ -48,6 +49,7 @@ from propstore.families.documents.rules import (
     TermDocument,
 )
 from propstore.families.registry import RuleFileRef
+from propstore.grounding.predicates import PredicateRegistry
 from propstore.repository import Repository
 
 
@@ -56,6 +58,9 @@ _RULE_KINDS = ("strict", "defeasible", "proper_defeater", "blocking_defeater")
 
 class RuleWorkflowError(Exception):
     """Raised when a rule workflow cannot complete."""
+
+
+_RULE_MUTATION_LOCK = Lock()
 
 
 class RuleFileNotFoundError(RuleWorkflowError):
@@ -304,6 +309,38 @@ def _rule_kind_by_id(document: RulesFileDocument) -> dict[str, str]:
     return {entry.id: entry.kind for entry in document.rules}
 
 
+def _predicate_registry_at_head(repo: Repository, commit: str | None) -> PredicateRegistry:
+    return PredicateRegistry.from_files(
+        tuple(handle.document for handle in repo.families.predicates.iter_handles(commit=commit))
+    )
+
+
+def _rule_atoms(rule: RuleDocument) -> tuple[AtomDocument, ...]:
+    return (rule.head,) + tuple(literal.atom for literal in rule.body)
+
+
+def reject_rule_document_conflicts(
+    repo: Repository,
+    *,
+    commit: str | None,
+    document: RulesFileDocument,
+) -> None:
+    registry = _predicate_registry_at_head(repo, commit)
+    for rule in document.rules:
+        for atom in _rule_atoms(rule):
+            try:
+                declaration = registry.lookup(atom.predicate)
+            except KeyError as exc:
+                raise RuleWorkflowError(
+                    f"rule {rule.id!r} references undeclared predicate {atom.predicate!r}"
+                ) from exc
+            if declaration.arity != len(atom.terms):
+                raise RuleWorkflowError(
+                    f"rule {rule.id!r} references predicate {atom.predicate!r} "
+                    f"with arity {len(atom.terms)}, declared arity is {declaration.arity}"
+                )
+
+
 def _validate_superiority_pair(
     document: RulesFileDocument,
     superior_rule_id: str,
@@ -387,51 +424,59 @@ def add_rule(
     relpath = repo.families.rules.address(ref).require_path()
     filepath = repo.root / relpath
 
-    existing = repo.families.rules.load(ref)
-    entries: list[RuleDocument] = []
-    superiority: tuple[tuple[str, str], ...] = ()
-    created = True
-    source_block = RuleSourceDocument(paper=request.paper)
+    with _RULE_MUTATION_LOCK, repo.head_bound_transaction(
+        repo.snapshot.primary_branch_name(),
+        path="rule.add",
+    ) as head_txn:
+        existing = repo.families.rules.load(ref)
+        entries: list[RuleDocument] = []
+        superiority: tuple[tuple[str, str], ...] = ()
+        created = True
+        source_block = RuleSourceDocument(paper=request.paper)
 
-    if existing is not None:
-        created = False
-        existing_paper = existing.source.paper if existing.source is not None else None
-        if existing_paper != request.paper:
-            raise RuleWorkflowError(
-                f"rules file {relpath} already exists for paper "
-                f"{existing_paper!r}; cannot append under paper {request.paper!r}"
-            )
-        source_block = existing.source
-        superiority = existing.superiority
-        for entry in existing.rules:
-            if entry.id == request.rule_id:
+        if existing is not None:
+            created = False
+            existing_paper = existing.source.paper if existing.source is not None else None
+            if existing_paper != request.paper:
                 raise RuleWorkflowError(
-                    f"rule {request.rule_id!r} already declared in {relpath}"
+                    f"rules file {relpath} already exists for paper "
+                    f"{existing_paper!r}; cannot append under paper {request.paper!r}"
                 )
-            entries.append(entry)
+            source_block = existing.source
+            superiority = existing.superiority
+            for entry in existing.rules:
+                if entry.id == request.rule_id:
+                    raise RuleWorkflowError(
+                        f"rule {request.rule_id!r} already declared in {relpath}"
+                    )
+                entries.append(entry)
 
-    new_entry = convert_document_value(
-        _rule_document_payload(request),
-        RuleDocument,
-        source=f"{relpath}:{request.rule_id}",
-    )
-    entries.append(new_entry)
+        new_entry = convert_document_value(
+            _rule_document_payload(request),
+            RuleDocument,
+            source=f"{relpath}:{request.rule_id}",
+        )
+        entries.append(new_entry)
 
-    document = RulesFileDocument(
-        source=source_block,
-        rules=tuple(entries),
-        superiority=superiority,
-    )
+        document = RulesFileDocument(
+            source=source_block,
+            rules=tuple(entries),
+            superiority=superiority,
+        )
+        reject_rule_document_conflicts(
+            repo,
+            commit=head_txn.expected_head,
+            document=document,
+        )
 
-    repo.families.rules.save(
-        ref,
-        document,
-        message=(
-            f"Add rule {request.rule_id} to {request.file}"
-            if not created
-            else f"Declare rules for {request.file}"
-        ),
-    )
+        with head_txn.families_transact(
+            message=(
+                f"Add rule {request.rule_id} to {request.file}"
+                if not created
+                else f"Declare rules for {request.file}"
+            ),
+        ) as transaction:
+            transaction.rules.save(ref, document)
 
     return RuleAddReport(
         filepath=filepath,
