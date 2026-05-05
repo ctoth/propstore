@@ -491,40 +491,41 @@ def add_rule_superiority(
 ) -> RuleSuperiorityReport:
     """Add a ``(superior, inferior)`` rule-priority pair."""
     ref = RuleFileRef(request.file)
-    existing = repo.families.rules.load(ref)
-    if existing is None:
-        raise RuleFileNotFoundError(request.file)
+    with _RULE_MUTATION_LOCK, repo.mutation_guard():
+        existing = repo.families.rules.load(ref)
+        if existing is None:
+            raise RuleFileNotFoundError(request.file)
 
-    _validate_superiority_pair(
-        existing,
-        request.superior_rule_id,
-        request.inferior_rule_id,
-    )
-    pair = (request.superior_rule_id, request.inferior_rule_id)
-    if pair in existing.superiority:
-        raise RuleWorkflowError(
-            f"superiority pair ({pair[0]}, {pair[1]}) already declared"
+        _validate_superiority_pair(
+            existing,
+            request.superior_rule_id,
+            request.inferior_rule_id,
+        )
+        pair = (request.superior_rule_id, request.inferior_rule_id)
+        if pair in existing.superiority:
+            raise RuleWorkflowError(
+                f"superiority pair ({pair[0]}, {pair[1]}) already declared"
+            )
+
+        superiority = existing.superiority + (pair,)
+        _reject_superiority_cycle(superiority)
+        document = RulesFileDocument(
+            source=existing.source,
+            rules=existing.rules,
+            superiority=superiority,
+            promoted_from_sha=existing.promoted_from_sha,
         )
 
-    superiority = existing.superiority + (pair,)
-    _reject_superiority_cycle(superiority)
-    document = RulesFileDocument(
-        source=existing.source,
-        rules=existing.rules,
-        superiority=superiority,
-        promoted_from_sha=existing.promoted_from_sha,
-    )
+        repo.families.rules.save(
+            ref,
+            document,
+            message=(
+                f"Add superiority {request.superior_rule_id} > "
+                f"{request.inferior_rule_id} to {request.file}"
+            ),
+        )
 
-    repo.families.rules.save(
-        ref,
-        document,
-        message=(
-            f"Add superiority {request.superior_rule_id} > "
-            f"{request.inferior_rule_id} to {request.file}"
-        ),
-    )
-
-    filepath = repo.root / repo.families.rules.address(ref).require_path()
+        filepath = repo.root / repo.families.rules.address(ref).require_path()
     return RuleSuperiorityReport(
         filepath=filepath,
         superior_rule_id=request.superior_rule_id,
@@ -584,38 +585,39 @@ def remove_rule(
         raise RuleWorkflowError("rule id must be a non-empty string")
 
     ref = RuleFileRef(request.file)
-    existing = repo.families.rules.load(ref)
-    if existing is None:
-        raise RuleFileNotFoundError(request.file)
+    with _RULE_MUTATION_LOCK, repo.mutation_guard():
+        existing = repo.families.rules.load(ref)
+        if existing is None:
+            raise RuleFileNotFoundError(request.file)
 
-    relpath = repo.families.rules.address(ref).require_path()
-    filepath = repo.root / relpath
+        relpath = repo.families.rules.address(ref).require_path()
+        filepath = repo.root / relpath
 
-    if not any(entry.id == request.rule_id for entry in existing.rules):
-        raise RuleNotFoundError(request.file, request.rule_id)
+        if not any(entry.id == request.rule_id for entry in existing.rules):
+            raise RuleNotFoundError(request.file, request.rule_id)
 
-    referencing_pairs = tuple(
-        pair for pair in existing.superiority if request.rule_id in pair
-    )
-    if referencing_pairs:
-        raise RuleReferencedError(
-            request.file, request.rule_id, referencing_pairs
+        referencing_pairs = tuple(
+            pair for pair in existing.superiority if request.rule_id in pair
+        )
+        if referencing_pairs:
+            raise RuleReferencedError(
+                request.file, request.rule_id, referencing_pairs
+            )
+
+        remaining = tuple(
+            entry for entry in existing.rules if entry.id != request.rule_id
+        )
+        document = RulesFileDocument(
+            source=existing.source,
+            rules=remaining,
+            superiority=existing.superiority,
         )
 
-    remaining = tuple(
-        entry for entry in existing.rules if entry.id != request.rule_id
-    )
-    document = RulesFileDocument(
-        source=existing.source,
-        rules=remaining,
-        superiority=existing.superiority,
-    )
-
-    repo.families.rules.save(
-        ref,
-        document,
-        message=f"Remove rule {request.rule_id} from {request.file}",
-    )
+        repo.families.rules.save(
+            ref,
+            document,
+            message=f"Remove rule {request.rule_id} from {request.file}",
+        )
 
     return RuleRemoveReport(
         filepath=filepath,
@@ -630,37 +632,38 @@ def remove_rule_superiority(
 ) -> RuleSuperiorityReport:
     """Remove a ``(superior, inferior)`` rule-priority pair."""
     ref = RuleFileRef(request.file)
-    existing = repo.families.rules.load(ref)
-    if existing is None:
-        raise RuleFileNotFoundError(request.file)
+    with _RULE_MUTATION_LOCK, repo.mutation_guard():
+        existing = repo.families.rules.load(ref)
+        if existing is None:
+            raise RuleFileNotFoundError(request.file)
 
-    pair = (request.superior_rule_id, request.inferior_rule_id)
-    if pair not in existing.superiority:
-        raise RuleSuperiorityPairNotFoundError(
-            request.file,
-            request.superior_rule_id,
-            request.inferior_rule_id,
+        pair = (request.superior_rule_id, request.inferior_rule_id)
+        if pair not in existing.superiority:
+            raise RuleSuperiorityPairNotFoundError(
+                request.file,
+                request.superior_rule_id,
+                request.inferior_rule_id,
+            )
+
+        document = RulesFileDocument(
+            source=existing.source,
+            rules=existing.rules,
+            superiority=tuple(
+                entry for entry in existing.superiority if entry != pair
+            ),
+            promoted_from_sha=existing.promoted_from_sha,
         )
 
-    document = RulesFileDocument(
-        source=existing.source,
-        rules=existing.rules,
-        superiority=tuple(
-            entry for entry in existing.superiority if entry != pair
-        ),
-        promoted_from_sha=existing.promoted_from_sha,
-    )
+        repo.families.rules.save(
+            ref,
+            document,
+            message=(
+                f"Remove superiority {request.superior_rule_id} > "
+                f"{request.inferior_rule_id} from {request.file}"
+            ),
+        )
 
-    repo.families.rules.save(
-        ref,
-        document,
-        message=(
-            f"Remove superiority {request.superior_rule_id} > "
-            f"{request.inferior_rule_id} from {request.file}"
-        ),
-    )
-
-    filepath = repo.root / repo.families.rules.address(ref).require_path()
+        filepath = repo.root / repo.families.rules.address(ref).require_path()
     return RuleSuperiorityReport(
         filepath=filepath,
         superior_rule_id=request.superior_rule_id,
