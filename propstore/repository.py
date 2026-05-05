@@ -63,10 +63,7 @@ class HeadBoundTransaction:
         return self._commit_sha
 
     def __enter__(self) -> HeadBoundTransaction:
-        git = self.repo.git
-        if git is None:
-            raise ValueError("head-bound transactions require a git-backed repository")
-        guard = git._mutation_guard()
+        guard = self.repo.mutation_guard()
         guard.__enter__()
         object.__setattr__(self, "_mutation_guard", guard)
         object.__setattr__(self, "expected_head", self.repo.snapshot.branch_head(self.branch))
@@ -251,6 +248,14 @@ class Repository:
 
     def write_bootstrap_manifest(self, *, seed_commit: str | None = None) -> None:
         _write_bootstrap_manifest(self.git, seed_commit=seed_commit)
+
+    @contextmanager
+    def mutation_guard(self):
+        git = self.git
+        if git is None:
+            raise ValueError("repository mutations require a git-backed repository")
+        with git._mutation_guard():
+            yield
 
     def head_bound_transaction(
         self,
