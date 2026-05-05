@@ -50,6 +50,8 @@ class ClaimReferenceResolver:
             return self.source.local_to_artifact[target]
         if target in self.source.logical_to_artifact:
             return self.source.logical_to_artifact[target]
+        if target in self.source.artifact_ids:
+            return target
         if target in self.primary.logical_to_artifact:
             return self.primary.logical_to_artifact[target]
         if target in self.primary.artifact_ids:
