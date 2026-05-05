@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from copy import deepcopy
 from datetime import date
+from functools import wraps
 from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING, Mapping
@@ -336,6 +337,17 @@ class ConceptAddValueRequest:
     concept_name: str
     value: str
     dry_run: bool = False
+
+
+def _serialized_concept_mutation(function):
+    @wraps(function)
+    def wrapper(repo: Repository, request, *args, **kwargs):
+        if getattr(request, "dry_run", False):
+            return function(repo, request, *args, **kwargs)
+        with repo.mutation_guard():
+            return function(repo, request, *args, **kwargs)
+
+    return wrapper
 
 
 def search_concepts(
@@ -1065,6 +1077,7 @@ def _apply_proto_role_entailment(
     bundle[key] = entailments
 
 
+@_serialized_concept_mutation
 def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutationReport:
     snapshot = _require_snapshot(repo)
     ref = ConceptFileRef(request.name)
@@ -1148,6 +1161,7 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
     raise ConceptMutationError("could not reserve concept ID after concurrent updates")
 
 
+@_serialized_concept_mutation
 def add_concept_alias(
     repo: Repository, request: ConceptAliasRequest
 ) -> ConceptMutationReport:
@@ -1209,6 +1223,7 @@ def add_concept_alias(
     )
 
 
+@_serialized_concept_mutation
 def rename_concept(
     repo: Repository, request: ConceptRenameRequest
 ) -> ConceptMutationReport:
@@ -1383,6 +1398,7 @@ def rename_concept(
     )
 
 
+@_serialized_concept_mutation
 def deprecate_concept(
     repo: Repository, request: ConceptDeprecateRequest
 ) -> ConceptMutationReport:
@@ -1434,6 +1450,7 @@ def deprecate_concept(
     )
 
 
+@_serialized_concept_mutation
 def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutationReport:
     if request.rel_type not in RELATIONSHIP_TYPES:
         raise ConceptMutationError(f"invalid relationship type: {request.rel_type}")
@@ -1524,6 +1541,7 @@ def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutat
     )
 
 
+@_serialized_concept_mutation
 def add_concept_qualia(
     repo: Repository, request: ConceptQualiaAddRequest
 ) -> ConceptMutationReport:
@@ -1582,6 +1600,7 @@ def add_concept_qualia(
     )
 
 
+@_serialized_concept_mutation
 def set_concept_description_kind(
     repo: Repository, request: ConceptDescriptionKindRequest
 ) -> ConceptMutationReport:
@@ -1633,6 +1652,7 @@ def set_concept_description_kind(
     )
 
 
+@_serialized_concept_mutation
 def add_concept_proto_role(
     repo: Repository, request: ConceptProtoRoleRequest
 ) -> ConceptMutationReport:
@@ -1711,6 +1731,7 @@ def add_concept_proto_role(
     )
 
 
+@_serialized_concept_mutation
 def add_concept_value(
     repo: Repository, request: ConceptAddValueRequest
 ) -> ConceptMutationReport:
