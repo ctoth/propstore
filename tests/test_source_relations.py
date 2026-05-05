@@ -33,13 +33,23 @@ from tests.conftest import (
 
 def _init_source(runner: CliRunner, repo: Repository, name: str) -> None:
     context_path, context_body = make_test_context_commit_entry()
+    adds = {}
     try:
         repo.git.read_file(context_path)
     except FileNotFoundError:
+        adds[context_path] = context_body
+    try:
+        repo.git.read_file("forms/structural.yaml")
+    except FileNotFoundError:
+        adds["forms/structural.yaml"] = yaml.safe_dump(
+            {"name": "structural", "dimensionless": True},
+            sort_keys=False,
+        ).encode("utf-8")
+    if adds:
         repo.git.commit_batch(
-            adds={context_path: context_body},
+            adds=adds,
             deletes=[],
-            message="Seed test context",
+            message="Seed source fixture prerequisites",
             branch="master",
         )
     result = runner.invoke(
@@ -75,14 +85,23 @@ def _seed_master_concept(repo: Repository, *, name: str, form: str = "structural
         ],
         default_domain="source",
     )[0]
-    repo.git.commit_batch(
-        adds={
-            f"concepts/{name}.yaml": yaml.safe_dump(
-                concept,
+    adds = {
+        f"concepts/{name}.yaml": yaml.safe_dump(
+            concept,
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8")
+    }
+    if form == "structural":
+        try:
+            repo.git.read_file("forms/structural.yaml")
+        except FileNotFoundError:
+            adds["forms/structural.yaml"] = yaml.safe_dump(
+                {"name": "structural", "dimensionless": True},
                 sort_keys=False,
-                allow_unicode=True,
             ).encode("utf-8")
-        },
+    repo.git.commit_batch(
+        adds=adds,
         deletes=[],
         message=f"Seed concept {name}",
         branch="master",
