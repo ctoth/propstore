@@ -36,6 +36,11 @@ from propstore.claim_references import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
+from propstore.claims import loaded_claim_file_from_payload
+from propstore.compiler.context import build_compilation_context_from_loaded
+from propstore.compiler.workflows import CompilerWorkflowError
+from propstore.families.claims.passes import run_claim_pipeline
+from propstore.families.claims.stages import ClaimAuthoredFiles
 from propstore.families.registry import (
     CanonicalSourceRef,
     ClaimsFileRef,
@@ -46,8 +51,14 @@ from propstore.families.registry import (
     StanceFileRef,
 )
 from propstore.families.concepts.documents import ConceptDocument
+from propstore.families.concepts.stages import (
+    LoadedConcept,
+    parse_concept_record_document,
+)
 from propstore.families.claims.documents import ClaimsFileDocument
+from propstore.families.contexts.stages import parse_context_record_document
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.forms.stages import parse_form
 from propstore.provenance import (
     Provenance,
     ProvenanceStatus,
@@ -98,6 +109,95 @@ class PromotionResult:
     blocked_diagnostics: dict[str, tuple[tuple[str, str], ...]]
     sidecar_mirror_ok: bool
     sidecar_mirror_error: str | None = None
+
+
+def _validate_promoted_claims_before_commit(
+    repo: Repository,
+    *,
+    claims_ref: ClaimsFileRef,
+    promoted_claims_document: ClaimsFileDocument,
+    promoted_concept_documents: dict[ConceptFileRef, ConceptDocument],
+) -> None:
+    """Validate the canonical claim view that promotion is about to commit."""
+
+    head_sha = repo.snapshot.head_sha()
+    tree = repo.snapshot.tree(commit=head_sha)
+
+    concepts_by_name = {
+        handle.ref.name: handle.document
+        for handle in repo.families.concepts.iter_handles(commit=head_sha)
+    }
+    concepts_by_name.update(
+        {
+            concept_ref.name: concept_document
+            for concept_ref, concept_document in promoted_concept_documents.items()
+        }
+    )
+    concepts: list[LoadedConcept] = []
+    for concept_name, concept_document in concepts_by_name.items():
+        concept_ref = ConceptFileRef(concept_name)
+        concepts.append(
+            LoadedConcept(
+                filename=concept_name,
+                source_path=tree / repo.families.concepts.address(concept_ref).require_path(),
+                knowledge_root=tree,
+                record=parse_concept_record_document(concept_document),
+                document=concept_document,
+            )
+        )
+
+    form_registry = {}
+    for handle in repo.families.forms.iter_handles(commit=head_sha):
+        document = handle.document
+        form_registry[document.name] = parse_form(document.name, document)
+
+    context_ids: set[str] = set()
+    for handle in repo.families.contexts.iter_handles(commit=head_sha):
+        record = parse_context_record_document(handle.document)
+        if record.context_id is not None:
+            context_ids.add(str(record.context_id))
+
+    claim_files = [
+        handle
+        for handle in repo.families.claims.iter_handles(commit=head_sha)
+        if handle.ref.name != claims_ref.name
+    ]
+    claim_files.append(
+        loaded_claim_file_from_payload(
+            filename=claims_ref.name,
+            source_path=tree / repo.families.claims.address(claims_ref).require_path(),
+            data=promoted_claims_document.to_payload(),
+            knowledge_root=tree,
+        )
+    )
+
+    compilation_context = build_compilation_context_from_loaded(
+        concepts,
+        form_registry=form_registry,
+        claim_files=claim_files,
+        context_ids=context_ids or None,
+    )
+    claim_pipeline_result = run_claim_pipeline(
+        ClaimAuthoredFiles.from_sequence(
+            claim_files,
+            compilation_context,
+            context_ids=context_ids or None,
+        )
+    )
+    claim_errors = tuple(
+        diagnostic
+        for diagnostic in claim_pipeline_result.diagnostics
+        if diagnostic.level == "error"
+        and (
+            form_registry
+            or "is missing a loaded form definition" not in diagnostic.message
+        )
+    )
+    if claim_errors:
+        raise CompilerWorkflowError(
+            f"Source promotion aborted: {len(claim_errors)} promoted claim validation error(s)",
+            claim_errors,
+        )
 
 
 def _source_trust_payload(result: SourceTrustResult) -> dict[str, object]:
@@ -907,6 +1007,12 @@ def promote_source_branch(
         ConceptFileRef(concept_slug): concept_document
         for concept_slug, concept_document in promoted_concept_documents.items()
     }
+    _validate_promoted_claims_before_commit(
+        repo,
+        claims_ref=claims_ref,
+        promoted_claims_document=promoted_claims_document,
+        promoted_concept_documents=promoted_concept_plan_documents,
+    )
     if promoted_justifications_doc.get("justifications"):
         promoted_justifications_ref: JustificationsFileRef | None = JustificationsFileRef(slug)
         promoted_justifications_document = convert_document_value(

@@ -270,6 +270,129 @@ def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path
     assert concept_file.artifact_id == derive_concept_artifact_id("propstore", "gravity")
 
 
+def test_source_promote_rejects_invalid_promoted_claim_before_master_commit(
+    tmp_path: Path,
+) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    _save_source(
+        repo,
+        "invalid_uncertainty",
+        {
+            "concepts": [
+                {
+                    "local_name": "hazard_ratio",
+                    "proposed_name": "hazard_ratio",
+                    "definition": "Ratio of hazard rates.",
+                    "form": "ratio",
+                }
+            ]
+        },
+        claims_payload={
+            "source": {"paper": "invalid_uncertainty"},
+            "claims": [
+                {
+                    "id": "bad_ci",
+                    "type": "parameter",
+                    "context": "ctx_test",
+                    "concept": "hazard_ratio",
+                    "value": 0.98,
+                    "lower_bound": 0.76,
+                    "upper_bound": 1.26,
+                    "uncertainty_type": "95% CI",
+                    "provenance": {"paper": "invalid_uncertainty", "page": 1},
+                }
+            ],
+        },
+    )
+    before = repo.snapshot.branch_head("master")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "promote",
+            "invalid_uncertainty",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "uncertainty_type without uncertainty" in result.output
+    assert repo.snapshot.branch_head("master") == before
+
+
+def test_source_promote_cli_rebuilds_sidecar_for_immediate_claim_list(
+    tmp_path: Path,
+) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_structural_form_via_git(repo)
+    shared_concept_id = _seed_master_concept_via_git(repo, "shared_concept")
+    _seed_master_context_via_git(repo)
+    _init_cli_source(runner, repo, "visible_after_promote")
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "visible_after_promote"},
+                "claims": [
+                    {
+                        "id": "visible_claim",
+                        "type": "observation",
+                        "context": "ctx_test",
+                        "statement": "A visible promoted observation.",
+                        "concepts": [shared_concept_id],
+                        "provenance": {"page": 1},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    add_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "visible_after_promote",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert add_result.exit_code == 0, add_result.output
+    finalize_source_branch(repo, "visible_after_promote")
+
+    promote_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "promote",
+            "visible_after_promote",
+        ],
+    )
+    assert promote_result.exit_code == 0, promote_result.output
+
+    list_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "claim",
+            "list",
+        ],
+    )
+    assert list_result.exit_code == 0, list_result.output
+    assert "A visible promoted observation." in list_result.output
+
+
 def _init_cli_source(runner: CliRunner, repo: Repository, name: str) -> None:
     result = runner.invoke(
         cli,
@@ -332,6 +455,20 @@ def _seed_master_context_via_git(repo: Repository, name: str = "ctx_test") -> No
         },
         deletes=[],
         message=f"Seed context {name}",
+        branch="master",
+    )
+
+
+def _seed_structural_form_via_git(repo: Repository) -> None:
+    repo.git.commit_batch(
+        adds={
+            "forms/structural.yaml": yaml.safe_dump(
+                {"name": "structural", "dimensionless": True},
+                sort_keys=False,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message="Seed structural form",
         branch="master",
     )
 

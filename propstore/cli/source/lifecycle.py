@@ -6,7 +6,8 @@ from pathlib import Path
 
 import click
 
-from propstore.cli.output import emit, emit_success, emit_table, emit_warning
+from propstore.cli.output import emit, emit_error, emit_success, emit_table, emit_warning
+from propstore.compiler.workflows import CompilerWorkflowError
 
 from propstore.app.sources import (
     SourceInitRequest,
@@ -26,6 +27,12 @@ from propstore.app.sources import (
 from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
 from propstore.cli.source import source
+
+
+def _emit_workflow_messages(messages) -> None:
+    for message in messages:
+        label = message.level.upper()
+        emit_error(f"{label} ({message.family.value}): {message.render()}")
 
 
 @source.command("init")
@@ -97,6 +104,9 @@ def promote(obj: dict, name: str, strict: bool) -> None:
     repo: Repository = obj["repo"]
     try:
         report = promote_source(repo, SourcePromoteRequest(name=name, strict=strict))
+    except CompilerWorkflowError as exc:
+        _emit_workflow_messages(exc.messages)
+        raise click.ClickException(exc.summary) from exc
     except ValueError as exc:
         # When strict=True OR when all items were blocked, promote raises.
         # Preserve the ClickException path so exit code is non-zero.

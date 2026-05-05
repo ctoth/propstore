@@ -223,12 +223,27 @@ def promote_source(
     repo: Repository,
     request: SourcePromoteRequest,
 ) -> SourcePromoteReport:
+    from propstore.compiler.workflows import CompilerWorkflowError, build_repository
     from propstore.source import promote_source_branch
     from propstore.source.common import (
         load_source_claims_document,
     )
 
     promotion = promote_source_branch(repo, request.name, strict=request.strict)
+    build_report = build_repository(repo, output=None, force=True)
+    build_errors = tuple(
+        message for message in build_report.messages if message.level == "error"
+    )
+    if build_report.sidecar_missing:
+        raise CompilerWorkflowError(
+            "Post-promotion build failed: sidecar database was not created.",
+            build_report.messages,
+        )
+    if build_errors:
+        raise CompilerWorkflowError(
+            f"Post-promotion build failed: {len(build_errors)} error(s)",
+            build_errors,
+        )
     claims_doc = load_source_claims_document(repo, request.name)
     total_claims = len(claims_doc.claims) if claims_doc is not None else 0
     blocked_count = len(promotion.blocked_claims)
