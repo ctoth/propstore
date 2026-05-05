@@ -43,6 +43,12 @@ class WorldStatusReport:
     visible_claim_count: int
     conflict_count: int
     diagnostic_count: int
+    source_count: int = 0
+    context_count: int = 0
+    predicate_count: int = 0
+    rule_count: int = 0
+    justification_count: int = 0
+    stance_count: int = 0
 
 
 def get_world_status(

@@ -73,7 +73,7 @@ def world_status(
     include_blocked: bool,
     show_quarantined: bool,
 ) -> None:
-    """Show knowledge base stats (concepts, claims, conflicts).
+    """Show knowledge base stats and authored reasoning inventory.
 
     Claim counts reflect the lifecycle-visibility policy selected by the
     three opt-in flags. Closes axis-1 findings 3.1 / 3.2 / 3.3
@@ -84,11 +84,17 @@ def world_status(
     repo: Repository = obj["repo"]
     render_policy = _render_policy_request(include_drafts, include_blocked, show_quarantined)
     report = run_world_status(repo, AppWorldStatusRequest(render_policy=render_policy))
-    emit(f"Concepts: {report.concept_count}")
-    emit(f"Claims:   {report.visible_claim_count}")
-    emit(f"Conflicts: {report.conflict_count}")
+    emit(f"Sources:        {report.source_count}")
+    emit(f"Contexts:       {report.context_count}")
+    emit(f"Concepts:       {report.concept_count}")
+    emit(f"Claims:         {report.visible_claim_count}")
+    emit(f"Predicates:     {report.predicate_count}")
+    emit(f"Rules:          {report.rule_count}")
+    emit(f"Justifications: {report.justification_count}")
+    emit(f"Stances:        {report.stance_count}")
+    emit(f"Conflicts:      {report.conflict_count}")
     if render_policy.show_quarantined:
-        emit(f"Diagnostics: {report.diagnostic_count}")
+        emit(f"Diagnostics:    {report.diagnostic_count}")
 
 
 @world.command("query")

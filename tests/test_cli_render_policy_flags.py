@@ -31,7 +31,19 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.app.predicates import PredicateAddRequest, add_predicate
+from propstore.app.rules import RuleAddRequest, add_rule
+from propstore.families.documents.sources import (
+    SourceJustificationDocument,
+    SourceJustificationsDocument,
+)
+from propstore.families.documents.stances import (
+    StanceEntryDocument,
+    StanceFileDocument,
+)
+from propstore.families.registry import JustificationsFileRef, StanceFileRef
 from propstore.repository import Repository
+from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
 from propstore.world.queries import (
     WorldConceptQueryRequest,
@@ -201,10 +213,81 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
         conn.close()
 
 
+def _seed_authored_reasoning(repo: Repository) -> None:
+    add_predicate(
+        repo,
+        PredicateAddRequest(
+            file="fixture",
+            predicate_id="fixture_visible_claim",
+            arity=1,
+            arg_types=("str",),
+        ),
+    )
+    add_predicate(
+        repo,
+        PredicateAddRequest(
+            file="fixture",
+            predicate_id="fixture_hidden_claim",
+            arity=1,
+            arg_types=("str",),
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="fixture",
+            paper="fixture_paper",
+            rule_id="r_visible",
+            kind="strict",
+            head="fixture_visible_claim(clean)",
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="fixture",
+            paper="fixture_paper",
+            rule_id="r_hidden",
+            kind="defeasible",
+            head="fixture_hidden_claim(draft)",
+        ),
+    )
+    repo.families.justifications.save(
+        JustificationsFileRef("fixture"),
+        SourceJustificationsDocument(
+            justifications=(
+                SourceJustificationDocument(
+                    id="j_fixture",
+                    conclusion="claim_fixture_final",
+                    premises=("claim_fixture_draft",),
+                    rule_kind="reported_claim",
+                    rule_strength="defeasible",
+                ),
+            )
+        ),
+        message="Seed world status justifications",
+    )
+    repo.families.stances.save(
+        StanceFileRef("claim_fixture_final"),
+        StanceFileDocument(
+            source_claim="claim_fixture_final",
+            stances=(
+                StanceEntryDocument(
+                    target="claim_fixture_draft",
+                    type=StanceType.SUPPORTS,
+                    strength="low",
+                ),
+            ),
+        ),
+        message="Seed world status stances",
+    )
+
+
 @pytest.fixture()
 def seeded_workspace(workspace: Path) -> Path:
     """Workspace + seeded lifecycle rows in the sidecar."""
     _seed_lifecycle_rows(workspace, _concept_id(workspace))
+    _seed_authored_reasoning(Repository.find(workspace / "knowledge"))
     return workspace
 
 
@@ -230,6 +313,8 @@ class TestWorldStatusFlags:
 
         assert report.visible_claim_count == 1
         assert report.diagnostic_count == 0
+        assert report.predicate_count == 0
+        assert report.rule_count == 0
 
     def test_owner_report_all_flags_surface_everything(
         self,
@@ -254,6 +339,20 @@ class TestWorldStatusFlags:
         assert report.visible_claim_count == 4
         assert report.diagnostic_count == 2
 
+    def test_app_report_counts_authored_reasoning_artifacts(
+        self,
+        seeded_workspace: Path,
+    ) -> None:
+        from propstore.app.world import AppWorldStatusRequest, world_status
+
+        repo = Repository.find(seeded_workspace / "knowledge")
+        report = world_status(repo, AppWorldStatusRequest())
+
+        assert report.predicate_count == 2
+        assert report.rule_count == 2
+        assert report.justification_count == 1
+        assert report.stance_count == 1
+
     def test_default_hides_draft_blocked_promotion(self, seeded_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(
@@ -261,7 +360,11 @@ class TestWorldStatusFlags:
         )
         assert result.exit_code == 0, result.output
         # Only the 'clean' claim should count under the default policy.
-        assert "Claims:   1" in result.output
+        assert "Claims:         1" in result.output
+        assert "Predicates:     2" in result.output
+        assert "Rules:          2" in result.output
+        assert "Justifications: 1" in result.output
+        assert "Stances:        1" in result.output
 
     def test_include_drafts_increments_count(self, seeded_workspace: Path) -> None:
         runner = CliRunner()
@@ -276,7 +379,7 @@ class TestWorldStatusFlags:
             ],
         )
         assert result.exit_code == 0, result.output
-        assert "Claims:   2" in result.output
+        assert "Claims:         2" in result.output
 
     def test_include_blocked_surfaces_both_blocked_variants(
         self, seeded_workspace: Path
@@ -294,7 +397,7 @@ class TestWorldStatusFlags:
         )
         assert result.exit_code == 0, result.output
         # final + build_status=blocked + promotion_status=blocked = 3.
-        assert "Claims:   3" in result.output
+        assert "Claims:         3" in result.output
 
     def test_all_flags_surface_everything(self, seeded_workspace: Path) -> None:
         runner = CliRunner()
@@ -311,7 +414,7 @@ class TestWorldStatusFlags:
             ],
         )
         assert result.exit_code == 0, result.output
-        assert "Claims:   4" in result.output
+        assert "Claims:         4" in result.output
         # --show-quarantined should also add a Diagnostics line.
         assert "Diagnostics:" in result.output
 

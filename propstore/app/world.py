@@ -194,10 +194,43 @@ def world_status(
     request: AppWorldStatusRequest,
 ) -> WorldStatusReport:
     with open_app_world_model(repo) as world:
-        return get_world_status(
+        report = get_world_status(
             world,
             WorldStatusRequest(policy=build_render_policy(request.render_policy)),
         )
+    counts = _authored_world_counts(repo)
+    return replace(
+        report,
+        source_count=counts["sources"],
+        context_count=counts["contexts"],
+        predicate_count=counts["predicates"],
+        rule_count=counts["rules"],
+        justification_count=counts["justifications"],
+        stance_count=counts["stances"],
+    )
+
+
+def _authored_world_counts(repo: Repository) -> dict[str, int]:
+    return {
+        "sources": sum(1 for _ in repo.families.sources.iter_handles()),
+        "contexts": sum(1 for _ in repo.families.contexts.iter_handles()),
+        "predicates": sum(
+            len(handle.document.predicates)
+            for handle in repo.families.predicates.iter_handles()
+        ),
+        "rules": sum(
+            len(handle.document.rules)
+            for handle in repo.families.rules.iter_handles()
+        ),
+        "justifications": sum(
+            len(handle.document.justifications)
+            for handle in repo.families.justifications.iter_handles()
+        ),
+        "stances": sum(
+            len(handle.document.stances)
+            for handle in repo.families.stances.iter_handles()
+        ),
+    }
 
 
 def world_concept_query(

@@ -920,7 +920,7 @@ Many world commands accept positional `KEY=VALUE` bindings to scope queries by c
 
 #### `pks world status`
 
-Show knowledge base stats (concepts, claims, conflicts). No options.
+Show world inventory counts, including authored reasoning artifacts.
 
 ```bash
 uv run pks world status
