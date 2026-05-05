@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import wraps
 from pathlib import Path
 
 from propstore.cel_types import to_cel_exprs
@@ -28,6 +29,17 @@ class ContextReferencedError(ContextWorkflowError):
     def __init__(self, name: str, references: tuple[str, ...]) -> None:
         super().__init__(f"Context '{name}' is referenced by {len(references)} artifact(s)")
         self.references = references
+
+
+def _serialized_context_mutation(function):
+    @wraps(function)
+    def wrapper(repo: Repository, *args, **kwargs):
+        if kwargs.get("dry_run") is True:
+            return function(repo, *args, **kwargs)
+        with repo.mutation_guard():
+            return function(repo, *args, **kwargs)
+
+    return wrapper
 
 
 @dataclass(frozen=True)
@@ -188,6 +200,7 @@ def _validate_context_assumption_cel(
         raise ContextWorkflowError(str(exc)) from exc
 
 
+@_serialized_context_mutation
 def add_context(
     repo: Repository,
     request: ContextAddRequest,
@@ -271,6 +284,7 @@ def show_context(repo: Repository, name: str) -> ContextShowReport:
     )
 
 
+@_serialized_context_mutation
 def remove_context(
     repo: Repository,
     name: str,
@@ -340,6 +354,7 @@ def show_context_lifting_rule(
     )
 
 
+@_serialized_context_mutation
 def add_context_lifting_rule(
     repo: Repository,
     context_name: str,
@@ -382,6 +397,7 @@ def add_context_lifting_rule(
     )
 
 
+@_serialized_context_mutation
 def update_context_lifting_rule(
     repo: Repository,
     context_name: str,
@@ -434,6 +450,7 @@ def update_context_lifting_rule(
     )
 
 
+@_serialized_context_mutation
 def remove_context_lifting_rule(
     repo: Repository,
     context_name: str,
