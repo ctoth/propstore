@@ -13,11 +13,15 @@ from propstore.app.rules import (
     RuleNotFoundError,
     RuleReferencedError,
     RuleRemoveRequest,
+    RuleSuperiorityAddRequest,
+    RuleSuperiorityRemoveRequest,
     RuleWorkflowError,
     add_rule,
+    add_rule_superiority,
     list_rules,
     parse_atom,
     remove_rule,
+    remove_rule_superiority,
     show_rule_file,
 )
 
@@ -352,6 +356,156 @@ def test_remove_rule_rejects_when_referenced_by_superiority(tmp_path) -> None:
         raise AssertionError("expected superiority-reference failure")
 
 
+def test_add_rule_superiority_adds_pair(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_a",
+            kind="defeasible",
+            head="a",
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_b",
+            kind="proper_defeater",
+            head="~a",
+        ),
+    )
+
+    add_rule_superiority(
+        repo,
+        RuleSuperiorityAddRequest(
+            file="ikeda_2014",
+            superior_rule_id="r_b",
+            inferior_rule_id="r_a",
+        ),
+    )
+
+    data = _read_rule_file(repo, "ikeda_2014")
+    assert data["superiority"] == [["r_b", "r_a"]]
+
+
+def test_add_rule_superiority_rejects_strict_and_cycles(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_strict",
+            kind="strict",
+            head="a",
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_defeasible",
+            kind="defeasible",
+            head="b",
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_defeater",
+            kind="blocking_defeater",
+            head="~b",
+        ),
+    )
+
+    try:
+        add_rule_superiority(
+            repo,
+            RuleSuperiorityAddRequest(
+                file="ikeda_2014",
+                superior_rule_id="r_defeasible",
+                inferior_rule_id="r_strict",
+            ),
+        )
+    except RuleWorkflowError as exc:
+        assert "strict" in str(exc)
+    else:
+        raise AssertionError("expected strict-rule superiority failure")
+
+    add_rule_superiority(
+        repo,
+        RuleSuperiorityAddRequest(
+            file="ikeda_2014",
+            superior_rule_id="r_defeater",
+            inferior_rule_id="r_defeasible",
+        ),
+    )
+    try:
+        add_rule_superiority(
+            repo,
+            RuleSuperiorityAddRequest(
+                file="ikeda_2014",
+                superior_rule_id="r_defeasible",
+                inferior_rule_id="r_defeater",
+            ),
+        )
+    except RuleWorkflowError as exc:
+        assert "acyclic" in str(exc)
+    else:
+        raise AssertionError("expected cyclic superiority failure")
+
+
+def test_remove_rule_superiority_removes_pair(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_a",
+            kind="defeasible",
+            head="a",
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_b",
+            kind="defeasible",
+            head="b",
+        ),
+    )
+    add_rule_superiority(
+        repo,
+        RuleSuperiorityAddRequest(
+            file="ikeda_2014",
+            superior_rule_id="r_b",
+            inferior_rule_id="r_a",
+        ),
+    )
+
+    remove_rule_superiority(
+        repo,
+        RuleSuperiorityRemoveRequest(
+            file="ikeda_2014",
+            superior_rule_id="r_b",
+            inferior_rule_id="r_a",
+        ),
+    )
+
+    data = _read_rule_file(repo, "ikeda_2014")
+    assert data["superiority"] == []
+
+
 def test_rule_cli_remove(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     add_rule(
@@ -383,3 +537,66 @@ def test_rule_cli_remove(tmp_path) -> None:
     assert result.exit_code == 0, result.output
     data = _read_rule_file(repo, "ikeda_2014")
     assert data["rules"] == [] or data.get("rules") is None
+
+
+def test_rule_cli_superiority_add_and_remove(tmp_path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_a",
+            kind="defeasible",
+            head="a",
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="ikeda_2014",
+            paper="Ikeda_2014",
+            rule_id="r_b",
+            kind="defeasible",
+            head="b",
+        ),
+    )
+    runner = CliRunner()
+
+    added = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "rule",
+            "superiority",
+            "add",
+            "--file",
+            "ikeda_2014",
+            "--superior",
+            "r_b",
+            "--inferior",
+            "r_a",
+        ],
+    )
+    assert added.exit_code == 0, added.output
+    assert _read_rule_file(repo, "ikeda_2014")["superiority"] == [["r_b", "r_a"]]
+
+    removed = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "rule",
+            "superiority",
+            "remove",
+            "--file",
+            "ikeda_2014",
+            "--superior",
+            "r_b",
+            "--inferior",
+            "r_a",
+        ],
+    )
+    assert removed.exit_code == 0, removed.output
+    assert _read_rule_file(repo, "ikeda_2014")["superiority"] == []
