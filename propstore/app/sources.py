@@ -224,10 +224,11 @@ def promote_source(
     request: SourcePromoteRequest,
 ) -> SourcePromoteReport:
     from propstore.compiler.workflows import CompilerWorkflowError, build_repository
-    from propstore.source import promote_source_branch
+    from propstore.source import promote_source_branch, source_paper_slug
     from propstore.source.common import (
         load_source_claims_document,
     )
+    from propstore.source.promote import _write_promotion_blocked_sidecar_rows
 
     promotion = promote_source_branch(repo, request.name, strict=request.strict)
     build_report = build_repository(repo, output=None, force=True)
@@ -243,6 +244,17 @@ def promote_source(
         raise CompilerWorkflowError(
             f"Post-promotion build failed: {len(build_errors)} error(s)",
             build_errors,
+        )
+    if promotion.blocked_claims:
+        _write_promotion_blocked_sidecar_rows(
+            repo.sidecar_path,
+            source_branch_name(request.name),
+            source_paper_slug(request.name),
+            promotion.blocked_claims,
+            {
+                claim_id: list(reasons)
+                for claim_id, reasons in promotion.blocked_diagnostics.items()
+            },
         )
     claims_doc = load_source_claims_document(repo, request.name)
     total_claims = len(claims_doc.claims) if claims_doc is not None else 0
