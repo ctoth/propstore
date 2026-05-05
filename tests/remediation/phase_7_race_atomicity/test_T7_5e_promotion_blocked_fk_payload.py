@@ -20,6 +20,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from propstore.sidecar.schema import (
+    create_tables,
     create_claim_tables,
     create_context_tables,
     create_micropublication_tables,
@@ -34,6 +35,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = connect_sidecar(sidecar_path)
     try:
+        create_tables(conn)
         create_context_tables(conn)
         create_claim_tables(conn)
         create_micropublication_tables(conn)
@@ -67,6 +69,25 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
         conn.execute(
             "INSERT INTO claim_algorithm_payload (claim_id) "
             "VALUES ('claim-shared')"
+        )
+        # ``claim_concept_link`` also FKs to claim_core(id). The real
+        # Unknown_2009 promotion crash hit this child table after the
+        # payload-specific cleanup had already landed.
+        conn.execute(
+            """
+            INSERT INTO concept (
+                id, content_hash, seq, canonical_name, status,
+                definition, kind_type, form
+            ) VALUES (
+                'concept-alpha', '', 1, 'alpha', 'active',
+                'alpha concept', 'quantity', 'count'
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO claim_concept_link "
+            "(claim_id, concept_id, role, ordinal) "
+            "VALUES ('claim-shared', 'concept-alpha', 'target', 0)"
         )
         # Seed a micropublication_claim child too — that table also FKs
         # to claim_core(id). We need a context row first so the
