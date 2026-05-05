@@ -536,7 +536,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: worldline
-  contract_version: 2026.04.27
+  contract_version: 2026.05.04
   body:
     coerce_payload: null
     decode_bytes: null
@@ -2761,7 +2761,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineDefinitionDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.04
   body:
     fields:
     - name: id
@@ -2785,6 +2785,9 @@ contracts:
     - name: revision
       required: true
       type: WorldlineRevisionQueryDocument | None
+    - name: journal
+      required: true
+      type: WorldlineJournalDocument | None
     - name: results
       required: true
       type: WorldlineResultDocument | None
@@ -2851,6 +2854,18 @@ contracts:
     - name: overrides
       required: true
       type: dict[str, float | str]
+    module: propstore.families.documents.worldlines
+- kind: document_schema
+  name: WorldlineJournalDocument
+  contract_version: 2026.04.30
+  body:
+    fields:
+    - name: schema_version
+      required: true
+      type: str
+    - name: entries
+      required: true
+      type: tuple[dict[str, Any], ...]
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlinePolicyDocument
@@ -3163,7 +3178,7 @@ contracts:
     - contract_version: 2026.04.27
       key: sameas
       name: sameas
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.04
       key: worldlines
       name: worldlines
     - contract_version: 2026.04.27
@@ -3836,7 +3851,7 @@ contracts:
       semantic: true
 - kind: family
   name: worldlines
-  contract_version: 2026.04.27
+  contract_version: 2026.05.04
   body:
     accessor: worldlines
     artifact_family: worldline
@@ -3850,7 +3865,7 @@ contracts:
         kind: flat-yaml
         namespace: worldlines
         ref_field: name
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.04
     foreign_keys: []
     key: worldlines
     metadata:
@@ -3859,6 +3874,7 @@ contracts:
       importable: true
       init_directory: true
       semantic: true
+      trajectory_field: journal
 - kind: foreign_key
   name: claim_concept
   contract_version: 2026.04.22
