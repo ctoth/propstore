@@ -14,6 +14,22 @@ propstore already provides most of the infrastructure for this. But the analysis
 revealed three gaps that are **domain-general improvements**, not narrative-specific
 hacks. Each would strengthen propstore for scientific knowledge too.
 
+## Resolution Update: Worldline Journals
+
+The temporal-query part of this review is resolved by the worldline-journal bridge
+implemented on 2026-05-04. The implemented path is not claim-level
+`valid_from` / `valid_until`; it is durable worldline trajectories:
+`pks worldline build-journal` captures a `TransitionJournal`, and
+`pks worldline at-step NAME STEP` projects the accepted claim view at a journal
+step. The backing APIs are `capture_journal(...)` and
+`WorldQuery.at_journal_step(...)`.
+
+This means the narrative-engine query formerly described as `world.at(chapter_N)`
+is now `worldline at-step <canon-track> <chapter-step>` for claim-membership
+views. Causal edges and subgraph pattern queries remain separate workstreams.
+Heavy historical stance/conflict reconstruction is not part of the completed
+bridge and should be triggered only by a concrete inter-step stance requirement.
+
 ---
 
 ## Gap 1: Directional Causal Edges
@@ -119,15 +135,19 @@ If propstore distinguished temporal scope from logical conditions, queries like
 "what was believed at time T?" and "what changed between T1 and T2?" would
 become natural.
 
-### Proposed addition
+### Superseded proposal
 
-Optional `valid_from` / `valid_until` fields on claims, plus a `world.at(time)`
-query that filters to claims valid at that point. This is distinct from conditions:
-conditions scope *applicability*, temporal fields scope *currency*.
+The original proposal was optional `valid_from` / `valid_until` fields on
+claims, plus a `world.at(time)` query that filters to claims valid at that
+point. The implemented bridge uses worldline journals instead: temporal
+currency is represented by the ordered `TransitionJournal` state sequence, not
+by adding validity intervals to each claim document.
 
-For conflict detection: two claims with non-overlapping validity intervals on the
-same concept are PHI_NODE (not in conflict), even if they have identical conditions.
-Currently this would require adding temporal conditions manually.
+For conflict detection, the current bridge answers "which claims are accepted at
+step k?" It does not yet re-derive historical stances/conflicts at step k. That
+heavier view remains a separate trigger: implement it only if fiction-curation
+or federation work needs inter-step stance projection rather than flat accepted
+claim membership.
 
 ---
 
@@ -205,9 +225,9 @@ Two things from the metanovel architecture that should NOT go into propstore:
 
 1. **Mutable state.** propstore is a journal of claims — append-mostly, never
    mutated. Narrative state changes (a door is locked, then unlocked) should be
-   modeled as claim sequences with temporal validity, not as in-place mutations.
-   The narrative engine maintains a "current state" view by querying `world.at(chapter_N)`;
-   propstore stays immutable underneath.
+   modeled as claim sequences captured into worldline journals, not as in-place
+   mutations. The narrative engine maintains a "current state" view by querying
+   a worldline journal step; propstore stays immutable underneath.
 
 2. **Character simulation.** Persistent agents with goals, fears, memory, and
    decision-making are a simulation concern. propstore can store the *knowledge*
@@ -221,9 +241,11 @@ Two things from the metanovel architecture that should NOT go into propstore:
 
 1. **Causal edges** — smallest change, biggest payoff. New edge type on claims,
    integrated into graph export and hypothetical queries.
-2. **Temporal validity** — moderate change, enables time-scoped queries.
-   Touches claim schema, conflict detector (temporal PHI_NODE), and world model.
-3. **Pattern queries** — largest change, most speculative. Depends on 1 and 2.
+2. **Pattern queries** — largest change, most speculative. Depends on causal
+   edges and the completed worldline-journal bridge for temporal projection.
+3. **Heavy journal projection, conditional** — re-derive historical
+   stances/conflicts at a worldline step only if downstream fiction-curation or
+   federation work needs more than accepted claim membership.
 
-All three are domain-general. None require narrative-specific concepts in
-propstore's core.
+Causal edges, pattern queries, and any heavy journal projection remain
+domain-general. None require narrative-specific concepts in propstore's core.
