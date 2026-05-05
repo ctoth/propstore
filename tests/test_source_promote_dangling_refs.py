@@ -4,16 +4,19 @@ from pathlib import Path
 
 import yaml
 from click.testing import CliRunner
+from quire.documents import convert_document_value
 
 from propstore.cli import cli
+from propstore.families.documents.sources import SourceClaimsDocument
+from propstore.families.registry import SourceRef
 from propstore.repository import Repository
+from propstore.source import normalize_source_claims_payload, source_branch_name
+from propstore.source.common import load_source_document
 from tests.builders import (
     SourceClaimSpec,
     SourceJustificationSpec,
-    SourceStanceSpec,
     source_claims_document,
     source_justifications_document,
-    source_stances_document,
 )
 from tests.conftest import make_test_context_commit_entry, normalize_concept_payloads
 
@@ -45,14 +48,22 @@ def _seed_master_concept(repo: Repository) -> None:
         ],
         default_domain="source",
     )[0]
+    adds = {
+        "concepts/claims_identical.yaml": yaml.safe_dump(
+            concept,
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8")
+    }
+    try:
+        repo.git.read_file("forms/structural.yaml")
+    except FileNotFoundError:
+        adds["forms/structural.yaml"] = yaml.safe_dump(
+            {"name": "structural", "dimensionless": True},
+            sort_keys=False,
+        ).encode("utf-8")
     repo.git.commit_batch(
-        adds={
-            "concepts/claims_identical.yaml": yaml.safe_dump(
-                concept,
-                sort_keys=False,
-                allow_unicode=True,
-            ).encode("utf-8")
-        },
+        adds=adds,
         deletes=[],
         message="Seed claims_identical concept",
         branch="master",
@@ -131,6 +142,35 @@ def _add_claims(
     return {claim["source_local_id"]: claim["artifact_id"] for claim in stored["claims"]}
 
 
+def _save_claims_directly(
+    repo: Repository,
+    source_name: str,
+    claims_payload: dict,
+) -> dict[str, str]:
+    source_doc = load_source_document(repo, source_name)
+    raw_claims = convert_document_value(
+        claims_payload,
+        SourceClaimsDocument,
+        source=f"{source_branch_name(source_name)}:claims.yaml",
+    )
+    normalized_claims, _ = normalize_source_claims_payload(
+        raw_claims,
+        source_uri=source_doc.id,
+        source_namespace=source_name,
+    )
+    repo.families.source_claims.save(
+        SourceRef(source_name),
+        normalized_claims,
+        message=f"Write drifted claims for {source_name}",
+        branch=source_branch_name(source_name),
+    )
+    return {
+        claim.source_local_id: claim.artifact_id
+        for claim in normalized_claims.claims
+        if claim.source_local_id is not None
+    }
+
+
 def _add_justification(
     repo: Repository,
     runner: CliRunner,
@@ -187,55 +227,31 @@ def test_promote_rejects_justification_reference_to_unpromoted_source_claim(
     _seed_master_concept(repo)
     _init_source(repo, runner, "demo")
     _propose_claims_identical(repo, runner, "demo")
-    claim_ids = _add_claims(
+    claim_ids = _save_claims_directly(
         repo,
-        runner,
         "demo",
-        tmp_path,
-        [
-            SourceClaimSpec(
-                local_id="blocked",
-                claim_type="observation",
-                statement="Blocked claim.",
-                concepts=("claims_identical",),
-                page=1,
-            ),
-            SourceClaimSpec(
-                local_id="valid",
-                claim_type="observation",
-                statement="Valid claim.",
-                concepts=("claims_identical",),
-                page=2,
-            ),
-        ],
-    )
-    stances_file = tmp_path / "demo-stances.yaml"
-    _write_yaml(
-        stances_file,
-        source_stances_document(
-            [
-                SourceStanceSpec(
-                    source_claim="blocked",
-                    target="missing_source:claim404",
-                    stance_type="rebuts",
-                )
+        {
+            "source": {"paper": "demo"},
+            "claims": [
+                {
+                    "id": "blocked",
+                    "type": "observation",
+                    "statement": "Blocked claim.",
+                    "concepts": ["missing_concept"],
+                    "context": "ctx_test",
+                    "provenance": {"page": 1},
+                },
+                {
+                    "id": "valid",
+                    "type": "observation",
+                    "statement": "Valid claim.",
+                    "concepts": ["claims_identical"],
+                    "context": "ctx_test",
+                    "provenance": {"page": 2},
+                },
             ],
-            paper="demo",
-        ),
+        },
     )
-    add_stances = runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "source",
-            "add-stance",
-            "demo",
-            "--batch",
-            str(stances_file),
-        ],
-    )
-    assert add_stances.exit_code == 0, add_stances.output
     _add_justification(
         repo,
         runner,
