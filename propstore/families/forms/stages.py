@@ -38,6 +38,8 @@ class FormDefinition:
     extra_units: tuple[dimension_api.ExtraUnitDefinition, ...] = ()
     conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
     delta_conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
+    min: float | None = None
+    max: float | None = None
 
 
 @dataclass(frozen=True)
@@ -136,6 +138,8 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
         extra_units=extra_units,
         conversions=conversions,
         delta_conversions=delta_conversions,
+        min=None if data.min is None else float(data.min),
+        max=None if data.max is None else float(data.max),
     )
 
 

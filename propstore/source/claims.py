@@ -138,32 +138,105 @@ def normalize_source_claims_payload(
     )
 
 
+def _source_branch_cel_concepts(
+    repo: Repository,
+    source_name: str,
+) -> list["ConceptInfo"]:
+    """Build synthetic ConceptInfo entries for source-branch-proposed concepts.
+
+    Returns one entry per proposal in the source's ``concepts.yaml`` keyed by
+    ``proposed_name`` (preferred) or ``local_name``. Kind is inferred from the
+    proposal's ``form`` via :func:`kind_type_from_form_name`; proposals
+    without a usable handle are skipped silently (they will surface during
+    promote/build).
+    """
+    from propstore.core.conditions.registry import ConceptInfo
+    from propstore.families.forms.stages import kind_type_from_form_name
+
+    concepts_doc = load_source_concepts_document(repo, source_name)
+    if concepts_doc is None:
+        return []
+    infos: list[ConceptInfo] = []
+    seen_names: set[str] = set()
+    for entry in concepts_doc.concepts:
+        canonical = entry.proposed_name or entry.local_name
+        if not isinstance(canonical, str) or not canonical:
+            continue
+        if canonical in seen_names:
+            continue
+        kind = kind_type_from_form_name(entry.form)
+        if kind is None:
+            # No form declared on the source proposal: the proposal is
+            # incomplete, skip rather than fabricating a kind. Promote
+            # path will reject it explicitly with a better error.
+            continue
+        synthetic_id = f"ps:source:{source_name}:concept:{canonical}"
+        infos.append(
+            ConceptInfo(
+                id=synthetic_id,
+                canonical_name=canonical,
+                kind=kind,
+            )
+        )
+        seen_names.add(canonical)
+    return infos
+
+
 def validate_source_claim_cel_expressions(
     repo: Repository,
     source_name: str,
     data: SourceClaimsDocument,
 ) -> None:
-    """Reject a batch that references structural concepts in any CEL condition.
+    """Reject a batch whose CEL conditions reference unknown concepts.
 
     Runs before ``commit_source_claims_batch`` writes to the source branch, so
     a failing batch never reaches the sidecar or conflict detection. The CEL
-    registry is built from master's canonical concepts (the authoritative
-    source of concept kinds) so any previously-authored structural declaration
-    is honored even if the source branch proposes an overlapping name.
+    registry is the union of (a) master's canonical concepts (the
+    authoritative source of concept kinds) and (b) the source branch's
+    currently-proposed concepts. This lets ``pks source add-claim`` reference
+    concepts that were just introduced via ``pks source propose-concept`` /
+    ``pks source add-concepts`` on the same branch, while still honoring any
+    previously-authored canonical declaration when names overlap (master
+    wins, since it is layered first).
     """
     from propstore.cel_validation import (
         iter_claim_condition_expressions,
         validate_cel_expressions,
     )
     from propstore.compiler.context import build_compilation_context_from_repo
+    from propstore.core.conditions.registry import (
+        with_standard_synthetic_bindings,
+        with_synthetic_concepts,
+    )
 
     compilation_context = build_compilation_context_from_repo(repo)
-    registry = compilation_context.cel_registry
+    master_registry = compilation_context.cel_registry
+
+    source_concepts = _source_branch_cel_concepts(repo, source_name)
+    if source_concepts:
+        # Master entries take precedence: with_synthetic_concepts overwrites
+        # by canonical_name, so filter out any proposal whose name is
+        # already in master to preserve the authored kind.
+        non_overlapping = [
+            info for info in source_concepts if info.canonical_name not in master_registry
+        ]
+        layered = with_synthetic_concepts(master_registry, non_overlapping)
+        # If master was empty, the standard runtime synthetic bindings
+        # ("source", "domain", ...) were never applied — apply them now
+        # so source-only validation matches the master-present semantics.
+        registry = (
+            layered
+            if master_registry
+            else with_standard_synthetic_bindings(layered)
+        )
+    else:
+        registry = dict(master_registry) if master_registry else {}
+
     if not registry:
-        # No master concepts yet — no registry to validate against. The
-        # batch may still reference its own source-proposed concepts,
-        # which are type-checked at promote/build time. This is the
-        # bootstrap path for a fresh repository.
+        # No master concepts AND no source-branch proposals — nothing to
+        # validate against. The batch may still reference unknown
+        # concepts, which are type-checked at promote/build time. This is
+        # the bootstrap path for a fresh repository.
         return
 
     paper = (
@@ -183,6 +256,128 @@ def validate_source_claim_cel_expressions(
             ),
             registry,
         )
+
+
+def _source_branch_concept_form_map(
+    repo: Repository,
+    source_name: str,
+) -> dict[str, str]:
+    """Map source-branch-proposed concept handles → form name.
+
+    Both ``proposed_name`` and ``local_name`` map to the same form so a
+    claim can reference either spelling. Entries without a declared
+    ``form`` are skipped (they fail later at promote/build).
+    """
+    concepts_doc = load_source_concepts_document(repo, source_name)
+    if concepts_doc is None:
+        return {}
+    mapping: dict[str, str] = {}
+    for entry in concepts_doc.concepts:
+        if not isinstance(entry.form, str) or not entry.form:
+            continue
+        for handle in (entry.proposed_name, entry.local_name):
+            if isinstance(handle, str) and handle:
+                mapping[handle] = entry.form
+    return mapping
+
+
+def _form_bearing_concept_for_claim(claim: SourceClaimDocument) -> str | None:
+    """Return the concept handle whose form's bounds apply to this claim's value(s).
+
+    Source-side schema: parameter claims carry the form-bearing concept on
+    ``concept`` (promote remaps to ``output_concept``). Measurement claims
+    use ``target_concept``.
+    """
+    claim_type = claim.type.value if claim.type is not None else None
+    if claim_type == "parameter":
+        return claim.concept if isinstance(claim.concept, str) and claim.concept else None
+    if claim_type == "measurement":
+        return (
+            claim.target_concept
+            if isinstance(claim.target_concept, str) and claim.target_concept
+            else None
+        )
+    return None
+
+
+def _value_fields_for_claim(claim: SourceClaimDocument) -> list[tuple[str, float | int]]:
+    """Numeric fields on a value-bearing claim that bounds must constrain."""
+    fields: list[tuple[str, float | int]] = []
+    if claim.value is not None:
+        fields.append(("value", claim.value))
+    if claim.lower_bound is not None:
+        fields.append(("lower_bound", claim.lower_bound))
+    if claim.upper_bound is not None:
+        fields.append(("upper_bound", claim.upper_bound))
+    return fields
+
+
+def validate_source_claim_value_bounds(
+    repo: Repository,
+    source_name: str,
+    data: SourceClaimsDocument,
+) -> None:
+    """Reject a batch whose numeric fields fall outside the form's declared bounds.
+
+    Resolves each claim's form-bearing concept against (a) master's canonical
+    concepts and (b) the source branch's currently-proposed concepts, then
+    looks up the matching ``FormDefinition`` in the master form registry. If
+    the form declares ``min`` or ``max``, every numeric value/lower_bound/
+    upper_bound on the claim must lie within those bounds.
+    """
+    from propstore.compiler.context import build_compilation_context_from_repo
+    from propstore.compiler.references import concept_form_definition
+
+    compilation_context = build_compilation_context_from_repo(repo)
+    form_registry = compilation_context.form_registry
+    source_form_map = _source_branch_concept_form_map(repo, source_name)
+
+    paper = (
+        data.source.paper
+        if data.source is not None and data.source.paper
+        else source_name
+    )
+
+    for claim in data.claims:
+        concept_handle = _form_bearing_concept_for_claim(claim)
+        if concept_handle is None:
+            continue
+        value_fields = _value_fields_for_claim(claim)
+        if not value_fields:
+            continue
+
+        # Master takes precedence: if the handle resolves on master, honor
+        # the canonical form. Otherwise fall back to the source-branch
+        # proposal's declared form.
+        form_def = concept_form_definition(concept_handle, compilation_context)
+        if form_def is None:
+            proposed_form_name = source_form_map.get(concept_handle)
+            if proposed_form_name is None:
+                continue
+            form_def = form_registry.get(proposed_form_name)
+            if form_def is None:
+                continue
+        if form_def.min is None and form_def.max is None:
+            continue
+
+        claim_label = claim.source_local_id or claim.id or "<unnamed>"
+        for field_name, raw in value_fields:
+            try:
+                numeric = float(raw)
+            except (TypeError, ValueError):
+                continue
+            if form_def.min is not None and numeric < form_def.min:
+                raise ValueError(
+                    f"claim '{claim_label}' in paper '{paper}' "
+                    f"{field_name}={numeric} is below form '{form_def.name}' "
+                    f"min={form_def.min} (concept '{concept_handle}')"
+                )
+            if form_def.max is not None and numeric > form_def.max:
+                raise ValueError(
+                    f"claim '{claim_label}' in paper '{paper}' "
+                    f"{field_name}={numeric} is above form '{form_def.name}' "
+                    f"max={form_def.max} (concept '{concept_handle}')"
+                )
 
 
 def commit_source_claims_batch(
@@ -241,6 +436,7 @@ def commit_source_claims_batch(
         )
     validate_source_claim_concepts(repo, source_name, raw)
     validate_source_claim_cel_expressions(repo, source_name, raw)
+    validate_source_claim_value_bounds(repo, source_name, raw)
     normalized, _ = normalize_source_claims_payload(
         raw,
         source_uri=source_doc.id or source_tag_uri(repo, source_name),

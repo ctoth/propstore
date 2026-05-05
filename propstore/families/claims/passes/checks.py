@@ -9,6 +9,7 @@ import bridgman
 
 from ast_equiv import AlgorithmParseError, extract_free_variables, parse_algorithm
 
+from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
 from propstore.families.claims.documents import (
     AlgorithmParseCheck,
     AlgorithmUnboundNamesCheck,
@@ -478,6 +479,15 @@ def _validate_claim_contract(
             diagnostics,
             contract.value_group,
         )
+        _validate_value_bounds_against_form(
+            claim,
+            cid,
+            filename,
+            context,
+            diagnostics,
+            label,
+            contract,
+        )
 
     for link in contract.concept_links:
         _validate_concept_link_declaration(
@@ -563,6 +573,88 @@ def _validate_concept_link_declaration(
                     filename=filename,
                     artifact_id=cid,
                 )
+
+
+def _form_bearing_concept_field(contract: ClaimTypeContract) -> str | None:
+    """Return the claim field naming the concept whose form supplies bounds.
+
+    Parameter claims declare this explicitly via ``unit_policy.form_concept_field``.
+    Other value-bearing claim types (e.g. measurement) carry it on the OUTPUT or
+    TARGET concept link.
+    """
+    if (
+        contract.unit_policy is not None
+        and contract.unit_policy.form_concept_field is not None
+    ):
+        return contract.unit_policy.form_concept_field
+    for link in contract.concept_links:
+        if link.role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
+            if link.source == "scalar":
+                return link.field
+    return None
+
+
+def _validate_value_bounds_against_form(
+    claim: dict,
+    cid: str,
+    filename: str,
+    context: CompilationContext,
+    diagnostics: list[PassDiagnostic],
+    label: str,
+    contract: ClaimTypeContract,
+) -> None:
+    """Reject value/lower_bound/upper_bound that fall outside the form's range."""
+    value_group = contract.value_group
+    if value_group is None:
+        return
+
+    field_name = _form_bearing_concept_field(contract)
+    if field_name is None:
+        return
+    concept_ref = claim.get(field_name)
+    if not concept_ref:
+        return
+    if not _has_concepts(context):
+        return
+    if not _concept_exists(concept_ref, context):
+        return
+    form_def = _concept_form_definition(concept_ref, context)
+    if form_def is None:
+        return
+    if form_def.min is None and form_def.max is None:
+        return
+
+    for field, raw in (
+        (value_group.value_field, claim.get(value_group.value_field)),
+        (value_group.lower_bound_field, claim.get(value_group.lower_bound_field)),
+        (value_group.upper_bound_field, claim.get(value_group.upper_bound_field)),
+    ):
+        if raw is None:
+            continue
+        try:
+            numeric = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if form_def.min is not None and numeric < form_def.min:
+            _record(
+                diagnostics,
+                message=(
+                    f"{label} claim '{cid}' {field}={numeric} is below form "
+                    f"'{form_def.name}' min={form_def.min} (concept '{concept_ref}')"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
+        if form_def.max is not None and numeric > form_def.max:
+            _record(
+                diagnostics,
+                message=(
+                    f"{label} claim '{cid}' {field}={numeric} is above form "
+                    f"'{form_def.name}' max={form_def.max} (concept '{concept_ref}')"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
 
 
 def _validate_unit_policy(

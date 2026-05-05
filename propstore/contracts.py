@@ -33,7 +33,7 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.documents.rules.RulesFileDocument": VersionId("2026.05.01"),
     "propstore.families.claims.documents.ProvenanceDocument": VersionId("2026.05.01"),
     "propstore.families.documents.merge.MergeManifestArgumentDocument": VersionId("2026.05.01"),
-    "propstore.families.forms.documents.FormDocument": VersionId("2026.05.01"),
+    "propstore.families.forms.documents.FormDocument": VersionId("2026.05.04"),
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent

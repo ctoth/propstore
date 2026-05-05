@@ -905,3 +905,319 @@ def test_source_authoring_build_verify_and_worldline_flow(tmp_path: Path) -> Non
     value_record = worldline_doc["results"]["values"]["boiling_point"]
     assert value_record["status"] == "determined"
     assert value_record["value"] == 100.0
+
+
+def test_source_add_claim_sees_source_branch_proposed_concepts_in_cel(tmp_path: Path) -> None:
+    """Regression: CEL conditions referencing source-branch-proposed concepts must validate.
+
+    Reproduces the bug where ``pks source add-claim`` rejected a claim whose
+    ``conditions:`` referenced a concept that had just been proposed on the
+    same source branch via ``pks source propose-concept``. The CEL checker
+    used to read only master's canonical concepts; it now also layers the
+    source branch's currently-proposed concepts.
+    """
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_forms(repo, ["count"])
+    _seed_context(repo)
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    propose_result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--concept-name", "scheme_size",
+            "--definition", "Number of slots in the scheme.",
+            "--form", "count",
+        ],
+    )
+    assert propose_result.exit_code == 0, propose_result.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "context": "ctx_test",
+                        "statement": "Claim referencing the source-branch concept.",
+                        "conditions": ["scheme_size == 3"],
+                        "provenance": {"page": 1},
+                    },
+                ],
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "add-claim", "demo",
+            "--batch", str(claims_file),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Undefined concept" not in result.output
+
+
+def test_source_add_claim_rejects_unknown_concept_in_cel(tmp_path: Path) -> None:
+    """Sanity: a CEL condition referencing a never-declared concept still errors.
+
+    The fix for the source-proposed-concepts case must not turn the gate off
+    entirely. A condition that names neither a master concept nor a
+    source-proposed concept must still be rejected.
+    """
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_forms(repo, ["count"])
+    _seed_context(repo)
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    propose_result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--concept-name", "scheme_size",
+            "--definition", "Number of slots in the scheme.",
+            "--form", "count",
+        ],
+    )
+    assert propose_result.exit_code == 0, propose_result.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "context": "ctx_test",
+                        "statement": "Refers to nothing declared anywhere.",
+                        "conditions": ["never_declared == 3"],
+                        "provenance": {"page": 1},
+                    },
+                ],
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "add-claim", "demo",
+            "--batch", str(claims_file),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Undefined concept" in result.output
+    assert "never_declared" in result.output
+
+
+def _seed_bounded_forms(repo) -> None:
+    """Seed master with the three bounded forms used by the bounds tests.
+
+    Mirrors the production resource YAMLs (probability [0, 1], correlation
+    [-1, 1], dimensionless unbounded). _seed_forms doesn't support bounds, so
+    we write the YAMLs directly here.
+    """
+    adds = {
+        "forms/probability.yaml": yaml.safe_dump(
+            {
+                "name": "probability",
+                "kind": "quantity",
+                "dimensionless": True,
+                "min": 0.0,
+                "max": 1.0,
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8"),
+        "forms/correlation.yaml": yaml.safe_dump(
+            {
+                "name": "correlation",
+                "kind": "quantity",
+                "dimensionless": True,
+                "min": -1.0,
+                "max": 1.0,
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8"),
+        "forms/dimensionless.yaml": yaml.safe_dump(
+            {
+                "name": "dimensionless",
+                "kind": "quantity",
+                "dimensionless": True,
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8"),
+    }
+    repo.git.commit_batch(
+        adds=adds, deletes=[], message="Seed bounded forms", branch="master",
+    )
+
+
+def _add_claim_with_bounds(
+    tmp_path: Path,
+    *,
+    form: str,
+    concept_handle: str,
+    value: float | None = None,
+    lower_bound: float | None = None,
+    upper_bound: float | None = None,
+):
+    """Boilerplate: build a repo with bounded forms, propose a concept of the
+    requested form, and add a parameter claim with the supplied numeric fields.
+    Returns the CliRunner result."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_bounded_forms(repo)
+    _seed_context(repo)
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    propose_result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--concept-name", concept_handle,
+            "--definition", f"Test concept of form {form}.",
+            "--form", form,
+        ],
+    )
+    assert propose_result.exit_code == 0, propose_result.output
+
+    claim_payload: dict[str, object] = {
+        "id": "claim1",
+        "type": "parameter",
+        "context": "ctx_test",
+        "concept": concept_handle,
+        "statement": f"Bounded {form} claim.",
+        "provenance": {"page": 1},
+    }
+    if value is not None:
+        claim_payload["value"] = value
+    if lower_bound is not None:
+        claim_payload["lower_bound"] = lower_bound
+    if upper_bound is not None:
+        claim_payload["upper_bound"] = upper_bound
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [claim_payload],
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+
+    return runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "add-claim", "demo",
+            "--batch", str(claims_file),
+        ],
+    )
+
+
+def test_source_add_claim_rejects_value_above_form_max(tmp_path: Path) -> None:
+    result = _add_claim_with_bounds(
+        tmp_path,
+        form="probability",
+        concept_handle="success_rate",
+        value=1.5,
+    )
+    assert result.exit_code != 0, result.output
+    assert "value" in result.output
+    assert "1.5" in result.output
+    assert "1.0" in result.output
+    assert "probability" in result.output
+
+
+def test_source_add_claim_rejects_value_below_form_min(tmp_path: Path) -> None:
+    result = _add_claim_with_bounds(
+        tmp_path,
+        form="correlation",
+        concept_handle="kappa_score",
+        value=-1.5,
+    )
+    assert result.exit_code != 0, result.output
+    assert "value" in result.output
+    assert "-1.5" in result.output
+    assert "-1.0" in result.output
+    assert "correlation" in result.output
+
+
+def test_source_add_claim_accepts_value_within_form_bounds(tmp_path: Path) -> None:
+    result = _add_claim_with_bounds(
+        tmp_path,
+        form="probability",
+        concept_handle="success_rate",
+        value=0.5,
+    )
+    assert result.exit_code == 0, result.output
+
+
+def test_source_add_claim_unbounded_form_accepts_any_value(tmp_path: Path) -> None:
+    """The dimensionless escape hatch must accept any numeric value."""
+    above = _add_claim_with_bounds(
+        tmp_path,
+        form="dimensionless",
+        concept_handle="random_number",
+        value=1.5,
+    )
+    assert above.exit_code == 0, above.output
+
+    # Build a fresh repo for the second value (CliRunner reuse with
+    # add-claim re-ingests against the same source branch — independent
+    # repos give a clean exercise of the unbounded path).
+    below = _add_claim_with_bounds(
+        tmp_path / "second",
+        form="dimensionless",
+        concept_handle="random_number",
+        value=-1.5,
+    )
+    assert below.exit_code == 0, below.output
+
+
+def test_source_add_claim_rejects_lower_bound_outside_form_range(tmp_path: Path) -> None:
+    result = _add_claim_with_bounds(
+        tmp_path,
+        form="probability",
+        concept_handle="success_rate",
+        lower_bound=-0.1,
+        upper_bound=0.5,
+    )
+    assert result.exit_code != 0, result.output
+    assert "lower_bound" in result.output
+    assert "-0.1" in result.output
+    assert "probability" in result.output

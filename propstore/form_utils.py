@@ -95,6 +95,8 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
         extra_units=extra_units,
         conversions=conversions,
         delta_conversions=delta_conversions,
+        min=None if data.min is None else float(data.min),
+        max=None if data.max is None else float(data.max),
     )
 
 

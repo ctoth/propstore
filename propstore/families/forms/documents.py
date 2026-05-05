@@ -35,3 +35,5 @@ class FormDocument(DocumentStruct):
     note: str | None = None
     dimensions: dict[str, int] | None = None
     extra_units: tuple[FormExtraUnitDocument, ...] = ()
+    min: float | None = None
+    max: float | None = None
