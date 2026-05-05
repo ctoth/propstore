@@ -613,7 +613,7 @@ def _write_promotion_blocked_sidecar_rows(
 
     conn = connect_sidecar(sidecar_path)
     try:
-        child_payload_tables = {
+        child_claim_tables = {
             row[0]
             for row in conn.execute(
                 """
@@ -621,6 +621,7 @@ def _write_promotion_blocked_sidecar_rows(
                 FROM sqlite_master
                 WHERE type = 'table'
                   AND name IN (
+                      'claim_concept_link',
                       'claim_numeric_payload',
                       'claim_text_payload',
                       'claim_algorithm_payload',
@@ -629,6 +630,17 @@ def _write_promotion_blocked_sidecar_rows(
                 """
             ).fetchall()
         }
+        schema_tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
+        }
+        if "concept" not in schema_tables:
+            # Minimal tests may create claim_concept_link without its
+            # referenced concept table. In that schema there can be no
+            # valid claim_concept_link children to preserve or delete.
+            child_claim_tables.discard("claim_concept_link")
         for claim in blocked_claims:
             artifact_id = claim.artifact_id
             if not isinstance(artifact_id, str) or not artifact_id:
@@ -647,9 +659,10 @@ def _write_promotion_blocked_sidecar_rows(
             #
             # Bug 4 (v0.3.2): the sidecar connection runs with
             # ``PRAGMA foreign_keys = ON`` and four child tables FK to
-            # ``claim_core(id)`` — ``claim_numeric_payload``,
-            # ``claim_text_payload``, ``claim_algorithm_payload``, and
-            # ``micropublication_claim``. If a sibling branch already
+            # ``claim_core(id)`` — ``claim_concept_link``,
+            # ``claim_numeric_payload``, ``claim_text_payload``,
+            # ``claim_algorithm_payload``, and ``micropublication_claim``.
+            # If a sibling branch already
             # ingested this claim its payload children exist, and a bare
             # ``DELETE FROM claim_core`` raises
             # ``sqlite3.IntegrityError: FOREIGN KEY constraint failed``.
@@ -659,12 +672,13 @@ def _write_promotion_blocked_sidecar_rows(
             # ``tests/remediation/phase_7_race_atomicity/
             # test_T7_5e_promotion_blocked_fk_payload.py``.
             for table_name in (
+                "claim_concept_link",
                 "claim_numeric_payload",
                 "claim_text_payload",
                 "claim_algorithm_payload",
                 "micropublication_claim",
             ):
-                if table_name not in child_payload_tables:
+                if table_name not in child_claim_tables:
                     continue
                 conn.execute(
                     f"DELETE FROM {table_name} WHERE claim_id = ?",
