@@ -51,9 +51,17 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
     known_artifact_id = _seed_master_concept(repo, name="known_concept")
     _seed_master_concept(repo, name="novel_concept")
     repo.git.commit_batch(
-        adds=dict([make_test_context_commit_entry()]),
+        adds=dict(
+            [
+                make_test_context_commit_entry(),
+                (
+                    "forms/structural.yaml",
+                    b"name: structural\ndimensionless: true\n",
+                ),
+            ]
+        ),
         deletes=[],
-        message="Seed test context",
+        message="Seed test context and form",
         branch="master",
     )
 
