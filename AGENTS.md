@@ -45,3 +45,6 @@ CLI layer discipline:
 - The root CLI entry point must register commands lazily. Asking for one command must not import unrelated command families.
 - CLI command families with sibling modules should be packages. Put the Click group and shared CLI-only helpers in the package `__init__.py`; put each command family in a named sibling module inside that package.
 - Keep package `__init__.py` files shallow. Do not re-export merge, reasoning, or workflow surfaces from low-level packages when that forces circular or cross-layer imports.
+
+Worldline journal boundary:
+- Worldline journals are propstore semantic artifacts, not quire storage concepts and not CLI-owned workflows. Journal capture and at-step projection belong in propstore worldline/app/support-revision owner layers; CLI commands may only adapt typed requests and render typed reports. Durable journal state belongs in committed worldline artifacts, not process-local branch metadata.
