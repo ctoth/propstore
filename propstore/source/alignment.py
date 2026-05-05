@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Mapping
 from collections import Counter
+from functools import wraps
 from itertools import product
 from typing import Any, cast
 
@@ -39,6 +40,15 @@ from propstore.uri_authority import TaggingAuthority
 
 from .common import load_document_from_branch, load_source_document
 from propstore.families.documents.sources import SourceConceptsDocument
+
+
+def _serialized_alignment_mutation(function):
+    @wraps(function)
+    def wrapper(repo: Repository, *args, **kwargs):
+        with repo.mutation_guard():
+            return function(repo, *args, **kwargs)
+
+    return wrapper
 
 
 def alignment_slug(value: str) -> str:
@@ -195,6 +205,7 @@ def build_alignment_artifact(
     )
 
 
+@_serialized_alignment_mutation
 def align_sources(
     repo: Repository,
     source_branches: list[str],
@@ -251,6 +262,7 @@ def save_alignment_artifact(
     )
 
 
+@_serialized_alignment_mutation
 def decide_alignment(
     repo: Repository,
     cluster_id: str,
@@ -270,6 +282,7 @@ def decide_alignment(
     return updated
 
 
+@_serialized_alignment_mutation
 def promote_alignment(
     repo: Repository,
     cluster_id: str,
