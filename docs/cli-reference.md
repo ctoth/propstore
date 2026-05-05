@@ -784,8 +784,8 @@ uv run pks predicate add --file ikeda_2014 --id aspirin_user --arity 1 --arg-typ
 Author DeLP strict, defeasible, and defeater rules into
 `rules/<file>.yaml`. Rules use a shallow atom DSL for the CLI surface
 while the underlying schema (`RuleDocument`, `AtomDocument`) remains the
-canonical form. Paper-priority pairs (`superiority`) stay schema-only for
-now.
+canonical form. Paper-priority pairs (`superiority`) are authored as
+explicit `(superior_rule_id, inferior_rule_id)` pairs.
 
 ### `pks rule list`
 
@@ -821,7 +821,7 @@ Atom DSL:
 | `--file` | TEXT | -- | File stem in `rules/` (required) |
 | `--paper` | TEXT | -- | Source paper slug for `source.paper` (required) |
 | `--id` | TEXT | -- | Authoring rule id (e.g. `r_ikeda_mi`) (required) |
-| `--kind` | CHOICE | -- | One of `strict`, `defeasible`, `defeater` (required) |
+| `--kind` | CHOICE | -- | One of `strict`, `defeasible`, `proper_defeater`, `blocking_defeater` (required) |
 | `--head` | TEXT | -- | Head atom in DSL form (required) |
 | `--body` | TEXT | -- | Body atom in DSL form; repeat for each body literal |
 
@@ -831,8 +831,41 @@ uv run pks rule add --file ikeda_2014 --paper Ikeda_2014_Low-doseAspirinPrimaryP
   --head "reduces_mi(X)" --body "aspirin_user(X)"
 
 uv run pks rule add --file ikeda_2014 --paper Ikeda_2014_Low-doseAspirinPrimaryPrevention \
-  --id r_not_indicated --kind defeater \
+  --id r_not_indicated --kind proper_defeater \
   --head "~indicated(X)" --body "~has_net_benefit(X)" --body "aspirin_user(X)"
+```
+
+### `pks rule superiority add`
+
+Add an authored rule-priority pair to `rules/<file>.yaml`. The pair is
+oriented `--superior > --inferior`. Both rule ids must already exist in
+the file, neither may be a strict rule, duplicate pairs are rejected, and
+the resulting superiority relation must remain acyclic.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--file` | TEXT | -- | File stem in `rules/` (required) |
+| `--superior` | TEXT | -- | Rule id that has priority (required) |
+| `--inferior` | TEXT | -- | Rule id that yields to the superior rule (required) |
+
+```bash
+uv run pks rule superiority add --file ikeda_2014 \
+  --superior r_not_indicated --inferior r_indicated
+```
+
+### `pks rule superiority remove`
+
+Remove an authored rule-priority pair from `rules/<file>.yaml`.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--file` | TEXT | -- | File stem in `rules/` (required) |
+| `--superior` | TEXT | -- | Rule id that has priority (required) |
+| `--inferior` | TEXT | -- | Rule id that yields to the superior rule (required) |
+
+```bash
+uv run pks rule superiority remove --file ikeda_2014 \
+  --superior r_not_indicated --inferior r_indicated
 ```
 
 ---
