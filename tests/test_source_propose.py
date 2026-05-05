@@ -124,6 +124,7 @@ def test_propose_claim_observation(tmp_path: Path) -> None:
             "--type", "observation",
             "--statement", "Water boils at 100C.",
             "--context", "ctx_test",
+            "--concept-ref", "test_concept",
             "--page", "5",
         ],
     )
