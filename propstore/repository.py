@@ -52,30 +52,42 @@ class StaleHeadError(RuntimeError):
 class HeadBoundTransaction:
     repo: Repository
     branch: str
-    expected_head: str | None
+    expected_head: str | None = None
     path: str = "head_bound_transaction"
     _sidecar_writes: list[Callable[[], None]] = field(default_factory=list)
     _commit_sha: str | None = None
+    _mutation_guard: Any | None = field(default=None, init=False, repr=False)
 
     @property
     def commit_sha(self) -> str | None:
         return self._commit_sha
 
     def __enter__(self) -> HeadBoundTransaction:
+        git = self.repo.git
+        if git is None:
+            raise ValueError("head-bound transactions require a git-backed repository")
+        guard = git._mutation_guard()
+        guard.__enter__()
+        object.__setattr__(self, "_mutation_guard", guard)
+        object.__setattr__(self, "expected_head", self.repo.snapshot.branch_head(self.branch))
         return self
 
     def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: Any) -> None:
-        if exc_type is not None:
-            self._sidecar_writes.clear()
-            return None
-        if self._commit_sha is None:
-            self._sidecar_writes.clear()
-            return None
         try:
+            if exc_type is not None:
+                self._sidecar_writes.clear()
+                return None
+            if self._commit_sha is None:
+                self._sidecar_writes.clear()
+                return None
             for write in self._sidecar_writes:
                 write()
         finally:
             self._sidecar_writes.clear()
+            guard = self._mutation_guard
+            object.__setattr__(self, "_mutation_guard", None)
+            if guard is not None:
+                guard.__exit__(exc_type, exc, tb)
         return None
 
     def commit_batch(
@@ -249,7 +261,6 @@ class Repository:
         return HeadBoundTransaction(
             repo=self,
             branch=branch,
-            expected_head=self.snapshot.branch_head(branch),
             path=path,
         )
 
