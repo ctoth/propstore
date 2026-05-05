@@ -15,6 +15,10 @@ from propstore.families.registry import (
     PredicateProposalRef,
 )
 from propstore.proposals import UnknownProposalPath
+from propstore.app.predicates import (
+    _PREDICATE_MUTATION_LOCK,
+    reject_predicate_document_conflicts,
+)
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -103,27 +107,47 @@ def promote_predicate_proposals(
     if plan.proposal_tip is None:
         raise ValueError("predicate proposal promotion requires a proposal tip")
 
-    with repo.families.transact(
-        message=f"Promote {len(plan.items)} predicate proposal file(s) from {plan.branch}",
-    ) as transaction:
-        for item in plan.items:
-            proposal_ref = PredicateProposalRef(item.source_paper)
-            proposal = repo.families.proposal_predicates.require(
-                proposal_ref,
-                commit=plan.proposal_tip,
-            )
-            canonical_ref = PredicateFileRef(item.source_paper)
-            document = PredicatesFileDocument(
-                predicates=tuple(
-                    PredicateDocument(
-                        id=declaration.name,
-                        arity=declaration.arity,
-                        arg_types=tuple(str(arg_type) for arg_type in declaration.arg_types),
-                        description=declaration.description,
-                    )
-                    for declaration in proposal.proposed_declarations
+    documents: list[tuple[PredicateFileRef, PredicatesFileDocument]] = []
+    for item in plan.items:
+        proposal_ref = PredicateProposalRef(item.source_paper)
+        proposal = repo.families.proposal_predicates.require(
+            proposal_ref,
+            commit=plan.proposal_tip,
+        )
+        canonical_ref = PredicateFileRef(item.source_paper)
+        documents.append(
+            (
+                canonical_ref,
+                PredicatesFileDocument(
+                    predicates=tuple(
+                        PredicateDocument(
+                            id=declaration.name,
+                            arity=declaration.arity,
+                            arg_types=tuple(str(arg_type) for arg_type in declaration.arg_types),
+                            description=declaration.description,
+                        )
+                        for declaration in proposal.proposed_declarations
+                    ),
+                    promoted_from_sha=plan.proposal_tip,
                 ),
-                promoted_from_sha=plan.proposal_tip,
             )
-            transaction.predicates.save(canonical_ref, document)
+        )
+
+    with _PREDICATE_MUTATION_LOCK, repo.head_bound_transaction(
+        repo.snapshot.primary_branch_name(),
+        path="proposal.predicates.promote",
+    ) as head_txn:
+        for canonical_ref, document in documents:
+            reject_predicate_document_conflicts(
+                repo,
+                commit=head_txn.expected_head,
+                target_ref=canonical_ref,
+                document=document,
+            )
+
+        with head_txn.families_transact(
+            message=f"Promote {len(plan.items)} predicate proposal file(s) from {plan.branch}",
+        ) as transaction:
+            for canonical_ref, document in documents:
+                transaction.predicates.save(canonical_ref, document)
     return PredicateProposalPromotionResult(len(plan.items), plan.branch, plan.items)

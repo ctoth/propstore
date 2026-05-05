@@ -170,6 +170,34 @@ def _reject_global_duplicate_predicate_id(
                 )
 
 
+def reject_predicate_document_conflicts(
+    repo: Repository,
+    *,
+    commit: str | None,
+    target_ref: PredicateFileRef,
+    document: PredicatesFileDocument,
+) -> None:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for entry in document.predicates:
+        if entry.id in seen:
+            duplicates.add(entry.id)
+        seen.add(entry.id)
+    if duplicates:
+        formatted = ", ".join(sorted(duplicates))
+        raise PredicateWorkflowError(
+            f"predicate file predicates/{target_ref.name}.yaml declares duplicate id(s): {formatted}"
+        )
+
+    predicate_files = _predicate_files_by_ref_at_head(repo, commit)
+    for entry in document.predicates:
+        _reject_global_duplicate_predicate_id(
+            predicate_files,
+            target_ref=target_ref,
+            predicate_id=entry.id,
+        )
+
+
 def add_predicate(
     repo: Repository,
     request: PredicateAddRequest,
@@ -201,11 +229,6 @@ def add_predicate(
         path="predicate.add",
     ) as head_txn:
         predicate_files = _predicate_files_by_ref_at_head(repo, head_txn.expected_head)
-        _reject_global_duplicate_predicate_id(
-            predicate_files,
-            target_ref=ref,
-            predicate_id=request.predicate_id,
-        )
 
         existing = predicate_files.get(ref)
         entries: list[PredicateDocument] = []
@@ -227,6 +250,12 @@ def add_predicate(
         entries.append(new_entry)
 
         document = PredicatesFileDocument(predicates=tuple(entries))
+        reject_predicate_document_conflicts(
+            repo,
+            commit=head_txn.expected_head,
+            target_ref=ref,
+            document=document,
+        )
 
         with head_txn.families_transact(
             message=(
