@@ -52,7 +52,7 @@ def _assert_stale_expected_head_fails(repo: Repository, *, name: str, payload: b
 
 @pytest.mark.property
 @given(first=_SAFE_NAME, second=_SAFE_NAME, payload=_PAYLOAD)
-def test_ws_q_generated_concurrent_operations_have_one_winner(
+def test_ws_q_generated_serialized_operations_both_commit(
     first: str,
     second: str,
     payload: bytes,
@@ -60,10 +60,10 @@ def test_ws_q_generated_concurrent_operations_have_one_winner(
     assume(first != second)
     with tempfile.TemporaryDirectory() as tmp_dir:
         repo = Repository.init(Path(tmp_dir) / "knowledge")
-        _assert_one_concurrent_writer_wins(repo, first=first, second=second, payload=payload)
+        _assert_serialized_writers_both_commit(repo, first=first, second=second, payload=payload)
 
 
-def _assert_one_concurrent_writer_wins(
+def _assert_serialized_writers_both_commit(
     repo: Repository,
     *,
     first: str,
@@ -76,21 +76,20 @@ def _assert_one_concurrent_writer_wins(
     second_txn = repo.head_bound_transaction("master", path="property")
 
     with first_txn:
-        winner = first_txn.commit_batch(
+        first_commit = first_txn.commit_batch(
             adds={first_path: payload},
             deletes=(),
-            message="First writer wins",
+            message="First writer",
         )
 
-    with pytest.raises(StaleHeadError):
-        with second_txn:
-            second_txn.commit_batch(
-                adds={second_path: payload},
-                deletes=(),
-                message="Second writer loses",
-            )
+    with second_txn:
+        assert second_txn.expected_head == first_commit
+        second_commit = second_txn.commit_batch(
+            adds={second_path: payload},
+            deletes=(),
+            message="Second writer",
+        )
 
-    assert repo.snapshot.branch_head("master") == winner
-    assert repo.git.read_file(first_path, commit=winner) == payload
-    with pytest.raises(FileNotFoundError):
-        repo.git.read_file(second_path, commit=winner)
+    assert repo.snapshot.branch_head("master") == second_commit
+    assert repo.git.read_file(first_path, commit=second_commit) == payload
+    assert repo.git.read_file(second_path, commit=second_commit) == payload
