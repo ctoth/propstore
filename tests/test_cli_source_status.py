@@ -17,15 +17,20 @@ from pathlib import Path
 import pytest
 import yaml
 from click.testing import CliRunner
+from quire.documents import convert_document_value
 
 from propstore.cli import cli
+from propstore.families.documents.sources import SourceClaimsDocument
+from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.source import (
     SourceStatusState,
     finalize_source_branch,
     inspect_source_status,
+    normalize_source_claims_payload,
     promote_source_branch,
 )
+from propstore.source.common import load_source_document
 from tests.conftest import TEST_CONTEXT_ID, make_test_context_commit_entry, normalize_concept_payloads
 
 
@@ -73,17 +78,48 @@ def _seed_master_concept_via_git(repo: Repository, name: str) -> str:
         ],
         default_domain="source",
     )[0]
+    adds = {
+        f"concepts/{name}.yaml": yaml.safe_dump(
+            concept, sort_keys=False, allow_unicode=True
+        ).encode("utf-8")
+    }
+    try:
+        repo.git.read_file("forms/structural.yaml")
+    except FileNotFoundError:
+        adds["forms/structural.yaml"] = yaml.safe_dump(
+            {"name": "structural", "dimensionless": True},
+            sort_keys=False,
+        ).encode("utf-8")
     repo.git.commit_batch(
-        adds={
-            f"concepts/{name}.yaml": yaml.safe_dump(
-                concept, sort_keys=False, allow_unicode=True
-            ).encode("utf-8")
-        },
+        adds=adds,
         deletes=[],
         message=f"Seed concept {name}",
         branch="master",
     )
     return str(concept["artifact_id"])
+
+
+def _save_source_claims_directly(
+    repo: Repository,
+    source_name: str,
+    claims_payload: dict,
+) -> None:
+    source_doc = load_source_document(repo, source_name)
+    raw_claims = convert_document_value(
+        claims_payload,
+        SourceClaimsDocument,
+        source=f"source/{source_name}:claims.yaml",
+    )
+    normalized_claims, _ = normalize_source_claims_payload(
+        raw_claims,
+        source_uri=source_doc.id,
+        source_namespace=source_name,
+    )
+    repo.families.source_claims.save(
+        SourceRef(source_name),
+        normalized_claims,
+        message=f"Write drifted claims for {source_name}",
+    )
 
 
 @pytest.fixture()
@@ -118,86 +154,39 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
         ],
     )
 
-    claims_file = tmp_path / "claims.yaml"
-    claims_file.write_text(
-        yaml.safe_dump(
-            {
-                "source": {"paper": source_name},
-                "claims": [
-                    {
-                        "id": "valid_a",
-                        "type": "observation",
-                        "statement": "First valid observation.",
-                        "concepts": [shared_concept_id],
-                        "provenance": {"page": 1},
-                        "context": TEST_CONTEXT_ID,
-                    },
-                    {
-                        "id": "valid_b",
-                        "type": "observation",
-                        "statement": "Second valid observation.",
-                        "concepts": [shared_concept_id],
-                        "provenance": {"page": 2},
-                        "context": TEST_CONTEXT_ID,
-                    },
-                    {
-                        "id": "broken_source",
-                        "type": "observation",
-                        "statement": "Claim whose stance targets a missing ref.",
-                        "concepts": [shared_concept_id],
-                        "provenance": {"page": 3},
-                        "context": TEST_CONTEXT_ID,
-                    },
-                ],
-            },
-            sort_keys=False,
-        ),
-        encoding="utf-8",
+    _save_source_claims_directly(
+        repo,
+        source_name,
+        {
+            "source": {"paper": source_name},
+            "claims": [
+                {
+                    "id": "valid_a",
+                    "type": "observation",
+                    "statement": "First valid observation.",
+                    "concepts": [shared_concept_id],
+                    "provenance": {"page": 1},
+                    "context": TEST_CONTEXT_ID,
+                },
+                {
+                    "id": "valid_b",
+                    "type": "observation",
+                    "statement": "Second valid observation.",
+                    "concepts": [shared_concept_id],
+                    "provenance": {"page": 2},
+                    "context": TEST_CONTEXT_ID,
+                },
+                {
+                    "id": "broken_source",
+                    "type": "observation",
+                    "statement": "Claim whose concept mapping is missing.",
+                    "concepts": ["missing_concept"],
+                    "provenance": {"page": 3},
+                    "context": TEST_CONTEXT_ID,
+                },
+            ],
+        },
     )
-    result = runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "source",
-            "add-claim",
-            source_name,
-            "--batch",
-            str(claims_file),
-        ],
-    )
-    assert result.exit_code == 0, result.output
-
-    stances_file = tmp_path / "stances.yaml"
-    stances_file.write_text(
-        yaml.safe_dump(
-            {
-                "source": {"paper": source_name},
-                "stances": [
-                    {
-                        "source_claim": "broken_source",
-                        "type": "rebuts",
-                        "target": "missing_source:claim_zzz",
-                    }
-                ],
-            },
-            sort_keys=False,
-        ),
-        encoding="utf-8",
-    )
-    result = runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "source",
-            "add-stance",
-            source_name,
-            "--batch",
-            str(stances_file),
-        ],
-    )
-    assert result.exit_code == 0, result.output
 
     # Finalize to generate the error report; build the sidecar so promote
     # can write the mirror + diagnostic rows; promote.
