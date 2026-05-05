@@ -139,6 +139,33 @@ def _predicate_document_payload(request: PredicateAddRequest) -> dict[str, objec
     return data
 
 
+def _predicate_files_by_ref_at_head(
+    repo: Repository,
+    commit: str | None,
+) -> dict[PredicateFileRef, PredicatesFileDocument]:
+    return {
+        handle.ref: handle.document
+        for handle in repo.families.predicates.iter_handles(commit=commit)
+    }
+
+
+def _reject_global_duplicate_predicate_id(
+    files: dict[PredicateFileRef, PredicatesFileDocument],
+    *,
+    target_ref: PredicateFileRef,
+    predicate_id: str,
+) -> None:
+    for ref, document in files.items():
+        if ref == target_ref:
+            continue
+        for entry in document.predicates:
+            if entry.id == predicate_id:
+                relpath = f"predicates/{ref.name}.yaml"
+                raise PredicateWorkflowError(
+                    f"predicate {predicate_id!r} already declared in {relpath}"
+                )
+
+
 def add_predicate(
     repo: Repository,
     request: PredicateAddRequest,
@@ -165,36 +192,46 @@ def add_predicate(
     relpath = repo.families.predicates.address(ref).require_path()
     filepath = repo.root / relpath
 
-    existing = repo.families.predicates.load(ref)
-    entries: list[PredicateDocument] = []
-    created = True
-    if existing is not None:
-        for entry in existing.predicates:
-            if entry.id == request.predicate_id:
-                raise PredicateWorkflowError(
-                    f"predicate {request.predicate_id!r} already declared in {relpath}"
-                )
-            entries.append(entry)
-        created = False
+    with repo.head_bound_transaction(
+        repo.snapshot.primary_branch_name(),
+        path="predicate.add",
+    ) as head_txn:
+        predicate_files = _predicate_files_by_ref_at_head(repo, head_txn.expected_head)
+        _reject_global_duplicate_predicate_id(
+            predicate_files,
+            target_ref=ref,
+            predicate_id=request.predicate_id,
+        )
 
-    new_entry = convert_document_value(
-        _predicate_document_payload(request),
-        PredicateDocument,
-        source=f"{relpath}:{request.predicate_id}",
-    )
-    entries.append(new_entry)
+        existing = predicate_files.get(ref)
+        entries: list[PredicateDocument] = []
+        created = True
+        if existing is not None:
+            for entry in existing.predicates:
+                if entry.id == request.predicate_id:
+                    raise PredicateWorkflowError(
+                        f"predicate {request.predicate_id!r} already declared in {relpath}"
+                    )
+                entries.append(entry)
+            created = False
 
-    document = PredicatesFileDocument(predicates=tuple(entries))
+        new_entry = convert_document_value(
+            _predicate_document_payload(request),
+            PredicateDocument,
+            source=f"{relpath}:{request.predicate_id}",
+        )
+        entries.append(new_entry)
 
-    repo.families.predicates.save(
-        ref,
-        document,
-        message=(
-            f"Add predicate {request.predicate_id} to {request.file}"
-            if not created
-            else f"Declare predicates for {request.file}"
-        ),
-    )
+        document = PredicatesFileDocument(predicates=tuple(entries))
+
+        with head_txn.families_transact(
+            message=(
+                f"Add predicate {request.predicate_id} to {request.file}"
+                if not created
+                else f"Declare predicates for {request.file}"
+            ),
+        ) as transaction:
+            transaction.predicates.save(ref, document)
 
     return PredicateAddReport(
         filepath=filepath,
