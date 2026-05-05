@@ -11,6 +11,7 @@ Dulwich is confined to a single file (`propstore/storage/git_backend.py`). Every
 - **HEAD is secondary; branch refs are primary.** Branch refs (`refs/heads/{name}`) are the authoritative pointers. HEAD symref is only set when the active branch is master.
 - **Linear ordinary history per branch; merge commits exist globally.** Ordinary branch commits created by `GitStore._commit()` have exactly one parent, so each branch's non-merge history stays linear. Repository merges created by `propstore/storage/merge_commit.py:create_merge_commit()` write two-parent commits on the target branch.
 - **Branch metadata is ephemeral.** `_branch_meta` is stored as an attribute on the `GitStore` instance, not persisted to git. It is lost when the process exits.
+- **Worldline journals are durable artifacts.** Temporal trajectories that must survive process boundaries belong in committed worldline documents as `journal` payloads, not in branch metadata.
 - **Sidecar is derived runtime output.** Build products such as SQLite sidecars, WAL files, hashes, and provenance outputs are not semantic source truth and are preserved by materialization cleanup.
 
 ## GitStore
@@ -111,6 +112,19 @@ Backed by a `GitStore` and an optional commit SHA. Delegates to `GitStore.list_d
 Branches provide isolated epistemic states (Darwiche & Pearl 1997, C1-C4). Each branch maintains independent ordinary history until an explicit merge writes a two-parent commit onto a target branch. Commits to one branch are invisible on other branches until merged.
 
 `propstore/storage/branch.py`
+
+### Branch Metadata vs Worldline Journals
+
+`GitStore._branch_meta` is intentionally process-local. It can annotate an
+open store instance, but it is not a storage contract and must not carry semantic
+history.
+
+Durable temporal history is stored as a worldline artifact. `pks worldline
+build-journal` writes a `TransitionJournal` into the worldline definition's
+`journal` field, and `pks worldline at-step NAME STEP` reads that committed
+artifact to project the accepted claim view at a step. This partially resolves
+the old branch-meta pain point: branch metadata may remain ephemeral because the
+semantic trajectory now has a committed representation.
 
 ### BranchInfo
 
