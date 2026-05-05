@@ -1343,6 +1343,20 @@ def test_repository_find_rejects_plain_git_repo_without_propstore_bootstrap(tmp_
         Repository.find(root)
 
 
+def test_repository_find_prefers_propstore_knowledge_child_inside_plain_git_repo(tmp_path):
+    """Repository.find() accepts a propstore knowledge/ child under a carrier git repo."""
+    from quire.git_store import GitStore
+
+    project = tmp_path / "project"
+    GitStore.init(project)
+    knowledge = project / "knowledge"
+    Repository.init(knowledge)
+
+    repo = Repository.find(project)
+
+    assert repo.root == knowledge
+
+
 # ── Phase 7: History commands ──────────────────────────────────────
 
 
