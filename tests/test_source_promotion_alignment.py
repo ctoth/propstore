@@ -40,7 +40,9 @@ from propstore.families.documents.sources import (
     SourceConceptsDocument,
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
+    SourceStancesDocument,
 )
+from propstore.source.promote import load_finalize_report
 
 
 def _save_source(repo: Repository, source_name: str, concepts_payload: dict, claims_payload: dict | None = None) -> None:
@@ -476,14 +478,12 @@ def _seed_structural_form_via_git(repo: Repository) -> None:
 def _setup_source_with_partial_validity(
     tmp_path: Path, source_name: str = "mixed"
 ) -> Repository:
-    """Build a source branch with 2 valid claims + 1 broken-stance claim.
+    """Build a source branch with valid claims plus legacy invalid stance YAML.
 
     The broken stance targets a nonexistent ``missing_source:claim_zzz``
-    so ``finalize_source_branch`` flags it in ``stance_reference_errors``
-    and the report status is ``'blocked'``. The finalize error is
-    per-stance (not per-claim), so the finalize machinery still resolves
-    the claim artifact_ids; the block is at promote time for the
-    broken-stance claim only.
+    so ``finalize_source_branch`` flags it in ``stance_reference_errors``.
+    The stance is written directly to simulate stale data from before
+    proposal-time stance target validation existed.
     """
 
     repo = Repository.init(tmp_path / "knowledge")
@@ -559,9 +559,9 @@ def _setup_source_with_partial_validity(
     )
     assert result.exit_code == 0, result.output
 
-    stances_file = tmp_path / "stances.yaml"
-    stances_file.write_text(
-        yaml.safe_dump(
+    repo.families.source_stances.save(
+        SourceRef(source_name),
+        convert_document_value(
             {
                 "source": {"paper": source_name},
                 "stances": [
@@ -572,47 +572,29 @@ def _setup_source_with_partial_validity(
                     }
                 ],
             },
-            sort_keys=False,
+            SourceStancesDocument,
+            source=f"{source_branch_name(source_name)}:stances.yaml",
         ),
-        encoding="utf-8",
+        message=f"Write legacy invalid stance for {source_name}",
+        branch=source_branch_name(source_name),
     )
-    result = runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "source",
-            "add-stance",
-            source_name,
-            "--batch",
-            str(stances_file),
-        ],
-    )
-    assert result.exit_code == 0, result.output
 
     return repo
 
 
-def test_promote_source_branch_partial_allows_valid_claims_blocks_invalid(
+def test_promote_source_branch_does_not_block_claim_for_invalid_stance(
     tmp_path: Path,
 ) -> None:
-    """Partial promotion lands valid claims; invalid ones stay with blocked marker.
-
-    Per ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
-    axis-1 finding 3.3: the former all-or-nothing gate
-    (``report.status != 'ready'`` raised ValueError) becomes a
-    per-item filter. Valid claims promote to the primary branch; claims
-    with per-item finalize errors stay on the source branch with a
-    ``promotion_status='blocked'`` sidecar mirror row and a
-    ``build_diagnostics`` row (``diagnostic_kind='promotion_blocked'``,
-    ``blocking=1``).
-    """
+    """Invalid stance references are stance errors, not claim blockers."""
 
     source_name = "mixed"
     repo = _setup_source_with_partial_validity(tmp_path, source_name=source_name)
 
-    # Finalize first — must report blocked status (broken stance).
     finalize_source_branch(repo, source_name)
+    finalize_report = load_finalize_report(repo, source_name)
+    assert finalize_report is not None
+    assert finalize_report.status == "blocked"
+    assert "missing_source:claim_zzz" in finalize_report.stance_reference_errors
 
     # Build the primary-branch sidecar BEFORE promote. The sidecar must
     # exist for ``promote_source_branch`` to write mirror rows for blocked
@@ -622,12 +604,10 @@ def test_promote_source_branch_partial_allows_valid_claims_blocks_invalid(
     head = repo.snapshot.head_sha()
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)
 
-    # Promote must NOT raise under the new gate behavior.
     result = promote_source_branch(repo, source_name)
     assert result is not None, "partial promotion should return some marker, not raise"
+    assert result.blocked_claims == ()
 
-    # Valid claims land on primary branch via CLAIMS_FILE_FAMILY.
-    # Correlate by statement text since source_local_id is stripped on promote.
     claims_file = repo.families.claims.require(
         ClaimsFileRef(source_name),
     )
@@ -636,9 +616,7 @@ def test_promote_source_branch_partial_allows_valid_claims_blocks_invalid(
     }
     assert "First valid observation." in promoted_statements
     assert "Second valid observation." in promoted_statements
-    assert "Claim whose stance targets a missing ref." not in promoted_statements, (
-        "claim with broken stance must stay on source branch, not promote"
-    )
+    assert "Claim whose stance targets a missing ref." in promoted_statements
 
     conn = sqlite3.connect(repo.sidecar_path)
     try:
@@ -646,51 +624,35 @@ def test_promote_source_branch_partial_allows_valid_claims_blocks_invalid(
             "SELECT id, branch, promotion_status FROM claim_core "
             "WHERE promotion_status = 'blocked'"
         ).fetchall()
-        assert len(blocked_rows) >= 1, (
-            "expected at least one claim_core row with promotion_status='blocked'"
-        )
-        for row in blocked_rows:
-            _, branch, promotion_status = row
-            assert promotion_status == "blocked"
-            assert branch == source_branch_name(source_name)
+        assert blocked_rows == []
 
         diag_rows = conn.execute(
             "SELECT claim_id, diagnostic_kind, blocking "
             "FROM build_diagnostics "
             "WHERE diagnostic_kind = 'promotion_blocked'"
         ).fetchall()
-        assert len(diag_rows) >= 1, (
-            "expected at least one build_diagnostics row for promotion_blocked"
-        )
-        for row in diag_rows:
-            _, kind, blocking = row
-            assert kind == "promotion_blocked"
-            assert blocking == 1
+        assert diag_rows == []
     finally:
         conn.close()
 
 
-def test_promote_source_branch_strict_flag_raises_on_partial(tmp_path: Path) -> None:
-    """--strict flag preserves all-or-nothing behavior for callers that want it.
-
-    Per the prompt (Q explicitly authorized partial promotion as the
-    default; ``--strict`` is the opt-in for the old abort).
-    """
+def test_promote_source_branch_strict_flag_ignores_stance_only_errors(tmp_path: Path) -> None:
+    """Strict promotion should not treat invalid stance metadata as a claim error."""
 
     source_name = "mixed_strict"
     repo = _setup_source_with_partial_validity(tmp_path, source_name=source_name)
     finalize_source_branch(repo, source_name)
 
-    with pytest.raises(ValueError, match="strict"):
-        promote_source_branch(repo, source_name, strict=True)
+    result = promote_source_branch(repo, source_name, strict=True)
+    assert result.blocked_claims == ()
 
 
 def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     """Re-promoting after fixing a previously-blocked claim lands that claim.
 
-    Start with 2 valid + 1 broken-stance claim. First promote:
-    2 promoted, 1 blocked. Remove the broken stance, re-finalize,
-    re-promote: the previously-blocked claim now promotes.
+    Start with valid claims plus one invalid stance. First promote:
+    claims promote and the invalid stance is skipped. Remove the broken
+    stance, re-finalize, re-promote: the claim set remains promoted.
     """
 
     source_name = "mixed_refix"
@@ -698,17 +660,14 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     finalize_source_branch(repo, source_name)
     promote_source_branch(repo, source_name)
 
-    # Verify initial state: broken_source not yet promoted.
     claims_file = repo.families.claims.require(
         ClaimsFileRef(source_name),
     )
     initial_statements = {
         claim.statement for claim in claims_file.claims if claim.statement
     }
-    assert "Claim whose stance targets a missing ref." not in initial_statements
+    assert "Claim whose stance targets a missing ref." in initial_statements
 
-    # Fix: remove the broken stance by overwriting source stances with empty set.
-    from propstore.families.documents.sources import SourceStancesDocument
     from propstore.source.common import source_branch_name as _branch_name
 
     repo.families.source_stances.save(
@@ -729,7 +688,7 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
         claim.statement for claim in claims_file.claims if claim.statement
     }
     assert "Claim whose stance targets a missing ref." in final_statements, (
-        "previously-blocked claim must promote once its finalize error is fixed"
+        "claim must remain promoted after its invalid stance metadata is removed"
     )
 
 
