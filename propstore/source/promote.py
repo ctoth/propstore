@@ -545,25 +545,7 @@ def _compute_blocked_claim_artifact_ids(
                     f"claim concept {concept_ref!r} blocked: {detail}",
                 )
 
-    # (b) stances referencing unknown targets block the stance's source_claim.
-    for stance in () if stances_doc is None else stances_doc.stances:
-        source_claim = stance.source_claim
-        target = stance.target
-        if isinstance(source_claim, str) and source_claim:
-            if not source_claim_index.has_artifact(source_claim):
-                _record(
-                    source_claim,
-                    "stance_reference",
-                    f"stance source_claim {source_claim!r} unresolved",
-                )
-            if not isinstance(target, str) or not target or not resolver.target_is_known(target):
-                _record(
-                    source_claim,
-                    "stance_reference",
-                    f"stance target {target!r} unresolved",
-                )
-
-    # (c) justifications with unresolved conclusion or premises block the
+    # (b) justifications with unresolved conclusion or premises block the
     # claims those references point at (when they resolve to valid
     # artifact ids on the source branch).
     for justification in () if justifications_doc is None else justifications_doc.justifications:
@@ -800,9 +782,17 @@ def promote_source_branch(
             "(no finalize report found)"
         )
     # Per axis-1 finding 3.3: the all-or-nothing gate becomes a per-item
-    # filter. ``strict=True`` preserves the old behavior for callers that
-    # explicitly opt in (e.g., ``pks source promote --strict``).
-    if strict and report.status != "ready":
+    # filter. ``strict=True`` preserves all-or-nothing behavior for
+    # claim-affecting errors while still treating stance-only validation
+    # failures as metadata quarantine rather than claim blockers.
+    has_strict_blocking_errors = any(
+        (
+            report.claim_reference_errors,
+            report.micropub_coverage_errors,
+            report.justification_reference_errors,
+        )
+    )
+    if strict and report.status != "ready" and has_strict_blocking_errors:
         raise ValueError(
             f"Source {source_name!r} must be finalized successfully "
             "before promotion (strict mode)"
