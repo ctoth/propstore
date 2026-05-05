@@ -41,12 +41,14 @@ from propstore.sidecar.sqlite import connect_sidecar_readonly
 from propstore.core.conditions.solver import ConditionSolver
 
 if TYPE_CHECKING:
+    from propstore.support_revision.history import TransitionJournal
     from propstore.repository import Repository
     from propstore.world.bound import BoundWorld
     from propstore.context_lifting import LiftingSystem
 from propstore.world.resolution import resolve
 from propstore.world.types import (
     WorldStore,
+    ClaimView,
     Environment,
     ChainResult,
     ChainStep,
@@ -228,7 +230,7 @@ class _BoundView:
     implies.
     """
 
-    bound: Any
+    bound: BoundWorld
     restricted_to: frozenset[str]
 
 
@@ -853,12 +855,12 @@ class WorldQuery(WorldStore):
 
     def at_journal_step(
         self,
-        journal: Any,
+        journal: TransitionJournal,
         k: int,
         *,
         rebind: bool = False,
         heavy: bool = False,
-    ) -> Any:
+    ) -> ClaimView:
         """Project the claims accepted at step ``k`` of the journal.
 
         Bridge surface defined in
@@ -883,7 +885,7 @@ class WorldQuery(WorldStore):
         bindings: Mapping[str, Any],
         context_id: str | None,
         restricted_to: frozenset[str],
-    ) -> Any:
+    ) -> _BoundView:
         """Rebind under a snapshot's scope, restricted to a claim-id set.
 
         Returns a real ``BoundWorld`` so callers of ``at_journal_step(...,
