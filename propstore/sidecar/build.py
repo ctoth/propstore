@@ -408,6 +408,16 @@ def build_sidecar(
     repo: "Repository",
     sidecar_path: Path,
     force: bool = False,
+    **kwargs,
+) -> bool:
+    with repo.mutation_guard():
+        return _build_sidecar_locked(repo, sidecar_path, force, **kwargs)
+
+
+def _build_sidecar_locked(
+    repo: "Repository",
+    sidecar_path: Path,
+    force: bool = False,
     *,
     commit_hash: str | None = None,
     compilation_context: CompilationContext | None = None,
