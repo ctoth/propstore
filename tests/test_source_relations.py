@@ -255,7 +255,7 @@ def test_source_add_justification_batch_rewrites_local_claim_ids(tmp_path: Path)
     assert justification["premises"] == [claim_ids["claim1"]]
 
 
-def test_source_add_stance_batch_rewrites_local_targets_and_preserves_cross_source_refs(
+def test_source_add_stance_batch_rewrites_local_targets(
     tmp_path: Path,
 ) -> None:
     repo = Repository.init(tmp_path / "knowledge")
@@ -333,9 +333,9 @@ def test_source_add_stance_batch_rewrites_local_targets_and_preserves_cross_sour
                     ),
                     SourceStanceSpec(
                         source_claim="claim2",
-                        target="other_source:claim9",
+                        target="claim1",
                         stance_type="rebuts",
-                        note="Cross-source disagreement.",
+                        note="Local disagreement edge.",
                     ),
                 ]
             ),
@@ -366,16 +366,16 @@ def test_source_add_stance_batch_rewrites_local_targets_and_preserves_cross_sour
     assert first["source_claim"] == claim_ids["claim1"]
     assert first["target"] == claim_ids["claim2"]
     assert second["source_claim"] == claim_ids["claim2"]
-    assert second["target"] == "other_source:claim9"
+    assert second["target"] == claim_ids["claim1"]
 
 
-def test_source_finalize_blocks_on_unresolved_cross_source_stance_target(tmp_path: Path) -> None:
+def test_source_add_stance_rejects_unresolved_cross_source_stance_target(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
     _seed_master_concept(repo, name="claims_identical")
     _init_source(runner, repo, "demo")
 
-    runner.invoke(
+    result = runner.invoke(
         cli,
         [
             "-C",
@@ -410,7 +410,7 @@ def test_source_finalize_blocks_on_unresolved_cross_source_stance_target(tmp_pat
         ),
         encoding="utf-8",
     )
-    runner.invoke(
+    result = runner.invoke(
         cli,
         [
             "-C",
@@ -440,7 +440,7 @@ def test_source_finalize_blocks_on_unresolved_cross_source_stance_target(tmp_pat
         ),
         encoding="utf-8",
     )
-    runner.invoke(
+    result = runner.invoke(
         cli,
         [
             "-C",
@@ -452,6 +452,8 @@ def test_source_finalize_blocks_on_unresolved_cross_source_stance_target(tmp_pat
             str(stances_file),
         ],
     )
+    assert result.exit_code != 0, result.output
+    assert "unresolved" in result.output.lower()
 
     result = runner.invoke(
         cli,
@@ -467,11 +469,11 @@ def test_source_finalize_blocks_on_unresolved_cross_source_stance_target(tmp_pat
 
     branch_tip = repo.git.branch_sha("source/demo")
     report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
-    assert report["status"] == "blocked"
-    assert report["stance_reference_errors"] == ["missing_source:claim404"]
+    assert report["status"] == "ready"
+    assert report["stance_reference_errors"] == []
 
 
-def test_source_add_stance_auto_finalize_is_advisory_on_validation_issues(tmp_path: Path) -> None:
+def test_source_add_stance_rejects_invalid_target_before_auto_finalize(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
     _seed_master_concept(repo, name="claims_identical")
@@ -558,13 +560,13 @@ def test_source_add_stance_auto_finalize_is_advisory_on_validation_issues(tmp_pa
             str(stances_file),
         ],
     )
-    assert result.exit_code == 0, result.output
+    assert result.exit_code != 0, result.output
+    assert "unresolved" in result.output.lower()
 
     branch_tip = repo.git.branch_sha("source/demo")
     assert branch_tip is not None
-    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
-    assert report["status"] == "blocked"
-    assert report["stance_reference_errors"] == ["missing_source:claim404"]
+    with pytest.raises(KeyError):
+        repo.git.read_file("stances.yaml", commit=branch_tip)
 
 
 def test_source_finalize_reports_parameterization_group_merges(tmp_path: Path) -> None:
