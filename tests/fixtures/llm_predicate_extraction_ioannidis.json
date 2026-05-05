@@ -11,6 +11,18 @@
       "arity": 2,
       "arg_types": ["paper_id", "float"],
       "description": "Study-setting bias."
+    },
+    {
+      "name": "low_trust",
+      "arity": 1,
+      "arg_types": ["paper_id"],
+      "description": "Low trust classification."
+    },
+    {
+      "name": "high_trust",
+      "arity": 1,
+      "arg_types": ["paper_id"],
+      "description": "High trust classification."
     }
   ]
 }
