@@ -52,7 +52,7 @@ class ClaimReferenceResolver:
             return self.source.logical_to_artifact[target]
         if target in self.primary.logical_to_artifact:
             return self.primary.logical_to_artifact[target]
-        if target in self.primary.artifact_ids or target.startswith("ps:claim:"):
+        if target in self.primary.artifact_ids:
             return target
         raise ValueError(f"Unresolved promoted stance target: {target}")
 
@@ -164,6 +164,7 @@ def load_primary_branch_claim_reference_index(repo: Repository) -> ClaimReferenc
 
     for handle in repo.families.claims.iter_handles():
         claim_file = handle.document
+        file_namespace = handle.ref.name
         for claim in claim_file.claims:
             artifact_id = claim.artifact_id
             if not isinstance(artifact_id, str) or not artifact_id:
@@ -171,6 +172,7 @@ def load_primary_branch_claim_reference_index(repo: Repository) -> ClaimReferenc
             artifact_ids.add(artifact_id)
             for logical_id in claim.logical_ids:
                 logical_to_artifact[_formatted_logical_id(logical_id)] = artifact_id
+                logical_to_artifact[f"{file_namespace}:{logical_id.value}"] = artifact_id
 
     return ClaimReferenceIndex(
         logical_to_artifact=logical_to_artifact,
