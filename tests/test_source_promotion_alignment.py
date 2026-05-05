@@ -811,6 +811,43 @@ def test_promote_source_branch_does_not_advance_master_when_sidecar_write_fails(
 
     source_name = "atomicity_paper"
     repo = _setup_source_with_partial_validity(tmp_path, source_name=source_name)
+    source_doc = repo.families.source_documents.require(SourceRef(source_name))
+    raw_claims = convert_document_value(
+        {
+            "source": {"paper": source_name},
+            "claims": [
+                {
+                    "id": "valid_a",
+                    "type": "observation",
+                    "context": "ctx_test",
+                    "statement": "First valid observation.",
+                    "concepts": ["shared_concept"],
+                    "provenance": {"page": 1},
+                },
+                {
+                    "id": "broken_source",
+                    "type": "observation",
+                    "context": "ctx_test",
+                    "statement": "Claim whose concept mapping is missing.",
+                    "concepts": ["missing_concept"],
+                    "provenance": {"page": 3},
+                },
+            ],
+        },
+        SourceClaimsDocument,
+        source=f"{source_branch_name(source_name)}:claims.yaml",
+    )
+    normalized_claims, _ = normalize_source_claims_payload(
+        raw_claims,
+        source_uri=source_doc.id,
+        source_namespace=source_name,
+    )
+    repo.families.source_claims.save(
+        SourceRef(source_name),
+        normalized_claims,
+        message=f"Write drifted blocked claim for {source_name}",
+        branch=source_branch_name(source_name),
+    )
     finalize_source_branch(repo, source_name)
 
     from tests.family_helpers import build_sidecar
