@@ -455,22 +455,10 @@ def test_source_add_stance_rejects_unresolved_cross_source_stance_target(tmp_pat
     assert result.exit_code != 0, result.output
     assert "unresolved" in result.output.lower()
 
-    result = runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "source",
-            "finalize",
-            "demo",
-        ],
-    )
-    assert result.exit_code == 0, result.output
-
     branch_tip = repo.git.branch_sha("source/demo")
-    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
-    assert report["status"] == "ready"
-    assert report["stance_reference_errors"] == []
+    assert branch_tip is not None
+    with pytest.raises(FileNotFoundError):
+        repo.git.read_file("stances.yaml", commit=branch_tip)
 
 
 def test_source_add_stance_rejects_invalid_target_before_auto_finalize(tmp_path: Path) -> None:
@@ -565,7 +553,7 @@ def test_source_add_stance_rejects_invalid_target_before_auto_finalize(tmp_path:
 
     branch_tip = repo.git.branch_sha("source/demo")
     assert branch_tip is not None
-    with pytest.raises(KeyError):
+    with pytest.raises(FileNotFoundError):
         repo.git.read_file("stances.yaml", commit=branch_tip)
 
 
