@@ -8,6 +8,7 @@ from click.testing import CliRunner
 import pytest
 
 from propstore.cli import cli
+from propstore.families.registry import ClaimsFileRef
 from propstore.repository import Repository
 from tests.family_helpers import build_sidecar
 
@@ -489,8 +490,8 @@ def test_propose_stance_local(tmp_path: Path) -> None:
     assert s["source_claim"].startswith("ps:claim:")
 
 
-def test_propose_stance_cross_source(tmp_path: Path) -> None:
-    """propose-stance with cross-source target should preserve it as-is."""
+def test_propose_stance_rejects_unresolved_cross_source_target(tmp_path: Path) -> None:
+    """propose-stance must not persist an unresolved cross-source target."""
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
     _seed_forms(repo, ["structural"])
@@ -527,12 +528,82 @@ def test_propose_stance_cross_source(tmp_path: Path) -> None:
         ],
     )
 
-    assert result.exit_code == 0, result.output
-    assert "rebuts" in result.output
+    assert result.exit_code != 0, result.output
+    assert "unresolved" in result.output.lower()
 
-    # Verify cross-source target is preserved
+
+def test_propose_stance_resolves_cross_source_target_to_artifact_id(
+    tmp_path: Path,
+) -> None:
+    """propose-stance should store stable claim ids, not source-local aliases."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_forms(repo, ["structural"])
+    _seed_context(repo)
+
+    assert _init_source(runner, repo, "other").exit_code == 0
+    _add_concepts(runner, repo, "other", [
+        {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
+    ])
+    r = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-claim", "other",
+            "--id", "claim1",
+            "--type", "observation",
+            "--statement", "Other claim.",
+            "--concept-ref", "tc",
+            "--context", "ctx_test",
+            "--page", "1",
+        ],
+    )
+    assert r.exit_code == 0, r.output
+    assert runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "finalize", "other"],
+    ).exit_code == 0
+    promote = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "promote", "other"],
+    )
+    assert promote.exit_code == 0, promote.output
+    other_claim = repo.families.claims.require(ClaimsFileRef("other")).claims[0]
+    assert isinstance(other_claim.artifact_id, str)
+
+    assert _init_source(runner, repo, "demo").exit_code == 0
+    _add_concepts(runner, repo, "demo", [
+        {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
+    ])
+    r = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-claim", "demo",
+            "--id", "c1",
+            "--type", "observation",
+            "--statement", "A claim.",
+            "--concept-ref", "tc",
+            "--context", "ctx_test",
+            "--page", "1",
+        ],
+    )
+    assert r.exit_code == 0, r.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-stance", "demo",
+            "--source-claim", "c1",
+            "--target", "other:claim1",
+            "--type", "supports",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
     branch_tip = repo.git.branch_sha("source/demo")
     stances_doc = yaml.safe_load(repo.git.read_file("stances.yaml", commit=branch_tip))
     stances = stances_doc["stances"]
     assert len(stances) == 1
-    assert stances[0]["target"] == "other_source:claim9"
+    assert stances[0]["target"] == other_claim.artifact_id
