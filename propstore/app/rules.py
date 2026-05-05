@@ -93,6 +93,19 @@ class RuleReferencedError(RuleWorkflowError):
         self.pairs = pairs
 
 
+class RuleSuperiorityPairNotFoundError(RuleWorkflowError):
+    """Raised when a requested superiority pair is absent."""
+
+    def __init__(self, file: str, superior_rule_id: str, inferior_rule_id: str) -> None:
+        super().__init__(
+            f"superiority pair ({superior_rule_id}, {inferior_rule_id}) "
+            f"not found in rules file '{file}'"
+        )
+        self.file = file
+        self.superior_rule_id = superior_rule_id
+        self.inferior_rule_id = inferior_rule_id
+
+
 @dataclass(frozen=True)
 class RuleAddRequest:
     """CLI request to add a rule to ``rules/<file>.yaml``.
@@ -150,6 +163,31 @@ class RuleRemoveReport:
     filepath: Path
     rule_id: str
     removed: bool
+
+
+@dataclass(frozen=True)
+class RuleSuperiorityAddRequest:
+    """CLI request to add a superiority pair to ``rules/<file>.yaml``."""
+
+    file: str
+    superior_rule_id: str
+    inferior_rule_id: str
+
+
+@dataclass(frozen=True)
+class RuleSuperiorityRemoveRequest:
+    """CLI request to remove a superiority pair from ``rules/<file>.yaml``."""
+
+    file: str
+    superior_rule_id: str
+    inferior_rule_id: str
+
+
+@dataclass(frozen=True)
+class RuleSuperiorityReport:
+    filepath: Path
+    superior_rule_id: str
+    inferior_rule_id: str
 
 
 @dataclass(frozen=True)
@@ -262,6 +300,70 @@ def _rule_document_payload(request: RuleAddRequest) -> dict[str, object]:
     }
 
 
+def _rule_kind_by_id(document: RulesFileDocument) -> dict[str, str]:
+    return {entry.id: entry.kind for entry in document.rules}
+
+
+def _validate_superiority_pair(
+    document: RulesFileDocument,
+    superior_rule_id: str,
+    inferior_rule_id: str,
+) -> None:
+    if not superior_rule_id or not inferior_rule_id:
+        raise RuleWorkflowError("superiority rule ids must be non-empty strings")
+    if superior_rule_id == inferior_rule_id:
+        raise RuleWorkflowError("superiority cannot relate a rule to itself")
+
+    kinds = _rule_kind_by_id(document)
+    missing = [
+        rule_id
+        for rule_id in (superior_rule_id, inferior_rule_id)
+        if rule_id not in kinds
+    ]
+    if missing:
+        raise RuleWorkflowError(
+            "superiority references unknown rule id(s): "
+            + ", ".join(sorted(missing))
+        )
+
+    strict = [
+        rule_id
+        for rule_id in (superior_rule_id, inferior_rule_id)
+        if kinds[rule_id] == "strict"
+    ]
+    if strict:
+        raise RuleWorkflowError(
+            "superiority cannot reference strict rule id(s): "
+            + ", ".join(sorted(strict))
+        )
+
+
+def _reject_superiority_cycle(pairs: tuple[tuple[str, str], ...]) -> None:
+    graph: dict[str, set[str]] = {}
+    for superior, inferior in pairs:
+        graph.setdefault(superior, set()).add(inferior)
+        graph.setdefault(inferior, set())
+
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(rule_id: str) -> bool:
+        if rule_id in visiting:
+            return True
+        if rule_id in visited:
+            return False
+        visiting.add(rule_id)
+        for child in graph.get(rule_id, ()):
+            if visit(child):
+                return True
+        visiting.remove(rule_id)
+        visited.add(rule_id)
+        return False
+
+    if any(visit(rule_id) for rule_id in graph):
+        raise RuleWorkflowError("superiority pairs must be acyclic")
+
+
 def add_rule(
     repo: Repository,
     request: RuleAddRequest,
@@ -335,6 +437,53 @@ def add_rule(
         filepath=filepath,
         document=document,
         created=created,
+    )
+
+
+def add_rule_superiority(
+    repo: Repository,
+    request: RuleSuperiorityAddRequest,
+) -> RuleSuperiorityReport:
+    """Add a ``(superior, inferior)`` rule-priority pair."""
+    ref = RuleFileRef(request.file)
+    existing = repo.families.rules.load(ref)
+    if existing is None:
+        raise RuleFileNotFoundError(request.file)
+
+    _validate_superiority_pair(
+        existing,
+        request.superior_rule_id,
+        request.inferior_rule_id,
+    )
+    pair = (request.superior_rule_id, request.inferior_rule_id)
+    if pair in existing.superiority:
+        raise RuleWorkflowError(
+            f"superiority pair ({pair[0]}, {pair[1]}) already declared"
+        )
+
+    superiority = existing.superiority + (pair,)
+    _reject_superiority_cycle(superiority)
+    document = RulesFileDocument(
+        source=existing.source,
+        rules=existing.rules,
+        superiority=superiority,
+        promoted_from_sha=existing.promoted_from_sha,
+    )
+
+    repo.families.rules.save(
+        ref,
+        document,
+        message=(
+            f"Add superiority {request.superior_rule_id} > "
+            f"{request.inferior_rule_id} to {request.file}"
+        ),
+    )
+
+    filepath = repo.root / repo.families.rules.address(ref).require_path()
+    return RuleSuperiorityReport(
+        filepath=filepath,
+        superior_rule_id=request.superior_rule_id,
+        inferior_rule_id=request.inferior_rule_id,
     )
 
 
@@ -427,4 +576,48 @@ def remove_rule(
         filepath=filepath,
         rule_id=request.rule_id,
         removed=True,
+    )
+
+
+def remove_rule_superiority(
+    repo: Repository,
+    request: RuleSuperiorityRemoveRequest,
+) -> RuleSuperiorityReport:
+    """Remove a ``(superior, inferior)`` rule-priority pair."""
+    ref = RuleFileRef(request.file)
+    existing = repo.families.rules.load(ref)
+    if existing is None:
+        raise RuleFileNotFoundError(request.file)
+
+    pair = (request.superior_rule_id, request.inferior_rule_id)
+    if pair not in existing.superiority:
+        raise RuleSuperiorityPairNotFoundError(
+            request.file,
+            request.superior_rule_id,
+            request.inferior_rule_id,
+        )
+
+    document = RulesFileDocument(
+        source=existing.source,
+        rules=existing.rules,
+        superiority=tuple(
+            entry for entry in existing.superiority if entry != pair
+        ),
+        promoted_from_sha=existing.promoted_from_sha,
+    )
+
+    repo.families.rules.save(
+        ref,
+        document,
+        message=(
+            f"Remove superiority {request.superior_rule_id} > "
+            f"{request.inferior_rule_id} from {request.file}"
+        ),
+    )
+
+    filepath = repo.root / repo.families.rules.address(ref).require_path()
+    return RuleSuperiorityReport(
+        filepath=filepath,
+        superior_rule_id=request.superior_rule_id,
+        inferior_rule_id=request.inferior_rule_id,
     )
