@@ -44,11 +44,12 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.core.row_types import ConflictRow, StanceRow
+from propstore.core.row_types import ClaimRow, ConflictRow, StanceRow
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
     from propstore.grounding.bundle import GroundedRulesBundle
+    from propstore.support_revision.state import RevisionScope
 
 _T = TypeVar("_T")
 
@@ -796,20 +797,22 @@ class ClaimView:
     the snapshot's ``RevisionScope`` (so callers know what bindings/
     context the view is taken under), an optional ``bound`` artifact
     (populated when ``rebind=True`` to make the rebind path observably
-    distinct from the flat view), and an optional tuple of stances
-    (populated only by the heavy variant).
+    distinct from the flat view), plus optional tuples of stances and
+    conflicts populated only by the heavy variant.
 
     See ``propstore.world.bridge.at_journal_step``.
     """
 
-    claims: Mapping[str, Any]
-    scope: Any  # RevisionScope from support_revision.state — kept loose to avoid import cycle
-    bound: Any | None = None
-    stances: tuple[Any, ...] = field(default_factory=tuple)
+    claims: Mapping[str, ClaimRow]
+    scope: RevisionScope
+    bound: object | None = None
+    stances: tuple[StanceRow, ...] = field(default_factory=tuple)
+    conflicts: tuple[ConflictRow, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "claims", dict(self.claims))
         object.__setattr__(self, "stances", tuple(self.stances))
+        object.__setattr__(self, "conflicts", tuple(self.conflicts))
 
     def claim_ids(self) -> set[str]:
         """Return the set of claim id strings in this view."""
