@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from threading import Lock
 
 from quire.documents import convert_document_value, encode_document
 
@@ -34,6 +35,9 @@ from propstore.repository import Repository
 
 class PredicateWorkflowError(Exception):
     """Raised when a predicate workflow cannot complete."""
+
+
+_PREDICATE_MUTATION_LOCK = Lock()
 
 
 class PredicateFileNotFoundError(PredicateWorkflowError):
@@ -192,7 +196,7 @@ def add_predicate(
     relpath = repo.families.predicates.address(ref).require_path()
     filepath = repo.root / relpath
 
-    with repo.head_bound_transaction(
+    with _PREDICATE_MUTATION_LOCK, repo.head_bound_transaction(
         repo.snapshot.primary_branch_name(),
         path="predicate.add",
     ) as head_txn:
