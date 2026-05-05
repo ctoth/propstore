@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.claim_references import ClaimReferenceIndex, load_source_claim_reference_index
+from propstore.claim_references import (
+    ClaimReferenceIndex,
+    ClaimReferenceResolver,
+    load_primary_branch_claim_reference_index,
+    load_source_claim_reference_index,
+)
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_path
@@ -131,14 +136,21 @@ def normalize_source_stances_payload(
     data: SourceStancesDocument,
     *,
     claim_index: ClaimReferenceIndex,
+    primary_claim_index: ClaimReferenceIndex | None = None,
 ) -> SourceStancesDocument:
+    resolver = ClaimReferenceResolver(
+        source=claim_index,
+        primary=primary_claim_index or ClaimReferenceIndex(),
+    )
     normalized_stances: list[SourceStanceEntryDocument] = []
     for index, stance in enumerate(data.stances, start=1):
         if stance.source_claim is None:
             raise ValueError("stance source_claim must be a non-empty string")
         normalized = stance.to_payload()
         normalized["source_claim"] = claim_index.resolve_local(stance.source_claim)
-        normalized["target"] = claim_index.rewrite_local_target(stance.target)
+        if not resolver.target_is_known(stance.target):
+            raise ValueError(f"unresolved stance target: {stance.target}")
+        normalized["target"] = resolver.resolve_promoted_target(stance.target)
         normalized_stances.append(
             convert_document_value(
                 normalized,
@@ -164,6 +176,7 @@ def commit_source_stances_batch(
     from datetime import datetime, timezone
 
     claim_index = load_source_claim_reference_index(repo, source_name)
+    primary_claim_index = load_primary_branch_claim_reference_index(repo)
     raw = decode_document_path(stances_file, SourceStancesDocument)
     if reader is not None:
         raw = SourceStancesDocument(
@@ -178,6 +191,7 @@ def commit_source_stances_batch(
     normalized = normalize_source_stances_payload(
         raw,
         claim_index=claim_index,
+        primary_claim_index=primary_claim_index,
     )
     return repo.families.source_stances.save(
         SourceRef(source_name),
@@ -304,6 +318,7 @@ def commit_source_stance_proposal(
     for attempt in range(8):
         expected_head = current_source_branch_head(repo, source_name)
         claim_index = load_source_claim_reference_index(repo, source_name)
+        primary_claim_index = load_primary_branch_claim_reference_index(repo)
         existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(stances=())
         stances = list(existing.stances)
 
@@ -328,6 +343,7 @@ def commit_source_stance_proposal(
         normalized = normalize_source_stances_payload(
             SourceStancesDocument(source=existing.source, stances=tuple(stances)),
             claim_index=claim_index,
+            primary_claim_index=primary_claim_index,
         )
 
         try:
