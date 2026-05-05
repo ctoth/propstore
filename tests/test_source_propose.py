@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 from click.testing import CliRunner
+import pytest
 
 from propstore.cli import cli
 from propstore.repository import Repository
@@ -211,6 +212,81 @@ def test_propose_claim_parameter(tmp_path: Path) -> None:
     assert "artifact_id" in claim
 
 
+def test_propose_claim_validates_unknown_concepts(tmp_path: Path) -> None:
+    """propose-claim should reject unknown concept refs before writing."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_forms(repo, ["structural"])
+    _seed_context(repo)
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-claim", "demo",
+            "--id", "claim1",
+            "--type", "observation",
+            "--statement", "A claim referencing a missing concept.",
+            "--concept-ref", "missing_concept",
+            "--context", "ctx_test",
+        ],
+    )
+
+    assert result.exit_code != 0, result.output
+    assert "unknown concept reference" in result.output.lower()
+    branch_tip = repo.git.branch_sha("source/demo")
+    with pytest.raises(FileNotFoundError):
+        repo.git.read_file("claims.yaml", commit=branch_tip)
+
+
+def test_propose_concept_retries_stale_source_branch_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Concurrent source-local proposals should merge instead of losing one proposal."""
+    from propstore.source import concepts as source_concepts
+
+    repo = Repository.init(tmp_path / "knowledge")
+    competing_repo = Repository(repo.root)
+    runner = CliRunner()
+    _seed_forms(repo, ["structural"])
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    original_load = source_concepts.load_source_concepts_document
+    raced = False
+
+    def racing_load(load_repo: Repository, source_name: str):
+        nonlocal raced
+        loaded = original_load(load_repo, source_name)
+        if load_repo is repo and not raced:
+            raced = True
+            source_concepts.commit_source_concept_proposal(
+                competing_repo,
+                source_name,
+                local_name="second_concept",
+                definition="Second concept from a concurrent writer.",
+                form="structural",
+            )
+        return loaded
+
+    monkeypatch.setattr(source_concepts, "load_source_concepts_document", racing_load)
+
+    source_concepts.commit_source_concept_proposal(
+        repo,
+        "demo",
+        local_name="first_concept",
+        definition="First concept from the stale writer.",
+        form="structural",
+    )
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    concepts_doc = yaml.safe_load(repo.git.read_file("concepts.yaml", commit=branch_tip))
+    names = {entry["local_name"] for entry in concepts_doc["concepts"]}
+    assert names == {"first_concept", "second_concept"}
+
+
 def test_propose_claim_dedup(tmp_path: Path) -> None:
     """Proposing same claim id twice should result in only one entry."""
     repo = Repository.init(tmp_path / "knowledge")
@@ -301,7 +377,13 @@ def test_propose_justification(tmp_path: Path) -> None:
             "--conclusion", "c2",
             "--premises", "c1",
             "--rule-kind", "supports",
+            "--rule-strength", "defeasible",
             "--page", "3",
+            "--section", "Results",
+            "--quote-fragment", "Premise supports conclusion.",
+            "--attack-target-claim", "c1",
+            "--attack-target-justification-id", "other_just",
+            "--attack-target-premise-index", "0",
         ],
     )
 
@@ -317,6 +399,14 @@ def test_propose_justification(tmp_path: Path) -> None:
     j = justs[0]
     assert j["conclusion"].startswith("ps:claim:")
     assert all(p.startswith("ps:claim:") for p in j["premises"])
+    assert j["rule_strength"] == "defeasible"
+    assert j["provenance"]["paper"] == "demo"
+    assert j["provenance"]["page"] == 3
+    assert j["provenance"]["section"] == "Results"
+    assert j["provenance"]["quote_fragment"] == "Premise supports conclusion."
+    assert j["attack_target"]["target_claim"].startswith("ps:claim:")
+    assert j["attack_target"]["target_justification_id"] == "other_just"
+    assert j["attack_target"]["target_premise_index"] == 0
 
 
 def test_propose_justification_bad_ref(tmp_path: Path) -> None:

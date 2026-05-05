@@ -85,12 +85,23 @@ class SourceClaimProposalRequest:
     source_name: str
     claim_id: str
     claim_type: str
-    statement: str | None
-    concept: str | None
-    value: float | None
-    unit: str | None
     context: str
-    page: int | None
+    statement: str | None = None
+    concept: str | None = None
+    value: float | None = None
+    lower_bound: float | None = None
+    upper_bound: float | None = None
+    unit: str | None = None
+    concepts: tuple[str, ...] = ()
+    conditions: tuple[str, ...] = ()
+    notes: str | None = None
+    uncertainty: float | None = None
+    uncertainty_type: str | None = None
+    page: int | None = None
+    section: str | None = None
+    quote_fragment: str | None = None
+    table: str | None = None
+    figure: str | None = None
 
 
 @dataclass(frozen=True)
@@ -100,7 +111,15 @@ class SourceJustificationProposalRequest:
     conclusion: str
     premises: str
     rule_kind: str
+    rule_strength: str | None = None
     page: int | None = None
+    section: str | None = None
+    quote_fragment: str | None = None
+    table: str | None = None
+    figure: str | None = None
+    attack_target_claim: str | None = None
+    attack_target_justification_id: str | None = None
+    attack_target_premise_index: int | None = None
 
 
 @dataclass(frozen=True)
@@ -426,9 +445,20 @@ def propose_source_claim(
         statement=request.statement,
         concept=request.concept,
         value=request.value,
+        lower_bound=request.lower_bound,
+        upper_bound=request.upper_bound,
         unit=request.unit,
         context=request.context,
+        concepts=request.concepts,
+        conditions=request.conditions,
+        notes=request.notes,
+        uncertainty=request.uncertainty,
+        uncertainty_type=request.uncertainty_type,
         page=request.page,
+        section=request.section,
+        quote_fragment=request.quote_fragment,
+        table=request.table,
+        figure=request.figure,
     )
     return SourceClaimProposalReport(
         claim_id=request.claim_id,
@@ -453,7 +483,15 @@ def propose_source_justification(
         conclusion=request.conclusion,
         premises=list(premises_list),
         rule_kind=request.rule_kind,
+        rule_strength=request.rule_strength,
         page=request.page,
+        section=request.section,
+        quote_fragment=request.quote_fragment,
+        table=request.table,
+        figure=request.figure,
+        attack_target_claim=request.attack_target_claim,
+        attack_target_justification_id=request.attack_target_justification_id,
+        attack_target_premise_index=request.attack_target_premise_index,
     )
     return SourceJustificationProposalReport(
         justification_id=request.justification_id,

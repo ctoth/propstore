@@ -6,7 +6,7 @@ from propstore.repository import Repository
 from propstore.families.registry import SourceRef
 from quire.documents import decode_document_path
 
-from .common import load_source_concepts_document
+from .common import current_source_branch_head, is_stale_branch_error, load_source_concepts_document
 from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
     SourceConceptFormParametersDocument,
@@ -90,25 +90,37 @@ def commit_source_concept_proposal(
     form_parameters: SourceConceptFormParametersDocument | None = None,
 ) -> SourceConceptEntryDocument:
     validate_form_name(form, repo)
-    existing = load_source_concepts_document(repo, source_name) or SourceConceptsDocument(concepts=())
-    concepts = [entry for entry in existing.concepts if entry.local_name != local_name]
-    entry = SourceConceptEntryDocument(
-        local_name=local_name,
-        proposed_name=local_name,
-        definition=definition,
-        form=form,
-        form_parameters=form_parameters,
-    )
-    concepts.append(entry)
-    doc = normalize_source_concepts_document(repo, SourceConceptsDocument(concepts=tuple(concepts)))
-    repo.families.source_concepts.save(
-        SourceRef(source_name),
-        doc,
-        message=f"Propose concepts for {source_name}",
-    )
-    for normalized_entry in doc.concepts:
-        if normalized_entry.local_name == local_name:
-            return normalized_entry
+    last_doc: SourceConceptsDocument | None = None
+    for attempt in range(8):
+        expected_head = current_source_branch_head(repo, source_name)
+        existing = load_source_concepts_document(repo, source_name) or SourceConceptsDocument(concepts=())
+        concepts = [entry for entry in existing.concepts if entry.local_name != local_name]
+        entry = SourceConceptEntryDocument(
+            local_name=local_name,
+            proposed_name=local_name,
+            definition=definition,
+            form=form,
+            form_parameters=form_parameters,
+        )
+        concepts.append(entry)
+        doc = normalize_source_concepts_document(repo, SourceConceptsDocument(concepts=tuple(concepts)))
+        try:
+            repo.families.source_concepts.save(
+                SourceRef(source_name),
+                doc,
+                message=f"Propose concepts for {source_name}",
+                expected_head=expected_head,
+            )
+        except ValueError as exc:
+            if attempt == 7 or not is_stale_branch_error(exc):
+                raise
+            continue
+        last_doc = doc
+        break
+    if last_doc is not None:
+        for normalized_entry in last_doc.concepts:
+            if normalized_entry.local_name == local_name:
+                return normalized_entry
     return SourceConceptEntryDocument(
         local_name=local_name,
         proposed_name=local_name,

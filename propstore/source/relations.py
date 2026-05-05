@@ -9,6 +9,8 @@ from quire.documents import convert_document_value, decode_document_path
 from propstore.stances import StanceType, coerce_stance_type
 
 from .common import (
+    current_source_branch_head,
+    is_stale_branch_error,
     load_source_justifications_document,
     load_source_stances_document,
     normalize_source_slug,
@@ -16,6 +18,7 @@ from .common import (
 )
 from propstore.families.documents.sources import (
     ExtractionProvenanceDocument,
+    SourceAttackTargetDocument,
     SourceJustificationDocument,
     SourceJustificationsDocument,
     SourceProvenanceDocument,
@@ -24,9 +27,16 @@ from propstore.families.documents.sources import (
 )
 
 _ALLOWED_JUSTIFICATION_RULE_KINDS = frozenset({
-    "reported_claim",
-    "supports",
+    "causal_explanation",
+    "comparison_based_inference",
+    "definition_application",
+    "empirical_support",
     "explains",
+    "methodological_inference",
+    "reported_claim",
+    "scope_limitation",
+    "statistical_inference",
+    "supports",
 })
 _ALLOWED_JUSTIFICATION_RULE_STRENGTHS = frozenset({
     "strict",
@@ -184,45 +194,97 @@ def commit_source_justification_proposal(
     conclusion: str,
     premises: list[str],
     rule_kind: str,
+    rule_strength: str | None = None,
     page: int | None = None,
+    section: str | None = None,
+    quote_fragment: str | None = None,
+    table: str | None = None,
+    figure: str | None = None,
+    attack_target_claim: str | None = None,
+    attack_target_justification_id: str | None = None,
+    attack_target_premise_index: int | None = None,
 ) -> SourceJustificationDocument:
     branch = source_branch_name(source_name)
     _validate_justification_rule_fields(
         rule_kind=rule_kind,
-        rule_strength=None,
+        rule_strength=rule_strength,
     )
-    claim_index = load_source_claim_reference_index(repo, source_name)
-    existing = load_source_justifications_document(repo, source_name) or SourceJustificationsDocument(justifications=())
-    justifications = [entry for entry in existing.justifications if entry.id != just_id]
+    last_normalized: SourceJustificationsDocument | None = None
+    for attempt in range(8):
+        expected_head = current_source_branch_head(repo, source_name)
+        claim_index = load_source_claim_reference_index(repo, source_name)
+        existing = load_source_justifications_document(repo, source_name) or SourceJustificationsDocument(justifications=())
+        justifications = [entry for entry in existing.justifications if entry.id != just_id]
 
-    justification = SourceJustificationDocument(
-        id=just_id,
-        conclusion=conclusion,
-        premises=tuple(premises),
-        rule_kind=rule_kind,
-    )
-    if page is not None:
-        justification = convert_document_value(
-            {**justification.to_payload(), "provenance": SourceProvenanceDocument(page=page)},
-            SourceJustificationDocument,
-            source=f"{branch}:justifications proposal",
+        justification = SourceJustificationDocument(
+            id=just_id,
+            conclusion=conclusion,
+            premises=tuple(premises),
+            rule_kind=rule_kind,
+            rule_strength=rule_strength,
         )
-    justifications.append(justification)
-    normalized = normalize_source_justifications_payload(
-        SourceJustificationsDocument(source=existing.source, justifications=tuple(justifications)),
-        claim_index=claim_index,
-    )
+        if any(value is not None for value in (page, section, quote_fragment, table, figure)):
+            justification = convert_document_value(
+                {
+                    **justification.to_payload(),
+                    "provenance": SourceProvenanceDocument(
+                        paper=normalize_source_slug(source_name),
+                        page=page,
+                        section=section,
+                        quote_fragment=quote_fragment,
+                        table=table,
+                        figure=figure,
+                    ),
+                },
+                SourceJustificationDocument,
+                source=f"{branch}:justifications proposal",
+            )
+        if any(
+            value is not None
+            for value in (
+                attack_target_claim,
+                attack_target_justification_id,
+                attack_target_premise_index,
+            )
+        ):
+            justification = convert_document_value(
+                {
+                    **justification.to_payload(),
+                    "attack_target": SourceAttackTargetDocument(
+                        target_claim=attack_target_claim,
+                        target_justification_id=attack_target_justification_id,
+                        target_premise_index=attack_target_premise_index,
+                    ),
+                },
+                SourceJustificationDocument,
+                source=f"{branch}:justifications proposal",
+            )
+        justifications.append(justification)
+        normalized = normalize_source_justifications_payload(
+            SourceJustificationsDocument(source=existing.source, justifications=tuple(justifications)),
+            claim_index=claim_index,
+        )
 
-    repo.families.source_justifications.save(
-        SourceRef(source_name),
-        normalized,
-        message=f"Propose justification for {normalize_source_slug(source_name)}",
-    )
+        try:
+            repo.families.source_justifications.save(
+                SourceRef(source_name),
+                normalized,
+                message=f"Propose justification for {normalize_source_slug(source_name)}",
+                expected_head=expected_head,
+            )
+        except ValueError as exc:
+            if attempt == 7 or not is_stale_branch_error(exc):
+                raise
+            continue
+        last_normalized = normalized
+        break
 
-    for entry in normalized.justifications:
-        if entry.id == just_id:
-            return entry
-    return normalized.justifications[-1]
+    if last_normalized is not None:
+        for entry in last_normalized.justifications:
+            if entry.id == just_id:
+                return entry
+        return last_normalized.justifications[-1]
+    raise ValueError(f"could not write justification proposal {just_id!r}")
 
 
 def commit_source_stance_proposal(
@@ -236,39 +298,52 @@ def commit_source_stance_proposal(
     note: str | None = None,
 ) -> SourceStanceEntryDocument:
     branch = source_branch_name(source_name)
-    claim_index = load_source_claim_reference_index(repo, source_name)
-    existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(stances=())
-    stances = list(existing.stances)
     normalized_stance_type = coerce_stance_type(stance_type)
     assert normalized_stance_type is not None
+    last_normalized: SourceStancesDocument | None = None
+    for attempt in range(8):
+        expected_head = current_source_branch_head(repo, source_name)
+        claim_index = load_source_claim_reference_index(repo, source_name)
+        existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(stances=())
+        stances = list(existing.stances)
 
-    stance = SourceStanceEntryDocument(
-        source_claim=source_claim,
-        target=target,
-        type=normalized_stance_type,
-    )
-    if strength is not None:
-        stance = convert_document_value(
-            {**stance.to_payload(), "strength": strength},
-            SourceStanceEntryDocument,
-            source=f"{branch}:stances proposal",
+        stance = SourceStanceEntryDocument(
+            source_claim=source_claim,
+            target=target,
+            type=normalized_stance_type,
         )
-    if note is not None:
-        stance = convert_document_value(
-            {**stance.to_payload(), "note": note},
-            SourceStanceEntryDocument,
-            source=f"{branch}:stances proposal",
+        if strength is not None:
+            stance = convert_document_value(
+                {**stance.to_payload(), "strength": strength},
+                SourceStanceEntryDocument,
+                source=f"{branch}:stances proposal",
+            )
+        if note is not None:
+            stance = convert_document_value(
+                {**stance.to_payload(), "note": note},
+                SourceStanceEntryDocument,
+                source=f"{branch}:stances proposal",
+            )
+        stances.append(stance)
+        normalized = normalize_source_stances_payload(
+            SourceStancesDocument(source=existing.source, stances=tuple(stances)),
+            claim_index=claim_index,
         )
-    stances.append(stance)
-    normalized = normalize_source_stances_payload(
-        SourceStancesDocument(source=existing.source, stances=tuple(stances)),
-        claim_index=claim_index,
-    )
 
-    repo.families.source_stances.save(
-        SourceRef(source_name),
-        normalized,
-        message=f"Propose stance for {normalize_source_slug(source_name)}",
-    )
+        try:
+            repo.families.source_stances.save(
+                SourceRef(source_name),
+                normalized,
+                message=f"Propose stance for {normalize_source_slug(source_name)}",
+                expected_head=expected_head,
+            )
+        except ValueError as exc:
+            if attempt == 7 or not is_stale_branch_error(exc):
+                raise
+            continue
+        last_normalized = normalized
+        break
 
-    return normalized.stances[-1]
+    if last_normalized is not None:
+        return last_normalized.stances[-1]
+    raise ValueError("could not write stance proposal")

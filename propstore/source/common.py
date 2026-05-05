@@ -28,6 +28,23 @@ from propstore.families.documents.micropubs import MicropublicationsFileDocument
 TDocument = TypeVar("TDocument")
 
 
+def is_stale_branch_error(exc: ValueError) -> bool:
+    """Return whether a git write failed because its expected branch head is stale."""
+    message = str(exc)
+    return "head mismatch" in message or "head changed" in message
+
+
+def current_source_branch_head(repo: Repository, name: str) -> str | None:
+    """Read the current source branch head directly from git.
+
+    ``Repository.snapshot`` is cached per Repository instance, so source-local
+    compare-and-swap retries must ask the git backend for the live ref.
+    """
+    if repo.git is None:
+        return None
+    return repo.git.branch_sha(source_branch_name(name))
+
+
 def normalize_source_slug(name: str) -> str:
     cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in name.strip())
     cleaned = cleaned.strip("._-")

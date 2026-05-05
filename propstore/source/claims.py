@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from propstore.canonical_namespaces import assert_namespace_not_reserved
+from propstore.core.conditions.registry import ConceptInfo
 from propstore.families.claims.documents import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.families.registry import SourceRef
 from propstore.core.claim_types import ClaimType, coerce_claim_type
@@ -18,6 +19,8 @@ from propstore.families.identity.claims import (
 from propstore.families.identity.logical_ids import normalize_logical_value
 
 from .common import (
+    current_source_branch_head,
+    is_stale_branch_error,
     load_source_claims_document,
     load_source_concepts_document,
     load_source_document,
@@ -150,7 +153,6 @@ def _source_branch_cel_concepts(
     without a usable handle are skipped silently (they will surface during
     promote/build).
     """
-    from propstore.core.conditions.registry import ConceptInfo
     from propstore.families.forms.stages import kind_type_from_form_name
 
     concepts_doc = load_source_concepts_document(repo, source_name)
@@ -458,83 +460,128 @@ def commit_source_claim_proposal(
     statement: str | None = None,
     concept: str | None = None,
     value: float | None = None,
+    lower_bound: float | None = None,
+    upper_bound: float | None = None,
     unit: str | None = None,
     context: str,
+    concepts: tuple[str, ...] = (),
+    conditions: tuple[str, ...] = (),
+    notes: str | None = None,
+    uncertainty: float | None = None,
+    uncertainty_type: str | None = None,
     page: int | None = None,
+    section: str | None = None,
+    quote_fragment: str | None = None,
+    table: str | None = None,
+    figure: str | None = None,
 ) -> SourceClaimDocument:
     branch = source_branch_name(source_name)
     source_doc = load_source_document(repo, source_name)
-    existing = load_source_claims_document(repo, source_name) or SourceClaimsDocument(
-        source=ClaimSourceDocument(paper=normalize_source_slug(source_name)),
-        claims=(),
-    )
-    claims = list(existing.claims)
+    normalized_claim_type = coerce_claim_type(claim_type)
+    assert normalized_claim_type is not None
+    last_normalized: SourceClaimsDocument | None = None
 
-    norm_keys = {"source_local_id", "logical_ids", "artifact_id", "version_id"}
-    restored: list[SourceClaimDocument] = []
-    for claim in claims:
-        if claim.source_local_id == claim_id or claim.id == claim_id:
-            continue
-        restored_claim = {key: value for key, value in claim.to_payload().items() if key not in norm_keys}
-        local_id = claim.source_local_id
-        if local_id:
-            restored_claim["id"] = local_id
-        restored.append(
+    for attempt in range(8):
+        expected_head = current_source_branch_head(repo, source_name)
+        existing = load_source_claims_document(repo, source_name) or SourceClaimsDocument(
+            source=ClaimSourceDocument(paper=normalize_source_slug(source_name)),
+            claims=(),
+        )
+        claims = list(existing.claims)
+
+        norm_keys = {"source_local_id", "logical_ids", "artifact_id", "version_id"}
+        restored: list[SourceClaimDocument] = []
+        for claim in claims:
+            if claim.source_local_id == claim_id or claim.id == claim_id:
+                continue
+            restored_claim = {key: value for key, value in claim.to_payload().items() if key not in norm_keys}
+            local_id = claim.source_local_id
+            if local_id:
+                restored_claim["id"] = local_id
+            restored.append(
+                convert_document_value(
+                    restored_claim,
+                    SourceClaimDocument,
+                    source=f"{branch}:claims proposal {claim_id}",
+                )
+            )
+        claims = restored
+
+        claim_payload: dict[str, object] = {
+            "id": claim_id,
+            "type": normalized_claim_type.value,
+            "context": context,
+        }
+        if statement is not None:
+            claim_payload["statement"] = statement
+        if concept is not None:
+            claim_payload["concept"] = concept
+        if concepts:
+            claim_payload["concepts"] = list(concepts)
+        if conditions:
+            claim_payload["conditions"] = list(conditions)
+        if value is not None:
+            claim_payload["value"] = value
+        if lower_bound is not None:
+            claim_payload["lower_bound"] = lower_bound
+        if upper_bound is not None:
+            claim_payload["upper_bound"] = upper_bound
+        if unit is not None:
+            claim_payload["unit"] = unit
+        if notes is not None:
+            claim_payload["notes"] = notes
+        if uncertainty is not None:
+            claim_payload["uncertainty"] = uncertainty
+        if uncertainty_type is not None:
+            claim_payload["uncertainty_type"] = uncertainty_type
+        if any(value is not None for value in (page, section, quote_fragment, table, figure)):
+            claim_payload["provenance"] = SourceProvenanceDocument(
+                paper=normalize_source_slug(source_name),
+                page=page,
+                section=section,
+                quote_fragment=quote_fragment,
+                table=table,
+                figure=figure,
+            )
+
+        claims.append(
             convert_document_value(
-                restored_claim,
+                claim_payload,
                 SourceClaimDocument,
                 source=f"{branch}:claims proposal {claim_id}",
             )
         )
-    claims = restored
+        data = SourceClaimsDocument(
+            source=existing.source or ClaimSourceDocument(paper=normalize_source_slug(source_name)),
+            claims=tuple(claims),
+        )
+        validate_source_claim_concepts(repo, source_name, data)
+        validate_source_claim_cel_expressions(repo, source_name, data)
+        validate_source_claim_value_bounds(repo, source_name, data)
 
-    normalized_claim_type = coerce_claim_type(claim_type)
-    assert normalized_claim_type is not None
-
-    claim_payload: dict[str, object] = {
-        "id": claim_id,
-        "type": normalized_claim_type.value,
-        "context": context,
-    }
-    if statement is not None:
-        claim_payload["statement"] = statement
-    if concept is not None:
-        claim_payload["concept"] = concept
-    if value is not None:
-        claim_payload["value"] = value
-    if unit is not None:
-        claim_payload["unit"] = unit
-    if page is not None:
-        claim_payload["provenance"] = SourceProvenanceDocument(
-            paper=normalize_source_slug(source_name),
-            page=page,
+        normalized, _ = normalize_source_claims_payload(
+            data,
+            source_uri=source_doc.id or source_tag_uri(repo, source_name),
+            source_namespace=normalize_source_slug(source_name),
         )
 
-    claims.append(
-        convert_document_value(
-            claim_payload,
-            SourceClaimDocument,
-            source=f"{branch}:claims proposal {claim_id}",
-        )
-    )
-    data = SourceClaimsDocument(
-        source=existing.source or ClaimSourceDocument(paper=normalize_source_slug(source_name)),
-        claims=tuple(claims),
-    )
+        try:
+            repo.families.source_claims.save(
+                SourceRef(source_name),
+                normalized,
+                message=f"Propose claim for {normalize_source_slug(source_name)}",
+                expected_head=expected_head,
+            )
+        except ValueError as exc:
+            if attempt == 7 or not is_stale_branch_error(exc):
+                raise
+            continue
+        last_normalized = normalized
+        break
 
-    normalized, _ = normalize_source_claims_payload(
-        data,
-        source_uri=source_doc.id or source_tag_uri(repo, source_name),
-        source_namespace=normalize_source_slug(source_name),
-    )
-
-    repo.families.source_claims.save(
-        SourceRef(source_name),
-        normalized,
-        message=f"Propose claim for {normalize_source_slug(source_name)}",
-    )
-
-    for entry in normalized.claims:
-        if entry.source_local_id == claim_id:
-            return entry
-    return normalized.claims[-1]
+    if last_normalized is not None:
+        for entry in last_normalized.claims:
+            if entry.source_local_id == claim_id:
+                return entry
+        return last_normalized.claims[-1]
+    raise ValueError(f"could not write claim proposal {claim_id!r}")

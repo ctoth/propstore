@@ -73,10 +73,21 @@ def propose_concept(
 @click.option("--type", "claim_type", required=True)
 @click.option("--statement", required=False)
 @click.option("--concept", required=False)
+@click.option("--concept-ref", "concept_refs", multiple=True)
+@click.option("--condition", "conditions", multiple=True)
 @click.option("--value", type=float, required=False)
+@click.option("--lower-bound", type=float, required=False)
+@click.option("--upper-bound", type=float, required=False)
 @click.option("--unit", required=False)
 @click.option("--context", required=True)
+@click.option("--notes", required=False)
+@click.option("--uncertainty", type=float, required=False)
+@click.option("--uncertainty-type", required=False)
 @click.option("--page", type=int, required=False)
+@click.option("--section", required=False)
+@click.option("--quote-fragment", required=False)
+@click.option("--table", required=False)
+@click.option("--figure", required=False)
 @click.pass_obj
 def propose_claim(
     obj: dict,
@@ -85,10 +96,21 @@ def propose_claim(
     claim_type: str,
     statement: str | None,
     concept: str | None,
+    concept_refs: tuple[str, ...],
+    conditions: tuple[str, ...],
     value: float | None,
+    lower_bound: float | None,
+    upper_bound: float | None,
     unit: str | None,
     context: str,
+    notes: str | None,
+    uncertainty: float | None,
+    uncertainty_type: str | None,
     page: int | None,
+    section: str | None,
+    quote_fragment: str | None,
+    table: str | None,
+    figure: str | None,
 ) -> None:
     repo: Repository = obj["repo"]
     try:
@@ -101,9 +123,20 @@ def propose_claim(
                 statement=statement,
                 concept=concept,
                 value=value,
+                lower_bound=lower_bound,
+                upper_bound=upper_bound,
                 unit=unit,
                 context=context,
+                concepts=concept_refs,
+                conditions=conditions,
+                notes=notes,
+                uncertainty=uncertainty,
+                uncertainty_type=uncertainty_type,
                 page=page,
+                section=section,
+                quote_fragment=quote_fragment,
+                table=table,
+                figure=figure,
             ),
         )
     except (SourceAppError, ValueError) as exc:
@@ -119,7 +152,15 @@ def propose_claim(
 @click.option("--conclusion", required=True)
 @click.option("--premises", required=True)
 @click.option("--rule-kind", required=True)
+@click.option("--rule-strength", required=False)
 @click.option("--page", type=int, required=False)
+@click.option("--section", required=False)
+@click.option("--quote-fragment", required=False)
+@click.option("--table", required=False)
+@click.option("--figure", required=False)
+@click.option("--attack-target-claim", required=False)
+@click.option("--attack-target-justification-id", required=False)
+@click.option("--attack-target-premise-index", type=int, required=False)
 @click.pass_obj
 def propose_justification(
     obj: dict,
@@ -128,7 +169,15 @@ def propose_justification(
     conclusion: str,
     premises: str,
     rule_kind: str,
+    rule_strength: str | None,
     page: int | None,
+    section: str | None,
+    quote_fragment: str | None,
+    table: str | None,
+    figure: str | None,
+    attack_target_claim: str | None,
+    attack_target_justification_id: str | None,
+    attack_target_premise_index: int | None,
 ) -> None:
     repo: Repository = obj["repo"]
     try:
@@ -140,7 +189,15 @@ def propose_justification(
                 conclusion=conclusion,
                 premises=premises,
                 rule_kind=rule_kind,
+                rule_strength=rule_strength,
                 page=page,
+                section=section,
+                quote_fragment=quote_fragment,
+                table=table,
+                figure=figure,
+                attack_target_claim=attack_target_claim,
+                attack_target_justification_id=attack_target_justification_id,
+                attack_target_premise_index=attack_target_premise_index,
             ),
         )
     except ValueError as exc:
