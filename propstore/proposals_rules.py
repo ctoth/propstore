@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from propstore.families.documents.rules import RuleSourceDocument, RulesFileDocument
 from propstore.families.registry import RuleFileRef, RuleProposalRef
 from propstore.proposals import UnknownProposalPath
+from propstore.app.rules import _RULE_MUTATION_LOCK, reject_rule_document_conflicts
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -117,17 +118,16 @@ def promote_rule_proposals(
     if plan.proposal_tip is None:
         raise ValueError("rule proposal promotion requires a proposal tip")
 
-    with repo.families.transact(
-        message=f"Promote {len(plan.items)} rule proposal file(s) from {plan.branch}",
-    ) as transaction:
-        for item in plan.items:
-            proposal_ref = RuleProposalRef(item.source_paper, item.rule_id)
-            proposal = repo.families.proposal_rules.require(
-                proposal_ref,
-                commit=plan.proposal_tip,
-            )
-            canonical_ref = _canonical_ref(item.source_paper, item.rule_id)
-            transaction.rules.save(
+    documents: list[tuple[RuleFileRef, RulesFileDocument]] = []
+    for item in plan.items:
+        proposal_ref = RuleProposalRef(item.source_paper, item.rule_id)
+        proposal = repo.families.proposal_rules.require(
+            proposal_ref,
+            commit=plan.proposal_tip,
+        )
+        canonical_ref = _canonical_ref(item.source_paper, item.rule_id)
+        documents.append(
+            (
                 canonical_ref,
                 RulesFileDocument(
                     source=RuleSourceDocument(paper=item.source_paper),
@@ -135,4 +135,22 @@ def promote_rule_proposals(
                     promoted_from_sha=plan.proposal_tip,
                 ),
             )
+        )
+
+    with _RULE_MUTATION_LOCK, repo.head_bound_transaction(
+        repo.snapshot.primary_branch_name(),
+        path="proposal.rules.promote",
+    ) as head_txn:
+        for _ref, document in documents:
+            reject_rule_document_conflicts(
+                repo,
+                commit=head_txn.expected_head,
+                document=document,
+            )
+
+        with head_txn.families_transact(
+            message=f"Promote {len(plan.items)} rule proposal file(s) from {plan.branch}",
+        ) as transaction:
+            for canonical_ref, document in documents:
+                transaction.rules.save(canonical_ref, document)
     return RuleProposalPromotionResult(len(plan.items), plan.branch, plan.items)
