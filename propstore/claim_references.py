@@ -61,6 +61,7 @@ class ClaimReferenceResolver:
             return False
         return (
             target in self.source.artifact_ids
+            or target in self.source.local_to_artifact
             or target in self.primary.artifact_ids
             or target in self.source.logical_to_artifact
             or target in self.primary.logical_to_artifact
