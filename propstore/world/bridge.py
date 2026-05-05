@@ -20,8 +20,10 @@ Correctness, not faking: ``at_journal_step`` reads
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
+from propstore.core.row_types import ClaimRow
 from propstore.support_revision.history import TransitionJournal
 from propstore.support_revision.projection import snapshot_to_claim_ids
 from propstore.support_revision.scope_policy import scope_policy
@@ -36,7 +38,15 @@ class BeliefSpaceQuery(Protocol):
     fixture implements both ``claims_by_ids`` and ``bind_for_view``.
     """
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Any]: ...
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRow]: ...
+
+    def bind_for_view(
+        self,
+        *,
+        bindings: Mapping[str, Any],
+        context_id: str | None,
+        restricted_to: frozenset[str],
+    ) -> object: ...
 
 
 @scope_policy(
@@ -105,7 +115,7 @@ def at_journal_step(
         # Real binding: bind_for_view returns an observable artifact carrying
         # the bindings/context/restricted_to set so callers can verify the
         # rebind path actually rebound. No silent no-op.
-        bound = belief_space.bind_for_view(  # type: ignore[attr-defined]
+        bound = belief_space.bind_for_view(
             bindings=scope.bindings,
             context_id=scope.context_id,
             restricted_to=frozenset(claim_ids),
