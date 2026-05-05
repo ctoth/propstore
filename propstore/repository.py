@@ -263,13 +263,9 @@ class Repository:
         from propstore.storage import is_git_repo
 
         current = (start or Path.cwd()).resolve()
-        if is_git_repo(current):
-            if cls.is_propstore_repo(current):
-                return cls(current)
-            raise RepositoryNotFound(
-                f"Git repository at {current} is not a propstore repository. "
-                f"Run 'pks init' to create one."
-            )
+        if is_git_repo(current) and cls.is_propstore_repo(current):
+            return cls(current)
+
         # Walk up looking for knowledge/
         for ancestor in [current, *current.parents]:
             candidate = ancestor / "knowledge"
@@ -281,6 +277,11 @@ class Repository:
                 return cls(candidate)
             raise RepositoryNotFound(
                 f"Git repository at {candidate} is not a propstore repository. "
+                f"Run 'pks init' to create one."
+            )
+        if is_git_repo(current):
+            raise RepositoryNotFound(
+                f"Git repository at {current} is not a propstore repository. "
                 f"Run 'pks init' to create one."
             )
         raise RepositoryNotFound(
