@@ -323,26 +323,27 @@ def remove_predicate(
         raise PredicateWorkflowError("predicate id must be a non-empty string")
 
     ref = PredicateFileRef(request.file)
-    existing = repo.families.predicates.load(ref)
-    if existing is None:
-        raise PredicateFileNotFoundError(request.file)
+    with _PREDICATE_MUTATION_LOCK, repo.mutation_guard():
+        existing = repo.families.predicates.load(ref)
+        if existing is None:
+            raise PredicateFileNotFoundError(request.file)
 
-    relpath = repo.families.predicates.address(ref).require_path()
-    filepath = repo.root / relpath
+        relpath = repo.families.predicates.address(ref).require_path()
+        filepath = repo.root / relpath
 
-    if not any(entry.id == request.predicate_id for entry in existing.predicates):
-        raise PredicateNotFoundError(request.file, request.predicate_id)
+        if not any(entry.id == request.predicate_id for entry in existing.predicates):
+            raise PredicateNotFoundError(request.file, request.predicate_id)
 
-    remaining = tuple(
-        entry for entry in existing.predicates if entry.id != request.predicate_id
-    )
-    document = PredicatesFileDocument(predicates=remaining)
+        remaining = tuple(
+            entry for entry in existing.predicates if entry.id != request.predicate_id
+        )
+        document = PredicatesFileDocument(predicates=remaining)
 
-    repo.families.predicates.save(
-        ref,
-        document,
-        message=f"Remove predicate {request.predicate_id} from {request.file}",
-    )
+        repo.families.predicates.save(
+            ref,
+            document,
+            message=f"Remove predicate {request.predicate_id} from {request.file}",
+        )
 
     return PredicateRemoveReport(
         filepath=filepath,
