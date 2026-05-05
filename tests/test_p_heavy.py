@@ -17,8 +17,12 @@ named registered fixture; ``replay_at_step`` looks it up.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import pytest
 
+from propstore.core.row_types import ConflictRow, StanceRow
+from propstore.stances import StanceType
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
     JournalOperator,
@@ -44,7 +48,23 @@ from tests.fixtures.journal import (
 )
 
 
-def _build_heavy_journal(*, atoms, commit_sha: str, stances: tuple = ()):
+@dataclass
+class SyntheticHeavyBeliefSpace(SyntheticBeliefSpace):
+    stance_rows: tuple[StanceRow, ...] = ()
+    conflict_rows: tuple[ConflictRow, ...] = ()
+
+    def all_claim_stances(self) -> list[StanceRow]:
+        return list(self.stance_rows)
+
+    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
+        return list(self.conflict_rows)
+
+
+def _claim_id(local_id: str) -> str:
+    return f"propstore:claim:test/{local_id}"
+
+
+def _build_heavy_journal(*, atoms, commit_sha: str):
     """Build a 1-step journal whose state_out scope has commit=commit_sha."""
     state_in = make_state(atoms=(), accepted_atom_ids=())
     formula_atom = atoms[0]
@@ -113,16 +133,61 @@ def test_p_heavy_2_heavy_surfaces_stances_minimal_does_not() -> None:
     )
     space = synthetic_belief_space_with(atom)
     commit_sha = "b" * 40
-    # Pre-register a stance for this commit. The journal_replay module
-    # surfaces it under heavy=True only.
-    fake_stance = {"source": "c1", "target": "c2", "kind": "supports"}
-    register_fixture_commit(commit_sha, claim_ids=frozenset(), stances=(fake_stance,))
+    extra_row = space.add_claim("c2")
+    fake_stance = StanceRow(
+        claim_id=_claim_id("c1"),
+        target_claim_id=str(extra_row.claim_id),
+        stance_type=StanceType.SUPPORTS,
+    )
+    fake_conflict = ConflictRow(
+        claim_a_id=_claim_id("c1"),
+        claim_b_id=str(extra_row.claim_id),
+    )
+    register_fixture_commit(
+        commit_sha,
+        claim_ids=frozenset({str(extra_row.claim_id)}),
+        stances=(fake_stance,),
+        conflicts=(fake_conflict,),
+    )
     journal = _build_heavy_journal(atoms=(atom,), commit_sha=commit_sha)
 
     light = at_journal_step(space, journal, 0, heavy=False)
     heavy = at_journal_step(space, journal, 0, heavy=True)
     assert light.stances == ()
+    assert light.conflicts == ()
     assert heavy.stances == (fake_stance,)
+    assert heavy.conflicts == (fake_conflict,)
+
+
+def test_p_heavy_2b_unregistered_commit_derives_typed_rows_from_world_query_surface() -> None:
+    """Heavy returns production stance/conflict rows for the accepted claim set."""
+    atom = make_assertion_atom(
+        relation_local="r",
+        subject="s",
+        value="v",
+        source_claim_local_ids=("c1", "c2"),
+    )
+    base_space = synthetic_belief_space_with(atom)
+    stance = StanceRow(
+        claim_id=_claim_id("c1"),
+        target_claim_id=_claim_id("c2"),
+        stance_type=StanceType.REBUTS,
+    )
+    conflict = ConflictRow(
+        claim_a_id=_claim_id("c1"),
+        claim_b_id=_claim_id("c2"),
+    )
+    space = SyntheticHeavyBeliefSpace(
+        rows=base_space.rows,
+        stance_rows=(stance,),
+        conflict_rows=(conflict,),
+    )
+    journal = _build_heavy_journal(atoms=(atom,), commit_sha="d" * 40)
+
+    heavy = at_journal_step(space, journal, 0, heavy=True)
+    assert heavy.claim_ids() == {_claim_id("c1"), _claim_id("c2")}
+    assert heavy.stances == (stance,)
+    assert heavy.conflicts == (conflict,)
 
 
 def test_p_heavy_3_cache_hits_misses_are_observable() -> None:
