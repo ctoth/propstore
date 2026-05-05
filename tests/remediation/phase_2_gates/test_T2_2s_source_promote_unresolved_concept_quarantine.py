@@ -13,6 +13,7 @@ from propstore.families.registry import ClaimsFileRef, SourceRef
 from propstore.repository import Repository
 from propstore.source import normalize_source_claims_payload, source_branch_name
 from propstore.source.common import load_source_document
+from tests.conftest import make_test_context_commit_entry
 from tests.family_helpers import build_sidecar
 
 
@@ -44,6 +45,12 @@ def test_source_promote_unresolved_concept_mapping_quarantines_claim_not_valid_c
 ) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
+    repo.git.commit_batch(
+        adds=dict([make_test_context_commit_entry()]),
+        deletes=[],
+        message="Seed test context",
+        branch="master",
+    )
 
     init = runner.invoke(
         cli,
