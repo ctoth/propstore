@@ -10,7 +10,7 @@ from propstore.cli import cli
 from propstore.families.registry import ClaimsFileRef
 from propstore.repository import Repository
 from propstore.source import source_branch_name
-from tests.conftest import normalize_concept_payloads
+from tests.conftest import make_test_context_commit_entry, normalize_concept_payloads
 from tests.family_helpers import build_sidecar
 
 
@@ -50,6 +50,12 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
     runner = CliRunner()
     known_artifact_id = _seed_master_concept(repo, name="known_concept")
     _seed_master_concept(repo, name="novel_concept")
+    repo.git.commit_batch(
+        adds=dict([make_test_context_commit_entry()]),
+        deletes=[],
+        message="Seed test context",
+        branch="master",
+    )
 
     init = runner.invoke(
         cli,
