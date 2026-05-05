@@ -46,9 +46,17 @@ def test_source_promote_unresolved_concept_mapping_quarantines_claim_not_valid_c
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
     repo.git.commit_batch(
-        adds=dict([make_test_context_commit_entry()]),
+        adds=dict(
+            [
+                make_test_context_commit_entry(),
+                (
+                    "forms/structural.yaml",
+                    b"name: structural\ndimensionless: true\n",
+                ),
+            ]
+        ),
         deletes=[],
-        message="Seed test context",
+        message="Seed test context and form",
         branch="master",
     )
 
