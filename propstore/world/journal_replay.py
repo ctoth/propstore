@@ -5,8 +5,10 @@ Per quire/plans/worldline-journal-bridge-2026-05-02.md sections 7 + 11
 
 The minimal bridge (``at_journal_step(..., heavy=False)``) projects only
 the claim-id set accepted at step k. The heavy variant additionally
-re-derives stances and conflicts at that step by checking out
-``state.scope.commit`` and rebuilding the live view at that commit.
+re-derives stances and conflicts visible within that accepted claim set
+from the belief-space query surface. ``state.scope.commit`` anchors the
+cache key and proves the caller supplied a concrete worldline coordinate;
+this module does not perform a Git checkout.
 
 For property testing we register fixture commits explicitly via
 ``register_fixture_commit(commit_sha, claim_ids, stances, conflicts)``.
