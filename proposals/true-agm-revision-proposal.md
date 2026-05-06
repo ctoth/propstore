@@ -1,8 +1,10 @@
 # Proposal: Belief Revision Architecture In Propstore
 
 **Updated:** 2026-05-06
-**Status:** Current architecture implemented across propstore and sibling
-dependencies; remaining formal gaps are dependency-owned and listed below.
+**Status:** Ownership split is implemented, but formal-kernel delegation from
+propstore into `belief_set` is not yet implemented. The remaining work is a
+deletion-first cutover from propstore-local AGM-shaped operator logic to
+dependency-owned formal kernels.
 **Grounded in:** the current propstore codebase, `../belief-set`,
 `../argumentation`, `../belief-set/papers/*/notes.md`, and the project
 docs/tests cited in this file.
@@ -53,6 +55,12 @@ Corollaries:
   substitutes for formal belief-set state
 
 If the code or docs blur these boundaries, the architecture regresses.
+
+Current caveat: `propstore.support_revision` still contains local
+operator/entrenchment/iterated policy behavior. That code is operational
+support-incision machinery, not formal AGM, and the target cutover is to delete
+the AGM-shaped decision logic from propstore and route formal decisions through
+`belief_set` via one explicit adapter.
 
 ---
 
@@ -229,13 +237,20 @@ how can that episode be explained and replayed?"
 
 ---
 
-## Propstore Integration
+## Propstore Integration Target
 
 ### How Propstore Uses The Formal Behavior
 
+This is target behavior, not a description of the current production call graph.
+As of this proposal, production `propstore` has no concrete `belief_set` import
+edge; `support_revision.operators`, `support_revision.iterated`, and
+`support_revision.entrenchment` still own local AGM-shaped behavior. Those local
+decision paths should be deleted during cutover, not wrapped or preserved in
+parallel.
+
 Propstore should use the formal dependency behavior as a decision and audit
-kernel over scoped projections, then use propstore-owned support machinery to
-realize the accepted decision against source-backed world artifacts.
+kernel over scoped projections, then use propstore-owned support machinery only
+to realize the accepted decision against source-backed world artifacts.
 
 The concrete integration shape is:
 
@@ -244,13 +259,24 @@ The concrete integration shape is:
 3. run the requested formal operation in `belief_set`
 4. compare the formal accepted/rejected formulas with the projected support
    base
-5. compute propstore incision sets, provenance, explanations, and journal
-   entries
+5. compute propstore support-realization incision sets, provenance,
+   explanations, and journal entries
 6. replay from the journal by rerunning the normalized operation against the
    captured snapshot
 
-This keeps the behavior principled without making propstore source storage or
-ATMS labels pretend to be the formal reviser.
+This keeps the behavior principled without making propstore source storage,
+ATMS labels, or support-derived rankings pretend to be the formal reviser.
+
+The integration has two typed contracts:
+
+- decision contract: projection inputs plus the formal `belief_set` answer
+- realization contract: propstore support cuts, provenance, explanation, and
+  journal records needed to make the scoped world projection conform to the
+  formal answer
+
+Callers must be able to inspect both. "The formal kernel selected these
+formulas/worlds" and "propstore realized that selection by cutting these support
+assumptions" are distinct facts.
 
 Closed-theory AGM is useful in propstore when the question is semantic:
 "after accepting this formula, which formulas should be believed in the scoped
@@ -381,6 +407,29 @@ must use an explicit merge path.
 This is intentional. A linear within-branch revision episode is not a
 multi-parent merge.
 
+### Formal Adapter Boundary
+
+The cutover should introduce exactly one production import edge from propstore
+to `belief_set`: `propstore.support_revision.belief_set_adapter`. All other
+propstore modules should call owner-layer propstore APIs and should not import
+`belief_set` directly.
+
+The adapter owns:
+
+- projection from `BoundWorld` and `RevisionScope` into a finite formal
+  alphabet, belief base or closed `BeliefSet`, optional `SpohnEpistemicState`,
+  and reverse maps back to propstore atom/source identities
+- propagation of `belief_set.anytime.AlphabetBudgetExceeded` and
+  `EnumerationExceeded` as typed revision failures
+- calls into `belief_set.agm`, `belief_set.iterated`, and `belief_set.ic_merge`
+  for formal decisions
+- conversion of the formal decision into a realization request for
+  propstore-owned support incision
+
+The adapter does not own support graph mutation, CLI rendering, worldline
+journal hashing, source mutation, AF revision kernels, or assignment-selection
+merge.
+
 ---
 
 ## Merge Boundary
@@ -483,17 +532,37 @@ Boundary gates that must remain true:
 
 - `propstore.revision` must stay retired
 - `propstore.support_revision` must not export or be described as AGM
+- after cutover, `propstore.support_revision.belief_set_adapter` must be the
+  only production module importing `belief_set`
 - context lifting, ASPIC projection, and grounding must not import
   `belief_set`
 - support-revision snapshots must reject malformed loose mappings
 - worldline revision capture must snapshot state rather than persist live state
 - changing a revision payload must change the worldline content hash
+- local support-revision modules must not contain hand-rolled lexicographic,
+  restrained, partial-meet, remainder-set, sphere, or IC-merge kernels
+
+Additional cutover gates to add:
+
+- adapter projection tests showing a scoped `BoundWorld` maps to the expected
+  finite `belief_set` alphabet and reverse identity maps
+- direct equivalence tests between propstore adapter decisions and direct
+  `belief_set` calls for expansion, revision, contraction, lexicographic
+  revision, and restrained revision
+- budget tests proving `AlphabetBudgetExceeded` and `EnumerationExceeded` become
+  typed revision failures
+- merge tests proving multi-parent worldline revision dispatches to
+  `belief_set.ic_merge` and linear iterated revision still refuses merge-parent
+  states
+- legacy phase-1 revision suites must either be updated to the adapter boundary
+  or deleted in the cutover commit
 
 ---
 
 ## Current Recommendation
 
-Keep the architecture split exactly as it is:
+Keep the ownership split, but do not preserve the current propstore-local
+operator implementation as the final architecture:
 
 1. Put formal belief-set revision, entrenchment, and IC merge in
    `../belief-set`.
@@ -513,6 +582,51 @@ The old implementation order in this proposal has been superseded. The active
 work is no longer "build `propstore/revision` through Phase 5"; it is "protect
 the dependency-owned formal kernels and propstore-owned support-incision
 boundary while completing the formal surfaces in their owning dependencies."
+
+The production cutover is deletion-first:
+
+- delete propstore-local AGM-shaped decision logic from `support_revision`
+- route formal decisions through `support_revision.belief_set_adapter`
+- keep only support-realization, explanation, snapshot, and journal behavior in
+  propstore
+- update every caller in the same slice
+
+Passing tests while a parallel local decision path still exists is not
+completion.
+
+---
+
+## Implementation Order
+
+1. Stabilize the minimum `belief_set` public surfaces propstore will call:
+   `BeliefSet`, `expand`, `SpohnEpistemicState`, `agm.revise`,
+   `agm.full_meet_contract`, `entrenchment.EpistemicEntrenchment`,
+   `iterated.lexicographic_revise`, `iterated.restrained_revise`, and
+   `ic_merge.merge_belief_profile`.
+2. Tighten the propstore architecture gate before production cutover so exactly
+   `propstore.support_revision.belief_set_adapter` may import `belief_set`.
+3. Add `support_revision.belief_set_adapter` with the projection bundle,
+   reverse maps, budget handling, formal-operation dispatch, and typed decision
+   reports.
+4. Cut over `support_revision.operators` by deleting formal decision behavior
+   there and making expand/contract/revise consume adapter decisions plus
+   propstore support-realization.
+5. Cut over `support_revision.iterated` by deleting local lexicographic and
+   restrained ranking-update branches and calling the named `belief_set`
+   iterated operators.
+6. Cut over `support_revision.entrenchment` so propstore support reasons are a
+   companion explanation for a formal entrenchment/preorder decision, not a
+   substitute formal ordering.
+7. Wire worldline merge points through `belief_set.ic_merge` over projected
+   belief profiles and explicit integrity constraints. Keep assignment
+   selection as render-time observed-value selection only.
+8. Update app and CLI adapters to render the split decision/realization result
+   without changing CLI command ownership.
+9. Delete or rewrite legacy phase-1 revision tests in the same slice that makes
+   the stricter architecture gate pass.
+10. Add deferred `belief_set` surfaces one at a time: partial meet selection,
+    Levi/Harper composers, Grove spheres/preorders, Hansson belief-base
+    contraction, Katsuno-Mendelzon update, and remaining IC merge families.
 
 ---
 
