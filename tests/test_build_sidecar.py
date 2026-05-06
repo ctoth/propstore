@@ -14,7 +14,18 @@ from hypothesis import strategies as st
 
 from ast_equiv import canonical_dump
 from quire.documents import DocumentSchemaError
+from propstore.claims import loaded_claim_file_from_payload
+from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.families.documents.sources import (
+    SourceDocument,
+    SourceOriginDocument,
+    SourceTrustDocument,
+)
+from propstore.families.documents.stances import StanceEntryDocument, StanceFileDocument
 from propstore.repository import Repository
+from propstore.provenance import ProvenanceStatus
+from propstore.sidecar.authoring_lints import collect_authoring_lints
+from propstore.stances import StanceType
 from tests.family_helpers import build_sidecar as _build_sidecar
 from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
@@ -71,6 +82,65 @@ def build_sidecar(
 ):
     _commit_worktree(repo)
     return _build_sidecar(repo, sidecar_path, force=force, **kwargs)
+
+
+def test_authoring_lints_cover_sources_claims_and_stances() -> None:
+    source = SourceDocument(
+        id="source-unknown",
+        kind=SourceKind.ACADEMIC_PAPER,
+        origin=SourceOriginDocument(
+            type=SourceOriginType.MANUAL,
+            value="fixture",
+        ),
+        trust=SourceTrustDocument(status=ProvenanceStatus.STATED),
+        metadata=None,
+    )
+    claim_file = loaded_claim_file_from_payload(
+        filename="claims.yaml",
+        source_path=None,
+        data=normalize_claims_payload(
+            {
+                "source": {"paper": "fixture"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 1.0,
+                        "provenance": {"paper": "fixture", "page": 1},
+                        "stances": [
+                            {
+                                "type": "undercuts",
+                                "target": "claim2",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ),
+    )
+    stance_file = StanceFileDocument(
+        source_claim="claim3",
+        stances=(
+            StanceEntryDocument(
+                target="claim4",
+                type=StanceType.UNDERCUTS,
+            ),
+        ),
+    )
+
+    diagnostics = collect_authoring_lints(
+        source_entries=(("Unknown_2009_Test", source),),
+        stance_entries=(("claim3", stance_file),),
+        claim_files=(claim_file,),
+    )
+
+    codes = {diagnostic.code for diagnostic in diagnostics}
+    assert "authoring.source_unknown_slug" in codes
+    assert "authoring.source_missing_description" in codes
+    assert "authoring.claim_placeholder_page" in codes
+    assert "authoring.stance_missing_strength" in codes
+    assert "authoring.undercut_missing_target_justification" in codes
 
 
 def _normalize_claim_concept_refs(payload: dict) -> dict:

@@ -27,10 +27,21 @@ def validate_repository(repo: Repository):
     return run_validate_repository(repo)
 
 
-def build_repository(repo: Repository, *, output: str | None, force: bool):
+def build_repository(
+    repo: Repository,
+    *,
+    output: str | None,
+    force: bool,
+    strict_authoring: bool = False,
+):
     from propstore.compiler.workflows import build_repository as run_build_repository
 
-    return run_build_repository(repo, output=output, force=force)
+    return run_build_repository(
+        repo,
+        output=output,
+        force=force,
+        strict_authoring=strict_authoring,
+    )
 
 
 def query_sidecar(repo: Repository, request: SidecarQueryRequest):

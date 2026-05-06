@@ -30,7 +30,8 @@ _PHI_GROUP_GLOSSES = {
 def _emit_workflow_messages(messages) -> None:
     for message in messages:
         label = message.level.upper()
-        emit_error(f"{label} ({message.family.value}): {message.render()}")
+        family = "authoring" if message.code.startswith("authoring.") else message.family.value
+        emit_error(f"{label} ({family}): {message.render()}")
 
 
 @click.command()
@@ -64,12 +65,27 @@ def validate(obj: dict) -> None:
 @click.command()
 @click.option("-o", "--output", default=None, help="Output path")
 @click.option("--force", is_flag=True, help="Force rebuild")
+@click.option(
+    "--strict-authoring",
+    is_flag=True,
+    help="Promote authoring lints to build errors.",
+)
 @click.pass_obj
-def build(obj: dict, output: str | None, force: bool) -> None:
+def build(
+    obj: dict,
+    output: str | None,
+    force: bool,
+    strict_authoring: bool,
+) -> None:
     """Validate everything, build sidecar, run conflict detection."""
     repo: Repository = obj["repo"]
     try:
-        report = build_repository(repo, output=output, force=force)
+        report = build_repository(
+            repo,
+            output=output,
+            force=force,
+            strict_authoring=strict_authoring,
+        )
     except CompilerWorkflowError as exc:
         _emit_workflow_messages(exc.messages)
         emit_error(exc.summary)

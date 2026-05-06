@@ -5,7 +5,7 @@ for presenting these reports, not for deciding which compiler passes run.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from quire.documents import DocumentSchemaError
@@ -39,6 +39,7 @@ from propstore.families.forms.stages import FormCheckedRegistry, FormStage, Load
 from propstore.families.registry import PropstoreFamily
 from propstore.repository import Repository
 from propstore.semantic_passes.types import PassDiagnostic
+from propstore.sidecar.authoring_lints import collect_authoring_lints
 
 
 class CompilerWorkflowError(Exception):
@@ -373,6 +374,7 @@ def build_repository(
     *,
     output: str | None = None,
     force: bool = False,
+    strict_authoring: bool = False,
 ) -> RepositoryBuildReport:
     from propstore.sidecar.build import build_sidecar
 
@@ -568,6 +570,36 @@ def build_repository(
             )
     build_messages.extend(claim_messages)
 
+    source_entries = tuple(
+        (
+            handle.ref.name,
+            handle.document,
+        )
+        for handle in repo.families.sources.iter_handles(commit=hash_key)
+    )
+    stance_entries = tuple(
+        (
+            handle.ref.source_claim,
+            handle.document,
+        )
+        for handle in repo.families.stances.iter_handles(commit=hash_key)
+    )
+    authoring_lints = collect_authoring_lints(
+        source_entries=source_entries,
+        stance_entries=stance_entries,
+        claim_files=tuple(files),
+    )
+    if strict_authoring and authoring_lints:
+        authoring_errors = tuple(
+            replace(diagnostic, level="error")
+            for diagnostic in authoring_lints
+        )
+        raise CompilerWorkflowError(
+            f"Build aborted: {len(authoring_errors)} authoring error(s)",
+            authoring_errors,
+        )
+    build_messages.extend(authoring_lints)
+
     sidecar_path = Path(output) if output else repo.sidecar_path
     embedding_snapshots: list[BuildEmbeddingSnapshotReport] = []
 
@@ -593,10 +625,11 @@ def build_repository(
         concept_diagnostics=tuple(concept_messages),
         context_files=tuple(ctx_list),
         context_diagnostics=tuple(context_messages),
+        authoring_diagnostics=authoring_lints,
         on_embedding_snapshot=_record_embedding_snapshot,
     )
 
-    warning_count = len(concept_result.warnings)
+    warning_count = sum(1 for message in build_messages if message.is_warning)
     sidecar_missing = False
     try:
         from collections import defaultdict

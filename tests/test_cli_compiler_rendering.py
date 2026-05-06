@@ -35,7 +35,7 @@ def test_build_renders_phi_group_glosses_once_per_kind(
     monkeypatch.setattr(
         compiler_cmds,
         "build_repository",
-        lambda _repo, *, output, force: report,
+        lambda _repo, *, output, force, strict_authoring: report,
     )
 
     result = CliRunner().invoke(
@@ -57,3 +57,34 @@ def test_build_renders_phi_group_glosses_once_per_kind(
     ) in result.stderr
     assert "PHI_NODE: ps:concept:1 — 2 branches: ps:claim:1, ps:claim:2" in result.stderr
     assert "PHI_NODE: ps:concept:2 — 2 branches: ps:claim:3, ps:claim:4" in result.stderr
+
+
+def test_build_strict_authoring_flag_reaches_owner(monkeypatch) -> None:
+    report = RepositoryBuildReport(
+        concept_count=1,
+        claim_count=0,
+        conflict_count=0,
+        phi_node_count=0,
+        warning_count=0,
+        rebuilt=True,
+    )
+    seen: dict[str, bool] = {}
+
+    def _fake_build_repository(_repo, *, output, force, strict_authoring):
+        seen["strict_authoring"] = strict_authoring
+        return report
+
+    monkeypatch.setattr(
+        compiler_cmds,
+        "build_repository",
+        _fake_build_repository,
+    )
+
+    result = CliRunner().invoke(
+        compiler_cmds.build,
+        ["--strict-authoring"],
+        obj={"repo": object()},
+    )
+
+    assert result.exit_code == 0, result.output
+    assert seen["strict_authoring"] is True
