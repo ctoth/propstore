@@ -632,6 +632,7 @@ def build_bound_bridge_inputs(bound: FragilityWorld):
     active_graph = getattr(bound, "_active_graph", None)
     stance_rows = _extract_stance_rows(bound._store, active_by_id, active_graph=active_graph)
     justifications = _extract_justifications(
+        bound._store,
         active_by_id,
         stance_rows,
         active_graph=active_graph,
