@@ -11,6 +11,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
+from propstore.app.json_report import JsonReportMixin
 from propstore.world.types import RenderPolicy
 
 if TYPE_CHECKING:
@@ -50,7 +51,7 @@ class WorldStatusRequest:
 
 
 @dataclass(frozen=True)
-class WorldStatusReport:
+class WorldStatusReport(JsonReportMixin):
     concept_count: int
     visible_claim_count: int
     conflict_count: int
@@ -108,7 +109,7 @@ class WorldConceptResolutionCandidate:
 
 
 @dataclass(frozen=True)
-class WorldConceptQueryReport:
+class WorldConceptQueryReport(JsonReportMixin):
     canonical_name: str
     concept_display_id: str
     claims: tuple[WorldClaimLine, ...]
@@ -132,14 +133,14 @@ class WorldBindClaimLine:
 
 
 @dataclass(frozen=True)
-class WorldBindConceptReport:
+class WorldBindConceptReport(JsonReportMixin):
     concept_display_id: str
     status: str
     claims: tuple[WorldBindClaimLine, ...]
 
 
 @dataclass(frozen=True)
-class WorldBindActiveReport:
+class WorldBindActiveReport(JsonReportMixin):
     active_claim_count: int
     claims: tuple[WorldBindClaimLine, ...]
 
@@ -163,7 +164,7 @@ class WorldStanceLine:
 
 
 @dataclass(frozen=True)
-class WorldExplainReport:
+class WorldExplainReport(JsonReportMixin):
     claim_display_id: str
     claim_type: str
     concept_display_id: str
@@ -186,7 +187,7 @@ class WorldAlgorithmLine:
 
 
 @dataclass(frozen=True)
-class WorldAlgorithmsReport:
+class WorldAlgorithmsReport(JsonReportMixin):
     algorithms: tuple[WorldAlgorithmLine, ...]
 
 
@@ -198,7 +199,7 @@ class WorldDeriveRequest:
 
 
 @dataclass(frozen=True)
-class WorldDeriveReport:
+class WorldDeriveReport(JsonReportMixin):
     concept_id: str
     status: object
     value: object
@@ -231,7 +232,7 @@ class WorldHypotheticalChangeLine:
 
 
 @dataclass(frozen=True)
-class WorldHypotheticalReport:
+class WorldHypotheticalReport(JsonReportMixin):
     changes: tuple[WorldHypotheticalChangeLine, ...]
 
 
@@ -255,7 +256,7 @@ class WorldAcceptanceProbabilityLine:
 
 
 @dataclass(frozen=True)
-class WorldResolveReport:
+class WorldResolveReport(JsonReportMixin):
     concept_display_id: str
     status: object
     value: object
@@ -286,7 +287,7 @@ class WorldChainStepLine:
 
 
 @dataclass(frozen=True)
-class WorldChainReport:
+class WorldChainReport(JsonReportMixin):
     target: WorldChainConceptLine
     status: object
     value: object

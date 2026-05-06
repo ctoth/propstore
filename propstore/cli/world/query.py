@@ -1,6 +1,8 @@
 """Basic ``pks world`` query command adapters."""
 from __future__ import annotations
 
+import json
+
 import click
 
 from propstore.cli.helpers import fail
@@ -43,6 +45,10 @@ def _render_policy_request(
     )
 
 
+def _emit_report_json(report) -> None:
+    emit(json.dumps(report.to_json(), indent=2))
+
+
 @world.command("status")
 @click.option(
     "--include-drafts",
@@ -67,12 +73,14 @@ def _render_policy_request(
         "Surface a Diagnostics count line sourced from build_diagnostics."
     ),
 )
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_status(
     obj: dict,
     include_drafts: bool,
     include_blocked: bool,
     show_quarantined: bool,
+    fmt: str,
 ) -> None:
     """Show knowledge base stats and authored reasoning inventory.
 
@@ -85,6 +93,9 @@ def world_status(
     repo: Repository = obj["repo"]
     render_policy = _render_policy_request(include_drafts, include_blocked, show_quarantined)
     report = run_world_status(repo, AppWorldStatusRequest(render_policy=render_policy))
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     emit(f"Sources:        {report.source_count}")
     emit(f"Contexts:       {report.context_count}")
     emit(f"Concepts:       {report.concept_count}")
@@ -123,6 +134,7 @@ def world_status(
         "Append a Diagnostics block sourced from build_diagnostics."
     ),
 )
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_query(
     obj: dict,
@@ -130,6 +142,7 @@ def world_query(
     include_drafts: bool,
     include_blocked: bool,
     show_quarantined: bool,
+    fmt: str,
 ) -> None:
     """Show all claims for a concept under the lifecycle-visibility
     policy.
@@ -156,6 +169,9 @@ def world_query(
     except UnknownConceptError:
         fail(f"Unknown concept: {concept_id}")
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     if report.resolved_from is not None:
         emit(f"Resolved {report.resolved_from} -> {report.concept_display_id}")
     emit(f"{report.canonical_name} ({report.concept_display_id})")
@@ -177,8 +193,9 @@ def world_query(
 
 @world.command("bind")
 @click.argument("args", nargs=-1)
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_bind(obj: dict, args: tuple[str, ...]) -> None:
+def world_bind(obj: dict, args: tuple[str, ...], fmt: str) -> None:
     """Show active claims under condition bindings.
 
     Usage: pks world bind domain=example [concept_id]
@@ -192,6 +209,9 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
         AppWorldBindRequest(bindings=bindings, target=query_concept),
     )
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     if isinstance(report, WorldBindConceptReport):
         emit(f"{report.concept_display_id}: {report.status}")
         for claim in report.claims:
@@ -212,8 +232,9 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
 
 @world.command("explain")
 @click.argument("claim_id")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_explain(obj: dict, claim_id: str) -> None:
+def world_explain(obj: dict, claim_id: str, fmt: str) -> None:
     """Show the stance chain for a claim."""
     repo: Repository = obj["repo"]
     try:
@@ -221,6 +242,9 @@ def world_explain(obj: dict, claim_id: str) -> None:
     except UnknownClaimError:
         fail(f"Unknown claim: {claim_id}")
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     emit(
         f"{report.claim_display_id}: {report.claim_type} "
         f"concept={report.concept_display_id} "
@@ -240,8 +264,14 @@ def world_explain(obj: dict, claim_id: str) -> None:
 @world.command("algorithms")
 @click.option("--stage", default=None, help="Filter by processing stage")
 @click.option("--concept", default=None, help="Filter by concept")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
+def world_algorithms(
+    obj: dict,
+    stage: str | None,
+    concept: str | None,
+    fmt: str,
+) -> None:
     """List algorithm claims in the world model."""
     repo: Repository = obj["repo"]
     report = run_world_algorithms(
@@ -249,6 +279,9 @@ def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
         AppWorldAlgorithmsRequest(stage=stage, concept=concept),
     )
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     if not report.algorithms:
         emit("No algorithm claims found.")
         return

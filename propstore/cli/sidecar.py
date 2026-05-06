@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import click
 
 from propstore.app.compiler import SidecarQueryError, SidecarQueryRequest, query_sidecar
@@ -17,8 +19,9 @@ def sidecar() -> None:
 
 @sidecar.command("query")
 @click.argument("sql")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def query(obj: dict, sql: str) -> None:
+def query(obj: dict, sql: str, fmt: str) -> None:
     """Run raw SQL against the sidecar SQLite."""
     repo: Repository = obj["repo"]
     try:
@@ -28,6 +31,9 @@ def query(obj: dict, sql: str) -> None:
     except SidecarQueryError as exc:
         fail(f"SQL error: {exc}")
 
+    if fmt == "json":
+        emit(json.dumps(result.to_json(), indent=2))
+        return
     if not result.rows:
         emit("(no results)")
         return

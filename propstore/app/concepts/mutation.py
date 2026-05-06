@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Mapping
 if TYPE_CHECKING:
     from propstore.repository import Repository
 
+from propstore.app.json_report import JsonReportMixin
 from propstore.claims import (
     ClaimFileEntry,
     claim_file_filename,
@@ -110,7 +111,7 @@ class ConceptSearchHit:
 
 
 @dataclass(frozen=True)
-class ConceptSearchReport:
+class ConceptSearchReport(JsonReportMixin):
     hits: tuple[ConceptSearchHit, ...]
 
 
@@ -130,7 +131,7 @@ class ConceptListEntry:
 
 
 @dataclass(frozen=True)
-class ConceptListReport:
+class ConceptListReport(JsonReportMixin):
     concepts_found: bool
     entries: tuple[ConceptListEntry, ...]
 
@@ -143,7 +144,7 @@ class ConceptCategoryEntry:
 
 
 @dataclass(frozen=True)
-class ConceptCategoriesReport:
+class ConceptCategoriesReport(JsonReportMixin):
     entries: tuple[ConceptCategoryEntry, ...]
 
     def as_dict(self) -> dict[str, dict[str, object]]:
@@ -162,7 +163,7 @@ class ConceptShowRequest:
 
 
 @dataclass(frozen=True)
-class ConceptShowReport:
+class ConceptShowReport(JsonReportMixin):
     rendered: str
 
 

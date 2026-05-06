@@ -6,6 +6,7 @@ Each test gets a fresh concepts directory with known state.
 from __future__ import annotations
 
 from importlib import import_module
+import json
 import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
@@ -1095,6 +1096,29 @@ class TestConceptList:
         assert "speech:fundamental_frequency" in result.output
         assert _concept_artifact("concept1") not in result.output
 
+    def test_list_json_uses_report_shape(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "list", "--format", "json"])
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["concepts_found"] is True
+        assert data["entries"][0]["handle"] == "speech:fundamental_frequency"
+
+
+class TestConceptShow:
+    def test_show_json_uses_report_shape(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["concept", "show", "speech:fundamental_frequency", "--format", "json"],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert "rendered" in data
+        assert "fundamental_frequency" in data["rendered"]
+
 
 class TestConceptSearch:
     def test_search_requires_sidecar(self, workspace: Path) -> None:
@@ -1136,6 +1160,20 @@ class TestConceptSearch:
         result = runner.invoke(cli, ["concept", "search", "definition"])
         assert result.exit_code == 0, result.output
         assert "speech:fundamental_frequency" in result.output
+
+    def test_search_json_uses_report_shape(self, workspace: Path) -> None:
+        runner = CliRunner()
+        build_result = runner.invoke(cli, ["build"])
+        assert build_result.exit_code == 0, build_result.output
+
+        result = runner.invoke(
+            cli,
+            ["concept", "search", "fundamental", "--format", "json"],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["hits"][0]["logical_id"] == "speech:fundamental_frequency"
 
 
 # ── Step 3: claim validate-file command ──────────────────────────────
@@ -1329,7 +1367,6 @@ class TestConceptCategories:
 
     def test_categories_json_output(self, workspace: Path) -> None:
         """--json produces parseable JSON with correct structure."""
-        import json
         runner = CliRunner()
         result = runner.invoke(cli, ["concept", "categories", "--json"])
         assert result.exit_code == 0, result.output
@@ -1337,6 +1374,15 @@ class TestConceptCategories:
         assert "task" in data
         assert data["task"]["values"] == ["speech", "singing"]
         assert data["task"]["extensible"] is True
+
+    def test_categories_format_json_uses_report_shape(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "categories", "--format", "json"])
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["entries"][0]["canonical_name"] == "task"
+        assert data["entries"][0]["values"] == ["speech", "singing"]
 
     def test_categories_empty_when_no_category_concepts(self, tmp_path: Path, monkeypatch) -> None:
         """Returns cleanly when no category concepts exist."""
@@ -1435,6 +1481,24 @@ class TestQueryReadOnly:
         runner = CliRunner()
         result = runner.invoke(cli, ["sidecar", "query", "SELECT count(*) FROM concept"])
         assert result.exit_code == 0, result.output
+
+    def test_select_json_uses_report_shape(self, built_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "sidecar",
+                "query",
+                "SELECT count(*) AS concept_count FROM concept",
+                "--format",
+                "json",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["columns"] == ["concept_count"]
+        assert data["rows"][0] == ["2"]
 
     def test_drop_table_rejected(self, built_workspace: Path) -> None:
         runner = CliRunner()
@@ -1649,6 +1713,19 @@ class TestClaimShow:
         assert "200" in result.output
         assert "kHz" in result.output
 
+    def test_claim_show_json_uses_report_shape(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["claim", "show", "freq_paper:freq_claim1", "--format", "json"],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["logical_id"] == "freq_paper:freq_claim1"
+        assert data["value"]["value"] == 0.2
+        assert data["value"]["value_si"] == 200
+
     def test_claim_show_not_found(self, freq_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["claim", "show", "nonexistent_claim"])
@@ -1736,10 +1813,27 @@ class TestClaimShow:
         assert result.exit_code == 0, result.output
         assert "freq_paper:freq_claim1" in result.output
 
+    def test_claim_list_json_uses_report_shape(self, freq_workspace: Path) -> None:
+        result = CliRunner().invoke(cli, ["claim", "list", "--format", "json"])
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["entries"][0]["logical_id"] == "freq_paper:freq_claim1"
+
     def test_claim_search_exists(self, freq_workspace: Path) -> None:
         result = CliRunner().invoke(cli, ["claim", "search", "freq_claim1"])
         assert result.exit_code == 0, result.output
         assert "freq_paper:freq_claim1" in result.output
+
+    def test_claim_search_json_uses_report_shape(self, freq_workspace: Path) -> None:
+        result = CliRunner().invoke(
+            cli,
+            ["claim", "search", "freq_claim1", "--format", "json"],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["entries"][0]["logical_id"] == "freq_paper:freq_claim1"
 
     def test_claim_list_passes_render_policy_to_owner(
         self,
@@ -1876,6 +1970,51 @@ class TestWorldOwnerReports:
 
         assert result.exit_code == 0, result.output
         assert "No algorithm claims found." in result.output
+
+    @pytest.mark.parametrize(
+        ("args", "expected_key"),
+        [
+            (["world", "explain", "freq_paper:freq_claim1"], "claim_display_id"),
+            (["world", "algorithms"], "algorithms"),
+            (["world", "derive", "speech:fundamental_frequency"], "concept_id"),
+            (
+                ["world", "resolve", "speech:fundamental_frequency", "--strategy", "recency"],
+                "concept_display_id",
+            ),
+            (["world", "chain", "speech:fundamental_frequency"], "target"),
+            (["world", "extensions", "--semantics", "grounded"], "accepted_claim_ids"),
+            (
+                ["world", "hypothetical", "--remove", "freq_paper:freq_claim1"],
+                "changes",
+            ),
+            (["world", "check-consistency"], "conflicts"),
+            (["world", "sensitivity", "speech:fundamental_frequency"], "result"),
+            (
+                [
+                    "world",
+                    "fragility",
+                    "--skip-atms",
+                    "--skip-discovery",
+                    "--skip-conflict",
+                    "--skip-grounding",
+                    "--skip-bridge",
+                ],
+                "world_fragility",
+            ),
+        ],
+    )
+    def test_world_json_commands_use_report_shape(
+        self,
+        freq_workspace: Path,
+        args: list[str],
+        expected_key: str,
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [*args, "--format", "json"])
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert expected_key in data
 
     def test_owner_derive_reports_value_status(
         self,
@@ -2084,6 +2223,18 @@ class TestWorldQuerySIValues:
         assert result.exit_code == 0, result.output
         assert "0.2" in result.output
         assert "200" in result.output
+
+    def test_world_bind_json_uses_report_shape(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["world", "bind", "speech:fundamental_frequency", "--format", "json"],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["concept_display_id"] == "speech:fundamental_frequency"
+        assert data["claims"][0]["display_id"] == "freq_paper:freq_claim1"
 
     def test_world_bind_accepts_canonical_name(self, freq_workspace: Path) -> None:
         runner = CliRunner()

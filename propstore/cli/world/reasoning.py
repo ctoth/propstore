@@ -1,6 +1,8 @@
 """Reasoning-oriented ``pks world`` command adapters."""
 from __future__ import annotations
 
+import json
+
 import click
 
 from propstore.cli.helpers import EXIT_VALIDATION, fail
@@ -27,6 +29,10 @@ from propstore.cli.world import (
 from propstore.repository import Repository
 
 
+def _emit_report_json(report) -> None:
+    emit(json.dumps(report.to_json(), indent=2))
+
+
 @world.command("derive")
 @click.argument("concept_id")
 @click.argument("args", nargs=-1)
@@ -51,6 +57,7 @@ from propstore.repository import Repository
     default=False,
     help="Allow build_diagnostics rows to surface if derivation renders them.",
 )
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_derive(
     obj: dict,
@@ -59,6 +66,7 @@ def world_derive(
     include_drafts: bool,
     include_blocked: bool,
     show_quarantined: bool,
+    fmt: str,
 ) -> None:
     """Derive a value for a concept via parameterization relationships
     under the selected lifecycle-visibility policy.
@@ -85,6 +93,9 @@ def world_derive(
         ),
     )
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     emit(f"{report.concept_id}: {report.status}")
     if report.value is not None:
         emit(f"  value: {report.value}")
@@ -152,6 +163,7 @@ def world_derive(
     default=False,
     help="Allow build_diagnostics rows to inform resolution output.",
 )
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                   strategy: str, override_id: str | None,
@@ -165,7 +177,8 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                   praf_seed: int | None,
                   include_drafts: bool,
                   include_blocked: bool,
-                  show_quarantined: bool) -> None:
+                  show_quarantined: bool,
+                  fmt: str) -> None:
     """Resolve a conflicted concept using a strategy.
 
     Lifecycle-visibility flags (``--include-drafts``,
@@ -205,6 +218,9 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
     except WorldResolveError as exc:
         fail(exc)
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     emit(f"{report.concept_display_id}: {report.status}")
     if report.value is not None:
         emit(f"  value: {report.value}")
@@ -247,6 +263,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
               type=float, help="PrAF MC confidence level (default: 0.95)")
 @click.option("--praf-seed", "praf_seed", default=None,
               type=int, help="PrAF MC RNG seed (default: random)")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_extensions(obj: dict, args: tuple[str, ...],
                      backend_name: str, semantics: str, set_comparison: str,
@@ -254,7 +271,8 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                      praf_strategy: str,
                      praf_epsilon: float,
                      praf_confidence: float,
-                     praf_seed: int | None) -> None:
+                     praf_seed: int | None,
+                     fmt: str) -> None:
     """Show argumentation extensions — all claims that survive scrutiny.
 
     Usage: pks world extensions domain=example --semantics grounded
@@ -280,9 +298,15 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         fail(exc, exit_code=EXIT_VALIDATION)
 
     if report is None:
+        if fmt == "json":
+            emit(json.dumps({"active_claims": []}, indent=2))
+            return
         emit("No active claims for given bindings.")
         return
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     claim_map = {claim.claim_id: claim for claim in report.active_claims}
     summary = report.stance_summary
 

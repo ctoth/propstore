@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
+from propstore.app.json_report import JsonReportMixin
 from propstore.cel_types import CelExpr, to_cel_expr
 from propstore.core.environment import WorldStore
 from propstore.provenance import SupportEvidence
@@ -214,7 +215,7 @@ class FragilityInteraction:
 
 
 @dataclass(frozen=True)
-class FragilityReport:
+class FragilityReport(JsonReportMixin):
     interventions: tuple[RankedIntervention, ...] = ()
     world_fragility: float = 0.0
     analysis_scope: str = ""

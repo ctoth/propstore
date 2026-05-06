@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
+from propstore.app.json_report import JsonReportMixin
 from propstore.app.rendering import (
     AppRenderPolicyRequest,
     RenderPolicySummary,
@@ -134,7 +135,7 @@ class ClaimViewStatus:
 
 
 @dataclass(frozen=True)
-class ClaimViewReport:
+class ClaimViewReport(JsonReportMixin):
     claim_id: str
     logical_id: str | None
     artifact_id: str | None
@@ -167,7 +168,7 @@ class ClaimSummaryEntry:
 
 
 @dataclass(frozen=True)
-class ClaimSummaryReport:
+class ClaimSummaryReport(JsonReportMixin):
     entries: tuple[ClaimSummaryEntry, ...]
 
 

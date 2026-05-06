@@ -23,6 +23,7 @@ already cover the build-time population paths.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -429,6 +430,26 @@ class TestWorldStatusFlags:
         # --show-quarantined should also add a Diagnostics line.
         assert "Diagnostics:" in result.output
 
+    def test_status_json_uses_report_shape(self, seeded_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "-C",
+                str(seeded_workspace / "knowledge"),
+                "world",
+                "status",
+                "--format",
+                "json",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["visible_claim_count"] == 1
+        assert data["predicate_count"] == 2
+        assert "conflict_count" in data
+
 
 # ── `pks world query` ───────────────────────────────────────────────
 
@@ -548,6 +569,27 @@ class TestWorldQueryFlags:
         assert result.exit_code == 0, result.output
         assert "claim_fixture_blocked" in result.output
         assert "claim_fixture_promote_blocked" in result.output
+
+    def test_query_json_uses_report_shape(self, seeded_workspace: Path) -> None:
+        runner = CliRunner()
+        aid = _concept_id(seeded_workspace)
+        result = runner.invoke(
+            cli,
+            [
+                "-C",
+                str(seeded_workspace / "knowledge"),
+                "world",
+                "query",
+                aid,
+                "--format",
+                "json",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["canonical_name"] == "pitch"
+        assert data["claims"][0]["display_id"] == "claim_fixture_final"
 
 
 # ── `pks world resolve/chain/derive` accept the flags ──────────────
