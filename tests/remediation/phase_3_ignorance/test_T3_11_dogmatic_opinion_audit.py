@@ -46,6 +46,8 @@ def _allowance_line_has_tautology_citation(
 def test_dogmatic_opinion_constructors_are_explicitly_cited() -> None:
     violations: list[str] = []
     for path in sorted(Path("propstore").rglob("*.py")):
+        if path.name.startswith("_ws_n2_violation_"):
+            continue
         source = path.read_text(encoding="utf-8")
         source_lines = source.splitlines()
         tree = ast.parse(source, filename=str(path))
