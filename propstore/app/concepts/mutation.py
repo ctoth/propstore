@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Mapping
 if TYPE_CHECKING:
     from propstore.repository import Repository
 
-from propstore.app.json_report import JsonReportMixin
+from propstore.reporting import JsonReportMixin
 from propstore.claims import (
     ClaimFileEntry,
     claim_file_filename,

@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
-from propstore.app.json_report import JsonReportMixin
+from propstore.reporting import JsonReportMixin
 from propstore.app.rendering import (
     AppRenderPolicyRequest,
     RenderPolicySummary,

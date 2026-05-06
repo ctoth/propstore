@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import json
 from typing import TYPE_CHECKING, Mapping
 
-from propstore.app.json_report import JsonReportMixin
+from propstore.reporting import JsonReportMixin
 from propstore.core.environment import Environment
 
 if TYPE_CHECKING:

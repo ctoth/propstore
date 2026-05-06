@@ -11,7 +11,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
-from propstore.app.json_report import JsonReportMixin
+from propstore.reporting import JsonReportMixin
 from propstore.world.types import RenderPolicy
 
 if TYPE_CHECKING:

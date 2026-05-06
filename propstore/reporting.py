@@ -1,4 +1,4 @@
-"""Shared JSON serialization for app-layer report dataclasses."""
+"""Shared JSON serialization for report dataclasses."""
 
 from __future__ import annotations
 
@@ -37,10 +37,7 @@ def json_ready(value: Any) -> JsonValue:
     if is_dataclass(value) and not isinstance(value, type):
         return json_ready(asdict(value))
     if isinstance(value, Mapping):
-        return {
-            str(key): json_ready(item)
-            for key, item in value.items()
-        }
+        return {str(key): json_ready(item) for key, item in value.items()}
     if isinstance(value, Sequence) and not isinstance(value, str | bytes | bytearray):
         return [json_ready(item) for item in value]
     return str(value)

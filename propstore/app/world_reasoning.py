@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
-from propstore.app.json_report import JsonReportMixin
+from propstore.reporting import JsonReportMixin
 from propstore.app.world import bind_world, open_app_world_model
 from propstore.repository import Repository
 from propstore.world.types import GroundingBundleStore, normalize_reasoning_backend
