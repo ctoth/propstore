@@ -4,7 +4,8 @@
 **Status:** Current architecture implemented across propstore and sibling
 dependencies; remaining formal gaps are dependency-owned and listed below.
 **Grounded in:** the current propstore codebase, `../belief-set`,
-`../argumentation`, and the project docs/tests cited in this file.
+`../argumentation`, `../belief-set/papers/*/notes.md`, and the project
+docs/tests cited in this file.
 
 ---
 
@@ -92,17 +93,82 @@ Primary gates:
 Known formal gaps, documented in `docs/belief-set-revision.md` and
 `docs/ic-merge.md`:
 
-- AGM partial-meet contraction and explicit selection functions
-- Levi and Harper as first-class public composer APIs
-- Grove sphere systems
+- an explicit belief-base surface distinct from closed `BeliefSet` theories
+- AGM partial-meet contraction with remainder sets and explicit selection
+  functions
+- Levi and Harper as first-class public composer APIs over the formal
+  contraction/revision surfaces
+- Grove sphere systems and the equivalent sentence/preorder representation
 - Katsuno-Mendelzon update
-- Hansson safe contraction and broader belief-base contraction families
-- full Booth-Meyer admissible-revision family beyond restrained revision
-- Konieczny-Pino-Pérez `Delta^Max`
+- Hansson safe contraction, set-valued contraction inputs, composite/simple
+  partial meet contraction, and minimal contraction for non-closed belief bases
+- Spohn conditionalization with an explicit firmness parameter, where practical
+- full Booth-Meyer admissible-revision family beyond restrained and
+  lexicographic revision
+- Konieczny-Pino-Pérez `Delta^Max` and the remaining IC merge families
 - Coste-Marquis AF merge
 
 These gaps should be closed in `../belief-set`, not by reintroducing local
 propstore approximations.
+
+### Paper-Grounded Belief-Set Target
+
+The newly read AGM papers sharpen the target for `../belief-set`.
+
+AGM 1985 says the dependency must expose real contraction and revision at the
+closed-theory level: remainder sets, selection functions, partial meet
+contraction, and Levi/Harper duality are not optional if the package is going
+to claim "true AGM." The current Spohn-backed revision is useful, but it is not
+the whole AGM surface.
+
+Gärdenfors and Makinson 1988 says epistemic entrenchment should be a
+first-class formal object, not only a derived explanation label. A Spohn ranking
+can induce entrenchment in finite implementations, but the public API should
+still make the contraction/revision/entrenchment equivalence testable.
+
+Grove 1988 says the finite model-set implementation should also support the
+semantic view of AGM: systems of spheres or equivalent total preorders over
+worlds, with revision as selection of the closest input-worlds followed by
+closure. This is the cleanest implementation target for finite propositional
+worlds.
+
+Spohn 1988 says iterated revision needs an epistemic state richer than the
+accepted belief set. `SpohnEpistemicState` is therefore the right primitive for
+ranking-based iteration, and future work should expose conditionalization with
+firmness rather than collapsing every update into the same strength.
+
+Booth and Meyer 2006 says iterated revision should not stop at "whatever
+ranking update passes tests." The package should name the policy family:
+lexicographic, restrained, and the broader admissible class. Restrained
+revision is a conservative default, not the whole iterated-revision story.
+
+Hansson 1989 says `belief-set` must distinguish a belief base from a closed
+theory. Closed-theory AGM loses source-level distinctions that matter to
+propstore, such as whether a disjunction was explicitly present or merely
+derivable. The dependency should therefore expose belief-base contraction and
+set-valued contraction inputs as formal surfaces, while keeping full AGM as the
+closed-theory specialization.
+
+Konieczny and Pino Pérez 2002 says merge is not revision with more inputs.
+Multi-source merge needs IC postulates, integrity constraints, and distance or
+preorder semantics over interpretations. `belief_set.ic_merge` is therefore the
+right owner for formal merge; propstore assignment selection must remain a
+separate render-time operation.
+
+The target formal stack in `../belief-set` is therefore:
+
+1. finite formula/world primitives
+2. explicit belief bases and explicit closed theories
+3. AGM theory contraction/revision via partial meet, entrenchment, and
+   Grove-style sphere/preorder semantics
+4. Spohn/OCF epistemic states for iterated revision
+5. named iterated policies, including restrained, lexicographic, and the wider
+   admissible class
+6. Hansson-style belief-base contraction for non-closed source-sensitive bases
+7. IC merge under integrity constraints
+
+Propstore should consume these formal surfaces only at projection boundaries.
+It should not rebuild them inside `propstore.support_revision`.
 
 ### `../argumentation`
 
@@ -164,6 +230,78 @@ how can that episode be explained and replayed?"
 ---
 
 ## Propstore Integration
+
+### How Propstore Uses The Formal Behavior
+
+Propstore should use the formal dependency behavior as a decision and audit
+kernel over scoped projections, then use propstore-owned support machinery to
+realize the accepted decision against source-backed world artifacts.
+
+The concrete integration shape is:
+
+1. project a scoped `BoundWorld` into a source-sensitive belief base
+2. derive the closed theory or finite world model needed by `belief_set`
+3. run the requested formal operation in `belief_set`
+4. compare the formal accepted/rejected formulas with the projected support
+   base
+5. compute propstore incision sets, provenance, explanations, and journal
+   entries
+6. replay from the journal by rerunning the normalized operation against the
+   captured snapshot
+
+This keeps the behavior principled without making propstore source storage or
+ATMS labels pretend to be the formal reviser.
+
+Closed-theory AGM is useful in propstore when the question is semantic:
+"after accepting this formula, which formulas should be believed in the scoped
+finite theory?" The answer should come from `belief_set` partial meet,
+entrenchment, Grove sphere/preorder, or Spohn state APIs. Propstore then asks a
+separate operational question: "which source-backed assumptions or support
+claims must be incised so the scoped world projection conforms to that formal
+answer?"
+
+Hansson-style belief-base revision is useful when source representation matters.
+If a propstore source explicitly asserted `a or b`, that assertion is not the
+same artifact as deriving `a or b` from a closed theory. Propstore should
+therefore project source assertions into a `belief_set` belief-base surface for
+base-sensitive contraction, especially for batch removals, norm-like sources,
+and cases where explicit disjunctions or independent support should survive.
+
+Epistemic entrenchment is useful as a shared ordering language. Propstore can
+derive local entrenchment hints from support count, source reliability, override
+metadata, argument strength, and user policy, but the resulting order should be
+validated by `belief_set` when it is used to claim AGM behavior. The support
+incision layer can then explain which lower-entrenched assumptions were cut and
+which higher-entrenched assertions were preserved.
+
+Spohn/OCF state is useful for worldline journals. A linear worldline can carry a
+formal epistemic state snapshot beside the propstore support snapshot. Iterated
+revision updates the formal OCF or preorder in `belief_set`; propstore records
+the normalized operator input, the formal policy name, the state hash, and the
+support realization. At merge parents, this path still refuses and hands off to
+formal merge.
+
+IC merge is useful at multi-parent worldline points and multi-source import
+points. `belief_set.ic_merge` should compute the merged model set under an
+integrity constraint and a named merge policy. Propstore should then map that
+merged formal result back to candidate assertions, assignments, and support
+choices. Assignment selection remains render-time selection; it can consume the
+formal merge result, but it is not itself IC merge.
+
+Argumentation is useful as a preference and defeat provider, not as a substitute
+for belief revision. Argument statuses, attacks, supports, and source
+preferences can feed entrenchment construction, selection-function policy, or
+merge distances. The actual formal revision or merge still belongs to
+`belief_set`, and formal AF revision still belongs to `argumentation`.
+
+The result is a two-layer behavior:
+
+- `belief_set` answers the formal belief-change question over formulas, worlds,
+  bases, rankings, and profiles
+- propstore answers the source-realization question over claims, support sets,
+  assumptions, snapshots, explanations, and journals
+
+Neither layer should be collapsed into the other.
 
 ### Bound World
 
@@ -364,13 +502,17 @@ Keep the architecture split exactly as it is:
    support-incision, explanation, snapshot, and journal adapter.
 4. Keep `BoundWorld`, app workflows, CLI, and worldline runner as adapters over
    owner-layer APIs.
-5. Close formal gaps in the dependency that owns the formal surface, then update
-   propstore adapters only where a real propstore integration is needed.
+5. Make `../belief-set` the ambitious formal package the papers imply:
+   belief-base operations, closed-theory AGM, partial meet selection, Levi and
+   Harper composers, entrenchment, Grove sphere/preorder semantics, OCF
+   iterated states, named admissible iterated policies, and IC merge.
+6. Update propstore adapters only where a real propstore projection or
+   worldline integration is needed.
 
 The old implementation order in this proposal has been superseded. The active
 work is no longer "build `propstore/revision` through Phase 5"; it is "protect
 the dependency-owned formal kernels and propstore-owned support-incision
-boundary."
+boundary while completing the formal surfaces in their owning dependencies."
 
 ---
 
@@ -409,12 +551,26 @@ render-time observed-value selection.
 In `../belief-set`, with postulate/property tests there and propstore docs or
 adapters updated afterward.
 
-### 8. Where should missing AF revision constructions be added?
+### 8. Are we implementing full AGM anywhere?
+
+Yes. Full closed-theory AGM belongs in `../belief-set`: partial meet
+contraction, explicit selection functions, Levi and Harper composition,
+entrenchment equivalence, and Grove-style sphere/preorder semantics. Propstore
+does not implement that kernel locally.
+
+### 9. Does `belief-set` also need belief-base revision?
+
+Yes. Hansson's examples show that closed theories collapse representation
+differences that propstore cares about. `../belief-set` should therefore expose
+source-sensitive belief-base contraction/revision as a sibling formal surface,
+not as a replacement for closed-theory AGM.
+
+### 10. Where should missing AF revision constructions be added?
 
 In `../argumentation`, with propstore consuming public APIs or adding thin
 projection adapters only when needed.
 
-### 9. What prevents architectural drift?
+### 11. What prevents architectural drift?
 
 The concrete mechanisms are the retired `propstore.revision` test, the
 `belief_set` import-boundary test, docs that explicitly separate formal revision
