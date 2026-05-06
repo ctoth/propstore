@@ -18,7 +18,9 @@ from propstore.core.conditions.registry import (
 from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import to_cel_exprs
 from propstore.core.assertions import ContextReference
+from propstore.core.graph_types import ProvenanceRecord
 from propstore.core.id_types import to_concept_id, to_context_id
+from propstore.core.justifications import CanonicalJustification
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.micropublications import ActiveMicropublication
 from propstore.core.store_results import (
@@ -204,6 +206,16 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
     },
     "grounded_fact": {"predicate", "arguments", "section"},
     "grounded_fact_empty_predicate": {"section", "predicate"},
+    "justification": {
+        "id",
+        "justification_kind",
+        "conclusion_claim_id",
+        "premise_claim_ids",
+        "source_relation_type",
+        "source_claim_id",
+        "provenance_json",
+        "rule_strength",
+    },
     "build_diagnostics": {
         "id",
         "claim_id",
@@ -1005,6 +1017,102 @@ class WorldQuery(WorldStore):
             """
         ).fetchall()
         return [StanceRow.from_mapping(dict(row)) for row in rows]
+
+    def all_authored_justifications(self) -> tuple[CanonicalJustification, ...]:
+        rows = self._conn.execute(
+            """
+            SELECT id, justification_kind, conclusion_claim_id,
+                   premise_claim_ids, source_relation_type, source_claim_id,
+                   provenance_json, rule_strength
+            FROM justification
+            ORDER BY id
+            """
+        ).fetchall()
+        return tuple(self._canonical_justification_from_row(row) for row in rows)
+
+    def justifications_for_claim_scope(
+        self,
+        claim_ids: set[str],
+    ) -> tuple[CanonicalJustification, ...]:
+        if not claim_ids:
+            return ()
+        resolved_ids = {
+            self.resolve_claim(claim_id) or claim_id
+            for claim_id in claim_ids
+        }
+        return tuple(
+            justification
+            for justification in self.all_authored_justifications()
+            if justification.conclusion_claim_id in resolved_ids
+            and all(
+                premise_id in resolved_ids
+                for premise_id in justification.premise_claim_ids
+            )
+        )
+
+    def _canonical_justification_from_row(
+        self,
+        row: sqlite3.Row,
+    ) -> CanonicalJustification:
+        justification_id = str(row["id"])
+        premise_claim_ids = self._decode_justification_premises(
+            row["premise_claim_ids"],
+            justification_id=justification_id,
+        )
+        provenance = self._decode_justification_provenance(
+            row["provenance_json"],
+            justification_id=justification_id,
+        )
+        attributes = tuple(
+            (key, row[key])
+            for key in ("source_relation_type", "source_claim_id")
+            if row[key] is not None
+        )
+        return CanonicalJustification(
+            justification_id=justification_id,
+            conclusion_claim_id=str(row["conclusion_claim_id"]),
+            premise_claim_ids=premise_claim_ids,
+            rule_kind=str(row["justification_kind"]),
+            rule_strength=str(row["rule_strength"] or "defeasible"),
+            provenance=provenance,
+            attributes=attributes,
+        )
+
+    @staticmethod
+    def _decode_justification_premises(
+        value: object,
+        *,
+        justification_id: str,
+    ) -> tuple[str, ...]:
+        if not isinstance(value, str):
+            raise ValueError(
+                f"justification {justification_id!r} premise_claim_ids must be JSON text"
+            )
+        loaded = json.loads(value)
+        if not isinstance(loaded, list):
+            raise ValueError(
+                f"justification {justification_id!r} premise_claim_ids must decode to a list"
+            )
+        return tuple(str(item) for item in loaded)
+
+    @staticmethod
+    def _decode_justification_provenance(
+        value: object,
+        *,
+        justification_id: str,
+    ) -> ProvenanceRecord | None:
+        if value is None or value == "":
+            return None
+        if not isinstance(value, str):
+            raise ValueError(
+                f"justification {justification_id!r} provenance_json must be JSON text"
+            )
+        loaded = json.loads(value)
+        if not isinstance(loaded, Mapping):
+            raise ValueError(
+                f"justification {justification_id!r} provenance_json must decode to a mapping"
+            )
+        return ProvenanceRecord.from_mapping(loaded)
 
     def claim_stances_with_policy(
         self,
