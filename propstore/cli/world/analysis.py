@@ -101,6 +101,41 @@ def _write_new_text_file(path: Path, content: str) -> None:
         raise click.ClickException(f"could not write output file {path}: {exc}") from exc
 
 
+def _extension_counts_text(counts) -> str:
+    return (
+        f"{counts.accepted} accepted / "
+        f"{counts.defeated} defeated / "
+        f"{counts.undecided} undecided"
+    )
+
+
+def _render_hypothetical_text(report) -> None:
+    extension_diff = report.extension_diff
+    before = _extension_counts_text(extension_diff.before)
+    after = _extension_counts_text(extension_diff.after)
+    if extension_diff.unchanged:
+        emit(f"Extension unchanged ({after}; same fixed point)")
+    else:
+        emit(f"Extension changed (before: {before}; after: {after})")
+        for transition in extension_diff.transitions:
+            emit(
+                f"  {transition.from_status} -> {transition.to_status} "
+                f"({len(transition.claim_ids)}): "
+                + ", ".join(transition.claim_ids)
+            )
+
+    if not report.changes:
+        emit("Value diff: unchanged")
+        return
+
+    emit("Value diff:")
+    for change in report.changes:
+        emit(
+            f"  {change.concept_display_id}: "
+            f"{change.base_status} -> {change.hypothetical_status}"
+        )
+
+
 @world.command("hypothetical")
 @click.argument("args", nargs=-1)
 @click.option("--remove", multiple=True, help="Claim ID to remove")
@@ -128,14 +163,7 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
     if fmt == "json":
         _emit_report_json(report)
         return
-    if not report.changes:
-        emit("No changes detected.")
-    else:
-        for change in report.changes:
-            emit(
-                f"{change.concept_display_id}: "
-                f"{change.base_status} → {change.hypothetical_status}"
-            )
+    _render_hypothetical_text(report)
 
 
 @world.command("chain")

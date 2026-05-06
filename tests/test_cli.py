@@ -1971,6 +1971,120 @@ class TestWorldOwnerReports:
         assert result.exit_code == 0, result.output
         assert "No algorithm claims found." in result.output
 
+    def test_world_hypothetical_text_reports_unchanged_extension_counts(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["world", "hypothetical"])
+
+        assert result.exit_code == 0, result.output
+        assert (
+            "Extension unchanged (1 accepted / 0 defeated / 0 undecided; "
+            "same fixed point)"
+        ) in result.output
+        assert "Value diff: unchanged" in result.output
+        assert "No changes detected." not in result.output
+
+    def test_world_hypothetical_json_reports_structured_extension_diff(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "world",
+                "hypothetical",
+                "--remove",
+                "freq_paper:freq_claim1",
+                "--format",
+                "json",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["extension_diff"]["before"]["accepted"] == 1
+        assert data["extension_diff"]["after"]["accepted"] == 0
+        assert data["extension_diff"]["transitions"] == [
+            {
+                "from_status": "accepted",
+                "to_status": "absent",
+                "claim_ids": ["freq_paper:freq_claim1"],
+            }
+        ]
+
+    def test_world_hypothetical_text_lists_defeated_to_accepted_flip(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        sidecar = freq_workspace / "knowledge" / "sidecar" / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        try:
+            claim1_id = conn.execute(
+                """
+                SELECT id FROM claim_core
+                WHERE primary_logical_id = 'freq_paper:freq_claim1'
+                """
+            ).fetchone()[0]
+            concept_id = conn.execute(
+                """
+                SELECT concept_id FROM claim_concept_link
+                WHERE claim_id = ?
+                """,
+                (claim1_id,),
+            ).fetchone()[0]
+            conn.execute(
+                """
+                INSERT INTO claim_core (
+                    id, primary_logical_id, logical_ids_json, version_id,
+                    content_hash, seq, type, source_slug, source_paper,
+                    provenance_page, premise_kind, branch, build_status, stage,
+                    promotion_status
+                ) VALUES (
+                    'freq_paper:freq_claim2', 'freq_paper:freq_claim2', '[]',
+                    '', '', 0, 'parameter', 'freq_paper', 'freq_paper',
+                    2, 'ordinary', 'master', 'ingested', NULL, NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO claim_concept_link (
+                    claim_id, concept_id, role, ordinal, binding_name
+                ) VALUES (
+                    'freq_paper:freq_claim2', ?, 'output', 0, NULL
+                )
+                """,
+                (concept_id,),
+            )
+            conn.execute(
+                """
+                INSERT INTO relation_edge (
+                    source_kind, source_id, relation_type, target_kind, target_id
+                ) VALUES (
+                    'claim', ?, 'rebuts',
+                    'claim', 'freq_paper:freq_claim2'
+                )
+                """,
+                (claim1_id,),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["world", "hypothetical", "--remove", "freq_paper:freq_claim1"],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "Extension changed" in result.output
+        assert "accepted -> absent (1): freq_paper:freq_claim1" in result.output
+        assert "defeated -> accepted (1): freq_paper:freq_claim2" in result.output
+
     @pytest.mark.parametrize(
         ("args", "expected_key"),
         [
@@ -2054,6 +2168,26 @@ class TestWorldOwnerReports:
         assert change.concept_display_id == "speech:fundamental_frequency"
         assert str(change.base_status) == "determined"
         assert str(change.hypothetical_status) == "no_claims"
+        assert report.extension_diff.before.accepted == 1
+        assert report.extension_diff.after.accepted == 0
+        assert report.extension_diff.transitions[0].from_status == "accepted"
+        assert report.extension_diff.transitions[0].to_status == "absent"
+
+    def test_owner_hypothetical_reports_unchanged_extension_counts(
+        self,
+        freq_workspace: Path,
+    ) -> None:
+        repo = Repository.find(freq_workspace)
+        with WorldQuery(repo) as wm:
+            report = diff_hypothetical_world(
+                wm,
+                WorldHypotheticalRequest(bindings={}),
+            )
+
+        assert report.changes == ()
+        assert report.extension_diff.unchanged is True
+        assert report.extension_diff.before.accepted == 1
+        assert report.extension_diff.after.accepted == 1
 
     def test_owner_resolve_reports_winner_display_id(
         self,
