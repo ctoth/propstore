@@ -9,9 +9,7 @@ PROHIBITED_SUBTREES = (
     Path("propstore/aspic_bridge"),
     Path("propstore/grounding"),
 )
-ALLOWED_BELIEF_SET_IMPORT_OWNERS = (
-    "propstore.support_revision",
-)
+ALLOWED_BELIEF_SET_IMPORT_OWNER = "propstore.support_revision.belief_set_adapter"
 
 
 def _module_name(path: Path) -> str:
@@ -57,9 +55,12 @@ def test_lifting_argumentation_and_grounding_do_not_import_belief_set() -> None:
 
 
 def test_belief_set_import_edges_are_only_formal_revision_adapters() -> None:
-    """Positive boundary: any future propstore -> belief_set edge must live in
-    an explicitly named formal-revision or IC-merge adapter, not in context
-    lifting, ASPIC projection, or Gunray grounding.
+    """Positive boundary: propstore has exactly one formal belief-set adapter.
+
+    Formal AGM and IC merge live in the sibling belief_set package. Propstore
+    may import that package only through this adapter; every other production
+    module must call propstore owner-layer APIs instead of reaching across the
+    dependency boundary directly.
     """
 
     edges = [
@@ -68,12 +69,4 @@ def test_belief_set_import_edges_are_only_formal_revision_adapters() -> None:
         if _imports_belief_set(path)
     ]
 
-    unexpected = [
-        owner
-        for owner in edges
-        if not any(
-            owner == allowed or owner.startswith(f"{allowed}.")
-            for allowed in ALLOWED_BELIEF_SET_IMPORT_OWNERS
-        )
-    ]
-    assert unexpected == []
+    assert edges == [ALLOWED_BELIEF_SET_IMPORT_OWNER]
