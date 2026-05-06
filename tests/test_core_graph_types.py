@@ -1,9 +1,43 @@
 from __future__ import annotations
 
+import pytest
+
+from propstore.core.concept_relationship_types import (
+    VALID_CONCEPT_RELATIONSHIP_TYPES,
+)
 from propstore.core.exactness_types import Exactness
-from propstore.core.graph_relation_types import GraphRelationType
+from propstore.core.graph_relation_types import (
+    GraphRelationType,
+    VALID_GRAPH_RELATION_TYPES,
+    coerce_graph_relation_type,
+)
 from propstore.world import Environment
 from propstore.core.labels import Label
+
+
+def test_concept_relationship_vocabulary_is_subset_of_graph_relation_type() -> None:
+    """
+    Every value authorable as a concept-to-concept relationship must coerce
+    into a GraphRelationType, because graph_build.py pushes every concept
+    relationship row through coerce_graph_relation_type when assembling the
+    unified CompiledWorldGraph. Drift between the two enums silently breaks
+    every downstream world-graph query (consistency, extensions, hypothetical,
+    fragility, sensitivity, derive, chain, bind, explain, atms, revision).
+    """
+    missing = VALID_CONCEPT_RELATIONSHIP_TYPES - VALID_GRAPH_RELATION_TYPES
+    assert missing == frozenset(), (
+        "ConceptRelationshipType values not representable as GraphRelationType: "
+        f"{sorted(missing)}. Add them to GraphRelationType (or map them in "
+        "propstore.core.graph_build at the boundary)."
+    )
+
+
+@pytest.mark.parametrize("relation_value", sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
+def test_every_concept_relationship_value_coerces_to_graph_relation_type(
+    relation_value: str,
+) -> None:
+    coerced = coerce_graph_relation_type(relation_value)
+    assert coerced.value == relation_value
 
 
 def test_compiled_world_graph_normalizes_order_and_supporting_records() -> None:
