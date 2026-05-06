@@ -21,6 +21,12 @@ from propstore.cli.helpers import EXIT_VALIDATION, exit_with_code, fail
 from propstore.repository import Repository
 
 
+_PHI_GROUP_GLOSSES = {
+    "PHI_NODE": "concept slot with multiple competing claim branches in the same context",
+    "CONTEXT_PHI_NODE": "concept slot with competing branches across different contexts",
+}
+
+
 def _emit_workflow_messages(messages) -> None:
     for message in messages:
         label = message.level.upper()
@@ -86,7 +92,13 @@ def build(obj: dict, output: str | None, force: bool) -> None:
             f"({conflict.claim_a_id} vs {conflict.claim_b_id})",
             err=True,
         )
+    emitted_phi_glosses: set[str] = set()
     for group in report.phi_groups:
+        group_kind = group.key.split(":", 1)[0]
+        gloss = _PHI_GROUP_GLOSSES.get(group_kind)
+        if gloss is not None and group_kind not in emitted_phi_glosses:
+            emit(f"  {group_kind} — {gloss}", err=True)
+            emitted_phi_glosses.add(group_kind)
         emit(
             f"  {group.key} — {len(group.claim_ids)} branches: "
             f"{', '.join(group.claim_ids)}",
