@@ -317,6 +317,7 @@ def build_aspic_projection(
 
     stance_rows = _extract_stance_rows(store, active_by_id, active_graph=active_graph)
     justifications = _extract_justifications(
+        store,
         active_by_id,
         stance_rows,
         active_graph=active_graph,
