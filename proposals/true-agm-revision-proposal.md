@@ -329,6 +329,94 @@ The result is a two-layer behavior:
 
 Neither layer should be collapsed into the other.
 
+### User-Facing Workflow Across App, CLI, And Web
+
+The existing app and CLI surfaces already have the right command shape. The
+cutover should change the result contract behind those surfaces, not invent a
+new revision command family.
+
+The user-facing workflow should be:
+
+1. inspect the scoped projection
+2. preview or run the formal decision
+3. realize the support cuts needed to conform to that decision
+4. explain the formal decision and the propstore realization separately
+5. capture the episode in a worldline journal when durability is requested
+6. replay from the journal and verify the same formal decision plus support
+   realization
+
+The app owner surface is `propstore.app.world_revision`. It already exposes the
+right verbs:
+
+- `world_revision_base`
+- `world_revision_entrenchment`
+- `world_revision_expand`
+- `world_revision_contract`
+- `world_revision_revise`
+- `world_revision_explain`
+- `world_revision_epistemic_state`
+- `world_revision_iterated_revise`
+
+After cutover, these functions should return typed payloads with two explicit
+parts:
+
+- `decision`: the formal `belief_set` answer, including operation, policy,
+  accepted/rejected formulas or worlds, epistemic-state hash where relevant,
+  and any formal budget failure
+- `realization`: the propstore support-incision result, including accepted and
+  rejected atom ids, incision set, source provenance, support reasons,
+  explanation payload, snapshot hash, and journal metadata when captured
+
+The CLI owner surface is already `pks world revision ...`:
+
+```bash
+pks world revision base ...
+pks world revision entrenchment ...
+pks world revision expand --atom '{...}'
+pks world revision contract --target <atom-id>
+pks world revision revise --atom '{...}' [--conflict <atom-id>]
+pks world revision explain --operation <expand|contract|revise> ...
+pks world revision iterated-state ...
+pks world revision iterated-revise --atom '{...}' --operator restrained
+```
+
+Those commands should keep their command names and flags unless a real missing
+input is discovered. The output shape should change: text rendering should show
+the formal decision first, support realization second, and explanation/journal
+metadata third. JSON rendering should expose separate `decision` and
+`realization` objects rather than flattening the formal and operational facts
+together.
+
+Worldline materialization already has revision flags:
+
+- `--revision-operation`
+- `--revision-atom`
+- `--revision-target`
+- `--revision-conflict`
+- `--revision-operator`
+
+Those flags should remain the durable workflow entry point. Linear worldlines
+may carry iterated formal epistemic state. Multi-parent worldlines must not run
+linear iterated revision; they must dispatch to formal IC merge or fail with a
+typed explanation that an explicit merge path is required.
+
+The web surface is not currently a first-class world-revision UI. The
+`propstore.web` request `rev` field is repository revision selection, not
+belief revision. Web support should therefore be a later consumer of the app
+payloads, starting with read-only inspect/preview/explain views. A web mutation
+or journal-capture UI should only be added after the app/CLI decision versus
+realization contract is stable.
+
+This workflow preserves the project layering:
+
+- app owns reusable typed workflows
+- CLI owns parsing and rendering only
+- web owns HTTP request/response rendering only
+- `support_revision.belief_set_adapter` owns the only formal `belief_set` import
+- `support_revision` owns support realization, explanations, snapshots, and
+  journals
+- `belief_set` owns the formal belief-change decision
+
 ### Bound World
 
 `propstore.world.bound.BoundWorld` is the scoped adapter. It delegates revision
