@@ -468,7 +468,9 @@ def test_structured_projection_authored_targeted_undercut_hits_only_named_defeas
     strict_arg_ids = {
         argument.arg_id
         for argument in projection.arguments
-        if argument.justification_id == "just_strict"
+        if argument.claim_id == "claim_target"
+        and argument.top_rule_kind == "strict"
+        and argument.premise_claim_ids == ("claim_strict",)
     }
 
     assert weak_arg_ids
