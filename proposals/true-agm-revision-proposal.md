@@ -150,6 +150,8 @@ Implemented surfaces:
 - `history.py`: epistemic snapshots, transition journals, chain integrity,
   deterministic replay, and semantic diffs
 - `dispatch.py`: replay of journal operators from normalized inputs
+- `scope_policy.py`: declarative scope-completeness policy for snapshot
+  consumers
 - `af_adapter.py`: projection of accepted support-revision state to
   argumentation-facing views
 - `workflows.py`: owner-layer APIs used by app and CLI adapters
@@ -311,7 +313,9 @@ Propstore gates:
 - `tests/test_revision_entrenchment.py`
 - `tests/test_revision_operators.py`
 - `tests/test_revision_properties.py`
+- `tests/test_revision_state.py`
 - `tests/test_revision_iterated.py`
+- `tests/test_revision_iterated_examples.py`
 - `tests/test_iterated_revision_recomputes_entrenchment.py`
 - `tests/test_revision_explain.py`
 - `tests/test_revision_bound_world.py`
@@ -319,10 +323,13 @@ Propstore gates:
 - `tests/test_revision_af_adapter.py`
 - `tests/test_worldline_revision.py`
 - `tests/test_worldline_revision_snapshot_boundary.py`
+- `tests/test_worldline_revision_merge_parent_evidence.py`
 - `tests/test_world_query_at_journal_step.py`
 - `tests/test_journal_entry_contract.py`
+- `tests/test_capture_journal.py`
 - `tests/test_replay_determinism_actually_replays.py`
 - `tests/test_belief_set_docs.py`
+- `tests/test_af_revision_no_stable_distinct_from_empty_stable.py`
 - `tests/architecture/test_belief_set_boundary_contract.py`
 
 Dependency gates:
