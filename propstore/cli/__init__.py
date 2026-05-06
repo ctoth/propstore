@@ -111,7 +111,7 @@ def _traceback_enabled_for_invocation(args: tuple[object, ...], kwargs: dict) ->
     raw_args = kwargs.get("args")
     if raw_args is None and args:
         raw_args = args[0]
-    if raw_args is None:
+    if not isinstance(raw_args, (list, tuple)):
         raw_args = sys.argv[1:]
     return "--traceback" in raw_args
 
