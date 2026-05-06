@@ -1,319 +1,312 @@
 # Proposal: First-Class Justifications in Propstore
 
 **Date:** 2026-03-27
-**Status:** Draft
-**Grounded in:** scout-argumentation-ontology.md (11 papers), scout-propstore-justification-internals.md (propstore codebase)
+**Updated:** 2026-05-06
+**Status:** Partially implemented; remaining work is runtime integration
+**Grounded in:** current `propstore` source lifecycle, sidecar, and ASPIC bridge code
+
+---
+
+## Current State
+
+First-class justifications are no longer only a proposal. The repository now has:
+
+- Source-local `justifications.yaml` authoring on source branches.
+- Canonical promoted `justifications/<source>.yaml` artifacts.
+- A sidecar `justification` table populated from promoted authored justifications.
+- A runtime `CanonicalJustification` domain object.
+- A live ASPIC+ bridge that translates `CanonicalJustification` records into strict and defeasible ASPIC+ rules.
+- `premise_kind` on claims for the ASPIC+ `K_n` / `K_p` partition.
+- Targeted undercutting through `target_justification_id`.
+
+The major remaining gap is narrower than the original proposal: the source and sidecar storage path exists, and the ASPIC+ rule translator exists, but the world/active-graph extraction path still does not harvest authored sidecar justifications into the normal runtime bridge. The normal projection path still synthesizes `reported:<claim_id>` plus `supports:<source>-><target>` / `explains:<source>-><target>` justifications from the active claim graph.
 
 ---
 
 ## Problem
 
-Propstore derives justifications ephemerally from claims + stances. This loses structure that the upstream extraction pipeline can provide and that the ASPIC+ literature says is necessary for correct argumentation:
+Propstore needs authored inference structure to participate in the same runtime argumentation path as derived support/explanation edges.
 
-1. **Multi-premise inference is invisible.** All derived justifications have exactly one premise (single `supports`/`explains` stance). "Claims A, B, and C together entail D via causal explanation" cannot be expressed.
+The current split loses authored structure at runtime:
 
-2. **Inference types are impoverished.** Only three rule_kinds exist: `reported_claim`, `supports`, `explains`. The literature (Walton 2015) catalogs 60+ argumentation schemes.
+1. **Authored multi-premise rules are stored but not normally consumed.** Source-authored `justifications.yaml` entries compile into the sidecar `justification` table, but active world graph extraction has no `CompiledWorldGraph.justifications` surface and `_extract_justifications()` does not read `SidecarStore.justification` rows.
 
-3. **Undercuts are indiscriminate.** An undercut targeting claim C hits all inference-rule arguments for C. Cannot say "this undercut defeats the methodological inference to C but not the empirical inference to C." (Modgil 2014 p.35: ASPIC+'s naming function exists precisely for this.)
+2. **Runtime synthesis remains single-edge.** `claim_justifications_from_active_graph()` derives one-premise justifications from active `supports` and `explains` relation edges. That preserves the old graph behavior, but it cannot represent authored multi-premise rules.
 
-4. **Strict vs defeasible is unrepresented.** All justifications are implicitly defeasible. Mathematical definitions and logical derivations should be strict — unattackable by undercuts. (Modgil 2014 p.35: "the framework distinguishes strict from defeasible rules.")
+3. **The ASPIC+ bridge is ahead of the world extraction layer.** `justifications_to_rules()` already accepts strict/defeasible `CanonicalJustification` records, rejects empty-premise non-reported rules, and names defeasible rules by justification ID for undercutting. Direct bridge callers can pass authored justifications, but the normal world projection path does not yet supply them.
 
-5. **No import path.** The upstream pipeline now produces `justifications.yaml` per paper, but `import_papers` only reads `claims.yaml`.
+4. **The sidecar representation is queryable but not first-class in the semantic graph.** Authored justification rows exist as sidecar storage, with premises encoded as JSON, but there is no owner-layer API comparable to `all_claim_stances()` or `stances_between()` that returns typed canonical justifications for an active claim set.
 
-6. **aspic.py is stranded.** A complete ASPIC+ implementation (948 lines, Defs 1-22) exists but has no bridge to the claim/stance data model.
-
----
-
-## Proposal
-
-Make `Justification` a first-class stored entity type: imported from papers, persisted in SQLite, and consumed by the argumentation backends.
+The remaining work is therefore not "add justifications everywhere"; it is to connect the already-existing storage and bridge surfaces through a typed owner-layer runtime path.
 
 ---
 
-## 1. Justification Entity
+## Implemented Surfaces
 
-### Schema (LinkML addition to `schema/claim.linkml.yaml`)
+### Source Authoring
+
+Source branches support batch and proposal authoring:
+
+- `pks source add-justification <source> --batch <file>`
+- `pks source propose-justification <source> ...`
+
+The source document type is `SourceJustificationsDocument`, containing `SourceJustificationDocument` entries:
 
 ```yaml
-Justification:
-  attributes:
-    id:
-      identifier: true
-      range: string
-      description: Globally unique ID (prefixed at import, e.g. "Dung_1995:just1")
-    conclusion_claim_id:
-      range: string
-      required: true
-      description: Claim ID this justification supports or attacks
-    premise_claim_ids:
-      range: string
-      multivalued: true
-      required: true
-      description: Claim IDs that together form the premises
-    rule_kind:
-      range: RuleKindEnum
-      required: true
-    rule_strength:
-      range: RuleStrengthEnum
-      required: true
-      description: "strict (definitional/logical, cannot be undercut) or defeasible (empirical/presumptive, can be undercut)"
-    attack_target:
-      range: AttackTarget
-      description: Present only for critique justifications
+justifications:
+  - id: just1
+    conclusion: claim_observation
+    premises:
+      - claim_parameter
+    rule_kind: empirical_support
+    rule_strength: defeasible
     provenance:
-      range: Provenance
-
-RuleKindEnum:
-  permissible_values:
-    # Existing (relabeled from stance-derived)
-    reported_claim:
-      description: Base justification for each active claim (auto-generated)
-    support:
-      description: Generic support (from supports stances, when no richer kind available)
-    explanation:
-      description: Mechanistic/causal account (from explains stances)
-    # Science-domain inference patterns
-    empirical_support:
-      description: Experimental data directly supports conclusion
-    causal_explanation:
-      description: Mechanism explains why a result holds
-    methodological_inference:
-      description: Methodological choice leads to validity conclusion
-    statistical_inference:
-      description: Statistical test/model produces a finding
-    definition_application:
-      description: Applying formal definition to classify or derive
-    scope_limitation:
-      description: Evidence narrows applicability of a claim
-    comparison_based_inference:
-      description: Comparative reasoning across methods/systems/findings
-    # From Walton's taxonomy (scout-argumentation-ontology.md)
-    expert_testimony:
-      description: "Argument from expert opinion / position to know (Walton 2015 p.10)"
-    abductive_inference:
-      description: "Inference to best explanation (Walton 2015 p.20)"
-
-RuleStrengthEnum:
-  permissible_values:
-    strict:
-      description: "Definitional/logical — cannot be undercut (ASPIC+ strict rules, Modgil 2014 p.35)"
-    defeasible:
-      description: "Empirical/presumptive — can be undercut (ASPIC+ defeasible rules, Modgil 2014 p.35)"
-
-AttackTarget:
-  attributes:
-    kind:
-      range: AttackTargetKindEnum
-      required: true
-    target_claim_id:
-      range: string
-      required: true
-
-AttackTargetKindEnum:
-  permissible_values:
-    conclusion:
-      description: "Attacks the conclusion directly (rebut in ASPIC+)"
-    premise:
-      description: "Attacks evidence/premise quality (undermine in ASPIC+)"
-    inference_rule:
-      description: "Attacks the reasoning step itself (undercut in ASPIC+)"
+      page: 3
+      section: Results
+      quote_fragment: "..."
+    attack_target:
+      target_claim: claim_observation
+      target_justification_id: just0
+      target_premise_index: 0
 ```
 
-### rule_strength semantics
+Source-local claim references are resolved during source normalization. Promotion filters out justifications whose conclusion or premises do not resolve to promoted or primary claims.
 
-- **strict**: The inference is definitional, mathematical, or logical. It cannot be undercut — only its premises can be undermined. `definition_application` is typically strict. A mathematical derivation is strict.
-- **defeasible**: The inference is empirical, presumptive, or abductive. It can be undercut (the methodology attacked, the reasoning questioned). `empirical_support`, `statistical_inference`, `expert_testimony`, `abductive_inference` are typically defeasible.
+### Canonical Storage
 
-This maps directly to ASPIC+'s `Rs` (strict rules) vs `Rd` (defeasible rules) partition (Modgil 2014 p.35).
+Promoted justifications are written under:
 
----
+```text
+justifications/<source>.yaml
+```
 
-## 2. SQLite Table
+They reuse `SourceJustificationsDocument` as the document type. This is a naming artifact of the current code, not a source-local semantic leak: promotion strips source-local claim fields from claims and writes resolved canonical claim IDs in justification `conclusion` and `premises`.
 
-Add to `build_sidecar.py`:
+### Sidecar Storage
+
+The sidecar has a single `justification` table:
 
 ```sql
 CREATE TABLE justification (
-    id                  TEXT PRIMARY KEY,
-    conclusion_claim_id TEXT NOT NULL REFERENCES claim(id),
-    rule_kind           TEXT NOT NULL,
-    rule_strength       TEXT NOT NULL DEFAULT 'defeasible',
-    attack_target_kind  TEXT,
-    attack_target_claim TEXT REFERENCES claim(id),
-    provenance_paper    TEXT,
-    provenance_page     INTEGER,
-    provenance_section  TEXT,
-    provenance_quote    TEXT,
-    source_paper        TEXT
-);
-
-CREATE TABLE justification_premise (
-    justification_id TEXT NOT NULL REFERENCES justification(id),
-    premise_claim_id TEXT NOT NULL REFERENCES claim(id),
-    seq              INTEGER NOT NULL,
-    PRIMARY KEY (justification_id, premise_claim_id)
+    id TEXT PRIMARY KEY,
+    justification_kind TEXT NOT NULL,
+    conclusion_claim_id TEXT NOT NULL,
+    premise_claim_ids TEXT NOT NULL,
+    source_relation_type TEXT,
+    source_claim_id TEXT,
+    provenance_json TEXT,
+    rule_strength TEXT NOT NULL DEFAULT 'defeasible'
 );
 ```
 
-Separate premise table because premises are multi-valued. `seq` preserves ordering.
+`premise_claim_ids` is a JSON array, not a separate premise table. That differs from the original 2026-03-27 proposal. The table is populated by `populate_authored_justifications()` from sidecar compilation rows.
 
----
+### Runtime Domain Object
 
-## 3. Import Pipeline Changes
-
-### `import_papers` additions (`compiler_cmds.py`)
-
-After processing `claims.yaml`, check for `{paper_dir}/justifications.yaml`. If present:
-
-1. Read and parse.
-2. Prefix justification IDs: `just1` -> `PaperName:just1`.
-3. Prefix all claim references (conclusion, premises, attack_target.target_claim) with the same paper prefix used for claims.
-4. Write resolved justifications alongside resolved claims.
-
-### `build_sidecar` additions
-
-After populating the `claim` and `claim_stance` tables, populate `justification` and `justification_premise` from the resolved justification files.
-
----
-
-## 4. Structured Argument Builder Changes
-
-### `structured_argument.py`
-
-Currently `_canonical_justifications()` / `claim_justifications_from_active_graph()` derives justifications from stances. Change to:
-
-1. **Load stored justifications first.** Read from the `justification` + `justification_premise` tables.
-2. **Fall back to stance-derived justifications** for claims/stances that have no explicit justification. This preserves backward compatibility — papers without `justifications.yaml` still work.
-3. **Merge:** If a stored justification and a stance-derived justification cover the same conclusion, prefer the stored one (it's richer).
-
-### `StructuredArgument` additions
-
-Add `rule_strength` field to `StructuredArgument`:
+The runtime object is:
 
 ```python
-rule_strength: str = "defeasible"  # "strict" or "defeasible"
+@dataclass(frozen=True, order=True)
+class CanonicalJustification:
+    justification_id: str
+    conclusion_claim_id: str
+    premise_claim_ids: tuple[str, ...] = ()
+    rule_kind: str = "reported_claim"
+    rule_strength: str = "defeasible"
+    provenance: ProvenanceRecord | None = None
+    attributes: tuple[tuple[str, Any], ...] = ()
 ```
 
-Strict arguments cannot be undercut. The defeat computation in `build_argumentation_framework` should skip undercut attacks against strict-rule arguments. This is already how ASPIC+ works (Modgil 2014 p.39-40: "undercutting only targets defeasible rules").
+This is the bridge-facing shape. Decoded YAML and SQLite rows should be converted into this type at the IO boundary before they enter argumentation.
 
-### Targeted undercutting
+### ASPIC+ Bridge
 
-Change `_target_argument_ids` for `undercuts` stances:
+The ASPIC+ bridge is implemented, not future work.
 
-```python
-if stance_type == "undercuts":
-    target_just_id = stance.get("target_justification_id")
-    return {
-        arg.arg_id
-        for arg in arguments
-        if arg.claim_id == target_claim_id
-        and arg.attackable_kind == "inference_rule"
-        and arg.rule_strength == "defeasible"  # strict rules immune
-        and (target_just_id is None or arg.justification_id == target_just_id)
-    }
-```
+`justifications_to_rules()` maps canonical justifications as follows:
 
-If the stance specifies a `target_justification_id`, only that justification's arguments are hit. Otherwise, all defeasible inference-rule arguments for the claim are hit (backward compatible).
+- `reported_claim` justifications are skipped as rules and feed `claims_to_kb()`.
+- `rule_strength == "strict"` produces a strict ASPIC+ rule with no name.
+- Any other rule strength currently produces a defeasible rule named by `justification_id`.
+- Empty-premise non-reported justifications raise.
+- Unknown active premises raise.
 
----
+`stances_to_contrariness()` implements targeted undercutting:
 
-## 5. ASPIC+ Bridge (Future)
+- `undercuts` with `target_justification_id` targets matching named defeasible rules.
+- If a grounded/transformed rule name has a suffix, matching can fall back to the base ID before `#`.
+- An undercut against a claim with multiple matching defeasible justifications is ambiguous unless `target_justification_id` is provided.
+- Undercutting strict rules is impossible because strict rules are unnamed.
 
-The stored justifications provide the data needed to bridge to `aspic.py`:
+`structured_projection.build_structured_projection()` delegates to the ASPIC+ bridge. The old flat structured-argument path is no longer the target architecture.
 
-- Each justification with `rule_strength="strict"` maps to a strict rule in `Rs`
-- Each justification with `rule_strength="defeasible"` maps to a defeasible rule in `Rd` with name = justification ID
-- Each claim maps to a literal in `L`
-- `Kn` (necessary premises) = claims marked as axioms (see below)
-- `Kp` (ordinary premises) = all other claims
+### Claim Premise Kind
 
-This bridge is not part of this proposal but this proposal creates the prerequisites for it. The justification IDs serve as the naming function `n: Rd -> L` that ASPIC+ requires.
-
----
-
-## 6. Claim Additions (Smaller Scope)
-
-### Necessary vs Ordinary
-
-Add to the `claim` table:
+Claims have:
 
 ```sql
-premise_kind TEXT NOT NULL DEFAULT 'ordinary'  -- 'necessary' or 'ordinary'
+premise_kind TEXT NOT NULL DEFAULT 'ordinary'
 ```
 
-- **necessary**: Axioms, definitions, mathematical identities. Cannot be undermined. Maps to ASPIC+'s `Kn`.
-- **ordinary**: Empirical observations, reported measurements. Can be undermined. Maps to ASPIC+'s `Kp`.
-
-This is a column addition, not a schema rewrite. Backward compatible — all existing claims default to `ordinary`.
-
-### Upstream representation
-
-In `claims.yaml`:
-
-```yaml
-- id: claim5
-  type: observation
-  premise_kind: necessary  # optional, defaults to ordinary
-  statement: "By definition, a systematic review must include..."
-```
+The bridge maps claims with `premise_kind == "necessary"` into `K_n`; all other reported claims go into `K_p`.
 
 ---
 
-## 7. What This Does NOT Do
+## Target Architecture
 
-- **Full ASPIC+ evaluation.** The aspic.py engine remains standalone. This proposal adds the data layer; bridging is future work.
-- **Practical reasoning.** No goal-directed, value-based, or consequence-based rule_kinds. Wrong domain for now. (Walton 2015 p.13-16)
-- **Accrual.** Multiple justifications for the same conclusion don't formally accumulate. They produce multiple arguments that independently participate in the framework. (Prakken 2019 — future work.)
-- **Preference orderings.** No explicit ordering over rules or premises beyond strict/defeasible. (Modgil 2014 p.42-44 — future work.)
-- **Contrariness function.** Asymmetric conflict remains unrepresented. (Modgil 2018 p.8 — future work.)
+Justifications should be a normal semantic input to world argumentation:
 
----
-
-## 8. Implementation Order
-
-1. **LinkML schema**: Add Justification, RuleKindEnum, RuleStrengthEnum, AttackTarget to `schema/claim.linkml.yaml`
-2. **SQLite tables**: Add `justification` and `justification_premise` tables to `build_sidecar.py`
-3. **Import pipeline**: Extend `import_papers` to read `justifications.yaml`
-4. **Structured argument builder**: Load stored justifications, add `rule_strength`, implement strict-rule immunity and targeted undercutting
-5. **Claim extension**: Add `premise_kind` column
-6. **Validation**: Extend `pks claim validate-file` to also validate `justifications.yaml`
-7. **Tests**: For each step
-
-Steps 1-3 are mechanical. Step 4 is the behavioral change. Steps 5-6 are small additions. Each step is independently committable and testable.
-
----
-
-## 9. Upstream Compatibility
-
-The research-papers-plugin already produces `justifications.yaml` per paper with this format:
-
-```yaml
-source:
-  paper: PaperDirName
-
-justifications:
-  - id: just1
-    conclusion: claim12
-    premises:
-      - claim3
-      - claim8
-    rule_kind: causal_explanation
-    provenance:
-      page: 14
-      section: Discussion
-      quote_fragment: "..."
+```text
+canonical justifications/<source>.yaml
+        |
+        v
+sidecar justification rows
+        |
+        v
+typed owner-layer loader
+        |
+        v
+CanonicalJustification records filtered to active claims
+        |
+        v
+ASPIC+ bridge T2/T4
 ```
 
-This proposal adds `rule_strength` (defaulting to `defeasible`) and optionally `attack_target`. The upstream skill should be updated to emit `rule_strength` per justification. Existing `justifications.yaml` files without `rule_strength` will default to `defeasible` at import.
+The target is one production path:
+
+1. Load authored justifications from canonical artifacts or sidecar rows through an owner-layer API.
+2. Convert rows immediately to `CanonicalJustification`.
+3. Filter to active claims.
+4. Add exactly one `reported_claim` justification for each active directly asserted claim.
+5. Decide whether support/explain stances still synthesize fallback justifications, and if so make that policy explicit at the owner layer.
+6. Pass the final canonical justification set to the ASPIC+ bridge.
+
+The preferred end state is not a compatibility bridge. If authored justifications are the source of inference rules, support/explain stance synthesis should either be deleted from the normal ASPIC+ path or kept only as an explicit derived-rule policy with a typed request/report. It should not remain hidden inside bridge extraction.
+
+---
+
+## Required Changes
+
+### 1. Add an Owner-Layer Justification Loader
+
+Add a typed API near the world/sidecar owner layer:
+
+```python
+def all_authored_justifications(self) -> tuple[CanonicalJustification, ...]: ...
+
+def justifications_for_claim_scope(
+    self,
+    claim_ids: set[str],
+) -> tuple[CanonicalJustification, ...]: ...
+```
+
+The loader should:
+
+- Read `justification` rows.
+- Decode `premise_claim_ids` JSON as a list of strings.
+- Decode `provenance_json`.
+- Convert immediately to `CanonicalJustification`.
+- Reject malformed rows at the boundary instead of passing dicts into the core pipeline.
+
+Do not expose loose `dict` rows as the runtime surface.
+
+### 2. Carry Justifications Through the Active Graph or Extract Them Beside It
+
+There are two principled options:
+
+- Add `justifications: tuple[CanonicalJustification, ...]` to `CompiledWorldGraph`.
+- Keep `CompiledWorldGraph` claim/relation-only, but have bridge extraction ask the store for authored justifications scoped to the active claim IDs.
+
+The second option is smaller and keeps the graph focused on claim activation. The first option makes justifications visible in snapshots and deltas. Pick one owner boundary and delete the old hidden synthesis from the bridge once the target is implemented.
+
+### 3. Replace Hidden Runtime Synthesis
+
+`claim_justifications_from_active_graph()` currently creates:
+
+- `reported:<claim_id>`
+- `supports:<source_id>-><target_id>`
+- `explains:<source_id>-><target_id>`
+
+After authored justifications are loaded, this synthesis should not silently compete with authored rules. The production rule should be explicit:
+
+- Always synthesize `reported_claim` premises for active claims unless a future direct-assertion artifact replaces that role.
+- Do not synthesize support/explain inference rules in the normal ASPIC+ path when authored justifications are present for the same active scope.
+- If support/explain fallback remains for un-authored repositories, put it behind a typed policy argument and make ambiguity observable.
+
+No fallback reader for older data is required unless older repositories are explicitly declared in scope.
+
+### 4. Align Rule Kind Validation
+
+Current source validation allows:
+
+- `causal_explanation`
+- `comparison_based_inference`
+- `definition_application`
+- `empirical_support`
+- `explains`
+- `methodological_inference`
+- `reported_claim`
+- `scope_limitation`
+- `statistical_inference`
+- `supports`
+
+The original proposal mentioned `expert_testimony` and `abductive_inference`, but current validation does not allow them. Either add them deliberately with tests or remove them from documentation that claims they are accepted.
+
+### 5. Decide the Sidecar Premise Shape
+
+The current sidecar stores premises as a JSON array in `justification.premise_claim_ids`. That is acceptable for current use because the row is an artifact projection, not a relational query surface.
+
+Do not introduce `justification_premise` unless there is a concrete query or indexing requirement. If ordering and per-premise targeting become important in sidecar queries, then replace the JSON field with a normalized table and update every caller in one slice.
+
+---
+
+## Non-Goals
+
+- Reintroducing the old flat structured argument builder.
+- Adding backwards-compatibility shims for pre-justification repository states.
+- Treating source-local readability metadata as canonical identity.
+- Persisting synthesized support/explain justifications as if they were authored.
+- Adding a separate premise table without a demonstrated owner-layer need.
+
+---
+
+## Verification Targets
+
+The remaining implementation should be considered complete only when these observable checks pass:
+
+1. A promoted authored multi-premise justification appears in `justifications/<source>.yaml`.
+2. `pks build` writes that justification into the sidecar `justification` table.
+3. The owner-layer loader returns a `CanonicalJustification` with all premise IDs intact.
+4. A world ASPIC+ projection uses the authored multi-premise rule without requiring a `supports` or `explains` stance for each premise.
+5. A targeted `undercuts` stance against that justification defeats only arguments using that defeasible rule.
+6. A strict authored justification is not undercuttable.
+7. If multiple defeasible rules conclude the same claim, an undercut without `target_justification_id` raises or reports an explicit ambiguity instead of choosing one silently.
+
+Use the logged pytest wrapper for project tests, for example:
+
+```powershell
+powershell -File scripts/run_logged_pytest.ps1 tests/test_source_relations.py tests/test_aspic_bridge.py
+```
+
+For package type checking, use:
+
+```powershell
+uv run pyright propstore
+```
 
 ---
 
 ## References
 
-- Modgil & Prakken 2014 — ASPIC+ framework (strict/defeasible rules, naming function, three attack types)
-- Modgil & Prakken 2018 — General account of argumentation with preferences
-- Walton & Macagno 2015 — Classification system of ~28 argumentation schemes
-- Prakken et al. 2013 — Formalization of argumentation schemes in ASPIC+ for legal reasoning
-- Pollock 1987 — Rebutting vs undercutting defeaters
-- Dauphin 2018 — ASPIC-END (explanations, intuitively strict rules)
-- Prakken 2019 — Accrual of arguments in ASPIC+
+- Modgil & Prakken 2014/2018: ASPIC+ strict/defeasible rules, naming function, undercutting.
+- Pollock 1987: rebutting and undercutting defeaters.
+- Prakken 2010: structured argumentation and transposition closure.
+- Current implementation references:
+  - `propstore/families/documents/sources.py`
+  - `propstore/source/relations.py`
+  - `propstore/source/promote.py`
+  - `propstore/sidecar/schema.py`
+  - `propstore/sidecar/passes.py`
+  - `propstore/core/justifications.py`
+  - `propstore/aspic_bridge/translate.py`
+  - `propstore/aspic_bridge/projection.py`
