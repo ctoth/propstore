@@ -1,938 +1,415 @@
-# Proposal: True AGM Revision Layer for Propstore
+# Proposal: Belief Revision Architecture In Propstore
 
-**Date:** 2026-03-29
-**Status:** Implemented through Phase 5
-**Grounded in:** local codebase, [reports/research-true-agm-revision-feasibility.md](C:/Users/Q/code/propstore/reports/research-true-agm-revision-feasibility.md), the local paper corpus including Alchourron 1985, Gärdenfors 1988, Dixon 1993, Darwiche 1997, Spohn 1988, Booth 2006, Bonanno 2007/2010, Konieczny 2002, Coste-Marquis 2007, Baumann 2015, Rotstein 2008, Martins 1988, and Shapiro 1998
+**Updated:** 2026-05-06
+**Status:** Current architecture implemented across propstore and sibling
+dependencies; remaining formal gaps are dependency-owned and listed below.
+**Grounded in:** the current propstore codebase, `../belief-set`,
+`../argumentation`, and the project docs/tests cited in this file.
 
 ---
 
 ## Problem
 
-Propstore currently has:
+Propstore originally needed a "true AGM revision layer." The current codebase no
+longer implements that as a propstore-owned `propstore.revision` package.
 
-- immutable source storage with provenance
-- a compiled sidecar and read-only `WorldModel`
-- a `BoundWorld` view over active claims and contexts
-- an ATMS backend that tracks exact support and bounded additive futures
-- branch isolation plus IC merge operators for multi-branch aggregation
+The target architecture is now:
 
-What it does **not** have is true belief revision.
+- formal propositional belief revision and IC merge live in the sibling
+  `../belief-set` dependency, imported as `belief_set`
+- formal AF revision lives in the sibling `../argumentation` dependency, under
+  `argumentation.af_revision`
+- propstore owns the projection, support-incision, CLI, app, worldline, and
+  journal integration needed to apply scoped revision-like operations to
+  propstore worlds
+- source storage remains immutable during revision operations
+- ATMS remains support analysis, not AGM
+- merge remains separate from revision
 
-Today:
-
-- `docs/atms.md` explicitly says ATMS replay is additive only and not AGM revision
-- `docs/semantic-merge.md` correctly separates branch-local revision analogies from merge-time IC merging
-- `proposals/multi-source-structured-merge.md` is formalizing merge objects, not revision state
-
-This is the correct boundary. The missing piece is a dedicated revision layer that performs contraction, expansion, and revision over a **derived epistemic state** without mutating source storage or collapsing multi-source merge into a fake revision operator.
+This proposal is therefore not a plan to add a new `propstore/revision/`
+package. That path has been retired and is guarded by
+`tests/test_revision_retirement.py`.
 
 ---
 
 ## Non-Negotiable Rule
 
-**Revision in propstore must operate over derived belief states, contexts, or branch-local theories, never by deleting or canonicalizing source claims in storage.**
+**Do not cite `propstore.support_revision` as formal AGM belief revision.**
 
 Corollaries:
 
-- source YAML remains immutable except by explicit user migration
-- ATMS remains a justification engine, not the revision engine
-- IC merging remains a merge-time/source-aggregation operation, not the revision operator
-- merge objects and revision states must be different datatypes
-- fixed-point iteration may be used to evaluate a revision episode, but convergence alone is not the semantics of revision
+- formal AGM, entrenchment, iterated revision, and IC merge belong in
+  `belief_set`
+- formal AF revision belongs in `argumentation.af_revision`
+- propstore support revision is an operational support-incision adapter over a
+  scoped world projection
+- source YAML, compiled sidecars, and canonical claim identity are not rewritten
+  by revision operations
+- ATMS labels and essential support may inform propstore support incision, but
+  ATMS is not itself the reviser
+- assignment-selection merge and IC merge are different surfaces
+- support-incision journals are replayable propstore artifacts, not opaque
+  substitutes for formal belief-set state
 
-If this rule is broken, the proposal fails.
-
----
-
-## Why This Is A Coherent Chunk Of Work
-
-This proposal is a coherent package because:
-
-- the repo already has the necessary descriptive substrate: `WorldModel`, `BoundWorld`, ATMS labels, branch isolation, render-time policies
-- the local literature covers one-shot AGM revision, entrenchment, ATMS/AGM translation, iterated revision, and merge separation
-- the missing work is architectural: introducing a first-class revision layer and wiring it to existing state providers
-
-This proposal does **not** require finishing every higher-level argumentation-dynamics question up front. It only requires making the revision boundary explicit and implementing the revision object stack in the right order.
+If the code or docs blur these boundaries, the architecture regresses.
 
 ---
 
-## What This Proposal Covers
+## Current Owner Map
 
-### V1
+### `../belief-set`
 
-- one-shot expansion
-- one-shot contraction
-- one-shot revision via Levi identity
-- entrenchment computation from current support structure
-- explanation/provenance for what was retracted and why
-- non-destructive operation over derived belief states
+Package: `formal-belief-set`, imported as `belief_set`.
 
-### Later phases
+Implemented public surfaces:
 
-- iterated revision with first-class epistemic state
-- DP-style operator selection and tests
-- AF-level or structured-argument revision adapters
-- optional persistence of revision-state snapshots for reproducibility
+- `belief_set.language`: finite propositional formulas and worlds
+  (`Atom`, `Not`, `And`, `Or`, `Top`, `Bottom`, helpers)
+- `belief_set.core.BeliefSet`: finite model-set belief theories over an
+  explicit alphabet
+- `belief_set.core.expand`: model-set expansion by a formula
+- `belief_set.agm.SpohnEpistemicState`: finite OCF over all worlds
+- `belief_set.agm.revise`: Darwiche-Pearl style revision over a Spohn ranking
+- `belief_set.agm.full_meet_contract`: Harper-style contraction over the finite
+  theory
+- `belief_set.entrenchment.EpistemicEntrenchment`: Gärdenfors-Makinson style
+  entrenchment induced by a Spohn ranking
+- `belief_set.iterated.lexicographic_revise`
+- `belief_set.iterated.restrained_revise`
+- `belief_set.ic_merge.merge_belief_profile`: Konieczny-Pino-Pérez finite
+  model-theoretic IC merge with `SIGMA` and `GMAX`
+- anytime guards such as `AlphabetBudgetExceeded` and `EnumerationExceeded`
 
-### Explicit non-goals for V1
+Primary gates:
 
-- replacing the ATMS
-- replacing IC merge
-- resolving the full AF-level revision problem first
-- changing stored claim identity or canonicalization rules
-- deleting source claims as a “revision” operation
+- `../belief-set/tests/test_belief_set_postulates.py`
+- `../belief-set/tests/test_belief_set_iterated_postulates.py`
+- `../belief-set/tests/test_agm_postulate_audit.py`
+- `../belief-set/tests/test_paper_postulate_property_sweep.py`
+- `../belief-set/tests/test_belief_set_alphabet_growth_budget.py`
+- `../belief-set/tests/test_ic_merge_Maj_Arb.py`
+
+Known formal gaps, documented in `docs/belief-set-revision.md` and
+`docs/ic-merge.md`:
+
+- AGM partial-meet contraction and explicit selection functions
+- Levi and Harper as first-class public composer APIs
+- Grove sphere systems
+- Katsuno-Mendelzon update
+- Hansson safe contraction and broader belief-base contraction families
+- full Booth-Meyer admissible-revision family beyond restrained revision
+- Konieczny-Pino-Pérez `Delta^Max`
+- Coste-Marquis AF merge
+
+These gaps should be closed in `../belief-set`, not by reintroducing local
+propstore approximations.
+
+### `../argumentation`
+
+Package: `formal-argumentation`, imported as `argumentation`.
+
+Implemented AF revision surfaces:
+
+- `argumentation.af_revision.baumann_2015_kernel_union_expand`
+- `argumentation.af_revision.baumann_2015_kernel`
+- `argumentation.af_revision.stable_kernel`
+- `argumentation.af_revision.ExtensionRevisionState`
+- `argumentation.af_revision.diller_2015_revise_by_formula`
+- `argumentation.af_revision.diller_2015_revise_by_framework`
+- `argumentation.af_revision.cayrol_2014_classify_grounded_argument_addition`
+
+Primary gates:
+
+- `../argumentation/tests/test_af_revision.py`
+- propstore consumer docs/tests in `docs/af-revision.md` and
+  `tests/test_af_revision_postulates.py`
+
+Known AF gaps are documented in `docs/af-revision.md`. Propstore should consume
+public `argumentation` APIs or add thin adapters; it should not embed a new AF
+revision kernel.
+
+### `propstore.support_revision`
+
+Package: propstore-owned operational support-incision machinery.
+
+Implemented surfaces:
+
+- `state.py`: `AssertionAtom`, `AssumptionAtom`, `BeliefBase`,
+  `RevisionScope`, `RevisionResult`, `RevisionEpisode`, `EpistemicState`
+- `projection.py`: `BoundWorld` to exact-support belief-base projection using
+  `SituatedAssertion` identities and source-claim provenance
+- `entrenchment.py`: deterministic support-derived ranking with override
+  hooks and explanation reasons
+- `operators.py`: expand, contract, revise, input normalization, stabilization,
+  and bounded incision-set search
+- `iterated.py`: explicit propstore epistemic state, restrained/lexicographic
+  ranking update, and merge-point refusal
+- `explain.py` and `explanation_types.py`: result explanation payloads
+- `snapshot_types.py`: canonical snapshot serialization and strict mapping
+  decoding
+- `history.py`: epistemic snapshots, transition journals, chain integrity,
+  deterministic replay, and semantic diffs
+- `dispatch.py`: replay of journal operators from normalized inputs
+- `af_adapter.py`: projection of accepted support-revision state to
+  argumentation-facing views
+- `workflows.py`: owner-layer APIs used by app and CLI adapters
+
+This package is not the formal AGM implementation. It answers a different
+question: "Given a scoped propstore world with exact ATMS support, which support
+assumptions must be incised to accept or remove selected projected atoms, and
+how can that episode be explained and replayed?"
 
 ---
 
-## Required Separation
+## Propstore Integration
 
-The architecture must preserve these separations:
+### Bound World
 
-### 1. Source storage vs revision state
+`propstore.world.bound.BoundWorld` is the scoped adapter. It delegates revision
+work instead of owning operator logic:
 
-Stored claims, concepts, justifications, stances, and provenance remain the source of truth. Revision state is a separate derived object built from them.
-
-### 2. ATMS support vs revision operator
-
-ATMS labels and essential support inform entrenchment and explanation, but ATMS is not itself the reviser.
-
-### 3. One-shot AGM vs iterated revision
-
-One-shot revision can be implemented with entrenchment and finite belief-base operations. Iterated revision needs first-class epistemic state beyond “current accepted claims.”
-
-### 4. Within-branch revision vs merge-time aggregation
-
-Linear within-branch epistemic change is revision territory. Multi-parent merge points remain IC-merging territory. Do not route within-branch revision through `ic_merge.py`.
-
-### 5. Claim-level revision vs AF-level revision
-
-Claim/context revision should land first. AF-level and structured-argument revision are downstream consumers or adapters, not the foundation.
-
----
-
-## Existing Ground We Can Reuse
-
-### In the codebase
-
-- `propstore/world/model.py`
-  - read-only world substrate
-- `propstore/world/bound.py`
-  - environment-bound active world view
-- `propstore/world/atms.py`
-  - exact support, essential support, bounded future analysis
-- `propstore/world/types.py`
-  - render policies and world-facing dataclasses
-- `propstore/repo/branch.py`
-  - branch-local sequencing
-- `propstore/repo/ic_merge.py`
-  - merge-specific IC operators already separated
-
-### In the paper corpus
-
-- Alchourron 1985
-  - AGM postulates, partial meet contraction, Levi/Harper identities
-- Gärdenfors 1988
-  - epistemic entrenchment as the constructive bridge to contraction
-- Dixon 1993
-  - ATMS support structure to AGM-equivalent entrenchment behavior
-- Darwiche 1997
-  - iterated revision requires epistemic states, not just belief sets
-- Spohn 1988
-  - OCF/ranking representation for iterated state
-- Booth 2006
-  - admissible/restrained operators for iterated revision
-- Bonanno 2007/2010
-  - branch/history sensitivity and the merge-point boundary
-- Baumann 2015 and Rotstein 2008
-  - downstream argumentation-level revision
-- Konieczny 2002 and Coste-Marquis 2007
-  - revision/merging separation and explicit merge semantics
-
----
-
-## Proposed Architecture
-
-## Layer picture
-
-```text
-stored entities
-  -> WorldModel / BoundWorld / ATMS support graph
-  -> revision projection
-  -> entrenchment / epistemic state
-  -> revision operator
-  -> revised belief state
-  -> render / explanation / optional AF adapter
-```
-
-The revision layer sits **between** descriptive world construction and render-time resolution. It consumes a scoped world and produces a revised scoped world-state. It does not rewrite storage.
-
-## Semantic Rule
-
-Revision semantics are **operator-based, not fixed-point-defined**.
-
-For each revision episode:
-
-1. start from an explicit pre-revision state
-2. apply a defined revision operator to that state and the new input
-3. recompute induced support, acceptance, and derived consequences until the resulting post-revision world stabilizes
-4. treat that stabilized result as the next epistemic state
-
-This means:
-
-- the operator defines the semantics
-- the fixed point is the evaluation method for one revision episode
-- the stabilized post-revision state becomes the input to the next revision episode
-
-This proposal therefore rejects two bad alternatives:
-
-- defining revision as “keep looping until nothing changes”
-- returning a revised state before downstream support and derivations have stabilized
-
-## New package: `propstore/revision/`
-
-```text
-propstore/revision/
-    __init__.py
-    projection.py      # BoundWorld/ATMS -> finite belief base
-    entrenchment.py    # compute entrenchment ordering from support + overrides
-    operators.py       # expansion, contraction, revision (V1)
-    state.py           # RevisionScope, BeliefBase, RevisionResult, EpistemicState
-    explain.py         # retraction and support explanations
-    iterated.py        # OCF / preorder-based iterated state (Phase 3+)
-    af_adapter.py      # optional AF/ASPIC+ adapter (Phase 4+)
-```
-
-### `state.py`
-
-Core V1 dataclasses:
-
-```python
-@dataclass(frozen=True)
-class RevisionScope:
-    bindings: dict[str, Any]
-    context_id: str | None = None
-    branch: str | None = None
-    commit: str | None = None
-
-@dataclass(frozen=True)
-class BeliefAtom:
-    atom_id: str
-    kind: str        # "claim" | "assumption" | "derived"
-    payload: dict[str, Any]
-
-@dataclass(frozen=True)
-class BeliefBase:
-    atoms: tuple[BeliefAtom, ...]
-    supports: Mapping[str, Label]
-    exact_atoms: tuple[str, ...]
-
-@dataclass(frozen=True)
-class RevisionResult:
-    accepted_atom_ids: tuple[str, ...]
-    rejected_atom_ids: tuple[str, ...]
-    explanation: Mapping[str, Any]
-```
-
-Phase 3 adds:
-
-```python
-@dataclass(frozen=True)
-class EpistemicState:
-    scope: RevisionScope
-    accepted_atom_ids: tuple[str, ...]
-    entrenchment: Mapping[str, float]
-    history: tuple[str, ...]
-    ranking: Mapping[str, int] | None = None
-```
-
-The V1 `RevisionResult` can exist without first-class iterated state. `EpistemicState` becomes mandatory once we claim iterated revision.
-
-### `projection.py`
-
-Responsibilities:
-
-- derive a finite belief base from `BoundWorld`
-- include only exact-support claims and assumptions for V1
-- expose claim/assumption provenance back to the world layer
-- keep the mapping stable and explainable
-
-Non-goal:
-
-- full deductive closure
-
-This is an operational belief-base projection, not a theorem prover over all consequences.
-
-### `entrenchment.py`
-
-Responsibilities:
-
-- compute a default entrenchment ordering from:
-  - ATMS labels
-  - `ATMSEngine.essential_support()`
-  - support multiplicity / environment coverage
-  - optional explicit policy overrides
-- expose round-trippable explanation of why one atom outranks another
-
-Hard rule:
-
-- computed entrenchment is **derived**, not stored as an independent source of truth
-
-What may be stored:
-
-- explicit override categories or user preferences
-
-What must not be stored:
-
-- stale computed entrenchment detached from support structure
-
-### `operators.py`
-
-V1 operators:
-
-- `expand(base, atom)`
-- `contract(base, atom, *, policy=...)`
-- `revise(base, atom, *, policy=...)`
-
-`revise` should be defined in terms of contraction + expansion, not as a separate ad hoc shortcut.
-
-V1 contraction should be **support-sensitive**, not a bare claim-deletion primitive:
-
-- define an explicit V1 conflict basis over the projected exact-support belief base
-- identify the support / culprit sets responsible for the target contradiction or incompatibility
-- compute a minimal low-entrenchment incision set over that support structure
-- let claim-level acceptance and rejection be the visible consequence of those incisions
-
-In other words, the primitive action is not “drop whichever conflicting claim looks weakest.” The primitive action is “cut the least entrenched support necessary to contract or to admit the revising input,” then recompute the resulting belief state.
-
-The operator API should be pluggable so later phases can choose restrained, lexicographic, or other admissible iterated operators without changing the rest of the package shape.
-
-Each operator returns a result only after local post-revision stabilization:
-
-- recompute acceptance/support on the projected belief base
-- recompute derived consequences
-- repeat until the revised scoped world reaches local fixed point
-
-The fixed point is therefore part of operator evaluation, not a substitute for the operator.
-
-### `explain.py`
-
-Responsibilities:
-
-- explain which atoms were lost during contraction
-- identify the incision set and the support sets it cut
-- point back to essential support, support multiplicity, and explicit override priorities
-- distinguish:
-  - retracted because contradicted by new input
-  - retracted because less entrenched than competing support
-  - retracted because their supporting assumptions were incised
-  - unchanged because protected by higher entrenchment
-
-This explanation surface is required. Without it, the revision layer will be impossible to trust.
-
----
-
-## Integration Points
-
-### `BoundWorld`
-
-Add a delegating entry point:
-
-```python
-def revise(self, target: str, **kwargs) -> RevisionResult:
-    ...
-```
-
-And similarly for:
-
+- `revision_base()`
+- `revision_entrenchment(...)`
 - `expand(...)`
-- `contract(...)`
-- `revision_state(...)`
+- `contract(..., max_candidates=...)`
+- `revise(..., max_candidates=..., conflicts=...)`
+- `revision_explain(...)`
+- `epistemic_state(...)`
+- `revision_state_snapshot(state)`
+- `iterated_revise(..., operator="restrained")`
 
-The `BoundWorld` remains the context-bound descriptive view. It does not own the operator logic.
+The projection includes active claims only when support is exactly
+reconstructible. Assertion atoms use `SituatedAssertion` identity, and each atom
+retains its source claims so accepted snapshot atoms can be projected back to
+source claim ids.
 
-### `WorldModel`
+### App And CLI
 
-No revision logic should live here. `WorldModel` remains read-only.
+Reusable app-layer requests live in `propstore.app.world_revision`.
 
-At most:
-
-- helper to construct a `BoundWorld`
-- helper to persist or reload revision-state snapshots later
-
-### `RenderPolicy`
-
-Do **not** overload `RenderPolicy` with revision semantics in V1.
-
-Revision is not just another resolution strategy like `RECENCY` or `IC_MERGE`. It is a different state-transform layer. If needed, add a separate `RevisionPolicy` in `propstore/revision/state.py`.
-
-### `worldline.py`
-
-Worldlines are the natural place to record reproducible revision traces later:
-
-- scope
-- operator
-- input atom
-- accepted/rejected sets
-- explanation
-
-But the defer needs to be explicit:
-
-- Phase 2 only gives us one-shot `RevisionResult`
-- that is not yet the same thing as a durable replay schema or persistent epistemic-state snapshot
-- if we redesign `worldline.py` too early, we risk freezing a one-shot result shape as if it were the long-term revision-state model
-
-So the rule is:
-
-- Phase 2 may print or serialize ad hoc revision results for inspection
-- Phase 2 must not commit to declarative worldline revision inputs or a durable revision-state schema
-- Phase 3 should define the persistent replay shape after `EpistemicState` is explicit
-
-Now that `EpistemicState` is explicit, worldline integration can proceed, but it must still keep the question/answer boundary clean:
-
-- `WorldlineDefinition` gets an optional `revision` query block
-- `WorldlineResult` gets an optional `revision` result payload
-- the query block is the requested operation
-- the result payload is the materialized episode/state outcome
-
-Recommended worldline query contract:
-
-```yaml
-revision:
-  operation: revise | contract | expand | iterated_revise
-  atom: {...}              # for expand/revise/iterated_revise
-  target: claim_id         # for contract
-  conflicts:
-    claim:new: [legacy]
-  operator: restrained     # only for iterated_revise
-```
-
-Recommended worldline result contract:
-
-```yaml
-revision:
-  operation: revise | contract | expand | iterated_revise
-  input_atom_id: claim:new | null
-  target_atom_ids: [claim:legacy]
-  result:
-    accepted_atom_ids: [...]
-    rejected_atom_ids: [...]
-    incision_set: [...]
-    explanation: {...}
-  state:                   # present for iterated_revise only
-    accepted_atom_ids: [...]
-    ranked_atom_ids: [...]
-    ranking: {...}
-    history: [...]
-```
-
-Design rule:
-
-- store episode results plus enough state summary to verify replay
-- do not persist only an opaque state blob
-- do not collapse one-shot `RevisionResult` and iterated `EpistemicState` into the same field shape
-
-### CLI
-
-The public surface is currently exposed under the existing `pks world` group:
+The public CLI is under `pks world revision`:
 
 ```bash
-pks world revision-base [bindings...]
-pks world revision-entrenchment [bindings...]
-pks world expand [bindings...] --atom '{...}'
-pks world contract [bindings...] --target <atom-or-claim-id>
-pks world revise [bindings...] --atom '{...}' [--conflict <atom-or-claim-id>]
-pks world revision-explain [bindings...] --operation <expand|contract|revise> ...
-pks world iterated-state [bindings...]
-pks world iterated-revise [bindings...] --atom '{...}' [--conflict <atom-or-claim-id>] [--operator restrained|lexicographic]
+pks world revision base [bindings...] [--context <context>]
+pks world revision entrenchment [bindings...] [--context <context>]
+pks world revision expand [bindings...] --atom '{...}' [--context <context>]
+pks world revision contract [bindings...] --target <atom-id> [--context <context>]
+pks world revision revise [bindings...] --atom '{...}' [--conflict <atom-id>]
+pks world revision explain [bindings...] --operation <expand|contract|revise> ...
+pks world revision iterated-state [bindings...] [--context <context>]
+pks world revision iterated-revise [bindings...] --atom '{...}' [--operator restrained|lexicographic]
 ```
 
-These commands operate on derived state and print results plus explanation. They do not rewrite YAML and they do not declare worldline schemas.
+The CLI is a presentation adapter. It parses command input, calls
+`propstore.app.world_revision`, and renders typed results.
+
+### Worldlines And Journals
+
+Worldline revision support is implemented in:
+
+- `propstore.worldline.definition.WorldlineRevisionQuery`
+- `propstore.worldline.revision_types`
+- `propstore.worldline.revision_capture`
+- `propstore.worldline.runner`
+- `propstore.worldline.hashing`
+- `propstore.support_revision.history`
+- `propstore.support_revision.dispatch`
+
+Worldline definitions can carry a `revision` query block. Results can carry a
+revision payload with operation, input/target atom ids, accepted/rejected atom
+ids, incision set, explanation, optional state snapshot, status, and typed
+error.
+
+Transition journals capture ordered support-revision operations with:
+
+- `state_in` and `state_out` snapshots
+- normalized operator input
+- policy id and policy version snapshot
+- content hashes
+- deterministic replay through `support_revision.dispatch.dispatch`
+- chain-integrity checks
+
+At-step world projection replays the journal step by step and maps the accepted
+snapshot assertions back to claim ids.
+
+### Merge Points
+
+`support_revision.iterated.iterated_revise` refuses iterated revision when
+`RevisionScope.merge_parent_commits` contains more than one parent. The caller
+must use an explicit merge path.
+
+This is intentional. A linear within-branch revision episode is not a
+multi-parent merge.
 
 ---
 
-## Interaction With `multi-source-structured-merge.md`
+## Merge Boundary
 
-This proposal is compatible with the in-progress merge proposal if these rules hold:
+There are now two named merge surfaces:
 
-1. The merge proposal owns source aggregation.
-2. This proposal owns epistemic state change.
-3. Neither reuses the other’s internal datatype as a shortcut.
+- `belief_set.ic_merge.merge_belief_profile` is the formal finite
+  model-theoretic IC merge operator.
+- `propstore.world.assignment_selection_merge` is observed-assignment selection
+  over active typed values.
 
-### Safe sequencing
+The old proposal text mentioned `propstore/repo/ic_merge.py`. The current docs
+name the propstore render-time surface
+`propstore.world.assignment_selection_merge`; formal IC merge lives in
+`belief_set.ic_merge`.
 
-Safe now:
+Rules:
 
-- V1 revision projection from `BoundWorld`
-- entrenchment computation from ATMS support
-- one-shot contraction/revision commands and tests
-
-Should wait until merge object boundary is stable:
-
-- any revision adapter that consumes merged partial frameworks directly
-- any AF-level revision that depends on the new branch-local argumentation summaries
-
-### Explicit anti-goal
-
-Do not implement “revision” by feeding a merge profile into `ic_merge()` and calling the output the revised belief state.
+- use `belief_set.ic_merge` for formal formula/profile merge
+- use assignment selection only for render-time selection among observed typed
+  values
+- do not route within-branch revision through a merge operator
+- do not call support-incision output formal IC merge
 
 ---
 
-## Phased Implementation Plan
+## Projection Boundary
 
-### Phase 0: Boundary Cleanup
+The current propstore projection is deliberately lossy:
 
-Goal:
+- it includes only exact-support active claims in V1 support-revision bases
+- it maps claims to assertion-language atoms, not raw claim-row buckets
+- it carries source-claim provenance for display and reverse projection
+- it carries support sets and essential support for incision/explanation
+- it can include supporting assumptions
+- it does not claim full deductive closure
 
-- make the docs and naming line up with the intended boundary before code lands
-
-Tasks:
-
-- audit wording in docs that still overstates current branch operations as true revision
-- cross-link this proposal with `multi-source-structured-merge.md`
-- make the “not AGM revision” boundary in `docs/atms.md` remain explicit
-
-### Phase 1: Belief-Base Projection And Entrenchment
-
-Goal:
-
-- derive an operational finite belief base from `BoundWorld`
-- compute explainable entrenchment from ATMS support
-
-Tasks:
-
-1. Add `propstore/revision/projection.py`
-2. Add `propstore/revision/entrenchment.py`
-3. Define `RevisionScope`, `BeliefAtom`, and `BeliefBase`
-4. Add toy fixtures and unit tests
-
-Success criteria:
-
-- a scoped `BoundWorld` can project to a stable belief base
-- entrenchment ordering is deterministic and explainable
-- no source data is mutated
-
-### Phase 2: Single-Shot Contraction And Revision
-
-Goal:
-
-- implement true one-shot AGM-style operators over the projected belief base
-- evaluate each revision episode to local fixed point before returning
-
-Tasks:
-
-1. Add `operators.py`
-2. Add `RevisionResult`
-3. Add `explain.py`
-4. Add `BoundWorld` delegation methods
-5. Add CLI commands
-6. Add local stabilization loop for post-revision support/derivation closure
-
-Success criteria:
-
-- revise/contract/expand work on toy cases and real sidecar-backed scopes
-- Levi and Harper identities hold at the operational level used by the package
-- explanations identify what moved and why
-- each revision episode returns a stabilized post-revision state rather than an intermediate one
-
-### Phase 3: Iterated Revision State
-
-Goal:
-
-- add first-class epistemic state and operator families for revision sequences
-
-Tasks:
-
-1. Add `EpistemicState`
-2. Add `iterated.py`
-3. Add ranking or preorder representation
-4. Add operator selection for admissible/restrained behavior
-5. Add sequence tests corresponding to DP-style scenarios
-6. Derive episode `n+1` entrenchment/ranking from the stabilized result of episode `n`
-
-Success criteria:
-
-- repeated revisions depend on history, not just current acceptance set
-- the state object is explicit and serializable
-- merge points are still excluded from this operator path
-- fixed-point recomputation is scoped to each episode, not used as a replacement for explicit iterated-state semantics
-
-### Phase 4: Downstream AF / Structured Revision Adapters
-
-Goal:
-
-- expose revision-informed updates into abstract and structured argumentation
-
-Tasks:
-
-1. Add `af_adapter.py`
-2. Define how revised claim/context states project into AF changes
-3. Optionally add warrant-style structured revision hooks
-
-Current projection contract:
-
-- `EpistemicState` projects to a read-only revision argumentation view
-- the view carries:
-  - a revision-projected store overlay for claim-graph consumers
-  - `active_claim_ids` for Dung/claim-graph entry points
-  - `active_claims` for structured/ASPIC projection entry points
-  - exact `support_metadata` for surviving ATMS-backed claims
-- synthetic revised-in claims are supplied through the overlay store and active claim rows
-- merge remains outside this adapter path
-
-Success criteria:
-
-- AF/ASPIC+ consumers can observe revised state without becoming the primary reviser
-
-### Phase 5: Worldline Revision Capture And Replay
-
-Goal:
-
-- make revision episodes reproducible and staleness-sensitive in the existing worldline system
-
-Tasks:
-
-1. Add a `revision` query block to `WorldlineDefinition`
-2. Add a `revision` result payload to `WorldlineResult`
-3. Capture one-shot revision episodes in `worldline_runner.py`
-4. Capture iterated revision episodes plus explicit state summary
-5. Include revision payloads in worldline content hashing and stale detection
-6. Keep merge-point refusal explicit in captured errors/results
-
-Success criteria:
-
-- worldlines can replay explicit revision-aware runs
-- one-shot and iterated revision payloads are distinguishable
-- changing revision-relevant support/claim inputs changes the worldline content hash
-- merge points still refuse revision rather than silently degrading to merge
+Formal propositional closure belongs in `belief_set.BeliefSet`. Propstore's
+support-revision base is an operational projected base over scoped world
+evidence.
 
 ---
 
-## Testing Strategy
+## Explanation Boundary
 
-### Phase 1 tests
+A propstore support-revision result must explain:
 
-- projection stability under identical `BoundWorld` inputs
-- exact-support-only inclusion for V1
-- entrenchment ordering explanation is stable
-- stronger support outranks weaker support on toy ATMS setups
+- accepted atom ids
+- rejected atom ids
+- incision set
+- whether an atom was expanded, contracted, incised, or lost support
+- support sets and essential support where available
+- ranking reasons, including support count and explicit override metadata
 
-### Phase 2 tests
-
-- revision success
-- contraction removes target support appropriately
-- vacuity on irrelevant input
-- Levi identity holds operationally
-- Harper round-trip is consistent with the package semantics
-- no mutation of source YAML or repo refs
-- post-revision episodes converge to a local fixed point
-- rerunning stabilization on an already stabilized result is idempotent
-
-### Phase 3 tests
-
-- same current acceptance set but different history yields different future revision behavior
-- linear within-branch sequences stay on the iterated-revision path
-- merge points are refused or rerouted explicitly
-- operator-specific tests for restrained vs more aggressive options
-- episode `n+1` uses the stabilized state from episode `n`, not a pre-closure intermediate
-
-### Cross-cutting tests
-
-- revision commands do not call merge operators
-- merge commands do not call revision operators
-- `docs/atms.md` boundary remains true after implementation
+This explanation is required for trust, replay, and worldline auditability. It
+is not a substitute for formal postulate evidence. Formal postulate evidence
+lives in dependency tests.
 
 ---
 
-## Main Risks
+## Tests And Gates
 
-### Risk 1: Architectural self-deception
+Propstore gates:
 
-Mistake:
+- `tests/test_revision_retirement.py`
+- `tests/test_revision_projection.py`
+- `tests/test_revision_assertion_identity.py`
+- `tests/test_revision_entrenchment.py`
+- `tests/test_revision_operators.py`
+- `tests/test_revision_properties.py`
+- `tests/test_revision_iterated.py`
+- `tests/test_iterated_revision_recomputes_entrenchment.py`
+- `tests/test_revision_explain.py`
+- `tests/test_revision_bound_world.py`
+- `tests/test_revision_cli.py`
+- `tests/test_revision_af_adapter.py`
+- `tests/test_worldline_revision.py`
+- `tests/test_worldline_revision_snapshot_boundary.py`
+- `tests/test_world_query_at_journal_step.py`
+- `tests/test_journal_entry_contract.py`
+- `tests/test_replay_determinism_actually_replays.py`
+- `tests/test_belief_set_docs.py`
+- `tests/architecture/test_belief_set_boundary_contract.py`
 
-- treating ATMS labels, merge outputs, or branch history as if they already were a revision state
+Dependency gates:
 
-Mitigation:
+- `../belief-set/tests/test_belief_set_postulates.py`
+- `../belief-set/tests/test_belief_set_iterated_postulates.py`
+- `../belief-set/tests/test_agm_postulate_audit.py`
+- `../belief-set/tests/test_paper_postulate_property_sweep.py`
+- `../belief-set/tests/test_ic_merge_Maj_Arb.py`
+- `../argumentation/tests/test_af_revision.py`
 
-- keep separate datatypes and packages
-- explicit tests for “merge is not revision”
-- explicit tests for “ATMS replay is not contraction”
+Boundary gates that must remain true:
 
-### Risk 2: Overcoupling to the in-progress merge proposal
-
-Mistake:
-
-- waiting for full multi-source structured merge before starting any revision work
-
-Mitigation:
-
-- phase revision V1 over `BoundWorld` now
-- defer only merge-object consumers, not the whole proposal
-
-### Risk 3: Starting at AF-level first
-
-Mistake:
-
-- trying to solve abstract or structured argument revision before claim/context revision is stable
-
-Mitigation:
-
-- phase AF adapters after single-shot and iterated claim-level revision land
-
-### Risk 4: Stale entrenchment
-
-Mistake:
-
-- persisting computed entrenchment independently of support structure
-
-Mitigation:
-
-- compute entrenchment from current support
-- store only explicit overrides
+- `propstore.revision` must stay retired
+- `propstore.support_revision` must not export or be described as AGM
+- context lifting, ASPIC projection, and grounding must not import
+  `belief_set`
+- support-revision snapshots must reject malformed loose mappings
+- worldline revision capture must snapshot state rather than persist live state
+- changing a revision payload must change the worldline content hash
 
 ---
 
-## Recommendation
+## Current Recommendation
 
-Proceed with this proposal.
+Keep the architecture split exactly as it is:
 
-The right implementation order is:
+1. Put formal belief-set revision, entrenchment, and IC merge in
+   `../belief-set`.
+2. Put formal AF revision in `../argumentation`.
+3. Keep propstore's `support_revision` package as an operational
+   support-incision, explanation, snapshot, and journal adapter.
+4. Keep `BoundWorld`, app workflows, CLI, and worldline runner as adapters over
+   owner-layer APIs.
+5. Close formal gaps in the dependency that owns the formal surface, then update
+   propstore adapters only where a real propstore integration is needed.
 
-1. belief-base projection and entrenchment
-2. one-shot revision operators
-3. first-class iterated state
-4. downstream argumentation adapters
-
-And the right coexistence rule with the current merge draft is:
-
-**finish revision as revision, finish merge as merge, and never let either pretend to be the other.**
+The old implementation order in this proposal has been superseded. The active
+work is no longer "build `propstore/revision` through Phase 5"; it is "protect
+the dependency-owned formal kernels and propstore-owned support-incision
+boundary."
 
 ---
 
-## Decisions To Pin Down
+## Decisions That Are Now Pinned
 
-This section is the active decision surface for implementation. Each item includes a recommended default so work can start without reopening the whole proposal.
+### 1. Where does true AGM live?
 
-### 1. What is a belief atom in V1?
+In `../belief-set`, imported as `belief_set`.
 
-Decision:
+### 2. What is propstore support revision?
 
-- claims only
-- assumptions only
-- claims plus assumptions
-- claims plus assumptions plus derived propositions
+An operational support-incision adapter over exact-support scoped world
+projections.
 
-Recommended default:
+### 3. What is the propstore belief atom?
 
-- **claims plus assumptions**
+`AssertionAtom` over a canonical `SituatedAssertion`, plus `AssumptionAtom` for
+support assumptions.
 
-Why:
+### 4. Does propstore support revision mutate storage?
 
-- assumptions are needed for support-sensitive entrenchment and contraction explanations
-- claims are the user-facing objects that revision should visibly change
-- derived propositions can be recomputed from the revised accepted base rather than treated as primitive V1 atoms
+No. It returns revised projected bases, results, explanations, snapshots, and
+journals.
 
-### 2. What semantics are we claiming in V1?
+### 5. Is iterated support revision allowed at merge points?
 
-Decision:
+No. It raises and requires an explicit merge path.
 
-- full AGM over deductively closed theories
-- finite belief-base AGM-style operations
+### 6. Is propstore assignment selection IC merge?
 
-Recommended default:
+No. Formal IC merge is `belief_set.ic_merge`; propstore assignment selection is
+render-time observed-value selection.
 
-- **finite belief-base AGM-style operations**
+### 7. Where should missing AGM constructions be added?
 
-Why:
+In `../belief-set`, with postulate/property tests there and propstore docs or
+adapters updated afterward.
 
-- propstore operates over finite compiled claim sets, not full deductive closure
-- this keeps the implementation honest and testable
-- it avoids pretending the sidecar already is a theorem-closed theory
+### 8. Where should missing AF revision constructions be added?
 
-### 3. How is entrenchment computed?
+In `../argumentation`, with propstore consuming public APIs or adding thin
+projection adapters only when needed.
 
-Decision:
+### 9. What prevents architectural drift?
 
-- support count only
-- essential-support-sensitive ordering
-- fragility-derived ordering
-- metadata override only
-- weighted combination
-
-Recommended default:
-
-- **weighted combination with a fixed precedence shape**
-
-Suggested shape:
-
-1. explicit override categories
-2. exact-support status
-3. essential-support sensitivity
-4. supporting-environment coverage
-5. stable tiebreak by atom id
-
-Why:
-
-- support count alone is too coarse
-- override-only throws away the ATMS bridge
-- fragility-derived ordering is useful but should inform the ordering, not replace support structure
-
-### 4. What kind of overrides are allowed?
-
-Decision:
-
-- none
-- per-claim manual priorities
-- category/source/context-based priorities
-- arbitrary custom ordering hooks
-
-Recommended default:
-
-- **category/source/context-based priorities plus optional per-claim manual priorities**
-
-Why:
-
-- this matches the kind of ranking Shapiro-style systems want
-- it stays understandable
-- it avoids introducing arbitrary plugin hooks before the base operator is stable
-
-### 5. What is the V1 revision input?
-
-Decision:
-
-- claim id only
-- synthetic claim only
-- assumption only
-- all of the above
-
-Recommended default:
-
-- **claim id, synthetic claim, or assumption**
-
-Why:
-
-- claim id supports repo-native usage
-- synthetic claim supports exploratory revision without mutating storage
-- assumption revision is needed for context-sensitive workflows
-
-### 6. Is iterated revision in scope for V1?
-
-Decision:
-
-- yes
-- no
-
-Recommended default:
-
-- **no**
-
-Why:
-
-- the proposal is cleaner if V1 lands one-shot contraction/revision first
-- iterated revision requires first-class epistemic state, ranking/preorder machinery, and extra tests
-- deferring it avoids false claims about having DP-compliant behavior too early
-- V1 can still and should compute each single revision episode to local fixed point before returning
-
-### 7. Which iterated operator should be the default when Phase 3 lands?
-
-Decision:
-
-- restrained revision
-- lexicographic revision
-- expose several with no default
-
-Recommended default:
-
-- **restrained revision as default, lexicographic as opt-in**
-
-Why:
-
-- it is the safer, more conservative choice
-- it avoids the most aggressive “latest input dominates” behavior by default
-- it gives a principled baseline without overcommitting the whole architecture
-
-### 8. Do we persist revision state?
-
-Decision:
-
-- ephemeral only
-- persisted snapshots
-- both
-
-Recommended default:
-
-- **ephemeral in V1, persisted snapshots in Phase 2 or 3**
-
-Why:
-
-- ephemeral state is enough to validate the operator surface
-- persistence can piggyback on worldline infrastructure once the shape is stable
-
-### 9. How do worldlines integrate?
-
-Decision:
-
-- worldlines only record revision results after the fact
-- worldlines can declare revision operations as part of the question
-
-Recommended default:
-
-- **record revision results first; let worldlines declare revision inputs in the next slice**
-
-Why:
-
-- this keeps Phase 1 and 2 smaller
-- it gives immediate provenance capture without redesigning `WorldlineDefinition` too early
-- it avoids freezing `RevisionResult` as if it were the durable replay schema
-- the persistence shape should follow the Phase 3 `EpistemicState`, not lead it
-
-### 10. What happens at merge points?
-
-Decision:
-
-- silently reuse revision operators
-- route through merge machinery
-- refuse and require explicit merge path
-
-Recommended default:
-
-- **refuse and require explicit merge path**
-
-Why:
-
-- this is the safest guard against architectural category error
-- it forces the caller to distinguish revision from merging
-
-### 11. What explanation is mandatory?
-
-Decision:
-
-- minimal accepted/rejected list only
-- accepted/rejected plus ranking rationale
-- full support trace
-
-Recommended default:
-
-- **accepted/rejected plus ranking rationale, with support trace on demand**
-
-Why:
-
-- a revision result without rationale is not trustworthy
-- a full support trace on every call is too noisy for the default path
-
-### 12. What guard prevents revision/merge conflation?
-
-Decision:
-
-- convention only
-- doc warning only
-- hard code-path refusal
-
-Recommended default:
-
-- **hard code-path refusal**
-
-Concrete rule:
-
-- revision modules must not call `propstore/repo/ic_merge.py`
-- merge modules must not instantiate revision-state operators
-- tests must assert both boundaries
+The concrete mechanisms are the retired `propstore.revision` test, the
+`belief_set` import-boundary test, docs that explicitly separate formal revision
+from support incision, worldline snapshot/hash tests, and dependency postulate
+tests.
