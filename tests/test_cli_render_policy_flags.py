@@ -365,6 +365,8 @@ class TestWorldStatusFlags:
         assert "Rules:          2" in result.output
         assert "Justifications: 1" in result.output
         assert "Stances:        1" in result.output
+        assert "Conflict witnesses:" in result.output
+        assert "Conflicts:" not in result.output
 
     def test_include_drafts_increments_count(self, seeded_workspace: Path) -> None:
         runner = CliRunner()

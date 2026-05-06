@@ -1686,6 +1686,7 @@ def test_build_reads_git_head_not_worktree(tmp_path):
     result = runner.invoke(cli, ["-C", str(root), "build", "--force"])
     assert result.exit_code == 0, result.output
     assert "Build rebuilt" in result.output
+    assert "hard conflicts" in result.output
 
 
 def test_export_aliases_reads_git_head_not_worktree(tmp_path):

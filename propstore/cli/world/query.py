@@ -92,7 +92,7 @@ def world_status(
     emit(f"Rules:          {report.rule_count}")
     emit(f"Justifications: {report.justification_count}")
     emit(f"Stances:        {report.stance_count}")
-    emit(f"Conflicts:      {report.conflict_count}")
+    emit(f"Conflict witnesses: {report.conflict_count}")
     if render_policy.show_quarantined:
         emit(f"Diagnostics:    {report.diagnostic_count}")
 

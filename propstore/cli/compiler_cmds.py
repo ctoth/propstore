@@ -105,7 +105,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     status = "rebuilt" if report.rebuilt else "unchanged"
     emit(
         f"Build {status}: {report.concept_count} concepts, "
-        f"{report.claim_count} claims, {report.conflict_count} conflicts, "
+        f"{report.claim_count} claims, {report.conflict_count} hard conflicts, "
         f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings")
 
 
