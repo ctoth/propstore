@@ -30,6 +30,7 @@ from propstore.world.queries import (
     WorldExplainRequest,
     WorldResolveReport,
     WorldResolveRequest,
+    AmbiguousConceptError,
     WorldStatusReport,
     WorldStatusRequest,
     UnknownClaimError,

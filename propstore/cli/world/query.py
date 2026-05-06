@@ -13,6 +13,7 @@ from propstore.app.world import (
     AppWorldExplainRequest,
     AppWorldStatusRequest,
     UnknownClaimError,
+    AmbiguousConceptError,
     UnknownConceptError,
     WorldBindActiveReport,
     WorldBindConceptReport,
@@ -146,9 +147,17 @@ def world_query(
             repo,
             AppWorldConceptQueryRequest(target=concept_id, render_policy=render_policy),
         )
+    except AmbiguousConceptError as exc:
+        candidates = "\n".join(
+            f"  {candidate.display_id}: {candidate.canonical_name}"
+            for candidate in exc.candidates
+        )
+        fail(f"Ambiguous concept: {concept_id}\nCandidates:\n{candidates}")
     except UnknownConceptError:
         fail(f"Unknown concept: {concept_id}")
 
+    if report.resolved_from is not None:
+        emit(f"Resolved {report.resolved_from} -> {report.concept_display_id}")
     emit(f"{report.canonical_name} ({report.concept_display_id})")
     if not report.claims:
         emit("  (no claims)")

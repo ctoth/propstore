@@ -7,6 +7,7 @@ Request/result/failure types owned here:
 """
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
@@ -24,6 +25,17 @@ class UnknownConceptError(WorldQueryError):
     def __init__(self, target: str) -> None:
         super().__init__(f"Unknown concept: {target}")
         self.target = target
+
+
+class AmbiguousConceptError(WorldQueryError):
+    def __init__(
+        self,
+        target: str,
+        candidates: tuple[WorldConceptResolutionCandidate, ...],
+    ) -> None:
+        super().__init__(f"Ambiguous concept: {target}")
+        self.target = target
+        self.candidates = candidates
 
 
 class UnknownClaimError(WorldQueryError):
@@ -89,11 +101,19 @@ class WorldDiagnosticLine:
 
 
 @dataclass(frozen=True)
+class WorldConceptResolutionCandidate:
+    concept_id: str
+    display_id: str
+    canonical_name: str
+
+
+@dataclass(frozen=True)
 class WorldConceptQueryReport:
     canonical_name: str
     concept_display_id: str
     claims: tuple[WorldClaimLine, ...]
     diagnostics: tuple[WorldDiagnosticLine, ...]
+    resolved_from: str | None = None
 
 
 @dataclass(frozen=True)
@@ -323,6 +343,53 @@ def resolve_world_target(world: WorldQuery, target: str) -> str:
     return world.resolve_concept(target) or target
 
 
+def _fts_phrase(value: str) -> str:
+    return '"' + value.replace('"', '""') + '"'
+
+
+def _concept_resolution_candidate(
+    world: WorldQuery,
+    concept_id: str,
+) -> WorldConceptResolutionCandidate | None:
+    from propstore.core.row_types import coerce_concept_row
+
+    concept = world.get_concept(concept_id)
+    if concept is None:
+        return None
+    row = coerce_concept_row(concept)
+    return WorldConceptResolutionCandidate(
+        concept_id=concept_id,
+        display_id=world_concept_display_id(world, concept_id),
+        canonical_name=row.canonical_name,
+    )
+
+
+def _resolve_world_query_target(
+    world: WorldQuery,
+    target: str,
+) -> tuple[str, str | None]:
+    resolved = world.resolve_concept(target)
+    if resolved is not None:
+        return resolved, None
+
+    try:
+        hits = world.search(_fts_phrase(target))
+    except sqlite3.OperationalError:
+        hits = []
+    candidate_ids = tuple(dict.fromkeys(str(hit.concept_id) for hit in hits))
+    candidates = tuple(
+        candidate
+        for concept_id in candidate_ids
+        for candidate in (_concept_resolution_candidate(world, concept_id),)
+        if candidate is not None
+    )
+    if len(candidates) == 1:
+        return candidates[0].concept_id, target
+    if len(candidates) > 1:
+        raise AmbiguousConceptError(target, candidates)
+    return target, None
+
+
 def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
     from propstore.core.row_types import coerce_concept_row
 
@@ -370,7 +437,7 @@ def query_world_concept(
 ) -> WorldConceptQueryReport:
     from propstore.core.row_types import coerce_claim_row, coerce_concept_row
 
-    resolved = resolve_world_target(world, request.target)
+    resolved, resolved_from = _resolve_world_query_target(world, request.target)
     concept = world.get_concept(resolved)
     if concept is None:
         raise UnknownConceptError(request.target)
@@ -402,6 +469,7 @@ def query_world_concept(
         concept_display_id=world_concept_display_id(world, resolved),
         claims=claims,
         diagnostics=diagnostics,
+        resolved_from=resolved_from,
     )
 
 

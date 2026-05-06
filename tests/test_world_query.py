@@ -67,6 +67,12 @@ from propstore.world import (
     WorldQuery,
     resolve,
 )
+from propstore.world.queries import (
+    AmbiguousConceptError,
+    UnknownConceptError,
+    WorldConceptQueryRequest,
+    query_world_concept,
+)
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
@@ -603,6 +609,33 @@ class TestUnboundQueries:
 
     def test_get_claim_missing(self, world):
         assert world.get_claim("nonexistent") is None
+
+    def test_world_query_resolves_unambiguous_fts_short_name(self, world):
+        report = query_world_concept(
+            world,
+            WorldConceptQueryRequest(target="derived", policy=RenderPolicy()),
+        )
+
+        assert report.concept_display_id == "speech:derived_ratio"
+        assert report.resolved_from == "derived"
+
+    def test_world_query_ambiguous_fts_short_name_lists_candidates(self, world):
+        with pytest.raises(AmbiguousConceptError) as exc_info:
+            query_world_concept(
+                world,
+                WorldConceptQueryRequest(target="return", policy=RenderPolicy()),
+            )
+
+        candidates = {candidate.display_id for candidate in exc_info.value.candidates}
+        assert "speech:return_phase_ratio" in candidates
+        assert "speech:return_phase_time" in candidates
+
+    def test_world_query_nonexistent_short_name_still_fails_cleanly(self, world):
+        with pytest.raises(UnknownConceptError, match="does_not_exist"):
+            query_world_concept(
+                world,
+                WorldConceptQueryRequest(target="does_not_exist", policy=RenderPolicy()),
+            )
 
     def test_get_claim_joins_source_by_source_slug(self, concept_dir, repo):
         knowledge = concept_dir.parent

@@ -495,6 +495,25 @@ class TestWorldQueryFlags:
         assert "claim_fixture_final" in result.output
         assert "claim_fixture_draft" not in result.output
 
+    def test_unambiguous_short_name_prints_resolution(
+        self,
+        seeded_workspace: Path,
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "-C",
+                str(seeded_workspace / "knowledge"),
+                "world",
+                "query",
+                "definition",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Resolved definition ->" in result.output
+        assert "claim_fixture_final" in result.output
+
     def test_include_drafts_surfaces_draft(self, seeded_workspace: Path) -> None:
         runner = CliRunner()
         aid = _concept_id(seeded_workspace)
