@@ -23,6 +23,7 @@ from tests.conftest import (
     normalize_claims_payload,
     normalize_concept_payloads,
 )
+from propstore.world.model import WorldQuery
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -1176,6 +1177,53 @@ class TestClaimTable:
         ]
         assert justification_ids == []
         conn.close()
+
+    def test_world_query_loads_authored_justifications_as_domain_objects(
+        self,
+        knowledge_reader,
+        sidecar_path,
+        claim_files,
+    ):
+        justifications_dir = knowledge_reader.root / "justifications"
+        justifications_dir.mkdir(exist_ok=True)
+        (justifications_dir / "test_paper_alpha.yaml").write_text(
+            yaml.dump(
+                {
+                    "source": {"paper": "test_paper_alpha"},
+                    "justifications": [
+                        {
+                            "id": "just_multi",
+                            "conclusion": "claim5",
+                            "premises": ["claim1", "claim4"],
+                            "rule_kind": "empirical_support",
+                            "rule_strength": "defeasible",
+                            "provenance": {"page": 20},
+                        }
+                    ],
+                },
+                default_flow_style=False,
+            )
+        )
+
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
+
+        world = WorldQuery(sidecar_path=sidecar_path)
+        try:
+            justifications = world.justifications_for_claim_scope(
+                {"claim1", "claim4", "claim5"}
+            )
+        finally:
+            world.close()
+
+        assert len(justifications) == 1
+        justification = justifications[0]
+        assert justification.justification_id == "just_multi"
+        assert justification.conclusion_claim_id == "claim5"
+        assert justification.premise_claim_ids == ("claim1", "claim4")
+        assert justification.rule_kind == "empirical_support"
+        assert justification.rule_strength == "defeasible"
+        assert justification.provenance is not None
+        assert justification.provenance.page == 20
 
     def test_claim_description_from_yaml(self, sidecar_with_claims):
         """description column is None when not in YAML (LLM-written field)."""
