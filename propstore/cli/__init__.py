@@ -1,6 +1,8 @@
 """pks — the propstore CLI."""
 from __future__ import annotations
 
+import os
+import sys
 from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -49,6 +51,8 @@ _COMMAND_ALIASES = {
     "forms": "form",
 }
 
+_EXPECTED_CLI_EXCEPTIONS = (ValueError, RuntimeError)
+
 
 class _LazyRepository:
     def __init__(self, start: Path | None) -> None:
@@ -67,6 +71,18 @@ class _LazyRepository:
 
 
 class _LazyCLIGroup(click.Group):
+    def main(self, *args, **kwargs):
+        traceback_enabled = _traceback_enabled_for_invocation(args, kwargs)
+        if traceback_enabled:
+            return super().main(*args, **kwargs)
+        try:
+            return super().main(*args, **kwargs)
+        except _EXPECTED_CLI_EXCEPTIONS as exc:
+            if not kwargs.get("standalone_mode", True):
+                raise click.ClickException(_render_expected_cli_error(exc)) from exc
+            click.ClickException(_render_expected_cli_error(exc)).show()
+            sys.exit(1)
+
     def list_commands(self, ctx: click.Context) -> list[str]:
         return sorted(_COMMANDS)
 
@@ -89,13 +105,39 @@ class _LazyCLIGroup(click.Group):
                 formatter.write_dl(rows)
 
 
+def _traceback_enabled_for_invocation(args: tuple[object, ...], kwargs: dict) -> bool:
+    if os.environ.get("PKS_TRACEBACK") == "1":
+        return True
+    raw_args = kwargs.get("args")
+    if raw_args is None and args:
+        raw_args = args[0]
+    if raw_args is None:
+        raw_args = sys.argv[1:]
+    return "--traceback" in raw_args
+
+
+def _render_expected_cli_error(exc: BaseException) -> str:
+    message = str(exc).strip() or exc.__class__.__name__
+    return (
+        f"{message}\n"
+        "Hint: rerun with --traceback or PKS_TRACEBACK=1 for a full traceback."
+    )
+
+
 @click.group(cls=_LazyCLIGroup)
 @click.option("-C", "--directory", default=None, type=click.Path(file_okay=False),
               help="Run as if pks was started in this directory.")
+@click.option(
+    "--traceback",
+    "traceback_enabled",
+    is_flag=True,
+    help="Show full Python tracebacks for unexpected command failures.",
+)
 @click.pass_context
-def cli(ctx: click.Context, directory: str | None) -> None:
+def cli(ctx: click.Context, directory: str | None, traceback_enabled: bool) -> None:
     """Propositional Knowledge Store CLI."""
     ctx.ensure_object(dict)
+    ctx.obj["traceback"] = traceback_enabled
     start = Path(directory) if directory else None
     if ctx.resilient_parsing:
         return
