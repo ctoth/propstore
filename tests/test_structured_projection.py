@@ -8,6 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
+from propstore.core.justifications import CanonicalJustification
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import (
     StructuredProjection,
@@ -61,11 +62,13 @@ class _ProjectionStore:
         *,
         claims: list[dict],
         stances: list[dict] | None = None,
+        justifications: list[CanonicalJustification] | None = None,
         has_stance_table: bool = True,
     ) -> None:
         self._condition_registry = condition_registry_for_rows(claims)
         self._claims = rows_with_condition_ir(claims, self._condition_registry)
         self._stances = list(stances or [])
+        self._justifications = list(justifications or [])
         self._solver = ConditionSolver(self._condition_registry)
         self._has_stance_table = has_stance_table
 
@@ -87,6 +90,17 @@ class _ProjectionStore:
             for stance in self._stances
             if stance["claim_id"] in claim_ids and stance["target_claim_id"] in claim_ids
         ]
+
+    def justifications_for_claim_scope(
+        self,
+        claim_ids: set[str],
+    ) -> tuple[CanonicalJustification, ...]:
+        return tuple(
+            justification
+            for justification in self._justifications
+            if justification.conclusion_claim_id in claim_ids
+            and all(premise in claim_ids for premise in justification.premise_claim_ids)
+        )
 
     def has_table(self, name: str) -> bool:
         return name == "relation_edge" and self._has_stance_table
@@ -325,6 +339,149 @@ def test_structured_projection_support_induces_additional_defeat_path_under_weak
         (arg_id, target_id) in projection.framework.defeats
         for arg_id in derived_attackers
         for target_id in target_arg_ids
+    )
+
+
+def test_structured_projection_uses_authored_multi_premise_justification_without_support_stances() -> None:
+    store = _ProjectionStore(
+        claims=[
+            {"id": "claim_a", "concept_id": "concept_a", "type": "parameter", "value": 1.0},
+            {"id": "claim_b", "concept_id": "concept_b", "type": "parameter", "value": 2.0},
+            {"id": "claim_target", "concept_id": "concept_target", "type": "parameter", "value": 3.0},
+        ],
+        justifications=[
+            CanonicalJustification(
+                justification_id="just_multi",
+                conclusion_claim_id="claim_target",
+                premise_claim_ids=("claim_a", "claim_b"),
+                rule_kind="empirical_support",
+                rule_strength="defeasible",
+            )
+        ],
+    )
+
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
+
+    authored_target_arguments = [
+        argument
+        for argument in projection.arguments
+        if argument.claim_id == "claim_target"
+        and argument.justification_id == "just_multi"
+    ]
+
+    assert len(authored_target_arguments) == 1
+    assert authored_target_arguments[0].premise_claim_ids == ("claim_a", "claim_b")
+    assert authored_target_arguments[0].dependency_claim_ids == ("claim_a", "claim_b")
+
+
+def test_structured_projection_suppresses_support_fallback_when_authored_justifications_exist() -> None:
+    store = _ProjectionStore(
+        claims=[
+            {"id": "claim_a", "concept_id": "concept_a", "type": "parameter", "value": 1.0},
+            {"id": "claim_b", "concept_id": "concept_b", "type": "parameter", "value": 2.0},
+            {"id": "claim_target", "concept_id": "concept_target", "type": "parameter", "value": 3.0},
+        ],
+        stances=[
+            {
+                "claim_id": "claim_a",
+                "target_claim_id": "claim_target",
+                "stance_type": "supports",
+            }
+        ],
+        justifications=[
+            CanonicalJustification(
+                justification_id="just_authored",
+                conclusion_claim_id="claim_target",
+                premise_claim_ids=("claim_b",),
+                rule_kind="empirical_support",
+                rule_strength="defeasible",
+            )
+        ],
+    )
+
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
+
+    target_justification_ids = {
+        argument.justification_id
+        for argument in projection.arguments
+        if argument.claim_id == "claim_target"
+    }
+
+    assert "just_authored" in target_justification_ids
+    assert "supports:claim_a->claim_target" not in target_justification_ids
+
+
+def test_structured_projection_authored_targeted_undercut_hits_only_named_defeasible_rule() -> None:
+    store = _ProjectionStore(
+        claims=[
+            {"id": "claim_weak", "concept_id": "concept_weak", "type": "parameter", "value": 1.0},
+            {"id": "claim_strict", "concept_id": "concept_strict", "type": "parameter", "value": 2.0},
+            {"id": "claim_attacker", "concept_id": "concept_attacker", "type": "parameter", "value": 4.0},
+            {"id": "claim_target", "concept_id": "concept_target", "type": "parameter", "value": 3.0},
+        ],
+        stances=[
+            {
+                "claim_id": "claim_attacker",
+                "target_claim_id": "claim_target",
+                "stance_type": "undercuts",
+                "target_justification_id": "just_weak",
+            }
+        ],
+        justifications=[
+            CanonicalJustification(
+                justification_id="just_weak",
+                conclusion_claim_id="claim_target",
+                premise_claim_ids=("claim_weak",),
+                rule_kind="methodological_inference",
+                rule_strength="defeasible",
+            ),
+            CanonicalJustification(
+                justification_id="just_strict",
+                conclusion_claim_id="claim_target",
+                premise_claim_ids=("claim_strict",),
+                rule_kind="definition_application",
+                rule_strength="strict",
+            ),
+        ],
+    )
+
+    projection = build_structured_projection(
+        store,
+        store.claims_for(None),
+        bundle=_EMPTY_BUNDLE,
+    )
+
+    attacker_arg_ids = set(projection.claim_to_argument_ids["claim_attacker"])
+    weak_arg_ids = {
+        argument.arg_id
+        for argument in projection.arguments
+        if argument.justification_id == "just_weak"
+    }
+    strict_arg_ids = {
+        argument.arg_id
+        for argument in projection.arguments
+        if argument.justification_id == "just_strict"
+    }
+
+    assert weak_arg_ids
+    assert strict_arg_ids
+    assert any(
+        (attacker_id, weak_id) in projection.framework.defeats
+        for attacker_id in attacker_arg_ids
+        for weak_id in weak_arg_ids
+    )
+    assert not any(
+        (attacker_id, strict_id) in projection.framework.defeats
+        for attacker_id in attacker_arg_ids
+        for strict_id in strict_arg_ids
     )
 
 
