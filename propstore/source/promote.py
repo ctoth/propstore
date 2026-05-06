@@ -36,7 +36,7 @@ from propstore.claim_references import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
-from propstore.claims import loaded_claim_file_from_payload
+from propstore.claims import ClaimFileEntry, loaded_claim_file_from_payload
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.compiler.workflows import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
@@ -157,7 +157,7 @@ def _validate_promoted_claims_before_commit(
         if record.context_id is not None:
             context_ids.add(str(record.context_id))
 
-    claim_files = [
+    claim_files: list[ClaimFileEntry] = [
         handle
         for handle in repo.families.claims.iter_handles(commit=head_sha)
         if handle.ref.name != claims_ref.name
