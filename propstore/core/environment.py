@@ -41,6 +41,7 @@ def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
 if TYPE_CHECKING:
     from propstore.core.graph_types import CompiledWorldGraph
     from propstore.core.conditions.solver import ConditionSolver
+    from propstore.core.justifications import CanonicalJustification
 
 
 @dataclass(frozen=True)
@@ -149,6 +150,14 @@ class ExplanationStore(Protocol):
 @runtime_checkable
 class ClaimStanceInventoryStore(Protocol):
     def all_claim_stances(self) -> Sequence[StanceRowInput]: ...
+
+
+@runtime_checkable
+class AuthoredJustificationStore(Protocol):
+    def justifications_for_claim_scope(
+        self,
+        claim_ids: set[str],
+    ) -> Sequence[CanonicalJustification]: ...
 
 
 @runtime_checkable
