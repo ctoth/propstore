@@ -14,6 +14,7 @@ from propstore.compiler.context import (
     build_compilation_context_from_loaded,
     build_compilation_context_from_repo,
 )
+from propstore.compiler.errors import CompilerWorkflowError
 from propstore.compiler.references import build_claim_reference_lookup
 from propstore.families.claims.passes import run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle, ClaimStage
@@ -40,13 +41,6 @@ from propstore.families.registry import PropstoreFamily
 from propstore.repository import Repository
 from propstore.semantic_passes.types import PassDiagnostic
 from propstore.sidecar.authoring_lints import collect_authoring_lints
-
-
-class CompilerWorkflowError(Exception):
-    def __init__(self, summary: str, messages: tuple[PassDiagnostic, ...]) -> None:
-        super().__init__(summary)
-        self.summary = summary
-        self.messages = messages
 
 
 @dataclass(frozen=True)

@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 
 from propstore.cli.output import emit, emit_error, emit_success, emit_table, emit_warning
-from propstore.compiler.workflows import CompilerWorkflowError
+from propstore.compiler.errors import CompilerWorkflowError
 
 from propstore.app.sources import (
     SourceInitRequest,

@@ -38,7 +38,7 @@ from propstore.claim_references import (
 )
 from propstore.claims import ClaimFileEntry, loaded_claim_file_from_payload
 from propstore.compiler.context import build_compilation_context_from_loaded
-from propstore.compiler.workflows import CompilerWorkflowError
+from propstore.compiler.errors import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles
 from propstore.families.registry import (

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
-from propstore.compiler.workflows import CompilerWorkflowError
+from propstore.compiler.errors import CompilerWorkflowError
 from propstore.core.aliases import AliasExportEntry
 from propstore.repository import Repository
 from propstore.sidecar.query import SidecarQueryError
