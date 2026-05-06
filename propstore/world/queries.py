@@ -47,7 +47,7 @@ class WorldStatusReport:
     context_count: int = 0
     predicate_count: int = 0
     rule_count: int = 0
-    justification_count: int = 0
+    authored_justification_count: int = 0
     stance_count: int = 0
 
 
@@ -63,6 +63,7 @@ def get_world_status(
         visible_claim_count=visible_claims,
         conflict_count=stats.conflicts,
         diagnostic_count=len(diagnostics),
+        authored_justification_count=world.authored_justification_count(),
     )
 
 

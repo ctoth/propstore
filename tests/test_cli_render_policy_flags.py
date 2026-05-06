@@ -347,10 +347,18 @@ class TestWorldStatusFlags:
 
         repo = Repository.find(seeded_workspace / "knowledge")
         report = world_status(repo, AppWorldStatusRequest())
+        sidecar = seeded_workspace / "knowledge" / "sidecar" / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        try:
+            sql_justification_count = conn.execute(
+                "SELECT COUNT(*) FROM justification"
+            ).fetchone()[0]
+        finally:
+            conn.close()
 
         assert report.predicate_count == 2
         assert report.rule_count == 2
-        assert report.justification_count == 1
+        assert report.authored_justification_count == sql_justification_count
         assert report.stance_count == 1
 
     def test_default_hides_draft_blocked_promotion(self, seeded_workspace: Path) -> None:
@@ -363,7 +371,8 @@ class TestWorldStatusFlags:
         assert "Claims:         1" in result.output
         assert "Predicates:     2" in result.output
         assert "Rules:          2" in result.output
-        assert "Justifications: 1" in result.output
+        assert "Authored justifications: 0" in result.output
+        assert "Justifications:" not in result.output
         assert "Stances:        1" in result.output
         assert "Conflict witnesses:" in result.output
         assert "Conflicts:" not in result.output
