@@ -691,6 +691,21 @@ class OverlayWorld(BeliefSpace):
     def explain(self, claim_id: str) -> list[StanceRow]:
         return self._overlay.explain(claim_id)
 
+    def get_claim(self, claim_id: str) -> ClaimRowInput | None:
+        return self._overlay_store.get_claim(claim_id)
+
+    def resolve_claim(self, name: str) -> str | None:
+        return self._overlay_store.resolve_claim(name)
+
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRowInput]:
+        return self._overlay_store.claims_by_ids(claim_ids)
+
+    def stances_between(self, claim_ids: set[str]) -> Sequence[StanceRowInput]:
+        return self._overlay_store.stances_between(claim_ids)
+
+    def all_claim_stances(self) -> Sequence[StanceRowInput]:
+        return self._overlay_store.all_claim_stances()
+
     def recompute_conflicts(self) -> list[ConflictRow]:
         return _recomputed_conflicts(self._overlay_store, self.active_claims())
 

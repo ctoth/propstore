@@ -7,9 +7,11 @@ Request/result/failure types owned here:
 """
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
+from propstore.reporting import JsonReportMixin
 from propstore.world.types import RenderPolicy
 
 if TYPE_CHECKING:
@@ -26,6 +28,17 @@ class UnknownConceptError(WorldQueryError):
         self.target = target
 
 
+class AmbiguousConceptError(WorldQueryError):
+    def __init__(
+        self,
+        target: str,
+        candidates: tuple[WorldConceptResolutionCandidate, ...],
+    ) -> None:
+        super().__init__(f"Ambiguous concept: {target}")
+        self.target = target
+        self.candidates = candidates
+
+
 class UnknownClaimError(WorldQueryError):
     def __init__(self, target: str) -> None:
         super().__init__(f"Unknown claim: {target}")
@@ -38,7 +51,7 @@ class WorldStatusRequest:
 
 
 @dataclass(frozen=True)
-class WorldStatusReport:
+class WorldStatusReport(JsonReportMixin):
     concept_count: int
     visible_claim_count: int
     conflict_count: int
@@ -47,7 +60,7 @@ class WorldStatusReport:
     context_count: int = 0
     predicate_count: int = 0
     rule_count: int = 0
-    justification_count: int = 0
+    authored_justification_count: int = 0
     stance_count: int = 0
 
 
@@ -63,6 +76,7 @@ def get_world_status(
         visible_claim_count=visible_claims,
         conflict_count=stats.conflicts,
         diagnostic_count=len(diagnostics),
+        authored_justification_count=world.authored_justification_count(),
     )
 
 
@@ -88,11 +102,19 @@ class WorldDiagnosticLine:
 
 
 @dataclass(frozen=True)
-class WorldConceptQueryReport:
+class WorldConceptResolutionCandidate:
+    concept_id: str
+    display_id: str
+    canonical_name: str
+
+
+@dataclass(frozen=True)
+class WorldConceptQueryReport(JsonReportMixin):
     canonical_name: str
     concept_display_id: str
     claims: tuple[WorldClaimLine, ...]
     diagnostics: tuple[WorldDiagnosticLine, ...]
+    resolved_from: str | None = None
 
 
 @dataclass(frozen=True)
@@ -111,14 +133,14 @@ class WorldBindClaimLine:
 
 
 @dataclass(frozen=True)
-class WorldBindConceptReport:
+class WorldBindConceptReport(JsonReportMixin):
     concept_display_id: str
     status: str
     claims: tuple[WorldBindClaimLine, ...]
 
 
 @dataclass(frozen=True)
-class WorldBindActiveReport:
+class WorldBindActiveReport(JsonReportMixin):
     active_claim_count: int
     claims: tuple[WorldBindClaimLine, ...]
 
@@ -142,7 +164,7 @@ class WorldStanceLine:
 
 
 @dataclass(frozen=True)
-class WorldExplainReport:
+class WorldExplainReport(JsonReportMixin):
     claim_display_id: str
     claim_type: str
     concept_display_id: str
@@ -165,7 +187,7 @@ class WorldAlgorithmLine:
 
 
 @dataclass(frozen=True)
-class WorldAlgorithmsReport:
+class WorldAlgorithmsReport(JsonReportMixin):
     algorithms: tuple[WorldAlgorithmLine, ...]
 
 
@@ -177,7 +199,7 @@ class WorldDeriveRequest:
 
 
 @dataclass(frozen=True)
-class WorldDeriveReport:
+class WorldDeriveReport(JsonReportMixin):
     concept_id: str
     status: object
     value: object
@@ -210,8 +232,32 @@ class WorldHypotheticalChangeLine:
 
 
 @dataclass(frozen=True)
-class WorldHypotheticalReport:
+class WorldHypotheticalExtensionCounts:
+    active: int
+    accepted: int
+    defeated: int
+    undecided: int
+
+
+@dataclass(frozen=True)
+class WorldHypotheticalExtensionTransition:
+    from_status: str
+    to_status: str
+    claim_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class WorldHypotheticalExtensionDiff:
+    before: WorldHypotheticalExtensionCounts
+    after: WorldHypotheticalExtensionCounts
+    unchanged: bool
+    transitions: tuple[WorldHypotheticalExtensionTransition, ...]
+
+
+@dataclass(frozen=True)
+class WorldHypotheticalReport(JsonReportMixin):
     changes: tuple[WorldHypotheticalChangeLine, ...]
+    extension_diff: WorldHypotheticalExtensionDiff
 
 
 class WorldResolveError(WorldQueryError):
@@ -234,7 +280,7 @@ class WorldAcceptanceProbabilityLine:
 
 
 @dataclass(frozen=True)
-class WorldResolveReport:
+class WorldResolveReport(JsonReportMixin):
     concept_display_id: str
     status: object
     value: object
@@ -265,7 +311,7 @@ class WorldChainStepLine:
 
 
 @dataclass(frozen=True)
-class WorldChainReport:
+class WorldChainReport(JsonReportMixin):
     target: WorldChainConceptLine
     status: object
     value: object
@@ -322,6 +368,53 @@ def resolve_world_target(world: WorldQuery, target: str) -> str:
     return world.resolve_concept(target) or target
 
 
+def _fts_phrase(value: str) -> str:
+    return '"' + value.replace('"', '""') + '"'
+
+
+def _concept_resolution_candidate(
+    world: WorldQuery,
+    concept_id: str,
+) -> WorldConceptResolutionCandidate | None:
+    from propstore.core.row_types import coerce_concept_row
+
+    concept = world.get_concept(concept_id)
+    if concept is None:
+        return None
+    row = coerce_concept_row(concept)
+    return WorldConceptResolutionCandidate(
+        concept_id=concept_id,
+        display_id=world_concept_display_id(world, concept_id),
+        canonical_name=row.canonical_name,
+    )
+
+
+def _resolve_world_query_target(
+    world: WorldQuery,
+    target: str,
+) -> tuple[str, str | None]:
+    resolved = world.resolve_concept(target)
+    if resolved is not None:
+        return resolved, None
+
+    try:
+        hits = world.search(_fts_phrase(target))
+    except sqlite3.OperationalError:
+        hits = []
+    candidate_ids = tuple(dict.fromkeys(str(hit.concept_id) for hit in hits))
+    candidates = tuple(
+        candidate
+        for concept_id in candidate_ids
+        for candidate in (_concept_resolution_candidate(world, concept_id),)
+        if candidate is not None
+    )
+    if len(candidates) == 1:
+        return candidates[0].concept_id, target
+    if len(candidates) > 1:
+        raise AmbiguousConceptError(target, candidates)
+    return target, None
+
+
 def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
     from propstore.core.row_types import coerce_concept_row
 
@@ -369,7 +462,7 @@ def query_world_concept(
 ) -> WorldConceptQueryReport:
     from propstore.core.row_types import coerce_claim_row, coerce_concept_row
 
-    resolved = resolve_world_target(world, request.target)
+    resolved, resolved_from = _resolve_world_query_target(world, request.target)
     concept = world.get_concept(resolved)
     if concept is None:
         raise UnknownConceptError(request.target)
@@ -401,6 +494,7 @@ def query_world_concept(
         concept_display_id=world_concept_display_id(world, resolved),
         claims=claims,
         diagnostics=diagnostics,
+        resolved_from=resolved_from,
     )
 
 
@@ -586,11 +680,12 @@ def diff_hypothetical_world(
         world.resolve_claim(claim_id) or claim_id
         for claim_id in request.remove_claim_ids
     ]
-    diff = OverlayWorld(
+    overlay = OverlayWorld(
         bound,
         remove=resolved_remove,
         add=synthetics,
-    ).diff()
+    )
+    diff = overlay.diff()
     return WorldHypotheticalReport(
         changes=tuple(
             WorldHypotheticalChangeLine(
@@ -599,8 +694,96 @@ def diff_hypothetical_world(
                 hypothetical_status=hypothetical.status,
             )
             for concept_id, (base, hypothetical) in diff.items()
-        )
+        ),
+        extension_diff=_diff_grounded_extension(world, bound, overlay),
     )
+
+
+@dataclass(frozen=True)
+class _GroundedExtensionSnapshot:
+    counts: WorldHypotheticalExtensionCounts
+    labels_by_claim_id: dict[str, str]
+
+
+def _grounded_extension_snapshot(
+    store,
+    active_claim_ids: set[str],
+) -> _GroundedExtensionSnapshot:
+    from argumentation.dung import grounded_extension, range_of
+    from propstore.claim_graph import build_argumentation_framework
+
+    framework = build_argumentation_framework(store, active_claim_ids)
+    accepted = set(grounded_extension(framework))
+    defeated = set(range_of(frozenset(accepted), framework.defeats)) - accepted
+    undecided = set(framework.arguments) - accepted - defeated
+    labels_by_claim_id = {
+        **{claim_id: "accepted" for claim_id in accepted},
+        **{claim_id: "defeated" for claim_id in defeated},
+        **{claim_id: "undecided" for claim_id in undecided},
+    }
+    return _GroundedExtensionSnapshot(
+        counts=WorldHypotheticalExtensionCounts(
+            active=len(framework.arguments),
+            accepted=len(accepted),
+            defeated=len(defeated),
+            undecided=len(undecided),
+        ),
+        labels_by_claim_id=labels_by_claim_id,
+    )
+
+
+def _diff_grounded_extension(
+    world: WorldQuery,
+    bound,
+    overlay,
+) -> WorldHypotheticalExtensionDiff:
+    base_active_ids = {str(claim.claim_id) for claim in bound.active_claims()}
+    hypothetical_active_ids = {
+        str(claim.claim_id)
+        for claim in overlay.active_claims()
+    }
+    before = _grounded_extension_snapshot(world, base_active_ids)
+    after = _grounded_extension_snapshot(overlay, hypothetical_active_ids)
+
+    grouped: dict[tuple[str, str], list[str]] = {}
+    for claim_id in sorted(base_active_ids | hypothetical_active_ids):
+        before_status = before.labels_by_claim_id.get(claim_id, "absent")
+        after_status = after.labels_by_claim_id.get(claim_id, "absent")
+        if before_status == after_status:
+            continue
+        grouped.setdefault((before_status, after_status), []).append(
+            _hypothetical_claim_display_id(world, overlay, claim_id)
+        )
+
+    transitions = tuple(
+        WorldHypotheticalExtensionTransition(
+            from_status=from_status,
+            to_status=to_status,
+            claim_ids=tuple(claim_ids),
+        )
+        for (from_status, to_status), claim_ids in sorted(grouped.items())
+    )
+    return WorldHypotheticalExtensionDiff(
+        before=before.counts,
+        after=after.counts,
+        unchanged=not transitions,
+        transitions=transitions,
+    )
+
+
+def _hypothetical_claim_display_id(
+    world: WorldQuery,
+    overlay,
+    claim_id: str,
+) -> str:
+    claim = world.get_claim(claim_id)
+    if claim is None:
+        getter = getattr(overlay, "get_claim", None)
+        if callable(getter):
+            claim = getter(claim_id)
+    if claim is None:
+        return claim_id
+    return world_claim_display_id(claim)
 
 
 def resolve_world_value(

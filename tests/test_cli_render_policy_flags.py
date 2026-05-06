@@ -23,6 +23,7 @@ already cover the build-time population paths.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -347,10 +348,18 @@ class TestWorldStatusFlags:
 
         repo = Repository.find(seeded_workspace / "knowledge")
         report = world_status(repo, AppWorldStatusRequest())
+        sidecar = seeded_workspace / "knowledge" / "sidecar" / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        try:
+            sql_justification_count = conn.execute(
+                "SELECT COUNT(*) FROM justification"
+            ).fetchone()[0]
+        finally:
+            conn.close()
 
         assert report.predicate_count == 2
         assert report.rule_count == 2
-        assert report.justification_count == 1
+        assert report.authored_justification_count == sql_justification_count
         assert report.stance_count == 1
 
     def test_default_hides_draft_blocked_promotion(self, seeded_workspace: Path) -> None:
@@ -363,8 +372,11 @@ class TestWorldStatusFlags:
         assert "Claims:         1" in result.output
         assert "Predicates:     2" in result.output
         assert "Rules:          2" in result.output
-        assert "Justifications: 1" in result.output
+        assert "Authored justifications: 0" in result.output
+        assert "Justifications:" not in result.output
         assert "Stances:        1" in result.output
+        assert "Conflict witnesses:" in result.output
+        assert "Conflicts:" not in result.output
 
     def test_include_drafts_increments_count(self, seeded_workspace: Path) -> None:
         runner = CliRunner()
@@ -417,6 +429,26 @@ class TestWorldStatusFlags:
         assert "Claims:         4" in result.output
         # --show-quarantined should also add a Diagnostics line.
         assert "Diagnostics:" in result.output
+
+    def test_status_json_uses_report_shape(self, seeded_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "-C",
+                str(seeded_workspace / "knowledge"),
+                "world",
+                "status",
+                "--format",
+                "json",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["visible_claim_count"] == 1
+        assert data["predicate_count"] == 2
+        assert "conflict_count" in data
 
 
 # ── `pks world query` ───────────────────────────────────────────────
@@ -484,6 +516,25 @@ class TestWorldQueryFlags:
         assert "claim_fixture_final" in result.output
         assert "claim_fixture_draft" not in result.output
 
+    def test_unambiguous_short_name_prints_resolution(
+        self,
+        seeded_workspace: Path,
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "-C",
+                str(seeded_workspace / "knowledge"),
+                "world",
+                "query",
+                "definition",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Resolved definition ->" in result.output
+        assert "claim_fixture_final" in result.output
+
     def test_include_drafts_surfaces_draft(self, seeded_workspace: Path) -> None:
         runner = CliRunner()
         aid = _concept_id(seeded_workspace)
@@ -518,6 +569,27 @@ class TestWorldQueryFlags:
         assert result.exit_code == 0, result.output
         assert "claim_fixture_blocked" in result.output
         assert "claim_fixture_promote_blocked" in result.output
+
+    def test_query_json_uses_report_shape(self, seeded_workspace: Path) -> None:
+        runner = CliRunner()
+        aid = _concept_id(seeded_workspace)
+        result = runner.invoke(
+            cli,
+            [
+                "-C",
+                str(seeded_workspace / "knowledge"),
+                "world",
+                "query",
+                aid,
+                "--format",
+                "json",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        data = json.loads(result.output)
+        assert data["canonical_name"] == "pitch"
+        assert data["claims"][0]["display_id"] == "claim_fixture_final"
 
 
 # ── `pks world resolve/chain/derive` accept the flags ──────────────

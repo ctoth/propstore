@@ -1,7 +1,6 @@
 """Analysis-oriented ``pks world`` command adapters."""
 from __future__ import annotations
 
-from dataclasses import asdict
 import json
 from pathlib import Path
 
@@ -27,6 +26,10 @@ from propstore.app.world import (
 from propstore.app.rendering import AppRenderPolicyRequest
 from propstore.cli.world import parse_world_binding_args, world
 from propstore.repository import Repository
+
+
+def _emit_report_json(report) -> None:
+    emit(json.dumps(report.to_json(), indent=2))
 
 
 def _coerce_hypothetical_value(value: object) -> float | str | None:
@@ -98,13 +101,50 @@ def _write_new_text_file(path: Path, content: str) -> None:
         raise click.ClickException(f"could not write output file {path}: {exc}") from exc
 
 
+def _extension_counts_text(counts) -> str:
+    return (
+        f"{counts.accepted} accepted / "
+        f"{counts.defeated} defeated / "
+        f"{counts.undecided} undecided"
+    )
+
+
+def _render_hypothetical_text(report) -> None:
+    extension_diff = report.extension_diff
+    before = _extension_counts_text(extension_diff.before)
+    after = _extension_counts_text(extension_diff.after)
+    if extension_diff.unchanged:
+        emit(f"Extension unchanged ({after}; same fixed point)")
+    else:
+        emit(f"Extension changed (before: {before}; after: {after})")
+        for transition in extension_diff.transitions:
+            emit(
+                f"  {transition.from_status} -> {transition.to_status} "
+                f"({len(transition.claim_ids)}): "
+                + ", ".join(transition.claim_ids)
+            )
+
+    if not report.changes:
+        emit("Value diff: unchanged")
+        return
+
+    emit("Value diff:")
+    for change in report.changes:
+        emit(
+            f"  {change.concept_display_id}: "
+            f"{change.base_status} -> {change.hypothetical_status}"
+        )
+
+
 @world.command("hypothetical")
 @click.argument("args", nargs=-1)
 @click.option("--remove", multiple=True, help="Claim ID to remove")
 @click.option("--add", "add_json", default=None, help="JSON synthetic claim")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_hypothetical(obj: dict, args: tuple[str, ...],
-                       remove: tuple[str, ...], add_json: str | None) -> None:
+                       remove: tuple[str, ...], add_json: str | None,
+                       fmt: str) -> None:
     """Show what changes if claims are removed/added.
 
     Usage: pks world hypothetical domain=example --remove claim2
@@ -120,14 +160,10 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
         ),
     )
 
-    if not report.changes:
-        emit("No changes detected.")
-    else:
-        for change in report.changes:
-            emit(
-                f"{change.concept_display_id}: "
-                f"{change.base_status} → {change.hypothetical_status}"
-            )
+    if fmt == "json":
+        _emit_report_json(report)
+        return
+    _render_hypothetical_text(report)
 
 
 @world.command("chain")
@@ -156,12 +192,14 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
     default=False,
     help="Allow build_diagnostics rows to inform chain output.",
 )
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
                 strategy: str | None,
                 include_drafts: bool,
                 include_blocked: bool,
-                show_quarantined: bool) -> None:
+                show_quarantined: bool,
+                fmt: str) -> None:
     """Traverse the parameter space to derive a target concept.
 
     Lifecycle-visibility flags are accepted and layered onto any
@@ -187,6 +225,9 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
         ),
     )
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     emit(f"Target: {_format_chain_concept(report.target)}")
     emit(f"Result: {report.status}")
     if report.value is not None:
@@ -250,45 +291,34 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
     result = report.result
 
     if result is None:
+        if fmt == "json":
+            _emit_report_json(report)
+            return
         emit(f"No sensitivity analysis available for {report.concept_id}.")
         return
 
     if fmt == "json":
-        data = {
-            "concept_id": result.concept_id,
-            "formula": result.formula,
-            "output_value": result.output_value,
-            "input_values": result.input_values,
-            "entries": [
-                {
-                    "input_concept_id": e.input_concept_id,
-                    "partial_derivative_expr": e.partial_derivative_expr,
-                    "partial_derivative_value": e.partial_derivative_value,
-                    "elasticity": e.elasticity,
-                }
-                for e in result.entries
-            ],
-        }
-        emit(json.dumps(data, indent=2))
-    else:
-        emit(f"Sensitivity: {report.concept_id}")
-        emit(f"Formula: {result.formula}")
-        emit(f"Output value: {result.output_value}")
-        emit(f"Inputs: {result.input_values}")
-        emit("")
-        emit_table(
-            ("Input", "Partial", "Elasticity"),
-            [
-                (
-                    e.input_concept_id,
-                    f"{e.partial_derivative_value:.6g}"
-                    if e.partial_derivative_value is not None
-                    else "N/A",
-                    f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A",
-                )
-                for e in result.entries
-            ],
-        )
+        _emit_report_json(report)
+        return
+
+    emit(f"Sensitivity: {report.concept_id}")
+    emit(f"Formula: {result.formula}")
+    emit(f"Output value: {result.output_value}")
+    emit(f"Inputs: {result.input_values}")
+    emit("")
+    emit_table(
+        ("Input", "Partial", "Elasticity"),
+        [
+            (
+                e.input_concept_id,
+                f"{e.partial_derivative_value:.6g}"
+                if e.partial_derivative_value is not None
+                else "N/A",
+                f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A",
+            )
+            for e in result.entries
+        ],
+    )
 
 
 @world.command("fragility")
@@ -333,27 +363,7 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
     )
 
     if fmt == "json":
-        result_dict = {
-            "world_fragility": report.world_fragility,
-            "analysis_scope": report.analysis_scope,
-            "interventions": [
-                {
-                    "intervention_id": item.target.intervention_id,
-                    "kind": item.target.kind,
-                    "family": item.target.family,
-                    "subject_id": item.target.subject_id,
-                    "description": item.target.description,
-                    "cost_tier": item.target.cost_tier,
-                    "local_fragility": item.local_fragility,
-                    "roi": item.roi,
-                    "ranking_policy": item.ranking_policy,
-                    "score_explanation": item.score_explanation,
-                }
-                for item in report.interventions
-            ],
-            "interactions": [asdict(i) for i in report.interactions],
-        }
-        emit(json.dumps(result_dict, indent=2))
+        _emit_report_json(report)
     else:
         emit(f"Fragility Analysis (top {top_k}, ranking={ranking_policy})")
         emit("=" * 60)
@@ -403,9 +413,10 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
 @world.command("check-consistency")
 @click.argument("args", nargs=-1)
 @click.option("--transitive", is_flag=True, help="Check multi-hop transitive conflicts")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_check_consistency(obj: dict, args: tuple[str, ...],
-                            transitive: bool) -> None:
+                            transitive: bool, fmt: str) -> None:
     """Check for conflicts, optionally including transitive (multi-hop) ones.
 
     Usage: pks world check-consistency domain=example
@@ -418,6 +429,9 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
         AppWorldConsistencyRequest(bindings=bindings, transitive=transitive),
     )
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     if report.transitive:
         if not report.conflicts:
             emit("No transitive conflicts found.")

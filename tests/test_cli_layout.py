@@ -3,9 +3,12 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.repository import Repository
+from tests.conftest import normalize_concept_payloads
 
 
 def test_world_commands_live_outside_compiler_cmds() -> None:
@@ -83,6 +86,120 @@ def test_forms_alias_does_not_trigger_startup_traceback() -> None:
     assert "Manage form definitions." in result.output
     assert "Commands:" in result.output
     assert "Traceback" not in result.output
+
+
+def test_root_help_shows_quickstart_commands_not_advanced_surface() -> None:
+    result = CliRunner().invoke(cli, ["--help"])
+
+    assert result.exit_code == 0, result.output
+    for command in (
+        "init",
+        "build",
+        "status",
+        "claim",
+        "concept",
+        "world",
+        "log",
+        "show",
+        "diff",
+        "validate",
+        "verify",
+        "merge",
+        "web",
+    ):
+        assert command in result.output
+    for command in (
+        "grounding",
+        "micropub",
+        "proposal",
+        "source",
+        "import-repository",
+        "materialize",
+        "worldline",
+        "observatory",
+        "predicate",
+        "rule",
+        "form",
+        "context",
+        "contract-manifest",
+        "export-aliases",
+        "checkout",
+        "sidecar",
+    ):
+        assert f"  {command} " not in result.output
+    assert "Quickstart: pks init / pks build / pks world status" in result.output
+    assert "pks advanced --help" in result.output
+
+
+def test_advanced_help_shows_advanced_commands() -> None:
+    result = CliRunner().invoke(cli, ["advanced", "--help"])
+
+    assert result.exit_code == 0, result.output
+    for command in (
+        "grounding",
+        "micropub",
+        "proposal",
+        "source",
+        "import-repository",
+        "materialize",
+        "worldline",
+        "observatory",
+        "predicate",
+        "rule",
+        "form",
+        "context",
+        "contract-manifest",
+        "export-aliases",
+        "checkout",
+        "sidecar",
+    ):
+        assert command in result.output
+
+
+def test_top_level_status_alias_matches_world_status(tmp_path: Path) -> None:
+    knowledge = tmp_path / "knowledge"
+    repo = Repository.init(knowledge)
+    concept = normalize_concept_payloads(
+        [
+            {
+                "id": "concept1",
+                "canonical_name": "pitch",
+                "status": "accepted",
+                "definition": "Test definition for pitch.",
+                "domain": "speech",
+                "created_date": "2026-05-05",
+                "form": "frequency",
+            }
+        ],
+        default_domain="speech",
+    )[0]
+    repo.git.commit_files(
+        {
+            "forms/frequency.yaml": yaml.dump(
+                {"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"},
+                default_flow_style=False,
+            ).encode("utf-8"),
+            "concepts/pitch.yaml": yaml.dump(
+                concept,
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+            "concepts/.counters/global.next": b"2\n",
+        },
+        "Seed status alias fixture",
+    )
+    repo.git.sync_worktree()
+
+    runner = CliRunner()
+    build = runner.invoke(cli, ["-C", str(knowledge), "build"])
+    assert build.exit_code == 0, build.output
+
+    alias = runner.invoke(cli, ["-C", str(knowledge), "status"])
+    canonical = runner.invoke(cli, ["-C", str(knowledge), "world", "status"])
+
+    assert alias.exit_code == 0, alias.output
+    assert canonical.exit_code == 0, canonical.output
+    assert alias.output == canonical.output
 
 
 def test_dead_prefixed_error_helper_is_removed() -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import sqlite3
 
+from propstore.reporting import JsonReportMixin
 from propstore.repository import Repository
 from propstore.sidecar.sqlite import connect_sidecar_readonly
 
@@ -13,7 +14,7 @@ class SidecarQueryError(Exception):
 
 
 @dataclass(frozen=True)
-class SidecarQueryResult:
+class SidecarQueryResult(JsonReportMixin):
     columns: tuple[str, ...]
     rows: tuple[tuple[str, ...], ...]
 

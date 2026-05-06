@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import click
 
 from propstore.cli.output import emit, emit_table
@@ -23,10 +25,15 @@ from propstore.cli.concept import (
 )
 
 
+def _emit_report_json(report) -> None:
+    emit(json.dumps(report.to_json(), indent=2))
+
+
 @concept.command()
 @click.argument("query")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def search(obj: dict, query: str) -> None:
+def search(obj: dict, query: str, fmt: str) -> None:
     """Search concepts via the FTS5 index over canonical_name, aliases, definition, and CEL conditions."""
     try:
         report = search_concepts(
@@ -38,6 +45,9 @@ def search(obj: dict, query: str) -> None:
             "concept search requires a built sidecar; run 'pks build' first"
         ) from exc
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     if report.hits:
         for hit in report.hits:
             snippet = hit.definition[:80]
@@ -51,14 +61,23 @@ def search(obj: dict, query: str) -> None:
 @concept.command("list")
 @click.option("--domain", default=None, help="Filter by domain")
 @click.option("--status", default=None, help="Filter by status")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
+def list_concepts(
+    obj: dict,
+    domain: str | None,
+    status: str | None,
+    fmt: str,
+) -> None:
     """List concepts, optionally filtered."""
     repo: Repository = obj["repo"]
     report = run_list_concepts(
         repo,
         ConceptListRequest(domain=domain, status=status),
     )
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     if not report.concepts_found:
         emit("No concepts directory found.")
         return
@@ -77,8 +96,9 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
 
 @concept.command("categories")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def categories(obj: dict, as_json: bool) -> None:
+def categories(obj: dict, as_json: bool, fmt: str) -> None:
     """List all category concepts and their allowed values."""
     repo: Repository = obj["repo"]
     try:
@@ -87,10 +107,12 @@ def categories(obj: dict, as_json: bool) -> None:
         raise click.ClickException(str(exc)) from exc
 
     if as_json:
-        import json
         emit(json.dumps(report.as_dict(), indent=2))
         return
 
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     if not report.entries:
         emit("No category concepts found.")
         return
@@ -105,8 +127,9 @@ def categories(obj: dict, as_json: bool) -> None:
 
 @concept.command()
 @click.argument("concept_id_or_name")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def show(obj: dict, concept_id_or_name: str) -> None:
+def show(obj: dict, concept_id_or_name: str, fmt: str) -> None:
     """Show full concept YAML."""
     repo: Repository = obj["repo"]
     try:
@@ -118,4 +141,7 @@ def show(obj: dict, concept_id_or_name: str) -> None:
         if concept_id_or_name.startswith("align:"):
             fail(f"Concept alignment '{concept_id_or_name}' not found")
         fail(f"Concept '{concept_id_or_name}' not found")
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     emit(report.rendered)

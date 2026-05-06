@@ -7,6 +7,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
+from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import (
     RuleAddRequest,
     RuleFileNotFoundError,
@@ -28,6 +29,24 @@ from propstore.app.rules import (
 
 def _read_rule_file(repo: Repository, file: str) -> dict:
     return yaml.safe_load(repo.git.read_file(f"rules/{file}.yaml"))
+
+
+def _declare_rule_predicates(repo: Repository, file: str = "ikeda_2014") -> None:
+    for predicate_id, arity in (
+        ("a", 0),
+        ("b", 0),
+        ("reduces_mi", 1),
+        ("aspirin_user", 1),
+        ("safe", 1),
+    ):
+        add_predicate(
+            repo,
+            PredicateAddRequest(
+                file=file,
+                predicate_id=predicate_id,
+                arity=arity,
+            ),
+        )
 
 
 def test_parse_atom_variables_and_negation() -> None:
@@ -64,6 +83,7 @@ def test_parse_atom_zero_arity() -> None:
 
 def test_add_rule_creates_and_appends(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
 
     first = add_rule(
         repo,
@@ -101,6 +121,7 @@ def test_add_rule_creates_and_appends(tmp_path) -> None:
 
 def test_add_rule_rejects_mismatched_paper(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo, "foo")
     add_rule(
         repo,
         RuleAddRequest(
@@ -149,6 +170,7 @@ def test_add_rule_rejects_unknown_kind(tmp_path) -> None:
 
 def test_rule_cli_add(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     runner = CliRunner()
 
     result = runner.invoke(
@@ -185,6 +207,7 @@ def test_rule_cli_add(tmp_path) -> None:
 
 def test_rule_owner_list_and_show(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(
@@ -212,6 +235,7 @@ def test_rule_owner_list_and_show(tmp_path) -> None:
 
 def test_rule_cli_list_and_show(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(
@@ -249,6 +273,7 @@ def test_remove_rule_rejects_missing_file(tmp_path) -> None:
 
 def test_remove_rule_rejects_unknown_id(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(
@@ -273,6 +298,7 @@ def test_remove_rule_rejects_unknown_id(tmp_path) -> None:
 
 def test_remove_rule_removes_and_preserves_others(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(
@@ -310,6 +336,7 @@ def test_remove_rule_removes_and_preserves_others(tmp_path) -> None:
 
 def test_remove_rule_rejects_when_referenced_by_superiority(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(
@@ -358,6 +385,7 @@ def test_remove_rule_rejects_when_referenced_by_superiority(tmp_path) -> None:
 
 def test_add_rule_superiority_adds_pair(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(
@@ -394,6 +422,7 @@ def test_add_rule_superiority_adds_pair(tmp_path) -> None:
 
 def test_add_rule_superiority_rejects_strict_and_cycles(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(
@@ -464,6 +493,7 @@ def test_add_rule_superiority_rejects_strict_and_cycles(tmp_path) -> None:
 
 def test_remove_rule_superiority_removes_pair(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(
@@ -508,6 +538,7 @@ def test_remove_rule_superiority_removes_pair(tmp_path) -> None:
 
 def test_rule_cli_remove(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(
@@ -541,6 +572,7 @@ def test_rule_cli_remove(tmp_path) -> None:
 
 def test_rule_cli_superiority_add_and_remove(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _declare_rule_predicates(repo)
     add_rule(
         repo,
         RuleAddRequest(

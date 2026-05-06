@@ -371,6 +371,32 @@ def _record_context_diagnostics(
         )
 
 
+def _record_authoring_diagnostics(
+    conn: sqlite3.Connection,
+    diagnostics: tuple[PassDiagnostic, ...],
+) -> None:
+    for diagnostic in diagnostics:
+        conn.execute(
+            """
+            INSERT INTO build_diagnostics (
+                claim_id, source_kind, source_ref, diagnostic_kind,
+                severity, blocking, message, file, detail_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                diagnostic.artifact_id,
+                "authoring",
+                diagnostic.artifact_id or diagnostic.filename,
+                diagnostic.code,
+                diagnostic.level,
+                1 if diagnostic.is_error else 0,
+                diagnostic.render(),
+                diagnostic.filename,
+                None,
+            ),
+        )
+
+
 def _filter_invalid_context_lifting_rows(
     rows: ContextSidecarRows,
 ) -> ContextSidecarRows:
@@ -428,6 +454,7 @@ def _build_sidecar_locked(
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
     context_files: tuple[LoadedContext, ...] | None = None,
     context_diagnostics: tuple[PassDiagnostic, ...] = (),
+    authoring_diagnostics: tuple[PassDiagnostic, ...] = (),
     on_embedding_snapshot: Callable[[EmbeddingSnapshotReport], None] | None = None,
 ) -> bool:
     """Build the SQLite sidecar from repository artifact families."""
@@ -636,6 +663,7 @@ def _build_sidecar_locked(
         _record_concept_diagnostics(conn, concept_diagnostics)
         _record_context_diagnostics(conn, context_diagnostics)
         _record_claim_diagnostics(conn, tuple(recorded_claim_diagnostics))
+        _record_authoring_diagnostics(conn, authoring_diagnostics)
         _record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
         create_micropublication_tables(conn)
 

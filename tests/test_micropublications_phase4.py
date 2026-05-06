@@ -15,6 +15,24 @@ from propstore.world import WorldQuery
 from propstore.world.types import Environment, ReasoningBackend, RenderPolicy
 
 
+def _seed_source_promotion_dependencies(repo: Repository) -> None:
+    repo.git.commit_batch(
+        adds={
+            "forms/structural.yaml": yaml.safe_dump(
+                {"name": "structural", "dimensionless": True},
+                sort_keys=False,
+            ).encode("utf-8"),
+            "contexts/ctx_test.yaml": yaml.safe_dump(
+                {"id": "ctx_test", "name": "ctx_test"},
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        deletes=[],
+        message="Seed source promotion dependencies",
+        branch="master",
+    )
+
+
 def test_micropublication_document_requires_claim_bundle() -> None:
     with pytest.raises(ValueError, match="claims"):
         convert_document_value(
@@ -49,6 +67,7 @@ def test_micropublication_document_requires_claim_bundle() -> None:
 
 def _init_source_with_claim(tmp_path: Path) -> Repository:
     repo = Repository.init(tmp_path / "knowledge")
+    _seed_source_promotion_dependencies(repo)
     runner = CliRunner()
     claims_file = tmp_path / "claims.yaml"
     claims_file.write_text(
@@ -100,7 +119,7 @@ def _init_source_with_claim(tmp_path: Path) -> Repository:
             "--definition",
             "A test concept",
             "--form",
-            "category",
+            "structural",
         ],
     ).exit_code == 0
     result = runner.invoke(

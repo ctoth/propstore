@@ -260,6 +260,21 @@ def test_promoted_claims_conform_to_master_schema(tmp_path: Path) -> None:
     rejects the promoted claims with 'Additional properties are not allowed'.
     """
     repo = Repository.init(tmp_path / "knowledge")
+    repo.git.commit_batch(
+        adds={
+            "forms/structural.yaml": yaml.safe_dump(
+                {"name": "structural", "dimensionless": True},
+                sort_keys=False,
+            ).encode("utf-8"),
+            "contexts/ctx_test.yaml": yaml.safe_dump(
+                {"id": "ctx_test", "name": "ctx_test"},
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        deletes=[],
+        message="Seed source promotion dependencies",
+        branch="master",
+    )
     runner = CliRunner()
     claims_file = tmp_path / "claims.yaml"
     claims_file.write_text(
@@ -295,7 +310,7 @@ def test_promoted_claims_conform_to_master_schema(tmp_path: Path) -> None:
         "source", "propose-concept", "demo",
         "--concept-name", "test_concept",
         "--definition", "A test concept",
-        "--form", "category",
+        "--form", "structural",
     ]).exit_code == 0
 
     assert runner.invoke(cli, [

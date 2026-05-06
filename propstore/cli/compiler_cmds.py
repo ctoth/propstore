@@ -21,10 +21,17 @@ from propstore.cli.helpers import EXIT_VALIDATION, exit_with_code, fail
 from propstore.repository import Repository
 
 
+_PHI_GROUP_GLOSSES = {
+    "PHI_NODE": "concept slot with multiple competing claim branches in the same context",
+    "CONTEXT_PHI_NODE": "concept slot with competing branches across different contexts",
+}
+
+
 def _emit_workflow_messages(messages) -> None:
     for message in messages:
         label = message.level.upper()
-        emit_error(f"{label} ({message.family.value}): {message.render()}")
+        family = "authoring" if message.code.startswith("authoring.") else message.family.value
+        emit_error(f"{label} ({family}): {message.render()}")
 
 
 @click.command()
@@ -58,12 +65,27 @@ def validate(obj: dict) -> None:
 @click.command()
 @click.option("-o", "--output", default=None, help="Output path")
 @click.option("--force", is_flag=True, help="Force rebuild")
+@click.option(
+    "--strict-authoring",
+    is_flag=True,
+    help="Promote authoring lints to build errors.",
+)
 @click.pass_obj
-def build(obj: dict, output: str | None, force: bool) -> None:
+def build(
+    obj: dict,
+    output: str | None,
+    force: bool,
+    strict_authoring: bool,
+) -> None:
     """Validate everything, build sidecar, run conflict detection."""
     repo: Repository = obj["repo"]
     try:
-        report = build_repository(repo, output=output, force=force)
+        report = build_repository(
+            repo,
+            output=output,
+            force=force,
+            strict_authoring=strict_authoring,
+        )
     except CompilerWorkflowError as exc:
         _emit_workflow_messages(exc.messages)
         emit_error(exc.summary)
@@ -86,7 +108,13 @@ def build(obj: dict, output: str | None, force: bool) -> None:
             f"({conflict.claim_a_id} vs {conflict.claim_b_id})",
             err=True,
         )
+    emitted_phi_glosses: set[str] = set()
     for group in report.phi_groups:
+        group_kind = group.key.split(":", 1)[0]
+        gloss = _PHI_GROUP_GLOSSES.get(group_kind)
+        if gloss is not None and group_kind not in emitted_phi_glosses:
+            emit(f"  {group_kind} — {gloss}", err=True)
+            emitted_phi_glosses.add(group_kind)
         emit(
             f"  {group.key} — {len(group.claim_ids)} branches: "
             f"{', '.join(group.claim_ids)}",
@@ -105,7 +133,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     status = "rebuilt" if report.rebuilt else "unchanged"
     emit(
         f"Build {status}: {report.concept_count} concepts, "
-        f"{report.claim_count} claims, {report.conflict_count} conflicts, "
+        f"{report.claim_count} claims, {report.conflict_count} hard conflicts, "
         f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings")
 
 

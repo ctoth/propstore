@@ -210,10 +210,15 @@ def stances_to_contrariness(
                         f"justification for target claim {stance.target_claim_id!r}"
                     )
             elif len(matching_rules) > 1:
+                rule_names = ", ".join(
+                    sorted(rule.name for rule in matching_rules if rule.name is not None)
+                )
                 raise ValueError(
                     "undercut against target claim "
-                    f"{stance.target_claim_id!r} is ambiguous across multiple defeasible "
-                    "justifications; provide target_justification_id"
+                    f"{stance.target_claim_id!r} is ambiguous: "
+                    f"{len(matching_rules)} defeasible rules conclude this claim. "
+                    "Set target_justification_id on the stance to one of: "
+                    f"{rule_names}."
                 )
 
             for rule in matching_rules:

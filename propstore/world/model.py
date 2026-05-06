@@ -1328,6 +1328,10 @@ class WorldQuery(WorldStore):
             conflicts=int(conflicts),
         )
 
+    def authored_justification_count(self) -> int:
+        count = self._conn.execute("SELECT COUNT(*) FROM justification").fetchone()[0]
+        return int(count)
+
     # ── Parameterization queries ─────────────────────────────────────
 
     def _parameterizations_for(self, concept_id: str) -> list[ParameterizationRow]:

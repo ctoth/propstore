@@ -1,6 +1,8 @@
 """pks — the propstore CLI."""
 from __future__ import annotations
 
+import os
+import sys
 from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -45,9 +47,46 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
     "worldline": ("propstore.cli.worldline", "worldline", "Manage materialized query artifacts."),
 }
 
+_QUICKSTART_COMMANDS = (
+    "init",
+    "build",
+    "status",
+    "claim",
+    "concept",
+    "world",
+    "log",
+    "show",
+    "diff",
+    "validate",
+    "verify",
+    "merge",
+    "web",
+)
+
+_ADVANCED_COMMANDS = (
+    "grounding",
+    "micropub",
+    "proposal",
+    "source",
+    "import-repository",
+    "materialize",
+    "worldline",
+    "observatory",
+    "predicate",
+    "rule",
+    "form",
+    "context",
+    "contract-manifest",
+    "export-aliases",
+    "checkout",
+    "sidecar",
+)
+
 _COMMAND_ALIASES = {
     "forms": "form",
 }
+
+_EXPECTED_CLI_EXCEPTIONS = (ValueError, RuntimeError)
 
 
 class _LazyRepository:
@@ -67,11 +106,33 @@ class _LazyRepository:
 
 
 class _LazyCLIGroup(click.Group):
+    def main(self, *args, **kwargs):
+        traceback_enabled = _traceback_enabled_for_invocation(args, kwargs)
+        if traceback_enabled:
+            return super().main(*args, **kwargs)
+        try:
+            return super().main(*args, **kwargs)
+        except _EXPECTED_CLI_EXCEPTIONS as exc:
+            if not kwargs.get("standalone_mode", True):
+                raise click.ClickException(_render_expected_cli_error(exc)) from exc
+            click.ClickException(_render_expected_cli_error(exc)).show()
+            sys.exit(1)
+
     def list_commands(self, ctx: click.Context) -> list[str]:
-        return sorted(_COMMANDS)
+        return list(_QUICKSTART_COMMANDS)
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        if cmd_name == "advanced":
+            return _advanced
         command_name = _COMMAND_ALIASES.get(cmd_name, cmd_name)
+        if command_name == "status":
+            command_name = "world-status"
+        if command_name == "world-status":
+            module = import_module("propstore.cli.world.query")
+            command = getattr(module, "world_status")
+            if not isinstance(command, click.Command):
+                raise TypeError("propstore.cli.world.query.world_status is not a click command")
+            return command
         spec = _COMMANDS.get(command_name)
         if spec is None:
             return None
@@ -83,19 +144,90 @@ class _LazyCLIGroup(click.Group):
         return command
 
     def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
-        rows = [(name, spec[2]) for name, spec in sorted(_COMMANDS.items())]
+        rows = [
+            (
+                name,
+                "Show knowledge base stats and authored reasoning inventory."
+                if name == "status"
+                else _COMMANDS[name][2]
+            )
+            for name in _QUICKSTART_COMMANDS
+        ]
+        if rows:
+            with formatter.section("Commands"):
+                formatter.write_dl(rows)
+
+    def format_epilog(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        formatter.write_paragraph()
+        formatter.write_text(
+            "Quickstart: pks init / pks build / pks world status / "
+            "pks world query <concept>"
+        )
+        formatter.write_text("Advanced commands: pks advanced --help")
+
+
+class _AdvancedCLIGroup(click.Group):
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        return list(_ADVANCED_COMMANDS)
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        command_name = _COMMAND_ALIASES.get(cmd_name, cmd_name)
+        spec = _COMMANDS.get(command_name)
+        if spec is None or command_name not in _ADVANCED_COMMANDS:
+            return None
+        module_name, attribute_name, _help = spec
+        module = import_module(module_name)
+        command = getattr(module, attribute_name)
+        if not isinstance(command, click.Command):
+            raise TypeError(f"{module_name}.{attribute_name} is not a click command")
+        return command
+
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        rows = [(name, _COMMANDS[name][2]) for name in _ADVANCED_COMMANDS]
         if rows:
             with formatter.section("Commands"):
                 formatter.write_dl(rows)
 
 
+_advanced = _AdvancedCLIGroup(
+    "advanced",
+    help="Show advanced and specialized command families.",
+)
+
+
+def _traceback_enabled_for_invocation(args: tuple[object, ...], kwargs: dict) -> bool:
+    if os.environ.get("PKS_TRACEBACK") == "1":
+        return True
+    raw_args = kwargs.get("args")
+    if raw_args is None and args:
+        raw_args = args[0]
+    if not isinstance(raw_args, (list, tuple)):
+        raw_args = sys.argv[1:]
+    return "--traceback" in raw_args
+
+
+def _render_expected_cli_error(exc: BaseException) -> str:
+    message = str(exc).strip() or exc.__class__.__name__
+    return (
+        f"{message}\n"
+        "Hint: rerun with --traceback or PKS_TRACEBACK=1 for a full traceback."
+    )
+
+
 @click.group(cls=_LazyCLIGroup)
 @click.option("-C", "--directory", default=None, type=click.Path(file_okay=False),
               help="Run as if pks was started in this directory.")
+@click.option(
+    "--traceback",
+    "traceback_enabled",
+    is_flag=True,
+    help="Show full Python tracebacks for unexpected command failures.",
+)
 @click.pass_context
-def cli(ctx: click.Context, directory: str | None) -> None:
+def cli(ctx: click.Context, directory: str | None, traceback_enabled: bool) -> None:
     """Propositional Knowledge Store CLI."""
     ctx.ensure_object(dict)
+    ctx.obj["traceback"] = traceback_enabled
     start = Path(directory) if directory else None
     if ctx.resilient_parsing:
         return

@@ -552,7 +552,7 @@ class TestStancesToContrariness:
         literals = claims_to_literals(claims)
         _strict, defeasible = justifications_to_rules(justifications, literals)
 
-        with pytest.raises(ValueError, match="target_justification_id"):
+        with pytest.raises(ValueError, match="target_justification_id") as exc_info:
             stances_to_contrariness(
                 [{
                     "claim_id": "attacker",
@@ -562,6 +562,10 @@ class TestStancesToContrariness:
                 literals,
                 defeasible,
             )
+        message = str(exc_info.value)
+        assert "2 defeasible rules conclude this claim" in message
+        assert "supports:support_a->target" in message
+        assert "supports:support_b->target" in message
 
     def test_undercut_without_rule_id_uses_only_rule_when_target_is_unambiguous(self):
         claims = [

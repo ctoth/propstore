@@ -30,6 +30,7 @@ from propstore.world.queries import (
     WorldExplainRequest,
     WorldResolveReport,
     WorldResolveRequest,
+    AmbiguousConceptError,
     WorldStatusReport,
     WorldStatusRequest,
     UnknownClaimError,
@@ -205,7 +206,6 @@ def world_status(
         context_count=counts["contexts"],
         predicate_count=counts["predicates"],
         rule_count=counts["rules"],
-        justification_count=counts["justifications"],
         stance_count=counts["stances"],
     )
 
@@ -221,10 +221,6 @@ def _authored_world_counts(repo: Repository) -> dict[str, int]:
         "rules": sum(
             len(handle.document.rules)
             for handle in repo.families.rules.iter_handles()
-        ),
-        "justifications": sum(
-            len(handle.document.justifications)
-            for handle in repo.families.justifications.iter_handles()
         ),
         "stances": sum(
             len(handle.document.stances)

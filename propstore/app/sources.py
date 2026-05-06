@@ -223,7 +223,8 @@ def promote_source(
     repo: Repository,
     request: SourcePromoteRequest,
 ) -> SourcePromoteReport:
-    from propstore.compiler.workflows import CompilerWorkflowError, build_repository
+    from propstore.compiler.errors import CompilerWorkflowError
+    from propstore.compiler.workflows import build_repository
     from propstore.source import promote_source_branch, source_paper_slug
     from propstore.source.common import (
         load_source_claims_document,

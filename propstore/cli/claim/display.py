@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import click
 
 from propstore.app.claim_views import (
@@ -21,6 +23,10 @@ from propstore.cli.claim import claim, claim_render_policy_options, claim_render
 from propstore.cli.helpers import fail
 from propstore.cli.output import emit, emit_section, emit_table
 from propstore.repository import Repository
+
+
+def _emit_report_json(report) -> None:
+    emit(json.dumps(report.to_json(), indent=2))
 
 
 def _render_claim_view(report: ClaimViewReport) -> None:
@@ -103,6 +109,7 @@ def _render_claim_view(report: ClaimViewReport) -> None:
 
 @claim.command("show")
 @click.argument("claim_id")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @claim_render_policy_options
 @click.pass_obj
 def show(
@@ -111,6 +118,7 @@ def show(
     include_drafts: bool,
     include_blocked: bool,
     show_quarantined: bool,
+    fmt: str,
 ) -> None:
     """Display details of a single claim."""
     repo: Repository = obj["repo"]
@@ -130,12 +138,16 @@ def show(
         fail(exc)
     except ClaimViewUnknownClaimError:
         fail(f"Claim '{claim_id}' not found.")
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     _render_claim_view(report)
 
 
 @claim.command("list")
 @click.option("--concept", default=None, help="Filter by concept id or canonical name.")
 @click.option("--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show.")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @claim_render_policy_options
 @click.pass_obj
 def list_cmd(
@@ -145,6 +157,7 @@ def list_cmd(
     include_drafts: bool,
     include_blocked: bool,
     show_quarantined: bool,
+    fmt: str,
 ) -> None:
     """List claims visible under the current render policy."""
     repo: Repository = obj["repo"]
@@ -163,6 +176,9 @@ def list_cmd(
         )
     except WorldSidecarMissingError as exc:
         fail(exc)
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     if not report.entries:
         emit("No claims found.")
         return
@@ -184,6 +200,7 @@ def list_cmd(
 @click.argument("query")
 @click.option("--concept", default=None, help="Filter by concept id or canonical name.")
 @click.option("--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show.")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @claim_render_policy_options
 @click.pass_obj
 def search(
@@ -194,6 +211,7 @@ def search(
     include_drafts: bool,
     include_blocked: bool,
     show_quarantined: bool,
+    fmt: str,
 ) -> None:
     """Search claims visible under the current render policy."""
     repo: Repository = obj["repo"]
@@ -213,6 +231,9 @@ def search(
         )
     except WorldSidecarMissingError as exc:
         fail(exc)
+    if fmt == "json":
+        _emit_report_json(report)
+        return
     if not report.entries:
         emit("No matches.")
         return

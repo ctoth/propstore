@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import json
 from typing import TYPE_CHECKING, Mapping
 
+from propstore.reporting import JsonReportMixin
 from propstore.core.environment import Environment
 
 if TYPE_CHECKING:
@@ -30,7 +31,7 @@ class WorldConsistencyConflictLine:
 
 
 @dataclass(frozen=True)
-class WorldConsistencyReport:
+class WorldConsistencyReport(JsonReportMixin):
     transitive: bool
     conflicts: tuple[WorldConsistencyConflictLine, ...]
 

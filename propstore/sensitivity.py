@@ -11,6 +11,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.reporting import JsonReportMixin
 from propstore.core.environment import Environment
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.row_types import coerce_parameterization_row
@@ -72,7 +73,7 @@ class SensitivityRequest:
 
 
 @dataclass(frozen=True)
-class SensitivityReport:
+class SensitivityReport(JsonReportMixin):
     concept_id: str
     result: SensitivityResult | None
 
