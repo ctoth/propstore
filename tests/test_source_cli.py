@@ -318,8 +318,8 @@ def test_source_add_concepts_auto_finalize_runtime_error_propagates(tmp_path: Pa
         )
 
     assert result.exit_code != 0
-    assert isinstance(result.exception, RuntimeError)
-    assert "auto finalize boom" in str(result.exception)
+    assert "auto finalize boom" in result.output
+    assert "Hint: rerun with --traceback" in result.output
 
 
 def test_source_sync_materializes_branch_to_papers_workspace(tmp_path: Path) -> None:

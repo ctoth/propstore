@@ -2688,8 +2688,10 @@ class TestProposalPromoteCommandExists:
     acceptance."""
 
     def test_proposal_is_registered_command(self):
-        """The 'proposal' command must be registered on the top-level CLI group."""
-        command_names = cli.list_commands(click.Context(cli))
+        """The 'proposal' command must be registered in the advanced command group."""
+        advanced = cli.get_command(click.Context(cli), "advanced")
+        assert advanced is not None
+        command_names = advanced.list_commands(click.Context(advanced))
         assert "proposal" in command_names, (
             f"'proposal' not found in CLI commands: {sorted(command_names)}. "
             "A proposal command family is needed to move proposals into source-of-truth storage."

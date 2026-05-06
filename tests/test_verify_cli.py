@@ -233,8 +233,8 @@ def test_verify_tree_atms_failure_propagates(tmp_path: Path) -> None:
         result = runner.invoke(cli, ["-C", str(repo.root), "verify", "tree", claim_id])
 
     assert result.exit_code != 0
-    assert isinstance(result.exception, RuntimeError)
-    assert "atms boom" in str(result.exception)
+    assert "atms boom" in result.output
+    assert "Hint: rerun with --traceback" in result.output
 
 
 @pytest.mark.property
