@@ -218,7 +218,7 @@ def _seed_calibration_claim(repo: Repository) -> None:
                     "value": 0.36,
                     "unit": "probability",
                     "conditions": ["domain == 'psychology'"],
-                    "provenance": {"page": 1},
+                    "provenance": {"paper": "calibration", "page": 1},
                 }
             ],
         },
@@ -282,6 +282,21 @@ def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(tmp_p
 
 def test_world_query_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    repo.git.commit_batch(
+        adds={
+            "forms/ratio.yaml": yaml.safe_dump(
+                {"name": "ratio", "dimensionless": True},
+                sort_keys=False,
+            ).encode("utf-8"),
+            "contexts/ctx_test.yaml": yaml.safe_dump(
+                {"id": "ctx_test", "name": "ctx_test"},
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        deletes=[],
+        message="Seed source promotion dependencies",
+        branch="master",
+    )
     _seed_calibration_claim(repo)
     runner = CliRunner()
     metadata_file = tmp_path / "metadata.json"
