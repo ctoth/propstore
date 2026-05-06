@@ -1212,14 +1212,21 @@ class TestClaimTable:
             justifications = world.justifications_for_claim_scope(
                 {"claim1", "claim4", "claim5"}
             )
+            expected_claim_ids = {
+                claim_id: world.resolve_claim(claim_id) or claim_id
+                for claim_id in ("claim1", "claim4", "claim5")
+            }
         finally:
             world.close()
 
         assert len(justifications) == 1
         justification = justifications[0]
         assert justification.justification_id == "just_multi"
-        assert justification.conclusion_claim_id == "claim5"
-        assert justification.premise_claim_ids == ("claim1", "claim4")
+        assert justification.conclusion_claim_id == expected_claim_ids["claim5"]
+        assert justification.premise_claim_ids == (
+            expected_claim_ids["claim1"],
+            expected_claim_ids["claim4"],
+        )
         assert justification.rule_kind == "empirical_support"
         assert justification.rule_strength == "defeasible"
         assert justification.provenance is not None
