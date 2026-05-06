@@ -68,7 +68,14 @@ function Get-PdfPageCount {
     if ([string]::IsNullOrWhiteSpace($PdfInfo)) {
         return $null
     }
-    $output = & $PdfInfo $PdfPath 2>$null
+    try {
+        $output = & $PdfInfo $PdfPath 2>&1
+    } catch {
+        return $null
+    }
+    if ($LASTEXITCODE -ne 0) {
+        return $null
+    }
     foreach ($line in $output) {
         if ($line -match "^Pages:\s+(\d+)\s*$") {
             return [int]$Matches[1]
