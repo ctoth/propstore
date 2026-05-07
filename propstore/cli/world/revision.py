@@ -71,9 +71,28 @@ def _parse_revision_atom_json(atom_json: str) -> dict:
 
 
 def _emit_revision_result(result) -> None:
-    emit_section(f"Accepted ({len(result.accepted_atom_ids)} atoms):", result.accepted_atom_ids)
-    emit_section(f"Rejected ({len(result.rejected_atom_ids)} atoms):", result.rejected_atom_ids)
-    emit(f"Incision set: {', '.join(result.incision_set) if result.incision_set else '(none)'}")
+    decision = getattr(result, "decision", None)
+    if decision is not None:
+        emit("Formal decision:")
+        emit(f"  operation: {decision.operation}")
+        emit(f"  policy: {decision.policy}")
+        emit_section(
+            f"  accepted formulas ({len(decision.accepted_formula_ids)}):",
+            decision.accepted_formula_ids,
+        )
+        emit_section(
+            f"  rejected formulas ({len(decision.rejected_formula_ids)}):",
+            decision.rejected_formula_ids,
+        )
+
+    realization = getattr(result, "realization", None)
+    emit("Support realization:")
+    accepted_atom_ids = result.accepted_atom_ids if realization is None else realization.accepted_atom_ids
+    rejected_atom_ids = result.rejected_atom_ids if realization is None else realization.rejected_atom_ids
+    incision_set = result.incision_set if realization is None else realization.incision_set
+    emit_section(f"Accepted ({len(accepted_atom_ids)} atoms):", accepted_atom_ids)
+    emit_section(f"Rejected ({len(rejected_atom_ids)} atoms):", rejected_atom_ids)
+    emit(f"Incision set: {', '.join(incision_set) if incision_set else '(none)'}")
 
 
 def _emit_revision_explanation(explanation) -> None:
