@@ -27,6 +27,12 @@ Konieczny-Pino-Pérez 2002.
 The property gate lives in the external package test suite and checks the
 finite IC postulates exercised by the current implementation.
 
+Propstore consumes this formal surface through
+`propstore.support_revision.belief_set_adapter.decide_ic_merge`. That adapter
+returns a formal `decision` payload identifying
+`belief_set.ic_merge.merge_belief_profile`; Propstore does not implement an IC
+merge kernel locally.
+
 ## Assignment Selection
 
 `propstore.world.assignment_selection_merge` is not the literature IC-merge
