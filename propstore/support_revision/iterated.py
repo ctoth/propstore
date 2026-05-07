@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import replace
 
 from propstore.support_revision.entrenchment import EntrenchmentReport, compute_entrenchment
-from propstore.support_revision.explanation_types import EntrenchmentReason
-from propstore.support_revision.operators import normalize_revision_input, revise
+from propstore.support_revision.belief_set_adapter import (
+    DEFAULT_ITERATED_OPERATOR,
+    decide_iterated_revise,
+)
+from propstore.support_revision.operators import normalize_revision_input, realize_formal_decision
 from propstore.support_revision.state import BeliefBase, EpistemicState, RevisionEpisode, RevisionResult
 
 
@@ -61,7 +63,7 @@ def iterated_revise(
     *,
     max_candidates: int,
     conflicts: dict[str, tuple[str, ...] | list[str]] | None = None,
-    operator: str = "restrained",
+    operator: str = DEFAULT_ITERATED_OPERATOR,
 ) -> tuple[RevisionResult, EpistemicState]:
     """Revise an explicit epistemic state using a selected iterated operator family."""
     if len(state.scope.merge_parent_commits) > 1:
@@ -76,19 +78,21 @@ def iterated_revise(
     else:
         raise ValueError("iterated revision conflicts must be a mapping")
     conflict_map = {atom_id: tuple(targets) for atom_id, targets in conflict_items}
-    result = revise(
+    formal_decision = decide_iterated_revise(
         state.base,
         normalized,
-        entrenchment=current_entrenchment,
-        max_candidates=max_candidates,
-        conflicts=conflict_map or None,
-    )
-    next_entrenchment = _updated_entrenchment_report(
-        state,
-        result,
-        input_atom_id=normalized.atom_id,
+        conflicts=tuple(conflict_map.get(normalized.atom_id, ())),
         operator=operator,
+        max_alphabet_size=16,
     )
+    result = realize_formal_decision(
+        state.base,
+        formal_decision,
+        extra_atoms=(normalized,),
+        accepted_reason="revised_in",
+        rejected_reason="revised_out",
+    )
+    next_entrenchment = compute_entrenchment(None, result.revised_base)
     next_state = advance_epistemic_state(
         state,
         result,
@@ -105,50 +109,3 @@ def epistemic_state_payload(state: EpistemicState) -> dict:
     from propstore.support_revision.history import EpistemicSnapshot
 
     return EpistemicSnapshot.from_state(state).to_dict()
-
-
-def _updated_entrenchment_report(
-    state: EpistemicState,
-    result: RevisionResult,
-    *,
-    input_atom_id: str,
-    operator: str,
-) -> EntrenchmentReport:
-    accepted_set = set(result.accepted_atom_ids)
-    survivor_order = [
-        atom_id
-        for atom_id in state.ranked_atom_ids
-        if atom_id in accepted_set and atom_id != input_atom_id
-    ]
-    extras = [
-        atom_id
-        for atom_id in result.accepted_atom_ids
-        if atom_id not in survivor_order and atom_id != input_atom_id
-    ]
-
-    if operator == "lexicographic":
-        ranked_atom_ids = (
-            (input_atom_id,) if input_atom_id in accepted_set else ()
-        ) + tuple(survivor_order) + tuple(extras)
-    elif operator == "restrained":
-        ranked_atom_ids = tuple(survivor_order) + (
-            (input_atom_id,) if input_atom_id in accepted_set else ()
-        ) + tuple(extras)
-    else:
-        raise ValueError(f"Unsupported iterated revision operator: {operator}")
-
-    reasons = {
-        atom_id: state.entrenchment_reasons.get(atom_id, EntrenchmentReason())
-        for atom_id in ranked_atom_ids
-    }
-    if input_atom_id in accepted_set:
-        reasons[input_atom_id] = replace(
-            reasons.get(input_atom_id, EntrenchmentReason()),
-            iterated_operator=operator,
-            revised_in=True,
-        )
-
-    return EntrenchmentReport(
-        ranked_atom_ids=ranked_atom_ids,
-        reasons=reasons,
-    )
