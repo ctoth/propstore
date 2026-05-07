@@ -48,6 +48,11 @@ from propstore.app.repository_overview import (
 )
 from propstore.app.repository_views import RepositoryViewUnsupportedStateError
 from propstore.app.rendering import RenderPolicyValidationError
+from propstore.app.world_revision import (
+    AppRevisionWorldRequest,
+    world_revision_base,
+    world_revision_entrenchment,
+)
 from propstore.app.world import WorldSidecarMissingError
 from propstore.repository import Repository
 from propstore.web.html import (
@@ -104,6 +109,22 @@ def register_routes(app: FastAPI) -> None:
         if isinstance(report_or_response, JSONResponse):
             return report_or_response
         return JSONResponse(to_json_compatible(report_or_response))
+
+    @app.get("/world/revision/base.json")
+    def world_revision_base_json(request: Request) -> JSONResponse:
+        try:
+            app_request = _world_revision_request(request)
+            repo = _repo_from_request(request)
+            return JSONResponse(
+                to_json_compatible(
+                    {
+                        "base": world_revision_base(repo, app_request),
+                        "entrenchment": world_revision_entrenchment(repo, app_request),
+                    }
+                )
+            )
+        except _EXPECTED_WEB_ERRORS as exc:
+            return _expected_error_response(exc, wants_json=True)
 
     @app.get("/")
     def index_html(request: Request) -> HTMLResponse:
@@ -495,6 +516,18 @@ def _optional_query(request: Request, name: str) -> str | None:
     if value is None or value == "":
         return None
     return value
+
+
+def _world_revision_request(request: Request) -> AppRevisionWorldRequest:
+    reserved = {"context"}
+    return AppRevisionWorldRequest(
+        bindings={
+            key: value
+            for key, value in request.query_params.items()
+            if key not in reserved
+        },
+        context=_optional_query(request, "context"),
+    )
 
 
 @overload
