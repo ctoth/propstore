@@ -82,7 +82,7 @@ def project_formal_bundle(
         alphabet,
         conjunction(*base_formulas),
     )
-    epistemic_state = SpohnEpistemicState.from_belief_set(belief_set)
+    epistemic_state = _distance_ranked_state(belief_set)
     return FormalProjectionBundle(
         alphabet=alphabet,
         belief_set=belief_set,
@@ -316,8 +316,25 @@ def _trace_payload(
 
 def _state_for(bundle: FormalProjectionBundle) -> SpohnEpistemicState:
     if bundle.epistemic_state is None:
-        return SpohnEpistemicState.from_belief_set(bundle.belief_set)
+        return _distance_ranked_state(bundle.belief_set)
     return bundle.epistemic_state
+
+
+def _distance_ranked_state(belief_set: BeliefSet) -> SpohnEpistemicState:
+    if not belief_set.models:
+        return SpohnEpistemicState.from_belief_set(belief_set)
+    worlds = BeliefSet.all_worlds(belief_set.alphabet)
+    return SpohnEpistemicState.from_ranks(
+        belief_set.alphabet,
+        {
+            world: min(_hamming_distance(world, model) for model in belief_set.models)
+            for world in worlds
+        },
+    )
+
+
+def _hamming_distance(left: frozenset[str], right: frozenset[str]) -> int:
+    return len(left.symmetric_difference(right))
 
 
 def _state_hash(state: SpohnEpistemicState) -> str:
