@@ -28,6 +28,15 @@ def to_json_compatible(value) -> JsonValue:
         return str(value)
     if isinstance(value, tuple | list):
         return [to_json_compatible(item) for item in value]
+    if isinstance(value, dict):
+        converted: dict[str, JsonValue] = {}
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise WebSerializationError(
+                    f"unsupported web JSON object key: {type(key).__name__}"
+                )
+            converted[key] = to_json_compatible(item)
+        return converted
     if is_dataclass(value) and not isinstance(value, type):
         return {
             field.name: to_json_compatible(getattr(value, field.name))
