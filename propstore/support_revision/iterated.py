@@ -91,6 +91,8 @@ def iterated_revise(
         extra_atoms=(normalized,),
         accepted_reason="revised_in",
         rejected_reason="revised_out",
+        support_entrenchment=current_entrenchment,
+        max_candidates=max_candidates,
     )
     next_entrenchment = compute_entrenchment(None, result.revised_base)
     next_state = advance_epistemic_state(
