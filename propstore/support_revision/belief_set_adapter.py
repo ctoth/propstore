@@ -46,6 +46,7 @@ class FormalProjectionBundle:
     atom_id_by_formula_name: Mapping[str, str] = field(default_factory=dict)
     epistemic_state: SpohnEpistemicState | None = None
     entrenchment: EpistemicEntrenchment | None = None
+    budget_config: Mapping[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -64,11 +65,17 @@ def project_formal_bundle(
     base: BeliefBase,
     *,
     extra_atoms: tuple[BeliefAtom, ...] = (),
+    max_alphabet_size: int = 16,
 ) -> FormalProjectionBundle:
     atoms_by_id = {atom.atom_id: atom for atom in base.atoms}
     for atom in extra_atoms:
         atoms_by_id.setdefault(atom.atom_id, atom)
     alphabet = frozenset(atoms_by_id)
+    if len(alphabet) > max_alphabet_size:
+        raise AlphabetBudgetExceeded(
+            alphabet_size=len(alphabet),
+            max_alphabet_size=max_alphabet_size,
+        )
     formula_by_atom_id = {
         atom_id: Atom(_formula_name(atom_id))
         for atom_id in sorted(atoms_by_id)
@@ -93,6 +100,7 @@ def project_formal_bundle(
         },
         epistemic_state=epistemic_state,
         entrenchment=EpistemicEntrenchment.from_state(epistemic_state),
+        budget_config={"max_alphabet_size": max_alphabet_size},
     )
 
 
@@ -102,7 +110,7 @@ def decide_expand(
     *,
     max_alphabet_size: int,
 ) -> FormalDecision:
-    bundle = project_formal_bundle(base, extra_atoms=(atom,))
+    bundle = project_formal_bundle(base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size)
     formula = bundle.formula_by_atom_id[atom.atom_id]
     outcome = expand(bundle.belief_set, formula)
     report = _decision_report(
@@ -121,7 +129,7 @@ def decide_contract(
     *,
     max_alphabet_size: int,
 ) -> FormalDecision:
-    bundle = project_formal_bundle(base)
+    bundle = project_formal_bundle(base, max_alphabet_size=max_alphabet_size)
     formula = conjunction(*(bundle.formula_by_atom_id[atom_id] for atom_id in target_atom_ids))
     outcome = full_meet_contract(
         _state_for(bundle),
@@ -145,7 +153,7 @@ def decide_revise(
     conflicts: tuple[str, ...] = (),
     max_alphabet_size: int,
 ) -> FormalDecision:
-    bundle = project_formal_bundle(base, extra_atoms=(atom,))
+    bundle = project_formal_bundle(base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size)
     formula = _revision_formula(
         bundle,
         atom.atom_id,
@@ -175,7 +183,7 @@ def decide_iterated_revise(
     operator: str,
     max_alphabet_size: int,
 ) -> FormalDecision:
-    bundle = project_formal_bundle(base, extra_atoms=(atom,))
+    bundle = project_formal_bundle(base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size)
     formula = _revision_formula(
         bundle,
         atom.atom_id,
