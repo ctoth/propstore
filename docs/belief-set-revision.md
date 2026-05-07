@@ -57,6 +57,22 @@ Use `propstore.support_revision` only when the desired behavior is
 support-incision over the current ATMS-supported worldline projection. Use
 `belief_set` for formal AGM, entrenchment, and iterated belief revision.
 
+## Propstore Adapter Boundary
+
+Propstore consumes the formal dependency through exactly one production import
+edge: `propstore.support_revision.belief_set_adapter`. That adapter projects a
+scoped support-revision `BeliefBase` to a formal `BeliefSet`, calls the
+dependency-owned formal decision surfaces, and returns typed decision reports.
+
+`propstore.support_revision.operators`, `iterated`, and `entrenchment` do not
+own formal AGM kernels. They realize dependency decisions over Propstore support
+objects and keep the result split into:
+
+- `decision`: formulas, formal policy, formal trace, and epistemic-state hash
+  where relevant.
+- `realization`: accepted/rejected atom ids, support incision set, source claim
+  provenance, and support-derived reasons.
+
 ## Not Implemented
 
 These are not present in `belief_set` and should not be inferred from
