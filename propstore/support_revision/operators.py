@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
+from itertools import combinations
 from typing import Any
 
 from propstore.core.id_types import AssumptionId
@@ -97,7 +98,13 @@ def contract(
         target_ids,
         max_alphabet_size=FORMAL_MAX_ALPHABET_SIZE,
     )
-    return realize_formal_decision(base, decision, rejected_reason="contracted")
+    return realize_formal_decision(
+        base,
+        decision,
+        rejected_reason="contracted",
+        support_entrenchment=entrenchment,
+        max_candidates=max_candidates,
+    )
 
 
 def revise(
@@ -123,6 +130,8 @@ def revise(
         extra_atoms=(atom,),
         accepted_reason="revised_in",
         rejected_reason="revised_out",
+        support_entrenchment=entrenchment,
+        max_candidates=max_candidates,
     )
 
 
@@ -227,6 +236,8 @@ def realize_formal_decision(
     extra_atoms: tuple[BeliefAtom, ...] = (),
     accepted_reason: str = "formally_accepted",
     rejected_reason: str = "formally_rejected",
+    support_entrenchment: EntrenchmentReport | None = None,
+    max_candidates: int | None = None,
 ) -> RevisionResult:
     atoms_by_id = {atom.atom_id: atom for atom in base.atoms}
     for atom in extra_atoms:
@@ -242,33 +253,46 @@ def realize_formal_decision(
         for atom_id in formal_rejected_atom_ids(decision)
         if atom_id in atoms_by_id
     )
-    incision_set = _support_realization_cuts(base, rejected_ids)
-    explanation: dict[str, RevisionAtomDetail] = {}
+    working_base = _rebuild_base(
+        base,
+        tuple(atoms_by_id[atom_id] for atom_id in atoms_by_id),
+    )
+    incision_set = _support_realization_cuts(
+        working_base,
+        rejected_ids,
+        support_entrenchment=support_entrenchment,
+        max_candidates=max_candidates,
+    )
+    forced_rejections = _forced_support_rejections(working_base, rejected_ids, incision_set)
+    stabilized = stabilize_belief_base(
+        working_base,
+        incision_set=incision_set,
+        forced_rejections=forced_rejections,
+    )
+    explanation: dict[str, RevisionAtomDetail] = dict(stabilized.explanation)
     for atom_id in accepted_ids:
-        if atom_id in {atom.atom_id for atom in extra_atoms}:
+        if atom_id in stabilized.accepted_atom_ids and atom_id in {atom.atom_id for atom in extra_atoms}:
             explanation[atom_id] = RevisionAtomDetail(reason=accepted_reason)
     for atom_id in rejected_ids:
-        explanation[atom_id] = RevisionAtomDetail(
-            reason=rejected_reason,
-            incision_set=incision_set,
-            support_sets=tuple(base.support_sets.get(atom_id, ())),
+        explanation.setdefault(
+            atom_id,
+            RevisionAtomDetail(
+                reason=rejected_reason,
+                incision_set=incision_set,
+                support_sets=tuple(working_base.support_sets.get(atom_id, ())),
+            ),
         )
-
-    revised_base = _rebuild_base(
-        base,
-        tuple(atoms_by_id[atom_id] for atom_id in accepted_ids),
-    )
     realization = SupportRevisionRealization(
-        accepted_atom_ids=accepted_ids,
-        rejected_atom_ids=rejected_ids,
+        accepted_atom_ids=stabilized.accepted_atom_ids,
+        rejected_atom_ids=stabilized.rejected_atom_ids,
         incision_set=incision_set,
-        source_claim_ids=_source_claim_ids(atoms_by_id, accepted_ids),
+        source_claim_ids=_source_claim_ids(atoms_by_id, stabilized.accepted_atom_ids),
         reasons=explanation,
     )
     return RevisionResult(
-        revised_base=revised_base,
-        accepted_atom_ids=accepted_ids,
-        rejected_atom_ids=rejected_ids,
+        revised_base=stabilized.revised_base,
+        accepted_atom_ids=stabilized.accepted_atom_ids,
+        rejected_atom_ids=stabilized.rejected_atom_ids,
         incision_set=incision_set,
         explanation=explanation,
         decision=decision.report,
@@ -288,15 +312,61 @@ def _conflicts_for_atom(
 def _support_realization_cuts(
     base: BeliefBase,
     rejected_atom_ids: Sequence[str],
+    *,
+    support_entrenchment: EntrenchmentReport | None,
+    max_candidates: int | None,
 ) -> tuple[str, ...]:
     rejected = set(rejected_atom_ids)
-    cuts = {
-        str(assumption_id)
+    support_sets = [
+        tuple(str(assumption_id) for assumption_id in support_set)
         for atom_id in rejected
         for support_set in base.support_sets.get(atom_id, ())
-        for assumption_id in support_set
-    }
-    return tuple(sorted(cuts))
+    ]
+    if not support_sets:
+        return tuple(sorted(atom_id for atom_id in rejected if atom_id.startswith("assumption:")))
+
+    candidates = sorted({assumption_id for support_set in support_sets for assumption_id in support_set})
+    rank_index = (
+        {}
+        if support_entrenchment is None
+        else {atom_id: idx for idx, atom_id in enumerate(support_entrenchment.ranked_atom_ids)}
+    )
+    fallback_rank = len(rank_index) + len(candidates)
+    best_combo: tuple[str, ...] | None = None
+    best_score: tuple[int, int, tuple[str, ...]] | None = None
+    examined = 0
+    for size in range(1, len(candidates) + 1):
+        for combo in combinations(candidates, size):
+            if max_candidates is not None and examined >= max_candidates:
+                return tuple(best_combo or combo)
+            examined += 1
+            combo_set = set(combo)
+            if not all(any(assumption_id in combo_set for assumption_id in support_set) for support_set in support_sets):
+                continue
+            weakness = sum(rank_index.get(atom_id, fallback_rank) for atom_id in combo)
+            score = (size, -weakness, combo)
+            if best_score is None or score < best_score:
+                best_score = score
+                best_combo = combo
+        if best_combo is not None:
+            break
+    return tuple(best_combo or ())
+
+
+def _forced_support_rejections(
+    base: BeliefBase,
+    rejected_atom_ids: Sequence[str],
+    incision_set: Sequence[str],
+) -> tuple[str, ...]:
+    incised = set(incision_set)
+    forced: list[str] = []
+    for atom_id in rejected_atom_ids:
+        if atom_id in incised:
+            continue
+        if base.support_sets.get(atom_id):
+            continue
+        forced.append(atom_id)
+    return tuple(forced)
 
 
 def _source_claim_ids(
