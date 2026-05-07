@@ -214,6 +214,32 @@ def decide_iterated_revise(
     return FormalDecision(bundle, outcome, "iterated_revise", report)
 
 
+def decide_ic_merge(
+    alphabet: frozenset[str],
+    profile: tuple[Formula, ...],
+    integrity_constraint: Formula,
+    *,
+    max_alphabet_size: int,
+) -> FormalDecision:
+    outcome = merge_belief_profile(
+        alphabet,
+        profile,
+        integrity_constraint,
+        max_alphabet_size=max_alphabet_size,
+    )
+    bundle = FormalProjectionBundle(
+        alphabet=outcome.belief_set.alphabet,
+        belief_set=outcome.belief_set,
+        budget_config={"max_alphabet_size": max_alphabet_size},
+    )
+    report = FormalRevisionDecisionReport(
+        operation="ic_merge",
+        policy="belief_set.ic_merge.merge_belief_profile",
+        epistemic_state_hash=None,
+    )
+    return FormalDecision(bundle, outcome, "ic_merge", report)
+
+
 def accepted_atom_ids(decision: FormalDecision) -> tuple[str, ...]:
     belief_set = _outcome_belief_set(decision.outcome)
     return tuple(
@@ -380,6 +406,7 @@ __all__ = [
     "accepted_atom_ids",
     "decide_contract",
     "decide_expand",
+    "decide_ic_merge",
     "decide_iterated_revise",
     "decide_revise",
     "expand",
