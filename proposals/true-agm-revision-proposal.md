@@ -1,10 +1,10 @@
 # Proposal: Belief Revision Architecture In Propstore
 
 **Updated:** 2026-05-06
-**Status:** Ownership split is implemented, but formal-kernel delegation from
-propstore into `belief_set` is not yet implemented. The remaining work is a
-deletion-first cutover from propstore-local AGM-shaped operator logic to
-dependency-owned formal kernels.
+**Status:** Implemented for the Propstore cutover. Formal-kernel delegation now
+runs through `propstore.support_revision.belief_set_adapter`; Propstore keeps
+projection, support realization, app/CLI/web presentation, and worldline
+capture/replay surfaces.
 **Grounded in:** the current propstore codebase, `../belief-set`,
 `../argumentation`, `../belief-set/papers/*/notes.md`, and the project
 docs/tests cited in this file.
@@ -56,11 +56,9 @@ Corollaries:
 
 If the code or docs blur these boundaries, the architecture regresses.
 
-Current caveat: `propstore.support_revision` still contains local
-operator/entrenchment/iterated policy behavior. That code is operational
-support-incision machinery, not formal AGM, and the target cutover is to delete
-the AGM-shaped decision logic from propstore and route formal decisions through
-`belief_set` via one explicit adapter.
+The cutover guard is `tests/architecture/test_no_local_agm_logic.py`: local
+support-revision decision modules must not reintroduce AGM-shaped formal
+kernel branches.
 
 ---
 
