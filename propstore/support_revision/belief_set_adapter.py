@@ -33,6 +33,11 @@ from propstore.support_revision.state import (
 )
 
 
+LEXICOGRAPHIC_OPERATOR = "lexicographic"
+RESTRAINED_OPERATOR = "restrained"
+DEFAULT_ITERATED_OPERATOR = RESTRAINED_OPERATOR
+
+
 @dataclass(frozen=True)
 class FormalProjectionBundle:
     alphabet: frozenset[str]
@@ -168,8 +173,8 @@ def decide_iterated_revise(
     bundle = project_formal_bundle(base, extra_atoms=(atom,))
     formula = _revision_formula(bundle, atom.atom_id, conflicts)
     operators = {
-        "lexicographic": lexicographic_revise,
-        "restrained": restrained_revise,
+        LEXICOGRAPHIC_OPERATOR: lexicographic_revise,
+        RESTRAINED_OPERATOR: restrained_revise,
     }
     try:
         revise_operator = operators[operator]
@@ -314,6 +319,9 @@ def _formula_name(atom_id: str) -> str:
 __all__ = [
     "FormalDecision",
     "FormalProjectionBundle",
+    "DEFAULT_ITERATED_OPERATOR",
+    "LEXICOGRAPHIC_OPERATOR",
+    "RESTRAINED_OPERATOR",
     "accepted_atom_ids",
     "decide_contract",
     "decide_expand",
