@@ -80,7 +80,7 @@ def expand(base: BeliefBase, atom: BeliefAtom | str | Mapping[str, Any]) -> Revi
         atom,
         max_alphabet_size=FORMAL_MAX_ALPHABET_SIZE,
     )
-    return _realize_formal_decision(base, decision, extra_atoms=(atom,), accepted_reason="expanded")
+    return realize_formal_decision(base, decision, extra_atoms=(atom,), accepted_reason="expanded")
 
 
 def contract(
@@ -97,7 +97,7 @@ def contract(
         target_ids,
         max_alphabet_size=FORMAL_MAX_ALPHABET_SIZE,
     )
-    return _realize_formal_decision(base, decision, rejected_reason="contracted")
+    return realize_formal_decision(base, decision, rejected_reason="contracted")
 
 
 def revise(
@@ -117,7 +117,7 @@ def revise(
         conflicts=conflict_ids,
         max_alphabet_size=FORMAL_MAX_ALPHABET_SIZE,
     )
-    return _realize_formal_decision(
+    return realize_formal_decision(
         base,
         decision,
         extra_atoms=(atom,),
@@ -220,7 +220,7 @@ def _find_existing_atom(base: BeliefBase, revision_input: str) -> BeliefAtom | N
     return None
 
 
-def _realize_formal_decision(
+def realize_formal_decision(
     base: BeliefBase,
     decision: FormalDecision,
     *,
