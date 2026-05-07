@@ -61,7 +61,9 @@ def test_revision_workflow_runs_expand_contract_and_revise(revision_cli_workspac
     assert assertion_id in expanded.accepted_atom_ids
     assert assertion_id in contracted.rejected_atom_ids
     assert assertion_id in revised.accepted_atom_ids
-    assert assertion_id in revised.rejected_atom_ids
+    assert revised.decision is not None
+    assert revised.realization is not None
+    assert revised.decision.operation == "revise"
 
 
 def test_revision_workflow_explains_and_iterates(revision_cli_workspace) -> None:
@@ -132,6 +134,7 @@ def test_world_contract_shows_rejected_atoms_and_incision_set(revision_cli_works
     )
 
     assert result.exit_code == 0, result.output
+    assert result.output.index("Formal decision:") < result.output.index("Support realization:")
     assert "Rejected" in result.output
     assert assertion_id in result.output
     assert "Incision set" in result.output
