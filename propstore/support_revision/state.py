@@ -134,12 +134,59 @@ class BeliefBase:
 
 
 @dataclass(frozen=True)
+class FormalRevisionDecisionReport:
+    operation: str
+    policy: str
+    input_formula_ids: tuple[str, ...] = ()
+    accepted_formula_ids: tuple[str, ...] = ()
+    rejected_formula_ids: tuple[str, ...] = ()
+    epistemic_state_hash: str | None = None
+    budget_failure: str | None = None
+    trace: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "input_formula_ids", tuple(str(item) for item in self.input_formula_ids))
+        object.__setattr__(self, "accepted_formula_ids", tuple(str(item) for item in self.accepted_formula_ids))
+        object.__setattr__(self, "rejected_formula_ids", tuple(str(item) for item in self.rejected_formula_ids))
+        object.__setattr__(self, "trace", dict(self.trace))
+
+
+@dataclass(frozen=True)
+class SupportRevisionRealization:
+    accepted_atom_ids: tuple[str, ...]
+    rejected_atom_ids: tuple[str, ...]
+    incision_set: tuple[str, ...] = ()
+    source_claim_ids: tuple[str, ...] = ()
+    reasons: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
+    snapshot_hash: str | None = None
+    journal_metadata: Mapping[str, Any] = field(default_factory=dict)
+    replay_status: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
+        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
+        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(self, "source_claim_ids", tuple(str(claim_id) for claim_id in self.source_claim_ids))
+        object.__setattr__(
+            self,
+            "reasons",
+            {
+                str(atom_id): coerce_revision_atom_detail(detail)
+                for atom_id, detail in self.reasons.items()
+            },
+        )
+        object.__setattr__(self, "journal_metadata", dict(self.journal_metadata))
+
+
+@dataclass(frozen=True)
 class RevisionResult:
     revised_base: BeliefBase
     accepted_atom_ids: tuple[str, ...]
     rejected_atom_ids: tuple[str, ...]
     incision_set: tuple[str, ...] = field(default_factory=tuple)
     explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
+    decision: FormalRevisionDecisionReport | None = None
+    realization: SupportRevisionRealization | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
@@ -153,6 +200,17 @@ class RevisionResult:
                 for atom_id, detail in self.explanation.items()
             },
         )
+        if self.realization is None:
+            object.__setattr__(
+                self,
+                "realization",
+                SupportRevisionRealization(
+                    accepted_atom_ids=self.accepted_atom_ids,
+                    rejected_atom_ids=self.rejected_atom_ids,
+                    incision_set=self.incision_set,
+                    reasons=self.explanation,
+                ),
+            )
 
 
 @dataclass(frozen=True)
