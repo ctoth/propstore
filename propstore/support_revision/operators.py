@@ -5,6 +5,7 @@ from dataclasses import replace
 from itertools import combinations
 from typing import Any
 
+from propstore.core.anytime import EnumerationExceeded
 from propstore.core.id_types import AssumptionId
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import RevisionAtomDetail
@@ -338,7 +339,10 @@ def _support_realization_cuts(
     for size in range(1, len(candidates) + 1):
         for combo in combinations(candidates, size):
             if max_candidates is not None and examined >= max_candidates:
-                return tuple(best_combo or combo)
+                raise EnumerationExceeded(
+                    partial_count=examined,
+                    max_candidates=max_candidates,
+                )
             examined += 1
             combo_set = set(combo)
             if not all(any(assumption_id in combo_set for assumption_id in support_set) for support_set in support_sets):
