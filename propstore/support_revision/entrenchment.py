@@ -9,6 +9,7 @@ from propstore.support_revision.explanation_types import (
     coerce_entrenchment_reason,
     _coerce_override_priority,
 )
+from propstore.support_revision.belief_set_adapter import project_formal_bundle
 from propstore.support_revision.state import BeliefBase, is_assumption_atom, is_assertion_atom
 
 
@@ -35,11 +36,7 @@ def compute_entrenchment(
     *,
     overrides: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> EntrenchmentReport:
-    """Compute a deterministic V1 entrenchment ordering.
-
-    Explicit overrides outrank support-derived ordering. Support-derived ranking
-    then falls back to environment coverage and stable atom id ordering.
-    """
+    """Compute formal ordering plus support-level explanation reasons."""
     if overrides is None:
         override_items = ()
     elif isinstance(overrides, Mapping):
@@ -47,11 +44,16 @@ def compute_entrenchment(
     else:
         raise ValueError("entrenchment overrides must be a mapping")
     override_map = {str(k): dict(v) for k, v in override_items}
-    scored: list[tuple[int, int, str]] = []
+    bundle = project_formal_bundle(base)
+    formal = bundle.entrenchment
+    if formal is None:
+        raise ValueError("formal entrenchment projection is unavailable")
+
     reasons: dict[str, EntrenchmentReason] = {}
+    atom_ids = tuple(sorted(atom.atom_id for atom in base.atoms))
 
     for atom in base.atoms:
-        override_rank, override_key, override = _match_override(atom, base, override_map)
+        _, override_key, override = _match_override(atom, base, override_map)
 
         support_count = (
             len(atom.label.environments)
@@ -59,7 +61,6 @@ def compute_entrenchment(
             else 0
         )
 
-        scored.append((override_rank, -support_count, atom.atom_id))
         reasons[atom.atom_id] = EntrenchmentReason(
             override_priority=(
                 None
@@ -71,10 +72,32 @@ def compute_entrenchment(
             essential_support=tuple(base.essential_support.get(atom.atom_id, ())),
         )
 
-    scored.sort()
+    ranked_atom_ids = tuple(
+        sorted(
+            atom_ids,
+            key=lambda atom_id: (
+                _formal_rank_position(formal, bundle.formula_by_atom_id, atom_id, atom_ids),
+                atom_id,
+            ),
+        )
+    )
     return EntrenchmentReport(
-        ranked_atom_ids=tuple(atom_id for _, _, atom_id in scored),
+        ranked_atom_ids=ranked_atom_ids,
         reasons=reasons,
+    )
+
+
+def _formal_rank_position(
+    formal,
+    formulas: Mapping[str, object],
+    atom_id: str,
+    atom_ids: tuple[str, ...],
+) -> int:
+    formula = formulas[atom_id]
+    return sum(
+        1
+        for other_atom_id in atom_ids
+        if formal.leq(formulas[other_atom_id], formula)
     )
 
 
