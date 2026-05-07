@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -349,12 +350,21 @@ def _state_hash(state: SpohnEpistemicState) -> str:
     payload = {
         "alphabet": sorted(state.alphabet),
         "ranks": [
-            [sorted(world), rank]
+            [sorted(world), _json_rank(rank)]
             for world, rank in sorted(state.ranks.items(), key=lambda item: tuple(sorted(item[0])))
         ],
     }
     body = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def _json_rank(rank: int | float) -> int | float | str:
+    rank_value = float(rank)
+    if math.isinf(rank_value):
+        return "inf"
+    if math.isnan(rank_value):
+        return "nan"
+    return rank
 
 
 def _formula_name(atom_id: str) -> str:
