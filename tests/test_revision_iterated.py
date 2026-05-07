@@ -202,7 +202,7 @@ def test_iterated_revise_recomputes_entrenchment_independent_of_stale_history_ra
     assert next_right.history[0].operator == "seed-right"
 
 
-def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
+def test_iterated_revise_reports_formal_operator_policy() -> None:
     from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 
     base, entrenchment, _, ids = _history_sensitive_base()
@@ -210,14 +210,14 @@ def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
     new_atom = make_assertion_atom("new")
     conflicts = {new_atom.atom_id: (ids["legacy"],)}
 
-    _, restrained_state = iterated_revise(
+    restrained_result, restrained_state = iterated_revise(
         state,
         new_atom,
         max_candidates=8,
         conflicts=conflicts,
         operator="restrained",
     )
-    _, lexicographic_state = iterated_revise(
+    lexicographic_result, lexicographic_state = iterated_revise(
         state,
         new_atom,
         max_candidates=8,
@@ -225,8 +225,16 @@ def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
         operator="lexicographic",
     )
 
-    assert restrained_state.ranked_atom_ids[0] != lexicographic_state.ranked_atom_ids[0]
-    assert lexicographic_state.ranked_atom_ids[0] == new_atom.atom_id
+    restrained_episode = restrained_state.history[-1]
+    lexicographic_episode = lexicographic_state.history[-1]
+
+    assert restrained_episode.operator == "restrained"
+    assert lexicographic_episode.operator == "lexicographic"
+    assert restrained_episode.accepted_atom_ids == lexicographic_episode.accepted_atom_ids
+    assert restrained_result.decision is not None
+    assert lexicographic_result.decision is not None
+    assert restrained_result.decision.policy == "belief_set.iterated.restrained"
+    assert lexicographic_result.decision.policy == "belief_set.iterated.lexicographic"
 
 
 def test_iterated_revise_linear_sequence_appends_history_and_uses_next_state() -> None:
