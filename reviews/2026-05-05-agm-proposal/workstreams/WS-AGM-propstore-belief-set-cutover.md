@@ -1,6 +1,6 @@
 # WS-AGM: Propstore / belief-set formal revision cutover
 
-**Status**: OPEN
+**Status**: CLOSED 55d517c7
 **Depends on**: WS-G closed foundation, current `formal-belief-set` dependency, current `formal-argumentation` dependency
 **Blocks**: full formal Propstore world-revision workflow, formal worldline merge/revision replay, web revision UI
 **Owner**: Propstore implementation owner plus dependency owners for `belief-set` and `argumentation`
@@ -638,6 +638,13 @@ This workstream is not complete until the production path is single-path:
 
 If Propstore still contains a parallel local formal decision engine, this
 workstream remains OPEN.
+
+Closed implementation note: Propstore now delegates formal belief-set decisions
+through `propstore.support_revision.belief_set_adapter`, keeps support
+realization in Propstore, exposes split app/CLI/web payloads, and guards the
+boundary with the AGM architecture tests named above. The Phase 11 dependency
+gaps remain external `belief_set` work and are documented in
+`docs/belief-set-revision.md` and `docs/ic-merge.md`.
 
 ---
 
