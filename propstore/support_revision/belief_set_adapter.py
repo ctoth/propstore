@@ -146,7 +146,12 @@ def decide_revise(
     max_alphabet_size: int,
 ) -> FormalDecision:
     bundle = project_formal_bundle(base, extra_atoms=(atom,))
-    formula = _revision_formula(bundle, atom.atom_id, conflicts)
+    formula = _revision_formula(
+        bundle,
+        atom.atom_id,
+        conflicts,
+        base_atom_ids=tuple(base_atom.atom_id for base_atom in base.atoms),
+    )
     outcome = revise(
         _state_for(bundle),
         formula,
@@ -171,7 +176,12 @@ def decide_iterated_revise(
     max_alphabet_size: int,
 ) -> FormalDecision:
     bundle = project_formal_bundle(base, extra_atoms=(atom,))
-    formula = _revision_formula(bundle, atom.atom_id, conflicts)
+    formula = _revision_formula(
+        bundle,
+        atom.atom_id,
+        conflicts,
+        base_atom_ids=tuple(base_atom.atom_id for base_atom in base.atoms),
+    )
     operators = {
         LEXICOGRAPHIC_OPERATOR: lexicographic_revise,
         RESTRAINED_OPERATOR: restrained_revise,
@@ -248,8 +258,18 @@ def _revision_formula(
     bundle: FormalProjectionBundle,
     atom_id: str,
     conflicts: tuple[str, ...],
+    *,
+    base_atom_ids: tuple[str, ...],
 ) -> Formula:
-    formulas: list[Formula] = [bundle.formula_by_atom_id[atom_id]]
+    conflict_set = set(conflicts)
+    formulas: list[Formula] = [
+        bundle.formula_by_atom_id[base_atom_id]
+        for base_atom_id in base_atom_ids
+        if base_atom_id in bundle.formula_by_atom_id
+        and base_atom_id not in conflict_set
+        and base_atom_id != atom_id
+    ]
+    formulas.append(bundle.formula_by_atom_id[atom_id])
     formulas.extend(
         negate(bundle.formula_by_atom_id[conflict])
         for conflict in conflicts
