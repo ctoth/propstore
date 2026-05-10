@@ -15,6 +15,7 @@ from propstore.support_revision.state import (
     EpistemicState,
     RevisionEpisode,
     RevisionEvent,
+    RevisionMergeRequiredFailure,
     RevisionRealizationFailure,
     RevisionResult,
 )
@@ -95,7 +96,7 @@ def iterated_revise(
 ) -> tuple[RevisionResult, EpistemicState]:
     """Revise an explicit epistemic state using a selected iterated operator family."""
     if len(state.scope.merge_parent_commits) > 1:
-        raise ValueError("iterated revision is undefined at a merge point; use an explicit merge path")
+        raise RevisionMergeRequiredFailure(parent_commits=state.scope.merge_parent_commits)
 
     normalized = normalize_revision_input(state.base, atom)
     current_entrenchment = compute_entrenchment(None, state.base)
