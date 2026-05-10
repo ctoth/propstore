@@ -241,6 +241,27 @@ def decide_ic_merge(
     return FormalDecision(bundle, outcome, "ic_merge", report)
 
 
+def decide_ic_merge_profile(
+    *,
+    profile_atom_ids: tuple[tuple[str, ...], ...],
+    integrity_constraint: Mapping[str, Any],
+    max_alphabet_size: int,
+) -> FormalDecision:
+    alphabet = frozenset(atom_id for profile in profile_atom_ids for atom_id in profile)
+    profile = tuple(
+        conjunction(*(Atom(atom_id) for atom_id in atom_ids))
+        if atom_ids
+        else TOP
+        for atom_ids in profile_atom_ids
+    )
+    return decide_ic_merge(
+        alphabet,
+        profile,
+        _integrity_constraint_formula(integrity_constraint),
+        max_alphabet_size=max_alphabet_size,
+    )
+
+
 def accepted_atom_ids(decision: FormalDecision) -> tuple[str, ...]:
     belief_set = _outcome_belief_set(decision.outcome)
     return tuple(
@@ -257,6 +278,16 @@ def rejected_atom_ids(decision: FormalDecision) -> tuple[str, ...]:
         for atom_id in decision.projection.formula_by_atom_id
         if atom_id not in accepted
     )
+
+
+def _integrity_constraint_formula(payload: Mapping[str, Any]) -> Formula:
+    kind = str(payload.get("kind") or "")
+    if kind == "top":
+        return TOP
+    atom_id = payload.get("atom_id")
+    if kind == "atom" and atom_id is not None:
+        return Atom(str(atom_id))
+    raise ValueError("IC merge integrity_constraint must be {'kind': 'top'} or {'kind': 'atom', 'atom_id': ...}")
 
 
 def _decision_report(
@@ -416,6 +447,7 @@ __all__ = [
     "decide_contract",
     "decide_expand",
     "decide_ic_merge",
+    "decide_ic_merge_profile",
     "decide_iterated_revise",
     "decide_revise",
     "expand",
