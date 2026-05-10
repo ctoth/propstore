@@ -616,7 +616,7 @@ Before closing this workstream:
 - [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label agm-surfaces tests/test_revision_cli.py tests/test_revision_app_contract.py tests/test_web_revision_readonly.py` passes.
 - [ ] Full logged pytest passes or any pre-existing failures are documented with log path and unrelated proof.
 - [ ] `propstore.support_revision.belief_set_adapter` is the only production `belief_set` import.
-- [ ] `support_revision.operators` remains deleted, and no local formal AGM-shaped decision branch remains in `support_revision.belief_dynamics`, `support_revision.realization`, `support_revision.iterated`, or `support_revision.entrenchment`.
+- [ ] `support_revision.operators` and `support_revision.belief_dynamics` remain deleted, and no local formal AGM-shaped decision branch remains in `support_revision.realization`, `support_revision.iterated`, `support_revision.dispatch`, or `support_revision.entrenchment`.
 - [ ] App/CLI results expose separate `decision` and `realization` payloads.
 - [ ] Worldline journals capture and replay both decision and realization.
 - [ ] Multi-parent worldline revision dispatches to IC merge or fails with typed merge-required error.

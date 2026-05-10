@@ -693,9 +693,9 @@ completion.
 3. Add `support_revision.belief_set_adapter` with the projection bundle,
    reverse maps, budget handling, formal-operation dispatch, and typed decision
    reports.
-4. Delete `support_revision.operators`; route expand/contract/revise through
-   `support_revision.belief_dynamics`, which consumes adapter decisions plus
-   propstore support-realization.
+4. Delete `support_revision.operators` and `support_revision.belief_dynamics`;
+   world-bound revision methods and journal replay consume adapter decisions
+   directly before propstore support-realization.
 5. Cut over `support_revision.iterated` by deleting local lexicographic and
    restrained ranking-update branches and calling the named `belief_set`
    iterated operators.
