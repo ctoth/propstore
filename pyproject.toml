@@ -24,7 +24,7 @@ dependencies = [
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
     "linkml-runtime>=1.9.3,<1.10",
-    "formal-belief-set @ git+https://github.com/ctoth/belief-set@e5b11b8265dc688807a68aec3bc2f3bd9d537cc4",
+    "formal-belief-set @ git+https://github.com/ctoth/belief-set@d958095ac70db88c26feb1db7798b4dd1b9d5976",
 ]
 
 [project.optional-dependencies]

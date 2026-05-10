@@ -717,7 +717,7 @@ source = { git = "https://github.com/ctoth/argumentation.git?rev=9320e00ebdfe24a
 [[package]]
 name = "formal-belief-set"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/belief-set?rev=e5b11b8265dc688807a68aec3bc2f3bd9d537cc4#e5b11b8265dc688807a68aec3bc2f3bd9d537cc4" }
+source = { git = "https://github.com/ctoth/belief-set?rev=d958095ac70db88c26feb1db7798b4dd1b9d5976#d958095ac70db88c26feb1db7798b4dd1b9d5976" }
 
 [[package]]
 name = "fqdn"
@@ -2061,7 +2061,7 @@ requires-dist = [
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
     { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git?rev=9320e00ebdfe24ae9cb23f50947bd4e1544cc863" },
-    { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=e5b11b8265dc688807a68aec3bc2f3bd9d537cc4" },
+    { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=d958095ac70db88c26feb1db7798b4dd1b9d5976" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray.git?rev=a06da9c06a8c20262edec56f8a1f55dc1901781d" },
     { name = "lark", specifier = ">=1.2.2" },
