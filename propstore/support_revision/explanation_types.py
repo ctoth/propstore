@@ -20,6 +20,7 @@ class RevisionAtomDetail:
     reason: str | None = None
     incision_set: tuple[str, ...] = ()
     support_sets: tuple[tuple[AssumptionId, ...], ...] = ()
+    selection_rule: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
@@ -43,6 +44,7 @@ class RevisionAtomDetail:
                 to_assumption_ids(support_set)
                 for support_set in (payload.get("support_sets") or ())
             ),
+            selection_rule=None if payload.get("selection_rule") is None else str(payload.get("selection_rule")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,6 +55,8 @@ class RevisionAtomDetail:
             data["incision_set"] = list(self.incision_set)
         if self.support_sets:
             data["support_sets"] = [list(support_set) for support_set in self.support_sets]
+        if self.selection_rule is not None:
+            data["selection_rule"] = self.selection_rule
         return data
 
 
