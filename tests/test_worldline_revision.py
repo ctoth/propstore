@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from propstore.support_revision.belief_dynamics import revise_belief_base
 from propstore.support_revision.history import EpistemicSnapshot
 from propstore.support_revision.iterated import epistemic_state_payload, make_epistemic_state
 from propstore.support_revision.state import RevisionScope
+from tests.support_revision.formal_realization_helpers import revise_via_formal_decision
 from tests.test_revision_iterated import _history_sensitive_base
 from tests.test_revision_operators import _base_with_shared_support
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
@@ -157,7 +157,7 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
 
     base, entrenchment, ids = _base_with_shared_support()
     synthetic = make_assertion_atom("synthetic", value=9.0)
-    one_shot_result = revise_belief_base(
+    one_shot_result = revise_via_formal_decision(
         base,
         synthetic,
         entrenchment=entrenchment,
@@ -216,7 +216,7 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     new = make_assertion_atom("new", value=9.0)
     state = make_epistemic_state(base, entrenchment)
     iterated_result = (
-        revise_belief_base(
+        revise_via_formal_decision(
             base,
             new,
             entrenchment=entrenchment,

@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-import ast
 from pathlib import Path
 
 from propstore.core.labels import EnvironmentKey, Label
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
+from tests.support_revision.formal_realization_helpers import (
+    contract_via_formal_decision,
+    expand_via_formal_decision,
+    revise_via_formal_decision,
+)
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
 
@@ -64,11 +68,9 @@ def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport, dict[st
 
 
 def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() -> None:
-    from propstore.support_revision.belief_dynamics import contract_belief_base
-
     base, entrenchment, ids = _base_with_shared_support()
 
-    result = contract_belief_base(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
 
     assert result.incision_set == ("assumption:shared_weak",)
     assert "assumption:shared_weak" in result.rejected_atom_ids
@@ -125,12 +127,10 @@ def test_contract_uses_computed_entrenchment_order_for_equal_size_cuts() -> None
 
 
 def test_expand_adds_atom_without_mutating_input_base() -> None:
-    from propstore.support_revision.belief_dynamics import expand_belief_base
-
     base, _, _ = _base_with_shared_support()
     new_atom = make_assertion_atom("new")
 
-    result = expand_belief_base(base, new_atom)
+    result = expand_via_formal_decision(base, new_atom)
 
     assert new_atom.atom_id in result.accepted_atom_ids
     assert all(atom.atom_id != new_atom.atom_id for atom in base.atoms)
@@ -138,30 +138,24 @@ def test_expand_adds_atom_without_mutating_input_base() -> None:
 
 
 def test_revise_matches_operational_levi_identity() -> None:
-    from propstore.support_revision.belief_dynamics import (
-        contract_belief_base,
-        expand_belief_base,
-        revise_belief_base,
-    )
-
     base, entrenchment, ids = _base_with_shared_support()
     new_atom = make_assertion_atom("new")
     conflicts = {new_atom.atom_id: (ids["legacy"],)}
 
-    revised = revise_belief_base(
+    revised = revise_via_formal_decision(
         base,
         new_atom,
         entrenchment=entrenchment,
         max_candidates=8,
         conflicts=conflicts,
     )
-    contracted = contract_belief_base(
+    contracted = contract_via_formal_decision(
         base,
         conflicts[new_atom.atom_id],
         entrenchment=entrenchment,
         max_candidates=8,
     )
-    expanded = expand_belief_base(contracted.revised_base, new_atom)
+    expanded = expand_via_formal_decision(contracted.revised_base, new_atom)
 
     assert revised.accepted_atom_ids == expanded.accepted_atom_ids
     assert tuple(atom.atom_id for atom in revised.revised_base.atoms) == tuple(
@@ -215,12 +209,10 @@ def test_normalize_revision_input_builds_assumption_atoms() -> None:
 
 
 def test_expand_rejects_synthetic_claim_mapping_adapter() -> None:
-    from propstore.support_revision.belief_dynamics import expand_belief_base
-
     base, _, _ = _base_with_shared_support()
 
     try:
-        expand_belief_base(base, {"kind": "claim", "id": "new_from_adapter", "value": 9.0})
+        expand_via_formal_decision(base, {"kind": "claim", "id": "new_from_adapter", "value": 9.0})
     except ValueError as exc:
         assert "Assertion revision input requires an AssertionAtom" in str(exc)
     else:
@@ -256,12 +248,11 @@ def test_stabilize_belief_base_is_idempotent_on_stable_result() -> None:
 
 
 def test_contract_matches_explicit_stabilization_of_chosen_incision_set() -> None:
-    from propstore.support_revision.belief_dynamics import contract_belief_base
     from propstore.support_revision.realization import stabilize_belief_base
 
     base, entrenchment, ids = _base_with_shared_support()
 
-    contracted = contract_belief_base(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    contracted = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
     stabilized = stabilize_belief_base(base, incision_set=contracted.incision_set)
 
     assert contracted.accepted_atom_ids == stabilized.accepted_atom_ids
@@ -271,15 +262,6 @@ def test_contract_matches_explicit_stabilization_of_chosen_incision_set() -> Non
     )
 
 
-def test_revision_operators_do_not_import_ic_merge() -> None:
+def test_deleted_belief_dynamics_surface_does_not_return() -> None:
     path = Path("propstore/support_revision/belief_dynamics.py")
-    assert path.exists()
-
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    imports: list[str] = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imports.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module is not None:
-            imports.append(node.module)
-    assert "propstore.storage.ic_merge" not in imports
+    assert not path.exists()

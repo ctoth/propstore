@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 
 from propstore.support_revision.explain import build_revision_explanation
-from propstore.support_revision.belief_dynamics import (
-    contract_belief_base,
-    expand_belief_base,
-    revise_belief_base,
-)
 from propstore.support_revision.iterated import iterated_revise as iterated_revise_base
 from propstore.support_revision.iterated import make_epistemic_state
+from tests.support_revision.formal_realization_helpers import (
+    contract_via_formal_decision,
+    expand_via_formal_decision,
+    revise_via_formal_decision,
+)
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
@@ -54,7 +54,7 @@ def test_bound_world_expand_delegates_to_revision_package() -> None:
     bound = _operator_bound()
     atom = make_assertion_atom("synthetic", value=9.0)
 
-    expected = expand_belief_base(bound.revision_base(), atom)
+    expected = expand_via_formal_decision(bound.revision_base(), atom)
     actual = bound.expand(atom)
 
     assert actual.accepted_atom_ids == expected.accepted_atom_ids
@@ -68,7 +68,7 @@ def test_bound_world_contract_delegates_to_revision_package() -> None:
     bound = _operator_bound()
     legacy_id = _atom_id_for_claim(bound, "legacy")
 
-    expected = contract_belief_base(
+    expected = contract_via_formal_decision(
         bound.revision_base(),
         legacy_id,
         entrenchment=bound.revision_entrenchment(),
@@ -86,7 +86,7 @@ def test_bound_world_revise_delegates_to_revision_package() -> None:
     atom = make_assertion_atom("synthetic", value=9.0)
     conflicts = {atom.atom_id: (_atom_id_for_claim(bound, "legacy"),)}
 
-    expected = revise_belief_base(
+    expected = revise_via_formal_decision(
         bound.revision_base(),
         atom,
         entrenchment=bound.revision_entrenchment(),
