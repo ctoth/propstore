@@ -5,10 +5,14 @@ from pathlib import Path
 
 
 DECISION_OWNER_MODULES = (
-    Path("propstore/support_revision/belief_dynamics.py"),
     Path("propstore/support_revision/realization.py"),
     Path("propstore/support_revision/iterated.py"),
     Path("propstore/support_revision/entrenchment.py"),
+)
+
+DELETED_SURFACES = (
+    Path("propstore/support_revision/operators.py"),
+    Path("propstore/support_revision/belief_dynamics.py"),
 )
 
 FORBIDDEN_FORMAL_TERMS = (
@@ -30,6 +34,12 @@ FORBIDDEN_LOCAL_FUNCTIONS = {
     Path("propstore/support_revision/iterated.py"): {
         "_updated_entrenchment_report",
     },
+}
+
+DELETED_OPERATOR_NAMES = {
+    "contract_belief_base",
+    "expand_belief_base",
+    "revise_belief_base",
 }
 
 
@@ -81,5 +91,19 @@ def test_support_revision_decision_modules_do_not_define_local_decision_helpers(
     assert offenders == []
 
 
-def test_deleted_support_revision_operators_surface_does_not_return() -> None:
-    assert not Path("propstore/support_revision/operators.py").exists()
+def test_deleted_support_revision_operator_surfaces_do_not_return() -> None:
+    for path in DELETED_SURFACES:
+        assert not path.exists()
+
+
+def test_deleted_operator_entrypoint_names_do_not_return_in_production() -> None:
+    offenders: list[str] = []
+    for path in sorted(Path("propstore").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name in DELETED_OPERATOR_NAMES:
+                offenders.append(f"{path}: defines {node.name}")
+            if isinstance(node, ast.ImportFrom) and node.module == "propstore.support_revision.belief_dynamics":
+                offenders.append(f"{path}: imports deleted belief_dynamics surface")
+
+    assert offenders == []
