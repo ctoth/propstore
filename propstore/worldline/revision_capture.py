@@ -10,7 +10,7 @@ from propstore.support_revision.history import (
     TransitionJournalEntry,
     TransitionOperation,
 )
-from propstore.support_revision.operators import normalize_revision_input
+from propstore.support_revision.input_normalization import normalize_revision_input
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from propstore.support_revision.state import EpistemicState
 from propstore.worldline.revision_types import (

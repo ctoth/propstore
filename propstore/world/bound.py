@@ -509,9 +509,9 @@ class BoundWorld(BeliefSpace):
 
     def expand(self, atom):
         """Expand the scoped revision belief base without mutating source storage."""
-        from propstore.support_revision.operators import expand as expand_revision_base
+        from propstore.support_revision.belief_dynamics import expand_belief_base
 
-        return expand_revision_base(self.revision_base(), atom)
+        return expand_belief_base(self.revision_base(), atom)
 
     def contract(
         self,
@@ -521,9 +521,9 @@ class BoundWorld(BeliefSpace):
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
         """Contract the scoped revision belief base using the current entrenchment."""
-        from propstore.support_revision.operators import contract as contract_revision_base
+        from propstore.support_revision.belief_dynamics import contract_belief_base
 
-        return contract_revision_base(
+        return contract_belief_base(
             self.revision_base(),
             targets,
             entrenchment=self.revision_entrenchment(overrides=overrides),
@@ -539,9 +539,9 @@ class BoundWorld(BeliefSpace):
         conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
     ):
         """Revise the scoped belief base by delegating to the revision package."""
-        from propstore.support_revision.operators import revise as revise_revision_base
+        from propstore.support_revision.belief_dynamics import revise_belief_base
 
-        return revise_revision_base(
+        return revise_belief_base(
             self.revision_base(),
             atom,
             entrenchment=self.revision_entrenchment(overrides=overrides),

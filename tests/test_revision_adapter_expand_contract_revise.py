@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from propstore.support_revision.operators import contract, expand, revise
+from propstore.support_revision.belief_dynamics import (
+    contract_belief_base,
+    expand_belief_base,
+    revise_belief_base,
+)
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_operators import _base_with_shared_support
 
@@ -9,9 +13,9 @@ def test_expand_contract_revise_return_split_decision_and_realization() -> None:
     base, entrenchment, ids = _base_with_shared_support()
     new_atom = make_assertion_atom("new")
 
-    expanded = expand(base, new_atom)
-    contracted = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
-    revised = revise(
+    expanded = expand_belief_base(base, new_atom)
+    contracted = contract_belief_base(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    revised = revise_belief_base(
         base,
         new_atom,
         entrenchment=entrenchment,

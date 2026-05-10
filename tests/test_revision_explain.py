@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.support_revision.operators import contract
+from propstore.support_revision.belief_dynamics import contract_belief_base
 from tests.test_revision_operators import _base_with_shared_support
 
 
@@ -8,7 +8,7 @@ def test_build_revision_explanation_exposes_default_contract() -> None:
     from propstore.support_revision.explain import build_revision_explanation
 
     base, entrenchment, ids = _base_with_shared_support()
-    result = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_belief_base(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
 
     explanation = build_revision_explanation(result, entrenchment=entrenchment)
 
@@ -23,7 +23,7 @@ def test_build_revision_explanation_includes_ranking_rationale_when_available() 
     from propstore.support_revision.explain import build_revision_explanation
 
     base, entrenchment, ids = _base_with_shared_support()
-    result = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_belief_base(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
 
     explanation = build_revision_explanation(result, entrenchment=entrenchment)
 
@@ -36,7 +36,7 @@ def test_build_revision_explanation_marks_accepted_atoms_as_unchanged_when_not_r
     from propstore.support_revision.explain import build_revision_explanation
 
     base, entrenchment, ids = _base_with_shared_support()
-    result = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_belief_base(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
 
     explanation = build_revision_explanation(result, entrenchment=entrenchment)
 

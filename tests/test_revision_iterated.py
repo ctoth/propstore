@@ -6,9 +6,9 @@ import ast
 from dataclasses import replace
 from pathlib import Path
 
+from propstore.support_revision.belief_dynamics import contract_belief_base
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
-from propstore.support_revision.operators import contract
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionEpisode, RevisionScope
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_operators import _base_with_shared_support
@@ -33,7 +33,7 @@ def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
 
     base, entrenchment, ids = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
-    result = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_belief_base(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
             atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
@@ -64,7 +64,7 @@ def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
 
     base, entrenchment, ids = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
-    result = contract(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_belief_base(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
             atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids

@@ -239,12 +239,11 @@ how can that episode be explained and replayed?"
 
 ### How Propstore Uses The Formal Behavior
 
-This is target behavior, not a description of the current production call graph.
-As of this proposal, production `propstore` has no concrete `belief_set` import
-edge; `support_revision.operators`, `support_revision.iterated`, and
-`support_revision.entrenchment` still own local AGM-shaped behavior. Those local
-decision paths should be deleted during cutover, not wrapped or preserved in
-parallel.
+This is the implemented production call graph. Production `propstore` has one
+concrete `belief_set` import edge in
+`propstore.support_revision.belief_set_adapter`; the old
+`support_revision.operators` surface has been deleted rather than wrapped or
+preserved in parallel.
 
 Propstore should use the formal dependency behavior as a decision and audit
 kernel over scoped projections, then use propstore-owned support machinery only
@@ -694,8 +693,8 @@ completion.
 3. Add `support_revision.belief_set_adapter` with the projection bundle,
    reverse maps, budget handling, formal-operation dispatch, and typed decision
    reports.
-4. Cut over `support_revision.operators` by deleting formal decision behavior
-   there and making expand/contract/revise consume adapter decisions plus
+4. Delete `support_revision.operators`; route expand/contract/revise through
+   `support_revision.belief_dynamics`, which consumes adapter decisions plus
    propstore support-realization.
 5. Cut over `support_revision.iterated` by deleting local lexicographic and
    restrained ranking-update branches and calling the named `belief_set`

@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from propstore.core.anytime import EnumerationExceeded
+from propstore.support_revision.belief_dynamics import contract_belief_base, revise_belief_base
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
-from propstore.support_revision.operators import contract, revise
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_operators import _base_with_shared_support
 
@@ -15,14 +15,14 @@ def test_contract_requires_explicit_max_candidates() -> None:
     base, entrenchment, ids = _base_with_shared_support()
 
     with pytest.raises(TypeError, match="max_candidates"):
-        contract(base, (ids["legacy"],), entrenchment=entrenchment)
+        contract_belief_base(base, (ids["legacy"],), entrenchment=entrenchment)
 
 
 def test_contract_raises_enumeration_exceeded_at_caller_budget() -> None:
     base, entrenchment, ids = _base_with_shared_support()
 
     with pytest.raises(EnumerationExceeded) as exc_info:
-        contract(
+        contract_belief_base(
             base,
             (ids["legacy"],),
             entrenchment=entrenchment,
@@ -36,7 +36,7 @@ def test_contract_raises_enumeration_exceeded_at_caller_budget() -> None:
 def test_contract_completes_with_sufficient_caller_budget() -> None:
     base, entrenchment, ids = _base_with_shared_support()
 
-    result = contract(
+    result = contract_belief_base(
         base,
         (ids["legacy"],),
         entrenchment=entrenchment,
@@ -51,7 +51,7 @@ def test_revise_requires_explicit_max_candidates() -> None:
     atom = make_assertion_atom("bounded_revise")
 
     with pytest.raises(TypeError, match="max_candidates"):
-        revise(
+        revise_belief_base(
             base,
             atom,
             entrenchment=entrenchment,

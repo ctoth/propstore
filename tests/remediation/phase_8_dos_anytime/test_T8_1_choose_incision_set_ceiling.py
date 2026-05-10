@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from propstore.core.anytime import EnumerationExceeded
 from propstore.provenance import ProvenanceStatus
+from propstore.support_revision.belief_dynamics import contract_belief_base
 from propstore.support_revision.entrenchment import EntrenchmentReport
-from propstore.support_revision.operators import contract
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
@@ -28,7 +28,7 @@ def test_contract_surfaces_enumeration_exceeded_past_ceiling() -> None:
     )
 
     try:
-        contract(
+        contract_belief_base(
             base,
             (target.atom_id,),
             entrenchment=EntrenchmentReport(ranked_atom_ids=()),

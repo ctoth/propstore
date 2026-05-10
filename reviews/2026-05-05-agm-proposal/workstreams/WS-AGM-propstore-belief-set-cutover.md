@@ -62,7 +62,7 @@ dependency kernels and realize their decisions over source-backed support.
 
 | Finding | Current Surface | Required End State |
 |---|---|---|
-| Local formal-decision drift | `support_revision.operators`, `support_revision.iterated`, `support_revision.entrenchment` own AGM-shaped behavior | Formal decisions are delegated to `belief_set`; Propstore keeps only support realization |
+| Local formal-decision drift | Deleted `support_revision.operators`; `support_revision.iterated` and `support_revision.entrenchment` no longer own AGM-shaped behavior | Formal decisions are delegated to `belief_set`; Propstore keeps only support realization |
 | Boundary under-enforcement | Any future support module could import `belief_set` if the gate is loosened | Exactly `propstore.support_revision.belief_set_adapter` may import `belief_set` |
 | Flattened result contract | Revision results mix formal and operational facts | Typed `decision` and `realization` payloads are separate |
 | Iterated branch duplication | Propstore has local `lexicographic` / `restrained` update branches | Propstore calls `belief_set.iterated.lexicographic_revise` / `restrained_revise` |
@@ -616,7 +616,7 @@ Before closing this workstream:
 - [ ] `powershell -File scripts/run_logged_pytest.ps1 -Label agm-surfaces tests/test_revision_cli.py tests/test_revision_app_contract.py tests/test_web_revision_readonly.py` passes.
 - [ ] Full logged pytest passes or any pre-existing failures are documented with log path and unrelated proof.
 - [ ] `propstore.support_revision.belief_set_adapter` is the only production `belief_set` import.
-- [ ] No local formal AGM-shaped decision branch remains in `support_revision.operators`, `support_revision.iterated`, or `support_revision.entrenchment`.
+- [ ] `support_revision.operators` remains deleted, and no local formal AGM-shaped decision branch remains in `support_revision.belief_dynamics`, `support_revision.realization`, `support_revision.iterated`, or `support_revision.entrenchment`.
 - [ ] App/CLI results expose separate `decision` and `realization` payloads.
 - [ ] Worldline journals capture and replay both decision and realization.
 - [ ] Multi-parent worldline revision dispatches to IC merge or fails with typed merge-required error.

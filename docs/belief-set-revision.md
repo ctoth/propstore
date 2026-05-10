@@ -64,9 +64,9 @@ edge: `propstore.support_revision.belief_set_adapter`. That adapter projects a
 scoped support-revision `BeliefBase` to a formal `BeliefSet`, calls the
 dependency-owned formal decision surfaces, and returns typed decision reports.
 
-`propstore.support_revision.operators`, `iterated`, and `entrenchment` do not
-own formal AGM kernels. They realize dependency decisions over Propstore support
-objects and keep the result split into:
+`propstore.support_revision.belief_dynamics`, `realization`, `iterated`, and
+`entrenchment` do not own formal AGM kernels. They realize dependency decisions
+over Propstore support objects and keep the result split into:
 
 - `decision`: formulas, formal policy, formal trace, and epistemic-state hash
   where relevant.

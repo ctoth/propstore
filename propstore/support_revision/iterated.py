@@ -7,7 +7,8 @@ from propstore.support_revision.belief_set_adapter import (
     DEFAULT_ITERATED_OPERATOR,
     decide_iterated_revise,
 )
-from propstore.support_revision.operators import normalize_revision_input, realize_formal_decision
+from propstore.support_revision.input_normalization import normalize_revision_input
+from propstore.support_revision.realization import realize_formal_decision
 from propstore.support_revision.state import BeliefBase, EpistemicState, RevisionEpisode, RevisionResult
 
 

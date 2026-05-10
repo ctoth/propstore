@@ -6,9 +6,10 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.support_revision.belief_dynamics import expand_belief_base, revise_belief_base
 from propstore.support_revision.entrenchment import EntrenchmentReport
-from propstore.support_revision.operators import expand, revise, stabilize_belief_base
-from propstore.support_revision.operators import normalize_revision_input
+from propstore.support_revision.input_normalization import normalize_revision_input
+from propstore.support_revision.realization import stabilize_belief_base
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
@@ -89,7 +90,7 @@ class TestGeneratedRevisionPostulates:
         base, _ = generated
         atom = make_assertion_atom("new")
 
-        result = expand(base, atom)
+        result = expand_belief_base(base, atom)
 
         original_ids = {item.atom_id for item in base.atoms}
         revised_ids = {item.atom_id for item in result.revised_base.atoms}
@@ -109,7 +110,7 @@ class TestGeneratedRevisionPostulates:
         base, entrenchment = generated
 
         atom = make_assertion_atom("new")
-        result = revise(
+        result = revise_belief_base(
             base,
             atom,
             entrenchment=entrenchment,
@@ -140,14 +141,14 @@ class TestGeneratedRevisionPostulates:
             reasons=entrenchment.reasons,
         )
 
-        from_string = revise(
+        from_string = revise_belief_base(
             base_with_atom,
             atom_input.atom_id,
             entrenchment=entrenchment_with_atom,
             max_candidates=32,
             conflicts={},
         )
-        from_atom = revise(
+        from_atom = revise_belief_base(
             base_with_atom,
             atom_input,
             entrenchment=entrenchment_with_atom,

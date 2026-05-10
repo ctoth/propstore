@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.core.environment import Environment
 from propstore.core.id_types import to_context_id
-from propstore.support_revision.operators import normalize_revision_input
+from propstore.support_revision.input_normalization import normalize_revision_input
 
 if TYPE_CHECKING:
     from propstore.support_revision.explanation_types import RevisionExplanation

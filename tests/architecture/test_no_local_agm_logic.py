@@ -5,7 +5,8 @@ from pathlib import Path
 
 
 DECISION_OWNER_MODULES = (
-    Path("propstore/support_revision/operators.py"),
+    Path("propstore/support_revision/belief_dynamics.py"),
+    Path("propstore/support_revision/realization.py"),
     Path("propstore/support_revision/iterated.py"),
     Path("propstore/support_revision/entrenchment.py"),
 )
@@ -23,7 +24,7 @@ FORBIDDEN_FORMAL_TERMS = (
 )
 
 FORBIDDEN_LOCAL_FUNCTIONS = {
-    Path("propstore/support_revision/operators.py"): {
+    Path("propstore/support_revision/realization.py"): {
         "_choose_incision_set",
     },
     Path("propstore/support_revision/iterated.py"): {
@@ -78,3 +79,7 @@ def test_support_revision_decision_modules_do_not_define_local_decision_helpers(
         offenders.extend(f"{path}: {name}" for name in sorted(defined & forbidden_names))
 
     assert offenders == []
+
+
+def test_deleted_support_revision_operators_surface_does_not_return() -> None:
+    assert not Path("propstore/support_revision/operators.py").exists()
