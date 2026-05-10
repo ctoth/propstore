@@ -13,7 +13,7 @@ from propstore.support_revision.history import (
 )
 from propstore.support_revision.input_normalization import normalize_revision_input
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
-from propstore.support_revision.state import EpistemicState
+from propstore.support_revision.state import EpistemicState, RevisionEvent
 from propstore.worldline.revision_types import (
     RevisionAtomRef,
     WorldlineRevisionResult,
@@ -38,6 +38,13 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
             input_atom_id=_query_atom_id(revision_query.atom),
             target_atom_ids=(),
             result=_revision_result_payload(bound, result),
+            event=_revision_event_payload(
+                bound,
+                operation=operation,
+                input_atom_id=_query_atom_id(revision_query.atom),
+                target_atom_ids=(),
+                result=result,
+            ),
         )
     if operation == "contract":
         result = bound.contract(revision_query.target, max_candidates=1024)
@@ -46,6 +53,13 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
             input_atom_id=None,
             target_atom_ids=tuple(_query_target_atom_ids(revision_query.target)),
             result=_revision_result_payload(bound, result),
+            event=_revision_event_payload(
+                bound,
+                operation=operation,
+                input_atom_id=None,
+                target_atom_ids=tuple(_query_target_atom_ids(revision_query.target)),
+                result=result,
+            ),
         )
     if operation == "revise":
         result = bound.revise(
@@ -58,6 +72,13 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
             input_atom_id=_query_atom_id(revision_query.atom),
             target_atom_ids=tuple(_query_conflict_target_atom_ids(revision_query)),
             result=_revision_result_payload(bound, result),
+            event=_revision_event_payload(
+                bound,
+                operation=operation,
+                input_atom_id=_query_atom_id(revision_query.atom),
+                target_atom_ids=tuple(_query_conflict_target_atom_ids(revision_query)),
+                result=result,
+            ),
         )
     if operation == "iterated_revise":
         result, state = bound.iterated_revise(
@@ -72,6 +93,13 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
             target_atom_ids=tuple(_query_conflict_target_atom_ids(revision_query)),
             result=_revision_result_payload(bound, result),
             state=_revision_state_snapshot(bound, state),
+            event=_revision_event_payload(
+                bound,
+                operation=operation,
+                input_atom_id=_query_atom_id(revision_query.atom),
+                target_atom_ids=tuple(_query_conflict_target_atom_ids(revision_query)),
+                result=result,
+            ),
         )
     raise ValueError(f"Unknown revision operation: {operation}")
 
@@ -121,6 +149,38 @@ def _revision_result_payload(bound: Any, result: Any) -> WorldlineRevisionResult
         incision_set=tuple(result.incision_set),
         explanation=bound.revision_explain(result),
     )
+
+
+def _revision_event_payload(
+    bound: Any,
+    *,
+    operation: str,
+    input_atom_id: str | None,
+    target_atom_ids: tuple[str, ...],
+    result: Any,
+) -> RevisionEvent:
+    return RevisionEvent(
+        operation=operation,
+        pre_state_hash=_bound_epistemic_state_hash(bound),
+        input_atom_id=input_atom_id,
+        target_atom_ids=target_atom_ids,
+        decision=getattr(result, "decision", None),
+        realization=getattr(result, "realization", None),
+        policy_snapshot=_VERSION_POLICY_SNAPSHOT,
+        replay_status="captured",
+    )
+
+
+def _bound_epistemic_state_hash(bound: Any) -> str:
+    state = getattr(bound, "epistemic_state", None)
+    if not callable(state):
+        return ""
+    result = state()
+    if not isinstance(result, EpistemicState):
+        return ""
+    from propstore.support_revision.history import EpistemicSnapshot
+
+    return EpistemicSnapshot.from_state(result).content_hash
 
 
 def _revision_atom_input(atom: RevisionAtomRef | None) -> Mapping[str, Any] | None:
