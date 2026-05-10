@@ -37,6 +37,7 @@ from propstore.support_revision.state import (
 LEXICOGRAPHIC_OPERATOR = "lexicographic"
 RESTRAINED_OPERATOR = "restrained"
 DEFAULT_ITERATED_OPERATOR = RESTRAINED_OPERATOR
+DEFAULT_MAX_ALPHABET_SIZE = 16
 
 
 @dataclass(frozen=True)
@@ -66,7 +67,7 @@ def project_formal_bundle(
     base: BeliefBase,
     *,
     extra_atoms: tuple[BeliefAtom, ...] = (),
-    max_alphabet_size: int = 16,
+    max_alphabet_size: int = DEFAULT_MAX_ALPHABET_SIZE,
 ) -> FormalProjectionBundle:
     atoms_by_id = {atom.atom_id: atom for atom in base.atoms}
     for atom in extra_atoms:
@@ -401,6 +402,7 @@ __all__ = [
     "FormalDecision",
     "FormalProjectionBundle",
     "DEFAULT_ITERATED_OPERATOR",
+    "DEFAULT_MAX_ALPHABET_SIZE",
     "LEXICOGRAPHIC_OPERATOR",
     "RESTRAINED_OPERATOR",
     "accepted_atom_ids",

@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from propstore.support_revision.entrenchment import EntrenchmentReport, compute_entrenchment
 from propstore.support_revision.belief_set_adapter import (
     DEFAULT_ITERATED_OPERATOR,
+    DEFAULT_MAX_ALPHABET_SIZE,
     decide_iterated_revise,
 )
 from propstore.support_revision.input_normalization import normalize_revision_input
@@ -84,7 +85,7 @@ def iterated_revise(
         normalized,
         conflicts=tuple(conflict_map.get(normalized.atom_id, ())),
         operator=operator,
-        max_alphabet_size=16,
+        max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
     )
     result = realize_formal_decision(
         state.base,

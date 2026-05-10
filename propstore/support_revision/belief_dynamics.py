@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from propstore.support_revision.belief_set_adapter import (
+    DEFAULT_MAX_ALPHABET_SIZE,
     decide_contract,
     decide_expand,
     decide_revise,
@@ -20,7 +21,7 @@ from propstore.support_revision.state import (
 )
 
 
-FORMAL_MAX_ALPHABET_SIZE = 16
+FORMAL_MAX_ALPHABET_SIZE = DEFAULT_MAX_ALPHABET_SIZE
 
 
 def expand_belief_base(
