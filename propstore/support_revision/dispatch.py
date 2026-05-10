@@ -5,6 +5,7 @@ from typing import Any
 
 from propstore.support_revision.belief_set_adapter import (
     DEFAULT_MAX_ALPHABET_SIZE,
+    decide_ic_merge_profile,
     decide_contract,
     decide_expand,
     decide_revise,
@@ -21,6 +22,7 @@ from propstore.support_revision.state import (
     BeliefAtom,
     EpistemicState,
     RevisionEvent,
+    RevisionMergeRequiredFailure,
     RevisionRealizationFailure,
 )
 
@@ -57,6 +59,17 @@ def dispatch(
             replay_status="replayed",
         )
         return next_state
+
+    if op is JournalOperator.IC_MERGE:
+        integrity_constraint = payload.get("integrity_constraint")
+        if not isinstance(integrity_constraint, Mapping):
+            raise RevisionMergeRequiredFailure(reason="missing_integrity_constraint")
+        decide_ic_merge_profile(
+            profile_atom_ids=_profile_atom_ids(payload.get("profile_atom_ids") or ()),
+            integrity_constraint=integrity_constraint,
+            max_alphabet_size=_max_candidates(payload),
+        )
+        raise RevisionMergeRequiredFailure(reason="realization_not_implemented")
 
     entrenchment = _entrenchment_from_state(state)
     if op is JournalOperator.EXPAND:
@@ -245,3 +258,14 @@ def _raise_realization_failure(
 
 def _string_tuple(value: Sequence[object]) -> tuple[str, ...]:
     return tuple(str(item) for item in value)
+
+
+def _profile_atom_ids(value: Sequence[object]) -> tuple[tuple[str, ...], ...]:
+    profiles: list[tuple[str, ...]] = []
+    for profile in value:
+        if isinstance(profile, str):
+            raise ValueError("IC merge profile_atom_ids entries must be sequences")
+        if not isinstance(profile, Sequence):
+            raise ValueError("IC merge profile_atom_ids entries must be sequences")
+        profiles.append(tuple(str(atom_id) for atom_id in profile))
+    return tuple(profiles)
