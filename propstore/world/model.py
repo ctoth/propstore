@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import tempfile
 from collections import deque
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -260,6 +262,7 @@ class WorldQuery(WorldStore):
         repo: Repository | None = None,
         *,
         sidecar_path: Path | None = None,
+        commit: str | None = None,
     ) -> None:
         if sidecar_path is not None:
             resolved = sidecar_path
@@ -279,8 +282,9 @@ class WorldQuery(WorldStore):
             resolved.parent.parent
         )
         if repo is not None and hasattr(repo, "tree"):
-            knowledge_root = repo.tree()
+            knowledge_root = repo.tree(commit=commit)
         self._repo = repo
+        self._source_commit = commit
         self._knowledge_root = knowledge_root
         self._grounding_bundle_cache = None
         self._solver: ConditionSolver | None = None
@@ -299,6 +303,37 @@ class WorldQuery(WorldStore):
 
     def __exit__(self, *exc: object) -> None:
         self.close()
+
+    @contextmanager
+    def historical_query(self, commit_sha: str) -> Iterator[WorldQuery]:
+        """Open a temporary ``WorldQuery`` rebuilt from ``commit_sha``.
+
+        The live repository worktree is not checked out. The sidecar is built
+        from the Git tree for the requested commit into a temporary directory,
+        then opened read-only for the lifetime of the context manager.
+        """
+        if self._repo is None:
+            raise ValueError(
+                "WorldQuery.historical_query requires a repository-backed query"
+            )
+        from propstore.sidecar.build import build_sidecar
+
+        with tempfile.TemporaryDirectory(
+            prefix="propstore-historical-sidecar-"
+        ) as tempdir:
+            sidecar_path = Path(tempdir) / "sidecar" / "propstore.sqlite"
+            build_sidecar(
+                self._repo,
+                sidecar_path,
+                force=True,
+                commit_hash=commit_sha,
+            )
+            with WorldQuery(
+                self._repo,
+                sidecar_path=sidecar_path,
+                commit=commit_sha,
+            ) as historical:
+                yield historical
 
     def close(self) -> None:
         self._compiled_graph_cache = None
