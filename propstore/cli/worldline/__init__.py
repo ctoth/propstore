@@ -14,6 +14,10 @@ from propstore.app.worldlines import (
     argumentation_semantics_values,
     reasoning_backend_values,
 )
+from propstore.support_revision.belief_set_adapter import (
+    LEXICOGRAPHIC_OPERATOR,
+    RESTRAINED_OPERATOR,
+)
 
 
 def _is_cli_json_value(value: object) -> TypeGuard[JsonValue]:
@@ -130,7 +134,7 @@ _REVISION_OPTIONS = [
     click.option("--revision-conflict", "revision_conflicts", multiple=True,
                  help="Revision conflict mapping as atom_id=target[,target...]"),
     click.option("--revision-operator", "revision_operator", default=None,
-                 type=click.Choice(["restrained", "lexicographic"]),
+                 type=click.Choice([RESTRAINED_OPERATOR, LEXICOGRAPHIC_OPERATOR]),
                  help="Iterated revision operator family"),
 ]
 

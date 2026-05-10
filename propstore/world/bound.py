@@ -64,6 +64,7 @@ from propstore.world.types import (
     ValueResult,
     coerce_queryable_assumptions,
 )
+from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
@@ -589,7 +590,7 @@ class BoundWorld(BeliefSpace):
         max_candidates: int,
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
         conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
-        operator: str = "restrained",
+        operator: str = DEFAULT_ITERATED_OPERATOR,
         state=None,
     ):
         """Revise an explicit epistemic state using the selected iterated operator."""

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
     JournalOperator,
@@ -63,7 +64,7 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
             _revision_atom_input(revision_query.atom),
             conflicts=revision_query.conflicts.to_revision_input(),
             max_candidates=1024,
-            operator=revision_query.operator or "restrained",
+            operator=revision_query.operator or DEFAULT_ITERATED_OPERATOR,
         )
         return WorldlineRevisionState(
             operation=operation,
@@ -198,7 +199,7 @@ def _journal_operator_input(
     if operation == "iterated_revise":
         atom = _normalize_query_atom(state, revision_query.atom)
         targets = tuple(revision_query.conflicts.targets_for(atom.atom_id))
-        operator = revision_query.operator or "restrained"
+        operator = revision_query.operator or DEFAULT_ITERATED_OPERATOR
         return (
             JournalOperator.ITERATED_REVISE,
             TransitionOperation(

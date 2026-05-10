@@ -12,6 +12,7 @@ from quire.hashing import canonical_json_bytes
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 from propstore.core.assertions.situated import SituatedAssertion
+from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR
 from propstore.world.types import (
     ArgumentationSemantics,
     MergeOperator,
@@ -46,7 +47,7 @@ def _hash(value: Any) -> str:
 
 @dataclass(frozen=True, order=True)
 class RevisionPolicy:
-    operator: str = "restrained"
+    operator: str = DEFAULT_ITERATED_OPERATOR
     selection: str = "minimal_incision"
     entrenchment: str = "support_sensitive"
     allow_reintroduction: bool = False
@@ -55,7 +56,7 @@ class RevisionPolicy:
     def from_dict(cls, data: Mapping[str, Any] | None) -> RevisionPolicy:
         payload = {} if data is None else data
         return cls(
-            operator=str(payload.get("operator", "restrained")),
+            operator=str(payload.get("operator", DEFAULT_ITERATED_OPERATOR)),
             selection=str(payload.get("selection", "minimal_incision")),
             entrenchment=str(payload.get("entrenchment", "support_sensitive")),
             allow_reintroduction=bool(payload.get("allow_reintroduction", False)),

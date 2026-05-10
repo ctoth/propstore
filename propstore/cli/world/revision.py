@@ -32,6 +32,11 @@ from propstore.cli.world import (
     world,
 )
 from propstore.repository import Repository
+from propstore.support_revision.belief_set_adapter import (
+    DEFAULT_ITERATED_OPERATOR,
+    LEXICOGRAPHIC_OPERATOR,
+    RESTRAINED_OPERATOR,
+)
 
 
 @world.group("revision", no_args_is_help=True)
@@ -340,7 +345,11 @@ def world_iterated_state(obj: dict, args: tuple[str, ...], context: str | None) 
 @click.argument("args", nargs=-1)
 @click.option("--atom", "atom_json", required=True, help="JSON revision atom to admit")
 @click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
-@click.option("--operator", type=click.Choice(["restrained", "lexicographic"]), default="restrained")
+@click.option(
+    "--operator",
+    type=click.Choice([RESTRAINED_OPERATOR, LEXICOGRAPHIC_OPERATOR]),
+    default=DEFAULT_ITERATED_OPERATOR,
+)
 @click.option("--context", default=None, help="Context to scope the iterated revision operation")
 @click.pass_obj
 def world_iterated_revise(
