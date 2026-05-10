@@ -17,6 +17,7 @@ from belief_set import (
     ICMergeOutcome,
     RevisionOutcome,
     SpohnEpistemicState,
+    TOP,
     expand,
     full_meet_contract,
     lexicographic_revise,
