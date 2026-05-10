@@ -27,9 +27,12 @@ def _production_files() -> list[Path]:
     return sorted(
         path
         for path in PROPSTORE.rglob("*.py")
-        if "__pycache__" not in path.parts
-        and path.name != "_import_linter_negative_fixture.py"
+        if _is_production_file(path)
     )
+
+
+def _is_production_file(path: Path) -> bool:
+    return "__pycache__" not in path.parts and path.name != "_import_linter_negative_fixture.py"
 
 
 def _parse(path: Path) -> ast.Module:
@@ -101,11 +104,7 @@ def test_production_callers_do_not_import_dimension_api_from_form_utils() -> Non
 
 def test_production_file_scan_excludes_import_linter_negative_fixture() -> None:
     fixture = PROPSTORE / "source" / "_import_linter_negative_fixture.py"
-    fixture.write_text("import propstore.heuristic\n", encoding="utf-8")
-    try:
-        assert fixture not in _production_files()
-    finally:
-        fixture.unlink(missing_ok=True)
+    assert not _is_production_file(fixture)
 
 
 def test_lexical_form_lives_in_lemon_forms_module() -> None:
