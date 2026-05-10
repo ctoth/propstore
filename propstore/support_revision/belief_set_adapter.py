@@ -279,14 +279,22 @@ def _decision_report(
         if atom_id not in set(accepted)
     )
     state = _outcome_state(outcome)
+    state_hash = None if state is None else _state_hash(state)
+    trace = dict(_trace_payload(outcome))
+    if state_hash is not None:
+        trace["ranking_provenance"] = {
+            "status": "defaulted",
+            "method": "hamming_distance",
+            "input_hash": state_hash,
+        }
     return FormalRevisionDecisionReport(
         operation=operation,
         policy=policy,
         input_formula_ids=input_formula_ids,
         accepted_formula_ids=accepted,
         rejected_formula_ids=rejected,
-        epistemic_state_hash=None if state is None else _state_hash(state),
-        trace=_trace_payload(outcome),
+        epistemic_state_hash=state_hash,
+        trace=trace,
     )
 
 
