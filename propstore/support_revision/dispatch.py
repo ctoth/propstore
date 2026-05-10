@@ -3,14 +3,16 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from propstore.support_revision.belief_set_adapter import (
+    DEFAULT_MAX_ALPHABET_SIZE,
+    decide_contract,
+    decide_expand,
+    decide_revise,
+)
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.history import JournalOperator
 from propstore.support_revision.iterated import advance_epistemic_state, iterated_revise
-from propstore.support_revision.belief_dynamics import (
-    contract_belief_base,
-    expand_belief_base,
-    revise_belief_base,
-)
+from propstore.support_revision.realization import realize_formal_decision
 from propstore.support_revision.snapshot_types import (
     EpistemicStateSnapshot,
     belief_atom_from_canonical_dict,
@@ -51,7 +53,17 @@ def dispatch(
     entrenchment = _entrenchment_from_state(state)
     if op is JournalOperator.EXPAND:
         atom = _formula_atom(payload)
-        result = expand_belief_base(state.base, atom)
+        decision = decide_expand(
+            state.base,
+            atom,
+            max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
+        )
+        result = realize_formal_decision(
+            state.base,
+            decision,
+            extra_atoms=(atom,),
+            accepted_reason="expanded",
+        )
         return advance_epistemic_state(
             state,
             result,
@@ -67,12 +79,20 @@ def dispatch(
             str(atom_id): _string_tuple(targets)
             for atom_id, targets in _required_mapping(conflicts_payload, "conflicts").items()
         }
-        result = revise_belief_base(
+        decision = decide_revise(
             state.base,
             atom,
-            entrenchment=entrenchment,
+            conflicts=tuple(conflicts.get(atom.atom_id, ())),
+            max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
+        )
+        result = realize_formal_decision(
+            state.base,
+            decision,
+            extra_atoms=(atom,),
+            accepted_reason="revised_in",
+            rejected_reason="revised_out",
+            support_entrenchment=entrenchment,
             max_candidates=_max_candidates(payload),
-            conflicts=conflicts or None,
         )
         return advance_epistemic_state(
             state,
@@ -85,10 +105,16 @@ def dispatch(
 
     if op is JournalOperator.CONTRACT:
         targets = _string_tuple(payload.get("targets") or ())
-        result = contract_belief_base(
+        decision = decide_contract(
             state.base,
             targets,
-            entrenchment=entrenchment,
+            max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
+        )
+        result = realize_formal_decision(
+            state.base,
+            decision,
+            rejected_reason="contracted",
+            support_entrenchment=entrenchment,
             max_candidates=_max_candidates(payload),
         )
         return advance_epistemic_state(
