@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, TypeGuard
+
+from quire.hashing import canonical_json_bytes
 
 from propstore.cel_types import to_cel_expr
 from propstore.core.active_claims import ActiveClaim, coerce_active_claim
@@ -319,7 +322,7 @@ class RevisionEvent:
         policy_payload = payload.get("policy_snapshot") or {}
         if not isinstance(policy_payload, Mapping):
             raise ValueError("revision event requires mapping 'policy_snapshot'")
-        return cls(
+        event = cls(
             operation=str(payload.get("operation") or ""),
             pre_state_hash=str(payload.get("pre_state_hash") or ""),
             input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
@@ -342,8 +345,21 @@ class RevisionEvent:
                 else str(payload.get("realization_failure"))
             ),
         )
+        recorded_hash = payload.get("content_hash")
+        if recorded_hash is not None and str(recorded_hash) != event.content_hash:
+            raise ValueError("revision event content_hash does not match payload")
+        return event
+
+    @property
+    def content_hash(self) -> str:
+        return hashlib.sha256(canonical_json_bytes(self._content_payload())).hexdigest()
 
     def to_dict(self) -> dict[str, Any]:
+        data = self._content_payload()
+        data["content_hash"] = self.content_hash
+        return data
+
+    def _content_payload(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "operation": self.operation,
             "pre_state_hash": self.pre_state_hash,
