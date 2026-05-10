@@ -19,23 +19,25 @@ def test_ws_j_transition_journal_entry_has_typed_replay_contract() -> None:
     base, entrenchment, _, ids = _history_sensitive_base()
     state_in = make_epistemic_state(base, entrenchment)
     new_atom = make_assertion_atom("journal_contract_new")
+    version_policy_snapshot = {
+        "revision_policy_version": "revision.v1",
+        "ranking_policy_version": "ranking.v1",
+        "entrenchment_policy_version": "entrenchment.v1",
+    }
     result, state_out = iterated_revise(
         state_in,
         new_atom,
         max_candidates=8,
         conflicts={new_atom.atom_id: (ids["legacy"],)},
         operator="restrained",
+        policy_snapshot=version_policy_snapshot,
+        replay_status="replayed",
     )
     operation = TransitionOperation(
         name="iterated_revise",
         input_atom_id=new_atom.atom_id,
         target_atom_ids=(ids["legacy"],),
     )
-    version_policy_snapshot = {
-        "revision_policy_version": "revision.v1",
-        "ranking_policy_version": "ranking.v1",
-        "entrenchment_policy_version": "entrenchment.v1",
-    }
     operator_input = {
         "formula": belief_atom_to_canonical_dict(new_atom),
         "max_candidates": 8,
