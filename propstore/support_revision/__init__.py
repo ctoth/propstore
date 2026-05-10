@@ -16,7 +16,16 @@ from propstore.support_revision.iterated import advance_epistemic_state, epistem
 from propstore.support_revision.input_normalization import normalize_revision_input
 from propstore.support_revision.projection import project_belief_base
 from propstore.support_revision.realization import stabilize_belief_base
-from propstore.support_revision.state import BeliefAtom, BeliefBase, EpistemicState, RevisionEpisode, RevisionResult, RevisionScope
+from propstore.support_revision.state import (
+    BeliefAtom,
+    BeliefBase,
+    EpistemicState,
+    RevisionEpisode,
+    RevisionEvent,
+    RevisionRealizationFailure,
+    RevisionResult,
+    RevisionScope,
+)
 
 __all__ = [
     "BeliefAtom",
@@ -26,6 +35,8 @@ __all__ = [
     "RevisionArgumentationStore",
     "RevisionArgumentationView",
     "RevisionEpisode",
+    "RevisionEvent",
+    "RevisionRealizationFailure",
     "RevisionResult",
     "RevisionScope",
     "advance_epistemic_state",
