@@ -75,9 +75,12 @@ def compute_entrenchment(
     ranked_atom_ids = tuple(
         sorted(
             atom_ids,
-            key=lambda atom_id: (
-                _formal_rank_position(formal, bundle.formula_by_atom_id, atom_id, atom_ids),
+            key=lambda atom_id: _entrenchment_sort_key(
                 atom_id,
+                formal,
+                bundle.formula_by_atom_id,
+                atom_ids,
+                reasons,
             ),
         )
     )
@@ -99,6 +102,31 @@ def _formal_rank_position(
         for other_atom_id in atom_ids
         if formal.leq(formulas[other_atom_id], formula)
     )
+
+
+def _entrenchment_sort_key(
+    atom_id: str,
+    formal,
+    formulas: Mapping[str, object],
+    atom_ids: tuple[str, ...],
+    reasons: Mapping[str, EntrenchmentReason],
+) -> tuple[int, tuple[int, int | str], int, int, str]:
+    reason = reasons[atom_id]
+    return (
+        0 if reason.override_priority is not None else 1,
+        _override_priority_sort_key(reason.override_priority),
+        -(reason.support_count or 0),
+        -_formal_rank_position(formal, formulas, atom_id, atom_ids),
+        atom_id,
+    )
+
+
+def _override_priority_sort_key(priority: int | str | None) -> tuple[int, int | str]:
+    if priority is None:
+        return (2, "")
+    if isinstance(priority, int):
+        return (0, priority)
+    return (1, priority)
 
 
 def _match_override(

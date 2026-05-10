@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from propstore.core.labels import EnvironmentKey, Label
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
@@ -77,6 +78,50 @@ def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() ->
     assert result.explanation[ids["legacy"]].reason == "support_lost"
     assert result.explanation[ids["dependent"]].reason == "support_lost"
     assert result.explanation[ids["dependent"]].incision_set == ("assumption:shared_weak",)
+
+
+def test_contract_uses_computed_entrenchment_order_for_equal_size_cuts() -> None:
+    from propstore.support_revision.entrenchment import compute_entrenchment
+    from propstore.support_revision.realization import _support_realization_cuts
+
+    target = make_assertion_atom("equal_size_target")
+    base = BeliefBase(
+        scope=RevisionScope(bindings={}),
+        atoms=(
+            AssumptionAtom(
+                "assumption:a_weak",
+                {"assumption_id": "a_weak"},
+                label=Label((EnvironmentKey(("a_weak",)),)),
+            ),
+            AssumptionAtom(
+                "assumption:z_strong",
+                {"assumption_id": "z_strong"},
+                label=Label(
+                    (
+                        EnvironmentKey(("z_strong_primary",)),
+                        EnvironmentKey(("z_strong_secondary",)),
+                    )
+                ),
+            ),
+            target,
+        ),
+        support_sets={
+            target.atom_id: (("assumption:a_weak", "assumption:z_strong"),),
+        },
+    )
+
+    entrenchment = compute_entrenchment(None, base)
+    incision_set = _support_realization_cuts(
+        base,
+        (target.atom_id,),
+        support_entrenchment=entrenchment,
+        max_candidates=8,
+    )
+
+    assert entrenchment.ranked_atom_ids.index("assumption:z_strong") < entrenchment.ranked_atom_ids.index(
+        "assumption:a_weak"
+    )
+    assert incision_set == ("assumption:a_weak",)
 
 
 def test_expand_adds_atom_without_mutating_input_base() -> None:
