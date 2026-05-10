@@ -24,6 +24,7 @@ class JournalOperator(Enum):
     REVISE = "revise"
     CONTRACT = "contract"
     ITERATED_REVISE = "iterated_revise"
+    IC_MERGE = "ic_merge"
 
 
 def _required_mapping(value: object, field_name: str) -> Mapping[str, Any]:
