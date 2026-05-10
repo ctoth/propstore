@@ -150,6 +150,42 @@ class FormalRevisionDecisionReport:
         object.__setattr__(self, "rejected_formula_ids", tuple(str(item) for item in self.rejected_formula_ids))
         object.__setattr__(self, "trace", dict(self.trace))
 
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, Any]) -> FormalRevisionDecisionReport:
+        return cls(
+            operation=str(payload.get("operation") or ""),
+            policy=str(payload.get("policy") or ""),
+            input_formula_ids=tuple(str(item) for item in (payload.get("input_formula_ids") or ())),
+            accepted_formula_ids=tuple(str(item) for item in (payload.get("accepted_formula_ids") or ())),
+            rejected_formula_ids=tuple(str(item) for item in (payload.get("rejected_formula_ids") or ())),
+            epistemic_state_hash=(
+                None
+                if payload.get("epistemic_state_hash") is None
+                else str(payload.get("epistemic_state_hash"))
+            ),
+            budget_failure=(
+                None
+                if payload.get("budget_failure") is None
+                else str(payload.get("budget_failure"))
+            ),
+            trace=dict(payload.get("trace") or {}),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "operation": self.operation,
+            "policy": self.policy,
+            "input_formula_ids": list(self.input_formula_ids),
+            "accepted_formula_ids": list(self.accepted_formula_ids),
+            "rejected_formula_ids": list(self.rejected_formula_ids),
+            "trace": dict(self.trace),
+        }
+        if self.epistemic_state_hash is not None:
+            data["epistemic_state_hash"] = self.epistemic_state_hash
+        if self.budget_failure is not None:
+            data["budget_failure"] = self.budget_failure
+        return data
+
 
 @dataclass(frozen=True)
 class SupportRevisionRealization:
@@ -176,6 +212,43 @@ class SupportRevisionRealization:
             },
         )
         object.__setattr__(self, "journal_metadata", dict(self.journal_metadata))
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, Any]) -> SupportRevisionRealization:
+        reasons_payload = payload.get("reasons") or {}
+        if not isinstance(reasons_payload, Mapping):
+            raise ValueError("support revision realization requires mapping 'reasons'")
+        return cls(
+            accepted_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())),
+            rejected_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())),
+            incision_set=tuple(str(atom_id) for atom_id in (payload.get("incision_set") or ())),
+            source_claim_ids=tuple(str(claim_id) for claim_id in (payload.get("source_claim_ids") or ())),
+            reasons={
+                str(atom_id): coerce_revision_atom_detail(detail)
+                for atom_id, detail in reasons_payload.items()
+            },
+            snapshot_hash=None if payload.get("snapshot_hash") is None else str(payload.get("snapshot_hash")),
+            journal_metadata=dict(payload.get("journal_metadata") or {}),
+            replay_status=None if payload.get("replay_status") is None else str(payload.get("replay_status")),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "accepted_atom_ids": list(self.accepted_atom_ids),
+            "rejected_atom_ids": list(self.rejected_atom_ids),
+            "incision_set": list(self.incision_set),
+            "source_claim_ids": list(self.source_claim_ids),
+            "reasons": {
+                atom_id: detail.to_dict()
+                for atom_id, detail in self.reasons.items()
+            },
+            "journal_metadata": dict(self.journal_metadata),
+        }
+        if self.snapshot_hash is not None:
+            data["snapshot_hash"] = self.snapshot_hash
+        if self.replay_status is not None:
+            data["replay_status"] = self.replay_status
+        return data
 
 
 @dataclass(frozen=True)
@@ -214,6 +287,89 @@ class RevisionResult:
 
 
 @dataclass(frozen=True)
+class RevisionEvent:
+    operation: str
+    pre_state_hash: str
+    input_atom_id: str | None = None
+    target_atom_ids: tuple[str, ...] = field(default_factory=tuple)
+    decision: FormalRevisionDecisionReport | None = None
+    realization: SupportRevisionRealization | None = None
+    policy_snapshot: Mapping[str, str] = field(default_factory=dict)
+    replay_status: str | None = None
+    realization_failure: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "operation", str(self.operation))
+        object.__setattr__(self, "pre_state_hash", str(self.pre_state_hash))
+        object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
+        object.__setattr__(
+            self,
+            "policy_snapshot",
+            {str(key): str(value) for key, value in self.policy_snapshot.items()},
+        )
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, Any]) -> RevisionEvent:
+        decision_payload = payload.get("decision")
+        realization_payload = payload.get("realization")
+        if decision_payload is not None and not isinstance(decision_payload, Mapping):
+            raise ValueError("revision event requires mapping 'decision'")
+        if realization_payload is not None and not isinstance(realization_payload, Mapping):
+            raise ValueError("revision event requires mapping 'realization'")
+        policy_payload = payload.get("policy_snapshot") or {}
+        if not isinstance(policy_payload, Mapping):
+            raise ValueError("revision event requires mapping 'policy_snapshot'")
+        return cls(
+            operation=str(payload.get("operation") or ""),
+            pre_state_hash=str(payload.get("pre_state_hash") or ""),
+            input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
+            target_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())),
+            decision=(
+                None
+                if decision_payload is None
+                else FormalRevisionDecisionReport.from_mapping(decision_payload)
+            ),
+            realization=(
+                None
+                if realization_payload is None
+                else SupportRevisionRealization.from_mapping(realization_payload)
+            ),
+            policy_snapshot={str(key): str(value) for key, value in policy_payload.items()},
+            replay_status=None if payload.get("replay_status") is None else str(payload.get("replay_status")),
+            realization_failure=(
+                None
+                if payload.get("realization_failure") is None
+                else str(payload.get("realization_failure"))
+            ),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "operation": self.operation,
+            "pre_state_hash": self.pre_state_hash,
+            "target_atom_ids": list(self.target_atom_ids),
+            "policy_snapshot": dict(self.policy_snapshot),
+        }
+        if self.input_atom_id is not None:
+            data["input_atom_id"] = self.input_atom_id
+        if self.decision is not None:
+            data["decision"] = self.decision.to_dict()
+        if self.realization is not None:
+            data["realization"] = self.realization.to_dict()
+        if self.replay_status is not None:
+            data["replay_status"] = self.replay_status
+        if self.realization_failure is not None:
+            data["realization_failure"] = self.realization_failure
+        return data
+
+
+class RevisionRealizationFailure(RuntimeError):
+    def __init__(self, event: RevisionEvent) -> None:
+        super().__init__(event.realization_failure or "revision realization failed")
+        self.event = event
+
+
+@dataclass(frozen=True)
 class RevisionEpisode:
     operator: str
     input_atom_id: str | None = None
@@ -222,6 +378,7 @@ class RevisionEpisode:
     rejected_atom_ids: tuple[str, ...] = field(default_factory=tuple)
     incision_set: tuple[str, ...] = field(default_factory=tuple)
     explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
+    event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
