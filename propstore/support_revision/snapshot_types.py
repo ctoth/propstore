@@ -21,6 +21,7 @@ from propstore.support_revision.state import (
     EpistemicState,
     AssumptionAtom,
     AssertionAtom,
+    RevisionEvent,
     RevisionEpisode,
     RevisionScope,
 )
@@ -234,6 +235,7 @@ class RevisionEpisodeSnapshot:
     rejected_atom_ids: tuple[str, ...] = ()
     incision_set: tuple[str, ...] = ()
     explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
+    event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
@@ -259,6 +261,7 @@ class RevisionEpisodeSnapshot:
             rejected_atom_ids=episode.rejected_atom_ids,
             incision_set=episode.incision_set,
             explanation=episode.explanation,
+            event=episode.event,
         )
 
     def to_episode(self) -> RevisionEpisode:
@@ -270,6 +273,7 @@ class RevisionEpisodeSnapshot:
             rejected_atom_ids=self.rejected_atom_ids,
             incision_set=self.incision_set,
             explanation=self.explanation,
+            event=self.event,
         )
 
     @classmethod
@@ -280,6 +284,9 @@ class RevisionEpisodeSnapshot:
             if not isinstance(detail, Mapping):
                 raise ValueError(f"Support revision snapshot requires mapping 'explanation.{atom_id}'")
             explanation[str(atom_id)] = RevisionAtomDetail.from_mapping(detail)
+        event_payload = data.get("event")
+        if event_payload is not None and not isinstance(event_payload, Mapping):
+            raise ValueError("Support revision snapshot requires mapping 'event'")
         return cls(
             operator=str(data.get("operator") or ""),
             input_atom_id=None if data.get("input_atom_id") is None else str(data.get("input_atom_id")),
@@ -288,6 +295,7 @@ class RevisionEpisodeSnapshot:
             rejected_atom_ids=tuple(str(atom_id) for atom_id in (data.get("rejected_atom_ids") or ())),
             incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
             explanation=explanation,
+            event=None if event_payload is None else RevisionEvent.from_mapping(event_payload),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -304,6 +312,8 @@ class RevisionEpisodeSnapshot:
         }
         if self.input_atom_id is not None:
             data["input_atom_id"] = self.input_atom_id
+        if self.event is not None:
+            data["event"] = self.event.to_dict()
         return data
 
 
