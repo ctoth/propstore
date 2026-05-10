@@ -12,9 +12,9 @@ this module does not perform a Git checkout.
 
 For property testing we register fixture commits explicitly via
 ``register_fixture_commit(commit_sha, claim_ids, stances, conflicts)``.
-For production ``WorldQuery`` inputs, replay projects the step's claim-id
-set through the world model's compiled stance/conflict surfaces and
-returns the rows visible within that step.
+For production ``WorldQuery`` inputs, replay rebuilds a temporary query
+surface from the journal step's commit and returns the rows visible within
+that step.
 
 Cache: results are keyed by ``(commit_sha, frozenset[claim_id])``. The
 cache exposes hit/miss/size statistics via ``cache_stats()``.
@@ -22,12 +22,14 @@ cache exposes hit/miss/size statistics via ``cache_stats()``.
 
 from __future__ import annotations
 
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from propstore.core.row_types import ClaimRow, ConflictRow, StanceRow
 from propstore.support_revision.history import TransitionJournal
 from propstore.support_revision.projection import snapshot_to_claim_ids
+from propstore.support_revision.state import RevisionScope
 from propstore.world.types import ClaimView
 
 
@@ -64,6 +66,14 @@ class _StanceConflictSpace(Protocol):
     def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]: ...
 
 
+@runtime_checkable
+class _HistoricalQuerySpace(Protocol):
+    def historical_query(
+        self,
+        commit_sha: str,
+    ) -> AbstractContextManager[_ClaimLookupSpace]: ...
+
+
 _FIXTURE_REGISTRY: dict[str, _FixtureCommit] = {}
 _CACHE: dict[tuple[str, frozenset[str]], ClaimView] = {}
 _CACHE_HITS = 0
@@ -79,9 +89,9 @@ def register_fixture_commit(
 ) -> None:
     """Register a fixture commit for property/integration testing.
 
-    Production replay for unregistered commits reads from the belief-space
-    query surface. Property tests use the registry to exercise the heavy
-    code path without git overhead.
+    Production replay for unregistered commits uses a repository-backed
+    historical query surface when one is available. Property tests use the
+    registry to exercise the heavy code path without git overhead.
     """
     _FIXTURE_REGISTRY[commit_sha] = _FixtureCommit(
         commit_sha=commit_sha,
@@ -110,9 +120,9 @@ def replay_at_step(
 ) -> ClaimView:
     """Re-derive a ClaimView at journal step ``k`` against the snapshot's commit.
 
-    Walks the registered fixture commit or reads from the production
-    belief-space query surface. Caches by ``(commit_sha,
-    frozenset[claim_id])``.
+    Walks the registered fixture commit, opens a repository-backed
+    historical query surface, or falls back to the supplied belief-space
+    query surface. Caches by ``(commit_sha, frozenset[claim_id])``.
 
     Honest scope contract: the ``@scope_policy(require={"heavy": ("commit",)})``
     decorator on ``at_journal_step`` guarantees ``state.scope.commit`` is
@@ -136,16 +146,19 @@ def replay_at_step(
 
     fixture = _FIXTURE_REGISTRY.get(str(scope.commit))
     if fixture is None:
-        rows = belief_space.claims_by_ids(set(minimal_claim_ids))
-        stances = _stances_within_step(belief_space, minimal_claim_ids)
-        conflicts = _conflicts_within_step(belief_space, minimal_claim_ids)
-        view = ClaimView(
-            claims=rows,
-            scope=scope,
-            bound=None,
-            stances=stances,
-            conflicts=conflicts,
-        )
+        if isinstance(belief_space, _HistoricalQuerySpace):
+            with belief_space.historical_query(str(scope.commit)) as historical_space:
+                view = _claim_view_from_space(
+                    historical_space,
+                    scope=scope,
+                    claim_ids=minimal_claim_ids,
+                )
+        else:
+            view = _claim_view_from_space(
+                belief_space,
+                scope=scope,
+                claim_ids=minimal_claim_ids,
+            )
     else:
         full_ids = set(minimal_claim_ids) | set(fixture.claim_ids)
         rows = belief_space.claims_by_ids(full_ids)
@@ -158,6 +171,24 @@ def replay_at_step(
         )
     _CACHE[cache_key] = view
     return view
+
+
+def _claim_view_from_space(
+    belief_space: _ClaimLookupSpace,
+    *,
+    scope: RevisionScope,
+    claim_ids: frozenset[str],
+) -> ClaimView:
+    rows = belief_space.claims_by_ids(set(claim_ids))
+    stances = _stances_within_step(belief_space, claim_ids)
+    conflicts = _conflicts_within_step(belief_space, claim_ids)
+    return ClaimView(
+        claims=rows,
+        scope=scope,
+        bound=None,
+        stances=stances,
+        conflicts=conflicts,
+    )
 
 
 def _stances_within_step(
