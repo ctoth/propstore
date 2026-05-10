@@ -15,6 +15,7 @@ from propstore.support_revision.state import (
     EpistemicState,
     RevisionEpisode,
     RevisionEvent,
+    RevisionRealizationFailure,
     RevisionResult,
 )
 
@@ -89,6 +90,8 @@ def iterated_revise(
     max_candidates: int,
     conflicts: dict[str, tuple[str, ...] | list[str]] | None = None,
     operator: str = DEFAULT_ITERATED_OPERATOR,
+    policy_snapshot: Mapping[str, str] | None = None,
+    replay_status: str | None = None,
 ) -> tuple[RevisionResult, EpistemicState]:
     """Revise an explicit epistemic state using a selected iterated operator family."""
     if len(state.scope.merge_parent_commits) > 1:
@@ -110,15 +113,32 @@ def iterated_revise(
         operator=operator,
         max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
     )
-    result = realize_formal_decision(
-        state.base,
-        formal_decision,
-        extra_atoms=(normalized,),
-        accepted_reason="revised_in",
-        rejected_reason="revised_out",
-        support_entrenchment=current_entrenchment,
-        max_candidates=max_candidates,
-    )
+    targets = tuple(conflict_map.get(normalized.atom_id, ()))
+    try:
+        result = realize_formal_decision(
+            state.base,
+            formal_decision,
+            extra_atoms=(normalized,),
+            accepted_reason="revised_in",
+            rejected_reason="revised_out",
+            support_entrenchment=current_entrenchment,
+            max_candidates=max_candidates,
+        )
+    except Exception as exc:
+        from propstore.support_revision.history import EpistemicSnapshot
+
+        event = RevisionEvent(
+            operation=operator,
+            pre_state_hash=EpistemicSnapshot.from_state(state).content_hash,
+            input_atom_id=normalized.atom_id,
+            target_atom_ids=targets,
+            decision=formal_decision.report,
+            realization=None,
+            policy_snapshot={} if policy_snapshot is None else policy_snapshot,
+            replay_status="realization_failed",
+            realization_failure=str(exc),
+        )
+        raise RevisionRealizationFailure(event) from exc
     next_entrenchment = compute_entrenchment(None, result.revised_base)
     next_state = advance_epistemic_state(
         state,
@@ -126,7 +146,9 @@ def iterated_revise(
         next_entrenchment,
         operator=operator,
         input_atom_id=normalized.atom_id,
-        target_atom_ids=tuple(conflict_map.get(normalized.atom_id, ())),
+        target_atom_ids=targets,
+        policy_snapshot=policy_snapshot,
+        replay_status=replay_status,
     )
     return result, next_state
 
