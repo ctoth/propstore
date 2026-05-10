@@ -10,7 +10,13 @@ from propstore.support_revision.belief_set_adapter import (
 )
 from propstore.support_revision.input_normalization import normalize_revision_input
 from propstore.support_revision.realization import realize_formal_decision
-from propstore.support_revision.state import BeliefBase, EpistemicState, RevisionEpisode, RevisionResult
+from propstore.support_revision.state import (
+    BeliefBase,
+    EpistemicState,
+    RevisionEpisode,
+    RevisionEvent,
+    RevisionResult,
+)
 
 
 def make_epistemic_state(
@@ -37,8 +43,24 @@ def advance_epistemic_state(
     operator: str,
     input_atom_id: str | None = None,
     target_atom_ids: tuple[str, ...] = (),
+    policy_snapshot: Mapping[str, str] | None = None,
+    replay_status: str | None = None,
+    realization_failure: str | None = None,
 ) -> EpistemicState:
     """Advance one revision episode from an old epistemic state to a new one."""
+    from propstore.support_revision.history import EpistemicSnapshot
+
+    event = RevisionEvent(
+        operation=operator,
+        pre_state_hash=EpistemicSnapshot.from_state(state).content_hash,
+        input_atom_id=input_atom_id,
+        target_atom_ids=tuple(target_atom_ids),
+        decision=result.decision,
+        realization=result.realization,
+        policy_snapshot={} if policy_snapshot is None else policy_snapshot,
+        replay_status=replay_status,
+        realization_failure=realization_failure,
+    )
     episode = RevisionEpisode(
         operator=operator,
         input_atom_id=input_atom_id,
@@ -47,6 +69,7 @@ def advance_epistemic_state(
         rejected_atom_ids=tuple(result.rejected_atom_ids),
         incision_set=tuple(result.incision_set),
         explanation=dict(result.explanation),
+        event=event,
     )
     return EpistemicState(
         scope=result.revised_base.scope,
