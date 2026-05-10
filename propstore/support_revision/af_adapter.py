@@ -15,7 +15,7 @@ from propstore.core.row_types import (
 )
 from propstore.support_revision.state import EpistemicState
 from propstore.core.labels import Label, SupportQuality
-from propstore.support_revision.state import is_assertion_atom
+from propstore.support_revision.state import is_assertion_atom, is_assumption_atom
 
 
 @dataclass(frozen=True)
@@ -24,6 +24,9 @@ class RevisionArgumentationView:
     active_claim_ids: frozenset[str]
     active_claims: tuple[ActiveClaim, ...]
     support_metadata: Mapping[str, tuple[Label | None, SupportQuality]]
+    unmapped_atom_ids: tuple[str, ...] = ()
+    accepted_assumption_atom_ids: tuple[str, ...] = ()
+    revision_event_hashes: tuple[str, ...] = ()
 
 
 @runtime_checkable
@@ -117,10 +120,19 @@ def project_epistemic_state_argumentation_view(
     accepted_set = set(state.accepted_atom_ids)
     active_claims: list[ActiveClaim] = []
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
+    unmapped_atom_ids: list[str] = []
+    accepted_assumption_atom_ids: list[str] = []
 
     for atom in state.base.atoms:
-        if atom.atom_id not in accepted_set or not is_assertion_atom(atom):
+        if atom.atom_id not in accepted_set:
             continue
+        if is_assumption_atom(atom):
+            accepted_assumption_atom_ids.append(atom.atom_id)
+            continue
+        if not is_assertion_atom(atom):
+            continue
+        if not atom.source_claims:
+            unmapped_atom_ids.append(atom.atom_id)
         for claim in atom.source_claims:
             claim_id = str(claim.claim_id)
             active_claims.append(claim)
@@ -134,4 +146,16 @@ def project_epistemic_state_argumentation_view(
         active_claim_ids=frozenset(overlay._claims_by_id),
         active_claims=tuple(active_claims),
         support_metadata=support_metadata,
+        unmapped_atom_ids=tuple(sorted(unmapped_atom_ids)),
+        accepted_assumption_atom_ids=tuple(sorted(accepted_assumption_atom_ids)),
+        revision_event_hashes=_revision_event_hashes(state),
     )
+
+
+def _revision_event_hashes(state: EpistemicState) -> tuple[str, ...]:
+    event_hashes: list[str] = []
+    for episode in state.history:
+        if episode.event is None:
+            continue
+        event_hashes.append(episode.event.content_hash)
+    return tuple(event_hashes)
