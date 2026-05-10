@@ -17,6 +17,8 @@ named registered fixture; ``replay_at_step`` looks it up.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import cast
 
@@ -60,6 +62,21 @@ class SyntheticHeavyBeliefSpace(SyntheticBeliefSpace):
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
         return list(self.conflict_rows)
+
+
+class SyntheticHistoricalBeliefSpace(SyntheticBeliefSpace):
+    def __init__(self, historical_space: SyntheticHeavyBeliefSpace) -> None:
+        super().__init__()
+        self.historical_space = historical_space
+        self.requested_commits: list[str] = []
+
+    @contextmanager
+    def historical_query(
+        self,
+        commit_sha: str,
+    ) -> Iterator[SyntheticHeavyBeliefSpace]:
+        self.requested_commits.append(commit_sha)
+        yield self.historical_space
 
 
 def _claim_id(local_id: str) -> ClaimId:
@@ -187,6 +204,43 @@ def test_p_heavy_2b_unregistered_commit_derives_typed_rows_from_world_query_surf
     journal = _build_heavy_journal(atoms=(atom,), commit_sha="d" * 40)
 
     heavy = at_journal_step(space, journal, 0, heavy=True)
+    assert heavy.claim_ids() == {str(_claim_id("c1")), str(_claim_id("c2"))}
+    assert heavy.stances == (stance,)
+    assert heavy.conflicts == (conflict,)
+
+
+def test_p_heavy_2c_unregistered_commit_uses_historical_query_surface() -> None:
+    """Repository-backed heavy replay reads the commit-scoped query surface."""
+    from propstore.world import journal_replay
+
+    atom = make_assertion_atom(
+        relation_local="r",
+        subject="s",
+        value="v",
+        source_claim_local_ids=("c1", "c2"),
+    )
+    base_space = synthetic_belief_space_with(atom)
+    stance = StanceRow(
+        claim_id=_claim_id("c1"),
+        target_claim_id=_claim_id("c2"),
+        stance_type=StanceType.SUPPORTS,
+    )
+    conflict = ConflictRow(
+        claim_a_id=_claim_id("c1"),
+        claim_b_id=_claim_id("c2"),
+    )
+    historical_space = SyntheticHeavyBeliefSpace(
+        rows=base_space.rows,
+        stance_rows=(stance,),
+        conflict_rows=(conflict,),
+    )
+    space = SyntheticHistoricalBeliefSpace(historical_space)
+    commit_sha = "e" * 40
+    journal = _build_heavy_journal(atoms=(atom,), commit_sha=commit_sha)
+
+    journal_replay.reset_cache()
+    heavy = at_journal_step(space, journal, 0, heavy=True)
+    assert space.requested_commits == [commit_sha]
     assert heavy.claim_ids() == {str(_claim_id("c1")), str(_claim_id("c2"))}
     assert heavy.stances == (stance,)
     assert heavy.conflicts == (conflict,)
