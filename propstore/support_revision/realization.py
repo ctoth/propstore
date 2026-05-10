@@ -119,6 +119,7 @@ def stabilize_belief_base(
                     RevisionAtomDetail(
                         reason="incised",
                         incision_set=incised,
+                        selection_rule="minimal_support_incision",
                     ),
                 )
                 continue
