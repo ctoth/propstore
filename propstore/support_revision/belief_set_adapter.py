@@ -346,7 +346,6 @@ def _trace_payload(
     return {
         "operator": outcome.trace.operator,
         "pre_image_fingerprint": outcome.trace.pre_image_fingerprint,
-        "timestamp": outcome.trace.timestamp.isoformat(),
     }
 
 
