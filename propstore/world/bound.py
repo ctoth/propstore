@@ -64,7 +64,16 @@ from propstore.world.types import (
     ValueResult,
     coerce_queryable_assumptions,
 )
-from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR
+from propstore.support_revision.belief_set_adapter import (
+    DEFAULT_ITERATED_OPERATOR,
+    DEFAULT_MAX_ALPHABET_SIZE,
+    decide_contract,
+    decide_expand,
+    decide_revise,
+)
+from propstore.support_revision.input_normalization import normalize_revision_input
+from propstore.support_revision.realization import realize_formal_decision
+from propstore.support_revision.state import AssumptionAtom, AssertionAtom
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
@@ -510,9 +519,19 @@ class BoundWorld(BeliefSpace):
 
     def expand(self, atom):
         """Expand the scoped revision belief base without mutating source storage."""
-        from propstore.support_revision.belief_dynamics import expand_belief_base
-
-        return expand_belief_base(self.revision_base(), atom)
+        base = self.revision_base()
+        normalized = normalize_revision_input(base, atom)
+        decision = decide_expand(
+            base,
+            normalized,
+            max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
+        )
+        return realize_formal_decision(
+            base,
+            decision,
+            extra_atoms=(normalized,),
+            accepted_reason="expanded",
+        )
 
     def contract(
         self,
@@ -522,12 +541,18 @@ class BoundWorld(BeliefSpace):
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
         """Contract the scoped revision belief base using the current entrenchment."""
-        from propstore.support_revision.belief_dynamics import contract_belief_base
-
-        return contract_belief_base(
-            self.revision_base(),
-            targets,
-            entrenchment=self.revision_entrenchment(overrides=overrides),
+        base = self.revision_base()
+        target_ids = _normalize_revision_targets(base, targets)
+        decision = decide_contract(
+            base,
+            target_ids,
+            max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
+        )
+        return realize_formal_decision(
+            base,
+            decision,
+            rejected_reason="contracted",
+            support_entrenchment=self.revision_entrenchment(overrides=overrides),
             max_candidates=max_candidates,
         )
 
@@ -540,14 +565,22 @@ class BoundWorld(BeliefSpace):
         conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
     ):
         """Revise the scoped belief base by delegating to the revision package."""
-        from propstore.support_revision.belief_dynamics import revise_belief_base
-
-        return revise_belief_base(
-            self.revision_base(),
-            atom,
-            entrenchment=self.revision_entrenchment(overrides=overrides),
+        base = self.revision_base()
+        normalized = normalize_revision_input(base, atom)
+        decision = decide_revise(
+            base,
+            normalized,
+            conflicts=_conflicts_for_revision_atom(normalized.atom_id, conflicts),
+            max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
+        )
+        return realize_formal_decision(
+            base,
+            decision,
+            extra_atoms=(normalized,),
+            accepted_reason="revised_in",
+            rejected_reason="revised_out",
+            support_entrenchment=self.revision_entrenchment(overrides=overrides),
             max_candidates=max_candidates,
-            conflicts=conflicts,
         )
 
     def revision_explain(
@@ -1181,3 +1214,24 @@ class BoundWorld(BeliefSpace):
     def _require_atms_backend(self) -> None:
         if self._reasoning_backend() != "atms":
             raise ValueError("Future ATMS analysis requires backend='atms'")
+
+
+def _normalize_revision_targets(base, targets) -> tuple[str, ...]:
+    if isinstance(targets, (str, Mapping)):
+        return (normalize_revision_input(base, targets).atom_id,)
+    if isinstance(targets, tuple) and len(targets) == 0:
+        return ()
+    if isinstance(targets, list) and len(targets) == 0:
+        return ()
+    if isinstance(targets, Sequence) and not isinstance(targets, (AssertionAtom, AssumptionAtom)):
+        return tuple(normalize_revision_input(base, target).atom_id for target in targets)
+    return (normalize_revision_input(base, targets).atom_id,)
+
+
+def _conflicts_for_revision_atom(
+    atom_id: str,
+    conflicts: Mapping[str, Sequence[str]] | None,
+) -> tuple[str, ...]:
+    if conflicts is None:
+        return ()
+    return tuple(str(conflict) for conflict in conflicts.get(atom_id, ()))
