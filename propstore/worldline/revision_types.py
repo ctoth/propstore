@@ -8,6 +8,7 @@ from propstore.worldline.result_types import (
     WorldlineCaptureError,
     coerce_worldline_capture_error,
 )
+from propstore.support_revision.state import RevisionEvent
 
 
 def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
@@ -181,6 +182,7 @@ class WorldlineRevisionState:
     state: Any | None = None
     status: str | None = None
     error: WorldlineCaptureError | None = None
+    event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
@@ -199,6 +201,9 @@ class WorldlineRevisionState:
             raise ValueError("worldline revision field 'result' must be a mapping")
         if state_data is not None and not isinstance(state_data, Mapping):
             raise ValueError("worldline revision field 'state' must be a mapping")
+        event_data = payload.get("event")
+        if event_data is not None and not isinstance(event_data, Mapping):
+            raise ValueError("worldline revision field 'event' must be a mapping")
         return cls(
             operation=str(payload.get("operation") or ""),
             input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
@@ -207,6 +212,7 @@ class WorldlineRevisionState:
             state=None if state_data is None else dict(state_data),
             status=None if payload.get("status") is None else str(payload.get("status")),
             error=coerce_worldline_capture_error(payload.get("error")),
+            event=None if event_data is None else RevisionEvent.from_mapping(event_data),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -224,6 +230,8 @@ class WorldlineRevisionState:
             data["status"] = self.status
         if self.error is not None:
             data["error"] = self.error.value
+        if self.event is not None:
+            data["event"] = self.event.to_dict()
         return data
 
 
