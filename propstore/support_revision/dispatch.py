@@ -212,6 +212,9 @@ def _required_policy_snapshot(value: Mapping[str, str]) -> None:
     missing = sorted(required - set(value))
     if missing:
         raise ValueError(f"journal dispatch missing policy versions: {', '.join(missing)}")
+    empty = sorted(key for key in required if not str(value.get(key) or "").strip())
+    if empty:
+        raise ValueError(f"journal dispatch empty policy versions: {', '.join(empty)}")
 
 
 def _raise_realization_failure(
