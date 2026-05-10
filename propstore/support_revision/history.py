@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any
 
@@ -226,6 +226,10 @@ class TransitionJournalEntry:
         explanation: Mapping[str, RevisionAtomDetail],
         policy_payload: Mapping[str, Any] | None = None,
     ) -> TransitionJournalEntry:
+        journal_state_out = _state_with_journal_event_policy(
+            state_out,
+            version_policy_snapshot=version_policy_snapshot,
+        )
         return cls(
             state_in=EpistemicSnapshot.from_state(state_in),
             operation=operation,
@@ -234,8 +238,8 @@ class TransitionJournalEntry:
             operator_input=operator_input,
             version_policy_snapshot=version_policy_snapshot,
             normalized_state_in=state_in.to_canonical_dict(),
-            normalized_state_out=state_out.to_canonical_dict(),
-            state_out=EpistemicSnapshot.from_state(state_out),
+            normalized_state_out=journal_state_out.to_canonical_dict(),
+            state_out=EpistemicSnapshot.from_state(journal_state_out),
             explanation=explanation,
             policy_payload={} if policy_payload is None else policy_payload,
         )
@@ -315,6 +319,28 @@ class TransitionJournalEntry:
                 for atom_id, detail in self.explanation.items()
             },
         }
+
+
+def _state_with_journal_event_policy(
+    state: EpistemicState,
+    *,
+    version_policy_snapshot: Mapping[str, str],
+) -> EpistemicState:
+    if not state.history:
+        return state
+    latest = state.history[-1]
+    if latest.event is None:
+        return state
+    event = latest.event
+    if event.policy_snapshot == dict(version_policy_snapshot) and event.replay_status == "replayed":
+        return state
+    updated_event = replace(
+        event,
+        policy_snapshot=version_policy_snapshot,
+        replay_status="replayed",
+    )
+    updated_latest = replace(latest, event=updated_event)
+    return replace(state, history=state.history[:-1] + (updated_latest,))
 
 
 @dataclass(frozen=True)
