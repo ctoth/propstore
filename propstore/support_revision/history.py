@@ -427,6 +427,10 @@ class TransitionJournal:
         errors: list[str] = []
         for index, entry in enumerate(self.entries):
             checked.append(entry.content_hash)
+            policy_error = _entry_event_policy_error(entry)
+            if policy_error is not None:
+                errors.append(f"entry {index} {policy_error}")
+                continue
             try:
                 replayed_state = dispatch(
                     entry.operator,
@@ -454,6 +458,19 @@ class TransitionJournal:
             divergences=tuple(divergences),
             errors=tuple(errors),
         )
+
+
+def _entry_event_policy_error(entry: TransitionJournalEntry) -> str | None:
+    history = entry.state_out.state.history
+    if not history:
+        return None
+    event = history[-1].event
+    if event is None:
+        return None
+    expected = {str(key): str(value) for key, value in entry.version_policy_snapshot.items()}
+    if dict(event.policy_snapshot) != expected:
+        return "policy snapshot mismatch between revision event and journal entry"
+    return None
 
 
 @dataclass(frozen=True)
