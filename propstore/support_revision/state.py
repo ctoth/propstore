@@ -394,7 +394,7 @@ class RevisionMergeRequiredFailure(ValueError):
     ) -> None:
         self.reason = str(reason)
         self.parent_commits = tuple(str(commit) for commit in parent_commits)
-        message = self.reason
+        message = "merge point requires IC merge" if self.reason == "merge_required" else self.reason
         if self.parent_commits:
             message += f": {', '.join(self.parent_commits)}"
         super().__init__(message)
