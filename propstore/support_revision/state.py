@@ -385,6 +385,21 @@ class RevisionRealizationFailure(RuntimeError):
         self.event = event
 
 
+class RevisionMergeRequiredFailure(RuntimeError):
+    def __init__(
+        self,
+        *,
+        reason: str = "merge_required",
+        parent_commits: tuple[str, ...] = (),
+    ) -> None:
+        self.reason = str(reason)
+        self.parent_commits = tuple(str(commit) for commit in parent_commits)
+        message = self.reason
+        if self.parent_commits:
+            message += f": {', '.join(self.parent_commits)}"
+        super().__init__(message)
+
+
 @dataclass(frozen=True)
 class RevisionEpisode:
     operator: str
