@@ -385,7 +385,7 @@ class RevisionRealizationFailure(RuntimeError):
         self.event = event
 
 
-class RevisionMergeRequiredFailure(RuntimeError):
+class RevisionMergeRequiredFailure(ValueError):
     def __init__(
         self,
         *,
