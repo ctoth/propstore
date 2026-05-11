@@ -91,6 +91,15 @@ def _init_source(repo: Repository, runner: CliRunner, name: str) -> None:
     assert result.exit_code == 0, result.output
 
 
+def _promoted_claims(repo: Repository, source_name: str) -> list[dict]:
+    claims: list[dict] = []
+    for handle in repo.families.claims.iter_handles():
+        source = handle.document.source
+        if source is not None and source.paper == source_name:
+            claims.append(handle.document.to_payload())
+    return claims
+
+
 def _propose_claims_identical(repo: Repository, runner: CliRunner, source_name: str) -> None:
     result = runner.invoke(
         cli,
@@ -297,8 +306,7 @@ def test_promote_accepts_justification_reference_to_master_claim(
         ],
     )
     _finalize_and_promote(repo, runner, "base")
-    master_claims = yaml.safe_load(repo.git.read_file("claims/base.yaml"))
-    master_claim_id = master_claims["claims"][0]["artifact_id"]
+    master_claim_id = _promoted_claims(repo, "base")[0]["artifact_id"]
 
     _init_source(repo, runner, "demo")
     _propose_claims_identical(repo, runner, "demo")
