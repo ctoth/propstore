@@ -60,6 +60,7 @@ from tests.conftest import (
     normalize_claims_payload,
     normalize_concept_payloads,
 )
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -131,6 +132,24 @@ def _write_concept(concepts_dir: Path, name: str, data: dict) -> Path:
 
 def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
     claims_dir.mkdir(parents=True, exist_ok=True)
+    if isinstance(data.get("claims"), list):
+        repo = Repository.find(claims_dir.parent)
+        written_paths: list[Path] = []
+        for relative_path, content in claim_artifact_commit_payloads(
+            repo,
+            normalize_claims_payload(data),
+            source=f"claims/{filename}",
+        ).items():
+            path = repo.root / relative_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+            written_paths.append(path)
+        aggregate_path = claims_dir / filename
+        if aggregate_path.exists():
+            aggregate_path.unlink()
+        if not written_paths:
+            raise ValueError(f"{filename} did not produce claim artifacts")
+        return written_paths[0]
     path = claims_dir / filename
     path.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False))
     return path
@@ -138,10 +157,17 @@ def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
 
 def _commit_workspace_paths(workspace: Path, relpaths: list[str], message: str = "Sync test changes") -> None:
     repo = Repository.find(workspace / "knowledge")
-    adds = {
-        relpath: (workspace / "knowledge" / Path(relpath)).read_bytes()
-        for relpath in relpaths
-    }
+    adds: dict[str, bytes] = {}
+    for relpath in relpaths:
+        path = workspace / "knowledge" / Path(relpath)
+        if path.exists():
+            adds[relpath] = path.read_bytes()
+            continue
+        if relpath.startswith("claims/"):
+            for claim_path in sorted((workspace / "knowledge" / "claims").glob("*.yaml")):
+                adds[claim_path.relative_to(workspace / "knowledge").as_posix()] = claim_path.read_bytes()
+            continue
+        raise FileNotFoundError(path)
     repo.git.commit_files(adds, message)
     repo.git.sync_worktree()
 
@@ -267,7 +293,7 @@ def freq_workspace(workspace: Path) -> Path:
         yaml.dump(freq_form, default_flow_style=False))
 
     claims_dir = workspace / "knowledge" / "claims"
-    _write_claim_file(claims_dir, "freq_paper.yaml", {
+    _write_claim_file(claims_dir, "freq_paper.yaml", _normalize_claim_concept_refs({
         "source": {"paper": "freq_paper"},
         "claims": [
             {
@@ -279,9 +305,7 @@ def freq_workspace(workspace: Path) -> Path:
                 "provenance": {"paper": "freq_paper", "page": 1},
             }
         ],
-    })
-    normalized_freq_claims = _normalize_claim_concept_refs(yaml.safe_load((claims_dir / "freq_paper.yaml").read_text()))
-    (claims_dir / "freq_paper.yaml").write_text(yaml.dump(normalized_freq_claims, default_flow_style=False, sort_keys=False))
+    }))
     _commit_workspace_paths(
         workspace,
         ["forms/frequency.yaml", "claims/freq_paper.yaml"],
@@ -505,7 +529,7 @@ class TestConceptRename:
         _commit_workspace_paths(workspace, ["concepts/fundamental_frequency.yaml"], "Seed concept relationship edit")
 
         claims_dir = workspace / "knowledge" / "claims"
-        _write_claim_file(
+        claim_path = _write_claim_file(
             claims_dir,
             "paper.yaml",
             _normalize_claim_concept_refs({
@@ -535,8 +559,9 @@ class TestConceptRename:
         renamed_concept = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
         assert renamed_concept["relationships"][0]["conditions"] == ["vocal_task == 'speech'"]
 
-        claim_data = _read_repo_yaml(workspace, "claims/paper.yaml")
-        assert claim_data["claims"][0]["conditions"] == ["vocal_task == 'speech'"]
+        claim_relpath = claim_path.relative_to(workspace / "knowledge").as_posix()
+        claim_data = _read_repo_yaml(workspace, claim_relpath)
+        assert claim_data["conditions"] == ["vocal_task == 'speech'"]
 
 
 # ── concept deprecate ────────────────────────────────────────────────
@@ -1191,10 +1216,13 @@ class TestClaimValidateFile:
                 "concept": "fundamental_frequency",
                 "value": 440.0,
                 "unit": "Hz",
-                "provenance": {"paper": "test_paper"},  # missing page
+                "provenance": {"paper": "test_paper", "page": 1},
             }],
         }
         filepath = _write_claim_file(claims_dir, "bad.yaml", _normalize_claim_concept_refs(bad_claim))
+        artifact_payload = yaml.safe_load(filepath.read_text())
+        artifact_payload["provenance"].pop("page")
+        filepath.write_text(yaml.dump(artifact_payload, default_flow_style=False, sort_keys=False))
 
         runner = CliRunner()
         result = runner.invoke(cli, ["claim", "validate-file", str(filepath)])
