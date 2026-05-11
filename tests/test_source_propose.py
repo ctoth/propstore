@@ -8,7 +8,6 @@ from click.testing import CliRunner
 import pytest
 
 from propstore.cli import cli
-from propstore.families.registry import ClaimsFileRef
 from propstore.repository import Repository
 from tests.family_helpers import build_sidecar
 
@@ -569,7 +568,7 @@ def test_propose_stance_resolves_cross_source_target_to_artifact_id(
         ["-C", str(repo.root), "source", "promote", "other"],
     )
     assert promote.exit_code == 0, promote.output
-    other_claim = repo.families.claims.require(ClaimsFileRef("other")).claims[0]
+    other_claim = next(handle.document for handle in repo.families.claims.iter_handles())
     assert isinstance(other_claim.artifact_id, str)
 
     assert _init_source(runner, repo, "demo").exit_code == 0

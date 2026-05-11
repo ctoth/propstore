@@ -7,7 +7,7 @@ from quire.family_store import DocumentFamilyStore
 
 from propstore.families.registry import (
     SourceRef,
-    ClaimsFileRef,
+    ClaimRef,
     ConceptFileRef,
     WorldlineRef,
 )
@@ -192,13 +192,13 @@ def test_artifact_store_derives_refs_from_paths_and_loaded_objects(tmp_path: Pat
     repo = Repository.init(tmp_path / "knowledge")
 
     concept_ref = repo.families.concepts.ref_from_path("concepts/demo.yaml")
-    claims_ref = repo.families.claims.ref_from_path(str(Path("claims/paper.yaml")))
+    claims_ref = repo.families.claims.ref_from_path(str(Path("claims/ps__claim__a.yaml")))
 
     assert concept_ref == ConceptFileRef("demo")
-    assert claims_ref == ClaimsFileRef("paper")
+    assert claims_ref == ClaimRef("ps:claim:a")
 
     loaded_concept = SimpleNamespace(artifact_path=repo.tree() / "concepts" / "demo.yaml")
-    loaded_claims = SimpleNamespace(artifact_path=repo.tree() / "claims" / "paper.yaml")
+    loaded_claims = SimpleNamespace(artifact_path=repo.tree() / "claims" / "ps__claim__a.yaml")
 
     assert repo.families.concepts.ref_from_loaded(loaded_concept) == ConceptFileRef("demo")
-    assert repo.families.claims.ref_from_loaded(loaded_claims) == ClaimsFileRef("paper")
+    assert repo.families.claims.ref_from_loaded(loaded_claims) == ClaimRef("ps:claim:a")

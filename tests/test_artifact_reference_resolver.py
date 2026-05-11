@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.families.registry import ClaimsFileRef, SourceRef
+from propstore.families.registry import ClaimRef, SourceRef
 from propstore.claim_references import (
     ClaimReferenceIndex,
     ClaimReferenceResolver,
@@ -10,7 +10,7 @@ from propstore.claim_references import (
     load_primary_branch_claim_reference_index,
     load_source_claim_reference_index,
 )
-from propstore.families.claims.documents import ClaimDocument, ClaimLogicalIdDocument, ClaimSourceDocument, ClaimsFileDocument
+from propstore.families.claims.documents import ClaimDocument, ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.families.contexts.documents import ContextReferenceDocument
 from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
@@ -49,23 +49,19 @@ def test_load_source_claim_reference_index_reads_source_claim_artifacts(tmp_path
     assert index.artifact_ids == {"ps:claim:a"}
 
 
-def test_load_primary_branch_claim_reference_index_reads_canonical_claim_files(tmp_path) -> None:
+def test_load_primary_branch_claim_reference_index_reads_canonical_claim_artifacts(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     repo.families.claims.save(
-        ClaimsFileRef("paper"),
-        ClaimsFileDocument(
+        ClaimRef("ps:claim:a"),
+        ClaimDocument(
             source=ClaimSourceDocument(paper="paper"),
-            claims=(
-                ClaimDocument(
-                    context=ContextReferenceDocument(id="ctx_test"),
-                    artifact_id="ps:claim:a",
-                    logical_ids=(ClaimLogicalIdDocument(namespace="paper", value="claim_a"),),
-                    type=ClaimType.OBSERVATION,
-                    statement="A",
-                    provenance=SourceProvenanceDocument(paper="paper", page=1),
-                ),
-            ),
+            context=ContextReferenceDocument(id="ctx_test"),
+            artifact_id="ps:claim:a",
+            logical_ids=(ClaimLogicalIdDocument(namespace="paper", value="claim_a"),),
+            type=ClaimType.OBSERVATION,
+            statement="A",
+            provenance=SourceProvenanceDocument(paper="paper", page=1),
         ),
         message="Write canonical claims",
     )
