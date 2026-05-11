@@ -563,6 +563,7 @@ class IstPropositionDocument(DocumentStruct, tag="ist", tag_field="kind"):
 class ClaimDocument(DocumentStruct):
     context: ContextReferenceDocument
     proposition: AtomicPropositionDocument | IstPropositionDocument | None = None
+    source: ClaimSourceDocument | None = None
     artifact_id: str | None = None
     artifact_code: str | None = None
     logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
@@ -606,6 +607,8 @@ class ClaimDocument(DocumentStruct):
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {}
+        if self.source is not None:
+            payload["source"] = self.source.to_payload()
         if self.artifact_id is not None:
             payload["artifact_id"] = self.artifact_id
         if self.artifact_code is not None:

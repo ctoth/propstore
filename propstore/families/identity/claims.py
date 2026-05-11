@@ -9,7 +9,7 @@ from quire.hashing import canonical_json_sha256
 
 from propstore.families.identity import logical_ids
 
-CLAIM_VERSION_ID_EXCLUDED_FIELDS = ("artifact_id", "version_id", "id", "source_local_id")
+CLAIM_VERSION_ID_EXCLUDED_FIELDS = ("artifact_id", "version_id", "id", "source_local_id", "source")
 CLAIM_SOURCE_LOCAL_FIELDS = ("id", "source_local_id", "artifact_code")
 DEFAULT_CLAIM_NAMESPACE = "source"
 DEFAULT_CLAIM_HANDLE_PREFIX = "claim"
