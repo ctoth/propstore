@@ -26,6 +26,15 @@ def _init_source(runner: CliRunner, repo: Repository, name: str = "demo"):
     )
 
 
+def _promoted_claims(repo: Repository, source_name: str) -> list[dict]:
+    claims: list[dict] = []
+    for handle in repo.families.claims.iter_handles():
+        source = handle.document.source
+        if source is not None and source.paper == source_name:
+            claims.append(handle.document.to_payload())
+    return claims
+
+
 def _seed_forms(repo: Repository, form_names: list[str]) -> None:
     """Commit minimal form YAML files to master so form validation passes."""
     adds = {}
@@ -147,8 +156,7 @@ def test_propose_claim_observation(tmp_path: Path) -> None:
     source_claim = source_claims["claims"][0]
     assert source_claim["source_local_id"] == "claim1"
 
-    promoted_claims = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
-    promoted_claim = promoted_claims["claims"][0]
+    promoted_claim = _promoted_claims(repo, "demo")[0]
     claim_id = promoted_claim["artifact_id"]
     assert promoted_claim["artifact_id"] == source_claim["artifact_id"]
     assert promoted_claim["statement"] == "Water boils at 100C."
