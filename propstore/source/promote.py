@@ -43,7 +43,7 @@ from propstore.families.claims.passes import run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles
 from propstore.families.registry import (
     CanonicalSourceRef,
-    ClaimsFileRef,
+    ClaimRef,
     ConceptFileRef,
     JustificationRef,
     MicropublicationRef,
@@ -55,7 +55,7 @@ from propstore.families.concepts.stages import (
     LoadedConcept,
     parse_concept_record_document,
 )
-from propstore.families.claims.documents import ClaimsFileDocument
+from propstore.families.claims.documents import ClaimDocument
 from propstore.families.contexts.stages import parse_context_record_document
 from propstore.families.documents.micropubs import MicropublicationDocument, MicropublicationsFileDocument
 from propstore.families.documents.justifications import JustificationDocument
@@ -118,8 +118,7 @@ class PromotionResult:
 def _validate_promoted_claims_before_commit(
     repo: Repository,
     *,
-    claims_ref: ClaimsFileRef,
-    promoted_claims_document: ClaimsFileDocument,
+    promoted_claim_documents: dict[ClaimRef, ClaimDocument],
     promoted_concept_documents: dict[ConceptFileRef, ConceptDocument],
 ) -> None:
     """Validate the canonical claim view that promotion is about to commit."""
@@ -164,16 +163,17 @@ def _validate_promoted_claims_before_commit(
     claim_files: list[ClaimFileEntry] = [
         handle
         for handle in repo.families.claims.iter_handles(commit=head_sha)
-        if handle.ref.name != claims_ref.name
+        if handle.ref not in promoted_claim_documents
     ]
-    claim_files.append(
-        loaded_claim_file_from_payload(
-            filename=claims_ref.name,
-            source_path=tree / repo.families.claims.address(claims_ref).require_path(),
-            data=promoted_claims_document.to_payload(),
-            knowledge_root=tree,
+    for claim_ref, claim_document in promoted_claim_documents.items():
+        claim_files.append(
+            loaded_claim_file_from_payload(
+                filename=claim_ref.artifact_id,
+                source_path=tree / repo.families.claims.address(claim_ref).require_path(),
+                data=claim_document.to_payload(),
+                knowledge_root=tree,
+            )
         )
-    )
 
     compilation_context = build_compilation_context_from_loaded(
         concepts,
@@ -997,25 +997,39 @@ def promote_source_branch(
         )
 
     source_ref = CanonicalSourceRef(slug)
-    claims_ref = ClaimsFileRef(slug)
     promoted_source_document = convert_document_value(
         promoted_source_doc,
         SourceDocument,
         source=repo.families.sources.address(source_ref).require_path(),
     )
-    promoted_claims_document = convert_document_value(
-        promoted_claims_doc,
-        ClaimsFileDocument,
-        source=repo.families.claims.address(claims_ref).require_path(),
+    promoted_claim_documents: dict[ClaimRef, ClaimDocument] = {}
+    raw_promoted_claim_documents = promoted_claims_doc.get("claims")
+    promoted_claim_document_payloads = (
+        raw_promoted_claim_documents
+        if isinstance(raw_promoted_claim_documents, list)
+        else []
     )
+    for claim in promoted_claim_document_payloads:
+        if not isinstance(claim, dict):
+            continue
+        artifact_id = claim.get("artifact_id")
+        if not isinstance(artifact_id, str) or not artifact_id:
+            raise ValueError("promoted claim is missing artifact_id")
+        claim_payload = dict(claim)
+        claim_payload.setdefault("source", {"paper": promoted_source_paper})
+        claim_ref = ClaimRef(artifact_id)
+        promoted_claim_documents[claim_ref] = convert_document_value(
+            claim_payload,
+            ClaimDocument,
+            source=repo.families.claims.address(claim_ref).require_path(),
+        )
     promoted_concept_plan_documents = {
         ConceptFileRef(concept_slug): concept_document
         for concept_slug, concept_document in promoted_concept_documents.items()
     }
     _validate_promoted_claims_before_commit(
         repo,
-        claims_ref=claims_ref,
-        promoted_claims_document=promoted_claims_document,
+        promoted_claim_documents=promoted_claim_documents,
         promoted_concept_documents=promoted_concept_plan_documents,
     )
     promoted_justification_documents: dict[JustificationRef, JustificationDocument] = {}
@@ -1049,9 +1063,8 @@ def promote_source_branch(
         slug=slug,
         source_branch=source_branch_name(source_name),
         source_ref=source_ref,
-        claims_ref=claims_ref,
         promoted_source_document=promoted_source_document,
-        promoted_claims_document=promoted_claims_document,
+        promoted_claim_documents=promoted_claim_documents,
         promoted_micropub_documents=promoted_micropub_documents,
         promoted_concept_documents=promoted_concept_plan_documents,
         promoted_justification_documents=promoted_justification_documents,
@@ -1081,10 +1094,11 @@ def promote_source_branch(
                     promotion_plan.source_ref,
                     promotion_plan.promoted_source_document,
                 )
-                transaction.claims.save(
-                    promotion_plan.claims_ref,
-                    promotion_plan.promoted_claims_document,
-                )
+                for claim_ref, claim_document in promotion_plan.promoted_claim_documents.items():
+                    transaction.claims.save(
+                        claim_ref,
+                        claim_document,
+                    )
                 for micropub_ref, micropub_document in promotion_plan.promoted_micropub_documents.items():
                     transaction.micropubs.save(
                         micropub_ref,

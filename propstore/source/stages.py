@@ -12,7 +12,7 @@ from quire.family_store import DocumentFamilyStore
 
 from propstore.families.addresses import SemanticFamilyAddress
 from propstore.claim_references import ImportedClaimHandleIndex
-from propstore.families.claims.documents import ClaimsFileDocument
+from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.justifications import JustificationDocument
@@ -23,7 +23,7 @@ from propstore.families.documents.sources import (
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.registry import (
     CanonicalSourceRef,
-    ClaimsFileRef,
+    ClaimRef,
     ConceptFileRef,
     JustificationRef,
     MicropublicationRef,
@@ -73,9 +73,10 @@ class SourcePromotionPlan:
     slug: str
     source_branch: str
     source_ref: CanonicalSourceRef
-    claims_ref: ClaimsFileRef
     promoted_source_document: SourceDocument
-    promoted_claims_document: ClaimsFileDocument
+    promoted_claim_documents: dict[ClaimRef, ClaimDocument] = field(
+        default_factory=dict
+    )
     promoted_micropub_documents: dict[MicropublicationRef, MicropublicationDocument] = field(
         default_factory=dict
     )
