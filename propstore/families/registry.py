@@ -37,6 +37,7 @@ from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.documents import ContextDocument
 from propstore.families.forms.documents import FormDocument
+from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.merge import MergeManifestDocument
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
 from propstore.families.documents.predicates import PredicateProposalDocument, PredicatesFileDocument
@@ -111,8 +112,8 @@ if TYPE_CHECKING:
         name: str
 
     @dataclass(frozen=True)
-    class JustificationsFileRef:
-        name: str
+    class JustificationRef:
+        artifact_id: str
 
     @dataclass(frozen=True)
     class PredicateFileRef:
@@ -186,7 +187,7 @@ if not TYPE_CHECKING:
     ClaimsFileRef = single_field_ref_type("ClaimsFileRef", "name", module=__name__)
     MicropubsFileRef = single_field_ref_type("MicropubsFileRef", "name", module=__name__)
     ConceptFileRef = single_field_ref_type("ConceptFileRef", "name", module=__name__)
-    JustificationsFileRef = single_field_ref_type("JustificationsFileRef", "name", module=__name__)
+    JustificationRef = single_field_ref_type("JustificationRef", "artifact_id", module=__name__)
     PredicateFileRef = single_field_ref_type("PredicateFileRef", "name", module=__name__)
     RuleFileRef = single_field_ref_type("RuleFileRef", "name", module=__name__)
 
@@ -339,10 +340,11 @@ MICROPUBS_FILE_PLACEMENT = FlatYamlPlacement["Repository", MicropubsFileRef](
     ref_field="name",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-JUSTIFICATIONS_FILE_PLACEMENT = FlatYamlPlacement["Repository", JustificationsFileRef](
+JUSTIFICATION_PLACEMENT = FlatYamlPlacement["Repository", JustificationRef](
     "justifications",
-    JustificationsFileRef,
-    ref_field="name",
+    JustificationRef,
+    ref_field="artifact_id",
+    codec="colon_to_double_underscore",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
 PROPOSAL_STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceRef](
@@ -536,11 +538,11 @@ MICROPUBS_FILE_FAMILY = ArtifactFamily["Repository", MicropubsFileRef, Micropubl
     placement=MICROPUBS_FILE_PLACEMENT,
 )
 
-JUSTIFICATIONS_FILE_FAMILY = ArtifactFamily["Repository", JustificationsFileRef, SourceJustificationsDocument](
-    name="justifications_file",
+JUSTIFICATION_FAMILY = ArtifactFamily["Repository", JustificationRef, JustificationDocument](
+    name="justification",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=SourceJustificationsDocument,
-    placement=JUSTIFICATIONS_FILE_PLACEMENT,
+    doc_type=JustificationDocument,
+    placement=JUSTIFICATION_PLACEMENT,
 )
 
 PROPOSAL_STANCE_FAMILY = ArtifactFamily["Repository", StanceRef, StanceDocument](
@@ -783,8 +785,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.JUSTIFICATIONS,
             name=PropstoreFamily.JUSTIFICATIONS.value,
-            contract_version=JUSTIFICATIONS_FILE_FAMILY.contract_version,
-            artifact_family=JUSTIFICATIONS_FILE_FAMILY,
+            contract_version=JUSTIFICATION_FAMILY.contract_version,
+            artifact_family=JUSTIFICATION_FAMILY,
         ),
         FamilyDefinition(
             key=PropstoreFamily.SOURCE_DOCUMENTS,
