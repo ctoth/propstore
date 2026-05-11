@@ -3,13 +3,13 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-import yaml
-
 from propstore.families.claims.stages import ClaimStage
 from propstore.families.registry import PropstoreFamily
 from propstore.repository import Repository
 from propstore.semantic_passes.types import PassDiagnostic, PipelineResult
 from propstore.sidecar.build import build_sidecar
+from tests.conftest import normalize_claims_payload
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def test_claim_pipeline_none_quarantines_not_raises(
@@ -17,13 +17,26 @@ def test_claim_pipeline_none_quarantines_not_raises(
     monkeypatch,
 ) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.git.commit_files(
+    claim_payload = normalize_claims_payload(
         {
-            "claims/bad_claims.yaml": yaml.dump(
-                {"source": {"paper": "bad_claims"}, "claims": []},
-                sort_keys=False,
-            ).encode(),
-        },
+            "source": {"paper": "bad_claims"},
+            "claims": [
+                {
+                    "id": "bad",
+                    "type": "observation",
+                    "context": {"id": "ctx_test"},
+                    "statement": "Claim pipeline should quarantine this artifact.",
+                    "provenance": {"paper": "bad_claims", "page": 1},
+                }
+            ],
+        }
+    )
+    repo.git.commit_files(
+        claim_artifact_commit_payloads(
+            repo,
+            claim_payload,
+            source="claims/bad_claims.yaml",
+        ),
         "seed claim pipeline quarantine test",
     )
     sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
