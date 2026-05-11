@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import pytest
+
 from propstore.support_revision.belief_set_adapter import decide_ic_merge_profile
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.history import JournalOperator
 from propstore.support_revision.iterated import make_epistemic_state
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
+from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionMergeRequiredFailure, RevisionScope
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
 
@@ -125,17 +127,119 @@ def test_realized_ic_merge_records_realization_report_in_event() -> None:
     assert event.realization.reasons[atom_ids["b"]].reason == "ic_merge_world_false"
 
 
+def test_disjunctive_selected_worlds_fail_with_typed_ambiguous_realization() -> None:
+    state, atom_ids = _merge_state()
+
+    with pytest.raises(RevisionMergeRequiredFailure) as exc_info:
+        _dispatch_merge(
+            state,
+            profile_atom_ids=[[atom_ids["a"]], [atom_ids["b"]]],
+            integrity_constraint={"kind": "top"},
+        )
+
+    assert exc_info.value.reason == "ambiguous_selected_worlds"
+    assert exc_info.value.decision_report is not None
+    assert exc_info.value.profile_atom_ids == ((atom_ids["a"],), (atom_ids["b"],))
+
+
+def test_selected_world_with_unknown_formal_atom_fails_typed() -> None:
+    state, atom_ids = _merge_state()
+    unknown_atom_id = "ps:assertion:unknown-formal-atom"
+
+    with pytest.raises(RevisionMergeRequiredFailure) as exc_info:
+        _dispatch_merge(
+            state,
+            profile_atom_ids=[[unknown_atom_id], [atom_ids["a"]]],
+            integrity_constraint={
+                "kind": "literals",
+                "required": [unknown_atom_id],
+                "forbidden": [atom_ids["a"]],
+            },
+        )
+
+    assert exc_info.value.reason == "unmapped_formal_atom"
+    assert exc_info.value.decision_report is not None
+    assert exc_info.value.selected_worlds_hash == exc_info.value.decision_report.trace["selected_worlds_hash"]
+
+
+def test_unsatisfiable_integrity_constraint_preserves_formal_decision() -> None:
+    state, atom_ids = _merge_state()
+
+    with pytest.raises(RevisionMergeRequiredFailure) as exc_info:
+        _dispatch_merge(
+            state,
+            profile_atom_ids=[[atom_ids["a"]]],
+            integrity_constraint={
+                "kind": "literals",
+                "required": [atom_ids["a"]],
+                "forbidden": [atom_ids["a"]],
+            },
+        )
+
+    assert exc_info.value.reason == "unsatisfiable_integrity_constraint"
+    assert exc_info.value.decision_report is not None
+    assert exc_info.value.integrity_constraint == {
+        "kind": "literals",
+        "required": [atom_ids["a"]],
+        "forbidden": [atom_ids["a"]],
+    }
+
+
+def test_unrealizable_merge_failure_event_preserves_selected_world_hash() -> None:
+    state, atom_ids = _merge_state()
+
+    with pytest.raises(RevisionMergeRequiredFailure) as exc_info:
+        _dispatch_merge(
+            state,
+            profile_atom_ids=[[atom_ids["a"]], [atom_ids["b"]]],
+            integrity_constraint={"kind": "top"},
+        )
+
+    event = exc_info.value.event
+    assert event is not None
+    assert event.decision is not None
+    assert event.realization is None
+    assert event.realization_failure == "ambiguous_selected_worlds"
+    assert event.decision.trace["selected_worlds_hash"] == exc_info.value.selected_worlds_hash
+
+
+def test_unrealizable_merge_failure_is_replayable_as_failure() -> None:
+    state, atom_ids = _merge_state()
+    kwargs = {
+        "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
+        "integrity_constraint": {"kind": "top"},
+    }
+
+    with pytest.raises(RevisionMergeRequiredFailure) as first:
+        _dispatch_merge(state, **kwargs)
+    with pytest.raises(RevisionMergeRequiredFailure) as second:
+        _dispatch_merge(state, **kwargs)
+
+    assert first.value.reason == second.value.reason == "ambiguous_selected_worlds"
+    assert first.value.event is not None
+    assert second.value.event is not None
+    assert first.value.event.content_hash == second.value.event.content_hash
+
+
 def _dispatch_realizable_merge(state, atom_ids: dict[str, str]):
+    return _dispatch_merge(
+        state,
+        profile_atom_ids=[[atom_ids["a"]], [atom_ids["b"]]],
+        integrity_constraint={
+            "kind": "literals",
+            "required": [atom_ids["a"]],
+            "forbidden": [atom_ids["b"]],
+        },
+    )
+
+
+def _dispatch_merge(state, *, profile_atom_ids, integrity_constraint):
     return dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
         operator_input={
-            "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
-            "integrity_constraint": {
-                "kind": "literals",
-                "required": [atom_ids["a"]],
-                "forbidden": [atom_ids["b"]],
-            },
+            "profile_atom_ids": profile_atom_ids,
+            "integrity_constraint": integrity_constraint,
             "merge_operator": "sigma",
             "max_candidates": 8,
         },
