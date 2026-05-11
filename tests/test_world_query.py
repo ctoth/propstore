@@ -2094,16 +2094,17 @@ class TestTransitiveConsistency:
         modified_files = []
         for cf in claim_files:
             new_data = claim_file_payload(cf)
-            new_claims = []
-            for claim in new_data.get("claims", []):
-                if claim.get("id") == "claim11":
-                    # Set to a value compatible with derived (concept6*concept1 with first claim)
-                    compatible_claim = dict(claim)
-                    compatible_claim["value"] = 0.2  # 0.001 * 200
-                    new_claims.append(compatible_claim)
-                else:
-                    new_claims.append(claim)
-            new_data["claims"] = new_claims
+            logical_ids = new_data.get("logical_ids")
+            if (
+                isinstance(logical_ids, list)
+                and any(
+                    isinstance(item, dict) and item.get("value") == "claim11"
+                    for item in logical_ids
+                )
+            ):
+                # Set to a value compatible with derived (concept6*concept1 with first claim)
+                new_data = dict(new_data)
+                new_data["value"] = 0.2  # 0.001 * 200
             modified_files.append(
                 loaded_claim_file_from_payload(
                     filename=cf.filename,
