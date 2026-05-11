@@ -13,15 +13,11 @@ from tests.conftest import TEST_CONTEXT_ID
 def _claim_file(local_id: str, artifact_id: str, statement: str) -> bytes:
     return yaml.safe_dump(
         {
-            "claims": [
-                {
-                    "id": local_id,
-                    "artifact_id": artifact_id,
-                    "type": "observation",
-                    "statement": statement,
-                    "context": {"id": TEST_CONTEXT_ID},
-                }
-            ]
+            "id": local_id,
+            "artifact_id": artifact_id,
+            "type": "observation",
+            "statement": statement,
+            "context": {"id": TEST_CONTEXT_ID},
         },
         sort_keys=False,
     ).encode("utf-8")
