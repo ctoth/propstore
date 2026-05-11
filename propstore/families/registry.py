@@ -34,7 +34,7 @@ from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
 from propstore.families.addresses import SemanticFamilyAddress
-from propstore.families.claims.documents import ClaimsFileDocument
+from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.documents import ContextDocument
 from propstore.families.forms.documents import FormDocument
@@ -101,8 +101,8 @@ if TYPE_CHECKING:
         name: str
 
     @dataclass(frozen=True)
-    class ClaimsFileRef:
-        name: str
+    class ClaimRef:
+        artifact_id: str
 
     @dataclass(frozen=True)
     class MicropublicationRef:
@@ -185,7 +185,7 @@ if not TYPE_CHECKING:
     FormRef = single_field_ref_type("FormRef", "name", module=__name__)
     WorldlineRef = single_field_ref_type("WorldlineRef", "name", module=__name__)
     CanonicalSourceRef = single_field_ref_type("CanonicalSourceRef", "name", module=__name__)
-    ClaimsFileRef = single_field_ref_type("ClaimsFileRef", "name", module=__name__)
+    ClaimRef = single_field_ref_type("ClaimRef", "artifact_id", module=__name__)
     MicropublicationRef = single_field_ref_type("MicropublicationRef", "artifact_id", module=__name__)
     ConceptFileRef = single_field_ref_type("ConceptFileRef", "name", module=__name__)
     JustificationRef = single_field_ref_type("JustificationRef", "artifact_id", module=__name__)
@@ -260,10 +260,11 @@ CONCEPT_IDENTITY_POLICY = FamilyIdentityPolicy(
     version_excluded_fields=CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
 )
 
-CLAIM_PLACEMENT = FlatYamlPlacement["Repository", ClaimsFileRef](
+CLAIM_PLACEMENT = FlatYamlPlacement["Repository", ClaimRef](
     namespace=PropstoreFamily.CLAIMS.value,
-    ref_factory=ClaimsFileRef,
-    ref_field="name",
+    ref_factory=ClaimRef,
+    ref_field="artifact_id",
+    codec="colon_to_double_underscore",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
 CONCEPT_PLACEMENT = FlatYamlPlacement["Repository", ConceptFileRef](
@@ -398,10 +399,10 @@ FORM_FAMILY = ArtifactFamily["Repository", FormRef, FormDocument](
     placement=FORM_PLACEMENT,
 )
 
-CLAIMS_FILE_FAMILY = ArtifactFamily["Repository", ClaimsFileRef, ClaimsFileDocument](
-    name="claims_file",
+CLAIM_FAMILY = ArtifactFamily["Repository", ClaimRef, ClaimDocument](
+    name="claim",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=ClaimsFileDocument,
+    doc_type=ClaimDocument,
     placement=CLAIM_PLACEMENT,
 )
 
@@ -707,10 +708,10 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             key=PropstoreFamily.CLAIMS,
             name=PropstoreFamily.CLAIMS.value,
             contract_version=IDENTITY_POLICY_FAMILY_CONTRACT_VERSION,
-            artifact_family=CLAIMS_FILE_FAMILY,
+            artifact_family=CLAIM_FAMILY,
             foreign_keys=CLAIM_FOREIGN_KEYS,
             identity_policy=CLAIM_IDENTITY_POLICY,
-            metadata=_semantic_metadata(importable=True, import_order=20, collection_field="claims"),
+            metadata=_semantic_metadata(importable=True, import_order=20),
         ),
         FamilyDefinition(
             key=PropstoreFamily.CONCEPTS,
