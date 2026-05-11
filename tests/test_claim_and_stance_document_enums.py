@@ -4,7 +4,7 @@ from propstore.families.claims.documents import ClaimDocument, StanceDocument
 from propstore.core.claim_types import ClaimType
 from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.families.documents.sources import SourceClaimDocument, SourceStanceEntryDocument
-from propstore.families.documents.stances import StanceEntryDocument
+from propstore.families.documents.stances import StanceDocument as CanonicalStanceDocument
 from propstore.stances import StanceType
 
 import pytest
@@ -71,12 +71,12 @@ def test_source_documents_decode_claim_and_stance_enums() -> None:
         SourceStanceEntryDocument,
         source="source-stance",
     )
-    stance_file_entry = convert_document_value(
+    canonical_stance = convert_document_value(
         {"source_claim": "claim1", "target": "claim2", "type": "undercuts"},
-        StanceEntryDocument,
+        CanonicalStanceDocument,
         source="stance-entry",
     )
 
     assert source_claim.type is ClaimType.OBSERVATION
     assert source_stance.type is StanceType.REBUTS
-    assert stance_file_entry.type is StanceType.UNDERCUTS
+    assert canonical_stance.type is StanceType.UNDERCUTS
