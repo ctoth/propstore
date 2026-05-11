@@ -949,10 +949,12 @@ def promote_source_branch(
         filtered_justifications_payload,
         {"stances": promoted_stances},
     )
-    promoted_claims = promoted_claims_doc.get("claims", []) or []
+    raw_promoted_claims = promoted_claims_doc.get("claims")
+    promoted_claims = raw_promoted_claims if isinstance(raw_promoted_claims, list) else []
+    promoted_claims_source = promoted_claims_doc.get("source")
     promoted_source_paper = (
-        str(promoted_claims_doc.get("source", {}).get("paper") or slug)
-        if isinstance(promoted_claims_doc.get("source"), dict)
+        str(promoted_claims_source.get("paper") or slug)
+        if isinstance(promoted_claims_source, dict)
         else slug
     )
 
@@ -977,7 +979,13 @@ def promote_source_branch(
     promoted_claims_doc["claims"] = normalized_promoted_claims
 
     stances_by_source: dict[str, list[dict[str, Any]]] = {}
-    for stance in promoted_stances_doc.get("stances", []) or []:
+    raw_promoted_stances = promoted_stances_doc.get("stances")
+    promoted_stance_entries = (
+        raw_promoted_stances
+        if isinstance(raw_promoted_stances, list)
+        else []
+    )
+    for stance in promoted_stance_entries:
         if not isinstance(stance, dict):
             continue
         source_claim = stance.get("source_claim")
