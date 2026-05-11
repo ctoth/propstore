@@ -2992,7 +2992,7 @@ contracts:
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionQueryDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.11
   body:
     fields:
     - name: operation
@@ -3010,6 +3010,21 @@ contracts:
     - name: operator
       required: true
       type: str | None
+    - name: profile_atom_ids
+      required: true
+      type: tuple[tuple[str, ...], ...]
+    - name: integrity_constraint
+      required: true
+      type: dict[str, Any] | None
+    - name: merge_parent_commits
+      required: true
+      type: tuple[str, ...]
+    - name: merge_operator
+      required: true
+      type: str | None
+    - name: max_alphabet_size
+      required: true
+      type: int | None
     module: propstore.families.documents.worldlines
 - kind: document_schema
   name: WorldlineRevisionResultDocument
