@@ -1,0 +1,12 @@
+{
+  "title": "Revision of Defeasible Logic Preferences",
+  "authors": ["Guido Governatori", "Francesco Olivieri", "Simone Scannapieco", "Matteo Cristani"],
+  "year": "2012",
+  "arxiv_id": "1206.5833",
+  "doi": null,
+  "abstract": "There are several contexts of non-monotonic reasoning where a priority between rules is established whose purpose is preventing conflicts. One formalism that has been widely employed for non-monotonic reasoning is the sceptical one known as Defeasible Logic. In Defeasible Logic the tool used for conflict resolution is a preference relation between rules, that establishes the priority among them. In this paper we investigate how to modify such a preference relation in a defeasible logic theory in order to change the conclusions of the theory itself. We argue that the approach we adopt is applicable to legal reasoning where users, in general, cannot change facts or rules, but can propose their preferences about the relative strength of the rules. We provide a comprehensive study of the possible combinatorial cases and we identify and analyse the cases where the revision process is successful. After this analysis, we identify three revision/update operators and study them against the AGM postulates for belief revision operators, to discover that only a part of these postulates are satisfied by the three operators.",
+  "url": "https://arxiv.org/abs/1206.5833",
+  "pdf_url": "https://arxiv.org/pdf/1206.5833v2",
+  "venue": "arXiv preprint arXiv:1206.5833 (v2, 23 Nov 2012)",
+  "affiliation": "Department of Computer Science, University of Verona, Italy; NICTA, Queensland Research Laboratory, Australia; Institute for Integrated and Intelligent Systems, Griffith University, Australia"
+}

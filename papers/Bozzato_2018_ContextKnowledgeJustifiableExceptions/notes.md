@@ -274,7 +274,7 @@ This paper is directly relevant to propstore's context and argumentation layers:
 
 ## Related Work Worth Reading
 - Brewka, Eiter (2007) [31]: Equilibria in heterogeneous nonmonotonic MCS — foundation for multi-context reasoning
-- Bikakis, Antoniou (2010) [25]: Defeasible contextual reasoning with argumentation semantics — alternative approach to defeasible MCS
+- Bikakis, Antoniou (2010) [25]: Defeasible contextual reasoning with argumentation semantics — alternative approach to defeasible MCS → NOW IN COLLECTION: [Defeasible Contextual Reasoning with Arguments in Ambient Intelligence](../Bikakis_2010_DefeasibleContextualReasoningArguments/notes.md)
 - Giordano et al. (2009) [18]: ALC+T typicality in DLs — non-contextual defeasible DL approach
 - Bonatti et al. (2015) [42]: Overriding in DLs via normality concepts — class-level defeasibility
 - Bozzato, Eiter, Serafini (2020) [already in collection]: Datalog and Defeasible Reasoning in DL-Lite — extends CKR ideas to DL-Lite
@@ -296,7 +296,7 @@ This paper is directly relevant to propstore's context and argumentation layers:
 - Serafini, Homola (2012) — "Contextualized knowledge repositories for the semantic web" — the monotonic predecessor of CKR that this paper extends; essential background for understanding the base framework
 - Giordano, Gliozzi, Olivetti, Pozzato (2009) — "ALC+T: a preferential extension of description logics" — primary alternative for defeasible DLs using typicality operators; direct comparison point
 - Bonatti, Faella, Petrova, Sauro (2015) — "A new semantics for overriding in description logics" — class-level defeasibility via normality concepts; CKR argues for instance-level granularity over this
-- Bikakis, Antoniou (2010) — "Defeasible contextual reasoning with arguments" — argumentation-based approach to defeasible MCS with local preference orderings
+- ~~Bikakis, Antoniou (2010) — "Defeasible contextual reasoning with arguments" — argumentation-based approach to defeasible MCS with local preference orderings~~ → **Now in Collection** as [Defeasible Contextual Reasoning with Arguments in Ambient Intelligence](../Bikakis_2010_DefeasibleContextualReasoningArguments/notes.md). Confirms the lead's framing: provides MCS extended with local defeasible theories, defeasible mapping rules, per-context total preference orderings, a Dung-style argumentation semantics where attack/defeat consults context preferences, and a sound/complete/terminating distributed P2P_DR algorithm. CKR's clashing-assumption mechanism and Bikakis & Antoniou's context-preference-driven defeats are two independent answers to the same exception-handling question, so this is a direct comparison point for the CKR side.
 
 ### Supersedes or Recontextualizes
 - [[Bozzato_2020_DatalogDefeasibleDLLite]] — Bozzato 2020 is a simplification/extension of this paper to DL-Lite_R (single-context). This 2018 paper is the full multi-context CKR treatment with SROIQ-RL expressiveness and hierarchical context coverage.
@@ -321,3 +321,6 @@ This paper is directly relevant to propstore's context and argumentation layers:
 **Non-monotonic reasoning foundations:**
 - [[Reiter_1980_DefaultReasoning]] — CKR's defeasible axioms are conceptually similar to Reiter defaults (apply unless exceptional); CKR formalizes the exception mechanism via clashing sets rather than consistency checks.
 - [[Goldszmidt_1992_DefeasibleStrictConsistency]] — Goldszmidt addresses interaction of defeasible and strict knowledge; CKR's mechanism for when defeasible axioms conflict with strict local knowledge is a contextualized version of this problem.
+
+**Concern-based / multi-authority defeasible context (parallel formalisms):**
+- [A Defeasible Logic-based Framework for Contextualizing Deployed Applications](../Al-Anbaki_2019_DefeasibleLogicContextualizingApplications/notes.md) — Strong. Al-Anbaki et al.'s `L = ⟨G, β, D, λ⟩` (Triggers, Concerns, Domain rules, Priorities) and CKR's clashing-assumption / justifiable-exceptions mechanism are two independent answers to the same engineering question: how to let local context override global rules without losing consistency. CKR uses a clearance/justifiability semantics over DL axioms; Al-Anbaki et al. use ambiguity-blocking defeasible logic with concern-encapsulated per-authority rule slices `D^A, D^B, …` and a global priority `λ`. Different formalisms, near-identical engineering goal — propstore's `propstore.defeasibility` is the convergence point.

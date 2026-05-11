@@ -1,0 +1,20 @@
+{
+  "title": "Representation results for defeasible logic",
+  "authors": [
+    "G. Antoniou",
+    "D. Billington",
+    "Guido Governatori",
+    "Michael J. Maher"
+  ],
+  "year": "2000",
+  "arxiv_id": "cs/0003082",
+  "doi": "10.1145/371316.371517",
+  "abstract": "The importance of transformations and normal forms in logic programming, and generally in computer science, is well documented. This paper investigates transformations and normal forms in the context of Defeasible Logic, a simple but efficient formalism for nonmonotonic reasoning based on rules and priorities. The transformations described in this paper have two main benefits: on one hand they can be used as a theoretical tool that leads to a deeper understanding of the formalism, and on the other hand they have been used in the development of an efficient implementation of defeasible logic.",
+  "url": "https://www.semanticscholar.org/paper/46b1a1726deaff1be9a8684db388acf624c19c78",
+  "pdf_url": "http://arxiv.org/pdf/cs/0003082",
+  "bibtex": "@Article{Antoniou2000RepresentationRF,\n author = {G. Antoniou and D. Billington and Guido Governatori and Michael J. Maher},\n booktitle = {ACM Transactions on Computational Logic},\n journal = {ACM Transactions on Computational Logic (TOCL)},\n pages = {255 - 287},\n title = {Representation results for defeasible logic},\n volume = {2},\n year = {2000}\n}\n",
+  "venue": "ACM Transactions on Computational Logic",
+  "venue_type": "journal",
+  "volume": "2",
+  "pages": "255 - 287"
+}

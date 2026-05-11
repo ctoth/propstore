@@ -1,0 +1,21 @@
+{
+  "title": "Contextual Agent Deliberation in Defeasible Logic",
+  "authors": [
+    "Mehdi Dastani",
+    "Guido Governatori",
+    "Antonino Rotolo",
+    "Insu Song",
+    "Leendert van der Torre"
+  ],
+  "year": 2007,
+  "venue": "PRIMA 2007 (Pacific Rim International Workshop on Multi-Agents)",
+  "publisher": "Springer",
+  "series": "LNAI",
+  "volume": 5044,
+  "pages": "98-109",
+  "doi": "10.1007/978-3-540-76872-2_8",
+  "arxiv_id": null,
+  "url": "https://orbilu.uni.lu/handle/10993/25299",
+  "pdf_source": "https://orbilu.uni.lu/bitstream/10993/25299/1/context.pdf",
+  "abstract": "This article extends Defeasible Logic to deal with the contextual deliberation process of cognitive agents. First, we introduce meta-rules to reason with rules. Meta-rules are rules that have as a consequent rules for motivational components, such as obligations, intentions and desires. In other words, they include nested rules. Second, we introduce explicit preferences among rules. They deal with complex structures where nested rules can be involved."
+}

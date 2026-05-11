@@ -1,0 +1,13 @@
+# Abstract
+
+## Original Text (Verbatim)
+
+In human to human communication, context increases the ability to convey ideas. However, in human to application and application to application communication, this property is difficult to attain. Context-awareness becomes an emergent need to achieve the goal of delivering more user-centric personalized services, especially in ubiquitous environments. However, there is no agreed-upon generic framework that can be reused by deployed applications to acquire context awareness. In this paper, a defeasible logic-based framework for context-awareness is proposed that can enhance the functionality of any deployed application. The defeasible non-monotonic nature of the logic has the capability of attaining justifiable decisions in dynamic environments. Classical defeasible logic is extended by meta-rules to increase its expressiveness power, facilitate its representation of complex multi-context systems, and permit distributed reasoning. The framework is able to make justifiable decisions depending on both the basic functionality of the system that is itself promoted by contextual knowledge and any cross-cutting concerns that might be added by different authorities or due to further improvements in the system. Active concerns that are added at certain contexts are presented to encapsulate enhancing defeasible theories. A proof theory is defined along with a study of its formal properties. The framework is applied to a motivating scenario to approve its feasibility and the conclusions are analyzed using argumentation as an approach of reasoning.
+
+**Keywords:** Context-awareness; nonmonotonicity; defeasible logic; distributed reasoning; argumentation
+
+---
+
+## Our Interpretation
+
+The paper proposes a four-tuple defeasible-logic theory `L = ⟨G, β, D, λ⟩` (Triggers, Concerns, Domain rules, Priorities) that overlays contextual reasoning on a deployed application without re-architecting it, supporting multi-authority distributed reasoning through a global superiority relation. Core machinery is the standard ambiguity-blocking defeasible logic of Antoniou-Maher-Billington — including the `±Δ / ±δ` proof-tag system — applied here to a "spectrum of context" with observational, undertaken, and hidden layers (`Cᵒ / Cᵘ / Cʰ`). Relevant to propstore as direct vocabulary for the contextualisation lane: it parallels propstore's `ist(c, p)` qualifiers, perspective/concern decoupling, per-source rule bases, and ASPIC+/CKR priority machinery, and gives a literature-grade framing for the observed-vs-rule-governed-vs-embedded provenance distinction.

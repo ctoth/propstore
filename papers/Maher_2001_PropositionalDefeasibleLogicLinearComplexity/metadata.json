@@ -1,0 +1,16 @@
+{
+  "title": "Propositional Defeasible Logic has Linear Complexity",
+  "authors": ["Michael J. Maher"],
+  "year": "2001",
+  "venue": "Theory and Practice of Logic Programming",
+  "journal": "Theory and Practice of Logic Programming",
+  "volume": "1",
+  "issue": "6",
+  "pages": "691-711",
+  "doi": "10.1017/S1471068401001168",
+  "arxiv_id": "cs/0405090",
+  "abstract": "Defeasible logic is a rule-based nonmonotonic logic, with both strict and defeasible rules, and a priority relation on rules. We show that inference in the propositional form of the logic can be performed in linear time. This contrasts markedly with most other propositional nonmonotonic logics, in which inference is intractable.",
+  "url": "https://arxiv.org/abs/cs/0405090",
+  "pdf_url": "https://arxiv.org/pdf/cs/0405090",
+  "bibtex": "@article{maher2001propositional,\n title = {Propositional Defeasible Logic has Linear Complexity},\n author = {Maher, Michael J.},\n journal = {Theory and Practice of Logic Programming},\n volume = {1},\n number = {6},\n pages = {691--711},\n year = {2001},\n doi = {10.1017/S1471068401001168}\n}\n"
+}

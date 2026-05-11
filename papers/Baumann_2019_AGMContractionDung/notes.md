@@ -70,6 +70,11 @@ Monotonic logics where models are AFs and ordinary equivalence coincides with st
 - **Missing**: concrete operator definitions, formal proofs, specific theorem numbers, examples
 - **Confidence**: high for the main results (abstract is explicit), low for technical details
 
+## Collection Cross-References
+
+### Conceptual Links (not citation-based)
+- [Revision of Defeasible Logic Preferences](../Governatori_2012_RevisionDefeasibleLogicPreferences/notes.md) — Governatori et al. lift AGM contraction/revision/expansion to Defeasible Logic theories with rule-level superiority `>`, with similarly partial postulate satisfaction (only $K\dot-1, K\dot-3, K\dot-6$ hold for contraction; both Levi and Harper identities fail). This paper's set-of-extensions-level lifting and Governatori's rule-level lifting are sister attempts at "AGM meets non-monotonic": both find that recovery and Harper-identity fail, suggesting these failures are intrinsic to non-monotonic reasoning rather than artifacts of one formalism.
+
 ## New Leads
 - Harper 1976 — "Rational conceptual change" — origin of the Harper Identity
 - Hansson 1989 — "New operators for theory change" — recovery postulate critique

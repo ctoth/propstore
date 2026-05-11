@@ -1,0 +1,4 @@
+---
+tags: [defeasible-logic, complexity, algorithm, nonmonotonic-reasoning]
+---
+Maher proves that inference in propositional defeasible logic — with strict rules, defeasible rules, defeaters, and a programmable acyclic priority relation — has linear time complexity in the size of the theory, established via a transition system over basic defeasible logic with auxiliary tags `+σ, −σ`, a concrete linear-time algorithm with body-tracking data structures, and linear-time/linear-blowup transformations to reduce arbitrary defeasible theories to basic form. The result contrasts sharply with most other propositional non-monotonic logics (default, autoepistemic, circumscription, stable-model logic programs) which are co-NP-hard or Π₂ᵖ-hard. For propstore the bound is the complexity ceiling its DL substrate inherits and the proof technique (auxiliary tags + linear transformations + Dowling–Gallier-style worklist) is reusable across the argumentation/reasoning layer.

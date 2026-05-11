@@ -217,12 +217,15 @@ For propstore specifically, `DSAMP` is the more interesting design because it pr
 - [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — the formal ASPIC+ basis that this work simplifies and approximates. *(p.2-4, refs)*
 - [[Thimm_2012_ProbabilisticSemanticsAbstractArgumentation]] — a related line by the same first author that also trades exact crisp acceptance for computationally cheaper approximate reasoning, though by probability rather than subgraph sampling. *(conceptual)*
 - [[Toni_2014_TutorialAssumption-basedArgumentation]] — cited by the authors when claiming the sampling approach should generalize beyond ASPIC+ to ABA. *(p.11-12, refs)*
+- [Defeasible logic programming: DeLP-servers, contextual queries, and explanations for answers](../García_2014_DefeasibleLogicProgrammingDeLP-servers/notes.md) — cited as a DeLP reference in the structured-argumentation landscape that Thimm's approximate-reasoning sampling targets; complementary perspective on warrant computation (Thimm samples arguments rather than enumerating dialectical trees exhaustively). *(refs)*
+
+### Now in Collection (previously listed as leads)
+- [Defeasible logic programming: DeLP-servers, contextual queries, and explanations for answers](../García_2014_DefeasibleLogicProgrammingDeLP-servers/notes.md) — moved from New Leads after reconcile 2026-05-06; see "Already in Collection" entry above for substantive description.
 
 ### New Leads (Not Yet in Collection)
 - Borg and Strasser (2018), *Relevance in structured argumentation*. *(refs)*
 - Cerutti et al. (2018), *Foundations of implementations for formal argumentation*. *(refs)*
 - Efstathiou and Hunter (2011), *Algorithms for generating arguments and counterarguments in propositional logic*. *(refs)*
-- Garcia and Simari (2014), *Defeasible logic programming*. *(refs)*
 - Thimm and Kersting (2017), *Towards argumentation-based classification*. *(refs)*
 
 ### Cited By (in Collection)

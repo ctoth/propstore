@@ -1,0 +1,12 @@
+{
+  "title": "A Defeasible Logic-based Framework for Contextualizing Deployed Applications",
+  "authors": ["Noor Sami Al-Anbaki", "Nadim Obeid", "Khair Eddin Sabri"],
+  "year": "2019",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "Due to humans communication, context increases the ability to convey ideas. However, in human in application is a challenging task in AI, as there is no central authority that should be considered to be the deity of the context, instead, multiple distributed reasoners are required to participate in interpreting the contextual information at runtime. In this paper, a defeasible logic-based framework for contextualizing applications, from the laborers to the consumers in the distributed environment, is presented. The framework is applied to a smart phone application that is opted to manage incoming calls of lecturers' phones in a university campus to handle situations where the call should be filtered or fully delivered.",
+  "url": "https://thesai.org/Publications/ViewPaper?Volume=10&Issue=9&Code=IJACSA&SerialNo=23",
+  "pdf_url": null,
+  "venue": "International Journal of Advanced Computer Science and Applications (IJACSA), Vol. 10, No. 9, pp. 176-186",
+  "affiliation": "King Abdullah II School for Information Technology, University of Jordan, Amman, Jordan"
+}

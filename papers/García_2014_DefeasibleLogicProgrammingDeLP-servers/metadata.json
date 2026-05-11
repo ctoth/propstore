@@ -1,0 +1,15 @@
+{
+  "title": "Defeasible logic programming: DeLP-servers, contextual queries, and explanations for answers",
+  "authors": [
+    "A. García",
+    "Guillermo R. Simari"
+  ],
+  "year": "2014",
+  "doi": "10.1080/19462166.2013.869767",
+  "url": "https://www.semanticscholar.org/paper/ae0b30ffedb26b430c604c3cd12a737079408161",
+  "pdf_url": "https://content.iospress.com:443/download/argument-and-computation/869767?id=argument-and-computation%2F869767",
+  "bibtex": "@Article{García2014DefeasibleLP,\n author = {A. García and Guillermo R. Simari},\n booktitle = {Argument Comput.},\n journal = {Argument & Computation},\n pages = {63 - 88},\n title = {Defeasible logic programming: DeLP-servers, contextual queries, and explanations for answers},\n volume = {5},\n year = {2014}\n}\n",
+  "venue": "Argument Comput.",
+  "volume": "5",
+  "pages": "63 - 88"
+}

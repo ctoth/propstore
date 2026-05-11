@@ -1,0 +1,19 @@
+{
+  "title": "Defeasible Logic versus Logic Programming without Negation as Failure",
+  "authors": [
+    "G. Antoniou",
+    "Michael J. Maher",
+    "D. Billington"
+  ],
+  "year": "2000",
+  "arxiv_id": null,
+  "doi": "10.1016/S0743-1066(99)00060-6",
+  "abstract": "Recently there has been increased interest in logic programming-based default reasoning approaches which are not using negation-as-failure in their object language. Instead, default reasoning is modelled by rules and a priority relation among them. In this paper we compare the expressive power of two approaches in this family of logics: Defeasible Logic, and sceptical Logic Programming without Negation as Failure (LPwNF). Our results show that the former has a strictly stronger expressive power. The difference is caused by the latter logic's failure to capture the idea of teams of rules supporting a specific conclusion.",
+  "url": "https://www.semanticscholar.org/paper/6c226255369220896cc2b3f70ec35c0dfd1fb20d",
+  "pdf_url": "https://doi.org/10.1016/s0743-1066(99)00060-6",
+  "bibtex": "@Article{Antoniou2000DefeasibleLV,\n author = {G. Antoniou and Michael J. Maher and D. Billington},\n booktitle = {The Journal of Logic Programming},\n journal = {J. Log. Program.},\n pages = {47-57},\n title = {Defeasible Logic versus Logic Programming without Negation as Failure},\n volume = {42},\n year = {2000}\n}\n",
+  "venue": "The Journal of Logic Programming",
+  "venue_type": "journal",
+  "volume": "42",
+  "pages": "47-57"
+}

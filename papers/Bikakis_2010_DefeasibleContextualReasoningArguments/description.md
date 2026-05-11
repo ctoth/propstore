@@ -1,0 +1,4 @@
+---
+tags: [multi-context-systems, defeasible-logic, argumentation, ambient-intelligence, distributed-reasoning]
+---
+Bikakis & Antoniou extend Multi-Context Systems with local defeasible theories, defeasible mapping rules, and a per-context total preference ordering, then build a Dung-style argumentation semantics on top and give a sound, complete, and terminating distributed peer-to-peer query algorithm (P2P_DR) that resolves cross-context conflicts using the context preferences. The paper is the canonical 2010 statement of distributed defeasible argumentation over MCS for Ambient Intelligence and the immediate precursor to Al-Anbaki et al. 2019. For propstore it provides a worked specification of context-preference-driven attack/defeat and a concrete distributed evaluation protocol that can be compared against the ATMS-based world reasoning and the ASPIC+ bridge.

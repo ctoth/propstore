@@ -87,3 +87,9 @@ The paper also connects to Distributed First Order Logics (DFOL) for heterogeneo
 ---
 
 **See also:** [[McCarthy_1993_FormalizingContext]] - Ghidini's Local Models Semantics provides the rigorous model-theoretic foundation for the multi-context systems that McCarthy's 1993 paper sketches informally. McCarthy's lifting rules correspond to Ghidini's bridge rules; McCarthy's ist(c,p) maps to Ghidini's labelled formulas i:phi.
+
+## Collection Cross-References
+
+### Conceptual Links (not citation-based)
+
+- [A Defeasible Logic-based Framework for Contextualizing Deployed Applications](../Al-Anbaki_2019_DefeasibleLogicContextualizingApplications/notes.md) — Strong. Al-Anbaki et al.'s per-authority `D^A, D^B, …` partition of domain rules is essentially LMS's local-models partitioning, with their global priority `λ` playing the role LMS assigns to the compatibility relation — but specialised to defeasible-rule priorities rather than general inter-model constraints. The two papers are different operationalisations of the same locality+compatibility intuition: Ghidini & Giunchiglia in pure model theory, Al-Anbaki et al. in defeasible logic with `±Δ / ±δ` proof tags.
