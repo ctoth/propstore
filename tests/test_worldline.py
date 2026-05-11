@@ -1417,7 +1417,7 @@ class TestSemanticCorePhase7Worldlines:
             },
         )()
         monkeypatch.setattr(
-            "propstore.structured_projection.build_structured_projection",
+            "propstore.aspic_bridge.build_aspic_projection",
             lambda *args, **kwargs: projection,
         )
 
