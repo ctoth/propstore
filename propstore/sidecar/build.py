@@ -588,7 +588,7 @@ def _build_sidecar_locked(
         ),
         stance_entries=(
             (
-                handle.ref.source_claim,
+                handle.ref.artifact_id,
                 handle.document,
             )
             for handle in repo.families.stances.iter_handles(commit=commit_hash)

@@ -7,7 +7,7 @@ from collections.abc import Iterable, Sequence
 from propstore.claims import ClaimFileEntry, claim_file_claims, claim_file_filename
 from propstore.families.claims.stages import ClaimStage
 from propstore.families.documents.sources import SourceDocument
-from propstore.families.documents.stances import StanceFileDocument
+from propstore.families.documents.stances import StanceDocument
 from propstore.families.registry import PropstoreFamily
 from propstore.semantic_passes.types import PassDiagnostic
 from propstore.stances import StanceType
@@ -16,7 +16,7 @@ from propstore.stances import StanceType
 def collect_authoring_lints(
     *,
     source_entries: Iterable[tuple[str, SourceDocument]],
-    stance_entries: Iterable[tuple[str, StanceFileDocument]],
+    stance_entries: Iterable[tuple[str, StanceDocument]],
     claim_files: Sequence[ClaimFileEntry],
 ) -> tuple[PassDiagnostic, ...]:
     diagnostics: list[PassDiagnostic] = []
@@ -75,21 +75,19 @@ def _lint_sources(
 
 
 def _lint_stance_files(
-    stance_entries: Iterable[tuple[str, StanceFileDocument]],
+    stance_entries: Iterable[tuple[str, StanceDocument]],
 ) -> tuple[PassDiagnostic, ...]:
     diagnostics: list[PassDiagnostic] = []
-    for source_claim, document in stance_entries:
-        for index, stance in enumerate(document.stances, start=1):
-            stance_label = f"{source_claim}#{index}"
-            diagnostics.extend(
-                _lint_stance(
-                    stance_type=stance.type,
-                    strength=stance.strength,
-                    target_justification_id=stance.target_justification_id,
-                    filename=source_claim,
-                    artifact_id=stance_label,
-                )
+    for artifact_id, stance in stance_entries:
+        diagnostics.extend(
+            _lint_stance(
+                stance_type=stance.type,
+                strength=stance.strength,
+                target_justification_id=stance.target_justification_id,
+                filename=artifact_id,
+                artifact_id=artifact_id,
             )
+        )
     return tuple(diagnostics)
 
 

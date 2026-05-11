@@ -573,7 +573,7 @@ def build_repository(
     )
     stance_entries = tuple(
         (
-            handle.ref.source_claim,
+            handle.ref.artifact_id,
             handle.document,
         )
         for handle in repo.families.stances.iter_handles(commit=hash_key)

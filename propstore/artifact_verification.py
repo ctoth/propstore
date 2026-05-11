@@ -55,8 +55,9 @@ def _load_stances(repo: Repository, commit: str | None) -> dict[str, list[dict[s
     by_source: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for handle in repo.families.stances.iter_handles(commit=commit):
         doc = handle.document
-        for stance in doc.stances:
-            by_source[doc.source_claim].append(copy.deepcopy(stance.to_payload()))
+        source_claim = doc.source_claim
+        if isinstance(source_claim, str) and source_claim:
+            by_source[source_claim].append(copy.deepcopy(doc.to_payload()))
     return by_source
 
 

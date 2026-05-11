@@ -38,7 +38,7 @@ from propstore.families.documents.sources import (
     SourceJustificationsDocument,
 )
 from propstore.families.claims.stages import RawIdQuarantineRecord
-from propstore.families.documents.stances import StanceFileDocument
+from propstore.families.documents.stances import StanceDocument
 from propstore.families.forms.stages import (
     FormDefinition,
     kind_value_from_form_name,
@@ -618,7 +618,7 @@ def compile_claim_reference_map(
 
 
 def compile_authored_stance_sidecar_rows(
-    stance_entries: Iterable[tuple[str, StanceFileDocument]],
+    stance_entries: Iterable[tuple[str, StanceDocument]],
     claim_reference_map: dict[str, str],
 ) -> tuple[ClaimStanceInsertRow, ...]:
     rows, diagnostics = _compile_authored_stance_sidecar_rows_with_diagnostics(
@@ -631,26 +631,26 @@ def compile_authored_stance_sidecar_rows(
 
 
 def _compile_authored_stance_sidecar_rows_with_diagnostics(
-    stance_entries: Iterable[tuple[str, StanceFileDocument]],
+    stance_entries: Iterable[tuple[str, StanceDocument]],
     claim_reference_map: dict[str, str],
 ) -> tuple[tuple[ClaimStanceInsertRow, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_reference_map.values())
     rows: list[ClaimStanceInsertRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
-    for filename, data in stance_entries:
+    for filename, stance in stance_entries:
         source_claim = resolve_claim_reference(
-            data.source_claim,
+            stance.source_claim,
             claim_reference_map,
         ) or ""
         if source_claim not in valid_claims:
             message = (
-                f"stance file {filename} references nonexistent source claim "
+                f"stance artifact {filename} references nonexistent source claim "
                 f"'{source_claim}'"
             )
             diagnostics.append(
                 QuarantineDiagnostic(
-                    artifact_id=source_claim or data.source_claim or filename,
+                    artifact_id=source_claim or stance.source_claim or filename,
                     kind="stance",
                     diagnostic_kind="stance_validation",
                     message=message,
@@ -659,67 +659,66 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
             )
             continue
 
-        for index, stance in enumerate(data.stances, start=1):
-            stance_payload = stance.to_payload()
-            target = resolve_claim_reference(
-                stance.target or "",
-                claim_reference_map,
-            ) or ""
-            stance_type = stance_payload.get("type") or ""
-            if target not in valid_claims:
-                message = (
-                    f"stance file {filename} references nonexistent target claim "
-                    f"'{target}'"
+        stance_payload = stance.to_payload()
+        target = resolve_claim_reference(
+            stance.target or "",
+            claim_reference_map,
+        ) or ""
+        stance_type = stance_payload.get("type") or ""
+        if target not in valid_claims:
+            message = (
+                f"stance artifact {filename} references nonexistent target claim "
+                f"'{target}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=target or stance.target or filename,
+                    kind="stance",
+                    diagnostic_kind="stance_validation",
+                    message=message,
+                    file=filename,
                 )
-                diagnostics.append(
-                    QuarantineDiagnostic(
-                        artifact_id=target or stance.target or filename,
-                        kind="stance",
-                        diagnostic_kind="stance_validation",
-                        message=message,
-                        file=filename,
-                    )
-                )
-                continue
-            if stance_type not in VALID_STANCE_TYPES:
-                raise ValueError(
-                    f"stance file {filename} uses unrecognized stance type "
-                    f"'{stance_type}'"
-                )
+            )
+            continue
+        if stance_type not in VALID_STANCE_TYPES:
+            raise ValueError(
+                f"stance artifact {filename} uses unrecognized stance type "
+                f"'{stance_type}'"
+            )
 
-            resolution = coerce_stance_resolution(
-                stance_payload.get("resolution"),
-                f"stance file {filename} stance #{index}",
-            )
-            opinion_columns = resolution_opinion_columns(resolution)
-            perspective_source_claim = resolve_claim_reference(
-                stance.perspective_source_claim_id or data.source_claim,
-                claim_reference_map,
-            ) or source_claim
-            rows.append(
-                ClaimStanceInsertRow(
-                    (
-                        source_claim,
-                        target,
-                        stance_type,
-                        stance.target_justification_id,
-                        stance.strength,
-                        stance.conditions_differ,
-                        stance.note,
-                        resolution.get("method"),
-                        resolution.get("model"),
-                        resolution.get("embedding_model"),
-                        resolution.get("embedding_distance"),
-                        resolution.get("pass_number"),
-                        resolution.get("confidence"),
-                        opinion_columns[0],
-                        opinion_columns[1],
-                        opinion_columns[2],
-                        opinion_columns[3],
-                        perspective_source_claim,
-                    )
+        resolution = coerce_stance_resolution(
+            stance_payload.get("resolution"),
+            f"stance artifact {filename}",
+        )
+        opinion_columns = resolution_opinion_columns(resolution)
+        perspective_source_claim = resolve_claim_reference(
+            stance.perspective_source_claim_id or stance.source_claim,
+            claim_reference_map,
+        ) or source_claim
+        rows.append(
+            ClaimStanceInsertRow(
+                (
+                    source_claim,
+                    target,
+                    stance_type,
+                    stance.target_justification_id,
+                    stance.strength,
+                    stance.conditions_differ,
+                    stance.note,
+                    resolution.get("method"),
+                    resolution.get("model"),
+                    resolution.get("embedding_model"),
+                    resolution.get("embedding_distance"),
+                    resolution.get("pass_number"),
+                    resolution.get("confidence"),
+                    opinion_columns[0],
+                    opinion_columns[1],
+                    opinion_columns[2],
+                    opinion_columns[3],
+                    perspective_source_claim,
                 )
             )
+        )
     return tuple(rows), tuple(diagnostics)
 
 
@@ -1043,7 +1042,7 @@ def compile_sidecar_build_plan(
     repository_checked_bundle: RepositoryCheckedBundle,
     *,
     source_entries: Iterable[tuple[str, SourceDocument]],
-    stance_entries: Iterable[tuple[str, StanceFileDocument]],
+    stance_entries: Iterable[tuple[str, StanceDocument]],
     justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
     micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
 ) -> SidecarBuildPlan:
