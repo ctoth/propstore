@@ -141,6 +141,22 @@ def test_claim_family_target_model_is_one_semantic_artifact_per_file() -> None:
     assert canonical.metadata and canonical.metadata["collection_field"] is None
 
 
+def test_sameas_family_target_model_is_one_semantic_artifact_per_file() -> None:
+    from propstore.families.sameas.documents import SameAsAssertionDocument
+    from propstore.families.registry import SameAsAssertionRef
+
+    canonical = semantic_family_by_name(PropstoreFamily.SAMEAS.value)
+    artifact_family = canonical.artifact_family
+    placement = artifact_family.placement.contract_body()
+
+    assert artifact_family.doc_type is SameAsAssertionDocument
+    assert artifact_family.placement.ref_factory is SameAsAssertionRef
+    assert placement["namespace"] == "sameas"
+    assert placement["ref_field"] == "artifact_id"
+    assert placement["codec"] == "colon_to_double_underscore"
+    assert canonical.metadata and canonical.metadata["collection_field"] is None
+
+
 def test_canonical_artifact_path_helpers_are_deleted() -> None:
     import propstore.families.registry as family_registry
 
