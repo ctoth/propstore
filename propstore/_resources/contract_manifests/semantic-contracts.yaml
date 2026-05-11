@@ -3170,7 +3170,7 @@ contracts:
     module: propstore.families.documents.stances
 - kind: family-registry
   name: propstore
-  contract_version: 2026.05.03
+  contract_version: 2026.05.11
   body:
     families:
     - contract_version: 2026.04.29
@@ -3185,10 +3185,10 @@ contracts:
     - contract_version: 2026.04.27
       key: forms
       name: forms
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.11
       key: predicates
       name: predicates
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.11
       key: rules
       name: rules
     - contract_version: 2026.04.27
@@ -3521,7 +3521,7 @@ contracts:
     key: micropubs
 - kind: family
   name: predicates
-  contract_version: 2026.04.27
+  contract_version: 2026.05.11
   body:
     accessor: predicates
     artifact_family: predicate_file
@@ -3539,6 +3539,10 @@ contracts:
     foreign_keys: []
     key: predicates
     metadata:
+      aggregate_decision: intentional_set
+      aggregate_reason: Predicate declarations form the Datalog schema for a theory;
+        identity and validation are defined over the declaration set, including global
+        duplicate checks and authored order.
       collection_field: predicates
       import_order: 40
       importable: true
@@ -3608,7 +3612,7 @@ contracts:
     key: proposal_stances
 - kind: family
   name: rules
-  contract_version: 2026.04.27
+  contract_version: 2026.05.11
   body:
     accessor: rules
     artifact_family: rule_file
@@ -3626,6 +3630,10 @@ contracts:
     foreign_keys: []
     key: rules
     metadata:
+      aggregate_decision: intentional_set
+      aggregate_reason: 'Rules are authored and evaluated as a source theory: the
+        file-level source block, ordered rules, and superiority relation are one semantic
+        rule set.'
       collection_field: rules
       import_order: 50
       importable: true
@@ -4219,4 +4227,4 @@ contracts:
     invariants: []
 registry:
   name: propstore
-  contract_version: 2026.05.03
+  contract_version: 2026.05.11

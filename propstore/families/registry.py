@@ -695,15 +695,18 @@ def _semantic_metadata(
     aggregate_decision: str | None = None,
     aggregate_reason: str | None = None,
 ) -> dict[str, object]:
-    return {
+    metadata: dict[str, object] = {
         "semantic": True,
         "importable": importable,
         "import_order": import_order,
         "init_directory": init_directory,
         "collection_field": collection_field,
-        "aggregate_decision": aggregate_decision,
-        "aggregate_reason": aggregate_reason,
     }
+    if aggregate_decision is not None:
+        metadata["aggregate_decision"] = aggregate_decision
+    if aggregate_reason is not None:
+        metadata["aggregate_reason"] = aggregate_reason
+    return metadata
 
 
 PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
