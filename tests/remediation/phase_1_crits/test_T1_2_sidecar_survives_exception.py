@@ -8,6 +8,7 @@ import yaml
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _seed_claim_repo(root) -> Repository:
@@ -55,7 +56,7 @@ def _seed_claim_repo(root) -> Repository:
                 concept,
                 sort_keys=False,
             ).encode(),
-            "claims/claim.yaml": yaml.dump(claims, sort_keys=False).encode(),
+            **claim_artifact_commit_payloads(repo, claims, source="claims/claim.yaml"),
         },
         "seed sidecar exception test",
     )
