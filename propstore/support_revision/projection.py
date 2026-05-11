@@ -11,6 +11,7 @@ from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import AssumptionId, to_claim_id
 from propstore.core.labels import SupportQuality
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
+from propstore.json_types import JsonValue
 
 from propstore.support_revision.state import AssertionAtom, BeliefBase, RevisionScope
 
@@ -192,7 +193,7 @@ def _context_ref(
 def _condition_ref(claim: ActiveClaim) -> ConditionRef:
     if not claim.conditions:
         return ConditionRef.unconditional()
-    payload = tuple(str(condition) for condition in claim.conditions)
+    payload: JsonValue = [str(condition) for condition in claim.conditions]
     digest = _digest(payload)
     return ConditionRef(
         id=f"ps:condition:{digest}",
@@ -201,11 +202,17 @@ def _condition_ref(claim: ActiveClaim) -> ConditionRef:
 
 
 def _provenance_ref(claim: ActiveClaim) -> ProvenanceGraphRef:
-    payload = (
-        str(claim.artifact_id),
-        None if claim.source is None else claim.source.to_dict(),
-        None if claim.provenance is None else claim.provenance.to_dict(),
+    source_payload: JsonValue = None if claim.source is None else claim.source.to_dict()
+    provenance_payload: JsonValue = (
+        None
+        if claim.provenance is None
+        else claim.provenance.to_dict()
     )
+    payload: JsonValue = [
+        str(claim.artifact_id),
+        source_payload,
+        provenance_payload,
+    ]
     return ProvenanceGraphRef(f"urn:propstore:claim-provenance:{_digest(payload)}")
 
 
@@ -213,6 +220,6 @@ def _stable_value(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
-def _digest(value: object) -> str:
+def _digest(value: JsonValue) -> str:
     rendered = canonical_dumps(value)
     return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
