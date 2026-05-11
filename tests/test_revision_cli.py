@@ -15,6 +15,11 @@ from propstore.support_revision.workflows import (
     revision_base,
     revision_entrenchment,
 )
+from propstore.support_revision.state import (
+    FormalRevisionDecisionReport,
+    RevisionEvent,
+    SupportRevisionRealization,
+)
 from propstore.world import WorldQuery
 from tests.test_revision_phase1_cli import revision_cli_workspace
 
@@ -239,3 +244,42 @@ def test_world_iterated_revise_shows_operator_and_next_state_summary(revision_cl
     assert assertion_id in result.output
     assert "Ranking delta:" in result.output
     assert "History:" in result.output
+
+
+def test_ic_merge_app_cli_payload_separates_decision_realization_policy_and_diagnostics() -> None:
+    from propstore.app.world_revision import revision_event_inspection_payload
+    from propstore.cli.world.revision import format_revision_event_inspection
+
+    event = RevisionEvent(
+        operation="ic_merge",
+        pre_state_hash="before",
+        decision=FormalRevisionDecisionReport(
+            operation="ic_merge",
+            policy="belief_set.ic_merge.merge_belief_profile.sigma",
+            trace={
+                "merge_operator": "sigma",
+                "selected_worlds_hash": "selected-hash",
+            },
+        ),
+        realization=SupportRevisionRealization(
+            accepted_atom_ids=("ps:assertion:accepted",),
+            rejected_atom_ids=("ps:assertion:rejected",),
+            reasons={},
+        ),
+        policy_snapshot={
+            "revision_policy_version": "revision.v1",
+            "ranking_policy_version": "ranking.v1",
+            "entrenchment_policy_version": "entrenchment.v1",
+        },
+        replay_status="replayed",
+    )
+
+    payload = revision_event_inspection_payload(event)
+    lines = tuple(format_revision_event_inspection(payload))
+
+    assert set(payload) >= {"decision", "realization", "policy", "diagnostics"}
+    assert payload["diagnostics"]["selected_worlds_hash"] == "selected-hash"
+    assert "Formal decision:" in lines
+    assert "Support realization:" in lines
+    assert "Policy:" in lines
+    assert "Diagnostics:" in lines
