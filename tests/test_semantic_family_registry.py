@@ -107,6 +107,24 @@ def test_justification_family_target_model_is_one_semantic_artifact_per_file() -
     assert canonical.metadata is None or canonical.metadata.get("collection_field") is None
 
 
+def test_micropub_family_target_model_is_one_semantic_artifact_per_file() -> None:
+    from propstore.families.documents.micropubs import MicropublicationDocument
+    from propstore.families.registry import MicropublicationRef
+
+    canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.MICROPUBS)
+    artifact_family = canonical.artifact_family
+    placement = artifact_family.placement.contract_body()
+
+    assert artifact_family.doc_type is MicropublicationDocument
+    assert artifact_family.placement.ref_factory is MicropublicationRef
+    assert placement["kind"] == "hash-scattered-yaml"
+    assert placement["namespace"] == "micropubs"
+    assert placement["ref_field"] == "artifact_id"
+    assert placement["codec"] == "base64url"
+    assert placement["filename_mode"] == "encoded_ref"
+    assert canonical.metadata is None or canonical.metadata.get("collection_field") is None
+
+
 def test_canonical_artifact_path_helpers_are_deleted() -> None:
     import propstore.families.registry as family_registry
 
