@@ -8,6 +8,7 @@ import yaml
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.family_helpers import claim_artifact_commit_payloads, justification_artifact_commit_payload
 
 
 def test_justification_missing_conclusion_quarantines_not_raises(
@@ -43,6 +44,21 @@ def test_justification_missing_conclusion_quarantines_not_raises(
     premise_claim_id = claim_payload["claims"][0]["artifact_id"]
     missing_conclusion_id = "ps:claim:missing"
     repo = Repository.init(tmp_path / "knowledge")
+    claim_payloads = claim_artifact_commit_payloads(
+        repo,
+        claim_payload,
+        source="claims/justification_conclusion.yaml",
+    )
+    justification_payload = justification_artifact_commit_payload(
+        repo,
+        {
+            "id": "just_missing_conclusion",
+            "conclusion": missing_conclusion_id,
+            "premises": [premise_claim_id],
+            "rule_kind": "empirical_support",
+            "provenance": {"page": 1},
+        },
+    )
     repo.git.commit_files(
         {
             "forms/frequency.yaml": yaml.dump(
@@ -53,24 +69,12 @@ def test_justification_missing_conclusion_quarantines_not_raises(
                 concept_payload,
                 sort_keys=False,
             ).encode(),
-            "claims/justification_conclusion.yaml": yaml.dump(
-                claim_payload,
-                sort_keys=False,
-            ).encode(),
             "contexts/ctx_test.yaml": yaml.dump(
                 {"id": "ctx_test", "name": "Test context"},
                 sort_keys=False,
             ).encode(),
-            "justifications/bad_conclusion.yaml": yaml.dump(
-                {
-                    "id": "just_missing_conclusion",
-                    "conclusion": missing_conclusion_id,
-                    "premises": [premise_claim_id],
-                    "rule_kind": "empirical_support",
-                    "provenance": {"page": 1},
-                },
-                sort_keys=False,
-            ).encode(),
+            **claim_payloads,
+            **justification_payload,
         },
         "seed missing justification conclusion quarantine test",
     )
