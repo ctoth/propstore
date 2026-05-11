@@ -50,7 +50,7 @@ from propstore.families.documents.sources import (
     SourceJustificationsDocument,
     SourceStancesDocument,
 )
-from propstore.families.documents.stances import StanceFileDocument
+from propstore.families.documents.stances import StanceDocument, StanceFileDocument
 from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 from propstore.families.sameas.documents import SameAsFileDocument
 from propstore.families.identity.claims import (
@@ -136,6 +136,10 @@ if TYPE_CHECKING:
         source_claim: str
 
     @dataclass(frozen=True)
+    class StanceRef:
+        artifact_id: str
+
+    @dataclass(frozen=True)
     class SameAsFileRef:
         name: str
 
@@ -200,6 +204,7 @@ if not TYPE_CHECKING:
         rule_id: str
 
     StanceFileRef = single_field_ref_type("StanceFileRef", "source_claim", module=__name__)
+    StanceRef = single_field_ref_type("StanceRef", "artifact_id", module=__name__)
     SameAsFileRef = single_field_ref_type("SameAsFileRef", "name", module=__name__)
     ConceptAlignmentRef = single_field_ref_type("ConceptAlignmentRef", "slug", module=__name__)
     MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
@@ -294,10 +299,10 @@ RULE_PLACEMENT = FlatYamlPlacement["Repository", RuleFileRef](
     ref_field="name",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceFileRef](
+STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceRef](
     namespace=PropstoreFamily.STANCES.value,
-    ref_factory=StanceFileRef,
-    ref_field="source_claim",
+    ref_factory=StanceRef,
+    ref_field="artifact_id",
     codec="colon_to_double_underscore",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
@@ -345,10 +350,10 @@ JUSTIFICATIONS_FILE_PLACEMENT = FlatYamlPlacement["Repository", JustificationsFi
     ref_field="name",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-PROPOSAL_STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceFileRef](
+PROPOSAL_STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceRef](
     "stances",
-    StanceFileRef,
-    ref_field="source_claim",
+    StanceRef,
+    ref_field="artifact_id",
     codec="colon_to_double_underscore",
     branch=PROPOSAL_STANCE_BRANCH,
 )
@@ -425,10 +430,10 @@ RULE_FILE_FAMILY = ArtifactFamily["Repository", RuleFileRef, RulesFileDocument](
     placement=RULE_PLACEMENT,
 )
 
-STANCE_FILE_FAMILY = ArtifactFamily["Repository", StanceFileRef, StanceFileDocument](
-    name="stance_file",
+STANCE_FAMILY = ArtifactFamily["Repository", StanceRef, StanceDocument](
+    name="stance",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=StanceFileDocument,
+    doc_type=StanceDocument,
     placement=STANCE_PLACEMENT,
 )
 
@@ -543,10 +548,10 @@ JUSTIFICATIONS_FILE_FAMILY = ArtifactFamily["Repository", JustificationsFileRef,
     placement=JUSTIFICATIONS_FILE_PLACEMENT,
 )
 
-PROPOSAL_STANCE_FAMILY = ArtifactFamily["Repository", StanceFileRef, StanceFileDocument](
-    name="proposal_stance_file",
+PROPOSAL_STANCE_FAMILY = ArtifactFamily["Repository", StanceRef, StanceDocument](
+    name="proposal_stance",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=StanceFileDocument,
+    doc_type=StanceDocument,
     placement=PROPOSAL_STANCE_PLACEMENT,
 )
 
@@ -747,9 +752,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.STANCES,
             name=PropstoreFamily.STANCES.value,
-            contract_version=STANCE_FILE_FAMILY.contract_version,
-            artifact_family=STANCE_FILE_FAMILY,
-            metadata=_semantic_metadata(importable=True, import_order=60, collection_field="stances"),
+            contract_version=STANCE_FAMILY.contract_version,
+            artifact_family=STANCE_FAMILY,
+            metadata=_semantic_metadata(importable=True, import_order=60),
         ),
         FamilyDefinition(
             key=PropstoreFamily.SAMEAS,

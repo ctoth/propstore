@@ -22,6 +22,7 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.documents.sources.SourceStanceEntryDocument": VersionId("2026.05.01"),
     "propstore.families.documents.sources.SourceTrustDocument": VersionId("2026.05.01"),
     "propstore.families.documents.stances.StanceEntryDocument": VersionId("2026.05.01"),
+    "propstore.families.documents.stances.StanceDocument": VersionId("2026.05.11"),
     "propstore.families.documents.stances.StanceFileDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.AtomDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.RuleDocument": VersionId("2026.05.01"),
