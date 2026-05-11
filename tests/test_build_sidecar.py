@@ -1260,17 +1260,12 @@ class TestClaimTable:
         (justifications_dir / "test_paper_alpha.yaml").write_text(
             yaml.dump(
                 {
-                    "source": {"paper": "test_paper_alpha"},
-                    "justifications": [
-                        {
-                            "id": "just_multi",
-                            "conclusion": "claim5",
-                            "premises": ["claim1", "claim4"],
-                            "rule_kind": "empirical_support",
-                            "rule_strength": "defeasible",
-                            "provenance": {"page": 20},
-                        }
-                    ],
+                    "id": "just_multi",
+                    "conclusion": "claim5",
+                    "premises": ["claim1", "claim4"],
+                    "rule_kind": "empirical_support",
+                    "rule_strength": "defeasible",
+                    "provenance": {"page": 20},
                 },
                 default_flow_style=False,
             )
