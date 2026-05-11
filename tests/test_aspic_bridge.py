@@ -1265,9 +1265,8 @@ class _MiniStore:
 class TestBuildAspicProjection:
     """Tests for the build_aspic_projection entry point (Phase 3).
 
-    build_aspic_projection is a drop-in replacement for
-    build_structured_projection that routes through the ASPIC+ bridge
-    (T1-T7) instead of the legacy structured_argument path.
+    build_aspic_projection is the ASPIC+ bridge construction entry point
+    (T1-T7) for producing propstore StructuredProjection results.
     """
 
     def test_returns_structured_projection(self):
