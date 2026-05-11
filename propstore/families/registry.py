@@ -214,7 +214,8 @@ WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.04")
 SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.03")
+INTENTIONAL_SET_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.11")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
@@ -691,6 +692,8 @@ def _semantic_metadata(
     import_order: int = 100,
     init_directory: bool = True,
     collection_field: str | None = None,
+    aggregate_decision: str | None = None,
+    aggregate_reason: str | None = None,
 ) -> dict[str, object]:
     return {
         "semantic": True,
@@ -698,6 +701,8 @@ def _semantic_metadata(
         "import_order": import_order,
         "init_directory": init_directory,
         "collection_field": collection_field,
+        "aggregate_decision": aggregate_decision,
+        "aggregate_reason": aggregate_reason,
     }
 
 
@@ -740,16 +745,36 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.PREDICATES,
             name=PropstoreFamily.PREDICATES.value,
-            contract_version=PREDICATE_FILE_FAMILY.contract_version,
+            contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
             artifact_family=PREDICATE_FILE_FAMILY,
-            metadata=_semantic_metadata(importable=True, import_order=40, collection_field="predicates"),
+            metadata=_semantic_metadata(
+                importable=True,
+                import_order=40,
+                collection_field="predicates",
+                aggregate_decision="intentional_set",
+                aggregate_reason=(
+                    "Predicate declarations form the Datalog schema for a theory; "
+                    "identity and validation are defined over the declaration set, "
+                    "including global duplicate checks and authored order."
+                ),
+            ),
         ),
         FamilyDefinition(
             key=PropstoreFamily.RULES,
             name=PropstoreFamily.RULES.value,
-            contract_version=RULE_FILE_FAMILY.contract_version,
+            contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
             artifact_family=RULE_FILE_FAMILY,
-            metadata=_semantic_metadata(importable=True, import_order=50, collection_field="rules"),
+            metadata=_semantic_metadata(
+                importable=True,
+                import_order=50,
+                collection_field="rules",
+                aggregate_decision="intentional_set",
+                aggregate_reason=(
+                    "Rules are authored and evaluated as a source theory: the "
+                    "file-level source block, ordered rules, and superiority "
+                    "relation are one semantic rule set."
+                ),
+            ),
         ),
         FamilyDefinition(
             key=PropstoreFamily.STANCES,

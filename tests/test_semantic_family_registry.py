@@ -50,6 +50,10 @@ def test_semantic_registry_exposes_artifact_families_for_rules_and_predicates() 
     assert predicate.artifact_family.placement.contract_body()["namespace"] == "predicates"
     assert rule.metadata and rule.metadata["collection_field"] == "rules"
     assert predicate.metadata and predicate.metadata["collection_field"] == "predicates"
+    assert rule.metadata["aggregate_decision"] == "intentional_set"
+    assert "superiority relation" in str(rule.metadata["aggregate_reason"])
+    assert predicate.metadata["aggregate_decision"] == "intentional_set"
+    assert "Datalog schema" in str(predicate.metadata["aggregate_reason"])
 
 
 def test_semantic_family_contract_includes_path_schema() -> None:
