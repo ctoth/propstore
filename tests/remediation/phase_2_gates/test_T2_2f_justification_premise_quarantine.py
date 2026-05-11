@@ -63,15 +63,11 @@ def test_justification_missing_premise_quarantines_not_raises(
             ).encode(),
             "justifications/bad_premise.yaml": yaml.dump(
                 {
-                    "justifications": [
-                        {
-                            "id": "just_missing_premise",
-                            "conclusion": conclusion_claim_id,
-                            "premises": [missing_premise_id],
-                            "rule_kind": "empirical_support",
-                            "provenance": {"page": 1},
-                        }
-                    ]
+                    "id": "just_missing_premise",
+                    "conclusion": conclusion_claim_id,
+                    "premises": [missing_premise_id],
+                    "rule_kind": "empirical_support",
+                    "provenance": {"page": 1},
                 },
                 sort_keys=False,
             ).encode(),

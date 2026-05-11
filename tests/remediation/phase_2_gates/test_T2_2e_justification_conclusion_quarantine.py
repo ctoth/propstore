@@ -63,15 +63,11 @@ def test_justification_missing_conclusion_quarantines_not_raises(
             ).encode(),
             "justifications/bad_conclusion.yaml": yaml.dump(
                 {
-                    "justifications": [
-                        {
-                            "id": "just_missing_conclusion",
-                            "conclusion": missing_conclusion_id,
-                            "premises": [premise_claim_id],
-                            "rule_kind": "empirical_support",
-                            "provenance": {"page": 1},
-                        }
-                    ]
+                    "id": "just_missing_conclusion",
+                    "conclusion": missing_conclusion_id,
+                    "premises": [premise_claim_id],
+                    "rule_kind": "empirical_support",
+                    "provenance": {"page": 1},
                 },
                 sort_keys=False,
             ).encode(),

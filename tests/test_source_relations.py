@@ -1037,15 +1037,15 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
     assert parameter_claim["output_concept"] == canonical_concept_id
     assert observation_claim["concepts"] == [canonical_concept_id]
 
-    source_claim_id = parameter_claim["artifact_id"]
-    stance_file_name = source_claim_id.replace(":", "__") + ".yaml"
+    stance_file_name = next(repo.git.iter_dir("stances"))
     stance_doc = yaml.safe_load(repo.git.read_file(f"stances/{stance_file_name}"))
-    assert stance_doc["source_claim"] == source_claim_id
-    assert stance_doc["stances"][0]["target"] == observation_claim["artifact_id"]
+    assert stance_doc["source_claim"] == parameter_claim["artifact_id"]
+    assert stance_doc["target"] == observation_claim["artifact_id"]
 
-    justification_doc = yaml.safe_load(repo.git.read_file("justifications/demo.yaml"))
-    assert justification_doc["justifications"][0]["conclusion"] == observation_claim["artifact_id"]
-    assert justification_doc["justifications"][0]["premises"] == [parameter_claim["artifact_id"]]
+    justification_file_name = next(repo.git.iter_dir("justifications"))
+    justification_doc = yaml.safe_load(repo.git.read_file(f"justifications/{justification_file_name}"))
+    assert justification_doc["conclusion"] == observation_claim["artifact_id"]
+    assert justification_doc["premises"] == [parameter_claim["artifact_id"]]
 
     source_doc = yaml.safe_load(repo.git.read_file("sources/demo.yaml"))
     assert source_doc["id"].startswith("tag:")

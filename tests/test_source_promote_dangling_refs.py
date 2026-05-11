@@ -212,11 +212,12 @@ def _finalize_and_promote(repo: Repository, runner: CliRunner, source_name: str)
 
 
 def _read_promoted_justifications(repo: Repository, source_name: str) -> list[dict[str, object]]:
-    try:
-        stored = yaml.safe_load(repo.git.read_file(f"justifications/{source_name}.yaml"))
-    except FileNotFoundError:
-        return []
-    return list(stored.get("justifications") or [])
+    justifications: list[dict[str, object]] = []
+    for filename in repo.git.iter_dir("justifications"):
+        stored = yaml.safe_load(repo.git.read_file(f"justifications/{filename}"))
+        if isinstance(stored, dict):
+            justifications.append(stored)
+    return justifications
 
 
 def test_promote_rejects_justification_reference_to_unpromoted_source_claim(
