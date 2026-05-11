@@ -141,7 +141,7 @@ def _indexed_claim(claim: MergeClaim) -> _IndexedClaim | None:
 
 
 def _claim_semantic_key(claim: MergeClaim) -> dict[str, Any]:
-    skip = {"artifact_id", "version_id", "provenance"}
+    skip = {"artifact_id", "version_id", "provenance", "source"}
     payload = claim.to_payload(include_branch_origin=False)
     return {key: value for key, value in payload.items() if key not in skip}
 
@@ -151,7 +151,7 @@ def _claims_equal(a: MergeClaim, b: MergeClaim) -> bool:
 
 
 def _claim_candidate_key(claim: MergeClaim) -> dict[str, Any]:
-    skip = {"id", "artifact_id", "version_id", "provenance", "logical_ids"}
+    skip = {"id", "artifact_id", "version_id", "provenance", "logical_ids", "source"}
     payload = claim.to_payload(include_branch_origin=False)
     return {key: value for key, value in payload.items() if key not in skip}
 
