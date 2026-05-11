@@ -8,6 +8,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.repository import Repository
+from tests.family_helpers import claim_artifact_commit_payloads
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
@@ -38,12 +39,16 @@ def _write_counter(concepts_dir: Path, value: int) -> None:
     (counters / "global.next").write_text(f"{value}\n")
 
 
-def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
-    claims_dir.mkdir(parents=True, exist_ok=True)
-    path = claims_dir / filename
+def _write_claim_file(repo: Repository, filename: str, data: dict) -> None:
     normalized = normalize_claims_payload(data)
-    path.write_text(yaml.dump(normalized, default_flow_style=False, sort_keys=False))
-    return path
+    for relative_path, content in claim_artifact_commit_payloads(
+        repo,
+        normalized,
+        source=f"claims/{filename}",
+    ).items():
+        path = repo.root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
 
 
 @pytest.fixture()
@@ -83,8 +88,7 @@ def revision_cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
     ))
     _write_counter(concepts, 3)
 
-    claims_dir = knowledge / "claims"
-    _write_claim_file(claims_dir, "freq_paper.yaml", {
+    _write_claim_file(repo, "freq_paper.yaml", {
         "source": {"paper": "freq_paper"},
         "claims": [
             {
