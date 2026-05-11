@@ -18,6 +18,7 @@ from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
@@ -32,7 +33,23 @@ def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def _claims_commit_payload(claim_ids: list[str], *, prefix: str) -> dict[str, bytes]:
+def _claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
+    doc = normalize_claims_payload({
+        "source": {
+            "paper": paper,
+            "extraction_model": "test",
+            "extraction_date": "2026-01-01",
+        },
+        "claims": claims,
+    })
+    return claim_artifact_commit_payloads(
+        Repository(kr.root),
+        doc,
+        source=f"claims/{paper}.yaml",
+    )
+
+
+def _claims_commit_payload(kr: GitStore, claim_ids: list[str], *, prefix: str) -> dict[str, bytes]:
     if not claim_ids:
         return {}
     midpoint = max(1, len(claim_ids) // 2)
@@ -40,13 +57,15 @@ def _claims_commit_payload(claim_ids: list[str], *, prefix: str) -> dict[str, by
     first_half = claim_ids[:midpoint]
     second_half = claim_ids[midpoint:]
     if first_half:
-        payload[f"claims/{prefix}_a.yaml"] = _claim_yaml(
+        payload.update(_claim_payloads(
+            kr,
             [_obs_claim(claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]) for claim_id in first_half]
-        )
+        ))
     if second_half:
-        payload[f"claims/{prefix}_b.yaml"] = _claim_yaml(
+        payload.update(_claim_payloads(
+            kr,
             [_obs_claim(claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]) for claim_id in reversed(second_half)]
-        )
+        ))
     return payload
 
 
@@ -122,7 +141,7 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/base.yaml": _claim_yaml([_obs_claim("claim1", "Base", ["concept_x"])])},
+        _claim_payloads(kr, [_obs_claim("claim1", "Base", ["concept_x"])]),
         "seed",
     )
     branch_name = "paper/test"
@@ -141,14 +160,14 @@ def test_syntax_independence_claim_order(tmp_path):
     claim_a = _obs_claim("claimA", "A", ["concept_a"])
     claim_b = _obs_claim("claimB", "B", ["concept_b"])
     base_sha = kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([claim_a, claim_b])},
+        _claim_payloads(kr, [claim_a, claim_b]),
         "seed",
     )
     branch_name = "paper/reorder"
     kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([claim_b, claim_a])},
+        _claim_payloads(kr, [claim_b, claim_a]),
         "reorder",
     )
 
@@ -162,15 +181,15 @@ def test_syntax_independence_filename(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     claims = [_obs_claim("claimA", "Observation A", ["concept_a"])]
     base_sha = kr.commit_files(
-        {"claims/original.yaml": _claim_yaml(claims)},
+        _claim_payloads(kr, claims),
         "seed",
     )
     branch_name = "paper/rename"
     kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_batch(
-        adds={"claims/renamed.yaml": _claim_yaml(claims)},
-        deletes=["claims/original.yaml"],
+        adds=_claim_payloads(kr, claims),
+        deletes=[],
         message="rename file",
     )
 
@@ -183,18 +202,18 @@ def test_syntax_independence_filename(tmp_path):
 def test_merge_commit_has_two_parents(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/base.yaml": _claim_yaml([_obs_claim("claim1", "Base", ["concept_x"])])},
+        _claim_payloads(kr, [_obs_claim("claim1", "Base", ["concept_x"])]),
         "seed",
     )
     branch_name = "paper/merge_test"
     kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
-        {"claims/left.yaml": _claim_yaml([_obs_claim("claimL", "Left", ["concept_a"])])},
+        _claim_payloads(kr, [_obs_claim("claimL", "Left", ["concept_a"])]),
         "left",
     )
     left_sha = kr.branch_sha("master")
     kr.commit_files(
-        {"claims/right.yaml": _claim_yaml([_obs_claim("claimR", "Right", ["concept_b"])])},
+        _claim_payloads(kr, [_obs_claim("claimR", "Right", ["concept_b"])]),
         "right",
         branch=branch_name,
     )
@@ -206,31 +225,32 @@ def test_merge_commit_has_two_parents(tmp_path):
 def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/base.yaml": _claim_yaml([_obs_claim("claim1", "Base", ["concept_x"])])},
+        _claim_payloads(kr, [_obs_claim("claim1", "Base", ["concept_x"])]),
         "seed",
     )
     branch_name = "paper/preserve"
     kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
-        {"claims/left.yaml": _claim_yaml([_obs_claim("claimL", "Left only", ["concept_a"])])},
+        _claim_payloads(kr, [_obs_claim("claimL", "Left only", ["concept_a"])]),
         "left",
     )
     kr.commit_files(
-        {"claims/right.yaml": _claim_yaml([_obs_claim("claimR", "Right only", ["concept_b"])])},
+        _claim_payloads(kr, [_obs_claim("claimR", "Right only", ["concept_b"])]),
         "right",
         branch=branch_name,
     )
 
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
-    from propstore.claims import claim_file_payload
+    from propstore.claims import claim_file_claims
     from tests.family_helpers import load_claim_files
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     all_claim_ids = {
-        claim["artifact_id"]
+        claim.artifact_id
         for claim_file in claim_files
-        for claim in claim_file_payload(claim_file).get("claims", [])
+        for claim in claim_file_claims(claim_file)
+        if claim.artifact_id is not None
     }
     assert make_claim_identity("claimL", namespace="test_paper")["artifact_id"] in all_claim_ids
     assert make_claim_identity("claimR", namespace="test_paper")["artifact_id"] in all_claim_ids
@@ -239,17 +259,17 @@ def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
 def test_merge_commit_valid_claims(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/base.yaml": _claim_yaml([_obs_claim("claim1", "Base", ["concept_x"])])},
+        _claim_payloads(kr, [_obs_claim("claim1", "Base", ["concept_x"])]),
         "seed",
     )
     branch_name = "paper/valid"
     kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
-        {"claims/left.yaml": _claim_yaml([_obs_claim("claimL", "Left", ["concept_a"])])},
+        _claim_payloads(kr, [_obs_claim("claimL", "Left", ["concept_a"])]),
         "left",
     )
     kr.commit_files(
-        {"claims/right.yaml": _claim_yaml([_obs_claim("claimR", "Right", ["concept_b"])])},
+        _claim_payloads(kr, [_obs_claim("claimR", "Right", ["concept_b"])]),
         "right",
         branch=branch_name,
     )
@@ -271,17 +291,17 @@ def test_merge_commit_valid_claims(tmp_path):
 def test_conflict_merge_is_deterministic(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/conflict"
     kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 300.0)]),
         "left",
     )
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 150.0)]),
         "right",
         branch=branch_name,
     )
@@ -295,17 +315,17 @@ def test_conflict_merge_is_deterministic(tmp_path):
 def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/conflict"
     kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 300.0)]),
         "left",
     )
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 150.0)]),
         "right",
         branch=branch_name,
     )
@@ -349,7 +369,7 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
     left_ids: list[str],
     right_ids: list[str],
 ):
-    from propstore.claims import claim_file_payload
+    from propstore.claims import claim_file_claims
     from tests.family_helpers import load_claim_files
 
     assume(set(left_ids).isdisjoint(right_ids))
@@ -361,8 +381,8 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
         branch_name = "paper/property_preserve"
         kr.create_branch(branch_name, source_commit=base_sha)
 
-        left_payload = _claims_commit_payload(left_ids, prefix="left")
-        right_payload = _claims_commit_payload(right_ids, prefix="right")
+        left_payload = _claims_commit_payload(kr, left_ids, prefix="left")
+        right_payload = _claims_commit_payload(kr, right_ids, prefix="right")
         if left_payload:
             kr.commit_files(left_payload, "left additions")
         if right_payload:
@@ -371,9 +391,10 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
         merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
         claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
         merged_artifact_ids = {
-            claim["artifact_id"]
+            claim.artifact_id
             for claim_file in claim_files
-            for claim in claim_file_payload(claim_file).get("claims", [])
+            for claim in claim_file_claims(claim_file)
+            if claim.artifact_id is not None
         }
         expected_artifact_ids = {
             make_claim_identity(claim_id, namespace="test_paper")["artifact_id"]
