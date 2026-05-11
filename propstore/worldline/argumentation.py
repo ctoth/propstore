@@ -173,10 +173,8 @@ def _capture_aspic(
     normalized_semantics: Any,
 ) -> WorldlineArgumentationState | None:
     from propstore.world.types import ReasoningBackend
-    from propstore.structured_projection import (
-        build_structured_projection,
-        compute_structured_justified_arguments,
-    )
+    from propstore.aspic_bridge import build_aspic_projection
+    from propstore.structured_projection import compute_structured_justified_arguments
 
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     if isinstance(bound, ClaimSupportView):
@@ -186,7 +184,7 @@ def _capture_aspic(
     if not isinstance(world, GroundingBundleStore):
         return None
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         world,
         active,
         bundle=world.grounding_bundle(),
