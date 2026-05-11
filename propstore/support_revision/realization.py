@@ -10,12 +10,14 @@ from propstore.support_revision.belief_set_adapter import (
     FormalDecision,
     accepted_atom_ids as formal_accepted_atom_ids,
     rejected_atom_ids as formal_rejected_atom_ids,
+    selected_world_atom_ids,
 )
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import RevisionAtomDetail
 from propstore.support_revision.state import (
     BeliefAtom,
     BeliefBase,
+    RevisionMergeRequiredFailure,
     RevisionResult,
     SupportRevisionRealization,
     is_assertion_atom,
@@ -87,6 +89,67 @@ def realize_formal_decision(
         accepted_atom_ids=stabilized.accepted_atom_ids,
         rejected_atom_ids=stabilized.rejected_atom_ids,
         incision_set=incision_set,
+        explanation=explanation,
+        decision=decision.report,
+        realization=realization,
+    )
+
+
+def realize_ic_merge_decision(
+    base: BeliefBase,
+    decision: FormalDecision,
+) -> RevisionResult:
+    selected_worlds = selected_world_atom_ids(decision)
+    if len(selected_worlds) != 1:
+        raise RevisionMergeRequiredFailure(reason=f"ic_merge_selected_world_count:{len(selected_worlds)}")
+
+    atoms_by_id = {atom.atom_id: atom for atom in base.atoms}
+    projected_atom_ids = tuple(atom_id for atom_id in decision.projection.formula_by_atom_id if atom_id in atoms_by_id)
+    selected = set(selected_worlds[0])
+    accepted_ids = tuple(atom_id for atom_id in projected_atom_ids if atom_id in selected)
+    rejected_ids = tuple(atom_id for atom_id in projected_atom_ids if atom_id not in selected)
+    missing = tuple(atom_id for atom_id in selected if atom_id not in atoms_by_id)
+    if missing:
+        raise RevisionMergeRequiredFailure(reason=f"ic_merge_unknown_selected_atoms:{','.join(missing)}")
+
+    revised_base = _rebuild_base(
+        base,
+        tuple(atoms_by_id[atom_id] for atom_id in accepted_ids),
+    )
+    explanation = {
+        atom_id: RevisionAtomDetail(
+            reason="ic_merge_world_true",
+            selection_rule="ic_merge_selected_world",
+            support_sets=tuple(base.support_sets.get(atom_id, ())),
+        )
+        for atom_id in accepted_ids
+    }
+    explanation.update(
+        {
+            atom_id: RevisionAtomDetail(
+                reason="ic_merge_world_false",
+                selection_rule="ic_merge_selected_world",
+                support_sets=tuple(base.support_sets.get(atom_id, ())),
+            )
+            for atom_id in rejected_ids
+        }
+    )
+    realization = SupportRevisionRealization(
+        accepted_atom_ids=accepted_ids,
+        rejected_atom_ids=rejected_ids,
+        incision_set=(),
+        source_claim_ids=_source_claim_ids(atoms_by_id, accepted_ids),
+        reasons=explanation,
+        journal_metadata={
+            "selected_world": list(selected_worlds[0]),
+            "selected_worlds_hash": decision.report.trace.get("selected_worlds_hash"),
+        },
+    )
+    return RevisionResult(
+        revised_base=revised_base,
+        accepted_atom_ids=accepted_ids,
+        rejected_atom_ids=rejected_ids,
+        incision_set=(),
         explanation=explanation,
         decision=decision.report,
         realization=realization,
