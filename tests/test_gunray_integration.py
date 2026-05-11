@@ -366,10 +366,9 @@ def test_build_bridge_csaf_signature_requires_grounded_rules_bundle() -> None:
 def test_build_aspic_projection_threads_grounded_rules() -> None:
     """``build_aspic_projection`` must accept a ``GroundedRulesBundle``.
 
-    Same requirement as ``build_bridge_csaf``: the public projection
-    entry point is what ``structured_projection.py`` calls from the
-    render layer, so it must expose the bundle parameter for the
-    Phase-1 pipeline to work end-to-end. Diller, Borg, Bex 2025 §3
+    Same requirement as ``build_bridge_csaf``: the public ASPIC projection
+    entry point is what render-layer callers use, so it must expose the
+    bundle parameter for the Phase-1 pipeline to work end-to-end. Diller, Borg, Bex 2025 §3
     Def 9: determinism requires the bundle travel with the call.
     Modgil & Prakken 2018 Def 5 (pp.9-10): the bundle supplies the
     ground defeasible rules that argument construction consumes.
