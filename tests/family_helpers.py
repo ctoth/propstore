@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 
 from quire.tree_path import (
@@ -80,6 +81,38 @@ def build_sidecar(repo_or_path: Repository | TreePath | Path, sidecar_path: Path
     if kwargs.get("commit_hash") is None:
         _commit_worktree(repo)
     return _build_sidecar(repo, sidecar_path, **kwargs)
+
+
+def claim_artifact_commit_payloads(
+    repo: Repository,
+    batch_payload: Mapping[str, object],
+    *,
+    source: str,
+) -> dict[str, bytes]:
+    normalized, _ = normalize_claim_file_payload(batch_payload)
+    source_path = repo.root / source
+    batch = LoadedDocument(
+        filename=source_path.name,
+        artifact_path=source_path,
+        store_root=repo.root,
+        document=convert_document_value(
+            normalized,
+            ClaimsFileDocument,
+            source=source,
+        ),
+    )
+    payloads: dict[str, bytes] = {}
+    for loaded in expand_loaded_claim_batch(batch):
+        claim = loaded.document
+        artifact_id = claim.artifact_id
+        if artifact_id is None:
+            raise ValueError(f"{source}: normalized claim is missing artifact_id")
+        ref = ClaimRef(artifact_id)
+        artifact_path = repo.families.claims.address(ref).require_path()
+        payloads[artifact_path] = (
+            repo.families.claims.render(claim) + "\n"
+        ).encode("utf-8")
+    return payloads
 
 
 def _load_claim_fixture(
