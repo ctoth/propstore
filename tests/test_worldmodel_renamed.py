@@ -30,3 +30,21 @@ def test_world_model_identifier_is_absent_from_propstore_and_tests() -> None:
                     offenders.append(f"{path}:{node.lineno}")
 
     assert offenders == []
+
+
+def test_world_model_identifier_scan_ignores_import_linter_transient_fixture(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "propstore"
+    root.mkdir()
+    fixture = root / "_ws_n2_violation_fixture.py"
+    fixture.write_text("WorldModel\n", encoding="utf-8")
+
+    offenders: list[str] = []
+    for path in root.rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and node.id == "WorldModel":
+                offenders.append(f"{path}:{node.lineno}")
+
+    assert offenders == []
