@@ -391,9 +391,19 @@ class RevisionMergeRequiredFailure(ValueError):
         *,
         reason: str = "merge_required",
         parent_commits: tuple[str, ...] = (),
+        decision_report: FormalRevisionDecisionReport | None = None,
+        profile_atom_ids: tuple[tuple[str, ...], ...] = (),
+        integrity_constraint: Mapping[str, Any] | None = None,
+        selected_worlds_hash: str | None = None,
+        event: RevisionEvent | None = None,
     ) -> None:
         self.reason = str(reason)
         self.parent_commits = tuple(str(commit) for commit in parent_commits)
+        self.decision_report = decision_report
+        self.profile_atom_ids = tuple(tuple(str(atom_id) for atom_id in profile) for profile in profile_atom_ids)
+        self.integrity_constraint = None if integrity_constraint is None else dict(integrity_constraint)
+        self.selected_worlds_hash = None if selected_worlds_hash is None else str(selected_worlds_hash)
+        self.event = event
         message = "merge point requires IC merge" if self.reason == "merge_required" else self.reason
         if self.parent_commits:
             message += f": {', '.join(self.parent_commits)}"
