@@ -95,8 +95,8 @@ def test_ic_merge_dispatch_calls_formal_adapter_with_profile_and_constraint(monk
     state = make_epistemic_state(base, entrenchment)
     calls = []
 
-    def _fake_decide_ic_merge(*, profile_atom_ids, integrity_constraint, max_alphabet_size):
-        calls.append((profile_atom_ids, integrity_constraint, max_alphabet_size))
+    def _fake_decide_ic_merge(*, profile_atom_ids, integrity_constraint, merge_operator, max_alphabet_size):
+        calls.append((profile_atom_ids, integrity_constraint, merge_operator, max_alphabet_size))
         raise RevisionMergeRequiredFailure(
             reason="realization_not_implemented",
             parent_commits=(),
@@ -116,4 +116,4 @@ def test_ic_merge_dispatch_calls_formal_adapter_with_profile_and_constraint(monk
             policy=_POLICY,
         )
 
-    assert calls == [((("atom:left",), ("atom:right",)), {"kind": "top"}, 8)]
+    assert calls == [((("atom:left",), ("atom:right",)), {"kind": "top"}, "sigma", 8)]
