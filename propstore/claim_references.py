@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from propstore.families.claims.documents import ClaimLogicalIdDocument
 from propstore.families.documents.sources import SourceClaimsDocument
+from propstore.json_types import JsonObject, JsonValue
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -92,7 +93,7 @@ class ImportedClaimHandleIndex:
                 f"Imported stance file {path!r} references ambiguous {role} {reference!r}"
             )
 
-    def resolve(self, reference: object, *, path: str, role: str) -> object:
+    def resolve(self, reference: JsonValue | None, *, path: str, role: str) -> JsonValue | None:
         self.require_unambiguous(reference, path=path, role=role)
         if not isinstance(reference, str):
             return reference
@@ -101,7 +102,7 @@ class ImportedClaimHandleIndex:
             return reference
         return resolved
 
-    def rewrite_stance_payload(self, payload: dict[str, object], *, path: str) -> dict[str, object]:
+    def rewrite_stance_payload(self, payload: JsonObject, *, path: str) -> JsonObject:
         rewritten = dict(payload)
         rewritten["source_claim"] = self.resolve(
             rewritten.get("source_claim"),
@@ -113,7 +114,7 @@ class ImportedClaimHandleIndex:
         if not isinstance(raw_stances, list):
             return rewritten
 
-        updated_stances: list[object] = []
+        updated_stances: list[JsonValue] = []
         for stance in raw_stances:
             if not isinstance(stance, dict):
                 updated_stances.append(stance)
