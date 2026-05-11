@@ -6,8 +6,10 @@ from pathlib import Path
 import yaml
 
 from propstore.compiler.workflows import build_repository
+from propstore.families.registry import ClaimRef
 from propstore.repository import Repository
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def test_build_repository_claim_schema_error_quarantines_not_raises(
@@ -43,6 +45,12 @@ def test_build_repository_claim_schema_error_quarantines_not_raises(
     )
     valid_claim_id = valid_claims["claims"][0]["artifact_id"]
     repo = Repository.init(tmp_path / "knowledge")
+    valid_claim_payloads = claim_artifact_commit_payloads(
+        repo,
+        valid_claims,
+        source="claims/workflow_claim_schema.yaml",
+    )
+    bad_claim_path = repo.families.claims.address(ClaimRef("zz_bad_schema")).require_path()
     repo.git.commit_files(
         {
             "forms/frequency.yaml": yaml.dump(
@@ -57,14 +65,11 @@ def test_build_repository_claim_schema_error_quarantines_not_raises(
                 {"id": "ctx_test", "name": "Test context"},
                 sort_keys=False,
             ).encode(),
-            "claims/workflow_claim_schema.yaml": yaml.dump(
-                valid_claims,
-                sort_keys=False,
-            ).encode(),
-            "claims/zz_bad_schema.yaml": yaml.dump(
+            **valid_claim_payloads,
+            bad_claim_path: yaml.dump(
                 {
-                    "source": {"paper": "bad_claim_schema"},
-                    "claims": [],
+                    "context": {"id": "ctx_test"},
+                    "type": "observation",
                     "unexpected": True,
                 },
                 sort_keys=False,
