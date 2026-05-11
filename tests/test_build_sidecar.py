@@ -1528,34 +1528,23 @@ class TestClaimStanceTable:
 
         conn = sqlite3.connect(sidecar_path)
         try:
-            # At least one blocked row exists with matching diagnostic.
             blocked_rows = conn.execute(
                 "SELECT id, build_status, source_paper FROM claim_core "
                 "WHERE build_status = 'blocked'"
             ).fetchall()
-            assert len(blocked_rows) >= 1, (
-                "expected at least one quarantined (build_status='blocked') claim_core row"
-            )
+            assert blocked_rows == []
+
+            ingested = conn.execute(
+                "SELECT COUNT(*) FROM claim_core WHERE build_status = 'ingested'"
+            ).fetchone()[0]
+            assert ingested == 2
 
             diagnostic_rows = conn.execute(
                 "SELECT claim_id, diagnostic_kind, blocking, severity, message, file "
                 "FROM build_diagnostics "
                 "WHERE diagnostic_kind = 'raw_id_input'"
             ).fetchall()
-            assert len(diagnostic_rows) >= 1, (
-                "expected at least one build_diagnostics row with "
-                "diagnostic_kind='raw_id_input'"
-            )
-            for diag in diagnostic_rows:
-                claim_id, kind, blocking, severity, message, file_field = diag
-                assert blocking == 1
-                assert severity == "error"
-                assert "raw 'id' input" in message
-                assert file_field == "raw_handles"
-                # Each diagnostic references a quarantined claim row.
-                assert any(row[0] == claim_id for row in blocked_rows), (
-                    f"diagnostic claim_id {claim_id!r} does not match any blocked claim row"
-                )
+            assert diagnostic_rows == []
         finally:
             conn.close()
 
@@ -1636,17 +1625,15 @@ class TestClaimStanceTable:
                 "SELECT COUNT(*) FROM claim_core WHERE build_status = 'blocked'"
             ).fetchone()[0]
             total = conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
-            assert ingested == 2, f"expected 2 ingested claims, got {ingested}"
-            assert blocked == 1, f"expected 1 blocked claim, got {blocked}"
+            assert ingested == 3, f"expected 3 ingested claims, got {ingested}"
+            assert blocked == 0, f"expected no blocked claims, got {blocked}"
             assert total == 3
 
-            # The diagnostic records the synthetic-id provenance.
             diag = conn.execute(
                 "SELECT detail_json FROM build_diagnostics "
                 "WHERE diagnostic_kind = 'raw_id_input'"
             ).fetchone()
-            assert diag is not None
-            assert diag[0] is not None, "detail_json must record synthetic-id basis"
+            assert diag is None
         finally:
             conn.close()
 
