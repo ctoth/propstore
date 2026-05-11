@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, TypeAlias
 
 from quire.artifacts import ArtifactHandle
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.documents import ClaimDocument, ClaimsFileDocument
 from propstore.families.registry import ClaimRef
 from quire.documents import (
     convert_document_value,
@@ -19,6 +19,7 @@ LoadedClaimsFile: TypeAlias = LoadedDocument[ClaimDocument]
 ClaimFileEntry: TypeAlias = (
     LoadedClaimsFile | ArtifactHandle[Any, ClaimRef, ClaimDocument]
 )
+LoadedClaimBatch: TypeAlias = LoadedDocument[ClaimsFileDocument]
 
 
 def load_claim_file(
@@ -61,6 +62,24 @@ def loaded_claim_file_from_payload(
             source=label,
         ),
     )
+
+
+def expand_loaded_claim_batch(batch: LoadedClaimBatch) -> tuple[LoadedClaimsFile, ...]:
+    source_payload = batch.document.source.to_payload()
+    expanded: list[LoadedClaimsFile] = []
+    for index, claim in enumerate(batch.document.claims, start=1):
+        expanded.append(
+            loaded_claim_file_from_payload(
+                filename=f"{batch.filename}#{index}",
+                source_path=batch.artifact_path,
+                data={
+                    "source": source_payload,
+                    "claims": [claim.to_payload()],
+                },
+                knowledge_root=batch.store_root,
+            )
+        )
+    return tuple(expanded)
 
 
 def claim_file_filename(claim_file: ClaimFileEntry) -> str:

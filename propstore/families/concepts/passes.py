@@ -19,6 +19,7 @@ from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, DimensionalError
 
 from quire.documents import load_document_dir
+from propstore.claims import expand_loaded_claim_batch
 from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.core.conditions import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo, KindType
@@ -244,8 +245,13 @@ def _load_claim_reference_lookup(
     """Load claim artifact and logical reference keys from claim YAML files."""
     if claims_dir is None:
         return {}
+    claim_files = [
+        claim_file
+        for batch in load_document_dir(claims_dir, ClaimsFileDocument)
+        for claim_file in expand_loaded_claim_batch(batch)
+    ]
     return build_claim_reference_lookup(
-        list(load_document_dir(claims_dir, ClaimsFileDocument))
+        claim_files
     )
 
 

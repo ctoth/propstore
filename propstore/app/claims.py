@@ -236,6 +236,7 @@ def validate_claim_files(
     )
     from propstore.families.claims.passes import validate_claims
     from propstore.families.concepts.stages import load_concepts
+    from propstore.claims import expand_loaded_claim_batch
     from propstore.families.claims.documents import ClaimsFileDocument
 
     claims_root = (
@@ -257,7 +258,11 @@ def validate_claim_files(
                 for handle in repo.families.claims.iter_handles()
             ]
         else:
-            files = load_document_dir(claims_root, ClaimsFileDocument)
+            files = [
+                claim_file
+                for batch in load_document_dir(claims_root, ClaimsFileDocument)
+                for claim_file in expand_loaded_claim_batch(batch)
+            ]
         if concepts_root is None:
             context = build_compilation_context_from_repo(repo, claim_files=files)
         else:
