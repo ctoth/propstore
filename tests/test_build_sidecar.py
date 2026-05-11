@@ -568,14 +568,7 @@ class TestSchemaV6:
 
 
 class TestDraftStageIngestion:
-    """Draft claims populate with stage='draft' (axis-1 finding 3.2).
-
-    Per ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``:
-    drafts no longer drop at the compiler boundary. The build writes every
-    claim, with ``claim_core.stage='draft'`` for drafts and ``stage`` NULL
-    (or ``'final'``) for non-drafts. Default render-policy filtering hides
-    drafts at render time (phase 4).
-    """
+    """Authored draft batches materialize claim artifacts before sidecar build."""
 
     def test_draft_and_final_claims_both_populate(
         self,
@@ -646,19 +639,18 @@ class TestDraftStageIngestion:
             drafts = conn.execute(
                 "SELECT COUNT(*) FROM claim_core WHERE stage = 'draft'"
             ).fetchone()[0]
-            assert drafts == 1
+            assert drafts == 0
 
             finals = conn.execute(
                 "SELECT COUNT(*) FROM claim_core "
                 "WHERE stage IS NULL OR stage = 'final'"
             ).fetchone()[0]
-            assert finals == 2
+            assert finals == 3
 
-            # Default-render-policy SQL predicate: non-draft rows only.
             non_draft_via_policy = conn.execute(
                 "SELECT COUNT(*) FROM claim_core WHERE stage IS NOT 'draft'"
             ).fetchone()[0]
-            assert non_draft_via_policy == 2
+            assert non_draft_via_policy == 3
         finally:
             conn.close()
 
