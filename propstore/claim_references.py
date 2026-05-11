@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from propstore.families.claims.documents import ClaimLogicalIdDocument
 from propstore.families.documents.sources import SourceClaimsDocument
@@ -101,7 +101,7 @@ class ImportedClaimHandleIndex:
             return reference
         return resolved
 
-    def rewrite_stance_payload(self, payload: dict[str, Any], *, path: str) -> dict[str, Any]:
+    def rewrite_stance_payload(self, payload: dict[str, object], *, path: str) -> dict[str, object]:
         rewritten = dict(payload)
         rewritten["source_claim"] = self.resolve(
             rewritten.get("source_claim"),
@@ -113,7 +113,7 @@ class ImportedClaimHandleIndex:
         if not isinstance(raw_stances, list):
             return rewritten
 
-        updated_stances: list[Any] = []
+        updated_stances: list[object] = []
         for stance in raw_stances:
             if not isinstance(stance, dict):
                 updated_stances.append(stance)
