@@ -71,6 +71,26 @@ def test_semantic_family_contract_includes_path_schema() -> None:
     assert concept_body["artifact_family_contract"]["doc_type"].endswith(".ConceptDocument")
 
 
+def test_stance_family_target_model_is_one_semantic_artifact_per_file() -> None:
+    from propstore.families.documents.stances import StanceDocument
+    from propstore.families.registry import StanceRef
+
+    canonical = semantic_family_by_name(PropstoreFamily.STANCES.value)
+    proposal = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.PROPOSAL_STANCES)
+
+    for family in (canonical, proposal):
+        artifact_family = family.artifact_family
+        placement = artifact_family.placement.contract_body()
+
+        assert artifact_family.doc_type is StanceDocument
+        assert artifact_family.placement.ref_factory is StanceRef
+        assert placement["namespace"] == "stances"
+        assert placement["ref_field"] == "artifact_id"
+        assert placement["codec"] == "colon_to_double_underscore"
+
+    assert canonical.metadata and canonical.metadata["collection_field"] is None
+
+
 def test_canonical_artifact_path_helpers_are_deleted() -> None:
     import propstore.families.registry as family_registry
 
