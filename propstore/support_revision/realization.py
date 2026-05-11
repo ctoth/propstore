@@ -100,8 +100,10 @@ def realize_ic_merge_decision(
     decision: FormalDecision,
 ) -> RevisionResult:
     selected_worlds = selected_world_atom_ids(decision)
+    if not selected_worlds:
+        raise _ic_merge_failure("unsatisfiable_integrity_constraint", decision)
     if len(selected_worlds) != 1:
-        raise RevisionMergeRequiredFailure(reason=f"ic_merge_selected_world_count:{len(selected_worlds)}")
+        raise _ic_merge_failure("ambiguous_selected_worlds", decision)
 
     atoms_by_id = {atom.atom_id: atom for atom in base.atoms}
     projected_atom_ids = tuple(atom_id for atom_id in decision.projection.formula_by_atom_id if atom_id in atoms_by_id)
@@ -110,7 +112,7 @@ def realize_ic_merge_decision(
     rejected_ids = tuple(atom_id for atom_id in projected_atom_ids if atom_id not in selected)
     missing = tuple(atom_id for atom_id in selected if atom_id not in atoms_by_id)
     if missing:
-        raise RevisionMergeRequiredFailure(reason=f"ic_merge_unknown_selected_atoms:{','.join(missing)}")
+        raise _ic_merge_failure("unmapped_formal_atom", decision)
 
     revised_base = _rebuild_base(
         base,
@@ -154,6 +156,34 @@ def realize_ic_merge_decision(
         decision=decision.report,
         realization=realization,
     )
+
+
+def _ic_merge_failure(reason: str, decision: FormalDecision) -> RevisionMergeRequiredFailure:
+    trace = decision.report.trace
+    return RevisionMergeRequiredFailure(
+        reason=reason,
+        decision_report=decision.report,
+        profile_atom_ids=_trace_profile_atom_ids(trace.get("profile_atom_ids") or ()),
+        integrity_constraint=_trace_integrity_constraint(trace.get("integrity_constraint")),
+        selected_worlds_hash=trace.get("selected_worlds_hash"),
+    )
+
+
+def _trace_profile_atom_ids(value: object) -> tuple[tuple[str, ...], ...]:
+    if not isinstance(value, Sequence) or isinstance(value, str):
+        return ()
+    profiles: list[tuple[str, ...]] = []
+    for profile in value:
+        if not isinstance(profile, Sequence) or isinstance(profile, str):
+            return ()
+        profiles.append(tuple(str(atom_id) for atom_id in profile))
+    return tuple(profiles)
+
+
+def _trace_integrity_constraint(value: object) -> Mapping[str, object] | None:
+    if not isinstance(value, Mapping):
+        return None
+    return dict(value)
 
 
 def stabilize_belief_base(
