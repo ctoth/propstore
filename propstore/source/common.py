@@ -55,8 +55,8 @@ def normalize_source_slug(name: str) -> str:
 def source_paper_slug(name: str) -> str:
     """Return the paper-scoped filesystem stem for a source name.
 
-    Must match ``SourceBranchPlacement.branch_name``'s stem
-    (``propstore/families/registry.py::SourceBranchPlacement``) so that
+    Must match ``SOURCE_BRANCH.branch_name``'s stem
+    (``propstore/families/registry.py::SOURCE_BRANCH``) so that
     the master-branch artifact filename (e.g. ``claims/<stem>.yaml``)
     shares one logical id with the source branch ``source/<stem>``.
     When the safe-slug transform changes any character, the branch

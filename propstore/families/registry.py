@@ -1,21 +1,20 @@
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import quire.artifacts as quire_artifacts
 from quire.artifacts import (
     ArtifactFamily,
     BranchPlacement,
     FixedFilePlacement,
     FlatYamlPlacement,
+    NestedFlatYamlPlacement,
     SingletonFilePlacement,
+    SubdirFixedFilePlacement,
     TemplateFilePlacement,
-    encode_ref_value,
 )
 from quire.families import FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
 from quire.documents import (
@@ -218,182 +217,12 @@ PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
 
 
-class SourceBranchPlacement(BranchPlacement):
-    def branch_name(self, owner: object, ref: object | None = None) -> str:
-        if ref is None:
-            raise ValueError("source branch placement requires a ref")
-        value = getattr(ref, self.ref_field)
-        if not isinstance(value, str) or not value:
-            raise ValueError(f"ref field {self.ref_field!r} must be a non-empty string")
-        safe_stem = encode_ref_value(value, self.codec)
-        stem = safe_stem
-        if safe_stem != value:
-            digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
-            stem = f"{safe_stem}--{digest}"
-        if not self.template:
-            raise ValueError("source branch placement requires a template")
-        return self.template.format(value=stem, stem=stem)
-
-    def contract_body(self) -> dict[str, object]:
-        body = super().contract_body()
-        body["collision_suffix"] = "sha256"
-        return body
-
-
-@dataclass(frozen=True)
-class PredicateProposalPlacement:
-    branch: BranchPlacement
-
-    def address_for(self, owner: Repository, ref: PredicateProposalRef):
-        return quire_artifacts.ArtifactAddress(
-            branch=self.branch.branch_name(owner, ref),
-            locator=quire_artifacts.PathArtifactLocator(
-                f"predicates/{ref.source_paper}/declarations.yaml"
-            ),
-        )
-
-    def iter_refs(
-        self,
-        owner: Repository,
-        backend: Any,
-        *,
-        branch: str | None = None,
-        commit: str | None = None,
-    ):
-        for scanned in self.iter_artifacts(owner, backend, branch=branch, commit=commit):
-            yield scanned.ref
-
-    def iter_artifacts(
-        self,
-        owner: Repository,
-        backend: Any,
-        *,
-        branch: str | None = None,
-        commit: str | None = None,
-    ):
-        if backend is None:
-            raise ValueError("listing predicate proposals requires a backend")
-        branch_name = branch or self.branch.branch_name(owner)
-        target_commit = commit or backend.branch_sha(branch_name)
-        if target_commit is None:
-            return
-        for relpath, content in backend.iter_subtree_files("predicates", commit=target_commit):
-            parts = relpath.replace("\\", "/").split("/")
-            if len(parts) != 2 or parts[1] != "declarations.yaml":
-                continue
-            path = f"predicates/{relpath}"
-            yield quire_artifacts.ScannedArtifact(
-                ref=PredicateProposalRef(parts[0]),
-                address=quire_artifacts.ArtifactAddress(
-                    branch=branch_name,
-                    locator=quire_artifacts.PathArtifactLocator(path),
-                    commit=target_commit,
-                ),
-                content=content,
-            )
-
-    def ref_from_locator(self, locator: object) -> PredicateProposalRef:
-        if not isinstance(locator, quire_artifacts.PathArtifactLocator):
-            raise TypeError("predicate proposal placement only supports path locators")
-        path = str(locator.path).replace("\\", "/")
-        prefix = "predicates/"
-        suffix = "/declarations.yaml"
-        if not path.startswith(prefix) or not path.endswith(suffix):
-            raise ValueError(f"expected predicates/<paper>/declarations.yaml, got {path!r}")
-        return PredicateProposalRef(path.removeprefix(prefix).removesuffix(suffix))
-
-    def ref_from_loaded(self, loaded: object) -> PredicateProposalRef:
-        return self.ref_from_locator(
-            quire_artifacts.PathArtifactLocator(str(getattr(loaded, "source")))
-        )
-
-    def contract_body(self) -> dict[str, object]:
-        return {
-            "kind": "predicate-proposal",
-            "template": "predicates/{source_paper}/declarations.yaml",
-            "branch": self.branch.contract_body(),
-        }
-
-
-@dataclass(frozen=True)
-class RuleProposalPlacement:
-    branch: BranchPlacement
-
-    def address_for(self, owner: Repository, ref: RuleProposalRef):
-        return quire_artifacts.ArtifactAddress(
-            branch=self.branch.branch_name(owner, ref),
-            locator=quire_artifacts.PathArtifactLocator(
-                f"rules/{ref.source_paper}/{ref.rule_id}.yaml"
-            ),
-        )
-
-    def iter_refs(
-        self,
-        owner: Repository,
-        backend: Any,
-        *,
-        branch: str | None = None,
-        commit: str | None = None,
-    ):
-        for scanned in self.iter_artifacts(owner, backend, branch=branch, commit=commit):
-            yield scanned.ref
-
-    def iter_artifacts(
-        self,
-        owner: Repository,
-        backend: Any,
-        *,
-        branch: str | None = None,
-        commit: str | None = None,
-    ):
-        if backend is None:
-            raise ValueError("listing rule proposals requires a backend")
-        branch_name = branch or self.branch.branch_name(owner)
-        target_commit = commit or backend.branch_sha(branch_name)
-        if target_commit is None:
-            return
-        for relpath, content in backend.iter_subtree_files("rules", commit=target_commit):
-            parts = relpath.replace("\\", "/").split("/")
-            if len(parts) != 2 or not parts[1].endswith(".yaml"):
-                continue
-            path = f"rules/{relpath}"
-            yield quire_artifacts.ScannedArtifact(
-                ref=RuleProposalRef(parts[0], parts[1].removesuffix(".yaml")),
-                address=quire_artifacts.ArtifactAddress(
-                    branch=branch_name,
-                    locator=quire_artifacts.PathArtifactLocator(path),
-                    commit=target_commit,
-                ),
-                content=content,
-            )
-
-    def ref_from_locator(self, locator: object) -> RuleProposalRef:
-        if not isinstance(locator, quire_artifacts.PathArtifactLocator):
-            raise TypeError("rule proposal placement only supports path locators")
-        path = str(locator.path).replace("\\", "/")
-        parts = path.split("/")
-        if len(parts) != 3 or parts[0] != "rules" or not parts[2].endswith(".yaml"):
-            raise ValueError(f"expected rules/<paper>/<rule-id>.yaml, got {path!r}")
-        return RuleProposalRef(parts[1], parts[2].removesuffix(".yaml"))
-
-    def ref_from_loaded(self, loaded: object) -> RuleProposalRef:
-        return self.ref_from_locator(
-            quire_artifacts.PathArtifactLocator(str(getattr(loaded, "source")))
-        )
-
-    def contract_body(self) -> dict[str, object]:
-        return {
-            "kind": "rule-proposal",
-            "template": "rules/{source_paper}/{rule_id}.yaml",
-            "branch": self.branch.contract_body(),
-        }
-
-
-SOURCE_BRANCH = SourceBranchPlacement(
+SOURCE_BRANCH = BranchPlacement(
     policy="template",
     template="source/{stem}",
     ref_field="name",
     codec="safe_slug",
+    collision_suffix="sha256",
 )
 PROPOSAL_STANCE_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/stances")
 PROPOSAL_PREDICATE_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/predicates")
@@ -522,10 +351,18 @@ PROPOSAL_STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceFileRef](
     codec="colon_to_double_underscore",
     branch=PROPOSAL_STANCE_BRANCH,
 )
-PROPOSAL_PREDICATE_PLACEMENT = PredicateProposalPlacement(
+PROPOSAL_PREDICATE_PLACEMENT = SubdirFixedFilePlacement["Repository", PredicateProposalRef](
+    namespace="predicates",
+    filename="declarations.yaml",
+    ref_factory=PredicateProposalRef,
+    ref_field="source_paper",
     branch=PROPOSAL_PREDICATE_BRANCH,
 )
-PROPOSAL_RULE_PLACEMENT = RuleProposalPlacement(
+PROPOSAL_RULE_PLACEMENT = NestedFlatYamlPlacement["Repository", RuleProposalRef](
+    namespace="rules",
+    ref_factory=RuleProposalRef,
+    dir_ref_field="source_paper",
+    stem_ref_field="rule_id",
     branch=PROPOSAL_RULE_BRANCH,
 )
 CONCEPT_ALIGNMENT_PLACEMENT = FlatYamlPlacement["Repository", ConceptAlignmentRef](

@@ -698,9 +698,9 @@ def test_source_paper_slug_matches_source_branch_stem_for_unicode_name(
     """Regression test for Bug 3: source-branch and master-filename consistency.
 
     When a paper directory name contains non-ASCII characters (e.g.
-    U+2010 HYPHEN), ``SourceBranchPlacement.branch_name`` replaces the
-    unsafe char with ``_`` and then appends a 12-char sha1 digest
-    (``--5265a1465b03``) so different unicode inputs do not collide
+    U+2010 HYPHEN), ``SOURCE_BRANCH.branch_name`` replaces the
+    unsafe char with ``_`` and then appends a sha256 digest so
+    different unicode inputs do not collide
     after slugging. Meanwhile paper-slug derivation re-used
     ``normalize_source_slug`` which returned just the safe_slug with
     NO digest suffix — so master claim files were written under a
