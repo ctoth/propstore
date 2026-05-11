@@ -48,7 +48,7 @@ from propstore.families.registry import (
     JustificationsFileRef,
     MicropubsFileRef,
     SourceRef,
-    StanceFileRef,
+    StanceRef,
 )
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.concepts.stages import (
@@ -77,7 +77,8 @@ from propstore.families.documents.sources import (
 )
 from propstore.json_types import JsonObject, JsonValue
 from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
-from propstore.families.documents.stances import StanceFileDocument
+from propstore.families.documents.stances import StanceDocument
+from propstore.families.identity.stances import derive_stance_artifact_id
 
 from .common import (
     load_source_claims_document,
@@ -895,7 +896,7 @@ def promote_source_branch(
         valid_artifact_ids=valid_artifact_ids,
     )
 
-    promoted_stance_documents: dict[str, StanceFileDocument] = {}
+    promoted_stance_documents: dict[StanceRef, StanceDocument] = {}
     promoted_stances: list[dict[str, Any]] = []
     for stance in (() if stances_doc is None else stances_doc.stances):
         source_claim = stance.source_claim
@@ -984,7 +985,6 @@ def promote_source_branch(
         )
     promoted_claims_doc["claims"] = normalized_promoted_claims
 
-    stances_by_source: dict[str, list[JsonObject]] = {}
     raw_promoted_stances = promoted_stances_doc.get("stances")
     promoted_stance_entries = (
         raw_promoted_stances
@@ -994,18 +994,12 @@ def promote_source_branch(
     for stance in promoted_stance_entries:
         if not isinstance(stance, dict):
             continue
-        source_claim = stance.get("source_claim")
-        if isinstance(source_claim, str) and source_claim:
-            stances_by_source.setdefault(source_claim, []).append(stance)
-
-    for source_claim, entries in stances_by_source.items():
-        stance_ref = StanceFileRef(source_claim)
-        promoted_stance_documents[source_claim] = convert_document_value(
-            {
-                "source_claim": source_claim,
-                "stances": entries,
-            },
-            StanceFileDocument,
+        artifact_id = derive_stance_artifact_id(stance)
+        stance["artifact_code"] = artifact_id
+        stance_ref = StanceRef(artifact_id)
+        promoted_stance_documents[stance_ref] = convert_document_value(
+            stance,
+            StanceDocument,
             source=repo.families.stances.address(stance_ref).require_path(),
         )
 
@@ -1058,10 +1052,7 @@ def promote_source_branch(
         promoted_concept_documents=promoted_concept_plan_documents,
         promoted_justifications_ref=promoted_justifications_ref,
         promoted_justifications_document=promoted_justifications_document,
-        promoted_stance_documents={
-            StanceFileRef(source_claim): stance_document
-            for source_claim, stance_document in promoted_stance_documents.items()
-        },
+        promoted_stance_documents=promoted_stance_documents,
         blocked_claims=tuple(blocked_claims),
         blocked_reasons=blocked_reasons,
     )

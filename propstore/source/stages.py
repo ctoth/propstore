@@ -20,14 +20,14 @@ from propstore.families.documents.sources import (
     SourceDocument,
     SourceJustificationsDocument,
 )
-from propstore.families.documents.stances import StanceFileDocument
+from propstore.families.documents.stances import StanceDocument
 from propstore.families.registry import (
     CanonicalSourceRef,
     ClaimsFileRef,
     ConceptFileRef,
     JustificationsFileRef,
     MicropubsFileRef,
-    StanceFileRef,
+    StanceRef,
 )
 
 
@@ -83,7 +83,7 @@ class SourcePromotionPlan:
     )
     promoted_justifications_ref: JustificationsFileRef | None = None
     promoted_justifications_document: SourceJustificationsDocument | None = None
-    promoted_stance_documents: dict[StanceFileRef, StanceFileDocument] = field(
+    promoted_stance_documents: dict[StanceRef, StanceDocument] = field(
         default_factory=dict
     )
     blocked_claims: tuple[SourceClaimDocument, ...] = ()
