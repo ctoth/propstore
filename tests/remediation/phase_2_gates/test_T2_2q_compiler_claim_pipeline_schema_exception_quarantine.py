@@ -9,6 +9,7 @@ from quire.documents import DocumentSchemaError
 from propstore.compiler.workflows import build_repository
 from propstore.repository import Repository
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def test_build_repository_claim_pipeline_schema_exception_quarantines_not_raises(
@@ -47,6 +48,11 @@ def test_build_repository_claim_pipeline_schema_exception_quarantines_not_raises
         }
     )
     repo = Repository.init(tmp_path / "knowledge")
+    claim_payloads = claim_artifact_commit_payloads(
+        repo,
+        claim_payload,
+        source="claims/workflow_claim_pipeline_schema.yaml",
+    )
     repo.git.commit_files(
         {
             "forms/frequency.yaml": yaml.dump(
@@ -61,10 +67,7 @@ def test_build_repository_claim_pipeline_schema_exception_quarantines_not_raises
                 {"id": "ctx_test", "name": "Test context"},
                 sort_keys=False,
             ).encode(),
-            "claims/workflow_claim_pipeline_schema.yaml": yaml.dump(
-                claim_payload,
-                sort_keys=False,
-            ).encode(),
+            **claim_payloads,
         },
         "seed compiler workflow claim pipeline schema quarantine test",
     )
