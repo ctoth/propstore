@@ -12,6 +12,7 @@ from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import summarize_merge_framework
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
@@ -24,6 +25,22 @@ def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
         "claims": claims,
     })
     return yaml.dump(doc, sort_keys=False).encode()
+
+
+def _claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
+    doc = normalize_claims_payload({
+        "source": {
+            "paper": paper,
+            "extraction_model": "test",
+            "extraction_date": "2026-01-01",
+        },
+        "claims": claims,
+    })
+    return claim_artifact_commit_payloads(
+        Repository(kr.root),
+        doc,
+        source=f"claims/{paper}.yaml",
+    )
 
 
 def _param_claim(
@@ -79,17 +96,17 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     concept_id = derive_concept_artifact_id("propstore", "concept_x")
     base_sha = kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/conflict"
     kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 300.0)]),
         "left",
     )
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 150.0)]),
         "right",
         branch=branch_name,
     )
@@ -131,25 +148,23 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
 def test_merge_report_surfaces_ignorance_query_state(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/phi"
     kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
-        {
-            "claims/shared.yaml": _claim_yaml(
-                [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])]
-            )
-        },
+        _claim_payloads(
+            kr,
+            [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])],
+        ),
         "left",
     )
     kr.commit_files(
-        {
-            "claims/shared.yaml": _claim_yaml(
-                [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])]
-            )
-        },
+        _claim_payloads(
+            kr,
+            [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])],
+        ),
         "right",
         branch=branch_name,
     )
@@ -181,4 +196,3 @@ def test_merge_report_surfaces_ignorance_query_state(tmp_path):
         assert report["statuses"][assertion_id]["credulously_accepted"] is True
         assert detail_by_id[assertion_id]["credulously_accepted"] is True
         assert detail_by_id[assertion_id]["provenance"]["branch_origin"] in detail_by_id[assertion_id]["branch_origins"]
-
