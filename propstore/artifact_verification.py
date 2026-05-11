@@ -45,9 +45,8 @@ def _load_justifications(repo: Repository, commit: str | None) -> dict[str, list
     by_conclusion: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for handle in repo.families.justifications.iter_handles(commit=commit):
         doc = handle.document
-        for justification in doc.justifications:
-            if isinstance(justification.conclusion, str):
-                by_conclusion[justification.conclusion].append(copy.deepcopy(justification.to_payload()))
+        if isinstance(doc.conclusion, str):
+            by_conclusion[doc.conclusion].append(copy.deepcopy(doc.to_payload()))
     return by_conclusion
 
 

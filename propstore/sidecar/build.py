@@ -595,7 +595,7 @@ def _build_sidecar_locked(
         ),
         justification_entries=(
             (
-                handle.ref.name,
+                handle.ref.artifact_id,
                 handle.document,
             )
             for handle in repo.families.justifications.iter_handles(commit=commit_hash)

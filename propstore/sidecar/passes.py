@@ -32,11 +32,9 @@ from propstore.families.contexts.stages import (
     coerce_loaded_contexts,
     loaded_contexts_to_lifting_system,
 )
+from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
-from propstore.families.documents.sources import (
-    SourceDocument,
-    SourceJustificationsDocument,
-)
+from propstore.families.documents.sources import SourceDocument
 from propstore.families.claims.stages import RawIdQuarantineRecord
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.forms.stages import (
@@ -723,7 +721,7 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
 
 
 def compile_authored_justification_sidecar_rows(
-    justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
+    justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_reference_map: dict[str, str],
 ) -> tuple[JustificationInsertRow, ...]:
     rows, diagnostics = _compile_authored_justification_sidecar_rows_with_diagnostics(
@@ -736,96 +734,95 @@ def compile_authored_justification_sidecar_rows(
 
 
 def _compile_authored_justification_sidecar_rows_with_diagnostics(
-    justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
+    justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_reference_map: dict[str, str],
 ) -> tuple[tuple[JustificationInsertRow, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_reference_map.values())
     rows: list[JustificationInsertRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
-    for filename, data in justification_entries:
-        for index, justification in enumerate(data.justifications, start=1):
-            justification_payload = justification.to_payload()
-            justification_id = justification.id
-            conclusion = resolve_claim_reference(
-                justification.conclusion,
-                claim_reference_map,
+    for filename, justification in justification_entries:
+        justification_payload = justification.to_payload()
+        justification_id = justification.id
+        conclusion = resolve_claim_reference(
+            justification.conclusion,
+            claim_reference_map,
+        )
+        if not isinstance(justification_id, str) or not justification_id:
+            raise ValueError(
+                f"justification artifact {filename} missing id"
             )
-            if not isinstance(justification_id, str) or not justification_id:
-                raise ValueError(
-                    f"justification file {filename} entry #{index} missing id"
-                )
-            if not isinstance(conclusion, str) or conclusion not in valid_claims:
-                message = (
-                    f"justification file {filename} entry #{index} references "
-                    f"nonexistent conclusion '{conclusion}'"
-                )
-                diagnostics.append(
-                    QuarantineDiagnostic(
-                        artifact_id=conclusion or justification.conclusion or filename,
-                        kind="justification",
-                        diagnostic_kind="justification_validation",
-                        message=message,
-                        file=filename,
-                    )
-                )
-                continue
-            resolved_premises: list[str] = []
-            missing_premise_ref: str | None = None
-            for premise in justification.premises:
-                resolved_premise = resolve_claim_reference(premise, claim_reference_map)
-                if (
-                    not isinstance(resolved_premise, str)
-                    or resolved_premise not in valid_claims
-                ):
-                    if isinstance(resolved_premise, str) and resolved_premise:
-                        missing_premise_ref = resolved_premise
-                    elif isinstance(premise, str) and premise:
-                        missing_premise_ref = premise
-                    else:
-                        missing_premise_ref = filename
-                    break
-                resolved_premises.append(resolved_premise)
-            if missing_premise_ref is not None:
-                message = (
-                    f"justification file {filename} entry #{index} references "
-                    f"nonexistent premise '{missing_premise_ref}'"
-                )
-                diagnostics.append(
-                    QuarantineDiagnostic(
-                        artifact_id=missing_premise_ref,
-                        kind="justification",
-                        diagnostic_kind="justification_validation",
-                        message=message,
-                        file=filename,
-                    )
-                )
-                continue
-
-            provenance = justification_payload.get("provenance")
-            attack_target = justification_payload.get("attack_target")
-            provenance_payload: dict[str, object] = {}
-            if isinstance(provenance, dict):
-                provenance_payload.update(provenance)
-            if isinstance(attack_target, dict):
-                provenance_payload["attack_target"] = attack_target
-
-            rows.append(
-                JustificationInsertRow(
-                    (
-                        justification_id,
-                        str(justification.rule_kind or "reported_claim"),
-                        conclusion,
-                        json.dumps(resolved_premises),
-                        None,
-                        None,
-                        json.dumps(provenance_payload)
-                        if provenance_payload
-                        else None,
-                        str(justification.rule_strength or "defeasible"),
-                    )
+        if not isinstance(conclusion, str) or conclusion not in valid_claims:
+            message = (
+                f"justification artifact {filename} references "
+                f"nonexistent conclusion '{conclusion}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=conclusion or justification.conclusion or filename,
+                    kind="justification",
+                    diagnostic_kind="justification_validation",
+                    message=message,
+                    file=filename,
                 )
             )
+            continue
+        resolved_premises: list[str] = []
+        missing_premise_ref: str | None = None
+        for premise in justification.premises:
+            resolved_premise = resolve_claim_reference(premise, claim_reference_map)
+            if (
+                not isinstance(resolved_premise, str)
+                or resolved_premise not in valid_claims
+            ):
+                if isinstance(resolved_premise, str) and resolved_premise:
+                    missing_premise_ref = resolved_premise
+                elif isinstance(premise, str) and premise:
+                    missing_premise_ref = premise
+                else:
+                    missing_premise_ref = filename
+                break
+            resolved_premises.append(resolved_premise)
+        if missing_premise_ref is not None:
+            message = (
+                f"justification artifact {filename} references "
+                f"nonexistent premise '{missing_premise_ref}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=missing_premise_ref,
+                    kind="justification",
+                    diagnostic_kind="justification_validation",
+                    message=message,
+                    file=filename,
+                )
+            )
+            continue
+
+        provenance = justification_payload.get("provenance")
+        attack_target = justification_payload.get("attack_target")
+        provenance_payload: dict[str, object] = {}
+        if isinstance(provenance, dict):
+            provenance_payload.update(provenance)
+        if isinstance(attack_target, dict):
+            provenance_payload["attack_target"] = attack_target
+
+        rows.append(
+            JustificationInsertRow(
+                (
+                    justification_id,
+                    str(justification.rule_kind or "reported_claim"),
+                    conclusion,
+                    json.dumps(resolved_premises),
+                    None,
+                    None,
+                    json.dumps(provenance_payload)
+                    if provenance_payload
+                    else None,
+                    str(justification.rule_strength or "defeasible"),
+                )
+            )
+        )
     return tuple(rows), tuple(diagnostics)
 
 
@@ -1043,7 +1040,7 @@ def compile_sidecar_build_plan(
     *,
     source_entries: Iterable[tuple[str, SourceDocument]],
     stance_entries: Iterable[tuple[str, StanceDocument]],
-    justification_entries: Iterable[tuple[str, SourceJustificationsDocument]],
+    justification_entries: Iterable[tuple[str, JustificationDocument]],
     micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
 ) -> SidecarBuildPlan:
     claim_rows: ClaimSidecarRows | None = None
