@@ -13,10 +13,11 @@ from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_ju
 from propstore.core.row_types import StanceRow
 from propstore.stances import coerce_stance_type
 from argumentation.dung import ArgumentationFramework
+from propstore.aspic_bridge import build_aspic_projection
 from propstore.claims import claim_file_claims
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
-from propstore.structured_projection import StructuredProjection, build_structured_projection
+from propstore.structured_projection import StructuredProjection
 
 
 @dataclass(frozen=True)
@@ -342,7 +343,7 @@ def build_branch_structured_summary(snapshot: RepositorySnapshot, branch: str) -
     content_signature = _summary_content_signature(active_claims, stance_rows)
     if active_claims:
         snapshot_store = _BranchSnapshotStore(snapshot.repo, commit, stance_rows)
-        projection = build_structured_projection(
+        projection = build_aspic_projection(
             snapshot_store,
             [claim.to_payload(include_id_alias=True) for claim in active_claims],
             bundle=snapshot_store.grounding_bundle(),
