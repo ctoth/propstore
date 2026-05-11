@@ -313,6 +313,20 @@ def rejected_atom_ids(decision: FormalDecision) -> tuple[str, ...]:
     )
 
 
+def selected_world_atom_ids(decision: FormalDecision) -> tuple[tuple[str, ...], ...]:
+    if not isinstance(decision.outcome, ICMergeOutcome):
+        raise TypeError("selected worlds are only available for IC merge decisions")
+    return tuple(
+        tuple(
+            sorted(
+                decision.projection.atom_id_by_formula_name.get(formula_name, formula_name)
+                for formula_name in world
+            )
+        )
+        for world in sorted(decision.outcome.belief_set.models, key=lambda item: tuple(sorted(item)))
+    )
+
+
 def _integrity_constraint_formula(payload: Mapping[str, Any]) -> Formula:
     kind = str(payload.get("kind") or "")
     if kind == "top":
@@ -320,7 +334,25 @@ def _integrity_constraint_formula(payload: Mapping[str, Any]) -> Formula:
     atom_id = payload.get("atom_id")
     if kind == "atom" and atom_id is not None:
         return Atom(str(atom_id))
-    raise ValueError("IC merge integrity_constraint must be {'kind': 'top'} or {'kind': 'atom', 'atom_id': ...}")
+    if kind == "literals":
+        required = _literal_ids(payload.get("required") or ())
+        forbidden = _literal_ids(payload.get("forbidden") or ())
+        return conjunction(
+            *(Atom(atom_id) for atom_id in required),
+            *(negate(Atom(atom_id)) for atom_id in forbidden),
+        )
+    raise ValueError(
+        "IC merge integrity_constraint must be {'kind': 'top'}, "
+        "{'kind': 'atom', 'atom_id': ...}, or {'kind': 'literals', ...}"
+    )
+
+
+def _literal_ids(value: object) -> tuple[str, ...]:
+    if isinstance(value, str):
+        raise ValueError("IC merge literal lists must be sequences")
+    if not isinstance(value, tuple | list):
+        raise ValueError("IC merge literal lists must be sequences")
+    return tuple(str(atom_id) for atom_id in value)
 
 
 def _decision_report(
@@ -515,4 +547,5 @@ __all__ = [
     "rejected_atom_ids",
     "restrained_revise",
     "revise",
+    "selected_world_atom_ids",
 ]
