@@ -441,6 +441,7 @@ def build_repository(
         try:
             files.append(repo.families.claims.require_handle(ref, commit=hash_key))
         except DocumentSchemaError as exc:
+            artifact_id = ref.artifact_id
             claim_schema_messages.append(
                 PassDiagnostic(
                     level="error",
@@ -448,8 +449,8 @@ def build_repository(
                     message=str(exc),
                     family=PropstoreFamily.CLAIMS,
                     stage=ClaimStage.AUTHORED,
-                    filename=ref.name,
-                    artifact_id=ref.name,
+                    filename=repo.families.claims.address(ref, commit=hash_key).require_path(),
+                    artifact_id=artifact_id,
                     pass_name="compiler.build_repository",
                 )
             )
