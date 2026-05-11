@@ -15,6 +15,7 @@ from propstore.families.registry import SourceRef, semantic_import_roots
 from propstore.repository import Repository
 from propstore.source.common import initial_source_document, source_branch_name
 from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+from tests.conftest import make_claim_identity
 
 
 _SLUG = st.from_regex(r"[a-z][a-z0-9_]{0,12}", fullmatch=True)
@@ -34,15 +35,16 @@ def _init_project(root: Path) -> Repository:
 def _raw_claim_yaml(local_id: str) -> bytes:
     return yaml.safe_dump(
         {
-            "claims": [
-                {
-                    "id": local_id,
-                    "context": {"id": "ctx-default"},
-                }
-            ]
+            "id": local_id,
+            "context": {"id": "ctx-default"},
         },
         sort_keys=False,
     ).encode("utf-8")
+
+
+def _claim_artifact_path(local_id: str, *, namespace: str) -> str:
+    artifact_id = make_claim_identity(local_id, namespace=namespace)["artifact_id"]
+    return f"claims/{artifact_id.replace(':', '__')}.yaml"
 
 
 def test_propstore_init_commits_gitignore_without_materializing_it(tmp_path: Path) -> None:
@@ -117,6 +119,7 @@ def test_repository_import_uses_committed_semantic_snapshot_only(
 
     plan = plan_repository_import(destination, source.root.parent)
     result = commit_repository_import(destination, plan)
+    repository_name = source.root.parent.name
 
     full_committed_paths = set(destination.git.flat_tree_entries(result.commit_sha))
     imported_paths = {
@@ -127,7 +130,10 @@ def test_repository_import_uses_committed_semantic_snapshot_only(
         )
     }
 
-    assert imported_paths == {f"claims/{claim_id}.yaml" for claim_id in claim_ids}
+    assert imported_paths == {
+        _claim_artifact_path(claim_id, namespace=repository_name)
+        for claim_id in claim_ids
+    }
     assert "README.md" not in plan.touched_paths
     assert "sidecar/propstore.sqlite" not in plan.touched_paths
     assert "claims/uncommitted.yaml" not in plan.touched_paths
