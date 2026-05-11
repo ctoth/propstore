@@ -204,13 +204,22 @@ def _document_contract(document_type: type[msgspec.Struct]) -> ContractEntry:
         })
     return ContractEntry(
         kind="document_schema",
-        name=document_type.__name__,
+        name=_document_contract_name(document_type),
         contract_version=_document_contract_version(document_type),
         body={
             "module": document_type.__module__,
             "fields": tuple(fields),
         },
     )
+
+
+def _document_contract_name(document_type: type[msgspec.Struct]) -> str:
+    if (
+        document_type.__module__ == "propstore.families.documents.stances"
+        and document_type.__name__ == "StanceDocument"
+    ):
+        return f"{document_type.__module__}.{document_type.__name__}"
+    return document_type.__name__
 
 
 def _document_contract_version(document_type: type[msgspec.Struct]) -> VersionId:
