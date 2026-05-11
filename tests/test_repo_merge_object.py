@@ -12,6 +12,7 @@ from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
@@ -24,6 +25,22 @@ def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
         "claims": claims,
     })
     return yaml.dump(doc, sort_keys=False).encode()
+
+
+def _claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
+    doc = normalize_claims_payload({
+        "source": {
+            "paper": paper,
+            "extraction_model": "test",
+            "extraction_date": "2026-01-01",
+        },
+        "claims": claims,
+    })
+    return claim_artifact_commit_payloads(
+        Repository(kr.root),
+        doc,
+        source=f"claims/{paper}.yaml",
+    )
 
 
 def _obs_claim(
@@ -98,18 +115,18 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/conflict"
     kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 300.0)]),
         "left: modify claim1",
     )
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 150.0)]),
         "right: modify claim1",
         branch=branch_name,
     )
@@ -131,26 +148,24 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
 def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/phi"
     kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
-        {
-            "claims/shared.yaml": _claim_yaml(
-                [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])]
-            )
-        },
+        _claim_payloads(
+            kr,
+            [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])],
+        ),
         "left: high-temp value",
     )
     kr.commit_files(
-        {
-            "claims/shared.yaml": _claim_yaml(
-                [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])]
-            )
-        },
+        _claim_payloads(
+            kr,
+            [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])],
+        ),
         "right: low-temp value",
         branch=branch_name,
     )
@@ -172,14 +187,14 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
 ):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/compat"
     kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 999.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 999.0)]),
         "right: modify claim1",
         branch=branch_name,
     )
@@ -199,25 +214,25 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
 def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_rivals(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/provenance"
     kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 300.0)]),
         "left: modify claim1",
     )
     kr.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 150.0)]),
         "right: modify claim1",
         branch=branch_name,
     )
 
     merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
 
-    from propstore.claims import claim_file_payload
+    from propstore.claims import claim_file_claims
     from tests.family_helpers import load_claim_files
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
@@ -227,10 +242,10 @@ def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_ri
     canonical_artifact_id = make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
 
     materialized_claims = [
-        claim
+        claim.to_payload()
         for claim_file in claim_files
-        for claim in claim_file_payload(claim_file).get("claims", [])
-        if claim["artifact_id"] == canonical_artifact_id
+        for claim in claim_file_claims(claim_file)
+        if claim.artifact_id in {row["assertion_id"] for row in manifest_arguments}
     ]
     assert {claim["value"] for claim in materialized_claims} == {150.0, 300.0}
 
