@@ -19,6 +19,7 @@ from propstore.merge.structured_merge import (
     build_structured_merge_candidates,
 )
 from tests.conftest import make_claim_identity, normalize_claims_payload
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
@@ -31,6 +32,22 @@ def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
         "claims": claims,
     })
     return yaml.dump(doc, sort_keys=False).encode()
+
+
+def _claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
+    doc = normalize_claims_payload({
+        "source": {
+            "paper": paper,
+            "extraction_model": "test",
+            "extraction_date": "2026-01-01",
+        },
+        "claims": claims,
+    })
+    return claim_artifact_commit_payloads(
+        Repository(kr.root),
+        doc,
+        source=f"claims/{paper}.yaml",
+    )
 
 
 def _stance_files(source_claim: str, stances: list[dict]) -> dict[str, bytes]:
@@ -68,7 +85,7 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files(
         {
-            "claims/claims.yaml": _claim_yaml([
+            **_claim_payloads(kr, [
                 _obs_claim("claim_a", "A"),
                 _obs_claim("claim_b", "B"),
             ]),
@@ -118,7 +135,7 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
     kr.create_branch(branch_name, source_commit=base_sha)
 
     adds: dict[str | Path, bytes] = {
-        "claims/claims.yaml": _claim_yaml([
+        **_claim_payloads(kr, [
             _obs_claim("claim_a", "A"),
             _obs_claim("claim_b", "B"),
         ]),
@@ -142,7 +159,7 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files(
         {
-            "claims/claims.yaml": _claim_yaml([
+            **_claim_payloads(kr, [
                 _obs_claim("claim_a", "A"),
                 _obs_claim("claim_b", "B"),
             ]),
@@ -170,16 +187,12 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
     kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
-        {
-            "claims/claims.yaml": _claim_yaml([
-                _obs_claim("claim_a", "A"),
-            ]),
-        },
+        _claim_payloads(kr, [_obs_claim("claim_a", "A")]),
         "left",
     )
     kr.commit_files(
         {
-            "claims/claims.yaml": _claim_yaml([
+            **_claim_payloads(kr, [
                 _obs_claim("claim_a", "A"),
                 _obs_claim("claim_b", "B"),
             ]),
@@ -203,12 +216,10 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
 def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_path):
     kr = init_git_store(tmp_path / "knowledge")
     kr.commit_files(
-        {
-            "claims/claims.yaml": _claim_yaml([
-                _obs_claim("claim_a", "A"),
-                _obs_claim("claim_b", "B"),
-            ]),
-        },
+        _claim_payloads(kr, [
+            _obs_claim("claim_a", "A"),
+            _obs_claim("claim_b", "B"),
+        ]),
         "seed structured branch",
     )
 
@@ -253,7 +264,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
 
         kr.commit_files(
             {
-                "claims/claims.yaml": _claim_yaml(base_claims),
+                **_claim_payloads(kr, base_claims),
                 **_stance_files(
                     _artifact_id("claim_a"),
                     [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
@@ -263,7 +274,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
         )
         kr.commit_files(
             {
-                "claims/claims.yaml": _claim_yaml(base_claims),
+                **_claim_payloads(kr, base_claims),
                 **_stance_files(
                     _artifact_id("claim_a"),
                     [{"target": _artifact_id("claim_b"), "type": "rebuts"}] + extra_stances,
@@ -309,7 +320,7 @@ def test_branch_structured_summary_is_order_invariant(
 
         kr.commit_files(
             {
-                "claims/claims.yaml": _claim_yaml([claims_by_id[claim_id] for claim_id in claim_order]),
+                **_claim_payloads(kr, [claims_by_id[claim_id] for claim_id in claim_order]),
                 **_stance_files(
                     _artifact_id("claim_a"),
                     [{"target": _artifact_id(target), "type": "rebuts"} for target in stance_order],
@@ -319,8 +330,9 @@ def test_branch_structured_summary_is_order_invariant(
         )
         kr.commit_files(
             {
-                "claims/claims.yaml": _claim_yaml(
-                    [claims_by_id["claim_c"], claims_by_id["claim_a"], claims_by_id["claim_b"]]
+                **_claim_payloads(
+                    kr,
+                    [claims_by_id["claim_c"], claims_by_id["claim_a"], claims_by_id["claim_b"]],
                 ),
                 **_stance_files(
                     _artifact_id("claim_a"),
