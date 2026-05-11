@@ -6,7 +6,6 @@ from pathlib import Path
 from types import MethodType
 from typing import Any
 
-import yaml
 from hypothesis import settings
 from hypothesis.stateful import RuleBasedStateMachine, invariant, rule, run_state_machine_as_test
 from quire.git_store import GitStore, HeadMismatchError
@@ -18,17 +17,13 @@ from propstore.sidecar.build import build_sidecar
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.storage import init_git_store
 from propstore.storage.snapshot import RepositorySnapshot
-from tests.conftest import normalize_claims_payload
+from tests.ws_l_merge_helpers import claim_payloads
 
 
-def _claim_yaml(claim_id: str, statement: str) -> bytes:
-    payload = normalize_claims_payload({
-        "source": {
-            "paper": "race-suite",
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": [
+def _claim_payloads(kr: GitStore, claim_id: str, statement: str) -> dict[str, bytes]:
+    return claim_payloads(
+        kr,
+        [
             {
                 "id": claim_id,
                 "type": "observation",
@@ -37,8 +32,8 @@ def _claim_yaml(claim_id: str, statement: str) -> bytes:
                 "provenance": {"paper": "race-suite", "page": 1},
             }
         ],
-    })
-    return yaml.dump(payload, sort_keys=False).encode()
+        paper="race-suite",
+    )
 
 
 def _snapshot(kr: GitStore) -> RepositorySnapshot:
@@ -65,12 +60,12 @@ class FullRaceMachine(RuleBasedStateMachine):
     @rule()
     def concurrent_merges_guard_target_head(self) -> None:
         kr = init_git_store(self._next_path("merge"))
-        base_sha = kr.commit_files({"claims/base.yaml": _claim_yaml("base", "Base")}, "seed")
+        base_sha = kr.commit_files(_claim_payloads(kr, "base", "Base"), "seed")
         branch_name = "paper/race"
         kr.create_branch(branch_name, source_commit=base_sha)
-        kr.commit_files({"claims/left.yaml": _claim_yaml("left", "Left")}, "left")
+        kr.commit_files(_claim_payloads(kr, "left", "Left"), "left")
         kr.commit_files(
-            {"claims/right.yaml": _claim_yaml("right", "Right")},
+            _claim_payloads(kr, "right", "Right"),
             "right",
             branch=branch_name,
         )
