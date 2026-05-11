@@ -28,8 +28,8 @@ def _birds_fly_bundle():
     rule_file = LoadedRuleFile.from_loaded_document(
         LoadedDocument(
             filename="rules.yaml",
-            source_path=None,
-            knowledge_root=None,
+            artifact_path=None,
+            store_root=None,
             document=RulesFileDocument(
                 source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
                 rules=(

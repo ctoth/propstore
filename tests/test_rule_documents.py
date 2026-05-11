@@ -547,8 +547,8 @@ def test_loaded_rule_file_from_loaded_document() -> None:
     )
     loaded = LoadedDocument(
         filename="birds",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=file_doc,
     )
     wrapped = LoadedRuleFile.from_loaded_document(loaded)

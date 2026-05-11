@@ -105,8 +105,8 @@ def test_translate_default_negation_to_gunray_not_surface() -> None:
     loaded = LoadedRuleFile.from_loaded_document(
         LoadedDocument(
             filename="rules",
-            source_path=None,
-            knowledge_root=None,
+            artifact_path=None,
+            store_root=None,
             document=RulesFileDocument(
                 source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
                 rules=(rule,),

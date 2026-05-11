@@ -115,8 +115,8 @@ def _build_loaded_concept(canonical_name: str, relationships):
     record = _build_concept_record(canonical_name, relationships)
     return LoadedConcept(
         filename=f"{canonical_name}.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         record=record,
     )
 
@@ -171,8 +171,8 @@ def _build_registry(predicates):
     file_doc = PredicatesFileDocument(predicates=tuple(predicates))
     loaded = LoadedDocument(
         filename="generated",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=file_doc,
     )
     file = LoadedPredicateFile.from_loaded_document(loaded)

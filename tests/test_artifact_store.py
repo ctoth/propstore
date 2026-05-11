@@ -197,8 +197,8 @@ def test_artifact_store_derives_refs_from_paths_and_loaded_objects(tmp_path: Pat
     assert concept_ref == ConceptFileRef("demo")
     assert claims_ref == ClaimsFileRef("paper")
 
-    loaded_concept = SimpleNamespace(source_path=repo.tree() / "concepts" / "demo.yaml")
-    loaded_claims = SimpleNamespace(source_path=repo.tree() / "claims" / "paper.yaml")
+    loaded_concept = SimpleNamespace(artifact_path=repo.tree() / "concepts" / "demo.yaml")
+    loaded_claims = SimpleNamespace(artifact_path=repo.tree() / "claims" / "paper.yaml")
 
     assert repo.families.concepts.ref_from_loaded(loaded_concept) == ConceptFileRef("demo")
     assert repo.families.claims.ref_from_loaded(loaded_claims) == ClaimsFileRef("paper")

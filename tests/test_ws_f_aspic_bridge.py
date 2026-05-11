@@ -389,8 +389,8 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
     )
     loaded = LoadedDocument(
         filename="rules.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=RulesFileDocument(
             source=RuleSourceDocument(paper="ws-f"),
             rules=(target, defeater),

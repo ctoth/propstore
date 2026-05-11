@@ -29,7 +29,7 @@ def load_claim_file(
     return load_document(
         path,
         ClaimsFileDocument,
-        knowledge_root=knowledge_root,
+        store_root=knowledge_root,
     )
 
 
@@ -43,8 +43,8 @@ def loaded_claim_file_from_payload(
     label = filename if source_path is None else str(source_path)
     return LoadedDocument(
         filename=filename,
-        source_path=source_path,
-        knowledge_root=knowledge_root,
+        artifact_path=source_path,
+        store_root=knowledge_root,
         document=convert_document_value(
             data,
             ClaimsFileDocument,

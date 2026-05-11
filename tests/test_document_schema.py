@@ -26,17 +26,17 @@ def test_decode_document_bytes_is_strict() -> None:
         raise AssertionError("expected strict document decode failure")
 
 
-def test_load_document_captures_source_metadata(tmp_path) -> None:
+def test_load_document_captures_artifact_metadata(tmp_path) -> None:
     path = tmp_path / "demo.yaml"
     path.write_text("name: demo\nvalue: 3\n", encoding="utf-8")
 
-    loaded = load_document(path, _ExampleDocument, knowledge_root=tmp_path)
+    loaded = load_document(path, _ExampleDocument, store_root=tmp_path)
 
     assert loaded.filename == "demo"
     assert loaded.document == _ExampleDocument(name="demo", value=3)
-    assert loaded.source_path is not None
-    assert loaded.source_path.as_posix().endswith("demo.yaml")
-    assert loaded.knowledge_root is not None
+    assert loaded.artifact_path is not None
+    assert loaded.artifact_path.as_posix().endswith("demo.yaml")
+    assert loaded.store_root is not None
 
 
 def test_load_document_dir_returns_empty_for_missing_none_and_empty_dirs(tmp_path) -> None:
@@ -76,7 +76,7 @@ def test_load_document_dir_loads_direct_yaml_children_deterministically(tmp_path
     assert [document.document.name for document in loaded] == ["alpha", "beta"]
 
 
-def test_load_document_dir_preserves_source_metadata(tmp_path) -> None:
+def test_load_document_dir_preserves_artifact_metadata(tmp_path) -> None:
     documents_dir = tmp_path / "documents"
     documents_dir.mkdir()
     (documents_dir / "demo.yaml").write_text("name: demo\nvalue: 3\n", encoding="utf-8")
@@ -84,10 +84,10 @@ def test_load_document_dir_preserves_source_metadata(tmp_path) -> None:
     [loaded] = load_document_dir(documents_dir, _ExampleDocument)
 
     assert loaded.filename == "demo"
-    assert loaded.source_path is not None
-    assert loaded.source_path.as_posix().endswith("documents/demo.yaml")
-    assert loaded.knowledge_root is not None
-    assert loaded.knowledge_root.as_posix().endswith(tmp_path.name)
+    assert loaded.artifact_path is not None
+    assert loaded.artifact_path.as_posix().endswith("documents/demo.yaml")
+    assert loaded.store_root is not None
+    assert loaded.store_root.as_posix().endswith(tmp_path.name)
 
 
 def test_load_document_dir_wrapper_controls_return_type(tmp_path) -> None:

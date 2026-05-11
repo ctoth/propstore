@@ -391,8 +391,8 @@ def _build_rule_file(theory: SuiteTheory):
     ]
     loaded_document = LoadedDocument(
         filename="suite-derived.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=RulesFileDocument(
             source=RuleSourceDocument(paper="datalog-conformance-suite"),
             rules=tuple(rule_documents),
@@ -445,8 +445,8 @@ def _build_registry(theory: SuiteTheory):
 
     loaded_document = LoadedDocument(
         filename="suite-derived-predicates.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=PredicatesFileDocument(
             predicates=tuple(
                 PredicateDocument(

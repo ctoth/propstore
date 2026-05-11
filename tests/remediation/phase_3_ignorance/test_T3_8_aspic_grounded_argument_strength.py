@@ -20,8 +20,8 @@ from propstore.rule_files import LoadedRuleFile
 def _rule_file(rule: RuleDocument) -> LoadedRuleFile:
     loaded = LoadedDocument(
         filename="grounded-strength.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=RulesFileDocument(
             source=RuleSourceDocument(paper="T3.8"),
             rules=(rule,),

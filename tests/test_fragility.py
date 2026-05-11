@@ -520,8 +520,8 @@ def _rule_file(rules):
     )
     loaded = LoadedDocument(
         filename="generated.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=file_doc,
     )
     return LoadedRuleFile.from_loaded_document(loaded)

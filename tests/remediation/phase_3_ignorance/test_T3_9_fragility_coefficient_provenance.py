@@ -47,8 +47,8 @@ def _rule_doc(rule_id: str, kind: str, head: AtomDocument, *, body=()) -> RuleDo
 def _rule_file(rules: tuple[RuleDocument, ...]) -> LoadedRuleFile:
     loaded = LoadedDocument(
         filename="fragility-coefficients.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=RulesFileDocument(
             source=RuleSourceDocument(paper="T3.9"),
             rules=rules,

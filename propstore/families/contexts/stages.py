@@ -124,8 +124,8 @@ class LoadedContext:
     ) -> LoadedContext:
         return cls.from_record(
             filename=document.filename,
-            source_path=document.source_path,
-            knowledge_root=document.knowledge_root,
+            source_path=document.artifact_path,
+            knowledge_root=document.store_root,
             record=parse_context_record_document(document.document),
         )
 

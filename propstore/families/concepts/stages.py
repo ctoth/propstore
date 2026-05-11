@@ -809,8 +809,8 @@ def normalize_loaded_concepts(
         normalized_concepts.append(
             LoadedConcept(
                 filename=concept.filename,
-                source_path=concept.source_path,
-                knowledge_root=concept.knowledge_root,
+                source_path=concept.artifact_path,
+                knowledge_root=concept.store_root,
                 record=parse_concept_record(rewritten),
                 document=concept.document,
                 source_local_id=raw_id,

@@ -33,8 +33,8 @@ def _build_registry(predicates):
 
     loaded = LoadedDocument(
         filename="generated.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=PredicatesFileDocument(predicates=tuple(predicates)),
     )
     return PredicateRegistry.from_files(
@@ -47,8 +47,8 @@ def _claim_file_from_payload(payload: dict):
 
     return loaded_claim_file_from_payload(
         filename="claims.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         data=payload,
     )
 

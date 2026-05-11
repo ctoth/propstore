@@ -182,8 +182,8 @@ def _build_rule_file(rules):
     )
     loaded = LoadedDocument(
         filename="generated.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=file_doc,
     )
     return LoadedRuleFile.from_loaded_document(loaded)
@@ -229,8 +229,8 @@ def _build_registry(predicates):
     file_doc = PredicatesFileDocument(predicates=tuple(predicates))
     loaded = LoadedDocument(
         filename="generated",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=file_doc,
     )
     file = LoadedPredicateFile.from_loaded_document(loaded)
@@ -799,8 +799,8 @@ def test_translate_preserves_authored_superiority_pairs() -> None:
     )
     loaded = LoadedDocument(
         filename="superiority.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=RulesFileDocument(
             source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
             rules=(generic, specific),

@@ -146,8 +146,8 @@ def loaded_predicate_files_from(docs) -> "list":
     file_doc = PredicatesFileDocument(predicates=tuple(docs))
     loaded = LoadedDocument(
         filename="generated",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=file_doc,
     )
     return [LoadedPredicateFile.from_loaded_document(loaded)]
@@ -358,8 +358,8 @@ def test_registry_duplicate_predicate_id_rejected() -> None:
         file_doc = PredicatesFileDocument(predicates=(doc,))
         loaded = LoadedDocument(
             filename=name,
-            source_path=None,
-            knowledge_root=None,
+            artifact_path=None,
+            store_root=None,
             document=file_doc,
         )
         return LoadedPredicateFile.from_loaded_document(loaded)

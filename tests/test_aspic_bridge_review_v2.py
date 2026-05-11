@@ -85,8 +85,8 @@ def _make_rule_file(rules):
 
     loaded = LoadedDocument(
         filename="generated.yaml",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=RulesFileDocument(
             source=RuleSourceDocument(paper="review_v2"),
             rules=tuple(rules),

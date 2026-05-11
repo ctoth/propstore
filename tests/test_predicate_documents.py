@@ -351,8 +351,8 @@ def test_loaded_predicate_file_from_loaded_document() -> None:
     file_doc = PredicatesFileDocument(predicates=(predicate,))
     loaded = LoadedDocument(
         filename="birds",
-        source_path=None,
-        knowledge_root=None,
+        artifact_path=None,
+        store_root=None,
         document=file_doc,
     )
     wrapped = LoadedPredicateFile.from_loaded_document(loaded)
