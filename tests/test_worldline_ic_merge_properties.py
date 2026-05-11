@@ -24,6 +24,7 @@ _POLICY = {
 }
 
 
+@pytest.mark.property
 @settings(max_examples=50)
 @given(count=st.integers(min_value=1, max_value=5), ic_index=st.integers(min_value=0, max_value=4))
 @example(count=2, ic_index=1)
@@ -41,6 +42,7 @@ def test_ic0_ic_atom_not_present_in_profile_is_still_realized(count: int, ic_ind
     assert ic_atom_id in next_state.accepted_atom_ids
 
 
+@pytest.mark.property
 @settings(max_examples=50)
 @given(count=st.integers(min_value=1, max_value=5), merge_operator=st.sampled_from(("sigma", "gmax")))
 @example(count=2, merge_operator="sigma")
@@ -57,6 +59,7 @@ def test_ic2_consistent_profile_and_ic_realizes_their_conjunction(count: int, me
     assert set(next_state.accepted_atom_ids) == set(atom_ids)
 
 
+@pytest.mark.property
 @settings(max_examples=50)
 @given(
     count=st.integers(min_value=1, max_value=5),
@@ -90,6 +93,7 @@ def test_ic0_realized_success_satisfies_integrity_constraint(
     assert ic_atom_id in next_state.accepted_atom_ids
 
 
+@pytest.mark.property
 @settings(max_examples=50)
 @given(count=st.integers(min_value=1, max_value=5), merge_operator=st.sampled_from(("sigma", "gmax")))
 def test_successful_realization_partitions_projected_merge_alphabet(count: int, merge_operator: str) -> None:
@@ -112,6 +116,7 @@ def test_successful_realization_partitions_projected_merge_alphabet(count: int, 
     assert accepted | rejected == projected
 
 
+@pytest.mark.property
 @settings(max_examples=25)
 @given(count=st.integers(min_value=1, max_value=5))
 def test_profile_multiset_hash_preserves_duplicate_entries(count: int) -> None:
@@ -134,6 +139,7 @@ def test_profile_multiset_hash_preserves_duplicate_entries(count: int) -> None:
     assert duplicate.report.trace["profile_hash"] != unique.report.trace["profile_hash"]
 
 
+@pytest.mark.property
 @settings(max_examples=25)
 @given(count=st.integers(min_value=1, max_value=5))
 def test_ic_merge_journal_replay_matches_direct_dispatch(count: int) -> None:
@@ -174,6 +180,7 @@ def test_ic_merge_journal_replay_matches_direct_dispatch(count: int) -> None:
     assert not replayed.divergences
 
 
+@pytest.mark.property
 @settings(max_examples=25)
 @given(count=st.integers(min_value=2, max_value=5))
 def test_event_hash_changes_when_ic_or_policy_changes(count: int) -> None:
@@ -210,6 +217,7 @@ def test_event_hash_changes_when_ic_or_policy_changes(count: int) -> None:
     assert first.history[-1].event.content_hash != third.history[-1].event.content_hash
 
 
+@pytest.mark.property
 @settings(max_examples=25)
 @given(count=st.integers(min_value=1, max_value=5))
 def test_mapping_totality_succeeds_iff_selected_atoms_are_known(count: int) -> None:
@@ -236,6 +244,7 @@ def test_mapping_totality_succeeds_iff_selected_atoms_are_known(count: int) -> N
 
 
 @example(count=2)
+@pytest.mark.property
 @settings(max_examples=10)
 @given(count=st.integers(min_value=2, max_value=5))
 def test_ambiguous_two_world_result_fails_typed(count: int) -> None:
