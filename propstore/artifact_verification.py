@@ -13,7 +13,7 @@ from propstore.artifact_codes import (
     source_artifact_code,
     stance_artifact_code,
 )
-from propstore.claims import claim_file_claims, claim_file_filename
+from propstore.claims import claim_file_claims, claim_file_source_paper
 from propstore.core.labels import Label
 from propstore.uri import ni_uri_for_file
 
@@ -25,7 +25,7 @@ def _load_claim_index(repo: Repository, commit: str | None) -> tuple[dict[str, d
     claims_by_id: dict[str, dict[str, Any]] = {}
     claim_to_source_slug: dict[str, str] = {}
     for claim_file in repo.families.claims.iter_handles(commit=commit):
-        source_slug = claim_file_filename(claim_file)
+        source_slug = claim_file_source_paper(claim_file)
         for claim in claim_file_claims(claim_file):
             claim_id = claim.artifact_id
             if isinstance(claim_id, str) and claim_id:
