@@ -8,10 +8,22 @@ from quire.tree_path import (
     TreePath,
     coerce_tree_path,
 )
+from quire.documents import (
+    LoadedDocument,
+    convert_document_value,
+    decode_yaml_mapping,
+)
 from quire.git_store import GitStore
 
-from propstore.claims import LoadedClaimsFile, load_claim_file
+from propstore.claims import (
+    LoadedClaimsFile,
+    expand_loaded_claim_batch,
+    load_claim_file,
+)
 from propstore.compiler.context import build_compilation_context_from_loaded
+from propstore.families.claims.documents import ClaimsFileDocument
+from propstore.families.identity.claims import normalize_claim_file_payload
+from propstore.families.registry import ClaimRef
 from propstore.families.concepts.stages import load_concepts
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar as _build_sidecar
@@ -26,7 +38,7 @@ def load_claim_files(claims_dir: TreePath | Path) -> list[LoadedClaimsFile]:
     files: list[LoadedClaimsFile] = []
     for entry in tree.iterdir():
         if entry.is_file() and entry.suffix == ".yaml":
-            files.append(load_claim_file(entry, knowledge_root=tree.parent))
+            files.extend(_load_claim_fixture(entry, knowledge_root=tree.parent))
     return files
 
 
@@ -64,9 +76,60 @@ def build_sidecar(repo_or_path: Repository | TreePath | Path, sidecar_path: Path
             raise TypeError("build_sidecar requires a Repository, Path, or concrete Quire tree path")
         _init_git_without_sync(repo_or_path)
         repo = Repository(repo_or_path)
+    _materialize_claim_fixture_batches(repo)
     if kwargs.get("commit_hash") is None:
         _commit_worktree(repo)
     return _build_sidecar(repo, sidecar_path, **kwargs)
+
+
+def _load_claim_fixture(
+    entry: TreePath,
+    *,
+    knowledge_root: TreePath,
+) -> tuple[LoadedClaimsFile, ...]:
+    data = decode_yaml_mapping(entry.read_bytes(), source=entry.as_posix())
+    if isinstance(data.get("claims"), list):
+        normalized, _ = normalize_claim_file_payload(data)
+        batch = LoadedDocument(
+            filename=entry.name,
+            artifact_path=entry,
+            store_root=knowledge_root,
+            document=convert_document_value(
+                normalized,
+                ClaimsFileDocument,
+                source=entry.as_posix(),
+            ),
+        )
+        return expand_loaded_claim_batch(batch)
+    return (load_claim_file(entry, knowledge_root=knowledge_root),)
+
+
+def _materialize_claim_fixture_batches(repo: Repository) -> None:
+    claims_dir = repo.root / "claims"
+    if not claims_dir.is_dir():
+        return
+    for path in sorted(claims_dir.glob("*.yaml")):
+        data = decode_yaml_mapping(path.read_bytes(), source=path.as_posix())
+        if not isinstance(data.get("claims"), list):
+            continue
+        normalized, _ = normalize_claim_file_payload(data)
+        batch = convert_document_value(
+            normalized,
+            ClaimsFileDocument,
+            source=path.as_posix(),
+        )
+        for claim in batch.claims:
+            artifact_id = claim.artifact_id
+            if artifact_id is None:
+                raise ValueError(f"{path.as_posix()}: normalized claim is missing artifact_id")
+            ref = ClaimRef(artifact_id)
+            artifact_path = repo.root / repo.families.claims.address(ref).require_path()
+            artifact_path.parent.mkdir(parents=True, exist_ok=True)
+            artifact_path.write_text(
+                repo.families.claims.render(claim) + "\n",
+                encoding="utf-8",
+            )
+        path.unlink()
 
 
 def _init_git_without_sync(root: Path) -> None:
