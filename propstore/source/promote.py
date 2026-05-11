@@ -75,6 +75,7 @@ from propstore.families.documents.sources import (
     SourceJustificationsDocument,
     SourceTrustDocument,
 )
+from propstore.json_types import JsonObject, JsonValue
 from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
 from propstore.families.documents.stances import StanceFileDocument
 
@@ -200,7 +201,7 @@ def _validate_promoted_claims_before_commit(
         )
 
 
-def _source_trust_payload(result: SourceTrustResult) -> dict[str, object]:
+def _source_trust_payload(result: SourceTrustResult) -> JsonObject:
     trust = SourceTrustDocument(
         status=result.status,
         prior_base_rate=result.prior_base_rate,
@@ -943,11 +944,16 @@ def promote_source_branch(
         justifications_payload["justifications"] = valid_justification_entries
         filtered_justifications_payload = justifications_payload
 
+    stances_payload: JsonObject = {
+        "stances": [
+            stance for stance in promoted_stances
+        ],
+    }
     promoted_source_doc, promoted_claims_doc, promoted_justifications_doc, promoted_stances_doc = attach_source_artifact_codes(
         source_doc.to_payload(),
         promoted_claims_doc,
         filtered_justifications_payload,
-        {"stances": promoted_stances},
+        stances_payload,
     )
     raw_promoted_claims = promoted_claims_doc.get("claims")
     promoted_claims = raw_promoted_claims if isinstance(raw_promoted_claims, list) else []
@@ -958,7 +964,7 @@ def promote_source_branch(
         else slug
     )
 
-    normalized_promoted_claims: list[object] = []
+    normalized_promoted_claims: list[JsonValue] = []
     for claim in promoted_claims:
         if not isinstance(claim, dict):
             normalized_promoted_claims.append(claim)
@@ -978,7 +984,7 @@ def promote_source_branch(
         )
     promoted_claims_doc["claims"] = normalized_promoted_claims
 
-    stances_by_source: dict[str, list[dict[str, Any]]] = {}
+    stances_by_source: dict[str, list[JsonObject]] = {}
     raw_promoted_stances = promoted_stances_doc.get("stances")
     promoted_stance_entries = (
         raw_promoted_stances
