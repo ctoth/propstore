@@ -14,6 +14,7 @@ class SameAsRelation(StrEnum):
 
 
 class SameAsAssertionDocument(DocumentStruct):
+    artifact_id: str | None = None
     left_artifact_id: str
     right_artifact_id: str
     relation: SameAsRelation
@@ -28,17 +29,10 @@ class SameAsAssertionDocument(DocumentStruct):
             "relation": self.relation.value,
             "evidence_source": self.evidence_source,
         }
+        if self.artifact_id is not None:
+            payload["artifact_id"] = self.artifact_id
         if self.provenance:
             payload["provenance"] = dict(self.provenance)
         if self.confidence is not None:
             payload["confidence"] = self.confidence
         return payload
-
-
-class SameAsFileDocument(DocumentStruct):
-    assertions: tuple[SameAsAssertionDocument, ...] = ()
-
-    def to_payload(self) -> dict[str, Any]:
-        return {
-            "assertions": [assertion.to_payload() for assertion in self.assertions]
-        }
