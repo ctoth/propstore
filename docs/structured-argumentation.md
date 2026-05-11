@@ -75,27 +75,29 @@ ASPIC+ arguments are mapped back to `StructuredArgument` dataclasses for downstr
 ## Architecture
 
 ```
-structured_projection.py              aspic_bridge/                 argumentation.aspic
-  build_structured_projection() ---> build_aspic_projection()
-                                       _extract_stance_rows()
-                                       _extract_justifications()
-                                       build_bridge_csaf()  ---------> T1: claims_to_literals()
-                                         |                            T2: justifications_to_rules()
-                                         |                            T3: stances_to_contrariness()
-                                         |                            T4: claims_to_kb()
-                                         |                            T5: build_preference_config()
-                                         |                            transposition_closure()
-                                         |                            build_arguments()
-                                         |                            compute_attacks()
-                                         |                            compute_defeats()
-                                       csaf_to_projection() --------> StructuredProjection
+aspic_bridge/                         argumentation.aspic
+  build_aspic_projection()
+    _extract_stance_rows()
+    _extract_justifications()
+    build_bridge_csaf()  ------------> T1: claims_to_literals()
+      |                                T2: justifications_to_rules()
+      |                                T3: stances_to_contrariness()
+      |                                T4: claims_to_kb()
+      |                                T5: build_preference_config()
+      |                                transposition_closure()
+      |                                build_arguments()
+      |                                compute_attacks()
+      |                                compute_defeats()
+    csaf_to_projection() ------------> StructuredProjection
+
+structured_projection.py
   compute_structured_justified_arguments()
     -> grounded_extension() / preferred_extensions() / etc. (argumentation.dung)
 ```
 
 Data flows one way: claims/stances/justifications and grounded rule priorities enter as propstore domain objects, are translated into formal ASPIC+ types, pass through argument construction and attack/defeat computation, produce a Dung AF, and exit as extensions. CKR-style contextual exceptions are integrated after ASPIC+ argument construction by adding exception-derived Dung defeats with `propstore.defeasibility.apply_exception_defeats_to_csaf(...)`.
 
-`argumentation/src/argumentation/aspic.py` is a leaf module with zero propstore imports. It implements ASPIC+ in pure logic. `propstore.aspic_bridge` handles all translation between propstore's claim graph and the formal engine. `propstore/structured_projection.py` provides the public dataclasses and thin delegation wrappers.
+`argumentation/src/argumentation/aspic.py` is a leaf module with zero propstore imports. It implements ASPIC+ in pure logic. `propstore.aspic_bridge` handles all translation between propstore's claim graph and the formal engine. `propstore/structured_projection.py` provides the public projection dataclasses, lifting helpers, and extension semantics over a constructed `StructuredProjection`.
 
 ## Argument Construction
 
