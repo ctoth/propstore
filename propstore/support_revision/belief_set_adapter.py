@@ -15,6 +15,7 @@ from belief_set import (
     EpistemicEntrenchment,
     Formula,
     ICMergeOutcome,
+    ICMergeOperator,
     RevisionOutcome,
     SpohnEpistemicState,
     TOP,
@@ -221,23 +222,47 @@ def decide_ic_merge(
     profile: tuple[Formula, ...],
     integrity_constraint: Formula,
     *,
+    merge_operator: str = ICMergeOperator.SIGMA.value,
     max_alphabet_size: int,
+    trace_metadata: Mapping[str, Any] | None = None,
 ) -> FormalDecision:
+    operator = ICMergeOperator(str(merge_operator))
     outcome = merge_belief_profile(
         alphabet,
         profile,
         integrity_constraint,
+        operator=operator,
         max_alphabet_size=max_alphabet_size,
     )
+    formula_by_atom_id = {
+        atom_id: Atom(_formula_name(atom_id))
+        for atom_id in sorted(outcome.belief_set.alphabet)
+    }
     bundle = FormalProjectionBundle(
         alphabet=outcome.belief_set.alphabet,
         belief_set=outcome.belief_set,
+        formula_by_atom_id=formula_by_atom_id,
+        atom_id_by_formula_name={
+            _formula_name(atom_id): atom_id
+            for atom_id in formula_by_atom_id
+        },
         budget_config={"max_alphabet_size": max_alphabet_size},
     )
-    report = FormalRevisionDecisionReport(
+    trace = dict(trace_metadata or {})
+    trace.update(
+        {
+            "merge_operator": operator.value,
+            "selected_worlds_hash": _worlds_hash(outcome.belief_set.models),
+            "scored_worlds_hash": _scored_worlds_hash(outcome.scored_worlds),
+        }
+    )
+    report = _decision_report(
         operation="ic_merge",
-        policy="belief_set.ic_merge.merge_belief_profile",
-        epistemic_state_hash=None,
+        policy=f"belief_set.ic_merge.merge_belief_profile.{operator.value}",
+        bundle=bundle,
+        outcome=outcome,
+        input_formula_ids=tuple(sorted(outcome.belief_set.alphabet)),
+        trace=trace,
     )
     return FormalDecision(bundle, outcome, "ic_merge", report)
 
@@ -246,6 +271,7 @@ def decide_ic_merge_profile(
     *,
     profile_atom_ids: tuple[tuple[str, ...], ...],
     integrity_constraint: Mapping[str, Any],
+    merge_operator: str = ICMergeOperator.SIGMA.value,
     max_alphabet_size: int,
 ) -> FormalDecision:
     alphabet = frozenset(atom_id for profile in profile_atom_ids for atom_id in profile)
@@ -259,7 +285,13 @@ def decide_ic_merge_profile(
         alphabet,
         profile,
         _integrity_constraint_formula(integrity_constraint),
+        merge_operator=merge_operator,
         max_alphabet_size=max_alphabet_size,
+        trace_metadata={
+            "profile_atom_ids": [list(atom_ids) for atom_ids in profile_atom_ids],
+            "profile_hash": _plain_hash([list(atom_ids) for atom_ids in profile_atom_ids]),
+            "integrity_constraint": dict(integrity_constraint),
+        },
     )
 
 
@@ -298,6 +330,7 @@ def _decision_report(
     bundle: FormalProjectionBundle,
     outcome: BeliefSet | RevisionOutcome | ICMergeOutcome | SpohnEpistemicState,
     input_formula_ids: tuple[str, ...],
+    trace: Mapping[str, Any] | None = None,
 ) -> FormalRevisionDecisionReport:
     belief_set = _outcome_belief_set(outcome)
     accepted = tuple(
@@ -312,9 +345,10 @@ def _decision_report(
     )
     state = _outcome_state(outcome)
     state_hash = None if state is None else _state_hash(state)
-    trace = dict(_trace_payload(outcome))
+    trace_payload = dict(_trace_payload(outcome))
+    trace_payload.update(dict(trace or {}))
     if state_hash is not None:
-        trace["ranking_provenance"] = {
+        trace_payload["ranking_provenance"] = {
             "status": "defaulted",
             "method": "hamming_distance",
             "input_hash": state_hash,
@@ -326,7 +360,7 @@ def _decision_report(
         accepted_formula_ids=accepted,
         rejected_formula_ids=rejected,
         epistemic_state_hash=state_hash,
-        trace=trace,
+        trace=trace_payload,
     )
 
 
@@ -420,6 +454,27 @@ def _state_hash(state: SpohnEpistemicState) -> str:
             for world, rank in sorted(state.ranks.items(), key=lambda item: tuple(sorted(item[0])))
         ],
     }
+    body = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def _worlds_hash(worlds: frozenset[frozenset[str]]) -> str:
+    return _plain_hash([sorted(world) for world in sorted(worlds, key=lambda item: tuple(sorted(item)))])
+
+
+def _scored_worlds_hash(scored_worlds: tuple[tuple[frozenset[str], tuple[float, ...]], ...]) -> str:
+    return _plain_hash(
+        [
+            {
+                "world": sorted(world),
+                "score": [_json_rank(score) for score in scores],
+            }
+            for world, scores in scored_worlds
+        ]
+    )
+
+
+def _plain_hash(payload: Any) -> str:
     body = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
