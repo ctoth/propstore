@@ -4,14 +4,14 @@ import pytest
 
 from propstore.merge.merge_commit import NonClaimMergeConflict, create_merge_commit
 from propstore.storage import init_git_store
-from tests.ws_l_merge_helpers import claim_yaml, obs_claim, snapshot
+from tests.ws_l_merge_helpers import claim_payloads, obs_claim, snapshot
 
 
 def test_stance_family_schema_conflict_is_not_silently_left_wins(tmp_path) -> None:
     kr = init_git_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {
-            "claims/base.yaml": claim_yaml([obs_claim("base", "Base", ["concept_base"])]),
+            **claim_payloads(kr, [obs_claim("base", "Base", ["concept_base"])]),
             "stances/ps__claim__base.yaml": (
                 b"source_claim: ps:claim:base\n"
                 b"target: ps:claim:base\n"
