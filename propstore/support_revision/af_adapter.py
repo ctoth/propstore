@@ -139,6 +139,12 @@ def project_epistemic_state_argumentation_view(
             if atom.label is not None:
                 support_metadata[claim_id] = (atom.label, SupportQuality.EXACT)
 
+    for atom_id, support_sets in state.base.support_sets.items():
+        if atom_id not in accepted_set:
+            continue
+        for support_set in support_sets:
+            accepted_assumption_atom_ids.extend(str(assumption_id) for assumption_id in support_set)
+
     active_claims.sort(key=lambda claim: str(claim.claim_id))
     overlay = RevisionArgumentationStore(backing_store, tuple(active_claims))
     return RevisionArgumentationView(
@@ -147,7 +153,7 @@ def project_epistemic_state_argumentation_view(
         active_claims=tuple(active_claims),
         support_metadata=support_metadata,
         unmapped_atom_ids=tuple(sorted(unmapped_atom_ids)),
-        accepted_assumption_atom_ids=tuple(sorted(accepted_assumption_atom_ids)),
+        accepted_assumption_atom_ids=tuple(sorted(dict.fromkeys(accepted_assumption_atom_ids))),
         revision_event_hashes=_revision_event_hashes(state),
     )
 
