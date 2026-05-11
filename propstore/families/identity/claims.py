@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import re
 from typing import Any
 
 from quire.hashing import canonical_json_sha256
@@ -13,6 +14,7 @@ CLAIM_VERSION_ID_EXCLUDED_FIELDS = ("artifact_id", "version_id", "id", "source_l
 CLAIM_SOURCE_LOCAL_FIELDS = ("id", "source_local_id", "artifact_code")
 DEFAULT_CLAIM_NAMESPACE = "source"
 DEFAULT_CLAIM_HANDLE_PREFIX = "claim"
+_RAW_CLAIM_LOCAL_ID_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def derive_claim_artifact_id(namespace: str, value: str) -> str:
@@ -137,9 +139,12 @@ def _normalize_claim_file_entry(
 
     normalized = dict(claim)
     raw_id = normalized.pop("id", None)
+    raw_id_valid = _raw_claim_id_is_valid(raw_id)
+    if isinstance(raw_id, str) and not raw_id_valid:
+        normalized["id"] = raw_id
     normalized["logical_ids"] = _normalize_claim_logical_ids(
         normalized.get("logical_ids"),
-        raw_id=raw_id,
+        raw_id=raw_id if raw_id_valid else None,
         index=index,
         default_namespace=default_namespace,
     )
@@ -151,9 +156,18 @@ def _normalize_claim_file_entry(
         normalized["artifact_id"] = artifact_id
 
     local_handles = {primary_value: artifact_id}
-    if isinstance(raw_id, str) and raw_id:
+    if isinstance(raw_id, str) and raw_id_valid:
         local_handles[raw_id] = artifact_id
     return normalized, local_handles
+
+
+def _raw_claim_id_is_valid(value: object) -> bool:
+    if not isinstance(value, str) or not value:
+        return False
+    namespace, local_id = logical_ids.parse_claim_id(value)
+    if namespace is not None and not logical_ids.LOGICAL_NAMESPACE_RE.match(namespace):
+        return False
+    return _RAW_CLAIM_LOCAL_ID_RE.match(local_id) is not None
 
 
 def _normalize_claim_logical_ids(
