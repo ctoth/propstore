@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import json
-from typing import Any
 
 
 class CanonicalEncodingError(TypeError):
     """Raised when a payload is not JSON-native canonical data."""
 
 
-def canonical_dumps(payload: Any) -> str:
+def canonical_dumps(payload: object) -> str:
     """Encode JSON-native payloads deterministically and fail on unknown values."""
 
     try:
