@@ -165,15 +165,13 @@ def _finalize_and_promote(runner: CliRunner, repo: Repository, source: str) -> N
 
 
 def _promoted_claim_artifact_id(repo: Repository, source: str, local_id: str) -> str:
-    claims_doc = yaml.safe_load(repo.git.read_file(f"claims/{source}.yaml"))
-    for claim in claims_doc["claims"]:
-        logical_ids = claim.get("logical_ids") or ()
+    for handle in repo.families.claims.iter_handles():
+        claim = handle.document
         if any(
-            item.get("namespace") == source and item.get("value") == local_id
-            for item in logical_ids
-            if isinstance(item, dict)
+            logical_id.namespace == source and logical_id.value == local_id
+            for logical_id in claim.logical_ids
         ):
-            artifact_id = claim.get("artifact_id")
+            artifact_id = claim.artifact_id
             assert isinstance(artifact_id, str)
             return artifact_id
     raise AssertionError(f"promoted claim {source}:{local_id} not found")
