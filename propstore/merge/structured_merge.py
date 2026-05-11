@@ -326,10 +326,9 @@ def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[
         source_claim = _optional_string(data.source_claim)
         if source_claim is None:
             continue
-        for stance in data.stances:
-            row = _stance_row_from_mapping(to_claim_id(source_claim), stance.to_payload())
-            if row is not None:
-                rows.append(row)
+        row = _stance_row_from_mapping(to_claim_id(source_claim), data.to_payload())
+        if row is not None:
+            rows.append(row)
     return rows
 
 
