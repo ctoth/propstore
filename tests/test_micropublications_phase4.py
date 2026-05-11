@@ -154,7 +154,13 @@ def test_source_finalize_composes_claims_into_micropubs(tmp_path: Path) -> None:
     assert micropub["evidence"] == [{"kind": "paper_page", "reference": "demo:1"}]
 
 
-def test_source_promote_writes_canonical_micropub_bundle(tmp_path: Path) -> None:
+def _single_promoted_micropub(repo: Repository, commit: str | None = None):
+    handles = list(repo.families.micropubs.iter_handles(commit=commit))
+    assert len(handles) == 1
+    return handles[0]
+
+
+def test_source_promote_writes_canonical_micropub_artifact(tmp_path: Path) -> None:
     repo = _init_source_with_claim(tmp_path)
     runner = CliRunner()
 
@@ -163,17 +169,14 @@ def test_source_promote_writes_canonical_micropub_bundle(tmp_path: Path) -> None
 
     master_tip = repo.git.branch_sha("master")
     assert master_tip is not None
-    promoted = yaml.safe_load(repo.git.read_file("micropubs/demo.yaml", commit=master_tip))
+    promoted = _single_promoted_micropub(repo, master_tip).document
     promoted_claims = yaml.safe_load(repo.git.read_file("claims/demo.yaml", commit=master_tip))
 
-    assert len(promoted["micropubs"]) == 1
-    assert promoted["micropubs"][0]["claims"] == [
-        promoted_claims["claims"][0]["artifact_id"]
-    ]
+    assert promoted.claims == (promoted_claims["claims"][0]["artifact_id"],)
     assert promoted_claims["claims"][0]["context"] == {"id": "ctx_test"}
 
 
-def test_micropub_cli_show_bundle_and_lift(tmp_path: Path) -> None:
+def test_micropub_cli_show_and_lift(tmp_path: Path) -> None:
     repo = _init_source_with_claim(tmp_path)
     repo.git.commit_batch(
         adds={
@@ -210,13 +213,7 @@ def test_micropub_cli_show_bundle_and_lift(tmp_path: Path) -> None:
     promote_result = runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"])
     assert promote_result.exit_code == 0, promote_result.output
 
-    promoted = yaml.safe_load(repo.git.read_file("micropubs/demo.yaml"))
-    micropub_id = promoted["micropubs"][0]["artifact_id"]
-
-    bundle_result = runner.invoke(cli, ["-C", str(repo.root), "micropub", "bundle", "demo"])
-    assert bundle_result.exit_code == 0, bundle_result.output
-    assert "micropubs:" in bundle_result.output
-    assert micropub_id in bundle_result.output
+    micropub_id = _single_promoted_micropub(repo).document.artifact_id
 
     show_result = runner.invoke(cli, ["-C", str(repo.root), "micropub", "show", micropub_id])
     assert show_result.exit_code == 0, show_result.output
@@ -260,8 +257,7 @@ def test_promoted_micropub_builds_as_atms_node(tmp_path: Path) -> None:
     promote_result = runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"])
     assert promote_result.exit_code == 0, promote_result.output
 
-    promoted = yaml.safe_load(repo.git.read_file("micropubs/demo.yaml"))
-    micropub_id = promoted["micropubs"][0]["artifact_id"]
+    micropub_id = _single_promoted_micropub(repo).document.artifact_id
 
     assert build_sidecar(repo, repo.sidecar_path, force=True) is True
     world = WorldQuery(repo)
