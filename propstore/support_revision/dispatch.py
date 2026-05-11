@@ -14,6 +14,7 @@ from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.history import JournalOperator
 from propstore.support_revision.iterated import advance_epistemic_state, iterated_revise
 from propstore.support_revision.realization import realize_formal_decision
+from propstore.support_revision.realization import realize_ic_merge_decision
 from propstore.support_revision.snapshot_types import (
     EpistemicStateSnapshot,
     belief_atom_from_canonical_dict,
@@ -64,12 +65,23 @@ def dispatch(
         integrity_constraint = payload.get("integrity_constraint")
         if not isinstance(integrity_constraint, Mapping):
             raise RevisionMergeRequiredFailure(reason="missing_integrity_constraint")
-        decide_ic_merge_profile(
+        entrenchment = _entrenchment_from_state(state)
+        decision = decide_ic_merge_profile(
             profile_atom_ids=_profile_atom_ids(payload.get("profile_atom_ids") or ()),
             integrity_constraint=integrity_constraint,
+            merge_operator=str(payload.get("merge_operator") or "sigma"),
             max_alphabet_size=_max_candidates(payload),
         )
-        raise RevisionMergeRequiredFailure(reason="realization_not_implemented")
+        result = realize_ic_merge_decision(state.base, decision)
+        return advance_epistemic_state(
+            state,
+            result,
+            entrenchment,
+            operator=op.value,
+            target_atom_ids=tuple(decision.projection.formula_by_atom_id),
+            policy_snapshot=policy_snapshot,
+            replay_status="replayed",
+        )
 
     entrenchment = _entrenchment_from_state(state)
     if op is JournalOperator.EXPAND:
