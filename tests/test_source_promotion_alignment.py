@@ -10,7 +10,6 @@ from click.testing import CliRunner
 
 from propstore.families.registry import (
     CanonicalSourceRef,
-    ClaimsFileRef,
     ConceptAlignmentRef,
     ConceptFileRef,
     SourceRef,
@@ -43,6 +42,11 @@ from propstore.families.documents.sources import (
     SourceStancesDocument,
 )
 from propstore.source.promote import load_finalize_report
+from tests.family_helpers import build_sidecar
+
+
+def _promoted_claims(repo: Repository):
+    return [handle.document for handle in repo.families.claims.iter_handles()]
 
 
 def _save_source(repo: Repository, source_name: str, concepts_payload: dict, claims_payload: dict | None = None) -> None:
@@ -260,15 +264,13 @@ def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path
     canonical_source = repo.families.sources.require(
         CanonicalSourceRef("paper_source"),
     )
-    claims_file = repo.families.claims.require(
-        ClaimsFileRef("paper_source"),
-    )
+    promoted_claims = _promoted_claims(repo)
     concept_file = repo.families.concepts.require(
         ConceptFileRef("gravity"),
     )
 
     assert canonical_source.metadata is not None
-    assert claims_file.claims[0].output_concept == derive_concept_artifact_id("propstore", "gravity")
+    assert promoted_claims[0].output_concept == derive_concept_artifact_id("propstore", "gravity")
     assert concept_file.artifact_id == derive_concept_artifact_id("propstore", "gravity")
 
 
@@ -599,8 +601,6 @@ def test_promote_source_branch_does_not_block_claim_for_invalid_stance(
     # Build the primary-branch sidecar BEFORE promote. The sidecar must
     # exist for ``promote_source_branch`` to write mirror rows for blocked
     # claims into it.
-    from tests.family_helpers import build_sidecar
-
     head = repo.snapshot.head_sha()
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)
 
@@ -608,11 +608,8 @@ def test_promote_source_branch_does_not_block_claim_for_invalid_stance(
     assert result is not None, "partial promotion should return some marker, not raise"
     assert result.blocked_claims == ()
 
-    claims_file = repo.families.claims.require(
-        ClaimsFileRef(source_name),
-    )
     promoted_statements = {
-        claim.statement for claim in claims_file.claims if claim.statement
+        claim.statement for claim in _promoted_claims(repo) if claim.statement
     }
     assert "First valid observation." in promoted_statements
     assert "Second valid observation." in promoted_statements
@@ -660,11 +657,8 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     finalize_source_branch(repo, source_name)
     promote_source_branch(repo, source_name)
 
-    claims_file = repo.families.claims.require(
-        ClaimsFileRef(source_name),
-    )
     initial_statements = {
-        claim.statement for claim in claims_file.claims if claim.statement
+        claim.statement for claim in _promoted_claims(repo) if claim.statement
     }
     assert "Claim whose stance targets a missing ref." in initial_statements
 
@@ -681,11 +675,8 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     finalize_source_branch(repo, source_name)
     promote_source_branch(repo, source_name)
 
-    claims_file = repo.families.claims.require(
-        ClaimsFileRef(source_name),
-    )
     final_statements = {
-        claim.statement for claim in claims_file.claims if claim.statement
+        claim.statement for claim in _promoted_claims(repo) if claim.statement
     }
     assert "Claim whose stance targets a missing ref." in final_statements, (
         "claim must remain promoted after its invalid stance metadata is removed"
@@ -785,9 +776,9 @@ def test_promote_source_branch_unicode_name_writes_single_branch_matching_stem(
     assert branch.startswith("source/"), branch
     branch_stem = branch[len("source/"):]
 
-    promoted_claim_refs = sorted(ref.name for ref in repo.families.claims.iter())
-    assert promoted_claim_refs == [branch_stem], (
-        f"expected single claim artifact {branch_stem}; got {promoted_claim_refs}"
+    promoted_claim_refs = sorted(ref.artifact_id for ref in repo.families.claims.iter())
+    assert len(promoted_claim_refs) == 1, (
+        f"expected single claim artifact for {branch_stem}; got {promoted_claim_refs}"
     )
 
 
