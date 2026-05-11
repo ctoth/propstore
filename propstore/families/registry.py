@@ -50,7 +50,7 @@ from propstore.families.documents.sources import (
     SourceJustificationsDocument,
     SourceStancesDocument,
 )
-from propstore.families.documents.stances import StanceDocument, StanceFileDocument
+from propstore.families.documents.stances import StanceDocument
 from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 from propstore.families.sameas.documents import SameAsFileDocument
 from propstore.families.identity.claims import (
@@ -132,10 +132,6 @@ if TYPE_CHECKING:
         rule_id: str
 
     @dataclass(frozen=True)
-    class StanceFileRef:
-        source_claim: str
-
-    @dataclass(frozen=True)
     class StanceRef:
         artifact_id: str
 
@@ -203,7 +199,6 @@ if not TYPE_CHECKING:
         source_paper: str
         rule_id: str
 
-    StanceFileRef = single_field_ref_type("StanceFileRef", "source_claim", module=__name__)
     StanceRef = single_field_ref_type("StanceRef", "artifact_id", module=__name__)
     SameAsFileRef = single_field_ref_type("SameAsFileRef", "name", module=__name__)
     ConceptAlignmentRef = single_field_ref_type("ConceptAlignmentRef", "slug", module=__name__)

@@ -8,13 +8,14 @@ from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.families.identity.concepts import (
     normalize_canonical_concept_payload,
 )
+from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.families.registry import (
     ClaimsFileRef,
     ConceptFileRef,
     ContextRef,
     PredicateFileRef,
     RuleFileRef,
-    StanceFileRef,
+    StanceRef,
 )
 from propstore.app.project_init import _seed_form_documents
 from propstore.repository import Repository
@@ -150,26 +151,18 @@ def materialize_reasoning_demo(root: Path) -> Repository:
             }
         ],
     }
-    stance_against_yes = {
+    stance_against_yes = stamp_stance_artifact_id({
         "source_claim": claim_map["claim_cannot_fly"],
-        "stances": [
-            {
-                "target": claim_map["claim_can_fly"],
-                "type": "supersedes",
-                "note": "Negative assessment overrides the positive one.",
-            }
-        ],
-    }
-    stance_against_no = {
+        "target": claim_map["claim_can_fly"],
+        "type": "supersedes",
+        "note": "Negative assessment overrides the positive one.",
+    })
+    stance_against_no = stamp_stance_artifact_id({
         "source_claim": claim_map["claim_override"],
-        "stances": [
-            {
-                "target": claim_map["claim_cannot_fly"],
-                "type": "supersedes",
-                "note": "External evidence defeats the negative assessment.",
-            }
-        ],
-    }
+        "target": claim_map["claim_cannot_fly"],
+        "type": "supersedes",
+        "note": "External evidence defeats the negative assessment.",
+    })
 
     with repo.families.transact(message="Seed reasoning demo") as transaction:
         for ref, payload in (
@@ -201,7 +194,7 @@ def materialize_reasoning_demo(root: Path) -> Repository:
             ),
         )
         for payload in (stance_against_yes, stance_against_no):
-            stance_ref = StanceFileRef(str(payload["source_claim"]))
+            stance_ref = StanceRef(str(payload["artifact_code"]))
             transaction.stances.save(
                 stance_ref,
                 transaction.stances.coerce(
