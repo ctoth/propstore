@@ -5,16 +5,15 @@ from __future__ import annotations
 from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TypeAlias
 
-JsonValue: TypeAlias = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
+from propstore.json_types import JsonValue
 
 
 class WebSerializationError(TypeError):
     """Raised when a report contains an unsupported JSON value."""
 
 
-def to_json_compatible(value) -> JsonValue:
+def to_json_compatible(value: object) -> JsonValue:
     if value is None or isinstance(value, bool | int | float | str):
         return value
     if isinstance(value, Enum):
