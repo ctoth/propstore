@@ -100,6 +100,39 @@ def _emit_revision_result(result) -> None:
     emit(f"Incision set: {', '.join(incision_set) if incision_set else '(none)'}")
 
 
+def format_revision_event_inspection(payload) -> tuple[str, ...]:
+    lines: list[str] = []
+    decision = payload.get("decision") or {}
+    realization = payload.get("realization") or {}
+    policy = payload.get("policy") or {}
+    diagnostics = payload.get("diagnostics") or {}
+
+    lines.append("Formal decision:")
+    if decision:
+        lines.append(f"  operation: {decision.get('operation')}")
+        lines.append(f"  policy: {decision.get('policy')}")
+    else:
+        lines.append("  (none)")
+
+    lines.append("Support realization:")
+    if realization:
+        lines.append(f"  accepted: {len(realization.get('accepted_atom_ids') or ())}")
+        lines.append(f"  rejected: {len(realization.get('rejected_atom_ids') or ())}")
+    else:
+        lines.append("  (none)")
+
+    lines.append("Policy:")
+    for key in sorted(policy):
+        lines.append(f"  {key}: {policy[key]}")
+
+    lines.append("Diagnostics:")
+    for key in sorted(diagnostics):
+        value = diagnostics[key]
+        if value is not None:
+            lines.append(f"  {key}: {value}")
+    return tuple(lines)
+
+
 def _emit_revision_explanation(explanation) -> None:
     emit(f"Accepted ({len(explanation.accepted_atom_ids)} atoms):")
     for atom_id in explanation.accepted_atom_ids:
