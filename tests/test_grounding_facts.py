@@ -115,8 +115,8 @@ def _build_loaded_concept(canonical_name: str, relationships):
     record = _build_concept_record(canonical_name, relationships)
     return LoadedConcept(
         filename=f"{canonical_name}.yaml",
-        artifact_path=None,
-        store_root=None,
+        source_path=None,
+        knowledge_root=None,
         record=record,
     )
 
