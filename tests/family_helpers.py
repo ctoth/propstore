@@ -23,8 +23,13 @@ from propstore.claims import (
 )
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.families.claims.documents import ClaimsFileDocument
+from propstore.families.documents.justifications import JustificationDocument
+from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.claims import normalize_claim_file_payload
+from propstore.families.identity.justifications import derive_justification_artifact_id
+from propstore.families.identity.stances import derive_stance_artifact_id
 from propstore.families.registry import ClaimRef
+from propstore.families.registry import JustificationRef, StanceRef
 from propstore.families.concepts.stages import load_concepts
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar as _build_sidecar
@@ -113,6 +118,38 @@ def claim_artifact_commit_payloads(
             repo.families.claims.render(claim) + "\n"
         ).encode("utf-8")
     return payloads
+
+
+def stance_artifact_commit_payload(
+    repo: Repository,
+    stance_payload: Mapping[str, object],
+) -> dict[str, bytes]:
+    artifact_id = derive_stance_artifact_id(dict(stance_payload))
+    document = convert_document_value(
+        stance_payload,
+        StanceDocument,
+        source=artifact_id,
+    )
+    path = repo.families.stances.address(StanceRef(artifact_id)).require_path()
+    return {
+        path: (repo.families.stances.render(document) + "\n").encode("utf-8"),
+    }
+
+
+def justification_artifact_commit_payload(
+    repo: Repository,
+    justification_payload: Mapping[str, object],
+) -> dict[str, bytes]:
+    artifact_id = derive_justification_artifact_id(dict(justification_payload))
+    document = convert_document_value(
+        justification_payload,
+        JustificationDocument,
+        source=artifact_id,
+    )
+    path = repo.families.justifications.address(JustificationRef(artifact_id)).require_path()
+    return {
+        path: (repo.families.justifications.render(document) + "\n").encode("utf-8"),
+    }
 
 
 def _load_claim_fixture(
