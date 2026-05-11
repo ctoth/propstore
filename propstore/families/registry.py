@@ -54,7 +54,7 @@ from propstore.families.documents.sources import (
 )
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.documents.worldlines import WorldlineDefinitionDocument
-from propstore.families.sameas.documents import SameAsFileDocument
+from propstore.families.sameas.documents import SameAsAssertionDocument
 from propstore.families.identity.claims import (
     CLAIM_SOURCE_LOCAL_FIELDS,
     CLAIM_VERSION_ID_EXCLUDED_FIELDS,
@@ -138,8 +138,8 @@ if TYPE_CHECKING:
         artifact_id: str
 
     @dataclass(frozen=True)
-    class SameAsFileRef:
-        name: str
+    class SameAsAssertionRef:
+        artifact_id: str
 
     @dataclass(frozen=True)
     class ConceptAlignmentRef:
@@ -202,7 +202,7 @@ if not TYPE_CHECKING:
         rule_id: str
 
     StanceRef = single_field_ref_type("StanceRef", "artifact_id", module=__name__)
-    SameAsFileRef = single_field_ref_type("SameAsFileRef", "name", module=__name__)
+    SameAsAssertionRef = single_field_ref_type("SameAsAssertionRef", "artifact_id", module=__name__)
     ConceptAlignmentRef = single_field_ref_type("ConceptAlignmentRef", "slug", module=__name__)
     MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
 
@@ -304,10 +304,11 @@ STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceRef](
     codec="colon_to_double_underscore",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-SAMEAS_PLACEMENT = FlatYamlPlacement["Repository", SameAsFileRef](
+SAMEAS_PLACEMENT = FlatYamlPlacement["Repository", SameAsAssertionRef](
     namespace=PropstoreFamily.SAMEAS.value,
-    ref_factory=SameAsFileRef,
-    ref_field="name",
+    ref_factory=SameAsAssertionRef,
+    ref_field="artifact_id",
+    codec="colon_to_double_underscore",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
 WORLDLINE_PLACEMENT = FlatYamlPlacement["Repository", WorldlineRef](
@@ -438,10 +439,10 @@ STANCE_FAMILY = ArtifactFamily["Repository", StanceRef, StanceDocument](
     placement=STANCE_PLACEMENT,
 )
 
-SAMEAS_FILE_FAMILY = ArtifactFamily["Repository", SameAsFileRef, SameAsFileDocument](
-    name="same_as_file",
+SAMEAS_ASSERTION_FAMILY = ArtifactFamily["Repository", SameAsAssertionRef, SameAsAssertionDocument](
+    name="same_as_assertion",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=SameAsFileDocument,
+    doc_type=SameAsAssertionDocument,
     placement=SAMEAS_PLACEMENT,
 )
 
@@ -760,9 +761,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.SAMEAS,
             name=PropstoreFamily.SAMEAS.value,
-            contract_version=SAMEAS_FILE_FAMILY.contract_version,
-            artifact_family=SAMEAS_FILE_FAMILY,
-            metadata=_semantic_metadata(importable=True, import_order=65, collection_field="assertions"),
+            contract_version=SAMEAS_ASSERTION_FAMILY.contract_version,
+            artifact_family=SAMEAS_ASSERTION_FAMILY,
+            metadata=_semantic_metadata(importable=True, import_order=65),
         ),
         FamilyDefinition(
             key=PropstoreFamily.WORLDLINES,
