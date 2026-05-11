@@ -42,8 +42,9 @@ def loaded_claim_file_from_payload(
 ) -> LoadedClaimsFile:
     label = filename if source_path is None else str(source_path)
     claim_payload = data
-    if isinstance(data.get("claims"), list):
-        claims = data.get("claims")
+    raw_claims = data.get("claims")
+    if isinstance(raw_claims, list):
+        claims = raw_claims
         if len(claims) != 1:
             raise ValueError("claim artifact payload must contain exactly one claim")
         claim_payload = dict(claims[0])
