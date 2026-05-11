@@ -36,10 +36,10 @@ from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
 from propstore.families.documents.sources import (
     SourceJustificationDocument,
-    SourceJustificationsDocument,
 )
+from propstore.families.identity.justifications import stamp_justification_artifact_id
 from propstore.families.identity.stances import stamp_stance_artifact_id
-from propstore.families.registry import JustificationsFileRef, StanceRef
+from propstore.families.registry import JustificationRef, StanceRef
 from propstore.repository import Repository
 from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
@@ -250,18 +250,21 @@ def _seed_authored_reasoning(repo: Repository) -> None:
             head="fixture_hidden_claim(draft)",
         ),
     )
+    justification_payload = stamp_justification_artifact_id(
+        SourceJustificationDocument(
+            id="j_fixture",
+            conclusion="claim_fixture_final",
+            premises=("claim_fixture_draft",),
+            rule_kind="reported_claim",
+            rule_strength="defeasible",
+        ).to_payload()
+    )
+    justification_ref = JustificationRef(str(justification_payload["artifact_code"]))
     repo.families.justifications.save(
-        JustificationsFileRef("fixture"),
-        SourceJustificationsDocument(
-            justifications=(
-                SourceJustificationDocument(
-                    id="j_fixture",
-                    conclusion="claim_fixture_final",
-                    premises=("claim_fixture_draft",),
-                    rule_kind="reported_claim",
-                    rule_strength="defeasible",
-                ),
-            )
+        justification_ref,
+        repo.families.justifications.coerce(
+            justification_payload,
+            source=repo.families.justifications.address(justification_ref).require_path(),
         ),
         message="Seed world status justifications",
     )
