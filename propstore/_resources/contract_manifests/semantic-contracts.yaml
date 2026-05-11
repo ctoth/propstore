@@ -306,23 +306,23 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
-  name: same_as_file
+  name: same_as_assertion
   contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.sameas.documents.SameAsFileDocument
+    doc_type: propstore.families.sameas.documents.SameAsAssertionDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
     placement:
       branch:
         policy: primary
-      codec: stem
+      codec: colon_to_double_underscore
       extension: .yaml
       kind: flat-yaml
       namespace: sameas
-      ref_field: name
+      ref_field: artifact_id
     render_document: null
     scan_type: null
     validate_for_write: null
@@ -2078,21 +2078,15 @@ contracts:
     - name: evidence_source
       required: true
       type: str
+    - name: artifact_id
+      required: true
+      type: str | None
     - name: provenance
       required: true
       type: dict[str, Any]
     - name: confidence
       required: true
       type: float | int | None
-    module: propstore.families.sameas.documents
-- kind: document_schema
-  name: SameAsFileDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: assertions
-      required: true
-      type: tuple[SameAsAssertionDocument, ...]
     module: propstore.families.sameas.documents
 - kind: document_schema
   name: SourceAttackTargetDocument
@@ -3642,22 +3636,22 @@ contracts:
   contract_version: 2026.04.27
   body:
     accessor: sameas
-    artifact_family: same_as_file
+    artifact_family: same_as_assertion
     artifact_family_contract:
-      doc_type: propstore.families.sameas.documents.SameAsFileDocument
+      doc_type: propstore.families.sameas.documents.SameAsAssertionDocument
       placement:
         branch:
           policy: primary
-        codec: stem
+        codec: colon_to_double_underscore
         extension: .yaml
         kind: flat-yaml
         namespace: sameas
-        ref_field: name
+        ref_field: artifact_id
     artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: sameas
     metadata:
-      collection_field: assertions
+      collection_field: null
       import_order: 65
       importable: true
       init_directory: true
