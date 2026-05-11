@@ -7,7 +7,6 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
-from propstore.families.registry import ClaimsFileRef
 from propstore.repository import Repository
 from propstore.source import source_branch_name
 from tests.conftest import make_test_context_commit_entry, normalize_concept_payloads
@@ -170,10 +169,10 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
     )
     assert promote.exit_code == 0, promote.output
 
-    claims_doc = repo.families.claims.require(ClaimsFileRef("demo"))
-    promoted_statements = {claim.statement for claim in claims_doc.claims if claim.statement}
+    promoted_claims = [handle.document for handle in repo.families.claims.iter_handles()]
+    promoted_statements = {claim.statement for claim in promoted_claims if claim.statement}
     assert promoted_statements == {"Known concept observation."}
-    assert claims_doc.claims[0].concepts == (known_artifact_id,)
+    assert promoted_claims[0].concepts == (known_artifact_id,)
 
     conn = sqlite3.connect(repo.sidecar_path)
     try:

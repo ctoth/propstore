@@ -9,7 +9,7 @@ from quire.documents import convert_document_value
 
 from propstore.cli import cli
 from propstore.families.documents.sources import SourceClaimsDocument
-from propstore.families.registry import ClaimsFileRef, SourceRef
+from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.source import normalize_source_claims_payload, source_branch_name
 from propstore.source.common import load_source_document
@@ -148,8 +148,8 @@ def test_source_promote_unresolved_concept_mapping_quarantines_claim_not_valid_c
     )
     assert promote.exit_code == 0, promote.output
 
-    claims_doc = repo.families.claims.require(ClaimsFileRef("demo"))
-    promoted_statements = {claim.statement for claim in claims_doc.claims if claim.statement}
+    promoted_claims = [handle.document for handle in repo.families.claims.iter_handles()]
+    promoted_statements = {claim.statement for claim in promoted_claims if claim.statement}
     assert promoted_statements == {"Known concept observation."}
 
     conn = sqlite3.connect(repo.sidecar_path)
