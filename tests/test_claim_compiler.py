@@ -138,8 +138,19 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
     bundle = compile_claim_files(files, context)
 
     assert bundle.ok
-    semantic_claim = bundle.semantic_files[0].claims[0]
-    target_claim_id = bundle.semantic_files[0].claims[1].artifact_id
+    semantic_claims = [
+        claim
+        for semantic_file in bundle.semantic_files
+        for claim in semantic_file.claims
+    ]
+    semantic_claim = next(
+        claim for claim in semantic_claims
+        if claim.resolved_claim.primary_logical_id == "paper:claim1"
+    )
+    target_claim_id = next(
+        claim.artifact_id for claim in semantic_claims
+        if claim.resolved_claim.primary_logical_id == "paper:claim2"
+    )
 
     assert semantic_claim.output_concept_ref is not None
     assert semantic_claim.output_concept_ref.matched_by == "alias"
@@ -213,7 +224,7 @@ def test_prepare_claim_insert_row_matches_for_raw_and_semantic_claims(tmp_path):
     assert semantic_row == raw_row
 
 
-def test_compile_claim_files_rejects_raw_id_only_claims(tmp_path):
+def test_compile_claim_files_normalizes_authored_raw_id_batches(tmp_path):
     knowledge = tmp_path / "knowledge"
     claims_dir = knowledge / "claims"
     concepts_dir = knowledge / "concepts"
@@ -265,15 +276,13 @@ def test_compile_claim_files_rejects_raw_id_only_claims(tmp_path):
     )
     bundle = compile_claim_files(files, context)
 
-    assert not bundle.ok
-    messages = [diagnostic.message for diagnostic in bundle.diagnostics if diagnostic.is_error]
-    assert any("raw 'id' input" in message for message in messages)
+    assert bundle.ok
+    assert len(bundle.semantic_files) == 1
+    assert bundle.semantic_files[0].claims[0].artifact_id is not None
 
     pipeline_result = run_claim_pipeline(
         ClaimAuthoredFiles.from_sequence(files, context)
     )
     assert isinstance(pipeline_result.output, ClaimCheckedBundle)
     records = pipeline_result.output.raw_id_quarantine_records
-    assert len(records) == 1
-    assert records[0].raw_id == "claim1"
-    assert records[0].synthetic_id.startswith("quarantine:raw_id:")
+    assert records == ()
