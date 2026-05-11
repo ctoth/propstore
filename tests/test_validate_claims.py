@@ -98,6 +98,19 @@ def write_claim_file(claims_dir, filename, data):
     return path
 
 
+def write_single_claim_artifact(claims_dir, filename, data):
+    """Helper: write one canonical claim artifact YAML file."""
+    path = claims_dir / filename
+    loaded = loaded_claim_file_from_payload(
+        filename=filename,
+        source_path=path,
+        data=data,
+        knowledge_root=claims_dir,
+    )
+    path.write_text(yaml.dump(loaded.document.to_payload(), default_flow_style=False))
+    return path
+
+
 def make_source(paper="test_paper"):
     return {"paper": paper}
 
@@ -1657,10 +1670,13 @@ class TestValidateSingleFile:
             "output_concept": "concept1",
             "value": 440.0,
             "unit": "Hz",
-            "provenance": {"paper": "test_paper"},  # missing page
+            "provenance": {"paper": "test_paper", "page": 1},
         }
         data = make_claim_file_data([claim])
-        filepath = write_claim_file(tmp_path, "test.yaml", data)
+        filepath = write_single_claim_artifact(tmp_path, "test.yaml", data)
+        artifact_payload = yaml.safe_load(filepath.read_text())
+        artifact_payload["provenance"].pop("page")
+        filepath.write_text(yaml.dump(artifact_payload, default_flow_style=False))
 
         with pytest.raises(DocumentSchemaError, match="page"):
             validate_single_claim_file(filepath, make_compilation_context())
@@ -1674,7 +1690,7 @@ class TestValidateSingleFile:
             # missing variables
         }
         data = make_claim_file_data([claim])
-        filepath = write_claim_file(tmp_path, "test.yaml", data)
+        filepath = write_single_claim_artifact(tmp_path, "test.yaml", data)
 
         result = validate_single_claim_file(filepath, make_compilation_context())
         assert not result.ok
@@ -1683,7 +1699,7 @@ class TestValidateSingleFile:
     def test_valid_file_passes(self, claims_dir, tmp_path):
         claim = make_parameter_claim("claim1", "concept1", 440.0, "Hz")
         data = make_claim_file_data([claim])
-        filepath = write_claim_file(tmp_path, "test.yaml", data)
+        filepath = write_single_claim_artifact(tmp_path, "test.yaml", data)
 
         result = validate_single_claim_file(filepath, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
