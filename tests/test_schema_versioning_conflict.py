@@ -13,8 +13,9 @@ def test_stance_family_schema_conflict_is_not_silently_left_wins(tmp_path) -> No
         {
             "claims/base.yaml": claim_yaml([obs_claim("base", "Base", ["concept_base"])]),
             "stances/ps__claim__base.yaml": (
-                b"source_claim: ps:claim:base\nstances:\n"
-                b"- target: ps:claim:base\n  type: supports\n"
+                b"source_claim: ps:claim:base\n"
+                b"target: ps:claim:base\n"
+                b"type: supports\n"
             ),
         },
         "seed",
@@ -24,8 +25,9 @@ def test_stance_family_schema_conflict_is_not_silently_left_wins(tmp_path) -> No
     kr.commit_files(
         {
             "stances/ps__claim__base.yaml": (
-                b"source_claim: ps:claim:base\nclassification_model: left\nstances:\n"
-                b"- target: ps:claim:base\n  type: supports\n"
+                b"source_claim: ps:claim:base\nclassification_model: left\n"
+                b"target: ps:claim:base\n"
+                b"type: supports\n"
             )
         },
         "left",
@@ -33,8 +35,9 @@ def test_stance_family_schema_conflict_is_not_silently_left_wins(tmp_path) -> No
     kr.commit_files(
         {
             "stances/ps__claim__base.yaml": (
-                b"source_claim: ps:claim:base\nclassification_model: right\nstances:\n"
-                b"- target: ps:claim:base\n  type: supports\n"
+                b"source_claim: ps:claim:base\nclassification_model: right\n"
+                b"target: ps:claim:base\n"
+                b"type: supports\n"
             )
         },
         "right",
