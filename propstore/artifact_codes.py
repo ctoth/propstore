@@ -35,6 +35,21 @@ def stance_artifact_code(stance: dict[str, object]) -> str:
     return _hash_payload(canonical)
 
 
+def _copied_artifact_doc(
+    payload: dict[str, object] | None,
+    *,
+    list_field: str,
+) -> dict[str, object]:
+    if payload is not None:
+        return copy.deepcopy(payload)
+    return {list_field: []}
+
+
+def _artifact_entries(payload: dict[str, object], list_field: str) -> list[object]:
+    entries = payload.get(list_field)
+    return entries if isinstance(entries, list) else []
+
+
 def claim_artifact_code(
     claim: dict[str, object],
     *,
@@ -61,16 +76,19 @@ def attach_source_artifact_codes(
     stances_doc: dict[str, object] | None,
 ) -> tuple[dict[str, object], dict[str, object], dict[str, object], dict[str, object]]:
     updated_source = copy.deepcopy(source_doc)
-    updated_claims = copy.deepcopy(claims_doc or {"claims": []})
-    updated_justifications = copy.deepcopy(justifications_doc or {"justifications": []})
-    updated_stances = copy.deepcopy(stances_doc or {"stances": []})
+    updated_claims = _copied_artifact_doc(claims_doc, list_field="claims")
+    updated_justifications = _copied_artifact_doc(
+        justifications_doc,
+        list_field="justifications",
+    )
+    updated_stances = _copied_artifact_doc(stances_doc, list_field="stances")
 
     source_code = source_artifact_code(updated_source)
     updated_source["artifact_code"] = source_code
 
     justification_codes_by_conclusion: dict[str, list[str]] = defaultdict(list)
     rewritten_justifications: list[object] = []
-    for justification in updated_justifications.get("justifications", []) or []:
+    for justification in _artifact_entries(updated_justifications, "justifications"):
         if not isinstance(justification, dict):
             rewritten_justifications.append(justification)
             continue
@@ -85,7 +103,7 @@ def attach_source_artifact_codes(
 
     stance_codes_by_source: dict[str, list[str]] = defaultdict(list)
     rewritten_stances: list[object] = []
-    for stance in updated_stances.get("stances", []) or []:
+    for stance in _artifact_entries(updated_stances, "stances"):
         if not isinstance(stance, dict):
             rewritten_stances.append(stance)
             continue
@@ -99,7 +117,7 @@ def attach_source_artifact_codes(
     updated_stances["stances"] = rewritten_stances
 
     rewritten_claims: list[object] = []
-    for claim in updated_claims.get("claims", []) or []:
+    for claim in _artifact_entries(updated_claims, "claims"):
         if not isinstance(claim, dict):
             rewritten_claims.append(claim)
             continue
