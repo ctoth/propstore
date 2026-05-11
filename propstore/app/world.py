@@ -222,10 +222,7 @@ def _authored_world_counts(repo: Repository) -> dict[str, int]:
             len(handle.document.rules)
             for handle in repo.families.rules.iter_handles()
         ),
-        "stances": sum(
-            len(handle.document.stances)
-            for handle in repo.families.stances.iter_handles()
-        ),
+        "stances": sum(1 for _ in repo.families.stances.iter_handles()),
     }
 
 
