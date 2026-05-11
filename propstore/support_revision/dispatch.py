@@ -71,7 +71,7 @@ def dispatch(
             profile_atom_ids=profile_atom_ids,
             integrity_constraint=integrity_constraint,
             merge_operator=str(payload.get("merge_operator") or "sigma"),
-            max_alphabet_size=_max_candidates(payload),
+            max_alphabet_size=_max_alphabet_size(payload),
         )
         try:
             result = realize_ic_merge_decision(state.base, decision)
@@ -230,6 +230,13 @@ def _max_candidates(payload: Mapping[str, Any]) -> int:
     value = payload.get("max_candidates")
     if value is None:
         raise ValueError("journal operator_input.max_candidates is required")
+    return int(value)
+
+
+def _max_alphabet_size(payload: Mapping[str, Any]) -> int:
+    value = payload.get("max_alphabet_size")
+    if value is None:
+        raise ValueError("journal operator_input.max_alphabet_size is required")
     return int(value)
 
 
