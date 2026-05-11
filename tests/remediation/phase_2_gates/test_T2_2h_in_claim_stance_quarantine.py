@@ -8,6 +8,7 @@ import yaml
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def test_in_claim_stance_missing_target_quarantines_not_raises(
@@ -47,6 +48,11 @@ def test_in_claim_stance_missing_target_quarantines_not_raises(
     )
     source_claim_id = claim_payload["claims"][0]["artifact_id"]
     repo = Repository.init(tmp_path / "knowledge")
+    claim_payloads = claim_artifact_commit_payloads(
+        repo,
+        claim_payload,
+        source="claims/inline_stance.yaml",
+    )
     repo.git.commit_files(
         {
             "forms/frequency.yaml": yaml.dump(
@@ -57,14 +63,11 @@ def test_in_claim_stance_missing_target_quarantines_not_raises(
                 concept_payload,
                 sort_keys=False,
             ).encode(),
-            "claims/inline_stance.yaml": yaml.dump(
-                claim_payload,
-                sort_keys=False,
-            ).encode(),
             "contexts/ctx_test.yaml": yaml.dump(
                 {"id": "ctx_test", "name": "Test context"},
                 sort_keys=False,
             ).encode(),
+            **claim_payloads,
         },
         "seed missing in-claim stance target quarantine test",
     )
