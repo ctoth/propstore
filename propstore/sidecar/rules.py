@@ -289,12 +289,12 @@ def _decode_bundle_input(kind: str, payload: bytes) -> object:
         if not isinstance(value, dict):
             raise ValueError("loaded rule file payload must be an object")
         document = msgspec.convert(value["document"], type=RulesFileDocument)
-        source_path = value.get("source_path")
-        knowledge_root = value.get("knowledge_root")
+        artifact_path = value.get("artifact_path")
+        store_root = value.get("store_root")
         return LoadedRuleFile(
             filename=str(value["filename"]),
-            source_path=None if source_path is None else Path(str(source_path)),
-            knowledge_root=None if knowledge_root is None else Path(str(knowledge_root)),
+            artifact_path=None if artifact_path is None else Path(str(artifact_path)),
+            store_root=None if store_root is None else Path(str(store_root)),
             document=document,
         )
     raise ValueError(f"unsupported grounded bundle input tag {tag!r}")
@@ -330,10 +330,10 @@ def _bundle_input_payload(kind: str, value: object) -> dict[str, object]:
             "tag": "loaded_rule_file",
             "value": {
                 "filename": value.filename,
-                "source_path": None if value.source_path is None else str(value.source_path),
-                "knowledge_root": (
-                    None if value.knowledge_root is None else str(value.knowledge_root)
+                "artifact_path": (
+                    None if value.artifact_path is None else str(value.artifact_path)
                 ),
+                "store_root": None if value.store_root is None else str(value.store_root),
                 "document": msgspec.to_builtins(value.document),
             },
         }

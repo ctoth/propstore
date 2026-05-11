@@ -33,8 +33,8 @@ def load_grounding_inputs(
     predicate_files = tuple(
         LoadedPredicateFile(
             filename=handle.ref.name,
-            source_path=tree / handle.address.require_path(),
-            knowledge_root=tree,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
             document=handle.document,
         )
         for handle in repo.families.predicates.iter_handles(commit=commit)
@@ -42,8 +42,8 @@ def load_grounding_inputs(
     rule_files: tuple[LoadedRuleFile, ...] = tuple(
         LoadedRuleFile(
             filename=handle.ref.name,
-            source_path=tree / handle.address.require_path(),
-            knowledge_root=tree,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
             document=handle.document,
         )
         for handle in repo.families.rules.iter_handles(commit=commit)
